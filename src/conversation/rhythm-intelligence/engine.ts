@@ -27,11 +27,7 @@ import {
   LOW_ENERGY_PATTERNS,
   DEFAULT_RHYTHM_PROFILE,
 } from './constants.js';
-import {
-  getProfile,
-  createProfile,
-  recordTurn,
-} from './persistence.js';
+import { getProfile, createProfile, recordTurn } from './persistence.js';
 
 const log = createLogger({ module: 'RhythmIntelligence' });
 
@@ -81,11 +77,7 @@ export class RhythmIntelligence implements IRhythmIntelligence {
     return guidance;
   }
 
-  async recordTurn(
-    userId: string,
-    analysis: TurnAnalysis,
-    wasSuccessful: boolean
-  ): Promise<void> {
+  async recordTurn(userId: string, analysis: TurnAnalysis, wasSuccessful: boolean): Promise<void> {
     // Ensure time of day is set
     if (!analysis.timeOfDay) {
       analysis.timeOfDay = getTimeOfDay(new Date().getHours());
@@ -114,18 +106,14 @@ export class RhythmIntelligence implements IRhythmIntelligence {
     return getProfile(userId);
   }
 
-  analyzeTurn(
-    message: string,
-    options?: { topic?: string }
-  ): TurnAnalysis {
+  analyzeTurn(message: string, options?: { topic?: string }): TurnAnalysis {
     const words = message.split(/\s+/).filter(Boolean);
     const sentences = message.split(/[.!?]+/).filter(Boolean);
 
     return {
       wordCount: words.length,
       sentenceCount: sentences.length,
-      avgWordsPerSentence:
-        sentences.length > 0 ? words.length / sentences.length : words.length,
+      avgWordsPerSentence: sentences.length > 0 ? words.length / sentences.length : words.length,
       energy: this.detectEnergy(message),
       topic: options?.topic,
       timeOfDay: getTimeOfDay(new Date().getHours()),
@@ -237,10 +225,7 @@ export class RhythmIntelligence implements IRhythmIntelligence {
     };
   }
 
-  private adjustForContext(
-    guidance: RhythmGuidance,
-    context: RhythmContext
-  ): RhythmGuidance {
+  private adjustForContext(guidance: RhythmGuidance, context: RhythmContext): RhythmGuidance {
     const adjusted = { ...guidance };
     const reasons: string[] = [];
 
@@ -277,9 +262,7 @@ export class RhythmIntelligence implements IRhythmIntelligence {
     return adjusted;
   }
 
-  private getResponseRangeForUserTurn(
-    wordCount: number
-  ): { min: number; max: number } | null {
+  private getResponseRangeForUserTurn(wordCount: number): { min: number; max: number } | null {
     if (wordCount < 10) {
       return USER_TURN_TO_RESPONSE.veryShort;
     }

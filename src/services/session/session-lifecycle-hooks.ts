@@ -37,7 +37,13 @@ void (async () => {
     const { publishSessionEvent } = await import('../redis-pubsub.js');
     publishSession = (type: string, data: Record<string, unknown>) => {
       // Only publish if type is a valid session event type
-      const validTypes: SessionEventType[] = ['handoff', 'end', 'presence', 'session_start', 'session_end'];
+      const validTypes: SessionEventType[] = [
+        'handoff',
+        'end',
+        'presence',
+        'session_start',
+        'session_end',
+      ];
       if (validTypes.includes(type as SessionEventType)) {
         publishSessionEvent(type as SessionEventType, {
           userId: data.userId as string,
@@ -45,7 +51,10 @@ void (async () => {
           personaId: data.personaId as string,
           metadata: data,
         }).catch((err) => {
-          log.debug({ error: String(err), type }, 'Session lifecycle Pub/Sub failed (non-critical)');
+          log.debug(
+            { error: String(err), type },
+            'Session lifecycle Pub/Sub failed (non-critical)'
+          );
         });
       }
     };

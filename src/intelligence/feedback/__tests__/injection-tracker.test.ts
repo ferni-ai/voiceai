@@ -52,7 +52,12 @@ describe('Injection Tracker', () => {
     it('should add tracking IDs to injections', () => {
       const injections: MinimalInjection[] = [
         { category: 'emotional', content: 'User is feeling anxious', priority: 1 },
-        { category: 'memory', content: 'User mentioned Sarah yesterday', priority: 2, source: 'memory-builder' },
+        {
+          category: 'memory',
+          content: 'User mentioned Sarah yesterday',
+          priority: 2,
+          source: 'memory-builder',
+        },
       ];
 
       const tracked = tagInjectionsForTracking(injections, testSessionId);
@@ -66,7 +71,12 @@ describe('Injection Tracker', () => {
 
     it('should preserve original injection properties', () => {
       const injections: MinimalInjection[] = [
-        { category: 'coaching', content: 'Consider checking in about their habit streak', priority: 3, source: 'maya-coaching' },
+        {
+          category: 'coaching',
+          content: 'Consider checking in about their habit streak',
+          priority: 3,
+          source: 'maya-coaching',
+        },
       ];
 
       const tracked = tagInjectionsForTracking(injections, testSessionId);
@@ -89,9 +99,7 @@ describe('Injection Tracker', () => {
 
     it('should add timestamp to tracked injections', () => {
       const beforeTag = Date.now();
-      const injections: MinimalInjection[] = [
-        { category: 'test', content: 'Test', priority: 1 },
-      ];
+      const injections: MinimalInjection[] = [{ category: 'test', content: 'Test', priority: 1 }];
 
       const tracked = tagInjectionsForTracking(injections, testSessionId);
       const afterTag = Date.now();
@@ -108,7 +116,12 @@ describe('Injection Tracker', () => {
   describe('analyzeResponseAlignment', () => {
     it('should detect high alignment when response uses injection keywords', () => {
       const injections: MinimalInjection[] = [
-        { category: 'memory', content: 'User mentioned their dog Max last week', priority: 1, source: 'memory-builder' },
+        {
+          category: 'memory',
+          content: 'User mentioned their dog Max last week',
+          priority: 1,
+          source: 'memory-builder',
+        },
       ];
 
       tagInjectionsForTracking(injections, testSessionId);
@@ -127,7 +140,12 @@ describe('Injection Tracker', () => {
 
     it('should detect low alignment when response is unrelated', () => {
       const injections: MinimalInjection[] = [
-        { category: 'emotional', content: 'User is experiencing work stress', priority: 1, source: 'emotion-builder' },
+        {
+          category: 'emotional',
+          content: 'User is experiencing work stress',
+          priority: 1,
+          source: 'emotion-builder',
+        },
       ];
 
       tagInjectionsForTracking(injections, testSessionId);
@@ -146,8 +164,18 @@ describe('Injection Tracker', () => {
 
     it('should analyze multiple injections independently', () => {
       const injections: MinimalInjection[] = [
-        { category: 'memory', content: 'User loves hiking in the mountains', priority: 1, source: 'memory-builder' },
-        { category: 'emotional', content: 'User mentioned feeling tired lately', priority: 2, source: 'emotion-builder' },
+        {
+          category: 'memory',
+          content: 'User loves hiking in the mountains',
+          priority: 1,
+          source: 'memory-builder',
+        },
+        {
+          category: 'emotional',
+          content: 'User mentioned feeling tired lately',
+          priority: 2,
+          source: 'emotion-builder',
+        },
       ];
 
       tagInjectionsForTracking(injections, testSessionId);
@@ -162,11 +190,11 @@ describe('Injection Tracker', () => {
       expect(feedback).toHaveLength(2);
 
       // First injection should align well
-      const memoryFeedback = feedback.find(f => f.category === 'memory');
+      const memoryFeedback = feedback.find((f) => f.category === 'memory');
       expect(memoryFeedback?.wasUsedInResponse).toBe(true);
 
       // Second injection should have low alignment
-      const emotionFeedback = feedback.find(f => f.category === 'emotional');
+      const emotionFeedback = feedback.find((f) => f.category === 'emotional');
       expect(emotionFeedback?.wasUsedInResponse).toBe(false);
     });
 
@@ -211,7 +239,12 @@ describe('Injection Tracker', () => {
   describe('recordUserReaction', () => {
     it('should detect positive reactions', () => {
       const injections: MinimalInjection[] = [
-        { category: 'coaching', content: 'Suggest habit tracking', priority: 1, source: 'coaching-builder' },
+        {
+          category: 'coaching',
+          content: 'Suggest habit tracking',
+          priority: 1,
+          source: 'coaching-builder',
+        },
       ];
 
       tagInjectionsForTracking(injections, testSessionId);
@@ -225,12 +258,25 @@ describe('Injection Tracker', () => {
 
     it('should detect negative reactions', () => {
       const injections: MinimalInjection[] = [
-        { category: 'suggestion', content: 'Recommend meditation', priority: 1, source: 'wellness-builder' },
+        {
+          category: 'suggestion',
+          content: 'Recommend meditation',
+          priority: 1,
+          source: 'wellness-builder',
+        },
       ];
 
       tagInjectionsForTracking(injections, testSessionId);
-      analyzeResponseAlignment(testSessionId, testUserId, 'Have you tried meditation?', 'practical');
-      recordUserReaction(testSessionId, "No, that's not what I'm looking for. I don't like meditation.");
+      analyzeResponseAlignment(
+        testSessionId,
+        testUserId,
+        'Have you tried meditation?',
+        'practical'
+      );
+      recordUserReaction(
+        testSessionId,
+        "No, that's not what I'm looking for. I don't like meditation."
+      );
 
       const feedback = getSessionFeedback(testSessionId);
       expect(feedback[0].userReaction).toBe('negative');
@@ -244,16 +290,17 @@ describe('Injection Tracker', () => {
       tagInjectionsForTracking(injections, testSessionId);
       analyzeResponseAlignment(testSessionId, testUserId, "It's sunny today.", 'casual');
       // Neutral: no strong positive or negative indicators, longer than question threshold
-      recordUserReaction(testSessionId, 'I was thinking about going to the park later today to enjoy the weather and maybe read a book.');
+      recordUserReaction(
+        testSessionId,
+        'I was thinking about going to the park later today to enjoy the weather and maybe read a book.'
+      );
 
       const feedback = getSessionFeedback(testSessionId);
       expect(feedback[0].userReaction).toBe('neutral');
     });
 
     it('should handle short positive confirmations', () => {
-      const injections: MinimalInjection[] = [
-        { category: 'test', content: 'Test', priority: 1 },
-      ];
+      const injections: MinimalInjection[] = [{ category: 'test', content: 'Test', priority: 1 }];
 
       tagInjectionsForTracking(injections, testSessionId);
       analyzeResponseAlignment(testSessionId, testUserId, 'Response', 'casual');
@@ -264,9 +311,7 @@ describe('Injection Tracker', () => {
     });
 
     it('should handle questions as potential confusion signals', () => {
-      const injections: MinimalInjection[] = [
-        { category: 'test', content: 'Test', priority: 1 },
-      ];
+      const injections: MinimalInjection[] = [{ category: 'test', content: 'Test', priority: 1 }];
 
       tagInjectionsForTracking(injections, testSessionId);
       analyzeResponseAlignment(testSessionId, testUserId, 'Response', 'casual');
@@ -290,7 +335,7 @@ describe('Injection Tracker', () => {
 
       const feedback = getSessionFeedback(testSessionId);
       expect(feedback).toHaveLength(3);
-      expect(feedback.every(f => f.userReaction === 'positive')).toBe(true);
+      expect(feedback.every((f) => f.userReaction === 'positive')).toBe(true);
     });
 
     it('should handle no pending feedback gracefully', () => {
@@ -328,7 +373,12 @@ describe('Injection Tracker', () => {
         { category: 'coaching', content: 'Another injection', priority: 1, source: 'coaching' },
       ];
       tagInjectionsForTracking(injections2, testSessionId);
-      analyzeResponseAlignment(testSessionId, testUserId, 'Completely different response', 'practical');
+      analyzeResponseAlignment(
+        testSessionId,
+        testUserId,
+        'Completely different response',
+        'practical'
+      );
       recordUserReaction(testSessionId, "No, that's not right, stop.");
 
       // Turn 3: One injection, neutral reaction
@@ -429,9 +479,9 @@ describe('Injection Tracker', () => {
 
     it('should clamp ROI score to 0-100 range', () => {
       // Even with all negative reactions, ROI shouldn't go below 0
-      const terribleFeedback: InjectionFeedback[] = Array(10).fill(null).map(() =>
-        createFeedback('terrible-builder', 'test', false, 0, 'negative')
-      );
+      const terribleFeedback: InjectionFeedback[] = Array(10)
+        .fill(null)
+        .map(() => createFeedback('terrible-builder', 'test', false, 0, 'negative'));
 
       const metrics = aggregateBuilderMetrics(terribleFeedback);
       const terrible = metrics.get('terrible-builder')!;
@@ -452,9 +502,7 @@ describe('Injection Tracker', () => {
 
   describe('cleanupSession', () => {
     it('should clear all session state', () => {
-      const injections: MinimalInjection[] = [
-        { category: 'test', content: 'Test', priority: 1 },
-      ];
+      const injections: MinimalInjection[] = [{ category: 'test', content: 'Test', priority: 1 }];
 
       tagInjectionsForTracking(injections, testSessionId);
       analyzeResponseAlignment(testSessionId, testUserId, 'Response', 'casual');

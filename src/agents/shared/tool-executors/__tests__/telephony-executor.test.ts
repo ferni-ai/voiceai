@@ -61,11 +61,11 @@ describe('TelephonyExecutor', () => {
     });
 
     it('should handle all expected tools', () => {
+      // NOTE: callandconverse and makephonecall are handled by scheduling-executor
       const expectedTools = [
         'reachout',
+        'multioutreach',
         'callonbehalf',
-        'callandconverse',
-        'makephonecall',
         'schedulecallback',
         'checkvoicemail',
         'requestcallback',
@@ -181,74 +181,8 @@ describe('TelephonyExecutor', () => {
     });
   });
 
-  describe('callAndConverse', () => {
-    it('should initiate AI-assisted conversation call', async () => {
-      const ctx = createContext();
-      const result = await telephonyExecutor.execute(
-        'callAndConverse',
-        {
-          contact: 'Bank',
-          purpose: 'Check account balance',
-        },
-        ctx
-      );
-
-      expect(result).toBeDefined();
-    });
-
-    it('should handle call with specific instructions', async () => {
-      const ctx = createContext();
-      const result = await telephonyExecutor.execute(
-        'callAndConverse',
-        {
-          contact: 'Insurance Company',
-          purpose: 'File a claim',
-          instructions: 'Get claim number and expected timeline',
-        },
-        ctx
-      );
-
-      expect(result).toBeDefined();
-    });
-
-    it('should prompt for contact if missing', async () => {
-      const ctx = createContext();
-      const result = await telephonyExecutor.execute(
-        'callAndConverse',
-        { purpose: 'Ask question' },
-        ctx
-      );
-
-      expect(result).toContain('Who');
-    });
-  });
-
-  describe('makePhoneCall', () => {
-    it('should initiate a direct phone call', async () => {
-      const ctx = createContext();
-      const result = await telephonyExecutor.execute('makePhoneCall', { contact: 'John' }, ctx);
-
-      expect(result).toBeDefined();
-    });
-
-    it('should make call to phone number', async () => {
-      const ctx = createContext();
-      const result = await telephonyExecutor.execute(
-        'makePhoneCall',
-        { phoneNumber: '555-1234' },
-        ctx
-      );
-
-      expect(result).toBeDefined();
-    });
-
-    it('should prompt for contact if missing', async () => {
-      const ctx = createContext();
-      const result = await telephonyExecutor.execute('makePhoneCall', {}, ctx);
-
-      expect(result).toContain('Who');
-    });
-  });
+  // NOTE: callAndConverse and makePhoneCall tests removed
+  // These tools are handled by scheduling-executor, not telephony-executor
 
   describe('scheduleCallback', () => {
     it('should schedule a callback', async () => {

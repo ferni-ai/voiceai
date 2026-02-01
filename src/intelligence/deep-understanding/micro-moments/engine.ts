@@ -34,10 +34,8 @@ export class MicroMomentDetector implements IMicroMomentDetector {
   private recentMoments: MicroMoment[] = [];
 
   /** Track outcomes for effectiveness learning */
-  private outcomes: Map<
-    MicroMomentType,
-    { positive: number; negative: number; neutral: number }
-  > = new Map();
+  private outcomes: Map<MicroMomentType, { positive: number; negative: number; neutral: number }> =
+    new Map();
 
   constructor() {
     // Initialize outcome tracking
@@ -121,8 +119,8 @@ export class MicroMomentDetector implements IMicroMomentDetector {
     if (!rule) {
       return {
         type: 'verbal',
-        phrase: "I noticed that.",
-        ssml: "I noticed that.",
+        phrase: 'I noticed that.',
+        ssml: 'I noticed that.',
         timing: 'weave-in',
         pauseBeforeMs: 200,
       };
@@ -152,20 +150,14 @@ export class MicroMomentDetector implements IMicroMomentDetector {
     const typeDescriptions: Record<MicroMomentType, string> = {
       'vulnerability-edge':
         'User is sharing something vulnerable. Honor this with gentle presence. Dont overreact.',
-      'small-win':
-        'User achieved something they find meaningful. Celebrate it without minimizing.',
+      'small-win': 'User achieved something they find meaningful. Celebrate it without minimizing.',
       'relationship-shift':
         "User's perspective on a relationship is changing. Reflect this gently.",
-      'language-change':
-        'User shifted from "I" to "we" language. They\'re feeling connected.',
-      'hope-glimmer':
-        'A spark of hope appeared. Nurture it without pressure.',
-      'self-compassion':
-        "User is being kind to themselves. This is growth. Affirm it.",
-      'boundary-attempt':
-        'User set or tried to set a boundary. Validate their strength.',
-      'growth-evidence':
-        'User recognized their own growth. Mirror it back to them.',
+      'language-change': 'User shifted from "I" to "we" language. They\'re feeling connected.',
+      'hope-glimmer': 'A spark of hope appeared. Nurture it without pressure.',
+      'self-compassion': 'User is being kind to themselves. This is growth. Affirm it.',
+      'boundary-attempt': 'User set or tried to set a boundary. Validate their strength.',
+      'growth-evidence': 'User recognized their own growth. Mirror it back to them.',
     };
 
     sections.push(typeDescriptions[moment.type]);
@@ -187,19 +179,13 @@ export class MicroMomentDetector implements IMicroMomentDetector {
   // LEARNING
   // ==========================================================================
 
-  recordOutcome(
-    moment: MicroMoment,
-    userReaction: 'positive' | 'neutral' | 'negative'
-  ): void {
+  recordOutcome(moment: MicroMoment, userReaction: 'positive' | 'neutral' | 'negative'): void {
     const outcomes = this.outcomes.get(moment.type);
     if (outcomes) {
       outcomes[userReaction]++;
     }
 
-    log.debug(
-      { type: moment.type, reaction: userReaction },
-      'Micro-moment outcome recorded'
-    );
+    log.debug({ type: moment.type, reaction: userReaction }, 'Micro-moment outcome recorded');
   }
 
   reset(): void {
@@ -262,8 +248,7 @@ export class MicroMomentDetector implements IMicroMomentDetector {
     if (outcomes) {
       const total = outcomes.positive + outcomes.negative + outcomes.neutral;
       if (total > 5) {
-        const positiveRate =
-          outcomes.positive / total;
+        const positiveRate = outcomes.positive / total;
         // Adjust confidence based on historical success
         if (positiveRate > 0.7) {
           confidence = Math.min(0.95, confidence + 0.1);

@@ -125,11 +125,7 @@ export const postToTwitterTool: SemanticToolDefinition = {
     antiKeywords: ['write', 'draft', 'create'],
   },
 
-  examples: [
-    'Post this to Twitter',
-    'Tweet this out',
-    'Publish my tweet',
-  ],
+  examples: ['Post this to Twitter', 'Tweet this out', 'Publish my tweet'],
 
   counterExamples: ['Write me a tweet'],
 
@@ -192,11 +188,7 @@ export const postToLinkedInTool: SemanticToolDefinition = {
     antiKeywords: ['write', 'draft', 'create'],
   },
 
-  examples: [
-    'Post this to LinkedIn',
-    'Publish my LinkedIn update',
-    'Share this on LinkedIn',
-  ],
+  examples: ['Post this to LinkedIn', 'Publish my LinkedIn update', 'Share this on LinkedIn'],
 
   counterExamples: ['Write me a LinkedIn post'],
 

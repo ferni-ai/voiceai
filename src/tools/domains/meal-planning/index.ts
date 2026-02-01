@@ -37,15 +37,13 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
     {
       id: 'planWeeklyMeals',
       name: 'Plan Weekly Meals',
-      description:
-        'Generate a weekly meal plan based on your preferences and recipes.',
+      description: 'Generate a weekly meal plan based on your preferences and recipes.',
       domain: 'meal-planning',
       tags: ['meal', 'plan', 'weekly', 'menu'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Generate a weekly meal plan based on your preferences and recipes.',
+          description: 'Generate a weekly meal plan based on your preferences and recipes.',
           parameters: z.object({
             includeBreakfast: z
               .boolean()
@@ -68,15 +66,17 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
 
             const planner = getMealPlanner(userId);
             const plan = await planner.generateWeeklyPlan(params);
-            
+
             if (plan.days.every((d) => !d.meals.breakfast && !d.meals.lunch && !d.meals.dinner)) {
-              return "You don't have any recipes saved yet. " +
-                "Try adding some recipes first, then I can help you plan your meals!";
+              return (
+                "You don't have any recipes saved yet. " +
+                'Try adding some recipes first, then I can help you plan your meals!'
+              );
             }
-            
+
             let response = `📅 **Your Meal Plan**\n`;
             response += `${plan.startDate} to ${plan.endDate}\n\n`;
-            
+
             for (const day of plan.days) {
               response += `**${day.dayName}**\n`;
               if (day.meals.breakfast) {
@@ -90,12 +90,12 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
               }
               response += '\n';
             }
-            
+
             if (plan.shoppingList.length > 0) {
               response += `\n🛒 **Shopping List** (${plan.shoppingList.length} items)\n`;
               response += `Say "generate shopping list" to see the full list.`;
             }
-            
+
             return response;
           },
         });
@@ -108,24 +108,17 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
     {
       id: 'addRecipe',
       name: 'Add Recipe',
-      description:
-        'Save a new recipe to your collection.',
+      description: 'Save a new recipe to your collection.',
       domain: 'meal-planning',
       tags: ['recipe', 'add', 'save'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Save a new recipe to your collection.',
+          description: 'Save a new recipe to your collection.',
           parameters: z.object({
             name: z.string().describe('Name of the recipe'),
-            ingredients: z
-              .array(z.string())
-              .describe('List of ingredients'),
-            instructions: z
-              .array(z.string())
-              .optional()
-              .describe('Cooking instructions'),
+            ingredients: z.array(z.string()).describe('List of ingredients'),
+            instructions: z.array(z.string()).optional().describe('Cooking instructions'),
             prepTime: z.number().optional().describe('Prep time in minutes'),
             cookTime: z.number().optional().describe('Cook time in minutes'),
             servings: z.number().optional().describe('Number of servings'),
@@ -135,7 +128,7 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
             if (!userId) {
               return 'I need to know who you are to save a recipe.';
             }
-            
+
             const recipe = await addRecipe(userId, {
               name: params.name,
               ingredients: params.ingredients.map((i) => ({
@@ -154,9 +147,11 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
               dietaryTags: [],
               tags: [],
             });
-            
-            return `✅ Recipe saved: **${recipe.name}**\n\n` +
-              `You can now include it in your meal plans!`;
+
+            return (
+              `✅ Recipe saved: **${recipe.name}**\n\n` +
+              `You can now include it in your meal plans!`
+            );
           },
         });
       },
@@ -168,15 +163,13 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
     {
       id: 'searchRecipes',
       name: 'Search Recipes',
-      description:
-        'Search your recipe collection by name, ingredients, or cuisine.',
+      description: 'Search your recipe collection by name, ingredients, or cuisine.',
       domain: 'meal-planning',
       tags: ['recipe', 'search', 'find'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Search your recipe collection by name, ingredients, or cuisine.',
+          description: 'Search your recipe collection by name, ingredients, or cuisine.',
           parameters: z.object({
             query: z.string().describe('Search term (recipe name, ingredient, or cuisine)'),
           }),
@@ -187,12 +180,14 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
             }
 
             const results = await searchRecipes(userId, params.query);
-            
+
             if (results.length === 0) {
-              return `No recipes found matching "${params.query}". ` +
-                `Try a different search term or add some recipes to your collection.`;
+              return (
+                `No recipes found matching "${params.query}". ` +
+                `Try a different search term or add some recipes to your collection.`
+              );
             }
-            
+
             let response = `🍳 **Found ${results.length} recipe(s):**\n\n`;
             for (const recipe of results.slice(0, 5)) {
               response += `**${recipe.name}**`;
@@ -205,11 +200,11 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
               }
               response += '\n';
             }
-            
+
             if (results.length > 5) {
               response += `...and ${results.length - 5} more`;
             }
-            
+
             return response;
           },
         });
@@ -222,19 +217,15 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
     {
       id: 'suggestMeals',
       name: 'Suggest Meals',
-      description:
-        'Suggest meals based on ingredients you have.',
+      description: 'Suggest meals based on ingredients you have.',
       domain: 'meal-planning',
       tags: ['recipe', 'suggest', 'ingredients'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Suggest meals based on ingredients you have.',
+          description: 'Suggest meals based on ingredients you have.',
           parameters: z.object({
-            ingredients: z
-              .array(z.string())
-              .describe('Ingredients you have available'),
+            ingredients: z.array(z.string()).describe('Ingredients you have available'),
           }),
           execute: async (params: { ingredients: string[] }) => {
             const userId = ctx.userId;
@@ -244,18 +235,20 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
 
             const planner = getMealPlanner(userId);
             const suggestions = await planner.suggestWithIngredients(params.ingredients);
-            
+
             if (suggestions.length === 0) {
-              return `I couldn't find recipes matching those ingredients. ` +
-                `Try adding more recipes to your collection, or tell me what you'd like to make!`;
+              return (
+                `I couldn't find recipes matching those ingredients. ` +
+                `Try adding more recipes to your collection, or tell me what you'd like to make!`
+              );
             }
-            
+
             let response = `🍽️ **What you can make:**\n\n`;
             for (const suggestion of suggestions) {
               response += `**${suggestion.recipe.name}** (${Math.round(suggestion.score)}% match)\n`;
               response += `  ${suggestion.reason}\n\n`;
             }
-            
+
             return response;
           },
         });
@@ -268,15 +261,13 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
     {
       id: 'generateShoppingList',
       name: 'Generate Shopping List',
-      description:
-        'Generate a shopping list from your meal plan.',
+      description: 'Generate a shopping list from your meal plan.',
       domain: 'meal-planning',
       tags: ['shopping', 'list', 'groceries'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Generate a shopping list from your meal plan.',
+          description: 'Generate a shopping list from your meal plan.',
           parameters: z.object({}),
           execute: async () => {
             const userId = ctx.userId;
@@ -286,18 +277,20 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
 
             const planner = getMealPlanner(userId);
             const plan = await planner.generateWeeklyPlan({});
-            
+
             if (plan.shoppingList.length === 0) {
-              return "No shopping list to generate. " +
-                "Create a meal plan first, then I can generate the shopping list.";
+              return (
+                'No shopping list to generate. ' +
+                'Create a meal plan first, then I can generate the shopping list.'
+              );
             }
-            
+
             let response = `🛒 **Shopping List**\n`;
             response += `For meal plan: ${plan.startDate} to ${plan.endDate}\n\n`;
-            
+
             // Group by likely store section
             const grouped = groupIngredients(plan.shoppingList);
-            
+
             for (const [section, items] of Object.entries(grouped)) {
               if (items.length === 0) continue;
               response += `**${section}:**\n`;
@@ -306,7 +299,7 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
               }
               response += '\n';
             }
-            
+
             return response;
           },
         });
@@ -319,15 +312,13 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
     {
       id: 'trackDietaryPreferences',
       name: 'Track Dietary Preferences',
-      description:
-        'Set dietary preferences, allergies, or restrictions.',
+      description: 'Set dietary preferences, allergies, or restrictions.',
       domain: 'meal-planning',
       tags: ['diet', 'allergy', 'restriction', 'preference'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Set dietary preferences, allergies, or restrictions.',
+          description: 'Set dietary preferences, allergies, or restrictions.',
           parameters: z.object({
             restrictions: z
               .array(z.string())
@@ -337,23 +328,20 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
               .array(z.string())
               .optional()
               .describe('Food allergies (nuts, dairy, shellfish, etc.)'),
-            disliked: z
-              .array(z.string())
-              .optional()
-              .describe('Ingredients you dislike'),
+            disliked: z.array(z.string()).optional().describe('Ingredients you dislike'),
           }),
           execute: async (params) => {
             const userId = ctx.userId;
             if (!userId) {
               return 'I need to know who you are to save your preferences.';
             }
-            
+
             await updatePreferences(userId, {
               restrictions: (params.restrictions || []) as DietaryTag[],
               allergies: params.allergies || [],
               dislikedIngredients: params.disliked || [],
             });
-            
+
             let response = '✅ **Dietary preferences updated:**\n\n';
             if (params.restrictions?.length) {
               response += `🥗 Restrictions: ${params.restrictions.join(', ')}\n`;
@@ -364,9 +352,9 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
             if (params.disliked?.length) {
               response += `👎 Avoid: ${params.disliked.join(', ')}\n`;
             }
-            
-            response += '\nI\'ll use these when suggesting recipes and planning meals.';
-            
+
+            response += "\nI'll use these when suggesting recipes and planning meals.";
+
             return response;
           },
         });
@@ -379,23 +367,16 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
     {
       id: 'markRecipeCooked',
       name: 'Mark Recipe Cooked',
-      description:
-        'Record that you cooked a recipe, with optional rating.',
+      description: 'Record that you cooked a recipe, with optional rating.',
       domain: 'meal-planning',
       tags: ['recipe', 'cooked', 'rating'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Record that you cooked a recipe, with optional rating.',
+          description: 'Record that you cooked a recipe, with optional rating.',
           parameters: z.object({
             recipeName: z.string().describe('Name of the recipe you cooked'),
-            rating: z
-              .number()
-              .min(1)
-              .max(5)
-              .optional()
-              .describe('Rating from 1-5 stars'),
+            rating: z.number().min(1).max(5).optional().describe('Rating from 1-5 stars'),
             notes: z.string().optional().describe('Any notes about the recipe'),
           }),
           execute: async (params) => {
@@ -405,19 +386,19 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
             }
 
             const recipes = await searchRecipes(userId, params.recipeName);
-            
+
             if (recipes.length === 0) {
               return `I couldn't find a recipe named "${params.recipeName}".`;
             }
-            
+
             const recipe = recipes[0];
             await recordCooking(userId, recipe.id, params.rating, params.notes);
-            
+
             let response = `✅ Recorded: You made **${recipe.name}**!`;
             if (params.rating) {
               response += ` (${params.rating}⭐)`;
             }
-            
+
             return response;
           },
         });
@@ -430,26 +411,55 @@ export function getMealPlanningToolDefinitions(): ToolDefinition[] {
 // HELPERS
 // ============================================================================
 
-function groupIngredients(items: Array<{ ingredient: string; amount: number; unit: string; recipes: string[] }>) {
+function groupIngredients(
+  items: Array<{ ingredient: string; amount: number; unit: string; recipes: string[] }>
+) {
   const groups: Record<string, typeof items> = {
-    'Produce': [],
+    Produce: [],
     'Meat & Seafood': [],
-    'Dairy': [],
-    'Bakery': [],
-    'Pantry': [],
-    'Frozen': [],
-    'Other': [],
+    Dairy: [],
+    Bakery: [],
+    Pantry: [],
+    Frozen: [],
+    Other: [],
   };
-  
-  const produceKeywords = ['lettuce', 'tomato', 'onion', 'garlic', 'pepper', 'carrot', 'celery', 'potato', 'apple', 'banana', 'lemon', 'lime', 'herb', 'basil', 'parsley', 'cilantro'];
-  const meatKeywords = ['chicken', 'beef', 'pork', 'fish', 'salmon', 'shrimp', 'turkey', 'bacon', 'sausage'];
+
+  const produceKeywords = [
+    'lettuce',
+    'tomato',
+    'onion',
+    'garlic',
+    'pepper',
+    'carrot',
+    'celery',
+    'potato',
+    'apple',
+    'banana',
+    'lemon',
+    'lime',
+    'herb',
+    'basil',
+    'parsley',
+    'cilantro',
+  ];
+  const meatKeywords = [
+    'chicken',
+    'beef',
+    'pork',
+    'fish',
+    'salmon',
+    'shrimp',
+    'turkey',
+    'bacon',
+    'sausage',
+  ];
   const dairyKeywords = ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'egg'];
   const bakeryKeywords = ['bread', 'roll', 'tortilla', 'pita'];
   const frozenKeywords = ['frozen'];
-  
+
   for (const item of items) {
     const lower = item.ingredient.toLowerCase();
-    
+
     if (produceKeywords.some((k) => lower.includes(k))) {
       groups['Produce'].push(item);
     } else if (meatKeywords.some((k) => lower.includes(k))) {
@@ -464,7 +474,7 @@ function groupIngredients(items: Array<{ ingredient: string; amount: number; uni
       groups['Pantry'].push(item);
     }
   }
-  
+
   return groups;
 }
 

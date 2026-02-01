@@ -4,11 +4,7 @@
  * Validates HTTP API responses against expected patterns.
  */
 
-import type {
-  ApiExpectation,
-  FieldMatcher,
-  E2ETestContext,
-} from '../types.js';
+import type { ApiExpectation, FieldMatcher, E2ETestContext } from '../types.js';
 
 // ============================================================================
 // Types
@@ -192,9 +188,7 @@ export async function validateApiResponse(
     for (const [key, expectedValue] of Object.entries(expectation.headers)) {
       const actualValue = response.headers[key.toLowerCase()];
       if (actualValue !== expectedValue) {
-        errors.push(
-          `Header "${key}" mismatch: expected "${expectedValue}", got "${actualValue}"`
-        );
+        errors.push(`Header "${key}" mismatch: expected "${expectedValue}", got "${actualValue}"`);
       }
     }
   }
@@ -236,11 +230,7 @@ export function validateFieldMatchers(
 /**
  * Validate a single field against a matcher.
  */
-function validateFieldMatcher(
-  value: unknown,
-  matcher: FieldMatcher,
-  path: string
-): string[] {
+function validateFieldMatcher(value: unknown, matcher: FieldMatcher, path: string): string[] {
   switch (matcher.type) {
     case 'exists':
       if (value === undefined) {
@@ -250,19 +240,25 @@ function validateFieldMatcher(
 
     case 'equals':
       if (value !== matcher.value) {
-        return [`Field "${path}": expected ${JSON.stringify(matcher.value)}, got ${JSON.stringify(value)}`];
+        return [
+          `Field "${path}": expected ${JSON.stringify(matcher.value)}, got ${JSON.stringify(value)}`,
+        ];
       }
       break;
 
     case 'contains':
       if (typeof value !== 'string' || !value.includes(matcher.value)) {
-        return [`Field "${path}": expected to contain "${matcher.value}", got ${JSON.stringify(value)}`];
+        return [
+          `Field "${path}": expected to contain "${matcher.value}", got ${JSON.stringify(value)}`,
+        ];
       }
       break;
 
     case 'matches':
       if (typeof value !== 'string' || !new RegExp(matcher.pattern).test(value)) {
-        return [`Field "${path}": expected to match pattern "${matcher.pattern}", got ${JSON.stringify(value)}`];
+        return [
+          `Field "${path}": expected to match pattern "${matcher.pattern}", got ${JSON.stringify(value)}`,
+        ];
       }
       break;
 
@@ -271,7 +267,9 @@ function validateFieldMatcher(
         return [`Field "${path}": expected array, got ${typeof value}`];
       }
       if (matcher.minLength !== undefined && value.length < matcher.minLength) {
-        return [`Field "${path}": expected array with at least ${matcher.minLength} items, got ${value.length}`];
+        return [
+          `Field "${path}": expected array with at least ${matcher.minLength} items, got ${value.length}`,
+        ];
       }
       break;
 
@@ -292,7 +290,9 @@ function validateFieldMatcher(
         return [`Field "${path}": expected string, got ${typeof value}`];
       }
       if (matcher.minLength !== undefined && value.length < matcher.minLength) {
-        return [`Field "${path}": expected string with at least ${matcher.minLength} chars, got ${value.length}`];
+        return [
+          `Field "${path}": expected string with at least ${matcher.minLength} chars, got ${value.length}`,
+        ];
       }
       break;
 

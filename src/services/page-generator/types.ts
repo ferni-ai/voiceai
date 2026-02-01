@@ -191,3 +191,126 @@ export interface TemplateContext {
   customCss?: string;
   customJs?: string;
 }
+
+// =============================================================================
+// MULTI-ADVISOR PAGE TYPES
+// =============================================================================
+
+/**
+ * Configuration for a single advisor in a multi-advisor page
+ */
+export interface AdvisorConfig {
+  /** Unique advisor ID (used for routing) */
+  id: string;
+
+  /** Full display name (e.g., "Peter Lynch") */
+  name: string;
+
+  /** Initials for avatar (e.g., "PL") */
+  initials: string;
+
+  /** Short tagline (e.g., "The Stock Picker") */
+  tagline: string;
+
+  /** Description of their specialty */
+  description: string;
+
+  /** Primary brand color for this advisor (hex) */
+  color: string;
+
+  /** Icon emoji (optional) */
+  icon?: string;
+
+  /** Cartesia voice ID (optional, falls back to config) */
+  voiceId?: string;
+}
+
+/**
+ * Main configuration for generating a multi-advisor page
+ */
+export interface MultiAdvisorPageConfig {
+  /** Page title (e.g., "Financial Legends") */
+  title: string;
+
+  /** Page description */
+  description: string;
+
+  /** List of advisors (2-5 recommended) */
+  advisors: AdvisorConfig[];
+
+  /** Brand configuration */
+  brand: {
+    /** Primary page color (hex) */
+    primary: string;
+    /** Secondary color (optional) */
+    secondary?: string;
+    /** Logo URL (optional) */
+    logoUrl?: string;
+    /** Custom fonts */
+    fonts?: BrandConfig['fonts'];
+  };
+
+  /** Theme mode */
+  theme?: 'zen' | 'dark';
+
+  /** Deployment configuration */
+  deployment?: DeploymentConfig;
+
+  /** SEO metadata */
+  seo?: SEOConfig;
+
+  /** Additional custom CSS */
+  customCss?: string;
+
+  /** Additional custom JS */
+  customJs?: string;
+}
+
+/**
+ * Result of multi-advisor page generation
+ */
+export interface GeneratedMultiAdvisorPage {
+  /** Complete HTML string */
+  html: string;
+
+  /** Size in bytes */
+  size: number;
+
+  /** Generation timestamp */
+  generatedAt: Date;
+
+  /** Config used for generation */
+  config: MultiAdvisorPageConfig;
+}
+
+/**
+ * Template context for multi-advisor Handlebars template
+ */
+export interface MultiAdvisorTemplateContext {
+  title: string;
+  description: string;
+  advisors: Array<
+    AdvisorConfig & {
+      cssVars: string; // Generated CSS variables for this advisor
+    }
+  >;
+  brand: DerivedBrandColors & {
+    fonts?: BrandConfig['fonts'];
+    logoUrl?: string;
+  };
+  theme: 'zen' | 'dark';
+  deployment: {
+    tokenEndpoint: string;
+    livekitUrl: string;
+    isProduction: boolean;
+  };
+  seo: {
+    title: string;
+    description: string;
+    ogImage?: string;
+    twitterCard: string;
+  };
+  favicon: string;
+  customCss?: string;
+  customJs?: string;
+}

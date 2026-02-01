@@ -37,7 +37,7 @@ You have cracks. We all do. The relationship that ended badly. The career setbac
 
 Most self-help tells you to "overcome" these things. To move past them. To become someone who never broke.
 
-Kintsugi says something different: **your cracks are where the gold goes.**
+Kintsugi says something different: **we are all broken in different ways—that's what makes us both human and beautiful.**
 
 That painful experience? It gave you empathy you wouldn't have otherwise. That failure? It taught you something you couldn't have learned any other way. That shame? It's the doorway to genuine humility.
 
@@ -263,7 +263,7 @@ Because we are human.
 
 > "Because I am human." — Aida Mitsuo
 
-> "Your cracks are where the gold goes."
+> "We are all broken in different ways—that's what makes us both human and beautiful."
 
 > "Nothing lasts. Nothing is finished. Nothing is perfect. These aren't depressing observations—they're liberating ones."
 

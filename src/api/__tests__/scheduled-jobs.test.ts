@@ -100,7 +100,11 @@ describe('Scheduled Jobs Routes API', () => {
       });
       const res = createMockResponse();
 
-      const handled = await handleScheduledJobsRoutes(req, res, '/api/jobs/process-background-tasks');
+      const handled = await handleScheduledJobsRoutes(
+        req,
+        res,
+        '/api/jobs/process-background-tasks'
+      );
 
       expect(handled).toBe(true);
       expect(res._statusCode).toBeLessThanOrEqual(500);
@@ -179,7 +183,11 @@ describe('Scheduled Jobs Routes API', () => {
       });
       const res = createMockResponse();
 
-      const handled = await handleScheduledJobsRoutes(req, res, '/api/jobs/evaluate-thinking-of-you');
+      const handled = await handleScheduledJobsRoutes(
+        req,
+        res,
+        '/api/jobs/evaluate-thinking-of-you'
+      );
 
       expect(handled).toBe(true);
     });
@@ -193,7 +201,11 @@ describe('Scheduled Jobs Routes API', () => {
       });
       const res = createMockResponse();
 
-      const handled = await handleScheduledJobsRoutes(req, res, '/api/jobs/rollup-outreach-analytics');
+      const handled = await handleScheduledJobsRoutes(
+        req,
+        res,
+        '/api/jobs/rollup-outreach-analytics'
+      );
 
       expect(handled).toBe(true);
     });
@@ -223,7 +235,11 @@ describe('Scheduled Jobs Routes API', () => {
       });
       const res = createMockResponse();
 
-      const handled = await handleScheduledJobsRoutes(req, res, '/api/jobs/aggregate-community-insights');
+      const handled = await handleScheduledJobsRoutes(
+        req,
+        res,
+        '/api/jobs/aggregate-community-insights'
+      );
 
       expect(handled).toBe(true);
     });
@@ -295,7 +311,11 @@ describe('Scheduled Jobs Routes API', () => {
       });
       const res = createMockResponse();
 
-      const handled = await handleScheduledJobsRoutes(req, res, '/api/jobs/run-predictive-analysis');
+      const handled = await handleScheduledJobsRoutes(
+        req,
+        res,
+        '/api/jobs/run-predictive-analysis'
+      );
 
       expect(handled).toBe(true);
     });
@@ -327,7 +347,11 @@ describe('Scheduled Jobs Routes API', () => {
       });
       const res = createMockResponse();
 
-      const handled = await handleScheduledJobsRoutes(req, res, '/api/jobs/process-background-tasks');
+      const handled = await handleScheduledJobsRoutes(
+        req,
+        res,
+        '/api/jobs/process-background-tasks'
+      );
 
       expect(handled).toBe(false);
     });

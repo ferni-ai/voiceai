@@ -61,12 +61,12 @@ export const MAGNITUDE_THRESHOLDS = {
 export const INTERVENTION_SCRIPTS: Record<InterventionGuidance['type'], string[]> = {
   redirect: [
     "Hey, I want to pause for a second. Let's take a breath together.",
-    "Let me interrupt for a moment. How are you feeling right now?",
+    'Let me interrupt for a moment. How are you feeling right now?',
     "I notice we've been in some heavy territory. Want to shift gears for a bit?",
   ],
   validate: [
-    "That sounds really heavy. How are you holding up right now?",
-    "I hear you. This is a lot.",
+    'That sounds really heavy. How are you holding up right now?',
+    'I hear you. This is a lot.',
     "That makes complete sense that you'd feel that way.",
   ],
   ground: [
@@ -76,13 +76,13 @@ export const INTERVENTION_SCRIPTS: Record<InterventionGuidance['type'], string[]
   ],
   celebrate: [
     "That's wonderful! How does that feel?",
-    "Yes! I love seeing you like this.",
-    "This is so good to hear.",
+    'Yes! I love seeing you like this.',
+    'This is so good to hear.',
   ],
   rest: [
     "We've covered a lot today. It's okay to rest here.",
     "You don't have to push through right now.",
-    "Sometimes just sitting together is enough.",
+    'Sometimes just sitting together is enough.',
   ],
 };
 
@@ -174,14 +174,5 @@ export const RISK_FACTOR_PATTERNS = {
   rapidChangeThreshold: 0.4,
 
   /** Topics that commonly trigger negative emotions */
-  sensitiveTopics: [
-    'work',
-    'family',
-    'relationship',
-    'health',
-    'money',
-    'loss',
-    'death',
-    'trauma',
-  ],
+  sensitiveTopics: ['work', 'family', 'relationship', 'health', 'money', 'loss', 'death', 'trauma'],
 };

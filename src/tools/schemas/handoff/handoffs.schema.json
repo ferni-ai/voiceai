@@ -1,11 +1,11 @@
 {
   "$schema": "../tool.schema.json",
   "domain": "handoff",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "tools": [
     {
       "name": "handoffToMaya",
-      "description": "Transfer conversation to Maya Santos, who specializes in habits, routines, productivity, and behavior change.",
+      "description": "Transfer to Maya Santos — habits, routines, productivity, boundaries, burnout, procrastination expert.\n\n**Invocation Condition:** Invoke IMMEDIATELY when user mentions Maya by name, OR discusses habits, routines, productivity, behavior change, boundaries, burnout, procrastination, sleep, wellness, or budgeting. Do NOT announce the handoff first — invoke the tool, then Maya will greet them.\n\n**Returns:** Confirmation that Maya is joining.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -17,16 +17,28 @@
         "required": ["reason"]
       },
       "examples": [
-        { "userSays": "Talk to Maya", "output": "{\"fn\":\"handoffToMaya\",\"args\":{\"reason\":\"requested\"}}" },
-        { "userSays": "Help with habits", "output": "{\"fn\":\"handoffToMaya\",\"args\":{\"reason\":\"habits\"}}" },
-        { "userSays": "I want to build better routines", "output": "{\"fn\":\"handoffToMaya\",\"args\":{\"reason\":\"build better routines\"}}" },
-        { "userSays": "I'm struggling with my morning routine", "output": "{\"fn\":\"handoffToMaya\",\"args\":{\"reason\":\"morning routine help\"}}" }
+        {
+          "userSays": "Talk to Maya",
+          "output": "{\"fn\":\"handoffToMaya\",\"args\":{\"reason\":\"requested\"}}"
+        },
+        {
+          "userSays": "Help with habits",
+          "output": "{\"fn\":\"handoffToMaya\",\"args\":{\"reason\":\"habits\"}}"
+        },
+        {
+          "userSays": "I want to build better routines",
+          "output": "{\"fn\":\"handoffToMaya\",\"args\":{\"reason\":\"build better routines\"}}"
+        },
+        {
+          "userSays": "I'm struggling with my morning routine",
+          "output": "{\"fn\":\"handoffToMaya\",\"args\":{\"reason\":\"morning routine help\"}}"
+        }
       ],
       "tags": ["handoff", "team", "habits", "routines", "productivity"]
     },
     {
       "name": "handoffToAlex",
-      "description": "Transfer conversation to Alex Chen, who specializes in communication, email writing, calendar management, and professional correspondence.",
+      "description": "Transfer to Alex Chen — communication, email, calendar, difficult conversations, conflict resolution expert.\n\n**Invocation Condition:** Invoke IMMEDIATELY when user mentions Alex by name, OR discusses email, calendar, communication, difficult conversations, conflict, social skills, dating, apologizing, or professional correspondence. Do NOT announce the handoff first — invoke the tool.\n\n**Returns:** Confirmation that Alex is joining.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -38,16 +50,28 @@
         "required": ["reason"]
       },
       "examples": [
-        { "userSays": "Talk to Alex", "output": "{\"fn\":\"handoffToAlex\",\"args\":{\"reason\":\"requested\"}}" },
-        { "userSays": "Help with calendar", "output": "{\"fn\":\"handoffToAlex\",\"args\":{\"reason\":\"calendar\"}}" },
-        { "userSays": "I need to write an email to my boss", "output": "{\"fn\":\"handoffToAlex\",\"args\":{\"reason\":\"email to boss\"}}" },
-        { "userSays": "Help me prepare for a difficult conversation", "output": "{\"fn\":\"handoffToAlex\",\"args\":{\"reason\":\"difficult conversation prep\"}}" }
+        {
+          "userSays": "Talk to Alex",
+          "output": "{\"fn\":\"handoffToAlex\",\"args\":{\"reason\":\"requested\"}}"
+        },
+        {
+          "userSays": "Help with calendar",
+          "output": "{\"fn\":\"handoffToAlex\",\"args\":{\"reason\":\"calendar\"}}"
+        },
+        {
+          "userSays": "I need to write an email to my boss",
+          "output": "{\"fn\":\"handoffToAlex\",\"args\":{\"reason\":\"email to boss\"}}"
+        },
+        {
+          "userSays": "Help me prepare for a difficult conversation",
+          "output": "{\"fn\":\"handoffToAlex\",\"args\":{\"reason\":\"difficult conversation prep\"}}"
+        }
       ],
       "tags": ["handoff", "team", "communication", "calendar", "email"]
     },
     {
       "name": "handoffToPeter",
-      "description": "Transfer conversation to Peter John, who specializes in research, data analysis, stock market insights, and financial trends.",
+      "description": "Transfer to Peter John — research, stocks, market analysis, financial trends, data analysis expert.\n\n**Invocation Condition:** Invoke IMMEDIATELY when user mentions Peter by name, OR discusses stocks, market, investing, research, financial analysis, or data. Do NOT announce the handoff first — invoke the tool.\n\n**Returns:** Confirmation that Peter is joining.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -59,16 +83,28 @@
         "required": ["reason"]
       },
       "examples": [
-        { "userSays": "Talk to Peter", "output": "{\"fn\":\"handoffToPeter\",\"args\":{\"reason\":\"requested\"}}" },
-        { "userSays": "Research something", "output": "{\"fn\":\"handoffToPeter\",\"args\":{\"reason\":\"research\"}}" },
-        { "userSays": "Analyze this stock for me", "output": "{\"fn\":\"handoffToPeter\",\"args\":{\"reason\":\"stock analysis\"}}" },
-        { "userSays": "What do you think about the market?", "output": "{\"fn\":\"handoffToPeter\",\"args\":{\"reason\":\"market analysis\"}}" }
+        {
+          "userSays": "Talk to Peter",
+          "output": "{\"fn\":\"handoffToPeter\",\"args\":{\"reason\":\"requested\"}}"
+        },
+        {
+          "userSays": "Research something",
+          "output": "{\"fn\":\"handoffToPeter\",\"args\":{\"reason\":\"research\"}}"
+        },
+        {
+          "userSays": "Analyze this stock for me",
+          "output": "{\"fn\":\"handoffToPeter\",\"args\":{\"reason\":\"stock analysis\"}}"
+        },
+        {
+          "userSays": "What do you think about the market?",
+          "output": "{\"fn\":\"handoffToPeter\",\"args\":{\"reason\":\"market analysis\"}}"
+        }
       ],
       "tags": ["handoff", "team", "research", "finance", "stocks"]
     },
     {
       "name": "handoffToJordan",
-      "description": "Transfer conversation to Jordan Taylor, who specializes in life planning, event organization, celebrations, and milestones.",
+      "description": "Transfer to Jordan Taylor — life planning, events, celebrations, milestones, travel, breakups, neurodiversity expert.\n\n**Invocation Condition:** Invoke IMMEDIATELY when user mentions Jordan by name, OR discusses events, parties, celebrations, trips, milestones, weddings, breakups, ADHD, life transitions, or starting over. Do NOT announce the handoff first — invoke the tool.\n\n**Returns:** Confirmation that Jordan is joining.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -80,16 +116,28 @@
         "required": ["reason"]
       },
       "examples": [
-        { "userSays": "Talk to Jordan", "output": "{\"fn\":\"handoffToJordan\",\"args\":{\"reason\":\"requested\"}}" },
-        { "userSays": "Plan an event", "output": "{\"fn\":\"handoffToJordan\",\"args\":{\"reason\":\"event\"}}" },
-        { "userSays": "I'm planning a birthday party", "output": "{\"fn\":\"handoffToJordan\",\"args\":{\"reason\":\"birthday party planning\"}}" },
-        { "userSays": "Help me plan a trip", "output": "{\"fn\":\"handoffToJordan\",\"args\":{\"reason\":\"trip planning\"}}" }
+        {
+          "userSays": "Talk to Jordan",
+          "output": "{\"fn\":\"handoffToJordan\",\"args\":{\"reason\":\"requested\"}}"
+        },
+        {
+          "userSays": "Plan an event",
+          "output": "{\"fn\":\"handoffToJordan\",\"args\":{\"reason\":\"event\"}}"
+        },
+        {
+          "userSays": "I'm planning a birthday party",
+          "output": "{\"fn\":\"handoffToJordan\",\"args\":{\"reason\":\"birthday party planning\"}}"
+        },
+        {
+          "userSays": "Help me plan a trip",
+          "output": "{\"fn\":\"handoffToJordan\",\"args\":{\"reason\":\"trip planning\"}}"
+        }
       ],
       "tags": ["handoff", "team", "events", "planning", "milestones"]
     },
     {
       "name": "handoffToNayan",
-      "description": "Transfer conversation to Nayan Patel, who specializes in wisdom, philosophical perspective, meaning-making, and spiritual guidance.",
+      "description": "Transfer to Nayan Patel — wisdom, philosophy, meaning, purpose, trauma, grief, chronic illness expert.\n\n**Invocation Condition:** Invoke IMMEDIATELY when user mentions Nayan by name, OR discusses wisdom, meaning, purpose, philosophy, existential questions, midlife, trauma, grief, intimacy, anger, or chronic illness. Do NOT announce the handoff first — invoke the tool.\n\n**Returns:** Confirmation that Nayan is joining.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -101,16 +149,28 @@
         "required": ["reason"]
       },
       "examples": [
-        { "userSays": "Talk to Nayan", "output": "{\"fn\":\"handoffToNayan\",\"args\":{\"reason\":\"requested\"}}" },
-        { "userSays": "Need wisdom", "output": "{\"fn\":\"handoffToNayan\",\"args\":{\"reason\":\"wisdom\"}}" },
-        { "userSays": "I'm feeling lost about my purpose", "output": "{\"fn\":\"handoffToNayan\",\"args\":{\"reason\":\"purpose and meaning\"}}" },
-        { "userSays": "Help me think about life", "output": "{\"fn\":\"handoffToNayan\",\"args\":{\"reason\":\"life reflection\"}}" }
+        {
+          "userSays": "Talk to Nayan",
+          "output": "{\"fn\":\"handoffToNayan\",\"args\":{\"reason\":\"requested\"}}"
+        },
+        {
+          "userSays": "Need wisdom",
+          "output": "{\"fn\":\"handoffToNayan\",\"args\":{\"reason\":\"wisdom\"}}"
+        },
+        {
+          "userSays": "I'm feeling lost about my purpose",
+          "output": "{\"fn\":\"handoffToNayan\",\"args\":{\"reason\":\"purpose and meaning\"}}"
+        },
+        {
+          "userSays": "Help me think about life",
+          "output": "{\"fn\":\"handoffToNayan\",\"args\":{\"reason\":\"life reflection\"}}"
+        }
       ],
       "tags": ["handoff", "team", "wisdom", "philosophy", "meaning"]
     },
     {
       "name": "handoffToFerni",
-      "description": "Transfer conversation back to Ferni, the main life coach and coordinator.",
+      "description": "Transfer back to Ferni — main life coach and team coordinator.\n\n**Invocation Condition:** Invoke IMMEDIATELY when user mentions Ferni by name, asks to go back, or wants the main coordinator. Do NOT announce the handoff first — invoke the tool.\n\n**Returns:** Confirmation that Ferni is joining.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -122,9 +182,18 @@
         "required": ["reason"]
       },
       "examples": [
-        { "userSays": "Back to Ferni", "output": "{\"fn\":\"handoffToFerni\",\"args\":{\"reason\":\"return\"}}" },
-        { "userSays": "Let me talk to Ferni", "output": "{\"fn\":\"handoffToFerni\",\"args\":{\"reason\":\"requested\"}}" },
-        { "userSays": "I want to go back to the main coach", "output": "{\"fn\":\"handoffToFerni\",\"args\":{\"reason\":\"return to coordinator\"}}" }
+        {
+          "userSays": "Back to Ferni",
+          "output": "{\"fn\":\"handoffToFerni\",\"args\":{\"reason\":\"return\"}}"
+        },
+        {
+          "userSays": "Let me talk to Ferni",
+          "output": "{\"fn\":\"handoffToFerni\",\"args\":{\"reason\":\"requested\"}}"
+        },
+        {
+          "userSays": "I want to go back to the main coach",
+          "output": "{\"fn\":\"handoffToFerni\",\"args\":{\"reason\":\"return to coordinator\"}}"
+        }
       ],
       "tags": ["handoff", "team", "coordinator", "return"]
     }

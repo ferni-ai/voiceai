@@ -152,7 +152,11 @@ export async function getRunningJokeCallbackAsync(
   }
 
   // Try shared history callbacks
-  if (sessionCount >= 5 && content.recurring_topic_callbacks?.shared_history && Math.random() < 0.2) {
+  if (
+    sessionCount >= 5 &&
+    content.recurring_topic_callbacks?.shared_history &&
+    Math.random() < 0.2
+  ) {
     const phrase = pickRandom(content.recurring_topic_callbacks.shared_history);
     if (phrase) return { phrase, type: 'callback' };
   }

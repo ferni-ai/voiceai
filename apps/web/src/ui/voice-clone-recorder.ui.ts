@@ -1,4 +1,3 @@
-// TODO: Fix type errors - array indexing and MediaRecorder API types
 /**
  * Voice Clone Recorder UI
  *

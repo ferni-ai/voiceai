@@ -36,21 +36,27 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
     {
       id: 'saveDocument',
       name: 'Save Document',
-      description:
-        'Save an important document like a receipt, warranty, or ID.',
+      description: 'Save an important document like a receipt, warranty, or ID.',
       domain: 'documents',
       tags: ['document', 'save', 'receipt', 'warranty', 'id'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Save an important document like a receipt, warranty, or ID.',
+          description: 'Save an important document like a receipt, warranty, or ID.',
           parameters: z.object({
             name: z.string().describe('Document name'),
             type: z
               .enum([
-                'receipt', 'warranty', 'insurance', 'id_passport', 'id_license',
-                'vehicle_registration', 'contract', 'tax_w2', 'medical', 'other'
+                'receipt',
+                'warranty',
+                'insurance',
+                'id_passport',
+                'id_license',
+                'vehicle_registration',
+                'contract',
+                'tax_w2',
+                'medical',
+                'other',
               ])
               .describe('Type of document'),
             expirationDate: z.string().optional().describe('Expiration date if applicable'),
@@ -61,7 +67,7 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
             if (!userId) {
               return 'I need to know who you are to save documents.';
             }
-            
+
             const doc = await addDocument(userId, {
               name: params.name,
               type: params.type as DocumentType,
@@ -71,14 +77,14 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
               notes: params.notes,
               tags: [],
             });
-            
+
             let response = `✅ Document saved: **${doc.name}**\n`;
             response += `Type: ${params.type}\n`;
             if (params.expirationDate) {
               response += `Expires: ${params.expirationDate}\n`;
               response += `I'll remind you before it expires.`;
             }
-            
+
             return response;
           },
         });
@@ -91,15 +97,13 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
     {
       id: 'findDocument',
       name: 'Find Document',
-      description:
-        'Search for a document by name, type, or keywords.',
+      description: 'Search for a document by name, type, or keywords.',
       domain: 'documents',
       tags: ['document', 'search', 'find'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Search for a document by name, type, or keywords.',
+          description: 'Search for a document by name, type, or keywords.',
           parameters: z.object({
             query: z.string().describe('Search term (name, type, or keyword)'),
           }),
@@ -110,11 +114,11 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
             }
 
             const results = await searchDocuments(userId, params.query);
-            
+
             if (results.length === 0) {
               return `No documents found matching "${params.query}".`;
             }
-            
+
             let response = `📄 **Found ${results.length} document(s):**\n\n`;
             for (const doc of results.slice(0, 5)) {
               response += `**${doc.name}**\n`;
@@ -124,7 +128,7 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
               }
               response += '\n';
             }
-            
+
             return response;
           },
         });
@@ -137,15 +141,13 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
     {
       id: 'trackExpiration',
       name: 'Track Expiration',
-      description:
-        'Get documents that are expiring soon.',
+      description: 'Get documents that are expiring soon.',
       domain: 'documents',
       tags: ['document', 'expiration', 'alert'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Get documents that are expiring soon.',
+          description: 'Get documents that are expiring soon.',
           parameters: z.object({
             days: z.number().optional().describe('Days ahead to check (default: 30)'),
           }),
@@ -156,11 +158,11 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
             }
 
             const expiring = await getExpiringDocuments(userId, params.days || 30);
-            
+
             if (expiring.length === 0) {
               return `No documents expiring in the next ${params.days || 30} days.`;
             }
-            
+
             let response = `⚠️ **Expiring Soon:**\n\n`;
             for (const doc of expiring) {
               const daysLeft = Math.ceil(
@@ -168,7 +170,7 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
               );
               response += `- **${doc.name}** expires in ${daysLeft} days (${doc.expirationDate})\n`;
             }
-            
+
             return response;
           },
         });
@@ -181,15 +183,13 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
     {
       id: 'getWarrantyStatus',
       name: 'Get Warranty Status',
-      description:
-        'Check if a product is still under warranty.',
+      description: 'Check if a product is still under warranty.',
       domain: 'documents',
       tags: ['warranty', 'product', 'coverage'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Check if a product is still under warranty.',
+          description: 'Check if a product is still under warranty.',
           parameters: z.object({
             productName: z.string().describe('Name of the product to check'),
           }),
@@ -200,16 +200,20 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
             }
 
             const status = await getWarrantyStatus(userId, params.productName);
-            
+
             if (!status.found) {
-              return `I don't have a warranty on file for "${params.productName}". ` +
-                `You can add it with "save warranty for ${params.productName}".`;
+              return (
+                `I don't have a warranty on file for "${params.productName}". ` +
+                `You can add it with "save warranty for ${params.productName}".`
+              );
             }
-            
+
             if (status.isActive) {
-              return `✅ **${params.productName}** is under warranty!\n` +
+              return (
+                `✅ **${params.productName}** is under warranty!\n` +
                 `Warranty expires: ${status.warranty?.warrantyData?.warrantyEndDate || status.warranty?.expirationDate}\n` +
-                `Days remaining: ${status.daysRemaining}`;
+                `Days remaining: ${status.daysRemaining}`
+              );
             } else {
               return `❌ **${params.productName}** warranty has expired.`;
             }
@@ -224,15 +228,13 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
     {
       id: 'organizeReceipts',
       name: 'Organize Receipts',
-      description:
-        'View and organize your saved receipts.',
+      description: 'View and organize your saved receipts.',
       domain: 'documents',
       tags: ['receipt', 'organize', 'category'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'View and organize your saved receipts.',
+          description: 'View and organize your saved receipts.',
           parameters: z.object({}),
           execute: async () => {
             const userId = ctx.userId;
@@ -242,12 +244,14 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
 
             const data = await getDocumentData(userId);
             const receipts = data.documents.filter((d) => d.type === 'receipt');
-            
+
             if (receipts.length === 0) {
-              return "You don't have any receipts saved yet. " +
-                "Save receipts with \"save receipt for [product]\".";
+              return (
+                "You don't have any receipts saved yet. " +
+                'Save receipts with "save receipt for [product]".'
+              );
             }
-            
+
             // Group by month
             const byMonth: Record<string, typeof receipts> = {};
             for (const receipt of receipts) {
@@ -256,7 +260,7 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
               if (!byMonth[month]) byMonth[month] = [];
               byMonth[month].push(receipt);
             }
-            
+
             let response = `🧾 **Your Receipts** (${receipts.length} total)\n\n`;
             for (const [month, items] of Object.entries(byMonth).slice(0, 3)) {
               response += `**${month}:**\n`;
@@ -269,7 +273,7 @@ export function getDocumentToolDefinitions(): ToolDefinition[] {
               }
               response += '\n';
             }
-            
+
             return response;
           },
         });

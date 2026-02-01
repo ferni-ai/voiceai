@@ -51,6 +51,7 @@ import { getEmotionalThreading, type EmotionalThreading } from './emotional-thre
 import { getBehavioralPatternDetector } from './behavioral-pattern-detector.js';
 import { getNaturalReferenceGenerator } from './natural-reference-generator.js';
 import { getLLMSignalExtractor } from './llm-signal-extractor.js';
+import { getUnifiedStore } from './unified-store/index.js';
 
 const log = createLogger({ module: 'MemoryOrchestrator' });
 
@@ -284,15 +285,36 @@ export class MemoryOrchestratorImpl implements MemoryOrchestratorInterface {
     emotionalMemories: number;
     commitments: number;
   }> {
-    // This would query the actual memory stores
-    // For now, return placeholders
-    return {
-      totalMemories: 0,
-      recentMemories: 0,
-      strongMemories: 0,
-      emotionalMemories: 0,
-      commitments: 0,
-    };
+    try {
+      const store = getUnifiedStore();
+
+      // Fetch all memories for this user (limit to 1000 for performance)
+      const searchResult = await store.search({
+        userId,
+        text: '', // Empty query to get all memories
+        topK: 1000,
+      });
+
+      const memories = searchResult.results.map((r) => r.memory);
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+      return {
+        totalMemories: memories.length,
+        recentMemories: memories.filter((m) => m.createdAt >= sevenDaysAgo).length,
+        strongMemories: memories.filter((m) => m.strength >= 0.7).length,
+        emotionalMemories: memories.filter((m) => m.emotionalWeight >= 0.5).length,
+        commitments: memories.filter((m) => m.isActiveCommitment).length,
+      };
+    } catch (error) {
+      log.warn({ userId, error: String(error) }, 'Failed to get memory health, returning zeros');
+      return {
+        totalMemories: 0,
+        recentMemories: 0,
+        strongMemories: 0,
+        emotionalMemories: 0,
+        commitments: 0,
+      };
+    }
   }
 
   // ============================================================================

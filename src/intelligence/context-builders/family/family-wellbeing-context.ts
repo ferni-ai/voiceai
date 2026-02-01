@@ -89,11 +89,7 @@ export async function buildFamilyCheckinContext(
   );
 
   // Generate conversation starters
-  const suggestedTopics = generateSuggestedTopics(
-    schedule,
-    knowledge,
-    recentCalls
-  );
+  const suggestedTopics = generateSuggestedTopics(schedule, knowledge, recentCalls);
 
   // Generate health questions if relevant
   const healthQuestions = generateHealthQuestions(schedule, knowledge);
@@ -105,12 +101,7 @@ export async function buildFamilyCheckinContext(
   );
 
   // Generate the perfect opening line
-  const openingLine = generateOpeningLine(
-    schedule,
-    identity,
-    sponsorInfo,
-    recentCalls
-  );
+  const openingLine = generateOpeningLine(schedule, identity, sponsorInfo, recentCalls);
 
   const context: CheckinCallContext = {
     schedule,
@@ -121,10 +112,7 @@ export async function buildFamilyCheckinContext(
     healthQuestions,
     openingLine,
     sponsorName: sponsorInfo.name,
-    sponsorRelationship: getSponsorRelationshipTerm(
-      identity.relationship,
-      sponsorInfo.name
-    ),
+    sponsorRelationship: getSponsorRelationshipTerm(identity.relationship, sponsorInfo.name),
   };
 
   log.info(
@@ -187,10 +175,7 @@ async function getSponsorInfo(sponsorUserId: string): Promise<SponsorInfo> {
  * Get the relationship term from family member's perspective
  * e.g., mother -> "your son Seth" or "your daughter Sarah"
  */
-function getSponsorRelationshipTerm(
-  relationship: string,
-  sponsorName: string
-): string {
+function getSponsorRelationshipTerm(relationship: string, sponsorName: string): string {
   const relationshipMap: Record<string, string> = {
     mother: 'your son',
     father: 'your son',
@@ -234,15 +219,12 @@ async function getFamilyMemberKnowledge(
   try {
     // Try to get stored knowledge from pending contexts
     // In the future, we'll build a dedicated family knowledge store
-    const { getPendingContexts } = await import(
-      '../../../services/family/family-context-sharing.js'
-    );
+    const { getPendingContexts } =
+      await import('../../../services/family/family-context-sharing.js');
     const pendingContexts = await getPendingContexts(sponsorUserId);
 
     // Extract any relevant context for this identity
-    const relevantContexts = pendingContexts.filter(
-      (ctx) => ctx.toUserId === identityId
-    );
+    const relevantContexts = pendingContexts.filter((ctx) => ctx.toUserId === identityId);
 
     if (relevantContexts.length > 0) {
       // Extract topics and health info from shared contexts
@@ -388,17 +370,12 @@ function generateHealthQuestions(
 // RECENT EVENTS
 // ============================================================================
 
-async function getRecentFamilyEvents(
-  sponsorUserId: string,
-  identityId: string
-): Promise<string[]> {
+async function getRecentFamilyEvents(sponsorUserId: string, identityId: string): Promise<string[]> {
   const events: string[] = [];
 
   try {
     // Check for recent family messages (they might have mentioned things)
-    const { getMessagesByIdentity } = await import(
-      '../../../services/family/family-messages.js'
-    );
+    const { getMessagesByIdentity } = await import('../../../services/family/family-messages.js');
     const messages = await getMessagesByIdentity(identityId);
 
     // Extract event mentions from recent messages (limit to 5)
@@ -483,20 +460,20 @@ function generateOpeningLine(
 /**
  * Generate the system prompt for the family check-in call
  */
-export function generateFamilyCheckinSystemPrompt(
-  context: CheckinCallContext
-): string {
+export function generateFamilyCheckinSystemPrompt(context: CheckinCallContext): string {
   const { schedule, identity, recentCalls, suggestedTopics } = context;
   const healthQuestions = context.healthQuestions || [];
   const name = identity.preferredName || identity.displayName;
 
-  const lastCallSummary = recentCalls.length > 0
-    ? `\nLast call summary: ${recentCalls[0].conversationSummary || 'No summary available'}`
-    : '';
+  const lastCallSummary =
+    recentCalls.length > 0
+      ? `\nLast call summary: ${recentCalls[0].conversationSummary || 'No summary available'}`
+      : '';
 
-  const topicsToAvoidSection = schedule.topicsToAvoid && schedule.topicsToAvoid.length > 0
-    ? `\n\nTopics to AVOID (sensitive for this person):\n${schedule.topicsToAvoid.map(t => `- ${t}`).join('\n')}`
-    : '';
+  const topicsToAvoidSection =
+    schedule.topicsToAvoid && schedule.topicsToAvoid.length > 0
+      ? `\n\nTopics to AVOID (sensitive for this person):\n${schedule.topicsToAvoid.map((t) => `- ${t}`).join('\n')}`
+      : '';
 
   return `You are Ferni, a warm and caring companion making a check-in call to ${name}, who is ${context.sponsorRelationship}'s ${schedule.relationship}.
 
@@ -520,10 +497,10 @@ CONVERSATION GOALS:
 5. End on a positive note
 
 SUGGESTED TOPICS (use naturally, don't force):
-${suggestedTopics.map(t => `- ${t}`).join('\n')}
+${suggestedTopics.map((t) => `- ${t}`).join('\n')}
 
 GENTLE HEALTH CHECK-INS (weave in naturally):
-${healthQuestions.map(q => `- ${q}`).join('\n')}${topicsToAvoidSection}
+${healthQuestions.map((q) => `- ${q}`).join('\n')}${topicsToAvoidSection}
 
 IMPORTANT GUIDELINES:
 - Keep the call to ${schedule.maxDurationMinutes} minutes maximum

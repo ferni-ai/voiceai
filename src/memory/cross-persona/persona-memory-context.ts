@@ -135,11 +135,14 @@ export interface PersonaMemoryContextOptions {
 /**
  * Context templates by persona
  */
-const PERSONA_CONTEXT_TEMPLATES: Record<PersonaId, {
-  prefix: string;
-  memoryFormat: (m: SharedMemory) => string;
-  insightFormat: (i: CrossPersonaInsight) => string;
-}> = {
+const PERSONA_CONTEXT_TEMPLATES: Record<
+  PersonaId,
+  {
+    prefix: string;
+    memoryFormat: (m: SharedMemory) => string;
+    insightFormat: (i: CrossPersonaInsight) => string;
+  }
+> = {
   ferni: {
     prefix: 'As their life coach, you know:',
     memoryFormat: (m) => `- ${m.content}`,
@@ -255,12 +258,7 @@ export async function buildPersonaMemoryContext(
     }));
 
     // 7. Build context text
-    const contextText = buildContextText(
-      personaId,
-      formattedMemories,
-      formattedInsights,
-      template
-    );
+    const contextText = buildContextText(personaId, formattedMemories, formattedInsights, template);
 
     // 8. Calculate priority
     const hasHighPriority =
@@ -406,9 +404,7 @@ function buildAttribution(memory: SharedMemory): string {
     return memory.attribution;
   }
 
-  const daysSince = Math.floor(
-    (Date.now() - memory.capturedAt.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const daysSince = Math.floor((Date.now() - memory.capturedAt.getTime()) / (1000 * 60 * 60 * 24));
 
   if (daysSince === 0) {
     return 'Earlier today';
@@ -502,9 +498,7 @@ function calculateContextPriority(
  *
  * Call this after using the context in a response.
  */
-export async function recordContextSurfaced(
-  context: PersonaMemoryContext
-): Promise<void> {
+export async function recordContextSurfaced(context: PersonaMemoryContext): Promise<void> {
   // Record surfaced memories
   for (const memory of context.relevantMemories) {
     if (memory.shouldSurface) {

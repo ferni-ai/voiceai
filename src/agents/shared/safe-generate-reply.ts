@@ -44,14 +44,14 @@ const SAFE_TIMEOUT_MS = 6000;
 /** Minimum time between generateReply calls to prevent overwhelming the API */
 const MIN_INTERVAL_MS = 500;
 
-/** 
+/**
  * Maximum context size in characters before warning
  * OpenAI Realtime API limit: 16K tokens (instructions) → ~8K safe for user context
  * Using 4 chars/token estimate: 8K tokens = 32K chars
  */
 const MAX_CONTEXT_CHARS = 32000;
 
-/** 
+/**
  * Critical context size - will cause truncation/hallucination
  * OpenAI Realtime API hard limit: 14K tokens → 56K chars
  * At this size, model WILL truncate older context silently
@@ -216,7 +216,7 @@ function checkContextSize(instructions: string): ContextSizeResult {
   const estimatedTokens = Math.round(size / 4);
   const warning = size > MAX_CONTEXT_CHARS;
   const critical = size > CRITICAL_CONTEXT_CHARS;
-  
+
   // Calculate usage percentages for monitoring
   const usagePercent = Math.round((size / CRITICAL_CONTEXT_CHARS) * 100);
   const OPENAI_TOKEN_LIMIT = 14000; // OpenAI Realtime instruction limit
@@ -224,9 +224,9 @@ function checkContextSize(instructions: string): ContextSizeResult {
 
   if (critical) {
     logger.error(
-      { 
-        chars: size, 
-        tokens: estimatedTokens, 
+      {
+        chars: size,
+        tokens: estimatedTokens,
         usagePercent,
         tokenUsagePercent,
         limit: CRITICAL_CONTEXT_CHARS,
@@ -236,9 +236,9 @@ function checkContextSize(instructions: string): ContextSizeResult {
     );
   } else if (warning) {
     logger.warn(
-      { 
-        chars: size, 
-        tokens: estimatedTokens, 
+      {
+        chars: size,
+        tokens: estimatedTokens,
         usagePercent,
         tokenUsagePercent,
         recommended: MAX_CONTEXT_CHARS,
@@ -248,9 +248,9 @@ function checkContextSize(instructions: string): ContextSizeResult {
   } else if (usagePercent > 50) {
     // Info log when over 50% usage for monitoring
     logger.info(
-      { 
-        chars: size, 
-        tokens: estimatedTokens, 
+      {
+        chars: size,
+        tokens: estimatedTokens,
         usagePercent,
         tokenUsagePercent,
       },
@@ -528,7 +528,7 @@ export async function safeGenerateReply(
           connectionWarning: !connectionHealth.healthy,
         };
       }
-      
+
       failureTracker.recordSuccess();
       logger.debug(
         { context, instructionChars: instructions.length },

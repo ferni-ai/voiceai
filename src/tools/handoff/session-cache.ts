@@ -107,10 +107,7 @@ export async function warmupHandoffToolsForSession(
       '✅ Handoff tools cached for session'
     );
   } catch (error) {
-    log.error(
-      { sessionId, error: String(error) },
-      '❌ Failed to warmup handoff tools for session'
-    );
+    log.error({ sessionId, error: String(error) }, '❌ Failed to warmup handoff tools for session');
     // Don't throw - allow session to continue without cached handoff tools
   }
 }

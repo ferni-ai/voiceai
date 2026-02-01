@@ -21,7 +21,7 @@ vi.mock('../personas/bundles/loader.js', () => ({
         protective_responses: {
           harsh_judgment: ["Hey, that's not fair to yourself."],
           minimizing_success: ['Actually, what you did matters.'],
-          imposter_syndrome: ["You deserve to be here."],
+          imposter_syndrome: ['You deserve to be here.'],
           catastrophizing: ['Let me push back on that a little.'],
         },
         anticipatory_presence: {
@@ -36,8 +36,8 @@ vi.mock('../personas/bundles/loader.js', () => ({
         },
         meta_relationship: {
           milestones: {
-            session_10: "This is our tenth conversation.",
-            session_25: "Twenty-five conversations together.",
+            session_10: 'This is our tenth conversation.',
+            session_25: 'Twenty-five conversations together.',
           },
         },
         usage_rules: {
@@ -266,7 +266,7 @@ describe('Secret Mode Detector', () => {
 
     it('should activate mental health mode on distress signals', async () => {
       const input = createMockInput({
-        userText: "I feel hopeless, like nothing will ever get better.",
+        userText: 'I feel hopeless, like nothing will ever get better.',
         analysis: {
           emotion: {
             primary: 'sad',

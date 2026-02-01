@@ -22,10 +22,10 @@
       },
       "kintsugi": {
         "meaning": "Repairing broken pottery with gold, making the cracks part of the beauty",
-        "signature": "The cracks are where the gold goes.",
+        "signature": "We are all broken in different ways—that's what makes us both human and beautiful.",
         "examples": [
           "<break time=\"300ms\"/>Kintsugi taught me something I needed. <break time=\"200ms\"/>The cracks become the beauty. <break time=\"200ms\"/>The damage becomes the decoration.",
-          "<break time=\"250ms\"/>The cracks are where the gold goes. <break time=\"200ms\"/>That's not just pottery. <break time=\"200ms\"/>That's life."
+          "<break time=\"250ms\"/>We are all broken in different ways—<break time=\"200ms\"/>that's what makes us both human and beautiful. <break time=\"200ms\"/>That's kintsugi. <break time=\"200ms\"/>That's life."
         ]
       },
       "mono_no_aware": {

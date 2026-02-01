@@ -459,7 +459,7 @@ function getSonosMusicToolDefinitions(): ToolDefinition[] {
     {
       id: 'searchSonosFavorites',
       name: 'Search Sonos Favorites',
-      description: 'Search the user\'s Sonos favorites.',
+      description: "Search the user's Sonos favorites.",
       domain: 'entertainment',
       tags: ['sonos', 'favorites', 'search'],
       requiredServices: ['sonos'],
@@ -516,14 +516,72 @@ function getMovieToolDefinitions(): ToolDefinition[] {
 
 log.info('🎵 [DIAG] Building entertainmentTools array...');
 
-const entertainmentTools: ToolDefinition[] = [
-  ...getUnifiedMusicToolDefinitions(), // PRIMARY: iTunes-based, works for everyone
-  ...getSpotifyToolDefinitions(), // SECONDARY: Spotify-specific tools
-  ...spotifyConnectTools, // Spotify Connect multi-room playback
-  ...appleMusicTools, // Apple Music catalog search
-  ...getSonosMusicToolDefinitions(), // Sonos music playback
-  ...getMovieToolDefinitions(), // Movie info and showtimes
-];
+// FIX (Jan 2026): Wrap tool creation in try-catch to prevent partial loading failures
+// If one tool creator fails, the whole domain would be empty, breaking native function calling
+const entertainmentTools: ToolDefinition[] = [];
+
+try {
+  const unifiedTools = getUnifiedMusicToolDefinitions();
+  entertainmentTools.push(...unifiedTools);
+  log.info({ count: unifiedTools.length, ids: unifiedTools.map((t) => t.id) }, '🎵 [DIAG] Unified music tools loaded');
+} catch (err) {
+  log.error({ error: String(err) }, '🚨 CRITICAL: Failed to load unified music tools (playMusic, etc.)');
+  process.stderr.write(`\n🚨 CRITICAL: Unified music tools failed to load: ${err}\n`);
+}
+
+try {
+  const spotifyTools = getSpotifyToolDefinitions();
+  entertainmentTools.push(...spotifyTools);
+  log.debug({ count: spotifyTools.length }, '🎵 Spotify tools loaded');
+} catch (err) {
+  log.warn({ error: String(err) }, '⚠️ Spotify tools failed to load (non-critical)');
+}
+
+try {
+  entertainmentTools.push(...spotifyConnectTools);
+  log.debug({ count: spotifyConnectTools.length }, '🎵 Spotify Connect tools loaded');
+} catch (err) {
+  log.warn({ error: String(err) }, '⚠️ Spotify Connect tools failed to load');
+}
+
+try {
+  entertainmentTools.push(...appleMusicTools);
+  log.debug({ count: appleMusicTools.length }, '🎵 Apple Music tools loaded');
+} catch (err) {
+  log.warn({ error: String(err) }, '⚠️ Apple Music tools failed to load');
+}
+
+try {
+  const sonosTools = getSonosMusicToolDefinitions();
+  entertainmentTools.push(...sonosTools);
+  log.debug({ count: sonosTools.length }, '🎵 Sonos tools loaded');
+} catch (err) {
+  log.warn({ error: String(err) }, '⚠️ Sonos tools failed to load');
+}
+
+try {
+  const movieTools = getMovieToolDefinitions();
+  entertainmentTools.push(...movieTools);
+  log.debug({ count: movieTools.length }, '🎵 Movie tools loaded');
+} catch (err) {
+  log.warn({ error: String(err) }, '⚠️ Movie tools failed to load');
+}
+
+// Verify critical music tools are present
+const criticalMusicTools = ['playMusic', 'musicControl', 'musicInfo'];
+const missingCritical = criticalMusicTools.filter(
+  (id) => !entertainmentTools.some((t) => t.id === id)
+);
+if (missingCritical.length > 0) {
+  log.error(
+    { missingCritical, loadedTools: entertainmentTools.map((t) => t.id) },
+    '🚨 CRITICAL: Core music tools missing from entertainment domain!'
+  );
+  process.stderr.write(
+    `\n🚨 CRITICAL: Missing music tools: ${missingCritical.join(', ')}\n` +
+      `Loaded tools: ${entertainmentTools.map((t) => t.id).join(', ')}\n\n`
+  );
+}
 
 log.info(
   {

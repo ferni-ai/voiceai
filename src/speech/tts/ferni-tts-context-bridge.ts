@@ -174,7 +174,9 @@ export interface VoiceSessionUserData {
  *
  * Falls back to legacy field names for backwards compatibility.
  */
-export function extractVoiceAgentContext(userData: VoiceSessionUserData | unknown): VoiceAgentContext {
+export function extractVoiceAgentContext(
+  userData: VoiceSessionUserData | unknown
+): VoiceAgentContext {
   if (!userData || typeof userData !== 'object') {
     log.debug('No userData provided, using empty context');
     return {};
@@ -311,6 +313,8 @@ export function convertToFerniSuperhumanContext(
         hour12: false,
       });
       userLocalHour = parseInt(formatter.format(now), 10);
+      // Handle midnight edge case: some locales return 24 instead of 0
+      if (userLocalHour === 24) userLocalHour = 0;
     } catch (err) {
       log.warn({ timezone: agentContext.userTimezone, error: String(err) }, 'Invalid timezone');
     }
@@ -467,7 +471,9 @@ export async function enrichContextFromFirestore(
 
     // Calculate relationship metrics
     const relationshipDays = profile.firstContact
-      ? Math.floor((now.getTime() - new Date(profile.firstContact).getTime()) / (1000 * 60 * 60 * 24))
+      ? Math.floor(
+          (now.getTime() - new Date(profile.firstContact).getTime()) / (1000 * 60 * 60 * 24)
+        )
       : 0;
     const totalInteractions = profile.totalConversations || 0;
 

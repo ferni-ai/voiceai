@@ -51,7 +51,11 @@ context-builders/
 ├── superhuman/     # Superhuman services
 ├── humanization/   # Speech naturalness
 ├── external/       # External integrations
-└── learning/       # Collective intelligence
+├── learning/       # Collective intelligence
+├── cognitive/      # Cognitive pattern recognition builders
+├── conversational/ # Conversation-specific context (backchannel, goodbye, silence)
+├── family/         # Family-related context
+└── proactive/      # Proactive intelligence surfacing
 ```
 
 ---
@@ -62,7 +66,6 @@ Context builders inject guidance into each conversation turn. They analyze the c
 ## Reference Docs
 - **Migration Plan**: `docs/architecture/CONTEXT-BUILDERS-RATIONALIZATION.md` ⭐
 - **Progress Tracker**: `docs/architecture/CONTEXT-BUILDERS-MIGRATION-TRACKER.md`
-- Architecture: `docs/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md`
 - Dynamic Triggers: `docs/architecture/DYNAMIC-TRIGGER-SYSTEM.md` (proactive behavior activation)
 - Behavioral System: `behavioral/README.md` (preferred approach)
 - Trigger Utils: `dynamic-trigger-utils.ts` (condition-based trigger matching)
@@ -240,21 +243,24 @@ Builders are organized by category and loaded in priority order. See `loader.ts`
 
 ## Cross-Persona Intelligence Builders
 
-These specialized builders provide deep insights when entering a persona:
+These specialized builders provide deep insights when entering a persona. Most are **directories** with multiple files (data-fetchers, formatting, session management, metrics):
 
-| Builder | Persona | Purpose |
-|---------|---------|---------|
-| `peter-research-insights.ts` | Peter | Deep research briefings, cross-team data |
-| `maya-coaching-insights.ts` | Maya | Habit coaching context, Four Tendencies |
-| `jordan-milestone-insights.ts` | Jordan | Milestone planning, life stage intelligence |
-| `alex-communication-insights.ts` | Alex | Communication coaching, calendar density |
-| `nayan-wisdom-insights.ts` | Nayan | Life wisdom synthesis, values alignment |
-| `ferni-coordinator-insights.ts` | Ferni | Smart handoff suggestions |
+| Builder | Persona | Structure | Purpose |
+|---------|---------|-----------|---------|
+| `personas/peter-research-insights/` | Peter | 8 files | Deep research briefings, cross-team data |
+| `personas/maya-coaching-insights/` | Maya | 8 files | Habit coaching context, Four Tendencies |
+| `personas/jordan-milestone-insights/` | Jordan | 8 files | Milestone planning, life stage intelligence |
+| `personas/alex-communication-insights/` | Alex | 11 files | Communication coaching, calendar density |
+| `personas/nayan-wisdom-insights/` | Nayan | 15 files | Life wisdom synthesis, values alignment |
+| `personas/joel-dickson-insights/` | Joel | 1 file | Joel Dickson financial insights |
+| `personas/ferni-coordinator-insights.ts` | Ferni | Standalone | Smart handoff suggestions |
+
+The `personas/` directory also contains 20+ standalone builder files for persona-specific context (backstory, catchphrases, humor, vulnerability, voice DNA, etc.).
 
 ### Key Files
 
 ```
-shared-types.ts              - Common interfaces (MoodInsights, MemoryInsights, etc.)
+personas/                    - All persona-specific builders (dirs + standalone files)
 superhuman-integration.ts    - Bridges superhuman services to persona builders
 ```
 
@@ -292,32 +298,28 @@ See `docs/architecture/CROSS-PERSONA-INTELLIGENCE.md` for complete architecture 
 ## Existing Builders Reference
 ```
 # SAFETY
-crisis.ts               - Crisis/panic/emergency detection
-wellbeing-context.ts    - Wellbeing signals and support
-
-# EMOTIONAL
-emotional.ts            - Emotion detection & validation
-celebration.ts          - Milestone acknowledgment
+safety/crisis.ts               - Crisis/panic/emergency detection
 
 # MEMORY
-memory.ts               - Cross-session memory callbacks
-proactive-memory.ts     - Proactive memory surfacing
+memory/                        - Cross-session memory builders
 
-# PERSONA
-persona-identity.ts     - Core persona identity
-human-personality.ts    - Semantic matching, callbacks
-peter-research-insights.ts   - Peter's deep research briefings
-maya-coaching-insights.ts    - Maya's habit coaching context
-jordan-milestone-insights.ts - Jordan's milestone planning
-alex-communication-insights.ts - Alex's communication coaching
-nayan-wisdom-insights.ts     - Nayan's life wisdom synthesis
-ferni-coordinator-insights.ts - Ferni's handoff suggestions
+# EMOTIONAL
+emotional/                     - Emotion detection, contagion, laughter, voice emotion
+
+# PERSONA (personas/)
+persona-identity.ts            - Core persona identity
+human-personality.ts           - Semantic matching, callbacks
+peter-research-insights/       - Peter's deep research briefings (8 files)
+maya-coaching-insights/        - Maya's habit coaching context (8 files)
+jordan-milestone-insights/     - Jordan's milestone planning (8 files)
+alex-communication-insights/   - Alex's communication coaching (11 files)
+nayan-wisdom-insights/         - Nayan's life wisdom synthesis (15 files)
+ferni-coordinator-insights.ts  - Ferni's handoff suggestions
 
 # HUMANIZING
-humanizing.ts           - Self-correction, humor, naturalness
-tool-humanization.ts    - Natural tool usage framing
+humanization/                  - Speech naturalness builders
 
-# See loader.ts for complete list of 90+ builders
+# See loader.ts for complete list of 90+ builders across 19 categories
 ```
 
 ## Testing

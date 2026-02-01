@@ -17,6 +17,11 @@ import {
 } from '../../services/life-automation.service.js';
 import { getUserId } from '../../utils/api.js';
 import { showFerniCareDashboard } from './dashboard.ui.js';
+import {
+  ANALYTICS_ICONS,
+  GROWTH_ICONS,
+  QUIZ_ICONS,
+} from '../icons/shared-icons.js';
 
 const log = createLogger('RoutineBuilder');
 
@@ -40,10 +45,10 @@ const COPY = {
   },
 
   triggers: [
-    { type: 'time', label: 'At a certain time', icon: '🌅', hint: 'Every day at 7am, weekdays at 9am...' },
-    { type: 'phrase', label: 'When you say something', icon: '🗣️', hint: '"Good morning Ferni" or "Start my day"' },
-    { type: 'location', label: 'When you arrive or leave', icon: '📍', hint: 'Coming home, leaving work...' },
-    { type: 'calendar', label: 'Around calendar events', icon: '📅', hint: 'Before meetings, after workouts...' },
+    { type: 'time', label: 'At a certain time', icon: ANALYTICS_ICONS.sunrise, hint: 'Every day at 7am, weekdays at 9am...' },
+    { type: 'phrase', label: 'When you say something', icon: ANALYTICS_ICONS.microphone, hint: '"Good morning Ferni" or "Start my day"' },
+    { type: 'location', label: 'When you arrive or leave', icon: ANALYTICS_ICONS.mapPin, hint: 'Coming home, leaving work...' },
+    { type: 'calendar', label: 'Around calendar events', icon: ANALYTICS_ICONS.calendar, hint: 'Before meetings, after workouts...' },
   ],
 
   triggerConfig: {
@@ -65,13 +70,13 @@ const COPY = {
   },
 
   actions: [
-    { type: 'speak_message', label: 'Say something', icon: '💬', hint: 'I\'ll speak this to you' },
-    { type: 'send_notification', label: 'Send a notification', icon: '🔔', hint: 'A gentle nudge' },
-    { type: 'add_reminder', label: 'Set a reminder', icon: '⏰', hint: 'I\'ll remind you later' },
-    { type: 'log_habit', label: 'Log a habit', icon: '✅', hint: 'Track your progress' },
-    { type: 'control_lights', label: 'Adjust lights', icon: '💡', hint: 'Set the mood' },
-    { type: 'set_thermostat', label: 'Set temperature', icon: '🌡️', hint: 'Get comfortable' },
-    { type: 'play_music', label: 'Play music', icon: '🎵', hint: 'Set the vibe' },
+    { type: 'speak_message', label: 'Say something', icon: ANALYTICS_ICONS.messageCircle, hint: 'I\'ll speak this to you' },
+    { type: 'send_notification', label: 'Send a notification', icon: ANALYTICS_ICONS.bell, hint: 'A gentle nudge' },
+    { type: 'add_reminder', label: 'Set a reminder', icon: ANALYTICS_ICONS.alarm, hint: 'I\'ll remind you later' },
+    { type: 'log_habit', label: 'Log a habit', icon: QUIZ_ICONS.correct, hint: 'Track your progress' },
+    { type: 'control_lights', label: 'Adjust lights', icon: GROWTH_ICONS.insight, hint: 'Set the mood' },
+    { type: 'set_thermostat', label: 'Set temperature', icon: ANALYTICS_ICONS.thermometer, hint: 'Get comfortable' },
+    { type: 'play_music', label: 'Play music', icon: ANALYTICS_ICONS.music, hint: 'Set the vibe' },
   ],
 
   buttons: {
@@ -254,8 +259,22 @@ const styles = `
   }
   
   .rb-trigger__icon {
-    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
     margin-bottom: var(--space-1, 4px);
+    color: var(--color-text-secondary);
+  }
+  
+  .rb-trigger__icon svg {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .rb-trigger.selected .rb-trigger__icon {
+    color: var(--color-ferni, #4a6741);
   }
   
   .rb-trigger__label {
@@ -313,8 +332,18 @@ const styles = `
   }
   
   .rb-action-item__icon {
-    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
     flex-shrink: 0;
+    color: var(--color-text-secondary);
+  }
+  
+  .rb-action-item__icon svg {
+    width: 24px;
+    height: 24px;
   }
   
   .rb-action-item__content {
@@ -428,8 +457,22 @@ const styles = `
   }
   
   .rb-action-picker__item-icon {
-    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 28px;
+    height: 28px;
     margin-bottom: var(--space-2, 8px);
+    color: var(--color-text-secondary);
+  }
+  
+  .rb-action-picker__item-icon svg {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .rb-action-picker__item:hover .rb-action-picker__item-icon {
+    color: var(--color-ferni, #4a6741);
   }
   
   .rb-action-picker__item-label {

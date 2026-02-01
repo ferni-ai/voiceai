@@ -30,7 +30,8 @@
   },
   "toolDefaults": {
     "debugMode": true,
-    "maxTools": 30,
+    "maxTools": 0,
+    "_maxToolsNote": "0 = unlimited (use TOOL_LIMIT env var or let semantic router filter). Set > 0 to cap.",
     "enabledDomains": [],
     "excludedTools": [],
     "includedTools": [
@@ -67,7 +68,6 @@
       "breatheWithMe",
       "groundInBody"
     ],
-    "maxTools": 35,
     "logToolSchemas": true,
     "logToolResults": true,
     "useOrchestrator": true

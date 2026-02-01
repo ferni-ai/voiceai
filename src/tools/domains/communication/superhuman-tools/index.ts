@@ -149,7 +149,10 @@ export async function buildSuperhumanCommunicationContext(
       }
     }
   } catch (error) {
-    log.warn({ error: String(error), userId }, 'Failed to build some superhuman communication context');
+    log.warn(
+      { error: String(error), userId },
+      'Failed to build some superhuman communication context'
+    );
   }
 
   // Combine and truncate if needed

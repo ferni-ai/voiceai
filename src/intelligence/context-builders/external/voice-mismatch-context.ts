@@ -330,6 +330,4 @@ registerContextBuilder(voiceMismatchContextBuilder);
 // EXPORTS
 // ============================================================================
 
-export {
-  voiceMismatchContextBuilder as default,
-};
+export { voiceMismatchContextBuilder as default };

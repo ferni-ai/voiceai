@@ -42,10 +42,7 @@ export function generateFavicon(initials: string, color: string): string {
  * @param color - Background color in hex format
  * @returns Data URI string for apple-touch-icon
  */
-export function generateAppleTouchIcon(
-  initials: string,
-  color: string
-): string {
+export function generateAppleTouchIcon(initials: string, color: string): string {
   const safeInitials = escapeXml(initials.slice(0, 3).toUpperCase());
   const safeColor = encodeURIComponent(color);
 
@@ -129,11 +126,8 @@ function lightenHex(hex: string, percent: number): string {
   const num = parseInt(cleanHex, 16);
 
   let r = (num >> 16) + Math.round((255 - (num >> 16)) * (percent / 100));
-  let g =
-    ((num >> 8) & 0x00ff) +
-    Math.round((255 - ((num >> 8) & 0x00ff)) * (percent / 100));
-  let b =
-    (num & 0x0000ff) + Math.round((255 - (num & 0x0000ff)) * (percent / 100));
+  let g = ((num >> 8) & 0x00ff) + Math.round((255 - ((num >> 8) & 0x00ff)) * (percent / 100));
+  let b = (num & 0x0000ff) + Math.round((255 - (num & 0x0000ff)) * (percent / 100));
 
   r = Math.min(255, r);
   g = Math.min(255, g);

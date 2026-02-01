@@ -41,26 +41,26 @@ const log = createLogger({ module: 'SharedMemoryAPI' });
  * Persona identifiers
  */
 export type PersonaId =
-  | 'ferni'      // Life coach (coordinator)
-  | 'peter'     // Research
-  | 'maya'      // Habits/routines
-  | 'jordan'    // Event planning
-  | 'alex'      // Communication
-  | 'nayan';    // Wisdom/philosophy
+  | 'ferni' // Life coach (coordinator)
+  | 'peter' // Research
+  | 'maya' // Habits/routines
+  | 'jordan' // Event planning
+  | 'alex' // Communication
+  | 'nayan'; // Wisdom/philosophy
 
 /**
  * Memory type categories
  */
 export type MemoryCategory =
-  | 'fact'           // Static facts about the user
-  | 'entity'         // People, places, things
-  | 'emotion'        // Emotional moments
-  | 'commitment'     // Promises, goals, intentions
-  | 'habit'          // Habits and routines
-  | 'relationship'   // Relationship information
-  | 'preference'     // User preferences
-  | 'milestone'      // Achievements, anniversaries
-  | 'insight';       // Cross-persona insights
+  | 'fact' // Static facts about the user
+  | 'entity' // People, places, things
+  | 'emotion' // Emotional moments
+  | 'commitment' // Promises, goals, intentions
+  | 'habit' // Habits and routines
+  | 'relationship' // Relationship information
+  | 'preference' // User preferences
+  | 'milestone' // Achievements, anniversaries
+  | 'insight'; // Cross-persona insights
 
 /**
  * Shared memory record
@@ -222,9 +222,7 @@ export async function getMemories(
     }
 
     if (filters.relevantTo) {
-      filtered = filtered.filter((m) =>
-        m.relevantToPersonas.includes(filters.relevantTo!)
-      );
+      filtered = filtered.filter((m) => m.relevantToPersonas.includes(filters.relevantTo!));
     }
 
     if (filters.minEmotionalWeight !== undefined) {
@@ -252,9 +250,7 @@ export async function getMemories(
 
     if (filters.excludeRecentlySurfaced && filters.excludeRecentlySurfaced > 0) {
       const cutoff = Date.now() - filters.excludeRecentlySurfaced * 60 * 60 * 1000;
-      filtered = filtered.filter(
-        (m) => !m.lastSurfaced || m.lastSurfaced.getTime() < cutoff
-      );
+      filtered = filtered.filter((m) => !m.lastSurfaced || m.lastSurfaced.getTime() < cutoff);
     }
 
     // Apply limit
@@ -301,7 +297,9 @@ export async function getMemoriesForPersona(
 /**
  * Store a new memory
  */
-export async function storeMemory(memory: Omit<SharedMemory, 'id' | 'surfaceCount' | 'capturedAt'>): Promise<SharedMemory> {
+export async function storeMemory(
+  memory: Omit<SharedMemory, 'id' | 'surfaceCount' | 'capturedAt'>
+): Promise<SharedMemory> {
   const newMemory: SharedMemory = {
     ...memory,
     id: generateMemoryId(),
@@ -332,10 +330,7 @@ export async function storeMemory(memory: Omit<SharedMemory, 'id' | 'surfaceCoun
 /**
  * Record that a memory was surfaced
  */
-export async function recordMemorySurfaced(
-  userId: string,
-  memoryId: string
-): Promise<void> {
+export async function recordMemorySurfaced(userId: string, memoryId: string): Promise<void> {
   const userMemories = memoryCache.get(userId) || [];
   const memory = userMemories.find((m) => m.id === memoryId);
 
@@ -404,9 +399,7 @@ export async function getInsightsForPersona(
 
   // Filter out expired and already delivered
   const now = new Date();
-  const valid = queue.filter(
-    (i) => !i.delivered && (!i.expiresAt || i.expiresAt > now)
-  );
+  const valid = queue.filter((i) => !i.delivered && (!i.expiresAt || i.expiresAt > now));
 
   // Sort by priority (highest first)
   valid.sort((a, b) => b.priority - a.priority);
@@ -417,10 +410,7 @@ export async function getInsightsForPersona(
 /**
  * Mark an insight as delivered
  */
-export async function markInsightDelivered(
-  userId: string,
-  insightId: string
-): Promise<void> {
+export async function markInsightDelivered(userId: string, insightId: string): Promise<void> {
   for (const [key, queue] of insightsQueue.entries()) {
     if (key.startsWith(userId)) {
       const insight = queue.find((i) => i.id === insightId);

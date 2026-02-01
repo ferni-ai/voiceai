@@ -48,7 +48,13 @@ interface ModeConfig {
   max_per_session?: number;
 }
 
-type EmotionalMode = 'silly' | 'frustrated' | 'confused' | 'delighted' | 'mischievous' | 'overwhelmed';
+type EmotionalMode =
+  | 'silly'
+  | 'frustrated'
+  | 'confused'
+  | 'delighted'
+  | 'mischievous'
+  | 'overwhelmed';
 
 interface ModeTrigger {
   mode: EmotionalMode;
@@ -275,7 +281,9 @@ export async function buildEmotionalRangeModesContext(
     if (Math.random() > adjustedProbability) continue;
 
     // Get mode guidance
-    const energy = content ? getModeGuidance(trigger.mode, content) : getModeGuidance(trigger.mode, {});
+    const energy = content
+      ? getModeGuidance(trigger.mode, content)
+      : getModeGuidance(trigger.mode, {});
 
     // Track mode usage
     incrementModeCount(sessionId, trigger.mode);

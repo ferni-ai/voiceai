@@ -284,7 +284,7 @@ export async function getInsightsToSurface(
 ): Promise<GeneratedInsight[]> {
   // First check cache
   let insights = queryCachedInsights(userId, {
-    minPriority: 'medium',
+    minPriority: 'low', // Lowered from 'medium' to allow more BTH insights through
     includeSurfaced: false,
     includeDismissed: false,
   });
@@ -299,11 +299,14 @@ export async function getInsightsToSurface(
   }
 
   // Filter by surfacing moment
+  // Include all generator-used moments so no insights are permanently blocked.
+  // Previously 'celebration' and 'gentle_probe' were never accepted, silently
+  // dropping persona-voiced observations that used those moments.
   const relevantMoments: string[] = [];
   if (context.isSessionStart) {
-    relevantMoments.push('session_start');
+    relevantMoments.push('session_start', 'celebration');
   } else {
-    relevantMoments.push('natural_pause', 'topic_relevant', 'check_in');
+    relevantMoments.push('natural_pause', 'topic_relevant', 'check_in', 'celebration', 'gentle_probe');
   }
 
   insights = insights.filter((i) => relevantMoments.includes(i.surfacingMoment));
@@ -425,7 +428,7 @@ export function formatInsightsForPrompt(insights: GeneratedInsight[]): string {
 
   sections.push('─────────────────────────────────────────────────────────────');
   sections.push("NOTE: Don't force these. Weave in naturally when relevant.");
-  sections.push("      The goal is connection, not showing off what we know.");
+  sections.push('      The goal is connection, not showing off what we know.');
   sections.push('─────────────────────────────────────────────────────────────');
 
   return sections.join('\n');

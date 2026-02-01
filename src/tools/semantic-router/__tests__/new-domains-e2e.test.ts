@@ -229,7 +229,9 @@ describe('New Domains E2E Tests', () => {
   describe('Tool Execution Delegation', () => {
     it('should return proper delegation info for trauma tools', async () => {
       const tool = traumaSupportTools.find((t) => t.id === 'trauma_aware_support')!;
-      const result = await tool.execute({ currentState: 'processing' }, { userId: 'test' } as never);
+      const result = await tool.execute({ currentState: 'processing' }, {
+        userId: 'test',
+      } as never);
       expect((result as { success: boolean }).success).toBe(true);
       expect((result as { toolId: string }).toolId).toBe('traumaAwareSupport');
       expect((result as { delegateTo: string }).delegateTo).toBe('domains/trauma-support');
@@ -338,7 +340,9 @@ describe('New Domains E2E Tests', () => {
       const tool = conciergeTools.find((t) => t.id === 'concierge_restaurant_reservation')!;
       const keywords = tool.triggers.keywords!;
 
-      const reservationKeyword = keywords.find((k) => typeof k === 'object' && k.word === 'reservation');
+      const reservationKeyword = keywords.find(
+        (k) => typeof k === 'object' && k.word === 'reservation'
+      );
       expect((reservationKeyword as { weight: number })?.weight).toBeGreaterThanOrEqual(0.95);
     });
   });

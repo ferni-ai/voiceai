@@ -59,9 +59,7 @@ interface WeeklySummaryData {
 async function aggregateWeeklySummary(userId: string): Promise<WeeklySummaryData | null> {
   try {
     // Load data from engagement store
-    const { getEngagementStore } = await import(
-      '../../../services/engagement/engagement-store.js'
-    );
+    const { getEngagementStore } = await import('../../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
 
     const profile = await store.getProfile(userId);
@@ -171,10 +169,7 @@ async function aggregateWeeklySummary(userId: string): Promise<WeeklySummaryData
     if (moodTrend === 'declining') {
       areasOfConcern.push('Mood has been lower - consider some self-care');
     }
-    if (
-      moodScores.filter((m) => m <= 2).length > moodScores.length / 2 &&
-      moodScores.length >= 3
-    ) {
+    if (moodScores.filter((m) => m <= 2).length > moodScores.length / 2 && moodScores.length >= 3) {
       areasOfConcern.push('Energy levels have been low');
     }
 
@@ -187,8 +182,7 @@ async function aggregateWeeklySummary(userId: string): Promise<WeeklySummaryData
         dayCompletions[day] = (dayCompletions[day] || 0) + 1;
       }
     });
-    const bestDay =
-      Object.entries(dayCompletions).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    const bestDay = Object.entries(dayCompletions).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
     // Most consistent ritual
     const sortedStreaks = [...(streaks || [])].sort(
@@ -250,10 +244,7 @@ function formatRitualName(ritualId: string | null): string | null {
 /**
  * Generate persona-appropriate response.
  */
-function generateSummaryResponse(
-  data: WeeklySummaryData,
-  personaId: string
-): string {
+function generateSummaryResponse(data: WeeklySummaryData, personaId: string): string {
   const sections: string[] = [];
 
   // Persona-specific opening
@@ -268,7 +259,7 @@ function generateSummaryResponse(
       sections.push("Let's see what progress you've made this week.");
       break;
     case 'nayan':
-      sections.push("Let me reflect on your journey this week.");
+      sections.push('Let me reflect on your journey this week.');
       break;
     default:
       sections.push("Here's how you've been doing lately.");
@@ -278,7 +269,7 @@ function generateSummaryResponse(
   if (data.wins.length > 0) {
     const winsIntro =
       personaId === 'maya'
-        ? "First, some wins to celebrate:"
+        ? 'First, some wins to celebrate:'
         : personaId === 'peter'
           ? 'Positive indicators:'
           : 'Some highlights:';
@@ -301,7 +292,7 @@ function generateSummaryResponse(
   if (data.moodHighlight) {
     const moodMsg =
       personaId === 'maya'
-        ? `${data.moodHighlight}. ${data.moodTrend === 'improving' ? 'I notice an upward trend - keep doing what you\'re doing.' : ''}`
+        ? `${data.moodHighlight}. ${data.moodTrend === 'improving' ? "I notice an upward trend - keep doing what you're doing." : ''}`
         : personaId === 'nayan'
           ? `${data.moodHighlight}. There is wisdom in understanding our emotional rhythms.`
           : data.moodHighlight;
@@ -340,13 +331,13 @@ function generateSummaryResponse(
         : personaId === 'peter'
           ? '\nThe data shows positive trends. Want me to drill down on any specific area?'
           : personaId === 'jordan'
-            ? '\nYou\'re building something. Want to plan your next week?'
-            : "Would you like to dig into anything specific?";
+            ? "\nYou're building something. Want to plan your next week?"
+            : 'Would you like to dig into anything specific?';
     sections.push(closing);
   } else {
     const closing =
       personaId === 'maya'
-        ? "\nEvery day is a fresh start. What small step could we take today?"
+        ? '\nEvery day is a fresh start. What small step could we take today?'
         : personaId === 'nayan'
           ? '\nThe path forward begins with a single step. What matters most to you right now?'
           : 'What would be most helpful to work on?';
@@ -364,7 +355,7 @@ function generateNoDataResponse(personaId: string): string {
     case 'maya':
       return "I don't have enough data yet to give you a meaningful summary. Try checking in with me for a few days, and I'll be able to spot patterns and track your progress.";
     case 'peter':
-      return "Insufficient data for statistical analysis. I need at least a week of engagement to generate meaningful insights.";
+      return 'Insufficient data for statistical analysis. I need at least a week of engagement to generate meaningful insights.';
     case 'nayan':
       return "We're just beginning our journey together. As we talk more, I'll learn your patterns and rhythms.";
     default:
@@ -428,7 +419,7 @@ Returns a conversational summary of their habits, mood trends, wins, and areas t
           return response;
         } catch (error) {
           log.error({ error: String(error), userId }, '📊 Failed to generate weekly summary');
-          return "I had trouble pulling together your summary. You can check the analytics in the app for now.";
+          return 'I had trouble pulling together your summary. You can check the analytics in the app for now.';
         }
       },
     });

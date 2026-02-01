@@ -185,11 +185,7 @@ export interface IRhythmIntelligence {
    * @param analysis - Turn analysis
    * @param wasSuccessful - Whether the turn was well-received
    */
-  recordTurn(
-    userId: string,
-    analysis: TurnAnalysis,
-    wasSuccessful: boolean
-  ): Promise<void>;
+  recordTurn(userId: string, analysis: TurnAnalysis, wasSuccessful: boolean): Promise<void>;
 
   /**
    * Get user's rhythm profile
@@ -206,10 +202,7 @@ export interface IRhythmIntelligence {
    * @param options - Additional options
    * @returns Turn analysis
    */
-  analyzeTurn(
-    message: string,
-    options?: { topic?: string }
-  ): TurnAnalysis;
+  analyzeTurn(message: string, options?: { topic?: string }): TurnAnalysis;
 
   /**
    * Build context injection for LLM

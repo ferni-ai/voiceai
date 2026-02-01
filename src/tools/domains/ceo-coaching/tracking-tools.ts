@@ -15,13 +15,7 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
-import {
-  saveWin,
-  logEnergy,
-  logGratitude,
-  saveJournalEntry,
-  getEnergyTrend,
-} from './storage.js';
+import { saveWin, logEnergy, logGratitude, saveJournalEntry, getEnergyTrend } from './storage.js';
 import { checkImmediateTrigger } from '../../../services/ceo-coaching/proactive-triggers.js';
 
 const log = getLogger();
@@ -125,8 +119,12 @@ export const trackEnergyDef: ToolDefinition = {
         'Log your current energy level from 1 to 10. Tracking energy helps identify patterns - ' +
         'when you feel best, what drains you, and how to optimize your schedule for peak performance.',
       parameters: z.object({
-        level: z.number().min(1).max(10).describe('Energy level from 1 (exhausted) to 10 (peak energy)'),
-        note: z.string().optional().describe('Optional note about what\'s affecting energy'),
+        level: z
+          .number()
+          .min(1)
+          .max(10)
+          .describe('Energy level from 1 (exhausted) to 10 (peak energy)'),
+        note: z.string().optional().describe("Optional note about what's affecting energy"),
       }),
       execute: async ({ level, note }) => {
         const userId = ctx.userId;
@@ -145,7 +143,10 @@ export const trackEnergyDef: ToolDefinition = {
             checkImmediateTrigger(userId, 'energy_logged', { level, note })
               .then((trigger) => {
                 if (trigger) {
-                  log.info({ userId, triggerType: trigger.type }, 'Immediate trigger detected for low energy');
+                  log.info(
+                    { userId, triggerType: trigger.type },
+                    'Immediate trigger detected for low energy'
+                  );
                 }
               })
               .catch((err) => {
@@ -208,17 +209,17 @@ export const trackEnergyDef: ToolDefinition = {
 export const logGratitudeDef: ToolDefinition = {
   id: 'logGratitude',
   name: 'Log Gratitude',
-  description: 'Capture something you\'re grateful for to cultivate a positive mindset',
+  description: "Capture something you're grateful for to cultivate a positive mindset",
   domain: 'ceo-coaching',
   tags: ['ceo', 'coaching', 'gratitude', 'wellbeing', 'mindfulness'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Log something you\'re grateful for. Regular gratitude practice is scientifically proven to ' +
+        "Log something you're grateful for. Regular gratitude practice is scientifically proven to " +
         'improve wellbeing, reduce stress, and increase resilience. Can be big or small.',
       parameters: z.object({
-        text: z.string().describe('What you\'re grateful for'),
+        text: z.string().describe("What you're grateful for"),
       }),
       execute: async ({ text }) => {
         const userId = ctx.userId;
@@ -263,11 +264,8 @@ export const quickJournalDef: ToolDefinition = {
         'Capture a quick journal entry. Journaling helps process thoughts, track your journey, ' +
         'and create a record you can reflect on later. No need for it to be polished.',
       parameters: z.object({
-        text: z.string().describe('Your journal entry - whatever\'s on your mind'),
-        mood: z
-          .enum(['great', 'good', 'okay', 'low', 'rough'])
-          .optional()
-          .describe('Current mood'),
+        text: z.string().describe("Your journal entry - whatever's on your mind"),
+        mood: z.enum(['great', 'good', 'okay', 'low', 'rough']).optional().describe('Current mood'),
       }),
       execute: async ({ text, mood }) => {
         const userId = ctx.userId;

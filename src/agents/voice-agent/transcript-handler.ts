@@ -87,7 +87,8 @@ import {
   createTeamHuddleTrigger,
   detectTeamHuddleRequest,
 } from '../../services/engagement/engagement-conversation-triggers.js';
-import { getTrailingSsml, senseInterrupt } from '../../speech/graceful-interrupt/index.js';
+// Interrupt handler - extracted from this file for maintainability
+import { processInterruptSignals } from './interrupt-handler.js';
 import {
   cleanupStaleCheckIns,
   processDailyCheckIn,
@@ -110,8 +111,8 @@ import {
   recordAnticipatoryOutcome,
   type VoiceProsodyCue,
 } from '../../intelligence/triggers/index.js';
-// Semantic Router - DEPRECATED: Now handled by UTO.routeAndExecute()
-// Keeping import for backwards compatibility with prosody features
+// Semantic Router types - used for transcript routing results
+// Tool selection handled by UTO semantic selection + LLM native function calling
 import type { TranscriptRoutingResult } from '../../tools/semantic-router/integration/index.js';
 // Unified Anticipation Pipeline - "Better Than Human" anticipation during speech
 import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
@@ -122,16 +123,19 @@ import { coordinatedSay } from '../../speech/coordination/index.js';
 // Session closing tracker to prevent errors during shutdown
 import { isSessionClosing } from '../shared/session-closing-tracker.js';
 // Tool updater for mid-session tool updates (OpenAI Realtime)
-import { updateAgentTools, supportsToolUpdates } from '../shared/tool-updater.js';
+import {
+  updateAgentTools,
+  supportsToolUpdates,
+  isMidSessionToolUpdateSafe,
+} from '../shared/tool-updater.js';
 import { createLogger } from '../../utils/safe-logger.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
 
 // Phase 17: Active Listening Memory Capture - "Better Than Human" real-time entity extraction
 import {
-  processIncrementalCapture,
-  getNextConfirmation,
-  type IncrementalCaptureInput,
-} from '../../memory/capture/active-listening-capture.js';
+  processActiveListeningPartial,
+  processActiveListeningFinal,
+} from './active-listening-handler.js';
 
 // ============================================================================
 // TYPES
@@ -283,44 +287,26 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
 
   const handler = (event: TranscriptEvent): void => {
     // ===============================================
-    // MICRO-INTERRUPTION DETECTION (Phase 1)
-    // Check EVERY transcript (partial or final) for stop words
-    // "wait", "hold on", "actually" should stop agent immediately
+    // INTERRUPT DETECTION (Micro-interrupts + Graceful trailing)
+    // Handles "wait", "hold on", etc. and pre-emptive SSML injection
     // ===============================================
     if (event.transcript && voiceHumanization) {
-      const isAgentSpeaking = conversationManager.isAgentSpeaking();
-      const microInterrupt = voiceHumanization.processStreamingWord(
-        event.transcript,
-        isAgentSpeaking
-      );
+      const interruptResult = processInterruptSignals({
+        transcript: event.transcript,
+        voiceHumanization,
+        conversationManager,
+        userData,
+        sessionId,
+      });
 
-      if (microInterrupt.shouldStopAgent) {
-        diag.state('Micro-interrupt triggered', {
-          trigger: microInterrupt.trigger,
-          transcript: event.transcript.slice(0, 30),
-        });
-        // Set hard interrupt type for more deliberate recovery
-        userData.interruptType = 'hard';
+      if (interruptResult.shouldStopAgent) {
+        // Hard interrupt type for more deliberate recovery
         // The onInterrupt callback handles the actual interruption
       }
 
-      // ===============================================
-      // GRACEFUL INTERRUPT: Pre-emptive trailing
-      // Sense when user is about to interrupt and inject
-      // trailing-off SSML before the hard cut happens
-      // ===============================================
-      const interruptSense = senseInterrupt(sessionId, event.transcript, isAgentSpeaking);
-      if (interruptSense.shouldTrail) {
-        const trailingSsml = getTrailingSsml(sessionId);
-        if (trailingSsml) {
-          diag.state('🎭 Injecting pre-emptive trailing', {
-            trigger: interruptSense.trigger,
-            trailing: trailingSsml.slice(0, 30),
-          });
-          // The trailing SSML will be picked up by the TTS stream
-          // via the transcription node's response wrapper
-          userData.pendingTrailingSsml = trailingSsml;
-        }
+      if (interruptResult.shouldInjectTrailing && interruptResult.trailingSsml) {
+        // The trailing SSML will be picked up by the TTS stream
+        userData.pendingTrailingSsml = interruptResult.trailingSsml;
       }
     }
 
@@ -386,43 +372,27 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       // "Better Than Human" - capture what they're saying before they finish
       // ===============================================
       if (userId) {
-        try {
-          const turnStartTime = (userData as Record<string, unknown>).turnStartTime;
-        const captureInput: IncrementalCaptureInput = {
-            userId,
-            sessionId,
-            partialTranscript: event.transcript,
-            isFinal: false,
-            turnNumber: userData.turnCount || 0,
-            elapsedMs: Date.now() - (typeof turnStartTime === 'number' ? turnStartTime : Date.now()),
-            topicContext: userData.lastTopic,
-            emotionalContext: userData.lastEmotionAnalysis
-              ? {
-                  primary: userData.lastEmotionAnalysis.primary,
-                  intensity: userData.lastEmotionAnalysis.intensity,
-                }
-              : undefined,
-          };
+        const activeListeningResult = processActiveListeningPartial({
+          userId,
+          sessionId,
+          transcript: event.transcript,
+          isFinal: false,
+          userData,
+          conversationManager,
+        });
 
-          const immediateCaptured = processIncrementalCapture(captureInput);
-
-          if (immediateCaptured.length > 0) {
-            diag.state('👂 Active listening: Captured items from partial', {
-              count: immediateCaptured.length,
-              types: immediateCaptured.map((i) => i.type),
-            });
-
-            // Check if we should ask a confirmation question
-            const nextConfirmation = getNextConfirmation(sessionId);
-            if (nextConfirmation && !conversationManager.isAgentSpeaking()) {
-              // Store for potential use in response (don't interrupt flow)
-              (userData as Record<string, unknown>).pendingConfirmation = nextConfirmation;
-            }
-          }
-        } catch {
-          // Active listening is non-critical - don't block transcript processing
+        if (activeListeningResult.pendingConfirmation) {
+          // Store for potential use in response
+          (userData as Record<string, unknown>).pendingConfirmation =
+            activeListeningResult.pendingConfirmation;
         }
       }
+
+      // ===============================================
+      // FTIS V2 EARLY CLASSIFICATION - REMOVED (Jan 2026)
+      // Tool routing now uses LLM native function calling + semantic router.
+      // The semantic router pre-filters relevant tools and the LLM selects the best one.
+      // ===============================================
 
       // ===============================================
       // SESAME-INSPIRED ANTICIPATORY PROSODY
@@ -752,6 +722,12 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       const cleanedTranscript = validation.cleanedTranscript || event.transcript;
 
       // ===============================================
+      // FTIS V2 EARLY EXECUTION - REMOVED (Jan 2026)
+      // Tool routing now uses LLM native function calling + semantic router.
+      // The LLM naturally decides when to call tools during conversation.
+      // ===============================================
+
+      // ===============================================
       // 🌍 LANGUAGE DETECTION (First few utterances)
       // Detect user's language from speech patterns
       // Fire-and-forget since this handler is sync
@@ -840,7 +816,8 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         const userId = userData.userId;
         void (async () => {
           try {
-            const { getWorkflowEngine } = await import('../../services/workflows/workflow-engine.js');
+            const { getWorkflowEngine } =
+              await import('../../services/workflows/workflow-engine.js');
             const engine = getWorkflowEngine(userId);
             const triggered = await engine.handlePhraseTrigger(cleanedTranscript);
             if (triggered) {
@@ -1037,11 +1014,13 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           const isShort = cleanedTranscript.length < 25 || words.length <= 4;
 
           // Check if it looks like a real interruption vs phantom transcript
-          const interruptionSignals = /\b(wait|stop|hold|actually|but|no|sorry|excuse|hey|question|what|why|how|when|can you|could you)\b/i;
+          const interruptionSignals =
+            /\b(wait|stop|hold|actually|but|no|sorry|excuse|hey|question|what|why|how|when|can you|could you)\b/i;
           const looksLikeRealInterruption = interruptionSignals.test(cleanedTranscript);
 
           // Generic acknowledgments that are unlikely to be real interruptions
-          const genericAcknowledgments = /^(that'?s?\s+(so\s+)?(cool|great|nice|good|awesome|interesting|amazing)|yeah|yep|okay|ok|sure|right|got it|i see|mm+|uh huh|alright)\.?$/i;
+          const genericAcknowledgments =
+            /^(that'?s?\s+(so\s+)?(cool|great|nice|good|awesome|interesting|amazing)|yeah|yep|okay|ok|sure|right|got it|i see|mm+|uh huh|alright)\.?$/i;
           const isGenericAck = genericAcknowledgments.test(cleanedTranscript.trim());
 
           if (isShort && !looksLikeRealInterruption && (isGenericAck || words.length <= 3)) {
@@ -1266,6 +1245,115 @@ async function processFinalTranscript(
   } = ctx;
 
   // ===============================================
+  // 🧠 FTIS V2 ROUTING: Run BEFORE SDK auto-response takes over (Jan 2026 FIX)
+  // 
+  // CRITICAL ARCHITECTURE FIX:
+  // The turn-handler.ts with FTIS V2 routing was NEVER CALLED because the
+  // "Clean Architecture (Jan 2026)" change made "SDK own normal turns".
+  // This means FTIS V2 routing was dead code - music, weather, etc. never worked!
+  //
+  // This fix runs FTIS V2 classification on final transcript and interrupts
+  // the SDK's auto-response if we detect a high-confidence tool request.
+  // ===============================================
+
+  // Check if early classification already handled this turn (prevents double execution)
+  const alreadyHandled = (userData as Record<string, unknown>).ftisV2HandledThisTurn === true;
+  if (alreadyHandled) {
+    // Clear the flag for next turn
+    delete (userData as Record<string, unknown>).ftisV2HandledThisTurn;
+    diag.state('🧠 FTIS V2: Skipping - already handled by early classification');
+    // Continue with memory capture, etc. but skip FTIS routing
+  }
+
+  // Only run FTIS V2 if not already handled
+  if (!alreadyHandled) {
+    try {
+      const { runFTISV2Routing, buildToolResponseInstructions } = await import(
+        '../processors/tool-routing-integration.js'
+      );
+      const { isFTISV2OnlyMode } = await import('../../config/tool-routing-config.js');
+
+      if (isFTISV2OnlyMode() && userId) {
+      const ftisResult = await runFTISV2Routing(event.transcript, {
+        userId,
+        sessionId,
+        personaId: sessionPersona?.id || 'ferni',
+        userLocation: userData.userLocation as
+          | { city?: string; regionCode?: string; countryCode?: string }
+          | undefined,
+      });
+
+      diag.state('🧠 FTIS V2 routing completed', {
+        attempted: ftisResult.attempted,
+        bypassLLM: ftisResult.bypassLLM,
+        hasToolResult: !!ftisResult.toolResult,
+        classification: ftisResult.classification?.fineCategory,
+        confidence: ftisResult.classification?.confidence?.toFixed(2),
+        latencyMs: ftisResult.processingTimeMs,
+      });
+
+      // If FTIS V2 executed a tool directly, interrupt SDK and speak the result
+      if (ftisResult.bypassLLM && ftisResult.toolResult) {
+        const toolResult = ftisResult.toolResult;
+        diag.state('🎯 FTIS V2: Tool executed - interrupting SDK auto-response', {
+          toolId: toolResult.toolId,
+          hasResponse: !!toolResult.speakableResponse,
+        });
+
+        // CRITICAL: Handoffs have their own greeting flow - do NOT generate a response
+        // The handoff executor triggers the persona greeting automatically
+        const isHandoff = toolResult.toolId.toLowerCase().includes('handoff');
+        if (isHandoff) {
+          diag.state('🤝 FTIS V2: Handoff detected - skipping generateReply (handoff has own greeting)');
+          // Don't return - let memory capture still happen
+        } else {
+          // Interrupt SDK's auto-response (only for non-handoffs)
+          if (session) {
+            try {
+              session.interrupt();
+              diag.state('✅ FTIS V2: SDK interrupted for tool response');
+            } catch (interruptErr) {
+              diag.debug('⚠️ FTIS V2: Interrupt failed', { error: String(interruptErr) });
+            }
+          }
+
+          // Generate natural response about the tool result
+          const { generateReplyBySessionId, TOOL_RESPONSE_TIMEOUT_MS } = await import(
+            '../shared/generate-reply-gateway.js'
+          );
+
+          const instructions = buildToolResponseInstructions({
+            toolId: toolResult.toolId,
+            result: toolResult.output || toolResult.speakableResponse,
+            success: toolResult.success,
+            personaId: sessionPersona?.id || 'ferni',
+            personaDisplayName: sessionPersona?.displayName || 'Ferni',
+            userRequest: event.transcript,
+          });
+
+          await generateReplyBySessionId(sessionId, {
+            instructions,
+            context: `ftis-tool-${toolResult.toolId}`,
+            priority: 'high',
+            allowInterruptions: true,
+            waitForPlayout: false,
+            fallbackMessage: toolResult.speakableResponse || 'Done!',
+            timeoutMs: TOOL_RESPONSE_TIMEOUT_MS,
+          });
+
+          // Skip the rest of processFinalTranscript since we handled the response
+          // Memory capture will happen on the next turn
+          return;
+        }
+      }
+    }
+    } catch (ftisError) {
+      // FTIS V2 routing is non-critical - let SDK continue with normal response
+      diag.warn('FTIS V2 routing error (falling back to SDK)', { error: String(ftisError) });
+    }
+  } // End of if (!alreadyHandled)
+
+  // ===============================================
   // 🧠 DYNAMIC MEMORY CAPTURE: LLM-powered extraction
   // Uses temporal decoupling: fast capture (< 50ms) + async deep extraction
   // Extracts entities, relationships, emotions, dates, topics
@@ -1308,35 +1396,14 @@ async function processFinalTranscript(
   // Entities, dates, commitments extracted in real-time
   // ===============================================
   if (userId && event.transcript) {
-    try {
-      const finalTurnStartTime = (userData as Record<string, unknown>).turnStartTime;
-      const captureInput: IncrementalCaptureInput = {
-        userId,
-        sessionId,
-        partialTranscript: event.transcript,
-        isFinal: true,
-        turnNumber: userData.turnCount || 0,
-        elapsedMs: Date.now() - (typeof finalTurnStartTime === 'number' ? finalTurnStartTime : Date.now()),
-        topicContext: userData.lastTopic,
-        emotionalContext: userData.lastEmotionAnalysis
-          ? {
-              primary: userData.lastEmotionAnalysis.primary,
-              intensity: userData.lastEmotionAnalysis.intensity,
-            }
-          : undefined,
-      };
-
-      const finalCaptured = processIncrementalCapture(captureInput);
-
-      if (finalCaptured.length > 0) {
-        diag.state('👂 Active listening: Final capture complete', {
-          count: finalCaptured.length,
-          types: finalCaptured.map((i) => i.type),
-        });
-      }
-    } catch {
-      // Active listening is non-critical
-    }
+    processActiveListeningFinal({
+      userId,
+      sessionId,
+      transcript: event.transcript,
+      isFinal: true,
+      userData,
+      conversationManager,
+    });
   }
 
   // ===============================================
@@ -1387,106 +1454,6 @@ async function processFinalTranscript(
       preview: event.transcript.slice(0, 50),
       sessionId,
     });
-  }
-
-  // ===============================================
-  // 🎯 UNIFIED TOOL ROUTING (Consolidated Pre-LLM Execution)
-  // Uses UTO (Unified Tool Orchestrator) for:
-  // 1. Fast-path via FTIS V3 Hybrid Router (~50ms for high confidence)
-  // 2. FTIS V2 ML classification for other intents - ~20ms
-  // 3. System state injection for LLM awareness
-  // ===============================================
-  if (event.transcript) {
-    try {
-      const { toolOrchestrator } = await import('../../tools/orchestrator/unified-tool-orchestrator.js');
-
-      if (toolOrchestrator.isRoutingEnabled()) {
-        const routingResult = await toolOrchestrator.routeAndExecute(event.transcript, {
-          userId: userId || 'anonymous',
-          sessionId,
-          personaId: sessionPersona.id,
-          recentTopics: userData.recentTopics,
-          lastAgentMessage: userData.lastAgentResponse,
-          userLocation: userData.userLocation,
-        });
-
-        // Log E2E trace for observability
-        for (const trace of routingResult.trace) {
-          diag.state(`[ROUTE] ${trace.stage}`, trace.data);
-        }
-
-        if (routingResult.handled) {
-          diag.state('🎯 UTO routed and executed tool', {
-            routedBy: routingResult.routedBy,
-            toolId: routingResult.toolId,
-            confidence: routingResult.confidence,
-            musicPlaying: routingResult.systemState.music.isPlaying,
-          });
-
-          // Track turn count and user message
-          userData.turnCount = (userData.turnCount || 0) + 1;
-          userData.lastUserMessage = event.transcript;
-
-          // 📝 PERSIST: Store lastToolExecuted for cross-turn awareness
-          if (routingResult.toolId) {
-            userData.lastToolExecuted = {
-              toolId: routingResult.toolId,
-              timestamp: new Date(),
-              result: routingResult.toolResult,
-            };
-          }
-
-          // Store system state for context injection
-          userData.systemState = routingResult.systemState;
-
-          // 🚫 DEDUPLICATION: Mark tool as executed to prevent LLM from also calling it
-          if (routingResult.toolId) {
-            try {
-              const { markToolExecutedBySemanticRouter } = await import(
-                '../shared/sanitizer/index.js'
-              );
-              markToolExecutedBySemanticRouter(sessionId, routingResult.toolId);
-            } catch {
-              // Non-critical - deduplication is defensive
-            }
-          }
-
-          // 🛑 EARLY RETURN: Tool executed, skip LLM processing
-          return;
-        }
-
-        // Log system state even for conversation (LLM awareness)
-        diag.state('🎯 UTO: no tool executed, passing to Gemini', {
-          routedBy: routingResult.routedBy,
-          confidence: routingResult.confidence,
-          musicPlaying: routingResult.systemState.music.isPlaying,
-          hasToolHint: !!routingResult.toolHint,
-        });
-
-        // Merge persisted lastToolExecuted into system state if exists
-        if (userData.lastToolExecuted && !routingResult.systemState.lastToolExecuted) {
-          routingResult.systemState.lastToolExecuted = userData.lastToolExecuted;
-        }
-
-        // Store system state for context injection to LLM
-        userData.systemState = routingResult.systemState;
-
-        // Store tool hint for medium-confidence cases (LLM should call the tool, not hallucinate)
-        if (routingResult.toolHint) {
-          userData.toolHint = routingResult.toolHint;
-          diag.state('🔮 UTO: tool hint for LLM', {
-            toolId: routingResult.toolHint.toolId,
-            confidence: routingResult.toolHint.confidence,
-          });
-        } else {
-          // Clear any previous tool hint
-          userData.toolHint = undefined;
-        }
-      }
-    } catch (routingError) {
-      // Non-fatal - let Gemini handle
-      diag.warn('UTO routing error', { error: String(routingError) });
-    }
   }
 
   // ===============================================
@@ -1628,8 +1595,15 @@ async function processFinalTranscript(
 
   // Dynamic tool loading based on conversation topic
   // When new domains are loaded, update the agent's tools for OpenAI Realtime
-  if (dynamicToolLoader) {
+  //
+  // ⚠️ WARNING: For Gemini, this causes session restarts!
+  // Each call to updateAgentTools() → session.updateTools() → markRestartNeeded()
+  // This breaks function calling because tools are lost on restart.
+  //
+  // FIX (Jan 2026): Skip mid-session tool updates for Gemini native FC
+  if (dynamicToolLoader && isMidSessionToolUpdateSafe()) {
     const toolUpdaterLog = createLogger({ module: 'DynamicToolUpdate' });
+
     dynamicToolLoader
       .processMessage(event.transcript)
       .then(async (loadedDomains) => {
@@ -1641,8 +1615,7 @@ async function processFinalTranscript(
           });
 
           // 🔧 MID-SESSION TOOL UPDATE: Register new tools with LLM
-          // - OpenAI Realtime: Uses native updateTools() API
-          // - Gemini: Injects system message about new tools
+          // This is SAFE for OpenAI Realtime (isMidSessionToolUpdateSafe() returned true)
           if (supportsToolUpdates() && agent) {
             try {
               const newTools = dynamicToolLoader.getCurrentTools();
@@ -1670,6 +1643,12 @@ async function processFinalTranscript(
       .catch((error) => {
         toolUpdaterLog.warn({ error }, 'Failed to process message for dynamic tool loading');
       });
+  } else if (dynamicToolLoader && !isMidSessionToolUpdateSafe()) {
+    // 🔍 DIAGNOSTIC: Log when we skip mid-session updates for Gemini
+    // We still process the message for analytics, just don't update the agent
+    dynamicToolLoader.processMessage(event.transcript).catch(() => {});
+    // Note: Tools were registered at session start - they don't need mid-session updates
+    // Gemini should have all the tools it needs from registerInitialTools()
   }
 
   // Process voice identity
@@ -1689,13 +1668,13 @@ async function processFinalTranscript(
 
   // ===============================================
   // RESPONSE GENERATION - Clean Architecture (Jan 2026)
-  // 
+  //
   // SDK owns normal turns - createResponse=true means the SDK/LLM auto-responds
   // when user finishes speaking. No manual triggering needed here.
-  // 
+  //
   // Ferni owns proactive moments - silence handlers and check-ins use the
   // ResponseOrchestrator to trigger responses ONLY when SDK is idle.
-  // 
+  //
   // This prevents race conditions and duplicate responses.
   // ===============================================
 }
@@ -1954,7 +1933,7 @@ function processDJSessionFlow(transcript: string, userData: UserData): void {
     // Topic tracking is now handled by emotional-arc.ts and conversation-state.ts
     // which provide more sophisticated analysis than keyword matching
     const transcriptLower = transcript.toLowerCase();
-    
+
     // Simple topic detection for debugging (actual tracking done elsewhere)
     const topicKeywords: Record<string, string[]> = {
       work: ['work', 'job', 'boss', 'meeting', 'project', 'deadline', 'office'],

@@ -30,7 +30,7 @@ tasks/
 │
 ├── task-manager.ts             # 🎯 Central task orchestration
 ├── task-persistence.ts         # Firestore persistence
-├── task-metrics.service.ts     # Task analytics
+├── task-metrics-service.ts     # Task analytics
 │
 ├── agent-task.ts               # Base agent task class
 ├── intelligent-task.ts         # 🧠 Emotion-aware task wrapper

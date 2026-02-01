@@ -11,7 +11,10 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from '../../../../services/superhuman/firestore-utils.js';
+import {
+  getFirestoreDb,
+  cleanForFirestore,
+} from '../../../../services/superhuman/firestore-utils.js';
 import type { UnsaidTopic } from './types.js';
 
 const log = createLogger({ module: 'unsaid-words-detector' });
@@ -57,13 +60,24 @@ const DEFLECTION_PATTERNS = [
 ];
 
 const TOPIC_CATEGORIES: Record<string, string[]> = {
-  person: ['mom', 'dad', 'father', 'mother', 'brother', 'sister', 'boss', 'manager', 'ex', 'partner'],
+  person: [
+    'mom',
+    'dad',
+    'father',
+    'mother',
+    'brother',
+    'sister',
+    'boss',
+    'manager',
+    'ex',
+    'partner',
+  ],
   situation: ['work', 'job', 'money', 'debt', 'health', 'relationship', 'marriage', 'divorce'],
   feeling: ['angry', 'sad', 'scared', 'anxious', 'depressed', 'lonely', 'hurt', 'betrayed'],
   decision: ['quit', 'leave', 'break up', 'move', 'change', 'tell them'],
   conflict: ['fight', 'argument', 'disagreement', 'tension', 'issue with'],
   request: ['need to ask', 'want to say', 'should tell'],
-  boundary: ['stop', 'can\'t keep', 'tired of', 'fed up'],
+  boundary: ['stop', "can't keep", 'tired of', 'fed up'],
 };
 
 // ============================================================================
@@ -208,10 +222,7 @@ export function analyzeSessionForUnsaidTopics(userId: string): UnsaidTopic[] {
 /**
  * Save an unsaid topic to Firestore.
  */
-export async function saveUnsaidTopic(
-  userId: string,
-  topic: UnsaidTopic
-): Promise<void> {
+export async function saveUnsaidTopic(userId: string, topic: UnsaidTopic): Promise<void> {
   try {
     const db = getFirestoreDb();
     if (!db) return;

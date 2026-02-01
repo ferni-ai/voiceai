@@ -103,9 +103,8 @@ export async function runUntilDisconnect(config: SessionRunConfig): Promise<Disc
       // Enhanced disconnect diagnostics (async, non-blocking)
       void (async () => {
         try {
-          const { logDisconnect, analyzeDisconnect } = await import(
-            '../../shared/disconnect-diagnostics.js'
-          );
+          const { logDisconnect, analyzeDisconnect } =
+            await import('../../shared/disconnect-diagnostics.js');
           const { recordConnectionDrop } = await import('../../shared/crash-analytics.js');
 
           // Get participant count if available

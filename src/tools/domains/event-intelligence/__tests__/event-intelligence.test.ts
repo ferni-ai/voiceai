@@ -17,10 +17,27 @@ vi.mock('../../../../services/superhuman/event-intelligence-services.js', () => 
   recordEventMeaning: vi.fn(),
   getEventMeanings: vi.fn().mockResolvedValue([]),
   recordCelebration: vi.fn(),
-  getCelebrationBalance: vi.fn().mockResolvedValue({ total: 0, forSelf: 0, forOthers: 0, bySize: { micro: 0, small: 0, medium: 0, large: 0 } }),
+  getCelebrationBalance: vi
+    .fn()
+    .mockResolvedValue({
+      total: 0,
+      forSelf: 0,
+      forOthers: 0,
+      bySize: { micro: 0, small: 0, medium: 0, large: 0 },
+    }),
   recordTransitionSignal: vi.fn(),
   getAnticipatedTransitions: vi.fn().mockResolvedValue([]),
-  checkPlanningReadiness: vi.fn().mockResolvedValue({ overall: 'green', financial: 'green', calendar: 'green', energy: 'green', emotional: 'green', concerns: [], suggestions: [] }),
+  checkPlanningReadiness: vi
+    .fn()
+    .mockResolvedValue({
+      overall: 'green',
+      financial: 'green',
+      calendar: 'green',
+      energy: 'green',
+      emotional: 'green',
+      concerns: [],
+      suggestions: [],
+    }),
 }));
 
 describe('event-intelligence domain', () => {

@@ -39,9 +39,4 @@ export {
 } from './followup-executor.js';
 
 // Call executor (Ferni's domain)
-export {
-  executeCall,
-  queueCall,
-  type CallRequest,
-  type CallResult,
-} from './call-executor.js';
+export { executeCall, queueCall, type CallRequest, type CallResult } from './call-executor.js';

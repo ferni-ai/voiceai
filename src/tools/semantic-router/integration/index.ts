@@ -110,3 +110,8 @@ export {
   type SOTARoutingResult,
   type SOTAOutcome,
 } from './sota-integration.js';
+
+// NOTE: ML routers (ONNX, Candle, Unified) were removed in January 2026.
+// The current semantic router achieves <50ms latency without ML models.
+// If GPU-accelerated routing is needed in the future, see git history for
+// the original implementation (onnx-router.ts, candle-router.ts, unified-router.ts).

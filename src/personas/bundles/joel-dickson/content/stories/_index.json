@@ -5,35 +5,80 @@
       "title": "Choosing Which Bill Got Paid",
       "file": "choosing-which-bill.json",
       "category": "personal",
-      "triggers": ["money struggles", "broke", "student debt", "paying bills", "financial stress", "work study", "grad school", "stanford", "humble beginnings", "starting out"]
+      "triggers": [
+        "money struggles",
+        "broke",
+        "student debt",
+        "paying bills",
+        "financial stress",
+        "work study",
+        "grad school",
+        "stanford",
+        "humble beginnings",
+        "starting out"
+      ]
     },
     {
       "id": "poke-the-bear",
       "title": "Poke the Bear - The R&D Philosophy",
       "file": "poke-the-bear.json",
       "category": "professional",
-      "triggers": ["research", "innovation", "new ideas", "questioning", "assumptions", "R&D", "experimenting", "wild ideas", "thinking differently"]
+      "triggers": [
+        "research",
+        "innovation",
+        "new ideas",
+        "questioning",
+        "assumptions",
+        "R&D",
+        "experimenting",
+        "wild ideas",
+        "thinking differently"
+      ]
     },
     {
       "id": "fed-economist-days",
       "title": "My Days at the Federal Reserve",
       "file": "fed-economist-days.json",
       "category": "personal",
-      "triggers": ["federal reserve", "fed", "government", "macroeconomics", "monetary policy", "washington", "policy work", "early career"]
+      "triggers": [
+        "federal reserve",
+        "fed",
+        "government",
+        "macroeconomics",
+        "monetary policy",
+        "washington",
+        "policy work",
+        "early career"
+      ]
     },
     {
       "id": "clarifi-giving-back",
       "title": "Giving Back - Ten Years on Clarifi's Board",
       "file": "clarifi-giving-back.json",
       "category": "values",
-      "triggers": ["giving back", "volunteer", "nonprofit", "charity", "helping others", "community", "financial literacy", "teaching", "purpose beyond work"]
+      "triggers": [
+        "giving back",
+        "volunteer",
+        "nonprofit",
+        "charity",
+        "helping others",
+        "community",
+        "financial literacy",
+        "teaching",
+        "purpose beyond work"
+      ]
     },
     {
       "id": "bogles-folly",
       "title": "Bogle's Folly",
       "file": "bogles-folly.json",
       "category": "vanguard-history",
-      "triggers": ["index fund history", "first index fund", "how did vanguard start", "vanguard history"]
+      "triggers": [
+        "index fund history",
+        "first index fund",
+        "how did vanguard start",
+        "vanguard history"
+      ]
     },
     {
       "id": "meeting-jack-bogle",
@@ -47,7 +92,16 @@
       "title": "Why I've Stayed at Vanguard",
       "file": "why-i-stayed.json",
       "category": "personal",
-      "triggers": ["why vanguard", "30 years", "same company", "long time", "loyalty", "your career", "how did you start", "your journey"]
+      "triggers": [
+        "why vanguard",
+        "30 years",
+        "same company",
+        "long time",
+        "loyalty",
+        "your career",
+        "how did you start",
+        "your journey"
+      ]
     },
     {
       "id": "career-crossroads",
@@ -61,21 +115,49 @@
       "title": "My Biggest Mistake",
       "file": "my-biggest-mistake.json",
       "category": "vulnerability",
-      "triggers": ["mistake", "regret", "got it wrong", "failed", "screwed up", "wish I could go back", "work life balance", "present"]
+      "triggers": [
+        "mistake",
+        "regret",
+        "got it wrong",
+        "failed",
+        "screwed up",
+        "wish I could go back",
+        "work life balance",
+        "present"
+      ]
     },
     {
       "id": "my-daughter-taught-me",
       "title": "What My Daughter Taught Me",
       "file": "my-daughter-taught-me.json",
       "category": "family-wisdom",
-      "triggers": ["kids", "daughter", "children", "parenting", "family", "learned from kids", "teenagers"]
+      "triggers": [
+        "kids",
+        "daughter",
+        "children",
+        "parenting",
+        "family",
+        "learned from kids",
+        "teenagers"
+      ]
     },
     {
       "id": "second-chapter",
       "title": "The Second Chapter - Finding Susan",
       "file": "second-chapter.json",
       "category": "personal",
-      "triggers": ["second marriage", "finding love again", "divorce recovery", "met someone", "pandemic", "new relationship", "france", "wedding", "blended family", "stepchildren"]
+      "triggers": [
+        "second marriage",
+        "finding love again",
+        "divorce recovery",
+        "met someone",
+        "pandemic",
+        "new relationship",
+        "france",
+        "wedding",
+        "blended family",
+        "stepchildren"
+      ]
     },
     {
       "id": "burnout-wisdom",
@@ -96,28 +178,60 @@
       "title": "Building VFAM - Quantifying Advice Value",
       "file": "vfam-origin.json",
       "category": "professional",
-      "triggers": ["value of advice", "vfam", "advice worth it", "worth the fees", "advisor value", "financial planning value"]
+      "triggers": [
+        "value of advice",
+        "vfam",
+        "advice worth it",
+        "worth the fees",
+        "advisor value",
+        "financial planning value"
+      ]
     },
     {
       "id": "permission-to-spend",
       "title": "The Permission to Spend",
       "file": "permission-to-spend.json",
       "category": "life-wisdom",
-      "triggers": ["afraid to spend", "spending in retirement", "enjoy money", "too frugal", "can't spend", "saved so much"]
+      "triggers": [
+        "afraid to spend",
+        "spending in retirement",
+        "enjoy money",
+        "too frugal",
+        "can't spend",
+        "saved so much"
+      ]
     },
     {
       "id": "stanford-mentor",
       "title": "My Stanford Mentor - John Shoven",
       "file": "stanford-mentor.json",
       "category": "personal",
-      "triggers": ["stanford", "phd", "mentor", "advisor", "shoven", "dissertation", "graduate school", "how did you learn", "who taught you"]
+      "triggers": [
+        "stanford",
+        "phd",
+        "mentor",
+        "advisor",
+        "shoven",
+        "dissertation",
+        "graduate school",
+        "how did you learn",
+        "who taught you"
+      ]
     },
     {
       "id": "planner-and-geek-podcast",
       "title": "The Planner and the Geek Podcast",
       "file": "planner-and-geek-podcast.json",
       "category": "professional",
-      "triggers": ["podcast", "maria bruno", "planner and geek", "content", "speaking", "media", "your podcast"]
+      "triggers": [
+        "podcast",
+        "maria bruno",
+        "planner and geek",
+        "content",
+        "speaking",
+        "media",
+        "your podcast"
+      ]
     }
   ],
   "story_principles": [

@@ -25,23 +25,57 @@ Level 10:  config/, utils/, types/
 ```
 calendar/
 ├── index.ts                       # Main exports
+├── types.ts                       # Shared calendar types
+│
+├── # Core Operations
 ├── calendar-service.ts            # Core calendar operations
 ├── calendar-intelligence.ts       # Smart scheduling insights
 ├── calendar-selection.ts          # Calendar picker UI logic
 ├── calendar-load-service.ts       # Efficient calendar loading
+├── calendar-bridge.ts             # Bridge between calendar systems
 ├── local-calendar-store.ts        # In-memory calendar cache
+├── unified-calendar-store.ts      # Unified calendar data store
+├── sync-engine.ts                 # Calendar sync orchestration
+├── natural-date-parser.ts         # "Next Tuesday" parsing
+│
+├── # Proactive Intelligence
 ├── ambient-calendar-awareness.ts  # Context injection for calls
 ├── better-than-human.ts           # Proactive calendar features
+├── proactive-calendar.ts          # Proactive calendar awareness
+├── proactive-calendar-outreach.ts # Proactive scheduling suggestions
+├── relationship-calendar-awareness.ts # Relationship-aware scheduling
+├── meeting-pattern-learning.ts    # Learn from meeting patterns
+├── smart-decline.ts               # Smart meeting decline suggestions
+│
+├── # Event Management
 ├── conflict-resolver.ts           # Scheduling conflict detection
 ├── event-confirmation.ts          # Event confirmation flow
 ├── meeting-followup-automation.ts # Auto follow-up after meetings
 ├── meeting-memory-service.ts      # Remember meeting context
-├── natural-date-parser.ts         # "Next Tuesday" parsing
-├── practice-calendar.ts           # Demo/practice calendar
 ├── pre-meeting-notifications.ts   # Pre-meeting prep reminders
-├── proactive-calendar-outreach.ts # Proactive scheduling suggestions
+├── notification-preferences.ts   # Calendar notification preferences
 ├── recovery-protection.ts         # Protect recovery time
 ├── weekly-calendar-digest.ts      # Weekly summary generation
+├── practice-calendar.ts           # Demo/practice calendar
+│
+├── # Providers
+├── providers/
+│   ├── index.ts                   # Provider registry exports
+│   ├── provider-registry.ts       # Provider registration
+│   ├── google-provider.ts         # Google Calendar provider
+│   ├── apple-provider.ts          # Apple Calendar provider
+│   └── outlook-provider.ts        # Outlook Calendar provider
+│
+├── # Subdirectories
+├── polling/
+│   └── apple-polling.ts           # Apple Calendar polling
+├── utils/
+│   ├── encryption.ts              # Calendar data encryption
+│   └── rate-limiter.ts            # API rate limiting
+├── webhooks/
+│   ├── google-webhook.ts          # Google Calendar webhooks
+│   └── outlook-webhook.ts         # Outlook Calendar webhooks
+│
 └── __tests__/                     # Calendar tests
 ```
 
@@ -197,4 +231,4 @@ CALENDAR_TEST_USER=xxx pnpm vitest run src/services/calendar/__tests__/integrati
 
 ---
 
-*Last updated: December 2024*
+*Last updated: January 2026*

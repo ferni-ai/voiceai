@@ -160,7 +160,12 @@ async function generateQuizQuestions(userId: string): Promise<QuizQuestion[]> {
       questions.push({
         id: `q-${++questionId}`,
         question: `Is this something I remember about us: "${m.content.slice(0, 50)}..."?`,
-        options: ['Yes, that sounds right', 'No, that\'s not quite right', 'I\'m not sure', 'We never talked about that'],
+        options: [
+          'Yes, that sounds right',
+          "No, that's not quite right",
+          "I'm not sure",
+          'We never talked about that',
+        ],
         correctIndex: 0, // Memory is real, so "Yes" is correct
         category: 'memories',
         difficulty: 'medium',
@@ -226,10 +231,10 @@ function calculateGrade(scorePercent: number): QuizResult['grade'] {
 function getCelebration(grade: QuizResult['grade']): string {
   const celebrations: Record<QuizResult['grade'], string> = {
     soulmate: "You really get me! It's like we share one brain.",
-    bestie: "Wow, you know me so well! Best friends for life.",
-    friend: "Pretty good! Our friendship is growing stronger.",
+    bestie: 'Wow, you know me so well! Best friends for life.',
+    friend: 'Pretty good! Our friendship is growing stronger.',
     acquaintance: "Not bad! We're still learning about each other.",
-    stranger: "Looks like we have more to discover together!",
+    stranger: 'Looks like we have more to discover together!',
   };
   return celebrations[grade];
 }
@@ -331,24 +336,25 @@ async function handleSubmitResults(
       if (profile) {
         // Use unknown cast to handle dynamic profile data
         const profileData = profile as unknown as Record<string, unknown>;
-        const quizHistory = (profileData.quizHistory as Array<QuizResult & { timestamp: string }>) || [];
+        const quizHistory =
+          (profileData.quizHistory as Array<QuizResult & { timestamp: string }>) || [];
         quizHistory.push({ ...result, timestamp: new Date().toISOString() });
         // Keep only last 10 quiz results
         if (quizHistory.length > 10) {
           quizHistory.shift();
         }
         // Save updated profile with quiz history
-        await store.saveProfile({ ...profile, ...({ quizHistory } as unknown as Partial<typeof profile>) });
+        await store.saveProfile({
+          ...profile,
+          ...({ quizHistory } as unknown as Partial<typeof profile>),
+        });
       }
     } catch {
       // Non-critical, continue even if save fails
       log.debug({ userId }, 'Could not save quiz result to profile');
     }
 
-    log.info(
-      { userId, scorePercent, grade, correctCount, totalQuestions },
-      'Quiz completed'
-    );
+    log.info({ userId, scorePercent, grade, correctCount, totalQuestions }, 'Quiz completed');
 
     sendJSON(res, { success: true, result });
   } catch (err) {

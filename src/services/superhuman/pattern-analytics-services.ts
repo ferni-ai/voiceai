@@ -112,7 +112,11 @@ export async function recordBlindSpot(userId: string, blindSpot: BlindSpot): Pro
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('blind_spots').add(blindSpot);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('blind_spots')
+      .add(blindSpot);
     void onBlindSpotChange(userId, docRef.id, blindSpot, 'create');
     log.info({ userId, domain: blindSpot.domain }, 'Blind spot recorded');
   } catch (error) {
@@ -247,7 +251,11 @@ export async function recordDecisionScore(userId: string, score: DecisionScore):
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('decision_scores').add(score);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('decision_scores')
+      .add(score);
     void onDecisionScoreChange(userId, docRef.id, score, 'create');
     log.info({ userId, domain: score.domain }, 'Decision score recorded');
   } catch (error) {
@@ -286,7 +294,11 @@ export async function recordCorrelation(userId: string, correlation: Correlation
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('correlations').add(correlation);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('correlations')
+      .add(correlation);
     void onCorrelationChange(userId, docRef.id, correlation, 'create');
     log.info(
       { userId, factor1: correlation.factor1, factor2: correlation.factor2 },
@@ -329,7 +341,11 @@ export async function recordAnomaly(userId: string, anomaly: Anomaly): Promise<v
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('anomalies').add(anomaly);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('anomalies')
+      .add(anomaly);
     void onAnomalyChange(userId, docRef.id, anomaly, 'create');
     log.info({ userId, domain: anomaly.domain, severity: anomaly.severity }, 'Anomaly recorded');
   } catch (error) {
@@ -369,7 +385,11 @@ export async function recordInsight(userId: string, insight: Insight): Promise<v
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('insights').add(insight);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('insights')
+      .add(insight);
     void onInsightChange(userId, docRef.id, insight, 'create');
     log.info({ userId, domain: insight.domain }, 'Insight recorded');
   } catch (error) {

@@ -142,14 +142,16 @@ export class PathFinder {
       const entity = await this.getEntity(userId, sourceEntityId);
       if (entity) {
         return {
-          paths: [{
-            source: entity,
-            target: entity,
-            steps: [{ entity, relationshipType: null, relationshipStrength: 1, direction: null }],
-            length: 0,
-            pathStrength: 1,
-            description: `${entity.name} (same entity)`,
-          }],
+          paths: [
+            {
+              source: entity,
+              target: entity,
+              steps: [{ entity, relationshipType: null, relationshipStrength: 1, direction: null }],
+              length: 0,
+              pathStrength: 1,
+              description: `${entity.name} (same entity)`,
+            },
+          ],
           connected: true,
           metrics: {
             pathsFound: 1,
@@ -173,9 +175,7 @@ export class PathFinder {
         mode
       );
 
-      const shortestLength = paths.length > 0
-        ? Math.min(...paths.map(p => p.length))
-        : null;
+      const shortestLength = paths.length > 0 ? Math.min(...paths.map((p) => p.length)) : null;
 
       return {
         paths,
@@ -236,11 +236,15 @@ export class PathFinder {
 
       // Initialize
       forwardVisited.set(sourceEntityId, {
-        path: [{ entity: source, relationshipType: null, relationshipStrength: 1, direction: null }],
+        path: [
+          { entity: source, relationshipType: null, relationshipStrength: 1, direction: null },
+        ],
         depth: 0,
       });
       backwardVisited.set(targetEntityId, {
-        path: [{ entity: target, relationshipType: null, relationshipStrength: 1, direction: null }],
+        path: [
+          { entity: target, relationshipType: null, relationshipStrength: 1, direction: null },
+        ],
         depth: 0,
       });
 
@@ -271,12 +275,12 @@ export class PathFinder {
 
             for (const neighbor of neighbors) {
               const neighborId = neighbor.entity.entityId;
-              
+
               // Check if we've found a path (backward search reached this node)
               if (backwardVisited.has(neighborId)) {
                 const forwardPath = forwardVisited.get(entityId)!;
                 const backwardPath = backwardVisited.get(neighborId)!;
-                
+
                 const path = this.constructPath(
                   source,
                   target,
@@ -284,7 +288,7 @@ export class PathFinder {
                   backwardPath.path,
                   neighbor
                 );
-                
+
                 if (path) {
                   foundPaths.push(path);
                   if (mode === 'shortest' || foundPaths.length >= maxPaths) {
@@ -297,12 +301,15 @@ export class PathFinder {
               if (!forwardVisited.has(neighborId)) {
                 const currentPath = forwardVisited.get(entityId)!;
                 forwardVisited.set(neighborId, {
-                  path: [...currentPath.path, {
-                    entity: neighbor.entity,
-                    relationshipType: neighbor.relationshipType,
-                    relationshipStrength: neighbor.relationshipStrength,
-                    direction: neighbor.direction,
-                  }],
+                  path: [
+                    ...currentPath.path,
+                    {
+                      entity: neighbor.entity,
+                      relationshipType: neighbor.relationshipType,
+                      relationshipStrength: neighbor.relationshipStrength,
+                      direction: neighbor.direction,
+                    },
+                  ],
                   depth: currentDepth,
                 });
                 newForwardFrontier.push(neighborId);
@@ -333,8 +340,9 @@ export class PathFinder {
               if (forwardVisited.has(neighborId)) {
                 const forwardPath = forwardVisited.get(neighborId)!;
                 const backwardPath = backwardVisited.get(entityId)!;
-                
-                const reversedDirection: 'outgoing' | 'incoming' = neighbor.direction === 'outgoing' ? 'incoming' : 'outgoing';
+
+                const reversedDirection: 'outgoing' | 'incoming' =
+                  neighbor.direction === 'outgoing' ? 'incoming' : 'outgoing';
                 const extendedBackwardPath: PathStep[] = [
                   ...backwardPath.path,
                   {
@@ -351,7 +359,7 @@ export class PathFinder {
                   extendedBackwardPath.reverse(),
                   null
                 );
-                
+
                 if (path && !this.pathExists(foundPaths, path)) {
                   foundPaths.push(path);
                   if (mode === 'shortest' || foundPaths.length >= maxPaths) {
@@ -364,12 +372,15 @@ export class PathFinder {
               if (!backwardVisited.has(neighborId)) {
                 const currentPath = backwardVisited.get(entityId)!;
                 backwardVisited.set(neighborId, {
-                  path: [...currentPath.path, {
-                    entity: neighbor.entity,
-                    relationshipType: neighbor.relationshipType,
-                    relationshipStrength: neighbor.relationshipStrength,
-                    direction: neighbor.direction,
-                  }],
+                  path: [
+                    ...currentPath.path,
+                    {
+                      entity: neighbor.entity,
+                      relationshipType: neighbor.relationshipType,
+                      relationshipStrength: neighbor.relationshipStrength,
+                      direction: neighbor.direction,
+                    },
+                  ],
                   depth: currentDepth,
                 });
                 newBackwardFrontier.push(neighborId);
@@ -396,12 +407,14 @@ export class PathFinder {
     entityId: string,
     relationshipTypes?: string[],
     minStrength: number = 0
-  ): Promise<Array<{
-    entity: GraphEntity;
-    relationshipType: string;
-    relationshipStrength: number;
-    direction: 'outgoing' | 'incoming';
-  }>> {
+  ): Promise<
+    Array<{
+      entity: GraphEntity;
+      relationshipType: string;
+      relationshipStrength: number;
+      direction: 'outgoing' | 'incoming';
+    }>
+  > {
     let sql = `
       SELECT 
         e.entity_id,
@@ -447,7 +460,7 @@ export class PathFinder {
 
     const [rows] = await db.run({ sql, params });
 
-    return rows.map(row => {
+    return rows.map((row) => {
       const json = this.rowToJson(row);
       return {
         entity: this.jsonToEntity(json),
@@ -492,7 +505,12 @@ export class PathFinder {
     target: GraphEntity,
     forwardPath: PathStep[],
     backwardPath: PathStep[],
-    connection: { entity: GraphEntity; relationshipType: string; relationshipStrength: number; direction: 'outgoing' | 'incoming' } | null
+    connection: {
+      entity: GraphEntity;
+      relationshipType: string;
+      relationshipStrength: number;
+      direction: 'outgoing' | 'incoming';
+    } | null
   ): EntityPath | null {
     const steps: PathStep[] = [...forwardPath];
 
@@ -515,13 +533,10 @@ export class PathFinder {
     }
 
     // Calculate path strength (product of all relationship strengths)
-    const pathStrength = steps.reduce(
-      (acc, step) => acc * (step.relationshipStrength || 1),
-      1
-    );
+    const pathStrength = steps.reduce((acc, step) => acc * (step.relationshipStrength || 1), 1);
 
     // Build description
-    const description = steps.map(s => s.entity.name).join(' → ');
+    const description = steps.map((s) => s.entity.name).join(' → ');
 
     return {
       source,
@@ -537,8 +552,8 @@ export class PathFinder {
    * Check if a path already exists in the found paths
    */
   private pathExists(paths: EntityPath[], newPath: EntityPath): boolean {
-    const newPathIds = newPath.steps.map(s => s.entity.entityId).join(',');
-    return paths.some(p => p.steps.map(s => s.entity.entityId).join(',') === newPathIds);
+    const newPathIds = newPath.steps.map((s) => s.entity.entityId).join(',');
+    return paths.some((p) => p.steps.map((s) => s.entity.entityId).join(',') === newPathIds);
   }
 
   /**
@@ -560,9 +575,10 @@ export class PathFinder {
       userId: json.user_id as string,
       name: json.name as string,
       entityType: json.entity_type as GraphEntity['entityType'],
-      attributes: typeof json.attributes === 'string'
-        ? JSON.parse(json.attributes)
-        : (json.attributes as Record<string, unknown>) || {},
+      attributes:
+        typeof json.attributes === 'string'
+          ? JSON.parse(json.attributes)
+          : (json.attributes as Record<string, unknown>) || {},
       importance: json.importance as number,
       firstMentioned: json.first_mentioned ? new Date(json.first_mentioned as string) : new Date(),
       lastMentioned: json.last_mentioned ? new Date(json.last_mentioned as string) : new Date(),

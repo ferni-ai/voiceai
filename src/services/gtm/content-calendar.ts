@@ -153,7 +153,10 @@ export function generateWeeklyCalendar(
 
     // Persist to Firestore (fire and forget for speed)
     firestoreStorage.storeCalendarEntry(entry).catch((error) => {
-      log.error('Failed to persist calendar entry to Firestore', { id: entry.id, error: String(error) });
+      log.error('Failed to persist calendar entry to Firestore', {
+        id: entry.id,
+        error: String(error),
+      });
     });
   }
 
@@ -185,7 +188,12 @@ export function generateMonthlyCalendar(
     }
   });
 
-  log.info('Generated monthly calendar', { year, month, theme: theme?.name, entries: entries.length });
+  log.info('Generated monthly calendar', {
+    year,
+    month,
+    theme: theme?.name,
+    entries: entries.length,
+  });
   return entries;
 }
 
@@ -240,7 +248,10 @@ export function updateEntryStatus(
 
     // Persist to Firestore (fire and forget for speed)
     firestoreStorage.updateCalendarEntryStatus(id, status, contentId).catch((error) => {
-      log.error('Failed to persist calendar entry status to Firestore', { id, error: String(error) });
+      log.error('Failed to persist calendar entry status to Firestore', {
+        id,
+        error: String(error),
+      });
     });
   }
 }
@@ -249,10 +260,7 @@ export function updateEntryStatus(
 // CONTENT LINKING
 // ============================================================================
 
-export function linkContentToEntry(
-  entryId: string,
-  content: GeneratedContent
-): void {
+export function linkContentToEntry(entryId: string, content: GeneratedContent): void {
   const entry = calendarStore.get(entryId);
   if (entry) {
     entry.contentId = content.id;
@@ -313,7 +321,8 @@ export function getPublishQueue(config: GTMConfig = DEFAULT_GTM_CONFIG): Publish
       contentId: entry.contentId,
       scheduledFor: entry.date,
       platforms,
-      priority: entry.category === 'changelog' || entry.category === 'announcement' ? 'high' : 'normal',
+      priority:
+        entry.category === 'changelog' || entry.category === 'announcement' ? 'high' : 'normal',
     });
   }
 
@@ -389,11 +398,7 @@ export function getAllContent(): GeneratedContent[] {
   return Array.from(contentStore.values());
 }
 
-export function updateContentStatus(
-  id: string,
-  status: ContentStatus,
-  publishedAt?: Date
-): void {
+export function updateContentStatus(id: string, status: ContentStatus, publishedAt?: Date): void {
   const content = contentStore.get(id);
   if (content) {
     content.status = status;

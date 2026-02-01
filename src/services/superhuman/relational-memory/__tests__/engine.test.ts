@@ -5,11 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  createRelationalMemory,
-  clearUserData,
-  type IRelationalMemory,
-} from '../index.js';
+import { createRelationalMemory, clearUserData, type IRelationalMemory } from '../index.js';
 
 describe('RelationalMemory', () => {
   let relMem: IRelationalMemory;

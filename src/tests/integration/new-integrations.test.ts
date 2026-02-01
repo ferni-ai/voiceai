@@ -153,9 +153,7 @@ describe('Life Expectancy Service', () => {
       });
 
       // Smoker should have lower life expectancy
-      expect(smokerResult.expectedYearsRemaining).toBeLessThan(
-        baseResult.expectedYearsRemaining
-      );
+      expect(smokerResult.expectedYearsRemaining).toBeLessThan(baseResult.expectedYearsRemaining);
     });
 
     it('should include wisdom context', () => {
@@ -230,9 +228,8 @@ describe('Life Expectancy Service', () => {
 
 describe('SEC Intelligence Context Builder', () => {
   it('should extract tickers from text', async () => {
-    const { extractTickers } = await import(
-      '../../intelligence/context-builders/sec-intelligence.js'
-    );
+    const { extractTickers } =
+      await import('../../intelligence/context-builders/sec-intelligence.js');
 
     const tickers = extractTickers('I want to buy some $AAPL and Microsoft stock');
     expect(tickers).toContain('AAPL');
@@ -255,9 +252,8 @@ describe('SEC Intelligence Context Builder', () => {
 
 describe('Mortality Perspective Context Builder', () => {
   it('should detect mortality-relevant topics', async () => {
-    const { detectMortalityRelevance } = await import(
-      '../../intelligence/context-builders/mortality-perspective.js'
-    );
+    const { detectMortalityRelevance } =
+      await import('../../intelligence/context-builders/mortality-perspective.js');
 
     const somedayResult = detectMortalityRelevance("I'll do it someday");
     expect(somedayResult.relevant).toBe(true);

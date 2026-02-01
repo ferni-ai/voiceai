@@ -24,10 +24,7 @@ import {
   setAllergies,
 } from '../../tools/domains/information/preferences/index.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
-import {
-  extractMusicPreferences,
-  hasMusicContext,
-} from '../../audio/index.js';
+import { extractMusicPreferences, hasMusicContext } from '../../audio/index.js';
 
 // ============================================================================
 // TYPES

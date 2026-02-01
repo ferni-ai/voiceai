@@ -464,7 +464,10 @@ export class RedisBackedCache<K extends string, V> extends ManagedCache<K, V> {
     super.clear();
     // Note: Redis pattern delete would be expensive, skip for now
     // Individual entries will expire via TTL
-    log.debug({ cache: this.redisConfig.redisKeyPrefix }, 'L1 cache cleared (L2 will expire via TTL)');
+    log.debug(
+      { cache: this.redisConfig.redisKeyPrefix },
+      'L1 cache cleared (L2 will expire via TTL)'
+    );
   }
 
   /**

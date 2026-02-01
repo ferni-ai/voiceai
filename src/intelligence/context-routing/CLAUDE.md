@@ -272,7 +272,7 @@ pnpm vitest run src/intelligence/context-routing/__tests__/ --coverage
 
 - `docs/plans/sleepy-gliding-micali.md` - Full BTH Communication System Overhaul plan
 - `src/intelligence/feedback/CLAUDE.md` - Phase 1 injection tracking
-- `src/tools/intelligence/learning/CLAUDE.md` - Experiment manager
+- `src/tools/experiments/CLAUDE.md` - Experiment manager
 - `src/agents/processors/CLAUDE.md` - Turn processor integration
 
 ---

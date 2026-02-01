@@ -1,4 +1,3 @@
-// TODO: Fix type errors - animation keyframe array indexing
 /**
  * Winter Solstice Moment - "The Shortest Day, The Longest Warmth"
  *

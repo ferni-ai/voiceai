@@ -1,4 +1,3 @@
-// TODO: Fix type errors - entry array indexing
 /**
  * Journal Stats
  *

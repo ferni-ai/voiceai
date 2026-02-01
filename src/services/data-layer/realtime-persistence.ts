@@ -18,10 +18,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { runBackground } from '../../utils/background-task.js';
-import {
-  MAX_RETRIES,
-  RETRY_DELAY_MS,
-} from '../../config/resilience-config.js';
+import { MAX_RETRIES, RETRY_DELAY_MS } from '../../config/resilience-config.js';
 
 const log = createLogger({ module: 'RealtimePersistence' });
 

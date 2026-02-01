@@ -21,8 +21,15 @@ import { getHumanListeningPipeline } from '../../speech/human-listening-pipeline
 import { processTranscriptForBetterThanHuman } from '../integrations/better-than-human-integration.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import { getDJController } from '../../audio/index.js';
-import { createTeamHuddleTrigger, detectTeamHuddleRequest } from '../../services/engagement/engagement-conversation-triggers.js';
-import { cleanupStaleCheckIns, processDailyCheckIn, type DailyCheckInContext } from './daily-checkin-handler.js';
+import {
+  createTeamHuddleTrigger,
+  detectTeamHuddleRequest,
+} from '../../services/engagement/engagement-conversation-triggers.js';
+import {
+  cleanupStaleCheckIns,
+  processDailyCheckIn,
+  type DailyCheckInContext,
+} from './daily-checkin-handler.js';
 import type { ConversationContext as FeedbackContext } from '../../tools/optimization/feedback-collector.js';
 import { fireAndForget, safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
 import type { UserData } from '../shared/types.js';
@@ -76,9 +83,13 @@ export function processTrialStatus(
             setTimeout(() => {
               try {
                 if (session && !conversationManager.isAgentSpeaking()) {
-                  coordinatedSay(sessionId, trialStatus.transitionPrompt!, { allowInterruptions: true });
+                  coordinatedSay(sessionId, trialStatus.transitionPrompt!, {
+                    allowInterruptions: true,
+                  });
                 }
-              } catch {}
+              } catch (retrySayErr) {
+                diag.warn('Failed to speak trial transition (retry)', { error: String(retrySayErr) });
+              }
             }, 3000);
           }
         } catch (sayErr) {
@@ -256,7 +267,8 @@ export function processVoiceIdentity(
   userData: UserData
 ): void {
   fireAndForget(async () => {
-    const { onUserMessage } = await import('../../services/trust-and-identity/voice-agent-integration.js');
+    const { onUserMessage } =
+      await import('../../services/trust-and-identity/voice-agent-integration.js');
     const emotionalIntensity = userData?.lastEmotionAnalysis?.intensity ?? 0;
     const identityUpdate = await onUserMessage(sessionId, transcript, emotionalIntensity);
 

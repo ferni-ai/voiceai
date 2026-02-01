@@ -343,7 +343,11 @@ function resetHealthAfterRefresh(sessionId: string): void {
 /**
  * Log health metrics for monitoring.
  */
-function logHealthMetrics(sessionId: string, health: SessionHealth, isFinal: boolean = false): void {
+function logHealthMetrics(
+  sessionId: string,
+  health: SessionHealth,
+  isFinal: boolean = false
+): void {
   const successRate =
     health.totalToolCalls + health.totalLeakages > 0
       ? (health.totalToolCalls / (health.totalToolCalls + health.totalLeakages)) * 100
@@ -369,6 +373,4 @@ function logHealthMetrics(sessionId: string, health: SessionHealth, isFinal: boo
 // EXPORTS
 // ============================================================================
 
-export {
-  DEFAULT_CONFIG as SESSION_HEALTH_DEFAULT_CONFIG,
-};
+export { DEFAULT_CONFIG as SESSION_HEALTH_DEFAULT_CONFIG };

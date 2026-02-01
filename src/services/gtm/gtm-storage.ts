@@ -12,7 +12,12 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { GeneratedContent, ContentCalendarEntry, ContentStatus, CalendarEntryStatus } from './types.js';
+import type {
+  GeneratedContent,
+  ContentCalendarEntry,
+  ContentStatus,
+  CalendarEntryStatus,
+} from './types.js';
 
 const log = createLogger({ module: 'gtm-storage' });
 
@@ -75,18 +80,21 @@ export async function storeContent(content: GeneratedContent): Promise<void> {
 
   if (db) {
     try {
-      await db.collection(CONTENT_COLLECTION).doc(content.id).set({
-        ...content,
-        createdAt: content.createdAt.toISOString(),
-        publishedAt: content.publishedAt?.toISOString() || null,
-        brief: {
-          ...content.brief,
-        },
-        platforms: content.platforms.map((p) => ({
-          ...p,
-        })),
-        _updatedAt: new Date().toISOString(),
-      });
+      await db
+        .collection(CONTENT_COLLECTION)
+        .doc(content.id)
+        .set({
+          ...content,
+          createdAt: content.createdAt.toISOString(),
+          publishedAt: content.publishedAt?.toISOString() || null,
+          brief: {
+            ...content.brief,
+          },
+          platforms: content.platforms.map((p) => ({
+            ...p,
+          })),
+          _updatedAt: new Date().toISOString(),
+        });
       log.debug('Content stored in Firestore', { id: content.id });
     } catch (e) {
       log.error('Failed to store content in Firestore', { error: String(e) });
@@ -232,11 +240,14 @@ export async function storeCalendarEntry(entry: ContentCalendarEntry): Promise<v
 
   if (db) {
     try {
-      await db.collection(CALENDAR_COLLECTION).doc(entry.id).set({
-        ...entry,
-        date: entry.date.toISOString(),
-        _updatedAt: new Date().toISOString(),
-      });
+      await db
+        .collection(CALENDAR_COLLECTION)
+        .doc(entry.id)
+        .set({
+          ...entry,
+          date: entry.date.toISOString(),
+          _updatedAt: new Date().toISOString(),
+        });
       log.debug('Calendar entry stored in Firestore', { id: entry.id });
     } catch (e) {
       log.error('Failed to store calendar entry in Firestore', { error: String(e) });

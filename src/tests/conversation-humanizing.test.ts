@@ -17,7 +17,7 @@ import {
   getSpeechNaturalizer,
   resetSpeechNaturalizer,
   generateFragment,
-} from '../conversation/speech-naturalizer.js';
+} from '../conversation/speech-naturalizer/index.js';
 
 // Active Listening
 import {
@@ -31,21 +31,21 @@ import {
   getConversationalMemory,
   resetConversationalMemory,
   type ConversationalMemoryEngine,
-} from '../conversation/conversational-memory.js';
+} from '../conversation/conversational-memory/index.js';
 
 // Question Patterns
 import {
   getQuestionPatternEngine,
   resetQuestionPatternEngine,
   type QuestionPatternEngine,
-} from '../conversation/question-patterns.js';
+} from '../conversation/question-patterns/index.js';
 
 // Humanizer
 import {
   getConversationHumanizer,
   resetConversationHumanizer,
   type ConversationHumanizer,
-} from '../conversation/humanizer.js';
+} from '../conversation/humanizer/index.js';
 
 // ============================================================================
 // SPEECH NATURALIZER TESTS

@@ -16,11 +16,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 // Import all deep understanding systems
-import {
-  getSilencePattern,
-  importSilencePattern,
-  type SilencePattern,
-} from './silence.js';
+import { getSilencePattern, importSilencePattern, type SilencePattern } from './silence.js';
 
 import {
   getLifeRhythmProfile,
@@ -50,11 +46,7 @@ import {
 
 import { getFlowProfile, importFlowProfile, type FlowProfile } from './flow.js';
 
-import {
-  getRepairProfile,
-  importRepairProfile,
-  type RepairProfile,
-} from './repair.js';
+import { getRepairProfile, importRepairProfile, type RepairProfile } from './repair.js';
 
 import { getHopeProfile, importHopeProfile, type HopeProfile } from './hope.js';
 

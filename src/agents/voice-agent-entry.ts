@@ -92,9 +92,23 @@ import {
 // Development telemetry for E2E observability
 import { logPipelineStage, type StageType } from './shared/dev-telemetry.js';
 
+// Tool Gateway (2026 architecture) - Centralized tool loading with tiered prefetching
+import { getToolGateway } from '../tools/gateway/index.js';
+
 // ============================================================================
 // FEATURE FLAGS
 // ============================================================================
+
+/**
+ * Use the new Tool Gateway for tool loading (2026 architecture).
+ * - Tiered loading: Instant → Preloaded → Predictive
+ * - Zero-latency configuration (compiled TypeScript)
+ * - Predictive prefetching with pre-computed embeddings
+ *
+ * DEFAULT: true (Tool Gateway is now the standard approach)
+ * Set USE_TOOL_GATEWAY=false in environment to disable and use legacy orchestrator.
+ */
+const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 
 /**
  * Multi-agent mode: Each persona runs as a separate agent with its own Gemini session.
@@ -109,7 +123,7 @@ import { logPipelineStage, type StageType } from './shared/dev-telemetry.js';
 const MULTI_AGENT_MODE = process.env.MULTI_AGENT_MODE !== 'false';
 
 // Model provider abstraction - centralizes all model-specific behavior
-import { getModelProvider } from './model-provider/index.js';
+import { getModelProvider, isUsingOpenAI } from './model-provider/index.js';
 
 // Get provider early for module-level logging
 const modelProvider = getModelProvider();
@@ -1224,31 +1238,36 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     e2e.resourceLoading('agent-session');
     const sessionStart = Date.now();
 
-    // ⚡ OPTIMIZATION: Skip Silero VAD by default - Gemini/OpenAI have built-in turn detection
-    // The VAD was adding 200-400ms to session start for no real benefit.
-    // Gemini's 'realtime_llm' and OpenAI's 'server_vad' handle user speaking detection.
-    // DJ Booth ducking is triggered by UserStateChanged events from the LLM, not VAD.
+    // =========================================================================
+    // VAD CONFIGURATION
+    // =========================================================================
+    // For OpenAI: MUST use Silero VAD so allowInterruptions: false works on say()
+    // For Gemini: Optional fallback (USE_LOCAL_VAD=true)
     //
-    // FALLBACK: Set USE_LOCAL_VAD=true to load Silero VAD as redundancy/fallback
-    // This adds latency but provides backup if LLM turn detection has issues.
+    // Why? OpenAI's server_vad in RealtimeModel ignores allowInterruptions flag.
+    // By using VAD on AgentSession instead, we control interruption behavior.
+    // See: https://docs.livekit.io/agents/voice-agent/interruptions/
+    // =========================================================================
     const USE_LOCAL_VAD = process.env.USE_LOCAL_VAD === 'true';
+    const needsVadForInterruptions = isUsingOpenAI(); // OpenAI needs VAD to support allowInterruptions: false
     let vad:
       | Awaited<ReturnType<typeof import('@livekit/agents-plugin-silero').VAD.load>>
       | undefined;
 
-    if (USE_LOCAL_VAD) {
+    if (needsVadForInterruptions || USE_LOCAL_VAD) {
       try {
         const vadLoadStart = Date.now();
         const { silero } = getVoiceDeps();
         vad = await silero.VAD.load();
+        const reason = needsVadForInterruptions ? 'openai-interruptions' : 'local-vad-fallback';
         process.stderr.write(
-          `[voice-agent-entry] 🎙️ Silero VAD loaded as fallback in ${Date.now() - vadLoadStart}ms\n`
+          `[voice-agent-entry] 🎙️ Silero VAD loaded for turn detection (${reason}) in ${Date.now() - vadLoadStart}ms\n`
         );
       } catch (vadErr) {
         process.stderr.write(
-          `[voice-agent-entry] ⚠️ VAD fallback load failed (non-fatal): ${vadErr}\n`
+          `[voice-agent-entry] ⚠️ VAD load failed - allowInterruptions: false may not work correctly: ${vadErr}\n`
         );
-        // Continue without VAD - LLM turn detection will still work
+        // Continue without VAD - but allowInterruptions: false won't work for OpenAI
       }
     }
 
@@ -1323,19 +1342,59 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     // Get voice deps for session creation
     const { voice, google, genai } = getVoiceDeps();
 
-    // Initialize orchestrator if not already done (should be warm from prewarm)
-    const { getToolsForAgent, initializeToolOrchestrator, isOrchestratorInitialized } =
-      toolOrchestratorModule;
+    // =========================================================================
+    // TOOL LOADING: Gateway (2026) or Legacy Orchestrator
+    // =========================================================================
+    // Gateway is enabled by default. Set USE_TOOL_GATEWAY=false to use legacy.
+    // Gateway provides: tiered loading, predictive prefetch, zero-latency config
+    // =========================================================================
 
-    if (!isOrchestratorInitialized()) {
-      try {
-        await initializeToolOrchestrator();
-      } catch (orchErr) {
+    let toolGateway: ReturnType<typeof getToolGateway> | null = null;
+
+    if (USE_TOOL_GATEWAY) {
+      // 2026 Architecture: Tool Gateway with tiered loading
+      toolGateway = getToolGateway();
+
+      // Warmup if not already done (loads Tier 0: instant tools like playMusic)
+      if (!toolGateway.isReady()) {
+        const warmupStart = Date.now();
+        process.stderr.write(`[voice-agent-entry] 🚀 Tool Gateway warming up (Tier 0)...\n`);
+        await toolGateway.warmup();
         process.stderr.write(
-          `[voice-agent-entry] Orchestrator init failed (will use legacy): ${orchErr}\n`
+          `[voice-agent-entry] ✅ Tool Gateway warmed up in ${Date.now() - warmupStart}ms\n`
         );
       }
+
+      // Start session (loads Tier 1: preloaded tools like calendar, habits)
+      const sessionStart = Date.now();
+      await toolGateway.startSession(userId || 'anonymous', sessionId, {
+        hasCalendarLinked: services.userProfile?.hasCalendarLinked,
+        hasSpotifyLinked: services.userProfile?.hasSpotifyLinked,
+        isInCrisis: false, // Will be detected dynamically
+        recentTopics: [], // Could pull from memory
+      });
+
+      const metrics = toolGateway.getMetrics();
+      process.stderr.write(
+        `[voice-agent-entry] 🎯 Tool Gateway session started in ${Date.now() - sessionStart}ms ` +
+          `(Tier 0: ${metrics.tier0Count}, Tier 1: ${metrics.tier1Count}, Total: ${metrics.totalTools} tools)\n`
+      );
+    } else {
+      // Legacy: Initialize orchestrator if not already done
+      const { initializeToolOrchestrator, isOrchestratorInitialized } = toolOrchestratorModule;
+
+      if (!isOrchestratorInitialized()) {
+        try {
+          await initializeToolOrchestrator();
+        } catch (orchErr) {
+          process.stderr.write(
+            `[voice-agent-entry] Orchestrator init failed (will use legacy): ${orchErr}\n`
+          );
+        }
+      }
     }
+
+    const { getToolsForAgent } = toolOrchestratorModule;
 
     // Extract IP-detected location from metadata (TikTok-style personalization)
     const userLocation =
@@ -1374,38 +1433,122 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       : undefined;
     setCurrentActiveSession(userId || 'anonymous', formattedLocation, sessionId);
 
-    // Get tools from orchestrator
-    // ⚡ FAST PATH: Skip semantic router on session start - we have no user input yet!
-    // This reduces tool loading from ~5-7s to <500ms. Full semantic routing happens
-    // on first turn when we actually have user context to match against.
-    const { tools: orchestratorTools, meta: toolsMeta } = await getToolsForAgent({
-      persona: { id: sessionPersona.id, displayName: sessionPersona.name },
-      userId: userId || 'anonymous',
-      userProfile: services.userProfile,
-      subscriptionTier,
-      initialTranscript: '', // Session start - no transcript yet
-      // Pass services for dev mode bypass (synced from frontend dev panel via data channel)
-      services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },
-      // IP-detected location for weather, local content
-      userLocation,
-      // ⚡ PERF FIX: Use fast path to skip semantic router (5-7s → <500ms)
-      fastPath: true,
-      sessionId,
-    });
+    // Get tools - from Gateway (2026) or Orchestrator (legacy)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let sessionTools: Record<string, any>;
+    let toolCount: number;
+    let toolLoadMode: string;
+    let toolLoadTimeMs: number;
 
-    process.stderr.write(
-      `[voice-agent-entry] Got ${toolsMeta.toolCount} tools from ${toolsMeta.mode} (${toolsMeta.selectionTimeMs}ms)\n`
-    );
+    if (USE_TOOL_GATEWAY && toolGateway) {
+      // 2026 Architecture: Get tools from gateway (already loaded in startSession)
+      const gatewayStart = Date.now();
+      sessionTools = toolGateway.getSessionTools();
+      toolCount = Object.keys(sessionTools).length;
+      toolLoadMode = 'gateway';
+      toolLoadTimeMs = Date.now() - gatewayStart;
 
-    // Create agent with persona-specific system prompt and orchestrator-selected tools
+      process.stderr.write(
+        `[voice-agent-entry] 🎯 Tool Gateway: ${toolCount} tools ready (${toolLoadTimeMs}ms)\n`
+      );
+
+      // Log critical tools status and attempt recovery if needed
+      const criticalTools = ['playMusic', 'musicControl', 'rememberAboutUser', 'recallFromMemory'];
+      let missingCritical = criticalTools.filter((t) => !toolGateway.isToolReady(t));
+
+      // FIX (Jan 2026): If critical tools are missing, try to recover them directly
+      if (missingCritical.length > 0) {
+        process.stderr.write(
+          `[voice-agent-entry] ⚠️ Missing critical tools: ${missingCritical.join(', ')} - attempting recovery...\n`
+        );
+
+        // Try to directly inject music tools if they're missing
+        const musicToolsMissing = missingCritical.filter((t) =>
+          ['playMusic', 'musicControl', 'musicInfo'].includes(t)
+        );
+        if (musicToolsMissing.length > 0) {
+          try {
+            const { getToolDefinitions } = await import(
+              '../tools/domains/entertainment/index.js'
+            );
+            const { EnvironmentServiceRegistry } = await import(
+              '../tools/registry/types.js'
+            );
+            const entertainmentDefs = await getToolDefinitions();
+            for (const toolId of musicToolsMissing) {
+              const toolDef = entertainmentDefs.find(
+                (d: { id: string }) => d.id === toolId
+              );
+              if (toolDef) {
+                // Create tool with minimal context
+                const tool = toolDef.create({
+                  userId: userId || 'anonymous',
+                  agentId: sessionPersona.id,
+                  agentDisplayName: sessionPersona.name,
+                  services: new EnvironmentServiceRegistry(),
+                });
+                sessionTools[toolId] = tool;
+                process.stderr.write(
+                  `[voice-agent-entry] ✅ Recovered ${toolId} via direct import\n`
+                );
+              }
+            }
+            toolCount = Object.keys(sessionTools).length;
+          } catch (recoveryErr) {
+            process.stderr.write(
+              `[voice-agent-entry] ❌ Failed to recover music tools: ${recoveryErr}\n`
+            );
+          }
+        }
+
+        // Re-check after recovery
+        missingCritical = criticalTools.filter(
+          (t) => !toolGateway.isToolReady(t) && !sessionTools[t]
+        );
+        if (missingCritical.length > 0) {
+          process.stderr.write(
+            `[voice-agent-entry] 🚨 STILL MISSING critical tools: ${missingCritical.join(', ')}\n`
+          );
+        }
+      }
+
+      if (missingCritical.length === 0) {
+        process.stderr.write(`[voice-agent-entry] ✅ All critical tools loaded\n`);
+      }
+    } else {
+      // Legacy: Get tools from orchestrator
+      // ⚡ FAST PATH: Skip semantic router on session start - we have no user input yet!
+      const { tools: orchestratorTools, meta: toolsMeta } = await getToolsForAgent({
+        persona: { id: sessionPersona.id, displayName: sessionPersona.name },
+        userId: userId || 'anonymous',
+        userProfile: services.userProfile,
+        subscriptionTier,
+        initialTranscript: '', // Session start - no transcript yet
+        services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },
+        userLocation,
+        fastPath: true,
+        sessionId,
+      });
+
+      sessionTools = orchestratorTools;
+      toolCount = toolsMeta.toolCount;
+      toolLoadMode = toolsMeta.mode;
+      toolLoadTimeMs = toolsMeta.selectionTimeMs;
+
+      process.stderr.write(
+        `[voice-agent-entry] Got ${toolCount} tools from ${toolLoadMode} (${toolLoadTimeMs}ms)\n`
+      );
+    }
+
+    // Create agent with persona-specific system prompt and tools
     // NOTE: FerniAgent is the main agent class used for ALL personas. The persona identity
     // comes from the system prompt (loaded above via loadSystemPrompt), not the class name.
     const { FerniAgent } = ferniAgentModule;
 
     // DEBUG: Log tools being passed to agent
-    const toolNames = Object.keys(orchestratorTools || {});
+    const toolNames = Object.keys(sessionTools || {});
     process.stderr.write(
-      `[voice-agent-entry] Creating agent for ${sessionPersona.id} with ${toolsMeta.toolCount} orchestrator tools\n`
+      `[voice-agent-entry] Creating agent for ${sessionPersona.id} with ${toolCount} tools (${toolLoadMode})\n`
     );
     process.stderr.write(
       `[voice-agent-entry] 🔧 Tool names (ALL ${toolNames.length}): ${toolNames.join(', ')}\n`
@@ -1413,7 +1556,7 @@ If someone asks what day it is, what time it is, or what the date is, you know t
 
     const agent = new FerniAgent(systemPrompt, {
       skipGreeting: true, // Greeting handled by generateAndSpeakGreeting below
-      tools: orchestratorTools, // Use orchestrator-selected tools
+      tools: sessionTools, // Use gateway or orchestrator tools
     });
 
     // FIX: Create lightweight VoiceAgentRef for handoff support
@@ -1429,16 +1572,16 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     // Agent owns instructions and tools - don't duplicate instructions on RealtimeModel
     const { buildToolConfig } = functionCallingModule;
 
-    // Build tool config based on context (crisis mode, new user, etc.)
-    const _isNewUser = !services.userProfile || (services.userProfile.totalConversations ?? 0) < 3;
+    // Build tool config based on context (crisis mode, etc.)
+    // NOTE: We previously restricted tools for new users (< 3 conversations) but found this
+    // limited the experience too much. New users now get full tool access to demonstrate
+    // Ferni's capabilities from the start. Crisis mode still restricts tools to safety-focused ones.
     const isCrisis = userData.lastEmotionAnalysis?.distressLevel
       ? userData.lastEmotionAnalysis.distressLevel > 0.7
       : false;
 
     const toolConfig = buildToolConfig({
       environment: 'production',
-      // TEMPORARILY DISABLED: isNewUser restrictions were limiting tools too aggressively
-      // isNewUser,
       isCrisis,
     });
 
@@ -1500,10 +1643,9 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     }
 
     session = new voice.AgentSession({
-      // ⚡ OPTIMIZATION: Use provider's turn detection setting
-      // Different providers have different built-in turn detection mechanisms
+      // Turn detection: Provider-specific (Gemini uses 'realtime_llm', OpenAI uses undefined + VAD)
       turnDetection: modelProvider.getSessionTurnDetection(),
-      // vad is now undefined - not needed with realtime turn detection
+      // VAD: Required for OpenAI (enables allowInterruptions: false), optional for Gemini
       vad,
       llm,
       tts,
@@ -1806,21 +1948,84 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     );
 
     // =========================================================================
+    // CRITICAL: Register initial agent tools with the session
+    //
+    // LiveKit's session starts with EMPTY tools - the agent's _tools must be
+    // explicitly sent to the session for native function calling to work.
+    // Without this, Gemini connects with geminiDeclarations=[] and can't call functions!
+    // =========================================================================
+    try {
+      const { registerInitialTools, hasNativeToolUpdates } =
+        await import('./shared/tool-updater.js');
+      if (hasNativeToolUpdates() && registeredToolCount > 0) {
+        const registered = await registerInitialTools(agent);
+        if (registered) {
+          process.stderr.write(
+            `[voice-agent-entry] 🔧 Initial tools sent to session (${registeredToolCount} tools for native FC)\n`
+          );
+        }
+      }
+    } catch (toolRegErr) {
+      process.stderr.write(
+        `[voice-agent-entry] ⚠️ Failed to register initial tools: ${toolRegErr}\n`
+      );
+    }
+
+    // =========================================================================
     // DEBUG LOGGING (disabled in production for performance)
     // Set DEBUG_VOICE_AGENT=true to enable verbose logging
     // =========================================================================
     const debugEnabled = process.env.DEBUG_VOICE_AGENT === 'true';
 
     // 🔍 ALWAYS log native function call attempts (helps diagnose tool issues)
-    // This logs when Gemini tries to use native function calling API
+    // Event: function_calls_collected - fired after Gemini collects all function calls
+    //
+    // DIAGNOSTIC: Track tool call patterns across turns to debug "tools stop working" issue
+    let nativeFCCallCount = 0;
+    let lastNativeFCCallAt = 0;
+
     const nativeFnCallsHandler = (event: unknown) => {
+      const timestamp = new Date().toISOString();
       const eventData = event as { calls?: Array<{ name: string; arguments?: unknown }> };
       const calls = eventData?.calls || [];
-      const callNames = calls.map((c) => c.name).join(', ') || 'unknown';
-      process.stderr.write(`\n🔧 [NATIVE TOOL CALL] Gemini attempting: ${callNames}\n`);
+
+      nativeFCCallCount++;
+      const timeSinceLast = lastNativeFCCallAt ? Date.now() - lastNativeFCCallAt : 0;
+      lastNativeFCCallAt = Date.now();
+
+      // Get current tool count for diagnostics
+      const agentTools = (agent as unknown as { _tools?: Record<string, unknown> })?._tools;
+      const currentToolCount = agentTools ? Object.keys(agentTools).length : 0;
+
+      if (calls.length === 0) {
+        process.stderr.write(`\n🔧 [NATIVE FC] function_calls_collected (empty) at ${timestamp}\n`);
+        process.stderr.write(
+          `   📊 Session stats: Call #${nativeFCCallCount}, Tools registered: ${currentToolCount}\n`
+        );
+        return;
+      }
+
+      // Log each call clearly with diagnostic context
+      process.stderr.write(`\n${'='.repeat(60)}\n`);
+      process.stderr.write(`🔧 [NATIVE FC] TOOL CALLS COLLECTED at ${timestamp}\n`);
       process.stderr.write(
-        `🔧 [NATIVE TOOL CALL] Full event: ${JSON.stringify(event, null, 2)}\n\n`
+        `   📊 Call #${nativeFCCallCount} | Turn ${userData.turnCount || 0} | Tools: ${currentToolCount}\n`
       );
+      if (timeSinceLast > 0) {
+        process.stderr.write(`   ⏱️ Time since last FC: ${(timeSinceLast / 1000).toFixed(1)}s\n`);
+      }
+      process.stderr.write(`${'='.repeat(60)}\n`);
+
+      for (let i = 0; i < calls.length; i++) {
+        const call = calls[i];
+        process.stderr.write(`\n📞 Call ${i + 1}/${calls.length}:\n`);
+        process.stderr.write(`   Tool Name: ${call.name}\n`);
+        process.stderr.write(
+          `   Arguments: ${JSON.stringify(call.arguments, null, 2).replace(/\n/g, '\n   ')}\n`
+        );
+      }
+
+      process.stderr.write(`\n${'='.repeat(60)}\n\n`);
     };
     session.on(
       'function_calls_collected' as Parameters<typeof session.on>[0],
@@ -1858,6 +2063,54 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       debugEnabled: true,
       // 🔄 BEHAVIOR SIGNAL INTEGRATION: Pass sendDataMessage for frontend signaling
       sendDataMessage,
+    });
+
+    // =========================================================================
+    // 🔧 TOOL HEALTH MONITOR: Periodic check and re-registration if needed
+    // This helps diagnose and fix the "tools stop working after first call" issue
+    // =========================================================================
+    let lastToolCheckAt = Date.now();
+    const TOOL_HEALTH_CHECK_INTERVAL = 30_000; // Check every 30 seconds
+
+    const toolHealthCheckInterval = setInterval(() => void (async () => {
+      const agentTools = (agent as unknown as { _tools?: Record<string, unknown> })?._tools;
+      const toolCount = agentTools ? Object.keys(agentTools).length : 0;
+      const turnsSinceLastFC = (userData.turnCount || 0) - nativeFCCallCount;
+
+      // Log health status
+      process.stderr.write(
+        `\n🏥 [TOOL HEALTH] Turn ${userData.turnCount || 0} | ` +
+          `Tools: ${toolCount} | FC calls: ${nativeFCCallCount} | ` +
+          `Turns without FC: ${turnsSinceLastFC}\n`
+      );
+
+      // If we've had multiple turns without any function calls and tools are registered,
+      // something might be wrong - try re-registering
+      if (turnsSinceLastFC > 3 && toolCount > 0) {
+        process.stderr.write(
+          `⚠️ [TOOL HEALTH] ${turnsSinceLastFC} turns without function calls - ` +
+            `attempting tool re-registration\n`
+        );
+
+        try {
+          const { registerInitialTools, hasNativeToolUpdates } =
+            await import('./shared/tool-updater.js');
+          if (hasNativeToolUpdates()) {
+            const reregistered = await registerInitialTools(agent);
+            process.stderr.write(
+              `🔧 [TOOL HEALTH] Re-registration ${reregistered ? 'succeeded' : 'failed'}\n`
+            );
+          }
+        } catch (reregErr) {
+          process.stderr.write(`❌ [TOOL HEALTH] Re-registration error: ${reregErr}\n`);
+        }
+      }
+
+      lastToolCheckAt = Date.now();
+    })(), TOOL_HEALTH_CHECK_INTERVAL);
+
+    cleanupTracker.register('timer', 'tool-health-check', () => {
+      clearInterval(toolHealthCheckInterval);
     });
 
     // SESSION STATE HANDLERS (silence detection, engagement, idle timeout)
@@ -1920,9 +2173,16 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     // 🔧 CRITICAL: Update agent with essential tools loaded by dynamic loader
     // The dynamic loader loads entertainment (music), information (weather), etc.
     // These need to be registered with the agent/OpenAI immediately!
+    //
+    // ⚠️ For Gemini: This triggers another session restart (markRestartNeeded)
+    // which can break function calling. Skip for Gemini since tools are already
+    // included in the initial registration (agent._tools is merged before this).
     try {
-      const { updateAgentTools, supportsToolUpdates } = await import('./shared/tool-updater.js');
-      if (supportsToolUpdates()) {
+      const { updateAgentTools, supportsToolUpdates, isMidSessionToolUpdateSafe } =
+        await import('./shared/tool-updater.js');
+
+      // Only update if it won't cause a session restart (safe for OpenAI, not for Gemini)
+      if (supportsToolUpdates() && isMidSessionToolUpdateSafe()) {
         const essentialTools = dynamicToolLoader.getCurrentTools();
         const essentialDomains = dynamicToolLoader.getLoadedDomains();
         if (Object.keys(essentialTools).length > 0) {
@@ -1935,6 +2195,13 @@ If someone asks what day it is, what time it is, or what the date is, you know t
             );
           }
         }
+      } else if (supportsToolUpdates()) {
+        // Gemini: Skip the update but log that we're skipping it
+        const essentialTools = dynamicToolLoader.getCurrentTools();
+        process.stderr.write(
+          `\n🔧 [GEMINI] Skipping essential tools update (would trigger session restart)\n` +
+            `   Essential tools (${Object.keys(essentialTools).length}) should be in initial agent._tools\n`
+        );
       }
     } catch (toolUpdateError) {
       process.stderr.write(
@@ -1961,12 +2228,24 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     const userInputTranscribedHandler = (event: unknown) => {
       const evt = event as { transcript?: string; isFinal?: boolean };
       if (evt.isFinal) {
-        process.stderr.write(`\n[STT] FINAL: "${evt.transcript}"\n`);
+        // Increment turn count for tracking
+        userData.turnCount = (userData.turnCount || 0) + 1;
+
+        // 🔧 TOOL DIAGNOSTIC: Log turn info with tool-trigger detection
+        const transcript = evt.transcript || '';
+        const toolTriggers = ['play', 'music', 'weather', 'news', 'what time', 'calendar'];
+        const mightTriggerTool = toolTriggers.some((t) => transcript.toLowerCase().includes(t));
+
+        process.stderr.write(
+          `\n📝 [TURN ${userData.turnCount}] FINAL: "${transcript}"${
+            mightTriggerTool ? ' [🔧 TOOL TRIGGER DETECTED]' : ''
+          }\n`
+        );
 
         // FinOps: Estimate STT duration from word count (~150 WPM average)
         // This is an approximation; actual duration would require audio timestamps
-        if (evt.transcript) {
-          const wordCount = evt.transcript.split(/\s+/).filter((w) => w.length > 0).length;
+        if (transcript) {
+          const wordCount = transcript.split(/\s+/).filter((w) => w.length > 0).length;
           const estimatedDurationSeconds = (wordCount / 150) * 60; // 150 WPM = 2.5 words/sec
           finops.recordSTTCost({
             durationSeconds: Math.max(1, estimatedDurationSeconds), // Minimum 1 second

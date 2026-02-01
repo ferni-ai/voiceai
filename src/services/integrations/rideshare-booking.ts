@@ -108,13 +108,15 @@ export async function getRideEstimates(
   const estimates: RideEstimate[] = [];
 
   // Geocode addresses if coordinates not provided
-  const pickupCoords = pickup.lat && pickup.lng
-    ? { lat: pickup.lat, lng: pickup.lng }
-    : await geocodeAddress(pickup.address);
+  const pickupCoords =
+    pickup.lat && pickup.lng
+      ? { lat: pickup.lat, lng: pickup.lng }
+      : await geocodeAddress(pickup.address);
 
-  const dropoffCoords = dropoff.lat && dropoff.lng
-    ? { lat: dropoff.lat, lng: dropoff.lng }
-    : await geocodeAddress(dropoff.address);
+  const dropoffCoords =
+    dropoff.lat && dropoff.lng
+      ? { lat: dropoff.lat, lng: dropoff.lng }
+      : await geocodeAddress(dropoff.address);
 
   if (!pickupCoords || !dropoffCoords) {
     log.warn('Could not geocode addresses for ride estimates');
@@ -259,10 +261,7 @@ async function getGoogleMapsEstimate(
 /**
  * Generate preview for a ride booking
  */
-function generateRidePreview(
-  request: RideRequest,
-  estimate?: RideEstimate
-): ActionPreview {
+function generateRidePreview(request: RideRequest, estimate?: RideEstimate): ActionPreview {
   const priceRange = estimate?.estimatedPrice
     ? `$${estimate.estimatedPrice.min.toFixed(2)} - $${estimate.estimatedPrice.max.toFixed(2)}`
     : 'Price varies';
@@ -297,11 +296,7 @@ export async function bookRide(request: RideRequest): Promise<RideResult> {
   const preview = generateRidePreview(request, estimate);
 
   // Check permission via trust level system
-  const permissionResult = await checkActionPermission(
-    request.userId,
-    'book_ride',
-    preview
-  );
+  const permissionResult = await checkActionPermission(request.userId, 'book_ride', preview);
 
   if (!permissionResult.success) {
     return {
@@ -362,10 +357,7 @@ export async function executeApprovedRide(
 /**
  * Store a ride request for later execution
  */
-async function storeRideRequest(
-  request: RideRequest,
-  pendingActionId: string
-): Promise<void> {
+async function storeRideRequest(request: RideRequest, pendingActionId: string): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -497,15 +489,10 @@ export async function cancelRide(
   if (!db) return { success: false, error: 'Database unavailable' };
 
   try {
-    await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('rides')
-      .doc(rideId)
-      .update({
-        status: 'cancelled',
-        updatedAt: new Date().toISOString(),
-      });
+    await db.collection('bogle_users').doc(userId).collection('rides').doc(rideId).update({
+      status: 'cancelled',
+      updatedAt: new Date().toISOString(),
+    });
 
     log.info({ userId, rideId }, 'Ride cancelled');
     return { success: true };

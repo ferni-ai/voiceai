@@ -114,6 +114,12 @@ export class EventBus {
   private stats: EventBusStats;
   private handlerTimes: number[] = [];
 
+  // FIX: Add TTL-based cleanup to prevent subscription memory leaks
+  private cleanupInterval: NodeJS.Timeout | null = null;
+  private static readonly DEFAULT_TTL_MS = 30 * 60 * 1000; // 30 minutes default TTL
+  private static readonly CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Cleanup every 5 minutes
+  private static readonly MAX_SUBSCRIPTIONS = 1000; // Safety limit
+
   constructor() {
     this.emitter = new EventEmitter();
     this.emitter.setMaxListeners(100); // Allow many subscribers
@@ -124,8 +130,62 @@ export class EventBus {
       averageHandlerTime: 0,
       errors: 0,
     };
-    
-    log.info('Event bus initialized');
+
+    // FIX: Start periodic cleanup of stale subscriptions
+    this.startCleanupInterval();
+
+    log.info('Event bus initialized with TTL-based subscription cleanup');
+  }
+
+  /**
+   * Start the periodic cleanup interval for stale subscriptions
+   */
+  private startCleanupInterval(): void {
+    if (this.cleanupInterval) return;
+
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupStaleSubscriptions();
+    }, EventBus.CLEANUP_INTERVAL_MS);
+
+    // Ensure cleanup interval doesn't prevent Node from exiting
+    this.cleanupInterval.unref();
+  }
+
+  /**
+   * Stop the cleanup interval (for shutdown)
+   */
+  stopCleanupInterval(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+      log.debug('Event bus cleanup interval stopped');
+    }
+  }
+
+  /**
+   * Clean up subscriptions that have exceeded their TTL
+   */
+  private cleanupStaleSubscriptions(): void {
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    for (const [id, sub] of this.subscriptions) {
+      const age = now - sub.createdAt.getTime();
+      const ttl = (sub as EventSubscription & { ttl?: number }).ttl ?? EventBus.DEFAULT_TTL_MS;
+
+      if (age > ttl) {
+        this.subscriptions.delete(id);
+        cleanedCount++;
+      }
+    }
+
+    if (cleanedCount > 0) {
+      this.stats.subscriberCount = this.subscriptions.size;
+      log.debug(
+        { cleanedCount, remainingCount: this.subscriptions.size },
+        'Cleaned up stale event subscriptions'
+      );
+    }
   }
 
   // ==========================================================================
@@ -143,8 +203,7 @@ export class EventBus {
 
     // Update stats
     this.stats.totalEvents++;
-    this.stats.eventsByType[event.eventType] =
-      (this.stats.eventsByType[event.eventType] || 0) + 1;
+    this.stats.eventsByType[event.eventType] = (this.stats.eventsByType[event.eventType] || 0) + 1;
 
     log.debug(
       { eventType: event.eventType, userId: event.userId, source: event.source },
@@ -189,6 +248,10 @@ export class EventBus {
 
   /**
    * Subscribe to events
+   * @param eventType - Event type to subscribe to, or '*' for all events
+   * @param handler - Handler function to call when event is published
+   * @param options - Optional configuration including filter, priority, and TTL
+   * @param options.ttl - Time-to-live in ms (default: 30 minutes). Set to Infinity for permanent subscriptions.
    */
   subscribe(
     eventType: SystemEventType | '*',
@@ -196,23 +259,40 @@ export class EventBus {
     options?: {
       filter?: EventFilter;
       priority?: number;
+      ttl?: number; // FIX: Allow custom TTL for subscriptions
     }
   ): string {
+    // FIX: Enforce max subscriptions to prevent unbounded memory growth
+    if (this.subscriptions.size >= EventBus.MAX_SUBSCRIPTIONS) {
+      // Clean up stale subscriptions first
+      this.cleanupStaleSubscriptions();
+
+      // If still at limit, reject new subscription
+      if (this.subscriptions.size >= EventBus.MAX_SUBSCRIPTIONS) {
+        log.warn(
+          { currentCount: this.subscriptions.size, limit: EventBus.MAX_SUBSCRIPTIONS },
+          'Max subscriptions reached, rejecting new subscription'
+        );
+        throw new Error(`Max subscriptions (${EventBus.MAX_SUBSCRIPTIONS}) reached`);
+      }
+    }
+
     const id = `sub_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    
-    const subscription: EventSubscription = {
+
+    const subscription: EventSubscription & { ttl?: number } = {
       id,
       eventType,
       filter: options?.filter,
       handler,
       priority: options?.priority ?? 50, // Default middle priority
       createdAt: new Date(),
+      ttl: options?.ttl, // FIX: Store TTL for cleanup
     };
 
     this.subscriptions.set(id, subscription);
     this.stats.subscriberCount = this.subscriptions.size;
 
-    log.debug({ subscriptionId: id, eventType }, 'Subscription added');
+    log.debug({ subscriptionId: id, eventType, ttl: options?.ttl }, 'Subscription added');
 
     return id;
   }
@@ -239,7 +319,7 @@ export class EventBus {
   ): Promise<EventPayload> {
     return new Promise((resolve, reject) => {
       let timeoutId: NodeJS.Timeout | null = null;
-      
+
       const wrappedHandler: EventHandler = async (event) => {
         if (timeoutId) clearTimeout(timeoutId);
         this.unsubscribe(subId);
@@ -331,10 +411,7 @@ export class EventBus {
         }
       }
 
-      log.info(
-        { workflowId, eventType: event.eventType },
-        'Workflow triggered by event'
-      );
+      log.info({ workflowId, eventType: event.eventType }, 'Workflow triggered by event');
 
       if (callback) {
         await callback(event);
@@ -422,6 +499,8 @@ export function getEventBus(): EventBus {
 
 export function resetEventBus(): void {
   if (eventBusInstance) {
+    // FIX: Stop cleanup interval before clearing to prevent memory leaks
+    eventBusInstance.stopCleanupInterval();
     eventBusInstance.clearSubscriptions();
   }
   eventBusInstance = null;

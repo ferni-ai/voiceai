@@ -39,9 +39,7 @@ export async function validateInsight(
 
       // Filter out expired insights
       const now = Date.now();
-      const validInsights = rawInsights.filter(
-        (i) => !i.expiresAt || i.expiresAt > now
-      );
+      const validInsights = rawInsights.filter((i) => !i.expiresAt || i.expiresAt > now);
 
       found = validInsights.length > 0;
 
@@ -108,10 +106,7 @@ export async function validateInsight(
 /**
  * Check if an insight matches the expectation criteria.
  */
-function matchesExpectation(
-  insight: InsightSummary,
-  expectation: InsightExpectation
-): boolean {
+function matchesExpectation(insight: InsightSummary, expectation: InsightExpectation): boolean {
   if (expectation.category && insight.category !== expectation.category) {
     return false;
   }

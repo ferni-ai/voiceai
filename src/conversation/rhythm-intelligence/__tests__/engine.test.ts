@@ -23,9 +23,7 @@ describe('RhythmIntelligence', () => {
   });
 
   // Helper to create context
-  const createContext = (
-    overrides: Partial<RhythmContext> = {}
-  ): RhythmContext => ({
+  const createContext = (overrides: Partial<RhythmContext> = {}): RhythmContext => ({
     userId,
     turnNumber: 5,
     userTurnWordCount: 30,
@@ -111,9 +109,7 @@ describe('RhythmIntelligence', () => {
     });
 
     it('counts sentences correctly', () => {
-      const analysis = rhythm.analyzeTurn(
-        'This is one sentence. This is another. And a third!'
-      );
+      const analysis = rhythm.analyzeTurn('This is one sentence. This is another. And a third!');
 
       expect(analysis.sentenceCount).toBe(3);
     });
@@ -137,9 +133,7 @@ describe('RhythmIntelligence', () => {
     });
 
     it('detects moderate energy', () => {
-      const analysis = rhythm.analyzeTurn(
-        'I had a meeting today and then came home.'
-      );
+      const analysis = rhythm.analyzeTurn('I had a meeting today and then came home.');
 
       expect(analysis.energy).toBe('moderate');
     });
@@ -161,17 +155,13 @@ describe('RhythmIntelligence', () => {
     it('records turn without error', async () => {
       const analysis = rhythm.analyzeTurn('Test message here');
 
-      await expect(
-        rhythm.recordTurn(userId, analysis, true)
-      ).resolves.not.toThrow();
+      await expect(rhythm.recordTurn(userId, analysis, true)).resolves.not.toThrow();
     });
 
     it('builds profile after many turns', async () => {
       // Record many turns to build profile
       for (let i = 0; i < 15; i++) {
-        const analysis = rhythm.analyzeTurn(
-          'This is a moderately long message with several words'
-        );
+        const analysis = rhythm.analyzeTurn('This is a moderately long message with several words');
         await rhythm.recordTurn(userId, analysis, true);
       }
 

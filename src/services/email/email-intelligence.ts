@@ -40,7 +40,7 @@ export interface EmailScore {
   importanceScore: number; // 0-100
   category: EmailCategory;
   confidence: number; // 0-1
-  
+
   // Signal breakdown
   signals: {
     senderReputation: number;
@@ -50,11 +50,17 @@ export interface EmailScore {
     threadActivity: number;
     personalConnection: number;
   };
-  
+
   // Actions
-  suggestedAction: 'respond_now' | 'respond_today' | 'respond_this_week' | 'archive' | 'unsubscribe' | 'review';
+  suggestedAction:
+    | 'respond_now'
+    | 'respond_today'
+    | 'respond_this_week'
+    | 'archive'
+    | 'unsubscribe'
+    | 'review';
   responseTimeHours?: number;
-  
+
   scoredAt: Date;
 }
 
@@ -62,30 +68,30 @@ export interface SenderProfile {
   email: string;
   name?: string;
   domain: string;
-  
+
   // Reputation
   reputationScore: number; // 0-100
   emailCount: number;
   responseRate: number; // How often user responds
   avgResponseTimeHours: number;
-  
+
   // Classification
   isVip: boolean;
   isAutomatic: boolean;
   isNewsletter: boolean;
   isPersonal: boolean;
-  
+
   // Categories this sender typically sends
   categories: EmailCategory[];
-  
+
   // Last interaction
   lastEmailAt?: Date;
   lastResponseAt?: Date;
-  
+
   // User actions
   unsubscribeRequested: boolean;
   blocked: boolean;
-  
+
   updatedAt: Date;
 }
 
@@ -109,26 +115,58 @@ const WEIGHTS = {
   sender: 0.35,
   subject: 0.25,
   body: 0.15,
-  time: 0.10,
-  thread: 0.10,
+  time: 0.1,
+  thread: 0.1,
   personal: 0.05,
 };
 
 const URGENCY_KEYWORDS = [
-  'urgent', 'asap', 'immediately', 'critical', 'emergency', 'deadline',
-  'today', 'tonight', 'now', 'time sensitive', 'action required',
-  'response needed', 'please respond', 'waiting for', 'overdue',
+  'urgent',
+  'asap',
+  'immediately',
+  'critical',
+  'emergency',
+  'deadline',
+  'today',
+  'tonight',
+  'now',
+  'time sensitive',
+  'action required',
+  'response needed',
+  'please respond',
+  'waiting for',
+  'overdue',
 ];
 
 const LOW_PRIORITY_KEYWORDS = [
-  'newsletter', 'unsubscribe', 'no reply', 'noreply', 'automated',
-  'weekly digest', 'monthly update', 'promotional', 'sale', 'discount',
-  'off', '% off', 'free', 'limited time', 'don\'t miss',
+  'newsletter',
+  'unsubscribe',
+  'no reply',
+  'noreply',
+  'automated',
+  'weekly digest',
+  'monthly update',
+  'promotional',
+  'sale',
+  'discount',
+  'off',
+  '% off',
+  'free',
+  'limited time',
+  "don't miss",
 ];
 
 const PERSONAL_INDICATORS = [
-  'call me', 'let\'s meet', 'lunch', 'dinner', 'coffee', 'chat',
-  'your thoughts', 'what do you think', 'advice', 'help',
+  'call me',
+  "let's meet",
+  'lunch',
+  'dinner',
+  'coffee',
+  'chat',
+  'your thoughts',
+  'what do you think',
+  'advice',
+  'help',
 ];
 
 // ============================================================================
@@ -153,7 +191,7 @@ export class EmailIntelligence {
    */
   scoreEmail(email: EmailSummary): EmailScore {
     const senderProfile = this.getSenderProfile(email.fromEmail);
-    
+
     // Calculate individual signals
     const signals = {
       senderReputation: this.scoreSender(email, senderProfile),
@@ -163,31 +201,31 @@ export class EmailIntelligence {
       threadActivity: email.threadId ? 60 : 40, // Simplified - would check thread activity
       personalConnection: this.scorePersonalConnection(email, senderProfile),
     };
-    
+
     // Calculate weighted score
     const priorityScore = Math.round(
       signals.senderReputation * WEIGHTS.sender +
-      signals.subjectUrgency * WEIGHTS.subject +
-      signals.bodyImportance * WEIGHTS.body +
-      signals.timeRelevance * WEIGHTS.time +
-      signals.threadActivity * WEIGHTS.thread +
-      signals.personalConnection * WEIGHTS.personal
+        signals.subjectUrgency * WEIGHTS.subject +
+        signals.bodyImportance * WEIGHTS.body +
+        signals.timeRelevance * WEIGHTS.time +
+        signals.threadActivity * WEIGHTS.thread +
+        signals.personalConnection * WEIGHTS.personal
     );
-    
+
     // Determine priority level
     const priority = this.determinePriority(priorityScore, email, senderProfile);
-    
+
     // Determine category
     const category = this.categorizeEmail(email, senderProfile);
-    
+
     // Determine urgency
     const urgencyScore = Math.round(
-      (signals.subjectUrgency * 0.5 + signals.timeRelevance * 0.3 + signals.senderReputation * 0.2)
+      signals.subjectUrgency * 0.5 + signals.timeRelevance * 0.3 + signals.senderReputation * 0.2
     );
-    
+
     // Suggested action
     const suggestedAction = this.suggestAction(priority, urgencyScore, category);
-    
+
     const score: EmailScore = {
       emailId: email.id,
       priority,
@@ -201,7 +239,7 @@ export class EmailIntelligence {
       responseTimeHours: this.estimateResponseTime(priority, urgencyScore),
       scoredAt: new Date(),
     };
-    
+
     return score;
   }
 
@@ -231,45 +269,45 @@ export class EmailIntelligence {
     if (this.config.vipSenders.includes(email.fromEmail.toLowerCase())) {
       return 95;
     }
-    
+
     // Blocked domains get zero
     if (this.config.blockedDomains.some((d) => email.fromEmail.toLowerCase().includes(d))) {
       return 0;
     }
-    
+
     // Use sender profile if available
     if (profile.reputationScore > 0) {
       let score = profile.reputationScore;
-      
+
       // Boost for personal contacts
       if (profile.isPersonal) score = Math.min(100, score + 15);
-      
+
       // Reduce for newsletters/automated
       if (profile.isNewsletter || profile.isAutomatic) score = Math.max(0, score - 20);
-      
+
       return score;
     }
-    
+
     // Default scoring based on email characteristics
     let score = 50;
-    
+
     // Known domains get slight boost
     const knownDomains = ['gmail.com', 'outlook.com', 'yahoo.com', 'icloud.com'];
     if (knownDomains.some((d) => email.fromEmail.toLowerCase().endsWith(d))) {
       score += 5;
     }
-    
+
     // Important/starred emails
     if (email.isImportant) score += 20;
     if (email.isStarred) score += 15;
-    
+
     return Math.min(100, Math.max(0, score));
   }
 
   private scoreSubject(subject: string): number {
     const lower = subject.toLowerCase();
     let score = 50;
-    
+
     // Check urgency keywords
     for (const keyword of URGENCY_KEYWORDS) {
       if (lower.includes(keyword)) {
@@ -277,7 +315,7 @@ export class EmailIntelligence {
         break;
       }
     }
-    
+
     // Check priority keywords from config
     for (const keyword of this.config.priorityKeywords) {
       if (lower.includes(keyword.toLowerCase())) {
@@ -285,7 +323,7 @@ export class EmailIntelligence {
         break;
       }
     }
-    
+
     // Check low priority keywords
     for (const keyword of LOW_PRIORITY_KEYWORDS) {
       if (lower.includes(keyword)) {
@@ -293,22 +331,22 @@ export class EmailIntelligence {
         break;
       }
     }
-    
+
     // RE: or FW: indicates ongoing conversation
     if (lower.startsWith('re:') || lower.startsWith('fw:')) {
       score += 10;
     }
-    
+
     return Math.min(100, Math.max(0, score));
   }
 
   private scoreBody(snippet: string): number {
     const lower = snippet.toLowerCase();
     let score = 50;
-    
+
     // Check for questions directed at user
     if (lower.includes('?')) score += 10;
-    
+
     // Check for personal indicators
     for (const indicator of PERSONAL_INDICATORS) {
       if (lower.includes(indicator)) {
@@ -316,7 +354,7 @@ export class EmailIntelligence {
         break;
       }
     }
-    
+
     // Check for promotional content
     for (const keyword of LOW_PRIORITY_KEYWORDS) {
       if (lower.includes(keyword)) {
@@ -324,14 +362,14 @@ export class EmailIntelligence {
         break;
       }
     }
-    
+
     return Math.min(100, Math.max(0, score));
   }
 
   private scoreTimeRelevance(emailDate: Date): number {
     const now = new Date();
     const ageHours = (now.getTime() - emailDate.getTime()) / (1000 * 60 * 60);
-    
+
     // Recent emails are more relevant
     if (ageHours < 1) return 100;
     if (ageHours < 4) return 85;
@@ -344,12 +382,12 @@ export class EmailIntelligence {
 
   private scorePersonalConnection(email: EmailSummary, profile: SenderProfile): number {
     let score = 40;
-    
+
     if (profile.isPersonal) score += 30;
     if (profile.responseRate > 0.5) score += 20;
     if (profile.isVip) score += 30;
     if (profile.isAutomatic) score -= 30;
-    
+
     return Math.min(100, Math.max(0, score));
   }
 
@@ -357,17 +395,21 @@ export class EmailIntelligence {
   // CLASSIFICATION
   // ==========================================================================
 
-  private determinePriority(score: number, email: EmailSummary, profile: SenderProfile): EmailPriority {
+  private determinePriority(
+    score: number,
+    email: EmailSummary,
+    profile: SenderProfile
+  ): EmailPriority {
     // VIP always high priority
     if (profile.isVip || this.config.vipSenders.includes(email.fromEmail.toLowerCase())) {
       return score > 70 ? 'critical' : 'high';
     }
-    
+
     // Newsletter/automated always low or bulk
     if (profile.isNewsletter || profile.isAutomatic) {
       return score > 60 ? 'low' : 'bulk';
     }
-    
+
     // Score-based
     if (score >= 80) return 'critical';
     if (score >= 65) return 'high';
@@ -381,49 +423,53 @@ export class EmailIntelligence {
     if (profile.categories.length > 0) {
       return profile.categories[0];
     }
-    
+
     const lower = (email.subject + ' ' + email.snippet).toLowerCase();
-    
+
     // Receipts
-    if (lower.includes('receipt') || lower.includes('order confirmation') || lower.includes('invoice')) {
+    if (
+      lower.includes('receipt') ||
+      lower.includes('order confirmation') ||
+      lower.includes('invoice')
+    ) {
       return 'receipts';
     }
-    
+
     // Newsletters
     if (lower.includes('newsletter') || lower.includes('unsubscribe') || profile.isNewsletter) {
       return 'newsletters';
     }
-    
+
     // Promotions
     if (lower.includes('sale') || lower.includes('discount') || lower.includes('% off')) {
       return 'promotions';
     }
-    
+
     // Automated
     if (profile.isAutomatic || lower.includes('noreply') || lower.includes('do not reply')) {
       return 'automated';
     }
-    
+
     // Social
     if (email.labels.includes('CATEGORY_SOCIAL')) {
       return 'social';
     }
-    
+
     // Forums
     if (email.labels.includes('CATEGORY_FORUMS')) {
       return 'forums';
     }
-    
+
     // Updates
     if (email.labels.includes('CATEGORY_UPDATES')) {
       return 'updates';
     }
-    
+
     // Personal if high personal connection score
     if (profile.isPersonal || profile.responseRate > 0.3) {
       return 'personal';
     }
-    
+
     return 'primary';
   }
 
@@ -435,11 +481,11 @@ export class EmailIntelligence {
     if (category === 'newsletters' || category === 'promotions') {
       return urgencyScore > 30 ? 'review' : 'unsubscribe';
     }
-    
+
     if (category === 'automated' || category === 'receipts') {
       return 'archive';
     }
-    
+
     switch (priority) {
       case 'critical':
         return 'respond_now';
@@ -460,7 +506,7 @@ export class EmailIntelligence {
     if (priority === 'bulk' || priority === 'low') {
       return undefined;
     }
-    
+
     if (priority === 'critical' || urgencyScore > 80) {
       return 2;
     }
@@ -483,22 +529,19 @@ export class EmailIntelligence {
   getSenderProfile(email: string): SenderProfile {
     const lowerEmail = email.toLowerCase();
     let profile = this.senderProfiles.get(lowerEmail);
-    
+
     if (!profile) {
       profile = this.createDefaultProfile(lowerEmail);
       this.senderProfiles.set(lowerEmail, profile);
     }
-    
+
     return profile;
   }
 
   /**
    * Update sender profile based on user action
    */
-  updateSenderProfile(
-    email: string,
-    update: Partial<SenderProfile>
-  ): void {
+  updateSenderProfile(email: string, update: Partial<SenderProfile>): void {
     const profile = this.getSenderProfile(email);
     Object.assign(profile, update, { updatedAt: new Date() });
     this.senderProfiles.set(email.toLowerCase(), profile);
@@ -530,15 +573,13 @@ export class EmailIntelligence {
 
   private createDefaultProfile(email: string): SenderProfile {
     const domain = email.split('@')[1] || '';
-    
+
     // Detect known automated/newsletter domains
     const isAutomatic = ['noreply', 'no-reply', 'donotreply', 'mailer'].some((n) =>
       email.includes(n)
     );
-    const isNewsletter = ['newsletter', 'news', 'update', 'digest'].some((n) =>
-      email.includes(n)
-    );
-    
+    const isNewsletter = ['newsletter', 'news', 'update', 'digest'].some((n) => email.includes(n));
+
     return {
       email,
       domain,
@@ -567,9 +608,7 @@ export class EmailIntelligence {
   getAutoArchiveCandidates(scores: EmailScore[]): EmailScore[] {
     return scores.filter(
       (s) =>
-        s.suggestedAction === 'archive' ||
-        s.category === 'automated' ||
-        s.category === 'receipts'
+        s.suggestedAction === 'archive' || s.category === 'automated' || s.category === 'receipts'
     );
   }
 
@@ -600,12 +639,10 @@ export class EmailIntelligence {
     const high = scores.filter((s) => s.priority === 'high').length;
     const autoArchive = this.getAutoArchiveCandidates(scores).length;
     const unsubscribe = this.getUnsubscribeCandidates(scores).length;
-    
+
     const avgScore =
-      scores.length > 0
-        ? scores.reduce((sum, s) => sum + s.priorityScore, 0) / scores.length
-        : 0;
-    
+      scores.length > 0 ? scores.reduce((sum, s) => sum + s.priorityScore, 0) / scores.length : 0;
+
     return {
       totalEmails: scores.length,
       criticalCount: critical,
@@ -625,7 +662,7 @@ const instances: Map<string, EmailIntelligence> = new Map();
 
 export function getEmailIntelligence(userId: string): EmailIntelligence {
   let instance = instances.get(userId);
-  
+
   if (!instance) {
     instance = new EmailIntelligence({
       userId,
@@ -640,7 +677,7 @@ export function getEmailIntelligence(userId: string): EmailIntelligence {
     });
     instances.set(userId, instance);
   }
-  
+
   return instance;
 }
 

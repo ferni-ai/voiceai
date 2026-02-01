@@ -29,16 +29,6 @@ export async function shutdownServices(): Promise<void> {
     getLogger().warn({ error }, 'Error clearing context managers');
   }
 
-  // Clear history trackers
-  try {
-    // @ts-expect-error - JS file with types
-    const { clearAllHistoryTrackers } = await import('../../memory/history.js');
-    clearAllHistoryTrackers();
-    getLogger().info('Cleared history trackers');
-  } catch (error) {
-    getLogger().warn({ error }, 'Error clearing history trackers');
-  }
-
   // Reset rate limiters
   try {
     const { resetAllRateLimiters } = await import('../../tools/rate-limiter.js');

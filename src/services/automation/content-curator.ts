@@ -20,7 +20,14 @@ const log = createLogger({ module: 'content-curator' });
 // Types
 // ============================================================================
 
-export type ContentType = 'article' | 'podcast' | 'book' | 'video' | 'course' | 'exercise' | 'meditation';
+export type ContentType =
+  | 'article'
+  | 'podcast'
+  | 'book'
+  | 'video'
+  | 'course'
+  | 'exercise'
+  | 'meditation';
 
 export type ContentCategory =
   | 'personal_growth'
@@ -418,7 +425,9 @@ export async function getPendingRecommendations(userId: string): Promise<Content
       .limit(10)
       .get();
 
-    return snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as ContentRecommendation);
+    return snapshot.docs.map(
+      (doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as ContentRecommendation
+    );
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get pending recommendations');
     return [];

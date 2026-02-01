@@ -155,10 +155,7 @@ export async function loadToolDomain(
 /**
  * Internal domain loading implementation (separated for race condition handling)
  */
-async function doLoadDomain(
-  domain: ToolDomain,
-  options: { isLazy?: boolean }
-): Promise<number> {
+async function doLoadDomain(domain: ToolDomain, options: { isLazy?: boolean }): Promise<number> {
   const startTime = Date.now();
   const loader = domainLoaders[domain];
   let toolCount = 0;
@@ -170,7 +167,9 @@ async function doLoadDomain(
     getLogger().error({ domain }, errorMsg);
     // Also output to stderr for maximum visibility
     process.stderr.write(`\n🚨 TOOL DOMAIN ERROR: ${errorMsg}\n`);
-    process.stderr.write(`   Fix: Register via registerDomainLoader() or include in autoRegisterAllDomains()\n\n`);
+    process.stderr.write(
+      `   Fix: Register via registerDomainLoader() or include in autoRegisterAllDomains()\n\n`
+    );
     // Note: Dynamic imports with variables don't work in Vitest/bundlers
     // Domains must be pre-registered via registerDomainLoader()
     // Return -1 to indicate failure (vs 0 which means success with no tools)
@@ -235,7 +234,8 @@ export async function loadToolDomainsLazy(domains: ToolDomain[]): Promise<number
       loadToolDomain(domain, { isLazy: true }),
       new Promise<number>((_, reject) =>
         setTimeout(
-          () => reject(new Error(`Timeout loading domain "${domain}" after ${LAZY_LOAD_TIMEOUT_MS}ms`)),
+          () =>
+            reject(new Error(`Timeout loading domain "${domain}" after ${LAZY_LOAD_TIMEOUT_MS}ms`)),
           LAZY_LOAD_TIMEOUT_MS
         )
       ),
@@ -530,11 +530,7 @@ export async function autoRegisterAllDomains(): Promise<void> {
       loader: async () =>
         import('../domains/milestone-mastery/index.js').then(async (m) => m.getToolDefinitions()),
     },
-    {
-      name: 'habit-persistence' as ToolDomain,
-      loader: async () =>
-        import('../domains/habit-persistence/index.js').then(async (m) => m.getToolDefinitions()),
-    },
+    // habit-persistence: merged into habits/ domain (Jan 2026)
     {
       name: 'timeless-perspective' as ToolDomain,
       loader: async () =>
@@ -822,7 +818,9 @@ export async function autoRegisterAllDomains(): Promise<void> {
     {
       name: 'superhuman-communication' as ToolDomain,
       loader: async () =>
-        import('../domains/communication/superhuman-tools/llm-tools.js').then((m) => m.getToolDefinitions()),
+        import('../domains/communication/superhuman-tools/llm-tools.js').then((m) =>
+          m.getToolDefinitions()
+        ),
     },
 
     // === LOCAL SEARCH DOMAIN (Google Places + Yelp) ===
@@ -904,20 +902,38 @@ export async function autoRegisterAllDomains(): Promise<void> {
       loader: async () =>
         import('../domains/event-intelligence/index.js').then(async (m) => m.getToolDefinitions()),
     },
-    {
-      name: 'habit-intelligence' as ToolDomain,
-      loader: async () =>
-        import('../domains/habit-intelligence/index.js').then(async (m) => m.getToolDefinitions()),
-    },
+    // habit-intelligence: merged into habits/ domain (Jan 2026)
     {
       name: 'pattern-analytics' as ToolDomain,
       loader: async () =>
         import('../domains/pattern-analytics/index.js').then(async (m) => m.getToolDefinitions()),
     },
+    // wisdom-intelligence: merged into wisdom/ domain (Jan 2026)
+    // === BETTER THAN HUMAN DOMAINS ===
     {
-      name: 'wisdom-intelligence' as ToolDomain,
+      name: 'ambient-mode' as ToolDomain,
       loader: async () =>
-        import('../domains/wisdom-intelligence/index.js').then(async (m) => m.getToolDefinitions()),
+        import('../domains/ambient-mode/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'coaching-support' as ToolDomain,
+      loader: async () =>
+        import('../domains/coaching-support/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'human-transfer' as ToolDomain,
+      loader: async () =>
+        import('../domains/human-transfer/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'visual-memory' as ToolDomain,
+      loader: async () =>
+        import('../domains/visual-memory/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'ui-navigation' as ToolDomain,
+      loader: async () =>
+        import('../domains/ui-navigation/index.js').then(async (m) => m.getToolDefinitions()),
     },
   ];
 

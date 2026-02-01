@@ -21,7 +21,12 @@ apps/marketplace-agents/
 │   └── pixel-tech-translator/  # Tech translator
 ├── registry.json               # Agent registry for discovery
 ├── CONTRIBUTING.md             # How to contribute agents
+├── AGENT-RECOMMENDATIONS.md    # Recommended agents by use case
+├── SHOWCASE.md                 # Agent showcase
 └── docs/                       # Documentation
+    ├── AGENT-DEVELOPMENT-GUIDE.md
+    ├── CUSTOM-TOOLS-ARCHITECTURE.md
+    └── phases/                 # Phased rollout plan
 ```
 
 ## Available Agents
@@ -36,6 +41,13 @@ apps/marketplace-agents/
 | **Spark** | Premium | Creativity catalyst |
 | **Sage** | Premium | Relationship guide |
 | **Pixel** | Premium | Tech translator (no jargon) |
+| **Amara Osei** | Premium | Chronic illness companion |
+| **Carmen Reyes** | Premium | Parenting support |
+| **Eli Brennan** | Premium | ADHD/executive function coach |
+| **Kenji Mori** | Premium | Sleep and anxiety support |
+| **Marcus Webb** | Premium | Recovery and sobriety companion |
+| **Ray Chen** | Premium | Career burnout and layoff support |
+| **Sasha Kim** | Premium | Creative identity and imposter syndrome |
 
 ## Installation
 

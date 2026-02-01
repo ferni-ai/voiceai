@@ -54,7 +54,9 @@ describe('Tool Pipeline Integration', () => {
       expect(highPriority.length).toBeGreaterThan(10);
 
       // Should include crisis tools
-      const hascrisis = highPriority.some((t) => t.category === 'crisis' || t.id.includes('crisis'));
+      const hascrisis = highPriority.some(
+        (t) => t.category === 'crisis' || t.id.includes('crisis')
+      );
       expect(hascrisis).toBe(true);
     });
 
@@ -181,36 +183,34 @@ describe('Tool Pipeline Integration', () => {
       { input: 'add my wife to the household', expectedCategory: 'voice-enrollment' },
     ];
 
-    it.each(testCases)(
-      'should have tools matching: "$input"',
-      ({ input, expectedCategory }) => {
-        const categoryTools = toolsByCategory[expectedCategory];
-        expect(categoryTools).toBeDefined();
+    it.each(testCases)('should have tools matching: "$input"', ({ input, expectedCategory }) => {
+      const categoryTools = toolsByCategory[expectedCategory];
+      expect(categoryTools).toBeDefined();
 
-        // Check if any tool in category has matching phrases
-        const inputLower = input.toLowerCase();
-        const hasMatch = categoryTools.some((tool) => {
-          // Check phrases
-          const phraseMatch = tool.triggers.phrases?.some((phrase) =>
+      // Check if any tool in category has matching phrases
+      const inputLower = input.toLowerCase();
+      const hasMatch = categoryTools.some((tool) => {
+        // Check phrases
+        const phraseMatch = tool.triggers.phrases?.some(
+          (phrase) =>
             inputLower.includes(phrase.toLowerCase()) ||
             phrase.toLowerCase().includes(inputLower.split(' ')[0])
-          );
+        );
 
-          // Check keywords
-          const keywordMatch = tool.triggers.keywords?.some((kw) => {
-            const word = typeof kw === 'string' ? kw : kw.word;
-            return inputLower.includes(word.toLowerCase());
-          });
-
-          // Check patterns
-          const patternMatch = tool.triggers.patterns?.some((p) => p.test(input));
-
-          return phraseMatch || keywordMatch || patternMatch;
+        // Check keywords
+        const keywordMatch = tool.triggers.keywords?.some((kw) => {
+          const word = typeof kw === 'string' ? kw : kw.word;
+          return inputLower.includes(word.toLowerCase());
         });
 
-        expect(hasMatch).toBe(true);
-      }
-    );
+        // Check patterns
+        const patternMatch = tool.triggers.patterns?.some((p) => p.test(input));
+
+        return phraseMatch || keywordMatch || patternMatch;
+      });
+
+      expect(hasMatch).toBe(true);
+    });
   });
 
   describe('Tool Execution Delegation', () => {

@@ -1,20 +1,25 @@
 /**
  * Proactive Insight Generator
- * 
+ *
  * "Better Than Human" capability that generates insights proactively,
  * not just when the user asks. Uses LLM to:
- * 
+ *
  * 1. Analyze patterns across sessions
  * 2. Surface connections the user hasn't made
  * 3. Predict needs before they're expressed
  * 4. Generate personalized wisdom based on history
- * 
+ *
  * @module services/superhuman/proactive-insight-generator
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { callLLM } from '../llm-utils.js';
-import { TEMP_REASONING, TEMP_BALANCED, MAX_TOKENS_STANDARD, MAX_TOKENS_SHORT } from '../../config/gemini-config.js';
+import {
+  TEMP_REASONING,
+  TEMP_BALANCED,
+  MAX_TOKENS_STANDARD,
+  MAX_TOKENS_SHORT,
+} from '../../config/gemini-config.js';
 
 const log = createLogger({ module: 'ProactiveInsightGenerator' });
 
@@ -106,38 +111,41 @@ export async function generateProactiveInsights(
   context: UserContext
 ): Promise<InsightGenerationResult> {
   const startTime = Date.now();
-  
+
   try {
     // Build context string
     const contextStr = buildContextString(context);
-    
+
     // Skip if context is too thin
     if (contextStr.length < 50) {
       return { insights: [], durationMs: Date.now() - startTime };
     }
-    
+
     const prompt = INSIGHT_GENERATION_PROMPT.replace('{context}', contextStr);
-    
-    const response = await callLLM(prompt, { 
-      maxTokens: MAX_TOKENS_STANDARD, 
-      temperature: TEMP_REASONING // Slightly creative 
+
+    const response = await callLLM(prompt, {
+      maxTokens: MAX_TOKENS_STANDARD,
+      temperature: TEMP_REASONING, // Slightly creative
     });
-    
+
     if (!response) {
       log.debug('LLM returned no response for insight generation');
       return { insights: [], durationMs: Date.now() - startTime };
     }
-    
+
     // Parse response
     const insights = parseInsightResponse(response, userId);
-    
-    log.info({
-      userId,
-      insightCount: insights.length,
-      types: insights.map(i => i.type),
-      durationMs: Date.now() - startTime,
-    }, '🔮 Proactive insights generated');
-    
+
+    log.info(
+      {
+        userId,
+        insightCount: insights.length,
+        types: insights.map((i) => i.type),
+        durationMs: Date.now() - startTime,
+      },
+      '🔮 Proactive insights generated'
+    );
+
     return {
       insights,
       durationMs: Date.now() - startTime,
@@ -171,15 +179,18 @@ Respond with ONLY valid JSON:
 }`;
 
   try {
-    const response = await callLLM(prompt, { maxTokens: MAX_TOKENS_SHORT, temperature: TEMP_BALANCED });
-    
+    const response = await callLLM(prompt, {
+      maxTokens: MAX_TOKENS_SHORT,
+      temperature: TEMP_BALANCED,
+    });
+
     if (!response) return null;
-    
+
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
-    
+
     const parsed = JSON.parse(jsonMatch[0]);
-    
+
     return {
       id: `insight-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       type: parsed.type || 'connection',
@@ -205,11 +216,14 @@ Respond with ONLY valid JSON:
  */
 export async function queryRelationshipInsights(
   userId: string,
-  query: 'positive_connections' | 'draining_relationships' | 'neglected_connections' | 'support_network'
+  query:
+    | 'positive_connections'
+    | 'draining_relationships'
+    | 'neglected_connections'
+    | 'support_network'
 ): Promise<GeneratedInsight | null> {
   try {
-    const { relationshipGraph } =
-      await import('./semantic-intelligence/relationship-graph.js');
+    const { relationshipGraph } = await import('./semantic-intelligence/relationship-graph.js');
 
     // Use getAllPeople instead of non-existent load method
     const people = await relationshipGraph.getAllPeople(userId);
@@ -254,7 +268,10 @@ export async function queryRelationshipInsights(
 
       case 'draining_relationships': {
         const draining = (people as Person[])
-          .filter((p: Person) => p.overallSentiment && p.overallSentiment < -0.2 && (p.mentionCount || 0) > 2)
+          .filter(
+            (p: Person) =>
+              p.overallSentiment && p.overallSentiment < -0.2 && (p.mentionCount || 0) > 2
+          )
           .sort((a: Person, b: Person) => (a.overallSentiment || 0) - (b.overallSentiment || 0))
           .slice(0, 2);
 
@@ -277,7 +294,7 @@ export async function queryRelationshipInsights(
         const now = Date.now();
         const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
         const neglected = (people as Person[])
-          .filter((p: Person) => p.lastMentioned && (now - p.lastMentioned.getTime()) > thirtyDaysMs) // 30 days
+          .filter((p: Person) => p.lastMentioned && now - p.lastMentioned.getTime() > thirtyDaysMs) // 30 days
           .filter((p: Person) => p.overallSentiment && p.overallSentiment > 0)
           .slice(0, 2);
 
@@ -298,9 +315,15 @@ export async function queryRelationshipInsights(
       case 'support_network': {
         const supporters = (people as Person[])
           .filter((p: Person) => p.overallSentiment && p.overallSentiment > 0.2)
-          .filter((p: Person) => p.topics && p.topics.some((t: string) =>
-            ['support', 'help', 'advice', 'care', 'listen'].some(k => t.toLowerCase().includes(k))
-          ))
+          .filter(
+            (p: Person) =>
+              p.topics &&
+              p.topics.some((t: string) =>
+                ['support', 'help', 'advice', 'care', 'listen'].some((k) =>
+                  t.toLowerCase().includes(k)
+                )
+              )
+          )
           .slice(0, 3);
 
         if (supporters.length > 0) {
@@ -318,7 +341,7 @@ export async function queryRelationshipInsights(
         break;
       }
     }
-    
+
     return insight;
   } catch (error) {
     log.debug({ error: String(error), query }, 'Relationship insight query failed');
@@ -332,38 +355,38 @@ export async function queryRelationshipInsights(
 
 function buildContextString(context: UserContext): string {
   const parts: string[] = [];
-  
+
   if (context.recentTopics.length > 0) {
     parts.push(`Recent topics: ${context.recentTopics.join(', ')}`);
   }
-  
+
   if (context.emotionalTrend) {
     parts.push(`Emotional trend: ${context.emotionalTrend}`);
   }
-  
+
   if (context.upcomingEvents && context.upcomingEvents.length > 0) {
     parts.push(`Upcoming: ${context.upcomingEvents.join(', ')}`);
   }
-  
+
   if (context.openCommitments && context.openCommitments.length > 0) {
     parts.push(`Open commitments: ${context.openCommitments.join(', ')}`);
   }
-  
+
   if (context.relationshipHighlights && context.relationshipHighlights.length > 0) {
     const relStr = context.relationshipHighlights
-      .map(r => `${r.name} (${r.sentiment})`)
+      .map((r) => `${r.name} (${r.sentiment})`)
       .join(', ');
     parts.push(`Key relationships: ${relStr}`);
   }
-  
+
   if (context.growthAreas && context.growthAreas.length > 0) {
     parts.push(`Growth areas: ${context.growthAreas.join(', ')}`);
   }
-  
+
   if (context.recentChallenges && context.recentChallenges.length > 0) {
     parts.push(`Recent challenges: ${context.recentChallenges.join(', ')}`);
   }
-  
+
   return parts.join('\n');
 }
 
@@ -371,31 +394,32 @@ function parseInsightResponse(response: string, userId: string): GeneratedInsigh
   try {
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return [];
-    
+
     const parsed = JSON.parse(jsonMatch[0]);
-    
+
     if (!Array.isArray(parsed.insights)) return [];
-    
-    return parsed.insights.map((i: {
-      type?: string;
-      content?: string;
-      confidence?: number;
-      relevance?: number;
-      surfaceWhen?: string;
-      triggerContext?: string;
-    }) => ({
-      id: `insight-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      type: i.type || 'pattern',
-      content: i.content || '',
-      confidence: i.confidence || 0.5,
-      relevance: i.relevance || 0.5,
-      surfaceWhen: i.surfaceWhen || 'always_available',
-      triggerContext: i.triggerContext,
-      generatedAt: new Date(),
-      // Expire after 7 days for patterns, 2 days for predictions
-      expiresAt: new Date(Date.now() + 
-        (i.type === 'prediction' ? 2 : 7) * 24 * 60 * 60 * 1000),
-    })) as GeneratedInsight[];
+
+    return parsed.insights.map(
+      (i: {
+        type?: string;
+        content?: string;
+        confidence?: number;
+        relevance?: number;
+        surfaceWhen?: string;
+        triggerContext?: string;
+      }) => ({
+        id: `insight-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type: i.type || 'pattern',
+        content: i.content || '',
+        confidence: i.confidence || 0.5,
+        relevance: i.relevance || 0.5,
+        surfaceWhen: i.surfaceWhen || 'always_available',
+        triggerContext: i.triggerContext,
+        generatedAt: new Date(),
+        // Expire after 7 days for patterns, 2 days for predictions
+        expiresAt: new Date(Date.now() + (i.type === 'prediction' ? 2 : 7) * 24 * 60 * 60 * 1000),
+      })
+    ) as GeneratedInsight[];
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to parse insight response');
     return [];

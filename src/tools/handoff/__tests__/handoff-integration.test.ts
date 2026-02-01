@@ -307,7 +307,7 @@ describe('Handoff Integration - Intelligent Banter', () => {
   /**
    * Tests the intelligent banter system that provides context-aware
    * handoff phrases based on topic, emotion, time, and relationship depth.
-   * 
+   *
    * This test suite verifies:
    * - Intelligent banter is properly wired and callable
    * - It returns both softOpenBanter and arrivingBanter
@@ -325,9 +325,8 @@ describe('Handoff Integration - Intelligent Banter', () => {
   ];
 
   it('should generate intelligent banter for all persona pairs', async () => {
-    const { getIntelligentBanter } = await import(
-      '../../../services/team-engagement/intelligent-banter.js'
-    );
+    const { getIntelligentBanter } =
+      await import('../../../services/team-engagement/intelligent-banter.js');
 
     // Test ferni → each team member
     for (const target of CANONICAL_IDS) {
@@ -346,9 +345,8 @@ describe('Handoff Integration - Intelligent Banter', () => {
   });
 
   it('should indicate when intelligent banter was used vs fallback', async () => {
-    const { getIntelligentBanter } = await import(
-      '../../../services/team-engagement/intelligent-banter.js'
-    );
+    const { getIntelligentBanter } =
+      await import('../../../services/team-engagement/intelligent-banter.js');
 
     // With minimal context - may use fallback
     const minimalResult = getIntelligentBanter('ferni', 'maya-santos', {});
@@ -372,9 +370,8 @@ describe('Handoff Integration - Intelligent Banter', () => {
   });
 
   it('should adapt banter based on handoff count (brevity mode)', async () => {
-    const { getIntelligentBanter } = await import(
-      '../../../services/team-engagement/intelligent-banter.js'
-    );
+    const { getIntelligentBanter } =
+      await import('../../../services/team-engagement/intelligent-banter.js');
 
     // First handoff - should have fuller banter
     const firstHandoff = getIntelligentBanter('ferni', 'peter-john', {
@@ -398,9 +395,8 @@ describe('Handoff Integration - Intelligent Banter', () => {
   });
 
   it('should include context metadata in result when intelligent banter is used', async () => {
-    const { getIntelligentBanter } = await import(
-      '../../../services/team-engagement/intelligent-banter.js'
-    );
+    const { getIntelligentBanter } =
+      await import('../../../services/team-engagement/intelligent-banter.js');
 
     const result = getIntelligentBanter('ferni', 'alex-chen', {
       currentTopic: 'email communication',
@@ -413,7 +409,7 @@ describe('Handoff Integration - Intelligent Banter', () => {
     if (result.wasIntelligent) {
       expect(result.contextUsed).toBeDefined();
       // At least some context should be recorded
-      const hasContext = 
+      const hasContext =
         result.contextUsed?.topic ||
         result.contextUsed?.emotion ||
         result.contextUsed?.timeOfDay ||
@@ -423,9 +419,8 @@ describe('Handoff Integration - Intelligent Banter', () => {
   });
 
   it('should handle emotion-aware banter', async () => {
-    const { getIntelligentBanter } = await import(
-      '../../../services/team-engagement/intelligent-banter.js'
-    );
+    const { getIntelligentBanter } =
+      await import('../../../services/team-engagement/intelligent-banter.js');
 
     // Test stressed emotion
     const stressedResult = getIntelligentBanter('ferni', 'maya-santos', {
@@ -443,9 +438,8 @@ describe('Handoff Integration - Intelligent Banter', () => {
   });
 
   it('should handle team-to-team handoffs', async () => {
-    const { getIntelligentBanter } = await import(
-      '../../../services/team-engagement/intelligent-banter.js'
-    );
+    const { getIntelligentBanter } =
+      await import('../../../services/team-engagement/intelligent-banter.js');
 
     // Maya → Peter (team to team)
     const result = getIntelligentBanter('maya-santos', 'peter-john', {

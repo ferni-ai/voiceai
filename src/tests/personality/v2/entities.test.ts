@@ -700,12 +700,8 @@ describe('PersonalityProfile', () => {
     it('should track emotional history', () => {
       const profile = PersonalityProfile.create('user_123', 'ferni');
 
-      profile.updateEmotionalState(
-        EmotionalState.create({ primary: 'joy', intensity: 0.7 })
-      );
-      profile.updateEmotionalState(
-        EmotionalState.create({ primary: 'sadness', intensity: 0.5 })
-      );
+      profile.updateEmotionalState(EmotionalState.create({ primary: 'joy', intensity: 0.7 }));
+      profile.updateEmotionalState(EmotionalState.create({ primary: 'sadness', intensity: 0.5 }));
 
       expect(profile.emotionalHistory.length).toBe(2);
     });
@@ -761,19 +757,14 @@ describe('PersonalityProfile', () => {
     it('should record pattern evidence', () => {
       const profile = PersonalityProfile.create('user_123', 'ferni');
 
-      profile.recordPatternEvidence(
-        'topic_emotion',
-        'work → stress',
-        ['work', 'job'],
-        {
-          timestamp: new Date(),
-          context: 'User stressed about work',
-          emotion: 'fear',
-          granular: 'anxious',
-          intensity: 0.7,
-          topics: ['work'],
-        }
-      );
+      profile.recordPatternEvidence('topic_emotion', 'work → stress', ['work', 'job'], {
+        timestamp: new Date(),
+        context: 'User stressed about work',
+        emotion: 'fear',
+        granular: 'anxious',
+        intensity: 0.7,
+        topics: ['work'],
+      });
 
       expect(profile.emotionalPatterns.length).toBe(1);
     });
@@ -835,19 +826,14 @@ describe('PersonalityProfile', () => {
 
       // Record pattern evidence multiple times to confirm pattern
       for (let i = 0; i < 3; i++) {
-        profile.recordPatternEvidence(
-          'topic_emotion',
-          'work → anxiety',
-          ['work', 'job'],
-          {
-            timestamp: new Date(),
-            context: `Work stress ${i}`,
-            emotion: 'fear',
-            granular: 'anxious',
-            intensity: 0.7,
-            topics: ['work'],
-          }
-        );
+        profile.recordPatternEvidence('topic_emotion', 'work → anxiety', ['work', 'job'], {
+          timestamp: new Date(),
+          context: `Work stress ${i}`,
+          emotion: 'fear',
+          granular: 'anxious',
+          intensity: 0.7,
+          topics: ['work'],
+        });
       }
 
       const anticipated = profile.anticipateEmotion({
@@ -924,9 +910,7 @@ describe('PersonalityProfile', () => {
         content: 'Test content',
       });
 
-      profile.updateEmotionalState(
-        EmotionalState.create({ primary: 'joy', intensity: 0.6 })
-      );
+      profile.updateEmotionalState(EmotionalState.create({ primary: 'joy', intensity: 0.6 }));
 
       const persisted = profile.toPersistence();
       const restored = PersonalityProfile.fromPersistence(persisted);

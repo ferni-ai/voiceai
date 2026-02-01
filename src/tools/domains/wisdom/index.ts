@@ -16,6 +16,9 @@ import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 // Import legacy tool creators
 import { createWisdomTools } from './wisdom.js';
 
+// Merged sub-domain (consolidated from wisdom-intelligence/)
+import { wisdomIntelligenceTools } from './intelligence.js';
+
 // ============================================================================
 // LEGACY TOOL WRAPPER
 // ============================================================================
@@ -80,7 +83,10 @@ function getWisdomToolDefinitions(): ToolDefinition[] {
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
-const wisdomTools: ToolDefinition[] = getWisdomToolDefinitions();
+const wisdomTools: ToolDefinition[] = [
+  ...getWisdomToolDefinitions(),
+  ...wisdomIntelligenceTools, // Superhuman wisdom intelligence (merged from wisdom-intelligence/)
+];
 
 // ============================================================================
 // EXPORTS
@@ -92,5 +98,8 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export { getWisdomToolDefinitions };
+
+// Re-export merged sub-domain tools
+export { wisdomIntelligenceTools } from './intelligence.js';
 
 export default getToolDefinitions;

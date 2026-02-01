@@ -449,7 +449,7 @@ const ambientModeTools: ToolDefinition[] = [
 ];
 
 export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'awareness', // Part of awareness domain
+  'ambient-mode',
   ambientModeTools
 );
 

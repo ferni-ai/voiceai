@@ -616,7 +616,7 @@ describe('Phase 17: Active Listening Memory Capture', () => {
       const input: IncrementalCaptureInput = {
         userId: TEST_USER_ID,
         sessionId: TEST_SESSION_ID,
-        partialTranscript: "I promise to call my mom this weekend",
+        partialTranscript: 'I promise to call my mom this weekend',
         isFinal: true,
         turnNumber: 1,
         elapsedMs: 1000,
@@ -645,13 +645,15 @@ describe('Phase 17: Active Listening Memory Capture', () => {
       // The preference pattern matches "I love/like/prefer X"
       // At minimum, we should capture something
       expect(Array.isArray(captured)).toBe(true);
-      
+
       // Check if any preference was captured (pattern may or may not match depending on regex)
       const preferenceCapture = captured.find((c) => c.type === 'preference');
       // Note: The pattern requires at least 10 characters for the preference content
       // If no preference captured, that's okay - the pattern matching is conservative
       if (captured.length > 0) {
-        expect(captured.some(c => ['preference', 'entity_name', 'date', 'commitment'].includes(c.type))).toBe(true);
+        expect(
+          captured.some((c) => ['preference', 'entity_name', 'date', 'commitment'].includes(c.type))
+        ).toBe(true);
       }
     });
   });

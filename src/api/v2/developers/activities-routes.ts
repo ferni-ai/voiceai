@@ -25,11 +25,12 @@ import {
   sendItemResponse,
   sendPaginatedResponse,
 } from './shared/middleware.js';
-import { CreateActivitySchema, UpdateActivitySchema, ActivityQuerySchema } from './shared/validation.js';
-import type {
-  DeveloperActivity,
-  ActivityStats,
-} from './shared/types.js';
+import {
+  CreateActivitySchema,
+  UpdateActivitySchema,
+  ActivityQuerySchema,
+} from './shared/validation.js';
+import type { DeveloperActivity, ActivityStats } from './shared/types.js';
 import { COLLECTIONS, ID_PREFIXES } from './shared/types.js';
 
 const log = getLogger().child({ module: 'activities-routes' });
@@ -133,10 +134,7 @@ export async function handleActivitiesRoutes(
 /**
  * POST /activities - Log a new activity
  */
-async function handleCreateActivity(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<boolean> {
+async function handleCreateActivity(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   // Authenticate
   const auth = await requireApiKeyAuth(req, res);
   if (!auth) return true;
@@ -182,10 +180,7 @@ async function handleCreateActivity(
 
     await db.collection(COLLECTIONS.ACTIVITIES).doc(activityId).set(activity);
 
-    log.info(
-      { activityId, publisherId: auth.publisherId, type: input.type },
-      'Activity created'
-    );
+    log.info({ activityId, publisherId: auth.publisherId, type: input.type }, 'Activity created');
 
     sendItemResponse(res, { ...activity, id: activityId });
     return true;
@@ -204,10 +199,7 @@ async function handleCreateActivity(
 /**
  * GET /activities - Query activities with filters
  */
-async function handleListActivities(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<boolean> {
+async function handleListActivities(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   // Authenticate
   const auth = await requireApiKeyAuth(req, res);
   if (!auth) return true;
@@ -220,7 +212,16 @@ async function handleListActivities(
     return true;
   }
 
-  const { limit = 50, cursor, type, status, userId, sessionId, startDate, endDate } = parseResult.data;
+  const {
+    limit = 50,
+    cursor,
+    type,
+    status,
+    userId,
+    sessionId,
+    startDate,
+    endDate,
+  } = parseResult.data;
 
   try {
     const { getFirestore } = await import('../../v1/developers/shared/developer-auth.js');
@@ -528,10 +529,7 @@ async function handleDeleteActivity(
 /**
  * GET /activities/stats - Get aggregate statistics
  */
-async function handleGetStats(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<boolean> {
+async function handleGetStats(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   // Authenticate
   const auth = await requireApiKeyAuth(req, res);
   if (!auth) return true;
@@ -544,9 +542,7 @@ async function handleGetStats(
     const db = await getFirestore();
 
     // Build base query
-    let query = db
-      .collection(COLLECTIONS.ACTIVITIES)
-      .where('publisherId', '==', auth.publisherId);
+    let query = db.collection(COLLECTIONS.ACTIVITIES).where('publisherId', '==', auth.publisherId);
 
     // Apply optional filters
     if (queryParams.type) {

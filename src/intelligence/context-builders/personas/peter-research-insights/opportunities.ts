@@ -44,9 +44,7 @@ const ANALYTICAL_DECISION_PATTERNS = [
 ];
 
 function isAnalyticalDecision(decision: CEODecision): boolean {
-  return ANALYTICAL_DECISION_PATTERNS.some((pattern) =>
-    pattern.test(decision.description)
-  );
+  return ANALYTICAL_DECISION_PATTERNS.some((pattern) => pattern.test(decision.description));
 }
 
 function getDaysOld(dateString: string): number {
@@ -58,9 +56,7 @@ function getDaysOld(dateString: string): number {
 /**
  * Surface CEO decisions that could benefit from Peter's analytical perspective.
  */
-export function detectDecisionOpportunities(
-  pendingDecisions: CEODecision[] = []
-): string[] {
+export function detectDecisionOpportunities(pendingDecisions: CEODecision[] = []): string[] {
   const opportunities: string[] = [];
 
   // Filter for analytical decisions

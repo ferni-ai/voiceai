@@ -9,11 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  getJobQueue,
-  resetJobQueue,
-  type Job,
-} from '../../services/workflows/jobs/job-queue.js';
+import { getJobQueue, resetJobQueue, type Job } from '../../services/workflows/jobs/job-queue.js';
 
 // ============================================================================
 // JOB QUEUE TESTS
@@ -94,10 +90,10 @@ describe('JobQueue', () => {
       });
 
       queue.start();
-      
+
       // Wait for job to process
       await new Promise((resolve) => setTimeout(resolve, 200));
-      
+
       queue.stop();
 
       expect(handler).toHaveBeenCalled();

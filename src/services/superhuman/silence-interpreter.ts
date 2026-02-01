@@ -124,14 +124,17 @@ export interface SilenceProfile {
  */
 export interface ResponseEffectiveness {
   /** Per-type tracking */
-  byType: Record<SilenceType, {
-    totalResponses: number;
-    helpfulResponses: number;
-    /** Which phrases worked best */
-    topPhrases: Array<{ phrase: string; score: number }>;
-    /** Average wait time that worked */
-    optimalWaitMs: number;
-  }>;
+  byType: Record<
+    SilenceType,
+    {
+      totalResponses: number;
+      helpfulResponses: number;
+      /** Which phrases worked best */
+      topPhrases: Array<{ phrase: string; score: number }>;
+      /** Average wait time that worked */
+      optimalWaitMs: number;
+    }
+  >;
   /** Overall effectiveness score (0-1) */
   overallScore: number;
   /** Last updated */
@@ -513,12 +516,42 @@ export async function recordSilenceOutcome(
         baselinePauseTolerance: 2000,
         responseEffectiveness: {
           byType: {
-            processing: { totalResponses: 0, helpfulResponses: 0, topPhrases: [], optimalWaitMs: 3000 },
-            emotional: { totalResponses: 0, helpfulResponses: 0, topPhrases: [], optimalWaitMs: 5000 },
-            uncomfortable: { totalResponses: 0, helpfulResponses: 0, topPhrases: [], optimalWaitMs: 4000 },
-            invitational: { totalResponses: 0, helpfulResponses: 0, topPhrases: [], optimalWaitMs: 3000 },
-            exhausted: { totalResponses: 0, helpfulResponses: 0, topPhrases: [], optimalWaitMs: 6000 },
-            contemplative: { totalResponses: 0, helpfulResponses: 0, topPhrases: [], optimalWaitMs: 5000 },
+            processing: {
+              totalResponses: 0,
+              helpfulResponses: 0,
+              topPhrases: [],
+              optimalWaitMs: 3000,
+            },
+            emotional: {
+              totalResponses: 0,
+              helpfulResponses: 0,
+              topPhrases: [],
+              optimalWaitMs: 5000,
+            },
+            uncomfortable: {
+              totalResponses: 0,
+              helpfulResponses: 0,
+              topPhrases: [],
+              optimalWaitMs: 4000,
+            },
+            invitational: {
+              totalResponses: 0,
+              helpfulResponses: 0,
+              topPhrases: [],
+              optimalWaitMs: 3000,
+            },
+            exhausted: {
+              totalResponses: 0,
+              helpfulResponses: 0,
+              topPhrases: [],
+              optimalWaitMs: 6000,
+            },
+            contemplative: {
+              totalResponses: 0,
+              helpfulResponses: 0,
+              topPhrases: [],
+              optimalWaitMs: 5000,
+            },
           },
           overallScore: 0.5,
           lastUpdated: new Date(),
@@ -724,7 +757,10 @@ export async function learnFromPatterns(userId: string): Promise<SilenceLearning
         silenceSignatures: updatedSignatures,
         topicTriggers: [
           ...(profile.topicTriggers || []).filter(
-            (t) => !result.newTriggers.some((nt) => nt.topic === t.topic && nt.silenceType === t.silenceType)
+            (t) =>
+              !result.newTriggers.some(
+                (nt) => nt.topic === t.topic && nt.silenceType === t.silenceType
+              )
           ),
           ...result.newTriggers,
         ],

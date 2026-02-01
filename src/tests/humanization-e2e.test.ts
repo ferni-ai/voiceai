@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import { getConversationHumanizer, resetConversationHumanizer } from '../conversation/humanizer.js';
+import { getConversationHumanizer, resetConversationHumanizer } from '../conversation/humanizer/index.js';
 import {
   getInterruptionHandler,
   resetInterruptionHandler,
@@ -18,7 +18,7 @@ import {
 import {
   getSpeechNaturalizer,
   resetSpeechNaturalizer,
-} from '../conversation/speech-naturalizer.js';
+} from '../conversation/speech-naturalizer/index.js';
 import {
   getActiveListeningEngine,
   resetActiveListeningEngine,

@@ -134,7 +134,8 @@ export async function handleAdminAgentsRoutes(
     // GET REGISTRY STATS (OCP)
     // ========================================================================
     if (subPath === '/stats' && method === 'GET') {
-      const { getPersonaRegistry } = await import('../../../personas/registry/persona-registry-impl.js');
+      const { getPersonaRegistry } =
+        await import('../../../personas/registry/persona-registry-impl.js');
       const registry = getPersonaRegistry();
       const stats = await registry.getStats();
 
@@ -149,7 +150,8 @@ export async function handleAdminAgentsRoutes(
     // REGISTER RUNTIME PERSONA (OCP - Open-Closed Principle)
     // ========================================================================
     if (subPath === '/register' && method === 'POST') {
-      const { getPersonaRegistry } = await import('../../../personas/registry/persona-registry-impl.js');
+      const { getPersonaRegistry } =
+        await import('../../../personas/registry/persona-registry-impl.js');
       const registry = getPersonaRegistry();
 
       const body = (await parseBody(req)) as {
@@ -183,7 +185,10 @@ export async function handleAdminAgentsRoutes(
       });
 
       if (result.success) {
-        log.info({ personaId: result.personaId, replaced: result.replaced }, 'Runtime persona registered via API');
+        log.info(
+          { personaId: result.personaId, replaced: result.replaced },
+          'Runtime persona registered via API'
+        );
         sendJSON(res, {
           success: true,
           personaId: result.personaId,
@@ -191,7 +196,10 @@ export async function handleAdminAgentsRoutes(
           message: result.message,
         });
       } else {
-        log.warn({ personaId: body.id, message: result.message }, 'Runtime persona registration failed');
+        log.warn(
+          { personaId: body.id, message: result.message },
+          'Runtime persona registration failed'
+        );
         sendError(res, result.message || 'Registration failed', 400);
       }
       return true;
@@ -413,7 +421,8 @@ Created from the "${body.template}" template.
     // DELETE /api/v1/admin/agents/:id/runtime - Unregister runtime persona
     if (runtimeDeleteMatch && method === 'DELETE') {
       const personaId = decodeURIComponent(runtimeDeleteMatch[1]);
-      const { getPersonaRegistry } = await import('../../../personas/registry/persona-registry-impl.js');
+      const { getPersonaRegistry } =
+        await import('../../../personas/registry/persona-registry-impl.js');
       const registry = getPersonaRegistry();
 
       const removed = await registry.unregister(personaId);

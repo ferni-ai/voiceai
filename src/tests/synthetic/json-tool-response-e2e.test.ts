@@ -1,12 +1,12 @@
 /**
  * JSON Tool Response E2E Synthetic Tests
- * 
+ *
  * Tests the "Better Than Human" tool response system end-to-end:
  * 1. JSON function call detection
  * 2. Tool execution via json-function-executor
  * 3. Gateway-based LLM notification with rich context
  * 4. Graceful fallback handling
- * 
+ *
  * @module tests/synthetic/json-tool-response-e2e
  */
 
@@ -94,7 +94,7 @@ describe('JSON Function Call Detection', () => {
     const withBackticks = '`{"fn":"playMusic","args":{"query":"jazz"}}`';
     expect(looksLikeJsonFunctionCall(withBackticks)).toBe(true);
   });
-  
+
   it('should detect JSON with multiple backticks', () => {
     const withTripleBackticks = '```{"fn":"startGame","args":{"gameType":"trivia"}}```';
     expect(looksLikeJsonFunctionCall(withTripleBackticks)).toBe(true);
@@ -116,19 +116,19 @@ describe('JSON Function Call Detection', () => {
     // Now requires both fn AND args keys plus valid { } delimiters
     expect(looksLikeJsonFunctionCall(partialJson)).toBe(false);
   });
-  
+
   it('should NOT detect JSON missing args key', () => {
     const missingArgs = '{"fn":"startGame"}';
     expect(looksLikeJsonFunctionCall(missingArgs)).toBe(false);
   });
-  
+
   // Note: Simple string check can't validate JSON structure perfectly
   // The string '{"fn":"startGame","args":{}' ends with } so it passes endsWithBrace
   // Actual JSON parsing happens later and would catch this
   it('should detect JSON-like structure even if technically invalid', () => {
     const almostValid = '{"fn":"startGame","args":{}}'; // This IS valid
     expect(looksLikeJsonFunctionCall(almostValid)).toBe(true);
-    
+
     // This looks valid but is missing outer brace - simple check can't catch this
     const sneakyInvalid = '{"fn":"startGame","args":{}';
     // String ends with } so simple check passes - JSON.parse catches it later
@@ -151,7 +151,7 @@ describe('JSON Function Call Detection', () => {
       '{"fn":"getTime","args":{}}',
       '{"fn":"getRecentNotes","args":{}}',
     ];
-    
+
     for (const call of toolCalls) {
       expect(looksLikeJsonFunctionCall(call)).toBe(true);
     }
@@ -202,31 +202,76 @@ describe('Rich Context Building', () => {
 describe('Time Context Computation', () => {
   it('should compute morning for hours 6-11', () => {
     const hour = 9;
-    const timeOfDay = hour < 6 ? 'late-night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
+    const timeOfDay =
+      hour < 6
+        ? 'late-night'
+        : hour < 12
+          ? 'morning'
+          : hour < 17
+            ? 'afternoon'
+            : hour < 21
+              ? 'evening'
+              : 'night';
     expect(timeOfDay).toBe('morning');
   });
 
   it('should compute afternoon for hours 12-16', () => {
     const hour = 14;
-    const timeOfDay = hour < 6 ? 'late-night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
+    const timeOfDay =
+      hour < 6
+        ? 'late-night'
+        : hour < 12
+          ? 'morning'
+          : hour < 17
+            ? 'afternoon'
+            : hour < 21
+              ? 'evening'
+              : 'night';
     expect(timeOfDay).toBe('afternoon');
   });
 
   it('should compute evening for hours 17-20', () => {
     const hour = 19;
-    const timeOfDay = hour < 6 ? 'late-night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
+    const timeOfDay =
+      hour < 6
+        ? 'late-night'
+        : hour < 12
+          ? 'morning'
+          : hour < 17
+            ? 'afternoon'
+            : hour < 21
+              ? 'evening'
+              : 'night';
     expect(timeOfDay).toBe('evening');
   });
 
   it('should compute night for hours 21-23', () => {
     const hour = 22;
-    const timeOfDay = hour < 6 ? 'late-night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
+    const timeOfDay =
+      hour < 6
+        ? 'late-night'
+        : hour < 12
+          ? 'morning'
+          : hour < 17
+            ? 'afternoon'
+            : hour < 21
+              ? 'evening'
+              : 'night';
     expect(timeOfDay).toBe('night');
   });
 
   it('should compute late-night for hours 0-5', () => {
     const hour = 3;
-    const timeOfDay = hour < 6 ? 'late-night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
+    const timeOfDay =
+      hour < 6
+        ? 'late-night'
+        : hour < 12
+          ? 'morning'
+          : hour < 17
+            ? 'afternoon'
+            : hour < 21
+              ? 'evening'
+              : 'night';
     expect(timeOfDay).toBe('late-night');
   });
 
@@ -234,7 +279,7 @@ describe('Time Context Computation', () => {
     const saturdayDay = 6;
     const sundayDay = 0;
     const mondayDay = 1;
-    
+
     expect(saturdayDay === 0 || saturdayDay === 6).toBe(true);
     expect(sundayDay === 0 || sundayDay === 6).toBe(true);
     expect(mondayDay === 0 || mondayDay === 6).toBe(false);
@@ -247,7 +292,7 @@ describe('Time Context Computation', () => {
 
 describe('Persona Display Names', () => {
   const PERSONA_DISPLAY_NAMES: Record<string, string> = {
-    'ferni': 'Ferni',
+    ferni: 'Ferni',
     'maya-santos': 'Maya',
     'peter-john': 'Peter',
     'alex-chen': 'Alex',
@@ -285,17 +330,13 @@ describe('Gateway Integration', () => {
     const fnName = 'startGame';
 
     // Simulate what the sanitizer does
-    await mockGatewayGenerateReply(
-      mockSession,
-      sessionId,
-      {
-        instructions,
-        context: `json-tool-${fnName}`,
-        priority: 'high',
-        allowInterruptions: true,
-        fallbackMessage: 'Done!',
-      }
-    );
+    await mockGatewayGenerateReply(mockSession, sessionId, {
+      instructions,
+      context: `json-tool-${fnName}`,
+      priority: 'high',
+      allowInterruptions: true,
+      fallbackMessage: 'Done!',
+    });
 
     expect(mockGatewayGenerateReply).toHaveBeenCalledWith(
       mockSession,
@@ -401,10 +442,14 @@ describe('Edge Cases', () => {
       session: createMockSession(),
       sessionId: undefined, // Missing
     };
-    
+
     // Should not throw, should use fallback
     // In JavaScript, undefined && ... short-circuits to undefined, but is falsy
-    const hasValidSession = !!(context.session && context.sessionId && context.sessionId !== 'unknown');
+    const hasValidSession = !!(
+      context.session &&
+      context.sessionId &&
+      context.sessionId !== 'unknown'
+    );
     expect(hasValidSession).toBe(false);
   });
 
@@ -413,8 +458,12 @@ describe('Edge Cases', () => {
       session: createMockSession(),
       sessionId: 'unknown',
     };
-    
-    const hasValidSession = !!(context.session && context.sessionId && context.sessionId !== 'unknown');
+
+    const hasValidSession = !!(
+      context.session &&
+      context.sessionId &&
+      context.sessionId !== 'unknown'
+    );
     expect(hasValidSession).toBe(false);
   });
 
@@ -439,7 +488,7 @@ describe('Edge Cases', () => {
     const context: Partial<SanitizerStreamOptions> = {
       toolContext: undefined,
     };
-    
+
     // Should not crash, tool context check should be safe
     const canExecute = !!context.toolContext;
     expect(canExecute).toBe(false);
@@ -448,7 +497,7 @@ describe('Edge Cases', () => {
   it('should truncate long results in instructions', () => {
     const longResult = 'A'.repeat(1000);
     const truncated = longResult.slice(0, 800);
-    
+
     expect(truncated.length).toBe(800);
     expect(truncated).not.toBe(longResult);
   });
@@ -460,12 +509,18 @@ describe('Edge Cases', () => {
 
 describe('Persona Voice Guidance', () => {
   const personaVoices: Record<string, string> = {
-    'ferni': '[PERSONA VOICE: Warm, grounded life coach. Supportive but not saccharine. Like a wise friend.]',
-    'maya-santos': '[PERSONA VOICE: Energetic habit coach. Encouraging and action-oriented. Celebrates progress.]',
-    'peter-john': '[PERSONA VOICE: Calm research advisor. Thoughtful and precise. Explains with clarity.]',
-    'alex-chen': '[PERSONA VOICE: Professional communications coach. Clear and efficient. Gets to the point.]',
-    'jordan-taylor': '[PERSONA VOICE: Creative event planner. Enthusiastic about celebrations and milestones.]',
-    'nayan-patel': '[PERSONA VOICE: Wise philosopher. Reflective and deep. Finds meaning in moments.]',
+    ferni:
+      '[PERSONA VOICE: Warm, grounded life coach. Supportive but not saccharine. Like a wise friend.]',
+    'maya-santos':
+      '[PERSONA VOICE: Energetic habit coach. Encouraging and action-oriented. Celebrates progress.]',
+    'peter-john':
+      '[PERSONA VOICE: Calm research advisor. Thoughtful and precise. Explains with clarity.]',
+    'alex-chen':
+      '[PERSONA VOICE: Professional communications coach. Clear and efficient. Gets to the point.]',
+    'jordan-taylor':
+      '[PERSONA VOICE: Creative event planner. Enthusiastic about celebrations and milestones.]',
+    'nayan-patel':
+      '[PERSONA VOICE: Wise philosopher. Reflective and deep. Finds meaning in moments.]',
   };
 
   it('should have voice guidance for all personas', () => {
@@ -493,24 +548,28 @@ describe('Persona Voice Guidance', () => {
 
 describe('Tool-Specific Guidance', () => {
   it('should have guidance for game tools', () => {
-    const gameGuidance = '[TOOL GUIDANCE: You started a game! Set up the rules briefly and dive into the first question/round with energy.]';
+    const gameGuidance =
+      '[TOOL GUIDANCE: You started a game! Set up the rules briefly and dive into the first question/round with energy.]';
     expect(gameGuidance).toContain('rules');
     expect(gameGuidance).toContain('energy');
   });
 
   it('should have guidance for music tools', () => {
-    const musicGuidance = '[TOOL GUIDANCE: Music is now playing. Keep acknowledgment brief - the music speaks for itself. Maybe mention the vibe.]';
+    const musicGuidance =
+      '[TOOL GUIDANCE: Music is now playing. Keep acknowledgment brief - the music speaks for itself. Maybe mention the vibe.]';
     expect(musicGuidance).toContain('brief');
     expect(musicGuidance).toContain('vibe');
   });
 
   it('should have guidance for habit tools', () => {
-    const habitGuidance = '[TOOL GUIDANCE: Habit created! Celebrate with them. Offer to set up a reminder or starter routine.]';
+    const habitGuidance =
+      '[TOOL GUIDANCE: Habit created! Celebrate with them. Offer to set up a reminder or starter routine.]';
     expect(habitGuidance).toContain('Celebrate');
   });
 
   it('should have guidance for breathing exercises', () => {
-    const breathGuidance = '[TOOL GUIDANCE: Guide them gently into the breathing exercise. Use calm, measured pacing.]';
+    const breathGuidance =
+      '[TOOL GUIDANCE: Guide them gently into the breathing exercise. Use calm, measured pacing.]';
     expect(breathGuidance).toContain('gently');
     expect(breathGuidance).toContain('calm');
   });
@@ -555,17 +614,13 @@ describe('Full E2E Flow Simulation', () => {
     expect(context.userEmotion?.primary).toBe('excited');
 
     // 5. Call gateway
-    await mockGatewayGenerateReply(
-      createMockSession(),
-      'test-123',
-      {
-        instructions: `[TOOL EXECUTED: startGame]\n[RESULT: ${JSON.stringify(result.result)}]`,
-        context: 'json-tool-startGame',
-        priority: 'high',
-        allowInterruptions: true,
-        fallbackMessage: 'Game started!',
-      }
-    );
+    await mockGatewayGenerateReply(createMockSession(), 'test-123', {
+      instructions: `[TOOL EXECUTED: startGame]\n[RESULT: ${JSON.stringify(result.result)}]`,
+      context: 'json-tool-startGame',
+      priority: 'high',
+      allowInterruptions: true,
+      fallbackMessage: 'Game started!',
+    });
 
     expect(mockGatewayGenerateReply).toHaveBeenCalled();
   });
@@ -647,9 +702,8 @@ describe('Transform Stream Integration', () => {
 
   it('should create sanitizer with all context fields', async () => {
     // Import the actual factory function
-    const { createSanitizerWithMusicFallback } = await import(
-      '../../agents/shared/sanitizer/streams/transform-stream.js'
-    );
+    const { createSanitizerWithMusicFallback } =
+      await import('../../agents/shared/sanitizer/streams/transform-stream.js');
 
     const mockSession = createMockSession();
     const fullContext = {
@@ -674,9 +728,8 @@ describe('Transform Stream Integration', () => {
   });
 
   it('should create sanitizer with minimal context', async () => {
-    const { createSanitizerWithMusicFallback } = await import(
-      '../../agents/shared/sanitizer/streams/transform-stream.js'
-    );
+    const { createSanitizerWithMusicFallback } =
+      await import('../../agents/shared/sanitizer/streams/transform-stream.js');
 
     // Minimal context - should not throw
     const sanitizer = createSanitizerWithMusicFallback({});
@@ -686,12 +739,11 @@ describe('Transform Stream Integration', () => {
   // Note: Full stream tests are complex due to async buffering
   // These are validated manually and via the E2E flow simulation tests above
   it('should verify transform stream returns proper structure', async () => {
-    const { createSanitizerWithMusicFallback } = await import(
-      '../../agents/shared/sanitizer/streams/transform-stream.js'
-    );
+    const { createSanitizerWithMusicFallback } =
+      await import('../../agents/shared/sanitizer/streams/transform-stream.js');
 
     const sanitizer = createSanitizerWithMusicFallback({});
-    
+
     // Verify stream has both readable and writable
     expect(sanitizer.readable).toBeDefined();
     expect(sanitizer.writable).toBeDefined();

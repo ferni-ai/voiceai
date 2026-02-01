@@ -1497,7 +1497,7 @@ const coachingSupportTools: ToolDefinition[] = [
 // ============================================================================
 
 export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'self-compassion',
+  'coaching-support',
   coachingSupportTools
 );
 

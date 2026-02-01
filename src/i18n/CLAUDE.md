@@ -106,8 +106,40 @@ Missing translations fall back:
 4. Add fallback chain in `FALLBACK_CHAIN`
 5. For RTL: add to `RTL_LOCALES`
 
+## Directory Structure
+
+```
+i18n/
+├── index.ts            # Core i18n API
+├── types.ts            # Type definitions, locale metadata
+├── right-to-left.ts    # RTL utilities
+├── pricing.ts          # Locale-aware pricing
+├── detection/          # Locale detection
+│   └── browser.ts      # Browser locale detection
+├── formatters/         # Formatting utilities
+│   ├── date.ts         # Date/time formatting
+│   ├── number.ts       # Number/currency formatting
+│   └── plurals.ts      # ICU plural rules
+└── locales/            # Translation files
+    ├── en-US.json      # Source of truth
+    ├── en-GB.json
+    ├── es.json
+    ├── fr.json
+    ├── de.json
+    ├── ja.json
+    ├── ko.json
+    ├── zh-Hans.json
+    ├── zh-Hant.json
+    ├── ar.json
+    └── he.json
+```
+
 ## Integration Points
 
 - `apps/web/` - Frontend uses `t()` for all UI text
 - `src/api/` - API responses can include localized errors
 - `design-system/tokens/i18n.json` - Locale configuration source
+
+---
+
+*Last updated: January 2026*

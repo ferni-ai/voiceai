@@ -100,7 +100,7 @@ interface PersonalMoment {
 
 ### Component 2: User Relationship Memory
 
-**Location:** `src/personality/relationship-memory.ts`
+**Location:** `src/personality/relationship-memory.ts` (removed - relationship memory consolidated into `src/memory/` and `src/personality/infrastructure/`)
 
 ```typescript
 interface PersonalityRelationship {
@@ -282,7 +282,7 @@ src/personality/
 ├── types.ts                     # Shared types
 ├── personal-moment-store.ts     # Unified moment store for all personas
 ├── memory-adapter.ts            # 🔥 INTEGRATION with existing memory system
-├── relationship-memory.ts       # Legacy per-user tracking (use memory-adapter)
+├── relationship-memory.ts       # (removed - was legacy per-user tracking, use memory-adapter)
 ├── relevance-engine.ts          # Legacy keyword matching (use memory-adapter)
 ├── callback-system.ts           # Legacy callbacks (use memory-adapter)
 └── moments/

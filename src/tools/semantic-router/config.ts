@@ -40,7 +40,7 @@ export function getDefaultConfig(): SemanticRouterConfig {
   // FTIS_ONLY_MODE: Lower thresholds since there's no JSON workaround fallback
   // FTIS is the 100% solution - we need to be more aggressive
   const isFTISOnly = process.env.FTIS_ONLY_MODE === 'true';
-  
+
   return {
     ...DEFAULT_ROUTER_CONFIG,
     thresholds: {
@@ -249,11 +249,15 @@ export function resetConfig(): void {
 export function logConfiguration(): void {
   const config = getConfig();
   const hybridMode = isHybridModeEnabled();
-  const status = hybridMode ? '🔄 HYBRID' : isSemanticRoutingEnabled() ? '✅ ENABLED' : '❌ DISABLED';
-  const modeDesc = hybridMode 
-    ? 'Semantic (high-conf) + JSON (fallback)' 
-    : isSemanticRoutingEnabled() 
-      ? 'Semantic routing only' 
+  const status = hybridMode
+    ? '🔄 HYBRID'
+    : isSemanticRoutingEnabled()
+      ? '✅ ENABLED'
+      : '❌ DISABLED';
+  const modeDesc = hybridMode
+    ? 'Semantic (high-conf) + JSON (fallback)'
+    : isSemanticRoutingEnabled()
+      ? 'Semantic routing only'
       : 'JSON workaround only';
 
   // eslint-disable-next-line no-console

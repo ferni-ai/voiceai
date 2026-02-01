@@ -114,7 +114,8 @@ export async function initializePerformanceOptimizations(
       sessionId: config.sessionId,
       enablePubSub: config.enablePubSub,
       enableSpeculativeTTS: config.enableSpeculativeTTS,
-      // DISABLED: batchedAnalysis makes redundant LLM calls per turn
+      // NOTE: batchedAnalysis is disabled by default at call sites (voice-agent-entry.ts)
+      // because it makes redundant LLM calls that the turn processor already handles.
       enableBatchedAnalysis: config.enableBatchedAnalysis,
       enableParallelMemory: config.enableParallelMemory,
       enableContextCache: config.enableContextCache,

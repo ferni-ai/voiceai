@@ -234,10 +234,13 @@ describe('Memory Routes API', () => {
       const handled = await handleMemoryRoutes(req, res, '/api/memory/health');
 
       expect(handled).toBe(true);
-      expect(sendJSON).toHaveBeenCalledWith(res, expect.objectContaining({
-        status: expect.any(String),
-        components: expect.any(Object),
-      }));
+      expect(sendJSON).toHaveBeenCalledWith(
+        res,
+        expect.objectContaining({
+          status: expect.any(String),
+          components: expect.any(Object),
+        })
+      );
     });
   });
 

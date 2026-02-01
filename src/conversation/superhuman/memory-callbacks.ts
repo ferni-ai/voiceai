@@ -1,19 +1,19 @@
 /**
  * Memory Callback System
- * 
+ *
  * "Ferni remembered..." - The signature moment that defines the brand.
- * 
+ *
  * When Ferni references something the user said weeks or months ago,
  * it creates a profound moment of being truly seen and heard.
  * This is the primary signature moment per SIGNATURE-MOMENTS.md.
- * 
+ *
  * Types of callbacks:
  * - Quote callbacks ("You once said...")
  * - Pattern callbacks ("I've noticed you tend to...")
  * - Growth arc callbacks ("Remember when X felt impossible?")
  * - Anniversary callbacks ("A year ago today...")
  * - Prediction callbacks ("You mentioned wanting to...")
- * 
+ *
  * @module conversation/superhuman/memory-callbacks
  */
 
@@ -35,16 +35,16 @@ export interface MemoryCallback {
 }
 
 export type MemoryCallbackType =
-  | 'quote_callback'      // Direct quote from user
-  | 'pattern_callback'    // Observed pattern over time
-  | 'growth_arc'          // Progress since a past struggle
-  | 'anniversary'         // Date-based memory
-  | 'prediction'          // Something they said they'd do
-  | 'relationship'        // Person they mentioned
-  | 'dream_reminder'      // Goal or dream they shared
-  | 'struggle_resolved'   // Past difficulty now overcome
-  | 'preference_memory'   // Small detail remembered
-  | 'emotional_echo';     // Similar emotional state recalled
+  | 'quote_callback' // Direct quote from user
+  | 'pattern_callback' // Observed pattern over time
+  | 'growth_arc' // Progress since a past struggle
+  | 'anniversary' // Date-based memory
+  | 'prediction' // Something they said they'd do
+  | 'relationship' // Person they mentioned
+  | 'dream_reminder' // Goal or dream they shared
+  | 'struggle_resolved' // Past difficulty now overcome
+  | 'preference_memory' // Small detail remembered
+  | 'emotional_echo'; // Similar emotional state recalled
 
 export interface MemoryContent {
   originalQuote?: string;
@@ -149,27 +149,27 @@ const QUOTE_CALLBACK_TEMPLATES = [
 const PATTERN_CALLBACK_TEMPLATES = [
   "I've noticed something. {pattern}. Does that resonate?",
   "There's a pattern I see in you: {pattern}. What do you think?",
-  "Can I share an observation? {pattern}.",
+  'Can I share an observation? {pattern}.',
   "Something I've noticed over our conversations: {pattern}.",
 ];
 
 const GROWTH_ARC_TEMPLATES = [
   'Remember {timeAgo} when {struggle}? Look at you now. {growth}',
-  "I was thinking about where you were {timeAgo}. {struggle}. And now? {growth}",
+  'I was thinking about where you were {timeAgo}. {struggle}. And now? {growth}',
   "You've come so far. {timeAgo}: {struggle}. Today: {growth}",
-  "Do you remember {timeAgo}? {struggle}. Look how much has changed. {growth}",
+  'Do you remember {timeAgo}? {struggle}. Look how much has changed. {growth}',
 ];
 
 const DREAM_CALLBACK_TEMPLATES = [
-  'You mentioned wanting to {dream} back in {timeAgo}. How\'s that going?',
+  "You mentioned wanting to {dream} back in {timeAgo}. How's that going?",
   'I remember you talking about {dream}. That was {timeAgo}. Any progress?',
-  '{timeAgo} you said you wanted to {dream}. I haven\'t forgotten. Have you?',
+  "{timeAgo} you said you wanted to {dream}. I haven't forgotten. Have you?",
 ];
 
 const RELATIONSHIP_CALLBACK_TEMPLATES = [
-  'How\'s {name}? You mentioned them {timeAgo}.',
+  "How's {name}? You mentioned them {timeAgo}.",
   'I was thinking about what you said about {name}. {context}. How are things?',
-  'You haven\'t mentioned {name} in a while. Everything okay there?',
+  "You haven't mentioned {name} in a while. Everything okay there?",
 ];
 
 // ============================================================================
@@ -179,18 +179,13 @@ const RELATIONSHIP_CALLBACK_TEMPLATES = [
 /**
  * Store a memorable quote from the user
  */
-export function storeQuote(
-  userId: string,
-  quote: string,
-  context: string,
-  emotion: string
-): void {
+export function storeQuote(userId: string, quote: string, context: string, emotion: string): void {
   const bank = getMemoryBank(userId);
-  
+
   // Don't store duplicates or very short quotes
   if (quote.length < 20) return;
-  if (bank.quotes.some(q => q.text === quote)) return;
-  
+  if (bank.quotes.some((q) => q.text === quote)) return;
+
   bank.quotes.push({
     id: `quote_${Date.now()}`,
     text: quote,
@@ -199,25 +194,22 @@ export function storeQuote(
     emotion,
     usedInCallback: false,
   });
-  
+
   // Keep only the 50 most recent quotes
   if (bank.quotes.length > 50) {
     bank.quotes = bank.quotes.slice(-50);
   }
-  
+
   log.debug({ userId, quoteLength: quote.length }, '💭 Quote stored for memory callback');
 }
 
 /**
  * Store an observed pattern
  */
-export function storePattern(
-  userId: string,
-  pattern: string
-): void {
+export function storePattern(userId: string, pattern: string): void {
   const bank = getMemoryBank(userId);
-  
-  const existing = bank.patterns.find(p => p.pattern === pattern);
+
+  const existing = bank.patterns.find((p) => p.pattern === pattern);
   if (existing) {
     existing.occurrences++;
     existing.lastOccurrence = new Date();
@@ -241,14 +233,14 @@ export function storeMilestone(
   significance: 'minor' | 'major' | 'transformative'
 ): void {
   const bank = getMemoryBank(userId);
-  
+
   bank.milestones.push({
     id: `milestone_${Date.now()}`,
     description,
     date: new Date(),
     significance,
   });
-  
+
   log.info({ userId, significance }, '🎯 Milestone stored');
 }
 
@@ -262,8 +254,8 @@ export function storeRelationship(
   context: string
 ): void {
   const bank = getMemoryBank(userId);
-  
-  const existing = bank.relationships.find(r => r.name.toLowerCase() === name.toLowerCase());
+
+  const existing = bank.relationships.find((r) => r.name.toLowerCase() === name.toLowerCase());
   if (existing) {
     existing.lastMentioned = new Date();
     if (!existing.context.includes(context)) {
@@ -284,12 +276,9 @@ export function storeRelationship(
 /**
  * Store a dream or goal
  */
-export function storeDream(
-  userId: string,
-  dream: string
-): void {
+export function storeDream(userId: string, dream: string): void {
   const bank = getMemoryBank(userId);
-  
+
   bank.dreams.push({
     id: `dream_${Date.now()}`,
     dream,
@@ -297,7 +286,7 @@ export function storeDream(
     status: 'active',
     updates: [],
   });
-  
+
   log.info({ userId }, '✨ Dream stored for future callback');
 }
 
@@ -313,7 +302,7 @@ export function generateMemoryCallback(
   currentContext: string
 ): MemoryCallback | null {
   const bank = getMemoryBank(userId);
-  
+
   // Rate limiting: max 1 callback per 3 days
   if (bank.lastCallbackDate) {
     const daysSinceLastCallback = Math.floor(
@@ -323,51 +312,55 @@ export function generateMemoryCallback(
       return null;
     }
   }
-  
+
   // Probability: 15% chance per eligible conversation
   if (!seededChance(`${Date.now()}:callback`, 0.15)) {
     return null;
   }
-  
+
   // Try different callback types in order of impact
-  const callback = 
+  const callback =
     tryQuoteCallback(bank, currentContext) ||
     tryGrowthArcCallback(bank, currentContext) ||
     tryDreamCallback(bank, currentContext) ||
     tryPatternCallback(bank, currentContext) ||
     tryRelationshipCallback(bank, currentContext);
-  
+
   if (callback) {
     bank.lastCallbackDate = new Date();
     bank.callbackCount++;
-    log.info({ userId, type: callback.type, count: bank.callbackCount }, '🔮 Memory callback generated');
+    log.info(
+      { userId, type: callback.type, count: bank.callbackCount },
+      '🔮 Memory callback generated'
+    );
   }
-  
+
   return callback;
 }
 
 function tryQuoteCallback(bank: UserMemoryBank, currentContext: string): MemoryCallback | null {
   // Find quotes that are at least 14 days old and haven't been used
-  const eligibleQuotes = bank.quotes.filter(q => {
+  const eligibleQuotes = bank.quotes.filter((q) => {
     const daysAgo = Math.floor((Date.now() - q.date.getTime()) / (24 * 60 * 60 * 1000));
     return daysAgo >= 14 && !q.usedInCallback;
   });
-  
+
   if (eligibleQuotes.length === 0) return null;
-  
+
   // Pick the oldest unused quote
   const quote = eligibleQuotes[0];
   const daysAgo = Math.floor((Date.now() - quote.date.getTime()) / (24 * 60 * 60 * 1000));
   const timeAgo = formatTimeAgo(daysAgo);
-  
-  const template = seededPick(`${Date.now()}:quote`, QUOTE_CALLBACK_TEMPLATES) ?? QUOTE_CALLBACK_TEMPLATES[0];
+
+  const template =
+    seededPick(`${Date.now()}:quote`, QUOTE_CALLBACK_TEMPLATES) ?? QUOTE_CALLBACK_TEMPLATES[0];
   const suggestedCallback = template
     .replace('{timeAgo}', timeAgo)
     .replace('{quote}', quote.text)
     .replace('{relevance}', 'I think about that sometimes.');
-  
+
   quote.usedInCallback = true;
-  
+
   return {
     id: `callback_${Date.now()}`,
     type: 'quote_callback',
@@ -389,23 +382,24 @@ function tryQuoteCallback(bank: UserMemoryBank, currentContext: string): MemoryC
 
 function tryGrowthArcCallback(bank: UserMemoryBank, currentContext: string): MemoryCallback | null {
   // Find transformative milestones from at least 30 days ago
-  const eligibleMilestones = bank.milestones.filter(m => {
+  const eligibleMilestones = bank.milestones.filter((m) => {
     const daysAgo = Math.floor((Date.now() - m.date.getTime()) / (24 * 60 * 60 * 1000));
     return daysAgo >= 30 && m.significance !== 'minor';
   });
-  
+
   if (eligibleMilestones.length === 0) return null;
-  
+
   const milestone = eligibleMilestones[0];
   const daysAgo = Math.floor((Date.now() - milestone.date.getTime()) / (24 * 60 * 60 * 1000));
   const timeAgo = formatTimeAgo(daysAgo);
-  
-  const template = seededPick(`${Date.now()}:growth`, GROWTH_ARC_TEMPLATES) ?? GROWTH_ARC_TEMPLATES[0];
+
+  const template =
+    seededPick(`${Date.now()}:growth`, GROWTH_ARC_TEMPLATES) ?? GROWTH_ARC_TEMPLATES[0];
   const suggestedCallback = template
     .replace('{timeAgo}', timeAgo)
     .replace('{struggle}', milestone.description)
-    .replace('{growth}', 'Look how far you\'ve come.');
-  
+    .replace('{growth}', "Look how far you've come.");
+
   return {
     id: `callback_${Date.now()}`,
     type: 'growth_arc',
@@ -426,22 +420,21 @@ function tryGrowthArcCallback(bank: UserMemoryBank, currentContext: string): Mem
 
 function tryDreamCallback(bank: UserMemoryBank, currentContext: string): MemoryCallback | null {
   // Find active dreams from at least 30 days ago
-  const eligibleDreams = bank.dreams.filter(d => {
+  const eligibleDreams = bank.dreams.filter((d) => {
     const daysAgo = Math.floor((Date.now() - d.date.getTime()) / (24 * 60 * 60 * 1000));
     return daysAgo >= 30 && d.status === 'active';
   });
-  
+
   if (eligibleDreams.length === 0) return null;
-  
+
   const dream = eligibleDreams[0];
   const daysAgo = Math.floor((Date.now() - dream.date.getTime()) / (24 * 60 * 60 * 1000));
   const timeAgo = formatTimeAgo(daysAgo);
-  
-  const template = seededPick(`${Date.now()}:dream`, DREAM_CALLBACK_TEMPLATES) ?? DREAM_CALLBACK_TEMPLATES[0];
-  const suggestedCallback = template
-    .replace('{timeAgo}', timeAgo)
-    .replace('{dream}', dream.dream);
-  
+
+  const template =
+    seededPick(`${Date.now()}:dream`, DREAM_CALLBACK_TEMPLATES) ?? DREAM_CALLBACK_TEMPLATES[0];
+  const suggestedCallback = template.replace('{timeAgo}', timeAgo).replace('{dream}', dream.dream);
+
   return {
     id: `callback_${Date.now()}`,
     type: 'dream_reminder',
@@ -462,15 +455,17 @@ function tryDreamCallback(bank: UserMemoryBank, currentContext: string): MemoryC
 
 function tryPatternCallback(bank: UserMemoryBank, currentContext: string): MemoryCallback | null {
   // Find patterns observed at least 3 times
-  const eligiblePatterns = bank.patterns.filter(p => p.occurrences >= 3);
-  
+  const eligiblePatterns = bank.patterns.filter((p) => p.occurrences >= 3);
+
   if (eligiblePatterns.length === 0) return null;
-  
+
   const pattern = eligiblePatterns[0];
-  
-  const template = seededPick(`${Date.now()}:pattern`, PATTERN_CALLBACK_TEMPLATES) ?? PATTERN_CALLBACK_TEMPLATES[0];
+
+  const template =
+    seededPick(`${Date.now()}:pattern`, PATTERN_CALLBACK_TEMPLATES) ??
+    PATTERN_CALLBACK_TEMPLATES[0];
   const suggestedCallback = template.replace('{pattern}', pattern.pattern);
-  
+
   return {
     id: `callback_${Date.now()}`,
     type: 'pattern_callback',
@@ -489,29 +484,34 @@ function tryPatternCallback(bank: UserMemoryBank, currentContext: string): Memor
   };
 }
 
-function tryRelationshipCallback(bank: UserMemoryBank, currentContext: string): MemoryCallback | null {
+function tryRelationshipCallback(
+  bank: UserMemoryBank,
+  currentContext: string
+): MemoryCallback | null {
   // Find relationships not mentioned in over 30 days
-  const eligibleRelationships = bank.relationships.filter(r => {
+  const eligibleRelationships = bank.relationships.filter((r) => {
     const daysSinceLastMention = Math.floor(
       (Date.now() - r.lastMentioned.getTime()) / (24 * 60 * 60 * 1000)
     );
     return daysSinceLastMention >= 30;
   });
-  
+
   if (eligibleRelationships.length === 0) return null;
-  
+
   const rel = eligibleRelationships[0];
   const daysSinceFirstMention = Math.floor(
     (Date.now() - rel.firstMentioned.getTime()) / (24 * 60 * 60 * 1000)
   );
   const timeAgo = formatTimeAgo(daysSinceFirstMention);
-  
-  const template = seededPick(`${Date.now()}:rel`, RELATIONSHIP_CALLBACK_TEMPLATES) ?? RELATIONSHIP_CALLBACK_TEMPLATES[0];
+
+  const template =
+    seededPick(`${Date.now()}:rel`, RELATIONSHIP_CALLBACK_TEMPLATES) ??
+    RELATIONSHIP_CALLBACK_TEMPLATES[0];
   const suggestedCallback = template
     .replace('{name}', rel.name)
     .replace('{timeAgo}', timeAgo)
     .replace('{context}', rel.context[0] || '');
-  
+
   return {
     id: `callback_${Date.now()}`,
     type: 'relationship',
@@ -563,7 +563,7 @@ export function formatMemoryCallbackForPrompt(callback: MemoryCallback): string 
     'Deliver this naturally. Don\'t announce "I remember..."—just weave it in.',
     'This is THE signature Ferni moment. Make it land.',
   ];
-  
+
   return lines.join('\n');
 }
 
@@ -577,17 +577,16 @@ export function getMemoryCallbackStats(userId: string): {
   oldestMemory: Date | null;
 } {
   const bank = getMemoryBank(userId);
-  
+
   const allDates = [
-    ...bank.quotes.map(q => q.date),
-    ...bank.milestones.map(m => m.date),
-    ...bank.dreams.map(d => d.date),
+    ...bank.quotes.map((q) => q.date),
+    ...bank.milestones.map((m) => m.date),
+    ...bank.dreams.map((d) => d.date),
   ];
-  
-  const oldestMemory = allDates.length > 0
-    ? new Date(Math.min(...allDates.map(d => d.getTime())))
-    : null;
-  
+
+  const oldestMemory =
+    allDates.length > 0 ? new Date(Math.min(...allDates.map((d) => d.getTime()))) : null;
+
   return {
     totalQuotes: bank.quotes.length,
     totalPatterns: bank.patterns.length,

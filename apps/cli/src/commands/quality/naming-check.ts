@@ -47,6 +47,53 @@ const FILE_NAME_EXCEPTIONS = [
   '.generated.',
 ];
 
+// Intentional suffixed patterns (project conventions)
+// These are kebab-case.suffix.ts patterns that are valid
+const VALID_SUFFIX_PATTERNS = [
+  '.routes.ts',       // REST API route handlers
+  '.effect.ts',       // Side effect modules
+  '.class.ts',        // Class-based modules
+  '.types.ts',        // Type definitions
+  '.store.ts',        // Store modules
+  '.service.ts',      // Service modules
+  '.handler.ts',      // Handler modules
+  '.middleware.ts',   // Middleware modules
+  '.schema.ts',       // Schema definitions
+  '.config.ts',       // Configuration modules
+  '.constants.ts',    // Constants modules
+  '.utils.ts',        // Utility modules
+  '.helpers.ts',      // Helper modules
+  '.mock.ts',         // Mock modules
+  '.behavioral.ts',   // Behavioral context builders
+  '.scenarios.ts',    // Test/demo scenarios
+  '.ui.ts',           // UI components
+  '.facade.ts',       // Facade pattern modules
+  '.e2e-script.ts',   // E2E test scripts
+  '.integration.ts',  // Integration modules
+  '.adapter.ts',      // Adapter pattern modules
+  '.factory.ts',      // Factory pattern modules
+  '.builder.ts',      // Builder pattern modules
+  '.validator.ts',    // Validator modules
+  '.transformer.ts',  // Transformer modules
+  '.mapper.ts',       // Mapper modules
+  '.resolver.ts',     // Resolver modules
+  '.provider.ts',     // Provider modules
+  '.registry.ts',     // Registry modules
+  '.manager.ts',      // Manager modules
+  '.controller.ts',   // Controller modules
+  '.executor.ts',     // Executor modules
+  '.orchestrator.ts', // Orchestrator modules
+  '.engine.ts',       // Engine modules
+  '.worker.ts',       // Worker modules
+  '.pipeline.ts',     // Pipeline modules
+  '.strategy.ts',     // Strategy pattern modules
+  '.interface.ts',    // Interface definitions
+  '.semantic.ts',     // Semantic router definitions
+  '.client.ts',       // API client modules
+  '.spec.ts',         // Specification modules
+  '.impl.ts',         // Implementation modules
+];
+
 const CODE_NAME_EXCEPTIONS = [
   // Common abbreviations
   'ID', 'URL', 'API', 'JSON', 'HTML', 'CSS', 'SQL', 'UUID',
@@ -113,7 +160,18 @@ function shouldIgnore(filePath: string): boolean {
 }
 
 function isFileException(fileName: string): boolean {
-  return FILE_NAME_EXCEPTIONS.some(ex => fileName.includes(ex));
+  // Check explicit exceptions
+  if (FILE_NAME_EXCEPTIONS.some(ex => fileName.includes(ex))) {
+    return true;
+  }
+  // Check valid suffixed patterns (kebab-case.suffix.ts)
+  const matchingSuffix = VALID_SUFFIX_PATTERNS.find(suffix => fileName.endsWith(suffix));
+  if (matchingSuffix) {
+    // Validate the base name is kebab-case
+    const baseName = fileName.slice(0, -matchingSuffix.length);
+    return isKebabCase(baseName + '.ts');
+  }
+  return false;
 }
 
 function getAllTypeScriptFiles(dir: string, files: string[] = []): string[] {

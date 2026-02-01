@@ -25,7 +25,7 @@ const FIRST_TIME_TEMPLATES = {
   anniversary: [
     "{timeAgo}, you told me about {topic} for the first time. Since then, you've opened up about it {count} more times. That took courage.",
     "It's been {timeAgo} since you first shared about {topic}. Look how far you've come—you talk about it differently now.",
-    "I want to mark something: {timeAgo} you trusted me with {topic} for the first time. That trust has grown into {count} more conversations. Thank you.",
+    'I want to mark something: {timeAgo} you trusted me with {topic} for the first time. That trust has grown into {count} more conversations. Thank you.',
   ],
   recent_first: [
     "This is the first time you've said that out loud. I heard it. Thank you for trusting me with this.",
@@ -69,12 +69,32 @@ interface FirstTimeData {
 
 // Significant vulnerability markers
 const VULNERABILITY_MARKERS = [
-  { pattern: /i('ve)?\s+never\s+told\s+anyone/i, type: 'recent_first' as const, depth: 'profound' as const },
-  { pattern: /this\s+is\s+(the\s+)?first\s+time/i, type: 'recent_first' as const, depth: 'deep' as const },
-  { pattern: /i('ve)?\s+never\s+said\s+this/i, type: 'recent_first' as const, depth: 'deep' as const },
-  { pattern: /for\s+the\s+first\s+time/i, type: 'recent_first' as const, depth: 'moderate' as const },
+  {
+    pattern: /i('ve)?\s+never\s+told\s+anyone/i,
+    type: 'recent_first' as const,
+    depth: 'profound' as const,
+  },
+  {
+    pattern: /this\s+is\s+(the\s+)?first\s+time/i,
+    type: 'recent_first' as const,
+    depth: 'deep' as const,
+  },
+  {
+    pattern: /i('ve)?\s+never\s+said\s+this/i,
+    type: 'recent_first' as const,
+    depth: 'deep' as const,
+  },
+  {
+    pattern: /for\s+the\s+first\s+time/i,
+    type: 'recent_first' as const,
+    depth: 'moderate' as const,
+  },
   { pattern: /i\s+deserve\s+better/i, type: 'new_language' as const, depth: 'deep' as const },
-  { pattern: /i('m)?\s+proud\s+of\s+(myself|me)/i, type: 'new_language' as const, depth: 'deep' as const },
+  {
+    pattern: /i('m)?\s+proud\s+of\s+(myself|me)/i,
+    type: 'new_language' as const,
+    depth: 'deep' as const,
+  },
   { pattern: /i\s+love\s+myself/i, type: 'new_language' as const, depth: 'profound' as const },
   { pattern: /it'?s?\s+not\s+my\s+fault/i, type: 'new_language' as const, depth: 'deep' as const },
   { pattern: /i\s+can\s+do\s+this/i, type: 'new_language' as const, depth: 'moderate' as const },
@@ -82,8 +102,16 @@ const VULNERABILITY_MARKERS = [
 
 // Words that indicate self-compassion breakthroughs
 const SELF_COMPASSION_WORDS = [
-  'deserve', 'worthy', 'enough', 'proud', 'loved', 'valid',
-  'boundaries', 'self-care', 'healing', 'forgiving myself',
+  'deserve',
+  'worthy',
+  'enough',
+  'proud',
+  'loved',
+  'valid',
+  'boundaries',
+  'self-care',
+  'healing',
+  'forgiving myself',
 ];
 
 async function detectFirstTimeMoments(

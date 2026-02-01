@@ -13,7 +13,7 @@
 
 import { execSync } from 'child_process';
 import { createLogger } from '../../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { SlackNotificationService } from '../slack-notifications.js';
 
 const log = createLogger({ module: 'ScheduledBackups' });
@@ -375,7 +375,11 @@ export function startBackupScheduler(userConfig?: Partial<BackupConfig>): void {
         }
 
         log.info('⏰ Scheduled backup time - triggering backup');
-        void createBackup().then(async () => cleanupOldBackups());
+        void createBackup()
+          .then(async () => cleanupOldBackups())
+          .catch((err) => {
+            log.error({ error: String(err) }, 'Scheduled backup failed');
+          });
       }
     },
     60 * 1000 // Check every minute

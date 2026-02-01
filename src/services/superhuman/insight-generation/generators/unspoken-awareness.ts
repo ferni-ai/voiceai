@@ -39,12 +39,12 @@ const UNSPOKEN_TEMPLATES = {
     "I realized we haven't talked about {person} in a while. Everything okay there?",
   ],
   sudden_drop: [
-    "{topic} used to come up a lot—you mentioned it {previousCount} times in one month. Then... silence. What changed?",
+    '{topic} used to come up a lot—you mentioned it {previousCount} times in one month. Then... silence. What changed?',
     "There's been a shift: {topic} went from something you talked about regularly to something that doesn't come up anymore. Want to explore that?",
   ],
   avoided_followup: [
     "Last time, you said you'd update me about {topic}. I haven't heard back on that. No rush—just holding that thread.",
-    "You mentioned wanting to talk more about {topic} next time. We never did. Is now a good time, or should I keep holding it?",
+    'You mentioned wanting to talk more about {topic} next time. We never did. Is now a good time, or should I keep holding it?',
   ],
 };
 
@@ -76,9 +76,7 @@ async function getTopicSilences(userId: string): Promise<TopicSilenceData[]> {
     for (const avoidance of avoidances) {
       // Calculate days since commitment was made (as proxy for last mention)
       const lastMentioned = avoidance.madeAt ? new Date(avoidance.madeAt) : new Date();
-      const daysSilent = Math.floor(
-        (Date.now() - lastMentioned.getTime()) / (24 * 60 * 60 * 1000)
-      );
+      const daysSilent = Math.floor((Date.now() - lastMentioned.getTime()) / (24 * 60 * 60 * 1000));
 
       // Only surface if significant silence (> 7 days)
       if (daysSilent >= 7) {
@@ -128,10 +126,7 @@ async function generateUnspokenInsights(
   return insights;
 }
 
-function buildUnspokenInsight(
-  data: TopicSilenceData,
-  userId: string
-): GeneratedInsight | null {
+function buildUnspokenInsight(data: TopicSilenceData, userId: string): GeneratedInsight | null {
   let templates: string[];
   let headline: string;
   let tone: GeneratedInsight['tone'];

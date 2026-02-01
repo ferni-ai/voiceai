@@ -203,13 +203,17 @@ export async function prewarmGreetingAudio(fullWarmup = false): Promise<PrewarmR
  * @param voiceIdOrPersonaId - Either Cartesia voice UUID or persona ID (like "ferni")
  * @returns ArrayBuffer of audio data, or null if not cached
  */
-export function getPrewarmedGreetingAudio(text: string, voiceIdOrPersonaId: string): ArrayBuffer | null {
+export function getPrewarmedGreetingAudio(
+  text: string,
+  voiceIdOrPersonaId: string
+): ArrayBuffer | null {
   // Handle both voiceId (Cartesia UUID) and personaId (like "ferni")
   // UUIDs are longer and contain dashes
-  const voiceId = voiceIdOrPersonaId.includes('-') && voiceIdOrPersonaId.length > 20
-    ? voiceIdOrPersonaId  // Already a Cartesia UUID
-    : getVoiceIdForPersona(voiceIdOrPersonaId);  // Resolve persona name
-  
+  const voiceId =
+    voiceIdOrPersonaId.includes('-') && voiceIdOrPersonaId.length > 20
+      ? voiceIdOrPersonaId // Already a Cartesia UUID
+      : getVoiceIdForPersona(voiceIdOrPersonaId); // Resolve persona name
+
   if (!voiceId) return null;
 
   const key = getCacheKey(text, voiceId);
@@ -231,9 +235,10 @@ export function getPrewarmedGreetingAudio(text: string, voiceIdOrPersonaId: stri
  */
 export function isGreetingAudioCached(text: string, voiceIdOrPersonaId: string): boolean {
   // Handle both voiceId and personaId
-  const voiceId = voiceIdOrPersonaId.includes('-') && voiceIdOrPersonaId.length > 20
-    ? voiceIdOrPersonaId
-    : getVoiceIdForPersona(voiceIdOrPersonaId);
+  const voiceId =
+    voiceIdOrPersonaId.includes('-') && voiceIdOrPersonaId.length > 20
+      ? voiceIdOrPersonaId
+      : getVoiceIdForPersona(voiceIdOrPersonaId);
   if (!voiceId) return false;
 
   const key = getCacheKey(text, voiceId);

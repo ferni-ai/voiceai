@@ -19,6 +19,7 @@
 
 import type { JobContext } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
+import type { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
@@ -159,9 +160,13 @@ export class AgentOrchestrator {
     // Each AgentSession adds listeners to the Room (trackPublished, localTrackPublished, etc.)
     // With 6 possible personas and concurrent handoffs, we can have up to 20+ listeners
     // Default is 10 which causes MaxListenersExceededWarning
-    if (this.room && typeof (this.room as any).setMaxListeners === 'function') {
-      (this.room as any).setMaxListeners(30);
-      log.debug({ sessionId: this.sessionId }, '🎭 Room MaxListeners set to 30 for multi-agent mode');
+    const roomAsEmitter = this.room as unknown as EventEmitter | undefined;
+    if (roomAsEmitter && typeof roomAsEmitter.setMaxListeners === 'function') {
+      roomAsEmitter.setMaxListeners(30);
+      log.debug(
+        { sessionId: this.sessionId },
+        '🎭 Room MaxListeners set to 30 for multi-agent mode'
+      );
     }
 
     log.info({ sessionId: this.sessionId, userId: this.userId }, '🎭 AgentOrchestrator created');
@@ -395,22 +400,35 @@ export class AgentOrchestrator {
       let enhancedSummary = request.conversationSummary;
       if (this.userId) {
         try {
-          preBriefing = await getPreBriefing(this.userId, request.targetPersonaId as Parameters<typeof getPreBriefing>[1]);
+          preBriefing = await getPreBriefing(
+            this.userId,
+            request.targetPersonaId as Parameters<typeof getPreBriefing>[1]
+          );
           if (preBriefing) {
             // Enhance the conversation summary with pre-briefing context
             const briefingContext = [
               `[PRE-BRIEFING FROM FERNI TEAM]`,
               preBriefing.context,
-              preBriefing.suggestedApproach ? `Suggested approach: ${preBriefing.suggestedApproach}` : '',
-              preBriefing.relevantHistory.length > 0 ? `Relevant history: ${preBriefing.relevantHistory.join('; ')}` : '',
-            ].filter(Boolean).join('\n');
+              preBriefing.suggestedApproach
+                ? `Suggested approach: ${preBriefing.suggestedApproach}`
+                : '',
+              preBriefing.relevantHistory.length > 0
+                ? `Relevant history: ${preBriefing.relevantHistory.join('; ')}`
+                : '',
+            ]
+              .filter(Boolean)
+              .join('\n');
 
             enhancedSummary = enhancedSummary
               ? `${briefingContext}\n\n${enhancedSummary}`
               : briefingContext;
 
             log.info(
-              { userId: this.userId, targetPersona: request.targetPersonaId, briefingId: preBriefing.id },
+              {
+                userId: this.userId,
+                targetPersona: request.targetPersonaId,
+                briefingId: preBriefing.id,
+              },
               '🧠 [PREDICTIVE] Pre-briefing applied to handoff context'
             );
           }
@@ -838,7 +856,10 @@ export class AgentOrchestrator {
       agent
         .wireHandlers()
         .then(() => {
-          log.info({ personaId: agent.personaId }, '⚡ Deferred handlers wired after handoff greeting');
+          log.info(
+            { personaId: agent.personaId },
+            '⚡ Deferred handlers wired after handoff greeting'
+          );
         })
         .catch((err) => {
           log.error(

@@ -10,6 +10,7 @@
  * - GET /api/observability/ux - User experience metrics
  * - GET /api/observability/memory - Memory/RAG metrics
  * - GET /api/observability/dynamic-memory - Dynamic memory system (L1/L2/L3) metrics
+ * - GET /api/observability/memory-intelligence - Memory Intelligence surfacing/timing/learning metrics
  * - GET /api/observability/cost - Cost tracking metrics
  * - GET /api/observability/errors - Error & recovery metrics
  * - GET /api/observability/personas - Persona health metrics
@@ -20,6 +21,7 @@
  * - GET /api/observability/redis - Redis cache stats, pub/sub status, circuit breakers
  * - GET /api/observability/ftis - FTIS (Tool Intelligence) metrics (transitions, outcomes, patterns)
  * - GET /api/observability/superhuman - Superhuman capability activation metrics
+ * - GET /api/observability/bth - Better Than Human EQ telemetry (micro-expressions, memory, growth)
  * - GET /api/observability/tts-gateway - TTS Gateway metrics (cache hits, synthesis latency, errors)
  * - GET /api/observability/injections - BTH Injection effectiveness metrics (Phase 1 Communication System Overhaul)
  * - GET /api/observability/native-bindings - ONNX/Transformers health (circuit breakers, crashes, latency)
@@ -49,11 +51,24 @@ import {
   resilienceMetrics,
   uxQualityMetrics,
 } from '../services/observability/index.js';
+// Superhuman activation metrics (moved to services layer for architecture compliance)
+import {
+  getSuperhumanActivationEvents,
+  getSuperhumanActivationStats,
+} from '../services/observability/superhuman-events.js';
+// Re-export for backward compatibility with existing importers
+export {
+  emitSuperhumanActivation,
+  type SuperhumanActivationEvent,
+} from '../services/observability/superhuman-events.js';
 import {
   getAggregateMetrics,
   getDashboardData as getSemanticDashboardData,
+  getRecentMetrics,
 } from '../tools/semantic-router/integration/metrics.js';
 import { getProactiveStats } from '../tools/semantic-router/advanced/proactive-suggestions.js';
+import { getDefenseStats } from '../tools/semantic-router/defense/index.js';
+import { getOnlineLearningStats } from '../tools/semantic-router/learning/online-learning-loop.js';
 import { getAggregateRoutingStats } from '../tools/semantic-router/integration/routing-observability.js';
 import { getAgentEvolution } from '../intelligence/agent-evolution.js';
 import {
@@ -83,114 +98,9 @@ interface ToolIntelligenceEvent {
 const toolIntelligenceEvents: ToolIntelligenceEvent[] = [];
 const MAX_TOOL_INTELLIGENCE_EVENTS = 100;
 
-// ============================================================================
-// SUPERHUMAN ACTIVATION OBSERVABILITY
-// Tracks when superhuman capabilities are activated during conversations
-// ============================================================================
-
-export interface SuperhumanActivationEvent {
-  userId: string;
-  persona: string;
-  capabilities: string[];
-  cacheHit: boolean;
-  durationMs: number;
-  timestamp: string;
-}
-
-const superhumanActivationEvents: SuperhumanActivationEvent[] = [];
-const MAX_SUPERHUMAN_EVENTS = 100;
-
-/**
- * Emit a superhuman activation event for monitoring/debugging
- * Used by superhuman-integration.ts when capabilities are loaded
- *
- * @param event Event data including which capabilities were activated
- */
-export function emitSuperhumanActivation(
-  event: Omit<SuperhumanActivationEvent, 'timestamp'>
-): void {
-  const fullEvent: SuperhumanActivationEvent = {
-    ...event,
-    timestamp: new Date().toISOString(),
-  };
-
-  // Add to buffer (ring buffer behavior)
-  superhumanActivationEvents.push(fullEvent);
-  if (superhumanActivationEvents.length > MAX_SUPERHUMAN_EVENTS) {
-    superhumanActivationEvents.shift();
-  }
-
-  // Log at debug level for immediate observability
-  log.debug(
-    { persona: event.persona, capabilities: event.capabilities.length, cacheHit: event.cacheHit },
-    `🦸 Superhuman activated: ${event.capabilities.length} capabilities for ${event.persona}`
-  );
-}
-
-/**
- * Get recent superhuman activation events
- * @param limit Max number of events to return (default: 50)
- */
-export function getSuperhumanActivationEvents(limit = 50): SuperhumanActivationEvent[] {
-  return superhumanActivationEvents.slice(-limit);
-}
-
-/**
- * Get superhuman activation statistics
- */
-export function getSuperhumanActivationStats(): {
-  totalActivations: number;
-  cacheHitRate: number;
-  avgDurationMs: number;
-  byPersona: Record<string, number>;
-  topCapabilities: Array<{ capability: string; count: number }>;
-} {
-  if (superhumanActivationEvents.length === 0) {
-    return {
-      totalActivations: 0,
-      cacheHitRate: 0,
-      avgDurationMs: 0,
-      byPersona: {},
-      topCapabilities: [],
-    };
-  }
-
-  const totalActivations = superhumanActivationEvents.length;
-  const cacheHits = superhumanActivationEvents.filter((e) => e.cacheHit).length;
-  const totalDuration = superhumanActivationEvents.reduce((sum, e) => sum + e.durationMs, 0);
-
-  // Count by persona
-  const byPersona: Record<string, number> = {};
-  for (const event of superhumanActivationEvents) {
-    byPersona[event.persona] = (byPersona[event.persona] || 0) + 1;
-  }
-
-  // Count capabilities
-  const capabilityCounts: Record<string, number> = {};
-  for (const event of superhumanActivationEvents) {
-    for (const cap of event.capabilities) {
-      capabilityCounts[cap] = (capabilityCounts[cap] || 0) + 1;
-    }
-  }
-
-  // Sort capabilities by count
-  const topCapabilities = Object.entries(capabilityCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([capability, count]) => ({ capability, count }));
-
-  return {
-    totalActivations,
-    cacheHitRate: Math.round((cacheHits / totalActivations) * 100) / 100,
-    avgDurationMs: Math.round(totalDuration / totalActivations),
-    byPersona,
-    topCapabilities,
-  };
-}
-
 /**
  * Emit a tool intelligence event for monitoring/debugging
- * Used by unified-tool-orchestrator.ts and other tool intelligence components
+ * Used by tool-orchestrator.ts and other tool intelligence components
  *
  * @param type Event type (e.g., 'tool_selection', 'ftis_routing', 'outcome_tracked')
  * @param data Event payload
@@ -666,30 +576,99 @@ export async function handleObservabilityRoutes(
     }
 
     // GET /api/observability/dynamic-memory - Dynamic memory system metrics
+    // MEMORY FIX (Jan 2026): Enhanced with health status, knowledge graph, and human signal metrics
     if (pathname === '/api/observability/dynamic-memory' && req.method === 'GET') {
       try {
-        const { getDynamicMemoryMetrics, getSTMStats } = await import('../memory/dynamic/index.js');
+        const {
+          getDynamicMemoryMetrics,
+          getSTMStats,
+          getMemoryHealthStatus,
+          getKnowledgeGraphMetrics,
+          getHumanSignalMetrics,
+          getAttributionMetrics,
+        } = await import('../memory/dynamic/index.js');
         const { getSyncStats } = await import('../memory/dynamic/firestore-spanner-sync.js');
         const { getDeepExtractionWorker } =
           await import('../memory/dynamic/deep-extraction-worker.js');
+        const { isKnowledgeCaptureReady, isEntityStorePersistenceReady } =
+          await import('../memory/knowledge-graph/index.js');
 
         const dynamicMetrics = getDynamicMemoryMetrics();
         const stmStats = getSTMStats();
         const syncStats = getSyncStats();
         const worker = getDeepExtractionWorker();
         const workerStats = worker?.getStats() ?? null;
+        const workerHealth = worker?.getHealthStatus() ?? null;
+        const healthStatus = getMemoryHealthStatus();
+        const knowledgeGraphMetrics = getKnowledgeGraphMetrics();
+        const humanSignalMetrics = getHumanSignalMetrics();
+        const attributionMetrics = getAttributionMetrics();
 
         sendJSON(res, {
+          // Overall health status (new Jan 2026)
+          health: healthStatus,
+
+          // Core dynamic memory metrics
           dynamicMemory: dynamicMetrics,
           stmBuffer: stmStats,
           syncService: syncStats,
-          deepExtractionWorker: workerStats,
+
+          // Deep extraction worker
+          deepExtractionWorker: {
+            stats: workerStats,
+            health: workerHealth,
+          },
+
+          // Knowledge graph (new Jan 2026)
+          knowledgeGraph: {
+            isReady: isKnowledgeCaptureReady(),
+            entityStoreReady: isEntityStorePersistenceReady(),
+            metrics: knowledgeGraphMetrics,
+          },
+
+          // Human signal extraction (new Jan 2026)
+          humanSignals: humanSignalMetrics,
+
+          // Memory attribution
+          attribution: attributionMetrics,
+
           collectedAt: new Date().toISOString(),
         });
       } catch (error) {
+        log.error(
+          { error: String(error) },
+          '🧠 [MEMORY-AUDIT] Dynamic memory metrics endpoint error'
+        );
         sendJSON(res, {
           error: 'Dynamic memory metrics not available',
           message: String(error),
+          // Provide partial health info even on error
+          health: {
+            overall: 'unhealthy',
+            issues: [`Failed to collect metrics: ${String(error)}`],
+          },
+        });
+      }
+      return true;
+    }
+
+    // GET /api/observability/memory-intelligence - Memory Intelligence surfacing metrics
+    if (pathname === '/api/observability/memory-intelligence' && req.method === 'GET') {
+      try {
+        const { getMemoryIntelligenceMetrics } =
+          await import('../intelligence/memory-intelligence/index.js');
+        const metrics = getMemoryIntelligenceMetrics();
+        sendJSON(res, {
+          success: true,
+          timestamp: new Date().toISOString(),
+          metrics,
+        });
+      } catch (error) {
+        log.error({ error: String(error) }, 'Failed to get memory intelligence metrics');
+        sendJSON(res, {
+          success: false,
+          error: 'Failed to get memory intelligence metrics',
+          timestamp: new Date().toISOString(),
         });
       }
       return true;
@@ -754,57 +733,15 @@ export async function handleObservabilityRoutes(
     }
 
     // GET /api/observability/ftis - FTIS (Tool Intelligence) metrics
+    // DEPRECATED: FTIS has been removed. Tool routing now uses LLM native function calling.
     if (pathname === '/api/observability/ftis' && req.method === 'GET') {
-      try {
-        const { getFTISIntegration } = await import('../tools/intelligence/ftis-integration.js');
-        const { getFTISHealth, getFTISV2Metrics } =
-          await import('../services/observability/ftis-metrics.js');
-        const { isFTISV2OnlyMode } = await import('../agents/processors/ftis-v2-integration.js');
-
-        const ftis = getFTISIntegration();
-        const metrics = ftis.getMetrics();
-        const patterns = ftis.getToolPatterns();
-        const health = getFTISHealth();
-        const ftisV2Active = isFTISV2OnlyMode();
-
-        const response: Record<string, unknown> = {
-          transitionMatrix: metrics.transitionMatrix,
-          planner: metrics.planner,
-          learner: metrics.learner,
-          topPatterns: patterns.slice(0, 10),
-          health: {
-            status: health.status,
-            mode: health.mode,
-            accuracy: health.metrics.accuracy,
-          },
-          collectedAt: new Date().toISOString(),
-        };
-
-        // Add FTIS V2 specific metrics when enabled
-        if (ftisV2Active) {
-          const v2Metrics = getFTISV2Metrics();
-          response.ftisV2 = {
-            enabled: true,
-            directExecutionCount: v2Metrics.directExecutionCount,
-            directExecutionRate: `${(v2Metrics.directExecutionRate * 100).toFixed(1)}%`,
-            avgLatencyMs: v2Metrics.avgDirectLatencyMs,
-            p95LatencyMs: v2Metrics.p95DirectLatencyMs,
-            jsonWorkaroundBypassCount: v2Metrics.jsonWorkaroundBypassCount,
-            fallbackRate: `${(v2Metrics.fallbackRate * 100).toFixed(1)}%`,
-            successRate: `${(v2Metrics.successRate * 100).toFixed(1)}%`,
-            executionsByCategory: v2Metrics.executionsByCategory,
-          };
-        } else {
-          response.ftisV2 = { enabled: false };
-        }
-
-        sendJSON(res, response);
-      } catch (error) {
-        sendJSON(res, {
-          error: 'FTIS metrics not available',
-          message: String(error),
-        });
-      }
+      sendJSON(res, {
+        deprecated: true,
+        message:
+          'FTIS has been removed. Tool routing now uses LLM native function calling + semantic router.',
+        replacement: '/api/observability/semantic-routing',
+        collectedAt: new Date().toISOString(),
+      });
       return true;
     }
 
@@ -812,6 +749,158 @@ export async function handleObservabilityRoutes(
     if (pathname === '/api/observability/semantic-routing' && req.method === 'GET') {
       const semanticData = getSemanticRoutingMetrics();
       sendJSON(res, semanticData);
+      return true;
+    }
+
+    // GET /api/observability/routing-dashboard - Comprehensive routing dashboard data
+    // Phase 6: Production Polish - supports the admin routing dashboard UI
+    if (pathname === '/api/observability/routing-dashboard' && req.method === 'GET') {
+      try {
+        // Get routing metrics
+        const aggregate = getAggregateMetrics();
+        const { hourly } = getSemanticDashboardData();
+        const routingStats = getAggregateRoutingStats();
+
+        // Get recent routing decisions for the table
+        const recentRoutes = getRecentMetrics(20);
+
+        // Get defense statistics
+        const defense = getDefenseStats();
+
+        // Get learning loop stats
+        const learning = getOnlineLearningStats();
+
+        // Calculate summary metrics
+        const directExecutionRate =
+          aggregate.totalRoutes > 0 ? aggregate.bypassedLLM / aggregate.totalRoutes : 0;
+        const avgConfidence =
+          recentRoutes.length > 0
+            ? recentRoutes.reduce((sum, r) => sum + r.confidence, 0) / recentRoutes.length
+            : 0;
+
+        // Build confidence distribution histogram (10 buckets)
+        const confidenceBuckets = Array(10).fill(0);
+        for (const route of recentRoutes) {
+          const bucket = Math.min(9, Math.floor(route.confidence * 10));
+          confidenceBuckets[bucket]++;
+        }
+
+        // Get top routed tools
+        const toolCounts = Object.entries(aggregate.toolBreakdown)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 10)
+          .map(([toolId, count]) => ({
+            toolId,
+            count,
+            percentage: aggregate.totalRoutes > 0 ? (count / aggregate.totalRoutes) * 100 : 0,
+          }));
+
+        // Build corrections list (learning opportunities)
+        const corrections: Array<{
+          query: string;
+          predicted: string;
+          actual: string;
+          timestamp: string;
+        }> = [];
+        // Note: Corrections would come from a dedicated corrections store
+        // For now, this is a placeholder - corrections are tracked in the learning loop
+
+        sendJSON(res, {
+          // Summary cards
+          summary: {
+            directExecutionRate: `${(directExecutionRate * 100).toFixed(1)}%`,
+            avgConfidence: `${(avgConfidence * 100).toFixed(1)}%`,
+            avgLatencyMs: aggregate.avgLatencyMs,
+            p95LatencyMs: aggregate.p95LatencyMs,
+            cacheHitRate: `${(aggregate.cacheHitRate * 100).toFixed(1)}%`,
+            correctionRate:
+              learning.pendingExamples > 0
+                ? `${((learning.pendingExamples / Math.max(1, aggregate.totalRoutes)) * 100).toFixed(1)}%`
+                : '0%',
+            threatsBlocked: defense.inputsBlocked,
+          },
+
+          // Aggregate metrics
+          aggregate: {
+            totalRoutes: aggregate.totalRoutes,
+            successfulRoutes: aggregate.successfulRoutes,
+            bypassedLLM: aggregate.bypassedLLM,
+            hints: aggregate.hints,
+            conversations: aggregate.conversations,
+            errors: aggregate.errors,
+            matchPathBreakdown: aggregate.matchPathBreakdown,
+          },
+
+          // Routing paths breakdown
+          routingPaths: {
+            semanticAutoExecute: routingStats.totalSemanticAutoExecute,
+            jsonWorkaround: routingStats.totalJsonFallback,
+            nativeFunction:
+              routingStats.totalToolCalls -
+              routingStats.totalSemanticAutoExecute -
+              routingStats.totalJsonFallback,
+            efficiency: `${routingStats.avgEfficiency.toFixed(1)}%`,
+          },
+
+          // Confidence distribution for histogram
+          confidenceDistribution: confidenceBuckets.map((count, i) => ({
+            range: `${i * 10}-${(i + 1) * 10}%`,
+            count,
+          })),
+
+          // Top routed tools
+          topTools: toolCounts,
+
+          // Top corrections (learning opportunities)
+          topCorrections: corrections,
+
+          // Defense system status
+          defense: {
+            totalInputs: defense.totalInputs,
+            threatsDetected: defense.threatsDetected,
+            inputsBlocked: defense.inputsBlocked,
+            blockRate: `${(defense.blockRate * 100).toFixed(2)}%`,
+            avgRiskScore: defense.avgRiskScore.toFixed(3),
+            threatsByType: defense.threatsByType,
+            threatsBySeverity: defense.threatsBySeverity,
+          },
+
+          // Learning loop status
+          learning: {
+            isActive: learning.isActive,
+            pendingExamples: learning.pendingExamples,
+            adjustedTools: learning.adjustedTools,
+            lastRetrainTime: learning.lastRetrainTime
+              ? new Date(learning.lastRetrainTime).toISOString()
+              : null,
+            recentRetrains: learning.recentStats.slice(-3),
+          },
+
+          // Hourly breakdown (for trends chart)
+          hourly,
+
+          // Recent routing decisions (for table)
+          recentRoutes: recentRoutes.map((r) => ({
+            timestamp: r.timestamp.toISOString(),
+            userInput: r.userInput.slice(0, 50),
+            toolId: r.toolId,
+            confidence: r.confidence,
+            matchPath: r.matchPath,
+            action: r.action,
+            latencyMs: r.latencyMs,
+            cacheHit: r.cacheHit,
+          })),
+
+          collectedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        log.error({ error: String(error) }, 'Failed to collect routing dashboard data');
+        sendJSON(res, {
+          error: 'Failed to collect routing dashboard data',
+          message: String(error),
+          collectedAt: new Date().toISOString(),
+        });
+      }
       return true;
     }
 
@@ -828,6 +917,72 @@ export async function handleObservabilityRoutes(
         count: events.length,
         collectedAt: new Date().toISOString(),
       });
+      return true;
+    }
+
+    // GET /api/observability/bth - Better Than Human EQ telemetry
+    if (pathname === '/api/observability/bth' && req.method === 'GET') {
+      try {
+        const { getBetterThanHumanTelemetry } =
+          await import('../services/analytics/better-than-human-telemetry.js');
+        const telemetry = getBetterThanHumanTelemetry();
+
+        const daysParam = url.searchParams.get('days');
+        const days = daysParam ? parseInt(daysParam, 10) : 7;
+        const summary = telemetry.getSummary(days);
+
+        sendJSON(res, {
+          period: {
+            days,
+            start: summary.period.start.toISOString(),
+            end: summary.period.end.toISOString(),
+          },
+          eq: {
+            microExpressions: summary.eq.microExpressions,
+            activeListening: summary.eq.activeListening,
+            breathSync: summary.eq.breathSync,
+            concernDetections: summary.eq.concernDetections,
+            anticipations: summary.eq.anticipations,
+            total:
+              summary.eq.microExpressions +
+              summary.eq.activeListening +
+              summary.eq.breathSync +
+              summary.eq.concernDetections +
+              summary.eq.anticipations,
+          },
+          memory: {
+            proactiveMemoriesSurfaced: summary.memory.proactiveMemoriesSurfaced,
+            crossSessionReflections: summary.memory.crossSessionReflections,
+            quotedMemoriesRecalled: summary.memory.quotedMemoriesRecalled,
+          },
+          celebration: summary.celebration,
+          growth: {
+            insightsDetected: summary.growth.insightsDetected,
+            insightsSurfaced: summary.growth.insightsSurfaced,
+            resonanceRate: `${(summary.growth.resonanceRate * 100).toFixed(1)}%`,
+          },
+          patterns: {
+            patternsDetected: summary.patterns.patternsDetected,
+            patternsSurfaced: summary.patterns.patternsSurfaced,
+            resonanceRate: `${(summary.patterns.resonanceRate * 100).toFixed(1)}%`,
+          },
+          outreach: {
+            ...summary.outreach,
+            responseRate: `${(summary.outreach.responseRate * 100).toFixed(1)}%`,
+          },
+          userReactions: {
+            ...summary.userReactions,
+            positiveRate: `${(summary.userReactions.positiveRate * 100).toFixed(1)}%`,
+          },
+          collectedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        log.warn({ error: String(error) }, 'BTH telemetry not available');
+        sendJSON(res, {
+          error: 'BTH telemetry not available',
+          reason: String(error),
+        });
+      }
       return true;
     }
 

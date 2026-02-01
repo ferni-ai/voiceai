@@ -47,16 +47,16 @@ const log = createLogger({ module: 'ceo-coaching-storage' });
  * Operational/transient data: 1 year
  */
 export const CEO_TTL_DAYS = {
-  WIN: 730,           // 2 years - achievements worth keeping
-  ENERGY: 365,        // 1 year - transient health data
-  GRATITUDE: 730,     // 2 years - emotional content
-  JOURNAL: 730,       // 2 years - personal reflections
-  DECISION: 730,      // 2 years - important decisions
-  PRIORITY: 365,      // 1 year - operational
-  BLOCKER: 365,       // 1 year - operational
-  IDEA: 730,          // 2 years - worth keeping
+  WIN: 730, // 2 years - achievements worth keeping
+  ENERGY: 365, // 1 year - transient health data
+  GRATITUDE: 730, // 2 years - emotional content
+  JOURNAL: 730, // 2 years - personal reflections
+  DECISION: 730, // 2 years - important decisions
+  PRIORITY: 365, // 1 year - operational
+  BLOCKER: 365, // 1 year - operational
+  IDEA: 730, // 2 years - worth keeping
   FOCUS_SESSION: 365, // 1 year - operational
-  REFLECTION: 730,    // 2 years - valuable insights
+  REFLECTION: 730, // 2 years - valuable insights
   WEEKLY_REVIEW: 730, // 2 years - valuable summaries
 } as const;
 
@@ -114,7 +114,10 @@ function generateId(): string {
 // WINS
 // ============================================================================
 
-export async function saveWin(userId: string, win: Omit<CEOWin, 'id' | 'createdAt'>): Promise<CEOWin> {
+export async function saveWin(
+  userId: string,
+  win: Omit<CEOWin, 'id' | 'createdAt'>
+): Promise<CEOWin> {
   const db = await getDb();
   const now = new Date().toISOString();
   const id = generateId();
@@ -133,9 +136,7 @@ export async function saveWin(userId: string, win: Omit<CEOWin, 'id' | 'createdA
 
   if (db) {
     try {
-      await getUserCollection(db, userId, 'ceo_wins')
-        .doc(id)
-        .set(cleanForFirestore(docWithTTL));
+      await getUserCollection(db, userId, 'ceo_wins').doc(id).set(cleanForFirestore(docWithTTL));
       log.debug({ userId, winId: id }, 'Saved CEO win');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to save CEO win');
@@ -172,11 +173,7 @@ export async function getRecentWins(userId: string, days = 7): Promise<CEOWin[]>
 // ENERGY
 // ============================================================================
 
-export async function logEnergy(
-  userId: string,
-  level: number,
-  note?: string
-): Promise<CEOEnergy> {
+export async function logEnergy(userId: string, level: number, note?: string): Promise<CEOEnergy> {
   const db = await getDb();
   const id = generateId();
   const now = new Date().toISOString();
@@ -196,9 +193,7 @@ export async function logEnergy(
 
   if (db) {
     try {
-      await getUserCollection(db, userId, 'ceo_energy')
-        .doc(id)
-        .set(cleanForFirestore(docWithTTL));
+      await getUserCollection(db, userId, 'ceo_energy').doc(id).set(cleanForFirestore(docWithTTL));
       log.debug({ userId, level }, 'Logged CEO energy');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to log energy');
@@ -237,12 +232,14 @@ export async function getEnergyTrend(
     const recentHalf = entries.slice(0, mid);
     const olderHalf = entries.slice(mid);
 
-    const recentAvg = recentHalf.length > 0
-      ? recentHalf.reduce((sum, e) => sum + e.level, 0) / recentHalf.length
-      : weekAverage;
-    const olderAvg = olderHalf.length > 0
-      ? olderHalf.reduce((sum, e) => sum + e.level, 0) / olderHalf.length
-      : weekAverage;
+    const recentAvg =
+      recentHalf.length > 0
+        ? recentHalf.reduce((sum, e) => sum + e.level, 0) / recentHalf.length
+        : weekAverage;
+    const olderAvg =
+      olderHalf.length > 0
+        ? olderHalf.reduce((sum, e) => sum + e.level, 0) / olderHalf.length
+        : weekAverage;
 
     const diff = recentAvg - olderAvg;
     const trend = diff > 0.5 ? 'up' : diff < -0.5 ? 'down' : 'stable';
@@ -282,10 +279,7 @@ export async function getRecentEnergyEntries(userId: string, days = 7): Promise<
 // GRATITUDE
 // ============================================================================
 
-export async function logGratitude(
-  userId: string,
-  text: string
-): Promise<CEOGratitude> {
+export async function logGratitude(userId: string, text: string): Promise<CEOGratitude> {
   const db = await getDb();
   const id = generateId();
   const now = new Date();
@@ -363,9 +357,7 @@ export async function saveJournalEntry(
 
   if (db) {
     try {
-      await getUserCollection(db, userId, 'ceo_journal')
-        .doc(id)
-        .set(cleanForFirestore(docWithTTL));
+      await getUserCollection(db, userId, 'ceo_journal').doc(id).set(cleanForFirestore(docWithTTL));
       log.debug({ userId }, 'Saved journal entry');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to save journal entry');
@@ -526,12 +518,10 @@ export async function completePriority(userId: string, priorityId: string): Prom
   if (!db) return;
 
   try {
-    await getUserCollection(db, userId, 'ceo_priorities')
-      .doc(priorityId)
-      .update({
-        status: 'completed',
-        completedAt: new Date().toISOString(),
-      });
+    await getUserCollection(db, userId, 'ceo_priorities').doc(priorityId).update({
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+    });
 
     invalidateCache(userId);
     log.debug({ userId, priorityId }, 'Completed priority');
@@ -607,11 +597,13 @@ export async function resolveBlocker(
   try {
     await getUserCollection(db, userId, 'ceo_blockers')
       .doc(blockerId)
-      .update(cleanForFirestore({
-        status: 'resolved',
-        resolvedAt: new Date().toISOString(),
-        resolution,
-      }));
+      .update(
+        cleanForFirestore({
+          status: 'resolved',
+          resolvedAt: new Date().toISOString(),
+          resolution,
+        })
+      );
 
     invalidateCache(userId);
     log.debug({ userId, blockerId }, 'Resolved blocker');
@@ -666,9 +658,7 @@ export async function captureIdea(
 
   if (db) {
     try {
-      await getUserCollection(db, userId, 'ceo_ideas')
-        .doc(id)
-        .set(cleanForFirestore(docWithTTL));
+      await getUserCollection(db, userId, 'ceo_ideas').doc(id).set(cleanForFirestore(docWithTTL));
       log.debug({ userId, ideaId: id }, 'Captured idea');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to capture idea');
@@ -747,12 +737,10 @@ export async function endFocusSession(
   if (!db) return;
 
   try {
-    await getUserCollection(db, userId, 'ceo_focus_sessions')
-      .doc(sessionId)
-      .update({
-        status,
-        endedAt: new Date().toISOString(),
-      });
+    await getUserCollection(db, userId, 'ceo_focus_sessions').doc(sessionId).update({
+      status,
+      endedAt: new Date().toISOString(),
+    });
 
     invalidateCache(userId);
     log.debug({ userId, sessionId, status }, 'Ended focus session');

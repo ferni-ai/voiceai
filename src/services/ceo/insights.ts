@@ -243,7 +243,10 @@ export async function getEnergyGoalInsights(userId: string): Promise<Insight[]> 
 
   const { goals, wins, energyLogs } = data;
 
-  if (energyLogs.length < MIN_DATA_POINTS_FOR_INSIGHT || wins.length < MIN_DATA_POINTS_FOR_INSIGHT) {
+  if (
+    energyLogs.length < MIN_DATA_POINTS_FOR_INSIGHT ||
+    wins.length < MIN_DATA_POINTS_FOR_INSIGHT
+  ) {
     return insights;
   }
 
@@ -359,7 +362,9 @@ export async function getBlockerImpactInsights(userId: string): Promise<Insight[
     );
 
     // Find goals affected by this blocker
-    const affectedGoals = goals.filter((g) => g.id === blocker.linkedGoalId && g.status === 'active');
+    const affectedGoals = goals.filter(
+      (g) => g.id === blocker.linkedGoalId && g.status === 'active'
+    );
 
     // Critical: Long-standing blocker affecting active goals
     if (daysSinceCreated >= 5 && affectedGoals.length > 0) {
@@ -470,7 +475,8 @@ export async function getDecisionQualityInsights(userId: string): Promise<Insigh
   }
 
   // Calculate averages and generate insights
-  const calcAvg = (arr: number[]) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
+  const calcAvg = (arr: number[]) =>
+    arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
 
   const highEnergyAvg = calcAvg(decisionsByEnergy.highEnergy);
   const lowEnergyAvg = calcAvg(decisionsByEnergy.lowEnergy);
@@ -640,7 +646,7 @@ export async function getFocusEffectivenessInsights(userId: string): Promise<Ins
       confidence: 0.8,
       priority: 'low',
       dataPoints: totalFocusDays,
-      actionable: 'Keep up the focused work - it\'s directly contributing to your success',
+      actionable: "Keep up the focused work - it's directly contributing to your success",
       createdAt: new Date(),
     });
   }
@@ -730,15 +736,14 @@ export async function getMomentumInsights(userId: string): Promise<Insight[]> {
 
   const recentGratitude = gratitudeEntries.length; // Already filtered to this week
 
-  const momentumScore =
-    (recentWinsCount * 3 + recentFocusSessions * 2 + recentGratitude) / 7; // Weighted score
+  const momentumScore = (recentWinsCount * 3 + recentFocusSessions * 2 + recentGratitude) / 7; // Weighted score
 
   if (momentumScore >= 5) {
     insights.push({
       id: generateId('ins'),
       type: 'celebration',
       category: 'momentum',
-      title: 'You\'re building serious momentum!',
+      title: "You're building serious momentum!",
       description: `This week: ${recentWinsCount} wins, ${recentFocusSessions} focus sessions, ${recentGratitude} gratitude entries. You're firing on all cylinders.`,
       confidence: 0.9,
       priority: 'medium',
@@ -814,7 +819,9 @@ export async function getBurnoutWarning(userId: string): Promise<Insight[]> {
   // Energy declining
   if (lastWeekAvg > 0 && thisWeekAvg < lastWeekAvg * 0.8) {
     burnoutScore += 25;
-    factors.push(`energy dropped ${Math.round(((lastWeekAvg - thisWeekAvg) / lastWeekAvg) * 100)}%`);
+    factors.push(
+      `energy dropped ${Math.round(((lastWeekAvg - thisWeekAvg) / lastWeekAvg) * 100)}%`
+    );
   } else if (thisWeekAvg < 5) {
     burnoutScore += 15;
     factors.push(`average energy is only ${thisWeekAvg.toFixed(1)}/10`);

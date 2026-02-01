@@ -43,7 +43,7 @@ export const johnBogleSpeechTraits = {
       'stay the course',
       'time is your friend',
       'costs matter',
-      'you get what you don\'t pay for',
+      "you get what you don't pay for",
       'the greatest enemy of a good plan',
     ],
   },

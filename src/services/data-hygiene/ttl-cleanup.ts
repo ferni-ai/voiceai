@@ -238,10 +238,7 @@ async function cleanupCollection(config: CleanupConfig): Promise<CleanupStats> {
       try {
         await deleteBatch.commit();
         stats.deleted += deleteCount;
-        log.debug(
-          { collection: config.collection, batch, deleted: deleteCount },
-          'Batch deleted'
-        );
+        log.debug({ collection: config.collection, batch, deleted: deleteCount }, 'Batch deleted');
       } catch (deleteError) {
         stats.errors += deleteCount;
         log.error(

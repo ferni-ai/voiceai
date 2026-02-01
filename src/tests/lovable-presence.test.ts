@@ -66,7 +66,9 @@ const { mockLogger, mockBehaviors } = vi.hoisted(() => {
         patterns: ['You know what?', 'Honestly?'],
       },
       signature_phrases: {
-        phrases: ['The cracks are where the gold goes.'],
+        phrases: [
+          "We are all broken in different ways—that's what makes us both human and beautiful.",
+        ],
       },
     },
     noticing_patterns: {

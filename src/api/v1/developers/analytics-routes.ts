@@ -105,7 +105,10 @@ function getDateRange(period: string): { startDate: Date; endDate: Date; previou
 /**
  * Get analytics overview with comparison to previous period
  */
-async function getAnalyticsOverview(publisherId: string, period: string): Promise<AnalyticsOverview> {
+async function getAnalyticsOverview(
+  publisherId: string,
+  period: string
+): Promise<AnalyticsOverview> {
   const db = await getFirestore();
   const { startDate, endDate, previousStartDate } = getDateRange(period);
 
@@ -205,10 +208,7 @@ async function getAnalyticsOverview(publisherId: string, period: string): Promis
 /**
  * Get usage data over time
  */
-async function getUsageOverTime(
-  publisherId: string,
-  period: string
-): Promise<UsageDataPoint[]> {
+async function getUsageOverTime(publisherId: string, period: string): Promise<UsageDataPoint[]> {
   const db = await getFirestore();
   const { startDate, endDate } = getDateRange(period);
 
@@ -250,10 +250,7 @@ async function getPersonaUsage(publisherId: string, period: string): Promise<Per
   const usageSnapshot = await usageQuery.get();
 
   // Aggregate by persona
-  const personaStats: Record<
-    string,
-    { calls: number; duration: number; users: Set<string> }
-  > = {};
+  const personaStats: Record<string, { calls: number; duration: number; users: Set<string> }> = {};
 
   usageSnapshot.docs.forEach((doc) => {
     const data = doc.data();
@@ -280,9 +277,7 @@ async function getPersonaUsage(publisherId: string, period: string): Promise<Per
   });
 
   // Get persona names
-  const personaQuery = db
-    .collection('publisher_personas')
-    .where('publisherId', '==', publisherId);
+  const personaQuery = db.collection('publisher_personas').where('publisherId', '==', publisherId);
   const personaSnapshot = await personaQuery.get();
 
   const personaNames: Record<string, string> = {};

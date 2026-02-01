@@ -74,25 +74,25 @@ const ANY_TAG_REGEX = /<[^>]+>/;
 /**
  * Match JSON function call blocks that LLM might output alongside speech text
  * Pattern: ```json\n{"fn":...}``` or just {"fn":...}
- * 
+ *
  * CRITICAL: This prevents JSON tool calls from being spoken aloud!
  * The LLM sometimes outputs JSON even when asked to respond naturally.
- * 
+ *
  * FIX (Jan 2026): Updated to handle nested braces in "args":{}
  * The [^`]* pattern allows any non-backtick char inside the code fence,
  * which properly handles nested JSON like {"fn":"x","args":{"key":"value"}}
  */
 const JSON_FUNCTION_CALL_REGEX = /```(?:json)?\s*\{[^`]*"fn"\s*:\s*"[^"]+"\s*[^`]*\}\s*```/gi;
 
-/** 
- * Match inline JSON function calls without code fences 
+/**
+ * Match inline JSON function calls without code fences
  * FIX (Jan 2026): Use pattern that handles nested args braces
  * Pattern handles: {"fn":"x","args":{}} and {"fn":"x","args":{"k":"v"}}
  */
 const INLINE_JSON_FN_REGEX = /\{"fn"\s*:\s*"[^"]+"\s*,\s*"args"\s*:\s*\{[^{}]*\}\s*\}/g;
 
-/** 
- * Match partial/truncated JSON blocks (can happen with streaming) 
+/**
+ * Match partial/truncated JSON blocks (can happen with streaming)
  * Catches: ```json {"fn  or ```json\n{
  * FIX (Jan 2026): Also catches truncated JSON ending with backticks
  */
@@ -187,34 +187,37 @@ export class SSMLProcessor implements ISSMLProcessor {
     });
 
     // Extract emotion tags
-    cleanText = cleanText.replace(EMOTION_TAG_REGEX, (match, emotion: string, intensity: string) => {
-      hadSSML = true;
-      originalTags.push(match);
+    cleanText = cleanText.replace(
+      EMOTION_TAG_REGEX,
+      (match, emotion: string, intensity: string) => {
+        hadSSML = true;
+        originalTags.push(match);
 
-      if (!emotion) {
-        warnings.push('Empty emotion value');
-        return '';
-      }
-
-      const normalizedEmotion = emotion.toLowerCase();
-      if (!VALID_EMOTIONS.includes(normalizedEmotion as (typeof VALID_EMOTIONS)[number])) {
-        warnings.push(`Unknown emotion: ${emotion}`);
-        return '';
-      }
-
-      prosody.emotion = normalizedEmotion;
-
-      if (intensity) {
-        const intensityVal = parseFloat(intensity);
-        if (!isNaN(intensityVal) && intensityVal >= 0 && intensityVal <= 1) {
-          prosody.emotionIntensity = intensityVal;
-        } else {
-          warnings.push(`Invalid emotion intensity: ${intensity}`);
+        if (!emotion) {
+          warnings.push('Empty emotion value');
+          return '';
         }
-      }
 
-      return '';
-    });
+        const normalizedEmotion = emotion.toLowerCase();
+        if (!VALID_EMOTIONS.includes(normalizedEmotion as (typeof VALID_EMOTIONS)[number])) {
+          warnings.push(`Unknown emotion: ${emotion}`);
+          return '';
+        }
+
+        prosody.emotion = normalizedEmotion;
+
+        if (intensity) {
+          const intensityVal = parseFloat(intensity);
+          if (!isNaN(intensityVal) && intensityVal >= 0 && intensityVal <= 1) {
+            prosody.emotionIntensity = intensityVal;
+          } else {
+            warnings.push(`Invalid emotion intensity: ${intensity}`);
+          }
+        }
+
+        return '';
+      }
+    );
 
     // Convert break tags to punctuation
     // This preserves the intent (pause) while being streaming-safe
@@ -250,64 +253,64 @@ export class SSMLProcessor implements ISSMLProcessor {
     // The LLM sometimes outputs JSON tool calls alongside natural speech text.
     // These MUST be stripped to prevent speaking "json fn play music" etc.
     // =========================================================================
-    
+
     // Strip complete JSON blocks with code fences: ```json\n{"fn":"x"...}```
     const jsonBlocksFound = cleanText.match(JSON_FUNCTION_CALL_REGEX);
     if (jsonBlocksFound) {
       log.warn(
-        { jsonBlocks: jsonBlocksFound.map(b => b.slice(0, 50)), textLength: cleanText.length },
+        { jsonBlocks: jsonBlocksFound.map((b) => b.slice(0, 50)), textLength: cleanText.length },
         '🚨 [SSMLProcessor] Stripping JSON function call blocks from TTS text'
       );
       cleanText = cleanText.replace(JSON_FUNCTION_CALL_REGEX, '');
     }
-    
+
     // Strip inline JSON function calls without code fences: {"fn":"x"...}
     const inlineJsonFound = cleanText.match(INLINE_JSON_FN_REGEX);
     if (inlineJsonFound) {
       log.warn(
-        { inlineJson: inlineJsonFound.map(j => j.slice(0, 50)), textLength: cleanText.length },
+        { inlineJson: inlineJsonFound.map((j) => j.slice(0, 50)), textLength: cleanText.length },
         '🚨 [SSMLProcessor] Stripping inline JSON function calls from TTS text'
       );
       cleanText = cleanText.replace(INLINE_JSON_FN_REGEX, '');
     }
-    
+
     // Strip partial/truncated JSON blocks (can happen with streaming)
     // Pattern: ```json {"fn (incomplete)
     const partialJsonFound = cleanText.match(PARTIAL_JSON_BLOCK_REGEX);
     if (partialJsonFound) {
       log.warn(
-        { partialJson: partialJsonFound.map(p => p.slice(0, 30)), textLength: cleanText.length },
+        { partialJson: partialJsonFound.map((p) => p.slice(0, 30)), textLength: cleanText.length },
         '🚨 [SSMLProcessor] Stripping partial JSON block from TTS text'
       );
       cleanText = cleanText.replace(PARTIAL_JSON_BLOCK_REGEX, '');
     }
-    
+
     // Safety net: Strip any code fence that contains "fn" (catches edge cases)
     const codeFenceWithFn = cleanText.match(ANY_CODE_FENCE_WITH_FN);
     if (codeFenceWithFn) {
       log.warn(
-        { codeFences: codeFenceWithFn.map(f => f.slice(0, 50)), textLength: cleanText.length },
+        { codeFences: codeFenceWithFn.map((f) => f.slice(0, 50)), textLength: cleanText.length },
         '🚨 [SSMLProcessor] Stripping code fence containing "fn" (safety net)'
       );
       cleanText = cleanText.replace(ANY_CODE_FENCE_WITH_FN, '');
     }
-    
+
     // FIX (Jan 2026): Strip truncated JSON with "fn" keyword
     const truncatedJson = cleanText.match(TRUNCATED_JSON_WITH_FN);
     if (truncatedJson) {
       log.warn(
-        { truncatedJson: truncatedJson.map(t => t.slice(0, 50)), textLength: cleanText.length },
+        { truncatedJson: truncatedJson.map((t) => t.slice(0, 50)), textLength: cleanText.length },
         '🚨 [SSMLProcessor] Stripping truncated JSON with "fn" keyword'
       );
       cleanText = cleanText.replace(TRUNCATED_JSON_WITH_FN, '');
     }
-    
+
     // Nuclear option: Strip ANY ```json or ```js code blocks
     // If we see a code fence with json/js, it's tool output that shouldn't be spoken
     const anyJsonBlock = cleanText.match(ANY_JSON_CODE_BLOCK);
     if (anyJsonBlock) {
       log.warn(
-        { anyJsonBlock: anyJsonBlock.map(b => b.slice(0, 50)), textLength: cleanText.length },
+        { anyJsonBlock: anyJsonBlock.map((b) => b.slice(0, 50)), textLength: cleanText.length },
         '🚨 [SSMLProcessor] Stripping json/js code block (nuclear option)'
       );
       cleanText = cleanText.replace(ANY_JSON_CODE_BLOCK, '');

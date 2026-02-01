@@ -420,7 +420,7 @@ const humanTransferTools: ToolDefinition[] = [
 ];
 
 export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'crisis',
+  'human-transfer',
   humanTransferTools
 );
 

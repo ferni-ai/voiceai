@@ -9,6 +9,8 @@
  * - Conversation topic is relevant to another team member's expertise
  * - Natural opportunity to suggest a handoff
  * - Celebrating what the team brings together
+ *
+ * WIRED (Jan 2026): Now uses personas/shared/team-chemistry.ts for rich content
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
@@ -21,16 +23,25 @@ import {
 import { createBuilderRng } from '../core/rng-utils.js';
 import { isTeamMemberUnlocked } from './team-availability.js';
 
+// WIRED: Import team chemistry content from personas/shared
+import {
+  getTeamChemistryConfig,
+  getContextualTeamReference,
+  getMostRelevantTeamMember,
+  isTeamReferenceRelevant,
+  type TeamReferenceContext,
+} from '../../../personas/shared/team-chemistry.js';
+
 const log = createLogger({ module: 'TeamDynamics' });
 
 // ============================================================================
-// TEAM MEMBER PATTERNS
+// TEAM MEMBER PATTERNS (Used for mention detection & basic descriptions)
+// Rich content comes from team-chemistry.ts via bundle loading
 // ============================================================================
 
 interface TeamMemberPattern {
   id: string;
   aliases: string[];
-  expertiseKeywords: string[];
   description: string;
 }
 
@@ -38,105 +49,32 @@ const TEAM_MEMBERS: TeamMemberPattern[] = [
   {
     id: 'ferni',
     aliases: ['ferni', 'coach', 'life coach'],
-    expertiseKeywords: [
-      'life',
-      'purpose',
-      'meaning',
-      'motivation',
-      'goals',
-      'values',
-      'clarity',
-      'direction',
-      'coaching',
-      'mindset',
-    ],
     description: 'life coach and coordinator',
   },
   {
-    id: 'jack_bogle',
-    aliases: ['jack', 'bogle', 'jack bogle', 'vanguard'],
-    expertiseKeywords: [
-      'index',
-      'fund',
-      'expense ratio',
-      'long-term',
-      'stay the course',
-      'passive',
-      'vanguard',
-      'diversification',
-      'asset allocation',
-    ],
-    description: 'index investing sage',
+    id: 'peter-john',
+    aliases: ['peter', 'john', 'peter john', 'the quant'],
+    description: 'research analyst',
   },
   {
-    id: 'peter_lynch',
-    aliases: ['peter', 'john', 'peter john'],
-    expertiseKeywords: [
-      'stock',
-      'research',
-      'company',
-      'ten-bagger',
-      'growth',
-      'industry',
-      'business',
-      'pick',
-      'analyze',
-      'earnings',
-    ],
-    description: 'stock picking enthusiast',
-  },
-  {
-    id: 'maya_santos',
+    id: 'maya-santos',
     aliases: ['maya', 'santos', 'maya santos'],
-    expertiseKeywords: [
-      'budget',
-      'spending',
-      'saving',
-      'debt',
-      'expense',
-      'money',
-      'bills',
-      'afford',
-      'splurge',
-      'frugal',
-      'emergency fund',
-    ],
-    description: 'personal finance guide',
+    description: 'habits and routines coach',
   },
   {
-    id: 'jordan_taylor',
+    id: 'jordan-taylor',
     aliases: ['jordan', 'taylor', 'jordan taylor'],
-    expertiseKeywords: [
-      'event',
-      'wedding',
-      'party',
-      'celebration',
-      'milestone',
-      'birthday',
-      'anniversary',
-      'trip',
-      'vacation',
-      'travel',
-      'plan',
-    ],
     description: "life's milestone planner",
   },
   {
-    id: 'alex_chen',
+    id: 'alex-chen',
     aliases: ['alex', 'chen', 'alex chen'],
-    expertiseKeywords: [
-      'schedule',
-      'calendar',
-      'organize',
-      'reminder',
-      'contact',
-      'communication',
-      'email',
-      'meeting',
-      'task',
-      'follow-up',
-    ],
     description: 'communications coordinator',
+  },
+  {
+    id: 'nayan-patel',
+    aliases: ['nayan', 'patel', 'nayan patel'],
+    description: 'wisdom and philosophy guide',
   },
 ];
 
@@ -162,31 +100,6 @@ function detectTeamMemberMention(text: string): TeamMemberPattern | null {
 }
 
 /**
- * Detect if topic relates to a team member's expertise
- */
-function detectExpertiseMatch(text: string, topics: string[]): TeamMemberPattern | null {
-  const combinedText = `${text} ${topics.join(' ')}`.toLowerCase();
-
-  // Score each team member by keyword matches
-  let bestMatch: TeamMemberPattern | null = null;
-  let bestScore = 0;
-
-  for (const member of TEAM_MEMBERS) {
-    const score = member.expertiseKeywords.filter((kw) =>
-      combinedText.includes(kw.toLowerCase())
-    ).length;
-
-    if (score > bestScore && score >= 2) {
-      // Need at least 2 keyword matches
-      bestScore = score;
-      bestMatch = member;
-    }
-  }
-
-  return bestMatch;
-}
-
-/**
  * Get the ID format used in sensory-world.json (snake_case)
  */
 function normalizeTeamMemberId(id: string): string {
@@ -209,8 +122,11 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
   const tier: 'free' | 'friend' | 'partner' =
     (userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
 
+  // Get team chemistry config for minimum session requirements
+  const chemistryConfig = getTeamChemistryConfig();
+
   // Skip on early turns to let conversation establish
-  if (turnCount < 2) {
+  if (turnCount < chemistryConfig.teamReferenceMinSessions) {
     return injections;
   }
 
@@ -219,7 +135,7 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
     return injections;
   }
 
-  const currentPersonaId = normalizeTeamMemberId(persona.id);
+  const currentPersonaId = persona.id;
 
   // Check if user mentioned a team member
   const mentionedMember = detectTeamMemberMention(userText);
@@ -235,11 +151,9 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
       if (dynamic) {
         // If member is locked, don't give details - just acknowledge vaguely
         if (!memberUnlocked) {
-          // Note: Don't script literal phrases - describe the situation
           const content = `[TEAM MENTION: User mentioned someone on your team, but they haven't unlocked access yet. Acknowledge you have a colleague who helps with that topic, but you need to get to know them better first.]`;
           injections.push(createHintInjection('team_mention', content));
         } else {
-          // Note: Don't inject literal phrases - describe the relationship context
           const content = `[TEAM MENTION: User mentioned ${mentionedMember.description}. You have a warm working relationship with them - speak naturally about your colleague as you would about a trusted friend.]`;
           injections.push(createHintInjection('team_mention', content));
         }
@@ -254,35 +168,46 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
     return injections;
   }
 
-  // Check if topic relates to another team member's expertise
-  const expertMatch = detectExpertiseMatch(userText, analysis.topics?.detected || []);
+  // WIRED: Use team-chemistry's context-aware relevance check
+  // Note: TeamReferenceContext requires sessionNumber and lastTeamReferenceSession
+  const referenceContext: TeamReferenceContext = {
+    currentTopic: analysis.topics?.detected?.[0],
+    currentMessage: userText,
+    mentionedTeammate: mentionedMember?.id,
+    hasEmotionalMoment: (analysis.state?.distressLevel ?? 0) > 0.5,
+    isHandoffCandidate: false, // Will be set by getMostRelevantTeamMember
+    sessionNumber: userProfile?.totalConversations || 1,
+    lastTeamReferenceSession: 0, // Track this in user profile eventually
+  };
 
-  if (expertMatch && expertMatch.id !== currentPersonaId) {
+  // Find contextually relevant team member using team-chemistry intelligence
+  const relevantMember = getMostRelevantTeamMember(currentPersonaId, referenceContext);
+
+  if (relevantMember && relevantMember.persona !== currentPersonaId) {
     // Only suggest handoff if the member is unlocked
-    const expertUnlocked = isTeamMemberUnlocked(expertMatch.id, userProfile, tier);
+    const expertUnlocked = isTeamMemberUnlocked(relevantMember.persona, userProfile, tier);
 
     if (!expertUnlocked) {
-      // Member is locked - don't suggest handoff, skip this entirely
-      // team-availability.ts handles locked member teasers properly
+      // Member is locked - team-availability.ts handles locked member teasers properly
       return injections;
     }
 
-    // Only suggest handoff occasionally (25% chance)
-    // Use forked RNG for independent decision
-    if (rng.fork('handoff').chance(0.25) && bundleRuntime) {
-      const dynamic = bundleRuntime.getTeamDynamic(expertMatch.id);
+    // Get contextual team reference with rich content from team-chemistry
+    const contextualRef = getContextualTeamReference(currentPersonaId, referenceContext);
 
-      if (dynamic) {
-        // Note: Don't inject literal phrases about how you work together
-        const handoffHint = `[EXPERTISE OPPORTUNITY: This topic relates to ${expertMatch.description}'s specialty. If appropriate, you could mention your colleague naturally or offer to connect the user.]`;
+    if (contextualRef && rng.fork('handoff').chance(0.25)) {
+      const teamMemberInfo = TEAM_MEMBERS.find((m) => m.id === relevantMember.persona);
+      const memberDesc = teamMemberInfo?.description || relevantMember.persona;
 
-        injections.push(createHintInjection('team_expertise', handoffHint));
+      // Inject expertise opportunity with context from team-chemistry
+      const handoffHint = `[EXPERTISE OPPORTUNITY: This topic relates to ${memberDesc}'s specialty (${relevantMember.reason}). If appropriate, you could mention your colleague naturally or offer to connect the user.]`;
 
-        log.debug(
-          { personaId: persona.id, expertMatch: expertMatch.id, reason: 'expertise' },
-          'Team expertise match - suggesting natural reference'
-        );
-      }
+      injections.push(createHintInjection('team_expertise', handoffHint));
+
+      log.debug(
+        { personaId: persona.id, expertMatch: relevantMember.persona, reason: relevantMember.reason },
+        'Team expertise match via team-chemistry - suggesting natural reference'
+      );
     }
 
     return injections;
@@ -298,7 +223,6 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
       // Pick a random team member (not self, and must be unlocked)
       const otherMembers = teamMembers.filter((id) => {
         if (id === currentPersonaId || id === persona.id) return false;
-        // Only include unlocked members
         return isTeamMemberUnlocked(id, userProfile, tier);
       });
 
@@ -311,7 +235,6 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
           const teamMemberInfo = TEAM_MEMBERS.find((m) => m.id === randomMember);
           const memberDesc = teamMemberInfo?.description || randomMember;
 
-          // Note: Don't inject literal phrases - just indicate opportunity to reference
           injections.push(
             createHintInjection(
               'team_organic',
@@ -337,4 +260,4 @@ registerContextBuilder({
   build: buildTeamDynamicsContext,
 });
 
-export { buildTeamDynamicsContext, detectExpertiseMatch, detectTeamMemberMention, TEAM_MEMBERS };
+export { buildTeamDynamicsContext, detectTeamMemberMention, TEAM_MEMBERS };

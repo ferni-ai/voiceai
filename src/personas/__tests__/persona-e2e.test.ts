@@ -42,10 +42,25 @@ describe('Persona E2E Tests', () => {
       expect(manifest.identity?.description).toBeTruthy();
     });
 
-    it('should have a system-prompt.md', () => {
-      const promptPath = join(bundlePath, 'identity/system-prompt.md');
-      expect(existsSync(promptPath)).toBe(true);
+    it('should have an identity prompt file (system-prompt.md or biography.md)', () => {
+      // Personas may use system-prompt.md or biography.md for their identity
+      const systemPromptPath = join(bundlePath, 'identity/system-prompt.md');
+      const biographyPath = join(bundlePath, 'identity/biography.md');
+      const coreIdentityPath = join(bundlePath, 'identity/core-identity.md');
 
+      const hasSystemPrompt = existsSync(systemPromptPath);
+      const hasBiography = existsSync(biographyPath);
+      const hasCoreIdentity = existsSync(coreIdentityPath);
+
+      // Must have at least one identity file
+      expect(hasSystemPrompt || hasBiography || hasCoreIdentity).toBe(true);
+
+      // Read whichever exists and validate content
+      const promptPath = hasSystemPrompt
+        ? systemPromptPath
+        : hasBiography
+          ? biographyPath
+          : coreIdentityPath;
       const content = readFileSync(promptPath, 'utf8');
       expect(content.length).toBeGreaterThan(100);
       // Should contain persona name or role

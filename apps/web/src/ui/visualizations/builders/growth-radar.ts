@@ -1,4 +1,3 @@
-// TODO: Fix type errors - data point array indexing
 /**
  * Growth Fingerprint Visualization Builder
  *

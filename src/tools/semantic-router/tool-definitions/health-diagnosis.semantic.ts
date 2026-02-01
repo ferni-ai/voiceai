@@ -147,7 +147,12 @@ export const chronicIllnessLifeTool: SemanticToolDefinition = {
 
   arguments: [
     { name: 'condition', type: 'string', required: false, description: 'The chronic condition' },
-    { name: 'currentState', type: 'string', required: false, description: 'Flare/remission status' },
+    {
+      name: 'currentState',
+      type: 'string',
+      required: false,
+      description: 'Flare/remission status',
+    },
   ],
 
   confidence: {
@@ -294,7 +299,12 @@ export const tellingOthersTool: SemanticToolDefinition = {
 
   arguments: [
     { name: 'audience', type: 'string', required: false, description: 'Who they want to tell' },
-    { name: 'condition', type: 'string', required: false, description: 'The condition to disclose' },
+    {
+      name: 'condition',
+      type: 'string',
+      required: false,
+      description: 'The condition to disclose',
+    },
   ],
 
   confidence: {

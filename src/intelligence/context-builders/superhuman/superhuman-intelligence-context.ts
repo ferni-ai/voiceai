@@ -65,7 +65,7 @@ async function buildSuperhumanIntelligenceContext(
   const userId = services.userId || 'anonymous';
   const sessionId = services.sessionId;
   const topics = analysis.topics?.detected || [];
-  
+
   const injections: ContextInjection[] = [];
   const session = getSession(sessionId);
 
@@ -89,63 +89,33 @@ async function buildSuperhumanIntelligenceContext(
 
     // 1. Micro-Moment Recognition (HIGH priority - acknowledgment needed)
     if (microMomentResult) {
-      injections.push(
-        createHighInjection(
-          'SuperhumanIntelligence:MicroMoment',
-          microMomentResult
-        )
-      );
+      injections.push(createHighInjection('SuperhumanIntelligence:MicroMoment', microMomentResult));
       session.lastMicroMoment = microMomentResult;
     }
 
     // 2. Avoidance Pattern Detection (STANDARD priority)
     if (avoidanceResult) {
-      injections.push(
-        createStandardInjection(
-          'SuperhumanIntelligence:Avoidance',
-          avoidanceResult
-        )
-      );
+      injections.push(createStandardInjection('SuperhumanIntelligence:Avoidance', avoidanceResult));
     }
 
     // 3. Rhythm Guidance (STANDARD priority)
     if (rhythmResult) {
-      injections.push(
-        createStandardInjection(
-          'SuperhumanIntelligence:Rhythm',
-          rhythmResult
-        )
-      );
+      injections.push(createStandardInjection('SuperhumanIntelligence:Rhythm', rhythmResult));
     }
 
     // 4. Relational Memory (HINT priority - background context)
     if (relationalResult) {
-      injections.push(
-        createHintInjection(
-          'SuperhumanIntelligence:Relational',
-          relationalResult
-        )
-      );
+      injections.push(createHintInjection('SuperhumanIntelligence:Relational', relationalResult));
     }
 
     // 5. Pattern Insights (HINT priority - optional surfacing)
     if (patternResult) {
-      injections.push(
-        createHintInjection(
-          'SuperhumanIntelligence:Patterns',
-          patternResult
-        )
-      );
+      injections.push(createHintInjection('SuperhumanIntelligence:Patterns', patternResult));
     }
 
     // 6. Story Continuity (HINT priority - optional follow-up)
     if (storyResult) {
-      injections.push(
-        createHintInjection(
-          'SuperhumanIntelligence:Story',
-          storyResult
-        )
-      );
+      injections.push(createHintInjection('SuperhumanIntelligence:Story', storyResult));
     }
 
     log.debug(
@@ -158,10 +128,7 @@ async function buildSuperhumanIntelligenceContext(
       'Superhuman intelligence context built'
     );
   } catch (error) {
-    log.warn(
-      { error: String(error), userId },
-      'Error building superhuman intelligence context'
-    );
+    log.warn({ error: String(error), userId }, 'Error building superhuman intelligence context');
   }
 
   return injections;
@@ -171,9 +138,7 @@ async function buildSuperhumanIntelligenceContext(
 // INDIVIDUAL ANALYZERS
 // ============================================================================
 
-async function analyzeMicroMoments(
-  userText: string
-): Promise<string | null> {
+async function analyzeMicroMoments(userText: string): Promise<string | null> {
   try {
     const detector = getMicroMomentDetector();
     const analysis = detector.detect({
@@ -229,7 +194,7 @@ async function analyzeRhythm(
   try {
     const rhythm = getRhythmIntelligence();
     const wordCount = userText.split(/\s+/).filter(Boolean).length;
-    
+
     const guidance = await rhythm.getGuidance({
       userId,
       turnNumber,
@@ -247,9 +212,7 @@ async function analyzeRhythm(
   return null;
 }
 
-async function analyzeRelational(
-  userId: string
-): Promise<string | null> {
+async function analyzeRelational(userId: string): Promise<string | null> {
   try {
     const relMem = getRelationalMemory();
     const context = await relMem.buildContextForLLM(userId);
@@ -277,9 +240,7 @@ async function analyzePatterns(
   return null;
 }
 
-async function analyzeStoryArcs(
-  userId: string
-): Promise<string | null> {
+async function analyzeStoryArcs(userId: string): Promise<string | null> {
   try {
     const tracker = getStoryArcTracker();
     const context = await tracker.buildContextInjection(userId);
@@ -325,7 +286,7 @@ export function checkEmotionalIntervention(sessionId: string) {
     const tracker = getEmotionalMomentumTracker();
     const intervention = tracker.checkIntervention(sessionId);
     const trajectory = tracker.getTrajectory(sessionId);
-    
+
     if (intervention) {
       return {
         shouldIntervene: true,
@@ -335,7 +296,7 @@ export function checkEmotionalIntervention(sessionId: string) {
         timing: intervention.timing,
       };
     }
-    
+
     return {
       shouldIntervene: false,
       trajectory,
@@ -362,7 +323,7 @@ export async function analyzeVoiceAndIntervene(voiceFeatures: {
     const pipeline = getVoiceBiomarkerPipeline();
     const state = await pipeline.analyze(voiceFeatures);
     const intervention = pipeline.getIntervention(state);
-    
+
     return {
       state: {
         primaryState: state.primary, // VoiceState uses 'primary' not 'state'
@@ -400,7 +361,7 @@ registerContextBuilder({
  */
 export function cleanupSession(sessionId: string): void {
   sessions.delete(sessionId);
-  
+
   try {
     const tracker = getEmotionalMomentumTracker();
     tracker.reset(sessionId);

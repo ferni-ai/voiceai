@@ -1,4 +1,3 @@
-// TODO: Fix type errors - persona colors and array indexing
 /**
  * Persona Introduction Flow
  *

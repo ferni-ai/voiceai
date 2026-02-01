@@ -131,16 +131,13 @@ export async function shouldRespondToSilenceEnhanced(
   });
 
   // Get optimal wait time based on silence type and user patterns
-  const optimalWaitMs = state.profile 
+  const optimalWaitMs = state.profile
     ? await getOptimalWaitTime(userId, analysis.type)
     : analysis.waitDurationMs;
   const optimalWaitSec = optimalWaitMs / 1000;
 
   // Check if we've waited long enough
-  const targetInterval = Math.max(
-    SILENCE_INTERVALS[state.responseCount] || 38,
-    optimalWaitSec
-  );
+  const targetInterval = Math.max(SILENCE_INTERVALS[state.responseCount] || 38, optimalWaitSec);
 
   const timeSinceLastResponse = Date.now() - state.lastResponseAt;
   const shouldRespond =

@@ -13,8 +13,12 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import type { SemanticRouterResult } from '../types.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import {
+  getPlattScaler,
+  type PlattParameters,
+  type CalibrationSample,
+} from '../../intelligence/platt-scaling.js';
 
 const log = createLogger({ module: 'SemanticRouter.FeedbackStore' });
 
@@ -120,11 +124,17 @@ export interface CalibrationData {
     accuracy: number;
   }>;
 
-  // Temperature for calibration
+  // Temperature for calibration (legacy fallback)
   temperature: number;
 
   // Expected Calibration Error
   ece: number;
+
+  // Platt scaling parameters (when fitted)
+  plattParams?: PlattParameters;
+
+  // Whether Platt scaling is active
+  usePlattScaling: boolean;
 
   updatedAt: Date;
 }
@@ -372,30 +382,69 @@ export async function updateCalibration(): Promise<CalibrationData> {
     });
   }
 
-  // Calculate ECE (Expected Calibration Error)
-  let ece = 0;
+  // Calculate ECE (Expected Calibration Error) before calibration
+  let eceBefore = 0;
   const totalPredictions = allFeedback.length;
 
   for (const bin of bins) {
     if (bin.totalPredictions > 0) {
       const expectedConfidence = (bin.confidenceMin + bin.confidenceMax) / 2;
       const error = Math.abs(bin.accuracy - expectedConfidence);
-      ece += (bin.totalPredictions / totalPredictions) * error;
+      eceBefore += (bin.totalPredictions / totalPredictions) * error;
     }
   }
 
-  // Calculate temperature (simple approach)
-  // TODO: Implement Platt scaling for better calibration
-  const temperature = ece > 0.1 ? 1.5 : ece > 0.05 ? 1.2 : 1.0;
+  // Convert feedback to calibration samples for Platt scaling
+  const samples: CalibrationSample[] = allFeedback.map((f) => ({
+    rawConfidence: f.routingResult.confidence,
+    correct: f.routingResult.predictedTool === f.outcome.actualToolUsed ? 1 : 0,
+  }));
+
+  // Fit Platt scaling
+  const plattScaler = getPlattScaler();
+  plattScaler.addSamples(samples);
+  const plattFitted = plattScaler.fit();
+
+  // Get Platt parameters if fitting was successful
+  const plattParams = plattFitted ? plattScaler.getParameters() : undefined;
+  const usePlattScaling = plattFitted && plattParams !== null;
+
+  // Calculate fallback temperature (used when Platt scaling not available)
+  const temperature = eceBefore > 0.1 ? 1.5 : eceBefore > 0.05 ? 1.2 : 1.0;
+
+  // Use the ECE after Platt calibration if available, otherwise use ECE before
+  const ece = usePlattScaling && plattParams ? plattParams.eceAfter : eceBefore;
 
   calibrationData = {
     bins,
     temperature,
     ece,
+    plattParams: plattParams ?? undefined,
+    usePlattScaling,
     updatedAt: new Date(),
   };
 
-  log.info({ ece: ece.toFixed(3), temperature }, 'Calibration updated');
+  // Persist Platt parameters to Firestore
+  if (plattParams) {
+    persistPlattParameters(plattParams).catch((err) => {
+      log.warn({ error: String(err) }, 'Failed to persist Platt parameters');
+    });
+  }
+
+  log.info(
+    {
+      eceBefore: eceBefore.toFixed(4),
+      eceAfter: ece.toFixed(4),
+      usePlattScaling,
+      plattA: plattParams?.A.toFixed(4),
+      plattB: plattParams?.B.toFixed(4),
+      sampleCount: allFeedback.length,
+      improvement: usePlattScaling
+        ? `${((1 - ece / eceBefore) * 100).toFixed(1)}%`
+        : 'N/A (using temperature)',
+    },
+    '✅ Calibration updated'
+  );
 
   return calibrationData;
 }
@@ -408,7 +457,15 @@ export function calibrateConfidence(rawConfidence: number): number {
     return rawConfidence;
   }
 
-  // Apply temperature scaling
+  // Use Platt scaling if available (better calibration)
+  if (calibrationData.usePlattScaling) {
+    const plattScaler = getPlattScaler();
+    if (plattScaler.isReady()) {
+      return plattScaler.calibrate(rawConfidence);
+    }
+  }
+
+  // Fallback to temperature scaling
   const scaled = Math.pow(rawConfidence, 1 / calibrationData.temperature);
 
   // Clamp to [0, 1]
@@ -427,6 +484,7 @@ function createDefaultCalibration(): CalibrationData {
     bins: [],
     temperature: 1.0,
     ece: 0,
+    usePlattScaling: false,
     updatedAt: new Date(),
   };
 }
@@ -573,6 +631,102 @@ async function loadVocabulary(userId: string): Promise<UserVocabulary | undefine
     };
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to load vocabulary');
+    return undefined;
+  }
+}
+
+// ============================================================================
+// PLATT SCALING PERSISTENCE
+// ============================================================================
+
+const PLATT_PARAMS_DOC_ID = 'global_platt_params';
+
+async function persistPlattParameters(params: PlattParameters): Promise<void> {
+  const db = await getFirestoreInstance();
+  if (!db) return;
+
+  try {
+    await db
+      .collection('semantic_routing_calibration')
+      .doc(PLATT_PARAMS_DOC_ID)
+      .set(
+        cleanForFirestore({
+          A: params.A,
+          B: params.B,
+          sampleCount: params.sampleCount,
+          eceBefore: params.eceBefore,
+          eceAfter: params.eceAfter,
+          updatedAt: params.updatedAt.toISOString(),
+        })
+      );
+    log.info(
+      { A: params.A.toFixed(4), B: params.B.toFixed(4) },
+      '✅ Platt parameters persisted'
+    );
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to persist Platt parameters');
+  }
+}
+
+/**
+ * Load Platt parameters from Firestore and initialize the scaler.
+ * Call this on startup to restore calibration state.
+ */
+export async function loadPlattParameters(): Promise<PlattParameters | undefined> {
+  const db = await getFirestoreInstance();
+  if (!db) return undefined;
+
+  try {
+    const doc = await db.collection('semantic_routing_calibration').doc(PLATT_PARAMS_DOC_ID).get();
+    if (!doc.exists) {
+      log.debug('No persisted Platt parameters found');
+      return undefined;
+    }
+
+    const data = doc.data();
+    if (!data) return undefined;
+
+    const params: PlattParameters = {
+      A: Number(data.A ?? 0),
+      B: Number(data.B ?? 0),
+      sampleCount: Number(data.sampleCount ?? 0),
+      eceBefore: Number(data.eceBefore ?? 0),
+      eceAfter: Number(data.eceAfter ?? 0),
+      updatedAt: new Date(String(data.updatedAt)),
+    };
+
+    // Initialize the Platt scaler with loaded parameters
+    const plattScaler = getPlattScaler();
+    plattScaler.setParameters(params);
+
+    // Update calibration data to reflect loaded state
+    if (calibrationData) {
+      calibrationData.plattParams = params;
+      calibrationData.usePlattScaling = true;
+    } else {
+      calibrationData = {
+        bins: [],
+        temperature: 1.0,
+        ece: params.eceAfter,
+        plattParams: params,
+        usePlattScaling: true,
+        updatedAt: params.updatedAt,
+      };
+    }
+
+    log.info(
+      {
+        A: params.A.toFixed(4),
+        B: params.B.toFixed(4),
+        ece: params.eceAfter.toFixed(4),
+        sampleCount: params.sampleCount,
+      },
+      '✅ Platt parameters loaded from Firestore'
+    );
+
+    return params;
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to load Platt parameters');
     return undefined;
   }
 }

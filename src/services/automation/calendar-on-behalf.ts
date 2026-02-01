@@ -134,18 +134,16 @@ function validateEventRequest(request: CalendarEventRequest): string | null {
     return 'startTime is required';
   }
 
-  const startDate = typeof request.startTime === 'string'
-    ? new Date(request.startTime)
-    : request.startTime;
+  const startDate =
+    typeof request.startTime === 'string' ? new Date(request.startTime) : request.startTime;
 
   if (isNaN(startDate.getTime())) {
     return 'invalid startTime';
   }
 
   if (request.endTime) {
-    const endDate = typeof request.endTime === 'string'
-      ? new Date(request.endTime)
-      : request.endTime;
+    const endDate =
+      typeof request.endTime === 'string' ? new Date(request.endTime) : request.endTime;
 
     if (isNaN(endDate.getTime())) {
       return 'invalid endTime';
@@ -178,11 +176,7 @@ export async function createEventOnBehalf(
   const preview = generateEventPreview(request);
 
   // Check permission via trust level system
-  const permissionResult = await checkActionPermission(
-    request.userId,
-    'create_event',
-    preview
-  );
+  const permissionResult = await checkActionPermission(request.userId, 'create_event', preview);
 
   if (!permissionResult.success) {
     return {
@@ -267,9 +261,10 @@ async function storeEventRequest(
       .doc(pendingActionId)
       .set({
         ...request,
-        startTime: typeof request.startTime === 'string'
-          ? request.startTime
-          : request.startTime.toISOString(),
+        startTime:
+          typeof request.startTime === 'string'
+            ? request.startTime
+            : request.startTime.toISOString(),
         endTime: request.endTime
           ? typeof request.endTime === 'string'
             ? request.endTime
@@ -325,9 +320,8 @@ async function executeEventCreation(
     }
 
     // Convert times
-    const startTime = typeof request.startTime === 'string'
-      ? new Date(request.startTime)
-      : request.startTime;
+    const startTime =
+      typeof request.startTime === 'string' ? new Date(request.startTime) : request.startTime;
     const endTime = request.endTime
       ? typeof request.endTime === 'string'
         ? new Date(request.endTime)

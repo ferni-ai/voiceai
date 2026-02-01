@@ -304,10 +304,10 @@ export class MoodTracker {
     let trend: 'improving' | 'declining' | 'stable' = 'stable';
     if (this.snapshots.length >= 4) {
       const mid = Math.floor(this.snapshots.length / 2);
-      const firstHalfAvg =
-        this.snapshots.slice(0, mid).reduce((sum, s) => sum + s.energy, 0) / mid;
+      const firstHalfAvg = this.snapshots.slice(0, mid).reduce((sum, s) => sum + s.energy, 0) / mid;
       const secondHalfAvg =
-        this.snapshots.slice(mid).reduce((sum, s) => sum + s.energy, 0) / (this.snapshots.length - mid);
+        this.snapshots.slice(mid).reduce((sum, s) => sum + s.energy, 0) /
+        (this.snapshots.length - mid);
 
       const diff = secondHalfAvg - firstHalfAvg;
       if (diff > 0.1) {
@@ -333,12 +333,15 @@ export class MoodTracker {
   async persistTrajectory(): Promise<boolean> {
     const trajectory = this.getTrajectory();
     if (!trajectory) {
-      log.warn({
-        hasSessionId: !!this.sessionId,
-        hasUserId: !!this.userId,
-        hasPersonaId: !!this.personaId,
-        snapshotCount: this.snapshots.length,
-      }, '📊 SKIP: No trajectory to persist (missing session metadata)');
+      log.warn(
+        {
+          hasSessionId: !!this.sessionId,
+          hasUserId: !!this.userId,
+          hasPersonaId: !!this.personaId,
+          snapshotCount: this.snapshots.length,
+        },
+        '📊 SKIP: No trajectory to persist (missing session metadata)'
+      );
       return false;
     }
 
@@ -460,11 +463,7 @@ export async function getRecentTrajectories(
     if (!db) return [];
 
     const path = `${USERS_COLLECTION}/${userId}/${EMOTIONAL_TRAJECTORY_COLLECTION}`;
-    const snapshot = await db
-      .collection(path)
-      .orderBy('startedAt', 'desc')
-      .limit(limit)
-      .get();
+    const snapshot = await db.collection(path).orderBy('startedAt', 'desc').limit(limit).get();
 
     return snapshot.docs.map((doc) => doc.data() as EmotionalTrajectory);
   } catch (error) {

@@ -443,7 +443,7 @@ describe('GTM Service', () => {
     it('should return status object with required fields', async () => {
       const { getGTMStatus } = await import('../services/gtm/gtm-service.js');
 
-      const status = getGTMStatus();
+      const status = await getGTMStatus();
 
       expect(status).toHaveProperty('calendarStats');
       expect(status).toHaveProperty('socialStatus');

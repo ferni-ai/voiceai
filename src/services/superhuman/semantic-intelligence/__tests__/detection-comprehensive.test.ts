@@ -43,6 +43,13 @@ vi.mock('../../../../config/gemini-config.js', () => {
     GEMINI_LANGUAGE: 'en-US',
     LLM_TIMEOUT_MS: 5000,
     LLM_SHORT_TIMEOUT_MS: 2000,
+    // Temperature constants used by llm-detector.ts
+    TEMP_CLASSIFICATION: 0.1,
+    TEMP_EXTRACTION: 0.3,
+    TEMP_BALANCED: 0.5,
+    TEMP_REASONING: 0.7,
+    TEMP_CONTENT: 0.8,
+    TEMP_CREATIVE: 0.9,
   };
 
   // Inline mock generator (hoisted, can't reference external functions)
@@ -614,6 +621,12 @@ vi.mock('../../../../config/gemini-config.js', () => {
     getExtractionModel: () => 'gemini-1.5-flash',
     getEmbeddingModel: () => 'text-embedding-004',
     getOpenAIFallbackModel: () => 'gpt-4o-mini',
+    getEvaluationModel: () => 'gemini-2.0-flash',
+    getClassificationModel: () => 'gemini-1.5-flash',
+    getContentGenerationModel: () => 'gemini-1.5-flash',
+    getLightModel: () => 'gemini-1.5-flash',
+    getRealtimeModel: () => 'gemini-2.0-flash-exp',
+    getOpenAIRealtimeModel: () => 'gpt-4o-realtime-preview',
   };
 });
 

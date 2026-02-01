@@ -117,13 +117,13 @@ describe('Predictive Modeling Tools', () => {
   describe('predictGoalSuccess', () => {
     it('should predict goal success probability', async () => {
       vi.mocked(persistence.loadGoalProgress).mockResolvedValueOnce([
-        { 
-          goalId: 'goal-1', 
+        {
+          goalId: 'goal-1',
           userId: 'test-user-123',
-          name: 'Test Goal', 
+          name: 'Test Goal',
           type: 'custom',
           startDate: new Date(),
-          currentProgress: 50, 
+          currentProgress: 50,
           milestones: [{ date: new Date(), progress: 50 }],
           status: 'active' as const,
         },
@@ -196,15 +196,15 @@ describe('Predictive Modeling Tools', () => {
   describe('analyzeHabitSurvival', () => {
     it('should analyze habit survival', async () => {
       vi.mocked(persistence.loadHabits).mockResolvedValueOnce([
-        { 
-          id: 'h-1', 
-          name: 'Exercise', 
+        {
+          id: 'h-1',
+          name: 'Exercise',
           type: 'health',
           startDate: new Date(),
-          streak: 30, 
+          streak: 30,
           longestStreak: 45,
-          completions: [new Date()], 
-          breaks: [], 
+          completions: [new Date()],
+          breaks: [],
           status: 'active' as const,
         },
       ]);

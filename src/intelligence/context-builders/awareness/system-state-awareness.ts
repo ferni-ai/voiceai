@@ -42,7 +42,10 @@ import { BuilderCategory } from '../core/categories.js';
 import { createHighInjection, registerContextBuilder } from '../index.js';
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../core/types.js';
 import type { ToolHistoryEntry } from '../../../services/conversation-state.js';
-import { getSystemPromptInjection, getHealthContext } from '../../../services/self-healing/index.js';
+import {
+  getSystemPromptInjection,
+  getHealthContext,
+} from '../../../services/self-healing/index.js';
 
 const log = getLogger();
 
@@ -97,19 +100,19 @@ export interface TimingState {
 
 const TIMING_THRESHOLDS = {
   // Turn latency classification
-  FAST_TURN_MS: 1000,    // < 1s is fast
-  NORMAL_TURN_MS: 2000,  // 1-2s is normal
-  SLOW_TURN_MS: 3000,    // > 2s is slow
+  FAST_TURN_MS: 1000, // < 1s is fast
+  NORMAL_TURN_MS: 2000, // 1-2s is normal
+  SLOW_TURN_MS: 3000, // > 2s is slow
 
   // User waiting - when to acknowledge
   WAITING_ACKNOWLEDGE_MS: 2000, // Acknowledge if waiting > 2s
 
   // Conversation pace - based on average turn gap
-  RAPID_PACE_GAP_MS: 1500,      // < 1.5s average gap = rapid
+  RAPID_PACE_GAP_MS: 1500, // < 1.5s average gap = rapid
   REFLECTIVE_PACE_GAP_MS: 4000, // > 4s average gap = reflective
 
   // Pressure thresholds
-  PRESSURE_THRESHOLD_MS: 3000,  // System under pressure if > 3s
+  PRESSURE_THRESHOLD_MS: 3000, // System under pressure if > 3s
 } as const;
 
 // ============================================================================
@@ -203,10 +206,14 @@ function formatSystemState(state: SystemStateContext): string {
         ? ` (playing for ${formatDuration(state.music.playDurationSeconds)})`
         : '';
       const duckStatus = state.music.isDucked ? ', ducked for conversation' : '';
-      lines.push(`🎵 Music is playing: "${state.music.currentTrack.name}" by ${state.music.currentTrack.artist}${duration}${duckStatus}`);
-      
+      lines.push(
+        `🎵 Music is playing: "${state.music.currentTrack.name}" by ${state.music.currentTrack.artist}${duration}${duckStatus}`
+      );
+
       // Guidance: Don't offer to play music when it's already playing
-      guidance.push('Music is already playing. If asked about music: acknowledge it\'s on, ask if they want to change it, skip, or adjust volume.');
+      guidance.push(
+        "Music is already playing. If asked about music: acknowledge it's on, ask if they want to change it, skip, or adjust volume."
+      );
     } else {
       lines.push('🎵 Music is playing');
       guidance.push('Music is playing. Don\'t offer to "play some music" - it\'s already on.');
@@ -219,7 +226,9 @@ function formatSystemState(state: SystemStateContext): string {
       ? ` (next expires at ${state.timers.nextExpiry.toLocaleTimeString()})`
       : '';
     lines.push(`⏱️ ${state.timers.active} active timer(s)${expiry}`);
-    guidance.push('Timer is running. If asked about timers: mention the active one(s). Offer to cancel or set additional timers if needed.');
+    guidance.push(
+      'Timer is running. If asked about timers: mention the active one(s). Offer to cancel or set additional timers if needed.'
+    );
   }
 
   // Last tool - only if recent (< 30s) - this is the "I just did this for you" signal
@@ -228,9 +237,9 @@ function formatSystemState(state: SystemStateContext): string {
     if (agoMs < 30000) {
       const agoSec = Math.round(agoMs / 1000);
       const toolId = state.lastToolExecuted.toolId;
-      
+
       lines.push(`✅ Just executed: ${toolId} (${agoSec}s ago)`);
-      
+
       // Tool-specific guidance - tell LLM how to acknowledge what we did
       const toolGuidance = getToolAcknowledgmentGuidance(toolId, state.lastToolExecuted.result);
       if (toolGuidance) {
@@ -245,7 +254,7 @@ function formatSystemState(state: SystemStateContext): string {
   }
 
   let output = lines.join('\n');
-  
+
   if (guidance.length > 0) {
     output += '\n\n[GUIDANCE: ' + guidance.join(' ') + ']';
   }
@@ -261,21 +270,21 @@ function getToolAcknowledgmentGuidance(toolId: string, result?: string): string 
   switch (toolId) {
     case 'playMusic':
       return 'Music started! Respond naturally: "There we go" / "How\'s that?" / brief acknowledgment. DON\'T say "I\'ll play music" - it\'s already playing.';
-    
+
     case 'pauseMusic':
       return 'Music paused. Brief acknowledgment: "Done" / "Paused" / "There you go". Stay present.';
-    
+
     case 'setTimer':
       return 'Timer set! Confirm: "Got it, timer\'s running" / "You\'re all set". DON\'T offer to set a timer - it\'s already set.';
-    
+
     case 'cancelTimer':
       return 'Timer cancelled. Acknowledge: "Cancelled" / "Done" / "No problem".';
-    
+
     case 'getWeather':
-      return result 
+      return result
         ? `Weather retrieved. Share the info naturally, don't just read data. Personalize if relevant.`
         : 'Weather requested. If you have the result, share it naturally.';
-    
+
     case 'handoffToMaya':
     case 'handoffToPeter':
     case 'handoffToAlex':
@@ -283,7 +292,7 @@ function getToolAcknowledgmentGuidance(toolId: string, result?: string): string 
     case 'handoffToNayan':
     case 'handoffToFerni':
       return 'Handoff initiated. The other team member will take over - no need to say anything else.';
-    
+
     default:
       return `Tool "${toolId}" was executed. Acknowledge naturally, don't repeat the action.`;
   }
@@ -380,9 +389,8 @@ export function clearTimingState(sessionId: string): void {
 export async function getTimingState(sessionId: string): Promise<TimingState | null> {
   try {
     // Get E2E latency tracker data
-    const { getCurrentTimeline, getLatencyStats } = await import(
-      '../../../agents/shared/e2e-latency-tracker.js'
-    );
+    const { getCurrentTimeline, getLatencyStats } =
+      await import('../../../agents/shared/e2e-latency-tracker.js');
 
     const currentTimeline = getCurrentTimeline(sessionId);
     const latencyStats = getLatencyStats();
@@ -447,13 +455,17 @@ function formatTimingState(timing: TimingState): string {
   if (timing.userWaitingTime > TIMING_THRESHOLDS.WAITING_ACKNOWLEDGE_MS) {
     const waitSec = Math.round(timing.userWaitingTime / 1000);
     lines.push(`⏱️ User waiting: ${waitSec}s`);
-    guidance.push(`User has been waiting ${waitSec}s. Acknowledge naturally ("Let me see..." / "Just a moment...").`);
+    guidance.push(
+      `User has been waiting ${waitSec}s. Acknowledge naturally ("Let me see..." / "Just a moment...").`
+    );
   }
 
   // Tools in flight
   if (timing.toolsInFlight.length > 0) {
     lines.push(`🔄 Processing: ${timing.toolsInFlight.join(', ')}`);
-    guidance.push(`Tools are running (${timing.toolsInFlight.join(', ')}). If user is waiting, acknowledge briefly.`);
+    guidance.push(
+      `Tools are running (${timing.toolsInFlight.join(', ')}). If user is waiting, acknowledge briefly.`
+    );
   }
 
   // Conversation pace guidance
@@ -522,7 +534,9 @@ function formatToolHistory(history: ToolHistoryEntry[]): string {
 
     // Show user request if available
     if (entry.userRequest) {
-      lines.push(`   User asked: "${entry.userRequest.slice(0, 80)}${entry.userRequest.length > 80 ? '...' : ''}"`);
+      lines.push(
+        `   User asked: "${entry.userRequest.slice(0, 80)}${entry.userRequest.length > 80 ? '...' : ''}"`
+      );
     }
 
     // Show result summary
@@ -536,7 +550,9 @@ function formatToolHistory(history: ToolHistoryEntry[]): string {
     lines.push('');
   }
 
-  lines.push('[GUIDANCE: These tools already executed. Reference results naturally. DON\'T re-call unless user asks explicitly.]');
+  lines.push(
+    "[GUIDANCE: These tools already executed. Reference results naturally. DON'T re-call unless user asks explicitly.]"
+  );
 
   return lines.join('\n');
 }
@@ -579,9 +595,7 @@ async function getToolInFlightFromConversationState(
 // CONTEXT BUILDER
 // ============================================================================
 
-async function buildSystemStateAwareness(
-  input: ContextBuilderInput
-): Promise<ContextInjection[]> {
+async function buildSystemStateAwareness(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const injections: ContextInjection[] = [];
   const sessionId = input.services?.sessionId;
 
@@ -729,7 +743,9 @@ async function buildSystemStateAwareness(
 /**
  * Get tool hint from userData if available
  */
-function getToolHint(input: ContextBuilderInput): { toolId: string; guidance: string; confidence: number } | undefined {
+function getToolHint(
+  input: ContextBuilderInput
+): { toolId: string; guidance: string; confidence: number } | undefined {
   const userData = input.userData as unknown as Record<string, unknown> | undefined;
   if (userData?.toolHint) {
     return userData.toolHint as { toolId: string; guidance: string; confidence: number };

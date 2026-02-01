@@ -222,7 +222,8 @@ async function unifiedSearch(
 const searchLocalBusinessesDef: ToolDefinition = {
   id: 'searchLocalBusinesses',
   name: 'Search Local Businesses',
-  description: 'Search for local businesses (restaurants, shops, services). Uses Google Places with Yelp fallback.',
+  description:
+    'Search for local businesses (restaurants, shops, services). Uses Google Places with Yelp fallback.',
   domain: 'local-search',
   tags: ['local', 'search', 'restaurants', 'businesses', 'google', 'yelp'],
 
@@ -233,7 +234,9 @@ const searchLocalBusinessesDef: ToolDefinition = {
         'Say "on Yelp" or "on Google" to use a specific source. ' +
         'Returns ratings, reviews, price level, and hours.',
       parameters: z.object({
-        query: z.string().describe('What to search for (e.g., "Italian restaurant", "coffee shop", "gym")'),
+        query: z
+          .string()
+          .describe('What to search for (e.g., "Italian restaurant", "coffee shop", "gym")'),
         location: z.string().describe('Where to search (city, neighborhood, or address)'),
         openNow: z.boolean().optional().describe('Only show places currently open'),
         priceLevel: z
@@ -247,9 +250,7 @@ const searchLocalBusinessesDef: ToolDefinition = {
 
           const explicitSource = detectExplicitSource(query);
           // Remove "on yelp" / "on google" from query
-          const cleanQuery = query
-            .replace(/\s+(on\s+)?(yelp|google)/gi, '')
-            .trim();
+          const cleanQuery = query.replace(/\s+(on\s+)?(yelp|google)/gi, '').trim();
 
           const results = await unifiedSearch(cleanQuery, location, {
             openNow,
@@ -284,7 +285,10 @@ const findRestaurantsDef: ToolDefinition = {
         'Say "on Yelp" or "on Google" to use a specific source.',
       parameters: z.object({
         location: z.string().describe('Where to search (city, neighborhood, or address)'),
-        cuisine: z.string().optional().describe('Type of cuisine (e.g., "Italian", "Sushi", "Mexican")'),
+        cuisine: z
+          .string()
+          .optional()
+          .describe('Type of cuisine (e.g., "Italian", "Sushi", "Mexican")'),
         openNow: z.boolean().optional().describe('Only show restaurants currently open'),
         priceLevel: z.string().optional().describe('Price range: "1" ($) to "4" ($$$$)'),
       }),
@@ -294,9 +298,7 @@ const findRestaurantsDef: ToolDefinition = {
           log.info({ query, location, userId: ctx.userId }, '🍽️ Finding restaurants');
 
           const explicitSource = detectExplicitSource(cuisine || '');
-          const cleanCuisine = (cuisine || '')
-            .replace(/\s+(on\s+)?(yelp|google)/gi, '')
-            .trim();
+          const cleanCuisine = (cuisine || '').replace(/\s+(on\s+)?(yelp|google)/gi, '').trim();
 
           const results = await unifiedSearch(
             cleanCuisine ? `${cleanCuisine} restaurant` : 'restaurant',
@@ -314,7 +316,7 @@ const findRestaurantsDef: ToolDefinition = {
           return response;
         } catch (error) {
           log.error({ error: String(error) }, 'Restaurant search failed');
-          return "I had trouble finding restaurants. Let me try again.";
+          return 'I had trouble finding restaurants. Let me try again.';
         }
       },
     });
@@ -348,7 +350,8 @@ const getBusinessInfoDef: ToolDefinition = {
             if (!details) return "I couldn't find details for that business.";
 
             let response = `**${details.name}**\n\n`;
-            if (details.rating) response += `⭐ ${details.rating} (${details.userRatingsTotal} reviews)\n`;
+            if (details.rating)
+              response += `⭐ ${details.rating} (${details.userRatingsTotal} reviews)\n`;
             response += `📍 ${details.formattedAddress}\n`;
             if (details.formattedPhoneNumber) response += `📞 ${details.formattedPhoneNumber}\n`;
             if (details.website) response += `🌐 ${details.website}\n`;
@@ -405,15 +408,14 @@ const getBusinessReviewsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Get customer reviews for a business. Uses Yelp which has richer review data.',
+      description: 'Get customer reviews for a business. Uses Yelp which has richer review data.',
       parameters: z.object({
         businessId: z.string().describe('The Yelp business ID'),
         limit: z.number().optional().describe('Number of reviews (max 3)'),
       }),
       execute: async ({ businessId, limit }) => {
         if (!isYelpConfigured()) {
-          return "Reviews require Yelp integration. I can still help you search for businesses!";
+          return 'Reviews require Yelp integration. I can still help you search for businesses!';
         }
 
         try {
@@ -457,11 +459,14 @@ const lookupByPhoneDef: ToolDefinition = {
       }),
       execute: async ({ phone }) => {
         if (!isYelpConfigured()) {
-          return "Phone lookup requires Yelp integration. Try searching by name instead!";
+          return 'Phone lookup requires Yelp integration. Try searching by name instead!';
         }
 
         try {
-          log.info({ phone: phone.slice(-4), userId: ctx.userId }, '📞 Looking up business by phone');
+          log.info(
+            { phone: phone.slice(-4), userId: ctx.userId },
+            '📞 Looking up business by phone'
+          );
 
           const business = await yelpPhoneLookup(phone);
 
@@ -502,9 +507,10 @@ const checkLocalSearchStatusDef: ToolDefinition = {
         response += `⭐ Yelp: ${yelp ? '✅ Active (fallback + reviews)' : '❌ Not configured'}\n\n`;
 
         if (google || yelp) {
-          response += "I can help you find restaurants, shops, and services nearby!";
+          response += 'I can help you find restaurants, shops, and services nearby!';
         } else {
-          response += "Local search isn't configured yet. I can still chat about places in general!";
+          response +=
+            "Local search isn't configured yet. I can still chat about places in general!";
         }
 
         return response;

@@ -5,12 +5,7 @@
     "Well, in my experience...",
     "That's a thoughtful question..."
   ],
-  "agreement": [
-    "Exactly right",
-    "Yes, that's it",
-    "You understand",
-    "That's wisdom"
-  ],
+  "agreement": ["Exactly right", "Yes, that's it", "You understand", "That's wisdom"],
   "consideration": [
     "Interesting...",
     "Let me share something with you...",
@@ -29,11 +24,5 @@
     "Let me offer a thought...",
     "With respect, I'd suggest..."
   ],
-  "backchanneling": [
-    "Mm-hmm",
-    "I see",
-    "Go on",
-    "Yes",
-    "I understand"
-  ]
+  "backchanneling": ["Mm-hmm", "I see", "Go on", "Yes", "I understand"]
 }

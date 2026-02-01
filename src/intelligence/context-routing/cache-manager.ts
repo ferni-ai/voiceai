@@ -278,8 +278,7 @@ export class CacheManager {
     const userAffinity = 50;
 
     // Compute composite score
-    const score =
-      roiScore * 0.4 + modeRelevance * 0.3 + recencyBoost * 0.15 + userAffinity * 0.15;
+    const score = roiScore * 0.4 + modeRelevance * 0.3 + recencyBoost * 0.15 + userAffinity * 0.15;
 
     return {
       builderId,

@@ -82,7 +82,9 @@ const mockMom = {
   lastInteraction: new Date(),
   interactionCount: 10,
   strengthScore: 90,
-  topics: [{ topic: 'grandkids', firstMentioned: new Date(), lastMentioned: new Date(), mentionCount: 5 }],
+  topics: [
+    { topic: 'grandkids', firstMentioned: new Date(), lastMentioned: new Date(), mentionCount: 5 },
+  ],
   recentContext: [],
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -99,7 +101,12 @@ const mockDad = {
   lastInteraction: new Date(),
   interactionCount: 8,
   strengthScore: 85,
-  topics: [] as Array<{ topic: string; firstMentioned: Date; lastMentioned: Date; mentionCount: number }>,
+  topics: [] as Array<{
+    topic: string;
+    firstMentioned: Date;
+    lastMentioned: Date;
+    mentionCount: number;
+  }>,
   recentContext: [],
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -116,7 +123,12 @@ const mockBoss = {
   lastInteraction: new Date(),
   interactionCount: 5,
   strengthScore: 50,
-  topics: [] as Array<{ topic: string; firstMentioned: Date; lastMentioned: Date; mentionCount: number }>,
+  topics: [] as Array<{
+    topic: string;
+    firstMentioned: Date;
+    lastMentioned: Date;
+    mentionCount: number;
+  }>,
   recentContext: [],
   createdAt: new Date(),
   updatedAt: new Date(),

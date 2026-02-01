@@ -285,7 +285,8 @@ export class EmotionalState {
     let base = this.granular ?? this.primary;
 
     if (this.hasContradiction) {
-      const contraGranular = this.contradictingEmotion?.granular ?? this.contradictingEmotion?.primary;
+      const contraGranular =
+        this.contradictingEmotion?.granular ?? this.contradictingEmotion?.primary;
       return `${intensityWord} ${base}, but also ${contraGranular}`;
     }
 

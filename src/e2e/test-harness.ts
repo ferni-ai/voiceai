@@ -10,10 +10,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import {
-  createTestContext,
-  generateTestUserId,
-} from './context-factory.js';
+import { createTestContext, generateTestUserId } from './context-factory.js';
 import { validateApiResponse } from './validators/api-validator.js';
 import { validateStorage } from './validators/storage-validator.js';
 import { validateInsight } from './validators/insight-validator.js';
@@ -59,10 +56,7 @@ const COVERAGE_THRESHOLD = 80;
 /**
  * Run a single E2E test case.
  */
-export async function runTest(
-  testCase: E2ETestCase,
-  ctx: E2ETestContext
-): Promise<E2EResult> {
+export async function runTest(testCase: E2ETestCase, ctx: E2ETestContext): Promise<E2EResult> {
   const startTime = Date.now();
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -289,7 +283,7 @@ export async function runTests(
   log.info('Starting E2E test run', {
     totalTests: tests.length,
     concurrency: mergedConfig.concurrency,
-    testUserId: testUserId.substring(0, 20) + '...',
+    testUserId: `${testUserId.substring(0, 20)}...`,
   });
 
   // Create shared context
@@ -308,15 +302,11 @@ export async function runTests(
   let filteredTests = tests;
 
   if (mergedConfig.categories.length > 0) {
-    filteredTests = filteredTests.filter((t) =>
-      mergedConfig.categories.includes(t.category)
-    );
+    filteredTests = filteredTests.filter((t) => mergedConfig.categories.includes(t.category));
   }
 
   if (mergedConfig.testIds.length > 0) {
-    filteredTests = filteredTests.filter((t) =>
-      mergedConfig.testIds.includes(t.id)
-    );
+    filteredTests = filteredTests.filter((t) => mergedConfig.testIds.includes(t.id));
   }
 
   if (mergedConfig.tags.length > 0) {
@@ -335,7 +325,7 @@ export async function runTests(
 
   for (const batch of batches) {
     const batchResults = await Promise.all(
-      batch.map((test) =>
+      batch.map(async (test) =>
         withCleanup(
           ctx,
           async () => runTest(test, ctx),
@@ -367,7 +357,7 @@ export async function runTests(
   const passed = results.filter((r) => r.status === 'passed').length;
   const failed = results.filter((r) => r.status === 'failed').length;
   const skipped = results.filter((r) => r.status === 'skipped').length;
-  const coverage = ((passed / (results.length - skipped)) * 100) || 0;
+  const coverage = (passed / (results.length - skipped)) * 100 || 0;
 
   // Calculate by category
   const byCategory: Record<E2ETestCategory, CategorySummary> = {
@@ -415,8 +405,8 @@ export async function runTests(
     passed: summary.passed,
     failed: summary.failed,
     skipped: summary.skipped,
-    coverage: summary.coverage.toFixed(1) + '%',
-    duration: summary.duration + 'ms',
+    coverage: `${summary.coverage.toFixed(1)}%`,
+    duration: `${summary.duration}ms`,
   });
 
   return summary;
@@ -479,9 +469,13 @@ export function formatSummaryForConsole(summary: E2ERunSummary): string {
   // Final verdict
   lines.push('═══════════════════════════════════════════════════════════');
   if (summary.runPassed) {
-    lines.push(`  RESULT: PASSED ✓ (coverage ${summary.coverage.toFixed(1)}% >= ${summary.coverageThreshold}%)`);
+    lines.push(
+      `  RESULT: PASSED ✓ (coverage ${summary.coverage.toFixed(1)}% >= ${summary.coverageThreshold}%)`
+    );
   } else {
-    lines.push(`  RESULT: FAILED ✗ (coverage ${summary.coverage.toFixed(1)}% < ${summary.coverageThreshold}%)`);
+    lines.push(
+      `  RESULT: FAILED ✗ (coverage ${summary.coverage.toFixed(1)}% < ${summary.coverageThreshold}%)`
+    );
   }
   lines.push('═══════════════════════════════════════════════════════════');
   lines.push('');

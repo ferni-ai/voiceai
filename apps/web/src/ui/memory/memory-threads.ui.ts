@@ -10,8 +10,35 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import {
+  QUIZ_ICONS,
+  GROWTH_ICONS,
+  ANALYTICS_ICONS,
+  EMOTION_ICONS,
+} from '../icons/shared-icons.js';
 
 const log = createLogger('MemoryThreadsUI');
+
+// Thread type icons (SVG)
+const THREAD_TYPE_ICONS: Record<ThreadType, string> = {
+  person: QUIZ_ICONS.personality,
+  topic: QUIZ_ICONS.memories,
+  emotion: EMOTION_ICONS.reflective,
+  goal: ANALYTICS_ICONS.target,
+  timeline: ANALYTICS_ICONS.calendar,
+};
+
+// Memory node type icons with labels
+const NODE_TYPE_ICONS: Record<MemoryNode['type'], { icon: string; label: string }> = {
+  fact: { icon: GROWTH_ICONS.journal, label: 'Fact' },
+  emotion: { icon: EMOTION_ICONS.reflective, label: 'Emotion' },
+  event: { icon: ANALYTICS_ICONS.calendar, label: 'Event' },
+  commitment: { icon: QUIZ_ICONS.correct, label: 'Commitment' },
+  milestone: { icon: GROWTH_ICONS.celebration, label: 'Milestone' },
+};
+
+// Link icon for threads visualization
+const LINK_ICON = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
 
 // ============================================================================
 // TYPES
@@ -231,24 +258,22 @@ function createThreadListItem(thread: MemoryThread): HTMLElement {
     transition: background var(--duration-normal);
   `;
 
-  // Icon based on type
-  const icons: Record<ThreadType, string> = {
-    person: '👤',
-    topic: '📚',
-    emotion: '💭',
-    goal: '🎯',
-    timeline: '📅',
-  };
-
   item.innerHTML = `
     <div style="display: flex; align-items: center; gap: var(--space-2);">
-      <span style="font-size: 1.2em;">${icons[thread.type]}</span>
+      <span class="thread-icon" style="display: inline-flex; align-items: center; width: 20px; height: 20px; color: var(--color-text-secondary);">${THREAD_TYPE_ICONS[thread.type]}</span>
       <span style="font-weight: 500; color: var(--color-text-primary);">${thread.title}</span>
     </div>
     <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-top: var(--space-1);">
       ${thread.nodes.length} memories
     </div>
   `;
+
+  // Style the SVG icon
+  const iconEl = item.querySelector('.thread-icon svg');
+  if (iconEl) {
+    (iconEl as SVGElement).style.width = '20px';
+    (iconEl as SVGElement).style.height = '20px';
+  }
 
   item.addEventListener('click', () => selectThread(thread));
   item.addEventListener('mouseenter', () => {
@@ -284,9 +309,15 @@ function createVisualizationArea(): HTMLElement {
     color: var(--color-text-secondary);
   `;
   emptyState.innerHTML = `
-    <div style="font-size: 2em; margin-bottom: var(--space-4);">🧵</div>
+    <div style="display: flex; justify-content: center; margin-bottom: var(--space-4); color: var(--color-text-muted);">${LINK_ICON}</div>
     <p>Select a thread to visualize</p>
   `;
+  // Style the SVG icon
+  const iconEl = emptyState.querySelector('svg');
+  if (iconEl) {
+    iconEl.style.width = '48px';
+    iconEl.style.height = '48px';
+  }
   area.appendChild(emptyState);
 
   return area;
@@ -358,20 +389,14 @@ function renderMemoryNode(node: MemoryNode): HTMLElement {
     border-left: 3px solid var(--color-accent);
   `;
 
-  const typeLabels: Record<MemoryNode['type'], string> = {
-    fact: '📝 Fact',
-    emotion: '💭 Emotion',
-    event: '📅 Event',
-    commitment: '✅ Commitment',
-    milestone: '🎉 Milestone',
-  };
-
+  const nodeTypeInfo = NODE_TYPE_ICONS[node.type];
   const timeAgo = getTimeAgo(node.timestamp);
 
   el.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2);">
-      <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
-        ${typeLabels[node.type]}
+      <span class="node-type-label" style="display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--font-size-sm); color: var(--color-text-secondary);">
+        <span class="node-icon" style="display: inline-flex; align-items: center; width: 14px; height: 14px;">${nodeTypeInfo.icon}</span>
+        ${nodeTypeInfo.label}
       </span>
       <span style="font-size: var(--font-size-sm); color: var(--color-text-muted);">
         ${timeAgo}
@@ -384,6 +409,13 @@ function renderMemoryNode(node: MemoryNode): HTMLElement {
       Confidence: ${Math.round(node.confidence * 100)}%
     </div>
   `;
+
+  // Style the SVG icon
+  const iconEl = el.querySelector('.node-icon svg');
+  if (iconEl) {
+    (iconEl as SVGElement).style.width = '14px';
+    (iconEl as SVGElement).style.height = '14px';
+  }
 
   return el;
 }

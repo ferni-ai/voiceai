@@ -28,7 +28,7 @@
  * ```
  */
 
-// Main generator
+// Main generator - Single agent pages
 export {
   generateAgentPage,
   generatePreviewSnippet,
@@ -36,7 +36,14 @@ export {
   warmTemplateCache,
 } from './generator.js';
 
-// Types
+// Multi-advisor page generator
+export {
+  generateMultiAdvisorPage,
+  clearMultiAdvisorTemplateCache,
+  warmMultiAdvisorTemplateCache,
+} from './generator.js';
+
+// Types - Single agent pages
 export type {
   AgentPageConfig,
   BrandConfig,
@@ -47,6 +54,14 @@ export type {
   GeneratedPage,
   DerivedBrandColors,
   TemplateContext,
+} from './types.js';
+
+// Types - Multi-advisor pages
+export type {
+  MultiAdvisorPageConfig,
+  AdvisorConfig,
+  GeneratedMultiAdvisorPage,
+  MultiAdvisorTemplateContext,
 } from './types.js';
 
 // Color utilities (for advanced customization)

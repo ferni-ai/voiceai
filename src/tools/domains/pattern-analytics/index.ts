@@ -52,7 +52,7 @@ const revealBlindSpotDef: ToolDefinition = {
   id: 'revealBlindSpot',
   name: 'Reveal Blind Spot',
   description:
-    'Surface patterns they may be avoiding or not seeing. Hold up a mirror to what they can\'t see themselves.',
+    "Surface patterns they may be avoiding or not seeing. Hold up a mirror to what they can't see themselves.",
   domain: 'pattern-analytics',
   tags: ['patterns', 'blind-spots', 'insight', 'superhuman-analytics'],
 
@@ -63,7 +63,7 @@ const revealBlindSpotDef: ToolDefinition = {
         domain: z
           .enum(['spending', 'habits', 'relationships', 'time', 'health', 'career', 'general'])
           .describe('Life domain'),
-        observation: z.string().optional().describe('What pattern you\'ve noticed they\'re avoiding'),
+        observation: z.string().optional().describe("What pattern you've noticed they're avoiding"),
         recordNew: z.boolean().default(false).describe('Record a new blind spot observation'),
         viewBlindSpots: z.boolean().default(false).describe('View known blind spots'),
       }),
@@ -122,7 +122,14 @@ const simulateCounterfactualDef: ToolDefinition = {
         lesson: z.string().optional().describe('What this teaches'),
         viewCounterfactuals: z.boolean().default(false).describe('View past counterfactuals'),
       }),
-      execute: async ({ originalDecision, alternativePath, domain, outcome, lesson, viewCounterfactuals }) => {
+      execute: async ({
+        originalDecision,
+        alternativePath,
+        domain,
+        outcome,
+        lesson,
+        viewCounterfactuals,
+      }) => {
         const userId = ctx.userId || 'anonymous';
 
         if (viewCounterfactuals) {
@@ -169,13 +176,24 @@ const predictPatternDef: ToolDefinition = {
       description: getToolDescription('predictPattern'),
       parameters: z.object({
         pattern: z.string().describe('The pattern being tracked'),
-        domain: z.enum(['spending', 'habits', 'relationships', 'time', 'health', 'career', 'general']).describe('Life domain'),
-        currentTrajectory: z.enum(['improving', 'declining', 'stable', 'volatile']).describe('Current direction'),
+        domain: z
+          .enum(['spending', 'habits', 'relationships', 'time', 'health', 'career', 'general'])
+          .describe('Life domain'),
+        currentTrajectory: z
+          .enum(['improving', 'declining', 'stable', 'volatile'])
+          .describe('Current direction'),
         prediction: z.string().optional().describe('Where this is heading'),
         timeframe: z.string().optional().describe('How long until prediction'),
         viewPredictions: z.boolean().default(false).describe('View past predictions'),
       }),
-      execute: async ({ pattern, domain, currentTrajectory, prediction, timeframe, viewPredictions }) => {
+      execute: async ({
+        pattern,
+        domain,
+        currentTrajectory,
+        prediction,
+        timeframe,
+        viewPredictions,
+      }) => {
         const userId = ctx.userId || 'anonymous';
 
         if (viewPredictions) {
@@ -223,7 +241,10 @@ const scoreDecisionDef: ToolDefinition = {
         decision: z.string().describe('The decision made'),
         domain: z.string().describe('Life domain'),
         outcome: z.enum(['great', 'good', 'neutral', 'poor', 'bad']).describe('How it turned out'),
-        processQuality: z.enum(['thoughtful', 'rushed', 'emotional', 'analytical', 'gut']).optional().describe('How decision was made'),
+        processQuality: z
+          .enum(['thoughtful', 'rushed', 'emotional', 'analytical', 'gut'])
+          .optional()
+          .describe('How decision was made'),
         lesson: z.string().optional().describe('What you learned'),
         viewScores: z.boolean().default(false).describe('View decision scores'),
       }),
@@ -275,8 +296,13 @@ const findCorrelationDef: ToolDefinition = {
       parameters: z.object({
         factor1: z.string().describe('First factor'),
         factor2: z.string().describe('Second factor'),
-        relationship: z.enum(['positive', 'negative', 'complex', 'unknown']).describe('How they relate'),
-        strength: z.enum(['weak', 'moderate', 'strong']).optional().describe('Strength of correlation'),
+        relationship: z
+          .enum(['positive', 'negative', 'complex', 'unknown'])
+          .describe('How they relate'),
+        strength: z
+          .enum(['weak', 'moderate', 'strong'])
+          .optional()
+          .describe('Strength of correlation'),
         insight: z.string().optional().describe('What this means'),
         viewCorrelations: z.boolean().default(false).describe('View known correlations'),
       }),
@@ -378,8 +404,14 @@ const archiveInsightDef: ToolDefinition = {
       parameters: z.object({
         insight: z.string().describe('The insight to archive'),
         domain: z.string().describe('Life domain'),
-        source: z.enum(['observation', 'analysis', 'experiment', 'reflection', 'conversation']).optional().describe('How discovered'),
-        importance: z.enum(['low', 'medium', 'high', 'critical']).optional().describe('How important'),
+        source: z
+          .enum(['observation', 'analysis', 'experiment', 'reflection', 'conversation'])
+          .optional()
+          .describe('How discovered'),
+        importance: z
+          .enum(['low', 'medium', 'high', 'critical'])
+          .optional()
+          .describe('How important'),
         viewInsights: z.boolean().default(false).describe('View archived insights'),
       }),
       execute: async ({ insight, domain, source, importance, viewInsights }) => {

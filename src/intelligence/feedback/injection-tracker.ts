@@ -171,10 +171,7 @@ export function tagInjectionsForTracking(
   // Store for later attribution
   state.lastTurnInjections = tracked;
 
-  log.debug(
-    { sessionId, count: tracked.length },
-    'Tagged injections for tracking'
-  );
+  log.debug({ sessionId, count: tracked.length }, 'Tagged injections for tracking');
 
   return tracked;
 }
@@ -268,8 +265,7 @@ export function analyzeResponseAlignment(
       injectionCount: state.lastTurnInjections.length,
       avgAlignment: (
         state.lastTurnInjections.reduce(
-          (sum, inj) =>
-            sum + calculateSimilarity(inj.content, llmResponse),
+          (sum, inj) => sum + calculateSimilarity(inj.content, llmResponse),
           0
         ) / state.lastTurnInjections.length
       ).toFixed(3),
@@ -331,9 +327,7 @@ const NEGATIVE_INDICATORS = new Set([
  * Analyze user's next turn to determine reaction to previous response.
  * This is heuristic - not perfect, but captures signal over time.
  */
-function analyzeUserReaction(
-  userText: string
-): 'positive' | 'neutral' | 'negative' {
+function analyzeUserReaction(userText: string): 'positive' | 'neutral' | 'negative' {
   const text = userText.toLowerCase();
   const words = text.split(/\s+/);
 
@@ -369,10 +363,7 @@ function analyzeUserReaction(
  * Record the user's reaction to complete pending feedback.
  * Call this at the START of each new turn (before processing).
  */
-export function recordUserReaction(
-  sessionId: string,
-  userText: string
-): void {
+export function recordUserReaction(sessionId: string, userText: string): void {
   const state = getSessionState(sessionId);
 
   if (state.pendingFeedback.size === 0) {
@@ -445,15 +436,9 @@ export function getSessionMetrics(sessionId: string): {
   }
 
   const usedCount = feedback.filter((f) => f.wasUsedInResponse).length;
-  const positiveReactions = feedback.filter(
-    (f) => f.userReaction === 'positive'
-  ).length;
-  const negativeReactions = feedback.filter(
-    (f) => f.userReaction === 'negative'
-  ).length;
-  const avgAlignment =
-    feedback.reduce((sum, f) => sum + f.responseAlignment, 0) /
-    feedback.length;
+  const positiveReactions = feedback.filter((f) => f.userReaction === 'positive').length;
+  const negativeReactions = feedback.filter((f) => f.userReaction === 'negative').length;
+  const avgAlignment = feedback.reduce((sum, f) => sum + f.responseAlignment, 0) / feedback.length;
 
   return {
     totalInjections: feedback.length,
@@ -524,9 +509,7 @@ export function aggregateBuilderMetrics(
 
     // Running average for alignment score
     m.avgAlignmentScore =
-      (m.avgAlignmentScore * (m.deliveryCount - 1) +
-        feedback.responseAlignment) /
-      m.deliveryCount;
+      (m.avgAlignmentScore * (m.deliveryCount - 1) + feedback.responseAlignment) / m.deliveryCount;
   }
 
   // Calculate ROI score for each builder
@@ -534,17 +517,11 @@ export function aggregateBuilderMetrics(
     // ROI = (alignment rate * 50) + (positive rate * 30) - (negative rate * 20)
     const alignmentRate = m.alignmentCount / Math.max(m.deliveryCount, 1);
     const totalReactions =
-      m.positiveReactionCount +
-      m.negativeReactionCount +
-      m.neutralReactionCount;
-    const positiveRate =
-      m.positiveReactionCount / Math.max(totalReactions, 1);
-    const negativeRate =
-      m.negativeReactionCount / Math.max(totalReactions, 1);
+      m.positiveReactionCount + m.negativeReactionCount + m.neutralReactionCount;
+    const positiveRate = m.positiveReactionCount / Math.max(totalReactions, 1);
+    const negativeRate = m.negativeReactionCount / Math.max(totalReactions, 1);
 
-    m.roiScore = Math.round(
-      alignmentRate * 50 + positiveRate * 30 - negativeRate * 20
-    );
+    m.roiScore = Math.round(alignmentRate * 50 + positiveRate * 30 - negativeRate * 20);
     m.roiScore = Math.max(0, Math.min(100, m.roiScore)); // Clamp to 0-100
   }
 

@@ -20,7 +20,10 @@ const mockPersistenceService = {
   updateAgentVoice: vi.fn(),
 };
 
-vi.mock('../../services/custom-agent/custom-agent-persistence-service.js', () => mockPersistenceService);
+vi.mock(
+  '../../services/custom-agent/custom-agent-persistence-service.js',
+  () => mockPersistenceService
+);
 
 // Mock voice clone service
 const mockVoiceService = {
@@ -65,7 +68,10 @@ function createMockRequest(options: {
   method?: string;
   params?: Record<string, string>;
 }): IncomingMessage & { params?: Record<string, string>; userId?: string } {
-  const req = new EventEmitter() as IncomingMessage & { params?: Record<string, string>; userId?: string };
+  const req = new EventEmitter() as IncomingMessage & {
+    params?: Record<string, string>;
+    userId?: string;
+  };
   req.headers = options.headers || {};
   req.url = options.url || '/';
   req.method = options.method || 'GET';
@@ -159,13 +165,11 @@ describe('Custom Agent Routes API', () => {
     });
 
     it('should validate required fields', async () => {
-      mockPersistenceService.createCustomAgent.mockRejectedValue(
-        new Error('Name is required')
-      );
+      mockPersistenceService.createCustomAgent.mockRejectedValue(new Error('Name is required'));
 
-      await expect(
-        mockPersistenceService.createCustomAgent('test-user', {})
-      ).rejects.toThrow('Name is required');
+      await expect(mockPersistenceService.createCustomAgent('test-user', {})).rejects.toThrow(
+        'Name is required'
+      );
     });
   });
 
@@ -201,11 +205,10 @@ describe('Custom Agent Routes API', () => {
         description: 'Updated description',
       });
 
-      const updated = await mockPersistenceService.updateCustomAgent(
-        'test-user',
-        'agent-123',
-        { name: 'Updated Name', description: 'Updated description' }
-      );
+      const updated = await mockPersistenceService.updateCustomAgent('test-user', 'agent-123', {
+        name: 'Updated Name',
+        description: 'Updated description',
+      });
 
       expect(updated.name).toBe('Updated Name');
     });
@@ -283,11 +286,9 @@ describe('Custom Agent Routes API', () => {
         createdAt: new Date().toISOString(),
       });
 
-      const memory = await mockPersistenceService.addMemoryToAgent(
-        'test-user',
-        'agent-123',
-        { content: 'A cherished memory' }
-      );
+      const memory = await mockPersistenceService.addMemoryToAgent('test-user', 'agent-123', {
+        content: 'A cherished memory',
+      });
 
       expect(memory.id).toBe('memory-123');
     });

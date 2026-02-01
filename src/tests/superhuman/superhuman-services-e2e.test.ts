@@ -24,9 +24,9 @@ const createDocMock = (name: string, id: string, subName: string) => ({
     const docId = docData.id || `doc-${Date.now()}`;
     const idx = existing.findIndex((d: unknown) => (d as { id?: string }).id === docId);
     if (idx >= 0) {
-      existing[idx] = { ...data as object, id: docId };
+      existing[idx] = { ...(data as object), id: docId };
     } else {
-      existing.push({ ...data as object, id: docId });
+      existing.push({ ...(data as object), id: docId });
     }
     mockFirestoreData.set(key, existing);
   }),
@@ -41,7 +41,7 @@ const createDocMock = (name: string, id: string, subName: string) => ({
   update: vi.fn(async (data: unknown) => {
     const key = `${name}/${id}/${subName}`;
     const existing = mockFirestoreData.get(key) || {};
-    mockFirestoreData.set(key, { ...existing as object, ...data as object });
+    mockFirestoreData.set(key, { ...(existing as object), ...(data as object) });
   }),
 });
 
@@ -55,7 +55,7 @@ vi.mock('../../services/superhuman/firestore-utils.js', () => ({
             const key = `${name}/${id}/${subName}`;
             const existing = (mockFirestoreData.get(key) as unknown[]) || [];
             const newId = `doc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-            existing.push({ ...data as object, id: newId });
+            existing.push({ ...(data as object), id: newId });
             mockFirestoreData.set(key, existing);
             return { id: newId };
           }),
@@ -163,7 +163,7 @@ vi.mock('../../services/superhuman/firestore-utils.js', () => ({
         update: vi.fn(async (data: unknown) => {
           const key = `${name}/${id}`;
           const existing = mockFirestoreData.get(key) || {};
-          mockFirestoreData.set(key, { ...existing as object, ...data as object });
+          mockFirestoreData.set(key, { ...(existing as object), ...(data as object) });
         }),
       })),
     })),
@@ -173,11 +173,35 @@ vi.mock('../../services/superhuman/firestore-utils.js', () => ({
 }));
 
 // Import services after mocking
-import { recordMention, loadNetwork, extractNames, extractPerson } from '../../services/superhuman/relationship-network.js';
-import { loadUserCommitments, buildCommitmentContextForLLM, detectCommitment } from '../../services/superhuman/commitment-keeper.js';
-import { createOrUpdateChapter, loadUserChapters, buildNarrativeContextString, detectChapterMoment } from '../../services/superhuman/life-narrative.js';
-import { recordValueMention, loadUserValues, buildValuesContext, detectValue } from '../../services/superhuman/values-alignment.js';
-import { recordDreamMention, loadUserDreams, buildDreamContext, detectDream } from '../../services/superhuman/dream-keeper.js';
+import {
+  recordMention,
+  loadNetwork,
+  extractNames,
+  extractPerson,
+} from '../../services/superhuman/relationship-network.js';
+import {
+  loadUserCommitments,
+  buildCommitmentContextForLLM,
+  detectCommitment,
+} from '../../services/superhuman/commitment-keeper.js';
+import {
+  createOrUpdateChapter,
+  loadUserChapters,
+  buildNarrativeContextString,
+  detectChapterMoment,
+} from '../../services/superhuman/life-narrative.js';
+import {
+  recordValueMention,
+  loadUserValues,
+  buildValuesContext,
+  detectValue,
+} from '../../services/superhuman/values-alignment.js';
+import {
+  recordDreamMention,
+  loadUserDreams,
+  buildDreamContext,
+  detectDream,
+} from '../../services/superhuman/dream-keeper.js';
 
 const TEST_USER_ID = 'test-user-superhuman';
 
@@ -194,7 +218,7 @@ describe('Superhuman Services E2E', () => {
     it('should extract names from relationship mentions', () => {
       const result = extractNames('I talked to Sarah yesterday');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(r => r.name.toLowerCase() === 'sarah')).toBe(true);
+      expect(result.some((r) => r.name.toLowerCase() === 'sarah')).toBe(true);
     });
 
     it('should extract person with relationship type', () => {
@@ -219,9 +243,9 @@ describe('Superhuman Services E2E', () => {
 
       testCases.forEach(({ input, expected }) => {
         const result = extractNames(input);
-        const names = result.map(r => r.name);
-        expected.forEach(exp => {
-          expect(names.some(n => n.toLowerCase() === exp.toLowerCase())).toBe(true);
+        const names = result.map((r) => r.name);
+        expected.forEach((exp) => {
+          expect(names.some((n) => n.toLowerCase() === exp.toLowerCase())).toBe(true);
         });
       });
     });
@@ -259,7 +283,7 @@ describe('Superhuman Services E2E', () => {
 
     it('should NOT detect external pressure as commitment', () => {
       // External pressure like "everyone tells me I should" is NOT a commitment
-      const result = detectCommitment("Everyone says I should exercise more", TEST_USER_ID);
+      const result = detectCommitment('Everyone says I should exercise more', TEST_USER_ID);
       expect(result.detected).toBe(false);
     });
 
@@ -391,19 +415,19 @@ describe('Superhuman Services E2E', () => {
   describe('Synthetic Conversation Tests', () => {
     it('should extract all data from a realistic conversation', async () => {
       const conversationTurns = [
-        "I talked to Sarah yesterday about my job",
-        "She thinks I should follow my dreams",
+        'I talked to Sarah yesterday about my job',
+        'She thinks I should follow my dreams',
         "I'm going to apply for that position",
         "My friend Mike thinks it's a great idea",
         "I promised myself I'll update my resume this weekend",
-        "I want to become a designer",
+        'I want to become a designer',
       ];
 
       // Extract names from all turns
       const allNames = new Set<string>();
       for (const turn of conversationTurns) {
         const extracted = extractNames(turn);
-        extracted.forEach(e => allNames.add(e.name.toLowerCase()));
+        extracted.forEach((e) => allNames.add(e.name.toLowerCase()));
       }
 
       // Should have extracted Sarah and Mike
@@ -411,14 +435,20 @@ describe('Superhuman Services E2E', () => {
       expect(allNames.has('mike')).toBe(true);
 
       // Detect commitments - use correct signature with userId
-      const commitmentDetection1 = detectCommitment("I'm going to apply for that position", TEST_USER_ID);
+      const commitmentDetection1 = detectCommitment(
+        "I'm going to apply for that position",
+        TEST_USER_ID
+      );
       expect(commitmentDetection1.detected).toBe(true);
 
-      const commitmentDetection2 = detectCommitment("I promised myself I'll update my resume this weekend", TEST_USER_ID);
+      const commitmentDetection2 = detectCommitment(
+        "I promised myself I'll update my resume this weekend",
+        TEST_USER_ID
+      );
       expect(commitmentDetection2.detected).toBe(true);
 
       // Detect dream - use the fixed statement that matches the career pattern
-      const dreamDetection = detectDream("I want to become a designer");
+      const dreamDetection = detectDream('I want to become a designer');
       expect(dreamDetection).not.toBeNull();
       expect(dreamDetection?.type).toBe('career');
 
@@ -436,9 +466,9 @@ describe('Superhuman Services E2E', () => {
 
     it('should handle value detection in conversation', async () => {
       const valueTurns = [
-        "Family is everything to me",
-        "My health comes first, always",
-        "I need my freedom to make my own choices",
+        'Family is everything to me',
+        'My health comes first, always',
+        'I need my freedom to make my own choices',
       ];
 
       for (const turn of valueTurns) {
@@ -463,11 +493,11 @@ describe('Superhuman Services E2E', () => {
     describe('Commitment Patterns', () => {
       const commitmentTests = [
         { input: "I'm going to start exercising", shouldDetect: true },
-        { input: "I will call mom tomorrow", shouldDetect: true },
-        { input: "I need to finish this project", shouldDetect: true },
-        { input: "gonna hit the gym today", shouldDetect: true },
-        { input: "The weather is nice today", shouldDetect: false },
-        { input: "Everyone says I should try harder", shouldDetect: false }, // External pressure
+        { input: 'I will call mom tomorrow', shouldDetect: true },
+        { input: 'I need to finish this project', shouldDetect: true },
+        { input: 'gonna hit the gym today', shouldDetect: true },
+        { input: 'The weather is nice today', shouldDetect: false },
+        { input: 'Everyone says I should try harder', shouldDetect: false }, // External pressure
       ];
 
       commitmentTests.forEach(({ input, shouldDetect }) => {
@@ -480,10 +510,10 @@ describe('Superhuman Services E2E', () => {
 
     describe('Value Patterns', () => {
       const valueTests = [
-        { input: "Family is everything", category: 'family' },
-        { input: "My health comes first", category: 'health' },
-        { input: "I need my freedom", category: 'freedom' },
-        { input: "Growth is important to me", category: 'growth' },
+        { input: 'Family is everything', category: 'family' },
+        { input: 'My health comes first', category: 'health' },
+        { input: 'I need my freedom', category: 'freedom' },
+        { input: 'Growth is important to me', category: 'growth' },
       ];
 
       valueTests.forEach(({ input, category }) => {
@@ -498,9 +528,9 @@ describe('Superhuman Services E2E', () => {
     describe('Dream Patterns', () => {
       const dreamTests = [
         { input: "I've always dreamed of being rich", type: 'growth' },
-        { input: "I want to write a book", type: 'creative' },
-        { input: "I want to become a doctor", type: 'career' },
-        { input: "I want to visit Japan someday", type: 'adventure' },
+        { input: 'I want to write a book', type: 'creative' },
+        { input: 'I want to become a doctor', type: 'career' },
+        { input: 'I want to visit Japan someday', type: 'adventure' },
       ];
 
       dreamTests.forEach(({ input, type }) => {

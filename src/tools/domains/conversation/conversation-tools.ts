@@ -480,9 +480,8 @@ export function createConversationTools() {
 
         try {
           // Get caller phone from inbound call context
-          const { getInboundCallContext } = await import(
-            '../../../intelligence/context-builders/external/inbound-call-context.js'
-          );
+          const { getInboundCallContext } =
+            await import('../../../intelligence/context-builders/external/inbound-call-context.js');
 
           let callerPhone = '';
           if (sessionId) {
@@ -495,9 +494,8 @@ export function createConversationTools() {
           }
 
           // Create self-registered identity
-          const { createSelfRegisteredIdentity } = await import(
-            '../../../services/identity/sponsored-identity.js'
-          );
+          const { createSelfRegisteredIdentity } =
+            await import('../../../services/identity/sponsored-identity.js');
 
           const identity = await createSelfRegisteredIdentity(
             callerPhone,
@@ -507,9 +505,8 @@ export function createConversationTools() {
           );
 
           // Notify potential sponsors
-          const { notifyPotentialSponsors } = await import(
-            '../../../services/identity/sponsor-notifications.js'
-          );
+          const { notifyPotentialSponsors } =
+            await import('../../../services/identity/sponsor-notifications.js');
 
           const notifyResult = await notifyPotentialSponsors(sponsorName, identity.id, {
             name: callerName,
@@ -567,16 +564,14 @@ export function createConversationTools() {
         try {
           // Mark enrollment started in onboarding progress
           if (sessionId) {
-            const { markVoiceEnrollmentStarted } = await import(
-              '../../../intelligence/context-builders/external/first-call-onboarding-context.js'
-            );
+            const { markVoiceEnrollmentStarted } =
+              await import('../../../intelligence/context-builders/external/first-call-onboarding-context.js');
             markVoiceEnrollmentStarted(sessionId);
           }
 
           // Start the phone voice enrollment process
-          const { startPhoneVoiceEnrollment } = await import(
-            '../../../services/identity/sponsored-identity.js'
-          );
+          const { startPhoneVoiceEnrollment } =
+            await import('../../../services/identity/sponsored-identity.js');
 
           const result = await startPhoneVoiceEnrollment(userId);
 
@@ -616,15 +611,12 @@ export function createConversationTools() {
         getLogger().info({ userId, phoneNumber, label }, '📱 Adding phone number to profile');
 
         try {
-          const { normalizePhoneNumber, isValidPhoneNumber, linkPhoneToProfile } = await import(
-            '../../../services/identity/user-identification.js'
-          );
-          const { lookupByPhone } = await import(
-            '../../../services/identity/sponsored-identity.js'
-          );
-          const { getCachedPhoneMapping } = await import(
-            '../../../services/memory/memory-management.js'
-          );
+          const { normalizePhoneNumber, isValidPhoneNumber, linkPhoneToProfile } =
+            await import('../../../services/identity/user-identification.js');
+          const { lookupByPhone } =
+            await import('../../../services/identity/sponsored-identity.js');
+          const { getCachedPhoneMapping } =
+            await import('../../../services/memory/memory-management.js');
 
           const normalized = normalizePhoneNumber(phoneNumber);
 
@@ -654,10 +646,7 @@ export function createConversationTools() {
 
           if (success) {
             const labelNote = label ? ` (${label})` : '';
-            getLogger().info(
-              { userId, normalized, label },
-              '✅ Phone number added to profile'
-            );
+            getLogger().info({ userId, normalized, label }, '✅ Phone number added to profile');
             return `[INTERNAL: Phone number added successfully${labelNote}. Confirm to them: "Got it! I'll recognize you from that number now."]`;
           } else {
             return '[INTERNAL: Failed to add phone number. Apologize and try again later.]';
@@ -697,17 +686,15 @@ export function createConversationTools() {
         );
 
         try {
-          const { mergePhoneToWebAccount } = await import(
-            '../../../services/identity/user-identification.js'
-          );
+          const { mergePhoneToWebAccount } =
+            await import('../../../services/identity/user-identification.js');
 
           const result = await mergePhoneToWebAccount(currentUserId, webAccountId);
 
           if (result.success) {
             // Mark linking complete in context
-            const { markLinkingComplete } = await import(
-              '../../../intelligence/context-builders/external/account-linking-context.js'
-            );
+            const { markLinkingComplete } =
+              await import('../../../intelligence/context-builders/external/account-linking-context.js');
             const sessionId = userData.services?.sessionId;
             if (sessionId) {
               markLinkingComplete(sessionId);
@@ -759,9 +746,8 @@ export function createConversationTools() {
         );
 
         // Import voice mismatch context helpers
-        const { confirmDifferentPerson, clearVoiceMismatchContext } = await import(
-          '../../../intelligence/context-builders/external/voice-mismatch-context.js'
-        );
+        const { confirmDifferentPerson, clearVoiceMismatchContext } =
+          await import('../../../intelligence/context-builders/external/voice-mismatch-context.js');
 
         if (isSamePerson) {
           // Voice didn't match but they confirmed identity - clear the mismatch
@@ -783,7 +769,7 @@ export function createConversationTools() {
           // Store relationship info if provided
           const noteForProfile = relationship
             ? `Calling from another user's phone. Relationship: ${relationship}`
-            : 'Calling from another user\'s phone';
+            : "Calling from another user's phone";
 
           getLogger().info(
             { confirmedName, relationship, note: noteForProfile },

@@ -20,9 +20,16 @@ import { captureCallResult } from '../../../services/outreach/call-result-captur
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import type {
   CallOutcome,
-  CallObjective,
-  CallType,
 } from '../../../tools/domains/telephony/call-on-behalf.js';
+import {
+  trackOutboundCall,
+  getPendingCall,
+  removePendingCall,
+  type PendingCall,
+} from '../../../services/outreach/outbound-call-tracker.js';
+
+// Re-export for backward compatibility (servers/api/routes/index.ts re-exports this)
+export { trackOutboundCall, getPendingCall, removePendingCall };
 
 const log = createLogger({ module: 'twilio-call-status' });
 
@@ -54,51 +61,6 @@ interface TwilioCallStatusPayload {
   // Error fields
   ErrorCode?: string;
   ErrorMessage?: string;
-}
-
-// In-memory tracking of pending on-behalf calls
-// Maps Twilio CallSid → our call context
-interface PendingCall {
-  callId: string;
-  userId: string;
-  contactName: string;
-  purpose: string;
-  objective: CallObjective;
-  callType: CallType;
-  originalSessionId: string;
-  startedAt: string;
-}
-
-const pendingCalls = new Map<string, PendingCall>();
-
-// ============================================================================
-// CALL TRACKING
-// ============================================================================
-
-/**
- * Track a new outbound call
- * Called by the orchestrator when initiating a call
- */
-export function trackOutboundCall(twilioCallSid: string, context: PendingCall): void {
-  pendingCalls.set(twilioCallSid, context);
-  log.info(
-    { twilioCallSid, callId: context.callId, contactName: context.contactName },
-    'Tracking outbound on-behalf call'
-  );
-}
-
-/**
- * Get pending call context
- */
-export function getPendingCall(twilioCallSid: string): PendingCall | undefined {
-  return pendingCalls.get(twilioCallSid);
-}
-
-/**
- * Remove completed call from tracking
- */
-export function removePendingCall(twilioCallSid: string): void {
-  pendingCalls.delete(twilioCallSid);
 }
 
 // ============================================================================

@@ -32,7 +32,7 @@ import {
   getLLMSilenceInstructions,
   playAmbientMusicDuringSilence,
   stopAmbientMusic,
-  type SilenceContext
+  type SilenceContext,
 } from '../../personas/meaningful-silence.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
@@ -40,9 +40,7 @@ import { diag } from '../../services/diagnostic-logger.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import { getLiveBackchannelingService } from '../../speech/live-backchanneling/index.js';
-import {
-  generateBackchannelInstructions
-} from '../../speech/llm-backchannel.js';
+import { generateBackchannelInstructions } from '../../speech/llm-backchannel.js';
 import {
   trackBackchannelEvent,
   trackResponseLatency,
@@ -60,7 +58,7 @@ import {
   onAgentStateChanged,
   onGenerationComplete,
   onGenerationStarted,
-  onUserSpeaking
+  onUserSpeaking,
 } from '../shared/response-orchestrator.js';
 import type { UserData } from '../shared/types.js';
 // Speech coordination for adaptive timing and centralized speech management
@@ -336,12 +334,12 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // NOISE FILTER (Jan 2026): Filter out very short "speech" events (clicks, pops, noise)
   // "Hi" takes ~150-200ms to say, noise/clicks are usually < 100ms
   // This prevents false activations from VAD picking up non-speech sounds
-  // 
+  //
   // ⚠️ DEBUGGING: Set DISABLE_NOISE_FILTER=true to disable (helps debug what Gemini hears)
   // The filter was incorrectly triggering and blocking valid responses (Jan 2026 bug)
   const NOISE_FILTER_DISABLED = process.env.DISABLE_NOISE_FILTER === 'true';
   const MIN_SPEECH_DURATION_MS = NOISE_FILTER_DISABLED ? 0 : 150;
-  
+
   if (NOISE_FILTER_DISABLED) {
     diag.state('⚠️ NOISE FILTER DISABLED via DISABLE_NOISE_FILTER=true');
   }
@@ -992,46 +990,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           }
         );
 
-        // Try UTO routing first (handles music, weather, handoffs via FTIS V3 Hybrid Router)
-        if (lastUserMessageForRecovery) {
-          try {
-            const { toolOrchestrator } = await import('../../tools/orchestrator/unified-tool-orchestrator.js');
-
-            if (toolOrchestrator.isRoutingEnabled()) {
-              // RACE CONDITION FIX: Re-check session closing before taking action
-              if (isSessionClosing(sessionId)) {
-                diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Skipped - session closing (re-check)');
-                return;
-              }
-
-              const routingResult = await toolOrchestrator.routeAndExecute(lastUserMessageForRecovery, {
-                userId: userData.userId || 'anonymous',
-                sessionId,
-                personaId: sessionPersona.id,
-                recentTopics: userData.recentTopics,
-                lastAgentMessage: userData.lastAgentResponse,
-                userLocation: userData.userLocation,
-              });
-
-              if (routingResult.handled) {
-                diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Recovery via UTO routing succeeded', {
-                  toolId: routingResult.toolId,
-                  routedBy: routingResult.routedBy,
-                });
-                return; // Recovery successful!
-              }
-            }
-          } catch (routeErr) {
-            diag.warn('Empty response recovery: UTO routing failed', {
-              error: String(routeErr),
-            });
-          }
-        }
-
-        // If UTO routing didn't handle it, let the silence handler take over
-        // (it will kick in at its normal threshold, but we've at least tried)
+        // Simplified: Let the silence handler take over for empty responses
         diag.state(
-          '🚨 [EMPTY_RESPONSE_WATCHDOG] UTO routing did not handle - awaiting silence handler'
+          '🚨 [EMPTY_RESPONSE_WATCHDOG] Awaiting silence handler for recovery'
         );
       }, EMPTY_RESPONSE_WATCHDOG_MS);
       // Note: Thinking music is now handled by the ambient-music system automatically
@@ -1485,36 +1446,22 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         // Try LLM-driven response using safe wrapper to prevent native crash
         fireAndForget(async () => {
           if (silenceInstructions.instructions) {
-            // FIX: Use safeGenerateReply to prevent native mutex crash
-            // The SDK's generateReply can timeout and trigger a native crash
-            // in @livekit/rtc-node when cleanup races with the mutex
-            // FIX: Pass sessionId so safeGenerateReply can skip if session is closing
-            // (prevents errors after handoff when old session is draining)
-            // FIX (2026-01-12): Use waitForPlayout: false for low-priority silence responses.
-            // This prevents "circular wait" errors when a tool (like playMusic) is executing.
-            // Silence responses are fire-and-forget - they don't need to block.
             const result = await safeGenerateReply(session, {
               instructions: silenceInstructions.instructions,
               allowInterruptions: silenceInstructions.allowInterruptions,
-              // FIX: Only use fallback if music is NOT playing
-              // Fallback like "How did that feel?" doesn't make sense during music
               fallbackMessage: silenceContext.isMusicPlaying
                 ? undefined
                 : silenceInstructions.fallback,
               context: `silence-${silenceInstructions.type}`,
               sessionId,
-              // FIX: Increase timeout for silence responses (users are already in comfortable silence)
-              // Default 6s is too aggressive for low-priority silence responses
               timeoutMs: 10_000,
               priority: 'low',
-              // FIX: Don't wait for playout - prevents circular wait when tool is executing
               waitForPlayout: false,
             });
 
             if (result.success && !result.noSpeechProduced) {
               diag.state('LLM silence response complete', { type: silenceInstructions.type });
             } else if (result.noSpeechProduced) {
-              // FIX (Jan 2026): LLM returned empty - fallback already spoken by safeGenerateReply
               diag.state('LLM silence produced no speech, used fallback', {
                 type: silenceInstructions.type,
                 fallbackUsed: result.usedFallback,
@@ -1526,7 +1473,6 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
               });
             }
           } else if (silenceInstructions.fallback && !silenceContext.isMusicPlaying) {
-            // No LLM instructions - use fallback if present AND music is NOT playing
             void sayWithInterruptAwareness(silenceInstructions.fallback, {
               allowInterruptions: true,
             });
@@ -1552,7 +1498,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   });
 
   // ============================================================
-  // CLEANUP - Clear all timers to prevent memory leaks on disconnect
+  // CLEANUP - Clear all timers and listeners to prevent memory leaks
   // ============================================================
   const clearTimers = () => {
     if (backchannelTimer) {
@@ -1589,6 +1535,12 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       emptyResponseWatchdogTimer = null;
     }
     lastUserMessageForRecovery = null;
+
+    // 🔧 BTH FIX: Remove early-ack agent state handler to prevent listener leak
+    if (earlyAckAgentStateHandler) {
+      session.off(voice.AgentSessionEventTypes.AgentStateChanged, earlyAckAgentStateHandler);
+      earlyAckAgentStateHandler = null;
+    }
   };
 
   return {

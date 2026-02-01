@@ -32,9 +32,9 @@ import {
 
 describe('Persona ID System', () => {
   describe('Canonical IDs', () => {
-    it('should have exactly 7 canonical personas', () => {
-      // 6 Ferni team + joel-dickson standalone
-      expect(ALL_CANONICAL_IDS).toHaveLength(7);
+    it('should have exactly 9 canonical personas', () => {
+      // 6 Ferni team + 3 standalone (joel-dickson, peter-lynch, john-bogle)
+      expect(ALL_CANONICAL_IDS).toHaveLength(9);
     });
 
     it('should include all expected personas', () => {

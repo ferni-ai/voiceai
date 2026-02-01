@@ -459,38 +459,41 @@ export {
 
 // ============================================================================
 // RELATIONSHIP MEMORY ENGINE
+// DEPRECATED (Jan 2026): Entire relationship-memory module deleted.
+// These exports have been moved to src/intelligence/relationship/
+// Import from there instead. See _archived/README.md for migration guide.
 // ============================================================================
-
-export {
-  clearRelationshipEngine,
-  getRelationshipEngine,
-  getRelationshipPersistence,
-  loadAllRelationshipMemories,
-  loadRelationshipMemory,
-  RELATIONSHIP_STAGE_CONFIGS,
-  RelationshipMemoryEngine,
-  RelationshipMemoryPersistence,
-  saveRelationshipMemory,
-} from './relationship-memory/index.js';
-
-export type {
-  CallbackAttempt,
-  CallbackEffectiveness,
-  EmotionalTrajectory,
-  InsideJoke,
-  InsideJokeSeed,
-  RelationshipContext,
-  RelationshipMemory,
-  RelationshipMilestone,
-  RelationshipMilestoneType,
-  RelationshipPromptInjection,
-  RelationshipStage,
-  RelationshipStageConfig,
-  RelationshipUpdateResult,
-  SharedMoment,
-  SharedMomentType,
-  TemporalPattern,
-} from './relationship-memory/index.js';
+//
+// export {
+//   clearRelationshipEngine,
+//   getRelationshipEngine,
+//   getRelationshipPersistence,
+//   loadAllRelationshipMemories,
+//   loadRelationshipMemory,
+//   RELATIONSHIP_STAGE_CONFIGS,
+//   RelationshipMemoryEngine,
+//   RelationshipMemoryPersistence,
+//   saveRelationshipMemory,
+// } from './relationship-memory/index.js';
+//
+// export type {
+//   CallbackAttempt,
+//   CallbackEffectiveness,
+//   EmotionalTrajectory,
+//   InsideJoke,
+//   InsideJokeSeed,
+//   RelationshipContext,
+//   RelationshipMemory,
+//   RelationshipMilestone,
+//   RelationshipMilestoneType,
+//   RelationshipPromptInjection,
+//   RelationshipStage,
+//   RelationshipStageConfig,
+//   RelationshipUpdateResult,
+//   SharedMoment,
+//   SharedMomentType,
+//   TemporalPattern,
+// } from './relationship-memory/index.js';
 
 // ============================================================================
 // COGNITIVE DIFFERENTIATION

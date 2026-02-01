@@ -1,0 +1,7 @@
+{
+  "job_id": "8959173325574111232",
+  "source_model": "gemini-2.0-flash-001",
+  "tuned_model_name": "ferni-tool-calling-v1",
+  "training_examples": 8287,
+  "purpose": "Tool calling reliability improvement"
+}

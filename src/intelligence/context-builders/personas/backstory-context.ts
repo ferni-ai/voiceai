@@ -62,13 +62,15 @@ async function loadDynamicBackstory(personaId: string): Promise<DynamicBackstory
 
     const behaviors = await bundle.getBehaviors();
     // backstory_dynamic may not exist in all bundles - check dynamically
-    const backstory = (behaviors as Record<string, unknown>)?.backstory_dynamic as DynamicBackstory | undefined;
+    const backstory = (behaviors as Record<string, unknown>)?.backstory_dynamic as
+      | DynamicBackstory
+      | undefined;
 
     if (!backstory) {
       // Try loading from JSON file directly
       const fs = await import('fs/promises');
       const { join } = await import('path');
-      
+
       const backstoryPath = join(bundle.bundlePath, 'content/behaviors/backstory-dynamic.json');
       try {
         const content = await fs.readFile(backstoryPath, 'utf-8');
@@ -129,7 +131,7 @@ function findRelevantBackstory(
   for (const [key, segment] of Object.entries(richBackstory)) {
     // Check if any of the segment's triggers match our triggered contexts
     const hasMatch = segment.triggers.some((t) => triggeredContexts.includes(t));
-    
+
     if (hasMatch) {
       const probability = surfaceProbabilities[key] ?? 0.3;
       relevant.push({ key, segment, probability });
@@ -174,20 +176,18 @@ function selectBackstoryToSurface(
 /**
  * Format backstory for injection
  */
-function formatBackstoryInjection(
-  key: string,
-  segment: BackstorySegment
-): string {
+function formatBackstoryInjection(key: string, segment: BackstorySegment): string {
   // Pick a random voice line if available
-  const voiceLine = segment.voice_lines.length > 0
-    ? segment.voice_lines[Math.floor(Math.random() * segment.voice_lines.length)]
-    : null;
+  const voiceLine =
+    segment.voice_lines.length > 0
+      ? segment.voice_lines[Math.floor(Math.random() * segment.voice_lines.length)]
+      : null;
 
   // Build a concise backstory injection
   const parts: string[] = [];
-  
+
   parts.push(`[BACKSTORY CONTEXT: ${key.replace(/_/g, ' ')}]`);
-  
+
   if (voiceLine) {
     parts.push(`You might naturally reference: "${voiceLine}"`);
   }
@@ -202,7 +202,7 @@ function formatBackstoryInjection(
     }
   }
 
-  parts.push('(Surface naturally if it fits, don\'t force it.)');
+  parts.push("(Surface naturally if it fits, don't force it.)");
 
   return parts.join('\n');
 }
@@ -238,7 +238,7 @@ export const backstoryContextBuilder: ContextBuilder = {
 
     // Detect triggered contexts
     const triggeredContexts = detectTriggeredContexts(userText, backstory.trigger_contexts);
-    
+
     if (triggeredContexts.length === 0) {
       return injections;
     }
@@ -261,10 +261,10 @@ export const backstoryContextBuilder: ContextBuilder = {
 
     // Probabilistically select what to surface
     const selected = selectBackstoryToSurface(relevant);
-    
+
     if (!selected) {
       log.debug(
-        { personaId: persona.id, considered: relevant.map(r => r.key) },
+        { personaId: persona.id, considered: relevant.map((r) => r.key) },
         'Backstory considered but not surfaced (probability roll)'
       );
       return injections;
@@ -272,7 +272,7 @@ export const backstoryContextBuilder: ContextBuilder = {
 
     // Format and inject
     const content = formatBackstoryInjection(selected.key, selected.segment);
-    
+
     injections.push(
       createHintInjection('dynamic-backstory', content, {
         category: 'backstory',
@@ -281,10 +281,10 @@ export const backstoryContextBuilder: ContextBuilder = {
     );
 
     log.info(
-      { 
-        personaId: persona.id, 
-        backstoryKey: selected.key, 
-        triggers: triggeredContexts 
+      {
+        personaId: persona.id,
+        backstoryKey: selected.key,
+        triggers: triggeredContexts,
       },
       '✨ Dynamic backstory surfaced'
     );

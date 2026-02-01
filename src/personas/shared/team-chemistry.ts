@@ -24,10 +24,7 @@ const log = getLogger();
 // ============================================================================
 
 interface TeamStoriesContent {
-  team_observations?: Record<
-    string,
-    Array<{ story: string; triggers: string[]; mood: string }>
-  >;
+  team_observations?: Record<string, Array<{ story: string; triggers: string[]; mood: string }>>;
   team_handoff_setups?: Record<string, string[]>;
   team_affection?: string[];
 }

@@ -1269,7 +1269,8 @@ const findBestTimeDef: ToolDefinition = {
         duration: z.number().describe('Duration in minutes'),
         preferMorning: z.boolean().optional().describe('Prefer morning slots'),
         preferAfternoon: z.boolean().optional().describe('Prefer afternoon slots'),
-        meetingType: z.enum(['oneOnOne', 'teamMeeting', 'clientCall', 'standup', 'general'])
+        meetingType: z
+          .enum(['oneOnOne', 'teamMeeting', 'clientCall', 'standup', 'general'])
           .optional()
           .describe('Type of meeting for better time optimization'),
       }),
@@ -1306,7 +1307,10 @@ const findBestTimeDef: ToolDefinition = {
 
         response += '\nWould any of these work for you?';
 
-        log.info({ userId, suggestionCount: suggestions.length }, 'Found best times with energy awareness');
+        log.info(
+          { userId, suggestionCount: suggestions.length },
+          'Found best times with energy awareness'
+        );
         return response;
       },
     }),

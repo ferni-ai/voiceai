@@ -529,10 +529,7 @@ export function createWeatherTools() {
     }
 
     // No location available
-    logger.warn(
-      { argLocation },
-      '🌤️ No location available - neither from args nor session'
-    );
+    logger.warn({ argLocation }, '🌤️ No location available - neither from args nor session');
     return null;
   }
 
@@ -578,7 +575,7 @@ export function createWeatherTools() {
         location: z
           .string()
           .optional()
-          .describe('City name. Optional - defaults to user\'s detected location.'),
+          .describe("City name. Optional - defaults to user's detected location."),
         days: z.number().optional().describe('Number of days to forecast (1-7), defaults to 5'),
       }),
       execute: async ({ location: argLocation, days = 5 }) => {
@@ -589,7 +586,10 @@ export function createWeatherTools() {
           return "I don't know your location. Which city would you like the forecast for?";
         }
 
-        logger.info({ argLocation, resolvedLocation: location, days }, '📅 Weather forecast tool called');
+        logger.info(
+          { argLocation, resolvedLocation: location, days },
+          '📅 Weather forecast tool called'
+        );
 
         try {
           const result = await getWeatherForecast(location, Math.min(days, 7));

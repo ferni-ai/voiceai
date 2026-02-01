@@ -138,9 +138,7 @@ describe('Content Engine', () => {
         createdAt: new Date().toISOString(),
       };
 
-      await expect(generateTikTokScript('Test topic', account)).rejects.toThrow(
-        /API key/
-      );
+      await expect(generateTikTokScript('Test topic', account)).rejects.toThrow(/API key/);
     });
   });
 

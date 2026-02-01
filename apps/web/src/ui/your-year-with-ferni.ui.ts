@@ -23,6 +23,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
+import { createEmptyState } from './components/empty-state.js';
 
 const log = createLogger('YourYearWithFerni');
 
@@ -137,9 +138,86 @@ export class YourYearWithFerni {
     // Load data
     this.data = await this.loadYearData(userId);
 
-    // Create and show UI
-    this.createUI();
+    // Check if user has meaningful data (more than 0 conversations)
+    const hasData = this.data && this.data.stats && this.data.stats.totalConversations > 0;
+
+    // Create and show UI (empty state or full visualization)
+    if (hasData) {
+      this.createUI();
+    } else {
+      this.createEmptyStateUI();
+    }
     await this.animateIn();
+  }
+
+  /**
+   * Create empty state UI for new users.
+   */
+  private createEmptyStateUI(): void {
+    this.container = document.createElement('div');
+    this.container.className = 'your-year-overlay';
+    
+    const emptyState = createEmptyState('your-year');
+    
+    this.container.innerHTML = `
+      <div class="your-year-backdrop"></div>
+      <div class="your-year-modal your-year-modal--empty" role="dialog" aria-modal="true" aria-labelledby="your-year-title">
+        <button class="your-year-close" aria-label="${t('accessibility.closeYearReview')}">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
+        <header class="your-year-header">
+          <!-- Ferni Luxo-style avatar -->
+          <div class="your-year-avatar" aria-hidden="true">
+            <svg viewBox="0 0 64 64" width="64" height="64">
+              <defs>
+                <linearGradient id="header-ferni-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#5a8060"/>
+                  <stop offset="100%" stop-color="#3d5a35"/>
+                </linearGradient>
+                <clipPath id="header-ferni-clip">
+                  <circle cx="32" cy="32" r="29"/>
+                </clipPath>
+              </defs>
+              <!-- Presence ring -->
+              <circle cx="32" cy="32" r="31" fill="none" stroke="rgba(74, 103, 65, 0.2)" stroke-width="1.5"/>
+              <!-- Main orb -->
+              <g clip-path="url(#header-ferni-clip)">
+                <circle cx="32" cy="32" r="29" fill="url(#header-ferni-grad)"/>
+                <!-- LUXO STYLE: opaque white eyes, NO pupils -->
+                <ellipse cx="23" cy="31" rx="4.5" ry="6.5" fill="white"/>
+                <ellipse cx="41" cy="31" rx="4.5" ry="6.5" fill="white"/>
+              </g>
+            </svg>
+          </div>
+          <span class="your-year-eyebrow">YOUR JOURNEY</span>
+          <h2 id="your-year-title" class="your-year-title">Your Year with Ferni</h2>
+        </header>
+
+        <div class="your-year-content your-year-content--empty" id="your-year-empty-container">
+        </div>
+      </div>
+    `;
+
+    // Add the empty state element
+    const emptyContainer = this.container.querySelector('#your-year-empty-container');
+    if (emptyContainer) {
+      emptyContainer.appendChild(emptyState);
+    }
+
+    // Add styles
+    this.addStyles();
+
+    // Add event listeners
+    this.container.querySelector('.your-year-close')?.addEventListener('click', () => this.close());
+    this.container
+      .querySelector('.your-year-backdrop')
+      ?.addEventListener('click', () => this.close());
+
+    document.body.appendChild(this.container);
   }
 
   /**
@@ -158,147 +236,44 @@ export class YourYearWithFerni {
   // DATA LOADING
   // ============================================================================
 
-  private async loadYearData(userId: string): Promise<YearData> {
+  private async loadYearData(userId: string): Promise<YearData | null> {
     try {
       const response = await apiGet<YearData>(`/api/year-in-review/${userId}`);
       if (response.ok && response.data) {
-        return response.data;
+        // Parse date strings to Date objects for consistency
+        const data = response.data;
+        return {
+          ...data,
+          startDate: new Date(data.startDate),
+          emotionalJourney: data.emotionalJourney?.map((m) => ({
+            ...m,
+            date: new Date(m.date),
+          })) ?? [],
+          teamUnlocks: data.teamUnlocks?.map((t) => ({
+            ...t,
+            unlockedAt: new Date(t.unlockedAt),
+          })) ?? [],
+          dreams: data.dreams?.map((d) => ({
+            ...d,
+            mentionedAt: new Date(d.mentionedAt),
+          })) ?? [],
+          milestones: data.milestones?.map((m) => ({
+            ...m,
+            date: new Date(m.date),
+          })) ?? [],
+          topTopics: data.topTopics?.map((t) => ({
+            ...t,
+            lastDiscussed: new Date(t.lastDiscussed),
+          })) ?? [],
+        };
       }
+      // API returned no data - user has no year data yet
+      log.info({ userId }, 'No year data found for user - will show empty state');
+      return null;
     } catch (error) {
-      log.warn({ error }, 'Failed to load year data, using placeholder');
+      log.warn({ error, userId }, 'Failed to load year data from API');
+      return null;
     }
-
-    // Return placeholder data for demo
-    return this.getPlaceholderData(userId);
-  }
-
-  private getPlaceholderData(userId: string): YearData {
-    const today = new Date();
-    const startDate = new Date(today);
-    startDate.setFullYear(startDate.getFullYear() - 1);
-
-    // Generate conversation counts
-    const conversationCounts: DayData[] = [];
-    const current = new Date(startDate);
-    while (current <= today) {
-      const dayOfWeek = current.getDay();
-      // More conversations on weekdays
-      const baseCount = dayOfWeek === 0 || dayOfWeek === 6 ? 0 : Math.floor(Math.random() * 3);
-      if (baseCount > 0 || Math.random() > 0.7) {
-        const emotions = ['neutral', 'happy', 'reflective', 'stressed'] as const;
-        conversationCounts.push({
-          date: current.toISOString().split('T')[0] ?? '',
-          count: baseCount || Math.floor(Math.random() * 2) + 1,
-          dominantEmotion: emotions[Math.floor(Math.random() * 4)] ?? 'neutral',
-        });
-      }
-      current.setDate(current.getDate() + 1);
-    }
-
-    return {
-      userId,
-      startDate,
-      conversationCounts,
-      emotionalJourney: [
-        {
-          date: new Date('2024-03-15'),
-          emotion: 'breakthrough',
-          context: 'Career clarity',
-          intensity: 0.9,
-        },
-        {
-          date: new Date('2024-06-20'),
-          emotion: 'celebration',
-          context: 'Promotion',
-          intensity: 0.85,
-        },
-        {
-          date: new Date('2024-09-10'),
-          emotion: 'growth',
-          context: 'New perspective',
-          intensity: 0.7,
-        },
-      ],
-      teamUnlocks: [
-        {
-          personaId: 'ferni',
-          personaName: 'Ferni',
-          unlockedAt: startDate,
-          primaryColor: '#4A6741',
-        },
-        {
-          personaId: 'maya',
-          personaName: 'Maya',
-          unlockedAt: new Date('2024-02-15'),
-          primaryColor: '#A67A6A',
-        },
-        {
-          personaId: 'peter',
-          personaName: 'Peter',
-          unlockedAt: new Date('2024-04-01'),
-          primaryColor: '#3A6B73',
-        },
-        {
-          personaId: 'alex',
-          personaName: 'Alex',
-          unlockedAt: new Date('2024-06-10'),
-          primaryColor: '#5A6B8A',
-        },
-        {
-          personaId: 'jordan',
-          personaName: 'Jordan',
-          unlockedAt: new Date('2024-08-20'),
-          primaryColor: '#C4856A',
-        },
-      ],
-      dreams: [
-        {
-          dream: 'Learn piano',
-          type: 'skill',
-          mentionedAt: new Date('2024-01-20'),
-          status: 'active',
-          mentionCount: 5,
-        },
-        {
-          dream: 'Visit Japan',
-          type: 'travel',
-          mentionedAt: new Date('2024-03-10'),
-          status: 'active',
-          mentionCount: 3,
-        },
-      ],
-      commitments: [
-        { type: 'intention', count: 45, followedUp: 38 },
-        { type: 'promise', count: 12, followedUp: 10 },
-        { type: 'decision', count: 8, followedUp: 8 },
-      ],
-      milestones: [
-        { date: new Date('2024-02-14'), type: 'conversation', description: '50 conversations' },
-        { date: new Date('2024-05-20'), type: 'streak', description: '30-day streak' },
-        { date: new Date('2024-08-01'), type: 'team', description: 'Full team unlocked' },
-      ],
-      topTopics: [
-        { topic: 'Career growth', count: 34, lastDiscussed: new Date() },
-        { topic: 'Health & wellness', count: 28, lastDiscussed: new Date() },
-        { topic: 'Relationships', count: 22, lastDiscussed: new Date() },
-      ],
-      relationshipGrowth: {
-        peopleTracked: 15,
-        newConnections: 3,
-        deepenedRelationships: 5,
-      },
-      stats: {
-        totalConversations: conversationCounts.reduce((sum, d) => sum + d.count, 0),
-        totalMinutes: conversationCounts.reduce((sum, d) => sum + d.count, 0) * 8,
-        longestStreak: 32,
-        currentStreak: 7,
-        averageConversationsPerWeek: 4.2,
-        mostActiveMonth: 'March',
-        teamMembersUnlocked: 5,
-        dreamsTracked: 2,
-        commitmentsKept: 56,
-      },
-    };
   }
 
   // ============================================================================
@@ -618,6 +593,23 @@ export class YourYearWithFerni {
         width: 90%;
         max-width: 800px;
         max-height: 85vh;
+        background: var(--color-bg-elevated, #FFFFFF);
+      }
+
+      .your-year-modal--empty {
+        max-width: 500px;
+        max-height: 500px;
+      }
+
+      .your-year-content--empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-8, 32px);
+        min-height: 200px;
+      }
+
+      .your-year-modal--empty .your-year-content {
         background: var(--color-bg-elevated, #FFFFFF);
         border: 1px solid var(--color-border-subtle, rgba(29, 27, 24, 0.06));
         border-radius: var(--radius-2xl, 24px);

@@ -2,11 +2,11 @@
   "$schema": "../tool.schema.json",
   "domain": "communication",
   "persona": "alex",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "tools": [
     {
       "name": "draftEmail",
-      "description": "Draft an email with Alex's communication expertise. Helps craft professional, clear, and effective emails.",
+      "description": "Draft an email with Alex's communication expertise. Helps craft professional, clear, and effective emails.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks to draft, write, or help with an email. Do NOT invoke for general email discussion.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -31,15 +31,24 @@
         "required": ["purpose"]
       },
       "examples": [
-        { "userSays": "Help me write an email to my boss about time off", "output": "{\"fn\":\"draftEmail\",\"args\":{\"to\":\"my boss\",\"purpose\":\"request time off\",\"tone\":\"professional\"}}" },
-        { "userSays": "Draft an apology email to the client", "output": "{\"fn\":\"draftEmail\",\"args\":{\"to\":\"client\",\"purpose\":\"apologize\",\"tone\":\"apologetic\"}}" },
-        { "userSays": "I need to email about the project deadline", "output": "{\"fn\":\"draftEmail\",\"args\":{\"purpose\":\"discuss project deadline\",\"tone\":\"professional\"}}" }
+        {
+          "userSays": "Help me write an email to my boss about time off",
+          "output": "{\"fn\":\"draftEmail\",\"args\":{\"to\":\"my boss\",\"purpose\":\"request time off\",\"tone\":\"professional\"}}"
+        },
+        {
+          "userSays": "Draft an apology email to the client",
+          "output": "{\"fn\":\"draftEmail\",\"args\":{\"to\":\"client\",\"purpose\":\"apologize\",\"tone\":\"apologetic\"}}"
+        },
+        {
+          "userSays": "I need to email about the project deadline",
+          "output": "{\"fn\":\"draftEmail\",\"args\":{\"purpose\":\"discuss project deadline\",\"tone\":\"professional\"}}"
+        }
       ],
       "tags": ["email", "communication", "writing"]
     },
     {
       "name": "prepareConversation",
-      "description": "Help prepare for a difficult or important conversation. Alex provides talking points, tone guidance, and anticipates responses.",
+      "description": "Help prepare for a difficult or important conversation. Alex provides talking points, tone guidance, and anticipates responses.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks to prepare for a conversation or says they need help with an upcoming difficult discussion.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -59,15 +68,24 @@
         "required": ["topic"]
       },
       "examples": [
-        { "userSays": "I need to talk to my boss about a raise", "output": "{\"fn\":\"prepareConversation\",\"args\":{\"with\":\"boss\",\"topic\":\"salary raise\",\"goal\":\"negotiate higher salary\"}}" },
-        { "userSays": "Help me prepare for a difficult conversation with my partner", "output": "{\"fn\":\"prepareConversation\",\"args\":{\"with\":\"partner\",\"topic\":\"difficult conversation\"}}" },
-        { "userSays": "I have to give feedback to a team member", "output": "{\"fn\":\"prepareConversation\",\"args\":{\"with\":\"team member\",\"topic\":\"performance feedback\",\"goal\":\"give constructive feedback\"}}" }
+        {
+          "userSays": "I need to talk to my boss about a raise",
+          "output": "{\"fn\":\"prepareConversation\",\"args\":{\"with\":\"boss\",\"topic\":\"salary raise\",\"goal\":\"negotiate higher salary\"}}"
+        },
+        {
+          "userSays": "Help me prepare for a difficult conversation with my partner",
+          "output": "{\"fn\":\"prepareConversation\",\"args\":{\"with\":\"partner\",\"topic\":\"difficult conversation\"}}"
+        },
+        {
+          "userSays": "I have to give feedback to a team member",
+          "output": "{\"fn\":\"prepareConversation\",\"args\":{\"with\":\"team member\",\"topic\":\"performance feedback\",\"goal\":\"give constructive feedback\"}}"
+        }
       ],
       "tags": ["conversation", "communication", "preparation"]
     },
     {
       "name": "scheduleEvent",
-      "description": "Schedule a meeting or event on the calendar.",
+      "description": "Schedule a meeting or event on the calendar.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks to schedule, book, or set up a meeting/event. Do NOT invoke for asking about calendar.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -91,15 +109,24 @@
         "required": ["title", "when"]
       },
       "examples": [
-        { "userSays": "Schedule a meeting with Sarah tomorrow at 2", "output": "{\"fn\":\"scheduleEvent\",\"args\":{\"title\":\"Meeting with Sarah\",\"when\":\"tomorrow at 2pm\",\"with\":\"Sarah\"}}" },
-        { "userSays": "Block time for deep work on Monday morning", "output": "{\"fn\":\"scheduleEvent\",\"args\":{\"title\":\"Deep Work\",\"when\":\"Monday morning\",\"duration\":\"2 hours\"}}" },
-        { "userSays": "Set up a team sync for Friday", "output": "{\"fn\":\"scheduleEvent\",\"args\":{\"title\":\"Team Sync\",\"when\":\"Friday\",\"with\":\"team\"}}" }
+        {
+          "userSays": "Schedule a meeting with Sarah tomorrow at 2",
+          "output": "{\"fn\":\"scheduleEvent\",\"args\":{\"title\":\"Meeting with Sarah\",\"when\":\"tomorrow at 2pm\",\"with\":\"Sarah\"}}"
+        },
+        {
+          "userSays": "Block time for deep work on Monday morning",
+          "output": "{\"fn\":\"scheduleEvent\",\"args\":{\"title\":\"Deep Work\",\"when\":\"Monday morning\",\"duration\":\"2 hours\"}}"
+        },
+        {
+          "userSays": "Set up a team sync for Friday",
+          "output": "{\"fn\":\"scheduleEvent\",\"args\":{\"title\":\"Team Sync\",\"when\":\"Friday\",\"with\":\"team\"}}"
+        }
       ],
       "tags": ["calendar", "scheduling", "meetings"]
     },
     {
       "name": "analyzeCommunication",
-      "description": "Analyze a communication (email, message, conversation) and provide feedback on tone, clarity, and effectiveness.",
+      "description": "Analyze a communication (email, message, conversation) and provide feedback on tone, clarity, and effectiveness.\n\n**Invocation Condition:** Invoke this tool *only when* the user asks you to review, analyze, or give feedback on a specific piece of communication they share.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -115,8 +142,14 @@
         "required": ["content"]
       },
       "examples": [
-        { "userSays": "What do you think of this email?", "output": "{\"fn\":\"analyzeCommunication\",\"args\":{\"content\":\"[user provides email]\"}}" },
-        { "userSays": "Is this message too harsh?", "output": "{\"fn\":\"analyzeCommunication\",\"args\":{\"content\":\"[user provides message]\",\"context\":\"checking tone\"}}" }
+        {
+          "userSays": "What do you think of this email?",
+          "output": "{\"fn\":\"analyzeCommunication\",\"args\":{\"content\":\"[user provides email]\"}}"
+        },
+        {
+          "userSays": "Is this message too harsh?",
+          "output": "{\"fn\":\"analyzeCommunication\",\"args\":{\"content\":\"[user provides message]\",\"context\":\"checking tone\"}}"
+        }
       ],
       "tags": ["communication", "analysis", "feedback"]
     }

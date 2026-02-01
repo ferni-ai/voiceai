@@ -16,12 +16,12 @@
  */
 
 import {
-  getDefaultModel,
+  getExtractionModel,
   getGeminiClient,
   getOpenAIFallbackModel,
-  TEMP_EXTRACTION,
-  MAX_TOKENS_MEDIUM,
   LLM_TIMEOUT_MS,
+  MAX_TOKENS_MEDIUM,
+  TEMP_EXTRACTION,
 } from '../config/gemini-config.js';
 import {
   CIRCUIT_FAILURE_THRESHOLD,
@@ -154,8 +154,10 @@ async function callVertexAI(prompt: string, options: LLMCallOptions = {}): Promi
 
     try {
       const response = await vertexAICircuitBreaker.execute(async () => {
-        // Use Vertex AI SDK - model from centralized config
-        const model = client.getGenerativeModel({ model: getDefaultModel() });
+        // Use Vertex AI SDK - extraction model for supplementary analysis
+        // NOTE: Do NOT use getDefaultModel() as it may return a realtime-only model
+        // that doesn't work with generateContent API
+        const model = client.getGenerativeModel({ model: getExtractionModel() });
         const result = await model.generateContent({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
@@ -232,6 +234,7 @@ async function callGeminiAPI(prompt: string, options: LLMCallOptions = {}): Prom
     try {
       const response = await geminiAPICircuitBreaker.execute(async () => {
         // Use centralized Gemini client (respects USE_VERTEX_AI setting)
+        // NOTE: Use extraction model, NOT default model (may be realtime-only)
         const model = (
           client as {
             models: {
@@ -243,7 +246,7 @@ async function callGeminiAPI(prompt: string, options: LLMCallOptions = {}): Prom
             };
           }
         ).models.generateContent({
-          model: getDefaultModel(),
+          model: getExtractionModel(),
           contents: prompt,
           config: {
             maxOutputTokens: maxTokens,

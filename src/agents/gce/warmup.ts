@@ -67,7 +67,8 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
     // ⚡ Initialize background agents delivery (lightweight - just push/email)
     // This enables "while you were away" notifications without the full outreach system
     try {
-      const { initializeBackgroundDelivery } = await import('../../services/background-agents/index.js');
+      const { initializeBackgroundDelivery } =
+        await import('../../services/background-agents/index.js');
       await initializeBackgroundDelivery();
       log('✅ Background agents delivery initialized');
     } catch (e) {
@@ -167,9 +168,8 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       (async () => {
         try {
           const embeddingsStart = Date.now();
-          const { loadPrecomputedEmbeddings } = await import(
-            '../../tools/semantic-router/precomputed-embeddings.js'
-          );
+          const { loadPrecomputedEmbeddings } =
+            await import('../../tools/semantic-router/precomputed-embeddings.js');
           const embeddings = await loadPrecomputedEmbeddings();
           log('⚡ Pre-computed embeddings loaded (30-50x faster than API)', {
             durationMs: Date.now() - embeddingsStart,
@@ -198,6 +198,32 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
+    // 3c-2. ⚡ Tool Gateway warmup (2026 architecture)
+    // Loads Tier 0 tools (playMusic, transferAgent, etc.) into memory
+    // Enabled by default. Set USE_TOOL_GATEWAY=false to skip.
+    if (process.env.USE_TOOL_GATEWAY !== 'false') {
+      tasks.push(
+        (async () => {
+          try {
+            const gatewayStart = Date.now();
+            const { getToolGateway } = await import('../../tools/gateway/index.js');
+            const gateway = getToolGateway();
+            await gateway.warmup();
+            const metrics = gateway.getMetrics();
+            log('✅ Tool Gateway warmed up (Tier 0 tools ready)', {
+              durationMs: Date.now() - gatewayStart,
+              tier0Tools: metrics.tier0Count,
+              criticalToolsReady: true,
+            });
+          } catch (e) {
+            log('⚠️ Tool Gateway warmup failed (will initialize on first session)', {
+              error: String(e),
+            });
+          }
+        })()
+      );
+    }
+
     // 3d. ⚡ Initialize native Rust acceleration for leakage detection
     // Uses simd-json + Aho-Corasick for 2-5x faster TTS stream parsing
     tasks.push(
@@ -208,12 +234,44 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
             await import('../shared/sanitizer/index.js');
           initializeNativeAcceleration();
           const active = isNativeAccelerationActive();
-          log(active ? '🦀 Native leakage detection initialized (Rust simd-json)' : '📦 Using JS leakage detection', {
-            durationMs: Date.now() - nativeStart,
-            native: active,
-          });
+          log(
+            active
+              ? '🦀 Native leakage detection initialized (Rust simd-json)'
+              : '📦 Using JS leakage detection',
+            {
+              durationMs: Date.now() - nativeStart,
+              native: active,
+            }
+          );
         } catch (e) {
           log('⚠️ Native acceleration init failed (non-fatal)', { error: String(e) });
+        }
+      })()
+    );
+
+    // 3e. ⚡ ONNX ML Classifier warmup - 98.0% accuracy tool routing (V5-860)
+    // Uses trained Qwen model via ONNX Runtime for fast, accurate tool classification.
+    // This runs BEFORE the semantic router for better accuracy.
+    tasks.push(
+      (async () => {
+        try {
+          const onnxStart = Date.now();
+          const { initializeOnnxClassifier, isOnnxClassifierAvailable, getOnnxToolCount } =
+            await import('../../tools/semantic-router/advanced/intelligent/onnx-classifier.js');
+          await initializeOnnxClassifier();
+
+          if (isOnnxClassifierAvailable()) {
+            log('🧠 ONNX ML classifier initialized (98.0% accuracy, 861 labels)', {
+              durationMs: Date.now() - onnxStart,
+              toolsCovered: getOnnxToolCount(),
+            });
+          } else {
+            log('⚠️ ONNX classifier not available - using pattern matching', {
+              durationMs: Date.now() - onnxStart,
+            });
+          }
+        } catch (e) {
+          log('⚠️ ONNX classifier init failed (falling back to patterns)', { error: String(e) });
         }
       })()
     );

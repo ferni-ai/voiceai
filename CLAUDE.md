@@ -62,12 +62,12 @@ Pre-commit hooks validate both backend and frontend code. CI enforces all qualit
 
 For full development, you need 4 servers running:
 
-| Server | Port | Purpose |
-|--------|------|---------|
-| **Token Server** | 3001 | LiveKit tokens, Spotify OAuth, subscriptions |
-| **UI Server** | 3002 | APIs, engagement routes, agent registry |
-| **Vite Frontend** | 3004 | Frontend with HMR |
-| **Voice Agent** | LiveKit | Voice agent (connects to dev LiveKit project) |
+| Server            | Port    | Purpose                                       |
+| ----------------- | ------- | --------------------------------------------- |
+| **Token Server**  | 3001    | LiveKit tokens, Spotify OAuth, subscriptions  |
+| **UI Server**     | 3002    | APIs, engagement routes, agent registry       |
+| **Vite Frontend** | 3004    | Frontend with HMR                             |
+| **Voice Agent**   | LiveKit | Voice agent (connects to dev LiveKit project) |
 
 ### For Cursor AI Agents (Recommended)
 
@@ -149,14 +149,14 @@ With separate projects, your local dev is completely isolated from production.
 
 The GCE voice agent **requires** these environment variables. Missing any will cause immediate startup failure with clear error messages:
 
-| Variable | Purpose | Required In |
-|----------|---------|-------------|
-| `GOOGLE_CLOUD_PROJECT` | Firestore persistence | Production |
-| `LIVEKIT_URL` | Voice agent connection | All |
-| `LIVEKIT_API_KEY` | LiveKit authentication | All |
-| `LIVEKIT_API_SECRET` | LiveKit authentication | All |
-| `OPENAI_API_KEY` | LLM for conversations | All |
-| `CARTESIA_API_KEY` | Text-to-speech | All |
+| Variable               | Purpose                | Required In |
+| ---------------------- | ---------------------- | ----------- |
+| `GOOGLE_CLOUD_PROJECT` | Firestore persistence  | Production  |
+| `LIVEKIT_URL`          | Voice agent connection | All         |
+| `LIVEKIT_API_KEY`      | LiveKit authentication | All         |
+| `LIVEKIT_API_SECRET`   | LiveKit authentication | All         |
+| `OPENAI_API_KEY`       | LLM for conversations  | All         |
+| `CARTESIA_API_KEY`     | Text-to-speech         | All         |
 
 ### How These Are Set
 
@@ -428,12 +428,12 @@ ferni disk setup-cron         # or: pnpm ops:disk:setup-cron
 
 We use a **self-hosted GitHub Actions runner** on GCE to reduce CI billing and speed up builds through caching.
 
-| Property | Value |
-|----------|-------|
-| **VM Name** | `github-runner` |
-| **IP** | `34.171.8.182` |
-| **Machine Type** | `e2-medium` (~$25/mo) |
-| **Zone** | `us-central1-a` |
+| Property          | Value                                |
+| ----------------- | ------------------------------------ |
+| **VM Name**       | `github-runner`                      |
+| **IP**            | `34.171.8.182`                       |
+| **Machine Type**  | `e2-medium` (~$25/mo)                |
+| **Zone**          | `us-central1-a`                      |
 | **Runner Labels** | `self-hosted`, `Linux`, `X64`, `gce` |
 
 **Pre-installed tools:** Docker 29.x, Node.js 20.x, pnpm 10.x, gcloud CLI
@@ -463,10 +463,12 @@ ferni runner ssh
 #### Workflows Using Self-Hosted Runner
 
 The following workflows run on the self-hosted runner:
+
 - `ci.yml` - All CI jobs (lint, test, build)
 - `deploy-gce.yml` - GCE deployments
 
 To use in a workflow:
+
 ```yaml
 jobs:
   build:
@@ -670,14 +672,14 @@ ferni devblog social            # Generate social snippets
 
 ### File Structure
 
-| Path | Purpose |
-|------|---------|
-| `apps/website/ferni-website/src/dev-blog/*.md` | Blog posts (frontmatter + markdown) |
-| `apps/website/ferni-website/images/dev-blog/*.png` | OG images (1200x630) |
-| `apps/website/ferni-website/social-snippets/*.json` | Social media snippets |
-| `apps/website/ferni-website/newsletters/*.html` | Generated newsletters |
-| `brand/docs/DEVELOPER-BLOG-365-PLAN.md` | Content strategy & calendar |
-| `brand/docs/CONTENT-CALENDAR-TEMPLATE.md` | Weekly planning template |
+| Path                                                | Purpose                             |
+| --------------------------------------------------- | ----------------------------------- |
+| `apps/website/ferni-website/src/dev-blog/*.md`      | Blog posts (frontmatter + markdown) |
+| `apps/website/ferni-website/images/dev-blog/*.png`  | OG images (1200x630)                |
+| `apps/website/ferni-website/social-snippets/*.json` | Social media snippets               |
+| `apps/website/ferni-website/newsletters/*.html`     | Generated newsletters               |
+| `brand/docs/DEVELOPER-BLOG-365-PLAN.md`             | Content strategy & calendar         |
+| `brand/docs/CONTENT-CALENDAR-TEMPLATE.md`           | Weekly planning template            |
 
 ### Adding a New Post
 
@@ -685,14 +687,14 @@ ferni devblog social            # Generate social snippets
 
 ```yaml
 ---
-title: "Your Post Title"
-excerpt: "Brief description for cards and SEO"
-author: "Your Name"
-authorInitials: "YN"
-authorColor: "#38bdf8"
+title: 'Your Post Title'
+excerpt: 'Brief description for cards and SEO'
+author: 'Your Name'
+authorInitials: 'YN'
+authorColor: '#38bdf8'
 date: 2026-01-12
-category: "Tutorial"
-image: "your-post.png"
+category: 'Tutorial'
+image: 'your-post.png'
 readTime: 5
 ---
 ```
@@ -703,14 +705,14 @@ readTime: 5
 
 ### Categories
 
-| Category | Color | Use For |
-|----------|-------|---------|
-| Tutorial | Cyan | Step-by-step guides |
-| Changelog | Emerald | Release notes |
-| Deep Dive | Violet | Architecture, internals |
-| Case Study | Amber | Customer stories |
-| Community | Pink | Community spotlights |
-| Quick Tip | Blue | Short tips, snippets |
+| Category   | Color   | Use For                 |
+| ---------- | ------- | ----------------------- |
+| Tutorial   | Cyan    | Step-by-step guides     |
+| Changelog  | Emerald | Release notes           |
+| Deep Dive  | Violet  | Architecture, internals |
+| Case Study | Amber   | Customer stories        |
+| Community  | Pink    | Community spotlights    |
+| Quick Tip  | Blue    | Short tips, snippets    |
 
 ### RSS Feeds
 
@@ -720,6 +722,7 @@ readTime: 5
 ### GitHub Action (Automated Changelog)
 
 The `.github/workflows/dev-blog-changelog.yml` action automatically:
+
 1. Generates a changelog post when a release is published
 2. Creates an OG image for the release
 3. Commits and pushes the new post
@@ -876,11 +879,11 @@ User Speech → fastCapture() → STM Buffer (L1) → onSessionEnd() → Firesto
                                                               Spanner Graph (L3)
 ```
 
-| Layer | Storage | Latency | Purpose |
-|-------|---------|---------|---------|
-| **L1: STM** | In-memory | < 1ms | Current session context, entity frequency |
-| **L2: Working** | Firestore | 50-150ms | Recent entities, facts, relationships |
-| **L3: Long-Term** | Spanner | 100-200ms | Relationship graph, cross-session patterns |
+| Layer             | Storage   | Latency   | Purpose                                    |
+| ----------------- | --------- | --------- | ------------------------------------------ |
+| **L1: STM**       | In-memory | < 1ms     | Current session context, entity frequency  |
+| **L2: Working**   | Firestore | 50-150ms  | Recent entities, facts, relationships      |
+| **L3: Long-Term** | Spanner   | 100-200ms | Relationship graph, cross-session patterns |
 
 ### Quick Commands
 
@@ -904,51 +907,52 @@ FIRESTORE_EMULATOR_HOST=localhost:8080 pnpm vitest run src/tests/integration/
 
 ### Key Files
 
-| File | Purpose |
-|------|---------|
-| `src/memory/dynamic/fast-capture.ts` | Real-time extraction (< 50ms) |
-| `src/memory/dynamic/stm-buffer.ts` | In-memory session context |
+| File                                           | Purpose                                 |
+| ---------------------------------------------- | --------------------------------------- |
+| `src/memory/dynamic/fast-capture.ts`           | Real-time extraction (< 50ms)           |
+| `src/memory/dynamic/stm-buffer.ts`             | In-memory session context               |
 | `src/memory/dynamic/deep-extraction-worker.ts` | Async LLM extraction (Gemini 1.5 Flash) |
-| `src/memory/dynamic/stm-promotion.ts` | Session-end promotion to Firestore |
-| `src/memory/dynamic/firestore-spanner-sync.ts` | Background sync to Spanner |
-| `src/memory/dynamic/metrics.ts` | Observability metrics |
+| `src/memory/dynamic/stm-promotion.ts`          | Session-end promotion to Firestore      |
+| `src/memory/dynamic/firestore-spanner-sync.ts` | Background sync to Spanner              |
+| `src/memory/dynamic/metrics.ts`                | Observability metrics                   |
 
 ### Integration Points
 
-| Component | How It Uses Dynamic Memory |
-|-----------|---------------------------|
-| `turn-handler.ts` | Calls `fastCapture()` + `recordTurn()` |
-| `turn-processor.ts` | Calls `fastCapture()` + `recordTurn()` |
-| `transcript-handler.ts` | Calls `fastCapture()` + `recordTurn()` |
-| `end-session.ts` | Calls `onSessionEnd()` for STM promotion |
-| `gce-voice-worker.ts` | Starts deep extraction worker + sync service |
-| `dynamic-memory-context.ts` | Context builder retrieves from Firestore |
+| Component                   | How It Uses Dynamic Memory                   |
+| --------------------------- | -------------------------------------------- |
+| `turn-handler.ts`           | Calls `fastCapture()` + `recordTurn()`       |
+| `turn-processor.ts`         | Calls `fastCapture()` + `recordTurn()`       |
+| `transcript-handler.ts`     | Calls `fastCapture()` + `recordTurn()`       |
+| `end-session.ts`            | Calls `onSessionEnd()` for STM promotion     |
+| `gce-voice-worker.ts`       | Starts deep extraction worker + sync service |
+| `dynamic-memory-context.ts` | Context builder retrieves from Firestore     |
 
 ### Test Coverage
 
-| Suite | Tests |
-|-------|-------|
-| Unit tests | 35 |
-| E2E tests | 76 |
-| Integration tests | 11 |
-| **Total** | **122** |
+| Suite             | Tests   |
+| ----------------- | ------- |
+| Unit tests        | 35      |
+| E2E tests         | 76      |
+| Integration tests | 11      |
+| **Total**         | **122** |
 
 ### Memory Maintenance Jobs (Cloud Scheduler)
 
 The memory system runs scheduled maintenance jobs via Cloud Scheduler:
 
-| Job | Schedule | Purpose |
-|-----|----------|---------|
-| `memory-consolidation` | Weekly (Sun 3am PT) | Merge related memories, reduce storage |
-| `memory-decay` | Daily (4am PT) | Graceful forgetting, decay old memories |
-| `memory-deduplication` | Weekly (Sat 2am PT) | LSH-based duplicate cleanup |
-| `memory-health-check` | Every 4 hours | Monitor system health, send alerts |
-| `knowledge-graph-insights` | Daily (2am PT) | Generate insights from entity patterns |
-| `knowledge-graph-consolidation` | Weekly (Mon 3am PT) | Merge duplicate entities |
-| `knowledge-graph-thread-maintenance` | Daily (4am PT) | Mark dormant threads, cleanup expired |
-| `knowledge-graph-entity-decay` | Daily (5am PT) | Apply importance decay to entities |
+| Job                                  | Schedule            | Purpose                                 |
+| ------------------------------------ | ------------------- | --------------------------------------- |
+| `memory-consolidation`               | Weekly (Sun 3am PT) | Merge related memories, reduce storage  |
+| `memory-decay`                       | Daily (4am PT)      | Graceful forgetting, decay old memories |
+| `memory-deduplication`               | Weekly (Sat 2am PT) | LSH-based duplicate cleanup             |
+| `memory-health-check`                | Every 4 hours       | Monitor system health, send alerts      |
+| `knowledge-graph-insights`           | Daily (2am PT)      | Generate insights from entity patterns  |
+| `knowledge-graph-consolidation`      | Weekly (Mon 3am PT) | Merge duplicate entities                |
+| `knowledge-graph-thread-maintenance` | Daily (4am PT)      | Mark dormant threads, cleanup expired   |
+| `knowledge-graph-entity-decay`       | Daily (5am PT)      | Apply importance decay to entities      |
 
 **Deployment:**
+
 ```bash
 # Deploy all memory scheduler jobs
 ferni ops memory:deploy-scheduler
@@ -961,6 +965,7 @@ ferni ops memory:trigger memory-health-check
 ```
 
 **Key Files:**
+
 - API handlers: `src/api/scheduled-jobs.routes.ts`
 - Job classes: `src/tasks/scheduled/memory-jobs.ts`, `knowledge-graph-jobs.ts`
 - Scheduler YAML: `infra/cloud-scheduler-memory.yaml`, `cloud-scheduler-knowledge-graph.yaml`
@@ -1259,11 +1264,73 @@ User Speech → OpenAI/Gemini (text) → Cartesia TTS (persona voice) → Audio
 🎯 JSON function call detected    # Workaround intercept
 ```
 
-## 🔧 Function Calling System (Gemini Only - CRITICAL)
+## 🔧 Function Calling System (Gemini)
 
-**NOTE:** This section only applies when using Gemini Live (`USE_OPENAI_REALTIME=false`). OpenAI Realtime has native function calling that doesn't need this workaround.
+**NOTE:** This section only applies when using Gemini Live (`USE_OPENAI_REALTIME=false`). OpenAI Realtime has native function calling that works reliably.
 
-Ferni uses a **custom JSON-based function calling workaround** because Gemini Live API's native function calling is unreliable. This is a fragile system that has been carefully tuned.
+### Native Function Calling Configuration (NEW - Jan 2026)
+
+Gemini now supports **configurable native function calling** with turn-by-turn optimization. All options are controlled via environment variables.
+
+| Env Variable                | Default  | Description                                                           |
+| --------------------------- | -------- | --------------------------------------------------------------------- |
+| `GEMINI_USE_NATIVE_FC`      | `false`  | Enable native function calling (disables JSON workaround)             |
+| `GEMINI_FC_MODE`            | `AUTO`   | Function calling mode: `AUTO`, `ANY` (forced), `NONE`                 |
+| `GEMINI_JSON_FALLBACK`      | `true`   | Keep JSON workaround as fallback when native FC enabled               |
+| `GEMINI_TURN_OPTIMIZATION`  | `false`  | Enable turn-by-turn tool optimization (reduces bloat)                 |
+| `GEMINI_INJECTION_STRATEGY` | `static` | Tool injection: `static`, `turn-by-turn`, `hybrid`                    |
+| `GEMINI_MAX_TOOLS_PER_TURN` | `15`     | Maximum tools per turn (when turn optimization enabled)               |
+| `GEMINI_SEMANTIC_THRESHOLD` | `0.3`    | Minimum semantic score to include a tool (0-1)                        |
+| `GEMINI_STRICT_SCHEMAS`     | `true`   | Add `additionalProperties: false` to all schemas (anti-hallucination) |
+| `GEMINI_NATIVE_PROMPTS`     | `false`  | Use simplified prompts without JSON format instructions               |
+| `GEMINI_DEBUG_TOOLS`        | `false`  | Log tool selection decisions for debugging                            |
+
+#### Configuration Presets
+
+| Preset                | Use When                          | Env Setup                                                                                        |
+| --------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Legacy** (default)  | Testing, debugging                | No env vars needed                                                                               |
+| **Native**            | Native FC is stable               | `GEMINI_USE_NATIVE_FC=true GEMINI_NATIVE_PROMPTS=true GEMINI_JSON_FALLBACK=false`                |
+| **Native + Fallback** | Transitioning from JSON           | `GEMINI_USE_NATIVE_FC=true GEMINI_JSON_FALLBACK=true`                                            |
+| **Optimized**         | Production with tool optimization | `GEMINI_USE_NATIVE_FC=true GEMINI_TURN_OPTIMIZATION=true GEMINI_INJECTION_STRATEGY=turn-by-turn` |
+| **Hybrid Optimized**  | Want optimization but safety      | `GEMINI_USE_NATIVE_FC=true GEMINI_TURN_OPTIMIZATION=true GEMINI_INJECTION_STRATEGY=hybrid`       |
+
+#### Key Files
+
+| File                                       | Purpose                                             |
+| ------------------------------------------ | --------------------------------------------------- |
+| `src/agents/shared/gemini-fc-config.ts`    | Centralized configuration for all Gemini FC options |
+| `src/agents/shared/turn-tool-optimizer.ts` | Turn-by-turn tool optimization logic                |
+| `src/agents/model-provider/gemini-live.ts` | Gemini Live provider implementation                 |
+
+#### Turn-by-Turn Optimization
+
+When `GEMINI_TURN_OPTIMIZATION=true`, tools are dynamically selected each turn:
+
+```
+User: "Play some jazz"
+         ↓
+1. Semantic matching detects 'music' domain (<5ms)
+         ↓
+2. Essential tools (12) + Music domain tools (6) = 18 tools
+         ↓
+3. LLM receives focused tool set (not 1000+)
+         ↓
+4. Faster inference, no hallucination, better accuracy
+```
+
+**Benefits:**
+
+- Reduced bloat: 1000+ tools → 8-15 per turn
+- No hallucination: LLM only sees relevant tools
+- Faster inference: Smaller context = faster response
+- Better accuracy: Focused attention on relevant tools
+
+---
+
+### JSON Workaround (Legacy Mode)
+
+Ferni uses a **custom JSON-based function calling workaround** when native FC is disabled. This is the default, well-tested approach.
 
 **Full documentation:** `docs/architecture/FUNCTION-CALLING-SYSTEM.md`
 **Tool Loading Pipeline:** `docs/architecture/TOOL-LOADING-SYSTEM.md` (config files, when tools load, debugging)
@@ -1320,16 +1387,18 @@ By default, long responses (LLM output, TTS text, tool results) are **truncated 
 LOG_FULL_RESPONSES=true pnpm dev
 ```
 
-| Env Variable | Default | Effect |
-|--------------|---------|--------|
+| Env Variable         | Default | Effect                                                                                |
+| -------------------- | ------- | ------------------------------------------------------------------------------------- |
 | `LOG_FULL_RESPONSES` | `false` | When `true`, disables truncation of LLM responses, TTS text, and tool results in logs |
 
 **Use this when:**
+
 - Debugging why speech sounds wrong (e.g., SSML tags being spoken)
 - Tracing tool call arguments and results
 - Investigating conversation flow issues
 
 **Key log traces affected:**
+
 - `E2E_LLM_OUTPUT` - Raw LLM response
 - `E2E_TTS_OUTPUT` - Final text sent to TTS
 - `E2E_USER_INPUT` - User transcript
@@ -1351,24 +1420,22 @@ pnpm dev
 
 Ferni has **tools across 118 domains**. The system uses semantic selection to pick the right tools per conversation turn.
 
-#### Config: `data/model-config.json`
+#### Config: `src/config/tool-config.ts` (centralized)
 
-```json
-{
-  "toolDefaults": {
-    "enabledDomains": [],     // Empty = ALL domains available (semantic selection decides)
-    "maxTools": 60,           // Max tools sent to LLM per turn
-    "includedTools": [...]    // Always-include tools (music, weather, etc.)
-  }
-}
+```bash
+# Environment variables (see .env.example)
+TOOL_LIMIT=0          # 0 = unlimited, semantic router filters
+USE_META_TOOL=false   # Single executeTool vs 100+ declarations
+USE_FTIS_V5=false     # ML classifier for direct routing
+FTIS_V5_THRESHOLD=85  # Confidence threshold (0-100)
 ```
 
-| Setting                               | Value         | Effect                                                             |
-| ------------------------------------- | ------------- | ------------------------------------------------------------------ |
-| `enabledDomains: []`                  | Empty array   | **All 118 domains available** - semantic router picks relevant ones |
-| `enabledDomains: ["grief", "career"]` | Specific list | Only those domains available                                       |
-| `maxTools: 60`                        | Number        | Cap on tools sent to LLM (prevents context bloat)                  |
-| `includedTools`                       | Array         | Always included regardless of semantic match                       |
+| Setting              | Value         | Effect                               |
+| -------------------- | ------------- | ------------------------------------ |
+| `TOOL_LIMIT=0`       | 0 (unlimited) | Semantic router filters, no hard cap |
+| `TOOL_LIMIT=40`      | Number        | Cap on tools sent to LLM             |
+| `USE_META_TOOL=true` | boolean       | Single `executeTool` pattern         |
+| `USE_FTIS_V5=true`   | boolean       | ML classifier routes directly        |
 
 #### How Tool Selection Works
 
@@ -1377,15 +1444,17 @@ User: "Help me process grief"
          ↓
 1. unified-tool-orchestrator.ts receives request
          ↓
-2. detectToolIntent() → { domains: ["grief"], confidence: 0.9 }
+2. [If USE_FTIS_V5=true] FTIS V5 classifier runs (~60ms)
+   → If confidence > 0.85: Load predicted tools directly
+   → Else: Fall through to semantic routing
          ↓
-3. getToolsForDomains(["grief"]) lazy-loads grief domain
+3. [Parallel] Essential tools + Semantic matching + Contextual tools
          ↓
-4. Semantic router scores tools by relevance
+4. Merge and cap tools (TOOL_LIMIT env var, default unlimited)
          ↓
-5. Top 60 tools sent to LLM as native functions
+5. Tools sent to LLM (native FC or meta-tool or JSON workaround)
          ↓
-6. LLM calls processGrief() → tool executes
+6. LLM calls tool → tool executes
 ```
 
 #### Key Files
@@ -1406,6 +1475,60 @@ User: "Help me process grief"
 
 No manual wiring needed - the semantic router handles discovery.
 
+### Tool Routing Strategies
+
+Ferni supports multiple tool routing strategies. Set via environment variables:
+
+| Strategy                      | Env Var                     | Description                                              |
+| ----------------------------- | --------------------------- | -------------------------------------------------------- |
+| **Semantic Router** (default) | None                        | Embedding-based pre-filtering → LLM picks from ~40 tools |
+| **Meta-Tool**                 | `USE_META_TOOL=true`        | Single `executeTool` function, LLM picks from catalog    |
+| **FTIS V5**                   | `USE_FTIS_V5=true`          | ML classifier (98% accuracy) routes directly             |
+| **Native FC**                 | `GEMINI_USE_NATIVE_FC=true` | Gemini's native function calling                         |
+
+#### FTIS V5 Classifier (98% Accuracy)
+
+FTIS V5 uses a trained Qwen3-1.7B model to classify user intent into 860 tool labels:
+
+| Metric         | Result     |
+| -------------- | ---------- |
+| Top-1 Accuracy | **98.03%** |
+| Top-3 Accuracy | **99.69%** |
+| F1 Score       | **98.04%** |
+| Latency        | ~60-70ms   |
+
+**Enable:**
+
+```bash
+USE_FTIS_V5=true pnpm dev
+
+# Optional: Adjust confidence threshold (default: 0.85)
+FTIS_V5_THRESHOLD=85
+```
+
+**How it works:**
+
+```
+User: "Play some jazz"
+         ↓
+1. FTIS V5 ONNX classifier runs (~60ms)
+         ↓
+2. Returns: playMusic (confidence: 0.97)
+         ↓
+3. Confidence > 0.85 threshold → load playMusic tools directly
+         ↓
+4. Skip semantic routing, faster response!
+
+If confidence < threshold → falls back to semantic router
+```
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/config/tool-config.ts` | `isFtisV5Enabled()`, `getFtisV5Threshold()` |
+| `src/tools/semantic-router/advanced/intelligent/onnx-classifier.ts` | ONNX classifier wrapper |
+| `models/ferni-router-v5-860/` | ONNX model, tokenizer, label map |
+
 ### LLMCompiler (Parallel Function Calling)
 
 Based on **ICML 2024 research**, LLMCompiler enables parallel tool execution with dependency tracking. Results: **3.7x latency reduction**, **6.7x cost savings**.
@@ -1422,9 +1545,9 @@ Instead of sequential `{"fn":"tool","args":{}}` calls, Gemini outputs a DAG:
 
 ```json
 [
-  {"id":"t1","fn":"getWeather","args":{"city":"NYC"},"dependsOn":[]},
-  {"id":"t2","fn":"playMusic","args":{"genre":"jazz"},"dependsOn":[]},
-  {"id":"t3","fn":"planDay","args":{"weather":"$t1"},"dependsOn":["t1"]}
+  { "id": "t1", "fn": "getWeather", "args": { "city": "NYC" }, "dependsOn": [] },
+  { "id": "t2", "fn": "playMusic", "args": { "genre": "jazz" }, "dependsOn": [] },
+  { "id": "t3", "fn": "planDay", "args": { "weather": "$t1" }, "dependsOn": ["t1"] }
 ]
 ```
 
@@ -1433,12 +1556,12 @@ Instead of sequential `{"fn":"tool","args":{}}` calls, Gemini outputs a DAG:
 
 #### Key Files
 
-| File | Purpose |
-|------|---------|
-| `src/agents/shared/llm-compiler/planner.ts` | Plan parsing, DAG validation |
-| `src/agents/shared/llm-compiler/executor.ts` | Parallel execution via `ParallelExecutor` |
-| `src/agents/shared/llm-compiler/joiner.ts` | Result aggregation |
-| `src/personas/bundles/shared/function-calling-base.md` | LLM prompt with DAG format |
+| File                                                   | Purpose                                   |
+| ------------------------------------------------------ | ----------------------------------------- |
+| `src/agents/shared/llm-compiler/planner.ts`            | Plan parsing, DAG validation              |
+| `src/agents/shared/llm-compiler/executor.ts`           | Parallel execution via `ParallelExecutor` |
+| `src/agents/shared/llm-compiler/joiner.ts`             | Result aggregation                        |
+| `src/personas/bundles/shared/function-calling-base.md` | LLM prompt with DAG format                |
 
 #### Debugging LLMCompiler
 
@@ -1500,15 +1623,15 @@ See `src/agents/shared/CLAUDE.md` for full documentation.
 
 When naming TypeScript modules, use consistent suffixes based on the module's responsibility:
 
-| Suffix | Use When | Examples |
-|--------|----------|----------|
-| `-service.ts` | Stateless business logic, CRUD operations, external API integrations | `calendar-service.ts`, `auth-service.ts` |
-| `-manager.ts` | Stateful resource management, lifecycle control, registry patterns | `session-manager.ts`, `cache-manager.ts` |
-| `-handler.ts` | Reactive event/request processing, webhooks, message handling | `webhook-handler.ts`, `error-handler.ts` |
-| `-engine.ts` | Complex algorithms, core domain logic, decision-making | `recommendation-engine.ts`, `humanization-engine.ts` |
-| `-executor.ts` | Proactive task/job execution, scheduled work | `job-executor.ts`, `tool-executor.ts` |
-| `-orchestrator.ts` | Multi-component coordination, workflow management | `multi-agent-orchestrator.ts`, `session-orchestrator.ts` |
-| `-controller.ts` | **DEPRECATED** - Use `-handler.ts` for request/response handling |
+| Suffix             | Use When                                                             | Examples                                                 |
+| ------------------ | -------------------------------------------------------------------- | -------------------------------------------------------- |
+| `-service.ts`      | Stateless business logic, CRUD operations, external API integrations | `calendar-service.ts`, `auth-service.ts`                 |
+| `-manager.ts`      | Stateful resource management, lifecycle control, registry patterns   | `session-manager.ts`, `cache-manager.ts`                 |
+| `-handler.ts`      | Reactive event/request processing, webhooks, message handling        | `webhook-handler.ts`, `error-handler.ts`                 |
+| `-engine.ts`       | Complex algorithms, core domain logic, decision-making               | `recommendation-engine.ts`, `humanization-engine.ts`     |
+| `-executor.ts`     | Proactive task/job execution, scheduled work                         | `job-executor.ts`, `tool-executor.ts`                    |
+| `-orchestrator.ts` | Multi-component coordination, workflow management                    | `multi-agent-orchestrator.ts`, `session-orchestrator.ts` |
+| `-controller.ts`   | **DEPRECATED** - Use `-handler.ts` for request/response handling     |
 
 ### Rules
 
@@ -1520,27 +1643,28 @@ When naming TypeScript modules, use consistent suffixes based on the module's re
 
 **Use clear, descriptive names instead of acronyms or version numbers.**
 
-| Wrong | Right | Why |
-|-------|-------|-----|
-| `ftis-classifier-v2.ts` | `tool-classifier.ts` | Clear function, no acronym |
-| `ftis-hybrid-router.ts` | `tool-router.ts` | Describes what it routes |
-| `ftis-calibration.ts` | `classifier-calibration.ts` | Clear relationship |
-| `ftis-decision-boundary.ts` | `classifier-boundary.ts` | Clear relationship |
-| `bth-service.ts` | `better-than-human-service.ts` | No acronyms |
+| Wrong                       | Right                          | Why                        |
+| --------------------------- | ------------------------------ | -------------------------- |
+| `ftis-classifier-v2.ts`     | `tool-classifier.ts`           | Clear function, no acronym |
+| `ftis-hybrid-router.ts`     | `tool-router.ts`               | Describes what it routes   |
+| `ftis-calibration.ts`       | `classifier-calibration.ts`    | Clear relationship         |
+| `ftis-decision-boundary.ts` | `classifier-boundary.ts`       | Clear relationship         |
+| `bth-service.ts`            | `better-than-human-service.ts` | No acronyms                |
 
 ### Tool Routing Components (Simplified Jan 2026)
 
 Tool routing now uses a simple 2-layer architecture:
+
 1. **Semantic Router** - Pre-filters tools by embedding similarity (<30ms)
 2. **LLM Native Function Calling** - OpenAI/Gemini selects from filtered tools
 
-| File | Purpose |
-|------|---------|
-| `orchestrator/tool-orchestrator.ts` | Main tool selection API |
-| `orchestrator/voice-agent-integration.ts` | Voice agent integration |
-| `semantic-router/matcher.ts` | Semantic matching algorithm |
-| `semantic-router/registry.ts` | Tool registration |
-| `builder.ts` | Tool factory |
+| File                                      | Purpose                     |
+| ----------------------------------------- | --------------------------- |
+| `orchestrator/tool-orchestrator.ts`       | Main tool selection API     |
+| `orchestrator/voice-agent-integration.ts` | Voice agent integration     |
+| `semantic-router/matcher.ts`              | Semantic matching algorithm |
+| `semantic-router/registry.ts`             | Tool registration           |
+| `builder.ts`                              | Tool factory                |
 
 ### Naming Rules
 
@@ -1599,13 +1723,13 @@ The DJ system uses a **state machine architecture** with single source of truth:
 └─────────────────────┘
 ```
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| **DJController** | `src/audio/dj-controller.ts` | State machine (idle→playing→ducking→fading→stopped) |
-| **DecisionEngine** | `src/audio/dj-decision-engine.ts` | Pure functions: when to duck, speak, interject |
-| **SpeechEngine** | `src/audio/dj-speech-engine.ts` | What to say: phrases, intros, outros |
-| **TimingEngine** | `src/audio/dj-timing-engine.ts` | Timer management for scheduled moments |
-| **MusicPlayer** | `src/audio/music-player.ts` | Low-level playback (LiveKit/Spotify) |
+| Component          | File                              | Purpose                                             |
+| ------------------ | --------------------------------- | --------------------------------------------------- |
+| **DJController**   | `src/audio/dj-controller.ts`      | State machine (idle→playing→ducking→fading→stopped) |
+| **DecisionEngine** | `src/audio/dj-decision-engine.ts` | Pure functions: when to duck, speak, interject      |
+| **SpeechEngine**   | `src/audio/dj-speech-engine.ts`   | What to say: phrases, intros, outros                |
+| **TimingEngine**   | `src/audio/dj-timing-engine.ts`   | Timer management for scheduled moments              |
+| **MusicPlayer**    | `src/audio/music-player.ts`       | Low-level playback (LiveKit/Spotify)                |
 
 ### Usage
 
@@ -1617,7 +1741,7 @@ const controller = getDJController();
 // Dispatch commands (the ONLY way to change state)
 controller.dispatch({ type: 'PLAY_TRACK', track, isAmbient: false });
 controller.dispatch({ type: 'AGENT_SPEAKING_START' }); // Auto-ducks
-controller.dispatch({ type: 'AGENT_SPEAKING_END' });   // Auto-unducks
+controller.dispatch({ type: 'AGENT_SPEAKING_END' }); // Auto-unducks
 
 // Query state
 const isActive = controller.isMusicActive();
@@ -1801,11 +1925,11 @@ Autonomous experimentation system for data-driven decisions.
 
 ### Experiment Types
 
-| Type | Algorithm | Use Case |
-|------|-----------|----------|
-| `ab` | Z-test significance | Classic A/B testing |
-| `bandit` | Thompson Sampling | Dynamic traffic optimization |
-| `rollout` | Stage-based (2%→10%→25%→50%→100%) | Safe feature rollouts |
+| Type      | Algorithm                         | Use Case                     |
+| --------- | --------------------------------- | ---------------------------- |
+| `ab`      | Z-test significance               | Classic A/B testing          |
+| `bandit`  | Thompson Sampling                 | Dynamic traffic optimization |
+| `rollout` | Stage-based (2%→10%→25%→50%→100%) | Safe feature rollouts        |
 
 ### Quick Commands
 
@@ -1820,16 +1944,16 @@ ferni experiments promote <id>      # Check and promote winner
 
 ### Key Files
 
-| File | Purpose |
-|------|---------|
-| `src/tools/intelligence/learning/experiment-manager.ts` | Central orchestrator |
-| `src/tools/intelligence/learning/auto-rollout.ts` | Auto-escalating rollout |
-| `src/tools/intelligence/learning/bandit.ts` | Thompson Sampling MAB |
-| `src/tools/intelligence/learning/sequential-test.ts` | SPRT early stopping |
-| `src/api/experiment-routes.ts` | REST API |
-| `apps/cli/src/commands/experiments/` | CLI commands |
+| File                                          | Purpose                 |
+| --------------------------------------------- | ----------------------- |
+| `src/tools/experiments/experiment-manager.ts` | Central orchestrator    |
+| `src/tools/experiments/auto-rollout.ts`       | Auto-escalating rollout |
+| `src/tools/experiments/bandit.ts`             | Thompson Sampling MAB   |
+| `src/tools/experiments/sequential-test.ts`    | SPRT early stopping     |
+| `src/api/experiment-routes.ts`                | REST API                |
+| `apps/cli/src/commands/experiments/`          | CLI commands            |
 
-**Full docs:** `src/tools/intelligence/learning/CLAUDE.md`
+**Full docs:** `src/tools/experiments/CLAUDE.md`
 
 ---
 
@@ -1837,12 +1961,12 @@ ferni experiments promote <id>      # Check and promote winner
 
 The CLI is evolving from a developer tool to an **autonomous business operations platform**.
 
-| Level | Capability | Status |
-|-------|------------|--------|
-| **L1: Developer Tool** | Deploy, build, test | ✅ Complete |
-| **L2: Operations Platform** | Monitor, alert, auto-remediate | ⚠️ In Progress |
-| **L3: Business Intelligence** | Metrics, insights, recommendations | 🔴 Planned |
-| **L4: Autonomous CEO** | Decide, execute, report | 🔴 Roadmap |
+| Level                         | Capability                         | Status         |
+| ----------------------------- | ---------------------------------- | -------------- |
+| **L1: Developer Tool**        | Deploy, build, test                | ✅ Complete    |
+| **L2: Operations Platform**   | Monitor, alert, auto-remediate     | ⚠️ In Progress |
+| **L3: Business Intelligence** | Metrics, insights, recommendations | 🔴 Planned     |
+| **L4: Autonomous CEO**        | Decide, execute, report            | 🔴 Roadmap     |
 
 **Full roadmap:** `docs/CEO-AUTOMATION-ROADMAP.md`
 **CLI reference:** `docs/CLI-COMMAND-REFERENCE.md`
@@ -1855,89 +1979,89 @@ The Ferni CLI (`ferni`) provides comprehensive access to all development, deploy
 
 ### Development Commands
 
-| Command | Description | Key Subcommands |
-|---------|-------------|-----------------|
-| `ferni dev` | Development workflow | start, stop, restart, status, ports |
-| `ferni deploy` | Deploy services | gce, ui, frontend, landing, all |
-| `ferni build` | Build applications | frontend, electron, ios, android |
-| `ferni test` | Run test suites | unit, e2e, storage, quick, all |
-| `ferni setup` | Configure environment | local, icons, firestore, secrets |
-| `ferni quality` | Code quality checks | all, typecheck, lint, test, audit |
-| `ferni pr` | Pull request workflow | create, check, list, merge |
-| `ferni release` | Release management | create, changelog, tag, notes |
-| `ferni migrate` | Database migrations | status, run, rollback, create |
-| `ferni deps` | Dependency management | audit, outdated, update, cleanup |
-| `ferni devblog` | Developer blog | new, preview, publish, validate |
-| `ferni icons` | Generate icons | favicons, smile-gif, app-icons, all |
+| Command         | Description           | Key Subcommands                     |
+| --------------- | --------------------- | ----------------------------------- |
+| `ferni dev`     | Development workflow  | start, stop, restart, status, ports |
+| `ferni deploy`  | Deploy services       | gce, ui, frontend, landing, all     |
+| `ferni build`   | Build applications    | frontend, electron, ios, android    |
+| `ferni test`    | Run test suites       | unit, e2e, storage, quick, all      |
+| `ferni setup`   | Configure environment | local, icons, firestore, secrets    |
+| `ferni quality` | Code quality checks   | all, typecheck, lint, test, audit   |
+| `ferni pr`      | Pull request workflow | create, check, list, merge          |
+| `ferni release` | Release management    | create, changelog, tag, notes       |
+| `ferni migrate` | Database migrations   | status, run, rollback, create       |
+| `ferni deps`    | Dependency management | audit, outdated, update, cleanup    |
+| `ferni devblog` | Developer blog        | new, preview, publish, validate     |
+| `ferni icons`   | Generate icons        | favicons, smile-gif, app-icons, all |
 
 ### Operations Commands
 
-| Command | Description | Key Subcommands |
-|---------|-------------|-----------------|
-| `ferni status` | Deployment status | services, revisions, traffic |
-| `ferni logs` | View & analyze logs | agent, ui, errors, analyze, gce |
-| `ferni doctor` | System diagnostics | all, apis, quotas, billing, env |
-| `ferni db` | Database operations | status, backup, migrate, query |
-| `ferni env` | Environment variables | list, diff, check, sync, secrets |
-| `ferni ops` | Operational tasks | zombies, health, semantic, scheduler, memory |
-| `ferni users` | User data management | list, show, dump, cleanup, grant |
-| `ferni data` | Data analysis | profiles, behaviors, tools, contacts |
-| `ferni waitlist` | Manage waitlist | list, approve, stats, export |
-| `ferni disk` | GCE disk management | status, clean, setup-cron |
-| `ferni runner` | GitHub Actions runner | status, restart, logs, ssh |
-| `ferni secrets` | Secret management | list, check, rotate, sync, audit |
+| Command          | Description           | Key Subcommands                              |
+| ---------------- | --------------------- | -------------------------------------------- |
+| `ferni status`   | Deployment status     | services, revisions, traffic                 |
+| `ferni logs`     | View & analyze logs   | agent, ui, errors, analyze, gce              |
+| `ferni doctor`   | System diagnostics    | all, apis, quotas, billing, env              |
+| `ferni db`       | Database operations   | status, backup, migrate, query               |
+| `ferni env`      | Environment variables | list, diff, check, sync, secrets             |
+| `ferni ops`      | Operational tasks     | zombies, health, semantic, scheduler, memory |
+| `ferni users`    | User data management  | list, show, dump, cleanup, grant             |
+| `ferni data`     | Data analysis         | profiles, behaviors, tools, contacts         |
+| `ferni waitlist` | Manage waitlist       | list, approve, stats, export                 |
+| `ferni disk`     | GCE disk management   | status, clean, setup-cron                    |
+| `ferni runner`   | GitHub Actions runner | status, restart, logs, ssh                   |
+| `ferni secrets`  | Secret management     | list, check, rotate, sync, audit             |
 
 ### Quality & Agents Commands
 
-| Command | Description | Key Subcommands |
-|---------|-------------|-----------------|
-| `ferni agents` | Manage AI agents | new, list, show, validate, install |
-| `ferni agent` | Custom agents | create, list, voice, memory, deploy |
-| `ferni personas` | Manage personas | list, show, validate, generate |
-| `ferni tools` | LLM tools | list, show, validate, stats, test |
-| `ferni voices` | Voice/TTS management | list, preview, validate |
-| `ferni validate` | Validation checks | voices, humanization, integrations |
-| `ferni audit` | Architecture audits | quality, architecture, bth, tools |
-| `ferni smoke` | Smoke tests | api, livekit, gemini, tools, all |
-| `ferni tokens` | Design tokens | sync, check, version, brand |
+| Command          | Description          | Key Subcommands                     |
+| ---------------- | -------------------- | ----------------------------------- |
+| `ferni agents`   | Manage AI agents     | new, list, show, validate, install  |
+| `ferni agent`    | Custom agents        | create, list, voice, memory, deploy |
+| `ferni personas` | Manage personas      | list, show, validate, generate      |
+| `ferni tools`    | LLM tools            | list, show, validate, stats, test   |
+| `ferni voices`   | Voice/TTS management | list, preview, validate             |
+| `ferni validate` | Validation checks    | voices, humanization, integrations  |
+| `ferni audit`    | Architecture audits  | quality, architecture, bth, tools   |
+| `ferni smoke`    | Smoke tests          | api, livekit, gemini, tools, all    |
+| `ferni tokens`   | Design tokens        | sync, check, version, brand         |
 
 ### Platform Oversight Commands
 
-| Command | Description | Key Subcommands |
-|---------|-------------|-----------------|
-| `ferni rollback` | Rollback deploys | gce, agent, ui, status |
-| `ferni metrics` | Platform metrics | live, latency, errors, throughput |
-| `ferni sessions` | Session analytics | active, history, stats, users |
-| `ferni traffic` | Traffic management | status, canary, split, rollout |
-| `ferni alerts` | Alert management | list, active, silence, acknowledge |
-| `ferni oncall` | On-call rotation | who, schedule, handoff, escalate |
-| `ferni calls` | Test phone calls | test, status, family, invite |
-| `ferni runtime` | Container diagnostics | status, memory, sessions, health |
+| Command          | Description           | Key Subcommands                    |
+| ---------------- | --------------------- | ---------------------------------- |
+| `ferni rollback` | Rollback deploys      | gce, agent, ui, status             |
+| `ferni metrics`  | Platform metrics      | live, latency, errors, throughput  |
+| `ferni sessions` | Session analytics     | active, history, stats, users      |
+| `ferni traffic`  | Traffic management    | status, canary, split, rollout     |
+| `ferni alerts`   | Alert management      | list, active, silence, acknowledge |
+| `ferni oncall`   | On-call rotation      | who, schedule, handoff, escalate   |
+| `ferni calls`    | Test phone calls      | test, status, family, invite       |
+| `ferni runtime`  | Container diagnostics | status, memory, sessions, health   |
 
 ### CEO Features (Personal Assistant)
 
-| Command | Description | Key Subcommands |
-|---------|-------------|-----------------|
-| `ferni goals` | Track your goals | list, add, complete, progress |
-| `ferni roster` | Leadership team info | show, maya, alex, jordan, peter |
-| `ferni remember` | Add notes for Ferni | (just the text) |
-| `ferni brain` | What Ferni knows | show, summary, delete |
-| `ferni briefing` | Morning briefing | today, tomorrow, week |
-| `ferni focus` | Start a focus session | start, stop, status, history |
-| `ferni reflect` | End-of-day reflection | today, prompts, history |
-| `ferni weekly` | Weekly review | review, plan, last |
-| `ferni wins` | Log achievements | add, list, today, week, celebrate |
-| `ferni habits` | Track habits | add, list, check, streak, delete |
-| `ferni energy` | Log energy levels | log, today, week, history |
-| `ferni journal` | Quick journal entries | add, list, today, week |
-| `ferni gratitude` | Gratitude logging | add, list, today, week |
-| `ferni decisions` | Track decisions | add, list, pending, outcome |
-| `ferni priorities` | Manage priorities | list, add, reorder, complete, clear |
-| `ferni blockers` | Track blockers | add, list, resolve, active |
-| `ferni ideas` | Capture ideas | add, list, tag, random |
-| `ferni ask` | Ask Ferni anything | (just ask your question) |
-| `ferni coach` | AI coaching | career, relationship, mindset, health |
-| `ferni meetings` | Meeting notes | add, list, today, week, search |
+| Command            | Description           | Key Subcommands                       |
+| ------------------ | --------------------- | ------------------------------------- |
+| `ferni goals`      | Track your goals      | list, add, complete, progress         |
+| `ferni roster`     | Leadership team info  | show, maya, alex, jordan, peter       |
+| `ferni remember`   | Add notes for Ferni   | (just the text)                       |
+| `ferni brain`      | What Ferni knows      | show, summary, delete                 |
+| `ferni briefing`   | Morning briefing      | today, tomorrow, week                 |
+| `ferni focus`      | Start a focus session | start, stop, status, history          |
+| `ferni reflect`    | End-of-day reflection | today, prompts, history               |
+| `ferni weekly`     | Weekly review         | review, plan, last                    |
+| `ferni wins`       | Log achievements      | add, list, today, week, celebrate     |
+| `ferni habits`     | Track habits          | add, list, check, streak, delete      |
+| `ferni energy`     | Log energy levels     | log, today, week, history             |
+| `ferni journal`    | Quick journal entries | add, list, today, week                |
+| `ferni gratitude`  | Gratitude logging     | add, list, today, week                |
+| `ferni decisions`  | Track decisions       | add, list, pending, outcome           |
+| `ferni priorities` | Manage priorities     | list, add, reorder, complete, clear   |
+| `ferni blockers`   | Track blockers        | add, list, resolve, active            |
+| `ferni ideas`      | Capture ideas         | add, list, tag, random                |
+| `ferni ask`        | Ask Ferni anything    | (just ask your question)              |
+| `ferni coach`      | AI coaching           | career, relationship, mindset, health |
+| `ferni meetings`   | Meeting notes         | add, list, today, week, search        |
 
 ### Quick Examples
 
@@ -1987,6 +2111,7 @@ ferni coach career        # Career coaching session
 ## Subdirectory CLAUDE.md Files
 
 **Core Modules:**
+
 - `src/agents/CLAUDE.md` - Voice agent development
 - `src/conversation/CLAUDE.md` - Humanization subsystem (26K+ lines)
 - `src/audio/CLAUDE.md` - DJ Controller architecture, music player, preference learning
@@ -1994,6 +2119,7 @@ ferni coach career        # Career coaching session
 - `src/servers/CLAUDE.md` - Token server, OAuth, API routes
 
 **Domain Modules:**
+
 - `src/tools/CLAUDE.md` - How to create tools (118 domains)
 - `src/tools/semantic-router/CLAUDE.md` - Semantic tool routing (<50ms latency)
 - `src/tools/habit-coaching/CLAUDE.md` - Habit coaching module
@@ -2003,6 +2129,7 @@ ferni coach career        # Career coaching session
 - `src/tasks/scheduled/CLAUDE.md` - Scheduled jobs (Cloud Scheduler)
 
 **Infrastructure:**
+
 - `src/services/CLAUDE.md` - Services layer patterns
 - `src/memory/CLAUDE.md` - Memory and persistence (three-layer L1/L2/L3)
 - `src/memory/dynamic/CLAUDE.md` - Real-time memory capture (STM, deep extraction)
@@ -2013,12 +2140,14 @@ ferni coach career        # Career coaching session
 - `src/marketplace/CLAUDE.md` - Tool registry, sandboxed execution
 
 **Frontend/Brand:**
+
 - `apps/web/CLAUDE.md` - Frontend/design system rules
 - `brand/CLAUDE.md` - Brand library rules (LUXO-STYLE EYES: opaque white, NO pupils)
 
 **Applications:**
+
 - `apps/CLAUDE.md` - Navigation index for all platform apps
-- `apps/ml-training/CLAUDE.md` - ML training pipeline (Qwen 2.5 router model)
+- `apps/ml-training/CLAUDE.md` - ML training pipeline (Qwen3-1.7B router model)
 
 ---
 
@@ -2026,25 +2155,25 @@ ferni coach career        # Career coaching session
 
 ### Key Documentation
 
-| Document | Location | Purpose |
-|----------|----------|---------|
-| CI Inventory | `docs/ci/ci-inventory.md` | All workflows, triggers, durations |
-| Minute Usage | `docs/ci/minute-usage-analysis.md` | Cost analysis, optimizations |
-| Multi-Lens Review | `docs/ci/ci-review.md` | Security, efficiency, DX review |
-| CI Backlog | `docs/ci/ci-backlog.md` | Prioritized improvements |
-| Handoff | `docs/ci/handoff.md` | Onboarding for CI maintainers |
-| Monorepo Structure | `docs/monorepo/structure.md` | Package layout, dependencies |
-| Nx Evaluation | `docs/monorepo/nx-evaluation.md` | Build tool decision |
-| Observability | `docs/devops-observability/overview.md` | Metrics, alerting |
+| Document           | Location                                | Purpose                            |
+| ------------------ | --------------------------------------- | ---------------------------------- |
+| CI Inventory       | `docs/ci/ci-inventory.md`               | All workflows, triggers, durations |
+| Minute Usage       | `docs/ci/minute-usage-analysis.md`      | Cost analysis, optimizations       |
+| Multi-Lens Review  | `docs/ci/ci-review.md`                  | Security, efficiency, DX review    |
+| CI Backlog         | `docs/ci/ci-backlog.md`                 | Prioritized improvements           |
+| Handoff            | `docs/ci/handoff.md`                    | Onboarding for CI maintainers      |
+| Monorepo Structure | `docs/monorepo/structure.md`            | Package layout, dependencies       |
+| Nx Evaluation      | `docs/monorepo/nx-evaluation.md`        | Build tool decision                |
+| Observability      | `docs/devops-observability/overview.md` | Metrics, alerting                  |
 
 ### Key Workflows
 
-| Workflow | Purpose | Trigger |
-|----------|---------|---------|
-| `ci.yml` | Lint, test, build | Push/PR (with path filters) |
-| `deploy-production.yml` | Production deploy | Push to main |
-| `ci-metrics.yml` | Weekly CI metrics | Monday 9 AM UTC |
-| `design-system.yml` | Token validation | Push to design-system/* |
+| Workflow                | Purpose           | Trigger                     |
+| ----------------------- | ----------------- | --------------------------- |
+| `ci.yml`                | Lint, test, build | Push/PR (with path filters) |
+| `deploy-production.yml` | Production deploy | Push to main                |
+| `ci-metrics.yml`        | Weekly CI metrics | Monday 9 AM UTC             |
+| `design-system.yml`     | Token validation  | Push to design-system/\*    |
 
 ### Composite Action
 
@@ -2053,8 +2182,8 @@ All workflows use `.github/actions/setup-node-pnpm` for consistent setup:
 ```yaml
 - uses: ./.github/actions/setup-node-pnpm
   with:
-    node-version: '20'      # Optional
-    pnpm-version: '10'      # Optional
+    node-version: '20' # Optional
+    pnpm-version: '10' # Optional
     frozen-lockfile: 'true' # Optional
 ```
 
@@ -2080,12 +2209,12 @@ gh run list --workflow=ci.yml
 
 ### Optimizations Applied (January 2026)
 
-| Optimization | Impact |
-|--------------|--------|
-| Path filters on ci.yml | 70% fewer runs |
-| Concurrency control | No parallel waste |
-| Composite action | DRY setup |
-| pnpm v10 standardization | No version drift |
+| Optimization             | Impact            |
+| ------------------------ | ----------------- |
+| Path filters on ci.yml   | 70% fewer runs    |
+| Concurrency control      | No parallel waste |
+| Composite action         | DRY setup         |
+| pnpm v10 standardization | No version drift  |
 
 ### Budget
 
@@ -2097,15 +2226,15 @@ gh run list --workflow=ci.yml
 
 ## Documentation Stats (January 2026)
 
-| Category | Count |
-|----------|-------|
-| CLAUDE.md files | 80 |
-| Architecture docs | 94 |
-| Audit docs | 79 |
-| Plan docs | 51 |
-| Tool domains | 118 |
-| AI personas | 6 |
-| Superhuman services | 45 |
+| Category            | Count |
+| ------------------- | ----- |
+| CLAUDE.md files     | 80    |
+| Architecture docs   | 94    |
+| Audit docs          | 79    |
+| Plan docs           | 51    |
+| Tool domains        | 118   |
+| AI personas         | 6     |
+| Superhuman services | 45    |
 
 ---
 
@@ -2135,6 +2264,7 @@ LOG_FULL_RESPONSES=true pnpm dev
 **Quick reference:** `ferni dev cursor` prints these commands.
 
 **Verify all running:**
+
 ```bash
 curl -s http://localhost:3001/health && curl -s http://localhost:3002/health && curl -s http://localhost:3004/ | head -c 50
 ```

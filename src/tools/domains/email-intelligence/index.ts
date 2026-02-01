@@ -61,10 +61,7 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
           description:
             'Analyze your inbox and show which emails need attention first, scored by importance and urgency.',
           parameters: z.object({
-            count: z
-              .number()
-              .optional()
-              .describe('Number of emails to analyze (default: 20)'),
+            count: z.number().optional().describe('Number of emails to analyze (default: 20)'),
             showAll: z
               .boolean()
               .optional()
@@ -83,25 +80,25 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
 
             const emails = await getUnreadMessages(userId, params.count || 20);
             if (!emails || emails.length === 0) {
-              return "Your inbox is clear - no unread emails to analyze.";
+              return 'Your inbox is clear - no unread emails to analyze.';
             }
 
             const intelligence = getEmailIntelligence(userId);
             const scores = intelligence.scoreEmails(emails);
-            
+
             // Get health summary
             const health = intelligence.getInboxHealth(scores);
-            
+
             // Get top priority
             const topPriority = intelligence.getTopPriorityEmails(scores, 5);
-            
+
             // Format response
             let response = `📊 **Inbox Analysis**\n\n`;
             response += `- **${health.totalEmails}** emails analyzed\n`;
             response += `- **${health.criticalCount}** critical, **${health.needsAttention}** need attention\n`;
             response += `- **${health.canArchive}** can be archived\n`;
             response += `- **${health.unsubscribeCandidates}** newsletters you might want to unsubscribe from\n\n`;
-            
+
             if (topPriority.length > 0) {
               response += `🔴 **Top Priority:**\n`;
               for (const score of topPriority) {
@@ -112,7 +109,7 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
                 }
               }
             }
-            
+
             return response;
           },
         });
@@ -125,15 +122,13 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
     {
       id: 'getFollowUpNeeded',
       name: 'Get Follow-Up Needed',
-      description:
-        'Show emails you sent that are still waiting for a response.',
+      description: 'Show emails you sent that are still waiting for a response.',
       domain: 'email-intelligence',
       tags: ['email', 'follow-up', 'tracking'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Show emails you sent that are still waiting for a response.',
+          description: 'Show emails you sent that are still waiting for a response.',
           parameters: z.object({
             overdueOnly: z
               .boolean()
@@ -148,26 +143,26 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
 
             const tracker = getFollowUpTracker(userId);
             const summary = tracker.getSummary();
-            
+
             if (summary.totalPending === 0) {
               return "Great news! You don't have any pending follow-ups waiting for responses.";
             }
-            
+
             const followUps = params.overdueOnly
               ? tracker.getOverdueFollowUps()
               : tracker.getPendingFollowUps();
-            
+
             let response = `📬 **Follow-Up Status**\n\n`;
             response += `- **${summary.totalPending}** emails awaiting responses\n`;
             response += `- **${summary.overdueCount}** overdue\n`;
             response += `- **${summary.dueToday}** due today\n`;
-            
+
             if (summary.avgWaitDays > 0) {
               response += `- Average wait: **${summary.avgWaitDays} days**\n`;
             }
-            
+
             response += `\n`;
-            
+
             // Show individual follow-ups
             const toShow = followUps.slice(0, 5);
             for (const fu of toShow) {
@@ -175,7 +170,7 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
                 (Date.now() - fu.sentAt.getTime()) / (1000 * 60 * 60 * 24)
               );
               const isOverdue = fu.dueDate < new Date();
-              
+
               response += `${isOverdue ? '🔴' : '🟡'} **${fu.sentToName || fu.sentTo}**: "${fu.subject}"\n`;
               response += `   Sent ${daysWaiting} days ago`;
               if (isOverdue) {
@@ -183,11 +178,11 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
               }
               response += `\n`;
             }
-            
+
             if (followUps.length > 5) {
               response += `\n...and ${followUps.length - 5} more`;
             }
-            
+
             return response;
           },
         });
@@ -210,10 +205,7 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
           description:
             'Find newsletters you might want to unsubscribe from and help you clean up your inbox.',
           parameters: z.object({
-            sender: z
-              .string()
-              .optional()
-              .describe('Specific sender to unsubscribe from'),
+            sender: z.string().optional().describe('Specific sender to unsubscribe from'),
             showStats: z
               .boolean()
               .optional()
@@ -226,42 +218,42 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
             }
 
             const detector = getUnsubscribeDetector(userId);
-            
+
             if (params.sender) {
               // Unsubscribe from specific sender
               const request = detector.requestUnsubscribe(params.sender);
               if (!request) {
                 return `I couldn't find an unsubscribe option for ${params.sender}. You may need to do this manually.`;
               }
-              
+
               if (request.link.isOneClick) {
                 const success = await detector.executeOneClickUnsubscribe(request.id);
                 if (success) {
                   return `✅ Successfully unsubscribed from ${params.sender}!`;
                 }
               }
-              
+
               if (request.link.url) {
                 return `To unsubscribe from ${params.sender}, please visit: ${request.link.url}`;
               }
-              
+
               return `I've noted your request to unsubscribe from ${params.sender}. This newsletter requires manual unsubscription.`;
             }
-            
+
             // Show unsubscribe statistics
             const stats = detector.getStats();
             const reduction = detector.estimateEmailReduction();
-            
+
             let response = `📧 **Newsletter Cleanup**\n\n`;
             response += `- **${stats.totalNewsletters}** newsletters detected\n`;
             response += `- **${stats.unsubscribable}** can be easily unsubscribed\n`;
             response += `- **${stats.completedUnsubscribes}** already unsubscribed\n\n`;
-            
+
             if (reduction.yearlyEstimate > 0) {
               response += `💡 Unsubscribing from these could save you **${reduction.monthlyEstimate} emails/month** `;
               response += `(${reduction.yearlyEstimate}/year).\n\n`;
             }
-            
+
             if (reduction.topCandidates.length > 0) {
               response += `**Top candidates to unsubscribe:**\n`;
               for (const candidate of reduction.topCandidates.slice(0, 5)) {
@@ -269,7 +261,7 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
               }
               response += `\nSay "unsubscribe from [sender]" to remove any of these.`;
             }
-            
+
             return response;
           },
         });
@@ -282,19 +274,15 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
     {
       id: 'summarizeThread',
       name: 'Summarize Email Thread',
-      description:
-        'Get a concise AI summary of a long email thread.',
+      description: 'Get a concise AI summary of a long email thread.',
       domain: 'email-intelligence',
       tags: ['email', 'summary', 'ai'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Get a concise AI summary of a long email thread.',
+          description: 'Get a concise AI summary of a long email thread.',
           parameters: z.object({
-            query: z
-              .string()
-              .describe('Search term to find the email thread (subject or sender)'),
+            query: z.string().describe('Search term to find the email thread (subject or sender)'),
           }),
           execute: async (params: { query: string }) => {
             const userId = ctx.userId;
@@ -320,12 +308,12 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
             response += `**From:** ${email.from}\n`;
             response += `**Date:** ${email.date.toLocaleDateString()}\n\n`;
             response += `**Preview:** ${email.snippet}\n\n`;
-            
+
             if (results.length > 1) {
               response += `This is part of a thread with ${results.length} messages. `;
               response += `The thread involves discussions about ${params.query}.`;
             }
-            
+
             return response;
           },
         });
@@ -338,15 +326,13 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
     {
       id: 'markVipSender',
       name: 'Mark VIP Sender',
-      description:
-        'Mark an email sender as VIP so their emails are always prioritized.',
+      description: 'Mark an email sender as VIP so their emails are always prioritized.',
       domain: 'email-intelligence',
       tags: ['email', 'vip', 'priority'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Mark an email sender as VIP so their emails are always prioritized.',
+          description: 'Mark an email sender as VIP so their emails are always prioritized.',
           parameters: z.object({
             email: z.string().describe('Email address to mark as VIP'),
           }),
@@ -358,7 +344,7 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
 
             const intelligence = getEmailIntelligence(userId);
             intelligence.markAsVip(params.email);
-            
+
             return `✅ ${params.email} is now marked as VIP. Their emails will always be prioritized.`;
           },
         });
@@ -371,15 +357,13 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
     {
       id: 'blockSender',
       name: 'Block Sender',
-      description:
-        'Block an email sender so their emails are always marked as low priority.',
+      description: 'Block an email sender so their emails are always marked as low priority.',
       domain: 'email-intelligence',
       tags: ['email', 'block', 'spam'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Block an email sender so their emails are always marked as low priority.',
+          description: 'Block an email sender so their emails are always marked as low priority.',
           parameters: z.object({
             email: z.string().describe('Email address to block'),
           }),
@@ -391,7 +375,7 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
 
             const intelligence = getEmailIntelligence(userId);
             intelligence.blockSender(params.email);
-            
+
             return `✅ ${params.email} has been blocked. Their emails will be deprioritized.`;
           },
         });
@@ -404,22 +388,17 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
     {
       id: 'trackFollowUp',
       name: 'Track Follow-Up',
-      description:
-        'Track an email you sent and remind you if no response is received.',
+      description: 'Track an email you sent and remind you if no response is received.',
       domain: 'email-intelligence',
       tags: ['email', 'follow-up', 'reminder'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Track an email you sent and remind you if no response is received.',
+          description: 'Track an email you sent and remind you if no response is received.',
           parameters: z.object({
             to: z.string().describe('Who you sent the email to'),
             subject: z.string().describe('Subject of the email'),
-            days: z
-              .number()
-              .optional()
-              .describe('Days to wait before follow-up (default: 3)'),
+            days: z.number().optional().describe('Days to wait before follow-up (default: 3)'),
           }),
           execute: async (params: { to: string; subject: string; days?: number }) => {
             const userId = ctx.userId;
@@ -436,7 +415,7 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
               sentAt: new Date(),
               expectedResponseDays: params.days || 3,
             });
-            
+
             const dueDate = followUp.dueDate.toLocaleDateString();
             return `✅ I'll remind you to follow up with ${params.to} about "${params.subject}" if you don't hear back by ${dueDate}.`;
           },
@@ -450,19 +429,15 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
     {
       id: 'closeFollowUp',
       name: 'Close Follow-Up',
-      description:
-        'Mark a follow-up as no longer needed.',
+      description: 'Mark a follow-up as no longer needed.',
       domain: 'email-intelligence',
       tags: ['email', 'follow-up'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Mark a follow-up as no longer needed.',
+          description: 'Mark a follow-up as no longer needed.',
           parameters: z.object({
-            contact: z
-              .string()
-              .describe('Contact name or email to close follow-up for'),
+            contact: z.string().describe('Contact name or email to close follow-up for'),
           }),
           execute: async (params: { contact: string }) => {
             const userId = ctx.userId;
@@ -475,15 +450,15 @@ export function getEmailIntelligenceToolDefinitions(): ToolDefinition[] {
             const pending = followUps.filter(
               (f) => f.status === 'awaiting' || f.status === 'reminded'
             );
-            
+
             if (pending.length === 0) {
               return `I don't have any pending follow-ups for ${params.contact}.`;
             }
-            
+
             for (const fu of pending) {
               tracker.closeFollowUp(fu.id, 'no_longer_needed');
             }
-            
+
             return `✅ Closed ${pending.length} follow-up(s) with ${params.contact}.`;
           },
         });

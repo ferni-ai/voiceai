@@ -53,7 +53,15 @@ async function execute(
 
   // Play music (handles multiple tool IDs from FTIS V3 classifier)
   // All these route to playMusicUnified which handles iTunes/Spotify intent detection
-  const playMusicTools = ['playmusic', 'spotify_search', 'spotify_play', 'find_music', 'play_music', 'music_play', 'itunes_play'];
+  const playMusicTools = [
+    'playmusic',
+    'spotify_search',
+    'spotify_play',
+    'find_music',
+    'play_music',
+    'music_play',
+    'itunes_play',
+  ];
   if (playMusicTools.includes(fnLower)) {
     const { playMusicUnified } = await import('../../../tools/domains/entertainment/music.js');
     const query = (args.query as string) || 'music';

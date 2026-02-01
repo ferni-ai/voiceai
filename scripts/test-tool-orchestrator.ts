@@ -8,7 +8,7 @@
  *   npx tsx scripts/test-tool-orchestrator.ts
  */
 
-import { toolOrchestrator } from '../src/tools/orchestrator/unified-tool-orchestrator.js';
+import { toolOrchestrator } from '../src/tools/orchestrator/tool-orchestrator.js';
 import { initializeToolRegistry } from '../src/tools/registry/loader.js';
 import { detectToolIntent } from '../src/tools/dynamic-tool-router.js';
 import { toolRegistry } from '../src/tools/registry/index.js';

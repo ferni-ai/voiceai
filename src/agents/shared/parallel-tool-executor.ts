@@ -73,12 +73,12 @@ const CRITICAL_TOOLS = new Set([
   'handoffToNayan',
   'handoffToFerni',
   'transferToSpecialist',
-  
+
   // Crisis tools - potentially safety-critical
   'detectCrisis',
   'escalateToCrisis',
   'emergencyProtocol',
-  
+
   // Phone call tools - high user expectation
   'callOnBehalf',
   'initiateCall',
@@ -177,20 +177,20 @@ export async function executeWithParallelFallback(
 
   // Create staggered parallel attempts
   const attempts: Promise<ToolResult>[] = [];
-  
+
   for (let i = 0; i < opts.maxParallel; i++) {
     const attemptNumber = i + 1;
-    
+
     // Stagger starts to avoid thundering herd
     const delay = i * opts.staggerMs;
-    
+
     const attempt = (async () => {
       if (delay > 0) {
         await sleep(delay);
       }
       return executeWithTimeout(executor, args, opts.timeoutMs, attemptNumber);
     })();
-    
+
     attempts.push(attempt);
   }
 
@@ -199,7 +199,7 @@ export async function executeWithParallelFallback(
   try {
     const result = await raceToSuccess(attempts, opts);
     const durationMs = Date.now() - startTime;
-    
+
     if (opts.verbose) {
       if (result.success) {
         log.info(
@@ -207,13 +207,10 @@ export async function executeWithParallelFallback(
           '✅ Parallel execution succeeded'
         );
       } else {
-        log.warn(
-          { toolId, error: result.error, durationMs },
-          '❌ All parallel attempts failed'
-        );
+        log.warn({ toolId, error: result.error, durationMs }, '❌ All parallel attempts failed');
       }
     }
-    
+
     return { ...result, durationMs };
   } catch (error) {
     const durationMs = Date.now() - startTime;
@@ -250,7 +247,7 @@ export async function executeToolSmart(
   if (isCriticalTool(toolId)) {
     return executeWithParallelFallback(toolId, args, executor, options);
   }
-  
+
   // Non-critical: single execution with timeout
   const opts = { ...DEFAULT_OPTIONS, ...options };
   return executeWithTimeout(executor, args, opts.timeoutMs, 1);
@@ -270,13 +267,10 @@ async function executeWithTimeout(
   attemptNumber: number
 ): Promise<ToolResult> {
   const startTime = Date.now();
-  
+
   try {
-    const result = await Promise.race([
-      executor(args),
-      timeoutPromise(timeoutMs),
-    ]);
-    
+    const result = await Promise.race([executor(args), timeoutPromise(timeoutMs)]);
+
     return {
       ...result,
       attempt: attemptNumber,
@@ -303,18 +297,18 @@ async function raceToSuccess(
   return new Promise((resolve) => {
     let completedCount = 0;
     let lastFailure: ToolResult | null = null;
-    
+
     attempts.forEach((attempt, index) => {
       attempt
         .then((result) => {
           completedCount++;
-          
+
           if (result.success) {
             // First success wins
             resolve(result);
           } else {
             lastFailure = result;
-            
+
             // If all attempts completed and none succeeded
             if (completedCount === opts.maxParallel && lastFailure) {
               resolve(lastFailure);
@@ -328,7 +322,7 @@ async function raceToSuccess(
             error: String(error),
             attempt: index + 1,
           };
-          
+
           // If all attempts completed and none succeeded
           if (completedCount === opts.maxParallel && lastFailure) {
             resolve(lastFailure);
@@ -385,12 +379,10 @@ export function getParallelExecutionMetrics(): ParallelExecutionMetrics {
     totalExecutions: metrics.totalExecutions,
     successfulExecutions: metrics.successfulExecutions,
     failedExecutions: metrics.failedExecutions,
-    averageAttemptToSuccess: metrics.totalExecutions > 0
-      ? metrics.totalAttempts / metrics.successfulExecutions
-      : 0,
-    averageDurationMs: metrics.totalExecutions > 0
-      ? metrics.totalDurationMs / metrics.totalExecutions
-      : 0,
+    averageAttemptToSuccess:
+      metrics.totalExecutions > 0 ? metrics.totalAttempts / metrics.successfulExecutions : 0,
+    averageDurationMs:
+      metrics.totalExecutions > 0 ? metrics.totalDurationMs / metrics.totalExecutions : 0,
   };
 }
 

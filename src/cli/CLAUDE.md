@@ -14,6 +14,25 @@ This directory contains internal CLI tools for development, debugging, and opera
 | **Experiments CLI** | `experiments-cli.ts` | A/B testing and feature flags |
 | **Persona CLI** | `persona-cli.ts` | Persona management and testing |
 | **Tools Report** | `tools-report.ts` | Generate tool usage reports |
+| **Diagnose Tools** | `commands/diagnose-tools.ts` | Tool diagnostics |
+| **Synthetic E2E** | `commands/synthetic-e2e.ts` | Synthetic end-to-end tests |
+| **Test Agents** | `commands/test-agents.ts` | Agent testing utilities |
+
+### Commands Subdirectory
+
+The `commands/` directory contains additional CLI commands:
+
+```
+cli/
+├── agent-manager.ts
+├── experiments-cli.ts
+├── persona-cli.ts
+├── tools-report.ts
+└── commands/
+    ├── diagnose-tools.ts
+    ├── synthetic-e2e.ts
+    └── test-agents.ts
+```
 
 ---
 

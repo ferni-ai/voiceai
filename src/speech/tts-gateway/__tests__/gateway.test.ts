@@ -6,12 +6,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTTSCache } from '../../../services/tts/tts-cache.js';
-import {
-  TTSGateway,
-  getTTSGateway,
-  initTTSGateway,
-  resetTTSGateway
-} from '../gateway.js';
+import { TTSGateway, getTTSGateway, initTTSGateway, resetTTSGateway } from '../gateway.js';
 import type { ITTSCache, ITTSProvider } from '../types.js';
 
 // ==========================================================================

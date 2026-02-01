@@ -15,7 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { HumanizedResponse, HumanizationContext as LegacyContext } from '../humanizer.js';
+import type { HumanizedResponse, HumanizationContext as LegacyContext } from '../humanizer/index.js';
 import { orchestratorConfig } from './config-adapter.js';
 import {
   getConversationOrchestrator,

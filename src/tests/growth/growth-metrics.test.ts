@@ -100,7 +100,7 @@ describe('Growth Metrics - Observability', () => {
       const tracker = metrics.startOperation('slow_operation');
 
       // Wait a bit
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       tracker.success();
 
@@ -325,11 +325,7 @@ describe('Growth Metrics - Observability', () => {
     });
 
     it('should include metadata in tracked operation', async () => {
-      await trackOperation(
-        'with_metadata',
-        async () => 'done',
-        { platform: 'tiktok' }
-      );
+      await trackOperation('with_metadata', async () => 'done', { platform: 'tiktok' });
 
       const metrics = getGrowthMetrics();
       const recent = metrics.getRecentOperations(1);

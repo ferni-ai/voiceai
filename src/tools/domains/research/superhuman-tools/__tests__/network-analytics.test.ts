@@ -169,10 +169,7 @@ describe('Network & Relationship Analytics Tools', () => {
 
   describe('mapInfluence', () => {
     it('should map influence network', async () => {
-      const result = await networkAnalyticsTools.mapInfluence.execute(
-        {},
-        createMockContext()
-      );
+      const result = await networkAnalyticsTools.mapInfluence.execute({}, createMockContext());
 
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');

@@ -42,20 +42,15 @@ import {
   type TurnInput,
   type TurnResult,
 } from '../../conversation/unified-integration.js';
-import {
-  initializeSessionIntelligence,
-  processMessageWithIntelligence,
-  endSessionIntelligence,
-  type IntelligenceIntegration,
-} from '../shared/intelligence-hooks.js';
+// NOTE: The old intelligence hooks have been deprecated and always return null.
+// The new intelligence system in src/intelligence/ should be used directly.
+// See: src/intelligence/context-builders/ for context injection
+// See: src/services/superhuman/ for "Better Than Human" features
 
 // Also export types for voice agent use
 export type { ConversationSession, TurnResult };
 
 const log = createLogger({ module: 'ConversationSessionIntegration' });
-
-// Store intelligence integrations per session
-const intelligenceStore = new Map<string, IntelligenceIntegration>();
 
 // ============================================================================
 // TYPES
@@ -115,8 +110,10 @@ export interface HumanizedResponse {
  *
  * Call this at session start (STEP 7a2 in voice-agent.ts)
  *
- * NOW WITH INTELLIGENCE! This also initializes the persona intelligence
- * system for moment detection, predictive analysis, and relationship memory.
+ * NOTE: The old intelligence integration has been deprecated.
+ * Intelligence features now run via:
+ * - Context builders in src/intelligence/context-builders/
+ * - Superhuman services in src/services/superhuman/
  */
 export async function initConversationSession(
   config: VoiceAgentSessionConfig
@@ -129,19 +126,6 @@ export async function initConversationSession(
       sessionCount: config.sessionCount,
       relationshipStage: config.relationshipStage,
     });
-
-    // Initialize intelligence integration (for moment detection, predictive analysis)
-    if (config.userId) {
-      const intelligence = await initializeSessionIntelligence(config.personaId, config.userId);
-      if (intelligence) {
-        intelligenceStore.set(config.sessionId, intelligence);
-        intelligence.startSession();
-        log.info(
-          { sessionId: config.sessionId, personaId: config.personaId },
-          '🧠 Intelligence integration initialized'
-        );
-      }
-    }
 
     // Prewarm LLM expression cache (non-blocking)
     // This loads persisted expressions AND generates new ones for common themes
@@ -184,7 +168,6 @@ export async function initConversationSession(
         sessionId: config.sessionId,
         personaId: config.personaId,
         hasUserId: !!config.userId,
-        hasIntelligence: intelligenceStore.has(config.sessionId),
       },
       '🎭 Conversation session initialized for voice agent'
     );
@@ -206,24 +189,17 @@ export function getVoiceAgentConversationSession(sessionId: string): Conversatio
 /**
  * Cleanup a conversation session
  *
- * Call this at session end. Also ends intelligence session and persists relationship memory.
+ * Call this at session end.
+ * NOTE: Intelligence cleanup is now handled by cleanup-handler.ts via the new
+ * intelligence system in src/intelligence/ and src/services/superhuman/.
  */
 export async function cleanupConversationSession(
   sessionId: string,
-  sessionMood?: 'positive' | 'neutral' | 'struggling' | 'crisis',
-  topics?: string[]
+  _sessionMood?: 'positive' | 'neutral' | 'struggling' | 'crisis',
+  _topics?: string[]
 ): Promise<void> {
   try {
     endConversationSession(sessionId);
-
-    // End intelligence session and persist memory
-    const intelligence = intelligenceStore.get(sessionId);
-    if (intelligence) {
-      await endSessionIntelligence(intelligence, sessionMood, topics);
-      intelligenceStore.delete(sessionId);
-      log.info({ sessionId }, '🧠 Intelligence session ended and memory persisted');
-    }
-
     log.info({ sessionId }, '🎭 Conversation session cleaned up');
   } catch (error) {
     log.warn({ error: String(error), sessionId }, 'Error during conversation session cleanup');
@@ -233,32 +209,37 @@ export async function cleanupConversationSession(
 /**
  * Process a user message through the intelligence system for moment detection
  *
- * Call this after each user turn to detect and record moments.
- * Returns analysis including detected moments and concerns.
+ * @deprecated This function is deprecated. Moment detection and intelligence
+ * processing now happens via:
+ * - src/intelligence/context-builders/ (injected into each turn)
+ * - src/services/superhuman/semantic-intelligence/ (cross-session insights)
+ * - cleanup-handler.ts (session-end processing)
+ *
+ * This function now returns null for backwards compatibility.
  */
 export async function processMessageWithIntelligenceSystem(
-  sessionId: string,
-  userMessage: string,
-  aiResponse?: string,
-  topic?: string
+  _sessionId: string,
+  _userMessage: string,
+  _aiResponse?: string,
+  _topic?: string
 ): Promise<{
   shouldAcknowledge: boolean;
   concerns: Array<{ severity: string; detection: string }>;
   suggestedResponse?: string;
 } | null> {
-  const intelligence = intelligenceStore.get(sessionId);
-  if (!intelligence) {
-    return null;
-  }
-
-  return processMessageWithIntelligence(intelligence, userMessage, aiResponse, topic);
+  // Deprecated - intelligence processing now happens via context builders
+  return null;
 }
 
 /**
- * Get intelligence integration for a session (for advanced usage)
+ * Get intelligence integration for a session
+ *
+ * @deprecated The old intelligence system has been removed.
+ * Use the new systems in src/intelligence/ and src/services/superhuman/ instead.
  */
-export function getIntelligence(sessionId: string): IntelligenceIntegration | null {
-  return intelligenceStore.get(sessionId) || null;
+export function getIntelligence(_sessionId: string): null {
+  // Deprecated - always returns null
+  return null;
 }
 
 // ============================================================================

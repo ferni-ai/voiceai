@@ -40,9 +40,13 @@ const mockFirestoreDb = {
         data: () => mockFirestoreData.get(name)?.get(id),
       })),
       update: vi.fn(async (data: unknown) => {
-        const existing = mockFirestoreData.get(name)?.get(id) as Record<string, unknown> | undefined;
+        const existing = mockFirestoreData.get(name)?.get(id) as
+          | Record<string, unknown>
+          | undefined;
         if (existing) {
-          mockFirestoreData.get(name)!.set(id, { ...existing, ...(data as Record<string, unknown>) });
+          mockFirestoreData
+            .get(name)!
+            .set(id, { ...existing, ...(data as Record<string, unknown>) });
         }
       }),
       collection: vi.fn((subName: string) => ({
@@ -601,7 +605,7 @@ describe('Background Agents E2E', () => {
       // This tests that errors don't crash the system
       const request: ResearchRequest = {
         userId: 'error-user',
-        query: '',  // Empty query
+        query: '', // Empty query
         type: 'general',
         depth: 'quick',
         initiatedBy: 'peter',

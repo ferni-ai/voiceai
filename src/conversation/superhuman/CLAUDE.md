@@ -64,29 +64,58 @@ These features go beyond NLP tricks - they create **authentic relationship artif
 src/conversation/superhuman/
 ├── index.ts                    # Unified exports + cleanup functions
 ├── types.ts                    # Shared type definitions
-├── orchestrator.ts             # BetterThanHumanOrchestrator
+├── orchestrator.ts             # Legacy orchestrator entry point
+├── orchestrator/               # Refactored orchestrator (5 files)
+│   ├── engine.ts               # Core orchestration engine
+│   ├── helpers.ts              # Orchestration helper functions
+│   ├── registry.ts             # Feature registry
+│   ├── signal-emitter.ts       # Signal emission
+│   └── index.ts                # Re-exports
 ├── content-loader.ts           # Load behavior configs
 ├── analytics.ts                # Usage tracking
 ├── analytics-persistence.ts    # Persist analytics
 │
+│  # Relationship Memory
 ├── quote-memory.ts             # User quotes
 ├── story-continuity.ts         # People tracking
 ├── inside-jokes.ts             # Shared humor
 ├── nicknames.ts                # Naming patterns
 ├── shared-language.ts          # Unique vocabulary
+│
+│  # Emotional Intelligence
 ├── emotional-memory.ts         # Emotional patterns
 ├── emotional-forecasting.ts    # Anticipating days
 ├── vulnerability-matching.ts   # Reciprocal depth
 ├── empathetic-reflections.ts   # Structured empathy
+├── temporal-emotional.ts       # Time-aware emotional context
+│
+│  # Presence & Connection
 ├── presence-mode.ts            # Being present
+├── dynamic-presence.ts         # Dynamic presence adaptation
 ├── meta-moments.ts             # Relationship observations
+├── meta-relationship.ts        # Meta-relationship awareness
 ├── conversational-rituals.ts   # "Our thing"
+├── anticipatory-presence.ts    # Knowing needs
+│
+│  # Natural Speech
 ├── natural-speech.ts           # Speech patterns
 ├── linguistic-mirroring.ts     # Style matching
-├── anticipatory-presence.ts    # Knowing needs
 ├── evolving-jokes.ts           # Growing humor
 │
-└── [additional feature files]
+│  # Brand & Evolution
+├── brand-evolution-integration.ts # Brand evolution integration
+├── brand-secrets.ts            # Brand secret behaviors
+├── late-night-warmth.ts        # Late night interaction patterns
+├── memory-callbacks.ts         # Memory callback orchestration
+│
+│  # Growth & Celebration
+├── gentle-challenges.ts        # Gentle challenge delivery
+├── micro-celebrations.ts       # Small wins acknowledgment
+├── relationship-milestones.ts  # Relationship milestone tracking
+├── spontaneous-delight.ts      # Spontaneous delight moments
+├── team-coherence.ts           # Team coherence awareness
+│
+└── __tests__/                  # Unit tests
 ```
 
 ---

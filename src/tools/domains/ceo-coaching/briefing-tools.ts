@@ -16,13 +16,13 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
-import {
-  getCEOCoachingState,
-  getRecentWins,
-  saveWeeklyReview,
-} from './storage.js';
+import { getCEOCoachingState, getRecentWins, saveWeeklyReview } from './storage.js';
 // Cross-Domain: Calendar integration
-import { getEventsForDay, hasAnyProviderConnected, type CalendarEvent } from '../../../services/calendar/index.js';
+import {
+  getEventsForDay,
+  hasAnyProviderConnected,
+  type CalendarEvent,
+} from '../../../services/calendar/index.js';
 
 const log = getLogger();
 
@@ -64,7 +64,8 @@ async function getTodayCalendarSummary(userId: string): Promise<string | null> {
 
     // Format events
     const lines: string[] = [];
-    for (const event of events.slice(0, 5)) { // Show up to 5 meetings
+    for (const event of events.slice(0, 5)) {
+      // Show up to 5 meetings
       const start = formatTime(event.startTime);
       const end = formatTime(event.endTime);
       const title = event.title.length > 40 ? event.title.slice(0, 37) + '...' : event.title;
@@ -79,7 +80,7 @@ async function getTodayCalendarSummary(userId: string): Promise<string | null> {
     const totalMinutes = events.reduce((sum, e) => {
       return sum + (e.endTime.getTime() - e.startTime.getTime()) / (1000 * 60);
     }, 0);
-    const hours = Math.round(totalMinutes / 60 * 10) / 10;
+    const hours = Math.round((totalMinutes / 60) * 10) / 10;
 
     return `${events.length} meetings (${hours}h total):\n${lines.join('\n')}`;
   } catch (error) {
@@ -95,7 +96,8 @@ async function getTodayCalendarSummary(userId: string): Promise<string | null> {
 export const getMorningBriefingDef: ToolDefinition = {
   id: 'getMorningBriefing',
   name: 'Get Morning Briefing',
-  description: 'Provides a personalized morning briefing with priorities, wins, blockers, and focus suggestions',
+  description:
+    'Provides a personalized morning briefing with priorities, wins, blockers, and focus suggestions',
   domain: 'ceo-coaching',
   tags: ['ceo', 'coaching', 'briefing', 'morning', 'productivity'],
 
@@ -133,7 +135,8 @@ export const getMorningBriefingDef: ToolDefinition = {
           let response = `**Good morning! Here's your briefing for ${today}**\n\n`;
 
           // Calendar (Cross-Domain Integration)
-          if (includeCalendar !== false) { // Include by default
+          if (includeCalendar !== false) {
+            // Include by default
             const calendarSummary = await getTodayCalendarSummary(userId);
             if (calendarSummary) {
               response += `**Today's Calendar** 📅\n${calendarSummary}\n\n`;
@@ -195,7 +198,8 @@ export const getMorningBriefingDef: ToolDefinition = {
               const daysAgo = Math.floor(
                 (Date.now() - new Date(w.createdAt).getTime()) / (1000 * 60 * 60 * 24)
               );
-              const ago = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`;
+              const ago =
+                daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`;
               response += `- ${w.text} (${ago})\n`;
             });
             response += `\n`;
@@ -237,16 +241,13 @@ export const weeklyReviewDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Conduct a weekly review. Summarizes the week\'s wins and energy, prompts for learnings, ' +
+        "Conduct a weekly review. Summarizes the week's wins and energy, prompts for learnings, " +
         'and helps set focus for next week. Essential for continuous improvement.',
       parameters: z.object({
         action: z
           .enum(['start', 'summarize', 'save'])
           .describe('Start review, get summary, or save completed review'),
-        wins: z
-          .array(z.string())
-          .optional()
-          .describe('List of wins to record (for save action)'),
+        wins: z.array(z.string()).optional().describe('List of wins to record (for save action)'),
         learnings: z
           .array(z.string())
           .optional()
@@ -296,7 +297,12 @@ export const weeklyReviewDef: ToolDefinition = {
             if (weekAverage !== undefined) {
               response += `**Energy This Week**\n`;
               response += `Average: ${weekAverage}/10 `;
-              response += trend === 'up' ? '(trending up 📈)' : trend === 'down' ? '(trending down 📉)' : '(stable ➡️)';
+              response +=
+                trend === 'up'
+                  ? '(trending up 📈)'
+                  : trend === 'down'
+                    ? '(trending down 📉)'
+                    : '(stable ➡️)';
               response += `\n\n`;
             }
 
@@ -362,7 +368,4 @@ export const weeklyReviewDef: ToolDefinition = {
 // EXPORTS
 // ============================================================================
 
-export const briefingTools: ToolDefinition[] = [
-  getMorningBriefingDef,
-  weeklyReviewDef,
-];
+export const briefingTools: ToolDefinition[] = [getMorningBriefingDef, weeklyReviewDef];

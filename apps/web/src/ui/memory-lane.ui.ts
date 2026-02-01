@@ -23,6 +23,8 @@ import { createLogger } from '../utils/logger.js';
 import { apiGet, apiPatch } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
+import { getMemoryMoodIcon, ANALYTICS_ICONS } from './icons/shared-icons.js';
+import { createEmptyState } from './components/empty-state.js';
 
 const log = createLogger('MemoryLane');
 
@@ -97,20 +99,6 @@ const ICONS = {
   heart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
   heartFilled: `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
   x: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`,
-};
-
-// Emotion tone icons (text-based for simplicity)
-const EMOTION_ICONS: Record<string, string> = {
-  joyful: '✨',
-  meaningful: '💫',
-  proud: '🏆',
-  tender: '💕',
-  funny: '😊',
-  bittersweet: '🌅',
-  hopeful: '🌱',
-  grateful: '🙏',
-  growth: '🌱',
-  milestone: '⭐',
 };
 
 // ============================================================================
@@ -550,33 +538,29 @@ function renderTimeline(container: HTMLElement): void {
 }
 
 function renderEmptyState(container: HTMLElement, tab: TabId): void {
-  const empty = document.createElement('div');
-  empty.className = 'memory-lane-empty';
+  // Use shared empty state component for main states
+  // For on-this-day, use a simpler message since it's date-specific
+  if (tab === 'on-this-day') {
+    const empty = document.createElement('div');
+    empty.className = 'memory-lane-empty';
 
-  const text = document.createElement('p');
-  text.className = 'memory-lane-empty__text';
+    const text = document.createElement('p');
+    text.className = 'memory-lane-empty__text';
+    text.textContent = 'No memories on this day';
 
-  const subtext = document.createElement('p');
-  subtext.className = 'memory-lane-empty__subtext';
+    const subtext = document.createElement('p');
+    subtext.className = 'memory-lane-empty__subtext';
+    subtext.textContent = 'Check back on another date!';
 
-  switch (tab) {
-    case 'highlights':
-      text.textContent = 'No highlights yet';
-      subtext.textContent = 'Keep talking with Ferni to build your shared history';
-      break;
-    case 'on-this-day':
-      text.textContent = 'No memories on this day';
-      subtext.textContent = 'Check back on another date!';
-      break;
-    case 'timeline':
-      text.textContent = 'Your timeline is empty';
-      subtext.textContent = 'Memories will appear here as you chat with Ferni';
-      break;
+    empty.appendChild(text);
+    empty.appendChild(subtext);
+    container.appendChild(empty);
+    return;
   }
 
-  empty.appendChild(text);
-  empty.appendChild(subtext);
-  container.appendChild(empty);
+  // Use shared empty state for highlights and timeline
+  const emptyState = createEmptyState('memory-lane', true);
+  container.appendChild(emptyState);
 }
 
 function createMemoryCard(memory: Memory, showYearsAgo = false): HTMLElement {
@@ -590,10 +574,10 @@ function createMemoryCard(memory: Memory, showYearsAgo = false): HTMLElement {
   dateBadge.textContent = formatMemoryDate(memory.occurredAt, memory.yearAgo, showYearsAgo);
   card.appendChild(dateBadge);
 
-  // Emotion icon
+  // Emotion icon (SVG from shared icons)
   const icon = document.createElement('span');
   icon.className = 'memory-lane-card__icon';
-  icon.textContent = EMOTION_ICONS[memory.emotionalTone] ?? '💭';
+  icon.innerHTML = getMemoryMoodIcon(memory.emotionalTone);
   icon.setAttribute('aria-hidden', 'true');
   card.appendChild(icon);
 
@@ -947,8 +931,15 @@ function injectStyles(): void {
       position: absolute;
       top: var(--space-md, 16px);
       right: var(--space-md, 16px);
-      font-size: 1.25rem;
+      width: 20px;
+      height: 20px;
+      color: var(--color-accent, #3D5A45);
       opacity: 0.7;
+    }
+
+    .memory-lane-card__icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     .memory-lane-card__content {
@@ -1007,45 +998,45 @@ function injectStyles(): void {
       height: 16px;
     }
 
-    /* Emotion-specific card tints */
+    /* Emotion-specific card tints - warm brand colors */
     .memory-lane-card--joyful {
-      background: rgba(255, 220, 100, 0.08);
+      background: var(--color-memory-joyful, rgba(196, 162, 101, 0.08));
     }
 
     .memory-lane-card--meaningful {
-      background: rgba(100, 150, 200, 0.08);
+      background: var(--color-memory-meaningful, rgba(61, 90, 69, 0.08));
     }
 
     .memory-lane-card--proud {
-      background: rgba(255, 180, 100, 0.08);
+      background: var(--color-memory-proud, rgba(196, 162, 101, 0.1));
     }
 
     .memory-lane-card--tender {
-      background: rgba(255, 180, 200, 0.08);
+      background: var(--color-memory-tender, rgba(196, 133, 106, 0.08));
     }
 
     .memory-lane-card--funny {
-      background: rgba(255, 200, 180, 0.08);
+      background: var(--color-memory-funny, rgba(184, 149, 106, 0.08));
     }
 
     .memory-lane-card--hopeful {
-      background: rgba(100, 200, 150, 0.08);
+      background: var(--color-memory-hopeful, rgba(74, 103, 65, 0.08));
     }
 
     .memory-lane-card--growth {
-      background: rgba(100, 200, 150, 0.08);
+      background: var(--color-memory-growth, rgba(74, 103, 65, 0.1));
     }
 
     .memory-lane-card--grateful {
-      background: rgba(200, 180, 150, 0.08);
+      background: var(--color-memory-grateful, rgba(168, 133, 98, 0.08));
     }
 
     .memory-lane-card--milestone {
-      background: rgba(255, 200, 100, 0.08);
+      background: var(--color-memory-milestone, rgba(196, 162, 101, 0.1));
     }
 
     .memory-lane-card--bittersweet {
-      background: rgba(180, 150, 200, 0.08);
+      background: var(--color-memory-bittersweet, rgba(112, 96, 90, 0.08));
     }
 
     /* ========================================

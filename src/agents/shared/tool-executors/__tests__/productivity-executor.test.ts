@@ -74,7 +74,7 @@ describe('ProductivityExecutor', () => {
         'gettimer',
         'canceltimer',
         'schedulereminder',
-        'cancelreminder',
+        // NOTE: 'cancelreminder' is handled by scheduling-executor.ts (has real implementation)
         'getreminders',
         'addnote',
         'getnotes',
@@ -331,14 +331,12 @@ describe('ProductivityExecutor', () => {
       expect(result2).toContain('coming soon');
     });
 
-    it('should acknowledge reminder management as coming soon', async () => {
+    it('should acknowledge getReminders as coming soon', async () => {
       const ctx = createContext();
+      // NOTE: cancelReminder is handled by scheduling-executor.ts (has real implementation)
+      const result = await productivityExecutor.execute('getReminders', {}, ctx);
 
-      const result1 = await productivityExecutor.execute('cancelReminder', {}, ctx);
-      const result2 = await productivityExecutor.execute('getReminders', {}, ctx);
-
-      expect(result1).toContain('coming soon');
-      expect(result2).toContain('coming soon');
+      expect(result).toContain('coming soon');
     });
 
     it('should acknowledge goal update as being implemented', async () => {

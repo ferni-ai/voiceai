@@ -1,11 +1,11 @@
 {
   "$schema": "../tool.schema.json",
   "domain": "memory",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "tools": [
     {
       "name": "rememberAboutUser",
-      "description": "Store an important fact about the user with semantic embedding for future recall. Facts persist across all sessions and are searchable by meaning.",
+      "description": "Store an important fact about the user with semantic embedding for future recall. Facts persist across all sessions and are searchable by meaning.\n\n**Invocation Condition:** Invoke this tool *only when* the user shares significant personal information (family, goals, preferences, concerns) that would be valuable to remember for future conversations. Do NOT invoke for casual conversation or temporary information.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -27,15 +27,24 @@
         "required": ["fact", "category"]
       },
       "examples": [
-        { "userSays": "I have two kids, Maya and Jake", "output": "{\"fn\":\"rememberAboutUser\",\"args\":{\"fact\":\"has two kids named Maya and Jake\",\"category\":\"personal\",\"importance\":\"high\"}}" },
-        { "userSays": "I'm thinking about retiring next year", "output": "{\"fn\":\"rememberAboutUser\",\"args\":{\"fact\":\"considering retirement next year\",\"category\":\"goal\",\"importance\":\"high\"}}" },
-        { "userSays": "I prefer morning workouts", "output": "{\"fn\":\"rememberAboutUser\",\"args\":{\"fact\":\"prefers morning workouts\",\"category\":\"preference\",\"importance\":\"medium\"}}" }
+        {
+          "userSays": "I have two kids, Maya and Jake",
+          "output": "{\"fn\":\"rememberAboutUser\",\"args\":{\"fact\":\"has two kids named Maya and Jake\",\"category\":\"personal\",\"importance\":\"high\"}}"
+        },
+        {
+          "userSays": "I'm thinking about retiring next year",
+          "output": "{\"fn\":\"rememberAboutUser\",\"args\":{\"fact\":\"considering retirement next year\",\"category\":\"goal\",\"importance\":\"high\"}}"
+        },
+        {
+          "userSays": "I prefer morning workouts",
+          "output": "{\"fn\":\"rememberAboutUser\",\"args\":{\"fact\":\"prefers morning workouts\",\"category\":\"preference\",\"importance\":\"medium\"}}"
+        }
       ],
       "tags": ["memory", "recall", "persistence", "better-than-human"]
     },
     {
       "name": "recallFromMemory",
-      "description": "Semantic search across stored memories. Finds memories by meaning, not just keywords.",
+      "description": "Semantic search across stored memories. Finds memories by meaning, not just keywords.\n\n**Invocation Condition:** Invoke this tool *only when* you need to recall something specific the user has told you before, or when the user asks 'what do you know about...' or 'what have I told you about...'. Do NOT invoke speculatively.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -47,9 +56,18 @@
         "required": ["topic"]
       },
       "examples": [
-        { "userSays": "What do you know about my family?", "output": "{\"fn\":\"recallFromMemory\",\"args\":{\"topic\":\"family situation\"}}" },
-        { "userSays": "What are my goals?", "output": "{\"fn\":\"recallFromMemory\",\"args\":{\"topic\":\"goals and aspirations\"}}" },
-        { "userSays": "What have I told you about work?", "output": "{\"fn\":\"recallFromMemory\",\"args\":{\"topic\":\"work and career\"}}" }
+        {
+          "userSays": "What do you know about my family?",
+          "output": "{\"fn\":\"recallFromMemory\",\"args\":{\"topic\":\"family situation\"}}"
+        },
+        {
+          "userSays": "What are my goals?",
+          "output": "{\"fn\":\"recallFromMemory\",\"args\":{\"topic\":\"goals and aspirations\"}}"
+        },
+        {
+          "userSays": "What have I told you about work?",
+          "output": "{\"fn\":\"recallFromMemory\",\"args\":{\"topic\":\"work and career\"}}"
+        }
       ],
       "tags": ["memory", "recall", "search", "better-than-human"]
     }

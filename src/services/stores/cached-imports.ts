@@ -38,7 +38,9 @@ interface CachedModuleRefs {
 
   // Bundle system
   loadBundleById: typeof import('../../personas/bundles/index.js').loadBundleById | null;
-  createBundleRuntime: typeof import('../../personas/bundles/runtime.js').createBundleRuntime | null;
+  createBundleRuntime:
+    | typeof import('../../personas/bundles/runtime.js').createBundleRuntime
+    | null;
 
   // Voice manager
   getVoiceManager: typeof import('../../speech/voice-manager.js').getVoiceManager | null;

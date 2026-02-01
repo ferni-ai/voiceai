@@ -3,7 +3,7 @@
  *
  * Routes local business discovery queries.
  * Strategy: Google Places (primary) + Yelp (fallback/explicit)
- * 
+ *
  * Users can say "on Yelp" or "on Google" to use a specific source.
  *
  * @module tools/semantic-router/tool-definitions/local-search
@@ -110,10 +110,7 @@ export const searchLocalBusinessesTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Location to search',
       required: true,
-      extractionPatterns: [
-        /(?:near|in|around)\s+(.+?)$/i,
-        /(?:nearby|close\s+to)\s+(.+?)$/i,
-      ],
+      extractionPatterns: [/(?:near|in|around)\s+(.+?)$/i, /(?:nearby|close\s+to)\s+(.+?)$/i],
     },
     {
       name: 'openNow',
@@ -237,10 +234,7 @@ export const findRestaurantsTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Where to search',
       required: true,
-      extractionPatterns: [
-        /(?:in|near|around)\s+(.+?)$/i,
-        /(?:near\s+me|around\s+here|nearby)/i,
-      ],
+      extractionPatterns: [/(?:in|near|around)\s+(.+?)$/i, /(?:near\s+me|around\s+here|nearby)/i],
     },
     {
       name: 'priceLevel',
@@ -401,7 +395,7 @@ export const lookupBusinessByPhoneTool: SemanticToolDefinition = {
     'What business is 415-555-1234?',
     'Look up this phone number',
     'Who does 212-555-0000 belong to?',
-    "What place has this number: (650) 555-1234?",
+    'What place has this number: (650) 555-1234?',
     'Identify this business number',
   ],
 

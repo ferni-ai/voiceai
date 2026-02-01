@@ -23,7 +23,7 @@ import {
   type ConversationCommitment,
   type TopicChange,
   type ConversationTuningPreferences,
-} from '../conversation/conversational-memory.js';
+} from '../conversation/conversational-memory/index.js';
 
 // ============================================================================
 // TESTS

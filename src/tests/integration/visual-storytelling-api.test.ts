@@ -51,7 +51,11 @@ import { handleVisualStorytellingRoutes } from '../../api/visual-storytelling-ro
 
 describe('Visual Storytelling API', () => {
   // Mock request/response objects
-  const createMockRequest = (method: string, url: string, body?: unknown): Partial<http.IncomingMessage> => ({
+  const createMockRequest = (
+    method: string,
+    url: string,
+    body?: unknown
+  ): Partial<http.IncomingMessage> => ({
     method,
     url,
     headers: {
@@ -68,13 +72,13 @@ describe('Visual Storytelling API', () => {
     }),
   });
 
-  const createMockResponse = (): Partial<http.ServerResponse> & { 
-    _statusCode: number; 
+  const createMockResponse = (): Partial<http.ServerResponse> & {
+    _statusCode: number;
     _data: string;
     _headers: Record<string, string>;
   } => {
-    const res: Partial<http.ServerResponse> & { 
-      _statusCode: number; 
+    const res: Partial<http.ServerResponse> & {
+      _statusCode: number;
       _data: string;
       _headers: Record<string, string>;
     } = {
@@ -82,16 +86,24 @@ describe('Visual Storytelling API', () => {
       _data: '',
       _headers: {},
       writableEnded: false,
-      writeHead: vi.fn(function(this: typeof res, statusCode: number, headers?: Record<string, string>) {
+      writeHead: vi.fn(function (
+        this: typeof res,
+        statusCode: number,
+        headers?: Record<string, string>
+      ) {
         this._statusCode = statusCode;
         if (headers) this._headers = headers;
         return this as unknown as http.ServerResponse;
       }),
-      setHeader: vi.fn(function(this: typeof res, name: string, value: string | number | readonly string[]) {
+      setHeader: vi.fn(function (
+        this: typeof res,
+        name: string,
+        value: string | number | readonly string[]
+      ) {
         this._headers[name] = String(value);
         return this as unknown as http.ServerResponse;
       }),
-      end: vi.fn(function(this: typeof res, data?: string) {
+      end: vi.fn(function (this: typeof res, data?: string) {
         this._data = data || '';
         this.writableEnded = true;
       }),
@@ -141,7 +153,7 @@ describe('Visual Storytelling API', () => {
 
       expect(handled).toBe(true);
       expect(res.writeHead).toHaveBeenCalled();
-      
+
       const responseData = JSON.parse(res._data);
       expect(responseData).toHaveProperty('relationship');
       expect(responseData).toHaveProperty('teaserEligibility');
@@ -195,7 +207,11 @@ describe('Visual Storytelling API', () => {
         isEarlyBird: false,
       };
 
-      const req = createMockRequest('PUT', '/api/visual-storytelling/test-user-123/sleep-pattern', sleepPattern);
+      const req = createMockRequest(
+        'PUT',
+        '/api/visual-storytelling/test-user-123/sleep-pattern',
+        sleepPattern
+      );
       const res = createMockResponse();
 
       const handled = await handleVisualStorytellingRoutes(
@@ -216,7 +232,11 @@ describe('Visual Storytelling API', () => {
         isEarlyBird: false,
       };
 
-      const req = createMockRequest('PUT', '/api/visual-storytelling/test-user-123/sleep-pattern', invalidPattern);
+      const req = createMockRequest(
+        'PUT',
+        '/api/visual-storytelling/test-user-123/sleep-pattern',
+        invalidPattern
+      );
       const res = createMockResponse();
 
       await handleVisualStorytellingRoutes(
@@ -231,7 +251,10 @@ describe('Visual Storytelling API', () => {
 
   describe('POST /api/visual-storytelling/:userId/milestone/:milestoneId/celebrate', () => {
     it('should mark milestone as celebrated', async () => {
-      const req = createMockRequest('POST', '/api/visual-storytelling/test-user-123/milestone/first-hello/celebrate');
+      const req = createMockRequest(
+        'POST',
+        '/api/visual-storytelling/test-user-123/milestone/first-hello/celebrate'
+      );
       const res = createMockResponse();
 
       const handled = await handleVisualStorytellingRoutes(
@@ -364,7 +387,7 @@ describe('Team Progress Calculation', () => {
     // With 15 conversations:
     // ferni ✓, maya ✓, alex ✓, peter ✓, jordan ✗, nayan ✗
     const conversationCount = 15;
-    
+
     expect(conversationCount >= unlockThresholds.ferni).toBe(true);
     expect(conversationCount >= unlockThresholds.maya).toBe(true);
     expect(conversationCount >= unlockThresholds.alex).toBe(true);

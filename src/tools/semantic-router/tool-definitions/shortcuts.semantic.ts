@@ -276,7 +276,8 @@ export const quickMusicTool: SemanticToolDefinition = {
       'put on some',
       'play something',
       'i want to hear',
-      'play',
+      // NOTE: Removed 'play' alone - too broad, matches "play some jazz" incorrectly
+      // Let specific tools like spotify_play handle genre requests
     ],
     patterns: [
       /^play\s+(?:some\s+)?(?:music|.+\s+music)/i,

@@ -168,14 +168,22 @@ export async function persistTurn(
 ): Promise<void> {
   // 🧠 MEMORY AUDIT: Log every persist attempt
   log.info(
-    { userId: userId?.substring(0, 8), conversationId, role: turn.role, contentLen: turn.content?.length },
+    {
+      userId: userId?.substring(0, 8),
+      conversationId,
+      role: turn.role,
+      contentLen: turn.content?.length,
+    },
     '🧠 [MEMORY-AUDIT] persistTurn called'
   );
-  
+
   const firestore = await getFirestore();
 
   if (!firestore) {
-    log.warn({ userId, conversationId }, '🧠 [MEMORY-AUDIT] Firestore unavailable, turn NOT persisted');
+    log.warn(
+      { userId, conversationId },
+      '🧠 [MEMORY-AUDIT] Firestore unavailable, turn NOT persisted'
+    );
     recordFallback('realtime-memory', 'Firestore unavailable for persistTurn');
     return;
   }
@@ -194,15 +202,15 @@ export async function persistTurn(
       timestamp: turn.timestamp || new Date(),
       ...(turn.metadata && { metadata: turn.metadata }),
     });
-    
+
     const turnDoc = await conversationRef.collection('turns').add(turnData);
-    
+
     // 🧠 MEMORY AUDIT: Confirm write succeeded
     log.info(
       { userId: userId?.substring(0, 8), conversationId, turnId: turnDoc.id, role: turn.role },
       '🧠 [MEMORY-AUDIT] Turn document WRITTEN to Firestore'
     );
-    
+
     // Record successful Firestore operation
     recordSuccess('realtime-memory');
 
@@ -226,7 +234,10 @@ export async function persistTurn(
     );
   } catch (error) {
     // Log but don't throw - we don't want to break the conversation
-    log.error({ error: String(error), userId, conversationId }, '🧠 [MEMORY-AUDIT] FAILED to persist turn');
+    log.error(
+      { error: String(error), userId, conversationId },
+      '🧠 [MEMORY-AUDIT] FAILED to persist turn'
+    );
   }
 }
 

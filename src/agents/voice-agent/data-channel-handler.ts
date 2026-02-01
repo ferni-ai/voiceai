@@ -24,9 +24,9 @@ import {
   getCurrentAgent,
   isHandoffInProgress,
   getNextMessageSeqSync,
+  getHandoffQueueState,
 } from '../../handoff/index.js';
 import { completeHandoff } from '../../handoff/actions.js';
-import { getHandoffPersonaInfo } from '../shared/handoff/session-state.js';
 import type { UserData } from '../shared/types.js';
 
 // New coordinator-based handoff system
@@ -39,7 +39,10 @@ import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Action approval system
 import { resolvePendingAction } from '../../services/automation/trust-level-system.js';
-import { dispatchActionApproved, dispatchActionRejected } from '../realtime/action-event-dispatcher.js';
+import {
+  dispatchActionApproved,
+  dispatchActionRejected,
+} from '../realtime/action-event-dispatcher.js';
 
 // ============================================================================
 // TYPES
@@ -657,15 +660,16 @@ async function handleHandoffCancel(
 
   try {
     // Get info about the in-progress handoff before clearing
-    const handoffInfo = getHandoffPersonaInfo(sessionId);
+    const queueState = getHandoffQueueState(sessionId);
+    const { targetPersonaId, previousPersonaId } = queueState;
 
     // Complete/clear the handoff state
     const { durationMs } = completeHandoff(sessionId);
 
     getLogger().info(
       {
-        targetPersona: handoffInfo.targetPersonaId,
-        previousPersona: handoffInfo.previousPersonaId,
+        targetPersona: targetPersonaId,
+        previousPersona: previousPersonaId,
         durationMs,
       },
       '🚫 Handoff state cleared due to cancellation'
@@ -674,8 +678,8 @@ async function handleHandoffCancel(
     // Send handoff_cancelled message to frontend
     const cancelledMessage = JSON.stringify({
       type: 'handoff_cancelled',
-      targetPersona: handoffInfo.targetPersonaId || targetPersona || 'unknown',
-      previousPersona: handoffInfo.previousPersonaId,
+      targetPersona: targetPersonaId || targetPersona || 'unknown',
+      previousPersona: previousPersonaId,
       reason: reason || 'Cancelled by user',
       durationMs,
       seq: getNextMessageSeqSync(sessionId),
@@ -1171,7 +1175,7 @@ async function handleActionResponse(
 
     if (!resolvedAction) {
       getLogger().warn({ actionId }, '🎯 Action not found or already resolved');
-      
+
       // Send error ack to frontend
       const ackMessage = JSON.stringify({
         type: 'action_response_ack',

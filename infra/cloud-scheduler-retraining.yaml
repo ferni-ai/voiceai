@@ -1,0 +1,161 @@
+# Cloud Scheduler Jobs for Semantic Router Retraining
+#
+# These jobs maintain the state-of-the-art tool routing system:
+# - Daily scheduled retraining at 3 AM PT
+# - Volume-based trigger check every 4 hours
+# - Quality degradation check every 6 hours
+#
+# Deploy with gcloud commands below or via Terraform.
+
+jobs:
+  # Daily Scheduled Retraining - runs at 3 AM PT
+  # Main retraining cycle that processes all accumulated corrections
+  - name: semantic-router-daily-retrain
+    description: Daily semantic router retraining at 3 AM PT
+    schedule: "0 3 * * *"  # 3am every day
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/semantic-router-retrain
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+      body: |
+        {"trigger": "scheduled"}
+    retryConfig:
+      retryCount: 2
+      minBackoffDuration: 60s
+      maxBackoffDuration: 300s
+
+  # Volume-Based Trigger Check - runs every 4 hours
+  # Checks if enough corrections have accumulated to trigger early retrain
+  - name: semantic-router-volume-check
+    description: Check if volume-based retraining should trigger
+    schedule: "0 */4 * * *"  # Every 4 hours
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/semantic-router-volume-check
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+      body: |
+        {"trigger": "volume"}
+    retryConfig:
+      retryCount: 1
+      minBackoffDuration: 30s
+      maxBackoffDuration: 60s
+
+  # Quality Degradation Check - runs every 6 hours
+  # Monitors accuracy and triggers retrain if quality drops
+  - name: semantic-router-quality-check
+    description: Check if quality-based retraining should trigger
+    schedule: "0 */6 * * *"  # Every 6 hours
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/semantic-router-quality-check
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+      body: |
+        {"trigger": "quality"}
+    retryConfig:
+      retryCount: 1
+      minBackoffDuration: 30s
+      maxBackoffDuration: 60s
+
+  # Retraining Health Check - runs every 12 hours
+  # Monitors retraining pipeline health and alerts on issues
+  - name: semantic-router-health-check
+    description: Monitor retraining pipeline health
+    schedule: "0 */12 * * *"  # Every 12 hours
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/semantic-router-health
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 1
+      minBackoffDuration: 30s
+      maxBackoffDuration: 60s
+
+# ============================================================================
+# MANUAL DEPLOYMENT COMMANDS
+# ============================================================================
+#
+# Create all retraining jobs:
+#
+# gcloud scheduler jobs create http semantic-router-daily-retrain \
+#   --location=us-central1 \
+#   --schedule="0 3 * * *" \
+#   --uri="https://app.ferni.ai/api/jobs/semantic-router-retrain" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --message-body='{"trigger": "scheduled"}' \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Daily semantic router retraining at 3 AM PT"
+#
+# gcloud scheduler jobs create http semantic-router-volume-check \
+#   --location=us-central1 \
+#   --schedule="0 */4 * * *" \
+#   --uri="https://app.ferni.ai/api/jobs/semantic-router-volume-check" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --message-body='{"trigger": "volume"}' \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Check if volume-based retraining should trigger"
+#
+# gcloud scheduler jobs create http semantic-router-quality-check \
+#   --location=us-central1 \
+#   --schedule="0 */6 * * *" \
+#   --uri="https://app.ferni.ai/api/jobs/semantic-router-quality-check" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --message-body='{"trigger": "quality"}' \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Check if quality-based retraining should trigger"
+#
+# gcloud scheduler jobs create http semantic-router-health-check \
+#   --location=us-central1 \
+#   --schedule="0 */12 * * *" \
+#   --uri="https://app.ferni.ai/api/jobs/semantic-router-health" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Monitor retraining pipeline health"
+#
+# ============================================================================
+# TESTING COMMANDS
+# ============================================================================
+#
+# Test daily retraining manually:
+# curl -X POST https://app.ferni.ai/api/jobs/semantic-router-retrain \
+#   -H "Content-Type: application/json" \
+#   -H "X-Dev-Trigger: true" \
+#   -d '{"trigger": "manual"}'
+#
+# Check retraining status:
+# curl https://app.ferni.ai/api/observability/routing-dashboard | jq '.learning'
+#
+# List all scheduler jobs:
+# gcloud scheduler jobs list --location=us-central1 | grep semantic-router
+#
+# Manually run a job:
+# gcloud scheduler jobs run semantic-router-daily-retrain --location=us-central1
+#
+# ============================================================================
+# SAFETY CONFIGURATION
+# ============================================================================
+#
+# The retraining pipeline includes these safety guards:
+# - Max embedding delta: 0.3 (30% change per cycle)
+# - Max tools modified: 25% of total per cycle
+# - Automatic rollback on failed safety checks
+# - Validation gate before applying changes
+#
+# To adjust these, modify the config in retraining-pipeline.ts or
+# pass config via the API body.
+#

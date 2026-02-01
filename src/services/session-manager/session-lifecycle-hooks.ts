@@ -19,8 +19,6 @@ import { getRedisCache } from '../../memory/redis-cache.js';
 import { personaAffinity } from '../superhuman/persona-affinity.js';
 import { userCorrections } from '../superhuman/user-corrections.js';
 import { outreachHistory } from '../outreach/outreach-history.js';
-// FTIS - Ferni Tool Intelligence System
-import { getFTISIntegration } from '../../tools/intelligence/ftis-integration.js';
 
 const log = getLogger().child({ module: 'session-lifecycle' });
 
@@ -53,7 +51,10 @@ void (async () => {
           personaId: data.personaId as string,
           metadata: data,
         }).catch((err) => {
-          log.debug({ error: String(err), type }, 'Session lifecycle Pub/Sub failed (non-critical)');
+          log.debug(
+            { error: String(err), type },
+            'Session lifecycle Pub/Sub failed (non-critical)'
+          );
         });
       }
     };
@@ -103,15 +104,7 @@ export async function onSessionStart(
       (a) => a.personaId !== personaId && a.emotionalResonance === 'high'
     );
 
-    // 6. Start FTIS session tracking (tool transition learning)
-    try {
-      const ftis = getFTISIntegration();
-      ftis.startSession(userId, sessionId, personaId);
-    } catch {
-      // FTIS not available, continue without it
-    }
-
-    // 7. Broadcast session start via Pub/Sub for cross-instance awareness
+    // 6. Broadcast session start via Pub/Sub for cross-instance awareness
     if (publishSession) {
       publishSession('session_start', {
         userId,
@@ -210,13 +203,6 @@ export async function onSessionEnd(
       outcome: sessionData.sentiment === 'positive' ? 'successful' : 'needs_follow_up',
     });
 
-    // 6. End FTIS session tracking (learns tool transitions)
-    try {
-      const ftis = getFTISIntegration();
-      await ftis.endSession(sessionId);
-    } catch {
-      // FTIS not available, continue without it
-    }
 
     // 7. Broadcast session end via Pub/Sub for cross-instance awareness
     if (publishSession) {

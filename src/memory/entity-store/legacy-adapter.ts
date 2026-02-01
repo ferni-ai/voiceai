@@ -45,7 +45,7 @@ const deprecationStats = new Map<string, number>();
 function trackDeprecatedCall(functionName: string): void {
   const count = deprecationStats.get(functionName) || 0;
   deprecationStats.set(functionName, count + 1);
-  
+
   // Log every 100 calls to avoid spam
   if ((count + 1) % 100 === 0) {
     log.warn(
@@ -134,7 +134,7 @@ export interface LegacyContactFormat {
  */
 function entityToLegacyContact(entity: Entity): LegacyContactFormat {
   const attrs = entity.attributes as { phone?: string; email?: string; relationship?: string };
-  
+
   return {
     id: entity.id,
     userId: entity.userId,
@@ -168,7 +168,7 @@ export async function getContacts(userId: string): Promise<LegacyContactFormat[]
   }
 
   const entities = await getAllEntities(userId, { types: ['person'], topK: 500 });
-  
+
   // If empty and fallback enabled, try legacy
   if (entities.length === 0 && config.fallbackToLegacy) {
     const legacy = await getLegacyContacts(userId);
@@ -186,7 +186,10 @@ export async function getContacts(userId: string): Promise<LegacyContactFormat[]
  *
  * @deprecated Use getEntity() instead
  */
-export async function getContact(userId: string, contactId: string): Promise<LegacyContactFormat | null> {
+export async function getContact(
+  userId: string,
+  contactId: string
+): Promise<LegacyContactFormat | null> {
   trackDeprecatedCall('getContact');
   if (config.logReads) {
     log.debug({ userId, contactId }, 'Legacy adapter: getContact');
@@ -197,7 +200,7 @@ export async function getContact(userId: string, contactId: string): Promise<Leg
   }
 
   const entity = await getEntity(userId, contactId);
-  
+
   if (!entity && config.fallbackToLegacy) {
     return getLegacyContact(userId, contactId);
   }
@@ -231,7 +234,7 @@ export async function searchContacts(
 
   // Then search
   const entities = await searchEntities(userId, query, { types: ['person'], topK: 20 });
-  
+
   // If empty and fallback enabled, try legacy
   if (entities.length === 0 && config.fallbackToLegacy) {
     const legacy = await searchLegacyContacts(userId, query);
@@ -263,7 +266,7 @@ export async function findContactByPhone(
 
   const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
   const entities = await getAllEntities(userId, { types: ['person'], topK: 500 });
-  
+
   for (const entity of entities) {
     const entityPhone = (entity.attributes as { phone?: string })?.phone || entity.contact?.phone;
     if (entityPhone) {
@@ -302,7 +305,7 @@ export async function findContactByRelationship(
 
   // Try to find by alias (handles "brother", "my brother", etc.)
   const entity = await findEntityByAlias(userId, relationship, 'person');
-  
+
   if (!entity && config.fallbackToLegacy) {
     return findLegacyContactByRelationship(userId, relationship);
   }
@@ -335,7 +338,7 @@ export interface LegacyRelationshipPerson {
  */
 function entityToLegacyRelationshipPerson(entity: Entity): LegacyRelationshipPerson {
   const attrs = entity.attributes as { relationship?: string; sentiment?: number };
-  
+
   return {
     id: entity.id,
     userId: entity.userId,
@@ -366,7 +369,7 @@ export async function getRelationshipNetwork(userId: string): Promise<LegacyRela
   }
 
   const entities = await getAllEntities(userId, { types: ['person'], topK: 500 });
-  
+
   // If empty and fallback enabled, try legacy
   if (entities.length === 0 && config.fallbackToLegacy) {
     const legacy = await getLegacyRelationshipNetwork(userId);
@@ -397,7 +400,7 @@ export async function getRelationshipConnections(
   }
 
   const relationships = await getRelationshipsForEntity(userId, personId);
-  
+
   return relationships.map((rel) => ({
     fromId: rel.fromEntity,
     toId: rel.toEntity,
@@ -426,11 +429,7 @@ async function getFirestore(): Promise<FirebaseFirestore.Firestore> {
 async function getLegacyContacts(userId: string): Promise<LegacyContactFormat[]> {
   try {
     const db = await getFirestore();
-    const snapshot = await db
-      .collection('user_contacts')
-      .doc(userId)
-      .collection('contacts')
-      .get();
+    const snapshot = await db.collection('user_contacts').doc(userId).collection('contacts').get();
 
     return snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -446,7 +445,10 @@ async function getLegacyContacts(userId: string): Promise<LegacyContactFormat[]>
   }
 }
 
-async function getLegacyContact(userId: string, contactId: string): Promise<LegacyContactFormat | null> {
+async function getLegacyContact(
+  userId: string,
+  contactId: string
+): Promise<LegacyContactFormat | null> {
   try {
     const db = await getFirestore();
     const doc = await db
@@ -476,22 +478,28 @@ async function searchLegacyContacts(userId: string, query: string): Promise<Lega
   const contacts = await getLegacyContacts(userId);
   const normalizedQuery = query.toLowerCase();
 
-  return contacts.filter((c) =>
-    c.displayName?.toLowerCase().includes(normalizedQuery) ||
-    c.name?.toLowerCase().includes(normalizedQuery) ||
-    c.phone?.includes(query) ||
-    c.relationship?.toLowerCase().includes(normalizedQuery)
+  return contacts.filter(
+    (c) =>
+      c.displayName?.toLowerCase().includes(normalizedQuery) ||
+      c.name?.toLowerCase().includes(normalizedQuery) ||
+      c.phone?.includes(query) ||
+      c.relationship?.toLowerCase().includes(normalizedQuery)
   );
 }
 
-async function findLegacyContactByPhone(userId: string, phone: string): Promise<LegacyContactFormat | null> {
+async function findLegacyContactByPhone(
+  userId: string,
+  phone: string
+): Promise<LegacyContactFormat | null> {
   const contacts = await getLegacyContacts(userId);
   const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
 
-  return contacts.find((c) => {
-    const contactPhone = c.phone?.replace(/\D/g, '').slice(-10);
-    return contactPhone === normalizedPhone;
-  }) || null;
+  return (
+    contacts.find((c) => {
+      const contactPhone = c.phone?.replace(/\D/g, '').slice(-10);
+      return contactPhone === normalizedPhone;
+    }) || null
+  );
 }
 
 async function findLegacyContactByRelationship(
@@ -501,10 +509,13 @@ async function findLegacyContactByRelationship(
   const contacts = await getLegacyContacts(userId);
   const normalizedRel = relationship.toLowerCase().replace(/^my\s+/, '');
 
-  return contacts.find((c) =>
-    c.relationship?.toLowerCase() === normalizedRel ||
-    c.relationship?.toLowerCase() === relationship.toLowerCase()
-  ) || null;
+  return (
+    contacts.find(
+      (c) =>
+        c.relationship?.toLowerCase() === normalizedRel ||
+        c.relationship?.toLowerCase() === relationship.toLowerCase()
+    ) || null
+  );
 }
 
 async function getLegacyRelationshipNetwork(userId: string): Promise<LegacyRelationshipPerson[]> {

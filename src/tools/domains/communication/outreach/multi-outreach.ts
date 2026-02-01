@@ -118,10 +118,7 @@ interface ResolvedTarget {
 /**
  * Resolve a single contact or group
  */
-async function resolveContact(
-  userId: string,
-  target: OutreachTarget
-): Promise<ResolvedTarget> {
+async function resolveContact(userId: string, target: OutreachTarget): Promise<ResolvedTarget> {
   const contactQuery = target.contact.toLowerCase().trim();
 
   // 1. Try as a group first
@@ -129,8 +126,7 @@ async function resolveContact(
     const groups = await getGroups(userId);
     const matchedGroup = groups.find(
       (g: ContactGroup) =>
-        g.name.toLowerCase() === contactQuery ||
-        g.id.toLowerCase() === contactQuery
+        g.name.toLowerCase() === contactQuery || g.id.toLowerCase() === contactQuery
     );
 
     if (matchedGroup && matchedGroup.members.length > 0) {
@@ -213,7 +209,7 @@ function selectChannel(
 
   // Intent-based selection
   const purposeLower = purpose.toLowerCase();
-  
+
   // Calls for conversations, check-ins, important stuff
   if (
     purposeLower.includes('check in') ||
@@ -319,7 +315,7 @@ async function executeOutreach(
           reason: purpose,
         };
         const result = await makeConversationalCall(callContext);
-        
+
         return {
           contact: target.contact,
           resolvedName: contact.name,
@@ -332,7 +328,7 @@ async function executeOutreach(
         const result = await callWithPersonaVoice(contact.phone, message, personaId, {
           fallbackToTwilioVoice: true,
         });
-        
+
         return {
           contact: target.contact,
           resolvedName: contact.name,
@@ -658,7 +654,7 @@ Examples:
       defaultPurpose: z
         .string()
         .optional()
-        .describe('Default purpose for targets that don\'t specify one'),
+        .describe("Default purpose for targets that don't specify one"),
     }),
 
     execute: async (params) => {

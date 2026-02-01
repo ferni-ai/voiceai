@@ -1050,6 +1050,7 @@
       "pinned": "Your Favourites",
       "yourPractices": "Let's Practise",
       "understandingYou": "How You're Doing",
+      "ourStory": "Our Story",
       "waysToConnect": "Let's Do Something",
       "yourPeople": "Your World",
       "connectedLife": "What We're Connected To",
@@ -2016,12 +2017,17 @@
       "dayStreak": "[NEEDS_TRANSLATION] day streak"
     },
     "sections": {
-      "rightNow": "[NEEDS_TRANSLATION] Right Now",
-      "yourGrowth": "[NEEDS_TRANSLATION] Your Growth",
-      "yourWorld": "[NEEDS_TRANSLATION] Your World"
+      "care": "What I've Done for You",
+      "rightNow": "Right Now",
+      "yourGrowth": "Your Growth",
+      "yourWorld": "Your World"
+    },
+    "care": {
+      "loading": "Loading your care moments..."
     },
     "insights": {
-      "moodSummary": "[NEEDS_TRANSLATION] You've been feeling mostly {mood} this week",
+      "care": "Keeping track of what matters to you.",
+      "moodSummary": "You've been feeling mostly {mood} this week",
       "chapterFocus": "[NEEDS_TRANSLATION] Current chapter: {chapter} | Focus area: {focus}",
       "connections": "[NEEDS_TRANSLATION] {active} active connections | {open} open loops"
     },

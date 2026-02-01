@@ -7,7 +7,12 @@
  * @module @ferni/conversation/interfaces
  */
 
-import type { ConcernState, ProsodySignals, BreathingSignals, TemporalContext as ConcernTemporalContext } from '../concern-detection/types.js';
+import type {
+  ConcernState,
+  ProsodySignals,
+  BreathingSignals,
+  TemporalContext as ConcernTemporalContext,
+} from '../concern-detection/types.js';
 import type { Question, QuestionContext } from '../question-patterns/types.js';
 import type { TemporalGuidance, TemporalState, UpcomingEvent } from '../temporal-context/types.js';
 
@@ -47,12 +52,14 @@ export interface IConcernDetector {
   /**
    * Update user baseline metrics
    */
-  updateBaseline(metrics: Partial<{
-    avgResponseLength: number;
-    avgEngagement: number;
-    avgEnergy: number;
-    normalSpeechRate: number;
-  }>): void;
+  updateBaseline(
+    metrics: Partial<{
+      avgResponseLength: number;
+      avgEngagement: number;
+      avgEnergy: number;
+      normalSpeechRate: number;
+    }>
+  ): void;
 
   /**
    * Record positive outcome

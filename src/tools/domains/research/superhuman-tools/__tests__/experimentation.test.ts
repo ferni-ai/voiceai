@@ -146,10 +146,7 @@ describe('Personal Experimentation Framework Tools', () => {
   describe('analyzeExperiment', () => {
     it('should analyze experiment results', async () => {
       // No parameters needed
-      const result = await experimentationTools.analyzeExperiment.execute(
-        {},
-        createMockContext()
-      );
+      const result = await experimentationTools.analyzeExperiment.execute({}, createMockContext());
 
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');

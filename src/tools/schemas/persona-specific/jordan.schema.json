@@ -2,11 +2,11 @@
   "$schema": "../tool.schema.json",
   "domain": "events",
   "persona": "jordan",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "tools": [
     {
       "name": "planEvent",
-      "description": "Start planning an event or celebration. Jordan helps with all aspects of event planning from intimate gatherings to major milestones.",
+      "description": "Start planning an event or celebration. Jordan helps with all aspects of event planning from intimate gatherings to major milestones.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks to plan, organize, or help with an event, party, or celebration.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -31,15 +31,24 @@
         "required": ["eventType"]
       },
       "examples": [
-        { "userSays": "Help me plan a birthday party", "output": "{\"fn\":\"planEvent\",\"args\":{\"eventType\":\"birthday\"}}" },
-        { "userSays": "I want to throw a dinner party next month", "output": "{\"fn\":\"planEvent\",\"args\":{\"eventType\":\"dinner\",\"date\":\"next month\",\"size\":\"intimate (2-10)\"}}" },
-        { "userSays": "Plan our anniversary celebration", "output": "{\"fn\":\"planEvent\",\"args\":{\"eventType\":\"celebration\",\"vibe\":\"romantic\"}}" }
+        {
+          "userSays": "Help me plan a birthday party",
+          "output": "{\"fn\":\"planEvent\",\"args\":{\"eventType\":\"birthday\"}}"
+        },
+        {
+          "userSays": "I want to throw a dinner party next month",
+          "output": "{\"fn\":\"planEvent\",\"args\":{\"eventType\":\"dinner\",\"date\":\"next month\",\"size\":\"intimate (2-10)\"}}"
+        },
+        {
+          "userSays": "Plan our anniversary celebration",
+          "output": "{\"fn\":\"planEvent\",\"args\":{\"eventType\":\"celebration\",\"vibe\":\"romantic\"}}"
+        }
       ],
       "tags": ["events", "planning", "celebrations"]
     },
     {
       "name": "trackMilestone",
-      "description": "Track an important milestone or anniversary. Jordan remembers and helps celebrate special moments.",
+      "description": "Track an important milestone or anniversary. Jordan remembers and helps celebrate special moments.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks to track, remember, or save a birthday, anniversary, or important date.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -63,15 +72,24 @@
         "required": ["milestone", "date"]
       },
       "examples": [
-        { "userSays": "Remember my mom's birthday is March 15", "output": "{\"fn\":\"trackMilestone\",\"args\":{\"milestone\":\"birthday\",\"date\":\"March 15\",\"person\":\"mom\",\"recurring\":true}}" },
-        { "userSays": "Track our wedding anniversary on June 20", "output": "{\"fn\":\"trackMilestone\",\"args\":{\"milestone\":\"wedding anniversary\",\"date\":\"June 20\",\"recurring\":true}}" },
-        { "userSays": "Add my start date at work - January 10", "output": "{\"fn\":\"trackMilestone\",\"args\":{\"milestone\":\"work anniversary\",\"date\":\"January 10\",\"recurring\":true}}" }
+        {
+          "userSays": "Remember my mom's birthday is March 15",
+          "output": "{\"fn\":\"trackMilestone\",\"args\":{\"milestone\":\"birthday\",\"date\":\"March 15\",\"person\":\"mom\",\"recurring\":true}}"
+        },
+        {
+          "userSays": "Track our wedding anniversary on June 20",
+          "output": "{\"fn\":\"trackMilestone\",\"args\":{\"milestone\":\"wedding anniversary\",\"date\":\"June 20\",\"recurring\":true}}"
+        },
+        {
+          "userSays": "Add my start date at work - January 10",
+          "output": "{\"fn\":\"trackMilestone\",\"args\":{\"milestone\":\"work anniversary\",\"date\":\"January 10\",\"recurring\":true}}"
+        }
       ],
       "tags": ["milestones", "anniversaries", "reminders"]
     },
     {
       "name": "suggestVenue",
-      "description": "Suggest venues or locations for an event based on requirements.",
+      "description": "Suggest venues or locations for an event based on requirements.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks for venue suggestions or where to hold an event.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -96,14 +114,20 @@
         "required": ["eventType"]
       },
       "examples": [
-        { "userSays": "Find a venue for my birthday in SF", "output": "{\"fn\":\"suggestVenue\",\"args\":{\"eventType\":\"birthday\",\"location\":\"San Francisco\"}}" },
-        { "userSays": "I need a restaurant for 20 people", "output": "{\"fn\":\"suggestVenue\",\"args\":{\"eventType\":\"dinner\",\"requirements\":[\"seats 20\"]}}" }
+        {
+          "userSays": "Find a venue for my birthday in SF",
+          "output": "{\"fn\":\"suggestVenue\",\"args\":{\"eventType\":\"birthday\",\"location\":\"San Francisco\"}}"
+        },
+        {
+          "userSays": "I need a restaurant for 20 people",
+          "output": "{\"fn\":\"suggestVenue\",\"args\":{\"eventType\":\"dinner\",\"requirements\":[\"seats 20\"]}}"
+        }
       ],
       "tags": ["events", "venues", "recommendations"]
     },
     {
       "name": "createGuestList",
-      "description": "Manage the guest list for an event.",
+      "description": "Manage the guest list for an event.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks to add/remove guests, see the guest list, or manage RSVPs.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -125,8 +149,14 @@
         "required": ["event", "action"]
       },
       "examples": [
-        { "userSays": "Add Sarah to the party guest list", "output": "{\"fn\":\"createGuestList\",\"args\":{\"event\":\"party\",\"action\":\"add\",\"guests\":[\"Sarah\"]}}" },
-        { "userSays": "Who's on the guest list?", "output": "{\"fn\":\"createGuestList\",\"args\":{\"event\":\"party\",\"action\":\"list\"}}" }
+        {
+          "userSays": "Add Sarah to the party guest list",
+          "output": "{\"fn\":\"createGuestList\",\"args\":{\"event\":\"party\",\"action\":\"add\",\"guests\":[\"Sarah\"]}}"
+        },
+        {
+          "userSays": "Who's on the guest list?",
+          "output": "{\"fn\":\"createGuestList\",\"args\":{\"event\":\"party\",\"action\":\"list\"}}"
+        }
       ],
       "tags": ["events", "guests", "management"]
     }

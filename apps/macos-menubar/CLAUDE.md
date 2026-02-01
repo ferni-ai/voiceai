@@ -37,6 +37,7 @@ Sources/
 
 Tests/
 ├── PersonaTests.swift
+├── PixarAnimationTests.swift
 ├── VoiceStateTests.swift
 ├── VoiceSessionTests.swift
 ├── VoiceBinaryTests.swift

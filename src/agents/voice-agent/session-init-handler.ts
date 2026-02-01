@@ -71,6 +71,9 @@ import { precomputeUserMemoryEmbeddings } from '../../memory/embedding-cache.js'
 // NEW: Unified Intelligence System (Levels 2-5)
 import { initializeIntelligence } from '../integrations/unified-intelligence-integration.js';
 
+// Memory Intelligence System - Superhuman memory surfacing
+import { initMemorySession } from '../../intelligence/memory-intelligence/turn-processor-integration.js';
+
 // Context builder prewarming - load intelligence builders before first turn
 import { prewarmBuildersInBackground } from '../../intelligence/context-builders/core/loader.js';
 
@@ -398,6 +401,15 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
             })
           ),
 
+        // Memory Intelligence - Superhuman memory surfacing with timing & preference learning
+        initMemorySession(userId)
+          .then(() => diag.session('Memory Intelligence session initialized', { userId }))
+          .catch((memErr) =>
+            diag.warn('Failed to initialize Memory Intelligence session (non-fatal)', {
+              error: String(memErr),
+            })
+          ),
+
         // Superhuman intelligence data
         (async () => {
           try {
@@ -688,12 +700,10 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
         userId
           ? (async () => {
               try {
-                const { getPatternPrediction } = await import(
-                  '../../services/superhuman/semantic-intelligence/temporal-patterns.js'
-                );
-                const { getEmotionalContext } = await import(
-                  '../../services/superhuman/semantic-intelligence/emotional-trajectories.js'
-                );
+                const { getPatternPrediction } =
+                  await import('../../services/superhuman/semantic-intelligence/temporal-patterns.js');
+                const { getEmotionalContext } =
+                  await import('../../services/superhuman/semantic-intelligence/emotional-trajectories.js');
 
                 // Get temporal pattern prediction
                 const patternPrediction = await getPatternPrediction(userId);
@@ -1086,8 +1096,9 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   // because expectedLanguage defaults to 'en' in the transcript validator
   if (userId) {
     // IMMEDIATE: Check if userProfile already has language preference (avoids race condition)
-    const profileLang = (services.userProfile?.preferences as { spokenLanguage?: string } | undefined)
-      ?.spokenLanguage;
+    const profileLang = (
+      services.userProfile?.preferences as { spokenLanguage?: string } | undefined
+    )?.spokenLanguage;
     if (profileLang) {
       userData.preferredLanguage = profileLang;
       diag.session('🌍 User language loaded from cached profile', {
@@ -1096,31 +1107,48 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
       });
     } else {
       // ASYNC FALLBACK: Load from Firestore if not in cached profile
-      void loadUserLanguagePreference(userId).then((savedLanguage) => {
-        if (savedLanguage) {
-          userData.preferredLanguage = savedLanguage;
-          diag.session('🌍 User language preference loaded from Firestore', {
+      // FIX: Add .catch() to prevent silent promise rejection
+      void loadUserLanguagePreference(userId)
+        .then((savedLanguage) => {
+          if (savedLanguage) {
+            userData.preferredLanguage = savedLanguage;
+            diag.session('🌍 User language preference loaded from Firestore', {
+              userId,
+              language: savedLanguage,
+            });
+          }
+        })
+        .catch((err) => {
+          diag.session('⚠️ Failed to load user language preference', {
             userId,
-            language: savedLanguage,
+            error: String(err),
           });
-        }
-      });
+        });
     }
   }
 
   // ⚡ OPTIMIZATION: Update userData when trial check completes (non-blocking)
-  void trialStatusPromise.then((state) => {
-    userData.isTrialUser = state.isTrialUser;
-    userData.isFirstConversation = state.isFirstConversation;
-    if (state.trialStatus) {
-      userData.trialStatus = {
-        inTrial: state.trialStatus.inTrial,
-        timeRemainingMs: state.trialStatus.timeRemainingMs ?? 0,
-        approachingEnd: state.trialStatus.approachingEnd,
-        trialEnded: state.trialStatus.trialEnded,
-      };
-    }
-  });
+  // FIX: Add .catch() to prevent silent promise rejection
+  void trialStatusPromise
+    .then((state) => {
+      userData.isTrialUser = state.isTrialUser;
+      userData.isFirstConversation = state.isFirstConversation;
+      if (state.trialStatus) {
+        userData.trialStatus = {
+          inTrial: state.trialStatus.inTrial,
+          timeRemainingMs: state.trialStatus.timeRemainingMs ?? 0,
+          approachingEnd: state.trialStatus.approachingEnd,
+          trialEnded: state.trialStatus.trialEnded,
+        };
+      }
+    })
+    .catch((err) => {
+      diag.session('⚠️ Failed to load trial status', {
+        userId,
+        sessionId,
+        error: String(err),
+      });
+    });
 
   diag.session('UserData proxy created (single source of truth)', {
     sessionId,

@@ -36,7 +36,8 @@ superhuman-tools/
 ├── unspoken-needs.ts            # Tool 10: Need translation
 ├── llm-tools.ts                 # LLM-callable tool definitions
 ├── index.ts                     # Unified exports
-└── CLAUDE.md                    # This file
+├── CLAUDE.md                    # This file
+└── (no __tests__/ directory - tests live in parent domain or E2E suites)
 ```
 
 ## 🔌 Integration Points

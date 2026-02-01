@@ -131,7 +131,11 @@ export function diagnosticSessionEnd(sessionId: string): void {
 // TURN PROCESSING
 // ============================================================================
 
-export function diagnosticTurnAdded(sessionId: string, role: 'user' | 'assistant', contentLength: number): void {
+export function diagnosticTurnAdded(
+  sessionId: string,
+  role: 'user' | 'assistant',
+  contentLength: number
+): void {
   if (!ENABLED) return;
 
   const session = sessions.get(sessionId);
@@ -174,7 +178,10 @@ export function diagnosticUserTurnAnalyzed(
 // LEARNING ENGINE
 // ============================================================================
 
-export function diagnosticKeyMomentCaptured(sessionId: string, moment: { type: string; summary: string }): void {
+export function diagnosticKeyMomentCaptured(
+  sessionId: string,
+  moment: { type: string; summary: string }
+): void {
   if (!ENABLED) return;
 
   const session = sessions.get(sessionId);
@@ -182,10 +189,17 @@ export function diagnosticKeyMomentCaptured(sessionId: string, moment: { type: s
     session.learningCaptured.keyMoments++;
   }
 
-  log.info({ sessionId, momentType: moment.type, summary: moment.summary }, '🔬 [DIAG] Key moment captured!');
+  log.info(
+    { sessionId, momentType: moment.type, summary: moment.summary },
+    '🔬 [DIAG] Key moment captured!'
+  );
 }
 
-export function diagnosticEmotionalPatternDetected(sessionId: string, emotion: string, intensity: number): void {
+export function diagnosticEmotionalPatternDetected(
+  sessionId: string,
+  emotion: string,
+  intensity: number
+): void {
   if (!ENABLED) return;
 
   const session = sessions.get(sessionId);
@@ -196,7 +210,10 @@ export function diagnosticEmotionalPatternDetected(sessionId: string, emotion: s
   log.debug({ sessionId, emotion, intensity }, '🔬 [DIAG] Emotional pattern detected');
 }
 
-export function diagnosticSmallDetailExtracted(sessionId: string, detail: { type: string; value: string }): void {
+export function diagnosticSmallDetailExtracted(
+  sessionId: string,
+  detail: { type: string; value: string }
+): void {
   if (!ENABLED) return;
 
   const session = sessions.get(sessionId);
@@ -204,7 +221,10 @@ export function diagnosticSmallDetailExtracted(sessionId: string, detail: { type
     session.learningCaptured.smallDetails++;
   }
 
-  log.debug({ sessionId, detailType: detail.type, value: detail.value }, '🔬 [DIAG] Small detail extracted');
+  log.debug(
+    { sessionId, detailType: detail.type, value: detail.value },
+    '🔬 [DIAG] Small detail extracted'
+  );
 }
 
 export function diagnosticLearningFinalized(
@@ -277,10 +297,7 @@ export function diagnosticApplyLearningToProfile(
     emotionalPatterns: after.emotionalPatterns - before.emotionalPatterns,
   };
 
-  log.info(
-    { sessionId, before, after, added },
-    '🔬 [DIAG] Learning applied to profile'
-  );
+  log.info({ sessionId, before, after, added }, '🔬 [DIAG] Learning applied to profile');
 }
 
 export function diagnosticProfileSaveAttempt(sessionId: string, profileId: string): void {
@@ -335,7 +352,11 @@ export function diagnosticError(sessionId: string, component: string, error: str
 // DIAGNOSTIC API
 // ============================================================================
 
-export function getDiagnosticSummary(): { enabled: boolean; activeSessions: number; sessions: DiagnosticSession[] } {
+export function getDiagnosticSummary(): {
+  enabled: boolean;
+  activeSessions: number;
+  sessions: DiagnosticSession[];
+} {
   return {
     enabled: ENABLED,
     activeSessions: sessions.size,

@@ -63,6 +63,16 @@ interface SemanticRoutingMetrics {
     avgConfidence: number;
     lastAggregation: string | null;
   };
+  // Phase 5: Adversarial Defense metrics
+  defense: {
+    totalInputs: number;
+    threatsDetected: number;
+    inputsBlocked: number;
+    blockRate: string;
+    avgRiskScore: string;
+    threatsByType: Record<string, number>;
+    threatsBySeverity: Record<string, number>;
+  };
   hourly: Array<{ hour: number; count: number; avgLatency: number }>;
   timestamp: string;
 }
@@ -148,6 +158,43 @@ export function render(): string {
           </div>
         </article>
       </div>
+
+      <!-- Security & Defense Section (Phase 5: Adversarial Robustness) -->
+      <section class="subsection defense-section" aria-labelledby="defense-heading">
+        <h3 id="defense-heading"><span aria-hidden="true">${ICONS.shield}</span> Security & Defense</h3>
+        <div class="defense-grid">
+          <article class="metric-card defense-card" aria-labelledby="threats-blocked-label">
+            <div class="metric-icon" aria-hidden="true">${ICONS.shield}</div>
+            <div class="metric-content">
+              <div class="metric-value" id="threats-blocked" aria-describedby="threats-blocked-label">--</div>
+              <div class="metric-label" id="threats-blocked-label">Threats Blocked</div>
+              <div class="metric-subtext" id="block-rate">--% block rate</div>
+            </div>
+          </article>
+
+          <article class="metric-card defense-card" aria-labelledby="threats-detected-label">
+            <div class="metric-icon" aria-hidden="true">${ICONS.warning}</div>
+            <div class="metric-content">
+              <div class="metric-value" id="threats-detected" aria-describedby="threats-detected-label">--</div>
+              <div class="metric-label" id="threats-detected-label">Threats Detected</div>
+              <div class="metric-subtext" id="avg-risk-score">avg risk: --</div>
+            </div>
+          </article>
+
+          <article class="metric-card defense-card" aria-labelledby="defense-inputs-label">
+            <div class="metric-icon" aria-hidden="true">${ICONS.eye}</div>
+            <div class="metric-content">
+              <div class="metric-value" id="defense-inputs" aria-describedby="defense-inputs-label">--</div>
+              <div class="metric-label" id="defense-inputs-label">Inputs Scanned</div>
+            </div>
+          </article>
+        </div>
+
+        <!-- Threat Type Breakdown -->
+        <div class="threat-breakdown" id="threat-breakdown">
+          <div class="loading" role="status">Loading threat data...</div>
+        </div>
+      </section>
 
       <!-- Two Column Layout -->
       <div class="two-column">
@@ -484,6 +531,110 @@ export function render(): string {
         padding: var(--space-md);
       }
 
+      /* Defense Section Styles (Phase 5: Adversarial Robustness) */
+      .defense-section {
+        background: var(--color-bg-secondary);
+        border-radius: var(--radius-lg);
+        padding: var(--space-md);
+        margin-bottom: var(--space-lg);
+      }
+
+      .defense-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: var(--space-sm);
+        margin-bottom: var(--space-md);
+      }
+
+      .defense-card {
+        background: var(--color-bg-elevated);
+        border: 1px solid var(--color-semantic-success);
+        border-left: 4px solid var(--color-semantic-success);
+      }
+
+      .threat-breakdown {
+        background: var(--color-bg-tertiary);
+        border-radius: var(--radius-md);
+        padding: var(--space-md);
+      }
+
+      .threat-breakdown-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: var(--space-sm);
+        color: var(--color-text-secondary);
+      }
+
+      .threat-type-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: var(--space-xs);
+      }
+
+      .threat-type-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-xs);
+        padding: var(--space-xs) var(--space-sm);
+        background: var(--color-bg-secondary);
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+      }
+
+      .threat-type-name {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .threat-type-count {
+        font-weight: 600;
+        color: var(--color-semantic-warning);
+      }
+
+      .threat-type-count.high {
+        color: var(--color-semantic-error);
+      }
+
+      .threat-severity-row {
+        display: flex;
+        gap: var(--space-sm);
+        margin-top: var(--space-sm);
+        padding-top: var(--space-sm);
+        border-top: 1px solid var(--color-bg-tertiary);
+      }
+
+      .severity-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+        font-size: 0.7rem;
+        font-weight: 500;
+      }
+
+      .severity-badge.low {
+        background: var(--color-semantic-success);
+        color: white;
+      }
+
+      .severity-badge.medium {
+        background: var(--color-semantic-warning);
+        color: white;
+      }
+
+      .severity-badge.high {
+        background: var(--color-semantic-error);
+        color: white;
+      }
+
+      .severity-badge.critical {
+        background: #7f1d1d;
+        color: white;
+      }
+
       /* Accessibility */
       .btn-secondary:focus-visible,
       .metric-card:focus-visible,
@@ -512,9 +663,46 @@ export function render(): string {
 
 async function fetchSemanticMetrics(): Promise<SemanticRoutingMetrics | null> {
   try {
-    const response = await fetch('/api/observability/semantic-routing');
-    if (!response.ok) return null;
-    return await response.json();
+    // Fetch both endpoints in parallel for comprehensive data
+    const [semanticResponse, dashboardResponse] = await Promise.all([
+      fetch('/api/observability/semantic-routing'),
+      fetch('/api/observability/routing-dashboard'),
+    ]);
+
+    // Get base metrics from semantic-routing endpoint
+    if (!semanticResponse.ok) return null;
+    const baseMetrics = await semanticResponse.json();
+
+    // Merge defense data from routing-dashboard if available
+    if (dashboardResponse.ok) {
+      const dashboardData = await dashboardResponse.json();
+      if (dashboardData.defense) {
+        baseMetrics.defense = {
+          totalInputs: dashboardData.defense.totalInputs ?? 0,
+          threatsDetected: dashboardData.defense.threatsDetected ?? 0,
+          inputsBlocked: dashboardData.defense.inputsBlocked ?? 0,
+          blockRate: dashboardData.defense.blockRate ?? '0%',
+          avgRiskScore: dashboardData.defense.avgRiskScore ?? '0.000',
+          threatsByType: dashboardData.defense.threatsByType ?? {},
+          threatsBySeverity: dashboardData.defense.threatsBySeverity ?? {},
+        };
+      }
+    }
+
+    // Ensure defense object exists with defaults
+    if (!baseMetrics.defense) {
+      baseMetrics.defense = {
+        totalInputs: 0,
+        threatsDetected: 0,
+        inputsBlocked: 0,
+        blockRate: '0%',
+        avgRiskScore: '0.000',
+        threatsByType: {},
+        threatsBySeverity: {},
+      };
+    }
+
+    return baseMetrics;
   } catch (error) {
     log.error({ error }, 'Failed to fetch semantic routing metrics');
     return null;
@@ -526,7 +714,7 @@ async function fetchSemanticMetrics(): Promise<SemanticRoutingMetrics | null> {
 // ============================================================================
 
 function updateUI(metrics: SemanticRoutingMetrics): void {
-  const { aggregate, learning, abTests, proactive, community, hourly } = metrics;
+  const { aggregate, learning, abTests, proactive, community, defense, hourly } = metrics;
 
   // Total routes
   const totalEl = document.getElementById('total-routes');
@@ -577,6 +765,11 @@ function updateUI(metrics: SemanticRoutingMetrics): void {
   if (communityEl) communityEl.textContent = community.totalPatterns.toString();
   if (communityConfEl) {
     communityConfEl.textContent = `${(community.avgConfidence * 100).toFixed(0)}% avg confidence`;
+  }
+
+  // Defense metrics (Phase 5: Adversarial Robustness)
+  if (defense) {
+    updateDefenseUI(defense);
   }
 
   // Match path distribution
@@ -701,6 +894,104 @@ function escapeHtml(text: string): string {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/**
+ * Update defense UI elements (Phase 5: Adversarial Robustness)
+ */
+function updateDefenseUI(defense: SemanticRoutingMetrics['defense']): void {
+  // Threats blocked
+  const threatsBlockedEl = document.getElementById('threats-blocked');
+  const blockRateEl = document.getElementById('block-rate');
+  if (threatsBlockedEl) {
+    threatsBlockedEl.textContent = defense.inputsBlocked.toLocaleString();
+  }
+  if (blockRateEl) {
+    blockRateEl.textContent = `${defense.blockRate} block rate`;
+  }
+
+  // Threats detected
+  const threatsDetectedEl = document.getElementById('threats-detected');
+  const avgRiskScoreEl = document.getElementById('avg-risk-score');
+  if (threatsDetectedEl) {
+    threatsDetectedEl.textContent = defense.threatsDetected.toLocaleString();
+  }
+  if (avgRiskScoreEl) {
+    avgRiskScoreEl.textContent = `avg risk: ${defense.avgRiskScore}`;
+  }
+
+  // Inputs scanned
+  const defenseInputsEl = document.getElementById('defense-inputs');
+  if (defenseInputsEl) {
+    defenseInputsEl.textContent = defense.totalInputs.toLocaleString();
+  }
+
+  // Threat type breakdown
+  const threatBreakdownEl = document.getElementById('threat-breakdown');
+  if (threatBreakdownEl) {
+    const threatTypes = Object.entries(defense.threatsByType);
+    const severityTypes = Object.entries(defense.threatsBySeverity);
+
+    if (threatTypes.length === 0 && defense.threatsDetected === 0) {
+      threatBreakdownEl.innerHTML = `
+        <div class="empty-state">
+          ✅ No threats detected - all inputs clean
+        </div>
+      `;
+    } else {
+      const threatTypeHtml = threatTypes.length > 0
+        ? `
+          <div class="threat-breakdown-title">Threats by Type</div>
+          <div class="threat-type-grid">
+            ${threatTypes
+              .sort(([, a], [, b]) => b - a)
+              .map(
+                ([type, count]) => `
+                <div class="threat-type-item">
+                  <span class="threat-type-name">${formatThreatType(type)}</span>
+                  <span class="threat-type-count ${count > 5 ? 'high' : ''}">${count}</span>
+                </div>
+              `
+              )
+              .join('')}
+          </div>
+        `
+        : '';
+
+      const severityHtml = severityTypes.length > 0
+        ? `
+          <div class="threat-severity-row">
+            ${severityTypes
+              .map(
+                ([severity, count]) => `
+                <span class="severity-badge ${severity.toLowerCase()}">${severity}: ${count}</span>
+              `
+              )
+              .join('')}
+          </div>
+        `
+        : '';
+
+      threatBreakdownEl.innerHTML = threatTypeHtml + severityHtml;
+    }
+  }
+}
+
+/**
+ * Format threat type for display
+ */
+function formatThreatType(type: string): string {
+  const names: Record<string, string> = {
+    prompt_injection: 'Prompt Injection',
+    homoglyph: 'Homoglyph',
+    negation: 'Negation',
+    context_hijack: 'Context Hijack',
+    invisible_chars: 'Invisible Chars',
+    encoding_attack: 'Encoding Attack',
+    excessive_length: 'Excessive Length',
+    gibberish: 'Gibberish',
+  };
+  return names[type] ?? type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 // ============================================================================

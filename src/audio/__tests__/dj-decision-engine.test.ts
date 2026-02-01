@@ -54,14 +54,23 @@ describe('DJ Decision Engine', () => {
 
   describe('shouldDuck()', () => {
     it('should return shouldDuck: true when music is playing and agent speaking', () => {
-      const state = createMockState({ state: 'playing', currentTrack: mockTrack, isAgentSpeaking: true });
+      const state = createMockState({
+        state: 'playing',
+        currentTrack: mockTrack,
+        isAgentSpeaking: true,
+      });
       const context: DecisionContext = { state, track: mockTrack, personaId: 'ferni' };
       const decision = shouldDuck(context);
       expect(decision.shouldDuck).toBe(true);
     });
 
     it('should return shouldDuck: false when already ducking', () => {
-      const state = createMockState({ state: 'ducking', currentTrack: mockTrack, isAgentSpeaking: true, duckReason: 'agent_speaking' });
+      const state = createMockState({
+        state: 'ducking',
+        currentTrack: mockTrack,
+        isAgentSpeaking: true,
+        duckReason: 'agent_speaking',
+      });
       const context: DecisionContext = { state, track: mockTrack, personaId: 'ferni' };
       const decision = shouldDuck(context);
       expect(decision.shouldDuck).toBe(false);
@@ -75,7 +84,11 @@ describe('DJ Decision Engine', () => {
     });
 
     it('should return shouldDuck: true when fading and agent speaking (can still duck)', () => {
-      const state = createMockState({ state: 'fading', currentTrack: mockTrack, isAgentSpeaking: true });
+      const state = createMockState({
+        state: 'fading',
+        currentTrack: mockTrack,
+        isAgentSpeaking: true,
+      });
       const context: DecisionContext = { state, track: mockTrack, personaId: 'ferni' };
       const decision = shouldDuck(context);
       expect(decision.shouldDuck).toBe(true);
@@ -104,14 +117,22 @@ describe('DJ Decision Engine', () => {
     });
 
     it('should return shouldSpeak: false if agent is speaking', () => {
-      const state = createMockState({ state: 'playing', currentTrack: testTrack, isAgentSpeaking: true });
+      const state = createMockState({
+        state: 'playing',
+        currentTrack: testTrack,
+        isAgentSpeaking: true,
+      });
       const context: DecisionContext = { state, track: testTrack, personaId: 'ferni' };
       const decision = shouldSpeakIntro(context);
       expect(decision.shouldSpeak).toBe(false);
     });
 
     it('should return shouldSpeak: false if user is speaking', () => {
-      const state = createMockState({ state: 'playing', currentTrack: testTrack, isUserSpeaking: true });
+      const state = createMockState({
+        state: 'playing',
+        currentTrack: testTrack,
+        isUserSpeaking: true,
+      });
       const context: DecisionContext = { state, track: testTrack, personaId: 'ferni' };
       const decision = shouldSpeakIntro(context);
       expect(decision.shouldSpeak).toBe(false);
@@ -161,7 +182,7 @@ describe('DJ Decision Engine', () => {
       // Should have buildup, drop, appreciation, check-in
       // NOTE: 'outro' is intentionally NOT scheduled here to avoid duplicate triggers
       // (DJ Controller handles outro via 'should_speak_outro' event when track fades)
-      const types = moments.map(m => m.type);
+      const types = moments.map((m) => m.type);
       expect(types).toContain('buildup');
       expect(types).toContain('check-in');
     });
@@ -336,7 +357,9 @@ describe('DJ Decision Engine', () => {
       expect(ferniStyle.interjectionMultiplier).toBeDefined();
       expect(peterStyle.interjectionMultiplier).toBeDefined();
       // Peter is more reserved, so should have lower multiplier
-      expect(peterStyle.interjectionMultiplier).toBeLessThanOrEqual(ferniStyle.interjectionMultiplier);
+      expect(peterStyle.interjectionMultiplier).toBeLessThanOrEqual(
+        ferniStyle.interjectionMultiplier
+      );
     });
   });
 

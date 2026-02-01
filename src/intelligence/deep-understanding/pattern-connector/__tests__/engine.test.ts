@@ -3,11 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  createPatternConnector,
-  clearUserData,
-  type IPatternConnector,
-} from '../index.js';
+import { createPatternConnector, clearUserData, type IPatternConnector } from '../index.js';
 
 describe('PatternConnector', () => {
   let connector: IPatternConnector;
@@ -150,10 +146,8 @@ describe('PatternConnector', () => {
 
       const coOccs = await connector.getCoOccurrences(userId, 'work');
       expect(coOccs.length).toBeGreaterThan(0);
-      
-      const workStress = coOccs.find(
-        (c) => c.topic1 === 'work' || c.topic2 === 'work'
-      );
+
+      const workStress = coOccs.find((c) => c.topic1 === 'work' || c.topic2 === 'work');
       expect(workStress?.count).toBe(2);
     });
 
@@ -197,9 +191,7 @@ describe('PatternConnector', () => {
       }
 
       const insights = await connector.generateInsights(userId);
-      const emotionalInsights = insights.filter(
-        (i) => i.type === 'emotional-association'
-      );
+      const emotionalInsights = insights.filter((i) => i.type === 'emotional-association');
 
       expect(emotionalInsights.length).toBeGreaterThan(0);
       expect(emotionalInsights[0].insight).toContain('ex-partner');
@@ -254,7 +246,7 @@ describe('PatternConnector', () => {
 
       await connector.generateInsights(userId);
       const unsurfaced = await connector.getUnsurfacedInsights(userId);
-      
+
       expect(unsurfaced.length).toBeGreaterThan(0);
       expect(unsurfaced.every((i) => !i.surfaced)).toBe(true);
     });

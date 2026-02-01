@@ -11,6 +11,7 @@
  * @module tools/semantic-router/matcher
  */
 
+import { runHolisticLayer, type HolisticLayerResult } from './holistic-layer.js';
 import type { SemanticToolRegistry } from './registry.js';
 import type {
   ConversationTurn,
@@ -22,10 +23,9 @@ import type {
   ToolCategory,
   ToolMatch,
 } from './types.js';
-import { getKeywordWord, getKeywordWeight } from './types.js';
-import { runHolisticLayer, type HolisticLayerResult } from './holistic-layer.js';
+import { getKeywordWeight, getKeywordWord } from './types.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
-import { cosineSimilarity, batchCosineSimilarityOptimized } from '../../memory/rust-accelerator.js';
+import { batchCosineSimilarityOptimized, cosineSimilarity } from '../../memory/rust-accelerator.js';
 // Re-export for backwards compatibility with existing consumers
 export { cosineSimilarity };
 
@@ -359,15 +359,19 @@ interface ContextBoost {
  * Calculate context-based boosts for tools
  */
 export function calculateContextBoosts(
-  conversationHistory: ConversationTurn[],
-  recentTools: string[],
+  conversationHistory: ConversationTurn[] | undefined,
+  recentTools: string[] | undefined,
   tools: Array<{ definition: SemanticToolDefinition }>
 ): ContextBoost[] {
   const boosts: ContextBoost[] = [];
 
+  // Guard against undefined parameters
+  const history = conversationHistory || [];
+  const recent = recentTools || [];
+
   // Boost tools related to recently used tools
-  if (recentTools.length > 0) {
-    const lastTool = recentTools[recentTools.length - 1];
+  if (recent.length > 0) {
+    const lastTool = recent[recent.length - 1];
     for (const tool of tools) {
       // Same category as recent tool
       const lastToolDef = tools.find((t) => t.definition.id === lastTool);
@@ -382,9 +386,9 @@ export function calculateContextBoosts(
   }
 
   // Boost based on conversation topics
-  const recentText = conversationHistory
+  const recentText = history
     .slice(-3)
-    .map((t) => t.text)
+    .map((t) => t.text || '')
     .join(' ')
     .toLowerCase();
 

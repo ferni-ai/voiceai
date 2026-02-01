@@ -77,7 +77,10 @@ interface ExtractionResult {
 const DATE_PATTERNS = [
   // Birthdays - more flexible patterns
   { pattern: /my birthday is (on )?(\w+ \d+|\d+\/\d+)/i, type: 'birthday' as const },
-  { pattern: /birthday (?:is )?(?:on |coming up (?:on )?)(\w+ \d+|\d+\/\d+)/i, type: 'birthday' as const },
+  {
+    pattern: /birthday (?:is )?(?:on |coming up (?:on )?)(\w+ \d+|\d+\/\d+)/i,
+    type: 'birthday' as const,
+  },
   { pattern: /(?:i|we) (?:turn|turned|turning) (\d+) (?:on|in) (\w+)/i, type: 'birthday' as const },
   { pattern: /born (?:on |in )(\w+ \d+|\d+\/\d+)/i, type: 'birthday' as const },
   { pattern: /turning (\d+) (?:on |next |this )(\w+ \d+|\w+)/i, type: 'birthday' as const },
@@ -269,7 +272,12 @@ const VALUE_PATTERNS = [
   // Family values - more flexible patterns
   { pattern: /family (?:comes?|is) first/i, value: 'family first' },
   { pattern: /family (?:is|means) (?:the most|everything|so) important/i, value: 'family first' },
-  { pattern: /(?:my |the )?most important thing (?:to me )?is (?:my )?family/i, value: 'family first' },
+  {
+    pattern: /(?:my |the )?most important thing (?:to me )?is (?:my )?family/i,
+    value: 'family first',
+  },
+  // Handle "Family is the most important thing to me" word order
+  { pattern: /family is (?:the )?most important(?: thing)?(?: to me)?/i, value: 'family first' },
   { pattern: /family (?:is|means) everything/i, value: 'family first' },
   // Honesty
   { pattern: /(?:i|we) always (?:try to )?be honest/i, value: 'honesty' },
@@ -332,9 +340,18 @@ function extractValues(turns: ConversationTurn[]): CoreValue[] {
 const DREAM_PATTERNS = [
   // General dreams - more flexible patterns including contractions
   { pattern: /(?:i|we) (?:dream|hope|wish) (?:of|to) (.+)/i, category: 'other' as const },
-  { pattern: /(?:i|we|i've|we've) (?:have )?(?:always )?dreamed (?:of|about) (.+)/i, category: 'other' as const },
-  { pattern: /(?:it's been )?(?:a |my )?(?:secret )?dream (?:of mine )?(?:to |is )(.+)/i, category: 'other' as const },
-  { pattern: /(?:that's been )?(?:a |my )?secret dream (?:since|for) (.+)/i, category: 'other' as const },
+  {
+    pattern: /(?:i|we|i've|we've) (?:have )?(?:always )?dreamed (?:of|about) (.+)/i,
+    category: 'other' as const,
+  },
+  {
+    pattern: /(?:it's been )?(?:a |my )?(?:secret )?dream (?:of mine )?(?:to |is )(.+)/i,
+    category: 'other' as const,
+  },
+  {
+    pattern: /(?:that's been )?(?:a |my )?secret dream (?:since|for) (.+)/i,
+    category: 'other' as const,
+  },
   { pattern: /someday (?:i|we) (?:want to|hope to) (.+)/i, category: 'other' as const },
   { pattern: /(?:i|we) always wanted to (.+)/i, category: 'other' as const },
   { pattern: /(?:i|we)'ve always wanted to (.+)/i, category: 'other' as const },
@@ -342,12 +359,18 @@ const DREAM_PATTERNS = [
   { pattern: /my dream (?:job|career) (?:is|would be) (.+)/i, category: 'career' as const },
   { pattern: /(?:i|we) (?:want to|hope to) start (.+)/i, category: 'career' as const },
   // Travel
-  { pattern: /(?:i|we|i've|we've) (?:always )?(?:want(?:ed)? to|hope(?:d)? to) travel to (.+)/i, category: 'travel' as const },
+  {
+    pattern: /(?:i|we|i've|we've) (?:always )?(?:want(?:ed)? to|hope(?:d)? to) travel to (.+)/i,
+    category: 'travel' as const,
+  },
   // Learning
   { pattern: /(?:i|we) (?:want to|hope to) learn (.+)/i, category: 'learning' as const },
   // Creative - ensure capture groups exist
   { pattern: /(?:i|we) (?:want to|hope to) write (.+)/i, category: 'creative' as const },
-  { pattern: /(?:i|we|i've|we've) (?:always )?dreamed of (writing[^.]*|being a writer)/i, category: 'creative' as const },
+  {
+    pattern: /(?:i|we|i've|we've) (?:always )?dreamed of (writing[^.]*|being a writer)/i,
+    category: 'creative' as const,
+  },
 ];
 
 /**
@@ -360,14 +383,8 @@ function extractDreams(turns: ConversationTurn[]): Dream[] {
   for (const turn of turns) {
     if (turn.role !== 'user') continue;
 
-    // Debug logging for dream extraction
-    log.debug({ content: turn.content.slice(0, 100) }, 'Checking turn for dreams');
-
     for (const { pattern, category } of DREAM_PATTERNS) {
       const match = turn.content.match(pattern);
-      if (match) {
-        log.debug({ pattern: pattern.source, match: match.slice(0, 3), hasGroup1: !!match[1] }, 'Dream pattern matched');
-      }
       if (match && match[1]) {
         dreams.push({
           id: `dream_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -377,7 +394,6 @@ function extractDreams(turns: ConversationTurn[]): Dream[] {
           status: 'someday',
           firstMentioned: now,
         });
-        log.info({ description: match[1].slice(0, 50), category }, 'Dream extracted');
       }
     }
   }
@@ -416,14 +432,8 @@ function extractFears(turns: ConversationTurn[]): Fear[] {
   for (const turn of turns) {
     if (turn.role !== 'user') continue;
 
-    // Debug logging for fear extraction
-    log.debug({ content: turn.content.slice(0, 100) }, 'Checking turn for fears');
-
     for (const { pattern } of FEAR_PATTERNS) {
       const match = turn.content.match(pattern);
-      if (match) {
-        log.debug({ pattern: pattern.source, match: match.slice(0, 3), hasGroup1: !!match[1] }, 'Fear pattern matched');
-      }
       if (match && match[1]) {
         fears.push({
           id: `fear_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -432,7 +442,6 @@ function extractFears(turns: ConversationTurn[]): Fear[] {
           discoveredAt: now,
           sensitivity: 'tread_carefully',
         });
-        log.info({ fear: match[1].slice(0, 50) }, 'Fear extracted');
       }
     }
   }
@@ -741,9 +750,6 @@ export function extractHumanSignals(
   turns: ConversationTurn[],
   context: ExtractionContext
 ): ExtractionResult {
-  // TEMP DEBUG: Log raw turns to understand what's being passed
-  console.log('[HumanSignalExtractor] Extracting from turns:', JSON.stringify(turns.map(t => ({ role: t.role, content: t.content.slice(0, 60) })), null, 2));
-  
   log.debug({ userId: context.userId, turnCount: turns.length }, 'Extracting human signals');
 
   const result: ExtractionResult = {

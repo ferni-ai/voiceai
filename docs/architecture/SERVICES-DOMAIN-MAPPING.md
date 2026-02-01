@@ -38,10 +38,10 @@
 
 | File | Action |
 |------|--------|
-| `superhuman-analytics.ts` | Move |
+| `superhuman-analytics.ts` | (removed) |
 | `superhuman-persistence.ts` | Move |
-| `subscription-metrics.ts` | Move |
-| `handoff-metrics.ts` | Move |
+| `subscription-metrics.ts` | (removed) |
+| `handoff-metrics.ts` | (removed) |
 
 ### performance/
 
@@ -162,7 +162,7 @@
 | `ops-orchestrator.ts` | Move |
 | `smart-runbooks.ts` | Move |
 | `incident-timeline.ts` | Move |
-| `alive-orchestrator.ts` | Move |
+| `alive-orchestrator.ts` | (removed) |
 
 ### observability/
 
@@ -202,7 +202,7 @@
 |------|--------|
 | `conversation-state.ts` | SPLIT then move (1,067 lines) |
 | `conversation-manager.ts` | Move |
-| `topic-tracking.ts` | Move |
+| `topic-tracking.ts` | (removed) |
 
 ### llm/ (NEW directory)
 
@@ -262,8 +262,8 @@
 
 | File | Action |
 |------|--------|
-| `chronicle-narrative-bridge.ts` | Move |
-| `story-tracking.ts` | Move |
+| `chronicle-narrative-bridge.ts` | (removed) |
+| `story-tracking.ts` | (removed - moved to `intelligence/story-tracking/`) |
 
 ### handoff/
 

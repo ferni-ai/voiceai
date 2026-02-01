@@ -222,28 +222,30 @@ async function searchGooglePlaces(query: string, location: string): Promise<Rest
 
   const data = await response.json();
 
-  return (data.results || []).slice(0, 10).map(
-    (r: {
-      place_id: string;
-      name: string;
-      formatted_address: string;
-      rating?: number;
-      photos?: Array<{ photo_reference: string }>;
-      price_level?: number;
-    }) => ({
-      id: `google_${r.place_id}`,
-      name: r.name,
-      address: r.formatted_address,
-      city: location,
-      rating: r.rating,
-      priceRange: r.price_level as 1 | 2 | 3 | 4 | undefined,
-      imageUrl: r.photos?.[0]
-        ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${r.photos[0].photo_reference}&key=${GOOGLE_API_KEY}`
-        : undefined,
-      provider: 'google' as BookingProvider,
-      externalId: r.place_id,
-    })
-  );
+  return (data.results || [])
+    .slice(0, 10)
+    .map(
+      (r: {
+        place_id: string;
+        name: string;
+        formatted_address: string;
+        rating?: number;
+        photos?: Array<{ photo_reference: string }>;
+        price_level?: number;
+      }) => ({
+        id: `google_${r.place_id}`,
+        name: r.name,
+        address: r.formatted_address,
+        city: location,
+        rating: r.rating,
+        priceRange: r.price_level as 1 | 2 | 3 | 4 | undefined,
+        imageUrl: r.photos?.[0]
+          ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${r.photos[0].photo_reference}&key=${GOOGLE_API_KEY}`
+          : undefined,
+        provider: 'google' as BookingProvider,
+        externalId: r.place_id,
+      })
+    );
 }
 
 /**
@@ -331,7 +333,19 @@ async function checkOpenTableAvailability(
  */
 function generateDefaultTimeSlots(date: string, partySize: number): TimeSlot[] {
   const slots: TimeSlot[] = [];
-  const times = ['11:30', '12:00', '12:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30'];
+  const times = [
+    '11:30',
+    '12:00',
+    '12:30',
+    '17:00',
+    '17:30',
+    '18:00',
+    '18:30',
+    '19:00',
+    '19:30',
+    '20:00',
+    '20:30',
+  ];
 
   for (const time of times) {
     slots.push({
@@ -383,9 +397,7 @@ function generateReservationPreview(request: ReservationRequest): ActionPreview 
 /**
  * Book a restaurant reservation
  */
-export async function bookReservation(
-  request: ReservationRequest
-): Promise<BookingResult> {
+export async function bookReservation(request: ReservationRequest): Promise<BookingResult> {
   // Validate request
   if (!request.restaurant || !request.date || !request.time || !request.partySize) {
     return { success: false, requiresApproval: false, error: 'Missing required fields' };
@@ -394,11 +406,7 @@ export async function bookReservation(
   const preview = generateReservationPreview(request);
 
   // Check permission via trust level system
-  const permissionResult = await checkActionPermission(
-    request.userId,
-    'book_restaurant',
-    preview
-  );
+  const permissionResult = await checkActionPermission(request.userId, 'book_restaurant', preview);
 
   if (!permissionResult.success) {
     return {

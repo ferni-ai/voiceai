@@ -723,17 +723,17 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
   /**
    * Get user's Apple calendars
    */
-  async getCalendars(
-    userId: string
-  ): Promise<Array<{
-    id: string;
-    name: string;
-    primary: boolean;
-    color?: string;
-    owner?: string;
-    canEdit?: boolean;
-    description?: string;
-  }>> {
+  async getCalendars(userId: string): Promise<
+    Array<{
+      id: string;
+      name: string;
+      primary: boolean;
+      color?: string;
+      owner?: string;
+      canEdit?: boolean;
+      description?: string;
+    }>
+  > {
     const creds = await this.getCredentials(userId);
     if (!creds) {
       return [];

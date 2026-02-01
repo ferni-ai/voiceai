@@ -44,7 +44,7 @@ export type AnalysisType =
   | 'safe_search' // Content moderation
   | 'colors' // Dominant colors
   | 'crop_hints' // Image cropping suggestions
-  | 'web' // Web search for similar images;
+  | 'web'; // Web search for similar images;
 
 export interface PhotoAnalysisResult {
   success: boolean;
@@ -181,9 +181,7 @@ async function callVisionAPI(
 /**
  * Map analysis type to Vision API feature
  */
-function analysisTypeToFeature(
-  type: AnalysisType
-): { type: string; maxResults?: number } {
+function analysisTypeToFeature(type: AnalysisType): { type: string; maxResults?: number } {
   const mapping: Record<AnalysisType, { type: string; maxResults?: number }> = {
     labels: { type: 'LABEL_DETECTION', maxResults: 20 },
     text: { type: 'TEXT_DETECTION' },
@@ -207,9 +205,7 @@ function analysisTypeToFeature(
 /**
  * Analyze a photo
  */
-export async function analyzePhoto(
-  request: PhotoAnalysisRequest
-): Promise<PhotoAnalysisResult> {
+export async function analyzePhoto(request: PhotoAnalysisRequest): Promise<PhotoAnalysisResult> {
   const startTime = Date.now();
   const imageId = `img_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
@@ -255,12 +251,12 @@ export async function analyzePhoto(
     if (rawResponse.textAnnotations) {
       result.text = {
         fullText: rawResponse.textAnnotations[0]?.description || '',
-        blocks: rawResponse.textAnnotations.slice(1).map(
-          (t: { description: string; boundingPoly: { vertices: unknown[] } }) => ({
+        blocks: rawResponse.textAnnotations
+          .slice(1)
+          .map((t: { description: string; boundingPoly: { vertices: unknown[] } }) => ({
             text: t.description,
             boundingBox: t.boundingPoly,
-          })
-        ),
+          })),
       };
     }
 
@@ -292,11 +288,7 @@ export async function analyzePhoto(
     // Parse objects
     if (rawResponse.localizedObjectAnnotations) {
       result.objects = rawResponse.localizedObjectAnnotations.map(
-        (o: {
-          name: string;
-          score: number;
-          boundingPoly: { normalizedVertices: unknown[] };
-        }) => ({
+        (o: { name: string; score: number; boundingPoly: { normalizedVertices: unknown[] } }) => ({
           name: o.name,
           score: o.score,
           boundingBox: o.boundingPoly,
@@ -425,9 +417,7 @@ function synthesizeUnderstanding(
   // Process faces
   if (result.faces && result.faces.length > 0) {
     const faceCount = result.faces.length;
-    summaryParts.push(
-      `${faceCount} ${faceCount === 1 ? 'person' : 'people'} in the photo`
-    );
+    summaryParts.push(`${faceCount} ${faceCount === 1 ? 'person' : 'people'} in the photo`);
 
     // Check emotions
     const happyFaces = result.faces.filter(
@@ -458,7 +448,8 @@ function synthesizeUnderstanding(
   const memoryContext = generateMemoryContext(result, userContext);
 
   return {
-    summary: summaryParts.join('. ') || 'I processed the image but couldn\'t identify specific details.',
+    summary:
+      summaryParts.join('. ') || "I processed the image but couldn't identify specific details.",
     suggestedActions,
     memoryContext,
   };
@@ -477,7 +468,10 @@ function generateMemoryContext(result: PhotoAnalysisResult, userContext?: string
   // Add key findings
   if (result.labels && result.labels.length > 0) {
     contextParts.push(
-      `Photo contains: ${result.labels.slice(0, 5).map((l) => l.description).join(', ')}`
+      `Photo contains: ${result.labels
+        .slice(0, 5)
+        .map((l) => l.description)
+        .join(', ')}`
     );
   }
 
@@ -560,9 +554,10 @@ export async function searchVisualMemories(
 
     // Filter by tag match
     return memories
-      .filter((m) =>
-        m.tags?.some((tag) => tag.toLowerCase().includes(queryLower)) ||
-        m.analysis.summary.toLowerCase().includes(queryLower)
+      .filter(
+        (m) =>
+          m.tags?.some((tag) => tag.toLowerCase().includes(queryLower)) ||
+          m.analysis.summary.toLowerCase().includes(queryLower)
       )
       .slice(0, limit);
   } catch (error) {
@@ -574,10 +569,7 @@ export async function searchVisualMemories(
 /**
  * Get recent visual memories for context
  */
-export async function getRecentVisualMemories(
-  userId: string,
-  limit = 5
-): Promise<VisualMemory[]> {
+export async function getRecentVisualMemories(userId: string, limit = 5): Promise<VisualMemory[]> {
   const db = getFirestoreDb();
   if (!db) return [];
 

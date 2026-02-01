@@ -167,7 +167,7 @@ for (const event of behaviorEvents) {
 
 **Problem:** `AliveOrchestrator` handles "Ferni feels alive" features (music offers, personality insights, game milestones) but is completely separate from the behavior system.
 
-**Location:** `src/services/alive-orchestrator.ts`
+**Location:** `src/services/alive-orchestrator.ts` (removed)
 
 **Opportunity:** AliveOrchestrator's `AliveEvent` could trigger behavior modes:
 - `voice_music_offer` → `shiftMode("exploration")`
@@ -263,7 +263,7 @@ for (const event of behaviorEvents) {
 | Behavior Detection | `src/agents/realtime/behavior-event-dispatcher.ts` |
 | Behavior Tools | `src/tools/domains/behavior/index.ts` |
 | Processing Phrases | `src/intelligence/processing-intelligence.ts` |
-| Alive Features | `src/services/alive-orchestrator.ts` |
+| Alive Features | `src/services/alive-orchestrator.ts` (removed) |
 | Frontend Service | `apps/web/src/services/behavior-signal.service.ts` |
 | Frontend Handler | `apps/web/src/app/data-message-handlers.ts` |
 | EQ System | `apps/web/src/ui/better-than-human.ui.ts` |

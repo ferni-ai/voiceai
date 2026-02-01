@@ -162,7 +162,8 @@ export function recordFastCapture(
 ): void {
   fastCaptureMetrics.totalCalls++;
   fastCaptureMetrics.totalLatencyMs += latencyMs;
-  fastCaptureMetrics.avgLatencyMs = fastCaptureMetrics.totalLatencyMs / fastCaptureMetrics.totalCalls;
+  fastCaptureMetrics.avgLatencyMs =
+    fastCaptureMetrics.totalLatencyMs / fastCaptureMetrics.totalCalls;
   fastCaptureMetrics.maxLatencyMs = Math.max(fastCaptureMetrics.maxLatencyMs, latencyMs);
   fastCaptureMetrics.minLatencyMs = Math.min(fastCaptureMetrics.minLatencyMs, latencyMs);
   fastCaptureMetrics.entitiesExtracted += entityCount;
@@ -309,9 +310,7 @@ export function recordSyncCycle(
     syncMetrics.relationshipsSynced += relationshipsSynced;
   }
 
-  const successfulSyncs = success
-    ? syncMetrics.totalSyncCycles
-    : syncMetrics.totalSyncCycles - 1;
+  const successfulSyncs = success ? syncMetrics.totalSyncCycles : syncMetrics.totalSyncCycles - 1;
   syncMetrics.syncSuccessRate = successfulSyncs / syncMetrics.totalSyncCycles;
 }
 
@@ -484,4 +483,288 @@ export function recordMemoriesInjected(count: number): void {
  */
 export function getAttributionMetrics(): MemoryAttributionMetrics {
   return { ...attributionMetrics };
+}
+
+// ============================================================================
+// KNOWLEDGE GRAPH CAPTURE METRICS (Jan 2026)
+// ============================================================================
+
+interface KnowledgeGraphMetrics {
+  totalCaptures: number;
+  successfulCaptures: number;
+  failedCaptures: number;
+  entitiesCreated: number;
+  entitiesUpdated: number;
+  factsExtracted: number;
+  relationshipsExtracted: number;
+  avgCaptureLatencyMs: number;
+  entityStoreReady: boolean;
+  initializationAttempted: boolean;
+}
+
+const knowledgeGraphMetrics: KnowledgeGraphMetrics = {
+  totalCaptures: 0,
+  successfulCaptures: 0,
+  failedCaptures: 0,
+  entitiesCreated: 0,
+  entitiesUpdated: 0,
+  factsExtracted: 0,
+  relationshipsExtracted: 0,
+  avgCaptureLatencyMs: 0,
+  entityStoreReady: false,
+  initializationAttempted: false,
+};
+
+/**
+ * Record knowledge graph capture operation
+ */
+export function recordKnowledgeCapture(
+  success: boolean,
+  latencyMs: number,
+  entitiesCreated: number,
+  entitiesUpdated: number,
+  factsCount: number,
+  relationshipsCount: number
+): void {
+  knowledgeGraphMetrics.totalCaptures++;
+  if (success) {
+    knowledgeGraphMetrics.successfulCaptures++;
+  } else {
+    knowledgeGraphMetrics.failedCaptures++;
+  }
+
+  knowledgeGraphMetrics.entitiesCreated += entitiesCreated;
+  knowledgeGraphMetrics.entitiesUpdated += entitiesUpdated;
+  knowledgeGraphMetrics.factsExtracted += factsCount;
+  knowledgeGraphMetrics.relationshipsExtracted += relationshipsCount;
+
+  // Rolling average latency
+  const total = knowledgeGraphMetrics.totalCaptures;
+  knowledgeGraphMetrics.avgCaptureLatencyMs =
+    (knowledgeGraphMetrics.avgCaptureLatencyMs * (total - 1) + latencyMs) / total;
+}
+
+/**
+ * Update knowledge graph initialization status
+ */
+export function recordKnowledgeGraphStatus(entityStoreReady: boolean, initAttempted: boolean): void {
+  knowledgeGraphMetrics.entityStoreReady = entityStoreReady;
+  knowledgeGraphMetrics.initializationAttempted = initAttempted;
+}
+
+/**
+ * Get knowledge graph metrics
+ */
+export function getKnowledgeGraphMetrics(): KnowledgeGraphMetrics {
+  return { ...knowledgeGraphMetrics };
+}
+
+// ============================================================================
+// HUMAN SIGNAL EXTRACTION METRICS (Jan 2026)
+// ============================================================================
+
+interface HumanSignalMetrics {
+  totalExtractions: number;
+  llmExtractions: number;
+  regexFallbacks: number;
+  signalsExtracted: {
+    importantDates: number;
+    values: number;
+    dreams: number;
+    fears: number;
+    growthMarkers: number;
+    challenges: number;
+    comfortPatterns: number;
+    stressTriggers: number;
+  };
+  avgExtractionLatencyMs: number;
+  persistenceSuccessRate: number;
+}
+
+const humanSignalMetrics: HumanSignalMetrics = {
+  totalExtractions: 0,
+  llmExtractions: 0,
+  regexFallbacks: 0,
+  signalsExtracted: {
+    importantDates: 0,
+    values: 0,
+    dreams: 0,
+    fears: 0,
+    growthMarkers: 0,
+    challenges: 0,
+    comfortPatterns: 0,
+    stressTriggers: 0,
+  },
+  avgExtractionLatencyMs: 0,
+  persistenceSuccessRate: 1.0,
+};
+
+let persistenceAttempts = 0;
+let persistenceSuccesses = 0;
+
+/**
+ * Record human signal extraction
+ */
+export function recordHumanSignalExtraction(
+  method: 'llm' | 'regex',
+  latencyMs: number,
+  signals: {
+    importantDates?: number;
+    values?: number;
+    dreams?: number;
+    fears?: number;
+    growthMarkers?: number;
+    challenges?: number;
+    comfortPatterns?: number;
+    stressTriggers?: number;
+  }
+): void {
+  humanSignalMetrics.totalExtractions++;
+  if (method === 'llm') {
+    humanSignalMetrics.llmExtractions++;
+  } else {
+    humanSignalMetrics.regexFallbacks++;
+  }
+
+  // Accumulate signal counts
+  humanSignalMetrics.signalsExtracted.importantDates += signals.importantDates || 0;
+  humanSignalMetrics.signalsExtracted.values += signals.values || 0;
+  humanSignalMetrics.signalsExtracted.dreams += signals.dreams || 0;
+  humanSignalMetrics.signalsExtracted.fears += signals.fears || 0;
+  humanSignalMetrics.signalsExtracted.growthMarkers += signals.growthMarkers || 0;
+  humanSignalMetrics.signalsExtracted.challenges += signals.challenges || 0;
+  humanSignalMetrics.signalsExtracted.comfortPatterns += signals.comfortPatterns || 0;
+  humanSignalMetrics.signalsExtracted.stressTriggers += signals.stressTriggers || 0;
+
+  // Rolling average latency
+  const total = humanSignalMetrics.totalExtractions;
+  humanSignalMetrics.avgExtractionLatencyMs =
+    (humanSignalMetrics.avgExtractionLatencyMs * (total - 1) + latencyMs) / total;
+}
+
+/**
+ * Record human signal persistence attempt
+ */
+export function recordHumanSignalPersistence(success: boolean): void {
+  persistenceAttempts++;
+  if (success) {
+    persistenceSuccesses++;
+  }
+  humanSignalMetrics.persistenceSuccessRate =
+    persistenceSuccesses / Math.max(persistenceAttempts, 1);
+}
+
+/**
+ * Get human signal metrics
+ */
+export function getHumanSignalMetrics(): HumanSignalMetrics {
+  return { ...humanSignalMetrics };
+}
+
+// ============================================================================
+// COMPREHENSIVE MEMORY HEALTH STATUS (Jan 2026)
+// ============================================================================
+
+export interface MemoryHealthStatus {
+  overall: 'healthy' | 'degraded' | 'unhealthy';
+  components: {
+    fastCapture: { status: 'ok' | 'slow' | 'failing'; avgLatencyMs: number };
+    stmBuffer: { status: 'ok' | 'warning' | 'error'; activeSessions: number };
+    deepExtraction: { status: 'ok' | 'backlogged' | 'failing'; queueDepth: number };
+    knowledgeGraph: { status: 'ok' | 'degraded' | 'offline'; entityStoreReady: boolean };
+    humanSignals: { status: 'ok' | 'degraded' | 'offline'; llmRate: number };
+  };
+  issues: string[];
+  recommendations: string[];
+}
+
+/**
+ * Get comprehensive memory system health status
+ */
+export function getMemoryHealthStatus(): MemoryHealthStatus {
+  const issues: string[] = [];
+  const recommendations: string[] = [];
+
+  // Fast capture health
+  let fastCaptureStatus: 'ok' | 'slow' | 'failing' = 'ok';
+  if (fastCaptureMetrics.avgLatencyMs > 100) {
+    fastCaptureStatus = 'slow';
+    issues.push(`Fast capture latency high: ${Math.round(fastCaptureMetrics.avgLatencyMs)}ms avg`);
+  }
+  if (fastCaptureMetrics.p95LatencyMs > 200) {
+    fastCaptureStatus = 'failing';
+    issues.push(`Fast capture P95 exceeds SLA: ${Math.round(fastCaptureMetrics.p95LatencyMs)}ms`);
+  }
+
+  // STM buffer health
+  let stmStatus: 'ok' | 'warning' | 'error' = 'ok';
+  if (stmMetrics.promotionSuccessRate < 0.95) {
+    stmStatus = 'warning';
+    issues.push(`STM promotion success rate low: ${Math.round(stmMetrics.promotionSuccessRate * 100)}%`);
+  }
+  if (stmMetrics.promotionSuccessRate < 0.8) {
+    stmStatus = 'error';
+    recommendations.push('Investigate STM promotion failures - memory may be lost');
+  }
+
+  // Deep extraction health
+  let deepStatus: 'ok' | 'backlogged' | 'failing' = 'ok';
+  if (deepExtractionMetrics.currentQueueDepth > 50) {
+    deepStatus = 'backlogged';
+    issues.push(`Deep extraction queue backlogged: ${deepExtractionMetrics.currentQueueDepth} jobs`);
+  }
+  if (deepExtractionMetrics.totalJobsFailed > deepExtractionMetrics.totalJobsProcessed * 0.1) {
+    deepStatus = 'failing';
+    issues.push(`Deep extraction failure rate high: ${deepExtractionMetrics.totalJobsFailed} failed`);
+  }
+
+  // Knowledge graph health
+  let kgStatus: 'ok' | 'degraded' | 'offline' = 'ok';
+  if (!knowledgeGraphMetrics.initializationAttempted) {
+    kgStatus = 'offline';
+    issues.push('Knowledge graph not initialized');
+    recommendations.push('Ensure initializeKnowledgeCapture() is called at startup');
+  } else if (!knowledgeGraphMetrics.entityStoreReady) {
+    kgStatus = 'degraded';
+    issues.push('Entity store not ready - extraction running but not persisting');
+  }
+
+  // Human signal health
+  let hsStatus: 'ok' | 'degraded' | 'offline' = 'ok';
+  const llmRate = humanSignalMetrics.totalExtractions > 0
+    ? humanSignalMetrics.llmExtractions / humanSignalMetrics.totalExtractions
+    : 1;
+  if (llmRate < 0.5) {
+    hsStatus = 'degraded';
+    issues.push(`LLM extraction rate low: ${Math.round(llmRate * 100)}% (using regex fallback)`);
+    recommendations.push('Check Gemini API key and quota');
+  }
+  if (humanSignalMetrics.persistenceSuccessRate < 0.9) {
+    hsStatus = 'degraded';
+    issues.push(`Human signal persistence failing: ${Math.round(humanSignalMetrics.persistenceSuccessRate * 100)}%`);
+  }
+
+  // Overall health
+  let overall: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+  if (issues.length > 0) overall = 'degraded';
+  if (
+    deepStatus === 'failing' ||
+    kgStatus === 'offline' ||
+    stmStatus === 'error'
+  ) {
+    overall = 'unhealthy';
+  }
+
+  return {
+    overall,
+    components: {
+      fastCapture: { status: fastCaptureStatus, avgLatencyMs: fastCaptureMetrics.avgLatencyMs },
+      stmBuffer: { status: stmStatus, activeSessions: stmMetrics.activeSessions },
+      deepExtraction: { status: deepStatus, queueDepth: deepExtractionMetrics.currentQueueDepth },
+      knowledgeGraph: { status: kgStatus, entityStoreReady: knowledgeGraphMetrics.entityStoreReady },
+      humanSignals: { status: hsStatus, llmRate },
+    },
+    issues,
+    recommendations,
+  };
 }

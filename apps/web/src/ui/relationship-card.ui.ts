@@ -1,4 +1,3 @@
-// TODO: Fix type errors - array indexing and date parsing undefined checks
 /**
  * Relationship Card UI
  *
@@ -24,8 +23,8 @@ import { openImportantDates } from './important-dates.ui.js';
 import { openSendMessage } from './send-message.ui.js';
 import { openGiftSuggestions } from './gift-suggestions.ui.js';
 import { openConversationStarters } from './conversation-starters.ui.js';
-import { shouldUseDemoData } from '../utils/environment.js';
-import { getMockContact, getMockInteractions, getMockGifts } from '../data/mock-contacts.ts';
+// NOTE: Mock data imports removed - UI now shows proper empty/error states
+// To enable demo mode, use localStorage.setItem('ferni:use-demo-data', 'true')
 import { t } from '../i18n/index.js';
 
 const log = createLogger('RelationshipCard');
@@ -1930,7 +1929,6 @@ function getNoticeIcon(type: string): string {
 
 async function loadRelationshipData(contactId: string): Promise<void> {
   state.isLoading = true;
-  const useMockData = shouldUseDemoData();
 
   try {
     // Load person details
@@ -1938,33 +1936,11 @@ async function loadRelationshipData(contactId: string): Promise<void> {
     if (personRes.ok) {
       const personData = await personRes.json();
       state.person = personData.contact || personData;
-    } else if (useMockData) {
-      // Fall back to mock data
-      const mockPerson = getMockContact(contactId);
-      if (mockPerson) {
-        state.person = {
-          id: mockPerson.id,
-          contactId: mockPerson.contactId,
-          name: mockPerson.name,
-          relationship: mockPerson.relationship,
-          email: mockPerson.email,
-          phone: mockPerson.phone,
-          howWeMet: mockPerson.howWeMet,
-          notes: mockPerson.notes,
-          interests: mockPerson.interests,
-          strengthScore: mockPerson.relationshipStrength,
-          lastInteraction: mockPerson.lastContact,
-          importantDates: mockPerson.importantDates?.map(d => ({
-            type: d.type,
-            date: d.date,
-            label: d.label,
-          })),
-        };
-        log.debug('Using mock person data');
-      }
+    } else {
+      log.warn({ contactId, status: personRes.status }, 'Could not load contact details');
     }
 
-    // Load timeline
+    // Load timeline (interactions with this person)
     const timelineRes = await apiFetch(`/api/contacts/${contactId}/interactions`);
     if (timelineRes.ok) {
       const timelineData = await timelineRes.json();
@@ -1972,15 +1948,9 @@ async function loadRelationshipData(contactId: string): Promise<void> {
         ...item,
         title: formatInteractionTitle(item),
       }));
-    } else if (useMockData) {
-      // Fall back to mock interactions
-      const mockInteractions = getMockInteractions(contactId);
-      state.timeline = mockInteractions.map(item => ({
-        ...item,
-        direction: 'outbound' as const,
-        title: item.summary || item.type,
-      })) as TimelineItem[];
-      log.debug('Using mock timeline data');
+    } else {
+      // Empty timeline is fine - user just hasn't logged any interactions
+      state.timeline = [];
     }
 
     // Load gifts
@@ -1991,14 +1961,9 @@ async function loadRelationshipData(contactId: string): Promise<void> {
         ...(giftsData.history?.given || []).map((g: Gift) => ({ ...g, direction: 'given' as const })),
         ...(giftsData.history?.received || []).map((g: Gift) => ({ ...g, direction: 'received' as const })),
       ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    } else if (useMockData) {
-      // Fall back to mock gifts
-      const mockGifts = getMockGifts(contactId);
-      state.gifts = mockGifts.map(g => ({
-        ...g,
-        direction: g.direction as 'given' | 'received',
-      })) as Gift[];
-      log.debug('Using mock gift data');
+    } else {
+      // Empty gifts is fine - user just hasn't logged any gifts
+      state.gifts = [];
     }
 
     // Load shared calendar context (meetings with this person)
@@ -2044,51 +2009,14 @@ async function loadRelationshipData(contactId: string): Promise<void> {
       }
     }
 
-    // Generate Ferni notices (intelligent insights)
-    state.notices = generateNotices();
+    // Generate Ferni notices (intelligent insights) if we have person data
+    if (state.person) {
+      state.notices = generateNotices();
+    }
 
   } catch (error) {
-    log.error('Failed to load relationship data:', error);
-    
-    // In dev mode, try to use mock data on exception
-    if (useMockData) {
-      const mockPerson = getMockContact(contactId);
-      if (mockPerson) {
-        state.person = {
-          id: mockPerson.id,
-          contactId: mockPerson.contactId,
-          name: mockPerson.name,
-          relationship: mockPerson.relationship,
-          email: mockPerson.email,
-          phone: mockPerson.phone,
-          howWeMet: mockPerson.howWeMet,
-          notes: mockPerson.notes,
-          interests: mockPerson.interests,
-          strengthScore: mockPerson.relationshipStrength,
-          lastInteraction: mockPerson.lastContact,
-          importantDates: mockPerson.importantDates?.map(d => ({
-            type: d.type,
-            date: d.date,
-            label: d.label,
-          })),
-        };
-        state.timeline = getMockInteractions(contactId).map(item => ({
-          ...item,
-          direction: 'outbound' as const,
-          title: item.summary || item.type,
-        })) as TimelineItem[];
-        state.gifts = getMockGifts(contactId).map(g => ({
-          ...g,
-          direction: g.direction as 'given' | 'received',
-        })) as Gift[];
-        state.notices = generateNotices();
-        log.debug('Using mock data due to API error');
-      } else {
-        toast.error(t('toasts.couldNotLoadRelationship'));
-      }
-    } else {
-      toast.error(t('toasts.couldNotLoadRelationship'));
-    }
+    log.error({ error: String(error), contactId }, 'Failed to load relationship data');
+    toast.error(t('toasts.couldNotLoadRelationship'));
   } finally {
     state.isLoading = false;
     render();

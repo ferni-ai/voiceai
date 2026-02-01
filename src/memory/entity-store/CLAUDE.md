@@ -36,12 +36,21 @@ entity_store/{userId}/
 
 ```
 entity-store/
-├── types.ts            # Type definitions
-├── storage.ts          # Firestore CRUD operations
-├── entity-resolver.ts  # Resolves mentions to canonical entities
-├── integration.ts      # Hooks for data capture, telephony, etc.
-├── migration.ts        # Migrates legacy collections
-└── index.ts            # Main exports
+├── __tests__/              # Unit tests (entity-resolver, entity-store)
+├── types.ts                # Type definitions (Entity, Mention, Relationship)
+├── store.ts                # Core entity store implementation (34KB) — main CRUD + query engine
+├── storage.ts              # Firestore persistence operations
+├── entity-resolver.ts      # Resolves mentions to canonical entities
+├── entity-cache.ts         # In-memory entity cache for fast lookups
+├── integration.ts          # Hooks for data capture, telephony, etc.
+├── migration.ts            # Migrates legacy collections to unified store
+├── dual-write.ts           # Write to both entity store and legacy collections during migration
+├── legacy-adapter.ts       # Adapter for legacy collection reads during transition
+├── consolidation.ts        # Merge duplicate entities, consolidate mentions
+├── correlation-engine.ts   # Cross-entity correlation and relationship inference
+├── graph-rag.ts            # Graph-based RAG retrieval over entity relationships
+├── proactive-surfacing.ts  # Proactively surface entity context at the right moment
+└── index.ts                # Main exports
 ```
 
 ---

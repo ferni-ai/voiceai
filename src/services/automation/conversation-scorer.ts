@@ -148,9 +148,10 @@ function calculateEngagementScore(engagement: ConversationMetrics['userEngagemen
   let score = 0;
 
   // Speaking ratio: ideal is 40-60%
-  const speakingScore = engagement.speakingRatio >= 0.3 && engagement.speakingRatio <= 0.7
-    ? 100 - Math.abs(0.5 - engagement.speakingRatio) * 100
-    : Math.max(0, 50 - Math.abs(0.5 - engagement.speakingRatio) * 100);
+  const speakingScore =
+    engagement.speakingRatio >= 0.3 && engagement.speakingRatio <= 0.7
+      ? 100 - Math.abs(0.5 - engagement.speakingRatio) * 100
+      : Math.max(0, 50 - Math.abs(0.5 - engagement.speakingRatio) * 100);
   score += speakingScore * 0.25;
 
   score += Math.min(engagement.questionCount / 10, 1) * 20;
@@ -211,7 +212,10 @@ function determineQualityTier(score: number): ConversationScore['qualityTier'] {
   return 'concerning';
 }
 
-function generateHighlights(metrics: ConversationMetrics, scores: ConversationScore['scores']): string[] {
+function generateHighlights(
+  metrics: ConversationMetrics,
+  scores: ConversationScore['scores']
+): string[] {
   const highlights: string[] = [];
 
   if (metrics.emotionalShift.moodDelta >= 2) {
@@ -233,7 +237,10 @@ function generateHighlights(metrics: ConversationMetrics, scores: ConversationSc
   return highlights;
 }
 
-function generateImprovementAreas(metrics: ConversationMetrics, scores: ConversationScore['scores']): string[] {
+function generateImprovementAreas(
+  metrics: ConversationMetrics,
+  scores: ConversationScore['scores']
+): string[] {
   const areas: string[] = [];
 
   if (metrics.userEngagement.speakingRatio < 0.3) {
@@ -404,12 +411,23 @@ export async function getQualityTrend(
 
     if (snapshot.empty) return null;
 
-    const scores = snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as ConversationScore);
-    const averageScore = scores.reduce((sum: number, s: ConversationScore) => sum + s.scores.overall, 0) / scores.length;
+    const scores = snapshot.docs.map(
+      (doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as ConversationScore
+    );
+    const averageScore =
+      scores.reduce((sum: number, s: ConversationScore) => sum + s.scores.overall, 0) /
+      scores.length;
 
     const halfPoint = Math.floor(scores.length / 2);
-    const firstAvg = scores.slice(0, halfPoint).reduce((sum: number, s: ConversationScore) => sum + s.scores.overall, 0) / halfPoint || 0;
-    const secondAvg = scores.slice(halfPoint).reduce((sum: number, s: ConversationScore) => sum + s.scores.overall, 0) / (scores.length - halfPoint) || 0;
+    const firstAvg =
+      scores
+        .slice(0, halfPoint)
+        .reduce((sum: number, s: ConversationScore) => sum + s.scores.overall, 0) / halfPoint || 0;
+    const secondAvg =
+      scores
+        .slice(halfPoint)
+        .reduce((sum: number, s: ConversationScore) => sum + s.scores.overall, 0) /
+        (scores.length - halfPoint) || 0;
 
     const trendMagnitude = Math.abs(secondAvg - firstAvg);
     let trend: QualityTrend['trend'] = 'stable';

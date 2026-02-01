@@ -92,7 +92,7 @@ describe('Voice Agent Core', () => {
 
     it('should have conversation history tracking', async () => {
       // Conversation memory handles history tracking
-      const module = await import('../conversation/conversational-memory.js');
+      const module = await import('../conversation/conversational-memory/index.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);

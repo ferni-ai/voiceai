@@ -13,10 +13,10 @@
  */
 
 import type {
+  LLMModelConfig,
   ModelProvider,
   ModelProviderId,
   PromptModuleConfig,
-  LLMModelConfig,
 } from './types.js';
 
 // ============================================================================
@@ -182,22 +182,15 @@ export class OpenAIRealtimeProvider implements ModelProvider {
    * Create an OpenAI Realtime model instance.
    *
    * Uses text-only mode so Cartesia TTS handles persona voices.
+   *
+   * IMPORTANT: We do NOT configure turnDetection here. Instead, VAD is configured
+   * on the AgentSession so that allowInterruptions: false works correctly.
+   * With server_vad in the model, the model controls interruptions and ignores
+   * the allowInterruptions flag on say() calls.
    */
   async createLLMModel(config: LLMModelConfig): Promise<unknown> {
     // Dynamic import to avoid loading SDK if not used
     const openai = await import('@livekit/agents-plugin-openai');
-
-    // Get VAD config from shared constants
-    const { VAD_CONFIG } = await import('../shared/constants.js');
-
-    // Use provided VAD config or defaults
-    const vadConfig = config.vadConfig || {
-      threshold: VAD_CONFIG.threshold,
-      silenceDurationMs: VAD_CONFIG.silenceDurationMs,
-      prefixPaddingMs: VAD_CONFIG.prefixPaddingMs,
-      createResponse: VAD_CONFIG.createResponse,
-      interruptResponse: VAD_CONFIG.interruptResponse,
-    };
 
     // OpenAI Realtime requires temperature >= 0.6
     const temperature = Math.max(0.6, config.temperature || 0.7);
@@ -210,14 +203,9 @@ export class OpenAIRealtimeProvider implements ModelProvider {
       model: openaiModel,
       modalities: ['text'], // Text-only mode - Cartesia TTS handles persona voice
       temperature,
-      turnDetection: {
-        type: 'server_vad',
-        threshold: vadConfig.threshold,
-        prefix_padding_ms: vadConfig.prefixPaddingMs,
-        silence_duration_ms: vadConfig.silenceDurationMs,
-        create_response: vadConfig.createResponse,
-        interrupt_response: vadConfig.interruptResponse,
-      },
+      // NOTE: turnDetection is NOT configured here!
+      // VAD is configured on AgentSession instead so allowInterruptions: false works.
+      // See: https://docs.livekit.io/agents/voice-agent/interruptions/
       // Tools are passed directly to the model via LiveKit Agent, not here
     });
 
@@ -266,14 +254,14 @@ export class OpenAIRealtimeProvider implements ModelProvider {
 
   /**
    * OpenAI Realtime uses server_vad for turn detection.
-   * 
+   *
    * Return undefined to let OpenAI's server_vad handle turn detection internally.
-   * 
+   *
    * With create_response=true (our new architecture):
    * 1. OpenAI's server_vad detects end of user speech
    * 2. OpenAI auto-generates a response (SDK emits generation_created)
    * 3. Ferni's proactive systems only trigger for silence/special cases
-   * 
+   *
    * This is the clean architecture: SDK owns normal turns, Ferni owns proactive moments.
    */
   getSessionTurnDetection(): 'realtime_llm' | undefined {

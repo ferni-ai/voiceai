@@ -57,7 +57,7 @@ src/services/calendar/webhooks/google-webhook.ts ✅ FIXED
 src/services/calendar/webhooks/outlook-webhook.ts ✅ FIXED
 src/api/publisher-auth.ts ✅ ALREADY FIXED (had correct pattern)
 src/speech/tts/persona-aware.ts (not checked)
-src/agents/shared/intelligence-hooks.ts (not checked)
+src/agents/shared/intelligence-hooks.ts (removed)
 src/agents/shared/health-server.ts (not checked)
 src/config/unified-flags.ts (not checked)
 src/config/gemini-config.ts ✅ FIXED

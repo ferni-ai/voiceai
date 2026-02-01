@@ -1,8 +1,8 @@
 # Semantic Tool Router
 
-> **State-of-the-art, provider-agnostic tool routing using semantic understanding**
+> State-of-the-art, provider-agnostic tool routing using semantic understanding.
 
-The Semantic Tool Router is the core system that decides which tools to invoke based on user input. Instead of relying on unreliable LLM function calling, it uses semantic understanding to route requests BEFORE the LLM.
+The Semantic Tool Router decides which tools to invoke based on user input. It uses semantic understanding to pre-filter tools BEFORE the LLM, combining pattern matching, embedding similarity, and an ONNX ML classifier.
 
 ---
 
@@ -27,6 +27,7 @@ User Input
 +---------------------------------------------+
 |           SEMANTIC TOOL ROUTER              |
 |---------------------------------------------|
+| Layer 0: ONNX ML Model (99.5% acc, ~60ms)  | ← Qwen3-1.7B based
 | Layer 1: Fast Pattern Matching (<1ms)       |
 | Layer 2: Embedding Similarity (~10-30ms)    |
 | Layer 3: Context-Aware Refinement           |
@@ -50,99 +51,153 @@ User Input
 ```
 semantic-router/
 ├── # CORE ROUTING ────────────────────────────────────────────
-├── index.ts                    # Main exports, router creation
-├── types.ts                    # Type definitions (SemanticToolDefinition, etc.)
-├── matcher.ts                  # Core matching algorithm
-├── registry.ts                 # Tool registry, registration
-├── config.ts                   # Configuration & feature flags
-├── compat.ts                   # Backward compatibility layer
+├── index.ts                       # Main exports, router creation
+├── types.ts                       # Type definitions (SemanticToolDefinition, etc.)
+├── matcher.ts                     # Core matching algorithm
+├── registry.ts                    # Tool registry, registration
+├── router.ts                      # Router implementation
+├── config.ts                      # Configuration & feature flags
+├── compat.ts                      # Backward compatibility layer
 │
 ├── # MATCHING & SCORING ──────────────────────────────────────
-├── argument-extractor.ts       # Extract arguments from user input
-├── capability-checker.ts       # Check tool capabilities
-├── context-enrichment.ts       # Enrich context for better matching
-├── domain-bridge.ts            # Bridge between domains
-├── emotion-routing-boost.ts    # Emotional context boosting
-├── holistic-layer.ts           # Holistic NLU context
-├── multi-intent.ts             # Multi-intent detection
-├── multi-intent-router.ts      # Route multiple intents
+├── argument-extractor.ts          # Extract arguments from user input
+├── capability-checker.ts          # Check tool capabilities
+├── context-enrichment.ts          # Enrich context for better matching
+├── domain-bridge.ts               # Bridge between domains
+├── emotion-routing-boost.ts       # Emotional context boosting
+├── trajectory-routing-boost.ts    # Trajectory-based boosting
+├── holistic-layer.ts              # Holistic NLU context
+├── multi-intent.ts                # Multi-intent detection
+├── multi-intent-router.ts         # Route multiple intents
+├── shared-vocabulary.ts           # Shared vocabulary for matching
+├── voice-integration.ts           # Voice agent integration
 │
 ├── # EMBEDDINGS ──────────────────────────────────────────────
-├── embedding-providers.ts      # Embedding provider abstraction
-├── embedding-worker-integration.ts # Worker integration
-├── precomputed-embeddings.ts   # Precomputed embeddings for speed
+├── embedding-providers.ts         # Embedding provider abstraction
+├── embedding-worker-integration.ts # Worker thread integration
+├── precomputed-embeddings.ts      # Precomputed embeddings for speed
 │
 ├── # SUBDIRECTORIES ──────────────────────────────────────────
 │
-├── tool-definitions/           # 128 tool semantic definitions
-│   ├── index.ts               # Main exports
-│   ├── calendar-tools.ts      # Calendar tool definitions
-│   ├── career-tools.ts        # Career tool definitions
-│   ├── communication-tools.ts # Communication definitions
-│   ├── finance-tools.ts       # Finance definitions
-│   ├── habits-tools.ts        # Habit tracking definitions
-│   ├── information-tools.ts   # Information/search definitions
-│   ├── wellness-tools.ts      # Wellness definitions
-│   └── ...                    # 128 total definition files
+├── tool-definitions/              # Semantic tool definitions (by domain)
+│   ├── index.ts
+│   ├── calendar-tools.ts
+│   ├── career-tools.ts
+│   ├── communication-tools.ts
+│   └── ...                        # One file per domain
 │
-├── advanced/                   # Advanced routing features
-│   ├── index.ts               # Exports
-│   ├── adversarial-defense.ts # Defense against prompt injection
-│   ├── cascade-router.ts      # Cascading router for fallback
-│   ├── confidence-calibrator.ts # Confidence score calibration
-│   ├── dynamic-threshold.ts   # Dynamic threshold adjustment
-│   ├── explainable.ts         # Explainable routing decisions
-│   ├── hybrid-retrieval.ts    # Hybrid semantic + keyword retrieval
-│   ├── latency-optimizer.ts   # Latency optimization
-│   ├── realtime-safety.ts     # Real-time safety checks
-│   ├── semantic-caching.ts    # Semantic query caching
-│   ├── simd-optimization.ts   # SIMD vector operations
-│   ├── tool-pruning.ts        # Prune irrelevant tools
-│   ├── intelligent/           # Intelligent routing
-│   │   ├── tool-intelligence.ts # Tool intelligence system
-│   │   └── explanation-generator.ts # Generate explanations
-│   └── workers/               # Worker threads
-│       └── embedding-worker.ts # Background embedding computation
+├── advanced/                      # Advanced routing features
+│   ├── index.ts
+│   ├── active-learning.ts         # Active learning from user feedback
+│   ├── audio-prosody-extractor.ts # Extract prosody for emotion routing
+│   ├── better-than-human.ts       # Superhuman routing capabilities
+│   ├── datasets.ts                # Training/evaluation datasets
+│   ├── deep-context.ts            # Deep context analysis
+│   ├── feedback-store.ts          # Routing feedback persistence
+│   ├── learned-retriever.ts       # ML-enhanced retrieval
+│   ├── learning-loop.ts           # Active learning loop
+│   ├── ner-engine.ts              # Named entity recognition
+│   ├── personalization.ts         # User-specific routing
+│   ├── proactive-suggestions.ts   # Suggest tools proactively
+│   ├── prosody-routing-integration.ts # Prosody → routing pipeline
+│   ├── streaming-router.ts        # Streaming intent detection
+│   ├── tool-chain-predictor.ts    # Predict tool chains
+│   ├── tool-chains.ts             # Tool chain definitions
+│   ├── uncertainty.ts             # Uncertainty estimation
+│   ├── intelligent/               # ML-based intelligent routing
+│   │   ├── onnx-classifier.ts     # ONNX classifier wrapper
+│   │   ├── tool-intelligence.ts   # Tool intelligence system
+│   │   └── explanation-generator.ts # Explainable routing
+│   └── workers/                   # Worker threads
+│       └── embedding-worker.ts    # Background embedding computation
 │
-├── learning/                   # Online learning & adaptation
-│   ├── index.ts               # Exports
-│   ├── community-learning.ts  # Learn from all users
-│   ├── correction-store.ts    # Store user corrections
-│   ├── dynamic-strategy.ts    # Dynamic strategy selection
-│   ├── online-learning-loop.ts # Online learning loop
-│   └── user-segmentation.ts   # User segment-based learning
+├── defense/                       # Security & robustness
+│   ├── index.ts
+│   ├── anomaly-detector.ts        # Detect anomalous routing patterns
+│   └── input-sanitizer.ts         # Sanitize inputs before routing
 │
-├── integration/                # Integration with other systems
-│   ├── index.ts               # Exports
-│   ├── gemini-integration.ts  # Gemini LLM integration
-│   ├── openai-integration.ts  # OpenAI integration
-│   ├── unified-tool-format.ts # Unified tool format
-│   └── voice-agent-bridge.ts  # Voice agent integration
+├── multi-intent/                  # Multi-intent processing
+│   ├── index.ts
+│   ├── intent-ranker.ts           # Rank competing intents
+│   └── semantic-splitter.ts       # Split multi-intent utterances
 │
-├── persistence/                # State persistence
-│   ├── index.ts               # Exports
-│   ├── embedding-store.ts     # Store embeddings
-│   └── correction-store.ts    # Store corrections
+├── learning/                      # Online learning & adaptation
+│   ├── index.ts
+│   ├── community-learning.ts      # Learn from all users (privacy-safe)
+│   ├── correction-store.ts        # Store user corrections
+│   ├── dynamic-strategy.ts        # Dynamic strategy selection
+│   ├── implicit-correction-capture.ts # Capture implicit corrections
+│   ├── online-learning-loop.ts    # Online learning loop
+│   ├── retraining-pipeline.ts     # Model retraining pipeline
+│   └── user-segmentation.ts       # User segment-based learning
 │
-├── auto-convert/               # Auto-convert legacy tools
-│   └── index.ts               # Convert old tool format
+├── integration/                   # Integration with other systems
+│   ├── index.ts
+│   ├── active-learning-integration.ts # Active learning hooks
+│   ├── benchmarks.ts              # Integration benchmarks
+│   ├── config.ts                  # Integration configuration
+│   ├── init.ts                    # Initialization sequence
+│   ├── intelligent-router-integration.ts # ML router integration
+│   ├── metrics.ts                 # Routing metrics
+│   ├── redis-cache.ts             # Redis caching layer
+│   ├── routing-observability.ts   # Observability/tracing
+│   ├── sota-integration.ts        # State-of-the-art model integration
+│   ├── transcript-integration.ts  # Transcript processing
+│   └── turn-processor-integration.ts # Turn processor hooks
 │
-├── evaluation/                 # Evaluation & benchmarks
-│   ├── index.ts               # Exports
-│   └── benchmark.ts           # Performance benchmarks
+├── persistence/                   # State persistence
+│   ├── index.ts
+│   ├── firestore-persistence.ts   # Firestore-backed persistence
+│   └── tool-embedding-index.ts    # Embedding index storage
 │
-├── analytics/                  # Routing analytics
-│   └── index.ts               # Track routing decisions
+├── evaluation/                    # Evaluation & benchmarks
+│   ├── index.ts
+│   ├── benchmark-runner.ts        # Run benchmark suites
+│   ├── metrics-calculator.ts      # Calculate routing metrics
+│   ├── regression-detector.ts     # Detect routing regressions
+│   ├── adversarial-runner.ts      # Adversarial test runner
+│   ├── benchmark.json             # Benchmark dataset
+│   ├── benchmark.schema.json      # Benchmark schema
+│   ├── golden-dataset.json        # Golden test dataset
+│   └── adversarial-dataset.json   # Adversarial test cases
 │
-├── i18n/                       # Internationalization
-│   ├── index.ts               # Exports
-│   └── locales/               # Locale-specific patterns
+├── analytics/                     # Routing analytics
+│   ├── index.ts
+│   └── routing-analytics.ts       # Track routing decisions
 │
-└── __tests__/                  # Tests
-    ├── matcher.test.ts
-    ├── registry.test.ts
-    └── integration.test.ts
+├── auto-convert/                  # Auto-convert legacy tools
+│   ├── index.ts
+│   └── tool-scanner.ts            # Scan and convert old tool formats
+│
+├── i18n/                          # Internationalization
+│   ├── index.ts
+│   ├── loader.ts                  # Locale loading
+│   ├── multilingual.ts            # Multilingual routing
+│   └── locales/                   # Locale-specific patterns
+│
+└── __tests__/                     # Tests
 ```
+
+---
+
+## ONNX ML Classifier (Layer 0)
+
+The ONNX classifier uses a fine-tuned Qwen3-1.7B model:
+
+| Metric | Value |
+|--------|-------|
+| Top-1 Accuracy | 98.0% |
+| Top-3 Accuracy | 99.7% |
+| Top-5 Accuracy | 99.9% |
+| F1 Weighted | 0.980 |
+| Latency | ~60-70ms |
+| Labels | 861 (860 tools + __no_tool__) |
+| Model | V5-860 (Qwen3-1.7B + LoRA) |
+
+**Key Files:**
+- `advanced/intelligent/onnx-classifier.ts` - ONNX classifier wrapper
+- `apps/ml-training/router/` - Training pipeline
+- `apps/rust-perf/src/onnx_router.rs` - Rust ONNX Runtime bindings
 
 ---
 
@@ -155,20 +210,16 @@ interface SemanticToolDefinition {
   id: string;
   name: string;
   description: string;
-
   triggers: {
-    phrases?: string[];        // Exact matches
-    patterns?: RegExp[];       // Regex patterns
-    keywords?: string[];       // Keyword boost
-    antiKeywords?: string[];   // Negative signals
+    phrases?: string[];       // Exact matches
+    patterns?: RegExp[];      // Regex patterns
+    keywords?: string[];      // Keyword boost
+    antiKeywords?: string[];  // Negative signals
   };
-
-  examples?: string[];         // Training examples
-  embedding?: number[];        // Precomputed embedding
-
-  arguments?: ToolArgument[];  // Expected arguments
-  category?: ToolCategory;     // Category for grouping
-  domain?: string;             // Domain (calendar, finance, etc.)
+  examples?: string[];        // Training examples
+  embedding?: number[];       // Precomputed embedding
+  arguments?: ToolArgument[];
+  domain?: string;
 }
 ```
 
@@ -185,178 +236,42 @@ interface SemanticToolDefinition {
 
 ## Usage
 
-### Basic Routing
-
 ```typescript
-import { createSemanticRouter, routeUserInput } from './semantic-router';
+import { createSemanticRouter, routeUserInput } from './semantic-router/index.js';
 
-// Create router
 const router = createSemanticRouter();
 
-// Route user input
 const result = await routeUserInput("play some jazz music");
 
 if (result.action.type === 'execute') {
   await executeToolDirectly(result.action.toolId, result.action.args);
 } else if (result.action.type === 'hint') {
-  // Pass hint to LLM for better response
-  const hint = result.action.hint;
+  const hint = result.action.hint; // Pass to LLM
 }
 ```
-
-### Registering Tools
-
-```typescript
-import { getToolRegistry } from './semantic-router';
-
-const registry = getToolRegistry();
-
-registry.register({
-  id: 'playMusic',
-  name: 'Play Music',
-  description: 'Play music based on user request',
-  triggers: {
-    phrases: ['play music', 'put on some'],
-    keywords: ['music', 'song', 'play', 'listen'],
-    patterns: [/play (some )?(.*) music/i],
-  },
-  examples: [
-    'play some jazz',
-    'put on relaxing music',
-    'I want to listen to rock',
-  ],
-});
-```
-
-### Multi-Intent Detection
-
-```typescript
-import { detectMultipleIntents } from './semantic-router';
-
-// User says: "Play jazz and check my calendar for tomorrow"
-const intents = await detectMultipleIntents(userInput);
-// Returns: [
-//   { toolId: 'playMusic', args: { genre: 'jazz' }, confidence: 0.92 },
-//   { toolId: 'getCalendar', args: { date: 'tomorrow' }, confidence: 0.88 }
-// ]
-```
-
----
-
-## Learning System
-
-The router improves over time through:
-
-### 1. Online Learning Loop
-
-```typescript
-import { recordCorrection } from './learning';
-
-// User corrects a routing decision
-recordCorrection({
-  input: "I need a therapist",
-  routedTo: 'findDoctor',
-  correctedTo: 'mentalHealthSupport',
-  userId: 'user123',
-});
-```
-
-### 2. Community Learning
-
-Aggregates corrections across users to improve for everyone (privacy-safe).
-
-### 3. User Segmentation
-
-Different routing strategies for different user segments (power users, new users, etc.).
 
 ---
 
 ## Performance
 
-| Operation | Latency | Notes |
-|-----------|---------|-------|
-| Pattern matching | < 1ms | Regex + exact match |
-| Keyword scoring | 1-2ms | TF-IDF weighted |
-| Embedding similarity | 10-30ms | Depends on model |
-| Full routing | < 50ms | Including all layers |
-
-### SIMD Optimization
-
-For batch operations, SIMD-optimized vector math is available:
-
-```typescript
-import { isSimdAvailable, batchCosineSimilarity } from './advanced/simd-optimization';
-
-if (isSimdAvailable()) {
-  const similarities = batchCosineSimilarity(queryEmbedding, toolEmbeddings);
-}
-```
+| Operation | Latency |
+|-----------|---------|
+| Pattern matching | < 1ms |
+| Keyword scoring | 1-2ms |
+| Embedding similarity | 10-30ms |
+| ONNX classification | ~60-70ms |
+| Full routing | < 50ms (without ONNX) |
 
 ---
 
 ## Testing
 
 ```bash
-# Run semantic router tests
 pnpm vitest run src/tools/semantic-router/__tests__/
 
-# Run integration tests
-pnpm vitest run src/tools/semantic-router/integration/__tests__/
-
-# Run learning tests
-pnpm vitest run src/tools/semantic-router/learning/__tests__/
+# Evaluation benchmarks
+pnpm vitest run src/tools/semantic-router/evaluation/
 ```
-
----
-
-## Configuration
-
-```typescript
-import { getConfig, setConfig } from './semantic-router';
-
-// Get current config
-const config = getConfig();
-
-// Update config
-setConfig({
-  confidenceThresholds: {
-    execute: 0.85,
-    confirm: 0.70,
-    hint: 0.50,
-  },
-  enableLearning: true,
-  enableAnalytics: true,
-  maxEmbeddingCacheSize: 10000,
-});
-```
-
----
-
-## Integration Points
-
-| System | Integration File | Purpose |
-|--------|-----------------|---------|
-| Voice Agent | `integration/voice-agent-bridge.ts` | Real-time routing |
-| Gemini | `integration/gemini-integration.ts` | Gemini-specific handling |
-| OpenAI | `integration/openai-integration.ts` | OpenAI-specific handling |
-| Unified Orchestrator | `../orchestrator/unified-tool-orchestrator.ts` | Main entry point |
-
----
-
-## Rules
-
-### Do
-- Use precomputed embeddings for known tool descriptions
-- Provide good examples for each tool (improves matching)
-- Handle low-confidence results gracefully
-- Log routing decisions for debugging
-- Use multi-intent detection for complex requests
-
-### Don't
-- Rely solely on pattern matching (use embeddings too)
-- Ignore confidence scores
-- Skip the learning feedback loop
-- Hardcode thresholds (use config)
 
 ---
 
@@ -365,6 +280,7 @@ setConfig({
 - `../CLAUDE.md` - Tools overview
 - `../orchestrator/unified-tool-orchestrator.ts` - Orchestrator that uses router
 - `../../agents/shared/json-function-executor.ts` - Fallback JSON execution
+- `../gateway/` - Tool gateway (tiered loading)
 
 ---
 

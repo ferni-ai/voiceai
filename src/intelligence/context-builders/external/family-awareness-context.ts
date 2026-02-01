@@ -56,9 +56,8 @@ export const familyAwarenessContextBuilder: ContextBuilder = {
 
     try {
       // Get pending shared contexts for this user
-      const { getPendingContexts, markContextsDelivered } = await import(
-        '../../../services/family/family-context-sharing.js'
-      );
+      const { getPendingContexts, markContextsDelivered } =
+        await import('../../../services/family/family-context-sharing.js');
 
       const pendingContexts = await getPendingContexts(userId);
 

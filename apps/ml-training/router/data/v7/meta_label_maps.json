@@ -1,0 +1,202 @@
+{
+  "calendar": {
+    "calendar.create": 0,
+    "calendar.delete": 1,
+    "calendar.modify": 2,
+    "calendar.read": 3
+  },
+  "tasks_reminders": {
+    "reminder.create": 0,
+    "reminder.manage": 1,
+    "task.complete": 2,
+    "task.create": 3,
+    "task.prioritize": 4,
+    "task.read": 5
+  },
+  "timers_alarms": {
+    "alarm.manage": 0,
+    "timer.manage": 1
+  },
+  "communication": {
+    "message.analyze": 0,
+    "message.craft": 1,
+    "message.manage": 2,
+    "message.schedule": 3,
+    "message.send": 4
+  },
+  "music_audio": {
+    "music.control": 0,
+    "music.info": 1,
+    "music.play": 2
+  },
+  "smart_home": {
+    "home.automation": 0,
+    "home.control": 1,
+    "home.info": 2
+  },
+  "health_fitness": {
+    "health.assess": 0,
+    "health.coach": 1,
+    "health.medical": 2,
+    "health.track": 3
+  },
+  "food_nutrition": {
+    "food.log": 0,
+    "food.order": 1,
+    "food.plan": 2
+  },
+  "habits_routines": {
+    "habit.coach": 0,
+    "habit.manage": 1,
+    "habit.stats": 2,
+    "routine.manage": 3
+  },
+  "travel": {
+    "travel.move": 0,
+    "travel.plan": 1,
+    "travel.ride": 2
+  },
+  "finance_shopping": {
+    "finance.manage": 0,
+    "finance.plan": 1,
+    "finance.research": 2
+  },
+  "knowledge_search": {
+    "knowledge.media": 0,
+    "knowledge.news": 1,
+    "knowledge.search": 2
+  },
+  "memory_recall": {
+    "memory.photos": 0,
+    "memory.recall": 1,
+    "memory.save": 2
+  },
+  "telephony": {
+    "call.make": 0,
+    "call.schedule": 1
+  },
+  "home_maintenance": {
+    "home_maint.project": 0,
+    "home_maint.schedule": 1,
+    "home_maint.track": 2
+  },
+  "documents_files": {
+    "document.manage": 0
+  },
+  "social_media": {
+    "social.post": 0
+  },
+  "grief_loss": {
+    "grief.acknowledge": 0,
+    "grief.process": 1,
+    "grief.specific": 2
+  },
+  "emotional_support": {
+    "emotional.calm": 0,
+    "emotional.check": 1,
+    "emotional.encourage": 2,
+    "emotional.presence": 3
+  },
+  "self_compassion": {
+    "self_compassion.inner_critic": 0,
+    "self_compassion.practice": 1,
+    "self_compassion.worth": 2
+  },
+  "anger_conflict": {
+    "anger.assert": 0,
+    "anger.manage": 1,
+    "anger.repair": 2
+  },
+  "crisis_safety": {
+    "crisis.escalate": 0,
+    "crisis.support": 1
+  },
+  "relationships_dating": {
+    "relationship.dating": 0,
+    "relationship.deepen": 1,
+    "relationship.intimacy": 2,
+    "relationship.repair": 3
+  },
+  "career_work": {
+    "career.burnout": 0,
+    "career.confidence": 1,
+    "career.job_search": 2,
+    "career.plan": 3
+  },
+  "family_parenting": {
+    "family.conflict": 0,
+    "family.eldercare": 1,
+    "family.parenting": 2,
+    "family.traditions": 3
+  },
+  "life_transitions": {
+    "transition.identity": 0,
+    "transition.midlife": 1,
+    "transition.navigate": 2
+  },
+  "values_purpose": {
+    "values.explore": 0,
+    "values.legacy": 1,
+    "values.purpose": 2
+  },
+  "wisdom_philosophy": {
+    "wisdom.inquire": 0,
+    "wisdom.perspective": 1
+  },
+  "celebration_joy": {
+    "joy.celebrate": 0,
+    "joy.play": 1
+  },
+  "boundaries_selfcare": {
+    "boundary.digital": 0,
+    "boundary.set": 1
+  },
+  "social_connection": {
+    "social.connect": 0,
+    "social.loneliness": 1,
+    "social.skills": 2
+  },
+  "difficult_conversations": {
+    "conversation.prepare": 0,
+    "conversation.repair": 1
+  },
+  "team_handoff": {
+    "team.handoff": 0
+  },
+  "background_tasks": {
+    "background.task": 0
+  },
+  "productivity_focus": {
+    "focus.decide": 0,
+    "focus.goals": 1,
+    "focus.start": 2
+  },
+  "games": {
+    "games.manage": 0,
+    "games.play": 1
+  },
+  "learning": {
+    "learning.manage": 0
+  },
+  "body_image": {
+    "body.support": 0
+  },
+  "recovery": {
+    "recovery.support": 0
+  },
+  "divorce": {
+    "divorce.support": 0
+  },
+  "shame": {
+    "shame.process": 0
+  },
+  "developer": {
+    "dev.tools": 0
+  },
+  "concierge": {
+    "concierge.manage": 0
+  },
+  "__no_tool__": {
+    "__no_tool__": 0
+  }
+}

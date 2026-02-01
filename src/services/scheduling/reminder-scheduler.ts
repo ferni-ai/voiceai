@@ -533,7 +533,7 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
       ? `Your ${relationship} ${reminder.sourceIdentityName}`
       : reminder.sourceIdentityName;
     messageToDeliver = `${attribution} wanted me to remind you: ${reminder.message}`;
-    
+
     getLogger().info(
       {
         reminderId: reminder.id,

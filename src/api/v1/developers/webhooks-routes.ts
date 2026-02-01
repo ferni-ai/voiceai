@@ -17,7 +17,11 @@ import { getPublisherFromToken } from './shared/developer-auth.js';
 import { z } from 'zod';
 import * as crypto from 'crypto';
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
-import { COLLECTIONS, type DeveloperWebhook, type WebhookEventType as WebhookEventTypeValue } from '../../../types/developer-platform.js';
+import {
+  COLLECTIONS,
+  type DeveloperWebhook,
+  type WebhookEventType as WebhookEventTypeValue,
+} from '../../../types/developer-platform.js';
 
 const log = getLogger().child({ module: 'developers-webhooks' });
 
@@ -100,7 +104,11 @@ function docToWebhook(doc: FirebaseFirestore.DocumentSnapshot): Webhook | null {
   const toDate = (val: unknown): Date | undefined => {
     if (!val) return undefined;
     if (val instanceof Date) return val;
-    if (typeof val === 'object' && 'toDate' in val && typeof (val as { toDate: () => Date }).toDate === 'function') {
+    if (
+      typeof val === 'object' &&
+      'toDate' in val &&
+      typeof (val as { toDate: () => Date }).toDate === 'function'
+    ) {
       return (val as { toDate: () => Date }).toDate();
     }
     return undefined;
@@ -127,7 +135,7 @@ async function listWebhooks(
   cursor?: string
 ): Promise<{ items: Webhook[]; nextCursor?: string; hasMore: boolean }> {
   const collection = getWebhooksCollection();
-  
+
   let query = collection
     .where('publisherId', '==', publisherId)
     .orderBy('createdAt', 'desc')
@@ -143,19 +151,19 @@ async function listWebhooks(
 
   const snapshot = await query.get();
   const docs = snapshot.docs;
-  
+
   // Check if there are more results
   const hasMore = docs.length > limit;
-  const items = docs.slice(0, limit).map((doc) => docToWebhook(doc)!).filter(Boolean);
+  const items = docs
+    .slice(0, limit)
+    .map((doc) => docToWebhook(doc)!)
+    .filter(Boolean);
   const nextCursor = hasMore && docs.length > 0 ? docs[limit - 1].id : undefined;
 
   return { items, nextCursor, hasMore };
 }
 
-async function createWebhook(
-  publisherId: string,
-  data: CreateWebhookRequest
-): Promise<Webhook> {
+async function createWebhook(publisherId: string, data: CreateWebhookRequest): Promise<Webhook> {
   const id = `webhook_${crypto.randomBytes(16).toString('hex')}`;
   const secret = crypto.randomBytes(32).toString('hex');
   const now = new Date();
@@ -195,7 +203,7 @@ async function createWebhook(
 async function getWebhook(publisherId: string, webhookId: string): Promise<Webhook | null> {
   const collection = getWebhooksCollection();
   const doc = await collection.doc(webhookId).get();
-  
+
   const webhook = docToWebhook(doc);
 
   if (!webhook || webhook.publisherId !== publisherId) {
@@ -219,7 +227,7 @@ async function updateWebhook(
   const updateData: Record<string, unknown> = {
     updatedAt: new Date(),
   };
-  
+
   if (updates.name !== undefined) updateData.name = updates.name;
   if (updates.url !== undefined) updateData.url = updates.url;
   if (updates.events !== undefined) updateData.events = updates.events;

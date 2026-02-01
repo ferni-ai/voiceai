@@ -75,7 +75,7 @@ Rare (5%):
 
 **Kintsugi moment** (rare, peak only):
 ```
-<speed ratio="0.90"/><break time="400ms"/>The cracks are where the gold goes.<break time="500ms"/>
+<speed ratio="0.90"/><break time="400ms"/>We are all broken in different ways—<break time="200ms"/>that's what makes us both human and beautiful.<break time="500ms"/>
 ```
 
 **Genuine excitement:**

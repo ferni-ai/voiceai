@@ -35,10 +35,7 @@ import {
   shouldAttemptReconnection,
 } from './openai-health-monitor.js';
 // Response Orchestrator - coordinate with SDK state tracking
-import {
-  onGenerationStarted,
-  onGenerationComplete,
-} from './response-orchestrator.js';
+import { onGenerationStarted, onGenerationComplete } from './response-orchestrator.js';
 
 const log = getLogger();
 
@@ -117,6 +114,15 @@ interface SessionState {
   lastActiveResponseErrorAt?: number;
   /** Count of active_response errors in current burst */
   activeResponseErrorCount: number;
+
+  // =========================================================================
+  // FIX (Jan 2026): Silence response deduplication
+  // Prevents multiple silence responses from queueing up when Gemini is slow
+  // =========================================================================
+  /** True if a silence response is currently pending */
+  pendingSilenceResponse: boolean;
+  /** Timestamp when silence response started */
+  pendingSilenceResponseAt?: number;
 
   // =========================================================================
   // BETTER THAN HUMAN: Latency tracking for adaptive timeouts
@@ -398,14 +404,14 @@ export function unregisterSessionForReconnection(sessionId: string): void {
 
 /**
  * Generate a reply using only sessionId (looks up session from registry).
- * 
+ *
  * This is a convenience function that matches the `coordinatedSay(sessionId, ...)` pattern.
  * Use this when you only have sessionId available (e.g., in turn-handler).
- * 
+ *
  * @param sessionId - The session ID to generate reply for
  * @param options - Gateway options (instructions, fallback, etc.)
  * @returns GatewayResult with success/failure info
- * 
+ *
  * @example
  * ```ts
  * // Instead of needing the full session:
@@ -421,13 +427,13 @@ export async function generateReplyBySessionId(
   options: GatewayOptions
 ): Promise<GatewayResult> {
   const session = sessionObjects.get(sessionId);
-  
+
   if (!session) {
     log.warn(
       { sessionId, context: options.context },
       '⚠️ [GATEWAY] generateReplyBySessionId: Session not found in registry'
     );
-    
+
     // Fall back to speaking directly via coordinatedSay if fallback provided
     if (options.fallbackMessage) {
       try {
@@ -441,14 +447,14 @@ export async function generateReplyBySessionId(
         // Ignore coordinatedSay errors
       }
     }
-    
+
     return {
       success: false,
       usedFallback: false,
       error: 'Session not found in registry',
     };
   }
-  
+
   return generateReply(session, sessionId, options);
 }
 
@@ -617,6 +623,7 @@ function getSessionState(sessionId: string): SessionState {
       hasActiveLowPriorityResponse: false,
       hasActiveResponse: false,
       activeResponseErrorCount: 0,
+      pendingSilenceResponse: false,
       recentTTFBs: [],
       quickAckSent: false,
       stats: {
@@ -642,10 +649,10 @@ const BASE_TIMEOUT_MS = 4000;
 const MIN_TIMEOUT_MS = 2500;
 /** Maximum timeout - never exceed this */
 const MAX_TIMEOUT_MS = 8000;
-/** 
+/**
  * Timeout for tool response calls - needs more time because Gemini must:
  * 1. Parse the tool result
- * 2. Generate a contextually appropriate response  
+ * 2. Generate a contextually appropriate response
  * 3. Start streaming speech
  * Tool calls are fundamentally different from normal conversational turns.
  */
@@ -1176,6 +1183,40 @@ export async function generateReply(
   }
 
   // -------------------------------------------------------------------------
+  // SAFEGUARD 3b: Silence response deduplication (Jan 2026)
+  // Prevents multiple silence responses from queueing up when Gemini is slow.
+  // When Gemini takes >5s to respond, multiple silence checks can queue up
+  // calls that all timeout together, causing cascading unhandled rejections.
+  // -------------------------------------------------------------------------
+  const isSilenceContext = context.includes('silence');
+  if (isSilenceContext && state.pendingSilenceResponse) {
+    // Check for stale silence response (>15s = definitely stuck)
+    const silenceAge = state.pendingSilenceResponseAt
+      ? Date.now() - state.pendingSilenceResponseAt
+      : 0;
+    if (silenceAge < 15_000) {
+      log.debug(
+        { sessionId, context, silenceAgeMs: silenceAge },
+        '🤫 [GATEWAY] Silence response already pending - skipping duplicate'
+      );
+      return {
+        success: false,
+        usedFallback: false,
+        error: 'Silence response already pending',
+        skipped: true,
+        latencyMs: Date.now() - startTime,
+      };
+    }
+    // Stale silence response - clear it and allow new one
+    log.warn(
+      { sessionId, context, silenceAgeMs: silenceAge },
+      '🤫 [GATEWAY] Clearing stale silence response flag'
+    );
+    state.pendingSilenceResponse = false;
+    state.pendingSilenceResponseAt = undefined;
+  }
+
+  // -------------------------------------------------------------------------
   // SAFEGUARD 4: Active response check (ANY priority)
   // Prevents "conversation_already_has_active_response" errors from OpenAI
   // FIX: This is a hard block - if a response is active, we MUST interrupt first
@@ -1286,6 +1327,12 @@ export async function generateReply(
     state.lowPriorityResponseStartedAt = Date.now();
   }
 
+  // Mark silence response as pending (deduplication)
+  if (isSilenceContext) {
+    state.pendingSilenceResponse = true;
+    state.pendingSilenceResponseAt = Date.now();
+  }
+
   // -------------------------------------------------------------------------
   // BETTER THAN HUMAN: Use adaptive timeout based on session latency history
   // -------------------------------------------------------------------------
@@ -1296,9 +1343,12 @@ export async function generateReply(
   //   3. Start streaming speech
   // This takes significantly longer than normal conversational turns.
   // Auto-detect tool context and enforce TOOL_RESPONSE_TIMEOUT_MS (10s) minimum.
-  const isToolResponseContext = context.startsWith('json-tool-') || context.startsWith('ftis-tool-') || context.includes('tool-response');
+  const isToolResponseContext =
+    context.startsWith('json-tool-') ||
+    context.startsWith('ftis-tool-') ||
+    context.includes('tool-response');
   let effectiveTimeoutMs: number;
-  
+
   if (isToolResponseContext) {
     // Tool responses: use at least TOOL_RESPONSE_TIMEOUT_MS, or caller's value if higher
     effectiveTimeoutMs = Math.max(timeoutMs, TOOL_RESPONSE_TIMEOUT_MS);
@@ -1405,7 +1455,7 @@ export async function generateReply(
           '🔧 [GATEWAY] Tool response generateReply STARTED'
         );
       }
-      
+
       const handle = session.generateReply({ instructions, allowInterruptions });
 
       // BETTER THAN HUMAN: Track actual TTFB by listening for first content
@@ -1425,7 +1475,7 @@ export async function generateReply(
           );
         });
         await handle.waitForPlayout();
-        
+
         if (isToolResponse) {
           log.info(
             { sessionId, context, durationMs: Date.now() - requestSentAt },
@@ -1767,6 +1817,12 @@ export async function generateReply(
       state.hasActiveLowPriorityResponse = false;
       state.lowPriorityResponseStartedAt = undefined;
     }
+
+    // Clear silence response flag if this was a silence context
+    if (isSilenceContext) {
+      state.pendingSilenceResponse = false;
+      state.pendingSilenceResponseAt = undefined;
+    }
   }
 }
 
@@ -1798,8 +1854,10 @@ export async function prewarmSession(
   // SKIP_PREWARM_GENERATEREPLY=true/unset → Quick mode (500ms delay, lazy connection)
   const envValue = process.env.SKIP_PREWARM_GENERATEREPLY;
   const SKIP_PREWARM_GENERATEREPLY = envValue !== 'false';
-  
-  process.stderr.write(`\n🔥 [PREWARM DEBUG] SKIP_PREWARM_GENERATEREPLY env="${envValue}" → mode=${SKIP_PREWARM_GENERATEREPLY ? 'QUICK' : 'FULL'}\n`);
+
+  process.stderr.write(
+    `\n🔥 [PREWARM DEBUG] SKIP_PREWARM_GENERATEREPLY env="${envValue}" → mode=${SKIP_PREWARM_GENERATEREPLY ? 'QUICK' : 'FULL'}\n`
+  );
 
   if (SKIP_PREWARM_GENERATEREPLY) {
     log.info({ sessionId }, '🔥 [GATEWAY] Starting session prewarm (QUICK MODE)...');
@@ -1823,7 +1881,9 @@ export async function prewarmSession(
   }
 
   log.info({ sessionId }, '🔥 [GATEWAY] Starting FULL prewarm (establishing Gemini connection)...');
-  process.stderr.write(`\n⚠️ [PREWARM DEBUG] FULL prewarm starting - Gemini will receive audio during this phase!\n`);
+  process.stderr.write(
+    `\n⚠️ [PREWARM DEBUG] FULL prewarm starting - Gemini will receive audio during this phase!\n`
+  );
   process.stderr.write(`⚠️ [PREWARM DEBUG] Any audio picked up now will trigger Gemini response\n`);
 
   // FIX (Jan 2026): Increased timeout from 3s to 5s - connection can take a while on cold start
@@ -1845,7 +1905,10 @@ export async function prewarmSession(
             session.interrupt();
             log.debug({ sessionId }, '🛑 [GATEWAY] Prewarm handle interrupted on timeout');
           } catch (interruptErr) {
-            log.debug({ error: String(interruptErr) }, '🔇 [GATEWAY] Prewarm interrupt failed (non-critical)');
+            log.debug(
+              { error: String(interruptErr) },
+              '🔇 [GATEWAY] Prewarm interrupt failed (non-critical)'
+            );
           }
         }
         reject(new Error(`Prewarm timeout (${PREWARM_TIMEOUT_MS / 1000}s)`));

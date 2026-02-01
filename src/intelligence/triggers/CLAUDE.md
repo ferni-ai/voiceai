@@ -66,7 +66,10 @@ User Text
 | `user-trigger-profile.types.ts` | Profile types (dates, relationships, patterns) |
 | `user-trigger-profile-service.ts` | Firestore-backed profile storage |
 | `personal-context-integrator.ts` | Generate boosts from personal context |
-| `extractors/` | Extract dates, relationships, patterns from text |
+| `extractors/index.ts` | Extractor exports |
+| `extractors/significant-date-extractor.ts` | Extract significant dates from text |
+| `extractors/relationship-extractor.ts` | Extract relationship mentions |
+| `extractors/communication-pattern-extractor.ts` | Extract communication patterns |
 
 ### Phase 3: Temporal Intelligence
 
@@ -95,13 +98,26 @@ User Text
 | `life-context-snapshot.ts` | Types for domain data and life context aggregation |
 | `domain-data-collectors.ts` | Collectors for each persona domain (sleep, calendar, finance, goals, relationships, habits) |
 | `life-context-aggregator.ts` | Aggregate domain data, compute stress/wellbeing scores, detect patterns |
-| `synthesis-trigger-generator.ts` | Generate triggers based on cross-domain life context |
+| `synthesis-trigger-generator.ts` | Root synthesis generator |
+| `synthesis-trigger-generator/` | **Directory** with specialized generators: |
+| `synthesis-trigger-generator/generator.ts` | Core trigger generation logic |
+| `synthesis-trigger-generator/support-triggers.ts` | Support-category triggers |
+| `synthesis-trigger-generator/warning-triggers.ts` | Warning-category triggers |
+| `synthesis-trigger-generator/celebration-triggers.ts` | Celebration triggers |
+| `synthesis-trigger-generator/nuanced-triggers.ts` | Nuanced cross-domain triggers |
+| `synthesis-trigger-generator/analytics.ts` | Synthesis analytics |
+| `synthesis-trigger-generator/types.ts` | Synthesis types |
+| `synthesis-trigger-generator/index.ts` | Re-exports |
 
-### Other
+### Additional Files
 
 | File | Purpose |
 |------|---------|
 | `index.ts` | Re-exports all modules |
+| `anniversary-detector.ts` | Detect approaching anniversaries and significant dates |
+| `commitment-reminder.ts` | Track and remind about commitments |
+| `pattern-callback.ts` | Pattern-based callback triggers |
+| `recall-trigger-engine.ts` | Memory recall trigger engine |
 
 ---
 
@@ -505,4 +521,4 @@ See `docs/plans/SUPERHUMAN-TRIGGER-INTELLIGENCE-PLAN.md` for full roadmap.
 
 ---
 
-*Last updated: December 2024 (Phase 6 complete)*
+*Last updated: January 2026*

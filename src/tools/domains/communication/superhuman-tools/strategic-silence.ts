@@ -11,7 +11,10 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from '../../../../services/superhuman/firestore-utils.js';
+import {
+  getFirestoreDb,
+  cleanForFirestore,
+} from '../../../../services/superhuman/firestore-utils.js';
 import type { StrategicSilenceRecord } from './types.js';
 
 const log = createLogger({ module: 'strategic-silence' });
@@ -41,8 +44,14 @@ const SILENCE_INDICATORS = [
   // Emotional states
   { pattern: /\bi('m| am) (so |really )?(angry|furious|pissed|livid)/i, weight: 0.9 },
   { pattern: /\bi (can't believe|am in shock|am stunned)/i, weight: 0.7 },
-  { pattern: /\bi('m| am) (going to|gonna) (tell|say|text|call|message) (them|him|her)/i, weight: 0.8 },
-  { pattern: /\bi (want|need) to (tell|say|text|call|message) them (right now|immediately)/i, weight: 0.85 },
+  {
+    pattern: /\bi('m| am) (going to|gonna) (tell|say|text|call|message) (them|him|her)/i,
+    weight: 0.8,
+  },
+  {
+    pattern: /\bi (want|need) to (tell|say|text|call|message) them (right now|immediately)/i,
+    weight: 0.85,
+  },
 
   // Relationship contexts
   { pattern: /\b(ex|former|broke up)/i, weight: 0.7 },
@@ -192,8 +201,10 @@ export async function analyzeTimingPatterns(
   }
 
   // Calculate which is better
-  const immediateTotal = immediateOutcomes.positive + immediateOutcomes.negative + immediateOutcomes.neutral || 1;
-  const delayedTotal = delayedOutcomes.positive + delayedOutcomes.negative + delayedOutcomes.neutral || 1;
+  const immediateTotal =
+    immediateOutcomes.positive + immediateOutcomes.negative + immediateOutcomes.neutral || 1;
+  const delayedTotal =
+    delayedOutcomes.positive + delayedOutcomes.negative + delayedOutcomes.neutral || 1;
 
   const immediateSuccessRate = immediateOutcomes.positive / immediateTotal;
   const delayedSuccessRate = delayedOutcomes.positive / delayedTotal;
@@ -298,7 +309,8 @@ export async function getTimingRecommendation(
   if (silenceWeight > respondWeight && silenceWeight > 0.5) {
     return {
       recommendation: 'wait',
-      reason: 'Your emotional state suggests waiting. Things said in anger are rarely regretted for being unsaid.',
+      reason:
+        'Your emotional state suggests waiting. Things said in anger are rarely regretted for being unsaid.',
       suggestedDelay: 24,
       confidence: silenceWeight / (silenceWeight + respondWeight + 0.1),
     };
@@ -360,10 +372,7 @@ export function holdMessage(
 
   heldMessages.set(id, held);
 
-  log.info(
-    { userId, contactName, holdHours },
-    '⏸️ Message held for cooling off period'
-  );
+  log.info({ userId, contactName, holdHours }, '⏸️ Message held for cooling off period');
 
   return held;
 }

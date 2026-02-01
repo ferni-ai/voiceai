@@ -13,10 +13,13 @@ Tools give our AI the ability to take meaningful action in users' lives. Every t
 | Tool Registry    | `registry/index.ts`              |
 | Domain Tools     | `domains/*/index.ts`             |
 | Tool Builder     | `builder.ts`                     |
-| Orchestration    | `orchestration/tool-composer.ts` |
+| Orchestrator     | `orchestrator/tool-composer.ts`  |
+| Tool Gateway     | `gateway/tool-gateway.ts`        |
+| Semantic Router  | `semantic-router/index.ts`       |
+| Experiments      | `experiments/experiment-manager.ts` |
+| Schemas          | `schemas/`                       |
 | Validation       | `validation.ts`                  |
 | Test Utils       | `__tests__/test-utils.ts`        |
-| Advanced Systems | `advanced/index.ts`              |
 
 ---
 
@@ -106,7 +109,7 @@ tools/
 │   ├── index.ts              # Re-exports all advanced systems
 │   └── tool-lifecycle.ts     # A/B testing, semantic routing integration
 │
-├── domains/                   # Domain-specific tool collections (118 domains)
+├── domains/                   # Domain-specific tool collections (123 domains)
 │   ├── calendar/             # Calendar tools (Alex)
 │   ├── career/               # Career tools
 │   ├── communication/        # Email, SMS, messaging (Alex)
@@ -138,14 +141,11 @@ tools/
 │
 ├── handoff/                   # Agent handoff tools
 │
-├── orchestrator/              # Tool orchestration (PREFERRED)
+├── orchestrator/              # Tool orchestration
 │   ├── index.ts              # Main exports
 │   ├── tool-composer.ts      # TOOL_CHAINS, composition
 │   ├── unified-tool-orchestrator.ts # Unified orchestrator
 │   └── voice-agent-integration.ts # Voice agent hooks
-│
-├── orchestration/             # DEPRECATED - use orchestrator/ instead
-│   └── index.ts              # Re-exports from orchestrator/
 │
 ├── registry/                  # Central tool registry
 │   ├── index.ts              # ToolRegistry class
@@ -167,14 +167,21 @@ tools/
 ├── deprecation.ts            # Deprecation handling
 ├── ab-testing.ts             # A/B testing service
 │
-├── # Root-level Domain Files (legacy - consider moving to domains/)
-├── bills.ts                  # → domains/finance/
-├── calculators.ts            # → domains/finance/
-├── communication.ts          # → domains/communication/
-├── gamification.ts           # → domains/habits/ or engagement/
-├── medications.ts            # → domains/wellness/
-├── news.ts                   # → domains/information/
-├── notes.ts                  # → domains/productivity/
+├── # Root-level Infrastructure Files (continued)
+├── awareness.ts              # Tool awareness
+├── context-carrier.ts        # Context passing between tools
+├── dynamic-tool-router.ts    # Dynamic routing
+├── expression.ts             # Expression tools
+├── handoff-state.ts          # Handoff state management
+├── memory-aware-router.ts    # Memory-aware routing
+├── proactive-coaching.ts     # Proactive coaching triggers
+├── rate-limiter.ts           # Tool rate limiting
+├── runtime-enforcement.ts    # Runtime enforcement
+├── scheduling.ts             # Scheduling tools
+├── team-integration.ts       # Team integration tools
+├── tool-success-tracker.ts   # Track tool success rates
+├── unified-intelligence-stub.ts # Intelligence stub
+├── versioning.ts             # Tool versioning
 │
 ├── CLAUDE.md                 # This file
 └── index.ts                  # Main exports

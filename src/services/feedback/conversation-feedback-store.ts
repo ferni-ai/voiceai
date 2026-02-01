@@ -72,11 +72,7 @@ export async function createFeedbackPrompt(
       wasEngaged: false,
     };
 
-    const ref = db
-      .collection('profiles')
-      .doc(userId)
-      .collection(COLLECTION_PATH)
-      .doc(feedbackId);
+    const ref = db.collection('profiles').doc(userId).collection(COLLECTION_PATH).doc(feedbackId);
 
     await ref.set(deepRemoveUndefined(feedbackDoc));
 
@@ -108,11 +104,7 @@ export async function recordFeedbackReaction(
 
   try {
     const db = getFirestore();
-    const ref = db
-      .collection('profiles')
-      .doc(userId)
-      .collection(COLLECTION_PATH)
-      .doc(feedbackId);
+    const ref = db.collection('profiles').doc(userId).collection(COLLECTION_PATH).doc(feedbackId);
 
     const doc = await ref.get();
     if (!doc.exists) {

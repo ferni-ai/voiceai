@@ -193,34 +193,31 @@ describe('Theme Tools', () => {
         expect(result).toContain('dark mode');
       });
 
-      it.each([
-        'make it lighter',
-        'I want light theme',
-        'switch to day mode',
-        'too bright',
-      ])('should fuzzy match "%s" as light theme', async (input) => {
-        const result = await setThemeTool.execute({ theme: input });
+      it.each(['make it lighter', 'I want light theme', 'switch to day mode', 'too bright'])(
+        'should fuzzy match "%s" as light theme',
+        async (input) => {
+          const result = await setThemeTool.execute({ theme: input });
 
-        expect(mockBroadcastUserEvent).toHaveBeenCalledWith('test-user-123', 'theme_change', {
-          theme: 'light',
-          source: 'voice',
-        });
-        expect(result).toContain('light mode');
-      });
+          expect(mockBroadcastUserEvent).toHaveBeenCalledWith('test-user-123', 'theme_change', {
+            theme: 'light',
+            source: 'voice',
+          });
+          expect(result).toContain('light mode');
+        }
+      );
 
-      it.each([
-        'use automatic theme',
-        'follow system preference',
-        'auto mode',
-      ])('should fuzzy match "%s" as auto theme', async (input) => {
-        const result = await setThemeTool.execute({ theme: input });
+      it.each(['use automatic theme', 'follow system preference', 'auto mode'])(
+        'should fuzzy match "%s" as auto theme',
+        async (input) => {
+          const result = await setThemeTool.execute({ theme: input });
 
-        expect(mockBroadcastUserEvent).toHaveBeenCalledWith('test-user-123', 'theme_change', {
-          theme: 'auto',
-          source: 'voice',
-        });
-        expect(result).toContain('system settings');
-      });
+          expect(mockBroadcastUserEvent).toHaveBeenCalledWith('test-user-123', 'theme_change', {
+            theme: 'auto',
+            source: 'voice',
+          });
+          expect(result).toContain('system settings');
+        }
+      );
     });
 
     describe('Theme Parsing - Unknown Input', () => {
@@ -374,7 +371,7 @@ describe('Theme Tools', () => {
 
         const result = await getCurrentThemeTool.execute({});
 
-        expect(result).toContain("not sure");
+        expect(result).toContain('not sure');
         expect(result).toContain('settings menu');
       });
     });
@@ -388,20 +385,17 @@ describe('Theme Tools', () => {
       setThemeTool = def!.create(mockContext);
     });
 
-    it.each([
-      'DARK',
-      'Dark',
-      'DaRk',
-      'DARK MODE',
-      'Dark Mode',
-    ])('should handle case variations: "%s"', async (input) => {
-      await setThemeTool.execute({ theme: input });
+    it.each(['DARK', 'Dark', 'DaRk', 'DARK MODE', 'Dark Mode'])(
+      'should handle case variations: "%s"',
+      async (input) => {
+        await setThemeTool.execute({ theme: input });
 
-      expect(mockBroadcastUserEvent).toHaveBeenCalledWith('test-user-123', 'theme_change', {
-        theme: 'dark',
-        source: 'voice',
-      });
-    });
+        expect(mockBroadcastUserEvent).toHaveBeenCalledWith('test-user-123', 'theme_change', {
+          theme: 'dark',
+          source: 'voice',
+        });
+      }
+    );
   });
 
   describe('Whitespace Handling', () => {
@@ -412,14 +406,13 @@ describe('Theme Tools', () => {
       setThemeTool = def!.create(mockContext);
     });
 
-    it.each([
-      '  dark  ',
-      '\tdark\n',
-      '   light mode   ',
-    ])('should trim whitespace: "%s"', async (input) => {
-      await setThemeTool.execute({ theme: input });
+    it.each(['  dark  ', '\tdark\n', '   light mode   '])(
+      'should trim whitespace: "%s"',
+      async (input) => {
+        await setThemeTool.execute({ theme: input });
 
-      expect(mockBroadcastUserEvent).toHaveBeenCalled();
-    });
+        expect(mockBroadcastUserEvent).toHaveBeenCalled();
+      }
+    );
   });
 });

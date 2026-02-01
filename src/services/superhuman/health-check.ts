@@ -143,7 +143,8 @@ async function checkService(serviceId: string): Promise<ServiceHealth> {
       }
 
       case 'emotional-intelligence': {
-        const { detectEmotionalState } = await import('../../tools/semantic-router/shared-vocabulary.js');
+        const { detectEmotionalState } =
+          await import('../../tools/semantic-router/shared-vocabulary.js');
         const result = detectEmotionalState('I feel so overwhelmed and stressed');
         return {
           id: serviceId,
@@ -155,7 +156,8 @@ async function checkService(serviceId: string): Promise<ServiceHealth> {
       }
 
       case 'cross-persona': {
-        const { addCrossPersonaInsight } = await import('../cross-persona/cross-persona-insights.js');
+        const { addCrossPersonaInsight } =
+          await import('../cross-persona/cross-persona-insights.js');
         return {
           id: serviceId,
           name: service.name,
@@ -166,9 +168,8 @@ async function checkService(serviceId: string): Promise<ServiceHealth> {
       }
 
       case 'predictive-coaching': {
-        const { getPatternPrediction } = await import(
-          './semantic-intelligence/temporal-patterns.js'
-        );
+        const { getPatternPrediction } =
+          await import('./semantic-intelligence/temporal-patterns.js');
         return {
           id: serviceId,
           name: service.name,
@@ -232,9 +233,7 @@ async function checkService(serviceId: string): Promise<ServiceHealth> {
 export async function checkSuperhumanServicesHealth(): Promise<HealthCheckResult> {
   const startTime = Date.now();
 
-  const healthChecks = await Promise.allSettled(
-    SERVICES.map((s) => checkService(s.id))
-  );
+  const healthChecks = await Promise.allSettled(SERVICES.map((s) => checkService(s.id)));
 
   const services: ServiceHealth[] = healthChecks.map((result, index) => {
     if (result.status === 'fulfilled') {
@@ -254,8 +253,7 @@ export async function checkSuperhumanServicesHealth(): Promise<HealthCheckResult
   const degradedCount = services.filter((s) => s.status === 'degraded').length;
   const unhealthyCount = services.filter((s) => s.status === 'unhealthy').length;
 
-  const avgLatencyMs =
-    services.reduce((sum, s) => sum + s.latencyMs, 0) / services.length;
+  const avgLatencyMs = services.reduce((sum, s) => sum + s.latencyMs, 0) / services.length;
 
   let overall: 'healthy' | 'degraded' | 'unhealthy';
   if (unhealthyCount > services.length / 2) {

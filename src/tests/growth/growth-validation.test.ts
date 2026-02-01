@@ -55,7 +55,7 @@ describe('TikTok Account Validation', () => {
       description: '',
     });
     expect(result.success).toBe(false);
-    expect(result.errors?.some(e => e.includes('Description'))).toBe(true);
+    expect(result.errors?.some((e) => e.includes('Description'))).toBe(true);
   });
 
   it('validates full stored account', () => {
@@ -91,7 +91,7 @@ describe('Content Piece Validation', () => {
       content: '',
     });
     expect(result.success).toBe(false);
-    expect(result.errors?.some(e => e.includes('Content'))).toBe(true);
+    expect(result.errors?.some((e) => e.includes('Content'))).toBe(true);
   });
 
   it('rejects invalid platform', () => {
@@ -161,7 +161,7 @@ describe('Influencer Lead Validation', () => {
       email: 'not-an-email',
     });
     expect(result.success).toBe(false);
-    expect(result.errors?.some(e => e.toLowerCase().includes('email'))).toBe(true);
+    expect(result.errors?.some((e) => e.toLowerCase().includes('email'))).toBe(true);
   });
 
   it('rejects zero followers', () => {
@@ -295,13 +295,25 @@ describe('Scheduled Task Validation', () => {
 
     // Manual validation of expected structure
     expect(task.id).toBeDefined();
-    expect(['post_content', 'send_outreach', 'check_metrics', 'generate_content', 'engage_reddit']).toContain(task.type);
+    expect([
+      'post_content',
+      'send_outreach',
+      'check_metrics',
+      'generate_content',
+      'engage_reddit',
+    ]).toContain(task.type);
     expect(['pending', 'running', 'completed', 'failed']).toContain(task.status);
     expect(new Date(task.scheduledFor).getTime()).toBeGreaterThan(0);
   });
 
   it('validates all task types', () => {
-    const validTypes = ['post_content', 'send_outreach', 'check_metrics', 'generate_content', 'engage_reddit'];
+    const validTypes = [
+      'post_content',
+      'send_outreach',
+      'check_metrics',
+      'generate_content',
+      'engage_reddit',
+    ];
     const validStatuses = ['pending', 'running', 'completed', 'failed'];
 
     for (const type of validTypes) {

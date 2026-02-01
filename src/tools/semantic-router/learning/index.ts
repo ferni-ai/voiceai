@@ -74,3 +74,25 @@ export {
   type InteractionEvent,
   type UserSegmentationConfig,
 } from './user-segmentation.js';
+
+// 🔄 Phase 3: Implicit Correction Capture - Learning loop closure
+export {
+  recordRoutingPrediction,
+  recordActualToolExecution,
+  getCorrectionMetrics,
+  resetMetrics as resetCorrectionCaptureMetrics,
+  type RoutingPrediction,
+} from './implicit-correction-capture.js';
+
+// 🚀 Phase 6: Automated Retraining Pipeline - Safe continuous improvement
+export {
+  RetrainingPipeline,
+  getRetrainingPipeline,
+  initializeRetrainingPipeline,
+  handleScheduledRetraining,
+  handleVolumeBasedRetraining,
+  handleQualityBasedRetraining,
+  type RetrainingConfig,
+  type RetrainingResult,
+  type PipelineStatus,
+} from './retraining-pipeline.js';

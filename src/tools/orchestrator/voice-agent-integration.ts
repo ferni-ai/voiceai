@@ -23,11 +23,11 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { toolOrchestrator, type ToolSelectionContext } from './unified-tool-orchestrator.js';
+import { toolOrchestrator, type ToolSelectionContext } from './tool-orchestrator.js';
 import { buildAgentTools, buildEssentialTools } from '../builder.js';
 import { buildHandoffTools } from '../handoff/handoff-factory.js';
 import { autoRegisterAllDomains } from '../registry/loader.js';
-import type { Tool, ToolContext } from '../registry/types.js';
+import type { Tool } from '../registry/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
 const log = getLogger();
@@ -171,11 +171,12 @@ export async function initializeToolOrchestrator(): Promise<void> {
       // FAST INITIALIZATION: Use pre-built manifest + embeddings!
       // This is 100x faster than loading all 98 domains at startup.
       // =======================================================================
-      
+
       // Step 1: Try to load pre-built manifest (50ms vs 5-15s for imports)
       let useManifestMode = false;
       try {
-        const { loadToolManifest, isManifestLoaded } = await import('../registry/manifest-loader.js');
+        const { loadToolManifest, isManifestLoaded } =
+          await import('../registry/manifest-loader.js');
         if (!isManifestLoaded()) {
           const manifest = await loadToolManifest();
           log.info(
@@ -191,9 +192,8 @@ export async function initializeToolOrchestrator(): Promise<void> {
       // Step 2: Try to load pre-computed embeddings (100ms vs 3-5s for API)
       if (useManifestMode) {
         try {
-          const { loadPrecomputedEmbeddings, areEmbeddingsLoaded } = await import(
-            '../semantic-router/precomputed-embeddings.js'
-          );
+          const { loadPrecomputedEmbeddings, areEmbeddingsLoaded } =
+            await import('../semantic-router/precomputed-embeddings.js');
           if (!areEmbeddingsLoaded()) {
             const embeddings = await loadPrecomputedEmbeddings();
             log.info(
@@ -208,24 +208,24 @@ export async function initializeToolOrchestrator(): Promise<void> {
 
       // Step 3: Register domain loaders (does NOT load the actual modules!)
       // This is fast (~10ms) - it just registers the loader FUNCTIONS
-    await autoRegisterAllDomains();
-    log.info('📦 Domain loaders registered');
+      await autoRegisterAllDomains();
+      log.info('📦 Domain loaders registered');
 
       // Step 4: Initialize orchestrator
       // If manifest is available, this will skip expensive operations
-    await toolOrchestrator.initialize();
+      await toolOrchestrator.initialize();
       state.initialized = true;
 
-    log.info(
+      log.info(
         { elapsed: Date.now() - (state.initStartTime || 0), stats: toolOrchestrator.getStats() },
         '✅ Tool orchestrator ready for voice agent (global singleton)'
-    );
-  } catch (error) {
+      );
+    } catch (error) {
       // Reset state so retry is possible
       state.initializePromise = null;
-    log.error({ error }, '❌ Failed to initialize tool orchestrator');
-    throw error;
-  }
+      log.error({ error }, '❌ Failed to initialize tool orchestrator');
+      throw error;
+    }
   })();
 
   return state.initializePromise;
@@ -492,6 +492,12 @@ let essentialToolsCache: Record<string, Tool> | null = null;
 
 /**
  * Get essential tools from cache (loads once on first call)
+ *
+ * CRITICAL FIX (Jan 2026): Must ensure essential domains are LOADED into the
+ * registry before calling buildEssentialTools(). The orchestrator init only
+ * registers domain LOADERS, not the actual tools. Without this, entertainment
+ * tools like playMusic won't be available because toolRegistry.getByDomain()
+ * returns empty for domains that haven't been loaded yet.
  */
 async function getEssentialToolsCached(): Promise<Record<string, Tool>> {
   if (essentialToolsCache) {
@@ -499,6 +505,17 @@ async function getEssentialToolsCached(): Promise<Record<string, Tool>> {
   }
 
   try {
+    // CRITICAL: Load essential domains into registry BEFORE building tools!
+    // buildEssentialTools() calls toolRegistry.buildSimple(['memory', 'entertainment', 'information'])
+    // which requires these domains to be loaded into the registry first.
+    const { loadToolDomainsLazy } = await import('../registry/loader.js');
+    const essentialDomains = ['memory', 'entertainment', 'information'] as const;
+    const loadedCount = await loadToolDomainsLazy([...essentialDomains]);
+    log.info(
+      { domains: essentialDomains, loadedCount },
+      '📦 Essential domains loaded for fast path (playMusic, etc.)'
+    );
+
     essentialToolsCache = await buildEssentialTools({ userId: 'shared' });
     log.info(
       { toolCount: Object.keys(essentialToolsCache).length },
@@ -535,9 +552,8 @@ async function getToolsFastPath(options: GetToolsForAgentOptions): Promise<GetTo
   try {
     // 1. TRY SESSION CACHE FIRST (instant if warmed)
     if (options.sessionId) {
-      const { getCachedHandoffTools, hasHandoffToolsCache } = await import(
-        '../handoff/session-cache.js'
-      );
+      const { getCachedHandoffTools, hasHandoffToolsCache } =
+        await import('../handoff/session-cache.js');
 
       if (hasHandoffToolsCache(options.sessionId)) {
         const cachedHandoffTools = getCachedHandoffTools(options.sessionId, options.persona.id);
@@ -555,10 +571,7 @@ async function getToolsFastPath(options: GetToolsForAgentOptions): Promise<GetTo
     if (Object.keys(allTools).length === 0) {
       const handoffTools = await getHandoffToolsForAgent(options);
       Object.assign(allTools, handoffTools);
-      log.debug(
-        { toolCount: Object.keys(handoffTools).length },
-        '🔄 Built handoff tools fresh'
-      );
+      log.debug({ toolCount: Object.keys(handoffTools).length }, '🔄 Built handoff tools fresh');
     }
 
     // 3. ADD ESSENTIAL TOOLS (music, weather, etc.)

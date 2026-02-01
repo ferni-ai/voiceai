@@ -1,11 +1,11 @@
 {
   "$schema": "../tool.schema.json",
   "domain": "outreach",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "tools": [
     {
       "name": "reachOut",
-      "description": "Contact a person via call, text, or email. Auto-selects the best channel. Use when user wants to communicate with a human contact.",
+      "description": "Contact a person via call, text, or email. Auto-selects the best channel. Use when user wants to communicate with a human contact.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks to contact, message, text, call, or reach out to a specific person. Do NOT invoke for discussion about people in their life.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -26,16 +26,28 @@
         "required": ["contact", "purpose"]
       },
       "examples": [
-        { "userSays": "Reach out to Mom and say good morning", "output": "{\"fn\":\"reachOut\",\"args\":{\"contact\":\"Mom\",\"purpose\":\"good morning\"}}" },
-        { "userSays": "Text Sarah happy birthday", "output": "{\"fn\":\"reachOut\",\"args\":{\"contact\":\"Sarah\",\"purpose\":\"wish happy birthday\",\"preferredChannel\":\"text\"}}" },
-        { "userSays": "Call my boss", "output": "{\"fn\":\"reachOut\",\"args\":{\"contact\":\"my boss\",\"purpose\":\"business call\",\"preferredChannel\":\"call\"}}" },
-        { "userSays": "Check in with John", "output": "{\"fn\":\"reachOut\",\"args\":{\"contact\":\"John\",\"purpose\":\"check in\"}}" }
+        {
+          "userSays": "Reach out to Mom and say good morning",
+          "output": "{\"fn\":\"reachOut\",\"args\":{\"contact\":\"Mom\",\"purpose\":\"good morning\"}}"
+        },
+        {
+          "userSays": "Text Sarah happy birthday",
+          "output": "{\"fn\":\"reachOut\",\"args\":{\"contact\":\"Sarah\",\"purpose\":\"wish happy birthday\",\"preferredChannel\":\"text\"}}"
+        },
+        {
+          "userSays": "Call my boss",
+          "output": "{\"fn\":\"reachOut\",\"args\":{\"contact\":\"my boss\",\"purpose\":\"business call\",\"preferredChannel\":\"call\"}}"
+        },
+        {
+          "userSays": "Check in with John",
+          "output": "{\"fn\":\"reachOut\",\"args\":{\"contact\":\"John\",\"purpose\":\"check in\"}}"
+        }
       ],
       "tags": ["communication", "outreach", "contact", "messaging"]
     },
     {
       "name": "callOnBehalf",
-      "description": "Make a phone call on behalf of the user. An AI agent handles the conversation autonomously.",
+      "description": "Make a phone call on behalf of the user. An AI agent handles the conversation autonomously.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks for Ferni to make a call for them, or says 'call X for me' or 'have someone call'. Do NOT invoke for regular personal calls the user wants to make themselves.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -55,9 +67,18 @@
         "required": ["contactQuery", "purpose"]
       },
       "examples": [
-        { "userSays": "Call my doctor to reschedule", "output": "{\"fn\":\"callOnBehalf\",\"args\":{\"contactQuery\":\"my doctor\",\"purpose\":\"reschedule appointment\"}}" },
-        { "userSays": "Call 555-123-4567 about the reservation", "output": "{\"fn\":\"callOnBehalf\",\"args\":{\"contactQuery\":\"this number\",\"phoneNumber\":\"5551234567\",\"purpose\":\"about reservation\"}}" },
-        { "userSays": "Have someone call the restaurant", "output": "{\"fn\":\"callOnBehalf\",\"args\":{\"contactQuery\":\"the restaurant\",\"purpose\":\"make inquiry\"}}" }
+        {
+          "userSays": "Call my doctor to reschedule",
+          "output": "{\"fn\":\"callOnBehalf\",\"args\":{\"contactQuery\":\"my doctor\",\"purpose\":\"reschedule appointment\"}}"
+        },
+        {
+          "userSays": "Call 555-123-4567 about the reservation",
+          "output": "{\"fn\":\"callOnBehalf\",\"args\":{\"contactQuery\":\"this number\",\"phoneNumber\":\"5551234567\",\"purpose\":\"about reservation\"}}"
+        },
+        {
+          "userSays": "Have someone call the restaurant",
+          "output": "{\"fn\":\"callOnBehalf\",\"args\":{\"contactQuery\":\"the restaurant\",\"purpose\":\"make inquiry\"}}"
+        }
       ],
       "tags": ["communication", "telephony", "call", "autonomous"]
     }

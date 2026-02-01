@@ -250,7 +250,13 @@ export function logLeakageDetected(
   });
 
   log.warn(
-    { sessionId, pattern, suggestedTool, responsePreview: responsePreview.slice(0, 80), turnNumber },
+    {
+      sessionId,
+      pattern,
+      suggestedTool,
+      responsePreview: responsePreview.slice(0, 80),
+      turnNumber,
+    },
     '🚨 LEAKAGE: Gemini spoke instead of calling tool'
   );
 
@@ -428,7 +434,7 @@ export function logToolCallComplete(sessionId: string, toolCalled: string | null
 
 /**
  * Function call health metrics for monitoring Gemini reliability.
- * 
+ *
  * These metrics help diagnose function calling issues:
  * - successRate: High is good (>95%)
  * - leakageRate: Low is good (<5%)
@@ -498,12 +504,12 @@ export function recordToolCallOutcome(
 
 /**
  * Calculate function call health metrics from recent outcomes.
- * 
+ *
  * @returns FunctionCallHealth metrics
  */
 export function getFunctionCallHealth(): FunctionCallHealth {
   const now = Date.now();
-  
+
   if (recentOutcomes.length === 0) {
     return {
       successRate: 100,
@@ -517,8 +523,8 @@ export function getFunctionCallHealth(): FunctionCallHealth {
   }
 
   const total = recentOutcomes.length;
-  const successes = recentOutcomes.filter(o => o.success).length;
-  const leakages = recentOutcomes.filter(o => o.leaked).length;
+  const successes = recentOutcomes.filter((o) => o.success).length;
+  const leakages = recentOutcomes.filter((o) => o.leaked).length;
   const totalRetries = recentOutcomes.reduce((sum, o) => sum + o.retryCount, 0);
 
   // Calculate session decay indicator
@@ -527,19 +533,23 @@ export function getFunctionCallHealth(): FunctionCallHealth {
   const midpoint = Math.floor(sortedByTurn.length / 2);
   const firstHalf = sortedByTurn.slice(0, midpoint);
   const secondHalf = sortedByTurn.slice(midpoint);
-  
-  const firstHalfLeakageRate = firstHalf.length > 0 
-    ? firstHalf.filter(o => o.leaked).length / firstHalf.length 
-    : 0;
-  const secondHalfLeakageRate = secondHalf.length > 0 
-    ? secondHalf.filter(o => o.leaked).length / secondHalf.length 
-    : 0;
-  
+
+  const firstHalfLeakageRate =
+    firstHalf.length > 0 ? firstHalf.filter((o) => o.leaked).length / firstHalf.length : 0;
+  const secondHalfLeakageRate =
+    secondHalf.length > 0 ? secondHalf.filter((o) => o.leaked).length / secondHalf.length : 0;
+
   // Decay indicator: how much worse is second half compared to first half
   // 0 = no decay, 1 = massive decay
-  const sessionDecayIndicator = firstHalfLeakageRate > 0 
-    ? Math.min(1, Math.max(0, (secondHalfLeakageRate - firstHalfLeakageRate) / firstHalfLeakageRate))
-    : secondHalfLeakageRate > 0 ? 0.5 : 0;
+  const sessionDecayIndicator =
+    firstHalfLeakageRate > 0
+      ? Math.min(
+          1,
+          Math.max(0, (secondHalfLeakageRate - firstHalfLeakageRate) / firstHalfLeakageRate)
+        )
+      : secondHalfLeakageRate > 0
+        ? 0.5
+        : 0;
 
   const successRate = (successes / total) * 100;
   const leakageRate = (leakages / total) * 100;
@@ -591,25 +601,33 @@ export function getFunctionCallHealthDashboard(): {
 
   // Generate recommendations based on metrics
   if (health.leakageRate > 10) {
-    recommendations.push('High leakage rate detected. Consider enabling GEMINI_FC_MODE=ANY to force function calling.');
+    recommendations.push(
+      'High leakage rate detected. Consider enabling GEMINI_FC_MODE=ANY to force function calling.'
+    );
   }
   if (health.avgRetryCount > 0.5) {
     recommendations.push('High retry rate. Verify conversation priming is enabled and working.');
   }
   if (health.sessionDecayIndicator > 0.3) {
-    recommendations.push('Session decay detected. Consider implementing session refresh after extended conversations.');
+    recommendations.push(
+      'Session decay detected. Consider implementing session refresh after extended conversations.'
+    );
   }
   if (health.successRate < 90) {
-    recommendations.push('Low success rate. Check tool definitions and Gemini model configuration.');
+    recommendations.push(
+      'Low success rate. Check tool definitions and Gemini model configuration.'
+    );
   }
   if (health.status === 'poor') {
-    recommendations.push('Consider switching to OpenAI Realtime (USE_OPENAI_REALTIME=true) for more reliable function calling.');
+    recommendations.push(
+      'Consider switching to OpenAI Realtime (USE_OPENAI_REALTIME=true) for more reliable function calling.'
+    );
   }
 
   // Simple trend detection (would need historical data for real trends)
-  const successTrend: 'improving' | 'stable' | 'declining' = 
+  const successTrend: 'improving' | 'stable' | 'declining' =
     health.successRate >= 95 ? 'stable' : health.successRate >= 85 ? 'stable' : 'declining';
-  const leakageTrend: 'improving' | 'stable' | 'worsening' = 
+  const leakageTrend: 'improving' | 'stable' | 'worsening' =
     health.leakageRate <= 5 ? 'stable' : health.leakageRate <= 10 ? 'stable' : 'worsening';
 
   return {

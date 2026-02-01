@@ -24,7 +24,9 @@ const mockDoc = (collection: string, docId: string) => ({
     collectionData?.set(docId, { ...existing, ...updates });
   }),
   delete: vi.fn().mockResolvedValue(undefined),
-  collection: vi.fn((subCollection: string) => mockCollection(`${collection}/${docId}/${subCollection}`)),
+  collection: vi.fn((subCollection: string) =>
+    mockCollection(`${collection}/${docId}/${subCollection}`)
+  ),
 });
 
 const mockCollection = (path: string) => ({
@@ -38,7 +40,11 @@ const mockCollection = (path: string) => ({
   get: vi.fn().mockImplementation(async () => {
     const collectionData = mockData.get(path);
     const docs = collectionData
-      ? Array.from(collectionData.entries()).map(([id, data]) => ({ id, exists: true, data: () => data }))
+      ? Array.from(collectionData.entries()).map(([id, data]) => ({
+          id,
+          exists: true,
+          data: () => data,
+        }))
       : [];
     return { docs, empty: docs.length === 0, size: docs.length };
   }),

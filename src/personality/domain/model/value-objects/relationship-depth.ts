@@ -389,7 +389,9 @@ export class RelationshipDepth {
     if (daysSinceLastInteraction <= 1) return this;
 
     // Trust velocity decays toward 0
-    const velocityDecay = Math.sign(this.trustVelocity) * Math.min(Math.abs(this.trustVelocity), daysSinceLastInteraction * 0.1);
+    const velocityDecay =
+      Math.sign(this.trustVelocity) *
+      Math.min(Math.abs(this.trustVelocity), daysSinceLastInteraction * 0.1);
     const newTrustVelocity = this.trustVelocity - velocityDecay;
 
     // Shared history density doesn't decay (memories persist)

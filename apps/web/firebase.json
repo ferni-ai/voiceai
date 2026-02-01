@@ -104,6 +104,13 @@
           }
         },
         {
+          "source": "/sites/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
@@ -245,6 +252,13 @@
         },
         {
           "source": "/calendar/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/sites/**",
           "run": {
             "serviceId": "john-bogle-ui",
             "region": "us-central1"

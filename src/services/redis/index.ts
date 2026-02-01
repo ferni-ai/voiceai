@@ -34,7 +34,12 @@
 // CORE REDIS CACHE
 // ============================================================================
 
-export { getRedisCache, getRedisCacheAsync, resetRedisCache, RedisCache } from '../../memory/redis-cache.js';
+export {
+  getRedisCache,
+  getRedisCacheAsync,
+  resetRedisCache,
+  RedisCache,
+} from '../../memory/redis-cache.js';
 
 // ============================================================================
 // REDIS-BACKED MANAGED CACHE (L1 Memory + L2 Redis)
@@ -153,7 +158,8 @@ export async function initializeAllRedisServices(): Promise<{
     })(),
     // Semantic Router Cache
     (async () => {
-      const { initializeCache } = await import('../../tools/semantic-router/integration/redis-cache.js');
+      const { initializeCache } =
+        await import('../../tools/semantic-router/integration/redis-cache.js');
       await initializeCache();
       return true;
     })(),
@@ -179,7 +185,8 @@ export async function shutdownAllRedisServices(): Promise<void> {
     })(),
     // Circuit breakers
     (async () => {
-      const { shutdownAllRedisCircuitBreakers } = await import('../self-healing/redis-circuit-breaker.js');
+      const { shutdownAllRedisCircuitBreakers } =
+        await import('../self-healing/redis-circuit-breaker.js');
       await shutdownAllRedisCircuitBreakers();
     })(),
     // Core Redis

@@ -9,6 +9,12 @@
  * @module voice-agent/audio-processor
  */
 
+// Extend globalThis to include Ferni-specific properties for cross-module state
+declare global {
+  // eslint-disable-next-line no-var
+  var __ferniCurrentMood: string | undefined;
+}
+
 import { log } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import type { ReadableStream } from 'node:stream/web';
@@ -168,6 +174,7 @@ export async function processAudioStream(
           }
 
           // Convert Int16 to Float32 - use native when available (zero-allocation)
+          // NOTE: frame.data is typed as number[] in @livekit/rtc-node but is actually Int16Array at runtime
           const int16Data = frame.data as unknown as Int16Array;
 
           // GC pressure sampling: Track every 50th frame (~1/sec) to measure allocation baseline
@@ -879,8 +886,7 @@ function feedLearningEngine(voiceEmotion: VoiceEmotionResult, userData: UserData
     );
 
     // Track mood globally for "Our Songs" feature
-    (globalThis as unknown as { __ferniCurrentMood?: string }).__ferniCurrentMood =
-      voiceEmotion.primary;
+    globalThis.__ferniCurrentMood = voiceEmotion.primary;
   } catch {
     // Non-critical
   }

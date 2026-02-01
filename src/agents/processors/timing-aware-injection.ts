@@ -35,9 +35,9 @@ const TIER_1_ESSENTIAL = new Set([
   'identity',
   'boundaries',
   'unsaid',
-  'system_state',      // Current system state (music, timers)
-  'timing_state',      // Timing awareness (Phase 3)
-  'tool_hint',         // Tool execution hints
+  'system_state', // Current system state (music, timers)
+  'timing_state', // Timing awareness (Phase 3)
+  'tool_hint', // Tool execution hints
 ]);
 
 /**
@@ -86,12 +86,12 @@ const TIER_3_OPTIONAL = new Set([
  */
 export const PRESSURE_CONFIG = {
   // User waiting thresholds
-  MODERATE_WAIT_MS: 2000,    // 2s - start reducing TIER 3
-  SEVERE_WAIT_MS: 4000,      // 4s - also reduce TIER 2
-  CRITICAL_WAIT_MS: 6000,    // 6s - bare minimum only
+  MODERATE_WAIT_MS: 2000, // 2s - start reducing TIER 3
+  SEVERE_WAIT_MS: 4000, // 4s - also reduce TIER 2
+  CRITICAL_WAIT_MS: 6000, // 6s - bare minimum only
 
   // E2E latency thresholds (recent average)
-  SLOW_LATENCY_MS: 3000,     // System running slow
+  SLOW_LATENCY_MS: 3000, // System running slow
   VERY_SLOW_LATENCY_MS: 5000, // System very slow
 
   // Injection limits at each pressure level
@@ -215,9 +215,10 @@ function getAllowedCategories(pressureLevel: PressureLevel): Set<string> {
 /**
  * Get injection limits for a pressure level
  */
-function getLimitsForPressure(
-  pressureLevel: PressureLevel
-): { maxInjections: number; maxChars: number } {
+function getLimitsForPressure(pressureLevel: PressureLevel): {
+  maxInjections: number;
+  maxChars: number;
+} {
   switch (pressureLevel) {
     case 'critical':
       return PRESSURE_CONFIG.CRITICAL;
@@ -383,8 +384,4 @@ export function applyTimingAwareDegradation(
 // EXPORTS
 // ============================================================================
 
-export {
-  TIER_1_ESSENTIAL,
-  TIER_2_HIGH_VALUE,
-  TIER_3_OPTIONAL,
-};
+export { TIER_1_ESSENTIAL, TIER_2_HIGH_VALUE, TIER_3_OPTIONAL };

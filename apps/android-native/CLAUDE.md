@@ -10,6 +10,9 @@ Provides the native Android experience for voice conversations with Ferni's 6 AI
 
 ```
 app/src/main/java/com/ferni/voice/
+├── FerniVoiceApp.kt            # Application entry point
+├── MainActivity.kt             # Main activity
+├── betterthanuman/             # Better Than Human EQ module
 ├── models/
 │   ├── Persona.kt              # 6 personas with colors (from design-system/tokens/colors.json)
 │   ├── VoiceState.kt           # Connection state machine
@@ -22,8 +25,9 @@ app/src/main/java/com/ferni/voice/
 │   ├── screens/                # Main screens (voice, onboarding)
 │   ├── components/             # Avatar, transcript, controls
 │   └── animations/             # 7-layer Pixar-quality avatar animations
-└── util/
-    └── HapticFeedback.kt       # Haptic utilities
+├── util/
+│   └── HapticFeedback.kt       # Haptic utilities
+└── viewmodels/                 # MVVM view models
 ```
 
 ## Build & Run

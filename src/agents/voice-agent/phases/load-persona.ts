@@ -51,10 +51,15 @@ function parseMetadata(ctx: JobContext): { personaId: string; userId: string | n
     null;
 
   // 🧠 MEMORY AUDIT: Log identity extraction for debugging memory issues
-  const identitySource = metadata.firebase_uid ? 'firebase_uid' :
-                         metadata.firebaseUid ? 'firebaseUid' :
-                         metadata.user_id ? 'user_id' :
-                         metadata.userId ? 'userId' : 'none';
+  const identitySource = metadata.firebase_uid
+    ? 'firebase_uid'
+    : metadata.firebaseUid
+      ? 'firebaseUid'
+      : metadata.user_id
+        ? 'user_id'
+        : metadata.userId
+          ? 'userId'
+          : 'none';
   process.stderr.write(
     `[load-persona] 🧠 [MEMORY-AUDIT] Identity extracted - userId: ${userId ? userId.substring(0, 8) + '...' : 'null'}, source: ${identitySource}, personaId: ${personaId}\n`
   );
@@ -305,7 +310,8 @@ export async function loadPersonaPhase(ctx: JobContext): Promise<PersonaPhaseRes
       domains: ['general'],
       qualifiedTopics: ['life coaching', 'personal growth', 'emotional support'],
       outOfScopeTopics: ['medical-diagnosis', 'legal-advice'],
-      outOfScopeResponse: "That's outside my expertise, but I can help you think through who might be able to help.",
+      outOfScopeResponse:
+        "That's outside my expertise, but I can help you think through who might be able to help.",
     },
   };
 

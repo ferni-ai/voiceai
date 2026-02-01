@@ -697,7 +697,7 @@ export class RhythmIntelligenceEngine implements IRhythmIntelligence {
 ### Integration Points
 
 ```typescript
-// In humanizer.ts or turn-handler.ts
+// In humanizer/ or turn-handler.ts
 import { getRhythmIntelligence } from '../conversation/rhythm-intelligence/index.js';
 
 // Before generating response

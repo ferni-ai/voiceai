@@ -342,10 +342,7 @@ export function clearIntelligenceCaches(userId?: string): void {
  * Quick check if there are proactive insights ready for a moment.
  * Lighter weight than full getIntelligenceForTurn.
  */
-export async function hasProactiveInsight(
-  userId: string,
-  moment: SurfaceMoment
-): Promise<boolean> {
+export async function hasProactiveInsight(userId: string, moment: SurfaceMoment): Promise<boolean> {
   const context = await assembleContext({ userId });
   const result = checkProactiveTriggers(userId, context, moment);
   return result.insights.length > 0;

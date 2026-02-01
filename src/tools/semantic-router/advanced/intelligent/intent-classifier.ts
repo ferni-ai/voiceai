@@ -13,10 +13,14 @@
  * @module semantic-router/advanced/intelligent/intent-classifier
  */
 
-import { createLogger } from '../../../../utils/safe-logger.js';
 import type { RedisBackedCache } from '../../../../services/data-layer/memory-cache-manager.js';
+import { createLogger } from '../../../../utils/safe-logger.js';
+import { classifyWithOnnxSafe, isOnnxClassifierAvailable } from './onnx-classifier.js';
 
 const log = createLogger({ module: 'intent-classifier' });
+
+/** Minimum confidence from ONNX to trust the result */
+const ONNX_CONFIDENCE_THRESHOLD = 0.5;
 
 // ============================================================================
 // REDIS-BACKED CACHE (Cross-Instance Classification Sharing)
@@ -30,9 +34,8 @@ let redisCache: RedisBackedCache<string, ClassificationResult> | null = null;
  */
 async function initializeRedisCache(): Promise<void> {
   try {
-    const { createRedisBackedCache } = await import(
-      '../../../../services/data-layer/memory-cache-manager.js'
-    );
+    const { createRedisBackedCache } =
+      await import('../../../../services/data-layer/memory-cache-manager.js');
     redisCache = await createRedisBackedCache<ClassificationResult>('intent-classifier', {
       ttlMs: 5 * 60 * 1000, // 5 minutes
       maxEntries: 2000,
@@ -153,12 +156,31 @@ const BUILT_IN_INTENTS: Intent[] = [
     action: 'play',
     name: 'Play Music',
     patterns: [
+      // Direct commands with "music/song"
       /^play\s+(?:some\s+)?(?:music|song|songs|tunes?)/i,
       /^play\s+(?:some\s+)?(\w+)\s+(?:music|song)/i,
       /^put\s+on\s+(?:some\s+)?(?:music|song)/i,
       /^i\s+(?:want|need)\s+(?:some\s+)?music/i,
+      // CRITICAL: Genre-only patterns (e.g., "play some jazz", "play rock")
+      // These don't require "music" suffix - common user patterns!
+      /^play\s+(?:some\s+)?(jazz|rock|pop|classical|hip\s*hop|country|r&b|folk|metal|indie|electronic|ambient|lofi|blues|soul|reggae|punk|alternative|latin|edm)/i,
+      // Mood-based without "music" suffix
+      /^play\s+(?:some\s+)?(chill|relaxing|upbeat|calm|energetic|mellow|focus|workout|party|romantic)\s*(?:stuff|vibes|tunes)?$/i,
+      // Polite requests (Gemini problem phrases)
+      /^(?:can|could|would|will)\s+you\s+play\s+(?:some\s+)?(.+)/i,
     ],
-    keywords: ['play', 'music', 'song', 'listen', 'spotify', 'tunes'],
+    keywords: [
+      'play',
+      'music',
+      'song',
+      'listen',
+      'spotify',
+      'tunes',
+      'jazz',
+      'rock',
+      'pop',
+      'classical',
+    ],
     requiredSlots: [],
     optionalSlots: ['genre', 'mood', 'query'],
     toolId: 'spotify_play',
@@ -203,18 +225,37 @@ const BUILT_IN_INTENTS: Intent[] = [
     action: 'set',
     name: 'Set Reminder',
     patterns: [
-      /^(?:set\s+)?(?:a\s+)?reminder\s+(?:to|for|about)/i,
-      /^remind\s+me\s+(?:to|about)/i,
+      /^(?:set\s+)?(?:a\s+)?reminder\s+(?:to|for|about)?/i, // "set a reminder" without suffix
+      /^remind\s+me\s+(?:to|about)?/i, // "remind me" without suffix
       /^don(?:'t| not)\s+let\s+me\s+forget/i,
+      /^set\s+(?:a\s+)?reminder$/i, // Just "set a reminder" or "set reminder"
     ],
     keywords: ['remind', 'reminder', 'remember', 'forget'],
-    requiredSlots: ['query'],
-    optionalSlots: ['datetime'],
-    toolId: 'reminder_set',
+    requiredSlots: [],
+    optionalSlots: ['query', 'datetime'],
+    toolId: 'scheduleReminder',
     priority: 10,
   },
 
-  // Timer/Alarm
+  // Alarm
+  {
+    id: 'alarm.set',
+    category: 'alarm',
+    action: 'set',
+    name: 'Set Alarm',
+    patterns: [
+      /^set\s+(?:an?\s+)?alarm/i, // "set an alarm", "set alarm"
+      /^(?:wake|get)\s+me\s+up/i, // "wake me up", "get me up"
+      /^alarm\s+(?:for|at)/i, // "alarm for 7am"
+    ],
+    keywords: ['alarm', 'wake', 'morning'],
+    requiredSlots: [],
+    optionalSlots: ['datetime'],
+    toolId: 'setAlarm',
+    priority: 10,
+  },
+
+  // Timer
   {
     id: 'timer.set',
     category: 'timer',
@@ -658,6 +699,13 @@ export class IntentClassifier {
 
   /**
    * Classify user input
+   *
+   * Classification order:
+   * 1. Cache (L1 memory + L2 Redis)
+   * 2. ONNX ML model (98.0% accuracy, 861 labels, ~50-100ms)
+   * 3. Pattern matching (regex)
+   * 4. Keyword matching (fuzzy)
+   * 5. Fallback (no match)
    */
   classify(input: string): ClassificationResult {
     const startTime = performance.now();
@@ -669,7 +717,29 @@ export class IntentClassifier {
       return { ...cached, latencyMs: performance.now() - startTime, source: 'cache' };
     }
 
-    // Try pattern matching first (fastest)
+    // Try ONNX ML classification first (highest accuracy)
+    if (isOnnxClassifierAvailable()) {
+      const onnxResult = this.classifyByOnnx(normalized);
+      if (onnxResult && onnxResult.confidence >= ONNX_CONFIDENCE_THRESHOLD) {
+        log.debug(
+          { toolId: onnxResult.toolId, confidence: onnxResult.confidence.toFixed(2) },
+          '🧠 ONNX classification matched'
+        );
+        return this.finalizeResult(
+          {
+            intent: onnxResult.intent,
+            confidence: onnxResult.confidence,
+            slots: onnxResult.intent ? this.extractSlots(normalized, onnxResult.intent) : [],
+            alternatives: [],
+          },
+          normalized,
+          startTime,
+          'ml'
+        );
+      }
+    }
+
+    // Try pattern matching (fast fallback)
     const patternResult = this.classifyByPattern(normalized);
     if (patternResult && patternResult.confidence >= this.config.minConfidence) {
       return this.finalizeResult(patternResult, normalized, startTime, 'pattern');
@@ -699,6 +769,32 @@ export class IntentClassifier {
       startTime,
       'fallback'
     );
+  }
+
+  /**
+   * Classify using ONNX ML model
+   */
+  private classifyByOnnx(input: string): {
+    intent: Intent | null;
+    confidence: number;
+    toolId: string | null;
+  } | null {
+    const onnxResult = classifyWithOnnxSafe(input);
+    if (!onnxResult || onnxResult.predictions.length === 0) {
+      return null;
+    }
+
+    // Get top prediction
+    const topPrediction = onnxResult.predictions[0];
+
+    // Find matching intent for the tool
+    const matchingIntent = this.intents.find((i) => i.toolId === topPrediction.toolId);
+
+    return {
+      intent: matchingIntent || null,
+      confidence: topPrediction.confidence,
+      toolId: topPrediction.toolId,
+    };
   }
 
   /**

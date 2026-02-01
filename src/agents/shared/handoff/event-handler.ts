@@ -18,6 +18,8 @@ import type { UserData } from '../types.js';
 import { handoffEvents } from '../../../handoff/index.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { diag } from '../../../services/diagnostic-logger.js';
+// Cross-persona intelligence for recording handoff context (Better Than Human)
+import { getUnifiedIntelligence } from '../../../tools/intelligence/index.js';
 
 // Coordinator adapter
 import {
@@ -29,6 +31,11 @@ import {
 // Types from handoff system
 import type { HandoffEventPayload, NewHandoffData, LegacyHandoffData } from './types.js';
 import { getNextMessageSeqSync } from './session-state.js';
+// Tool context for handoff tracking
+import {
+  getToolContextForHandoff,
+  getSessionState,
+} from '../../../tools/handoff/session-state.js';
 
 const log = getLogger();
 
@@ -99,7 +106,8 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
   } = config;
   // Use passed sessionId if available, then services.sessionId, then room name
   // CRITICAL: This MUST match the sessionId used in initializeSpeechCoordination()
-  const sessionId = configSessionId || services.sessionId || ctx.room?.name || `event-handler-${Date.now()}`;
+  const sessionId =
+    configSessionId || services.sessionId || ctx.room?.name || `event-handler-${Date.now()}`;
 
   log.info({ sessionId, initialAgent }, '📡 Creating voiceSwitch event handler');
 
@@ -216,6 +224,55 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
         { targetPersonaId, durationMs: duration, traceId: result.traceId },
         '✅ [EVENT-HANDLER] voiceSwitch COMPLETE'
       );
+
+      // ==========================================================================
+      // RECORD HANDOFF FOR CROSS-PERSONA INTELLIGENCE (Better Than Human)
+      // ==========================================================================
+      // This enables the Unified Intelligence Layer to:
+      // - Know which persona the user was previously with
+      // - Carry forward relevant tools and context
+      // - Maintain emotional continuity across personas
+      const fromPersonaId = adapter?.getCurrentAgent() || 'ferni';
+      try {
+        const intelligence = getUnifiedIntelligence();
+
+        // Extract tools used during previous persona's session
+        const handoffSessionState = getSessionState(sessionId);
+        const toolContext = getToolContextForHandoff(handoffSessionState);
+        const toolsUsed = toolContext.recentTools.map((t) => t.toolId);
+
+        // Extract topics from conversation context
+        const recentTopics = (userData.recentTopics as string[] | undefined) || [];
+        const lastTopic = userData.lastTopic as string | undefined;
+        const topicsDiscussed = lastTopic
+          ? [lastTopic, ...recentTopics.filter((t) => t !== lastTopic)].slice(0, 5)
+          : recentTopics.slice(0, 5);
+
+        await intelligence.recordHandoff({
+          userId: userData.userId || services.userProfile?.id || 'unknown',
+          sessionId,
+          fromPersonaId,
+          toPersonaId: targetPersonaId,
+          toolsUsed,
+          topicsDiscussed,
+          timestamp: new Date(),
+        });
+        log.info(
+          {
+            fromPersonaId,
+            toPersonaId: targetPersonaId,
+            toolsUsed: toolsUsed.length,
+            topicsDiscussed: topicsDiscussed.length,
+          },
+          '📝 [EVENT-HANDLER] Cross-persona handoff context recorded (Better Than Human)'
+        );
+      } catch (recordErr) {
+        // Non-fatal - don't fail the handoff if recording fails
+        log.warn(
+          { error: String(recordErr) },
+          '⚠️ [EVENT-HANDLER] Failed to record handoff context'
+        );
+      }
 
       // Emit completion event (for executor.ts to know we're done)
       // CRITICAL: Field names MUST match what executor.ts expects

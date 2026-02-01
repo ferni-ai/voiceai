@@ -14,7 +14,7 @@ import {
   type HumanizedResponse,
   type PreResponseActions,
   type ContextGuidance,
-} from '../humanizer.js';
+} from '../humanizer/index.js';
 
 // ============================================================================
 // TEST SETUP

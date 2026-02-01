@@ -626,9 +626,7 @@ export class PersonalityProfile {
    */
   recordGrowthEvidence(area: GrowthArea, evidence: GrowthEvidence): void {
     // Find existing milestone for this area
-    let milestone = this._growthMilestones.find(
-      (m) => m.area === area && !m.celebrated
-    );
+    let milestone = this._growthMilestones.find((m) => m.area === area && !m.celebrated);
 
     if (milestone) {
       if (evidence.type === 'progress' || evidence.type === 'achievement') {

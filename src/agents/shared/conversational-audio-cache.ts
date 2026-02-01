@@ -235,8 +235,8 @@ async function generateAudio(text: string, voiceId: string): Promise<ArrayBuffer
   // 🔧 FIX: Strip SSML tags before sending to Cartesia
   // SSML tags get fragmented by Cartesia's tokenizer and spoken literally
   const plainText = text
-    .replace(/<[^>]+>/g, ' ')  // Strip all XML-like tags
-    .replace(/\s+/g, ' ')       // Collapse whitespace
+    .replace(/<[^>]+>/g, ' ') // Strip all XML-like tags
+    .replace(/\s+/g, ' ') // Collapse whitespace
     .trim();
 
   try {
@@ -249,7 +249,7 @@ async function generateAudio(text: string, voiceId: string): Promise<ArrayBuffer
       },
       body: JSON.stringify({
         model_id: CARTESIA_MODEL,
-        transcript: plainText,  // Use stripped text
+        transcript: plainText, // Use stripped text
         voice: { mode: 'id', id: voiceId },
         output_format: {
           container: 'raw',

@@ -1,0 +1,196 @@
+{"input": "temperature in New York", "labels": ["getWeather", "weatherForecast"]}
+{"input": "what's the temperature", "labels": ["getWeather", "weatherForecast"]}
+{"input": "how hot is it outside", "labels": ["getWeather", "weatherForecast"]}
+{"input": "temperature today", "labels": ["getWeather", "weatherForecast"]}
+{"input": "how cold is it", "labels": ["getWeather", "weatherForecast"]}
+{"input": "current temperature", "labels": ["getWeather", "weatherForecast"]}
+{"input": "phone Sarah", "labels": ["callContact", "makeCall"]}
+{"input": "phone mom", "labels": ["callContact", "makeCall"]}
+{"input": "phone John", "labels": ["callContact", "makeCall"]}
+{"input": "dial Sarah", "labels": ["callContact", "makeCall"]}
+{"input": "ring mom", "labels": ["callContact", "makeCall"]}
+{"input": "give mom a call", "labels": ["callContact", "makeCall"]}
+{"input": "text mom I will be late", "labels": ["sendMessage", "sendSMS", "textContact"]}
+{"input": "text John hey what's up", "labels": ["sendMessage", "sendSMS", "textContact"]}
+{"input": "message Sarah I'm on my way", "labels": ["sendMessage", "sendSMS", "textContact"]}
+{"input": "sms mom be there in 10", "labels": ["sendMessage", "sendSMS", "textContact"]}
+{"input": "send text to dad", "labels": ["sendMessage", "sendSMS", "textContact"]}
+{"input": "play", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "play music", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "play something", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "play anything", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "music", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "jazz", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "rock", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "classical", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "call", "labels": ["callContact", "makeCall"]}
+{"input": "make a call", "labels": ["callContact", "makeCall"]}
+{"input": "call someone", "labels": ["callContact", "makeCall"]}
+{"input": "timer", "labels": ["setTimer", "createTimer"]}
+{"input": "alarm", "labels": ["setAlarm", "createAlarm"]}
+{"input": "reminder", "labels": ["createReminder", "setReminder"]}
+{"input": "weather", "labels": ["getWeather", "weatherForecast"]}
+{"input": "forecast", "labels": ["getWeather", "weatherForecast"]}
+{"input": "calendar", "labels": ["getCalendarEvents", "checkAvailability"]}
+{"input": "schedule", "labels": ["createCalendarEvent", "scheduleEvent"]}
+{"input": "news", "labels": ["getNews", "headlines"]}
+{"input": "headlines", "labels": ["getNews", "headlines"]}
+{"input": "hey play some nice relaxing jazz music for me while I work on my project", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "can you please put on some background music something chill and relaxing", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "I want to listen to something while I cook dinner tonight", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "play me some tunes", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "put on my workout playlist", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "I'd like to hear some tunes by The Beatles. Can you play some of their songs?", "labels": ["playMusic", "music_play", "spotify_play"]}
+{"input": "Um, okay, I think I'm done listening. Can you, like, stop the tunes, please?", "labels": ["pauseMusic"]}
+{"input": "Quiet the tunes.", "labels": ["pauseMusic"]}
+{"input": "Please add a reminder to my calendar for the parent-teacher conference on November 16th at 6:30 PM. I don't wanna forget!", "labels": ["createCalendarEvent", "scheduleEvent"]}
+{"input": "Oh yeah, calendar it for tomorrow.", "labels": ["createCalendarEvent", "scheduleEvent"]}
+{"input": "Okay Google, what does my schedule look like for the 26th?", "labels": ["getCalendarEvents", "checkAvailability"]}
+{"input": "Yo, set a thing for Friday.", "labels": ["createReminder", "setReminder"]}
+{"input": "yo, set ting", "labels": ["setAlarm", "createAlarm"]}
+{"input": "Hey, remind Saturday", "labels": ["setAlarm", "createAlarm"]}
+{"input": "Uh, gimme 6", "labels": ["setAlarm", "createAlarm"]}
+{"input": "yo set it for 3", "labels": ["setTimer", "createTimer"]}
+{"input": "uhh... pizza's cookin' 20", "labels": ["setTimer", "createTimer"]}
+{"input": "k set 11, thanks", "labels": ["setTimer", "createTimer"]}
+{"input": "So, like, hmu Chris", "labels": ["sendMessage", "sendSMS", "textContact"]}
+{"input": "Fr tho, water intake?", "labels": ["logHabit", "trackHabit", "markHabitComplete"]}
+{"input": "Ugh, planks done.", "labels": ["logHabit", "trackHabit", "markHabitComplete"]}
+{"input": "Hey, can you tell me about my habit progress? I'm trying to, like, see how I'm doing overall.", "labels": ["getHabitProgress", "habitStats", "viewStreak"]}
+{"input": "What's my longest streak for, um, meditation?", "labels": ["getHabitProgress", "habitStats", "viewStreak"]}
+{"input": "I'd like to get some stats on my running habit, please. Just curious how far I've gone this month, or something similar.", "labels": ["getHabitProgress", "habitStats", "viewStreak"]}
+{"input": "How's my habits?", "labels": ["getHabitProgress", "habitStats", "viewStreak"]}
+{"input": "So, I was wondering, like, habit stats?", "labels": ["getHabitProgress", "habitStats", "viewStreak"]}
+{"input": "So, anyways... gimme the deets.", "labels": ["getNews", "headlines"]}
+{"input": "Remind me that the password for Netflix is 'FlyingSquid7' - I'll probably forget.", "labels": ["rememberThis", "saveMemory", "storeInfo"]}
+{"input": "Okay, so I need to buy milk, bread, and eggs. Save that to my shopping list for me, please.", "labels": ["rememberThis", "saveMemory", "storeInfo"]}
+{"input": "Oh, keep this then.", "labels": ["rememberThis", "saveMemory", "storeInfo"]}
+{"input": "I'm wondering, what's the current population of Tokyo, Japan?", "labels": ["search", "webSearch", "lookup"]}
+{"id": "suggested_1769337737929_0", "query": "So, I was thinking about that band we saw last year... What was their stuff called again? The ones with the amazing guitar solos.", "selected_tools": ["playMusic", "music_play", "spotify_play"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_1", "query": "Ugh, this silence is killing me. Any way to make this less...dull?", "selected_tools": ["playMusic", "music_play", "spotify_play"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_2", "query": "Remember that summer when everyone was obsessed with that one song? What even was it called?", "selected_tools": ["playMusic", "music_play", "spotify_play"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_3", "query": "Alright, I'm officially ready to procrastinate. Give me, uh, something that'll help me avoid doing my taxes.", "selected_tools": ["playMusic", "music_play", "spotify_play"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_4", "query": "Okay, so anyway, play it.", "selected_tools": ["playMusic", "music_play", "spotify_play"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_5", "query": "Spotify, jam time.", "selected_tools": ["playMusic", "music_play", "spotify_play"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_6", "query": "Would you mind silencing the tunes for a little bit?", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_7", "query": "Could you just hold off on the tunes for a sec?", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_8", "query": "Would you mind killing the music?", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_9", "query": "Okay, I think I'm good for now. You can, uh, just put it on hold for a bit.", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_10", "query": "Actually, could you give my ears a little break?", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_11", "query": "Mind if we just, like, take a breather from the tunes?", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_12", "query": "I'm gonna jump on this call, so maybe just keep it down?", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_13", "query": "Alright, shush.", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_14", "query": "Hold that.", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_15", "query": "Will it be raining tomorrow, do you think?", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_16", "query": "Is there any chance of precipitation later this afternoon?", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_17", "query": "What is the high and low expected to be today?", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_18", "query": "So, I'm planning a picnic for tomorrow, you think that's gonna work out okay?", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_19", "query": "Wondering if I should bother washing the car today, you know?", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_20", "query": "My sinuses are killing me, is it unusually humid or something lately?", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_21", "query": "Ugh, what's with this darkness? Is the sun even trying today?", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_22", "query": "So, anyway, is it gonna pour?", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_23", "query": "Outside situation?", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_24", "query": "Drizzly, innit?", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_25", "query": "I need to get something on the calendar for next Thursday. It's a lunch with the team, say around 12:30.", "selected_tools": ["createCalendarEvent", "scheduleEvent"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_26", "query": "Could you add a reminder to my calendar for next Monday at 9am? It's the team stand-up.", "selected_tools": ["createCalendarEvent", "scheduleEvent"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_27", "query": "I'm trying to block out some time next week for that project review, you know, so I don't get double-booked.", "selected_tools": ["createCalendarEvent", "scheduleEvent"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_28", "query": "Remind me to call the dentist, say... oh, a week from Friday morning?", "selected_tools": ["createCalendarEvent", "scheduleEvent"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_29", "query": "Oh man, I gotta remember to actually meet up with John sometime next month; can you help me not forget?", "selected_tools": ["createCalendarEvent", "scheduleEvent"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_30", "query": "Hey, so like, calendar it?", "selected_tools": ["createCalendarEvent", "scheduleEvent"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_31", "query": "Gotta add a doctor's thing.", "selected_tools": ["createCalendarEvent", "scheduleEvent"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_32", "query": "Later, could you sched lunch?", "selected_tools": ["createCalendarEvent", "scheduleEvent"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_33", "query": "Hey, is my schedule clear next Wednesday afternoon?", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_34", "query": "I want to view my schedule for the upcoming week.", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_35", "query": "Hey, what does my week look like starting Monday?", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_36", "query": "Can you, um, check my agenda for, like, the 15th?", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_37", "query": "What's penciled in for me tomorrow? I need to figure out if I can fit in a lunch meeting.", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_38", "query": "Hey, could you maybe tell me if I'm slammed with stuff later this week? Just curious.", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_39", "query": "So, like, if I wanted to pencil something in for Tuesday, would I be able to?", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_40", "query": "What does the rest of my day look like, time-wise?", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_41", "query": "Ugh, I feel like I'm forgetting something important. Can you, uh, refresh my memory about tomorrow morning?", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_42", "query": "Am I supposed to be anywhere near a computer screen around 3pm on Friday, or can I finally go outside?", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_43", "query": "Uh, book tomorrow?", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_44", "query": "Hey, am I slammed Friday?", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_45", "query": "So, like, my day, please?", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_46", "query": "What's cooking tomorrow morning... calendar-wise?", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_47", "query": "So, I don't forget, could you remind me to get milk and eggs when I leave work today?", "selected_tools": ["createReminder", "setReminder"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_48", "query": "Hey, could you, like, ping me about grabbing milk before they close the store?", "selected_tools": ["createReminder", "setReminder"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_49", "query": "Um, Saturday's the family reunion, right? I'm terrible with dates, help a brother out.", "selected_tools": ["createReminder", "setReminder"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_50", "query": "I've got that conference call at, uh... sometime next week? Let's just say 'mid-week' and I'll figure out the specifics later, if that makes sense?", "selected_tools": ["createReminder", "setReminder"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_51", "query": "Shoot, I always forget to water the plants. They're gonna hate me. Maybe if you had a thought for them or something?", "selected_tools": ["createReminder", "setReminder"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_52", "query": "Yo, remind 3pm dentist", "selected_tools": ["createReminder", "setReminder"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_53", "query": "Don't forget milk, tomorrow.", "selected_tools": ["createReminder", "setReminder"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_54", "query": "Set alarm, but a reminder, 8am", "selected_tools": ["createReminder", "setReminder"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_55", "query": "Heads up: appt Friday", "selected_tools": ["createReminder", "setReminder"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_56", "query": "Wake me up at 8 AM, please.", "selected_tools": ["setAlarm", "createAlarm"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_57", "query": "Alright, I need a reminder to take the cake out of the oven at 3:45 this afternoon. Set an alarm, would you?", "selected_tools": ["setAlarm", "createAlarm"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_58", "query": "Hey, just so I don't oversleep tomorrow, you know?", "selected_tools": ["setAlarm", "createAlarm"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_59", "query": "I've got that early meeting again... need something to make sure I'm up.", "selected_tools": ["setAlarm", "createAlarm"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_60", "query": "Could you remind me about that thing tomorrow? Like, *really* remind me.", "selected_tools": ["setAlarm", "createAlarm"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_61", "query": "So, I'm trying to get into a better sleep schedule, think you could give me a nudge in the right direction?", "selected_tools": ["setAlarm", "createAlarm"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_62", "query": "Ugh, I'm terrible at mornings. Maybe something to help me with the struggle tomorrow?", "selected_tools": ["setAlarm", "createAlarm"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_63", "query": "Remind me 6am.", "selected_tools": ["setAlarm", "createAlarm"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_64", "query": "Hey, can you do 7 sharp?", "selected_tools": ["setAlarm", "createAlarm"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_65", "query": "Alright, gotta get up early. Gimme 5:30.", "selected_tools": ["setAlarm", "createAlarm"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_66", "query": "Set that noise for noonish.", "selected_tools": ["setAlarm", "createAlarm"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_67", "query": "Hey, can you remind me when the cookies are done? They're in the oven now.", "selected_tools": ["setTimer", "createTimer"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_68", "query": "Okay, so I'm gonna start watering the plants now, how long do you think I should go for before moving on to the next one?", "selected_tools": ["setTimer", "createTimer"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_69", "query": "Right, I'm off to iron this shirt. I'm gonna give it a good go and then get ready for the zoom meeting. What time do I need to start getting ready to make the meeting?", "selected_tools": ["setTimer", "createTimer"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_70", "query": "So, I'm planning on meditating...just need a gentle nudge at the end of it, you know?", "selected_tools": ["setTimer", "createTimer"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_71", "query": "I'm gonna try to power nap. Wake me up when I've been resting for a bit, say when I'm getting close to feeling drowsy again.", "selected_tools": ["setTimer", "createTimer"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_72", "query": "Yo, clock me for a half hour, fam.", "selected_tools": ["setTimer", "createTimer"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_73", "query": "Uhh... lemme get a snooze.", "selected_tools": ["setTimer", "createTimer"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_74", "query": "Fifteen on oven.", "selected_tools": ["setTimer", "createTimer"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_75", "query": "While I'm showering, gimme ten.", "selected_tools": ["setTimer", "createTimer"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_76", "query": "Alright Google, dial the number for David Miller.", "selected_tools": ["callContact", "makeCall"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_77", "query": "Hey, I was just thinking about catching up with my brother, maybe now's a good time?", "selected_tools": ["callContact", "makeCall"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_78", "query": "Uh, could you maybe get a hold of Mark for me? I need to ask him something quick.", "selected_tools": ["callContact", "makeCall"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_79", "query": "I need to tell Aunt Susan about the good news. Think you could help with that?", "selected_tools": ["callContact", "makeCall"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_80", "query": "I'm supposed to check in with the office manager before lunch. Can you set that up?", "selected_tools": ["callContact", "makeCall"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_81", "query": "Remind me to speak with David after this song is over.", "selected_tools": ["callContact", "makeCall"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_82", "query": "Tell my brother I said happy birthday", "selected_tools": ["sendMessage", "sendSMS", "textContact"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_83", "query": "Could you shoot a quick one-liner to Mark about the game tonight?", "selected_tools": ["sendMessage", "sendSMS", "textContact"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_84", "query": "Just ping Rachel that I'm almost there.", "selected_tools": ["sendMessage", "sendSMS", "textContact"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_85", "query": "Would you mind informing Dad that dinner's ready?", "selected_tools": ["sendMessage", "sendSMS", "textContact"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_86", "query": "Anyways, txt Dave later.", "selected_tools": ["sendMessage", "sendSMS", "textContact"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_87", "query": "I want to track my water intake for today.", "selected_tools": ["logHabit", "trackHabit", "markHabitComplete"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_88", "query": "Please register that I've finished my Duolingo lesson for today.", "selected_tools": ["logHabit", "trackHabit", "markHabitComplete"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_89", "query": "Okay Google, go ahead and track that I actually went for my run this morning.", "selected_tools": ["logHabit", "trackHabit", "markHabitComplete"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_90", "query": "So, about that Spanish lesson... let's just say I put in the time.", "selected_tools": ["logHabit", "trackHabit", "markHabitComplete"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_91", "query": "Hey, just wanted to, uh, put another one in the books for reading, if you know what I mean.", "selected_tools": ["logHabit", "trackHabit", "markHabitComplete"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_92", "query": "Remind me how many days in a row I've managed to do my Duolingo?", "selected_tools": ["logHabit", "trackHabit", "markHabitComplete"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_93", "query": "Went for my evening walk, same as always, so yeah...", "selected_tools": ["logHabit", "trackHabit", "markHabitComplete"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_94", "query": "Did that thing I said I would. The one with the stretching.", "selected_tools": ["logHabit", "trackHabit", "markHabitComplete"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_95", "query": "Been hitting the gym, finally.", "selected_tools": ["logHabit", "trackHabit", "markHabitComplete"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_96", "query": "Meditation: crushed it.", "selected_tools": ["logHabit", "trackHabit", "markHabitComplete"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_97", "query": "Yoga, donezo.", "selected_tools": ["logHabit", "trackHabit", "markHabitComplete"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_98", "query": "Track water intake", "selected_tools": ["logHabit", "trackHabit", "markHabitComplete"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_99", "query": "Alright, let's see my habit progress. Update me.", "selected_tools": ["getHabitProgress", "habitStats", "viewStreak"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_100", "query": "Give me a quick rundown of my daily habit completion rate.", "selected_tools": ["getHabitProgress", "habitStats", "viewStreak"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_101", "query": "I want to know, how consistent have I been with my language learning habit lately?", "selected_tools": ["getHabitProgress", "habitStats", "viewStreak"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_102", "query": "Hey, can you remind me where I'm at with all those things I was trying to keep up on?", "selected_tools": ["getHabitProgress", "habitStats", "viewStreak"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_103", "query": "So, those daily things... what's the story so far?", "selected_tools": ["getHabitProgress", "habitStats", "viewStreak"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_104", "query": "Um, did I manage to keep going with my, you know, usual things this week?", "selected_tools": ["getHabitProgress", "habitStats", "viewStreak"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_105", "query": "Wondering if I'm on a roll with any of this stuff, you know, the things I'm trying to do every day.", "selected_tools": ["getHabitProgress", "habitStats", "viewStreak"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_106", "query": "Yo, habit check?", "selected_tools": ["getHabitProgress", "habitStats", "viewStreak"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_107", "query": "So, about my habits...", "selected_tools": ["getHabitProgress", "habitStats", "viewStreak"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_108", "query": "I want to know what's going on in the news.", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_109", "query": "Hey, anything I should know about before heading out?", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_110", "query": "So, what's been going on?", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_111", "query": "What are people talking about?", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_112", "query": "What's making the rounds today?", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_113", "query": "So, what's the sitch?", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_114", "query": "Yo, lemme get the skinny.", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_115", "query": "Anything breaking?", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_116", "query": "Okay Google, give me deets.", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_117", "query": "Can you hold onto this thought for me? My friend's birthday is June 15th.", "selected_tools": ["rememberThis", "saveMemory", "storeInfo"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_118", "query": "Hey, remind me about the, uh, the thing we talked about with Sarah, you know, about her new job? Just, like, in a week or so.", "selected_tools": ["rememberThis", "saveMemory", "storeInfo"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_119", "query": "So, I was thinking, just keep in mind for me that the oven needs to be preheated to 375 degrees when I start baking tomorrow.", "selected_tools": ["rememberThis", "saveMemory", "storeInfo"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_120", "query": "Put a pin in this: I need to order more coffee filters before Friday.", "selected_tools": ["rememberThis", "saveMemory", "storeInfo"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_121", "query": "jot this", "selected_tools": ["rememberThis", "saveMemory", "storeInfo"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_122", "query": "What's the population of Tokyo?", "selected_tools": ["search", "webSearch", "lookup"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_123", "query": "Hey, I was wondering what the deal is with those weird lights people are seeing in the sky lately?", "selected_tools": ["search", "webSearch", "lookup"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_124", "query": "So, I'm trying to figure out if this old coin I found is actually worth anything.", "selected_tools": ["search", "webSearch", "lookup"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_125", "query": "I need to get my head around this whole cryptocurrency thing. Where do I even start?", "selected_tools": ["search", "webSearch", "lookup"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_126", "query": "Um, lookit up: capybara", "selected_tools": ["search", "webSearch", "lookup"], "is_open_intent": false, "source": "suggested_from_validation"}
+{"id": "suggested_1769337737929_127", "query": "So, like, what's GDP?", "selected_tools": ["search", "webSearch", "lookup"], "is_open_intent": false, "source": "suggested_from_validation"}

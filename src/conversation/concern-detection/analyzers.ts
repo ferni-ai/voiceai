@@ -21,11 +21,7 @@ import type {
   ProsodySignals,
   TemporalContext,
 } from './types.js';
-import {
-  ABSOLUTIST_PATTERNS,
-  CRISIS_PATTERNS,
-  PATTERN_CHECKS,
-} from './patterns.js';
+import { ABSOLUTIST_PATTERNS, CRISIS_PATTERNS, PATTERN_CHECKS } from './patterns.js';
 
 const logger = createLogger({ module: 'ConcernAnalyzers' });
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();

@@ -222,7 +222,9 @@ export function buildCallScript(
   parts.push('4. Say goodbye ("Take care!" / "Bye now!" / "Have a great day!")');
   parts.push('5. STOP TALKING after goodbye - let the call end naturally');
   parts.push('');
-  parts.push('IMPORTANT: When they say goodbye, you say goodbye too and STOP. Do not prolong the conversation.');
+  parts.push(
+    'IMPORTANT: When they say goodbye, you say goodbye too and STOP. Do not prolong the conversation.'
+  );
 
   return parts.join('\n');
 }

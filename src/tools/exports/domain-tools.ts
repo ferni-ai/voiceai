@@ -44,7 +44,7 @@ export { createProactiveCoachingTools } from '../domains/proactive/coaching/inde
 // GAMIFICATION DOMAIN
 // ============================================================================
 
-export { createGamificationToolsV2 } from '../domains/habits/gamification-v2.js';
+export { createGamificationToolsV2 } from '../domains/habits/gamification.js';
 export { BADGE_DEFINITIONS, TITLE_PROGRESSION } from '../domains/habits/gamification-constants.js';
 
 // ============================================================================

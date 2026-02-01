@@ -153,9 +153,7 @@ describe('Fast Capture Pipeline', () => {
     it('should not duplicate entities mentioned multiple times', async () => {
       const { detectEntityMentions } = await import('../../memory/dynamic/fast-capture.js');
 
-      const mentions = detectEntityMentions(
-        'My mom called. Then my mom texted. My mom is great.'
-      );
+      const mentions = detectEntityMentions('My mom called. Then my mom texted. My mom is great.');
 
       const momMentions = mentions.filter((m) => m.name === 'mom');
       expect(momMentions.length).toBe(1);
@@ -328,9 +326,8 @@ describe('STM Buffer Integration', () => {
     });
 
     it('should record turns correctly', async () => {
-      const { getSTMBuffer, recordTurn, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { getSTMBuffer, recordTurn, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `stm-record-${Date.now()}`;
@@ -367,9 +364,8 @@ describe('STM Buffer Integration', () => {
     });
 
     it('should enforce max turns limit (FIFO eviction)', async () => {
-      const { getSTMBuffer, recordTurn, cleanupSession, configureSTMBuffer } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { getSTMBuffer, recordTurn, cleanupSession, configureSTMBuffer } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `stm-fifo-${Date.now()}`;
@@ -403,9 +399,8 @@ describe('STM Buffer Integration', () => {
     });
 
     it('should track entity frequency', async () => {
-      const { recordTurn, getFrequentEntities, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, getFrequentEntities, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `stm-freq-${Date.now()}`;
@@ -434,9 +429,8 @@ describe('STM Buffer Integration', () => {
     });
 
     it('should track topic history', async () => {
-      const { recordTurn, getRecentTopics, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, getRecentTopics, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `stm-topics-${Date.now()}`;
@@ -475,9 +469,8 @@ describe('STM Buffer Integration', () => {
 
   describe('Query Functions', () => {
     it('should check if entity was mentioned', async () => {
-      const { recordTurn, wasEntityMentioned, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, wasEntityMentioned, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `stm-mentioned-${Date.now()}`;
@@ -500,9 +493,8 @@ describe('STM Buffer Integration', () => {
     });
 
     it('should check topic continuity', async () => {
-      const { recordTurn, isTopicContinuing, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, isTopicContinuing, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `stm-continuity-${Date.now()}`;
@@ -525,9 +517,8 @@ describe('STM Buffer Integration', () => {
     });
 
     it('should build STM context for LLM', async () => {
-      const { recordTurn, buildSTMContext, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, buildSTMContext, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `stm-context-${Date.now()}`;
@@ -569,9 +560,8 @@ describe('STM Buffer Integration', () => {
 
   describe('Cleanup', () => {
     it('should cleanup session properly', async () => {
-      const { getSTMBuffer, recordTurn, cleanupSession, wasEntityMentioned } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { getSTMBuffer, recordTurn, cleanupSession, wasEntityMentioned } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `stm-cleanup-${Date.now()}`;
@@ -597,9 +587,8 @@ describe('STM Buffer Integration', () => {
     });
 
     it('should get STM stats', async () => {
-      const { getSTMStats, recordTurn, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { getSTMStats, recordTurn, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `stm-stats-${Date.now()}`;
@@ -637,9 +626,8 @@ describe('Deep Extraction Worker', () => {
 
   describe('Worker Lifecycle', () => {
     it('should start and stop correctly', async () => {
-      const { getDeepExtractionWorker } = await import(
-        '../../memory/dynamic/deep-extraction-worker.js'
-      );
+      const { getDeepExtractionWorker } =
+        await import('../../memory/dynamic/deep-extraction-worker.js');
 
       const worker = getDeepExtractionWorker();
 
@@ -653,9 +641,8 @@ describe('Deep Extraction Worker', () => {
     });
 
     it('should track stats', async () => {
-      const { getDeepExtractionWorker } = await import(
-        '../../memory/dynamic/deep-extraction-worker.js'
-      );
+      const { getDeepExtractionWorker } =
+        await import('../../memory/dynamic/deep-extraction-worker.js');
 
       const worker = getDeepExtractionWorker();
       const stats = worker.getStats();
@@ -667,9 +654,8 @@ describe('Deep Extraction Worker', () => {
     });
 
     it('should report queue depth', async () => {
-      const { getDeepExtractionWorker } = await import(
-        '../../memory/dynamic/deep-extraction-worker.js'
-      );
+      const { getDeepExtractionWorker } =
+        await import('../../memory/dynamic/deep-extraction-worker.js');
 
       const worker = getDeepExtractionWorker();
       const depth = worker.getQueueDepth();
@@ -681,9 +667,8 @@ describe('Deep Extraction Worker', () => {
 
   describe('Extraction Types', () => {
     it('should export correct types', async () => {
-      const { DeepExtractionWorker } = await import(
-        '../../memory/dynamic/deep-extraction-worker.js'
-      );
+      const { DeepExtractionWorker } =
+        await import('../../memory/dynamic/deep-extraction-worker.js');
 
       expect(DeepExtractionWorker).toBeDefined();
     });
@@ -715,9 +700,8 @@ describe('Dynamic Memory Context Builder', () => {
 
   describe('Configuration', () => {
     it('should allow configuration', async () => {
-      const { configureDynamicMemory } = await import(
-        '../../intelligence/context-builders/memory/dynamic-memory-context.js'
-      );
+      const { configureDynamicMemory } =
+        await import('../../intelligence/context-builders/memory/dynamic-memory-context.js');
 
       // Should not throw
       configureDynamicMemory({
@@ -729,9 +713,8 @@ describe('Dynamic Memory Context Builder', () => {
 
   describe('Builder Registration', () => {
     it('should export builder with correct structure', async () => {
-      const { dynamicMemoryContextBuilder } = await import(
-        '../../intelligence/context-builders/memory/dynamic-memory-context.js'
-      );
+      const { dynamicMemoryContextBuilder } =
+        await import('../../intelligence/context-builders/memory/dynamic-memory-context.js');
 
       expect(dynamicMemoryContextBuilder).toBeDefined();
       expect(dynamicMemoryContextBuilder.name).toBe('dynamic-memory');
@@ -754,9 +737,8 @@ describe('Full E2E Round-Trip', () => {
   describe('Conversation Flow', () => {
     async function runConversation(conversation: SyntheticConversation) {
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
-      const { recordTurn, getFrequentEntities, getRecentTopics, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, getFrequentEntities, getRecentTopics, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
 
       try {
         const results: Array<{
@@ -789,9 +771,15 @@ describe('Full E2E Round-Trip', () => {
 
           // Validate expected results
           if (turn.expected.shouldQueueDeepExtraction) {
-            expect(captureResult.asyncJobId, `Turn ${turn.turnNumber} should queue extraction`).toBeTruthy();
+            expect(
+              captureResult.asyncJobId,
+              `Turn ${turn.turnNumber} should queue extraction`
+            ).toBeTruthy();
           } else {
-            expect(captureResult.asyncJobId, `Turn ${turn.turnNumber} should NOT queue extraction`).toBeNull();
+            expect(
+              captureResult.asyncJobId,
+              `Turn ${turn.turnNumber} should NOT queue extraction`
+            ).toBeNull();
           }
         }
 
@@ -810,7 +798,9 @@ describe('Full E2E Round-Trip', () => {
     }
 
     it('should process career coaching conversation', async () => {
-      const { frequentEntities, recentTopics } = await runConversation(CAREER_COACHING_CONVERSATION);
+      const { frequentEntities, recentTopics } = await runConversation(
+        CAREER_COACHING_CONVERSATION
+      );
 
       // Should have tracked work topic
       expect(recentTopics).toContain('work');
@@ -821,7 +811,9 @@ describe('Full E2E Round-Trip', () => {
     });
 
     it('should process family planning conversation', async () => {
-      const { frequentEntities, recentTopics } = await runConversation(FAMILY_PLANNING_CONVERSATION);
+      const { frequentEntities, recentTopics } = await runConversation(
+        FAMILY_PLANNING_CONVERSATION
+      );
 
       // Should have tracked family topic
       expect(recentTopics).toContain('family');
@@ -834,7 +826,9 @@ describe('Full E2E Round-Trip', () => {
     });
 
     it('should process health tracking conversation', async () => {
-      const { frequentEntities, recentTopics } = await runConversation(HEALTH_TRACKING_CONVERSATION);
+      const { frequentEntities, recentTopics } = await runConversation(
+        HEALTH_TRACKING_CONVERSATION
+      );
 
       // Should have tracked health topics
       expect(recentTopics.some((t) => ['health', 'sleep', 'fitness'].includes(t))).toBe(true);
@@ -867,12 +861,8 @@ describe('Full E2E Round-Trip', () => {
   describe('Cross-Turn Continuity', () => {
     it('should maintain entity continuity across turns', async () => {
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
-      const {
-        recordTurn,
-        wasEntityMentioned,
-        getEntityMentionInfo,
-        cleanupSession,
-      } = await import('../../memory/dynamic/stm-buffer.js');
+      const { recordTurn, wasEntityMentioned, getEntityMentionInfo, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
 
       const sessionId = `continuity-${Date.now()}`;
       const userId = 'continuity-user';
@@ -908,9 +898,8 @@ describe('Full E2E Round-Trip', () => {
 
     it('should track emotional trajectory', async () => {
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
-      const { recordTurn, getEmotionalTrajectory, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, getEmotionalTrajectory, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
 
       const sessionId = `trajectory-${Date.now()}`;
       const userId = 'trajectory-user';
@@ -948,9 +937,8 @@ describe('Full E2E Round-Trip', () => {
   describe('Performance End-to-End', () => {
     it('should complete full conversation within performance budget', async () => {
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
-      const { recordTurn, buildSTMContext, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, buildSTMContext, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
 
       const sessionId = `perf-e2e-${Date.now()}`;
       const userId = 'perf-e2e-user';
@@ -1021,7 +1009,7 @@ describe('Regression Tests', () => {
       userId: 'regression-user',
       sessionId: 'regression-session',
       turnNumber: 1,
-      transcript: "Test with special chars: @#$%^&*()_+{}[]|\\:\";<>?,./~`",
+      transcript: 'Test with special chars: @#$%^&*()_+{}[]|\\:";<>?,./~`',
     });
 
     // Main assertion: no crash, returns valid result
@@ -1076,9 +1064,8 @@ describe('STM Promotion Service', () => {
 
   describe('Entity Importance Calculation', () => {
     it('should give higher importance to frequently mentioned entities', async () => {
-      const { recordTurn, getFrequentEntities, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, getFrequentEntities, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `importance-freq-${Date.now()}`;
@@ -1093,7 +1080,13 @@ describe('STM Promotion Service', () => {
             turnNumber: i + 1,
             transcript: `My mom called me again today. Mom is great.`,
           });
-          recordTurn(sessionId, userId, result, `My mom called me again today. Mom is great.`, i + 1);
+          recordTurn(
+            sessionId,
+            userId,
+            result,
+            `My mom called me again today. Mom is great.`,
+            i + 1
+          );
         }
 
         const frequentEntities = getFrequentEntities(sessionId);
@@ -1107,9 +1100,8 @@ describe('STM Promotion Service', () => {
     });
 
     it('should give higher importance to emotionally significant mentions', async () => {
-      const { recordTurn, getFrequentEntities, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, getFrequentEntities, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `importance-emotion-${Date.now()}`;
@@ -1191,7 +1183,8 @@ describe('Firestore-Spanner Sync Service', () => {
     });
 
     it('should allow configuration of sync parameters', async () => {
-      const { configureSyncService } = await import('../../memory/dynamic/firestore-spanner-sync.js');
+      const { configureSyncService } =
+        await import('../../memory/dynamic/firestore-spanner-sync.js');
 
       // Should not throw
       expect(() => {
@@ -1219,9 +1212,8 @@ describe('Firestore-Spanner Sync Service', () => {
 
   describe('Sync Cycle', () => {
     it('should handle missing Firestore gracefully', async () => {
-      const { runSyncCycle, configureSyncService } = await import(
-        '../../memory/dynamic/firestore-spanner-sync.js'
-      );
+      const { runSyncCycle, configureSyncService } =
+        await import('../../memory/dynamic/firestore-spanner-sync.js');
 
       // Disable for test
       configureSyncService({ enabled: false });
@@ -1338,9 +1330,8 @@ describe('Gap Analysis Tests', () => {
 
   describe('STM Context with Emotional Signals', () => {
     it('should include emotional signals in STM context', async () => {
-      const { recordTurn, buildSTMContext, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, buildSTMContext, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `stm-emotion-${Date.now()}`;
@@ -1355,7 +1346,13 @@ describe('Gap Analysis Tests', () => {
           transcript: "I'm feeling really stressed and anxious about work.",
           voiceEmotion: 'anxious',
         });
-        recordTurn(sessionId, userId, result, "I'm feeling really stressed and anxious about work.", 1);
+        recordTurn(
+          sessionId,
+          userId,
+          result,
+          "I'm feeling really stressed and anxious about work.",
+          1
+        );
 
         const context = buildSTMContext(sessionId);
 
@@ -1367,9 +1364,8 @@ describe('Gap Analysis Tests', () => {
     });
 
     it('should track emotional trajectory correctly', async () => {
-      const { recordTurn, getEmotionalTrajectory, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, getEmotionalTrajectory, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `trajectory-${Date.now()}`;
@@ -1392,7 +1388,13 @@ describe('Gap Analysis Tests', () => {
           turnNumber: 2,
           transcript: "I'm feeling more hopeful now, maybe I can make it.",
         });
-        recordTurn(sessionId, userId, result2, "I'm feeling more hopeful now, maybe I can make it.", 2);
+        recordTurn(
+          sessionId,
+          userId,
+          result2,
+          "I'm feeling more hopeful now, maybe I can make it.",
+          2
+        );
 
         // Turn 3: Relieved
         const result3 = await fastCapture({
@@ -1417,9 +1419,8 @@ describe('Gap Analysis Tests', () => {
 
   describe('Multi-Turn Topic Transitions', () => {
     it('should track topic shifts across conversation', async () => {
-      const { recordTurn, getRecentTopics, isTopicContinuing, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, getRecentTopics, isTopicContinuing, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `topic-transition-${Date.now()}`;
@@ -1445,7 +1446,13 @@ describe('Gap Analysis Tests', () => {
           turnNumber: 2,
           transcript: "It's affecting my sleep, I need to see a doctor.",
         });
-        recordTurn(sessionId, userId, result2, "It's affecting my sleep, I need to see a doctor.", 2);
+        recordTurn(
+          sessionId,
+          userId,
+          result2,
+          "It's affecting my sleep, I need to see a doctor.",
+          2
+        );
 
         expect(isTopicContinuing(sessionId, 'health')).toBe(true);
         expect(isTopicContinuing(sessionId, 'sleep')).toBe(true);
@@ -1463,9 +1470,8 @@ describe('Gap Analysis Tests', () => {
     });
 
     it('should move repeated topic to front of history', async () => {
-      const { recordTurn, getRecentTopics, cleanupSession } = await import(
-        '../../memory/dynamic/stm-buffer.js'
-      );
+      const { recordTurn, getRecentTopics, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const sessionId = `topic-repeat-${Date.now()}`;
@@ -1548,12 +1554,8 @@ describe('Gap Analysis Tests', () => {
 
   describe('Concurrent Session Isolation', () => {
     it('should isolate data between different sessions', async () => {
-      const {
-        recordTurn,
-        wasEntityMentioned,
-        getRecentTopics,
-        cleanupSession,
-      } = await import('../../memory/dynamic/stm-buffer.js');
+      const { recordTurn, wasEntityMentioned, getRecentTopics, cleanupSession } =
+        await import('../../memory/dynamic/stm-buffer.js');
       const { fastCapture } = await import('../../memory/dynamic/fast-capture.js');
 
       const session1 = `isolation-1-${Date.now()}`;

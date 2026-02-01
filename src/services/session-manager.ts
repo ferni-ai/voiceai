@@ -1776,7 +1776,10 @@ export async function createSessionServices(
           diagnosticApplyLearningToProfile(
             sessionId,
             { keyMoments: beforeKeyMoments, emotionalPatterns: beforeEmotionalPatterns },
-            { keyMoments: updatedProfile.keyMoments?.length || 0, emotionalPatterns: updatedProfile.emotionalPatterns?.length || 0 }
+            {
+              keyMoments: updatedProfile.keyMoments?.length || 0,
+              emotionalPatterns: updatedProfile.emotionalPatterns?.length || 0,
+            }
           );
 
           // Apply humanizing state updates
@@ -2041,10 +2044,10 @@ export async function createSessionServices(
           // ================================================================
 
           services.userProfile = updatedProfile;
-          
+
           // Memory pipeline diagnostics - profile save attempt
           diagnosticProfileSaveAttempt(sessionId, validatedUserId || 'unknown');
-          
+
           try {
             await services.saveProfile();
             diagnosticProfileSaveSuccess(sessionId, validatedUserId || 'unknown');

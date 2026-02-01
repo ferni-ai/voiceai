@@ -70,6 +70,10 @@ User Speech
 | `stm-buffer.ts` | L1: In-memory short-term session context (20-turn FIFO) |
 | `stm-promotion.ts` | L1→L2: Session-end promotion to Firestore |
 | `firestore-spanner-sync.ts` | L2→L3: Background sync to Spanner Graph |
+| `async-events-config.ts` | Configuration for async event emission between capture stages |
+| `memory-continuity.ts` | Cross-session memory continuity (reconnect context) |
+| `voice-context-capture.ts` | Voice-specific capture (tone, pace, emotion from audio signals) |
+| `metrics.ts` | Observability metrics (capture latency, queue depth, extraction timing) |
 | `index.ts` | Module exports |
 
 ## Three-Layer Memory Architecture

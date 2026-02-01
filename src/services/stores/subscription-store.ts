@@ -235,7 +235,10 @@ export async function saveSubscriptionData(
       };
       const result = await saveLifeAutomationData(userId, 'subscriptions', firestoreData);
       if (!result.success) {
-        log.warn({ userId, error: result.error }, 'Failed to save to Firestore, data in memory only');
+        log.warn(
+          { userId, error: result.error },
+          'Failed to save to Firestore, data in memory only'
+        );
       }
     }
 

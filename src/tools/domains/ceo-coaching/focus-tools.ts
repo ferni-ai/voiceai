@@ -49,7 +49,7 @@ export const focusSessionDef: ToolDefinition = {
           .max(180)
           .optional()
           .describe('Session duration in minutes (for start action)'),
-        task: z.string().optional().describe('What you\'re focusing on'),
+        task: z.string().optional().describe("What you're focusing on"),
         status: z
           .enum(['completed', 'interrupted'])
           .optional()
@@ -70,11 +70,13 @@ export const focusSessionDef: ToolDefinition = {
             if (existing) {
               const startTime = new Date(existing.startedAt);
               const minutesIn = Math.floor((Date.now() - startTime.getTime()) / (1000 * 60));
-              return `**Already in a focus session** 🎯\n\n` +
+              return (
+                `**Already in a focus session** 🎯\n\n` +
                 `Task: ${existing.task || 'Deep work'}\n` +
                 `Duration: ${existing.durationMinutes} minutes\n` +
                 `Progress: ${minutesIn} minutes in\n\n` +
-                `End this session before starting a new one.`;
+                `End this session before starting a new one.`
+              );
             }
 
             const duration = durationMinutes || 25; // Default to Pomodoro
@@ -155,7 +157,7 @@ export const focusSessionDef: ToolDefinition = {
             return response;
           }
 
-          return 'I didn\'t understand that action.';
+          return "I didn't understand that action.";
         } catch (error) {
           log.error({ error: String(error), userId }, 'Failed focus session');
           return 'I had trouble with that. Let me try again.';
@@ -185,14 +187,8 @@ export const dailyReflectionDef: ToolDefinition = {
         action: z
           .enum(['start', 'save'])
           .describe('Start reflection prompts or save completed reflection'),
-        highlights: z
-          .array(z.string())
-          .optional()
-          .describe('Day\'s highlights (for save action)'),
-        challenges: z
-          .array(z.string())
-          .optional()
-          .describe('Challenges faced (for save action)'),
+        highlights: z.array(z.string()).optional().describe("Day's highlights (for save action)"),
+        challenges: z.array(z.string()).optional().describe('Challenges faced (for save action)'),
         tomorrow: z
           .array(z.string())
           .optional()
@@ -271,7 +267,7 @@ export const dailyReflectionDef: ToolDefinition = {
             return response;
           }
 
-          return 'I didn\'t understand that action.';
+          return "I didn't understand that action.";
         } catch (error) {
           log.error({ error: String(error), userId }, 'Failed daily reflection');
           return 'I had trouble with that. Let me try again.';
@@ -285,7 +281,4 @@ export const dailyReflectionDef: ToolDefinition = {
 // EXPORTS
 // ============================================================================
 
-export const focusTools: ToolDefinition[] = [
-  focusSessionDef,
-  dailyReflectionDef,
-];
+export const focusTools: ToolDefinition[] = [focusSessionDef, dailyReflectionDef];

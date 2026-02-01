@@ -263,7 +263,7 @@ ${context.notes ? `\nNotes: ${context.notes}` : ''}
 CALLER RECOGNITION:
 - This caller is RECOGNIZED. Greet them warmly by name.
 - They have called before and have conversation history with you.
-${context.isVoiceEnrolled ? '- Their voice is enrolled - you can verify it\'s really them.' : '- Voice not enrolled yet - consider offering voice enrollment for security.'}
+${context.isVoiceEnrolled ? "- Their voice is enrolled - you can verify it's really them." : '- Voice not enrolled yet - consider offering voice enrollment for security.'}
 
 Use their name naturally in conversation. Make them feel remembered and valued.
 `.trim();

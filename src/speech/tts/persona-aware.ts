@@ -25,7 +25,12 @@ import {
   DEFAULT_VOICE_IDS,
   getDefaultTTSProvider,
 } from './cartesia-core.js';
-import { createBTCWTTS, getBTCWVoiceIdForPersona, type BTCWTTS } from './btcw-core.js';
+import {
+  createBTCWTTS,
+  getBTCWVoiceIdForPersona,
+  type BTCWTTS,
+  type BTCWEmotionType,
+} from './btcw-core.js';
 import type { PersonaVoiceConfig } from './types.js';
 
 // Union type for supported TTS providers
@@ -131,7 +136,7 @@ export class PersonaAwareTTS extends tts.TTS {
       this.personaTTS = createBTCWTTS(btcwVoice, {
         endpoint: voiceConfig.btcwEndpoint,
         apiKey: voiceConfig.btcwApiKey,
-        defaultEmotion: (voiceConfig.btcwDefaultEmotion as any) || 'warm',
+        defaultEmotion: (voiceConfig.btcwDefaultEmotion as BTCWEmotionType | undefined) || 'warm',
       });
     } else {
       this.personaTTS = createCartesiaTTS(this.voiceId);

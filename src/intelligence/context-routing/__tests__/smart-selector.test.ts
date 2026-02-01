@@ -72,11 +72,7 @@ import type {
   BuilderEffectiveness,
   UserBuilderPreferences,
 } from '../types.js';
-import {
-  DEFAULT_SLOT_COUNT,
-  FAST_MODE_SLOT_COUNT,
-  SCORE_WEIGHTS,
-} from '../types.js';
+import { DEFAULT_SLOT_COUNT, FAST_MODE_SLOT_COUNT, SCORE_WEIGHTS } from '../types.js';
 
 // ============================================================================
 // TEST HELPERS
@@ -134,7 +130,14 @@ function createUserPreferences(
 describe('SlotAllocator', () => {
   describe('MODE_ALLOCATIONS', () => {
     it('should have allocations for all conversation modes', () => {
-      const modes: ConversationMode[] = ['crisis', 'emotional', 'practical', 'deep', 'casual', 'unknown'];
+      const modes: ConversationMode[] = [
+        'crisis',
+        'emotional',
+        'practical',
+        'deep',
+        'casual',
+        'unknown',
+      ];
       for (const mode of modes) {
         expect(MODE_ALLOCATIONS[mode]).toBeDefined();
         expect(FAST_MODE_ALLOCATIONS[mode]).toBeDefined();
@@ -457,9 +460,7 @@ describe('CacheManager', () => {
 
     it('should fall back to global cache and promote to session', () => {
       const manager = createCacheManager(testSessionId, testUserId);
-      CacheManager.setGlobalCache(
-        new Map([['test', createEffectiveness('test', 75, 150)]])
-      );
+      CacheManager.setGlobalCache(new Map([['test', createEffectiveness('test', 75, 150)]]));
 
       const result = manager.getScore('test');
       expect(result.tier).toBe('global');
@@ -540,7 +541,14 @@ describe('PredictiveScorer', () => {
 
   describe('MODE_CATEGORY_RELEVANCE', () => {
     it('should have relevance scores for all modes', () => {
-      const modes: ConversationMode[] = ['crisis', 'emotional', 'practical', 'deep', 'casual', 'unknown'];
+      const modes: ConversationMode[] = [
+        'crisis',
+        'emotional',
+        'practical',
+        'deep',
+        'casual',
+        'unknown',
+      ];
       for (const mode of modes) {
         expect(MODE_CATEGORY_RELEVANCE[mode]).toBeDefined();
       }
@@ -728,7 +736,7 @@ describe('SmartSelector', () => {
       });
 
       // Safety and crisis_response should be included
-      const selectedCategories = decision.selected.map(i => i.category);
+      const selectedCategories = decision.selected.map((i) => i.category);
       expect(selectedCategories).toContain('safety');
 
       selector.cleanup();
@@ -842,10 +850,7 @@ describe('selectInjections convenience function', () => {
   });
 
   it('should select injections in a single call', async () => {
-    const injections = [
-      createInjection('emotional', 1),
-      createInjection('coaching', 2),
-    ];
+    const injections = [createInjection('emotional', 1), createInjection('coaching', 2)];
 
     const decision = await selectInjections(injections, {
       userId: 'user1',

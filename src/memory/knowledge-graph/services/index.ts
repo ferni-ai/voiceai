@@ -10,6 +10,7 @@ export {
   initializeKnowledgeCapture,
   setKnowledgeCaptureEnabled,
   isKnowledgeCaptureReady,
+  isEntityStorePersistenceReady,
   type TurnCaptureInput,
   type CaptureResult,
 } from './knowledge-capture.js';

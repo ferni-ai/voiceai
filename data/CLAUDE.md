@@ -28,7 +28,7 @@ Controls tool selection for LLM:
 ```
 
 Key settings:
-- `enabledDomains: []` - All 95 domains available, semantic router picks relevant ones
+- `enabledDomains: []` - All 118 domains available, semantic router picks relevant ones
 - `maxTools: 60` - Cap on tools sent to LLM per turn
 - `includedTools` - Always included regardless of semantic match
 

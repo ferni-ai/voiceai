@@ -85,9 +85,8 @@ Parameters:
 
       try {
         // Get inbound call context to identify the caller
-        const { getInboundCallContext } = await import(
-          '../../../intelligence/context-builders/external/inbound-call-context.js'
-        );
+        const { getInboundCallContext } =
+          await import('../../../intelligence/context-builders/external/inbound-call-context.js');
         const callContext = getInboundCallContext(sessionId);
 
         if (!callContext?.sponsoredIdentityId || !callContext?.sponsorUserId) {
@@ -99,9 +98,8 @@ Parameters:
         }
 
         // Get the sponsored identity for caller info
-        const { getSponsoredIdentity } = await import(
-          '../../../services/identity/sponsored-identity.js'
-        );
+        const { getSponsoredIdentity } =
+          await import('../../../services/identity/sponsored-identity.js');
         const identity = await getSponsoredIdentity(callContext.sponsoredIdentityId);
 
         if (!identity) {
@@ -147,8 +145,7 @@ Parameters:
         log.error({ error, sessionId }, 'Failed to create family message');
         return {
           success: false,
-          message:
-            "I'm having trouble saving your message right now. Would you like to try again?",
+          message: "I'm having trouble saving your message right now. Would you like to try again?",
         };
       }
     },
@@ -209,7 +206,7 @@ For example:
             hasMessages: false,
             message: args.fromName
               ? `No messages from ${args.fromName} right now.`
-              : "No messages waiting for you right now.",
+              : 'No messages waiting for you right now.',
           };
         }
 
@@ -300,9 +297,8 @@ Parameters:
 
       try {
         // Get inbound call context to identify the caller
-        const { getInboundCallContext } = await import(
-          '../../../intelligence/context-builders/external/inbound-call-context.js'
-        );
+        const { getInboundCallContext } =
+          await import('../../../intelligence/context-builders/external/inbound-call-context.js');
         const callContext = getInboundCallContext(sessionId);
 
         if (!callContext?.sponsoredIdentityId || !callContext?.sponsorUserId) {
@@ -314,9 +310,8 @@ Parameters:
         }
 
         // Get the sponsored identity for caller info
-        const { getSponsoredIdentity } = await import(
-          '../../../services/identity/sponsored-identity.js'
-        );
+        const { getSponsoredIdentity } =
+          await import('../../../services/identity/sponsored-identity.js');
         const identity = await getSponsoredIdentity(callContext.sponsoredIdentityId);
 
         if (!identity) {
@@ -338,7 +333,8 @@ Parameters:
         }
 
         // Create the coordinated reminder
-        const { createReminder } = await import('../../../services/scheduling/reminder-scheduler.js');
+        const { createReminder } =
+          await import('../../../services/scheduling/reminder-scheduler.js');
 
         // Get sponsor's timezone from their profile (fallback to UTC for international support)
         const { getUserContactInfo } = await import('../../../services/outreach/user-contact.js');
@@ -381,7 +377,8 @@ Parameters:
         log.error({ error, sessionId }, 'Failed to create coordinated reminder');
         return {
           success: false,
-          message: "I'm having trouble setting that reminder right now. Would you like to try again?",
+          message:
+            "I'm having trouble setting that reminder right now. Would you like to try again?",
         };
       }
     },

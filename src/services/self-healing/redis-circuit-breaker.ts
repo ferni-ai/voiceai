@@ -114,10 +114,16 @@ export class RedisCircuitBreaker extends CircuitBreaker {
         // Start periodic sync
         this.startPeriodicSync();
 
-        log.info({ circuit: this.name, instanceId: this.instanceId }, '🔌 Redis circuit breaker connected');
+        log.info(
+          { circuit: this.name, instanceId: this.instanceId },
+          '🔌 Redis circuit breaker connected'
+        );
       }
     } catch (error) {
-      log.debug({ error: String(error), circuit: this.name }, 'Redis not available for circuit breaker');
+      log.debug(
+        { error: String(error), circuit: this.name },
+        'Redis not available for circuit breaker'
+      );
     }
   }
 
@@ -152,7 +158,10 @@ export class RedisCircuitBreaker extends CircuitBreaker {
         }
       }
     } catch (error) {
-      log.debug({ error: String(error), circuit: this.name }, 'Failed to load circuit state from Redis');
+      log.debug(
+        { error: String(error), circuit: this.name },
+        'Failed to load circuit state from Redis'
+      );
     }
   }
 
@@ -181,7 +190,10 @@ export class RedisCircuitBreaker extends CircuitBreaker {
       this.lastSyncTime = Date.now();
       log.debug({ circuit: this.name, state: redisState.state }, 'Circuit state synced to Redis');
     } catch (error) {
-      log.debug({ error: String(error), circuit: this.name }, 'Failed to sync circuit state to Redis');
+      log.debug(
+        { error: String(error), circuit: this.name },
+        'Failed to sync circuit state to Redis'
+      );
     }
   }
 
@@ -203,7 +215,10 @@ export class RedisCircuitBreaker extends CircuitBreaker {
       this.syncIntervalMs
     );
 
-    log.debug({ circuit: this.name, intervalMs: this.syncIntervalMs }, 'Started periodic circuit sync');
+    log.debug(
+      { circuit: this.name, intervalMs: this.syncIntervalMs },
+      'Started periodic circuit sync'
+    );
   }
 
   /**
@@ -334,7 +349,9 @@ export function createRedisCircuitBreaker(
 /**
  * Get all Redis circuit breaker stats
  */
-export function getAllRedisCircuitStats(): Array<ReturnType<RedisCircuitBreaker['getExtendedStats']>> {
+export function getAllRedisCircuitStats(): Array<
+  ReturnType<RedisCircuitBreaker['getExtendedStats']>
+> {
   return Array.from(redisCircuits.values()).map((c) => c.getExtendedStats());
 }
 

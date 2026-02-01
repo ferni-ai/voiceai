@@ -29,9 +29,7 @@ const turnHistory = new Map<string, TurnAnalysis[]>();
 /**
  * Get user's rhythm profile
  */
-export async function getProfile(
-  userId: string
-): Promise<ConversationalRhythm | null> {
+export async function getProfile(userId: string): Promise<ConversationalRhythm | null> {
   return profileStorage.get(userId) || null;
 }
 
@@ -61,10 +59,7 @@ export async function saveProfile(profile: ConversationalRhythm): Promise<void> 
 /**
  * Record a turn for learning
  */
-export async function recordTurn(
-  userId: string,
-  analysis: TurnAnalysis
-): Promise<void> {
+export async function recordTurn(userId: string, analysis: TurnAnalysis): Promise<void> {
   const history = turnHistory.get(userId) || [];
   history.push(analysis);
 
@@ -84,10 +79,7 @@ export async function recordTurn(
 /**
  * Update profile based on turn history
  */
-async function updateProfileFromHistory(
-  userId: string,
-  history: TurnAnalysis[]
-): Promise<void> {
+async function updateProfileFromHistory(userId: string, history: TurnAnalysis[]): Promise<void> {
   let profile = await getProfile(userId);
   if (!profile) {
     profile = await createProfile(userId);
@@ -148,9 +140,7 @@ async function updateProfileFromHistory(
 /**
  * Group turns by time of day
  */
-function groupByTime(
-  turns: TurnAnalysis[]
-): Record<string, TurnAnalysis[]> {
+function groupByTime(turns: TurnAnalysis[]): Record<string, TurnAnalysis[]> {
   const groups: Record<string, TurnAnalysis[]> = {
     morning: [],
     afternoon: [],

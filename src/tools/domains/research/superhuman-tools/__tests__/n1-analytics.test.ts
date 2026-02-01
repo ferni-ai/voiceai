@@ -272,10 +272,7 @@ describe('N=1 Personal Analytics Tools', () => {
     it('should handle no performance data gracefully', async () => {
       vi.mocked(persistence.loadEnergyData).mockResolvedValueOnce([]);
 
-      const result = await n1AnalyticsTools.analyzePeakPerformance.execute(
-        {},
-        createMockContext()
-      );
+      const result = await n1AnalyticsTools.analyzePeakPerformance.execute({}, createMockContext());
 
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');

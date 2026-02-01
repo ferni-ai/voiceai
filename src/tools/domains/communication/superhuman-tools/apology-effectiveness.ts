@@ -12,7 +12,10 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from '../../../../services/superhuman/firestore-utils.js';
+import {
+  getFirestoreDb,
+  cleanForFirestore,
+} from '../../../../services/superhuman/firestore-utils.js';
 import type { ApologyRecord } from './types.js';
 
 const log = createLogger({ module: 'apology-effectiveness' });
@@ -333,12 +336,16 @@ export async function getApologyRecommendation(
   sections.push(`**Apology Guide for ${contactName}:**\n`);
 
   if (profile.effectiveStyles.length > 0) {
-    sections.push(`✅ **What works:** ${profile.effectiveStyles.map((s) => s.style).join(', ')} apologies`);
+    sections.push(
+      `✅ **What works:** ${profile.effectiveStyles.map((s) => s.style).join(', ')} apologies`
+    );
     sections.push(`   ${profile.bestApproach}\n`);
   }
 
   if (profile.ineffectiveStyles.length > 0) {
-    sections.push(`❌ **What doesn't work:** ${profile.ineffectiveStyles.map((s) => s.style).join(', ')}`);
+    sections.push(
+      `❌ **What doesn't work:** ${profile.ineffectiveStyles.map((s) => s.style).join(', ')}`
+    );
     sections.push(`   ${profile.worstApproach}\n`);
   }
 
@@ -373,10 +380,7 @@ function generateApologyTemplate(style: ApologyStyle, contactName: string): stri
 /**
  * Build apology context for LLM injection.
  */
-export async function buildApologyContext(
-  userId: string,
-  contactName?: string
-): Promise<string> {
+export async function buildApologyContext(userId: string, contactName?: string): Promise<string> {
   if (contactName) {
     const recommendation = await getApologyRecommendation(userId, contactName);
     return `[APOLOGY EFFECTIVENESS - Better Than Human]\n${recommendation}`;
@@ -422,9 +426,7 @@ export async function buildApologyContext(
     );
   }
 
-  sections.push(
-    '\n**When helping craft an apology, reference their history with that person.**'
-  );
+  sections.push('\n**When helping craft an apology, reference their history with that person.**');
 
   return sections.join('\n');
 }

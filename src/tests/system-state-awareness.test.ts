@@ -109,7 +109,7 @@ describe('System State Awareness', () => {
         }
       }
 
-      return lines.length > 0 ? lines.join('. ') + '.' : '';
+      return lines.length > 0 ? `${lines.join('. ')}.` : '';
     }
 
     it('should return empty string when nothing is active', () => {

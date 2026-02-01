@@ -50,12 +50,14 @@ const hypothesisStore = new Map<string, HypothesisTracker>();
 function calculateCohenD(group1: number[], group2: number[]): number {
   const mean1 = group1.reduce((a, b) => a + b, 0) / group1.length;
   const mean2 = group2.reduce((a, b) => a + b, 0) / group2.length;
-  
+
   const var1 = group1.reduce((sum, x) => sum + Math.pow(x - mean1, 2), 0) / (group1.length - 1);
   const var2 = group2.reduce((sum, x) => sum + Math.pow(x - mean2, 2), 0) / (group2.length - 1);
-  
-  const pooledSD = Math.sqrt(((group1.length - 1) * var1 + (group2.length - 1) * var2) / (group1.length + group2.length - 2));
-  
+
+  const pooledSD = Math.sqrt(
+    ((group1.length - 1) * var1 + (group2.length - 1) * var2) / (group1.length + group2.length - 2)
+  );
+
   return pooledSD === 0 ? 0 : (mean1 - mean2) / pooledSD;
 }
 
@@ -74,9 +76,11 @@ function interpretEffectSize(d: number): string {
 
 export const designExperiment = llm.tool({
   description:
-    "Design a personal A/B test with proper experimental methodology. Test if an intervention actually works for YOU, not just in general.",
+    'Design a personal A/B test with proper experimental methodology. Test if an intervention actually works for YOU, not just in general.',
   parameters: z.object({
-    hypothesis: z.string().describe('What you want to test (e.g., "Morning exercise improves my focus")'),
+    hypothesis: z
+      .string()
+      .describe('What you want to test (e.g., "Morning exercise improves my focus")'),
     intervention: z.string().describe('What you will change (e.g., "30 min morning workout")'),
     metric: z.string().describe('How you will measure success (e.g., "Focus score 1-10")'),
     duration: z.number().min(7).max(90).describe('Days to run the experiment'),
@@ -176,8 +180,7 @@ export const designExperiment = llm.tool({
 });
 
 export const recordExperimentData = llm.tool({
-  description:
-    "Record a data point for your active experiment.",
+  description: 'Record a data point for your active experiment.',
   parameters: z.object({
     value: z.number().describe('Your measurement for today'),
     condition: z.enum(['control', 'treatment']).describe('Are you in control or treatment phase?'),
@@ -191,7 +194,9 @@ export const recordExperimentData = llm.tool({
     if (!userId) return 'I need to know who you are.';
 
     const userExperiments = experimentStore.get(userId) || [];
-    const activeExperiment = userExperiments.find(e => e.status === 'designing' || e.status === 'running');
+    const activeExperiment = userExperiments.find(
+      (e) => e.status === 'designing' || e.status === 'running'
+    );
 
     if (!activeExperiment) {
       return 'No active experiment found. Design one first with "Design an experiment"';
@@ -204,8 +209,8 @@ export const recordExperimentData = llm.tool({
       value: params.value,
     });
 
-    const controlData = activeExperiment.dataPoints.filter(d => d.condition === 'control');
-    const treatmentData = activeExperiment.dataPoints.filter(d => d.condition === 'treatment');
+    const controlData = activeExperiment.dataPoints.filter((d) => d.condition === 'control');
+    const treatmentData = activeExperiment.dataPoints.filter((d) => d.condition === 'treatment');
 
     return [
       `✅ Data recorded!`,
@@ -220,27 +225,33 @@ export const recordExperimentData = llm.tool({
       controlData.length >= 7 && treatmentData.length >= 7
         ? `🎯 Ready for analysis! Say "Analyze my experiment"`
         : `Keep recording. Need at least 7 points per phase.`,
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   },
 });
 
 export const analyzeExperiment = llm.tool({
   description:
-    "Analyze your personal experiment results. Get effect size, statistical interpretation, and actionable conclusion.",
+    'Analyze your personal experiment results. Get effect size, statistical interpretation, and actionable conclusion.',
   parameters: z.object({}),
   execute: async (_params: Record<string, never>, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
     if (!userId) return 'I need to know who you are.';
 
     const userExperiments = experimentStore.get(userId) || [];
-    const experiment = userExperiments.find(e => e.status === 'running');
+    const experiment = userExperiments.find((e) => e.status === 'running');
 
     if (!experiment) {
       return 'No running experiment found. Design and run one first.';
     }
 
-    const controlData = experiment.dataPoints.filter(d => d.condition === 'control').map(d => d.value);
-    const treatmentData = experiment.dataPoints.filter(d => d.condition === 'treatment').map(d => d.value);
+    const controlData = experiment.dataPoints
+      .filter((d) => d.condition === 'control')
+      .map((d) => d.value);
+    const treatmentData = experiment.dataPoints
+      .filter((d) => d.condition === 'treatment')
+      .map((d) => d.value);
 
     if (controlData.length < 5 || treatmentData.length < 5) {
       return [
@@ -258,7 +269,8 @@ export const analyzeExperiment = llm.tool({
     const treatmentMean = treatmentData.reduce((a, b) => a + b, 0) / treatmentData.length;
     const effectSize = calculateCohenD(treatmentData, controlData);
     const interpretation = interpretEffectSize(effectSize);
-    const direction = treatmentMean > controlMean ? 'positive' : treatmentMean < controlMean ? 'negative' : 'none';
+    const direction =
+      treatmentMean > controlMean ? 'positive' : treatmentMean < controlMean ? 'negative' : 'none';
 
     // Mark complete
     experiment.status = 'complete';
@@ -267,9 +279,10 @@ export const analyzeExperiment = llm.tool({
       effectSize,
       significant: Math.abs(effectSize) >= 0.5,
       confidence: Math.min(0.95, 0.5 + (controlData.length + treatmentData.length) * 0.02),
-      conclusion: Math.abs(effectSize) >= 0.5
-        ? `The intervention appears to have a ${interpretation} effect.`
-        : `The intervention does not appear to have a meaningful effect.`,
+      conclusion:
+        Math.abs(effectSize) >= 0.5
+          ? `The intervention appears to have a ${interpretation} effect.`
+          : `The intervention does not appear to have a meaningful effect.`,
     };
 
     log.info({ userId, effectSize, interpretation }, '📊 Experiment analyzed');
@@ -292,7 +305,7 @@ export const analyzeExperiment = llm.tool({
       `• Data points: ${treatmentData.length}`,
       `• Average: ${treatmentMean.toFixed(2)}`,
       '',
-      `**Change:** ${direction === 'positive' ? '+' : ''}${(treatmentMean - controlMean).toFixed(2)} (${((treatmentMean - controlMean) / controlMean * 100).toFixed(1)}%)`,
+      `**Change:** ${direction === 'positive' ? '+' : ''}${(treatmentMean - controlMean).toFixed(2)} (${(((treatmentMean - controlMean) / controlMean) * 100).toFixed(1)}%)`,
       '',
       `═══════════════════════════════════`,
       `🎯 **EFFECT SIZE ANALYSIS**`,
@@ -340,10 +353,14 @@ export const analyzeExperiment = llm.tool({
 
 export const createBelief = llm.tool({
   description:
-    "Track a belief and update it with evidence over time. See how your confidence should change based on new information.",
+    'Track a belief and update it with evidence over time. See how your confidence should change based on new information.',
   parameters: z.object({
     statement: z.string().describe('The belief statement'),
-    initialProbability: z.number().min(1).max(99).describe('Your initial probability estimate (1-99%)'),
+    initialProbability: z
+      .number()
+      .min(1)
+      .max(99)
+      .describe('Your initial probability estimate (1-99%)'),
   }),
   execute: async (
     params: { statement: string; initialProbability: number },
@@ -358,11 +375,16 @@ export const createBelief = llm.tool({
       priorProbability: params.initialProbability / 100,
       posteriorProbability: params.initialProbability / 100,
       evidenceHistory: [],
-      currentConfidence: params.initialProbability < 20 ? 'very_low'
-        : params.initialProbability < 40 ? 'low'
-        : params.initialProbability < 60 ? 'moderate'
-        : params.initialProbability < 80 ? 'high'
-        : 'very_high',
+      currentConfidence:
+        params.initialProbability < 20
+          ? 'very_low'
+          : params.initialProbability < 40
+            ? 'low'
+            : params.initialProbability < 60
+              ? 'moderate'
+              : params.initialProbability < 80
+                ? 'high'
+                : 'very_high',
     };
 
     const userBeliefs = beliefStore.get(userId) || [];
@@ -403,11 +425,13 @@ export const createBelief = llm.tool({
 
 export const updateBelief = llm.tool({
   description:
-    "Update a belief with new evidence. Uses Bayesian reasoning to calculate your new rational probability.",
+    'Update a belief with new evidence. Uses Bayesian reasoning to calculate your new rational probability.',
   parameters: z.object({
     beliefKeyword: z.string().describe('Keyword to find the belief'),
     evidence: z.string().describe('What new evidence did you encounter?'),
-    direction: z.enum(['supports', 'opposes', 'neutral']).describe('Does it support or oppose the belief?'),
+    direction: z
+      .enum(['supports', 'opposes', 'neutral'])
+      .describe('Does it support or oppose the belief?'),
     strength: z.enum(['weak', 'moderate', 'strong']).describe('How strong is the evidence?'),
   }),
   execute: async (
@@ -418,21 +442,21 @@ export const updateBelief = llm.tool({
     if (!userId) return 'I need to know who you are.';
 
     const userBeliefs = beliefStore.get(userId) || [];
-    const belief = userBeliefs.find(b => 
+    const belief = userBeliefs.find((b) =>
       b.statement.toLowerCase().includes(params.beliefKeyword.toLowerCase())
     );
 
     if (!belief) {
       return [
         `Belief not found. Your tracked beliefs:`,
-        ...userBeliefs.map(b => `• "${b.statement.slice(0, 50)}..."`),
+        ...userBeliefs.map((b) => `• "${b.statement.slice(0, 50)}..."`),
       ].join('\n');
     }
 
     // Calculate likelihood ratio based on evidence strength and direction
     const strengthMultipliers = { weak: 1.5, moderate: 2.5, strong: 5 };
     const multiplier = strengthMultipliers[params.strength as keyof typeof strengthMultipliers];
-    
+
     let likelihoodRatio: number;
     if (params.direction === 'supports') {
       likelihoodRatio = multiplier;
@@ -460,16 +484,24 @@ export const updateBelief = llm.tool({
 
     const oldProbability = belief.posteriorProbability;
     belief.posteriorProbability = boundedProbability;
-    belief.currentConfidence = boundedProbability < 0.2 ? 'very_low'
-      : boundedProbability < 0.4 ? 'low'
-      : boundedProbability < 0.6 ? 'moderate'
-      : boundedProbability < 0.8 ? 'high'
-      : 'very_high';
+    belief.currentConfidence =
+      boundedProbability < 0.2
+        ? 'very_low'
+        : boundedProbability < 0.4
+          ? 'low'
+          : boundedProbability < 0.6
+            ? 'moderate'
+            : boundedProbability < 0.8
+              ? 'high'
+              : 'very_high';
 
     const change = boundedProbability - oldProbability;
     const changeEmoji = change > 0.1 ? '📈' : change < -0.1 ? '📉' : '➡️';
 
-    log.info({ userId, belief: belief.statement.slice(0, 30), newProb: boundedProbability }, '🧠 Belief updated');
+    log.info(
+      { userId, belief: belief.statement.slice(0, 30), newProb: boundedProbability },
+      '🧠 Belief updated'
+    );
 
     return [
       `🧠 **BELIEF UPDATED**`,
@@ -499,9 +531,12 @@ export const updateBelief = llm.tool({
       `═══════════════════════════════════`,
       '',
       `Starting probability: ${(belief.priorProbability * 100).toFixed(1)}%`,
-      ...belief.evidenceHistory.slice(-5).map((e, i) => 
-        `${i + 1}. ${e.evidence.slice(0, 40)}... → ${(e.newProbability * 100).toFixed(1)}%`
-      ),
+      ...belief.evidenceHistory
+        .slice(-5)
+        .map(
+          (e, i) =>
+            `${i + 1}. ${e.evidence.slice(0, 40)}... → ${(e.newProbability * 100).toFixed(1)}%`
+        ),
       '',
       `═══════════════════════════════════`,
       `💡 **WHAT THIS MEANS**`,
@@ -525,23 +560,24 @@ export const updateBelief = llm.tool({
 // ============================================================================
 
 export const trackHypothesis = llm.tool({
-  description:
-    "Track a hypothesis about your life. Build a record of what you test and learn.",
+  description: 'Track a hypothesis about your life. Build a record of what you test and learn.',
   parameters: z.object({
     hypothesis: z.string().describe('Your hypothesis'),
-    domain: z.enum(['health', 'productivity', 'relationships', 'finances', 'habits', 'career', 'other'])
+    domain: z
+      .enum(['health', 'productivity', 'relationships', 'finances', 'habits', 'career', 'other'])
       .describe('Life domain'),
   }),
-  execute: async (
-    params: { hypothesis: string; domain: string },
-    { ctx }: { ctx: unknown }
-  ) => {
+  execute: async (params: { hypothesis: string; domain: string }, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
     if (!userId) return 'I need to know who you are.';
 
     let tracker = hypothesisStore.get(userId);
     if (!tracker) {
-      tracker = { userId, hypotheses: [], summary: { total: 0, confirmed: 0, refuted: 0, inconclusive: 0, untested: 0 } };
+      tracker = {
+        userId,
+        hypotheses: [],
+        summary: { total: 0, confirmed: 0, refuted: 0, inconclusive: 0, untested: 0 },
+      };
       hypothesisStore.set(userId, tracker);
     }
 
@@ -597,12 +633,13 @@ export const trackHypothesis = llm.tool({
 });
 
 export const updateHypothesis = llm.tool({
-  description:
-    "Update a hypothesis with evidence or conclusion.",
+  description: 'Update a hypothesis with evidence or conclusion.',
   parameters: z.object({
     hypothesisKeyword: z.string().describe('Keyword to find the hypothesis'),
     evidence: z.string().optional().describe('New evidence gathered'),
-    newStatus: z.enum(['testing', 'confirmed', 'refuted', 'inconclusive']).optional()
+    newStatus: z
+      .enum(['testing', 'confirmed', 'refuted', 'inconclusive'])
+      .optional()
       .describe('Update the status'),
   }),
   execute: async (
@@ -615,14 +652,14 @@ export const updateHypothesis = llm.tool({
     const tracker = hypothesisStore.get(userId);
     if (!tracker) return 'No hypotheses tracked yet.';
 
-    const hypothesis = tracker.hypotheses.find(h =>
+    const hypothesis = tracker.hypotheses.find((h) =>
       h.hypothesis.toLowerCase().includes(params.hypothesisKeyword.toLowerCase())
     );
 
     if (!hypothesis) {
       return [
         `Hypothesis not found. Your hypotheses:`,
-        ...tracker.hypotheses.map(h => `• "${h.hypothesis.slice(0, 50)}..."`),
+        ...tracker.hypotheses.map((h) => `• "${h.hypothesis.slice(0, 50)}..."`),
       ].join('\n');
     }
 
@@ -635,7 +672,7 @@ export const updateHypothesis = llm.tool({
     if (params.newStatus) {
       const oldStatus = hypothesis.status;
       hypothesis.status = params.newStatus as typeof hypothesis.status;
-      
+
       // Update summary counts
       if (oldStatus === 'untested') tracker.summary.untested--;
       else if (oldStatus === 'confirmed') tracker.summary.confirmed--;
@@ -656,14 +693,16 @@ export const updateHypothesis = llm.tool({
       `Tests conducted: ${hypothesis.testCount}`,
       '',
       hypothesis.evidence.length > 0 ? `**Evidence:**` : '',
-      ...hypothesis.evidence.slice(-5).map(e => `• ${e}`),
+      ...hypothesis.evidence.slice(-5).map((e) => `• ${e}`),
       '',
       `**Portfolio Summary:**`,
       `• Confirmed: ${tracker.summary.confirmed}`,
       `• Refuted: ${tracker.summary.refuted}`,
       `• Inconclusive: ${tracker.summary.inconclusive}`,
       `• Untested: ${tracker.summary.untested}`,
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   },
 });
 
@@ -675,51 +714,111 @@ export const detectConfounds = llm.tool({
   description:
     "Find potential confounding variables in a correlation you observed. Don't be fooled by spurious relationships.",
   parameters: z.object({
-    observation: z.string().describe('The correlation you observed (e.g., "When I exercise, I sleep better")'),
-    domain: z.enum(['health', 'productivity', 'finances', 'relationships', 'habits'])
+    observation: z
+      .string()
+      .describe('The correlation you observed (e.g., "When I exercise, I sleep better")'),
+    domain: z
+      .enum(['health', 'productivity', 'finances', 'relationships', 'habits'])
       .describe('Domain of the observation'),
   }),
-  execute: async (
-    params: { observation: string; domain: string },
-    { ctx }: { ctx: unknown }
-  ) => {
+  execute: async (params: { observation: string; domain: string }, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
     log.info({ userId, observation: params.observation }, '🔍 Detecting confounds');
 
     // Domain-specific common confounds
     const confoundDatabase: Record<string, { variable: string; explanation: string }[]> = {
       health: [
-        { variable: 'Season/Weather', explanation: 'Outdoor activities, vitamin D, and mood all vary by season' },
-        { variable: 'Stress levels', explanation: 'Stress affects almost all health outcomes simultaneously' },
-        { variable: 'Sleep quality', explanation: 'Sleep impacts energy, mood, cognition, and physical health' },
-        { variable: 'Social activity', explanation: 'Social engagement correlates with multiple health behaviors' },
-        { variable: 'Work schedule', explanation: 'Work demands affect diet, exercise, sleep, and stress' },
+        {
+          variable: 'Season/Weather',
+          explanation: 'Outdoor activities, vitamin D, and mood all vary by season',
+        },
+        {
+          variable: 'Stress levels',
+          explanation: 'Stress affects almost all health outcomes simultaneously',
+        },
+        {
+          variable: 'Sleep quality',
+          explanation: 'Sleep impacts energy, mood, cognition, and physical health',
+        },
+        {
+          variable: 'Social activity',
+          explanation: 'Social engagement correlates with multiple health behaviors',
+        },
+        {
+          variable: 'Work schedule',
+          explanation: 'Work demands affect diet, exercise, sleep, and stress',
+        },
       ],
       productivity: [
-        { variable: 'Energy levels', explanation: 'Energy affects both the intervention and the outcome' },
-        { variable: 'Time of day', explanation: 'Circadian rhythms affect many cognitive outcomes' },
-        { variable: 'Workload variation', explanation: 'External demands affect both behavior and results' },
-        { variable: 'Motivation cycles', explanation: 'Motivation affects multiple behaviors simultaneously' },
+        {
+          variable: 'Energy levels',
+          explanation: 'Energy affects both the intervention and the outcome',
+        },
+        {
+          variable: 'Time of day',
+          explanation: 'Circadian rhythms affect many cognitive outcomes',
+        },
+        {
+          variable: 'Workload variation',
+          explanation: 'External demands affect both behavior and results',
+        },
+        {
+          variable: 'Motivation cycles',
+          explanation: 'Motivation affects multiple behaviors simultaneously',
+        },
         { variable: 'Sleep quality', explanation: 'Sleep impacts all cognitive functions' },
       ],
       finances: [
-        { variable: 'Income changes', explanation: 'Income affects both spending ability and saving behavior' },
-        { variable: 'Life stage', explanation: 'Age, family status affect many financial patterns' },
-        { variable: 'Economic conditions', explanation: 'Macro factors affect spending and investing' },
+        {
+          variable: 'Income changes',
+          explanation: 'Income affects both spending ability and saving behavior',
+        },
+        {
+          variable: 'Life stage',
+          explanation: 'Age, family status affect many financial patterns',
+        },
+        {
+          variable: 'Economic conditions',
+          explanation: 'Macro factors affect spending and investing',
+        },
         { variable: 'Stress', explanation: 'Financial stress affects both behavior and outcomes' },
-        { variable: 'Social comparison', explanation: 'Peer behavior affects multiple financial decisions' },
+        {
+          variable: 'Social comparison',
+          explanation: 'Peer behavior affects multiple financial decisions',
+        },
       ],
       relationships: [
-        { variable: 'Your mood', explanation: 'Your emotional state affects how you perceive and act' },
+        {
+          variable: 'Your mood',
+          explanation: 'Your emotional state affects how you perceive and act',
+        },
         { variable: 'Life stress', explanation: 'Stress affects all relationships simultaneously' },
-        { variable: 'Time availability', explanation: 'Available time affects quality of all relationships' },
-        { variable: 'Their circumstances', explanation: 'Other person\'s situation affects their behavior' },
-        { variable: 'Shared context', explanation: 'Events affecting both people can create false correlations' },
+        {
+          variable: 'Time availability',
+          explanation: 'Available time affects quality of all relationships',
+        },
+        {
+          variable: 'Their circumstances',
+          explanation: "Other person's situation affects their behavior",
+        },
+        {
+          variable: 'Shared context',
+          explanation: 'Events affecting both people can create false correlations',
+        },
       ],
       habits: [
-        { variable: 'Willpower depletion', explanation: 'Self-control affects multiple habits at once' },
-        { variable: 'Routine disruptions', explanation: 'Travel, illness affect all habits together' },
-        { variable: 'Motivation waves', explanation: 'General motivation affects multiple behaviors' },
+        {
+          variable: 'Willpower depletion',
+          explanation: 'Self-control affects multiple habits at once',
+        },
+        {
+          variable: 'Routine disruptions',
+          explanation: 'Travel, illness affect all habits together',
+        },
+        {
+          variable: 'Motivation waves',
+          explanation: 'General motivation affects multiple behaviors',
+        },
         { variable: 'Environmental changes', explanation: 'Context changes affect habit cues' },
         { variable: 'Stress/energy', explanation: 'Physical/mental resources affect all habits' },
       ],
@@ -736,11 +835,9 @@ export const detectConfounds = llm.tool({
       `⚠️ **POTENTIAL CONFOUNDING VARIABLES**`,
       `═══════════════════════════════════`,
       '',
-      ...confounds.map((c, i) => [
-        `**${i + 1}. ${c.variable}**`,
-        `   ${c.explanation}`,
-        '',
-      ].join('\n')),
+      ...confounds.map((c, i) =>
+        [`**${i + 1}. ${c.variable}**`, `   ${c.explanation}`, ''].join('\n')
+      ),
       `═══════════════════════════════════`,
       `🎯 **HOW TO TELL IF IT'S REAL**`,
       `═══════════════════════════════════`,
@@ -780,7 +877,7 @@ export const detectConfounds = llm.tool({
 
 export const calculateEffectSize = llm.tool({
   description:
-    "Calculate whether a change you made actually matters. Raw numbers can be deceiving - effect size tells the truth.",
+    'Calculate whether a change you made actually matters. Raw numbers can be deceiving - effect size tells the truth.',
   parameters: z.object({
     beforeValues: z.array(z.number()).describe('Measurements before the change'),
     afterValues: z.array(z.number()).describe('Measurements after the change'),
@@ -807,7 +904,8 @@ export const calculateEffectSize = llm.tool({
 
     // Calculate standard deviation for context
     const beforeSD = Math.sqrt(
-      params.beforeValues.reduce((sum, x) => sum + Math.pow(x - beforeMean, 2), 0) / (params.beforeValues.length - 1)
+      params.beforeValues.reduce((sum, x) => sum + Math.pow(x - beforeMean, 2), 0) /
+        (params.beforeValues.length - 1)
     );
 
     return [
@@ -832,7 +930,7 @@ export const calculateEffectSize = llm.tool({
       '',
       `What this means:`,
       `• The change moved you ${Math.abs(effectSize).toFixed(1)} standard deviations`,
-      effectSize > 0 
+      effectSize > 0
         ? `• That's better than ${Math.round(50 + 50 * (1 - Math.exp(-0.7 * Math.abs(effectSize))))}% of your baseline performance`
         : `• That's worse than ${Math.round(50 + 50 * (1 - Math.exp(-0.7 * Math.abs(effectSize))))}% of your baseline`,
       '',

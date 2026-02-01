@@ -116,7 +116,9 @@ function validateDefinition(definition: PersonaDefinition): string[] {
   if (!definition.id || typeof definition.id !== 'string') {
     errors.push('Persona ID is required and must be a string');
   } else if (!/^[a-z][a-z0-9-]*$/.test(definition.id.toLowerCase())) {
-    errors.push('Persona ID must start with a letter and contain only lowercase letters, numbers, and hyphens');
+    errors.push(
+      'Persona ID must start with a letter and contain only lowercase letters, numbers, and hyphens'
+    );
   }
 
   if (!definition.name || typeof definition.name !== 'string') {
@@ -210,9 +212,10 @@ class PersonaRegistryImpl implements IPersonaRegistry {
       success: true,
       personaId,
       replaced: existingRuntime && overwrite,
-      message: existingRuntime && overwrite
-        ? `Persona '${personaId}' replaced`
-        : `Persona '${personaId}' registered`,
+      message:
+        existingRuntime && overwrite
+          ? `Persona '${personaId}' replaced`
+          : `Persona '${personaId}' registered`,
     };
   }
 
@@ -400,10 +403,13 @@ class PersonaRegistryImpl implements IPersonaRegistry {
     // This re-discovers bundles
     await AgentRegistry.getAllAgents(); // Forces re-discovery
 
-    log.info({
-      bundleCount: (await AgentRegistry.getAllAgents()).length,
-      runtimeCount: runtimePersonas.size,
-    }, 'Persona registry refreshed');
+    log.info(
+      {
+        bundleCount: (await AgentRegistry.getAllAgents()).length,
+        runtimeCount: runtimePersonas.size,
+      },
+      'Persona registry refreshed'
+    );
   }
 
   async clearRuntime(): Promise<number> {

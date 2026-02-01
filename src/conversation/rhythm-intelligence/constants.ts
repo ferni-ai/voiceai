@@ -58,10 +58,10 @@ export const WORD_RANGES = {
  */
 export const USER_TURN_TO_RESPONSE: Record<string, { min: number; max: number }> = {
   veryShort: { min: 10, max: 25 }, // < 10 words → brief
-  short: { min: 20, max: 40 },     // 10-25 words → brief-moderate
-  moderate: { min: 35, max: 70 },  // 25-50 words → moderate
+  short: { min: 20, max: 40 }, // 10-25 words → brief-moderate
+  moderate: { min: 35, max: 70 }, // 25-50 words → moderate
   detailed: { min: 50, max: 100 }, // 50-100 words → moderate-detailed
-  lengthy: { min: 60, max: 120 },  // > 100 words → detailed
+  lengthy: { min: 60, max: 120 }, // > 100 words → detailed
 };
 
 // ============================================================================

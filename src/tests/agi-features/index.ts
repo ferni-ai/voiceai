@@ -39,7 +39,9 @@ export function createMockFirestoreDb() {
       collectionData?.set(docId, { ...existing, ...updates });
     }),
     delete: vi.fn().mockResolvedValue(undefined),
-    collection: vi.fn((subCollection: string) => mockCollection(`${collection}/${docId}/${subCollection}`)),
+    collection: vi.fn((subCollection: string) =>
+      mockCollection(`${collection}/${docId}/${subCollection}`)
+    ),
   });
 
   const mockCollection = (path: string) => ({
@@ -54,7 +56,9 @@ export function createMockFirestoreDb() {
       const collectionData = mockData.get(path);
       const docs = collectionData
         ? Array.from(collectionData.entries()).map(([id, data]) => ({
-            id, exists: true, data: () => data,
+            id,
+            exists: true,
+            data: () => data,
           }))
         : [];
       return { docs, empty: docs.length === 0, size: docs.length };
@@ -72,14 +76,16 @@ export function createMockFirestoreDb() {
   };
 }
 
-export function createMockActionPreview(overrides: Partial<{
-  title: string;
-  summary: string;
-  details: string[];
-  canUndo: boolean;
-  estimatedCost: number;
-  affectedParties: string[];
-}> = {}) {
+export function createMockActionPreview(
+  overrides: Partial<{
+    title: string;
+    summary: string;
+    details: string[];
+    canUndo: boolean;
+    estimatedCost: number;
+    affectedParties: string[];
+  }> = {}
+) {
   return {
     title: 'Test Action',
     summary: 'This is a test action',

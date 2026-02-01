@@ -420,10 +420,7 @@ export async function triggerFeedback(
 
   try {
     await sendDataMessage('feedback_prompt', event as unknown as Record<string, unknown>);
-    log.info(
-      { sessionId, feedbackId, trigger },
-      '📊 Feedback prompt sent to frontend'
-    );
+    log.info({ sessionId, feedbackId, trigger }, '📊 Feedback prompt sent to frontend');
     return feedbackId;
   } catch (error) {
     log.warn({ error, sessionId }, 'Failed to send feedback prompt event');
@@ -456,7 +453,10 @@ export async function checkAndTriggerFeedback(
     return null;
   }
 
-  log.info({ sessionId, trigger: decision.trigger, reason: decision.reason }, 'Triggering feedback');
+  log.info(
+    { sessionId, trigger: decision.trigger, reason: decision.reason },
+    'Triggering feedback'
+  );
 
   return triggerFeedback(sessionId, userId, personaId, decision.trigger, sendDataMessage);
 }

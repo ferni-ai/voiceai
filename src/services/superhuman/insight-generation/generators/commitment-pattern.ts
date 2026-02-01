@@ -27,22 +27,22 @@ const COMMITMENT_TEMPLATES = {
   category_strength: [
     "I've noticed you're great at following through on {strongCategory} commitments—{strongRate}% kept. But {weakCategory}? That's at {weakRate}%. What makes the difference?",
     "You excel at {strongCategory}—you keep those promises. {weakCategory} is harder. Want to explore what's blocking you there?",
-    "Interesting pattern: {strongCategory} commitments stick. {weakCategory} ones slip. Is one more important to you than the other?",
+    'Interesting pattern: {strongCategory} commitments stick. {weakCategory} ones slip. Is one more important to you than the other?',
   ],
   timing_pattern: [
-    "Commitments you make on {goodDay} tend to stick ({goodRate}%). {badDay}s? Those slip more. Might be worth scheduling important decisions accordingly.",
-    "Your follow-through is strongest on {goodDay}. Something about that timing works for you.",
+    'Commitments you make on {goodDay} tend to stick ({goodRate}%). {badDay}s? Those slip more. Might be worth scheduling important decisions accordingly.',
+    'Your follow-through is strongest on {goodDay}. Something about that timing works for you.',
     "I've noticed {goodDay} commitments land better for you. Is there something about the start of the week vs. end that affects your energy?",
   ],
   self_vs_others: [
     "You're great at keeping promises to others, but promises to yourself slip more. You deserve the same follow-through you give everyone else.",
-    "I notice you prioritize commitments to others over commitments to yourself. What would it look like to flip that?",
+    'I notice you prioritize commitments to others over commitments to yourself. What would it look like to flip that?',
     "You follow through for others at {othersRate}%, but for yourself it's {selfRate}%. You matter too.",
   ],
   overall_growth: [
     "Your follow-through rate has been improving. Three months ago it was {oldRate}%, now it's {newRate}%. That's momentum.",
     "You're getting better at keeping commitments. The trend is up, and that's not easy.",
-    "Something to celebrate: your commitment-keeping has strengthened over time.",
+    'Something to celebrate: your commitment-keeping has strengthened over time.',
   ],
   struggling: [
     "I've noticed commitments have been hard to keep lately. No judgment—that happens. Want to look at what's getting in the way?",
@@ -61,7 +61,12 @@ interface CommitmentAnalysis {
   selfVsOthers: { self: number; others: number };
   overallRate: number;
   trend: 'improving' | 'declining' | 'stable';
-  insightType: 'category_strength' | 'timing_pattern' | 'self_vs_others' | 'overall_growth' | 'struggling';
+  insightType:
+    | 'category_strength'
+    | 'timing_pattern'
+    | 'self_vs_others'
+    | 'overall_growth'
+    | 'struggling';
 }
 
 async function analyzeCommitments(userId: string): Promise<CommitmentAnalysis | null> {

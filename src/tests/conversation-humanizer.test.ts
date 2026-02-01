@@ -17,7 +17,7 @@ import {
   resetConversationHumanizer,
   type ConversationHumanizer,
   type HumanizationContext,
-} from '../conversation/humanizer.js';
+} from '../conversation/humanizer/index.js';
 
 // ============================================================================
 // TESTS

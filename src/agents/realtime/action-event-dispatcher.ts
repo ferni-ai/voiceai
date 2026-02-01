@@ -156,7 +156,10 @@ export function generateConfirmationPrompt(action: PendingAction): string {
 /**
  * Generate a warm confirmation response after approval
  */
-export function generateConfirmationResponse(actionType: string, _category: ActionCategory): string {
+export function generateConfirmationResponse(
+  actionType: string,
+  _category: ActionCategory
+): string {
   const responses: Record<string, string> = {
     send_sms: 'Sent!',
     send_email: "Email's on its way.",
@@ -182,12 +185,7 @@ export function generateConfirmationResponse(actionType: string, _category: Acti
  * Generate a warm rejection acknowledgment
  */
 export function generateRejectionResponse(): string {
-  const responses = [
-    "Got it, I won't do that.",
-    'No problem.',
-    'Okay, never mind.',
-    'Understood.',
-  ];
+  const responses = ["Got it, I won't do that.", 'No problem.', 'Okay, never mind.', 'Understood.'];
   return responses[Math.floor(Math.random() * responses.length)];
 }
 
@@ -281,7 +279,7 @@ export async function dispatchPendingAction(
   // Handle overloaded params
   let sessionId: string | undefined;
   let opts = options;
-  
+
   if (typeof sessionIdOrOptions === 'string') {
     sessionId = sessionIdOrOptions;
   } else if (sessionIdOrOptions) {
@@ -294,9 +292,7 @@ export async function dispatchPendingAction(
   };
 
   // Get context - by sessionId or by userId
-  const ctx = sessionId 
-    ? sessionContexts.get(sessionId) 
-    : getContextByUserId(action.userId);
+  const ctx = sessionId ? sessionContexts.get(sessionId) : getContextByUserId(action.userId);
 
   // Send to UI via FrontendPublisher
   if (!opts.skipUI) {
@@ -306,7 +302,10 @@ export async function dispatchPendingAction(
         const sent = await publisher.sendPendingAction(action);
         result.sentToUI = sent;
         if (sent) {
-          log.info({ actionId: action.id, actionType: action.actionType }, 'Sent pending action to UI');
+          log.info(
+            { actionId: action.id, actionType: action.actionType },
+            'Sent pending action to UI'
+          );
         }
       } else {
         log.debug({ actionId: action.id }, 'Publisher not connected, skipping UI notification');
@@ -321,7 +320,7 @@ export async function dispatchPendingAction(
   if (!opts.skipVoice && ctx) {
     try {
       const prompt = generateConfirmationPrompt(action);
-      
+
       await generateReply(ctx.session, ctx.sessionId, {
         instructions: `[CONFIRMATION REQUEST]
 Ask the user for permission using this exact phrasing (or very close to it):
@@ -342,7 +341,10 @@ If they say no, not now, never mind, etc - reject the action.`,
       }
     }
   } else if (!opts.skipVoice && !ctx) {
-    log.debug({ actionId: action.id, userId: action.userId }, 'No active session for user, skipping voice prompt');
+    log.debug(
+      { actionId: action.id, userId: action.userId },
+      'No active session for user, skipping voice prompt'
+    );
   }
 
   return result;
@@ -366,14 +368,14 @@ export async function dispatchActionApproved(
   }
 
   // Voice confirmation
-  const ctx = options.sessionId 
-    ? sessionContexts.get(options.sessionId) 
+  const ctx = options.sessionId
+    ? sessionContexts.get(options.sessionId)
     : getContextByUserId(action.userId);
 
   if (!options.skipVoice && ctx) {
     try {
       const response = generateConfirmationResponse(action.actionType, action.category);
-      
+
       await generateReply(ctx.session, ctx.sessionId, {
         instructions: `[ACTION CONFIRMED]
 The user approved the action. Briefly confirm with something like: "${response}"
@@ -382,7 +384,10 @@ Then continue the conversation naturally.`,
         fallbackMessage: response,
       });
     } catch (error) {
-      log.warn({ error: String(error), actionId: action.id }, 'Failed to send approval voice confirmation');
+      log.warn(
+        { error: String(error), actionId: action.id },
+        'Failed to send approval voice confirmation'
+      );
     }
   }
 }
@@ -405,14 +410,14 @@ export async function dispatchActionRejected(
   }
 
   // Voice acknowledgment
-  const ctx = options.sessionId 
-    ? sessionContexts.get(options.sessionId) 
+  const ctx = options.sessionId
+    ? sessionContexts.get(options.sessionId)
     : getContextByUserId(action.userId);
 
   if (!options.skipVoice && ctx) {
     try {
       const response = generateRejectionResponse();
-      
+
       await generateReply(ctx.session, ctx.sessionId, {
         instructions: `[ACTION REJECTED]
 The user declined the action. Acknowledge briefly with something like: "${response}"
@@ -421,7 +426,10 @@ Don't dwell on it - move on naturally.`,
         fallbackMessage: response,
       });
     } catch (error) {
-      log.warn({ error: String(error), actionId: action.id }, 'Failed to send rejection voice confirmation');
+      log.warn(
+        { error: String(error), actionId: action.id },
+        'Failed to send rejection voice confirmation'
+      );
     }
   }
 }

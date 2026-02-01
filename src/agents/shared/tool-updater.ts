@@ -18,9 +18,11 @@
  */
 
 import { voice } from '@livekit/agents';
-import type { UserData } from './types.js';
+import { capToolsToLimit, getMaxTools, isMetaToolEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
+import { generateToolCatalog, getMetaToolDeclaration } from './meta-tool.js';
+import type { UserData } from './types.js';
 
 const log = createLogger({ module: 'ToolUpdater' });
 
@@ -70,10 +72,12 @@ export async function updateAgentTools(
     domains?: string[];
     /** Skip informing LLM about new tools (just merge for execution) */
     silentMerge?: boolean;
+    /** Force send ALL tools to session (for initial registration) */
+    forceSync?: boolean;
   } = {}
 ): Promise<boolean> {
   const provider = getModelProvider();
-  const { domains = [], silentMerge = false } = options;
+  const { domains = [], silentMerge = false, forceSync = false } = options;
 
   try {
     const agentWithTools = agent as unknown as AgentWithInternals;
@@ -88,7 +92,9 @@ export async function updateAgentTools(
     const newToolNames = Object.keys(newTools);
     const actuallyNew = newToolNames.filter((name) => !(name in agentWithTools._tools!));
 
-    if (actuallyNew.length === 0) {
+    // If forceSync, we send ALL agent tools regardless of whether they're "new"
+    // This is needed for initial tool registration with the session
+    if (!forceSync && actuallyNew.length === 0) {
       log.debug(
         { attemptedTools: newToolNames },
         'All tools already registered - no update needed'
@@ -99,24 +105,27 @@ export async function updateAgentTools(
     // Step 1: Merge new tools into agent's tool context (works for ALL providers)
     Object.assign(agentWithTools._tools, newTools);
 
+    const toolsToReport = forceSync ? Object.keys(agentWithTools._tools) : actuallyNew;
+
     log.info(
       {
         existingCount,
-        newTools: actuallyNew,
+        newTools: toolsToReport.slice(0, 10), // Cap for log readability
         totalCount: Object.keys(agentWithTools._tools).length,
         provider: provider.getLogPrefix(),
+        forceSync,
       },
-      '🔧 Merging new tools into agent'
+      forceSync ? '🔧 Force-syncing ALL tools to session' : '🔧 Merging new tools into agent'
     );
 
     // Step 2: Provider-specific updates
     if (provider.hasNativeFunctionCalling()) {
-      // OpenAI Realtime: Use native updateTools() API
-      return await updateToolsOpenAI(agentWithTools, actuallyNew);
+      // OpenAI/Gemini Realtime: Use native updateTools() API
+      return await updateToolsNativeFC(agentWithTools, toolsToReport, forceSync);
     } else {
       // Gemini (JSON workaround): Inject system message about new tools
       if (!silentMerge) {
-        return await updateToolsGemini(agentWithTools, actuallyNew, domains);
+        return await updateToolsGemini(agentWithTools, toolsToReport, domains);
       }
       log.debug('Gemini: Silent merge - tools available for execution but LLM not informed');
       return true;
@@ -128,43 +137,248 @@ export async function updateAgentTools(
 }
 
 /**
- * OpenAI Realtime: Update tools via native API
+ * Native Function Calling: Update tools via session API
+ *
+ * Works for BOTH OpenAI Realtime AND Gemini Live since both implement
+ * the same `updateTools()` interface via LiveKit's abstraction.
+ *
+ * ⚠️ CRITICAL FOR GEMINI (Jan 2026):
+ * For Gemini, `updateTools()` triggers `markRestartNeeded()` which causes
+ * the session to close and reconnect ASYNCHRONOUSLY. This means:
+ * 1. updateTools() returns immediately
+ * 2. Session restarts in the background (1-2 seconds later)
+ * 3. Tools are LOST after the restart!
+ *
+ * Fix: For initial registration (forceSync=true), we wait for the restart
+ * to complete and then re-register tools.
  */
-async function updateToolsOpenAI(
+async function updateToolsNativeFC(
   agentWithTools: AgentWithInternals,
-  actuallyNew: string[]
+  toolsToReport: string[],
+  forceSync: boolean
 ): Promise<boolean> {
+  // 🔍 DIAGNOSTIC: Track when updateTools is called (may trigger session restart for Gemini!)
+  const timestamp = new Date().toISOString();
+  const totalTools = agentWithTools._tools ? Object.keys(agentWithTools._tools).length : 0;
+  const provider = getModelProvider();
+  const isGemini = provider.id === 'gemini-live';
+  const useMetaTool = isMetaToolEnabled();
+
+  process.stderr.write(
+    `\n⚠️ [TOOL UPDATER] updateToolsNativeFC called at ${timestamp}\n` +
+      `   forceSync: ${forceSync}, toolsToReport: ${toolsToReport.length}, totalTools: ${totalTools}\n` +
+      `   provider: ${provider.id}, useMetaTool: ${useMetaTool}\n` +
+      (isGemini
+        ? `   ⚡ NOTE: For Gemini, this triggers markRestartNeeded() → SESSION RESTART\n`
+        : '')
+  );
+
   if (!agentWithTools.getActivityOrThrow) {
     log.debug('No getActivityOrThrow method - tools merged locally only');
     return true;
   }
 
+  // Helper to get the realtime session, with retries for forceSync
+  const getRealtimeSession = async (): Promise<RealtimeSession | null> => {
+    try {
+      const activity = agentWithTools.getActivityOrThrow!();
+      if (activity.realtimeLLMSession) {
+        return activity.realtimeLLMSession;
+      }
+    } catch {
+      // Activity not ready
+    }
+
+    // For initial registration (forceSync), retry with backoff
+    // The Gemini WebSocket may still be connecting after session.start()
+    if (forceSync) {
+      const retryDelays = [500, 1000, 2000, 3000];
+      for (const delay of retryDelays) {
+        process.stderr.write(
+          `   ⏳ [TOOL UPDATER] realtimeLLMSession not ready, retrying in ${delay}ms...\n`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        try {
+          const activity = agentWithTools.getActivityOrThrow!();
+          if (activity.realtimeLLMSession) {
+            process.stderr.write(
+              `   ✅ [TOOL UPDATER] realtimeLLMSession available after ${delay}ms wait\n`
+            );
+            return activity.realtimeLLMSession;
+          }
+        } catch {
+          // Still not ready
+        }
+      }
+      process.stderr.write(
+        `   ⚠️ [TOOL UPDATER] realtimeLLMSession still not available after retries\n`
+      );
+    }
+    return null;
+  };
+
   try {
-    const activity = agentWithTools.getActivityOrThrow();
-    const realtimeSession = activity.realtimeLLMSession;
+    const realtimeSession = await getRealtimeSession();
 
     if (realtimeSession) {
-      const allTools = { ...agentWithTools._tools };
+      let allTools = { ...agentWithTools._tools };
+      let toolCount = Object.keys(allTools).length;
+
+      // =====================================================================
+      // META-TOOL PATTERN (Jan 2026)
+      // =====================================================================
+      // Instead of registering 100+ tools with Gemini, register ONE tool:
+      // executeTool(toolName, args)
+      //
+      // The LLM only makes ONE decision: "Should I use a tool?"
+      // Then specifies which via executeTool.
+      //
+      // Benefits:
+      // 1. Simpler LLM decision (binary vs 100+ choice)
+      // 2. No context bloat (1 declaration vs 100+)
+      // 3. No tool limits needed (semantic router filters)
+      // 4. Existing execution path stays the same
+      // =====================================================================
+      if (useMetaTool) {
+        const toolCatalog = Object.keys(allTools);
+        const metaToolDeclaration = getMetaToolDeclaration(toolCatalog);
+
+        process.stderr.write(
+          `   🎯 [META-TOOL] Registering single executeTool with ${toolCatalog.length} tools in catalog\n`
+        );
+
+        // Register ONLY the meta-tool
+        // The actual tools are kept in agent._tools for execution
+        await realtimeSession.updateTools({
+          executeTool: metaToolDeclaration as unknown,
+        });
+
+        log.info(
+          { toolCatalogSize: toolCatalog.length, forceSync, provider: provider.id },
+          '✅ Meta-tool registered with catalog'
+        );
+
+        // Generate catalog for system prompt injection (if enabled)
+        if (process.env.META_TOOL_CATALOG_IN_PROMPT !== 'false') {
+          const catalog = generateToolCatalog(allTools as Record<string, { description?: string }>);
+          log.debug({ catalogLength: catalog.length }, '📋 Tool catalog generated for prompt');
+        }
+
+        return true;
+      }
+
+      // =====================================================================
+      // TOOL LIMIT (Jan 2026) - Use centralized config
+      // =====================================================================
+      // Uses capToolsToLimit() from tool-config.ts with TOOL_LIMIT env var.
+      // Default: 0 (unlimited) - semantic router handles filtering.
+      // For Gemini without meta-tool: falls back to 18 if unlimited.
+      // =====================================================================
+      const configLimit = getMaxTools();
+      const effectiveLimit = configLimit > 0 ? configLimit : isGemini ? 18 : 0;
+
+      if (effectiveLimit > 0) {
+        allTools = capToolsToLimit(allTools, effectiveLimit);
+        const newToolCount = Object.keys(allTools).length;
+
+        if (newToolCount !== toolCount) {
+          process.stderr.write(
+            `   ⚠️ [TOOL LIMIT] Capped: ${toolCount} → ${newToolCount} (limit: ${effectiveLimit})\n`
+          );
+          toolCount = newToolCount;
+        }
+      }
+
+      process.stderr.write(`   📤 Calling session.updateTools() with ${toolCount} tools...\n`);
+
       await realtimeSession.updateTools(allTools);
+
+      process.stderr.write(`   ✅ session.updateTools() completed\n`);
+
+      // =====================================================================
+      // GEMINI SESSION RESTART FIX (Jan 2026)
+      // =====================================================================
+      // For Gemini, updateTools() triggers markRestartNeeded() which causes
+      // an ASYNC session restart. The restart happens AFTER updateTools() returns,
+      // so tools are lost. We need to wait for the restart and re-register.
+      //
+      // This only applies to initial registration (forceSync=true) because:
+      // 1. Mid-session updates are already blocked for Gemini (isMidSessionToolUpdateSafe)
+      // 2. The initial registration is the only time we should call updateTools for Gemini
+      // =====================================================================
+      if (isGemini && forceSync && toolCount > 0) {
+        process.stderr.write(`   ⏳ [GEMINI FIX] Waiting for session restart to complete...\n`);
+
+        // Wait for the session restart to complete
+        // The restart typically takes 1-2 seconds based on logs:
+        // - updateTools completes at 03:05:03.584
+        // - Session closes/reconnects shortly after
+        // - We need to wait for the new session to be ready
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+
+        process.stderr.write(
+          `   🔄 [GEMINI FIX] Re-registering ${toolCount} tools after session restart...\n`
+        );
+
+        // Re-register tools after the restart
+        try {
+          // Get fresh session reference (might have changed after restart)
+          const freshActivity = agentWithTools.getActivityOrThrow();
+          const freshSession = freshActivity.realtimeLLMSession;
+
+          if (freshSession) {
+            await freshSession.updateTools(allTools);
+            process.stderr.write(
+              `   ✅ [GEMINI FIX] Tools re-registered successfully after restart!\n\n`
+            );
+          } else {
+            process.stderr.write(`   ⚠️ [GEMINI FIX] No session available after restart\n\n`);
+          }
+        } catch (reregError) {
+          process.stderr.write(`   ⚠️ [GEMINI FIX] Re-registration error: ${reregError}\n\n`);
+        }
+      } else {
+        process.stderr.write('\n');
+      }
 
       log.info(
         {
-          newTools: actuallyNew,
-          totalTools: Object.keys(allTools).length,
+          toolsReported: toolsToReport.slice(0, 10), // Cap for readability
+          totalTools: toolCount,
+          forceSync,
+          provider: provider.id,
         },
-        '✅ OpenAI Realtime: Tools updated via native API'
+        forceSync
+          ? '✅ Native FC: Initial tools synced to session'
+          : '✅ Native FC: Tools updated via session API'
       );
       return true;
     } else {
-      log.debug('No realtime session available - tools merged but not sent to OpenAI');
+      if (forceSync) {
+        log.warn(
+          'No realtime session available for initial tool registration - tools NOT sent to LLM!'
+        );
+        process.stderr.write(
+          `   🚨 [TOOL UPDATER] CRITICAL: realtimeLLMSession is null - tools NOT registered with Gemini!\n` +
+            `   Tools are in agent._tools but Gemini has no function declarations.\n\n`
+        );
+      } else {
+        log.debug('No realtime session available - tools merged but not sent to session');
+      }
       return true;
     }
   } catch (activityError) {
-    // Activity might not be ready yet - that's OK, tools are still merged
-    log.debug(
-      { error: String(activityError) },
-      'Activity not available yet - tools merged locally'
-    );
+    if (forceSync) {
+      log.warn(
+        { error: String(activityError) },
+        'Activity not available for initial tool registration - tools NOT sent to LLM!'
+      );
+    } else {
+      log.debug(
+        { error: String(activityError) },
+        'Activity not available yet - tools merged locally'
+      );
+    }
     return true;
   }
 }
@@ -232,12 +446,64 @@ export function supportsToolUpdates(): boolean {
 }
 
 /**
+ * Register INITIAL agent tools with the session.
+ *
+ * CRITICAL: LiveKit's session starts with EMPTY tools. The agent's `_tools`
+ * must be explicitly sent to the session via `updateTools()` for native
+ * function calling to work.
+ *
+ * Call this AFTER session.start() but BEFORE the first user message.
+ *
+ * @param agent - The voice agent instance
+ * @returns true if tools were registered successfully
+ */
+export async function registerInitialTools(agent: voice.Agent<UserData>): Promise<boolean> {
+  const agentWithTools = agent as unknown as AgentWithInternals;
+
+  if (!agentWithTools._tools || Object.keys(agentWithTools._tools).length === 0) {
+    log.debug('Agent has no initial tools to register');
+    return true;
+  }
+
+  const toolCount = Object.keys(agentWithTools._tools).length;
+  log.info({ toolCount }, '🔧 Registering initial agent tools with session (forceSync=true)');
+
+  // Force sync ALL agent tools to the session
+  // Use empty object for newTools since we just want to sync existing _tools
+  return updateAgentTools(agent, {}, { forceSync: true });
+}
+
+/**
  * Check if provider has NATIVE tool update support.
  * OpenAI Realtime has native support, Gemini uses workaround.
  */
 export function hasNativeToolUpdates(): boolean {
   const provider = getModelProvider();
   return provider.hasNativeFunctionCalling();
+}
+
+/**
+ * Check if mid-session tool updates are SAFE (won't cause session restart).
+ *
+ * For Gemini: Mid-session updateTools() triggers markRestartNeeded() which
+ * causes a session restart. This can break function calling because the
+ * session loses state. So we return false to prevent mid-session updates.
+ *
+ * For OpenAI: Mid-session updates are safe and don't cause restarts.
+ *
+ * @returns true if mid-session tool updates are safe
+ */
+export function isMidSessionToolUpdateSafe(): boolean {
+  const provider = getModelProvider();
+
+  // Gemini triggers session restart on updateTools() - NOT safe
+  // Provider ID is 'gemini-live' for the Gemini Live API
+  if (provider.id === 'gemini-live') {
+    return false;
+  }
+
+  // OpenAI Realtime (provider.id === 'openai-realtime') can handle mid-session updates safely
+  return true;
 }
 
 /**

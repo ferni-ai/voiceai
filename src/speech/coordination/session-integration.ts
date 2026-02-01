@@ -28,30 +28,27 @@ const log = createLogger({ module: 'speech-coordination-integration' });
 
 function stripSSMLForTTS(text: string): string {
   let result = text;
-  
+
   // Convert <break time="Xms"/> to natural pauses
-  result = result.replace(
-    /<break\s+time=["']?(\d+)(?:ms)?["']?\s*\/?>/gi,
-    (_, ms) => {
-      const duration = parseInt(ms, 10);
-      if (duration >= 300) return '. ';
-      if (duration >= 100) return ', ';
-      return ' ';
-    }
-  );
-  
+  result = result.replace(/<break\s+time=["']?(\d+)(?:ms)?["']?\s*\/?>/gi, (_, ms) => {
+    const duration = parseInt(ms, 10);
+    if (duration >= 300) return '. ';
+    if (duration >= 100) return ', ';
+    return ' ';
+  });
+
   // Strip emotion, speed, volume, prosody tags
   result = result.replace(/<\/?(?:speed|volume|emotion|prosody)[^>]*>/gi, '');
-  
+
   // Strip any other XML-like tags
   result = result.replace(/<[^>]+>/g, '');
-  
+
   // Clean up whitespace and punctuation
   result = result.replace(/\s+/g, ' ');
   result = result.replace(/\.\s*\./g, '.');
   result = result.replace(/,\s*,/g, ',');
   result = result.replace(/^\s*[.,]\s*/, '');
-  
+
   return result.trim();
 }
 

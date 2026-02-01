@@ -52,7 +52,7 @@ import { resetActiveListeningEngine as _resetActiveListening } from './active-li
 import { resetAdvancedHumanization as _resetAdvancedHumanization } from './advanced-humanization.js';
 import { resetConcernDetectionEngine as _resetConcernDetection } from './concern-detection.js';
 import { resetConversationRhythmTracker as _resetConversationRhythm } from './conversation-rhythm.js';
-import { resetConversationalMemory as _resetConversationalMemory } from './conversational-memory.js';
+import { resetConversationalMemory as _resetConversationalMemory } from './conversational-memory/index.js';
 import { resetConversationalRepairEngine as _resetConversationalRepair } from './conversational-repair.js';
 import { resetCuriosityEngine as _resetCuriosity } from './curiosity-engine.js';
 import { resetDeepHumanization as _resetDeepHumanization } from './deep-humanization/index.js';
@@ -60,21 +60,21 @@ import { resetEmotionalAftercareEngine as _resetEmotionalAftercare } from './emo
 import { resetEmotionalArcTracker as _resetEmotionalArc } from './emotional-arc.js';
 import { resetEnergyRegulationEngine as _resetEnergyRegulation } from './energy-regulation.js';
 import { resetHopeInjectionEngine as _resetHopeInjection } from './hope-injection.js';
-import { resetConversationHumanizer as _resetHumanizer } from './humanizer.js';
+import { resetConversationHumanizer as _resetHumanizer } from './humanizer/index.js';
 import { resetInterruptionHandler as _resetInterruption } from './interruption-handler.js';
 import { resetMicroAffirmationEngine as _resetMicroAffirmation } from './micro-affirmations.js';
 import { resetParadoxicalInterventionEngine as _resetParadoxicalIntervention } from './paradoxical-intervention.js';
-import { resetPredictiveAnticipationEngine as _resetPredictiveAnticipation } from './predictive-anticipation.js';
+import { resetPredictiveAnticipationEngine as _resetPredictiveAnticipation } from './predictive-anticipation/index.js';
 import { resetProactiveMemoryEngine as _resetProactiveMemory } from './proactive-memory.js';
-import { resetQuestionPatternEngine as _resetQuestionPatterns } from './question-patterns.js';
+import { resetQuestionPatternEngine as _resetQuestionPatterns } from './question-patterns/index.js';
 import { resetRelationshipEventsEngine as _resetRelationshipEvents } from './relationship-events.js';
 import { resetResponseDynamicsEngine as _resetResponseDynamics } from './response-dynamics.js';
 import { resetSessionIntelligence as _resetSessionIntelligence } from './session-intelligence.js';
 import { resetSilencePresenceEngine as _resetSilencePresence } from './silence-presence.js';
-import { resetSpeechNaturalizer as _resetSpeechNaturalizer } from './speech-naturalizer.js';
+import { resetSpeechNaturalizer as _resetSpeechNaturalizer } from './speech-naturalizer/index.js';
 import { resetStoryTimingEngine as _resetStoryTiming } from './story-timing.js';
 import { resetSubtextDetectionEngine as _resetSubtextDetection } from './subtext-detection.js';
-import { resetTemporalContextEngine as _resetTemporalContext } from './temporal-context.js';
+import { resetTemporalContextEngine as _resetTemporalContext } from './temporal-context/index.js';
 import { resetThinkingPhraseCoordinator as _resetThinkingPhraseCoordinator } from './thinking-phrase-coordinator.js';
 import { resetTurnTakingMonitor as _resetTurnTaking } from './turn-taking.js';
 
@@ -170,7 +170,7 @@ export {
   type DisfluencyConfig,
   type NaturalizationContext,
   type ThinkingPattern,
-} from './speech-naturalizer.js';
+} from './speech-naturalizer/index.js';
 
 // Active Listening (backchanneling, mirroring, silence handling)
 export {
@@ -194,7 +194,7 @@ export {
   type QuotedMemory,
   type TopicChange,
   type UserStatement,
-} from './conversational-memory.js';
+} from './conversational-memory/index.js';
 
 // Question Patterns (diverse question types for natural conversation)
 export {
@@ -204,7 +204,7 @@ export {
   type Question,
   type QuestionContext,
   type QuestionType,
-} from './question-patterns.js';
+} from './question-patterns/index.js';
 
 // Humanizer - High-level orchestration of all humanizing features
 export {
@@ -215,7 +215,7 @@ export {
   type HumanizationContext,
   type HumanizedResponse,
   type PreResponseActions,
-} from './humanizer.js';
+} from './humanizer/index.js';
 
 // Thinking Phrase Coordinator - Prevents duplicate "good question" phrases
 export {
@@ -420,7 +420,7 @@ export {
   type TopicSequencePrediction,
   type UserBaseline,
   type VoiceStatePrediction,
-} from './predictive-anticipation.js';
+} from './predictive-anticipation/index.js';
 
 // Session Intelligence Orchestrator - Real-time within-session intelligence
 // (For cross-session relationship features, see superhuman/ module)
@@ -601,7 +601,7 @@ export {
   type TemporalState,
   type TimeOfDay,
   type UpcomingEvent,
-} from './temporal-context.js';
+} from './temporal-context/index.js';
 
 // Relationship Events - Track and celebrate relationship milestones
 export {

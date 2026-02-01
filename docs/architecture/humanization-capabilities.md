@@ -39,8 +39,8 @@ Speech patterns that sound human, not robotic.
 |--------|-------------|--------|
 | Speech Fillers | "um", "like", "you know" | `speech-filler.effect.ts` |
 | Self-Correction | "Actually, wait—" | `self-correction.ts` |
-| Thinking Out Loud | "Let me think..." | `speech-naturalizer.ts` |
-| Hedging | "I think", "maybe" | `speech-naturalizer.ts` |
+| Thinking Out Loud | "Let me think..." | `speech-naturalizer/` |
+| Hedging | "I think", "maybe" | `speech-naturalizer/` |
 
 ### 4. REACTIONS ⚡
 **"They're genuinely responding"**
@@ -71,7 +71,7 @@ Diverse, contextual questions that deepen conversation.
 
 | Effect | Description | Module |
 |--------|-------------|--------|
-| Deepening Questions | "What's behind that?" | `question-patterns.ts` |
+| Deepening Questions | "What's behind that?" | `question-patterns/` |
 | Follow-Up Questions | Continuing the thread | `follow-up-questions.ts` |
 | Curiosity Questions | "I'm curious about..." | `spontaneous-thought.ts` |
 
@@ -83,7 +83,7 @@ Appropriate use of silence and space.
 | Effect | Description | Module |
 |--------|-------------|--------|
 | Comfortable Silence | Not filling every gap | `silence-presence.ts` |
-| Processing Pauses | `...` | `speech-naturalizer.ts` |
+| Processing Pauses | `...` | `speech-naturalizer/` |
 | Breath Space | Space for user to think | `conversation-rhythm.ts` |
 
 ### 8. MOOD 🎭

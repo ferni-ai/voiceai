@@ -347,14 +347,14 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'analyzeDecisionQuality',
       'Analyze Decision Quality',
-      "Analyze patterns in your decision quality. Find out WHEN you make your best decisions - time of day, day of week, sleep levels. Something no human friend could track.",
+      'Analyze patterns in your decision quality. Find out WHEN you make your best decisions - time of day, day of week, sleep levels. Something no human friend could track.',
       superhumanTools.analyzeDecisionQuality,
       { tags: ['superhuman', 'n1-analytics', 'decisions', 'patterns'] }
     ),
     wrapLegacyTool(
       'recordSleepData',
       'Record Sleep',
-      "Record your sleep data. Peter will correlate this with your spending, mood, productivity, and decisions to find YOUR patterns.",
+      'Record your sleep data. Peter will correlate this with your spending, mood, productivity, and decisions to find YOUR patterns.',
       superhumanTools.recordSleepData,
       { tags: ['superhuman', 'n1-analytics', 'sleep', 'correlations'] }
     ),
@@ -368,21 +368,21 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'recordEnergyLevel',
       'Record Energy Level',
-      "Record your current energy level. Over time, Peter will learn to PREDICT your energy throughout the day.",
+      'Record your current energy level. Over time, Peter will learn to PREDICT your energy throughout the day.',
       superhumanTools.recordEnergyLevel,
       { tags: ['superhuman', 'n1-analytics', 'energy', 'prediction'] }
     ),
     wrapLegacyTool(
       'predictEnergy',
       'Predict Energy',
-      "Predict your energy levels for today based on your patterns. Know your peaks and valleys BEFORE they happen.",
+      'Predict your energy levels for today based on your patterns. Know your peaks and valleys BEFORE they happen.',
       superhumanTools.predictEnergy,
       { tags: ['superhuman', 'n1-analytics', 'energy', 'prediction'] }
     ),
     wrapLegacyTool(
       'analyzePeakPerformance',
       'Analyze Peak Performance',
-      "Map YOUR personal peak performance times for creative work, analytical work, decisions, and communication. No generic advice - this is YOUR data.",
+      'Map YOUR personal peak performance times for creative work, analytical work, decisions, and communication. No generic advice - this is YOUR data.',
       superhumanTools.analyzePeakPerformance,
       { tags: ['superhuman', 'n1-analytics', 'performance', 'scheduling'] }
     ),
@@ -580,7 +580,7 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'calculateEffectSize',
       'Calculate Effect Size',
-      "Calculate effect size for any intervention. Know if a change is meaningful, not just statistically significant.",
+      'Calculate effect size for any intervention. Know if a change is meaningful, not just statistically significant.',
       superhumanTools.calculateEffectSize,
       { tags: ['superhuman', 'experimentation', 'effect-size', 'statistics'] }
     ),
@@ -848,14 +848,18 @@ function getBackgroundResearchToolDefinitions(): ToolDefinition[] {
             urgency = 'when_ready',
           }: {
             query: string;
-            researchType: 'stock_analysis' | 'fact_check' | 'deep_dive' | 'market_research' | 'general';
+            researchType:
+              | 'stock_analysis'
+              | 'fact_check'
+              | 'deep_dive'
+              | 'market_research'
+              | 'general';
             depth?: 'quick' | 'standard' | 'comprehensive';
             urgency?: 'when_ready' | 'asap' | 'next_session';
           }) => {
             try {
-              const { queueResearchTask } = await import(
-                '../../../services/background-agents/index.js'
-              );
+              const { queueResearchTask } =
+                await import('../../../services/background-agents/index.js');
 
               const taskId = await queueResearchTask({
                 userId: ctx.userId || 'anonymous',

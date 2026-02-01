@@ -541,7 +541,10 @@ export async function buildJoyPool(userId: string): Promise<JoyMemoryPool | null
       });
 
       // Only include positive memories
-      if (emotionalTag.valence === 'positive' && emotionalTag.valenceScore >= config.joyMemoryValenceThreshold) {
+      if (
+        emotionalTag.valence === 'positive' &&
+        emotionalTag.valenceScore >= config.joyMemoryValenceThreshold
+      ) {
         joyMemories.push({
           id: memory.id,
           content: memory.content,

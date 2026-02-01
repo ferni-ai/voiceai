@@ -26,6 +26,8 @@ import { modelConfig } from '../../services/model-config.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from '../shared/types.js';
+// Centralized tool configuration (Jan 2026)
+import { capToolsToLimit, getMaxTools } from '../../config/tool-config.js';
 
 // Model provider abstraction - centralizes all model-specific behavior
 import { getModelProvider, isUsingOpenAI } from '../model-provider/index.js';
@@ -62,6 +64,11 @@ import {
   initializeToolOrchestrator,
   isOrchestratorInitialized,
 } from '../../tools/orchestrator/voice-agent-integration.js';
+// Tool Gateway (2026 architecture) - tiered loading, predictive prefetch
+import { getToolGateway } from '../../tools/gateway/index.js';
+
+// Check if Tool Gateway is enabled (defaults to true)
+const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { dynamicToolLoader } from '../../tools/dynamic-loader.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
@@ -584,10 +591,50 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const toolTimeoutMs = isHandoff ? HANDOFF_TOOL_TIMEOUT_MS : NORMAL_TOOL_TIMEOUT_MS;
 
   // =========================================================================
+  // ⚡ FASTEST PATH: Use Tool Gateway if enabled and ready
+  // Tool Gateway has already loaded tools during session start - just use them!
+  // =========================================================================
+  const loadToolsFromGateway = (): Record<string, unknown> | null => {
+    if (!USE_TOOL_GATEWAY) return null;
+
+    const gateway = getToolGateway();
+    if (!gateway.isReady()) {
+      log.debug({ personaId: persona.id }, 'Tool Gateway not ready - skipping');
+      return null;
+    }
+
+    const sessionTools = gateway.getSessionTools();
+    const toolCount = Object.keys(sessionTools).length;
+
+    if (toolCount === 0) {
+      log.debug({ personaId: persona.id }, 'Tool Gateway has no tools - skipping');
+      return null;
+    }
+
+    const metrics = gateway.getMetrics();
+    log.info(
+      {
+        personaId: persona.id,
+        toolCount,
+        tier0: metrics.tier0Count,
+        tier1: metrics.tier1Count,
+        tier2: metrics.tier2Count,
+      },
+      '🚀 GATEWAY PATH: Using pre-loaded Tool Gateway tools (instant!)'
+    );
+
+    return sessionTools;
+  };
+
+  // =========================================================================
   // ⚡ FAST PATH: Use centralized implementation (skips semantic router)
   // This is 10-40x faster than full orchestrator: 200-500ms vs 5-20s
   // =========================================================================
   const loadHandoffToolsFast = async (): Promise<Record<string, unknown>> => {
+    // TRY GATEWAY FIRST (instant, no async needed)
+    const gatewayTools = loadToolsFromGateway();
+    if (gatewayTools) return gatewayTools;
+
     const fastStart = Date.now();
     try {
       // getToolsForAgent now hoisted to module level
@@ -728,6 +775,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
   };
 
   const loadToolsInner = async (): Promise<Record<string, unknown>> => {
+    // TRY TOOL GATEWAY FIRST (instant if already warmed up!)
+    const gatewayTools = loadToolsFromGateway();
+    if (gatewayTools) return gatewayTools;
+
     // Tool orchestrator imports now hoisted to module level
     mark('tools_orchestrator_check');
 
@@ -765,10 +816,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
       // =========================================================================
       if (isHandoff) {
         log.info({ personaId: persona.id }, '⚡ Using FAST PATH for handoff tool loading');
+
+        // Use clearable timeout to avoid spurious warnings when tools load successfully
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
         const fastResult = await Promise.race([
-          loadHandoffToolsFast(),
-          new Promise<null>((resolve) =>
-            setTimeout(() => {
+          loadHandoffToolsFast().then((result) => {
+            if (timeoutId) clearTimeout(timeoutId);
+            return result;
+          }),
+          new Promise<null>((resolve) => {
+            timeoutId = setTimeout(() => {
               // NOTE: This CAN happen if:
               // 1. Session cache wasn't fully warmed before handoff
               // 2. Network delays during tool loading
@@ -779,8 +836,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
                 '⏰ Fast path timeout - using fallback (cache may not be warm)'
               );
               resolve(null);
-            }, toolTimeoutMs)
-          ),
+            }, toolTimeoutMs);
+          }),
         ]);
 
         if (fastResult === null || Object.keys(fastResult).length === 0) {
@@ -797,17 +854,23 @@ Reference past context when relevant, but don't force it. Let the conversation f
       // =========================================================================
       // INITIAL AGENT: Full orchestrator path (slower but comprehensive)
       // =========================================================================
+      // Use clearable timeout to avoid spurious warnings when tools load successfully
+      // (Promise.race doesn't cancel the timeout, so it would fire even after tools loaded)
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
       const result = await Promise.race([
-        loadToolsInner(),
-        new Promise<null>((resolve) =>
-          setTimeout(() => {
+        loadToolsInner().then((result) => {
+          if (timeoutId) clearTimeout(timeoutId);
+          return result;
+        }),
+        new Promise<null>((resolve) => {
+          timeoutId = setTimeout(() => {
             log.warn(
               { personaId: persona.id, timeoutMs: toolTimeoutMs, isHandoff },
               '⏰ Tool loading timeout - will check result and load essential tools if needed'
             );
             resolve(null);
-          }, toolTimeoutMs)
-        ),
+          }, toolTimeoutMs);
+        }),
       ]);
 
       // If timeout won OR result is empty/incomplete, load essential tools fallback!
@@ -909,15 +972,72 @@ Reference past context when relevant, but don't force it. Let the conversation f
   process.stderr.write(`   Sample: ${sampleTools}\n`);
   process.stderr.write(`${'='.repeat(60)}\n\n`);
 
+  // =========================================================================
+  // 🎯 GEMINI TOOL CAP: Reduce tools BEFORE creating agent (Jan 2026)
+  // =========================================================================
+  // CRITICAL FIX: The LiveKit framework calls updateTools() during AgentActivity
+  // startup (agent_activity.ts:247), which triggers a Gemini session restart.
+  // If we wait until registerInitialTools() to cap tools, we get TWO restarts:
+  //   1. Framework sends ALL tools → naive cap → restart
+  //   2. registerInitialTools sends priority-capped tools → different set → ANOTHER restart
+  //
+  // By capping HERE before the agent is created:
+  //   1. Agent has only essential tools
+  //   2. Framework sends tools → restart
+  //   3. registerInitialTools sends same tools → setsEqual=true → NO second restart
+  //
+  // Uses centralized capToolsToLimit() from tool-config.ts (Jan 2026)
+  // =========================================================================
+  let finalTools = orchestratorTools;
+  const provider = getModelProvider();
+  const configuredLimit = getMaxTools();
+
+  // Use configured limit, or default to 50 for Gemini if no limit configured
+  const effectiveLimit =
+    configuredLimit > 0 ? configuredLimit : provider.id === 'gemini-live' ? 50 : 0;
+
+  if (effectiveLimit > 0 && toolCount > effectiveLimit) {
+    // Use centralized tool capping which handles essential tool prioritization
+    finalTools = capToolsToLimit(orchestratorTools, effectiveLimit);
+    const cappedCount = Object.keys(finalTools).length;
+    const droppedCount = toolCount - cappedCount;
+
+    log.info(
+      {
+        personaId: persona.id,
+        originalCount: toolCount,
+        cappedCount,
+        effectiveLimit,
+        droppedCount,
+      },
+      `🎯 TOOL CAP: ${toolCount} → ${cappedCount} tools (limit: ${effectiveLimit}, dropped: ${droppedCount})`
+    );
+    process.stderr.write(
+      `\n🎯 TOOL CAP: ${toolCount} → ${cappedCount} tools (limit: ${effectiveLimit})\n` +
+        `   Dropped: ${droppedCount} tools\n\n`
+    );
+
+    // Write diagnostic log to file for debugging (stderr may not be captured)
+    try {
+      const fs = await import('node:fs');
+      const diagPath = '/tmp/ferni-tool-cap.log';
+      const diagEntry = `[${new Date().toISOString()}] ${persona.id}: ${toolCount} → ${cappedCount} tools (limit: ${effectiveLimit})\n`;
+      fs.appendFileSync(diagPath, diagEntry);
+    } catch {
+      // Non-critical
+    }
+  }
+
   // 🚨 CRITICAL WARNING: If tool count is suspiciously low, something is wrong!
-  if (toolCount < 10) {
+  const finalToolNames = Object.keys(finalTools);
+  if (finalToolNames.length < 5) {
     log.error(
-      { personaId: persona.id, toolCount, toolNames },
+      { personaId: persona.id, toolCount: finalToolNames.length, toolNames: finalToolNames },
       '🚨 CRITICAL: Tool count is suspiciously low! Many features will not work.'
     );
     process.stderr.write(`\n🚨🚨🚨 CRITICAL WARNING 🚨🚨🚨\n`);
-    process.stderr.write(`Tool count is only ${toolCount}! Expected 40-80 tools.\n`);
-    process.stderr.write(`Available tools: ${toolNames.join(', ')}\n`);
+    process.stderr.write(`Tool count is only ${finalToolNames.length}! Expected 20-30 tools.\n`);
+    process.stderr.write(`Available tools: ${finalToolNames.join(', ')}\n`);
     process.stderr.write(`This will cause many features to fail!\n`);
     process.stderr.write(`🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨\n\n`);
   }
@@ -935,8 +1055,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // See: https://github.com/livekit/agents/issues/4423
   // See: https://github.com/googleapis/python-genai/issues/1780
   //
-  // For TEXT modality + Cartesia TTS, use standard models like gemini-2.0-flash-exp
-  const VOICE_MODEL = 'gemini-2.0-flash-exp';
+  // For TEXT modality + Cartesia TTS, use standard models like:
+  // - gemini-2.0-flash-live-preview-04-09 (WORKING on Vertex AI Live API)
+  // - gemini-2.0-flash-exp (NOT supported by Live API)
+  //
+  // Use GEMINI_MODEL env var or gemini-live.ts DEFAULT_GEMINI_MODEL
+  const VOICE_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash-live-preview-04-09';
 
   log.info(
     { personaId: persona.id, providerId: modelProvider.id, model: VOICE_MODEL },
@@ -962,38 +1086,50 @@ Reference past context when relevant, but don't force it. Let the conversation f
   mark('llm_model_done');
 
   // =========================================================================
-  // VAD FALLBACK: Load Silero VAD if USE_LOCAL_VAD=true for redundancy
+  // VAD CONFIGURATION
+  // =========================================================================
+  // For OpenAI: MUST use Silero VAD so allowInterruptions: false works on say()
+  // For Gemini: Optional fallback (USE_LOCAL_VAD=true)
+  //
+  // Why? OpenAI's server_vad in RealtimeModel ignores allowInterruptions flag.
+  // By using VAD on AgentSession instead, we control interruption behavior.
+  // See: https://docs.livekit.io/agents/voice-agent/interruptions/
   // =========================================================================
   const USE_LOCAL_VAD = process.env.USE_LOCAL_VAD === 'true';
+  const needsVadForInterruptions = isUsingOpenAI(); // OpenAI needs VAD to support allowInterruptions: false
   let vad: Awaited<ReturnType<typeof import('@livekit/agents-plugin-silero').VAD.load>> | undefined;
 
-  if (USE_LOCAL_VAD) {
+  if (needsVadForInterruptions || USE_LOCAL_VAD) {
     try {
       const vadLoadStart = Date.now();
       const { VAD } = await import('@livekit/agents-plugin-silero');
       vad = await VAD.load();
       log.info(
-        { personaId: persona.id, loadTimeMs: Date.now() - vadLoadStart },
-        '🎙️ Silero VAD loaded as fallback'
+        {
+          personaId: persona.id,
+          loadTimeMs: Date.now() - vadLoadStart,
+          reason: needsVadForInterruptions ? 'openai-interruptions' : 'local-vad-fallback',
+        },
+        '🎙️ Silero VAD loaded for turn detection'
       );
     } catch (vadErr) {
       log.warn(
         { error: String(vadErr), personaId: persona.id },
-        '⚠️ VAD fallback load failed (non-fatal)'
+        '⚠️ VAD load failed - allowInterruptions: false may not work correctly'
       );
-      // Continue without VAD - LLM turn detection will still work
+      // Continue without VAD - but allowInterruptions: false won't work for OpenAI
     }
   }
 
   // Create voice session
-  // Turn detection: Provider-specific (OpenAI uses its model config, Gemini uses 'realtime_llm')
+  // Turn detection: Provider-specific (Gemini uses 'realtime_llm', OpenAI uses undefined + VAD)
   // TTS: Both use Cartesia TTS for persona voice
-  // VAD: Optional Silero fallback when USE_LOCAL_VAD=true
+  // VAD: Required for OpenAI (supports allowInterruptions), optional fallback for Gemini
   mark('session_create_start');
 
   const session = new voice.AgentSession<UserData>({
     turnDetection: modelProvider.getSessionTurnDetection(),
-    vad, // Silero VAD fallback (undefined by default, loaded when USE_LOCAL_VAD=true)
+    vad, // Silero VAD for turn detection (required for OpenAI to support allowInterruptions: false)
     llm: llmModel,
     tts, // Cartesia TTS for both (OpenAI text-only mode outputs text)
     userData,
@@ -1076,12 +1212,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // =========================================================================
 
   // Listen for errors on the LLM model itself
+  // FIX: Track all listeners for cleanup to prevent memory leaks on handoffs
   if (llmModel && typeof (llmModel as { on?: unknown }).on === 'function') {
     const llmWithEvents = llmModel as {
       on: (event: string, handler: (...args: unknown[]) => void) => void;
+      off?: (event: string, handler: (...args: unknown[]) => void) => void;
     };
 
-    llmWithEvents.on('error', (error: unknown) => {
+    // Store handler references for cleanup
+    const llmErrorHandler = (error: unknown) => {
       log.error(
         { personaId: persona.id, error: String(error), errorObj: error },
         '🚨 [LLM MODEL ERROR] Gemini RealtimeModel emitted error'
@@ -1089,28 +1228,33 @@ Reference past context when relevant, but don't force it. Let the conversation f
       process.stderr.write(
         `\n🚨 [LLM ERROR] Gemini model error: ${JSON.stringify(error, null, 2)}\n`
       );
-    });
+    };
+    llmWithEvents.on('error', llmErrorHandler);
 
-    llmWithEvents.on('close', (code: unknown, reason: unknown) => {
+    const llmCloseHandler = (code: unknown, reason: unknown) => {
       log.warn({ personaId: persona.id, code, reason }, '🔌 [LLM CLOSE] Gemini connection closed');
       process.stderr.write(
         `\n🔌 [LLM CLOSE] Gemini connection closed: code=${code}, reason=${reason}\n`
       );
-    });
+    };
+    llmWithEvents.on('close', llmCloseHandler);
 
-    llmWithEvents.on('connection_error', (error: unknown) => {
+    const llmConnectionErrorHandler = (error: unknown) => {
       log.error(
         { personaId: persona.id, error: String(error) },
         '🚨 [LLM CONNECTION ERROR] Gemini WebSocket connection failed'
       );
       process.stderr.write(`\n🚨 [LLM CONNECTION ERROR] ${JSON.stringify(error, null, 2)}\n`);
-    });
+    };
+    llmWithEvents.on('connection_error', llmConnectionErrorHandler);
 
     // 🔍 DEBUG: Listen for input audio transcription events
     // This captures what Gemini's internal STT transcribes from the audio
-    process.stderr.write(`\n🔊 [AUDIO DEBUG] Attaching input_audio_transcription_completed listener to LLM...\n`);
-    
-    llmWithEvents.on('input_audio_transcription_completed', (event: unknown) => {
+    process.stderr.write(
+      `\n🔊 [AUDIO DEBUG] Attaching input_audio_transcription_completed listener to LLM...\n`
+    );
+
+    const llmTranscriptionHandler = (event: unknown) => {
       const transcriptionEvent = event as { transcript?: string };
       process.stderr.write(
         `\n🎤 [GEMINI STT] Input transcribed: "${transcriptionEvent.transcript || '(empty)'}"\n`
@@ -1120,7 +1264,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
         const charCodes = transcriptionEvent.transcript.split('').map((c) => c.charCodeAt(0));
         process.stderr.write(`🎤 [GEMINI STT] Char codes: [${charCodes.join(', ')}]\n`);
       }
-    });
+    };
+    llmWithEvents.on('input_audio_transcription_completed', llmTranscriptionHandler);
 
     // 🔊 AUDIO DEBUG: Listen for ALL possible audio-related events
     // Different SDKs use different event names
@@ -1135,128 +1280,233 @@ Reference past context when relevant, but don't force it. Let the conversation f
       'audio_received',
       'input_audio',
     ];
+    // Store audio event handlers for cleanup
+    const audioEventHandlers: Array<{ event: string; handler: (event: unknown) => void }> = [];
     for (const eventName of audioEventNames) {
-      llmWithEvents.on(eventName, (event: unknown) => {
-        process.stderr.write(`\n🔊 [AUDIO EVENT] ${eventName}: ${JSON.stringify(event, null, 2).slice(0, 500)}\n`);
-      });
+      const handler = (event: unknown) => {
+        process.stderr.write(
+          `\n🔊 [AUDIO EVENT] ${eventName}: ${JSON.stringify(event, null, 2).slice(0, 500)}\n`
+        );
+      };
+      llmWithEvents.on(eventName, handler);
+      audioEventHandlers.push({ event: eventName, handler });
     }
-    process.stderr.write(`🔊 [AUDIO DEBUG] Listening for audio events: ${audioEventNames.join(', ')}\n`);
+    process.stderr.write(
+      `🔊 [AUDIO DEBUG] Listening for audio events: ${audioEventNames.join(', ')}\n`
+    );
 
     // Also listen for message events to see all Gemini communication
+    let llmMessageHandler: ((msg: unknown) => void) | undefined;
     if (process.env.DEBUG_GEMINI_MESSAGES === 'true') {
-      llmWithEvents.on('message', (msg: unknown) => {
+      llmMessageHandler = (msg: unknown) => {
         process.stderr.write(`\n🔍 [GEMINI MSG] ${JSON.stringify(msg, null, 2)}\n`);
-      });
+      };
+      llmWithEvents.on('message', llmMessageHandler);
     }
+
+    // FIX: Add cleanup for all LLM event listeners to prevent memory leaks
+    cleanupFunctions.push(() => {
+      if (llmWithEvents.off) {
+        llmWithEvents.off('error', llmErrorHandler);
+        llmWithEvents.off('close', llmCloseHandler);
+        llmWithEvents.off('connection_error', llmConnectionErrorHandler);
+        llmWithEvents.off('input_audio_transcription_completed', llmTranscriptionHandler);
+        for (const { event, handler } of audioEventHandlers) {
+          llmWithEvents.off(event, handler);
+        }
+        if (llmMessageHandler) {
+          llmWithEvents.off('message', llmMessageHandler);
+        }
+        log.debug({ personaId: persona.id }, '🧹 [CLEANUP] LLM event listeners removed');
+      }
+    });
   }
 
   // Listen for errors on the session
+  // FIX: Track all session listeners for cleanup to prevent memory leaks on handoffs
   const sessionWithEvents = session as unknown as {
     on?: (event: string, handler: (...args: unknown[]) => void) => void;
+    off?: (event: string, handler: (...args: unknown[]) => void) => void;
   };
   if (sessionWithEvents.on) {
-    sessionWithEvents.on('error', (error: unknown) => {
+    // Store all session event handlers for cleanup
+    const sessionEventHandlers: Array<{ event: string; handler: (...args: unknown[]) => void }> =
+      [];
+
+    const sessionErrorHandler = (error: unknown) => {
       log.error(
         { personaId: persona.id, sessionId, error: String(error) },
         '🚨 [SESSION ERROR] AgentSession emitted error'
       );
       process.stderr.write(`\n🚨 [SESSION ERROR] ${JSON.stringify(error, null, 2)}\n`);
-    });
+    };
+    sessionWithEvents.on('error', sessionErrorHandler);
+    sessionEventHandlers.push({ event: 'error', handler: sessionErrorHandler });
 
     // 🔊 COMPREHENSIVE SESSION DEBUG: Track ALL session events during startup
     // This helps us understand what's happening during prewarm
-    process.stderr.write(`\n🔊 [SESSION DEBUG] Attaching comprehensive session event listeners...\n`);
-    
+    process.stderr.write(
+      `\n🔊 [SESSION DEBUG] Attaching comprehensive session event listeners...\n`
+    );
+
     // Track user state changes (when user starts/stops speaking)
-    sessionWithEvents.on('user_state_changed', (event: unknown) => {
+    const userStateHandler = (event: unknown) => {
       process.stderr.write(`\n👤 [USER STATE] ${JSON.stringify(event, null, 2)}\n`);
-    });
-    
+    };
+    sessionWithEvents.on('user_state_changed', userStateHandler);
+    sessionEventHandlers.push({ event: 'user_state_changed', handler: userStateHandler });
+
     // Track agent state changes (when agent starts/stops speaking)
-    sessionWithEvents.on('agent_state_changed', (event: unknown) => {
+    const agentStateHandler = (event: unknown) => {
       process.stderr.write(`\n🤖 [AGENT STATE] ${JSON.stringify(event, null, 2)}\n`);
-    });
-    
+    };
+    sessionWithEvents.on('agent_state_changed', agentStateHandler);
+    sessionEventHandlers.push({ event: 'agent_state_changed', handler: agentStateHandler });
+
     // Track speech creation (SDK auto-generating responses)
-    sessionWithEvents.on('speech_created', (event: unknown) => {
+    const speechCreatedHandler = (event: unknown) => {
       process.stderr.write(`\n🎙️ [SPEECH CREATED] ${JSON.stringify(event, null, 2)}\n`);
-    });
-    
+    };
+    sessionWithEvents.on('speech_created', speechCreatedHandler);
+    sessionEventHandlers.push({ event: 'speech_created', handler: speechCreatedHandler });
+
     // Track user input transcription
-    sessionWithEvents.on('user_input_transcribed', (event: unknown) => {
+    const userInputHandler = (event: unknown) => {
       const evt = event as { transcript?: string; isFinal?: boolean };
-      process.stderr.write(`\n📝 [USER TRANSCRIPT] isFinal=${evt.isFinal}: "${evt.transcript || '(empty)'}"\n`);
-    });
-    
+      process.stderr.write(
+        `\n📝 [USER TRANSCRIPT] isFinal=${evt.isFinal}: "${evt.transcript || '(empty)'}"\n`
+      );
+    };
+    sessionWithEvents.on('user_input_transcribed', userInputHandler);
+    sessionEventHandlers.push({ event: 'user_input_transcribed', handler: userInputHandler });
+
     // 🔊 E2E TRACING: Track ALL speech-related events
-    const debugAll = process.env.DEBUG_GEMINI_ALL === 'true' || process.env.DEBUG_TTS_PIPELINE === 'true';
-    
+    const debugAll =
+      process.env.DEBUG_GEMINI_ALL === 'true' || process.env.DEBUG_TTS_PIPELINE === 'true';
+
     if (debugAll) {
       // Track when speech is committed (text sent to TTS)
-      sessionWithEvents.on('speech_committed', (event: unknown) => {
-        process.stderr.write(`\n🔊 [SPEECH COMMITTED] ${JSON.stringify(event, null, 2).slice(0, 500)}\n`);
-      });
-      
+      const speechCommittedHandler = (event: unknown) => {
+        process.stderr.write(
+          `\n🔊 [SPEECH COMMITTED] ${JSON.stringify(event, null, 2).slice(0, 500)}\n`
+        );
+      };
+      sessionWithEvents.on('speech_committed', speechCommittedHandler);
+      sessionEventHandlers.push({ event: 'speech_committed', handler: speechCommittedHandler });
+
       // Track agent speech (when audio is played)
-      sessionWithEvents.on('agent_speech', (event: unknown) => {
+      const agentSpeechHandler = (event: unknown) => {
         const evt = event as { text?: string };
         process.stderr.write(`\n🔊 [AGENT SPEECH] "${evt.text?.slice(0, 100) || '(no text)'}"\n`);
-      });
-      
+      };
+      sessionWithEvents.on('agent_speech', agentSpeechHandler);
+      sessionEventHandlers.push({ event: 'agent_speech', handler: agentSpeechHandler });
+
       // Track generation events (when LLM starts/finishes generating)
-      sessionWithEvents.on('generation_created', (event: unknown) => {
-        process.stderr.write(`\n⚡ [GENERATION CREATED] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`);
-      });
-      
-      sessionWithEvents.on('generation_done', (event: unknown) => {
-        process.stderr.write(`\n✅ [GENERATION DONE] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`);
-      });
-      
+      const genCreatedHandler = (event: unknown) => {
+        process.stderr.write(
+          `\n⚡ [GENERATION CREATED] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`
+        );
+      };
+      sessionWithEvents.on('generation_created', genCreatedHandler);
+      sessionEventHandlers.push({ event: 'generation_created', handler: genCreatedHandler });
+
+      const genDoneHandler = (event: unknown) => {
+        process.stderr.write(
+          `\n✅ [GENERATION DONE] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`
+        );
+      };
+      sessionWithEvents.on('generation_done', genDoneHandler);
+      sessionEventHandlers.push({ event: 'generation_done', handler: genDoneHandler });
+
       // Track response events (OpenAI Realtime style)
-      sessionWithEvents.on('response.created', (event: unknown) => {
-        process.stderr.write(`\n⚡ [RESPONSE CREATED] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`);
-      });
-      
-      sessionWithEvents.on('response.done', (event: unknown) => {
-        process.stderr.write(`\n✅ [RESPONSE DONE] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`);
-      });
-      
+      const respCreatedHandler = (event: unknown) => {
+        process.stderr.write(
+          `\n⚡ [RESPONSE CREATED] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`
+        );
+      };
+      sessionWithEvents.on('response.created', respCreatedHandler);
+      sessionEventHandlers.push({ event: 'response.created', handler: respCreatedHandler });
+
+      const respDoneHandler = (event: unknown) => {
+        process.stderr.write(
+          `\n✅ [RESPONSE DONE] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`
+        );
+      };
+      sessionWithEvents.on('response.done', respDoneHandler);
+      sessionEventHandlers.push({ event: 'response.done', handler: respDoneHandler });
+
       // Track text output
-      sessionWithEvents.on('response.text.delta', (event: unknown) => {
+      const textDeltaHandler = (event: unknown) => {
         const evt = event as { delta?: string };
         process.stderr.write(`📝 [TEXT DELTA] "${evt.delta || ''}"`);
-      });
-      
-      sessionWithEvents.on('response.text.done', (event: unknown) => {
+      };
+      sessionWithEvents.on('response.text.delta', textDeltaHandler);
+      sessionEventHandlers.push({ event: 'response.text.delta', handler: textDeltaHandler });
+
+      const textDoneHandler = (event: unknown) => {
         const evt = event as { text?: string };
-        process.stderr.write(`\n📝 [TEXT DONE] Full text: "${evt.text?.slice(0, 200) || '(empty)'}"\n`);
-      });
-      
+        process.stderr.write(
+          `\n📝 [TEXT DONE] Full text: "${evt.text?.slice(0, 200) || '(empty)'}"\n`
+        );
+      };
+      sessionWithEvents.on('response.text.done', textDoneHandler);
+      sessionEventHandlers.push({ event: 'response.text.done', handler: textDoneHandler });
+
       // Track audio output
-      sessionWithEvents.on('response.audio.delta', () => {
+      const audioDeltaHandler = () => {
         process.stderr.write(`🔊`); // Just a dot to show audio is being generated
-      });
-      
-      sessionWithEvents.on('response.audio.done', (event: unknown) => {
+      };
+      sessionWithEvents.on('response.audio.delta', audioDeltaHandler);
+      sessionEventHandlers.push({ event: 'response.audio.delta', handler: audioDeltaHandler });
+
+      const audioDoneHandler = (_event: unknown) => {
         process.stderr.write(`\n🔊 [AUDIO DONE] Audio generation complete\n`);
-      });
-      
+      };
+      sessionWithEvents.on('response.audio.done', audioDoneHandler);
+      sessionEventHandlers.push({ event: 'response.audio.done', handler: audioDoneHandler });
+
       // Track playout (when audio actually plays)
-      sessionWithEvents.on('playout_started', (event: unknown) => {
-        process.stderr.write(`\n▶️ [PLAYOUT STARTED] ${JSON.stringify(event, null, 2).slice(0, 200)}\n`);
-      });
-      
-      sessionWithEvents.on('playout_done', (event: unknown) => {
-        process.stderr.write(`\n⏹️ [PLAYOUT DONE] ${JSON.stringify(event, null, 2).slice(0, 200)}\n`);
-      });
-      
+      const playoutStartedHandler = (event: unknown) => {
+        process.stderr.write(
+          `\n▶️ [PLAYOUT STARTED] ${JSON.stringify(event, null, 2).slice(0, 200)}\n`
+        );
+      };
+      sessionWithEvents.on('playout_started', playoutStartedHandler);
+      sessionEventHandlers.push({ event: 'playout_started', handler: playoutStartedHandler });
+
+      const playoutDoneHandler = (event: unknown) => {
+        process.stderr.write(
+          `\n⏹️ [PLAYOUT DONE] ${JSON.stringify(event, null, 2).slice(0, 200)}\n`
+        );
+      };
+      sessionWithEvents.on('playout_done', playoutDoneHandler);
+      sessionEventHandlers.push({ event: 'playout_done', handler: playoutDoneHandler });
+
       // Track interruptions
-      sessionWithEvents.on('interrupted', (event: unknown) => {
-        process.stderr.write(`\n🛑 [INTERRUPTED] ${JSON.stringify(event, null, 2).slice(0, 200)}\n`);
-      });
-      
+      const interruptedHandler = (event: unknown) => {
+        process.stderr.write(
+          `\n🛑 [INTERRUPTED] ${JSON.stringify(event, null, 2).slice(0, 200)}\n`
+        );
+      };
+      sessionWithEvents.on('interrupted', interruptedHandler);
+      sessionEventHandlers.push({ event: 'interrupted', handler: interruptedHandler });
+
       process.stderr.write(`🔊 [E2E TRACE] Comprehensive speech event tracing enabled\n`);
     }
+
+    // FIX: Add cleanup for all session event listeners to prevent memory leaks
+    cleanupFunctions.push(() => {
+      if (sessionWithEvents.off) {
+        for (const { event, handler } of sessionEventHandlers) {
+          sessionWithEvents.off(event, handler);
+        }
+        log.debug(
+          { personaId: persona.id, listenerCount: sessionEventHandlers.length },
+          '🧹 [CLEANUP] Session event listeners removed'
+        );
+      }
+    });
   }
 
   log.info({ personaId: persona.id }, '🔍 Enhanced error logging attached to LLM and session');
@@ -1266,7 +1516,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
   // FerniAgent now hoisted to module level for faster startup
   const agent = new FerniAgent(systemPrompt, {
-    tools: orchestratorTools as any, // Type mismatch: ToolSet vs Record<string, unknown>
+    tools: finalTools as any, // Type mismatch: ToolSet vs Record<string, unknown>
     // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
     // function-calling instructions. This can confuse the model and break tool calls.
     // The model will greet naturally based on its system prompt.
@@ -1335,10 +1585,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // 🔧 CRITICAL: Update agent with essential tools loaded by dynamic loader
         // The dynamic loader loads entertainment (music), information (weather), etc.
         // These need to be registered with the agent/OpenAI immediately!
+        //
+        // ⚠️ For Gemini: This triggers a session restart - skip to prevent breaking FC
         try {
-          const { updateAgentTools, supportsToolUpdates } =
+          const { updateAgentTools, supportsToolUpdates, isMidSessionToolUpdateSafe } =
             await import('../shared/tool-updater.js');
-          if (supportsToolUpdates()) {
+
+          // Only update if it won't cause a session restart (safe for OpenAI, not for Gemini)
+          if (supportsToolUpdates() && isMidSessionToolUpdateSafe()) {
             const essentialTools = dynamicToolLoader.getCurrentTools();
             const essentialDomains = dynamicToolLoader.getLoadedDomains();
             if (Object.keys(essentialTools).length > 0) {
@@ -1351,6 +1605,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
                 );
               }
             }
+          } else if (supportsToolUpdates()) {
+            // Gemini: Skip the update to prevent session restart
+            const essentialTools = dynamicToolLoader.getCurrentTools();
+            log.info(
+              { toolCount: Object.keys(essentialTools).length, personaId: persona.id },
+              '🔧 [GEMINI] Skipping essential tools update (would trigger session restart)'
+            );
           }
         } catch (toolUpdateError) {
           log.warn(
@@ -1462,9 +1723,18 @@ Reference past context when relevant, but don't force it. Let the conversation f
         diag.entry(`🎭 [${persona.id}] Music handler wired: true`);
       } else {
         // 🐛 FIX: Log when music handler is skipped - this helps debug music failures
+        // Common causes: agent created before room participant joined, or racing with handoff
         log.warn(
-          { personaId: persona.id, sessionId },
-          '⚠️ Music handler SKIPPED - conversationManager is null! Music tools will NOT work.'
+          {
+            personaId: persona.id,
+            sessionId,
+            enableFullHandlers,
+            deferHandlers,
+            hasRoom: !!room,
+          },
+          '⚠️ Music handler SKIPPED - conversationManager is null! ' +
+            'This can happen if the agent was created before the room participant joined. ' +
+            'Music tools will NOT work for this session.'
         );
         handlersStatus.music = false;
       }
@@ -1762,26 +2032,29 @@ async function createPersonaTTS(personaId: string) {
 
   // 🔊 E2E TRACING: Wrap TTS to log all synthesis calls
   // This shows exactly when and what text is sent to TTS
-  const debugTTS = process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
-  
+  const debugTTS =
+    process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
+
   if (debugTTS) {
     // Create a proxy that logs all method calls
     const ttsProxy = new Proxy(baseTTS, {
       get(target, prop) {
         const value = (target as unknown as Record<string | symbol, unknown>)[prop];
-        
+
         // Wrap synthesize method
         if (prop === 'synthesize' && typeof value === 'function') {
-          return async function(...args: unknown[]) {
+          return async function (...args: unknown[]) {
             const text = String(args[0] || '');
             const timestamp = new Date().toISOString();
             process.stderr.write(`\n${'='.repeat(60)}\n`);
             process.stderr.write(`🔊 [TTS SYNTHESIZE] ${timestamp}\n`);
-            process.stderr.write(`  📝 Text: "${text.slice(0, 200)}${text.length > 200 ? '...' : ''}"\n`);
+            process.stderr.write(
+              `  📝 Text: "${text.slice(0, 200)}${text.length > 200 ? '...' : ''}"\n`
+            );
             process.stderr.write(`  🎙️ Voice: ${voiceId}\n`);
             process.stderr.write(`  📏 Length: ${text.length} chars\n`);
             process.stderr.write(`${'='.repeat(60)}\n`);
-            
+
             const startTime = Date.now();
             try {
               const result = await (value as Function).apply(target, args);
@@ -1793,14 +2066,14 @@ async function createPersonaTTS(personaId: string) {
             }
           };
         }
-        
-        // Wrap stream method  
+
+        // Wrap stream method
         if (prop === 'stream' && typeof value === 'function') {
-          return function(...args: unknown[]) {
+          return function (...args: unknown[]) {
             const timestamp = new Date().toISOString();
             process.stderr.write(`\n🔊 [TTS STREAM START] ${timestamp}\n`);
             process.stderr.write(`  🎙️ Voice: ${voiceId}\n`);
-            
+
             try {
               const result = (value as Function).apply(target, args);
               process.stderr.write(`  ✅ TTS stream created\n`);
@@ -1811,15 +2084,15 @@ async function createPersonaTTS(personaId: string) {
             }
           };
         }
-        
+
         // Return other properties as-is
         if (typeof value === 'function') {
           return value.bind(target);
         }
         return value;
-      }
+      },
     });
-    
+
     log.info({ personaId }, '🔊 TTS wrapped with E2E tracing');
     return ttsProxy;
   }

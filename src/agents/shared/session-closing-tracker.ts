@@ -90,7 +90,10 @@ function cleanupOrphanedSessions(): void {
   }
 
   if (orphanCount > 0) {
-    log.info({ orphanCount, remainingSessions: closingSessions.size }, '🧹 Session closing tracker orphan cleanup complete');
+    log.info(
+      { orphanCount, remainingSessions: closingSessions.size },
+      '🧹 Session closing tracker orphan cleanup complete'
+    );
   }
 }
 

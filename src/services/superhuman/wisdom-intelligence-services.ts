@@ -169,7 +169,12 @@ export async function updateParadoxStatus(
 
   try {
     const updateData = { status, resolutionNotes: notes };
-    await db.collection('bogle_users').doc(userId).collection('paradoxes').doc(paradoxId).update(updateData);
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('paradoxes')
+      .doc(paradoxId)
+      .update(updateData);
     void onParadoxChange(userId, paradoxId, updateData, 'update');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to update paradox status');
@@ -191,7 +196,11 @@ export async function recordEnoughStatement(
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('enough_statements').add(statement);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('enough_statements')
+      .add(statement);
     void onEnoughStatementChange(userId, docRef.id, statement, 'create');
     log.info({ userId, domain: statement.domain }, 'Enough statement recorded');
   } catch (error) {
@@ -262,7 +271,11 @@ export async function recordIncubatingWisdom(
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('wisdom_incubation').add(item);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('wisdom_incubation')
+      .add(item);
     void onIncubatingWisdomChange(userId, docRef.id, item, 'create');
     log.info({ userId, question: item.question.substring(0, 50) }, 'Wisdom incubation recorded');
   } catch (error) {
@@ -348,7 +361,11 @@ export async function recordWisdomPattern(userId: string, pattern: WisdomPattern
       void onWisdomPatternChange(userId, doc.id, updateData, 'update');
     } else {
       // Create new pattern
-      const docRef = await db.collection('bogle_users').doc(userId).collection('wisdom_patterns').add(pattern);
+      const docRef = await db
+        .collection('bogle_users')
+        .doc(userId)
+        .collection('wisdom_patterns')
+        .add(pattern);
       void onWisdomPatternChange(userId, docRef.id, pattern, 'create');
     }
     log.info({ userId, theme: pattern.theme }, 'Wisdom pattern recorded');
@@ -393,7 +410,11 @@ export async function recordLegacyStatement(
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('legacy_statements').add(statement);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('legacy_statements')
+      .add(statement);
     void onLegacyStatementChange(userId, docRef.id, statement, 'create');
     log.info({ userId, domain: statement.domain }, 'Legacy statement recorded');
   } catch (error) {
@@ -515,7 +536,11 @@ export async function recordLifeChapter(userId: string, chapter: LifeChapter): P
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('life_chapters').add(chapter);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('life_chapters')
+      .add(chapter);
     void onLifeChapterChange(userId, docRef.id, chapter, 'create');
     log.info({ userId, title: chapter.title, status: chapter.status }, 'Life chapter recorded');
   } catch (error) {

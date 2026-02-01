@@ -491,10 +491,7 @@ export async function executeWithReliability<T>(
     ? `⏱️ Tool execution timed out after ${timeoutMs}ms`
     : '❌ Tool execution failed after retries';
 
-  log.warn(
-    { toolName, retries, error: String(lastError), isTimeout, timeoutMs },
-    logMessage
-  );
+  log.warn({ toolName, retries, error: String(lastError), isTimeout, timeoutMs }, logMessage);
 
   // Return fallback if provided
   if (options.fallbackValue !== undefined) {

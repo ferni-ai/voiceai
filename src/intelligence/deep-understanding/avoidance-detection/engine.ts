@@ -16,11 +16,7 @@ import type {
   AvoidanceApproach,
   AvoidanceSignalType,
 } from './types.js';
-import {
-  AVOIDANCE_RULES,
-  THRESHOLDS,
-  getGentleInquiry,
-} from './detection-rules.js';
+import { AVOIDANCE_RULES, THRESHOLDS, getGentleInquiry } from './detection-rules.js';
 import {
   saveSignal,
   getPatterns,
@@ -59,7 +55,8 @@ export class AvoidanceDetector implements IAvoidanceDetector {
             trigger: message.match(pattern)?.[0] || '',
             confidence: rule.baseConfidence,
             avoidedTopic,
-            shiftedToTopic: rule.type === 'topic_change' ? this.extractNewTopic(message) : undefined,
+            shiftedToTopic:
+              rule.type === 'topic_change' ? this.extractNewTopic(message) : undefined,
             timestamp: new Date(),
             turnNumber,
             sessionId,
@@ -88,14 +85,10 @@ export class AvoidanceDetector implements IAvoidanceDetector {
     // Get related patterns
     const relatedTopics = signals.map((s) => s.avoidedTopic);
     const relatedPatterns =
-      relatedTopics.length > 0
-        ? await getPatternsByTopics(userId, relatedTopics)
-        : [];
+      relatedTopics.length > 0 ? await getPatternsByTopics(userId, relatedTopics) : [];
 
     // Check if this is a repeat
-    const isRepeat = relatedPatterns.some(
-      (p) => p.frequency >= THRESHOLDS.minSignalsForPattern
-    );
+    const isRepeat = relatedPatterns.some((p) => p.frequency >= THRESHOLDS.minSignalsForPattern);
 
     // Determine approach
     const suggestedApproach = this.determinApproach(signals, relatedPatterns);
@@ -234,10 +227,7 @@ export class AvoidanceDetector implements IAvoidanceDetector {
     return 'new topic';
   }
 
-  private adjustConfidence(
-    signal: AvoidanceSignal,
-    context: AvoidanceContext
-  ): number {
+  private adjustConfidence(signal: AvoidanceSignal, context: AvoidanceContext): number {
     let confidence = signal.confidence;
 
     // Boost if this is early in conversation (more likely genuine avoidance)
@@ -247,9 +237,7 @@ export class AvoidanceDetector implements IAvoidanceDetector {
 
     // Boost if multiple signals in session
     const sessionSignals = this.sessionSignals.get(context.sessionId) || [];
-    const sameTopicSignals = sessionSignals.filter(
-      (s) => s.avoidedTopic === signal.avoidedTopic
-    );
+    const sameTopicSignals = sessionSignals.filter((s) => s.avoidedTopic === signal.avoidedTopic);
     if (sameTopicSignals.length > 0) {
       confidence += 0.1 * sameTopicSignals.length;
     }

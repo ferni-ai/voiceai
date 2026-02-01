@@ -95,8 +95,7 @@ describe('ResearchExecutor', () => {
         'findstocks',
         'marketdata',
         'marketawareness',
-        'getstockquote',
-        'getmarketsummary',
+        // NOTE: getstockquote and getmarketsummary are handled by information-executor
         'analyzepatterns',
         'behavioralinsights',
         'insightbriefing',
@@ -214,19 +213,21 @@ describe('ResearchExecutor', () => {
     });
   });
 
-  describe('getStockQuote / getMarketSummary', () => {
-    it('should get stock quote', async () => {
+  describe('getStockQuote / getMarketSummary (handled by information-executor)', () => {
+    it('should return null for getStockQuote (handled elsewhere)', async () => {
       const ctx = createContext();
       const result = await researchExecutor.execute('getStockQuote', { symbol: 'TSLA' }, ctx);
 
-      expect(result).toBeDefined();
+      // NOTE: getstockquote is handled by information-executor, not research-executor
+      expect(result).toBeNull();
     });
 
-    it('should get market summary', async () => {
+    it('should return null for getMarketSummary (handled elsewhere)', async () => {
       const ctx = createContext();
       const result = await researchExecutor.execute('getMarketSummary', {}, ctx);
 
-      expect(result).toBeDefined();
+      // NOTE: getmarketsummary is handled by information-executor, not research-executor
+      expect(result).toBeNull();
     });
   });
 

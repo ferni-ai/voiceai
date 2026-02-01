@@ -25,7 +25,7 @@ import {
   getExperimentManager,
   type ExperimentConfig,
   type ExperimentType,
-} from '../tools/intelligence/learning/index.js';
+} from '../tools/experiments/index.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';

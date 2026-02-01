@@ -67,7 +67,9 @@ const recallEventPatternsDef: ToolDefinition = {
         recordPattern: z
           .object({
             eventName: z.string().describe('Name of the event'),
-            pattern: z.string().describe('Pattern observed (e.g., "always goes over budget on catering")'),
+            pattern: z
+              .string()
+              .describe('Pattern observed (e.g., "always goes over budget on catering")'),
             lesson: z.string().optional().describe('Lesson learned from this pattern'),
           })
           .optional()
@@ -142,10 +144,16 @@ const getGuestInsightsDef: ToolDefinition = {
         updateGuest: z
           .object({
             name: z.string().describe('Guest name'),
-            dietary: z.string().optional().describe('Dietary requirements (e.g., vegetarian, gluten-free)'),
+            dietary: z
+              .string()
+              .optional()
+              .describe('Dietary requirements (e.g., vegetarian, gluten-free)'),
             accessibility: z.string().optional().describe('Accessibility needs'),
             note: z.string().optional().describe('Additional notes about this guest'),
-            avoidSeatingWith: z.array(z.string()).optional().describe('Names of people to avoid seating with'),
+            avoidSeatingWith: z
+              .array(z.string())
+              .optional()
+              .describe('Names of people to avoid seating with'),
           })
           .optional()
           .describe('Update guest profile'),
@@ -167,7 +175,8 @@ const getGuestInsightsDef: ToolDefinition = {
 
           let response = `**Guest Profile Updated: ${updateGuest.name}**\n\n`;
           if (updateGuest.dietary) response += `🍽️ Dietary: ${updateGuest.dietary}\n`;
-          if (updateGuest.accessibility) response += `♿ Accessibility: ${updateGuest.accessibility}\n`;
+          if (updateGuest.accessibility)
+            response += `♿ Accessibility: ${updateGuest.accessibility}\n`;
           if (updateGuest.note) response += `📝 Note: ${updateGuest.note}\n`;
           if (updateGuest.avoidSeatingWith?.length) {
             response += `⚠️ Seating: Avoid placing with ${updateGuest.avoidSeatingWith.join(', ')}\n`;
@@ -240,17 +249,22 @@ const detectMilestonesDef: ToolDefinition = {
       parameters: z.object({
         recordMilestone: z
           .object({
-            type: z.enum([
-              'work_anniversary',
-              'friendship_milestone',
-              'sobriety',
-              'health_streak',
-              'relationship',
-              'quiet_win',
-              'other',
-            ]).describe('Type of milestone'),
+            type: z
+              .enum([
+                'work_anniversary',
+                'friendship_milestone',
+                'sobriety',
+                'health_streak',
+                'relationship',
+                'quiet_win',
+                'other',
+              ])
+              .describe('Type of milestone'),
             description: z.string().describe('Description of the milestone'),
-            date: z.string().optional().describe('Date of the milestone (ISO format or natural language)'),
+            date: z
+              .string()
+              .optional()
+              .describe('Date of the milestone (ISO format or natural language)'),
             recurring: z.boolean().optional().describe('Whether this recurs annually'),
           })
           .optional()
@@ -403,7 +417,9 @@ const checkCelebrationHealthDef: ToolDefinition = {
           .object({
             what: z.string().describe('What was celebrated'),
             forWhom: z.enum(['self', 'other', 'both']).describe('Who the celebration was for'),
-            size: z.enum(['micro', 'small', 'medium', 'large']).describe('Scale of the celebration'),
+            size: z
+              .enum(['micro', 'small', 'medium', 'large'])
+              .describe('Scale of the celebration'),
           })
           .optional()
           .describe('Record a celebration'),
@@ -485,16 +501,20 @@ const anticipateTransitionDef: ToolDefinition = {
       parameters: z.object({
         recordSignal: z
           .object({
-            type: z.enum([
-              'empty_nest',
-              'retirement',
-              'career_change',
-              'relationship_change',
-              'health_transition',
-              'location_change',
-              'other',
-            ]).describe('Type of life transition'),
-            signal: z.string().describe('The signal observed (e.g., "mentioned thinking about retiring")'),
+            type: z
+              .enum([
+                'empty_nest',
+                'retirement',
+                'career_change',
+                'relationship_change',
+                'health_transition',
+                'location_change',
+                'other',
+              ])
+              .describe('Type of life transition'),
+            signal: z
+              .string()
+              .describe('The signal observed (e.g., "mentioned thinking about retiring")'),
             strength: z.enum(['weak', 'moderate', 'strong']).describe('Strength of this signal'),
           })
           .optional()
@@ -525,8 +545,7 @@ const anticipateTransitionDef: ToolDefinition = {
         let response = `**Transitions I'm Sensing:**\n\n`;
 
         for (const t of transitions) {
-          const emoji =
-            t.strength === 'strong' ? '🔴' : t.strength === 'moderate' ? '🟡' : '🟢';
+          const emoji = t.strength === 'strong' ? '🔴' : t.strength === 'moderate' ? '🟡' : '🟢';
           response += `${emoji} **${t.type.replace('_', ' ')}** (${t.strength})\n`;
           response += `   Signals: ${t.signals.slice(0, 2).join(', ')}\n`;
           response += `   Last signal: ${new Date(t.lastSignalAt).toLocaleDateString()}\n\n`;
@@ -637,7 +656,10 @@ const backgroundReservationDef: ToolDefinition = {
         dateTime: z.string().describe('When (e.g., "Saturday at 7pm", "March 15")'),
         partySize: z.number().optional().describe('Number of people'),
         specialRequests: z.string().optional().describe('Any special requests or notes'),
-        alternateOptions: z.array(z.string()).optional().describe('Backup venues if first choice unavailable'),
+        alternateOptions: z
+          .array(z.string())
+          .optional()
+          .describe('Backup venues if first choice unavailable'),
         urgency: z
           .enum(['when_ready', 'asap', 'next_session'])
           .optional()
@@ -653,9 +675,8 @@ const backgroundReservationDef: ToolDefinition = {
         urgency = 'when_ready',
       }) => {
         try {
-          const { queueReservationTask } = await import(
-            '../../../services/background-agents/index.js'
-          );
+          const { queueReservationTask } =
+            await import('../../../services/background-agents/index.js');
 
           const userId = ctx.userId || 'anonymous';
           log.info({ userId, venueName, reservationType }, 'Queueing background reservation');

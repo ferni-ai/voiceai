@@ -21,7 +21,12 @@ import {
   type ProactiveIntelligenceInsight,
   type SurfaceMoment,
 } from '../../unified-intelligence-api.js';
-import type { ContextBuilder, ContextBuilderInput, ContextInjection, ContextPriority } from '../index.js';
+import type {
+  ContextBuilder,
+  ContextBuilderInput,
+  ContextInjection,
+  ContextPriority,
+} from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
 
 const log = createLogger({ module: 'unified-intelligence-context' });
@@ -92,8 +97,7 @@ export const unifiedIntelligenceBuilder: ContextBuilder = {
       if (intelligence.context.immediate.isLateNight) {
         injections.push({
           id: `uic-late-night-${Date.now()}`,
-          content:
-            "[AWARENESS] It's late night. Be extra gentle and present. Ask if they're okay.",
+          content: "[AWARENESS] It's late night. Be extra gentle and present. Ask if they're okay.",
           source: 'unified-intelligence',
           priority: 'high' as ContextPriority,
           category: 'awareness',

@@ -346,7 +346,13 @@ export async function persistAllState(options: PersistAllStateOptions): Promise<
   updatedProfile = await persistPersonalJourney(updatedProfile, userId, summary);
 
   // Extract human memory signals
-  updatedProfile = await extractHumanMemorySignals(updatedProfile, userId, personaId, turns, summary);
+  updatedProfile = await extractHumanMemorySignals(
+    updatedProfile,
+    userId,
+    personaId,
+    turns,
+    summary
+  );
 
   return updatedProfile;
 }

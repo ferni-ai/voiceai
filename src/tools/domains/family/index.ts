@@ -991,10 +991,7 @@ import {
 } from './leave-message-tool.js';
 
 // Import family sharing tools (sponsor to family)
-import {
-  shareWithFamilyToolDef,
-  requestCheckInToolDef,
-} from './family-sharing-tool.js';
+import { shareWithFamilyToolDef, requestCheckInToolDef } from './family-sharing-tool.js';
 
 // Import family check-in scheduling tools
 import {

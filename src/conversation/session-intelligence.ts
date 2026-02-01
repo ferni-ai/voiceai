@@ -39,7 +39,7 @@ import {
   type PredictionResult,
   type PredictiveAnticipationEngine,
   type ProsodyInput,
-} from './predictive-anticipation.js';
+} from './predictive-anticipation/index.js';
 import {
   getProactiveMemoryEngine,
   type ProactiveMemoryEngine,

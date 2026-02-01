@@ -30,6 +30,11 @@ const NEW_BUILDERS = [
   'goodbye-context',
   'predictive-context',
   'sensory-context',
+  // Ferni 100% Final Push (January 2026)
+  'emotional-intelligence-context',
+  'outreach-voice-context',
+  'silence-context',
+  'team-coordination-context',
 ];
 
 const BUILDER_PATHS: Record<string, string> = {
@@ -44,6 +49,11 @@ const BUILDER_PATHS: Record<string, string> = {
   'goodbye-context': '../src/intelligence/context-builders/conversational/goodbye-context.js',
   'predictive-context': '../src/intelligence/context-builders/intelligence/predictive-context.js',
   'sensory-context': '../src/intelligence/context-builders/awareness/sensory-context.js',
+  // Ferni 100% Final Push (January 2026)
+  'emotional-intelligence-context': '../src/intelligence/context-builders/emotional/emotional-intelligence-context.js',
+  'outreach-voice-context': '../src/intelligence/context-builders/personas/outreach-voice-context.js',
+  'silence-context': '../src/intelligence/context-builders/conversational/silence-context.js',
+  'team-coordination-context': '../src/intelligence/context-builders/personas/team-coordination-context.js',
 };
 
 const PERFORMANCE_TARGET_MS = 50; // Each builder should complete in under 50ms
@@ -273,20 +283,24 @@ async function main() {
   const loadedCount = loadingAudit.results.filter((r) => r.loaded).length;
   const totalNewBuilders = NEW_BUILDERS.length;
 
+  // Calculate wiring progress:
+  // - 32 were fully wired before Ferni 100% project
+  // - 15 new builders added (11 original + 4 final push)
+  // - 49 total behavior files in bundles/ferni/content/behaviors/
+  const totalBehaviorFiles = 49;
+  const previouslyWired = 32;
+  const currentlyWired = previouslyWired + registeredCount;
+  const utilizationPct = Math.round((currentlyWired / totalBehaviorFiles) * 100);
+
   console.log(`  📊 WIRING STATUS:`);
   console.log(`     - New builders registered: ${registeredCount}/${totalNewBuilders}`);
   console.log(`     - New builders loading:    ${loadedCount}/${totalNewBuilders}`);
-  console.log(`     - Total content utilization: ${Math.round(((32 + registeredCount) / (32 + 16)) * 100)}%`);
+  console.log(`     - Total content utilization: ${utilizationPct}%`);
   console.log('');
-  console.log(
-    `  🎯 Previous: 67% (32 fully wired)`
-  );
-  console.log(
-    `  🎯 Target:   100% (48 fully wired)`
-  );
-  console.log(
-    `  🎯 Current:  ${Math.round(((32 + registeredCount) / 48) * 100)}% (${32 + registeredCount} fully wired)`
-  );
+  console.log(`  🎯 Previous: 67% (32 fully wired)`);
+  console.log(`  🎯 Phase 1:  90% (43 wired after 11 builders)`);
+  console.log(`  🎯 Target:   100% (49 fully wired)`);
+  console.log(`  🎯 Current:  ${utilizationPct}% (${currentlyWired} fully wired)`);
   console.log('\n');
 
   process.exit(allPassed ? 0 : 1);

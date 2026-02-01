@@ -69,7 +69,7 @@ describe('Confidence Scoring', () => {
     it('should penalize vague conversational statements', () => {
       // These should score < 0.85 due to penalties
       const conversationalText = [
-        "I want to do something fun", // No clear tool intent
+        'I want to do something fun', // No clear tool intent
         "I'm feeling bored", // Emotional statement
         'Maybe I should relax', // Uncertain/vague
         "I don't know what to do", // No tool match
@@ -109,7 +109,9 @@ describe('Confidence Scoring', () => {
         context: 0,
         history: 0,
         holistic: 0,
-        matchedBy: ['keyword', 'embedding'] as Array<'pattern' | 'keyword' | 'embedding' | 'context' | 'history' | 'holistic'>,
+        matchedBy: ['keyword', 'embedding'] as Array<
+          'pattern' | 'keyword' | 'embedding' | 'context' | 'history' | 'holistic'
+        >,
         matchReason: ['keyword match'],
       };
 
@@ -131,7 +133,9 @@ describe('Confidence Scoring', () => {
         context: 0,
         history: 0,
         holistic: 0,
-        matchedBy: ['embedding'] as Array<'pattern' | 'keyword' | 'embedding' | 'context' | 'history' | 'holistic'>,
+        matchedBy: ['embedding'] as Array<
+          'pattern' | 'keyword' | 'embedding' | 'context' | 'history' | 'holistic'
+        >,
         matchReason: ['weak embedding match'],
       };
 
@@ -152,7 +156,9 @@ describe('Confidence Scoring', () => {
         context: 0,
         history: 0,
         holistic: 0,
-        matchedBy: ['keyword'] as Array<'pattern' | 'keyword' | 'embedding' | 'context' | 'history' | 'holistic'>,
+        matchedBy: ['keyword'] as Array<
+          'pattern' | 'keyword' | 'embedding' | 'context' | 'history' | 'holistic'
+        >,
         matchReason: ['single keyword'],
       };
 
@@ -173,7 +179,9 @@ describe('Confidence Scoring', () => {
         context: 0,
         history: 0,
         holistic: 0,
-        matchedBy: ['pattern', 'keyword', 'embedding'] as Array<'pattern' | 'keyword' | 'embedding' | 'context' | 'history' | 'holistic'>,
+        matchedBy: ['pattern', 'keyword', 'embedding'] as Array<
+          'pattern' | 'keyword' | 'embedding' | 'context' | 'history' | 'holistic'
+        >,
         matchReason: ['strong multi-layer match'],
       };
 

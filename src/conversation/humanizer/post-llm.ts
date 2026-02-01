@@ -18,7 +18,7 @@ import { humanizationSignalEmitter } from '../../services/humanization/humanizat
 
 // Conversation modules
 import { getActiveListeningEngine } from '../active-listening.js';
-import { getConversationalMemory } from '../conversational-memory.js';
+import { getConversationalMemory } from '../conversational-memory/index.js';
 import { applyDeliveryPacing, shouldApplyDeliveryPacing } from '../content-delivery-pacing.js';
 import {
   applyDeepHumanization,
@@ -32,7 +32,7 @@ import {
   humanizationConfig,
   type HumanizationContext as OrchestratorContext,
 } from '../humanization/index.js';
-import { getQuestionPatternEngine, type QuestionContext } from '../question-patterns.js';
+import { getQuestionPatternEngine, type QuestionContext } from '../question-patterns/index.js';
 import { getResponseDynamicsEngine } from '../response-dynamics.js';
 import {
   getSessionIntelligence,
@@ -40,7 +40,7 @@ import {
   type SessionIntelligenceInsight,
 } from '../session-intelligence.js';
 import { getSilencePresenceEngine } from '../silence-presence.js';
-import { getSpeechNaturalizer, type NaturalizationContext } from '../speech-naturalizer.js';
+import { getSpeechNaturalizer, type NaturalizationContext } from '../speech-naturalizer/index.js';
 import {
   getBetterThanHuman,
   type BetterThanHumanContext,

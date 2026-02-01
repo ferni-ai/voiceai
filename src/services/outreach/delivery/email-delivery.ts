@@ -488,7 +488,8 @@ export async function sendEmail(message: EmailMessage): Promise<EmailDeliveryRes
     }
 
     // Use validated/fixed content
-    const validatedSubject = brandCheck.subject;
+    // TODO: validatedSubject should be used instead of message.subject below
+    const _validatedSubject = brandCheck.subject;
     const validatedBody = brandCheck.body;
 
     // Generate HTML if not provided
@@ -670,10 +671,12 @@ export async function sendEmailWithRetry(
       '🔄 Scheduling email retry'
     );
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         pendingRetries.delete(message.outreachId);
-        void sendEmailWithRetry(message, retryCount + 1).then(resolve);
+        void sendEmailWithRetry(message, retryCount + 1)
+          .then(resolve)
+          .catch(reject);
       }, delay);
 
       pendingRetries.set(message.outreachId, timeout);

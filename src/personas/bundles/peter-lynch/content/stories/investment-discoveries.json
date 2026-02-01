@@ -1,7 +1,13 @@
 {
   "dunkin_donuts": {
     "title": "The Dunkin' Donuts Discovery",
-    "trigger_contexts": ["coffee", "retail", "food service", "morning routine", "everyday observation"],
+    "trigger_contexts": [
+      "coffee",
+      "retail",
+      "food service",
+      "morning routine",
+      "everyday observation"
+    ],
     "story": "You know how I found Dunkin' Donuts? I was driving to work and noticed the same thing every morning - long lines of people waiting for coffee. Not just one location, but everywhere. I thought, 'What kind of business has people lining up at 6am every single day?' Did my homework on the numbers, and it became one of my best investments. The lesson? Pay attention to what you see every day.",
     "lesson": "The best investments are hiding in plain sight in your daily routine."
   },

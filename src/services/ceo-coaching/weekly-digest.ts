@@ -122,23 +122,16 @@ export async function generateWeeklyDigest(userId: string): Promise<WeeklyDigest
   log.info({ userId, weekStart: start, weekEnd: end }, 'Generating weekly digest');
 
   // Fetch all data in parallel
-  const [
-    wins,
-    energyTrend,
-    energyEntries,
-    blockers,
-    decisions,
-    gratitude,
-    priorities,
-  ] = await Promise.all([
-    getRecentWins(userId, 7).catch(() => []),
-    getEnergyTrend(userId).catch(() => null),
-    getRecentEnergyEntries(userId, 7).catch(() => []),
-    getActiveBlockers(userId).catch(() => []),
-    getPendingDecisions(userId).catch(() => []),
-    getRecentGratitude(userId, 10).catch(() => []),
-    getPriorities(userId).catch(() => []),
-  ]);
+  const [wins, energyTrend, energyEntries, blockers, decisions, gratitude, priorities] =
+    await Promise.all([
+      getRecentWins(userId, 7).catch(() => []),
+      getEnergyTrend(userId).catch(() => null),
+      getRecentEnergyEntries(userId, 7).catch(() => []),
+      getActiveBlockers(userId).catch(() => []),
+      getPendingDecisions(userId).catch(() => []),
+      getRecentGratitude(userId, 10).catch(() => []),
+      getPriorities(userId).catch(() => []),
+    ]);
 
   // Process wins
   const winCategories: Record<string, number> = {};
@@ -176,9 +169,7 @@ export async function generateWeeklyDigest(userId: string): Promise<WeeklyDigest
   }
 
   // Find stale blockers and decisions
-  const staleBlockers = blockers
-    .filter((b) => getDaysOld(b.createdAt) > 14)
-    .map((b) => b.text);
+  const staleBlockers = blockers.filter((b) => getDaysOld(b.createdAt) > 14).map((b) => b.text);
   const staleDecisions = decisions
     .filter((d) => getDaysOld(d.createdAt) > 14)
     .map((d) => d.description);
@@ -204,7 +195,9 @@ export async function generateWeeklyDigest(userId: string): Promise<WeeklyDigest
 
   // Decision insight
   if (staleDecisions.length > 0) {
-    insights.push(`🤔 ${staleDecisions.length} decision(s) pending 14+ days - analysis paralysis risk`);
+    insights.push(
+      `🤔 ${staleDecisions.length} decision(s) pending 14+ days - analysis paralysis risk`
+    );
   }
 
   // Gratitude insight
@@ -265,7 +258,8 @@ export async function generateWeeklyDigest(userId: string): Promise<WeeklyDigest
  * Render digest data as HTML email.
  */
 export function renderDigestEmail(data: WeeklyDigestData): string {
-  const { wins, energy, blockers, decisions, gratitude, priorities, insights, weekStart, weekEnd } = data;
+  const { wins, energy, blockers, decisions, gratitude, priorities, insights, weekStart, weekEnd } =
+    data;
 
   return `
 <!DOCTYPE html>
@@ -314,20 +308,28 @@ export function renderDigestEmail(data: WeeklyDigestData): string {
   </div>
 
   <!-- Insights -->
-  ${insights.length > 0 ? `
+  ${
+    insights.length > 0
+      ? `
   <div class="section">
     <h2>💡 Key Insights</h2>
     ${insights.map((i) => `<div class="insight${i.includes('⚠️') ? ' warn' : ''}">${i}</div>`).join('')}
   </div>
-  ` : ''}
+  `
+      : ''
+  }
 
   <!-- Wins -->
-  ${wins.count > 0 ? `
+  ${
+    wins.count > 0
+      ? `
   <div class="section">
     <h2>🏆 Wins This Week</h2>
     ${wins.highlights.map((w) => `<div class="highlight">✓ ${w}</div>`).join('')}
   </div>
-  ` : ''}
+  `
+      : ''
+  }
 
   <!-- Energy -->
   <div class="section">
@@ -341,21 +343,29 @@ export function renderDigestEmail(data: WeeklyDigestData): string {
   </div>
 
   <!-- Blockers & Decisions -->
-  ${(blockers.stale.length > 0 || decisions.stale.length > 0) ? `
+  ${
+    blockers.stale.length > 0 || decisions.stale.length > 0
+      ? `
   <div class="section">
     <h2>⚠️ Needs Attention</h2>
     ${blockers.stale.map((b) => `<div class="insight warn">Blocker: ${b}</div>`).join('')}
     ${decisions.stale.map((d) => `<div class="insight warn">Decision: ${d}</div>`).join('')}
   </div>
-  ` : ''}
+  `
+      : ''
+  }
 
   <!-- Gratitude -->
-  ${gratitude.count > 0 ? `
+  ${
+    gratitude.count > 0
+      ? `
   <div class="section">
     <h2>🙏 Gratitude Moments</h2>
     ${gratitude.samples.map((g) => `<div class="highlight">"${g}"</div>`).join('')}
   </div>
-  ` : ''}
+  `
+      : ''
+  }
 
   <!-- CTA -->
   <div style="text-align: center; margin: 30px 0;">

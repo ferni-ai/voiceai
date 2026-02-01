@@ -44,7 +44,7 @@ describe('MicroMomentDetector', () => {
 
     it('detects "This is hard to say"', () => {
       const analysis = detector.detect(
-        createContext("This is hard to say, but I think I need help.")
+        createContext('This is hard to say, but I think I need help.')
       );
 
       expect(analysis.hasSignificantMoment).toBe(true);
@@ -53,7 +53,7 @@ describe('MicroMomentDetector', () => {
 
     it('detects trust language', () => {
       const analysis = detector.detect(
-        createContext("Can I tell you something? I trust you with this.")
+        createContext('Can I tell you something? I trust you with this.')
       );
 
       expect(analysis.moments.some((m) => m.type === 'vulnerability-edge')).toBe(true);
@@ -66,9 +66,7 @@ describe('MicroMomentDetector', () => {
 
   describe('small-win detection', () => {
     it('detects "I finally did"', () => {
-      const analysis = detector.detect(
-        createContext("I finally did it! I went to the gym today.")
-      );
+      const analysis = detector.detect(createContext('I finally did it! I went to the gym today.'));
 
       expect(analysis.hasSignificantMoment).toBe(true);
       expect(analysis.primaryMoment?.type).toBe('small-win');
@@ -76,7 +74,7 @@ describe('MicroMomentDetector', () => {
 
     it('detects "For the first time"', () => {
       const analysis = detector.detect(
-        createContext("For the first time, I stood up for myself in a meeting.")
+        createContext('For the first time, I stood up for myself in a meeting.')
       );
 
       expect(analysis.hasSignificantMoment).toBe(true);
@@ -84,9 +82,7 @@ describe('MicroMomentDetector', () => {
     });
 
     it('detects "I managed to"', () => {
-      const analysis = detector.detect(
-        createContext("I managed to finish the project on time.")
-      );
+      const analysis = detector.detect(createContext('I managed to finish the project on time.'));
 
       expect(analysis.hasSignificantMoment).toBe(true);
       expect(analysis.primaryMoment?.type).toBe('small-win');
@@ -100,7 +96,7 @@ describe('MicroMomentDetector', () => {
   describe('hope-glimmer detection', () => {
     it('detects "Maybe things could"', () => {
       const analysis = detector.detect(
-        createContext("Maybe things could actually get better this year.")
+        createContext('Maybe things could actually get better this year.')
       );
 
       expect(analysis.hasSignificantMoment).toBe(true);
@@ -150,9 +146,7 @@ describe('MicroMomentDetector', () => {
     });
 
     it('detects "I\'m only human"', () => {
-      const analysis = detector.detect(
-        createContext("I'm only human. I can't do everything.")
-      );
+      const analysis = detector.detect(createContext("I'm only human. I can't do everything."));
 
       expect(analysis.hasSignificantMoment).toBe(true);
       expect(analysis.primaryMoment?.type).toBe('self-compassion');
@@ -165,9 +159,7 @@ describe('MicroMomentDetector', () => {
 
   describe('boundary-attempt detection', () => {
     it('detects "I told them no"', () => {
-      const analysis = detector.detect(
-        createContext("I told them no. I can't keep doing this.")
-      );
+      const analysis = detector.detect(createContext("I told them no. I can't keep doing this."));
 
       expect(analysis.hasSignificantMoment).toBe(true);
       expect(analysis.primaryMoment?.type).toBe('boundary-attempt');
@@ -175,20 +167,16 @@ describe('MicroMomentDetector', () => {
 
     it('detects "I stood up for myself"', () => {
       const analysis = detector.detect(
-        createContext("I stood up for myself for the first time in years.")
+        createContext('I stood up for myself for the first time in years.')
       );
 
       // Could be small-win or boundary-attempt
       expect(analysis.hasSignificantMoment).toBe(true);
-      expect(['boundary-attempt', 'small-win']).toContain(
-        analysis.primaryMoment?.type
-      );
+      expect(['boundary-attempt', 'small-win']).toContain(analysis.primaryMoment?.type);
     });
 
     it('detects boundary language', () => {
-      const analysis = detector.detect(
-        createContext("I need to set boundaries with my family.")
-      );
+      const analysis = detector.detect(createContext('I need to set boundaries with my family.'));
 
       expect(analysis.moments.some((m) => m.type === 'boundary-attempt')).toBe(true);
     });
@@ -201,7 +189,7 @@ describe('MicroMomentDetector', () => {
   describe('growth-evidence detection', () => {
     it('detects "I used to but now"', () => {
       const analysis = detector.detect(
-        createContext("I used to panic about these things, but now I handle them better.")
+        createContext('I used to panic about these things, but now I handle them better.')
       );
 
       expect(analysis.hasSignificantMoment).toBe(true);
@@ -209,18 +197,14 @@ describe('MicroMomentDetector', () => {
     });
 
     it('detects "I\'ve changed"', () => {
-      const analysis = detector.detect(
-        createContext("I've changed so much since then.")
-      );
+      const analysis = detector.detect(createContext("I've changed so much since then."));
 
       expect(analysis.hasSignificantMoment).toBe(true);
       expect(analysis.primaryMoment?.type).toBe('growth-evidence');
     });
 
     it('detects "Looking back"', () => {
-      const analysis = detector.detect(
-        createContext("Looking back, I can see how far I've come.")
-      );
+      const analysis = detector.detect(createContext("Looking back, I can see how far I've come."));
 
       expect(analysis.hasSignificantMoment).toBe(true);
       expect(analysis.primaryMoment?.type).toBe('growth-evidence');
@@ -234,16 +218,14 @@ describe('MicroMomentDetector', () => {
   describe('relationship-shift detection', () => {
     it('detects "I used to think of them"', () => {
       const analysis = detector.detect(
-        createContext("I used to think of them as my hero, but now I see their flaws.")
+        createContext('I used to think of them as my hero, but now I see their flaws.')
       );
 
       expect(analysis.moments.some((m) => m.type === 'relationship-shift')).toBe(true);
     });
 
     it('detects perspective change', () => {
-      const analysis = detector.detect(
-        createContext("They're not who I thought they were.")
-      );
+      const analysis = detector.detect(createContext("They're not who I thought they were."));
 
       expect(analysis.moments.some((m) => m.type === 'relationship-shift')).toBe(true);
     });
@@ -270,9 +252,7 @@ describe('MicroMomentDetector', () => {
     });
 
     it('detects "Together, we"', () => {
-      const analysis = detector.detect(
-        createContext("Together, we can figure this out.")
-      );
+      const analysis = detector.detect(createContext('Together, we can figure this out.'));
 
       expect(analysis.moments.some((m) => m.type === 'language-change')).toBe(true);
     });
@@ -284,9 +264,7 @@ describe('MicroMomentDetector', () => {
 
   describe('getAcknowledgment()', () => {
     it('returns acknowledgment for detected moment', () => {
-      const analysis = detector.detect(
-        createContext("I've never told anyone this before.")
-      );
+      const analysis = detector.detect(createContext("I've never told anyone this before."));
 
       if (analysis.primaryMoment) {
         const ack = detector.getAcknowledgment(analysis.primaryMoment);
@@ -298,9 +276,7 @@ describe('MicroMomentDetector', () => {
     });
 
     it('returns appropriate timing for vulnerability', () => {
-      const analysis = detector.detect(
-        createContext("I've never told anyone this before.")
-      );
+      const analysis = detector.detect(createContext("I've never told anyone this before."));
 
       if (analysis.primaryMoment) {
         const ack = detector.getAcknowledgment(analysis.primaryMoment);
@@ -326,9 +302,7 @@ describe('MicroMomentDetector', () => {
     });
 
     it('returns empty for no significant moments', () => {
-      const analysis = detector.detect(
-        createContext("The weather is nice today.")
-      );
+      const analysis = detector.detect(createContext('The weather is nice today.'));
 
       const injection = detector.buildContextInjection(analysis);
 
@@ -342,9 +316,7 @@ describe('MicroMomentDetector', () => {
 
   describe('recordOutcome()', () => {
     it('records outcomes without error', () => {
-      const analysis = detector.detect(
-        createContext("I've never told anyone this before.")
-      );
+      const analysis = detector.detect(createContext("I've never told anyone this before."));
 
       if (analysis.primaryMoment) {
         expect(() => {
@@ -360,9 +332,7 @@ describe('MicroMomentDetector', () => {
 
   describe('reset()', () => {
     it('resets without error', () => {
-      detector.detect(
-        createContext("I've never told anyone this before.")
-      );
+      detector.detect(createContext("I've never told anyone this before."));
 
       expect(() => detector.reset()).not.toThrow();
     });
@@ -386,9 +356,7 @@ describe('MicroMomentDetector', () => {
 
     it('ranks moments by confidence', () => {
       const analysis = detector.detect(
-        createContext(
-          "I've never told anyone this before, but maybe things could get better."
-        )
+        createContext("I've never told anyone this before, but maybe things could get better.")
       );
 
       if (analysis.moments.length > 1) {

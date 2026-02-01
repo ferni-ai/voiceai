@@ -15,6 +15,7 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
 import { teaserPreview } from './teaser-preview.ui.js';
+import { createEmptyState } from './components/empty-state.js';
 
 // ============================================================================
 // TYPES
@@ -302,9 +303,9 @@ class ConversationHistoryUI {
   }
 
   private renderEmptyState(): string {
-    // Use teaser preview system to show what conversation history WILL look like
-    // Shows realistic dummy data to create anticipation
-    return teaserPreview.memories().outerHTML;
+    // Use brand-compliant empty state with warm, encouraging copy
+    const emptyState = createEmptyState('conversation-history');
+    return emptyState.outerHTML;
   }
 
   private formatDuration(minutes: number): string {

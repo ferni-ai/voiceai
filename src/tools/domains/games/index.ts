@@ -69,35 +69,35 @@ function normalizeGameType(gameType: string): CanonicalGameType | string {
   const mapping: Record<string, CanonicalGameType> = {
     // Tic-tac-toe variants
     'tic-tac-toe': 'tic-tac-toe',
-    'tictactoe': 'tic-tac-toe',
+    tictactoe: 'tic-tac-toe',
     // 20 Questions variants
     '20-questions': '20-questions',
-    'twentyquestions': '20-questions',
+    twentyquestions: '20-questions',
     'twenty-questions': '20-questions',
     // Word Association variants
     'word-association': 'word-association',
-    'wordassociation': 'word-association',
+    wordassociation: 'word-association',
     // Would You Rather variants
     'would-you-rather': 'would-you-rather',
-    'wouldyourather': 'would-you-rather',
+    wouldyourather: 'would-you-rather',
     // Story Builder variants
     'story-builder': 'story-builder',
-    'storybuilder': 'story-builder',
+    storybuilder: 'story-builder',
     // Reflection games
     'three-word-day': 'three-word-day',
-    'threewordday': 'three-word-day',
+    threewordday: 'three-word-day',
     'values-card-sort': 'values-card-sort',
-    'valuescardsorc': 'values-card-sort',
+    valuescardsorc: 'values-card-sort',
     'headline-writer': 'headline-writer',
-    'headlinewriter': 'headline-writer',
+    headlinewriter: 'headline-writer',
     'emoji-story': 'emoji-story',
-    'emojistory': 'emoji-story',
+    emojistory: 'emoji-story',
     'one-word-checkin': 'one-word-checkin',
-    'onewordcheckin': 'one-word-checkin',
+    onewordcheckin: 'one-word-checkin',
     'tiny-win-tracker': 'tiny-win-tracker',
-    'tinywintracker': 'tiny-win-tracker',
+    tinywintracker: 'tiny-win-tracker',
     'fortune-cookie': 'fortune-cookie',
-    'fortunecookie': 'fortune-cookie',
+    fortunecookie: 'fortune-cookie',
   };
   return mapping[gameType.toLowerCase()] || gameType;
 }
@@ -229,9 +229,7 @@ async function broadcastGameStarted(
   gameData: Record<string, unknown>
 ): Promise<void> {
   try {
-    const { getFrontendPublisher } = await import(
-      '../../../agents/realtime/frontend-publisher.js'
-    );
+    const { getFrontendPublisher } = await import('../../../agents/realtime/frontend-publisher.js');
     const publisher = getFrontendPublisher();
 
     if (publisher.isConnected()) {
@@ -243,7 +241,11 @@ async function broadcastGameStarted(
       await publisher.sendGameStarted(gameId, normalizedType, gameName);
       // Also send initial state (transformed for frontend compatibility)
       const frontendState = transformStateForFrontend(normalizedType, gameData);
-      await publisher.sendGameState(normalizedType as Parameters<typeof publisher.sendGameState>[0], 'active', frontendState);
+      await publisher.sendGameState(
+        normalizedType as Parameters<typeof publisher.sendGameState>[0],
+        'active',
+        frontendState
+      );
 
       log.debug({ gameType: normalizedType }, '🎮 Game state broadcast: started');
     }
@@ -261,9 +263,7 @@ async function broadcastGameState(
   gameData: Record<string, unknown>
 ): Promise<void> {
   try {
-    const { getFrontendPublisher } = await import(
-      '../../../agents/realtime/frontend-publisher.js'
-    );
+    const { getFrontendPublisher } = await import('../../../agents/realtime/frontend-publisher.js');
     const publisher = getFrontendPublisher();
 
     if (publisher.isConnected()) {
@@ -271,7 +271,11 @@ async function broadcastGameState(
       const normalizedType = normalizeGameType(gameType);
       // Transform state for frontend compatibility
       const frontendState = transformStateForFrontend(normalizedType, gameData);
-      await publisher.sendGameState(normalizedType as Parameters<typeof publisher.sendGameState>[0], status, frontendState);
+      await publisher.sendGameState(
+        normalizedType as Parameters<typeof publisher.sendGameState>[0],
+        status,
+        frontendState
+      );
       log.debug({ gameType: normalizedType, status }, '🎮 Game state broadcast: updated');
     }
   } catch (error) {
@@ -284,9 +288,7 @@ async function broadcastGameState(
  */
 async function broadcastGameEnded(gameType: string, result?: string): Promise<void> {
   try {
-    const { getFrontendPublisher } = await import(
-      '../../../agents/realtime/frontend-publisher.js'
-    );
+    const { getFrontendPublisher } = await import('../../../agents/realtime/frontend-publisher.js');
     const publisher = getFrontendPublisher();
 
     if (publisher.isConnected()) {
@@ -363,7 +365,10 @@ Use when user says things like:
 
               // Broadcast game started to frontend
               const state = gameEngine.getState();
-              await broadcastGameStarted(gameType, { ...state.gameData } as Record<string, unknown>);
+              await broadcastGameStarted(gameType, { ...state.gameData } as Record<
+                string,
+                unknown
+              >);
 
               log.info({ gameType, personaId }, '🎮 Game started');
               return welcomeMessage;
@@ -411,7 +416,10 @@ Use when:
 
               // Broadcast state update to frontend
               const status = result.gameOver ? 'completed' : 'active';
-              await broadcastGameState(gameType, status, { ...state.gameData } as Record<string, unknown>);
+              await broadcastGameState(gameType, status, { ...state.gameData } as Record<
+                string,
+                unknown
+              >);
 
               let response = result.feedback;
 
@@ -719,7 +727,10 @@ Use when user says things like:
 
               // Broadcast game started to frontend for visual board
               const state = textGameEngine.getState();
-              await broadcastGameStarted(gameType, { ...state.gameData } as Record<string, unknown>);
+              await broadcastGameStarted(gameType, { ...state.gameData } as Record<
+                string,
+                unknown
+              >);
 
               return result.message;
             } catch (error) {
@@ -767,13 +778,14 @@ Use when:
               const state = textGameEngine.getState();
               const gameType = state.gameType || 'unknown';
               const status = result.gameOver ? 'completed' : 'active';
-              await broadcastGameState(gameType, status, { ...state.gameData } as Record<string, unknown>);
+              await broadcastGameState(gameType, status, { ...state.gameData } as Record<
+                string,
+                unknown
+              >);
 
               // If game ended, also send game ended event with result
               if (result.gameOver) {
-                const resultSummary = result.winner
-                  ? `Winner: ${result.winner}`
-                  : 'Game complete';
+                const resultSummary = result.winner ? `Winner: ${result.winner}` : 'Game complete';
                 await broadcastGameEnded(gameType, resultSummary);
               }
 

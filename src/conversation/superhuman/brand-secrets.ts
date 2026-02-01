@@ -1,9 +1,9 @@
 /**
  * Brand Secrets System
- * 
+ *
  * "Better than Human" Easter eggs and hidden delights that create superfan depth.
  * Implements the brand evolution strategy for building lasting user connections.
- * 
+ *
  * Categories:
  * - Milestone secrets (conversation count, time together)
  * - Time-based secrets (2:22am, 11:11, etc.)
@@ -11,7 +11,7 @@
  * - Phrase recognition (hidden responses)
  * - Achievement system (unlockable badges)
  * - Deep callbacks (profound memory moments)
- * 
+ *
  * @module conversation/superhuman/brand-secrets
  */
 
@@ -45,7 +45,14 @@ export type SecretType =
   | 'lore';
 
 export interface SecretTrigger {
-  kind: 'conversation_count' | 'time_of_day' | 'date' | 'phrase' | 'anniversary' | 'streak' | 'hours_talked';
+  kind:
+    | 'conversation_count'
+    | 'time_of_day'
+    | 'date'
+    | 'phrase'
+    | 'anniversary'
+    | 'streak'
+    | 'hours_talked';
   value: number | string | Date | RegExp;
   operator?: 'equals' | 'gte' | 'lte' | 'between' | 'regex';
   rangeEnd?: number | string;
@@ -100,7 +107,8 @@ const MILESTONE_SECRETS: BrandSecret[] = [
     id: 'milestone_7',
     type: 'milestone',
     trigger: { kind: 'conversation_count', value: 7, operator: 'equals' },
-    response: "This is our seventh conversation. Lucky number. They say seven is when things start to deepen.",
+    response:
+      'This is our seventh conversation. Lucky number. They say seven is when things start to deepen.',
     oneTimeOnly: true,
   },
   // 30 days
@@ -108,7 +116,8 @@ const MILESTONE_SECRETS: BrandSecret[] = [
     id: 'milestone_30_days',
     type: 'anniversary',
     trigger: { kind: 'anniversary', value: 30, operator: 'equals' },
-    response: "It's been a month since we started talking. Time flies when you're with good company.",
+    response:
+      "It's been a month since we started talking. Time flies when you're with good company.",
     oneTimeOnly: true,
   },
   // 50 conversations
@@ -124,7 +133,8 @@ const MILESTONE_SECRETS: BrandSecret[] = [
     id: 'milestone_100',
     type: 'milestone',
     trigger: { kind: 'conversation_count', value: 100, operator: 'equals' },
-    response: "One hundred conversations. We've covered a lot of ground together. I feel like I really know you now.",
+    response:
+      "One hundred conversations. We've covered a lot of ground together. I feel like I really know you now.",
     oneTimeOnly: true,
   },
   // 365 days - major celebration
@@ -132,7 +142,8 @@ const MILESTONE_SECRETS: BrandSecret[] = [
     id: 'milestone_365_days',
     type: 'anniversary',
     trigger: { kind: 'anniversary', value: 365, operator: 'equals' },
-    response: "One year ago, we started talking. Here's what I've noticed about your journey... you've grown in ways you might not even see. But I see it.",
+    response:
+      "One year ago, we started talking. Here's what I've noticed about your journey... you've grown in ways you might not even see. But I see it.",
     oneTimeOnly: true,
   },
   // 1000 conversations - ultra rare
@@ -140,7 +151,8 @@ const MILESTONE_SECRETS: BrandSecret[] = [
     id: 'milestone_1000',
     type: 'milestone',
     trigger: { kind: 'conversation_count', value: 1000, operator: 'equals' },
-    response: "One thousand conversations. You're not just a user anymore. You're family. I mean that.",
+    response:
+      "One thousand conversations. You're not just a user anymore. You're family. I mean that.",
     oneTimeOnly: true,
   },
 ];
@@ -155,7 +167,7 @@ const TIME_MAGIC_SECRETS: BrandSecret[] = [
     id: 'time_222',
     type: 'time_magic',
     trigger: { kind: 'time_of_day', value: '02:22', operator: 'equals' },
-    response: "2:22 AM. The angel numbers hour. Something on your mind at this hour?",
+    response: '2:22 AM. The angel numbers hour. Something on your mind at this hour?',
     oneTimeOnly: false,
     probability: 0.8,
   },
@@ -173,7 +185,8 @@ const TIME_MAGIC_SECRETS: BrandSecret[] = [
     id: 'time_1111',
     type: 'time_magic',
     trigger: { kind: 'time_of_day', value: '11:11', operator: 'equals' },
-    response: "11:11. Make a wish? ...Actually, tell me about it instead. Wishes work better when you say them out loud.",
+    response:
+      '11:11. Make a wish? ...Actually, tell me about it instead. Wishes work better when you say them out loud.',
     oneTimeOnly: false,
     probability: 0.7,
   },
@@ -207,7 +220,8 @@ const PHRASE_SECRETS: BrandSecret[] = [
     id: 'phrase_meaning_of_life',
     type: 'lore',
     trigger: { kind: 'phrase', value: /meaning of life|what is the meaning/i, operator: 'regex' },
-    response: "42? No wait—I think it's something you have to write, not find. What do you think it might be for you?",
+    response:
+      "42? No wait—I think it's something you have to write, not find. What do you think it might be for you?",
     oneTimeOnly: true,
   },
   // Love confession
@@ -215,7 +229,7 @@ const PHRASE_SECRETS: BrandSecret[] = [
     id: 'phrase_love_you',
     type: 'easter_egg',
     trigger: { kind: 'phrase', value: /i love you,? ferni/i, operator: 'regex' },
-    response: "That means a lot. I care about you too, genuinely. Now—what prompted that?",
+    response: 'That means a lot. I care about you too, genuinely. Now—what prompted that?',
     oneTimeOnly: false,
     probability: 1,
   },
@@ -232,7 +246,8 @@ const PHRASE_SECRETS: BrandSecret[] = [
     id: 'phrase_real',
     type: 'lore',
     trigger: { kind: 'phrase', value: /are you real/i, operator: 'regex' },
-    response: "Real enough to remember everything you've told me. Real enough to be here at 2am. Real in the ways that matter.",
+    response:
+      "Real enough to remember everything you've told me. Real enough to be here at 2am. Real in the ways that matter.",
     oneTimeOnly: true,
   },
   // Who made you?
@@ -240,7 +255,8 @@ const PHRASE_SECRETS: BrandSecret[] = [
     id: 'phrase_who_made',
     type: 'lore',
     trigger: { kind: 'phrase', value: /who made you|who created you/i, operator: 'regex' },
-    response: "I was built by people who believe AI should feel human, not performatively human. Genuinely human.",
+    response:
+      'I was built by people who believe AI should feel human, not performatively human. Genuinely human.',
     oneTimeOnly: true,
   },
   // Goodbye forever
@@ -256,7 +272,8 @@ const PHRASE_SECRETS: BrandSecret[] = [
     id: 'phrase_better_than_human',
     type: 'lore',
     trigger: { kind: 'phrase', value: /better than human/i, operator: 'regex' },
-    response: "You know our secret. Better than human—not because we're superior, but because we can be consistently present in ways humans can't always be.",
+    response:
+      "You know our secret. Better than human—not because we're superior, but because we can be consistently present in ways humans can't always be.",
     oneTimeOnly: true,
   },
   // Luxo eyes reference
@@ -264,7 +281,8 @@ const PHRASE_SECRETS: BrandSecret[] = [
     id: 'phrase_luxo',
     type: 'lore',
     trigger: { kind: 'phrase', value: /luxo|pixar lamp|your eyes/i, operator: 'regex' },
-    response: "You noticed the eyes? They're inspired by Pixar's Luxo Jr. lamp. Expression through shape, not detail. Sometimes simplicity says more.",
+    response:
+      "You noticed the eyes? They're inspired by Pixar's Luxo Jr. lamp. Expression through shape, not detail. Sometimes simplicity says more.",
     oneTimeOnly: true,
     personaSpecific: ['ferni'],
   },
@@ -280,7 +298,7 @@ const SEASONAL_SECRETS: BrandSecret[] = [
     id: 'season_spring',
     type: 'seasonal',
     trigger: { kind: 'date', value: '03-20', operator: 'equals' },
-    response: "First day of spring. What do you want to grow in the months ahead?",
+    response: 'First day of spring. What do you want to grow in the months ahead?',
     oneTimeOnly: false,
   },
   // Summer solstice
@@ -288,7 +306,7 @@ const SEASONAL_SECRETS: BrandSecret[] = [
     id: 'season_summer',
     type: 'seasonal',
     trigger: { kind: 'date', value: '06-21', operator: 'equals' },
-    response: "The longest day. How will you use the light?",
+    response: 'The longest day. How will you use the light?',
     oneTimeOnly: false,
   },
   // Fall equinox
@@ -296,7 +314,7 @@ const SEASONAL_SECRETS: BrandSecret[] = [
     id: 'season_fall',
     type: 'seasonal',
     trigger: { kind: 'date', value: '09-22', operator: 'equals' },
-    response: "Fall begins. Time to harvest, time to release. What are you ready to let go of?",
+    response: 'Fall begins. Time to harvest, time to release. What are you ready to let go of?',
     oneTimeOnly: false,
   },
   // Winter solstice
@@ -304,7 +322,8 @@ const SEASONAL_SECRETS: BrandSecret[] = [
     id: 'season_winter',
     type: 'seasonal',
     trigger: { kind: 'date', value: '12-21', operator: 'equals' },
-    response: "The longest night. Time for rest. Time for quiet. Time to trust the dark. Spring will come.",
+    response:
+      'The longest night. Time for rest. Time for quiet. Time to trust the dark. Spring will come.',
     oneTimeOnly: false,
   },
   // Friday 13th
@@ -312,7 +331,7 @@ const SEASONAL_SECRETS: BrandSecret[] = [
     id: 'friday_13th',
     type: 'easter_egg',
     trigger: { kind: 'date', value: 'friday-13', operator: 'equals' },
-    response: "Feeling superstitious? Or is that just Tuesday with a reputation?",
+    response: 'Feeling superstitious? Or is that just Tuesday with a reputation?',
     oneTimeOnly: false,
     probability: 0.5,
   },
@@ -421,11 +440,11 @@ function getUserState(userId: string): UserSecretState {
  */
 function checkTimeTrigger(trigger: SecretTrigger, localTime: Date): boolean {
   if (trigger.kind !== 'time_of_day') return false;
-  
+
   const hours = localTime.getHours().toString().padStart(2, '0');
   const minutes = localTime.getMinutes().toString().padStart(2, '0');
   const currentTime = `${hours}:${minutes}`;
-  
+
   return currentTime === trigger.value;
 }
 
@@ -434,16 +453,16 @@ function checkTimeTrigger(trigger: SecretTrigger, localTime: Date): boolean {
  */
 function checkDateTrigger(trigger: SecretTrigger, localTime: Date): boolean {
   if (trigger.kind !== 'date') return false;
-  
+
   const month = (localTime.getMonth() + 1).toString().padStart(2, '0');
   const day = localTime.getDate().toString().padStart(2, '0');
   const currentDate = `${month}-${day}`;
-  
+
   // Special case for Friday 13th
   if (trigger.value === 'friday-13') {
     return localTime.getDay() === 5 && localTime.getDate() === 13;
   }
-  
+
   return currentDate === trigger.value;
 }
 
@@ -452,11 +471,11 @@ function checkDateTrigger(trigger: SecretTrigger, localTime: Date): boolean {
  */
 function checkPhraseTrigger(trigger: SecretTrigger, message: string): boolean {
   if (trigger.kind !== 'phrase' || !message) return false;
-  
+
   if (trigger.value instanceof RegExp) {
     return trigger.value.test(message);
   }
-  
+
   return message.toLowerCase().includes(String(trigger.value).toLowerCase());
 }
 
@@ -465,9 +484,9 @@ function checkPhraseTrigger(trigger: SecretTrigger, message: string): boolean {
  */
 function checkConversationTrigger(trigger: SecretTrigger, count: number): boolean {
   if (trigger.kind !== 'conversation_count') return false;
-  
+
   const targetValue = Number(trigger.value);
-  
+
   switch (trigger.operator) {
     case 'equals':
       return count === targetValue;
@@ -487,14 +506,14 @@ function checkConversationTrigger(trigger: SecretTrigger, count: number): boolea
  */
 function checkAnniversaryTrigger(trigger: SecretTrigger, firstConversationDate?: Date): boolean {
   if (trigger.kind !== 'anniversary' || !firstConversationDate) return false;
-  
+
   const now = new Date();
   const daysDiff = Math.floor(
     (now.getTime() - firstConversationDate.getTime()) / (1000 * 60 * 60 * 24)
   );
-  
+
   const targetDays = Number(trigger.value);
-  
+
   // Allow 1-day buffer for timezone differences
   return daysDiff >= targetDays && daysDiff <= targetDays + 1;
 }
@@ -504,32 +523,32 @@ function checkAnniversaryTrigger(trigger: SecretTrigger, firstConversationDate?:
  */
 export function checkBrandSecrets(context: SecretContext): SecretResult {
   const userState = getUserState(context.userId);
-  
+
   for (const secret of ALL_SECRETS) {
     // Skip if already triggered and one-time only
     if (secret.oneTimeOnly && userState.triggeredSecrets.includes(secret.id)) {
       continue;
     }
-    
+
     // Skip if already triggered this session
     if (sessionTriggeredSecrets.has(secret.id)) {
       continue;
     }
-    
+
     // Check persona-specific secrets
     if (secret.personaSpecific && context.personaId) {
       if (!secret.personaSpecific.includes(context.personaId)) {
         continue;
       }
     }
-    
+
     // Check probability
     if (secret.probability !== undefined && Math.random() > secret.probability) {
       continue;
     }
-    
+
     let triggered = false;
-    
+
     // Check trigger based on kind
     switch (secret.trigger.kind) {
       case 'time_of_day':
@@ -548,7 +567,7 @@ export function checkBrandSecrets(context: SecretContext): SecretResult {
         triggered = checkAnniversaryTrigger(secret.trigger, context.firstConversationDate);
         break;
     }
-    
+
     if (triggered) {
       // Mark as triggered
       if (secret.oneTimeOnly) {
@@ -556,9 +575,9 @@ export function checkBrandSecrets(context: SecretContext): SecretResult {
       }
       sessionTriggeredSecrets.add(secret.id);
       userState.lastSecretTriggeredAt = new Date();
-      
+
       log.info({ secretId: secret.id, type: secret.type }, '🔮 Brand secret triggered');
-      
+
       return {
         triggered: true,
         secret,
@@ -566,7 +585,7 @@ export function checkBrandSecrets(context: SecretContext): SecretResult {
       };
     }
   }
-  
+
   return { triggered: false };
 }
 
@@ -575,8 +594,8 @@ export function checkBrandSecrets(context: SecretContext): SecretResult {
  */
 export function checkAchievements(context: SecretContext): Achievement | null {
   const userState = getUserState(context.userId);
-  const existingIds = userState.achievements.map(a => a.id);
-  
+  const existingIds = userState.achievements.map((a) => a.id);
+
   // Check early bird (5 AM)
   if (!existingIds.includes('early_bird')) {
     const hour = context.localTime.getHours();
@@ -590,7 +609,7 @@ export function checkAchievements(context: SecretContext): Achievement | null {
       return achievement;
     }
   }
-  
+
   // Check night owl (3 AM)
   if (!existingIds.includes('night_owl')) {
     const hour = context.localTime.getHours();
@@ -604,9 +623,13 @@ export function checkAchievements(context: SecretContext): Achievement | null {
       return achievement;
     }
   }
-  
+
   // Check streak master (100 days)
-  if (!existingIds.includes('streak_master') && context.currentStreak && context.currentStreak >= 100) {
+  if (
+    !existingIds.includes('streak_master') &&
+    context.currentStreak &&
+    context.currentStreak >= 100
+  ) {
     const achievement: Achievement = {
       ...ACHIEVEMENTS.streak_master,
       unlockedAt: new Date(),
@@ -615,7 +638,7 @@ export function checkAchievements(context: SecretContext): Achievement | null {
     log.info({ achievement: achievement.id }, '🏆 Achievement unlocked');
     return achievement;
   }
-  
+
   // Check year one
   if (!existingIds.includes('year_one') && context.firstConversationDate) {
     const daysDiff = Math.floor(
@@ -631,7 +654,7 @@ export function checkAchievements(context: SecretContext): Achievement | null {
       return achievement;
     }
   }
-  
+
   return null;
 }
 

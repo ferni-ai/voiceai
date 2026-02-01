@@ -202,7 +202,10 @@ export class TimingIntelligence {
 
     // Check recent surfacing
     const recentSurfacings = await this.getRecentSurfacings(userId);
-    const recentSurfacingFactor = this.calculateRecentSurfacingFactor(recentSurfacings, preferences);
+    const recentSurfacingFactor = this.calculateRecentSurfacingFactor(
+      recentSurfacings,
+      preferences
+    );
 
     // Check user engagement patterns
     const userAvailability = await this.estimateUserAvailability(userId, currentHour);
@@ -228,7 +231,8 @@ export class TimingIntelligence {
       factors.recentSurfacing * 0.2;
 
     // Threshold decision
-    const threshold = content.priority === 'critical' ? 0.3 : content.priority === 'high' ? 0.4 : 0.5;
+    const threshold =
+      content.priority === 'critical' ? 0.3 : content.priority === 'high' ? 0.4 : 0.5;
     const shouldSurfaceNow = overallScore >= threshold && (inOptimalWindow || urgency > 0.7);
 
     return {
@@ -318,9 +322,9 @@ export class TimingIntelligence {
     // Check time since last surfacing
     const lastSurfacing = recentSurfacings[0];
     if (lastSurfacing.deliveredAt) {
-      const hoursSinceLastSurfacing = 
+      const hoursSinceLastSurfacing =
         (Date.now() - new Date(lastSurfacing.deliveredAt).getTime()) / (60 * 60 * 1000);
-      
+
       // Want at least 2 hours between surfacings
       if (hoursSinceLastSurfacing < 2) return 0.2;
     }
@@ -385,7 +389,10 @@ export class TimingIntelligence {
   /**
    * Calculate context relevance
    */
-  private async calculateContextRelevance(userId: string, content: SurfaceContent): Promise<number> {
+  private async calculateContextRelevance(
+    userId: string,
+    content: SurfaceContent
+  ): Promise<number> {
     let relevance = 0.5;
 
     // Check if related entities were recently mentioned
@@ -401,11 +408,9 @@ export class TimingIntelligence {
       if (!recentConversation.empty) {
         const conv = recentConversation.docs[0].data();
         const mentionedEntities = conv.mentionedEntities || [];
-        
-        const overlap = content.relatedEntities.filter((e) =>
-          mentionedEntities.includes(e)
-        ).length;
-        
+
+        const overlap = content.relatedEntities.filter((e) => mentionedEntities.includes(e)).length;
+
         if (overlap > 0) relevance += 0.3;
       }
     }
@@ -436,11 +441,11 @@ export class TimingIntelligence {
       for (const window of content.timing.optimalWindows) {
         const windowTime = new Date(now);
         windowTime.setHours(window.startHour, 0, 0, 0);
-        
+
         if (windowTime > now) {
           return windowTime;
         }
-        
+
         // Try tomorrow
         windowTime.setDate(windowTime.getDate() + 1);
         if (!content.timing.notAfter || windowTime < new Date(content.timing.notAfter)) {
@@ -462,7 +467,8 @@ export class TimingIntelligence {
   ): string {
     if (shouldSurface) {
       if (factors.urgency > 0.7) return 'High urgency content';
-      if (inOptimalWindow && factors.userAvailability > 0.6) return 'Optimal time and user available';
+      if (inOptimalWindow && factors.userAvailability > 0.6)
+        return 'Optimal time and user available';
       return 'Good overall conditions for surfacing';
     }
 
@@ -492,7 +498,9 @@ export class ProactiveSurfacingEngine {
   /**
    * Queue content for surfacing
    */
-  async queueContent(content: Omit<SurfaceContent, 'id' | 'createdAt' | 'status'>): Promise<string> {
+  async queueContent(
+    content: Omit<SurfaceContent, 'id' | 'createdAt' | 'status'>
+  ): Promise<string> {
     const id = `surface_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const fullContent: SurfaceContent = {
       ...content,
@@ -660,7 +668,11 @@ export class ProactiveSurfacingEngine {
   /**
    * Schedule content for later
    */
-  private async scheduleContent(userId: string, contentId: string, scheduledFor: Date): Promise<void> {
+  private async scheduleContent(
+    userId: string,
+    contentId: string,
+    scheduledFor: Date
+  ): Promise<void> {
     await this.firestore
       .collection('users')
       .doc(userId)
@@ -697,7 +709,9 @@ export class ProactiveSurfacingEngine {
   /**
    * Generate content suggestions from various sources
    */
-  async generateSuggestions(userId: string): Promise<Array<Omit<SurfaceContent, 'id' | 'createdAt' | 'status'>>> {
+  async generateSuggestions(
+    userId: string
+  ): Promise<Array<Omit<SurfaceContent, 'id' | 'createdAt' | 'status'>>> {
     const suggestions: Array<Omit<SurfaceContent, 'id' | 'createdAt' | 'status'>> = [];
 
     try {
@@ -734,7 +748,10 @@ export class ProactiveSurfacingEngine {
             },
             priority: 'medium',
             timing: {
-              optimalWindows: [{ startHour: 9, endHour: 11 }, { startHour: 18, endHour: 20 }],
+              optimalWindows: [
+                { startHour: 9, endHour: 11 },
+                { startHour: 18, endHour: 20 },
+              ],
             },
           });
         }
@@ -754,7 +771,7 @@ export class ProactiveSurfacingEngine {
       for (const entityDoc of entities.docs) {
         const entity = entityDoc.data();
         const lastMentioned = entity.lastMentionedAt?.toDate?.();
-        
+
         if (lastMentioned) {
           const daysSinceLastMention =
             (Date.now() - lastMentioned.getTime()) / (24 * 60 * 60 * 1000);
@@ -829,12 +846,12 @@ export async function getNextSurfacing(userId: string): Promise<SurfaceContent |
 export async function generateAndQueueSuggestions(userId: string): Promise<number> {
   const engine = getSurfacingEngine();
   const suggestions = await engine.generateSuggestions(userId);
-  
+
   let queued = 0;
   for (const suggestion of suggestions) {
     await engine.queueContent(suggestion);
     queued++;
   }
-  
+
   return queued;
 }

@@ -22,7 +22,11 @@ import type { AgentCreationContext, PersonaAgent } from './orchestrator.js';
 // Speech coordination for centralized speech management
 import { initializeSpeechCoordination } from '../../speech/coordination/index.js';
 // Centralized generateReply gateway - handles session readiness
-import { markSessionReady, prewarmSession, registerSessionForReconnection } from '../shared/generate-reply-gateway.js';
+import {
+  markSessionReady,
+  prewarmSession,
+  registerSessionForReconnection,
+} from '../shared/generate-reply-gateway.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
 
@@ -200,6 +204,10 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       // Register session for gateway access (enables generateReplyBySessionId)
       registerSessionForReconnection(sessionId, agentSetup.session);
 
+      // NOTE: Tool registration moved AFTER prewarm (see below).
+      // The Gemini WebSocket connection is established during prewarm, so
+      // realtimeLLMSession is only available after prewarm completes.
+
       // =========================================================================
       // PREWARM: SYNCHRONOUS to prevent double connection (provider-dependent)
       // =========================================================================
@@ -261,6 +269,44 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
         // but we should still mark them ready to be safe
         log.info({ personaId }, '🔄 Handoff session - marking session ready');
         markSessionReady(sessionId);
+      }
+
+      // =========================================================================
+      // CRITICAL: Register initial agent tools with the session
+      //
+      // LiveKit's session starts with EMPTY tools - the agent's _tools must be
+      // explicitly sent to the session for native function calling to work.
+      // Without this, Gemini connects with geminiDeclarations=[] and can't call functions!
+      //
+      // TIMING: Must run AFTER prewarm, which establishes the Gemini WebSocket.
+      // Before prewarm, realtimeLLMSession is null and updateTools() silently no-ops.
+      // =========================================================================
+      try {
+        const { registerInitialTools, hasNativeToolUpdates } =
+          await import('../shared/tool-updater.js');
+        const agentTools = (agentSetup.agent as unknown as { _tools?: Record<string, unknown> })
+          ?._tools;
+        const toolCount = agentTools ? Object.keys(agentTools).length : 0;
+
+        if (hasNativeToolUpdates() && toolCount > 0) {
+          const registered = await registerInitialTools(agentSetup.agent);
+          if (registered) {
+            log.info(
+              { personaId, toolCount },
+              '🔧 Initial tools sent to session for native FC (after prewarm)'
+            );
+          }
+        } else {
+          log.debug(
+            { personaId, hasNative: hasNativeToolUpdates(), toolCount },
+            'Tool registration skipped (no native FC or no tools)'
+          );
+        }
+      } catch (toolRegErr) {
+        log.warn(
+          { personaId, error: String(toolRegErr) },
+          '⚠️ Failed to register initial tools (non-fatal)'
+        );
       }
 
       // Initialize speech coordination for this agent's session

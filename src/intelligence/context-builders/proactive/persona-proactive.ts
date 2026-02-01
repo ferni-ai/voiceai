@@ -76,7 +76,8 @@ function formatPatternHint(pattern: DetectedPattern): string {
   }
 
   if (pattern.proactiveResponse && pattern.proactiveResponse.length > 0) {
-    const response = pattern.proactiveResponse[Math.floor(Math.random() * pattern.proactiveResponse.length)];
+    const response =
+      pattern.proactiveResponse[Math.floor(Math.random() * pattern.proactiveResponse.length)];
     lines.push(`\nSuggested phrasing: "${response}"`);
   }
 

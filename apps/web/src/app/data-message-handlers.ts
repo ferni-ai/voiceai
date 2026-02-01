@@ -10,6 +10,7 @@ import type {
   ConversationEndEvent,
   DataMessage,
   EmotionEvent,
+  EngagementDataEvent,
   EngagementTriggerEvent,
   ExpressionEvent,
   ExpressionUpdateEvent,
@@ -460,7 +461,42 @@ export function handleDataMessage(message: DataMessage): void {
       }
       break;
 
+    case 'engagement_data':
+      // 📊 ENGAGEMENT DATA: Streaks, predictions, conversation stats
+      handleEngagementData(message as EngagementDataEvent);
+      break;
+
     default:
+  }
+}
+
+// ============================================================================
+// ENGAGEMENT DATA HANDLER - Streaks, predictions, conversation stats
+// ============================================================================
+
+/**
+ * Handle engagement data updates from the voice agent.
+ * This includes ritual streaks, conversation counts, and prediction data.
+ */
+function handleEngagementData(event: EngagementDataEvent): void {
+  log.debug('📊 Engagement data received:', {
+    streak: event.streak,
+    totalConversations: event.totalConversations,
+    hasPredictions: !!event.predictions?.length,
+  });
+
+  // Update badge state if predictions are ready
+  if (event.predictions && event.predictions.length > 0) {
+    engagementTriggerUI.updateBadges({ predictionsReady: event.predictions.length });
+  }
+
+  // Log streak milestones for celebration consideration
+  if (event.streak && event.streak > 0) {
+    const milestones = [3, 7, 14, 21, 30, 60, 90, 100, 365];
+    if (milestones.includes(event.streak)) {
+      log.info('🎯 Streak milestone!', { streak: event.streak });
+      celebrationsUI.warmthGlow({ intensity: 'gentle' });
+    }
   }
 }
 

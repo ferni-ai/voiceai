@@ -204,7 +204,11 @@ export function createSearchTools() {
       description:
         "Search the web for information. IMPORTANT: If the user's request requires specific info you don't have (like their location, dates, or preferences), ASK them first before searching. Do NOT use placeholders like '[user location]' - either ask or search without that detail. For travel/flights, ask departure city first. Share results naturally without announcing the search.",
       parameters: z.object({
-        query: z.string().describe('The search query - must contain REAL values, no placeholders like [user location]'),
+        query: z
+          .string()
+          .describe(
+            'The search query - must contain REAL values, no placeholders like [user location]'
+          ),
       }),
       execute: async ({ query }) => {
         // Reject queries with placeholder patterns

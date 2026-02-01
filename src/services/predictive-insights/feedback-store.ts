@@ -15,7 +15,7 @@
  */
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createFeedbackPrompt } from '../feedback/index.js';
 
@@ -93,20 +93,28 @@ export async function recordPredictiveInsightFeedback(
         topic: 'predictive_insight',
         turnCount: 0,
       },
-    }).then((result) => {
-      if (result.ok) {
-        // Record the reaction immediately since we have it
-        void import('../feedback/index.js').then(({ recordFeedbackReaction }) => {
-          void recordFeedbackReaction({
-            feedbackId: result.feedbackId,
-            userId,
-            reaction: helpful ? 'helpful' : 'off_track',
-          });
-        });
-      }
-    }).catch(() => {
-      // Silent fail - unified store is optional
-    });
+    })
+      .then((result) => {
+        if (result.ok) {
+          // Record the reaction immediately since we have it
+          void import('../feedback/index.js')
+            .then(({ recordFeedbackReaction }) => {
+              void recordFeedbackReaction({
+                feedbackId: result.feedbackId,
+                userId,
+                reaction: helpful ? 'helpful' : 'off_track',
+              }).catch(() => {
+                // Silent fail - feedback recording is optional
+              });
+            })
+            .catch(() => {
+              // Silent fail - feedback module load is optional
+            });
+        }
+      })
+      .catch(() => {
+        // Silent fail - unified store is optional
+      });
 
     return { ok: true, id };
   } catch (error) {

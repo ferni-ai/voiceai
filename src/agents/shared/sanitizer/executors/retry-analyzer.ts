@@ -20,7 +20,7 @@ const log = createLogger({ module: 'retry-analyzer' });
 
 /**
  * Maximum retry attempts before giving up.
- * 
+ *
  * Research (Jan 2026) shows that 3 attempts with progressively more
  * forceful prompts catches most transient Gemini function call failures.
  */
@@ -104,19 +104,25 @@ function extractToolFromPattern(text: string): string | null {
 
 /**
  * Generate retry prompt based on the detected issue and attempt number.
- * 
+ *
  * Uses progressively more forceful prompts:
  * - Attempt 1: Standard instruction
  * - Attempt 2: Explicit JSON-only with warnings
  * - Attempt 3: Ultra-explicit with tool name prefilled
- * 
+ *
  * @param suggestedTool - The tool that should be called
  * @param originalMessage - Original user message
  * @param attempt - Current attempt number (1-indexed)
  */
-function generateRetryPrompt(suggestedTool: string, originalMessage: string, attempt: number = 1): string {
+function generateRetryPrompt(
+  suggestedTool: string,
+  originalMessage: string,
+  attempt: number = 1
+): string {
   const isMusic = suggestedTool.toLowerCase().includes('music') || suggestedTool === 'playMusic';
-  const isHandoff = suggestedTool.toLowerCase().includes('handoff') || suggestedTool.toLowerCase().includes('transfer');
+  const isHandoff =
+    suggestedTool.toLowerCase().includes('handoff') ||
+    suggestedTool.toLowerCase().includes('transfer');
 
   // ATTEMPT 3: Ultra-explicit with prefilled tool name (last resort)
   if (attempt >= 3) {
@@ -274,14 +280,18 @@ export function analyzeForRetry(
   const retryPrompt = generateRetryPrompt(suggestedTool, originalMessage, nextAttempt);
   const retryDelayMs = getRetryDelay(nextAttempt);
 
-  log.info({
-    attempt: nextAttempt,
-    maxAttempts: MAX_RETRY_ATTEMPTS,
-    tool: suggestedTool,
-    pattern: detection.pattern,
-    delayMs: retryDelayMs,
-    forceLevel: nextAttempt === 1 ? 'standard' : nextAttempt === 2 ? 'explicit' : 'ultra-explicit',
-  }, `🔄 RETRY: Recommending retry attempt ${nextAttempt}/${MAX_RETRY_ATTEMPTS}`);
+  log.info(
+    {
+      attempt: nextAttempt,
+      maxAttempts: MAX_RETRY_ATTEMPTS,
+      tool: suggestedTool,
+      pattern: detection.pattern,
+      delayMs: retryDelayMs,
+      forceLevel:
+        nextAttempt === 1 ? 'standard' : nextAttempt === 2 ? 'explicit' : 'ultra-explicit',
+    },
+    `🔄 RETRY: Recommending retry attempt ${nextAttempt}/${MAX_RETRY_ATTEMPTS}`
+  );
 
   return {
     shouldRetry: true,

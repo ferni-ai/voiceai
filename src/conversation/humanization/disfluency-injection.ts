@@ -22,8 +22,8 @@
  * @module @ferni/humanization/disfluency-injection
  */
 
-import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/random-generator.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/random-generator.js';
 import type {
   HumanizationContext,
   HumanizationDecision,
@@ -80,20 +80,31 @@ const DISFLUENCY_PATTERNS: Record<
   }
 > = {
   filled_pause: {
-    patterns: ['Um', 'Uh', 'Hmm', 'Mm'],
+    patterns: ['Um', 'Uh', 'Hmm', 'Mm', 'Uh-huh'],
     ssmlPatterns: [
       '<break time="180ms"/>Um<break time="220ms"/>',
       '<break time="120ms"/>Uh<break time="180ms"/>',
       '<break time="250ms"/>Hmm<break time="300ms"/>',
       '<break time="100ms"/>Mm<break time="150ms"/>',
+      '<break time="80ms"/>Uh-huh<break time="100ms"/>',
     ],
-    probability: 0.16, // Increased from 0.12 for more natural feel
+    probability: 0.22, // Increased for more natural feel - real humans use these a lot!
     placement: 'opening',
-    contexts: ['complex_question', 'thinking', 'uncertain'],
+    contexts: ['complex_question', 'thinking', 'uncertain', 'any'],
   },
 
   discourse_marker: {
-    patterns: ['So', 'Well', 'You know', 'I mean', 'Okay so', 'Yeah', 'Right'],
+    patterns: [
+      'So',
+      'Well',
+      'You know',
+      'I mean',
+      'Okay so',
+      'Yeah',
+      'Right',
+      'Actually',
+      'Honestly',
+    ],
     ssmlPatterns: [
       'So,<break time="120ms"/>',
       'Well,<break time="180ms"/>',
@@ -102,8 +113,10 @@ const DISFLUENCY_PATTERNS: Record<
       'Okay so,<break time="120ms"/>',
       'Yeah,<break time="100ms"/>',
       'Right,<break time="100ms"/>',
+      'Actually,<break time="150ms"/>',
+      'Honestly,<break time="150ms"/>',
     ],
-    probability: 0.18, // Increased from 0.15 for more natural conversation
+    probability: 0.24, // Increased for more natural conversation
     placement: 'opening',
     contexts: ['any', 'emotional', 'explaining'],
   },
@@ -121,15 +134,17 @@ const DISFLUENCY_PATTERNS: Record<
   },
 
   false_start: {
-    patterns: ['I—I', "That's—that's", "It's—it's"],
+    patterns: ['I—I', "That's—that's", "It's—it's", 'I think—', 'What I—'],
     ssmlPatterns: [
       'I—<break time="80ms"/>I',
       'That\'s—<break time="80ms"/>that\'s',
       'It\'s—<break time="80ms"/>it\'s',
+      'I think—<break time="100ms"/>actually,',
+      'What I—<break time="80ms"/>let me put it this way,',
     ],
-    probability: 0.08,
+    probability: 0.12, // Increased - false starts are very human
     placement: 'opening',
-    contexts: ['emotional', 'important_point'],
+    contexts: ['emotional', 'important_point', 'complex_question'],
   },
 
   repetition: {
@@ -155,10 +170,10 @@ const PERSONA_DISFLUENCY_PREFERENCES: Record<
   }
 > = {
   ferni: {
-    preferredTypes: ['discourse_marker', 'filled_pause', 'false_start'],
-    filledPauseStyle: ['Um', 'Hmm'],
-    discourseMarkers: ['Well', 'You know', 'So', 'I mean', 'Okay'],
-    probabilityMultiplier: 1.3, // Ferni should sound natural and human
+    preferredTypes: ['discourse_marker', 'filled_pause', 'false_start', 'lengthening'],
+    filledPauseStyle: ['Um', 'Hmm', 'Mm'],
+    discourseMarkers: ['Well', 'You know', 'So', 'I mean', 'Okay', 'Honestly', 'Actually'],
+    probabilityMultiplier: 1.4, // Ferni should sound warm and naturally human
   },
 
   'nayan-patel': {
@@ -211,12 +226,12 @@ interface DisfluencyEngineConfig {
 }
 
 const DEFAULT_ENGINE_CONFIG: DisfluencyEngineConfig = {
-  maxPerSession: 6,
-  cooldownTurns: 3,
+  maxPerSession: 12, // Increased - humans use disfluencies throughout conversations
+  cooldownTurns: 2, // Reduced cooldown - can use more frequently
   minTurn: 1, // Can start early
   skipSimpleResponses: true,
-  simpleResponseThreshold: 20,
-  enabledTypes: ['filled_pause', 'discourse_marker', 'false_start'],
+  simpleResponseThreshold: 15, // Lowered threshold - even shorter responses can have disfluencies
+  enabledTypes: ['filled_pause', 'discourse_marker', 'false_start', 'lengthening'],
 };
 
 // ============================================================================
@@ -407,9 +422,10 @@ export class DisfluencyEngine {
     let probability = patternConfig.probability * personaPrefs.probabilityMultiplier;
 
     // EARLY TURN BOOST: First few turns are CRITICAL for setting human tone
-    // Boost probability on turns 1-3 to make Ferni feel more natural from the start
-    if (context.turnCount <= 3) {
-      const earlyTurnBoost = 1.5 - context.turnCount * 0.15; // 1.35x on turn 1, 1.2x on turn 2, 1.05x on turn 3
+    // Boost probability on turns 1-5 to make Ferni feel more natural from the start
+    // Real humans use more disfluencies when warming up to someone new
+    if (context.turnCount <= 5) {
+      const earlyTurnBoost = 1.6 - context.turnCount * 0.1; // 1.5x on turn 1, 1.4x on turn 2, down to 1.1x on turn 5
       probability *= earlyTurnBoost;
       logger.debug({ turnCount: context.turnCount, earlyTurnBoost }, 'Applied early turn boost');
     }

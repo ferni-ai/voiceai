@@ -130,7 +130,11 @@ export async function recordEventPattern(userId: string, pattern: EventPattern):
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('event_patterns').add(pattern);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('event_patterns')
+      .add(pattern);
     void onEventPatternChange(userId, docRef.id, pattern, 'create');
     log.info({ userId, eventType: pattern.eventType }, 'Event pattern recorded');
   } catch (error) {
@@ -256,7 +260,11 @@ export async function recordMilestoneDetection(
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('detected_milestones').add(milestone);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('detected_milestones')
+      .add(milestone);
     void onDetectedMilestoneChange(userId, docRef.id, milestone, 'create');
     log.info({ userId, type: milestone.type }, 'Milestone detected and recorded');
   } catch (error) {
@@ -296,7 +304,11 @@ export async function recordEventMeaning(userId: string, meaning: EventMeaning):
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('event_meanings').add(meaning);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('event_meanings')
+      .add(meaning);
     void onEventMeaningChange(userId, docRef.id, meaning, 'create');
     log.info({ userId, eventName: meaning.eventName }, 'Event meaning recorded');
   } catch (error) {
@@ -345,7 +357,11 @@ export async function recordCelebration(userId: string, celebration: Celebration
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('celebrations').add(celebration);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('celebrations')
+      .add(celebration);
     void onCelebrationChange(userId, docRef.id, celebration, 'create');
     log.info({ userId, what: celebration.what }, 'Celebration recorded');
   } catch (error) {
@@ -415,7 +431,11 @@ export async function recordTransitionSignal(
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('transition_signals').add(signal);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('transition_signals')
+      .add(signal);
     void onTransitionSignalChange(userId, docRef.id, signal, 'create');
     log.info({ userId, type: signal.type }, 'Transition signal recorded');
   } catch (error) {

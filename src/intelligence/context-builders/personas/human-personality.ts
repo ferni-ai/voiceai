@@ -8,11 +8,11 @@
  * ┌─────────────────────────────────────────────────────────────┐
  * │ Feature                │ Owner           │ Notes            │
  * ├─────────────────────────────────────────────────────────────┤
- * │ Timing Intelligence    │ personality-v2  │ DEFERRED         │
- * │ Anticipation           │ personality-v2  │ NEW in v2        │
- * │ Vulnerability Tracking │ personality-v2  │ MIGRATED to v2   │
- * │ Pattern Detection      │ personality-v2  │ MIGRATED to v2   │
- * │ Growth Milestones      │ personality-v2  │ MIGRATED to v2   │
+ * │ Timing Intelligence    │ personality-context  │ DEFERRED         │
+ * │ Anticipation           │ personality-context  │ NEW in v2        │
+ * │ Vulnerability Tracking │ personality-context  │ MIGRATED to v2   │
+ * │ Pattern Detection      │ personality-context  │ MIGRATED to v2   │
+ * │ Growth Milestones      │ personality-context  │ MIGRATED to v2   │
  * │ Callbacks (smile!)     │ human_personality│ UNIQUE HERE      │
  * │ Moment Sharing         │ human_personality│ UNIQUE HERE      │
  * │ Semantic Search        │ human_personality│ UNIQUE HERE      │
@@ -159,7 +159,7 @@ async function buildHumanPersonalityContext(
 
   // ============================================================================
   // 0. TIMING INTELLIGENCE
-  // NOTE: personality-v2 builder (priority 80) now handles timing intelligence
+  // NOTE: personality-context builder (priority 80) now handles timing intelligence
   // We still analyze for local use but don't inject duplicate guidance
   // ============================================================================
 
@@ -167,13 +167,16 @@ async function buildHumanPersonalityContext(
     wordCount: userText.split(/\s+/).length,
   });
 
-  // Don't inject timing guidance - personality-v2 handles this now
+  // Don't inject timing guidance - personality-context handles this now
   // Keep the analysis for local decision-making (e.g., callback timing)
-  log.debug({ intent: timing.intent, confidence: timing.confidence }, '⏱️ Timing analysis (deferred to v2)');
+  log.debug(
+    { intent: timing.intent, confidence: timing.confidence },
+    '⏱️ Timing analysis (deferred to v2)'
+  );
 
   // ============================================================================
   // 1. EMOTIONAL DATA RECORDING
-  // NOTE: personality-v2 now handles emotional data recording via recordMoment()
+  // NOTE: personality-context now handles emotional data recording via recordMoment()
   // We keep the in-memory recording for legacy pattern detection only
   // ============================================================================
 
@@ -191,7 +194,7 @@ async function buildHumanPersonalityContext(
     userText.slice(0, 100)
   );
 
-  // NOTE: Firestore persistence is now handled by personality-v2 builder
+  // NOTE: Firestore persistence is now handled by personality-context builder
   // via service.recordMoment() - removed duplicate persistence here
 
   // ============================================================================
@@ -238,19 +241,19 @@ async function buildHumanPersonalityContext(
 
   // ============================================================================
   // 3. EMOTIONAL PATTERN INSIGHTS
-  // NOTE: Pattern detection and surfacing migrated to personality-v2
+  // NOTE: Pattern detection and surfacing migrated to personality-context
   // The v2 system uses Clean Architecture with proper persistence
   // ============================================================================
-  // DEFERRED TO personality-v2 builder (priority 80)
-  // personality-v2 handles: pattern detection, evidence tracking, surfacing
+  // DEFERRED TO personality-context builder (priority 80)
+  // personality-context handles: pattern detection, evidence tracking, surfacing
 
   // ============================================================================
   // 4. GROWTH CELEBRATION
-  // NOTE: Growth tracking and celebration migrated to personality-v2
+  // NOTE: Growth tracking and celebration migrated to personality-context
   // The v2 system tracks milestones with proper baseline comparison
   // ============================================================================
-  // DEFERRED TO personality-v2 builder (priority 80)
-  // personality-v2 handles: milestone creation, progress tracking, celebration timing
+  // DEFERRED TO personality-context builder (priority 80)
+  // personality-context handles: milestone creation, progress tracking, celebration timing
 
   // ============================================================================
   // 5. RELEVANT PERSONAL MOMENT (When contextually appropriate)

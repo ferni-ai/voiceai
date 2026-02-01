@@ -151,7 +151,6 @@ memory/
 ├── # Persistence & Converters
 ├── firestore-memory-persistence.ts # Memory persistence helpers
 ├── firestore-extended-persistence.ts # Extended persistence
-├── firestore-converters-integration.ts # Type converters
 ├── lifecycle-integration.ts      # Lifecycle integration
 │
 ├── # Utilities

@@ -132,9 +132,7 @@ function validateMessageRequest(request: SendMessageRequest): string | null {
  * 1. Sends immediately (if trusted)
  * 2. Returns a pending action for approval
  */
-export async function sendMessageOnBehalf(
-  request: SendMessageRequest
-): Promise<SendMessageResult> {
+export async function sendMessageOnBehalf(request: SendMessageRequest): Promise<SendMessageResult> {
   // Validate request
   const validationError = validateMessageRequest(request);
   if (validationError) {
@@ -145,11 +143,7 @@ export async function sendMessageOnBehalf(
   const preview = generateMessagePreview(request);
 
   // Check permission via trust level system
-  const permissionResult = await checkActionPermission(
-    request.userId,
-    actionType,
-    preview
-  );
+  const permissionResult = await checkActionPermission(request.userId, actionType, preview);
 
   if (!permissionResult.success) {
     return {
@@ -349,10 +343,8 @@ async function sendEmail(
   request: SendMessageRequest
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const {
-      sendEmail: deliverEmail,
-      isEmailDeliveryAvailable,
-    } = await import('../outreach/delivery/email-delivery.js');
+    const { sendEmail: deliverEmail, isEmailDeliveryAvailable } =
+      await import('../outreach/delivery/email-delivery.js');
 
     if (!isEmailDeliveryAvailable()) {
       return { success: false, error: 'Email service not configured' };
@@ -458,10 +450,7 @@ async function recordMessageHistory(
 /**
  * Get message history for a user
  */
-export async function getMessageHistory(
-  userId: string,
-  limit = 50
-): Promise<MessageHistory[]> {
+export async function getMessageHistory(userId: string, limit = 50): Promise<MessageHistory[]> {
   const db = getFirestoreDb();
   if (!db) return [];
 

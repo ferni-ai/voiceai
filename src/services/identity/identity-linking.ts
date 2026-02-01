@@ -70,7 +70,10 @@ export async function linkIdentity(
   };
 
   log.info(
-    { sourceUserId: sourceUserId.substring(0, 20), targetFirebaseUid: targetFirebaseUid.substring(0, 8) },
+    {
+      sourceUserId: sourceUserId.substring(0, 20),
+      targetFirebaseUid: targetFirebaseUid.substring(0, 8),
+    },
     '🔗 Starting identity linking'
   );
 
@@ -121,15 +124,15 @@ export async function linkIdentity(
         const migrated = await migrateCollection(sourceRef, targetRef, collectionName);
         if (migrated > 0) {
           result.migratedCollections.push(`${collectionName}:${migrated}`);
-          log.info(
-            { collection: collectionName, count: migrated },
-            '📦 Migrated collection'
-          );
+          log.info({ collection: collectionName, count: migrated }, '📦 Migrated collection');
         }
       } catch (error) {
         const errorMsg = `Failed to migrate ${collectionName}: ${String(error)}`;
         result.errors.push(errorMsg);
-        log.warn({ error: String(error), collection: collectionName }, 'Migration failed for collection');
+        log.warn(
+          { error: String(error), collection: collectionName },
+          'Migration failed for collection'
+        );
       }
     }
 

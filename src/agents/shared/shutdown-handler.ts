@@ -333,9 +333,8 @@ export async function gracefulShutdown(signal: string): Promise<void> {
 
     // 4. Shutdown music learning persistence (flush pending writes)
     try {
-      const { flushAllMusicLearning, shutdownMusicLearningPersistence } = await import(
-        '../../audio/music-learning-persistence.js'
-      );
+      const { flushAllMusicLearning, shutdownMusicLearningPersistence } =
+        await import('../../audio/music-learning-persistence.js');
       await flushAllMusicLearning();
       await shutdownMusicLearningPersistence();
       diag.info('Music learning persistence shutdown complete');
@@ -345,9 +344,8 @@ export async function gracefulShutdown(signal: string): Promise<void> {
 
     // 4b. Shutdown music analytics persistence (flush aggregates)
     try {
-      const { stopAnalyticsPersistence } = await import(
-        '../../audio/music-transition-analytics.js'
-      );
+      const { stopAnalyticsPersistence } =
+        await import('../../audio/music-transition-analytics.js');
       await stopAnalyticsPersistence();
       diag.info('Music analytics persistence shutdown complete');
     } catch {

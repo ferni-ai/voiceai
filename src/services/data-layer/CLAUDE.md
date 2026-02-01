@@ -91,14 +91,47 @@ The data layer bridges **Domain Stores** (structured CRUD) and **Semantic Memory
 
 ```
 src/services/data-layer/
-├── index.ts              # Main unified data layer facade
-├── types.ts              # Shared type definitions
-├── store-hooks.ts        # Auto-indexing hooks for stores
-├── indexing-policy.ts    # What/when to index to semantic memory
-├── query-router.ts       # Routes queries to correct data source
-├── session-integration.ts # Session lifecycle (start/end/flush)
-├── health.ts             # Health checks and metrics
-└── CLAUDE.md             # This documentation
+├── # Core
+├── index.ts                      # Main unified data layer facade
+├── types.ts                      # Shared type definitions
+├── store-hooks.ts                # Auto-indexing hooks for stores
+├── indexing-policy.ts            # What/when to index to semantic memory
+├── query-router.ts               # Routes queries to correct data source
+├── session-integration.ts        # Session lifecycle (start/end/flush)
+├── health.ts                     # Health checks and metrics
+│
+├── # Intelligent Loading & Caching
+├── intelligent-loader.ts         # Intelligent data loader (predictive, priority-based)
+├── fast-session-init.ts          # Fast session initialization (< 100ms target)
+├── memory-cache-manager.ts       # In-memory cache management
+├── profile-cache.ts              # User profile caching
+├── profile-pruning.ts            # Profile data pruning
+├── cache-reader.ts               # Read-through cache utilities
+│
+├── # Persistence & WAL
+├── realtime-persistence.ts       # Real-time data persistence
+├── write-ahead-log.ts            # Write-ahead log for durability
+├── firestore-wal-integration.ts  # WAL ↔ Firestore integration
+├── firestore-pagination.ts       # Paginated Firestore queries
+├── ttl-cleanup.ts                # TTL-based data cleanup
+│
+├── # Signals & Context
+├── domain-signals.ts             # Domain signal processing
+├── semantic-context-builder.ts   # Build semantic context for LLM
+├── name-sync.ts                  # Name synchronization across stores
+│
+├── # Observability
+├── monitoring.ts                 # Data layer monitoring
+├── observability.ts              # Metrics and tracing
+│
+├── # Hooks & Generators
+├── hook-generator.ts             # Generate store hooks dynamically
+├── hooks/                        # 23 domain-specific store hooks
+│   └── superhuman-hooks.ts, calendar-hooks.ts, ...
+│
+├── # Deprecated
+├── integrations/                 # Deprecated integrations (use hooks/)
+└── CLAUDE.md                     # This documentation
 ```
 
 ---

@@ -87,6 +87,13 @@ const EXPECTED_ERROR_PATTERNS = [
   'Task cancellation timed out',
   // Normal playout completion
   'playout completed',
+  // 🚨 RACE-FIX: Music player cleanup race condition
+  // When session ends, backgroundPlayer.play() may have started an async task
+  // that tries to add to the mixer after it's closed. This is expected during cleanup.
+  'mixer has been closed',
+  'Cannot add stream after mixer',
+  // ffmpeg temp file cleanup race - file deleted before ffmpeg finishes reading
+  'No such file or directory',
 ] as const;
 
 /**

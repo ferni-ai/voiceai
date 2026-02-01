@@ -170,13 +170,13 @@ function detectSelfCriticism(text: string): boolean {
     "i'm such an idiot",
     "i'm worthless",
     "i can't do anything right",
-    "i always mess up",
+    'i always mess up',
     "what's wrong with me",
     "i'm a failure",
     "i'm not good enough",
-    "i should have",
+    'i should have',
     "i'm terrible at",
-    "i hate myself",
+    'i hate myself',
     "i'm so dumb",
   ];
   const lower = text.toLowerCase();
@@ -185,14 +185,14 @@ function detectSelfCriticism(text: string): boolean {
 
 function detectMinimizingSuccess(text: string): boolean {
   const patterns = [
-    "it was nothing",
-    "no big deal",
-    "anyone could have",
-    "i just got lucky",
+    'it was nothing',
+    'no big deal',
+    'anyone could have',
+    'i just got lucky',
     "it's not that impressive",
     "i didn't really",
-    "it was easy",
-    "not a big deal",
+    'it was easy',
+    'not a big deal',
   ];
   const lower = text.toLowerCase();
   return patterns.some((p) => lower.includes(p));
@@ -202,14 +202,14 @@ function detectImposterSyndrome(text: string): boolean {
   const patterns = [
     "don't belong",
     "don't deserve",
-    "going to find out",
-    "fraud",
-    "imposter",
-    "faking it",
-    "not qualified",
-    "in over my head",
+    'going to find out',
+    'fraud',
+    'imposter',
+    'faking it',
+    'not qualified',
+    'in over my head',
     "they'll realize",
-    "not smart enough",
+    'not smart enough',
   ];
   const lower = text.toLowerCase();
   return patterns.some((p) => lower.includes(p));
@@ -221,7 +221,7 @@ function detectCatastrophizing(text: string): boolean {
     "it's all over",
     'never going to',
     "i'll never",
-    "worst thing ever",
+    'worst thing ever',
     'my life is over',
     'nothing will work',
     'always fails',

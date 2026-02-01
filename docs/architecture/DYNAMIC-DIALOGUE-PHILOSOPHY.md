@@ -157,7 +157,7 @@ Remove prescriptive phrase lists from context injection.
 
 Some things ARE worth keeping:
 
-- **Signature phrases** (rare, earned - "The cracks are where the gold goes")
+- **Signature phrases** (rare, earned - "We are all broken in different ways—that's what makes us both human and beautiful")
 - **Backchannels** (mm-hmm, yeah, I hear you - these are natural)
 - **SSML emotion markers** (these affect HOW, not WHAT)
 - **Anti-patterns to avoid** (what NOT to say is useful guidance)

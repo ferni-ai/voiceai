@@ -89,11 +89,15 @@ export interface GraphExpansionResult {
  */
 export interface GraphExpander {
   /** Expand from a seed entity */
-  expand(userId: string, seedEntityId: string, options?: GraphExpansionOptions): Promise<GraphExpansionResult>;
-  
+  expand(
+    userId: string,
+    seedEntityId: string,
+    options?: GraphExpansionOptions
+  ): Promise<GraphExpansionResult>;
+
   /** Check if the expander is available */
   isAvailable(): boolean;
-  
+
   /** Get expander type */
   getType(): 'relational' | 'gql';
 }
@@ -108,7 +112,7 @@ export interface GraphExpander {
  */
 export class RelationalGraphExpander implements GraphExpander {
   private spanner: Spanner;
-  
+
   constructor() {
     this.spanner = new Spanner({ projectId: SPANNER_CONFIG.projectId });
   }
@@ -201,9 +205,7 @@ export class RelationalGraphExpander implements GraphExpander {
       }
       results.push(...entities);
 
-      const maxDepthReached = entities.length > 0
-        ? Math.max(...entities.map(e => e.depth))
-        : 0;
+      const maxDepthReached = entities.length > 0 ? Math.max(...entities.map((e) => e.depth)) : 0;
 
       return {
         seed,
@@ -270,7 +272,7 @@ export class RelationalGraphExpander implements GraphExpander {
   ): Promise<ExpandedEntity[]> {
     // Build the recursive CTE query
     // This traverses the relationship graph up to maxHops
-    
+
     const sql = `
       WITH RECURSIVE graph_traversal AS (
         -- Base case: direct relationships from seed
@@ -375,7 +377,7 @@ export class RelationalGraphExpander implements GraphExpander {
     try {
       const [rows] = await db.run({ sql, params });
 
-      return rows.map(row => {
+      return rows.map((row) => {
         const json = this.rowToJson(row);
         return {
           entity: this.jsonToEntity(json),
@@ -477,12 +479,14 @@ export class RelationalGraphExpander implements GraphExpander {
     entityTypes?: string[],
     relationshipTypes?: string[],
     minStrength: number = 0
-  ): Promise<Array<{
-    entity: GraphEntity;
-    path: string[];
-    relationshipType: string;
-    relationshipStrength: number;
-  }>> {
+  ): Promise<
+    Array<{
+      entity: GraphEntity;
+      path: string[];
+      relationshipType: string;
+      relationshipStrength: number;
+    }>
+  > {
     let sql = `
       SELECT 
         e.entity_id,
@@ -529,7 +533,7 @@ export class RelationalGraphExpander implements GraphExpander {
 
     const [rows] = await db.run({ sql, params });
 
-    return rows.map(row => {
+    return rows.map((row) => {
       const json = this.rowToJson(row);
       return {
         entity: this.jsonToEntity(json),
@@ -567,9 +571,10 @@ export class RelationalGraphExpander implements GraphExpander {
       userId: json.user_id as string,
       name: json.name as string,
       entityType: json.entity_type as GraphEntity['entityType'],
-      attributes: typeof json.attributes === 'string'
-        ? JSON.parse(json.attributes)
-        : (json.attributes as Record<string, unknown>) || {},
+      attributes:
+        typeof json.attributes === 'string'
+          ? JSON.parse(json.attributes)
+          : (json.attributes as Record<string, unknown>) || {},
       importance: json.importance as number,
       firstMentioned: json.first_mentioned ? new Date(json.first_mentioned as string) : new Date(),
       lastMentioned: json.last_mentioned ? new Date(json.last_mentioned as string) : new Date(),

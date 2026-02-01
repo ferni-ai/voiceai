@@ -120,6 +120,9 @@ export { getToolDefinitions as getGroupConversationToolDefinitions } from './gro
 // Behavior domain - modes, pacing, processing, presence (bidirectional behavior system)
 export { getToolDefinitions as getBehaviorToolDefinitions } from './behavior/index.js';
 
+// UI Navigation domain - voice-activated panel/dashboard navigation
+export { getToolDefinitions as getUINavigationToolDefinitions } from './ui-navigation/index.js';
+
 // ============================================================================
 // DEEP HUMAN ENGAGEMENT DOMAINS
 // ============================================================================
@@ -340,8 +343,13 @@ export { getToolDefinitions as getWorkflowMasteryToolDefinitions } from './workf
 // Milestone Mastery domain (Jordan Taylor) - superhuman celebration and event planning
 export { getToolDefinitions as getMilestoneMasteryToolDefinitions } from './milestone-mastery/index.js';
 
-// Habit Persistence domain (Maya Santos) - superhuman patience for behavior change
-export { getToolDefinitions as getHabitPersistenceToolDefinitions } from './habit-persistence/index.js';
+// Habit Persistence tools now merged into habits/ domain (Jan 2026)
+// Re-export as a function for backward compatibility
+export { habitPersistenceTools } from './habits/persistence.js';
+export const getHabitPersistenceToolDefinitions = async () => {
+  const { habitPersistenceTools } = await import('./habits/persistence.js');
+  return habitPersistenceTools;
+};
 
 // Timeless Perspective domain (Nayan Patel) - superhuman long view and wisdom
 export { getToolDefinitions as getTimelessPerspectiveToolDefinitions } from './timeless-perspective/index.js';
@@ -517,7 +525,7 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./pattern-mastery/index.js').then(async (m) => m.getToolDefinitions()),
     import('./workflow-mastery/index.js').then(async (m) => m.getToolDefinitions()),
     import('./milestone-mastery/index.js').then(async (m) => m.getToolDefinitions()),
-    import('./habit-persistence/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./habits/persistence.js').then((m) => m.habitPersistenceTools),
     import('./timeless-perspective/index.js').then(async (m) => m.getToolDefinitions()),
     // Developer tools domain - CLI commands, file editing, bash
     import('./developer/index.js').then(async (m) => m.getToolDefinitions()),
@@ -544,6 +552,10 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./routines/index.js').then(async (m) => m.getToolDefinitions()),
     // CEO Coaching domain - briefings, wins, energy, priorities, decisions
     import('./ceo-coaching/index.js').then(async (m) => m.getToolDefinitions()),
+    // UI Navigation domain - voice-activated panel/dashboard navigation
+    import('./ui-navigation/index.js').then(async (m) => m.getToolDefinitions()),
+    // Behavior domain - modes, pacing, processing, presence (bidirectional behavior system)
+    import('./behavior/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -980,13 +992,7 @@ export const DOMAIN_METADATA = {
     icon: '🎉',
     status: 'active',
   },
-  'habit-persistence': {
-    name: 'Habit Persistence',
-    description:
-      "Maya Santos's specialty: superhuman patience for behavior change, compassionate coaching, and gentle accountability",
-    icon: '🌿',
-    status: 'active',
-  },
+  // habit-persistence: merged into habits/ domain (Jan 2026)
   'timeless-perspective': {
     name: 'Timeless Perspective',
     description:
@@ -1085,7 +1091,8 @@ export const DOMAIN_METADATA = {
   },
   'ceo-coaching': {
     name: 'CEO Coaching',
-    description: 'Voice-based executive coaching: briefings, wins, energy, priorities, decisions, focus sessions',
+    description:
+      'Voice-based executive coaching: briefings, wins, energy, priorities, decisions, focus sessions',
     icon: '🎯',
     status: 'active',
   },

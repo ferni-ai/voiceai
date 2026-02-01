@@ -23,10 +23,7 @@ import {
   registerContextBuilder,
 } from '../index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import {
-  getCognitiveEngineResult,
-  getCognitiveProfile,
-} from '../../cognitive/engine.js';
+import { getCognitiveEngineResult, getCognitiveProfile } from '../../cognitive/engine.js';
 import type { PersonaId } from '../../../personas/types.js';
 
 const log = createLogger({ module: 'CognitiveStyleBuilder' });
@@ -89,9 +86,7 @@ function buildLightweightHints(personaId: PersonaId): string | null {
 /**
  * Build cognitive style context for the current turn
  */
-async function buildCognitiveStyleContext(
-  input: ContextBuilderInput
-): Promise<ContextInjection[]> {
+async function buildCognitiveStyleContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const personaId = (input.persona?.id || 'ferni') as PersonaId;
   const injections: ContextInjection[] = [];
 
@@ -99,12 +94,14 @@ async function buildCognitiveStyleContext(
     // Determine conversation state from input
     const conversationState = {
       isEmotional: (input.analysis?.emotion?.intensity || 0) > 0.6,
-      isAnalytical: input.analysis?.topics?.detected?.some((t) =>
-        ['research', 'data', 'analysis', 'numbers'].includes(t.toLowerCase())
-      ) || false,
-      isActionable: input.analysis?.topics?.detected?.some((t) =>
-        ['plan', 'goal', 'action', 'task', 'todo'].includes(t.toLowerCase())
-      ) || false,
+      isAnalytical:
+        input.analysis?.topics?.detected?.some((t) =>
+          ['research', 'data', 'analysis', 'numbers'].includes(t.toLowerCase())
+        ) || false,
+      isActionable:
+        input.analysis?.topics?.detected?.some((t) =>
+          ['plan', 'goal', 'action', 'task', 'todo'].includes(t.toLowerCase())
+        ) || false,
       hasSilence: false, // Would need to detect from session state
       hasDisagreement: false, // Would need to detect from conversation
     };
@@ -169,7 +166,8 @@ async function buildCognitiveStyleContext(
 
 registerContextBuilder({
   name: 'cognitive-style',
-  description: 'Persona cognitive differentiation - questioning style, silence handling, insight framing',
+  description:
+    'Persona cognitive differentiation - questioning style, silence handling, insight framing',
   priority: COGNITIVE_PRIORITY, // After persona identity (60), before output shaping (70)
   build: buildCognitiveStyleContext,
 });

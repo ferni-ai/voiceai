@@ -1,8 +1,17 @@
 /**
  * Activity Dashboard UI
  *
- * Displays user's recent Ferni actions (calls, texts, emails, calendar events)
- * with real-time status updates and filtering.
+ * @deprecated DEPRECATED: This module is deprecated and will be removed in a future release.
+ *
+ * The Activity feature has been integrated into the Your Story Dashboard as
+ * "What I've Done for You" - a narrative-focused view of care moments.
+ *
+ * Use showYourStory() from your-story-dashboard.ui.ts instead.
+ *
+ * Migration guide:
+ * - GET /api/story/actions replaces GET /api/actions
+ * - GET /api/story/stream replaces the old SSE endpoint
+ * - Your Story Dashboard shows actions alongside other insights
  *
  * @module ui/activity
  */
@@ -968,28 +977,49 @@ export function getActivityUI(): ActivityUI {
 
 /**
  * Initialize the Activity UI
+ *
+ * @deprecated Activity UI is deprecated. Actions are now shown in Your Story.
+ * This function is kept for backward compatibility but does nothing.
  */
 export function initActivityUI(): void {
-  getActivityUI().initialize();
+  // DEPRECATED: No-op - Activity is integrated into Your Story
+  log.debug('initActivityUI called but Activity is deprecated - use Your Story instead');
 }
 
 /**
  * Show the Activity panel
+ *
+ * @deprecated Activity UI is deprecated. Redirects to Your Story dashboard.
  */
 export function showActivity(): void {
-  void getActivityUI().show();
+  log.info('showActivity called - redirecting to Your Story (Activity is deprecated)');
+
+  // Dynamically import to avoid circular dependency
+  import('../app/panel-methods.js')
+    .then(({ showYourStoryDashboard }) => {
+      void showYourStoryDashboard();
+    })
+    .catch((err) => {
+      log.error({ error: String(err) }, 'Failed to redirect to Your Story');
+    });
 }
 
 /**
  * Hide the Activity panel
+ *
+ * @deprecated Activity UI is deprecated. Use hideYourStory() instead.
  */
 export function hideActivity(): void {
-  getActivityUI().hide();
+  // DEPRECATED: No-op - Activity is integrated into Your Story
+  log.debug('hideActivity called but Activity is deprecated');
 }
 
 /**
  * Toggle the Activity panel
+ *
+ * @deprecated Activity UI is deprecated. Redirects to Your Story dashboard.
  */
 export function toggleActivity(): void {
-  getActivityUI().toggle();
+  // Just show Your Story since Activity is deprecated
+  showActivity();
 }

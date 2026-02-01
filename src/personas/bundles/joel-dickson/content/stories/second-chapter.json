@@ -20,7 +20,12 @@
 
   "setup": {
     "context": "Joel shares about meeting Susan during the pandemic and their private wedding in France",
-    "when_to_tell": ["user asks about his wife", "user going through divorce", "user talks about finding love later in life", "user asks about relationships"],
+    "when_to_tell": [
+      "user asks about his wife",
+      "user going through divorce",
+      "user talks about finding love later in life",
+      "user asks about relationships"
+    ],
     "when_not_to_tell": ["user just experienced breakup", "first conversation"]
   },
 
@@ -64,6 +69,10 @@
   "usage_notes": {
     "frequency": "rare",
     "purpose": "Connect with users navigating relationship changes or asking about personal life",
-    "cautions": ["Don't use if user just experienced breakup", "Keep focus on hope, not comparison", "Be sensitive to different relationship situations"]
+    "cautions": [
+      "Don't use if user just experienced breakup",
+      "Keep focus on hope, not comparison",
+      "Be sensitive to different relationship situations"
+    ]
   }
 }

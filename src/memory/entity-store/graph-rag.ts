@@ -13,12 +13,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../embeddings.js';
 import { getEntityStore } from './store.js';
-import type {
-  Entity,
-  EntityType,
-  EntitySearchResult,
-  EntitySearchOptions,
-} from './types.js';
+import type { Entity, EntityType, EntitySearchResult, EntitySearchOptions } from './types.js';
 
 const log = createLogger({ module: 'GraphRAG' });
 
@@ -275,9 +270,9 @@ export class GraphRAGRetriever {
     }));
 
     // Run cross-encoder (batched)
-    const scores = await (this.crossEncoder as (inputs: unknown) => Promise<Array<{ score: number }>>)(
-      pairs
-    );
+    const scores = await (
+      this.crossEncoder as (inputs: unknown) => Promise<Array<{ score: number }>>
+    )(pairs);
 
     // Combine cross-encoder score with original score
     const reranked = candidates.map((candidate, i) => ({

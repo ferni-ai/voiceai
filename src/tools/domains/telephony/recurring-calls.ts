@@ -73,7 +73,7 @@ export const scheduleRecurringCallSchema = z.object({
   message: z
     .string()
     .optional()
-    .describe('Optional default message to deliver if the user doesn\'t specify later'),
+    .describe("Optional default message to deliver if the user doesn't specify later"),
 });
 
 // ============================================================================
@@ -116,7 +116,8 @@ function parseSchedule(input: string): ParsedSchedule {
   for (let i = 0; i < days.length; i++) {
     if (lower.includes(days[i])) {
       return {
-        frequency: lower.includes('every other') || lower.includes('biweekly') ? 'biweekly' : 'weekly',
+        frequency:
+          lower.includes('every other') || lower.includes('biweekly') ? 'biweekly' : 'weekly',
         dayOfWeek: i,
         timeOfDay,
       };
@@ -136,7 +137,11 @@ function parseSchedule(input: string): ParsedSchedule {
     return { frequency: 'biweekly', dayOfWeek: 0, timeOfDay };
   }
 
-  if (lower.includes('monthly') || lower.includes('every month') || lower.includes('once a month')) {
+  if (
+    lower.includes('monthly') ||
+    lower.includes('every month') ||
+    lower.includes('once a month')
+  ) {
     return { frequency: 'monthly', dayOfMonth: 1, timeOfDay };
   }
 
@@ -266,10 +271,7 @@ export async function getDueSchedules(userId: string): Promise<RecurringCallSche
 /**
  * Update schedule after a call is made
  */
-export async function markScheduleExecuted(
-  scheduleId: string,
-  userId: string
-): Promise<void> {
+export async function markScheduleExecuted(scheduleId: string, userId: string): Promise<void> {
   try {
     const { getFirestoreDb } = await import('../../../services/superhuman/firestore-utils.js');
     const db = getFirestoreDb();
@@ -325,10 +327,7 @@ export async function scheduleRecurringCall(
   const { contactQuery, schedule, purpose, message } = params;
   const timezone = ctx.timezone || 'Etc/UTC';
 
-  log.info(
-    { contactQuery, schedule, purpose, userId: ctx.userId },
-    'Scheduling recurring call'
-  );
+  log.info({ contactQuery, schedule, purpose, userId: ctx.userId }, 'Scheduling recurring call');
 
   // Parse the schedule
   const parsedSchedule = parseSchedule(schedule);
@@ -338,9 +337,8 @@ export async function scheduleRecurringCall(
   let contactPhone: string | undefined;
 
   try {
-    const { findContactForTelephony, isEntityStoreReady } = await import(
-      '../../../memory/entity-store/integration.js'
-    );
+    const { findContactForTelephony, isEntityStoreReady } =
+      await import('../../../memory/entity-store/integration.js');
 
     if (isEntityStoreReady()) {
       const contact = await findContactForTelephony(ctx.userId, contactQuery);
@@ -388,11 +386,12 @@ export async function scheduleRecurringCall(
     monthly: 'every month',
   }[parsedSchedule.frequency];
 
-  const dayText = parsedSchedule.dayOfWeek !== undefined
-    ? ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][
-        parsedSchedule.dayOfWeek
-      ]
-    : '';
+  const dayText =
+    parsedSchedule.dayOfWeek !== undefined
+      ? ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][
+          parsedSchedule.dayOfWeek
+        ]
+      : '';
 
   const displayName = contactName || contactQuery;
 
@@ -420,9 +419,10 @@ export async function listRecurringCalls(ctx: { userId: string }): Promise<strin
   }
 
   const lines = schedules.map((s) => {
-    const day = s.dayOfWeek !== undefined
-      ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][s.dayOfWeek]
-      : '';
+    const day =
+      s.dayOfWeek !== undefined
+        ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][s.dayOfWeek]
+        : '';
     const freq = {
       daily: 'Daily',
       weekly: `Every ${day}`,
@@ -497,7 +497,7 @@ export async function cancelRecurringCall(
     return `Okay, I've cancelled the recurring calls to ${scheduleData.contactName || scheduleData.contactQuery}. I won't call them on schedule anymore. You can always set it up again later!`;
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to cancel recurring call');
-    return "I had trouble cancelling that schedule. Please try again.";
+    return 'I had trouble cancelling that schedule. Please try again.';
   }
 }
 
@@ -509,7 +509,9 @@ function formatTime(timeOfDay: string): string {
   const [hours, minutes] = timeOfDay.split(':').map(Number);
   const period = hours >= 12 ? 'PM' : 'AM';
   const displayHour = hours % 12 || 12;
-  return minutes === 0 ? `${displayHour} ${period}` : `${displayHour}:${minutes.toString().padStart(2, '0')} ${period}`;
+  return minutes === 0
+    ? `${displayHour} ${period}`
+    : `${displayHour}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
 
 function formatRelativeDate(date: Date): string {

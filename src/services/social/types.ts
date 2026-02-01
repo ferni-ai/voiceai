@@ -10,13 +10,7 @@
 // PLATFORM TYPES
 // ============================================================================
 
-export type SocialPlatform =
-  | 'twitter'
-  | 'linkedin'
-  | 'instagram'
-  | 'tiktok'
-  | 'medium'
-  | 'discord';
+export type SocialPlatform = 'twitter' | 'linkedin' | 'instagram' | 'tiktok' | 'medium' | 'discord';
 
 export type AccountType = 'personal' | 'brand';
 

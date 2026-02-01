@@ -38,32 +38,29 @@ const log = createLogger({ module: 'speech-coordinator' });
  */
 function stripSSMLForTTS(text: string): string {
   let result = text;
-  
+
   // Convert <break time="Xms"/> to natural pauses
   // Long breaks (>300ms) → period for pause
   // Short breaks (<300ms) → comma
-  result = result.replace(
-    /<break\s+time=["']?(\d+)(?:ms)?["']?\s*\/?>/gi,
-    (_, ms) => {
-      const duration = parseInt(ms, 10);
-      if (duration >= 300) return '. ';
-      if (duration >= 100) return ', ';
-      return ' ';
-    }
-  );
-  
+  result = result.replace(/<break\s+time=["']?(\d+)(?:ms)?["']?\s*\/?>/gi, (_, ms) => {
+    const duration = parseInt(ms, 10);
+    if (duration >= 300) return '. ';
+    if (duration >= 100) return ', ';
+    return ' ';
+  });
+
   // Strip emotion, speed, volume, prosody tags entirely
   result = result.replace(/<\/?(?:speed|volume|emotion|prosody)[^>]*>/gi, '');
-  
+
   // Strip any other XML-like tags (including [breath], [laughter], etc. if present)
   result = result.replace(/<[^>]+>/g, '');
-  
+
   // Clean up whitespace and multiple punctuation
   result = result.replace(/\s+/g, ' ');
   result = result.replace(/\.\s*\./g, '.');
   result = result.replace(/,\s*,/g, ',');
   result = result.replace(/^\s*[.,]\s*/, ''); // Remove leading punctuation
-  
+
   return result.trim();
 }
 
@@ -421,7 +418,7 @@ export class SpeechCoordinator {
     const hadPendingRequests = this.queue.length > 0;
 
     this.session = session;
-    
+
     // Store context for TTS Gateway
     if (context) {
       this.sessionId = context.sessionId;
@@ -754,10 +751,11 @@ export class SpeechCoordinator {
       if (isTTSGatewayEnabled()) {
         // Extract SSML for logging (gateway handles actual stripping)
         const ssmlResult = extractSSMLToConfig(request.text);
-        
+
         const speakStartTime = Date.now();
-        const debugTTS = process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
-        
+        const debugTTS =
+          process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
+
         log.debug(
           {
             original: truncateForLog(request.text, 50),
@@ -787,9 +785,11 @@ export class SpeechCoordinator {
             personaId: this.personaId,
             allowInterruptions: request.allowInterruptions ?? true,
           });
-          
+
           if (debugTTS) {
-            process.stderr.write(`  ✅ gatewaySpeak() completed: ${Date.now() - speakStartTime}ms\n`);
+            process.stderr.write(
+              `  ✅ gatewaySpeak() completed: ${Date.now() - speakStartTime}ms\n`
+            );
           }
         } catch (error: unknown) {
           log.error({ error: String(error), id: request.id }, 'TTS Gateway speech failed');
@@ -802,16 +802,16 @@ export class SpeechCoordinator {
         // 🔧 FIX: Strip SSML tags before sending to TTS
         // Cartesia's tokenizer fragments SSML tags, causing them to be spoken literally
         const textToSpeak = stripSSMLForTTS(request.text);
-        
+
         log.debug(
-          { 
-            original: request.text.slice(0, 50), 
+          {
+            original: request.text.slice(0, 50),
             stripped: textToSpeak.slice(0, 50),
             hadSSML: request.text !== textToSpeak,
           },
           'Speaking text (SSML stripped) - legacy path'
         );
-        
+
         this.session.say(textToSpeak, {
           allowInterruptions: request.allowInterruptions ?? true,
         });

@@ -117,9 +117,8 @@ export async function fastSessionStart(
   // This enables comprehensive entity/fact/relationship extraction via Gemini
   scheduleBackgroundTask('knowledge_capture', async () => {
     try {
-      const { initializeKnowledgeCapture } = await import(
-        '../../memory/knowledge-graph/services/knowledge-capture.js'
-      );
+      const { initializeKnowledgeCapture } =
+        await import('../../memory/knowledge-graph/services/knowledge-capture.js');
       await initializeKnowledgeCapture();
       log.debug({ userId }, '🧠 Knowledge graph LLM capture initialized');
     } catch {
@@ -226,10 +225,7 @@ export async function fastSessionStart(
 /**
  * Clean session end - prunes profile, clears caches
  */
-export async function fastSessionEnd(
-  userId: string,
-  sessionId: string
-): Promise<SessionEndResult> {
+export async function fastSessionEnd(userId: string, sessionId: string): Promise<SessionEndResult> {
   const startTime = performance.now();
 
   log.debug({ userId, sessionId }, '🔚 Fast session end initiated');

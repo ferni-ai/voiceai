@@ -208,12 +208,12 @@ export async function buildUnifiedUserKnowledge(
             communicationStyle: profile.communicationStyle,
             relationshipDays: profile.firstContact
               ? Math.floor(
-                  (now.getTime() - new Date(profile.firstContact).getTime()) /
-                    (1000 * 60 * 60 * 24)
+                  (now.getTime() - new Date(profile.firstContact).getTime()) / (1000 * 60 * 60 * 24)
                 )
               : 0,
             totalConversations: profile.totalConversations || 0,
-            lastConversation: profile.lastContact?.toISOString?.() || profile.lastContact?.toString(),
+            lastConversation:
+              profile.lastContact?.toISOString?.() || profile.lastContact?.toString(),
           };
 
           // Communication preferences from profile
@@ -222,8 +222,7 @@ export async function buildUnifiedUserKnowledge(
               preferredTone: profile.communicationStyle || 'warm',
               responsiveToHumor: profile.humorAppreciation !== 'low',
               prefers:
-                (profile.communicationStyle as 'direct' | 'gentle' | 'exploratory') ||
-                'gentle',
+                (profile.communicationStyle as 'direct' | 'gentle' | 'exploratory') || 'gentle',
               bestTimeToReach: profile.contactInfo?.quietHoursEnd
                 ? `After ${profile.contactInfo.quietHoursEnd}:00`
                 : undefined,
@@ -254,7 +253,8 @@ export async function buildUnifiedUserKnowledge(
           // Topics
           if (voiceMemory?.topics) {
             for (const topic of voiceMemory.topics.slice(0, opts.maxTopics)) {
-              const lastMentioned = topic.lastMentioned?.toDate?.() || new Date(topic.lastMentioned);
+              const lastMentioned =
+                topic.lastMentioned?.toDate?.() || new Date(topic.lastMentioned);
               const daysSince = Math.floor(
                 (now.getTime() - lastMentioned.getTime()) / (1000 * 60 * 60 * 24)
               );
@@ -550,12 +550,10 @@ export async function buildUnifiedUserKnowledge(
     // ========================================================================
 
     // Sort people by importance
-    knowledge.people = knowledge.people
-      .slice(0, opts.maxPeople)
-      .sort((a, b) => {
-        const importanceOrder = { high: 3, medium: 2, low: 1 };
-        return importanceOrder[b.importance] - importanceOrder[a.importance];
-      });
+    knowledge.people = knowledge.people.slice(0, opts.maxPeople).sort((a, b) => {
+      const importanceOrder = { high: 3, medium: 2, low: 1 };
+      return importanceOrder[b.importance] - importanceOrder[a.importance];
+    });
 
     // Sort topics by recency
     knowledge.activeTopics = knowledge.activeTopics
@@ -636,7 +634,10 @@ function formatKnowledgeForLLM(knowledge: UnifiedUserKnowledge): string {
   const followUpTopics = knowledge.activeTopics.filter((t) => t.needsFollowUp);
   if (followUpTopics.length > 0) {
     const topicsStr = followUpTopics
-      .map((t) => `- "${t.topic}" (${t.daysSince} days ago)${t.followUpReason ? ` - ${t.followUpReason}` : ''}`)
+      .map(
+        (t) =>
+          `- "${t.topic}" (${t.daysSince} days ago)${t.followUpReason ? ` - ${t.followUpReason}` : ''}`
+      )
       .join('\n');
     sections.push(
       `## TOPICS WORTH FOLLOWING UP ON\n${topicsStr}\n\n*These were mentioned recently but not resolved - a good friend would ask about them.*`

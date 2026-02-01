@@ -1,16 +1,16 @@
 /**
  * Growth Letter System
- * 
+ *
  * Monthly email that feels like a letter from a friend.
  * Sent on the first Sunday of every month.
- * 
+ *
  * Contains:
  * - Personal stats recap
  * - Memory callback (something they mentioned)
  * - Community story feature
  * - Monthly theme/focus
  * - What's new
- * 
+ *
  * @module services/rituals/growth-letter
  */
 
@@ -67,12 +67,14 @@ const MONTHLY_THEMES: Record<number, MonthlyTheme> = {
   1: {
     name: 'Fresh Starts',
     prompt: 'What would you do differently if you could start fresh?',
-    description: 'January is for new beginnings—not resolutions that fade, but gentle intentions that grow.',
+    description:
+      'January is for new beginnings—not resolutions that fade, but gentle intentions that grow.',
   },
   2: {
     name: 'Connection',
     prompt: 'Who deserves more of your presence this month?',
-    description: 'February is for love in all its forms—romantic, familial, self-directed, and unexpected.',
+    description:
+      'February is for love in all its forms—romantic, familial, self-directed, and unexpected.',
   },
   3: {
     name: 'Growth',
@@ -81,7 +83,7 @@ const MONTHLY_THEMES: Record<number, MonthlyTheme> = {
   },
   4: {
     name: 'Courage',
-    prompt: 'What would you do if you weren\'t afraid?',
+    prompt: "What would you do if you weren't afraid?",
     description: 'April asks us to be brave. Rain makes things grow.',
   },
   5: {
@@ -92,7 +94,7 @@ const MONTHLY_THEMES: Record<number, MonthlyTheme> = {
   6: {
     name: 'Freedom',
     prompt: 'What would feel like freedom to you right now?',
-    description: 'June marks the halfway point. Time to release what\'s holding you back.',
+    description: "June marks the halfway point. Time to release what's holding you back.",
   },
   7: {
     name: 'Rest',
@@ -117,7 +119,7 @@ const MONTHLY_THEMES: Record<number, MonthlyTheme> = {
   11: {
     name: 'Abundance',
     prompt: 'What do you have more than enough of?',
-    description: 'November is for recognizing what\'s already here.',
+    description: "November is for recognizing what's already here.",
   },
   12: {
     name: 'Completion',
@@ -157,7 +159,7 @@ export function generateSubject(month: string): string {
  */
 export function generateEmailBody(data: GrowthLetterData): string {
   const greeting = data.userName ? `Hey ${data.userName},` : 'Hey,';
-  
+
   let email = `${greeting}
 
 A new month.
@@ -238,7 +240,7 @@ P.S. ${getSeasonalPS()}`;
  */
 export function generateHtmlEmail(data: GrowthLetterData): string {
   const greeting = data.userName ? `Hey ${data.userName},` : 'Hey,';
-  
+
   return `
 <!DOCTYPE html>
 <html>
@@ -327,22 +329,30 @@ export function generateHtmlEmail(data: GrowthLetterData): string {
     ${data.stats.personalInsight ? `<p>${data.stats.personalInsight}</p>` : ''}
   </div>
   
-  ${data.memoryCallback ? `
+  ${
+    data.memoryCallback
+      ? `
   <div class="section">
     <h2>💭 A MOMENT I REMEMBER</h2>
     <p>Back in ${formatDate(data.memoryCallback.date)}, you said:</p>
     <div class="quote">"${data.memoryCallback.quote}"</div>
     <p>${data.memoryCallback.context}</p>
   </div>
-  ` : ''}
+  `
+      : ''
+  }
   
-  ${data.communityStory ? `
+  ${
+    data.communityStory
+      ? `
   <div class="section">
     <h2>💚 FROM THE COMMUNITY</h2>
     <div class="quote">"${data.communityStory.quote}"</div>
     <p>— ${data.communityStory.attribution}</p>
   </div>
-  ` : ''}
+  `
+      : ''
+  }
   
   <div class="section">
     <h2>🌿 THIS MONTH'S FOCUS</h2>
@@ -350,14 +360,18 @@ export function generateHtmlEmail(data: GrowthLetterData): string {
     <div class="theme-prompt">"${data.monthlyTheme.prompt}"</div>
   </div>
   
-  ${data.whatsNew && data.whatsNew.length > 0 ? `
+  ${
+    data.whatsNew && data.whatsNew.length > 0
+      ? `
   <div class="section">
     <h2>📦 WHAT'S NEW</h2>
     <ul>
-      ${data.whatsNew.map(item => `<li>${item}</li>`).join('')}
+      ${data.whatsNew.map((item) => `<li>${item}</li>`).join('')}
     </ul>
   </div>
-  ` : ''}
+  `
+      : ''
+  }
   
   <div class="signature">
     <p>Thanks for being here.</p>
@@ -384,22 +398,22 @@ function formatDate(date: Date): string {
 
 function getSeasonalPS(): string {
   const month = new Date().getMonth() + 1;
-  
+
   const psByMonth: Record<number, string> = {
-    1: 'New year, but no pressure. You\'re exactly where you need to be.',
-    2: 'If you need some extra warmth this month, I\'m here.',
+    1: "New year, but no pressure. You're exactly where you need to be.",
+    2: "If you need some extra warmth this month, I'm here.",
     3: 'Spring is coming. So is your next breakthrough.',
-    4: 'April showers bring... actually, I\'m not sure what. Let\'s find out together.',
+    4: "April showers bring... actually, I'm not sure what. Let's find out together.",
     5: 'The flowers are blooming. What about you?',
     6: 'Halfway through the year. How are you feeling about it?',
     7: 'Summer invites slowness. Take it.',
     8: 'The best adventures often happen in August.',
     9: 'September always feels like a fresh start. Use it.',
     10: 'The leaves are changing. Maybe you are too.',
-    11: 'Gratitude season is here. I\'m grateful for you.',
+    11: "Gratitude season is here. I'm grateful for you.",
     12: 'End of year. Be gentle with yourself.',
   };
-  
+
   return psByMonth[month] || 'Take good care of yourself.';
 }
 
@@ -433,13 +447,13 @@ function generatePersonalInsight(
   if (moodTrend === 'improving') {
     return 'Something shifted this month—in a good way. I noticed.';
   } else if (moodTrend === 'challenging') {
-    return 'It\'s been a tough month. You showed up anyway. That matters.';
+    return "It's been a tough month. You showed up anyway. That matters.";
   } else if (themes.includes('work') || themes.includes('career')) {
     return 'Work has been on your mind. Balance is a practice, not a destination.';
   } else if (themes.includes('relationships')) {
-    return 'You\'ve been thinking about connection. That\'s human.';
+    return "You've been thinking about connection. That's human.";
   }
-  return 'Another month of showing up. That\'s no small thing.';
+  return "Another month of showing up. That's no small thing.";
 }
 
 // ============================================================================

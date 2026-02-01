@@ -1,8 +1,6 @@
 # Habit Coaching Module
 
-> **We believe in making AI human, and the decisions we make will reflect that.**
-
-Habit coaching embodies our principle of "growth through gentleness." We use evidence-based behavior science delivered with warmth and compassion. See `../../../CORE-PRINCIPLES.md` for our complete philosophy.
+> Growth through gentleness — evidence-based behavior science delivered with warmth.
 
 ---
 
@@ -10,7 +8,7 @@ Habit coaching embodies our principle of "growth through gentleness." We use evi
 
 ```
 habit-coaching/
-├── types.ts        # All interfaces and type definitions
+├── types.ts        # All interfaces and type definitions (including Four Tendencies)
 ├── constants.ts    # LIFE_DOMAINS, LIFE_STAGES, GLIDEPATH_LEVELS, etc.
 ├── templates.ts    # HABIT_TEMPLATES - pre-built habit blueprints
 ├── bundles.ts      # HABIT_BUNDLES - curated habit stacks
@@ -18,9 +16,20 @@ habit-coaching/
 ├── transitions.ts  # LIFE_TRANSITION_SUPPORT
 ├── helpers.ts      # Utility functions (diagnosis, motivation, analysis)
 ├── storage.ts      # Persistence layer
-├── tendencies.ts   # Four Tendencies strategies
+├── tools.ts        # Tool implementations (LLM-callable habit tools)
 └── index.ts        # Re-exports for backward compatibility
 ```
+
+## Key Files
+
+| File | Purpose | Size |
+|------|---------|------|
+| `tools.ts` | Main tool implementations — LLM-callable habit coaching tools | Largest file |
+| `types.ts` | All interfaces: `EnhancedHabit`, `HabitTemplate`, `FourTendency`, etc. |
+| `templates.ts` | Pre-built habit blueprints with glidepath versions |
+| `bundles.ts` | Curated habit stacks (e.g., "Morning Person") |
+| `helpers.ts` | Pure utility functions for diagnosis and analysis |
+| `storage.ts` | Firestore persistence layer |
 
 ## Import Patterns
 
@@ -31,9 +40,6 @@ import type { EnhancedHabit } from './habit-coaching/types.js';
 
 // Also supported: Index imports
 import { LIFE_DOMAINS, type EnhancedHabit } from './habit-coaching/index.js';
-
-// Legacy (still works via re-exports in habit-coaching.ts)
-import { LIFE_DOMAINS } from '../tools/habit-coaching.js';
 ```
 
 ## Key Types
@@ -51,7 +57,7 @@ import { LIFE_DOMAINS } from '../tools/habit-coaching.js';
 ## Behavior Science Concepts
 
 ### Glidepath Levels
-From Tiny Habits methodology - start small, build up:
+From Tiny Habits methodology — start small, build up:
 1. **Tiny** (2 min) - Just show up
 2. **Mini** (5-10 min) - Building consistency
 3. **Standard** (15-20 min) - Full engagement
@@ -73,7 +79,8 @@ From The Power of Habit:
 1. Add type definition if needed in `types.ts`
 2. Add template to `HABIT_TEMPLATES` in `templates.ts`
 3. If part of a bundle, update `bundles.ts`
-4. Export from `index.ts`
+4. Add tool implementation in `tools.ts`
+5. Export from `index.ts`
 
 ## Testing
 
@@ -81,3 +88,7 @@ Helper functions in `helpers.ts` are pure and testable:
 - `diagnoseHabitFailure()` - Why habits fail
 - `analyzeMoodPatterns()` - Mood-habit correlations
 - `getMotivationalContent()` - Context-aware encouragement
+
+---
+
+*Last updated: January 2026*

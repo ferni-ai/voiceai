@@ -62,10 +62,7 @@ export const inviteFriendByCallTool: SemanticToolDefinition = {
     'Have Ferni call my buddy and say hi',
   ],
 
-  counterExamples: [
-    'Call me back later',
-    'I missed a call from my friend',
-  ],
+  counterExamples: ['Call me back later', 'I missed a call from my friend'],
 
   arguments: [
     { name: 'friendName', type: 'string', required: true, description: 'Name of the friend' },
@@ -140,15 +137,17 @@ export const sendSupportCallTool: SemanticToolDefinition = {
     'Reach out and check on my mom',
   ],
 
-  counterExamples: [
-    'I need technical support',
-    'Contact customer support',
-  ],
+  counterExamples: ['I need technical support', 'Contact customer support'],
 
   arguments: [
     { name: 'recipientName', type: 'string', required: true, description: 'Name of the person' },
     { name: 'phoneNumber', type: 'string', required: true, description: 'Phone number to call' },
-    { name: 'situation', type: 'string', required: false, description: 'What they are going through' },
+    {
+      name: 'situation',
+      type: 'string',
+      required: false,
+      description: 'What they are going through',
+    },
   ],
 
   confidence: {

@@ -16,7 +16,7 @@ const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 // Humanization systems
 import { getActiveListeningEngine } from '../active-listening.js';
 import { applyDeliveryPacing, shouldApplyDeliveryPacing } from '../content-delivery-pacing.js';
-import { getConversationalMemory } from '../conversational-memory.js';
+import { getConversationalMemory } from '../conversational-memory/index.js';
 import {
   applyDeepHumanization as applyDeepHumanizationNew,
   type HumanizationContext as DeepHumanizationContext,
@@ -32,9 +32,9 @@ import {
   humanizationConfig,
   type HumanizationContext as OrchestratorContext,
 } from '../humanization/index.js';
-import { getQuestionPatternEngine, type QuestionContext } from '../question-patterns.js';
+import { getQuestionPatternEngine, type QuestionContext } from '../question-patterns/index.js';
 import { getSilencePresenceEngine } from '../silence-presence.js';
-import { getSpeechNaturalizer, type NaturalizationContext } from '../speech-naturalizer.js';
+import { getSpeechNaturalizer, type NaturalizationContext } from '../speech-naturalizer/index.js';
 import { detectAdviceGiving } from '../utils/detection.js';
 import { humanizeVocals, type VocalContext } from '../vocal-humanization.js';
 

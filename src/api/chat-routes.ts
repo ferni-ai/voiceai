@@ -29,6 +29,8 @@ interface ChatMessageRequest {
   personaId?: string;
   conversationHistory?: Array<{ role: string; content: string }>;
   source?: string;
+  /** Originating platform (whatsapp, telegram, discord, slack, web, voice) */
+  platform?: string;
   verbose?: boolean;
 }
 
@@ -269,6 +271,62 @@ async function getToolDefinitionsForChat(
         },
       },
     },
+    // OpenClaw messaging tools
+    {
+      name: 'sendWhatsApp',
+      description: 'Send a WhatsApp message to a contact',
+      parameters: {
+        type: 'object',
+        properties: {
+          recipient: { type: 'string', description: 'Contact name or phone number' },
+          message: { type: 'string', description: 'Message text to send' },
+        },
+      },
+    },
+    {
+      name: 'sendTelegram',
+      description: 'Send a Telegram message to a contact',
+      parameters: {
+        type: 'object',
+        properties: {
+          recipient: { type: 'string', description: 'Contact name or username' },
+          message: { type: 'string', description: 'Message text to send' },
+        },
+      },
+    },
+    {
+      name: 'sendDiscord',
+      description: 'Send a Discord message to a user or channel',
+      parameters: {
+        type: 'object',
+        properties: {
+          recipient: { type: 'string', description: 'User or channel name' },
+          message: { type: 'string', description: 'Message text to send' },
+        },
+      },
+    },
+    {
+      name: 'sendSlack',
+      description: 'Send a Slack message to a user or channel',
+      parameters: {
+        type: 'object',
+        properties: {
+          recipient: { type: 'string', description: 'User or channel name' },
+          message: { type: 'string', description: 'Message text to send' },
+        },
+      },
+    },
+    {
+      name: 'sendMessageChannel',
+      description: 'Send a message via the best available channel (auto-selects WhatsApp, Telegram, etc.)',
+      parameters: {
+        type: 'object',
+        properties: {
+          recipient: { type: 'string', description: 'Contact name or identifier' },
+          message: { type: 'string', description: 'Message text to send' },
+        },
+      },
+    },
   ];
 }
 
@@ -313,7 +371,9 @@ async function callLLMWithTools(
   // Clean response (remove tool JSON if present)
   let cleanResponse = responseText;
   for (const call of toolCalls) {
-    cleanResponse = cleanResponse.replace(JSON.stringify({ fn: call.fn, args: call.args }), '').trim();
+    cleanResponse = cleanResponse
+      .replace(JSON.stringify({ fn: call.fn, args: call.args }), '')
+      .trim();
   }
 
   return {
@@ -397,7 +457,16 @@ export async function handleChatRoutes(
       const userId = body.userId || auth.userId;
       const personaId = body.personaId || 'ferni';
 
-      log.info({ userId, personaId, messageLength: body.message.length }, 'Processing chat message');
+      log.info(
+        {
+          userId,
+          personaId,
+          messageLength: body.message.length,
+          source: body.source,
+          platform: body.platform,
+        },
+        'Processing chat message'
+      );
 
       // Process message through LLM
       const llmResult = await processMessageWithLLM(
@@ -461,7 +530,11 @@ export async function handleChatRoutes(
 
       const startTime = Date.now();
       const result = await executeJsonFunction(
-        { fn: body.fn, args: body.args || {}, raw: JSON.stringify({ fn: body.fn, args: body.args }) },
+        {
+          fn: body.fn,
+          args: body.args || {},
+          raw: JSON.stringify({ fn: body.fn, args: body.args }),
+        },
         { userId, inputText: `Direct tool call: ${body.fn}` }
       );
 
@@ -476,7 +549,7 @@ export async function handleChatRoutes(
 
     // GET /api/chat/tools - List available tools
     if (pathname === '/api/chat/tools' && req.method === 'GET') {
-      const userId = auth.userId;
+      const { userId } = auth;
       const personaId = 'ferni'; // Could get from query params
 
       const tools = await getToolDefinitionsForChat(userId, personaId);

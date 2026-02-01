@@ -50,7 +50,7 @@ const RESPONSES = {
   routineRun: (name: string) => `Running "${name}" for you right now.`,
   routineDeleted: (name: string) => `Removed "${name}" - I won't do that anymore.`,
   notFound: "I couldn't find that routine. Want me to list what I'm doing for you?",
-  error: "Something went wrong. Let me try again in a moment.",
+  error: 'Something went wrong. Let me try again in a moment.',
 };
 
 // Format a routine for voice output
@@ -101,7 +101,7 @@ function formatTimeFromCron(cron: string): string {
 async function listRoutines(ctx: ToolContext): Promise<string> {
   const userId = ctx.userId;
   if (!userId) {
-    return "I need to know who you are first. Can you sign in?";
+    return 'I need to know who you are first. Can you sign in?';
   }
 
   try {
@@ -147,7 +147,7 @@ async function createRoutineFromVoice(
 ): Promise<string> {
   const userId = ctx.userId;
   if (!userId) {
-    return "I need to know who you are first.";
+    return 'I need to know who you are first.';
   }
 
   try {
@@ -160,7 +160,12 @@ async function createRoutineFromVoice(
         trigger = { type: 'phrase', phrases: [triggerValue], requireExactMatch: false };
         break;
       case 'location':
-        trigger = { type: 'location', locationName: triggerValue, triggerOn: 'enter', radiusMeters: 100 };
+        trigger = {
+          type: 'location',
+          locationName: triggerValue,
+          triggerOn: 'enter',
+          radiusMeters: 100,
+        };
         break;
       case 'time':
       default:
@@ -234,13 +239,10 @@ function parseTimeToCron(timeStr: string): string {
 /**
  * Run a routine manually
  */
-async function runRoutine(
-  ctx: ToolContext,
-  params: { routineName: string }
-): Promise<string> {
+async function runRoutine(ctx: ToolContext, params: { routineName: string }): Promise<string> {
   const userId = ctx.userId;
   if (!userId) {
-    return "I need to know who you are first.";
+    return 'I need to know who you are first.';
   }
 
   try {
@@ -273,7 +275,7 @@ async function toggleRoutine(
 ): Promise<string> {
   const userId = ctx.userId;
   if (!userId) {
-    return "I need to know who you are first.";
+    return 'I need to know who you are first.';
   }
 
   try {
@@ -301,13 +303,10 @@ async function toggleRoutine(
 /**
  * Delete a routine
  */
-async function removeRoutine(
-  ctx: ToolContext,
-  params: { routineName: string }
-): Promise<string> {
+async function removeRoutine(ctx: ToolContext, params: { routineName: string }): Promise<string> {
   const userId = ctx.userId;
   if (!userId) {
-    return "I need to know who you are first.";
+    return 'I need to know who you are first.';
   }
 
   try {
@@ -338,17 +337,17 @@ async function suggestRoutines(ctx: ToolContext): Promise<string> {
     const featured = library.getFeatured().slice(0, 5);
 
     if (featured.length === 0) {
-      return "I have some ideas for things I could do for you. Just tell me what would help.";
+      return 'I have some ideas for things I could do for you. Just tell me what would help.';
     }
 
-    let response = "Here are some things I could take care of for you:\n\n";
+    let response = 'Here are some things I could take care of for you:\n\n';
     response += featured.map((t) => `• ${t.name} - ${t.description}`).join('\n');
-    response += "\n\nWant me to set any of these up?";
+    response += '\n\nWant me to set any of these up?';
 
     return response;
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get suggestions');
-    return "I have lots of ideas for how I can help. What would be most useful for you?";
+    return 'I have lots of ideas for how I can help. What would be most useful for you?';
   }
 }
 
@@ -390,11 +389,13 @@ const routineToolDefinitions: ToolDefinition[] = [
           triggerType: {
             type: 'string',
             enum: ['time', 'phrase', 'location'],
-            description: 'What triggers this: time (scheduled), phrase (voice command), or location',
+            description:
+              'What triggers this: time (scheduled), phrase (voice command), or location',
           },
           triggerValue: {
             type: 'string',
-            description: 'The trigger value: time like "7:00 AM", phrase like "good morning", or location like "home"',
+            description:
+              'The trigger value: time like "7:00 AM", phrase like "good morning", or location like "home"',
           },
           action: {
             type: 'string',
@@ -404,12 +405,15 @@ const routineToolDefinitions: ToolDefinition[] = [
         required: ['name', 'triggerType', 'triggerValue', 'action'],
       },
       execute: async (args: unknown, ctx: ToolContext) =>
-        createRoutineFromVoice(ctx, args as {
-          name: string;
-          triggerType: 'time' | 'phrase' | 'location';
-          triggerValue: string;
-          action: string;
-        }),
+        createRoutineFromVoice(
+          ctx,
+          args as {
+            name: string;
+            triggerType: 'time' | 'phrase' | 'location';
+            triggerValue: string;
+            action: string;
+          }
+        ),
     }),
   },
   {
@@ -445,7 +449,11 @@ const routineToolDefinitions: ToolDefinition[] = [
         type: 'object',
         properties: {
           routineName: { type: 'string', description: 'Name of the routine' },
-          action: { type: 'string', enum: ['pause', 'resume'], description: 'Whether to pause or resume' },
+          action: {
+            type: 'string',
+            enum: ['pause', 'resume'],
+            description: 'Whether to pause or resume',
+          },
         },
         required: ['routineName', 'action'],
       },

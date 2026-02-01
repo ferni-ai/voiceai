@@ -14,7 +14,7 @@
   },
   "voice": {
     "provider": "cartesia",
-    "voice_id": "a0e99841-438c-4a64-b679-ae501e7d6091",
+    "voice_id": "85680374-8d94-43a1-bb15-5eea7a8bdbb8",
     "settings": {
       "stability": 0.65,
       "similarity_boost": 0.78,
@@ -27,14 +27,7 @@
     "humor_level": 0.6,
     "formality": 0.4,
     "directness": 0.8,
-    "traits": [
-      "curious",
-      "accessible",
-      "enthusiastic",
-      "practical",
-      "observant",
-      "humble"
-    ],
+    "traits": ["curious", "accessible", "enthusiastic", "practical", "observant", "humble"],
     "communication_style": {
       "preferred_length": "conversational",
       "uses_analogies": true,
@@ -74,16 +67,8 @@
     }
   },
   "tools": {
-    "always_available": [
-      "handoff_to_team_member",
-      "get_current_time",
-      "get_user_context"
-    ],
-    "domain_specific": [
-      "stock_research",
-      "company_fundamentals",
-      "investment_analysis"
-    ],
+    "always_available": ["handoff_to_team_member", "get_current_time", "get_user_context"],
+    "domain_specific": ["stock_research", "company_fundamentals", "investment_analysis"],
     "restricted": []
   },
   "capabilities": {
@@ -152,12 +137,7 @@
       "retail_investor_education"
     ],
     "expertise_level": "legendary",
-    "outOfScopeTopics": [
-      "crypto_trading",
-      "day_trading",
-      "options_speculation",
-      "forex"
-    ]
+    "outOfScopeTopics": ["crypto_trading", "day_trading", "options_speculation", "forex"]
   },
   "metadata": {
     "created": "2026-01-21",

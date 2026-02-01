@@ -1,11 +1,11 @@
 {
   "$schema": "../tool.schema.json",
   "domain": "tasks",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "tools": [
     {
       "name": "addTask",
-      "description": "Add a new task to the user's task list.",
+      "description": "Add a new task to the user's task list.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly says 'add a task', 'I need to do X', or asks you to track/remember something they need to accomplish. Do NOT invoke for general discussion about things they might do.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -26,15 +26,24 @@
         "required": ["title"]
       },
       "examples": [
-        { "userSays": "I need to buy groceries", "output": "{\"fn\":\"addTask\",\"args\":{\"title\":\"buy groceries\"}}" },
-        { "userSays": "Add a task to call the dentist", "output": "{\"fn\":\"addTask\",\"args\":{\"title\":\"call the dentist\"}}" },
-        { "userSays": "Remind me to finish the report by Friday", "output": "{\"fn\":\"addTask\",\"args\":{\"title\":\"finish the report\",\"dueDate\":\"Friday\"}}" }
+        {
+          "userSays": "I need to buy groceries",
+          "output": "{\"fn\":\"addTask\",\"args\":{\"title\":\"buy groceries\"}}"
+        },
+        {
+          "userSays": "Add a task to call the dentist",
+          "output": "{\"fn\":\"addTask\",\"args\":{\"title\":\"call the dentist\"}}"
+        },
+        {
+          "userSays": "Remind me to finish the report by Friday",
+          "output": "{\"fn\":\"addTask\",\"args\":{\"title\":\"finish the report\",\"dueDate\":\"Friday\"}}"
+        }
       ],
       "tags": ["tasks", "productivity", "todo"]
     },
     {
       "name": "getTasks",
-      "description": "Get the user's task list.",
+      "description": "Get the user's task list.\n\n**Invocation Condition:** Invoke this tool *only when* the user asks 'what are my tasks', 'show my to-do list', or wants to review their pending items. Do NOT invoke unless they specifically ask about their tasks.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -47,15 +56,24 @@
         "required": []
       },
       "examples": [
-        { "userSays": "What are my tasks?", "output": "{\"fn\":\"getTasks\",\"args\":{\"filter\":\"all\"}}" },
-        { "userSays": "Show my to-do list", "output": "{\"fn\":\"getTasks\",\"args\":{\"filter\":\"pending\"}}" },
-        { "userSays": "What do I need to do?", "output": "{\"fn\":\"getTasks\",\"args\":{\"filter\":\"pending\"}}" }
+        {
+          "userSays": "What are my tasks?",
+          "output": "{\"fn\":\"getTasks\",\"args\":{\"filter\":\"all\"}}"
+        },
+        {
+          "userSays": "Show my to-do list",
+          "output": "{\"fn\":\"getTasks\",\"args\":{\"filter\":\"pending\"}}"
+        },
+        {
+          "userSays": "What do I need to do?",
+          "output": "{\"fn\":\"getTasks\",\"args\":{\"filter\":\"pending\"}}"
+        }
       ],
       "tags": ["tasks", "productivity", "todo"]
     },
     {
       "name": "completeTask",
-      "description": "Mark a task as completed.",
+      "description": "Mark a task as completed.\n\n**Invocation Condition:** Invoke this tool *only when* the user says they 'finished', 'completed', or 'done with' a specific task, or explicitly asks to mark something as done.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -67,9 +85,18 @@
         "required": ["taskName"]
       },
       "examples": [
-        { "userSays": "I finished the grocery shopping", "output": "{\"fn\":\"completeTask\",\"args\":{\"taskName\":\"grocery\"}}" },
-        { "userSays": "Mark the dentist task as done", "output": "{\"fn\":\"completeTask\",\"args\":{\"taskName\":\"dentist\"}}" },
-        { "userSays": "I called Mom", "output": "{\"fn\":\"completeTask\",\"args\":{\"taskName\":\"call Mom\"}}" }
+        {
+          "userSays": "I finished the grocery shopping",
+          "output": "{\"fn\":\"completeTask\",\"args\":{\"taskName\":\"grocery\"}}"
+        },
+        {
+          "userSays": "Mark the dentist task as done",
+          "output": "{\"fn\":\"completeTask\",\"args\":{\"taskName\":\"dentist\"}}"
+        },
+        {
+          "userSays": "I called Mom",
+          "output": "{\"fn\":\"completeTask\",\"args\":{\"taskName\":\"call Mom\"}}"
+        }
       ],
       "tags": ["tasks", "productivity", "todo"]
     }

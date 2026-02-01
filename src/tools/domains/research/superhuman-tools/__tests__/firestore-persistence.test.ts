@@ -36,10 +36,7 @@ vi.mock('../../../../../utils/firestore-utils.js', () => ({
 // IMPORTS
 // ============================================================================
 
-import {
-  getUserIdFromContext,
-  getSessionIdFromContext,
-} from '../firestore-persistence.js';
+import { getUserIdFromContext, getSessionIdFromContext } from '../firestore-persistence.js';
 
 // ============================================================================
 // TEST UTILITIES

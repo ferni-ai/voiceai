@@ -156,9 +156,7 @@ export function buildCognitiveContext(
   const questionStarters = shuffleAndTake(questioning.questionStarters, 3);
 
   // Get silence breakers
-  const silenceBreakers = state.hasSilence
-    ? shuffleAndTake(silence.silenceBreakers, 2)
-    : [];
+  const silenceBreakers = state.hasSilence ? shuffleAndTake(silence.silenceBreakers, 2) : [];
 
   // Get disagreement phrases if in disagreement context
   let disagreementPhrases: string[] = [];
@@ -417,8 +415,8 @@ export function getPersonaQuestion(
 
   const { questioning } = profile;
   const questions = context?.isEmotional
-    ? questioning.questionStarters.filter((q) =>
-        q.toLowerCase().includes('feel') || q.toLowerCase().includes('what')
+    ? questioning.questionStarters.filter(
+        (q) => q.toLowerCase().includes('feel') || q.toLowerCase().includes('what')
       )
     : questioning.questionStarters;
 

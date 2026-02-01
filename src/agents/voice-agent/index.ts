@@ -39,8 +39,8 @@ export {
   type TranscriptEvent,
 } from './transcript-handler.js';
 
-// Direct tool router - DELETED: Now handled by UTO.routeAndExecute()
-// See: src/tools/orchestrator/unified-tool-orchestrator.ts
+// Tool routing handled by UTO semantic selection + LLM native function calling
+// See: src/tools/orchestrator/tool-orchestrator.ts
 
 // Session state handler (AgentStateChanged, UserStateChanged)
 export {
@@ -177,6 +177,34 @@ export {
   type DailyCheckInContext,
   type CheckInDetectionResult,
 } from './daily-checkin-handler.js';
+
+// Active listening handler (Better Than Human real-time entity extraction)
+export {
+  processActiveListeningPartial,
+  processActiveListeningFinal,
+  type ActiveListeningContext,
+  type ActiveListeningResult,
+} from './active-listening-handler.js';
+
+// Anticipation handler (Sesame-inspired + unified anticipation pipeline)
+export {
+  processSesameAnticipation,
+  signalNewTurn,
+  processUnifiedAnticipation,
+  processAnticipatoryTriggers,
+  recordAnticipatoryOutcomeFromTranscript,
+  type AnticipationContext,
+  type AnticipationResult,
+  type AnticipatoryTriggerContext,
+} from './anticipation-handler.js';
+
+// Interrupt handler (micro-interruptions + graceful interrupt sensing)
+export {
+  processInterruptSignals,
+  hasMicroInterruptSignal,
+  type InterruptContext,
+  type InterruptResult,
+} from './interrupt-handler.js';
 
 // Constants
 export const VOICE_AGENT_VERSION = '1.0.0';

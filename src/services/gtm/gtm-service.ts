@@ -8,7 +8,11 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { generateContent, generateDailyContent, generateMilestoneContent } from './content-generator.js';
+import {
+  generateContent,
+  generateDailyContent,
+  generateMilestoneContent,
+} from './content-generator.js';
 import {
   generateWeeklyCalendar,
   getPublishQueue,
@@ -23,7 +27,11 @@ import {
   DEFAULT_GTM_CONFIG,
   initializeGTMCache,
 } from './content-calendar.js';
-import { postToSocial, getSocialStatus, postMilestoneCelebration } from '../social/social-service.js';
+import {
+  postToSocial,
+  getSocialStatus,
+  postMilestoneCelebration,
+} from '../social/social-service.js';
 import { getBlogUrl, verifyBrandAccountConfig } from './gtm-config.js';
 import type { ContentBrief, GeneratedContent, GTMConfig, GTMDashboard } from './types.js';
 
@@ -43,9 +51,7 @@ const log = createLogger({ module: 'gtm-service' });
  * Run the daily autonomous publishing job.
  * This is called by Cloud Scheduler daily.
  */
-export async function runDailyPublishing(
-  config: GTMConfig = DEFAULT_GTM_CONFIG
-): Promise<{
+export async function runDailyPublishing(config: GTMConfig = DEFAULT_GTM_CONFIG): Promise<{
   success: boolean;
   generated: number;
   published: number;
@@ -71,7 +77,10 @@ export async function runDailyPublishing(
     if (content) {
       storeContent(content);
       result.generated++;
-      log.info('Generated daily content', { title: content.title, category: content.brief.category });
+      log.info('Generated daily content', {
+        title: content.title,
+        category: content.brief.category,
+      });
     }
 
     // 2. Process publish queue
@@ -88,7 +97,10 @@ export async function runDailyPublishing(
 
         // Check if auto-publish is enabled or content is approved
         if (!config.autoPublish && contentToPublish.status !== 'approved') {
-          log.info('Skipping unapproved content', { id: item.contentId, status: contentToPublish.status });
+          log.info('Skipping unapproved content', {
+            id: item.contentId,
+            status: contentToPublish.status,
+          });
           continue;
         }
 
@@ -106,7 +118,9 @@ export async function runDailyPublishing(
           result.published++;
           log.info('Published content', { id: item.contentId, title: contentToPublish.title });
         } else {
-          result.errors.push(`Failed to publish ${item.contentId}: ${socialResult.results.map((r) => r.error).join(', ')}`);
+          result.errors.push(
+            `Failed to publish ${item.contentId}: ${socialResult.results.map((r) => r.error).join(', ')}`
+          );
         }
       } catch (e) {
         const error = `Failed to process queue item ${item.contentId}: ${String(e)}`;
@@ -133,9 +147,7 @@ export async function runDailyPublishing(
 /**
  * Generate content for the next week and add to calendar.
  */
-export async function generateWeeklyContent(
-  startDate: Date = new Date()
-): Promise<{
+export async function generateWeeklyContent(startDate: Date = new Date()): Promise<{
   success: boolean;
   entries: number;
   content: GeneratedContent[];
@@ -331,9 +343,7 @@ export function rejectContent(contentId: string, reason: string): boolean {
 /**
  * Publish content immediately (bypasses queue).
  */
-export async function publishNow(
-  contentId: string
-): Promise<{
+export async function publishNow(contentId: string): Promise<{
   success: boolean;
   results: Awaited<ReturnType<typeof postToSocial>>;
 }> {

@@ -55,7 +55,10 @@ interface GoalRecord {
 
 const goalStore = new Map<string, GoalRecord[]>();
 const habitStore = new Map<string, HabitRecord[]>();
-const decisionStore = new Map<string, { date: Date; decision: string; outcome: string; domain: string }[]>();
+const decisionStore = new Map<
+  string,
+  { date: Date; decision: string; outcome: string; domain: string }[]
+>();
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -65,11 +68,13 @@ function calculateGoalVelocity(milestones: { date: Date; progress: number }[]): 
   if (milestones.length < 2) return 0;
   const sorted = [...milestones].sort((a, b) => a.date.getTime() - b.date.getTime());
   const recentMilestones = sorted.slice(-5);
-  
+
   let totalVelocity = 0;
   for (let i = 1; i < recentMilestones.length; i++) {
-    const daysDiff = (recentMilestones[i].date.getTime() - recentMilestones[i-1].date.getTime()) / (1000 * 60 * 60 * 24);
-    const progressDiff = recentMilestones[i].progress - recentMilestones[i-1].progress;
+    const daysDiff =
+      (recentMilestones[i].date.getTime() - recentMilestones[i - 1].date.getTime()) /
+      (1000 * 60 * 60 * 24);
+    const progressDiff = recentMilestones[i].progress - recentMilestones[i - 1].progress;
     if (daysDiff > 0) {
       totalVelocity += progressDiff / daysDiff;
     }
@@ -77,7 +82,11 @@ function calculateGoalVelocity(milestones: { date: Date; progress: number }[]): 
   return totalVelocity / (recentMilestones.length - 1);
 }
 
-function predictCompletionDate(currentProgress: number, velocity: number, targetDate?: Date): Date | null {
+function predictCompletionDate(
+  currentProgress: number,
+  velocity: number,
+  targetDate?: Date
+): Date | null {
   if (velocity <= 0) return null;
   const remainingProgress = 100 - currentProgress;
   const daysToComplete = remainingProgress / velocity;
@@ -105,7 +114,7 @@ export const recordGoalProgress = llm.tool({
     if (!userId) return 'I need to know who you are.';
 
     const userGoals = goalStore.get(userId) || [];
-    let goal = userGoals.find(g => g.name.toLowerCase() === params.goalName.toLowerCase());
+    let goal = userGoals.find((g) => g.name.toLowerCase() === params.goalName.toLowerCase());
 
     if (!goal) {
       goal = {
@@ -141,13 +150,15 @@ export const recordGoalProgress = llm.tool({
       goal.milestones.length < 5
         ? `Track ${5 - goal.milestones.length} more updates for accurate predictions.`
         : `I have enough data to predict your success probability!`,
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   },
 });
 
 export const predictGoalSuccess = llm.tool({
   description:
-    "Predict the probability of completing a goal based on YOUR patterns. Not generic advice - YOUR actual success patterns.",
+    'Predict the probability of completing a goal based on YOUR patterns. Not generic advice - YOUR actual success patterns.',
   parameters: z.object({
     goalName: z.string().describe('Name of the goal to predict'),
   }),
@@ -156,7 +167,9 @@ export const predictGoalSuccess = llm.tool({
     if (!userId) return 'I need to know who you are.';
 
     const userGoals = goalStore.get(userId) || [];
-    const goal = userGoals.find(g => g.name.toLowerCase().includes(params.goalName.toLowerCase()));
+    const goal = userGoals.find((g) =>
+      g.name.toLowerCase().includes(params.goalName.toLowerCase())
+    );
 
     if (!goal) {
       return [
@@ -170,7 +183,7 @@ export const predictGoalSuccess = llm.tool({
         `3. At least 3-5 data points needed`,
         '',
         `Your current goals:`,
-        ...userGoals.map(g => `• ${g.name} (${g.currentProgress}%)`),
+        ...userGoals.map((g) => `• ${g.name} (${g.currentProgress}%)`),
       ].join('\n');
     }
 
@@ -178,15 +191,18 @@ export const predictGoalSuccess = llm.tool({
     const velocity = calculateGoalVelocity(goal.milestones);
     const daysSinceStart = (Date.now() - goal.startDate.getTime()) / (1000 * 60 * 60 * 24);
     const expectedProgress = goal.targetDate
-      ? (daysSinceStart / ((goal.targetDate.getTime() - goal.startDate.getTime()) / (1000 * 60 * 60 * 24))) * 100
+      ? (daysSinceStart /
+          ((goal.targetDate.getTime() - goal.startDate.getTime()) / (1000 * 60 * 60 * 24))) *
+        100
       : null;
 
     // Historical success rate (simplified)
-    const completedGoals = userGoals.filter(g => g.status === 'completed').length;
-    const abandonedGoals = userGoals.filter(g => g.status === 'abandoned').length;
-    const historicalSuccessRate = completedGoals + abandonedGoals > 0
-      ? (completedGoals / (completedGoals + abandonedGoals)) * 100
-      : 50;
+    const completedGoals = userGoals.filter((g) => g.status === 'completed').length;
+    const abandonedGoals = userGoals.filter((g) => g.status === 'abandoned').length;
+    const historicalSuccessRate =
+      completedGoals + abandonedGoals > 0
+        ? (completedGoals / (completedGoals + abandonedGoals)) * 100
+        : 50;
 
     // Calculate success probability
     let successProbability = 50; // Base rate
@@ -209,7 +225,7 @@ export const predictGoalSuccess = llm.tool({
     }
 
     // Historical factor
-    successProbability = (successProbability * 0.7) + (historicalSuccessRate * 0.3);
+    successProbability = successProbability * 0.7 + historicalSuccessRate * 0.3;
     successProbability = Math.max(5, Math.min(95, successProbability));
 
     const predictedDate = predictCompletionDate(goal.currentProgress, velocity, goal.targetDate);
@@ -253,12 +269,12 @@ export const predictGoalSuccess = llm.tool({
       riskFactors.length > 0 ? `═══════════════════════════════════` : '',
       riskFactors.length > 0 ? `🔴 **RISK FACTORS**` : '',
       riskFactors.length > 0 ? `═══════════════════════════════════` : '',
-      ...riskFactors.map(r => `• ${r}`),
+      ...riskFactors.map((r) => `• ${r}`),
       '',
       successFactors.length > 0 ? `═══════════════════════════════════` : '',
       successFactors.length > 0 ? `🟢 **SUCCESS FACTORS**` : '',
       successFactors.length > 0 ? `═══════════════════════════════════` : '',
-      ...successFactors.map(s => `• ${s}`),
+      ...successFactors.map((s) => `• ${s}`),
       '',
       `═══════════════════════════════════`,
       `💡 **TO IMPROVE PROBABILITY**`,
@@ -268,7 +284,9 @@ export const predictGoalSuccess = llm.tool({
       goal.currentProgress < 50 ? `• Break the goal into smaller milestones` : '',
       `• Track progress more frequently (builds accountability)`,
       riskFactors.length > 2 ? `• Consider if this goal needs to be redefined` : '',
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   },
 });
 
@@ -278,9 +296,10 @@ export const predictGoalSuccess = llm.tool({
 
 export const projectBehavioralTrajectory = llm.tool({
   description:
-    "See where your current patterns lead. Project 1, 3, 6, and 12 months into YOUR future based on YOUR data.",
+    'See where your current patterns lead. Project 1, 3, 6, and 12 months into YOUR future based on YOUR data.',
   parameters: z.object({
-    domain: z.enum(['spending', 'habits', 'goals', 'energy', 'productivity', 'relationships'])
+    domain: z
+      .enum(['spending', 'habits', 'goals', 'energy', 'productivity', 'relationships'])
       .describe('Life domain to project'),
   }),
   execute: async (params: { domain: string }, { ctx }: { ctx: unknown }) => {
@@ -297,17 +316,18 @@ export const projectBehavioralTrajectory = llm.tool({
     let dataPoints = 0;
 
     if (params.domain === 'goals') {
-      const activeGoals = userGoals.filter(g => g.status === 'active');
+      const activeGoals = userGoals.filter((g) => g.status === 'active');
       if (activeGoals.length > 0) {
-        const avgProgress = activeGoals.reduce((sum, g) => sum + g.currentProgress, 0) / activeGoals.length;
+        const avgProgress =
+          activeGoals.reduce((sum, g) => sum + g.currentProgress, 0) / activeGoals.length;
         currentState = avgProgress;
-        const velocities = activeGoals.map(g => calculateGoalVelocity(g.milestones));
+        const velocities = activeGoals.map((g) => calculateGoalVelocity(g.milestones));
         const avgVelocity = velocities.reduce((a, b) => a + b, 0) / velocities.length;
         trend = avgVelocity > 0.5 ? 'improving' : avgVelocity < -0.5 ? 'declining' : 'stable';
         dataPoints = activeGoals.reduce((sum, g) => sum + g.milestones.length, 0);
       }
     } else if (params.domain === 'habits') {
-      const activeHabits = userHabits.filter(h => h.status === 'active');
+      const activeHabits = userHabits.filter((h) => h.status === 'active');
       if (activeHabits.length > 0) {
         const avgStreak = activeHabits.reduce((sum, h) => sum + h.streak, 0) / activeHabits.length;
         currentState = Math.min(100, avgStreak * 5);
@@ -370,7 +390,7 @@ export const projectBehavioralTrajectory = llm.tool({
       `🎯 **INTERVENTION OPPORTUNITIES**`,
       `═══════════════════════════════════`,
       '',
-      ...interventions.map(i => `• ${i}`),
+      ...interventions.map((i) => `• ${i}`),
       '',
       `═══════════════════════════════════`,
       `💡 **PETER'S TAKE**`,
@@ -385,7 +405,9 @@ export const projectBehavioralTrajectory = llm.tool({
       dataPoints < 10
         ? `**Note:** Limited data (${dataPoints} points). Predictions improve with more tracking.`
         : '',
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   },
 });
 
@@ -416,7 +438,7 @@ export const recordHabit = llm.tool({
     if (!userId) return 'I need to know who you are.';
 
     const userHabits = habitStore.get(userId) || [];
-    let habit = userHabits.find(h => h.name.toLowerCase() === params.habitName.toLowerCase());
+    let habit = userHabits.find((h) => h.name.toLowerCase() === params.habitName.toLowerCase());
 
     if (!habit) {
       habit = {
@@ -445,7 +467,9 @@ export const recordHabit = llm.tool({
     habitStore.set(userId, userHabits);
 
     return [
-      params.completed ? `✅ ${params.habitName} completed!` : `📝 ${params.habitName} break recorded`,
+      params.completed
+        ? `✅ ${params.habitName} completed!`
+        : `📝 ${params.habitName} break recorded`,
       '',
       `🔥 Current streak: ${habit.streak} days`,
       `🏆 Longest streak: ${habit.longestStreak} days`,
@@ -460,7 +484,7 @@ export const recordHabit = llm.tool({
 
 export const analyzeHabitSurvival = llm.tool({
   description:
-    "Predict whether a habit will survive based on YOUR patterns. See survival probability over time and risk periods.",
+    'Predict whether a habit will survive based on YOUR patterns. See survival probability over time and risk periods.',
   parameters: z.object({
     habitName: z.string().describe('Name of the habit to analyze'),
   }),
@@ -469,7 +493,9 @@ export const analyzeHabitSurvival = llm.tool({
     if (!userId) return 'I need to know who you are.';
 
     const userHabits = habitStore.get(userId) || [];
-    const habit = userHabits.find(h => h.name.toLowerCase().includes(params.habitName.toLowerCase()));
+    const habit = userHabits.find((h) =>
+      h.name.toLowerCase().includes(params.habitName.toLowerCase())
+    );
 
     if (!habit) {
       return [
@@ -478,13 +504,14 @@ export const analyzeHabitSurvival = llm.tool({
         `I don't have data on "${params.habitName}".`,
         '',
         `Your tracked habits:`,
-        ...userHabits.map(h => `• ${h.name} (${h.streak} day streak)`),
+        ...userHabits.map((h) => `• ${h.name} (${h.streak} day streak)`),
       ].join('\n');
     }
 
     // Calculate survival metrics
     const daysSinceStart = (Date.now() - habit.startDate.getTime()) / (1000 * 60 * 60 * 24);
-    const completionRate = daysSinceStart > 0 ? (habit.completions.length / daysSinceStart) * 100 : 0;
+    const completionRate =
+      daysSinceStart > 0 ? (habit.completions.length / daysSinceStart) * 100 : 0;
     const breakCount = habit.breaks.length;
 
     // Calculate survival curve (simplified Kaplan-Meier style)
@@ -502,14 +529,25 @@ export const analyzeHabitSurvival = llm.tool({
       riskPeriods.push({ period: 'Days 3-7', risk: 'high', reason: 'Initial motivation fading' });
     }
     if (daysSinceStart < 21) {
-      riskPeriods.push({ period: 'Days 14-21', risk: 'high', reason: 'The "21-day myth" danger zone' });
+      riskPeriods.push({
+        period: 'Days 14-21',
+        risk: 'high',
+        reason: 'The "21-day myth" danger zone',
+      });
     }
-    riskPeriods.push({ period: 'After disruptions', risk: 'medium', reason: 'Travel, illness, holidays' });
+    riskPeriods.push({
+      period: 'After disruptions',
+      risk: 'medium',
+      reason: 'Travel, illness, holidays',
+    });
 
     // Current survival probability
-    const currentSurvival = survivalCurve.find(s => s.day >= daysSinceStart)?.probability || 60;
+    const currentSurvival = survivalCurve.find((s) => s.day >= daysSinceStart)?.probability || 60;
 
-    log.info({ userId, habit: habit.name, survival: currentSurvival }, '📊 Habit survival analysis');
+    log.info(
+      { userId, habit: habit.name, survival: currentSurvival },
+      '📊 Habit survival analysis'
+    );
 
     return [
       `📊 **HABIT SURVIVAL ANALYSIS: ${habit.name.toUpperCase()}**`,
@@ -530,8 +568,10 @@ export const analyzeHabitSurvival = llm.tool({
       '',
       `**Survival Curve (probability of still doing this habit):**`,
       '',
-      ...survivalCurve.map(s => {
-        const bar = '█'.repeat(Math.round(s.probability / 10)) + '░'.repeat(10 - Math.round(s.probability / 10));
+      ...survivalCurve.map((s) => {
+        const bar =
+          '█'.repeat(Math.round(s.probability / 10)) +
+          '░'.repeat(10 - Math.round(s.probability / 10));
         const marker = s.day <= daysSinceStart ? ' ← YOU ARE HERE' : '';
         return `Day ${s.day.toString().padStart(2)}: ${bar} ${s.probability}%${marker}`;
       }),
@@ -540,14 +580,18 @@ export const analyzeHabitSurvival = llm.tool({
       `⚠️ **RISK PERIODS**`,
       `═══════════════════════════════════`,
       '',
-      ...riskPeriods.map(r => `• **${r.period}** (${r.risk} risk): ${r.reason}`),
+      ...riskPeriods.map((r) => `• **${r.period}** (${r.risk} risk): ${r.reason}`),
       '',
       `═══════════════════════════════════`,
       `💪 **SURVIVAL FACTORS**`,
       `═══════════════════════════════════`,
       '',
-      completionRate > 70 ? `✅ Strong consistency - major survival factor` : `⚠️ Consistency needs work`,
-      habit.longestStreak >= 14 ? `✅ Proven ability to maintain streaks` : `⚠️ Build longer streaks`,
+      completionRate > 70
+        ? `✅ Strong consistency - major survival factor`
+        : `⚠️ Consistency needs work`,
+      habit.longestStreak >= 14
+        ? `✅ Proven ability to maintain streaks`
+        : `⚠️ Build longer streaks`,
       breakCount < 3 ? `✅ Few breaks - good recovery` : `⚠️ Multiple breaks - address root cause`,
       '',
       `═══════════════════════════════════`,
@@ -572,7 +616,8 @@ export const analyzeCounterfactual = llm.tool({
   parameters: z.object({
     decision: z.string().describe('The decision you made'),
     alternative: z.string().describe('What you could have done instead'),
-    domain: z.enum(['financial', 'career', 'health', 'relationship', 'habit'])
+    domain: z
+      .enum(['financial', 'career', 'health', 'relationship', 'habit'])
       .describe('Domain of decision'),
     timeframe: z.string().describe('How long ago (e.g., "6 months", "1 year")'),
   }),
@@ -581,7 +626,10 @@ export const analyzeCounterfactual = llm.tool({
     { ctx }: { ctx: unknown }
   ) => {
     const userId = getUserIdFromContext(ctx);
-    log.info({ userId, decision: params.decision, domain: params.domain }, '🔄 Counterfactual analysis');
+    log.info(
+      { userId, decision: params.decision, domain: params.domain },
+      '🔄 Counterfactual analysis'
+    );
 
     // Domain-specific counterfactual patterns
     const patterns: Record<string, { factors: string[]; uncertainties: string[] }> = {
@@ -666,13 +714,13 @@ export const analyzeCounterfactual = llm.tool({
       `═══════════════════════════════════`,
       '',
       `**Factors to consider:**`,
-      ...domainPatterns.factors.map(f => `• ${f}`),
+      ...domainPatterns.factors.map((f) => `• ${f}`),
       '',
       `═══════════════════════════════════`,
       `❓ **KEY UNCERTAINTIES**`,
       `═══════════════════════════════════`,
       '',
-      ...domainPatterns.uncertainties.map(u => `• ${u}`),
+      ...domainPatterns.uncertainties.map((u) => `• ${u}`),
       '',
       `═══════════════════════════════════`,
       `🎯 **HONEST ASSESSMENT**`,
@@ -712,21 +760,23 @@ export const analyzeCounterfactual = llm.tool({
 
 export const predictLifeEventImpact = llm.tool({
   description:
-    "Predict how a major life event will ripple through your life. See impacts across domains and timeline.",
+    'Predict how a major life event will ripple through your life. See impacts across domains and timeline.',
   parameters: z.object({
     event: z.string().describe('The life event'),
-    eventType: z.enum([
-      'job_change',
-      'move',
-      'relationship_start',
-      'relationship_end',
-      'child',
-      'health_change',
-      'financial_windfall',
-      'financial_loss',
-      'education_start',
-      'retirement',
-    ]).describe('Type of event'),
+    eventType: z
+      .enum([
+        'job_change',
+        'move',
+        'relationship_start',
+        'relationship_end',
+        'child',
+        'health_change',
+        'financial_windfall',
+        'financial_loss',
+        'education_start',
+        'retirement',
+      ])
+      .describe('Type of event'),
     magnitude: z.enum(['minor', 'moderate', 'major']).describe('Size of the event'),
   }),
   execute: async (
@@ -734,20 +784,31 @@ export const predictLifeEventImpact = llm.tool({
     { ctx }: { ctx: unknown }
   ) => {
     const userId = getUserIdFromContext(ctx);
-    log.info({ userId, event: params.event, type: params.eventType }, '🌊 Life event impact prediction');
+    log.info(
+      { userId, event: params.event, type: params.eventType },
+      '🌊 Life event impact prediction'
+    );
 
     // Impact patterns by event type
-    const impactPatterns: Record<string, {
-      areas: { area: string; impact: string; duration: string; peakTime: string }[];
-      preparation: string[];
-      warnings: string[];
-      recovery: string;
-    }> = {
+    const impactPatterns: Record<
+      string,
+      {
+        areas: { area: string; impact: string; duration: string; peakTime: string }[];
+        preparation: string[];
+        warnings: string[];
+        recovery: string;
+      }
+    > = {
       job_change: {
         areas: [
           { area: 'Income', impact: 'major', duration: 'permanent', peakTime: 'immediate' },
           { area: 'Stress', impact: 'major', duration: '3-6 months', peakTime: 'first month' },
-          { area: 'Relationships', impact: 'moderate', duration: '6 months', peakTime: '2-3 months' },
+          {
+            area: 'Relationships',
+            impact: 'moderate',
+            duration: '6 months',
+            peakTime: '2-3 months',
+          },
           { area: 'Identity', impact: 'moderate', duration: '6-12 months', peakTime: '3-6 months' },
           { area: 'Habits', impact: 'major', duration: '2-3 months', peakTime: 'first month' },
         ],
@@ -766,9 +827,19 @@ export const predictLifeEventImpact = llm.tool({
       move: {
         areas: [
           { area: 'Routines', impact: 'major', duration: '2-3 months', peakTime: 'first month' },
-          { area: 'Relationships', impact: 'major', duration: '6-12 months', peakTime: '3-6 months' },
+          {
+            area: 'Relationships',
+            impact: 'major',
+            duration: '6-12 months',
+            peakTime: '3-6 months',
+          },
           { area: 'Finances', impact: 'major', duration: '3 months', peakTime: 'first month' },
-          { area: 'Mental health', impact: 'moderate', duration: '6 months', peakTime: '2-3 months' },
+          {
+            area: 'Mental health',
+            impact: 'moderate',
+            duration: '6 months',
+            peakTime: '2-3 months',
+          },
         ],
         preparation: [
           'Identify anchor habits that travel with you',
@@ -786,14 +857,19 @@ export const predictLifeEventImpact = llm.tool({
         areas: [
           { area: 'Energy', impact: 'major', duration: 'varies', peakTime: 'first 3 months' },
           { area: 'Mood', impact: 'major', duration: '6+ months', peakTime: 'first month' },
-          { area: 'Relationships', impact: 'moderate', duration: 'ongoing', peakTime: '1-2 months' },
+          {
+            area: 'Relationships',
+            impact: 'moderate',
+            duration: 'ongoing',
+            peakTime: '1-2 months',
+          },
           { area: 'Finances', impact: 'moderate', duration: 'ongoing', peakTime: '2-3 months' },
           { area: 'Identity', impact: 'major', duration: '12+ months', peakTime: '3-6 months' },
         ],
         preparation: [
           'Build support system before you need it',
           'Simplify other areas of life',
-          'Document what helps and what doesn\'t',
+          "Document what helps and what doesn't",
         ],
         warnings: [
           'Grief is normal even for non-terminal changes',
@@ -804,8 +880,18 @@ export const predictLifeEventImpact = llm.tool({
       },
       relationship_start: {
         areas: [
-          { area: 'Time allocation', impact: 'major', duration: 'permanent', peakTime: 'first 6 months' },
-          { area: 'Friendships', impact: 'moderate', duration: '6-12 months', peakTime: '3-6 months' },
+          {
+            area: 'Time allocation',
+            impact: 'major',
+            duration: 'permanent',
+            peakTime: 'first 6 months',
+          },
+          {
+            area: 'Friendships',
+            impact: 'moderate',
+            duration: '6-12 months',
+            peakTime: '3-6 months',
+          },
           { area: 'Finances', impact: 'moderate', duration: 'permanent', peakTime: '6-12 months' },
           { area: 'Habits', impact: 'moderate', duration: '3-6 months', peakTime: '2-3 months' },
         ],
@@ -823,8 +909,18 @@ export const predictLifeEventImpact = llm.tool({
       },
       relationship_end: {
         areas: [
-          { area: 'Emotional wellbeing', impact: 'major', duration: '6-12 months', peakTime: '1-3 months' },
-          { area: 'Social network', impact: 'major', duration: '6+ months', peakTime: '2-4 months' },
+          {
+            area: 'Emotional wellbeing',
+            impact: 'major',
+            duration: '6-12 months',
+            peakTime: '1-3 months',
+          },
+          {
+            area: 'Social network',
+            impact: 'major',
+            duration: '6+ months',
+            peakTime: '2-4 months',
+          },
           { area: 'Finances', impact: 'major', duration: '6 months', peakTime: 'immediate' },
           { area: 'Identity', impact: 'major', duration: '12+ months', peakTime: '3-6 months' },
           { area: 'Productivity', impact: 'major', duration: '3-6 months', peakTime: '1-2 months' },
@@ -843,10 +939,30 @@ export const predictLifeEventImpact = llm.tool({
       },
       financial_windfall: {
         areas: [
-          { area: 'Stress (initially)', impact: 'moderate', duration: '1-3 months', peakTime: 'first month' },
-          { area: 'Relationships', impact: 'moderate', duration: '6+ months', peakTime: '2-4 months' },
-          { area: 'Decision quality', impact: 'major', duration: '3 months', peakTime: 'first month' },
-          { area: 'Lifestyle inflation', impact: 'major', duration: 'permanent', peakTime: '3-6 months' },
+          {
+            area: 'Stress (initially)',
+            impact: 'moderate',
+            duration: '1-3 months',
+            peakTime: 'first month',
+          },
+          {
+            area: 'Relationships',
+            impact: 'moderate',
+            duration: '6+ months',
+            peakTime: '2-4 months',
+          },
+          {
+            area: 'Decision quality',
+            impact: 'major',
+            duration: '3 months',
+            peakTime: 'first month',
+          },
+          {
+            area: 'Lifestyle inflation',
+            impact: 'major',
+            duration: 'permanent',
+            peakTime: '3-6 months',
+          },
         ],
         preparation: [
           'Wait 3-6 months before major decisions',
@@ -856,14 +972,19 @@ export const predictLifeEventImpact = llm.tool({
         warnings: [
           '70% of lottery winners end up worse off',
           'Lifestyle inflation is the #1 danger',
-          "Money amplifies existing patterns - good and bad",
+          'Money amplifies existing patterns - good and bad',
         ],
         recovery: 'N/A - focus on not creating problems',
       },
       child: {
         areas: [
           { area: 'Sleep', impact: 'major', duration: '2+ years', peakTime: 'first year' },
-          { area: 'Relationship', impact: 'major', duration: 'permanent', peakTime: 'first 2 years' },
+          {
+            area: 'Relationship',
+            impact: 'major',
+            duration: 'permanent',
+            peakTime: 'first 2 years',
+          },
           { area: 'Finances', impact: 'major', duration: 'permanent', peakTime: 'ongoing' },
           { area: 'Identity', impact: 'major', duration: 'permanent', peakTime: 'first year' },
           { area: 'Time', impact: 'major', duration: 'permanent', peakTime: 'first 5 years' },
@@ -884,7 +1005,12 @@ export const predictLifeEventImpact = llm.tool({
         areas: [
           { area: 'Identity', impact: 'major', duration: '12-24 months', peakTime: '3-6 months' },
           { area: 'Purpose', impact: 'major', duration: '12+ months', peakTime: '6-12 months' },
-          { area: 'Social connections', impact: 'major', duration: 'permanent', peakTime: '6-12 months' },
+          {
+            area: 'Social connections',
+            impact: 'major',
+            duration: 'permanent',
+            peakTime: '6-12 months',
+          },
           { area: 'Health', impact: 'moderate', duration: 'permanent', peakTime: '12+ months' },
         ],
         preparation: [
@@ -903,8 +1029,18 @@ export const predictLifeEventImpact = llm.tool({
         areas: [
           { area: 'Time', impact: 'major', duration: 'program length', peakTime: 'first semester' },
           { area: 'Finances', impact: 'major', duration: 'program length+', peakTime: 'ongoing' },
-          { area: 'Stress', impact: 'major', duration: 'program length', peakTime: 'finals/deadlines' },
-          { area: 'Relationships', impact: 'moderate', duration: 'program length', peakTime: 'first 6 months' },
+          {
+            area: 'Stress',
+            impact: 'major',
+            duration: 'program length',
+            peakTime: 'finals/deadlines',
+          },
+          {
+            area: 'Relationships',
+            impact: 'moderate',
+            duration: 'program length',
+            peakTime: 'first 6 months',
+          },
         ],
         preparation: [
           'Build sustainable study habits before starting',
@@ -921,8 +1057,18 @@ export const predictLifeEventImpact = llm.tool({
       financial_loss: {
         areas: [
           { area: 'Stress', impact: 'major', duration: '6-12 months', peakTime: 'first 3 months' },
-          { area: 'Relationships', impact: 'moderate', duration: '6 months', peakTime: '2-4 months' },
-          { area: 'Decision quality', impact: 'major', duration: '3 months', peakTime: 'first month' },
+          {
+            area: 'Relationships',
+            impact: 'moderate',
+            duration: '6 months',
+            peakTime: '2-4 months',
+          },
+          {
+            area: 'Decision quality',
+            impact: 'major',
+            duration: '3 months',
+            peakTime: 'first month',
+          },
           { area: 'Identity', impact: 'moderate', duration: '6+ months', peakTime: '2-4 months' },
         ],
         preparation: [
@@ -953,24 +1099,26 @@ export const predictLifeEventImpact = llm.tool({
       `📊 **PREDICTED IMPACTS BY AREA**`,
       `═══════════════════════════════════`,
       '',
-      ...pattern.areas.map(a => [
-        `**${a.area}**`,
-        `• Impact: ${a.impact}`,
-        `• Duration: ${a.duration}`,
-        `• Peak difficulty: ${a.peakTime}`,
-        '',
-      ].join('\n')),
+      ...pattern.areas.map((a) =>
+        [
+          `**${a.area}**`,
+          `• Impact: ${a.impact}`,
+          `• Duration: ${a.duration}`,
+          `• Peak difficulty: ${a.peakTime}`,
+          '',
+        ].join('\n')
+      ),
       `═══════════════════════════════════`,
       `📝 **PREPARATION STEPS**`,
       `═══════════════════════════════════`,
       '',
-      ...pattern.preparation.map(p => `• ${p}`),
+      ...pattern.preparation.map((p) => `• ${p}`),
       '',
       `═══════════════════════════════════`,
       `⚠️ **WARNING SIGNALS**`,
       `═══════════════════════════════════`,
       '',
-      ...pattern.warnings.map(w => `• ${w}`),
+      ...pattern.warnings.map((w) => `• ${w}`),
       '',
       `═══════════════════════════════════`,
       `⏰ **RECOVERY TIMELINE**`,

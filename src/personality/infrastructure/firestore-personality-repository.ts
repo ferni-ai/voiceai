@@ -132,7 +132,10 @@ export class FirestorePersonalityRepository implements PersonalityRepository {
 
       await docRef.set(profileData, { merge: true });
 
-      log.debug({ userId: profile.userId, personaId: profile.personaId }, 'Saved personality profile');
+      log.debug(
+        { userId: profile.userId, personaId: profile.personaId },
+        'Saved personality profile'
+      );
     } catch (error) {
       log.error({ error, userId: profile.userId }, 'Failed to save personality profile');
     }
@@ -410,9 +413,7 @@ export class FirestorePersonalityRepository implements PersonalityRepository {
       // Save patterns
       if (options?.patterns) {
         for (const pattern of options.patterns) {
-          const patternRef = db
-            .collection(COLLECTIONS.patterns(profile.userId))
-            .doc(pattern.id);
+          const patternRef = db.collection(COLLECTIONS.patterns(profile.userId)).doc(pattern.id);
           batch.set(patternRef, pattern.toPersistence());
         }
       }
@@ -420,9 +421,7 @@ export class FirestorePersonalityRepository implements PersonalityRepository {
       // Save vulnerabilities
       if (options?.vulnerabilities) {
         for (const vuln of options.vulnerabilities) {
-          const vulnRef = db
-            .collection(COLLECTIONS.vulnerabilities(profile.userId))
-            .doc(vuln.id);
+          const vulnRef = db.collection(COLLECTIONS.vulnerabilities(profile.userId)).doc(vuln.id);
           batch.set(vulnRef, vuln.toPersistence());
         }
       }

@@ -228,10 +228,7 @@ export class NativeBindingGuard extends EventEmitter {
 
     // Check circuit breaker
     if (!this.circuitBreaker.canExecute()) {
-      log.warn(
-        { binding: this.config.name, operation },
-        'Circuit breaker open, using fallback'
-      );
+      log.warn({ binding: this.config.name, operation }, 'Circuit breaker open, using fallback');
 
       if (fallback) {
         return fallback();
@@ -333,7 +330,9 @@ export class NativeBindingGuard extends EventEmitter {
   private async executeWithTimeout<T>(fn: () => Promise<T>, operation: string): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const timeoutId = setTimeout(() => {
-        reject(new TimeoutError(`Operation ${operation} timed out after ${this.config.timeoutMs}ms`));
+        reject(
+          new TimeoutError(`Operation ${operation} timed out after ${this.config.timeoutMs}ms`)
+        );
       }, this.config.timeoutMs);
 
       fn()

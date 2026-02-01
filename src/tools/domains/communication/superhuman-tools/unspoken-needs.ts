@@ -12,7 +12,10 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from '../../../../services/superhuman/firestore-utils.js';
+import {
+  getFirestoreDb,
+  cleanForFirestore,
+} from '../../../../services/superhuman/firestore-utils.js';
 import type { UnspokenNeed } from './types.js';
 
 const log = createLogger({ module: 'unspoken-needs' });
@@ -54,7 +57,7 @@ const NEED_CATEGORIES: Record<
     ],
     betterExpressions: [
       "I'd love to be included more. It means a lot to me to be part of things.",
-      'When I\'m not invited, I start to feel like I don\'t belong. That\'s probably not your intent.',
+      "When I'm not invited, I start to feel like I don't belong. That's probably not your intent.",
       'Being included matters to me more than I usually say.',
     ],
   },
@@ -69,7 +72,7 @@ const NEED_CATEGORIES: Record<
     betterExpressions: [
       'I need to feel like I have some choice in this.',
       'It helps me when I can decide how to approach things.',
-      "I work better when I feel trusted to figure things out.",
+      'I work better when I feel trusted to figure things out.',
     ],
   },
   competence: {
@@ -83,7 +86,7 @@ const NEED_CATEGORIES: Record<
     betterExpressions: [
       'I need to feel like my contributions matter.',
       "It helps when you acknowledge what's working, not just what needs fixing.",
-      'I want to feel like I\'m doing a good job.',
+      "I want to feel like I'm doing a good job.",
     ],
   },
   security: {
@@ -96,7 +99,7 @@ const NEED_CATEGORIES: Record<
     ],
     betterExpressions: [
       'I need more predictability to feel secure.',
-      "It helps me when I know what to expect.",
+      'It helps me when I know what to expect.',
       "I feel better when there's some consistency.",
     ],
   },
@@ -125,7 +128,7 @@ const NEED_CATEGORIES: Record<
     betterExpressions: [
       'I miss feeling close to you.',
       'I need to feel like you really hear me.',
-      'I want more moments where we\'re really present with each other.',
+      "I want more moments where we're really present with each other.",
     ],
   },
   respect: {
@@ -139,7 +142,7 @@ const NEED_CATEGORIES: Record<
     betterExpressions: [
       'I need to feel like my perspective matters to you.',
       'It helps when you take my input seriously.',
-      "I want to feel seen and valued, not dismissed.",
+      'I want to feel seen and valued, not dismissed.',
     ],
   },
 };
@@ -217,16 +220,13 @@ function generateWhyItMatters(category: NeedCategory, complaint: string): string
       'When you name the need to belong instead of the specific incident, it opens a conversation about the relationship, not just one event.',
     autonomy:
       'Asking for autonomy directly is more likely to get a positive response than pushing back against control.',
-    competence:
-      'Asking for acknowledgment is more empowering than complaining about criticism.',
-    security:
-      'Naming your need for security invites problem-solving instead of defensiveness.',
+    competence: 'Asking for acknowledgment is more empowering than complaining about criticism.',
+    security: 'Naming your need for security invites problem-solving instead of defensiveness.',
     meaning:
       'Expressing a need for meaning invites deeper conversation than expressing frustration.',
     connection:
       'Asking for connection is vulnerable but more likely to create it than complaining about distance.',
-    respect:
-      'Asking to be respected is clearer than cataloging ways you\'ve been disrespected.',
+    respect: "Asking to be respected is clearer than cataloging ways you've been disrespected.",
   };
 
   return explanations[category];
@@ -263,7 +263,11 @@ export async function saveUnspokenNeed(
         .set(cleanForFirestore(fullNeed));
 
       log.info(
-        { userId, needCategory: need.needCategory, surfaceComplaint: need.surfaceComplaint.slice(0, 50) },
+        {
+          userId,
+          needCategory: need.needCategory,
+          surfaceComplaint: need.surfaceComplaint.slice(0, 50),
+        },
         '💭 Unspoken need saved'
       );
     }
@@ -348,9 +352,7 @@ export async function markNeedAddressed(userId: string, needId: string): Promise
 /**
  * Analyze need patterns for a user.
  */
-export async function analyzeNeedPatterns(
-  userId: string
-): Promise<{
+export async function analyzeNeedPatterns(userId: string): Promise<{
   dominantNeeds: Array<{ category: NeedCategory; frequency: number }>;
   recurringPeople: Array<{ person: string; needs: NeedCategory[] }>;
   insight: string;
@@ -423,7 +425,9 @@ export async function buildNeedsContext(userId: string): Promise<string> {
     sections.push('\n**Recurring Unmet Needs:**');
     for (const { category, frequency } of patterns.dominantNeeds.slice(0, 3)) {
       const info = NEED_CATEGORIES[category];
-      sections.push(`• ${category.charAt(0).toUpperCase() + category.slice(1)}: ${info.description} (${frequency}x)`);
+      sections.push(
+        `• ${category.charAt(0).toUpperCase() + category.slice(1)}: ${info.description} (${frequency}x)`
+      );
     }
   }
 
@@ -449,7 +453,7 @@ export function generateTranslationPrompt(complaint: string): string {
   const translation = translateToNeed(complaint);
 
   if (!translation) {
-    return 'I hear frustration, but I\'m not sure what the underlying need is. Can you tell me more about what you wish was different?';
+    return "I hear frustration, but I'm not sure what the underlying need is. Can you tell me more about what you wish was different?";
   }
 
   return `When you say "${complaint.slice(0, 50)}...", I hear a need for ${translation.needCategory}.

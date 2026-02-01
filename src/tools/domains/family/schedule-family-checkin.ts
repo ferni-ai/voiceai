@@ -15,6 +15,7 @@
 
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
+import type { DayOfWeek } from '../../../services/family/proactive-family-checkin.js';
 
 const log = getLogger().child({ module: 'schedule-family-checkin' });
 
@@ -132,21 +133,22 @@ Examples:
       if (!userId) {
         return {
           success: false,
-          message: "I need to know who you are to schedule family check-ins.",
+          message: 'I need to know who you are to schedule family check-ins.',
         };
       }
 
       try {
         // Find the sponsored identity by name
-        const { getSponsoredIdentities } = await import(
-          '../../../services/identity/sponsored-identity.js'
-        );
+        const { getSponsoredIdentities } =
+          await import('../../../services/identity/sponsored-identity.js');
         const identities = await getSponsoredIdentities(userId);
 
         // Find by name (case-insensitive)
         const identity = identities.find(
-          (id) => id.displayName.toLowerCase() === args.familyMemberName.toLowerCase() ||
-                 (id.preferredName && id.preferredName.toLowerCase() === args.familyMemberName.toLowerCase())
+          (id) =>
+            id.displayName.toLowerCase() === args.familyMemberName.toLowerCase() ||
+            (id.preferredName &&
+              id.preferredName.toLowerCase() === args.familyMemberName.toLowerCase())
         );
 
         if (!identity) {
@@ -166,12 +168,11 @@ Examples:
         }
 
         // Get user's timezone if not specified
-        const timezone = args.timezone || await getUserTimezone(userId) || 'America/New_York';
+        const timezone = args.timezone || (await getUserTimezone(userId)) || 'America/New_York';
 
         // Create the schedule
-        const { createCheckinSchedule } = await import(
-          '../../../services/family/proactive-family-checkin.js'
-        );
+        const { createCheckinSchedule } =
+          await import('../../../services/family/proactive-family-checkin.js');
 
         const schedule = await createCheckinSchedule({
           sponsorUserId: userId,
@@ -180,7 +181,7 @@ Examples:
           relationship: identity.relationship,
           phoneNumber: identity.phoneNumber,
           frequency: args.frequency === 'once' ? 'custom' : args.frequency,
-          daysOfWeek: args.dayOfWeek ? [args.dayOfWeek.toLowerCase() as any] : undefined,
+          daysOfWeek: args.dayOfWeek ? [args.dayOfWeek.toLowerCase() as DayOfWeek] : undefined,
           preferredTime,
           timezone,
           isActive: true,
@@ -217,7 +218,7 @@ Examples:
         log.error({ error: String(error), userId }, 'Failed to schedule family check-in');
         return {
           success: false,
-          message: "I had trouble setting that up. Could you try again?",
+          message: 'I had trouble setting that up. Could you try again?',
         };
       }
     },
@@ -247,28 +248,26 @@ Use when the user asks:
       },
       required: [],
     },
-    execute: async (args: {
-      includeInactive?: boolean;
-    }): Promise<ListSchedulesResult> => {
+    execute: async (args: { includeInactive?: boolean }): Promise<ListSchedulesResult> => {
       const userId = ctx.userId;
       if (!userId) {
         return {
           success: false,
-          message: "I need to know who you are to show your schedules.",
+          message: 'I need to know who you are to show your schedules.',
         };
       }
 
       try {
-        const { getCheckinSchedules } = await import(
-          '../../../services/family/proactive-family-checkin.js'
-        );
+        const { getCheckinSchedules } =
+          await import('../../../services/family/proactive-family-checkin.js');
 
         const schedules = await getCheckinSchedules(userId, !args.includeInactive);
 
         if (schedules.length === 0) {
           return {
             success: true,
-            message: "You don't have any family check-ins scheduled yet. Would you like me to set some up? Just tell me who to call and when.",
+            message:
+              "You don't have any family check-ins scheduled yet. Would you like me to set some up? Just tell me who to call and when.",
           };
         }
 
@@ -282,7 +281,8 @@ Use when the user asks:
 
         const activeCount = scheduleList.filter((s) => s.isActive).length;
         const summaryLines = scheduleList.map(
-          (s) => `• ${s.name}: ${s.frequency}, next call ${s.nextCall}${s.isActive ? '' : ' (paused)'}`
+          (s) =>
+            `• ${s.name}: ${s.frequency}, next call ${s.nextCall}${s.isActive ? '' : ' (paused)'}`
         );
 
         return {
@@ -294,7 +294,7 @@ Use when the user asks:
         log.error({ error: String(error), userId }, 'Failed to list family check-ins');
         return {
           success: false,
-          message: "I had trouble getting your schedules. Could you try again?",
+          message: 'I had trouble getting your schedules. Could you try again?',
         };
       }
     },
@@ -336,19 +336,18 @@ Use when the user asks:
       if (!userId) {
         return {
           success: false,
-          message: "I need to know who you are to show call status.",
+          message: 'I need to know who you are to show call status.',
         };
       }
 
       try {
         // Find the schedule for this family member
-        const { getCheckinSchedules, getRecentCallRecords, generateBriefingSummary } = await import(
-          '../../../services/family/proactive-family-checkin.js'
-        );
+        const { getCheckinSchedules, getRecentCallRecords, generateBriefingSummary } =
+          await import('../../../services/family/proactive-family-checkin.js');
 
         const schedules = await getCheckinSchedules(userId, false);
-        const schedule = schedules.find(
-          (s) => s.familyMemberName.toLowerCase().includes(args.familyMemberName.toLowerCase())
+        const schedule = schedules.find((s) =>
+          s.familyMemberName.toLowerCase().includes(args.familyMemberName.toLowerCase())
         );
 
         if (!schedule) {
@@ -387,7 +386,7 @@ Use when the user asks:
         log.error({ error: String(error), userId }, 'Failed to get check-in status');
         return {
           success: false,
-          message: "I had trouble getting that information. Could you try again?",
+          message: 'I had trouble getting that information. Could you try again?',
         };
       }
     },
@@ -430,18 +429,17 @@ Examples:
       if (!userId) {
         return {
           success: false,
-          message: "I need to know who you are to manage schedules.",
+          message: 'I need to know who you are to manage schedules.',
         };
       }
 
       try {
-        const { getCheckinSchedules, toggleCheckinSchedule } = await import(
-          '../../../services/family/proactive-family-checkin.js'
-        );
+        const { getCheckinSchedules, toggleCheckinSchedule } =
+          await import('../../../services/family/proactive-family-checkin.js');
 
         const schedules = await getCheckinSchedules(userId, false);
-        const schedule = schedules.find(
-          (s) => s.familyMemberName.toLowerCase().includes(args.familyMemberName.toLowerCase())
+        const schedule = schedules.find((s) =>
+          s.familyMemberName.toLowerCase().includes(args.familyMemberName.toLowerCase())
         );
 
         if (!schedule) {
@@ -469,7 +467,7 @@ Examples:
         log.error({ error: String(error), userId }, 'Failed to toggle check-in');
         return {
           success: false,
-          message: "I had trouble with that. Could you try again?",
+          message: 'I had trouble with that. Could you try again?',
         };
       }
     },
@@ -593,9 +591,7 @@ function formatCallDate(date: Date): string {
  */
 async function getUserTimezone(userId: string): Promise<string | null> {
   try {
-    const { getUserContactInfo } = await import(
-      '../../../services/outreach/user-contact.js'
-    );
+    const { getUserContactInfo } = await import('../../../services/outreach/user-contact.js');
     const contact = await getUserContactInfo(userId);
     return contact?.timezone || null;
   } catch {

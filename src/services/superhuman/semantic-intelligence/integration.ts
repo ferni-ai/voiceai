@@ -780,15 +780,16 @@ async function recordRelationalData(data: TurnSemanticData): Promise<void> {
   let enhancedPersons = extractPersons(userText);
 
   // V4.0: If regex found nothing or low confidence, use LLM hybrid extraction
-  const maxRegexConfidence = enhancedPersons.length > 0 
-    ? Math.max(...enhancedPersons.map(p => p.confidence)) 
-    : 0;
+  const maxRegexConfidence =
+    enhancedPersons.length > 0 ? Math.max(...enhancedPersons.map((p) => p.confidence)) : 0;
   if (enhancedPersons.length === 0 || maxRegexConfidence < 0.6) {
     try {
       const llmPersons = await extractPersonsHybrid(userText);
       if (llmPersons.length > 0) {
-        log.debug({ regexCount: enhancedPersons.length, llmCount: llmPersons.length }, 
-          '🤖 LLM hybrid extraction found additional persons');
+        log.debug(
+          { regexCount: enhancedPersons.length, llmCount: llmPersons.length },
+          '🤖 LLM hybrid extraction found additional persons'
+        );
         enhancedPersons = llmPersons;
       }
     } catch (e) {
@@ -1093,13 +1094,16 @@ export async function detectAdviceOutcome(userId: string, userText: string): Pro
       if (adviceCheck.containsAdvice && adviceCheck.confidence > 0.6) {
         // User might be talking about following/not following advice
         mentionsAdvice = true;
-        log.debug({ confidence: adviceCheck.confidence }, '🤖 LLM detected potential advice reference');
+        log.debug(
+          { confidence: adviceCheck.confidence },
+          '🤖 LLM detected potential advice reference'
+        );
       }
     } catch (e) {
       log.debug({ error: String(e) }, 'LLM advice check failed, using regex only');
     }
   }
-  
+
   if (!mentionsAdvice) {
     return; // User isn't talking about advice
   }

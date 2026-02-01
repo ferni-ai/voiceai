@@ -111,9 +111,8 @@ The theme parameter should be what the user said (e.g., "dark mode", "lighter", 
           const normalizedTheme = parseTheme(theme);
 
           // Import broadcast service dynamically to avoid circular deps
-          const { broadcastUserEvent, persistThemePreference } = await import(
-            '../../../services/user-events/index.js'
-          );
+          const { broadcastUserEvent, persistThemePreference } =
+            await import('../../../services/user-events/index.js');
 
           // Broadcast theme change to UI
           if (ctx.userId) {
@@ -140,7 +139,10 @@ The theme parameter should be what the user said (e.g., "dark mode", "lighter", 
 
           return confirmations[normalizedTheme];
         } catch (error) {
-          log.error({ error: String(error), userId: ctx.userId, theme }, '🎨 Failed to switch theme');
+          log.error(
+            { error: String(error), userId: ctx.userId, theme },
+            '🎨 Failed to switch theme'
+          );
           return "I had trouble switching themes. You can also change it in the settings menu if you'd like.";
         }
       },
@@ -155,7 +157,8 @@ The theme parameter should be what the user said (e.g., "dark mode", "lighter", 
 const getCurrentThemeDef: ToolDefinition = {
   id: 'getCurrentTheme',
   name: 'Get Current Theme',
-  description: 'Gets the current theme setting. Call this when the user asks about their current theme.',
+  description:
+    'Gets the current theme setting. Call this when the user asks about their current theme.',
   domain: 'settings',
   tags: ['theme', 'preferences', 'status'],
 

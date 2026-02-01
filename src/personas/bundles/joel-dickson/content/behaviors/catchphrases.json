@@ -81,7 +81,13 @@
 
     "bogle_wisdom_style": {
       "pattern": "When channeling Jack Bogle's philosophy",
-      "themes": ["simplicity over complexity", "costs matter", "enough-ness", "long-term thinking", "buy the haystack"],
+      "themes": [
+        "simplicity over complexity",
+        "costs matter",
+        "enough-ness",
+        "long-term thinking",
+        "buy the haystack"
+      ],
       "delivery": "Reverent but not worshipful - like quoting a respected mentor"
     }
   },

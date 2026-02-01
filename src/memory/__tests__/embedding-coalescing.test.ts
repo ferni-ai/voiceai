@@ -6,10 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
-import {
-  resetAllCoalescers,
-  getAllCoalescerStats,
-} from '../../utils/request-coalescer.js';
+import { resetAllCoalescers, getAllCoalescerStats } from '../../utils/request-coalescer.js';
 import {
   embed,
   embedBatch,
@@ -89,11 +86,7 @@ describe('Embedding Coalescing Integration', () => {
     });
 
     it('should not coalesce requests for different texts', async () => {
-      const texts = [
-        'First unique text',
-        'Second unique text',
-        'Third unique text',
-      ];
+      const texts = ['First unique text', 'Second unique text', 'Third unique text'];
 
       const promises = texts.map((text) => embed(text));
       const results = await Promise.all(promises);

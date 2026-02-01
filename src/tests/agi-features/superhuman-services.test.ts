@@ -9,9 +9,19 @@ import { generateTestUserId, createMockFirestoreDb } from './index.js';
 const mockFirestoreDb = createMockFirestoreDb();
 vi.mock('../../utils/firestore-utils.js', () => ({ getFirestoreDb: vi.fn(() => mockFirestoreDb) }));
 
-import { generateLifeTrajectory, getLatestTrajectory } from '../../services/superhuman/life-trajectory-engine.js';
-import { generateHabitCompoundModel, generateFinancialCompoundModel, getUserCompoundModels } from '../../services/superhuman/compound-effects.js';
-import { generateLifeSynthesis, getLatestSynthesis } from '../../services/superhuman/cross-domain-synthesis.js';
+import {
+  generateLifeTrajectory,
+  getLatestTrajectory,
+} from '../../services/superhuman/life-trajectory-engine.js';
+import {
+  generateHabitCompoundModel,
+  generateFinancialCompoundModel,
+  getUserCompoundModels,
+} from '../../services/superhuman/compound-effects.js';
+import {
+  generateLifeSynthesis,
+  getLatestSynthesis,
+} from '../../services/superhuman/cross-domain-synthesis.js';
 
 describe('Superhuman Services', () => {
   let testUserId: string;
@@ -46,16 +56,28 @@ describe('Superhuman Services', () => {
 
   describe('Compound Effects', () => {
     it('should generate model for fitness habit', () => {
-      const model = generateHabitCompoundModel({ id: 'h1', name: 'Exercise', category: 'fitness', consistency: 75, streak: 30 });
+      const model = generateHabitCompoundModel({
+        id: 'h1',
+        name: 'Exercise',
+        category: 'fitness',
+        consistency: 75,
+        streak: 30,
+      });
       expect(model.habitId).toBe('h1');
       expect(model.habitName).toBe('Exercise');
       expect(model.category).toBe('fitness');
     });
 
     it('should generate projections for all timeframes', () => {
-      const model = generateHabitCompoundModel({ id: 'h2', name: 'Reading', category: 'learning', consistency: 60, streak: 15 });
+      const model = generateHabitCompoundModel({
+        id: 'h2',
+        name: 'Reading',
+        category: 'learning',
+        consistency: 60,
+        streak: 15,
+      });
       expect(model.projections.length).toBeGreaterThan(0);
-      const timeframes = model.projections.map(p => p.timeframe);
+      const timeframes = model.projections.map((p) => p.timeframe);
       expect(timeframes).toContain('1 month');
       expect(timeframes).toContain('1 year');
     });
@@ -86,7 +108,7 @@ describe('Superhuman Services', () => {
 
     it('should analyze all life domains', async () => {
       const synthesis = await generateLifeSynthesis(testUserId);
-      const domainNames = synthesis.domains.map(d => d.name);
+      const domainNames = synthesis.domains.map((d) => d.name);
       expect(domainNames).toContain('health');
       expect(domainNames).toContain('career');
       expect(domainNames).toContain('relationships');

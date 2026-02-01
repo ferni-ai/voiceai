@@ -1,0 +1,12 @@
+{
+  "model_name": "ferni-tool-calling-v1",
+  "endpoint": "projects/1031920444452/locations/us-central1/endpoints/3553884364251070464",
+  "base_model": "gemini-2.0-flash-001",
+  "training_examples": 8287,
+  "trained_at": "2026-01-21",
+  "purpose": "Reliable tool calling for voice agent",
+  "usage": {
+    "python": "model = GenerativeModel('projects/1031920444452/locations/us-central1/endpoints/3553884364251070464')",
+    "model_id": "projects/johnb-2025/locations/us-central1/endpoints/3553884364251070464"
+  }
+}

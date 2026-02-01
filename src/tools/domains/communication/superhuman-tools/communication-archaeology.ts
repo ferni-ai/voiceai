@@ -11,7 +11,10 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from '../../../../services/superhuman/firestore-utils.js';
+import {
+  getFirestoreDb,
+  cleanForFirestore,
+} from '../../../../services/superhuman/firestore-utils.js';
 import type { CommunicationEvent, ContactCommunicationProfile } from './types.js';
 
 const log = createLogger({ module: 'communication-archaeology' });
@@ -348,7 +351,10 @@ export async function buildArchaeologyContext(
   currentTopic?: string
 ): Promise<string> {
   const [history, profile] = await Promise.all([
-    getConversationHistory(userId, contactName, { limit: MAX_EVENTS_TO_SURFACE, topic: currentTopic }),
+    getConversationHistory(userId, contactName, {
+      limit: MAX_EVENTS_TO_SURFACE,
+      topic: currentTopic,
+    }),
     getContactProfile(userId, contactName),
   ]);
 
@@ -370,7 +376,9 @@ export async function buildArchaeologyContext(
     }
 
     if (profile.ineffectiveApproaches.length > 0) {
-      sections.push(`❌ What doesn't work: ${profile.ineffectiveApproaches.slice(0, 3).join(', ')}`);
+      sections.push(
+        `❌ What doesn't work: ${profile.ineffectiveApproaches.slice(0, 3).join(', ')}`
+      );
     }
 
     if (profile.triggerPhrases.length > 0) {
@@ -430,11 +438,10 @@ export async function buildGeneralArchaeologyContext(userId: string): Promise<st
   for (const [contact, events] of Array.from(byContact.entries())) {
     const latestEvent = events[0];
     const daysAgo = Math.floor((Date.now() - latestEvent.occurredAt) / (24 * 60 * 60 * 1000));
-    const sentimentEmoji = latestEvent.sentiment > 0.3 ? '😊' : latestEvent.sentiment < -0.3 ? '😟' : '😐';
+    const sentimentEmoji =
+      latestEvent.sentiment > 0.3 ? '😊' : latestEvent.sentiment < -0.3 ? '😟' : '😐';
 
-    sections.push(
-      `• ${contact}: ${latestEvent.summary} (${daysAgo}d ago) ${sentimentEmoji}`
-    );
+    sections.push(`• ${contact}: ${latestEvent.summary} (${daysAgo}d ago) ${sentimentEmoji}`);
   }
 
   return sections.join('\n');
@@ -494,7 +501,16 @@ function detectSentiment(transcript: string): number {
   const lower = transcript.toLowerCase();
 
   // Positive indicators
-  const positiveWords = ['great', 'good', 'happy', 'glad', 'relieved', 'better', 'resolved', 'agreed'];
+  const positiveWords = [
+    'great',
+    'good',
+    'happy',
+    'glad',
+    'relieved',
+    'better',
+    'resolved',
+    'agreed',
+  ];
   const negativeWords = [
     'bad',
     'terrible',

@@ -16,7 +16,11 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { generateReply, type GatewayOptions, type GatewayResult } from './generate-reply-gateway.js';
+import {
+  generateReply,
+  type GatewayOptions,
+  type GatewayResult,
+} from './generate-reply-gateway.js';
 import type { voice } from '@livekit/agents';
 import type { UserData } from './types.js';
 
@@ -83,10 +87,7 @@ export function onGenerationStarted(sessionId: string, responseId?: string): voi
   state.sdkGenerationStartedAt = Date.now();
   state.currentResponseId = responseId;
 
-  log.debug(
-    { sessionId, responseId },
-    '📡 SDK generation started - orchestrator tracking'
-  );
+  log.debug({ sessionId, responseId }, '📡 SDK generation started - orchestrator tracking');
 }
 
 /**
@@ -181,7 +182,10 @@ export function canTriggerProactive(sessionId: string): boolean {
   // Not safe if SDK is generating
   if (state.sdkGenerating) {
     log.debug(
-      { sessionId, generatingFor: state.sdkGenerationStartedAt ? Date.now() - state.sdkGenerationStartedAt : 0 },
+      {
+        sessionId,
+        generatingFor: state.sdkGenerationStartedAt ? Date.now() - state.sdkGenerationStartedAt : 0,
+      },
       '🚫 Cannot trigger proactive - SDK is generating'
     );
     return false;
@@ -190,7 +194,10 @@ export function canTriggerProactive(sessionId: string): boolean {
   // Not safe if agent is speaking
   if (state.agentSpeaking) {
     log.debug(
-      { sessionId, speakingFor: state.agentSpeakingStartedAt ? Date.now() - state.agentSpeakingStartedAt : 0 },
+      {
+        sessionId,
+        speakingFor: state.agentSpeakingStartedAt ? Date.now() - state.agentSpeakingStartedAt : 0,
+      },
       '🚫 Cannot trigger proactive - agent is speaking'
     );
     return false;

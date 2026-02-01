@@ -1,17 +1,17 @@
 {
   "$schema": "../tool.schema.json",
   "domain": "time",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "tools": [
     {
       "name": "getCurrentTime",
-      "description": "Get the current time in user's local timezone or a specific timezone.",
+      "description": "Get the current time. Returns formatted time string.\n\n**TRIGGER WORDS:** 'what time', 'time is it', 'current time', 'time in'.\n\n**CRITICAL:** When user asks the time, CALL THIS FUNCTION — do NOT guess or make up a time.\n\n**RETURNS:** Current time as formatted string (e.g., '3:45 PM').",
       "parameters": {
         "type": "object",
         "properties": {
           "timezone": {
             "type": "string",
-            "description": "Timezone to get time for. Examples: 'America/New_York', 'Europe/London', 'Asia/Tokyo'. Defaults to user's local timezone."
+            "description": "IANA timezone (e.g., 'America/New_York', 'Europe/London', 'Asia/Tokyo'). Omit for user's local timezone."
           }
         },
         "required": []
@@ -19,53 +19,77 @@
       "examples": [
         { "userSays": "What time is it?", "output": "{\"fn\":\"getCurrentTime\",\"args\":{}}" },
         { "userSays": "What's the time?", "output": "{\"fn\":\"getCurrentTime\",\"args\":{}}" },
-        { "userSays": "What time is it in Tokyo?", "output": "{\"fn\":\"getCurrentTime\",\"args\":{\"timezone\":\"Asia/Tokyo\"}}" },
-        { "userSays": "Time in London", "output": "{\"fn\":\"getCurrentTime\",\"args\":{\"timezone\":\"Europe/London\"}}" }
+        {
+          "userSays": "What time is it in Tokyo?",
+          "output": "{\"fn\":\"getCurrentTime\",\"args\":{\"timezone\":\"Asia/Tokyo\"}}"
+        },
+        {
+          "userSays": "Time in London",
+          "output": "{\"fn\":\"getCurrentTime\",\"args\":{\"timezone\":\"Europe/London\"}}"
+        }
       ],
       "tags": ["time", "utility", "information"]
     },
     {
       "name": "getCalendar",
-      "description": "Get calendar events for today or a specific date range.",
+      "description": "Get calendar events. Returns list of events with titles and times.\n\n**TRIGGER WORDS:** 'calendar', 'schedule', 'meetings', 'what do I have', 'my day', 'any events'.\n\n**CRITICAL:** When user asks about their schedule, CALL THIS FUNCTION — do NOT make up events.\n\n**RETURNS:** Array of events with title, time, location. Empty array if no events.",
       "parameters": {
         "type": "object",
         "properties": {
           "date": {
             "type": "string",
-            "description": "Date to check. Can be 'today', 'tomorrow', 'this week', or a specific date."
+            "description": "Date: 'today' (default), 'tomorrow', 'this week', or specific date 'YYYY-MM-DD'."
           }
         },
         "required": []
       },
       "examples": [
         { "userSays": "What's on my calendar?", "output": "{\"fn\":\"getCalendar\",\"args\":{}}" },
-        { "userSays": "What do I have today?", "output": "{\"fn\":\"getCalendar\",\"args\":{\"date\":\"today\"}}" },
-        { "userSays": "Any meetings tomorrow?", "output": "{\"fn\":\"getCalendar\",\"args\":{\"date\":\"tomorrow\"}}" },
-        { "userSays": "What's my week look like?", "output": "{\"fn\":\"getCalendar\",\"args\":{\"date\":\"this week\"}}" }
+        {
+          "userSays": "What do I have today?",
+          "output": "{\"fn\":\"getCalendar\",\"args\":{\"date\":\"today\"}}"
+        },
+        {
+          "userSays": "Any meetings tomorrow?",
+          "output": "{\"fn\":\"getCalendar\",\"args\":{\"date\":\"tomorrow\"}}"
+        },
+        {
+          "userSays": "What's my week look like?",
+          "output": "{\"fn\":\"getCalendar\",\"args\":{\"date\":\"this week\"}}"
+        }
       ],
       "tags": ["calendar", "schedule", "productivity"]
     },
     {
       "name": "scheduleReminder",
-      "description": "Set a reminder for a specific time.",
+      "description": "Set a reminder. Returns confirmation with scheduled time.\n\n**TRIGGER WORDS:** 'remind me', 'reminder', 'don't let me forget', 'remember to'.\n\n**CRITICAL:** When user asks to be reminded, CALL THIS FUNCTION FIRST, then confirm.\n\n**RETURNS:** Confirmation with exact time the reminder is set for.",
       "parameters": {
         "type": "object",
         "properties": {
           "message": {
             "type": "string",
-            "description": "What to be reminded about"
+            "description": "What to remind about. Use user's exact words."
           },
           "when": {
             "type": "string",
-            "description": "When to be reminded. Can be natural language like '5pm', 'in 30 minutes', 'tomorrow at 9am'."
+            "description": "When to remind. Natural language: '5pm', 'in 30 minutes', 'tomorrow at 9am', 'in 2 hours'."
           }
         },
         "required": ["message", "when"]
       },
       "examples": [
-        { "userSays": "Remind me to call Mom at 5", "output": "{\"fn\":\"scheduleReminder\",\"args\":{\"message\":\"call Mom\",\"when\":\"5pm\"}}" },
-        { "userSays": "Set a reminder in 30 minutes to take medicine", "output": "{\"fn\":\"scheduleReminder\",\"args\":{\"message\":\"take medicine\",\"when\":\"in 30 minutes\"}}" },
-        { "userSays": "Remind me tomorrow to send the report", "output": "{\"fn\":\"scheduleReminder\",\"args\":{\"message\":\"send the report\",\"when\":\"tomorrow morning\"}}" }
+        {
+          "userSays": "Remind me to call Mom at 5",
+          "output": "{\"fn\":\"scheduleReminder\",\"args\":{\"message\":\"call Mom\",\"when\":\"5pm\"}}"
+        },
+        {
+          "userSays": "Set a reminder in 30 minutes to take medicine",
+          "output": "{\"fn\":\"scheduleReminder\",\"args\":{\"message\":\"take medicine\",\"when\":\"in 30 minutes\"}}"
+        },
+        {
+          "userSays": "Remind me tomorrow to send the report",
+          "output": "{\"fn\":\"scheduleReminder\",\"args\":{\"message\":\"send the report\",\"when\":\"tomorrow morning\"}}"
+        }
       ],
       "tags": ["reminder", "scheduling", "productivity"]
     }

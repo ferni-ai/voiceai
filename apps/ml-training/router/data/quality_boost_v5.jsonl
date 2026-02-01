@@ -1,0 +1,261 @@
+{"query": "Hand me off to Nayan", "selected_tools": ["handoffToNayan"]}
+{"query": "I think Maya would be better for this", "selected_tools": ["handoffToMaya"]}
+{"query": "How cold is it right now?", "selected_tools": ["getWeather"]}
+{"query": "Alex handles my communication stuff", "selected_tools": ["handoffToAlex"]}
+{"query": "Switch me over to Maya", "selected_tools": ["handoffToMaya"]}
+{"query": "Get Jordan on the line", "selected_tools": ["handoffToJordan"]}
+{"query": "I need to de-stress", "selected_tools": ["calmingTechnique"]}
+{"query": "Guide me through sensory grounding", "selected_tools": ["groundingExercise"]}
+{"query": "Switch to Peter for market analysis", "selected_tools": ["handoffToPeter"]}
+{"query": "I'd like to speak with Alex", "selected_tools": ["handoffToAlex"]}
+{"query": "Return me to Ferni", "selected_tools": ["handoffToFerni"]}
+{"query": "Let me talk to Maya", "selected_tools": ["handoffToMaya"]}
+{"query": "Help me get present", "selected_tools": ["groundingExercise"]}
+{"query": "Get Peter on the line", "selected_tools": ["handoffToPeter"]}
+{"query": "Switch to Jordan for planning", "selected_tools": ["handoffToJordan"]}
+{"query": "Mark my journaling as done for today", "selected_tools": ["logHabit"]}
+{"query": "Can I talk to Nayan?", "selected_tools": ["handoffToNayan"]}
+{"query": "Help me calm down", "selected_tools": ["calmingTechnique"]}
+{"query": "Connect me with Nayan", "selected_tools": ["handoffToNayan"]}
+{"query": "Break down my habit performance", "selected_tools": ["habitStats"]}
+{"query": "Give me detailed habit stats", "selected_tools": ["habitStats"]}
+{"query": "Review my habits for me", "selected_tools": ["getHabitProgress"]}
+{"query": "Let me talk to Jordan", "selected_tools": ["handoffToJordan"]}
+{"query": "I need Jordan for my celebration planning", "selected_tools": ["handoffToJordan"]}
+{"query": "Can Alex check my upcoming meetings?", "selected_tools": ["handoffToAlex"]}
+{"query": "Show me how I'm doing with my daily habits", "selected_tools": ["getHabitProgress"]}
+{"query": "I want Ferni", "selected_tools": ["handoffToFerni"]}
+{"query": "Let's get Nayan's take on this", "selected_tools": ["handoffToNayan"]}
+{"query": "Do I need an umbrella today?", "selected_tools": ["getWeather"]}
+{"query": "I need to center myself", "selected_tools": ["groundingExercise"]}
+{"query": "Show me my habit progress", "selected_tools": ["getHabitProgress"]}
+{"query": "Let Nayan take over", "selected_tools": ["handoffToNayan"]}
+{"query": "Let's get Maya involved", "selected_tools": ["handoffToMaya"]}
+{"query": "Let Alex take over for scheduling", "selected_tools": ["handoffToAlex"]}
+{"query": "Check my habit progress", "selected_tools": ["getHabitProgress"]}
+{"query": "Bring in Maya", "selected_tools": ["handoffToMaya"]}
+{"query": "I need to relax", "selected_tools": ["calmingTechnique"]}
+{"query": "I'd prefer talking to Nayan about meaning", "selected_tools": ["handoffToNayan"]}
+{"query": "Help me with some calming techniques", "selected_tools": ["calmingTechnique"]}
+{"query": "Look up what time the store closes", "selected_tools": ["webSearch"]}
+{"query": "I'm feeling overwhelmed", "selected_tools": ["calmingTechnique"]}
+{"query": "Any news updates?", "selected_tools": ["headlines"]}
+{"query": "I think Jordan would be better for this", "selected_tools": ["handoffToJordan"]}
+{"query": "How many days in a row have I done my habits?", "selected_tools": ["habitStats"]}
+{"query": "Let me talk to Ferni", "selected_tools": ["handoffToFerni"]}
+{"query": "Peter's the expert on stocks", "selected_tools": ["handoffToPeter"]}
+{"query": "Bring in Nayan", "selected_tools": ["handoffToNayan"]}
+{"query": "I want Nayan's wisdom on this", "selected_tools": ["handoffToNayan"]}
+{"query": "Transfer me to Peter please", "selected_tools": ["handoffToPeter"]}
+{"query": "Jordan would know about goal setting", "selected_tools": ["handoffToJordan"]}
+{"query": "Which habits need more work?", "selected_tools": ["habitStats"]}
+{"query": "Walk me through a grounding exercise", "selected_tools": ["groundingExercise"]}
+{"query": "Is it going to rain tomorrow?", "selected_tools": ["getWeather"]}
+{"query": "Go back to the main assistant", "selected_tools": ["handoffToFerni"]}
+{"query": "Is Alex available?", "selected_tools": ["handoffToAlex"]}
+{"query": "Can you pass me to Peter?", "selected_tools": ["handoffToPeter"]}
+{"query": "Grounding technique please", "selected_tools": ["groundingExercise"]}
+{"query": "Nayan's the one for philosophical stuff", "selected_tools": ["handoffToNayan"]}
+{"query": "Check the weather for me", "selected_tools": ["getWeather"]}
+{"query": "Let me talk to Nayan", "selected_tools": ["handoffToNayan"]}
+{"query": "I'm having a panic attack", "selected_tools": ["calmingTechnique"]}
+{"query": "Get Maya on the line", "selected_tools": ["handoffToMaya"]}
+{"query": "Transfer me to Alex please", "selected_tools": ["handoffToAlex"]}
+{"query": "I'd prefer Alex for this scheduling task", "selected_tools": ["handoffToAlex"]}
+{"query": "Bring in Alex", "selected_tools": ["handoffToAlex"]}
+{"query": "Maya would know more about habit tracking", "selected_tools": ["handoffToMaya"]}
+{"query": "Switch me over to Nayan", "selected_tools": ["handoffToNayan"]}
+{"query": "I can't stop worrying", "selected_tools": ["calmingTechnique"]}
+{"query": "Switch me over to Peter", "selected_tools": ["handoffToPeter"]}
+{"query": "I just finished my morning meditation", "selected_tools": ["logHabit"]}
+{"query": "Let's get Peter's insight on this", "selected_tools": ["handoffToPeter"]}
+{"query": "Transfer to Jordan", "selected_tools": ["handoffToJordan"]}
+{"query": "Transfer me to Maya please", "selected_tools": ["handoffToMaya"]}
+{"query": "Is it sunny outside?", "selected_tools": ["getWeather"]}
+{"query": "What's the weather in Chicago?", "selected_tools": ["getWeather"]}
+{"query": "What are today's top stories?", "selected_tools": ["headlines"]}
+{"query": "Log that I ate a healthy breakfast", "selected_tools": ["logHabit"]}
+{"query": "What's my longest habit streak?", "selected_tools": ["habitStats"]}
+{"query": "Get Nayan on the line", "selected_tools": ["handoffToNayan"]}
+{"query": "Can Peter look at my portfolio?", "selected_tools": ["handoffToPeter"]}
+{"query": "Put Ferni on", "selected_tools": ["handoffToFerni"]}
+{"query": "Give me a news update", "selected_tools": ["headlines"]}
+{"query": "Transfer me to Jordan please", "selected_tools": ["handoffToJordan"]}
+{"query": "I took my vitamins", "selected_tools": ["logHabit"]}
+{"query": "I want Jordan's help planning my milestones", "selected_tools": ["handoffToJordan"]}
+{"query": "Connect me with Peter", "selected_tools": ["handoffToPeter"]}
+{"query": "Help me come back to the present moment", "selected_tools": ["groundingExercise"]}
+{"query": "Connect me with Maya", "selected_tools": ["handoffToMaya"]}
+{"query": "Any breaking news?", "selected_tools": ["headlines"]}
+{"query": "Can you do the 5-4-3-2-1 technique with me?", "selected_tools": ["groundingExercise"]}
+{"query": "I need Alex for email management", "selected_tools": ["handoffToAlex"]}
+{"query": "Can Peter help me analyze this stock?", "selected_tools": ["handoffToPeter"]}
+{"query": "What's going on in the world?", "selected_tools": ["headlines"]}
+{"query": "Log that I went for a run", "selected_tools": ["logHabit"]}
+{"query": "Can I talk to Maya about my habits?", "selected_tools": ["handoffToMaya"]}
+{"query": "Weather forecast please", "selected_tools": ["getWeather"]}
+{"query": "Transfer to Nayan", "selected_tools": ["handoffToNayan"]}
+{"query": "Show me my habit history", "selected_tools": ["habitStats"]}
+{"query": "Hand me off to Peter", "selected_tools": ["handoffToPeter"]}
+{"query": "I'm feeling really anxious right now", "selected_tools": ["calmingTechnique"]}
+{"query": "Can you guide me through a breathing exercise?", "selected_tools": ["calmingTechnique"]}
+{"query": "Put Jordan on", "selected_tools": ["handoffToJordan"]}
+{"query": "I'd prefer Jordan for life event planning", "selected_tools": ["handoffToJordan"]}
+{"query": "I think Peter would know about this", "selected_tools": ["handoffToPeter"]}
+{"query": "What's my habit completion rate?", "selected_tools": ["getHabitProgress"]}
+{"query": "Help me feel grounded", "selected_tools": ["groundingExercise"]}
+{"query": "Is there a storm coming?", "selected_tools": ["getWeather"]}
+{"query": "What's the weather like today?", "selected_tools": ["getWeather"]}
+{"query": "Back to Ferni please", "selected_tools": ["handoffToFerni"]}
+{"query": "Can Nayan help me think through this?", "selected_tools": ["handoffToNayan"]}
+{"query": "I just finished my yoga practice", "selected_tools": ["logHabit"]}
+{"query": "Nayan would have good insight", "selected_tools": ["handoffToNayan"]}
+{"query": "Switch to Alex for calendar management", "selected_tools": ["handoffToAlex"]}
+{"query": "Put Peter on", "selected_tools": ["handoffToPeter"]}
+{"query": "Connect me with Ferni again", "selected_tools": ["handoffToFerni"]}
+{"query": "I'm stressed out", "selected_tools": ["calmingTechnique"]}
+{"query": "Switch to Nayan for wisdom", "selected_tools": ["handoffToNayan"]}
+{"query": "I'd rather discuss finances with Peter", "selected_tools": ["handoffToPeter"]}
+{"query": "How many habits have I completed this week?", "selected_tools": ["getHabitProgress"]}
+{"query": "Check off my morning routine", "selected_tools": ["logHabit"]}
+{"query": "I'd like to speak with Jordan", "selected_tools": ["handoffToJordan"]}
+{"query": "Find me information about solar panels", "selected_tools": ["webSearch"]}
+{"query": "I drank 8 glasses of water today", "selected_tools": ["logHabit"]}
+{"query": "Search for reviews of the new iPhone", "selected_tools": ["webSearch"]}
+{"query": "Tell me what's happening in the world", "selected_tools": ["headlines"]}
+{"query": "Give me an update on my habits", "selected_tools": ["getHabitProgress"]}
+{"query": "Maya's the one I need for coaching", "selected_tools": ["handoffToMaya"]}
+{"query": "Let me talk to Peter", "selected_tools": ["handoffToPeter"]}
+{"query": "Can you help me focus on my senses?", "selected_tools": ["groundingExercise"]}
+{"query": "What does my habit data look like?", "selected_tools": ["habitStats"]}
+{"query": "Take me back to Ferni", "selected_tools": ["handoffToFerni"]}
+{"query": "I want to go back to Ferni", "selected_tools": ["handoffToFerni"]}
+{"query": "I need something to ground me right now", "selected_tools": ["groundingExercise"]}
+{"query": "Log my workout", "selected_tools": ["logHabit"]}
+{"query": "Am I keeping up with my habits?", "selected_tools": ["getHabitProgress"]}
+{"query": "Look up how to start a business", "selected_tools": ["webSearch"]}
+{"query": "I think Nayan would understand this better", "selected_tools": ["handoffToNayan"]}
+{"query": "Am I on track with my routines?", "selected_tools": ["getHabitProgress"]}
+{"query": "Show me my habit statistics", "selected_tools": ["habitStats"]}
+{"query": "Connect me with Alex", "selected_tools": ["handoffToAlex"]}
+{"query": "Peter would be better for financial advice", "selected_tools": ["handoffToPeter"]}
+{"query": "Show me habit analytics", "selected_tools": ["habitStats"]}
+{"query": "Let Peter take over for research", "selected_tools": ["handoffToPeter"]}
+{"query": "What are my habit stats?", "selected_tools": ["habitStats"]}
+{"query": "I'd like to speak with Nayan", "selected_tools": ["handoffToNayan"]}
+{"query": "Transfer me back to Ferni", "selected_tools": ["handoffToFerni"]}
+{"query": "Google the population of Japan", "selected_tools": ["webSearch"]}
+{"query": "Search for apartment listings in Boston", "selected_tools": ["webSearch"]}
+{"query": "Can you search for flights to New York?", "selected_tools": ["webSearch"]}
+{"query": "Get Alex on the line", "selected_tools": ["handoffToAlex"]}
+{"query": "Is Maya available?", "selected_tools": ["handoffToMaya"]}
+{"query": "Give me the latest headlines", "selected_tools": ["headlines"]}
+{"query": "Transfer me to Nayan please", "selected_tools": ["handoffToNayan"]}
+{"query": "Switch me over to Jordan", "selected_tools": ["handoffToJordan"]}
+{"query": "Give me a calming exercise", "selected_tools": ["calmingTechnique"]}
+{"query": "Give me the numbers on my habits", "selected_tools": ["habitStats"]}
+{"query": "I need Maya for my wellness goals", "selected_tools": ["handoffToMaya"]}
+{"query": "Can Jordan help me with life planning?", "selected_tools": ["handoffToJordan"]}
+{"query": "I practiced guitar today", "selected_tools": ["logHabit"]}
+{"query": "Google how to fix a leaky faucet", "selected_tools": ["webSearch"]}
+{"query": "Alex would be great for productivity", "selected_tools": ["handoffToAlex"]}
+{"query": "What's trending in the news?", "selected_tools": ["headlines"]}
+{"query": "I want Nayan's perspective on life", "selected_tools": ["handoffToNayan"]}
+{"query": "Catch me up on current events", "selected_tools": ["headlines"]}
+{"query": "Hand me off to Alex", "selected_tools": ["handoffToAlex"]}
+{"query": "Let Ferni take over", "selected_tools": ["handoffToFerni"]}
+{"query": "I want Peter's opinion on this investment", "selected_tools": ["handoffToPeter"]}
+{"query": "I completed my reading habit", "selected_tools": ["logHabit"]}
+{"query": "Find me a good plumber near me", "selected_tools": ["webSearch"]}
+{"query": "I want to work with Maya on this", "selected_tools": ["handoffToMaya"]}
+{"query": "What should I wear today based on the weather?", "selected_tools": ["getWeather"]}
+{"query": "I want Alex to help organize my day", "selected_tools": ["handoffToAlex"]}
+{"query": "What's in the news today?", "selected_tools": ["headlines"]}
+{"query": "Let me talk to Alex", "selected_tools": ["handoffToAlex"]}
+{"query": "Bring in Jordan", "selected_tools": ["handoffToJordan"]}
+{"query": "Jordan's great at milestone tracking", "selected_tools": ["handoffToJordan"]}
+{"query": "Is Peter available?", "selected_tools": ["handoffToPeter"]}
+{"query": "I want to work with Jordan on my plans", "selected_tools": ["handoffToJordan"]}
+{"query": "Will it snow this week?", "selected_tools": ["getWeather"]}
+{"query": "Is Nayan available?", "selected_tools": ["handoffToNayan"]}
+{"query": "Mark my exercise as done", "selected_tools": ["logHabit"]}
+{"query": "Show me a summary of my habits", "selected_tools": ["habitStats"]}
+{"query": "Can I talk to Peter about my investments?", "selected_tools": ["handoffToPeter"]}
+{"query": "Walk me through a relaxation exercise", "selected_tools": ["calmingTechnique"]}
+{"query": "How consistent have I been with my habits?", "selected_tools": ["getHabitProgress"]}
+{"query": "Transfer to Alex", "selected_tools": ["handoffToAlex"]}
+{"query": "Can Alex help me manage my meetings?", "selected_tools": ["handoffToAlex"]}
+{"query": "What's the humidity like?", "selected_tools": ["getWeather"]}
+{"query": "How have my habits been trending?", "selected_tools": ["habitStats"]}
+{"query": "Can you pass me to Maya?", "selected_tools": ["handoffToMaya"]}
+{"query": "Any important news I should know about?", "selected_tools": ["headlines"]}
+{"query": "Transfer to Peter", "selected_tools": ["handoffToPeter"]}
+{"query": "Search the internet for vegan recipes", "selected_tools": ["webSearch"]}
+{"query": "Can you pass me to Jordan?", "selected_tools": ["handoffToJordan"]}
+{"query": "What's the temperature outside?", "selected_tools": ["getWeather"]}
+{"query": "What's the forecast for this weekend?", "selected_tools": ["getWeather"]}
+{"query": "Can I talk to Jordan about my goals?", "selected_tools": ["handoffToJordan"]}
+{"query": "Search the web for best restaurants in San Francisco", "selected_tools": ["webSearch"]}
+{"query": "Switch to Maya for habit coaching", "selected_tools": ["handoffToMaya"]}
+{"query": "Let's get Jordan to help with this event", "selected_tools": ["handoffToJordan"]}
+{"query": "I want Peter's take on the market", "selected_tools": ["handoffToPeter"]}
+{"query": "Hand me back to Ferni", "selected_tools": ["handoffToFerni"]}
+{"query": "Can you pass me to Nayan?", "selected_tools": ["handoffToNayan"]}
+{"query": "How are my habits going?", "selected_tools": ["getHabitProgress"]}
+{"query": "Let Maya take over", "selected_tools": ["handoffToMaya"]}
+{"query": "Can you pass me to Alex?", "selected_tools": ["handoffToAlex"]}
+{"query": "Can you help me breathe?", "selected_tools": ["calmingTechnique"]}
+{"query": "Connect me with Jordan", "selected_tools": ["handoffToJordan"]}
+{"query": "Is Jordan available?", "selected_tools": ["handoffToJordan"]}
+{"query": "Transfer to Maya", "selected_tools": ["handoffToMaya"]}
+{"query": "Can Jordan help me plan my birthday party?", "selected_tools": ["handoffToJordan"]}
+{"query": "Help me wind down", "selected_tools": ["calmingTechnique"]}
+{"query": "I'm dissociating, can you help?", "selected_tools": ["groundingExercise"]}
+{"query": "Let Jordan take over", "selected_tools": ["handoffToJordan"]}
+{"query": "What habits have I done today?", "selected_tools": ["getHabitProgress"]}
+{"query": "I need some calm right now", "selected_tools": ["calmingTechnique"]}
+{"query": "I need Peter for my portfolio review", "selected_tools": ["handoffToPeter"]}
+{"query": "Mark my walk as complete", "selected_tools": ["logHabit"]}
+{"query": "Hand me off to Jordan", "selected_tools": ["handoffToJordan"]}
+{"query": "I need a grounding exercise", "selected_tools": ["groundingExercise"]}
+{"query": "Read me the news", "selected_tools": ["headlines"]}
+{"query": "Bring in Peter", "selected_tools": ["handoffToPeter"]}
+{"query": "What's my best habit streak?", "selected_tools": ["habitStats"]}
+{"query": "How's my habit tracking going?", "selected_tools": ["getHabitProgress"]}
+{"query": "I'd like to speak with Maya", "selected_tools": ["handoffToMaya"]}
+{"query": "I did my stretching", "selected_tools": ["logHabit"]}
+{"query": "Which habits am I doing best at?", "selected_tools": ["habitStats"]}
+{"query": "I need to feel more present", "selected_tools": ["groundingExercise"]}
+{"query": "Search for nearby hiking trails", "selected_tools": ["webSearch"]}
+{"query": "Do a body scan with me", "selected_tools": ["groundingExercise"]}
+{"query": "I want Alex's help with my calendar", "selected_tools": ["handoffToAlex"]}
+{"query": "Put Nayan on", "selected_tools": ["handoffToNayan"]}
+{"query": "I'm feeling disconnected, help me ground myself", "selected_tools": ["groundingExercise"]}
+{"query": "What are the headlines?", "selected_tools": ["headlines"]}
+{"query": "How hot will it get today?", "selected_tools": ["getWeather"]}
+{"query": "What's the latest news?", "selected_tools": ["headlines"]}
+{"query": "Can I talk to Alex about my schedule?", "selected_tools": ["handoffToAlex"]}
+{"query": "Look up the latest news about AI", "selected_tools": ["webSearch"]}
+{"query": "I want Maya's help with my routines", "selected_tools": ["handoffToMaya"]}
+{"query": "Can you look that up online?", "selected_tools": ["webSearch"]}
+{"query": "Switch back to Ferni", "selected_tools": ["handoffToFerni"]}
+{"query": "I think Alex would be better for this", "selected_tools": ["handoffToAlex"]}
+{"query": "Switch me over to Alex", "selected_tools": ["handoffToAlex"]}
+{"query": "Can Maya walk me through my progress?", "selected_tools": ["handoffToMaya"]}
+{"query": "Put Maya on", "selected_tools": ["handoffToMaya"]}
+{"query": "Can Maya help me with this?", "selected_tools": ["handoffToMaya"]}
+{"query": "Can Nayan share some perspective?", "selected_tools": ["handoffToNayan"]}
+{"query": "Find articles about climate change", "selected_tools": ["webSearch"]}
+{"query": "I'd prefer talking to Maya about this", "selected_tools": ["handoffToMaya"]}
+{"query": "Switch to Ferni", "selected_tools": ["handoffToFerni"]}
+{"query": "I studied for an hour", "selected_tools": ["logHabit"]}
+{"query": "What's my habit streak looking like?", "selected_tools": ["getHabitProgress"]}
+{"query": "What happened in the news?", "selected_tools": ["headlines"]}
+{"query": "I'd like to speak with Peter", "selected_tools": ["handoffToPeter"]}
+{"query": "How am I doing with my habits?", "selected_tools": ["getHabitProgress"]}
+{"query": "Let's get Alex to help with this", "selected_tools": ["handoffToAlex"]}
+{"query": "I need Nayan for some deeper reflection", "selected_tools": ["handoffToNayan"]}
+{"query": "Can I talk to Ferni?", "selected_tools": ["handoffToFerni"]}
+{"query": "Transfer to Ferni", "selected_tools": ["handoffToFerni"]}
+{"query": "Hand me off to Maya", "selected_tools": ["handoffToMaya"]}
+{"query": "Put Alex on", "selected_tools": ["handoffToAlex"]}

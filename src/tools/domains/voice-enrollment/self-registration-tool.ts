@@ -66,9 +66,8 @@ Parameters:
       }
 
       try {
-        const { createSelfRegisteredIdentity, lookupByPhone } = await import(
-          '../../../services/identity/sponsored-identity.js'
-        );
+        const { createSelfRegisteredIdentity, lookupByPhone } =
+          await import('../../../services/identity/sponsored-identity.js');
 
         // Check if already registered
         const existing = await lookupByPhone(callerPhone);
@@ -157,9 +156,8 @@ Parameters:
     },
     execute: async (args: { sponsorUserId?: string }): Promise<unknown> => {
       try {
-        const { getPendingIdentities } = await import(
-          '../../../services/identity/sponsored-identity.js'
-        );
+        const { getPendingIdentities } =
+          await import('../../../services/identity/sponsored-identity.js');
 
         const pending = await getPendingIdentities();
 

@@ -42,8 +42,7 @@ export class ResponseModeDecider implements IResponseModeDecider {
   }> = [];
 
   /** Track mode outcomes for adaptive learning */
-  private modeOutcomes: Map<ResponseMode, { positive: number; negative: number }> =
-    new Map();
+  private modeOutcomes: Map<ResponseMode, { positive: number; negative: number }> = new Map();
 
   constructor() {
     // Initialize outcome tracking
@@ -67,9 +66,7 @@ export class ResponseModeDecider implements IResponseModeDecider {
 
   decide(context: ResponseModeContext): ResponseModeDecision {
     // Sort rules by priority
-    const sortedRules = [...RESPONSE_MODE_RULES].sort(
-      (a, b) => a.priority - b.priority
-    );
+    const sortedRules = [...RESPONSE_MODE_RULES].sort((a, b) => a.priority - b.priority);
 
     // Find first matching rule
     for (const rule of sortedRules) {
@@ -270,14 +267,9 @@ export class ResponseModeDecider implements IResponseModeDecider {
   // LEARNING & TRACKING
   // ==========================================================================
 
-  recordOutcome(
-    mode: ResponseMode,
-    userReaction: 'positive' | 'neutral' | 'negative'
-  ): void {
+  recordOutcome(mode: ResponseMode, userReaction: 'positive' | 'neutral' | 'negative'): void {
     // Find most recent decision with this mode
-    const decision = [...this.recentDecisions]
-      .reverse()
-      .find((d) => d.mode === mode && !d.outcome);
+    const decision = [...this.recentDecisions].reverse().find((d) => d.mode === mode && !d.outcome);
 
     if (decision) {
       decision.outcome = userReaction;
@@ -293,10 +285,7 @@ export class ResponseModeDecider implements IResponseModeDecider {
       }
     }
 
-    log.debug(
-      { mode, reaction: userReaction },
-      'Response mode outcome recorded'
-    );
+    log.debug({ mode, reaction: userReaction }, 'Response mode outcome recorded');
   }
 
   reset(): void {
@@ -332,9 +321,7 @@ export class ResponseModeDecider implements IResponseModeDecider {
 
     if (rule.suggestedPhrases && rule.suggestedPhrases.length > 0) {
       suggestedSsml =
-        rule.suggestedPhrases[
-          Math.floor(Math.random() * rule.suggestedPhrases.length)
-        ];
+        rule.suggestedPhrases[Math.floor(Math.random() * rule.suggestedPhrases.length)];
       suggestedPhrase = suggestedSsml.replace(/<[^>]+>/g, '').trim();
     }
 
@@ -359,9 +346,7 @@ export class ResponseModeDecider implements IResponseModeDecider {
     const reasons: string[] = [];
 
     if (context.wasVenting) {
-      reasons.push(
-        `user was venting (intensity: ${context.userTurnIntensity.toFixed(2)})`
-      );
+      reasons.push(`user was venting (intensity: ${context.userTurnIntensity.toFixed(2)})`);
     }
     if (context.wasVulnerable) {
       reasons.push('user shared something vulnerable');

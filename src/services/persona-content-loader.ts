@@ -13,10 +13,28 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import { loadBundleById } from '../personas/bundles/index.js';
+// NOTE: Do NOT use static import from personas/bundles here!
+// It creates a circular dependency chain:
+// personas/bundles → conversation → services/persona-content-loader → personas/bundles
+// Instead, we use dynamic import below to break the cycle at compile time.
 import type { BundleBehaviors } from '../personas/bundles/types.js';
 
 const log = createLogger({ module: 'PersonaContentLoader' });
+
+// ============================================================================
+// DYNAMIC BUNDLE LOADER (breaks circular dependency)
+// ============================================================================
+
+/**
+ * Dynamically load the bundle loader to avoid circular dependency.
+ * This breaks the static import cycle while still allowing the functionality.
+ */
+async function loadBundleByIdDynamic(
+  personaId: string
+): Promise<{ getBehaviors: () => Promise<BundleBehaviors> } | null> {
+  const { loadBundleById } = await import('../personas/bundles/index.js');
+  return loadBundleById(personaId);
+}
 
 // ============================================================================
 // TYPES
@@ -715,6 +733,9 @@ export interface CoachingModes {
 
 export interface OutreachVoice {
   schema_version?: string;
+  name?: string;
+  description?: string;
+  version?: string;
   voice_profile?: {
     tone?: string;
     energy?: string;
@@ -727,29 +748,57 @@ export interface OutreachVoice {
     check_in?: string[];
     closing?: string[];
   };
+  emoji_usage?: {
+    frequency?: string;
+    preferred?: string[];
+    avoid?: string[];
+    max_per_message?: number;
+  };
   channel_styles?: Record<
     string,
     {
       format?: string;
       length?: string;
+      tone?: string;
+      sentences?: number[];
+      structure?: Record<string, string>;
+      signature?: string;
+      opening?: string;
+      pacing?: string;
+      allows_silence?: boolean;
       example?: string;
     }
   >;
-  trigger_templates?: Record<
-    string,
-    {
-      timing?: string;
-      phrases?: string[];
-    }
-  >;
+  trigger_templates?: {
+    thinking_of_you?: {
+      general?: string;
+      after_tough_conversation?: string;
+      celebration?: string;
+    };
+    gentle_check_in?: {
+      regular?: string;
+      after_absence?: string;
+      supportive?: string;
+    };
+    milestone?: {
+      anniversary?: string;
+      growth_noticed?: string;
+    };
+  };
   relationship_adaptations?: Record<
     string,
     {
+      formality?: string;
+      opening_style?: string;
+      closing_style?: string;
+      can_reference_shared_history?: boolean;
+      can_use_inside_jokes?: boolean;
       warmth?: string;
       depth?: string;
       frequency?: string;
     }
   >;
+  specialty_triggers?: string[];
   do_not?: string[];
   always_do?: string[];
 }
@@ -911,6 +960,41 @@ export interface InsightBriefing {
     detailed_handoff?: string[];
     returning_user?: string[];
   };
+}
+
+/**
+ * Team coordination content - handoff routing and team awareness.
+ * Enables Ferni to coordinate handoffs to the right specialist personas.
+ */
+export interface TeamCoordination {
+  schema_version?: number;
+  description?: string;
+  note?: string;
+  /** Handoff detection patterns for each domain */
+  handoff_detection?: {
+    pattern_analysis?: HandoffDomain;
+    communication_needs?: HandoffDomain;
+    habit_wellness?: HandoffDomain;
+    life_milestones?: HandoffDomain;
+    wisdom_perspective?: HandoffDomain;
+    crisis_support?: HandoffDomain;
+    [key: string]: HandoffDomain | undefined;
+  };
+  /** General team awareness phrases */
+  team_awareness?: string[];
+  /** Introduction templates for each team member */
+  team_introductions?: Record<string, string>;
+  /** Phrases for returning after handoff to another persona */
+  returning_after_handoff?: string[];
+}
+
+interface HandoffDomain {
+  triggers: string[];
+  confidence_threshold: number;
+  suggested_domain: string;
+  fallback_role?: string;
+  stay_with_ferni?: boolean;
+  phrases: string[];
 }
 
 // ============================================================================
@@ -1105,7 +1189,7 @@ export async function loadPersonaBehaviors(personaId: string): Promise<BundleBeh
   }
 
   try {
-    const bundle = await loadBundleById(personaId);
+    const bundle = await loadBundleByIdDynamic(personaId);
     if (!bundle) {
       log.warn({ personaId }, 'Persona bundle not found');
       return null;
@@ -1681,6 +1765,21 @@ export async function loadSensoryMoments(personaId = 'ferni'): Promise<SensoryMo
   return null;
 }
 
+/**
+ * Load team coordination content for a specific persona
+ * Used for handoff routing and team awareness
+ */
+export async function loadTeamCoordination(personaId = 'ferni'): Promise<TeamCoordination | null> {
+  const content = await loadPersonaContent<TeamCoordination>(personaId, 'team_coordination');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<TeamCoordination>('ferni', 'team_coordination');
+  }
+  return null;
+}
+
 // ============================================================================
 // HELPER: GET RANDOM PHRASE
 // ============================================================================
@@ -1761,6 +1860,7 @@ export default {
   loadVoiceDNA,
   loadPredictiveIntelligence,
   loadSensoryMoments,
+  loadTeamCoordination,
   // Life coaching domain loaders
   loadSecondChancesVoice,
   loadConnectionVoice,

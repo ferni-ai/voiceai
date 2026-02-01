@@ -36,9 +36,7 @@ export async function handleGetCommitments(
     const status = parsedUrl.searchParams.get('status'); // 'pending', 'completed', 'all'
     const type = parsedUrl.searchParams.get('type'); // commitment type filter
 
-    const { loadUserCommitments } = await import(
-      '../../services/superhuman/commitment-keeper.js'
-    );
+    const { loadUserCommitments } = await import('../../services/superhuman/commitment-keeper.js');
 
     let commitments = await loadUserCommitments(userId);
 
@@ -104,9 +102,8 @@ export async function handleUpdateCommitment(
 
     if (!body) return;
 
-    const { updateCommitmentStatus, loadUserCommitments } = await import(
-      '../../services/superhuman/commitment-keeper.js'
-    );
+    const { updateCommitmentStatus, loadUserCommitments } =
+      await import('../../services/superhuman/commitment-keeper.js');
 
     // Verify commitment belongs to user
     const commitments = await loadUserCommitments(userId);

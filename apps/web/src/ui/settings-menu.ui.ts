@@ -92,6 +92,10 @@ export interface SettingsMenuUICallbacks {
   onSupportFerniClick?: () => void;
   onPersonalizeClick?: () => void;
   onYourStoryClick?: () => void;
+  /**
+   * @deprecated Activity has been integrated into Your Story dashboard.
+   * This callback is no longer used - activity clicks redirect to Your Story.
+   */
   onActivityClick?: () => void;
   onYourYearClick?: () => void;
   onFutureInsightsClick?: () => void;
@@ -743,12 +747,12 @@ class SettingsMenuUI {
                Philosophy: The menu should feel like asking a friend 
                "What shall we do?" not navigating software.
                
+               STREAMLINED: 5 sections, ~25 items (from 6 sections, ~43 items)
                1. Let's Practice - Daily rituals and guided moments
-               2. How You're Doing - Our story, memories, reflections
+               2. Our Story - Memories, reflections, insights
                3. Let's Do Something - Active engagement & play
-               4. Your World - People, places, connections in your life
-               5. What We're Connected To - Apps and integrations
-               6. How This Works - Minimal settings, preferences
+               4. Your World - People, connections in your life
+               5. Settings - Preferences and account
                ============================================================ -->
 
           <!-- SECTION 1: Let's Practice - Daily rituals and guided moments -->
@@ -768,33 +772,25 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION 2: How You're Doing - Our story, memories, reflections -->
+          <!-- SECTION 2: Our Story - Memories, reflections, insights (consolidated) -->
           ${
             this.isSectionVisible('understandingYou')
               ? this.renderCollapsibleSection(
                   'understandingYou',
-                  t('menu.sections.understandingYou'),
+                  t('menu.sections.ourStory') || 'Our Story',
                   expandedSections.has('understandingYou'),
                   `
-            ${this.renderMenuItemWithBadge('what-i-do-for-you', ICONS.care, 'What I Do For You', t('common.new'))}
-            ${this.renderMenuItemWithBadge('hub', ICONS.hub, 'Your Day with Ferni', t('common.new'))}
             ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory') || 'Your Story')}
-            ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear') || 'Your Year with Ferni', t('common.new'))}
-            ${this.renderMenuItemWithBadge('future-insights', ICONS.sparkles, t('menu.items.whatIllKnow'), t('common.new'))}
-            ${this.renderMenuItemWithBadge('deep-insights', ICONS.brain, t('menu.items.whatINotice') || 'What I Notice', t('common.new'))}
-            ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
-            ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
-            ${this.renderMenuItemWithBadge('activity', ICONS.activity, t('menu.items.activity') || 'Activity', t('common.new'))}
             ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane') || 'Memory Lane', t('common.new'))}
-            ${this.renderMenuItemWithBadge('pattern-insights', ICONS.analytics, t('menu.items.patternInsights') || 'Your Patterns', t('common.new'))}
-            ${this.renderMenuItemWithBadge('conversation-insights', ICONS.heart, t('menu.items.conversationInsights') || 'How We Connect', t('common.new'))}
-            ${this.renderMenuItemWithBadge('growth-journal', ICONS.seedling, t('menu.items.growthJournal') || 'Growth Journal', t('common.new'))}
+            ${this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights') || 'Your Patterns')}
+            ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
+            ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear') || 'Your Year with Ferni', t('common.new'))}
           `
                 )
               : ''
           }
 
-          <!-- SECTION 3: Let's Do Something - Active engagement & play -->
+          <!-- SECTION 3: Let's Do Something - Active engagement & play (trimmed) -->
           ${
             this.isSectionVisible('waysToConnect')
               ? this.renderCollapsibleSection(
@@ -802,22 +798,18 @@ class SettingsMenuUI {
                   t('menu.sections.waysToConnect'),
                   expandedSections.has('waysToConnect'),
                   `
-            ${this.renderMenuItemWithBadge('vibe-controller', ICONS.sparkles, t('menu.items.setTheVibe'), t('common.new'))}
-            ${this.renderMenuItemWithBadge('smart-home', ICONS.home, t('menu.items.yourHome') || 'Your Home', t('common.new'))}
-            ${this.renderMenuItemWithBadge('journal', ICONS.journal, t('menu.items.journaling'), t('common.new'))}
-            ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
+            ${this.renderMenuItem('journal', ICONS.journal, t('menu.items.journaling'))}
             ${this.renderMenuItemWithBadge('knowledge-quiz', ICONS.lightbulb, t('menu.items.knowledgeQuiz') || 'How Well Do You Know Me?', t('common.new'))}
-            ${this.renderMenuItemWithBadge('music-dashboard', ICONS.music, t('menu.items.musicalYou'), t('common.updated'))}
-            ${this.renderMenuItemWithBadge('creative-you', ICONS.creative, t('menu.items.creativeYou'), t('common.new'))}
-            ${this.renderMenuItem('video-call-settings', ICONS.video, t('menu.items.videoSessions'))}
+            ${this.renderMenuItem('music-dashboard', ICONS.music, t('menu.items.musicalYou'))}
+            ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
+            ${this.renderMenuItem('vibe-controller', ICONS.sparkles, t('menu.items.setTheVibe'))}
             ${this.renderMenuItem('discover-agents', ICONS.compass, t('menu.items.discoverAgents'))}
-            ${this.renderMenuItem('together-sessions', ICONS.users, t('menu.items.togetherSessions'))}
           `
                 )
               : ''
           }
 
-          <!-- SECTION 4: Your World - People, places, connections in your life -->
+          <!-- SECTION 4: Your World - People and connections (merged with integrations) -->
           ${
             this.isSectionVisible('yourPeople')
               ? this.renderCollapsibleSection(
@@ -828,28 +820,14 @@ class SettingsMenuUI {
             ${this.renderMenuItem('contacts', ICONS.users, t('menu.items.contacts'))}
             ${this.renderMenuItem('household-members', ICONS.home, t('menu.items.householdMembers'))}
             ${this.renderMenuItem('family-callers', ICONS.phone, t('menu.items.familyCallers'))}
-          `
-                )
-              : ''
-          }
-
-          <!-- SECTION 5: What We're Connected To - Apps and integrations -->
-          ${
-            this.isSectionVisible('connectedLife')
-              ? this.renderCollapsibleSection(
-                  'connectedLife',
-                  t('menu.sections.connectedLife'),
-                  expandedSections.has('connectedLife'),
-                  `
             ${this.renderMenuItem('all-connections', ICONS.link, t('menu.items.allConnections'))}
           `
                 )
               : ''
           }
 
-          <!-- SECTION 6: How This Works - Minimal settings and preferences -->
+          <!-- SECTION 5: Settings - Preferences and account (streamlined) -->
           ${(() => {
-            // Debug log removed - use browser DevTools if needed
             return this.isSectionVisible('settings')
               ? this.renderCollapsibleSection(
                   'settings',
@@ -857,14 +835,10 @@ class SettingsMenuUI {
                   expandedSections.has('settings'),
                   `
             ${this.renderMenuItem('personal-settings', ICONS.palette, t('menu.items.personalize'))}
-            ${this.renderMenuItem('accent-settings', ICONS.globe, t('menu.items.voiceAccent'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.themeLanguage'))}
-            ${this.renderMenuItem('sleep-settings', ICONS.sleep, t('menu.items.sleepSchedule') || 'Sleep Schedule')}
             ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript') || 'Show Transcript', transcriptUI.isEnabled())}
             ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects') || 'Sound Effects', !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
-            ${this.renderMenuItem('contact-settings', ICONS.contact, t('menu.items.contactInfo'))}
-            ${this.renderMenuItem('support-ferni', ICONS.heart, t('menu.items.supportFerniExpanded'))}
             ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
@@ -1358,7 +1332,10 @@ class SettingsMenuUI {
         this.callbacks.onYourStoryClick?.();
         break;
       case 'activity':
-        this.callbacks.onActivityClick?.();
+        // DEPRECATED: Activity is now integrated into Your Story.
+        // Redirect to Your Story dashboard instead.
+        log.info('Activity is deprecated - redirecting to Your Story');
+        this.callbacks.onYourStoryClick?.();
         break;
       case 'your-year':
         this.callbacks.onYourYearClick?.();
@@ -1443,13 +1420,15 @@ class SettingsMenuUI {
         this.callbacks.onPatternInsightsClick?.();
         break;
       case 'conversation-insights':
-        this.callbacks.onConversationInsightsClick?.();
+        // Consolidated into Pattern Insights (Phase 2)
+        this.callbacks.onPatternInsightsClick?.();
         break;
       case 'knowledge-quiz':
         this.callbacks.onKnowledgeQuizClick?.();
         break;
       case 'growth-journal':
-        this.callbacks.onGrowthJournalClick?.();
+        // Consolidated into Your Story (Phase 2)
+        this.callbacks.onYourStoryClick?.();
         break;
       // Quick Add actions
     }

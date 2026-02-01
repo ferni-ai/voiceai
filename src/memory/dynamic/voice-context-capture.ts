@@ -235,7 +235,8 @@ export function extractVoiceContext(input: VoiceCaptureInput): VoiceContextData 
 function detectStrain(prosody: ProsodyFeatures): boolean {
   const jitterHigh = (prosody.jitter || 0) > config.strainJitterThreshold;
   const shimmerHigh = (prosody.shimmer || 0) > config.strainShimmerThreshold;
-  const strainedQuality = prosody.voiceQuality === 'strained' || prosody.voiceQuality === 'trembling';
+  const strainedQuality =
+    prosody.voiceQuality === 'strained' || prosody.voiceQuality === 'trembling';
 
   return (jitterHigh && shimmerHigh) || strainedQuality;
 }
@@ -341,7 +342,8 @@ export async function voiceCaptureEnhanced(input: VoiceCaptureInput): Promise<Vo
     const { weight, factors } = calculateVoiceWeight(voiceContext);
 
     // 3. Determine high importance
-    const isHighImportance = weight > 0.7 || voiceContext.voiceStrain === true || voiceContext.emotionalPeak === true;
+    const isHighImportance =
+      weight > 0.7 || voiceContext.voiceStrain === true || voiceContext.emotionalPeak === true;
 
     // 4. Store voice context with memory (if high importance)
     if (isHighImportance) {
@@ -477,7 +479,9 @@ export async function getRecentVoiceContexts(
       .limit(limit)
       .get();
 
-    return snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as VoiceContextData);
+    return snapshot.docs.map(
+      (doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as VoiceContextData
+    );
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to get recent voice contexts');
     return [];

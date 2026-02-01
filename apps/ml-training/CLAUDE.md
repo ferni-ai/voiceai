@@ -19,7 +19,7 @@ source .venv/bin/activate  # or .venv312/bin/activate
 pip install -r requirements.txt
 
 # Generate training data
-python generate_training_data.py
+npx ts-node generate-training-data.ts
 
 # Train the model
 python train.py --config config.yaml
@@ -43,9 +43,9 @@ ml-training/
 │   ├── evaluate.py             # Model evaluation with metrics
 │   ├── export_onnx.py          # ONNX export for inference
 │   ├── config.yaml             # Training hyperparameters
-│   ├── config_production.yaml  # Production training config
-│   ├── generate_training_data.py    # Synthetic data generation
-│   ├── generate_production_data.py  # Production data pipeline
+│   ├── config-full.yaml        # Full training config
+│   ├── generate-training-data.ts    # Synthetic data generation (TypeScript)
+│   ├── generate_full_data.py        # Full dataset generation (Python)
 │   ├── requirements.txt        # Python dependencies
 │   ├── .venv/                  # Python virtual environment (~10GB)
 │   └── outputs/                # Training checkpoints, logs
@@ -59,17 +59,23 @@ ml-training/
 
 | Component | Value |
 |-----------|-------|
-| **Base Model** | Qwen/Qwen2.5-1.5B |
-| **Fine-tuning** | LoRA (r=16, alpha=32) |
-| **Task** | Multi-label tool classification |
-| **Output** | 118 tool domains |
+| **Base Model** | Qwen/Qwen3-1.7B |
+| **Fine-tuning** | LoRA (r=16, alpha=32) + RouterTrainer (separate LRs) |
+| **Task** | Single-label tool classification |
+| **Output** | 861 labels (860 tools + __no_tool__) |
+| **Top-1 Accuracy** | 98.0% |
+| **Top-3 Accuracy** | 99.7% |
+| **F1 Weighted** | 0.980 |
 
-### Why Qwen 2.5 1.5B?
+### Why Qwen3-1.7B? (FTIS V3 Upgrade)
 
-- Small enough for fast inference (<50ms target)
-- Large enough for semantic understanding
-- Excellent multilingual support
-- LoRA reduces trainable params from 1.5B to ~4M
+- **Better tool calling**: Native function calling support, BFCL leader
+- **Outperforms larger models**: Qwen3-1.7B beats Qwen2.5-3B on most benchmarks
+- **Same inference speed**: <50ms target maintained
+- **Excellent multilingual support**: Same as Qwen2.5
+- **LoRA efficient**: Trainable params ~4M
+
+Upgraded from Qwen2.5-1.5B in January 2026 to address tool calling reliability issues.
 
 ---
 
@@ -91,12 +97,12 @@ The trained model is exported to ONNX and used by:
 
 ## Performance Targets
 
-| Metric | Target | Purpose |
-|--------|--------|---------|
-| Top-1 Accuracy | >78% | Primary tool selection |
-| Top-3 Accuracy | >93% | Fallback candidates |
-| F1 Score | >0.85 | Balanced precision/recall |
-| Inference Latency | <50ms | Real-time voice |
+| Metric | Target | Achieved (V5-860) | Purpose |
+|--------|--------|-------------------|---------|
+| Top-1 Accuracy | >78% | **98.0%** | Primary tool selection |
+| Top-3 Accuracy | >93% | **99.7%** | Fallback candidates |
+| F1 Score | >0.85 | **0.980** | Balanced precision/recall |
+| Inference Latency | <50ms | ~60-70ms (GPU) | Real-time voice |
 
 ---
 

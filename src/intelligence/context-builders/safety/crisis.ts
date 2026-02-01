@@ -38,7 +38,14 @@ const SEVERITY_MAP: Record<InternalSeverity, EntitySeverity> = {
 };
 
 // Map crisis type to entity type
-type CrisisType = 'emotional' | 'health' | 'financial' | 'relationship' | 'work' | 'family' | 'other';
+type CrisisType =
+  | 'emotional'
+  | 'health'
+  | 'financial'
+  | 'relationship'
+  | 'work'
+  | 'family'
+  | 'other';
 function mapCrisisType(type: string): CrisisType {
   if (type.includes('market') || type.includes('financial')) return 'financial';
   if (type.includes('grief') || type.includes('loss')) return 'emotional';

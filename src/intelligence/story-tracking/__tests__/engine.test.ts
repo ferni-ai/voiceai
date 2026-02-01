@@ -3,11 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  createStoryArcTracker,
-  clearUserData,
-  type IStoryArcTracker,
-} from '../index.js';
+import { createStoryArcTracker, clearUserData, type IStoryArcTracker } from '../index.js';
 
 describe('StoryArcTracker', () => {
   let tracker: IStoryArcTracker;

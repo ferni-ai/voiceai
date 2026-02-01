@@ -20,7 +20,21 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-// Stub options for internal tool routing (these calls don't use the actual context)
+
+/**
+ * Minimal execution context for internal tool routing.
+ *
+ * TYPE ASSERTION RATIONALE:
+ * When unified tools (e.g., `manageAppointment`) dispatch to legacy tools internally,
+ * they don't have a real LiveKit session context.
+ *
+ * - LiveKit's ToolOptions requires RunContext with session, speechHandle, etc.
+ * - We can't satisfy this without an actual LiveKit session
+ * - Legacy tools safely handle this via optional chaining (ctx?.userData)
+ * - This is the standard pattern for internal tool routing
+ *
+ * @see tools/registry/types.ts - Tool type is intentionally `any` for LiveKit compatibility
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const STUB_CONTEXT = { ctx: {}, toolCallId: 'internal-routing' } as any;
 

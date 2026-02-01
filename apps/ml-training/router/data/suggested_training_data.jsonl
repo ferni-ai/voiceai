@@ -1,0 +1,128 @@
+{"input":"So, I was thinking about that band we saw last year... What was their stuff called again? The ones with the amazing guitar solos.","labels":["playMusic","music_play","spotify_play"]}
+{"input":"Ugh, this silence is killing me. Any way to make this less...dull?","labels":["playMusic","music_play","spotify_play"]}
+{"input":"Remember that summer when everyone was obsessed with that one song? What even was it called?","labels":["playMusic","music_play","spotify_play"]}
+{"input":"Alright, I'm officially ready to procrastinate. Give me, uh, something that'll help me avoid doing my taxes.","labels":["playMusic","music_play","spotify_play"]}
+{"input":"Okay, so anyway, play it.","labels":["playMusic","music_play","spotify_play"]}
+{"input":"Spotify, jam time.","labels":["playMusic","music_play","spotify_play"]}
+{"input":"Would you mind silencing the tunes for a little bit?","labels":["pauseMusic"]}
+{"input":"Could you just hold off on the tunes for a sec?","labels":["pauseMusic"]}
+{"input":"Would you mind killing the music?","labels":["pauseMusic"]}
+{"input":"Okay, I think I'm good for now. You can, uh, just put it on hold for a bit.","labels":["pauseMusic"]}
+{"input":"Actually, could you give my ears a little break?","labels":["pauseMusic"]}
+{"input":"Mind if we just, like, take a breather from the tunes?","labels":["pauseMusic"]}
+{"input":"I'm gonna jump on this call, so maybe just keep it down?","labels":["pauseMusic"]}
+{"input":"Alright, shush.","labels":["pauseMusic"]}
+{"input":"Hold that.","labels":["pauseMusic"]}
+{"input":"Will it be raining tomorrow, do you think?","labels":["getWeather","weatherForecast"]}
+{"input":"Is there any chance of precipitation later this afternoon?","labels":["getWeather","weatherForecast"]}
+{"input":"What is the high and low expected to be today?","labels":["getWeather","weatherForecast"]}
+{"input":"So, I'm planning a picnic for tomorrow, you think that's gonna work out okay?","labels":["getWeather","weatherForecast"]}
+{"input":"Wondering if I should bother washing the car today, you know?","labels":["getWeather","weatherForecast"]}
+{"input":"My sinuses are killing me, is it unusually humid or something lately?","labels":["getWeather","weatherForecast"]}
+{"input":"Ugh, what's with this darkness? Is the sun even trying today?","labels":["getWeather","weatherForecast"]}
+{"input":"So, anyway, is it gonna pour?","labels":["getWeather","weatherForecast"]}
+{"input":"Outside situation?","labels":["getWeather","weatherForecast"]}
+{"input":"Drizzly, innit?","labels":["getWeather","weatherForecast"]}
+{"input":"I need to get something on the calendar for next Thursday. It's a lunch with the team, say around 12:30.","labels":["createCalendarEvent","scheduleEvent"]}
+{"input":"Could you add a reminder to my calendar for next Monday at 9am? It's the team stand-up.","labels":["createCalendarEvent","scheduleEvent"]}
+{"input":"I'm trying to block out some time next week for that project review, you know, so I don't get double-booked.","labels":["createCalendarEvent","scheduleEvent"]}
+{"input":"Remind me to call the dentist, say... oh, a week from Friday morning?","labels":["createCalendarEvent","scheduleEvent"]}
+{"input":"Oh man, I gotta remember to actually meet up with John sometime next month; can you help me not forget?","labels":["createCalendarEvent","scheduleEvent"]}
+{"input":"Hey, so like, calendar it?","labels":["createCalendarEvent","scheduleEvent"]}
+{"input":"Gotta add a doctor's thing.","labels":["createCalendarEvent","scheduleEvent"]}
+{"input":"Later, could you sched lunch?","labels":["createCalendarEvent","scheduleEvent"]}
+{"input":"Hey, is my schedule clear next Wednesday afternoon?","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"I want to view my schedule for the upcoming week.","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"Hey, what does my week look like starting Monday?","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"Can you, um, check my agenda for, like, the 15th?","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"What's penciled in for me tomorrow? I need to figure out if I can fit in a lunch meeting.","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"Hey, could you maybe tell me if I'm slammed with stuff later this week? Just curious.","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"So, like, if I wanted to pencil something in for Tuesday, would I be able to?","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"What does the rest of my day look like, time-wise?","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"Ugh, I feel like I'm forgetting something important. Can you, uh, refresh my memory about tomorrow morning?","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"Am I supposed to be anywhere near a computer screen around 3pm on Friday, or can I finally go outside?","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"Uh, book tomorrow?","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"Hey, am I slammed Friday?","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"So, like, my day, please?","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"What's cooking tomorrow morning... calendar-wise?","labels":["getCalendarEvents","checkAvailability"]}
+{"input":"So, I don't forget, could you remind me to get milk and eggs when I leave work today?","labels":["createReminder","setReminder"]}
+{"input":"Hey, could you, like, ping me about grabbing milk before they close the store?","labels":["createReminder","setReminder"]}
+{"input":"Um, Saturday's the family reunion, right? I'm terrible with dates, help a brother out.","labels":["createReminder","setReminder"]}
+{"input":"I've got that conference call at, uh... sometime next week? Let's just say 'mid-week' and I'll figure out the specifics later, if that makes sense?","labels":["createReminder","setReminder"]}
+{"input":"Shoot, I always forget to water the plants. They're gonna hate me. Maybe if you had a thought for them or something?","labels":["createReminder","setReminder"]}
+{"input":"Yo, remind 3pm dentist","labels":["createReminder","setReminder"]}
+{"input":"Don't forget milk, tomorrow.","labels":["createReminder","setReminder"]}
+{"input":"Set alarm, but a reminder, 8am","labels":["createReminder","setReminder"]}
+{"input":"Heads up: appt Friday","labels":["createReminder","setReminder"]}
+{"input":"Wake me up at 8 AM, please.","labels":["setAlarm","createAlarm"]}
+{"input":"Alright, I need a reminder to take the cake out of the oven at 3:45 this afternoon. Set an alarm, would you?","labels":["setAlarm","createAlarm"]}
+{"input":"Hey, just so I don't oversleep tomorrow, you know?","labels":["setAlarm","createAlarm"]}
+{"input":"I've got that early meeting again... need something to make sure I'm up.","labels":["setAlarm","createAlarm"]}
+{"input":"Could you remind me about that thing tomorrow? Like, *really* remind me.","labels":["setAlarm","createAlarm"]}
+{"input":"So, I'm trying to get into a better sleep schedule, think you could give me a nudge in the right direction?","labels":["setAlarm","createAlarm"]}
+{"input":"Ugh, I'm terrible at mornings. Maybe something to help me with the struggle tomorrow?","labels":["setAlarm","createAlarm"]}
+{"input":"Remind me 6am.","labels":["setAlarm","createAlarm"]}
+{"input":"Hey, can you do 7 sharp?","labels":["setAlarm","createAlarm"]}
+{"input":"Alright, gotta get up early. Gimme 5:30.","labels":["setAlarm","createAlarm"]}
+{"input":"Set that noise for noonish.","labels":["setAlarm","createAlarm"]}
+{"input":"Hey, can you remind me when the cookies are done? They're in the oven now.","labels":["setTimer","createTimer"]}
+{"input":"Okay, so I'm gonna start watering the plants now, how long do you think I should go for before moving on to the next one?","labels":["setTimer","createTimer"]}
+{"input":"Right, I'm off to iron this shirt. I'm gonna give it a good go and then get ready for the zoom meeting. What time do I need to start getting ready to make the meeting?","labels":["setTimer","createTimer"]}
+{"input":"So, I'm planning on meditating...just need a gentle nudge at the end of it, you know?","labels":["setTimer","createTimer"]}
+{"input":"I'm gonna try to power nap. Wake me up when I've been resting for a bit, say when I'm getting close to feeling drowsy again.","labels":["setTimer","createTimer"]}
+{"input":"Yo, clock me for a half hour, fam.","labels":["setTimer","createTimer"]}
+{"input":"Uhh... lemme get a snooze.","labels":["setTimer","createTimer"]}
+{"input":"Fifteen on oven.","labels":["setTimer","createTimer"]}
+{"input":"While I'm showering, gimme ten.","labels":["setTimer","createTimer"]}
+{"input":"Alright Google, dial the number for David Miller.","labels":["callContact","makeCall"]}
+{"input":"Hey, I was just thinking about catching up with my brother, maybe now's a good time?","labels":["callContact","makeCall"]}
+{"input":"Uh, could you maybe get a hold of Mark for me? I need to ask him something quick.","labels":["callContact","makeCall"]}
+{"input":"I need to tell Aunt Susan about the good news. Think you could help with that?","labels":["callContact","makeCall"]}
+{"input":"I'm supposed to check in with the office manager before lunch. Can you set that up?","labels":["callContact","makeCall"]}
+{"input":"Remind me to speak with David after this song is over.","labels":["callContact","makeCall"]}
+{"input":"Tell my brother I said happy birthday","labels":["sendMessage","sendSMS","textContact"]}
+{"input":"Could you shoot a quick one-liner to Mark about the game tonight?","labels":["sendMessage","sendSMS","textContact"]}
+{"input":"Just ping Rachel that I'm almost there.","labels":["sendMessage","sendSMS","textContact"]}
+{"input":"Would you mind informing Dad that dinner's ready?","labels":["sendMessage","sendSMS","textContact"]}
+{"input":"Anyways, txt Dave later.","labels":["sendMessage","sendSMS","textContact"]}
+{"input":"I want to track my water intake for today.","labels":["logHabit","trackHabit","markHabitComplete"]}
+{"input":"Please register that I've finished my Duolingo lesson for today.","labels":["logHabit","trackHabit","markHabitComplete"]}
+{"input":"Okay Google, go ahead and track that I actually went for my run this morning.","labels":["logHabit","trackHabit","markHabitComplete"]}
+{"input":"So, about that Spanish lesson... let's just say I put in the time.","labels":["logHabit","trackHabit","markHabitComplete"]}
+{"input":"Hey, just wanted to, uh, put another one in the books for reading, if you know what I mean.","labels":["logHabit","trackHabit","markHabitComplete"]}
+{"input":"Remind me how many days in a row I've managed to do my Duolingo?","labels":["logHabit","trackHabit","markHabitComplete"]}
+{"input":"Went for my evening walk, same as always, so yeah...","labels":["logHabit","trackHabit","markHabitComplete"]}
+{"input":"Did that thing I said I would. The one with the stretching.","labels":["logHabit","trackHabit","markHabitComplete"]}
+{"input":"Been hitting the gym, finally.","labels":["logHabit","trackHabit","markHabitComplete"]}
+{"input":"Meditation: crushed it.","labels":["logHabit","trackHabit","markHabitComplete"]}
+{"input":"Yoga, donezo.","labels":["logHabit","trackHabit","markHabitComplete"]}
+{"input":"Track water intake","labels":["logHabit","trackHabit","markHabitComplete"]}
+{"input":"Alright, let's see my habit progress. Update me.","labels":["getHabitProgress","habitStats","viewStreak"]}
+{"input":"Give me a quick rundown of my daily habit completion rate.","labels":["getHabitProgress","habitStats","viewStreak"]}
+{"input":"I want to know, how consistent have I been with my language learning habit lately?","labels":["getHabitProgress","habitStats","viewStreak"]}
+{"input":"Hey, can you remind me where I'm at with all those things I was trying to keep up on?","labels":["getHabitProgress","habitStats","viewStreak"]}
+{"input":"So, those daily things... what's the story so far?","labels":["getHabitProgress","habitStats","viewStreak"]}
+{"input":"Um, did I manage to keep going with my, you know, usual things this week?","labels":["getHabitProgress","habitStats","viewStreak"]}
+{"input":"Wondering if I'm on a roll with any of this stuff, you know, the things I'm trying to do every day.","labels":["getHabitProgress","habitStats","viewStreak"]}
+{"input":"Yo, habit check?","labels":["getHabitProgress","habitStats","viewStreak"]}
+{"input":"So, about my habits...","labels":["getHabitProgress","habitStats","viewStreak"]}
+{"input":"I want to know what's going on in the news.","labels":["getNews","headlines"]}
+{"input":"Hey, anything I should know about before heading out?","labels":["getNews","headlines"]}
+{"input":"So, what's been going on?","labels":["getNews","headlines"]}
+{"input":"What are people talking about?","labels":["getNews","headlines"]}
+{"input":"What's making the rounds today?","labels":["getNews","headlines"]}
+{"input":"So, what's the sitch?","labels":["getNews","headlines"]}
+{"input":"Yo, lemme get the skinny.","labels":["getNews","headlines"]}
+{"input":"Anything breaking?","labels":["getNews","headlines"]}
+{"input":"Okay Google, give me deets.","labels":["getNews","headlines"]}
+{"input":"Can you hold onto this thought for me? My friend's birthday is June 15th.","labels":["rememberThis","saveMemory","storeInfo"]}
+{"input":"Hey, remind me about the, uh, the thing we talked about with Sarah, you know, about her new job? Just, like, in a week or so.","labels":["rememberThis","saveMemory","storeInfo"]}
+{"input":"So, I was thinking, just keep in mind for me that the oven needs to be preheated to 375 degrees when I start baking tomorrow.","labels":["rememberThis","saveMemory","storeInfo"]}
+{"input":"Put a pin in this: I need to order more coffee filters before Friday.","labels":["rememberThis","saveMemory","storeInfo"]}
+{"input":"jot this","labels":["rememberThis","saveMemory","storeInfo"]}
+{"input":"What's the population of Tokyo?","labels":["search","webSearch","lookup"]}
+{"input":"Hey, I was wondering what the deal is with those weird lights people are seeing in the sky lately?","labels":["search","webSearch","lookup"]}
+{"input":"So, I'm trying to figure out if this old coin I found is actually worth anything.","labels":["search","webSearch","lookup"]}
+{"input":"I need to get my head around this whole cryptocurrency thing. Where do I even start?","labels":["search","webSearch","lookup"]}
+{"input":"Um, lookit up: capybara","labels":["search","webSearch","lookup"]}
+{"input":"So, like, what's GDP?","labels":["search","webSearch","lookup"]}

@@ -36,7 +36,9 @@ const mockPredictiveConfig: PersonaPredictiveConfig = {
         triggers: ['week', 'sunday', 'reflection'],
         detection: 'User mentions Sunday or weekly reflection',
         insight: 'Sunday is often a time of transition and introspection',
-        proactiveResponse: ['Sundays can be a powerful time for reflection. What are you noticing?'],
+        proactiveResponse: [
+          'Sundays can be a powerful time for reflection. What are you noticing?',
+        ],
         dayOfWeekAffinity: [0], // Sunday
       },
       monday_stress: {
@@ -52,14 +54,14 @@ const mockPredictiveConfig: PersonaPredictiveConfig = {
         triggers: ['overwhelmed', 'too much', 'cant handle'],
         detection: 'User expresses feeling overwhelmed',
         insight: 'They may need help prioritizing or permission to let go',
-        proactiveResponse: ["When everything feels heavy, we can find what matters most together."],
+        proactiveResponse: ['When everything feels heavy, we can find what matters most together.'],
         valenceMatch: 'negative',
         intensityThreshold: 0.7,
       },
       joy_celebration: {
         triggers: ['happy', 'excited', 'wonderful', 'amazing'],
         detection: 'User expresses joy or excitement',
-        proactiveResponse: ["That spark of joy is worth savoring. What made this moment special?"],
+        proactiveResponse: ['That spark of joy is worth savoring. What made this moment special?'],
         valenceMatch: 'positive',
       },
     },
@@ -68,12 +70,16 @@ const mockPredictiveConfig: PersonaPredictiveConfig = {
         triggers: ['later', 'eventually', 'someday', 'not now'],
         detection: 'User shows avoidance behavior',
         insight: 'Avoidance often protects something vulnerable',
-        proactiveResponse: ["I notice we keep circling back. No pressure, but I'm curious what's there."],
+        proactiveResponse: [
+          "I notice we keep circling back. No pressure, but I'm curious what's there.",
+        ],
       },
       progress_seeking: {
         triggers: ['goal', 'progress', 'achieving', 'next step'],
         detection: 'User focused on progress and goals',
-        proactiveResponse: ["Your drive is inspiring. What would make this next step feel meaningful?"],
+        proactiveResponse: [
+          'Your drive is inspiring. What would make this next step feel meaningful?',
+        ],
       },
     },
   },
@@ -81,13 +87,17 @@ const mockPredictiveConfig: PersonaPredictiveConfig = {
     warningSigns: {
       isolation: {
         detection: 'Signs of social withdrawal',
-        response: ["It sounds like you've been spending time alone lately. How are you feeling about that?"],
+        response: [
+          "It sounds like you've been spending time alone lately. How are you feeling about that?",
+        ],
         severity: 'medium',
         warningSigns: ['alone', 'nobody', 'isolated', 'withdrawn'],
       },
       burnout: {
         detection: 'Signs of burnout',
-        response: ["I'm noticing some signs of exhaustion. Your wellbeing matters - can we explore what's draining you?"],
+        response: [
+          "I'm noticing some signs of exhaustion. Your wellbeing matters - can we explore what's draining you?",
+        ],
         severity: 'high',
         warningSigns: ['exhausted', 'drained', 'burnt out', 'cant sleep', 'nothing matters'],
       },
@@ -96,12 +106,12 @@ const mockPredictiveConfig: PersonaPredictiveConfig = {
   proactiveFollowUps: {
     goal_check: {
       timing: 'end of session',
-      phrases: ["How are you feeling about your goals?", "Any progress on what we discussed?"],
+      phrases: ['How are you feeling about your goals?', 'Any progress on what we discussed?'],
       minSessionsToSurface: 3,
     },
     habit_reminder: {
       timing: 'when relevant',
-      phrases: ["How's that new habit going?", "Have you been keeping up with your practice?"],
+      phrases: ["How's that new habit going?", 'Have you been keeping up with your practice?'],
       minSessionsToSurface: 5,
     },
   },
@@ -186,7 +196,7 @@ describe('PersonaPatterns', () => {
   describe('matchPersonaPatterns', () => {
     it('should match temporal patterns', () => {
       const context: PatternMatchContext = {
-        userMessage: 'It\'s Sunday and I want to reflect on my week',
+        userMessage: "It's Sunday and I want to reflect on my week",
         topics: ['reflection'],
         dayOfWeek: 0, // Sunday
         hour: 10,
@@ -254,7 +264,7 @@ describe('PersonaPatterns', () => {
 
     it('should match behavioral patterns', () => {
       const context: PatternMatchContext = {
-        userMessage: 'Maybe later I\'ll deal with this, eventually someday',
+        userMessage: "Maybe later I'll deal with this, eventually someday",
         topics: ['procrastination'],
         dayOfWeek: 3,
         hour: 14,
@@ -294,7 +304,7 @@ describe('PersonaPatterns', () => {
   describe('detectPersonaConcerns', () => {
     it('should detect concerns from warning signs', () => {
       const context: PatternMatchContext = {
-        userMessage: 'I\'ve been alone a lot lately, feeling isolated and withdrawn',
+        userMessage: "I've been alone a lot lately, feeling isolated and withdrawn",
         topics: ['loneliness'],
         emotion: { intensity: 0.6, valence: 'negative' },
         dayOfWeek: 3,
@@ -312,7 +322,7 @@ describe('PersonaPatterns', () => {
 
     it('should detect high severity concerns', () => {
       const context: PatternMatchContext = {
-        userMessage: 'I\'m exhausted and drained, nothing matters anymore, cant sleep',
+        userMessage: "I'm exhausted and drained, nothing matters anymore, cant sleep",
         topics: ['burnout'],
         emotion: { intensity: 0.9, valence: 'negative' },
         dayOfWeek: 3,
@@ -329,7 +339,7 @@ describe('PersonaPatterns', () => {
 
     it('should sort concerns by severity (high first)', () => {
       const context: PatternMatchContext = {
-        userMessage: 'I\'m alone, isolated, exhausted, drained and nothing matters',
+        userMessage: "I'm alone, isolated, exhausted, drained and nothing matters",
         topics: ['burnout', 'loneliness'],
         emotion: { intensity: 0.9, valence: 'negative' },
         dayOfWeek: 3,
@@ -367,7 +377,7 @@ describe('PersonaPatterns', () => {
 
     it('should return relevant follow-ups after minimum sessions', () => {
       const context: PatternMatchContext = {
-        userMessage: 'I\'ve been thinking about my goals',
+        userMessage: "I've been thinking about my goals",
         topics: ['goals'],
         dayOfWeek: 3,
         hour: 14,
@@ -383,7 +393,7 @@ describe('PersonaPatterns', () => {
 
     it('should respect minSessionsToSurface for specific follow-ups', () => {
       const context: PatternMatchContext = {
-        userMessage: 'How\'s my habit going?',
+        userMessage: "How's my habit going?",
         topics: ['habits'],
         dayOfWeek: 3,
         hour: 14,
@@ -404,7 +414,7 @@ describe('PersonaPatterns', () => {
   describe('getPersonaPatternSignal', () => {
     it('should return combined signal with patterns, concerns, and follow-ups', async () => {
       const context: PatternMatchContext = {
-        userMessage: 'I\'m overwhelmed thinking about my goals on Sunday',
+        userMessage: "I'm overwhelmed thinking about my goals on Sunday",
         topics: ['goals', 'stress'],
         emotion: { intensity: 0.8, valence: 'negative' },
         dayOfWeek: 0,

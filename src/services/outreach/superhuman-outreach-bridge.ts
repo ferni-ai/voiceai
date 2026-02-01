@@ -623,10 +623,7 @@ export async function onNeedsMultiplePerspectives(
     });
 
     if (result.success) {
-      log.info(
-        { userId, topic: insight.topic },
-        '🔬 Peter + Ferni insight outreach initiated'
-      );
+      log.info({ userId, topic: insight.topic }, '🔬 Peter + Ferni insight outreach initiated');
     }
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to trigger multi-perspective outreach');
@@ -704,10 +701,7 @@ export async function onNeedsTeamRoundtable(
     });
 
     if (result.success) {
-      log.info(
-        { userId, topic: roundtable.topic, personas },
-        '🎙️ Team roundtable call initiated'
-      );
+      log.info({ userId, topic: roundtable.topic, personas }, '🎙️ Team roundtable call initiated');
     }
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to initiate team roundtable');

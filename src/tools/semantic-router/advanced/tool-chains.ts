@@ -500,16 +500,19 @@ export function learnToolSequence(sessionId: string, tools: string[]): void {
     // Persist to Redis (fire-and-forget)
     if (redisCache?.isConnected()) {
       const key = `${REDIS_KEY_PREFIX}learned:${from}:${to}`;
-      redisCache.incr(key).then((count: number) => {
-        // Set TTL on first increment
-        if (count === 1) {
-          redisCache?.expire(key, REDIS_TTL_SECONDS).catch((e) => {
-            log.debug({ error: String(e), key }, 'Redis TTL set failed (non-blocking)');
-          });
-        }
-      }).catch((e) => {
-        log.debug({ error: String(e), key }, 'Redis incr failed (non-blocking)');
-      });
+      redisCache
+        .incr(key)
+        .then((count: number) => {
+          // Set TTL on first increment
+          if (count === 1) {
+            redisCache?.expire(key, REDIS_TTL_SECONDS).catch((e) => {
+              log.debug({ error: String(e), key }, 'Redis TTL set failed (non-blocking)');
+            });
+          }
+        })
+        .catch((e) => {
+          log.debug({ error: String(e), key }, 'Redis incr failed (non-blocking)');
+        });
     }
   }
 

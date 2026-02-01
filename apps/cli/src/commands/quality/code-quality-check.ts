@@ -62,6 +62,10 @@ const CONSOLE_ALLOWED = [
   '/tests/',          // Test files
   'run-e2e.ts',       // E2E runner
   'health-server.ts', // Health endpoints (stdout logging for k8s)
+  'benchmarks.ts',    // Benchmark CLI tools
+  'benchmark-runner.ts', // Benchmark runners
+  '/codegen/',        // Code generators
+  '/evaluation/',     // Evaluation scripts
 ];
 
 // ============================================================================

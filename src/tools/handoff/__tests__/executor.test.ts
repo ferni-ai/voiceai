@@ -92,6 +92,12 @@ vi.mock('../../../personas/alive-entrances.js', () => ({
   detectUserMoodFromContext: () => 'neutral',
 }));
 
+// Mock persona content loader - return null so we fall back to generic greeting
+vi.mock('../../../services/persona-content-loader.js', () => ({
+  getHandoffGreeting: vi.fn().mockResolvedValue(null),
+  loadPersonaContent: vi.fn().mockResolvedValue(null),
+}));
+
 // Mock agent directory (used by state.js)
 vi.mock('../../../personas/agent-directory.js', () => {
   const canonicalMapping: Record<string, string> = {

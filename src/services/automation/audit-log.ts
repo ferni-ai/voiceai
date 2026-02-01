@@ -27,7 +27,14 @@ export type AuditActionCategory =
   | 'task'
   | 'data_access';
 
-export type AuditStatus = 'pending' | 'approved' | 'rejected' | 'executed' | 'failed' | 'cancelled' | 'undone';
+export type AuditStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'executed'
+  | 'failed'
+  | 'cancelled'
+  | 'undone';
 
 export interface AuditEntry {
   id: string;
@@ -131,11 +138,14 @@ export async function logAction(
         .set(auditEntry);
 
       // Also store in global audit log for admin review
-      await db.collection('global_audit_log').doc(auditEntry.id).set({
-        ...auditEntry,
-        // Remove any PII for global log
-        metadata: undefined,
-      });
+      await db
+        .collection('global_audit_log')
+        .doc(auditEntry.id)
+        .set({
+          ...auditEntry,
+          // Remove any PII for global log
+          metadata: undefined,
+        });
     } catch (error) {
       log.error({ error: String(error) }, 'Failed to store audit entry');
     }
@@ -238,11 +248,7 @@ export async function markExecuted(
 /**
  * Mark an action as undone
  */
-export async function markUndone(
-  userId: string,
-  auditId: string,
-  reason?: string
-): Promise<void> {
+export async function markUndone(userId: string, auditId: string, reason?: string): Promise<void> {
   await updateAuditEntry(userId, auditId, {
     status: 'undone',
     undoneAt: new Date().toISOString(),
@@ -304,10 +310,7 @@ export async function queryAuditLog(query: AuditQuery): Promise<AuditEntry[]> {
 /**
  * Get audit summary for a user
  */
-export async function getAuditSummary(
-  userId: string,
-  days = 30
-): Promise<AuditSummary> {
+export async function getAuditSummary(userId: string, days = 30): Promise<AuditSummary> {
   const db = getFirestoreDb();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);

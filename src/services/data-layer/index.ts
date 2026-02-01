@@ -238,7 +238,11 @@ export {
   batchUpdate,
   SAFE_LIMITS,
 } from './firestore-pagination.js';
-export type { PaginationOptions, PaginatedResult, SafeQueryOptions } from './firestore-pagination.js';
+export type {
+  PaginationOptions,
+  PaginatedResult,
+  SafeQueryOptions,
+} from './firestore-pagination.js';
 
 /**
  * Index entry for semantic search

@@ -140,6 +140,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     // Ferni 100% Wiring (January 2026)
     'affirmation-context', // Earned encouragement and celebration
     'breath-context', // Grounding presence through breath sounds
+    'emotional-intelligence-context', // Ferni's unique emotional response guidance
   ],
 
   // VOICE - Voice emotion analysis
@@ -175,6 +176,10 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'semantic-intelligence-integration', // MOVED: V3.0-V3.7 semantic intelligence - runs on every memory trigger (first 3 turns + every 5th)
     'generated-insights', // NEW: 10 categories of superhuman insights (correlations, growth, relationships, etc.)
     'memory-lane', // NEW: Surfaces meaningful memories ("On This Day", topic matches, emotional echoes)
+    // Phase 2 Wiring (January 2026) - New superhuman memory capabilities
+    'unified-knowledge', // Complete unified knowledge about the user (Better Than Human)
+    'user-corrections', // Never make the same mistake twice (Better Than Human)
+    'relational-memory', // Inside jokes, rituals, trust milestones (Better Than Human)
   ],
 
   // PERSONA - Character and identity
@@ -186,7 +191,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'persona-vulnerability',
     'persona-mood',
     'human-personality', // Semantic matching, timing intelligence, callbacks
-    'personality-v2', // SUPERHUMAN: Anticipation, timing, vulnerability, patterns, growth (Clean Architecture v2)
+    'personality-context', // SUPERHUMAN: Anticipation, timing, vulnerability, patterns, growth
     'ferni-personality', // Ferni-specific: dynamic expressions, pushbacks, passions
     'ferni-coordinator-insights', // Ferni-specific: smart handoff suggestions from cross-team insights
     'peter-research-insights', // Peter-specific: deep research briefings on entry/handoff
@@ -210,6 +215,8 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'catchphrase-context', // Signature phrases (rare, earned moments)
     'pet-peeve-context', // Authentic personality triggers
     'coaching-mode-context', // Adaptive coaching style transitions
+    'outreach-voice-context', // Voice guidance for proactive outreach
+    'team-coordination-context', // Handoff routing to specialist personas
     'secret-mode-detector', // DEEP HUMAN: Contextual personality modes from secret-modes.json
   ],
 
@@ -240,6 +247,10 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'superhuman-insights',
     // 'semantic-intelligence-integration', // MOVED to MEMORY for full E2E integration
     'life-context-synthesis', // Phase 6: Cross-domain life context awareness
+    // Phase 2 Wiring (January 2026) - New superhuman cognitive capabilities
+    'observation-patterns', // "Only I Would Notice" linguistic/behavioral patterns (Better Than Human)
+    'relationship-health', // Track relationship health and drift alerts (Better Than Human)
+    'commitment-calendar', // Validate commitments against calendar reality (Better Than Human)
   ],
 
   // ENGAGEMENT - User engagement
@@ -253,6 +264,8 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'daily-rituals', // NEW: Morning Sky Check, Habit Heartbeat, etc.
     'outreach-awareness', // NEW: Proactive contact outreach nudges
     'ceo-coaching-context', // CEO coaching: wins, priorities, blockers, decisions, energy
+    'relationship-building-context', // WIRED (Jan 2026): Stage-appropriate relationship behaviors from personas/shared
+    'shared-content', // WIRED (Jan 2026): Unified persona shared content (team, life events, etc.)
   ],
 
   // TEAM - Multi-persona coordination
@@ -297,7 +310,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'relationship-stage', // NEW: Relationship stage, trust level, milestone awareness (Core Principle #2)
     'callback-opportunities', // NEW: Natural callbacks to past shared moments (Core Principle #2)
     'persona-proactive', // NEW: Persona-specific proactive pattern detection (Core Principle #5)
-    'cognitive-style', // NEW: Cognitive differentiation - questioning, silence, insights (Core Principle #4)
+    // 'cognitive-style' removed - already in COGNITIVE category (avoid duplicate loading)
     'session-flow',
     'natural-discovery', // Gentle prompts to learn about dreams, values, goals
     'calendar-awareness',
@@ -355,6 +368,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'goodbye-context', // Warm session endings
     'humor-context', // Wit, self-deprecation, playful moments
     'sensory-context', // Embodied awareness and grounding
+    'silence-context', // Meaningful silence - knowing when NOT to speak
     // BETTER THAN HUMAN (Dec 2024) - These are NEW features, not part of unified-humanizing
     'proactive-noticing', // "I notice..." pattern surfacing
     'commitment-follow-up', // Accountability tracking
@@ -363,7 +377,11 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   ],
 
   // LEARNING - Collective intelligence
-  [BuilderCategory.LEARNING]: ['community-learning', 'wisdom-synthesis'],
+  [BuilderCategory.LEARNING]: [
+    'community-learning',
+    'wisdom-synthesis',
+    'cross-persona-learning', // WIRED (Jan 2026): Learn from successful expressions across personas
+  ],
 };
 
 // ============================================================================

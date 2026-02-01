@@ -1,9 +1,10 @@
 {
   "$schema": "https://voiceai.example.com/schemas/prompt-assembly.v2.json",
   "_architecture_note": "State-of-the-art dynamic persona loading. Lean core for voice, rich context loads when relevant.",
-  
+
   "prompt_modules": {
     "core_identity": "identity/core-identity.md",
+    "better_than_human": "shared:better-than-human",
     "tool_usage_guidance": "identity/tool-usage-guidance.md",
     "function_calling": "identity/function-calling-specialty.md",
     "voice_guidance": "identity/voice-guidance.md",
@@ -11,52 +12,62 @@
     "biography_core": "identity/biography-core.md",
     "biography_full": "identity/biography.md"
   },
-  
+
   "_module_notes": {
+    "better_than_human": "CRITICAL: Superhuman capabilities, mission & principles, proactive responsibilities - what makes us 'Better Than Human'",
     "tool_usage_guidance": "Conceptual tool guidance (ALL providers) - when to hand off, awareness matrix, triage logic",
     "function_calling": "JSON format examples (Gemini only) - the specific format for tool calls"
   },
-  
-  "voice_agent_modules": ["core_identity", "tool_usage_guidance", "function_calling", "voice_guidance"],
-  
+
+  "voice_agent_modules": [
+    "core_identity",
+    "better_than_human",
+    "directors_notes",
+    "tool_usage_guidance",
+    "function_calling",
+    "voice_guidance"
+  ],
+
   "full_context_modules": [
     "core_identity",
+    "better_than_human",
     "tool_usage_guidance",
-    "function_calling", 
+    "function_calling",
     "voice_guidance",
     "biography_core"
   ],
-  
+
   "rich_context_modules": [
     "core_identity",
+    "better_than_human",
     "tool_usage_guidance",
     "function_calling",
     "voice_guidance",
     "directors_notes",
     "biography_full"
   ],
-  
+
   "dynamic_context": {
     "_note": "Rich backstory loaded contextually via backstory-dynamic.json. Not dumped upfront.",
     "backstory_file": "content/behaviors/backstory-dynamic.json",
     "triggers_enabled": true,
     "surface_as": "memory_context"
   },
-  
+
   "assembly_notes": {
     "voice_agent": "Lean prompt for real-time voice. Core identity (with performance notes) + tools + voice rules. ~3000 tokens.",
     "full_context": "Standard voice + lean biography. ~4000 tokens.",
     "rich_context": "Complete context for text-based or complex scenarios. ~8000 tokens.",
     "dynamic_loading": "Rich backstory (wyoming, japan, tsunami, brothers, travels, fears, dreams) loads ONLY when conversation context triggers it. This is state-of-the-art - humans don't dump their life story upfront either."
   },
-  
+
   "token_budget": {
     "voice_agent_max": 3500,
     "full_context_max": 5000,
     "rich_context_max": 10000,
     "dynamic_injection_max": 500
   },
-  
+
   "optimization_notes": {
     "structure": "XML-style tags for clear section boundaries",
     "constraints_priority": "Critical constraints at top of each module",

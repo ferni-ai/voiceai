@@ -141,11 +141,15 @@ describe('RelationshipEngine', () => {
       const engine = await initializeRelationship('user-123', 'ferni');
       engine.startSession();
 
-      const moment = engine.recordMoment('breakthrough', 'User had a realization about their career', {
-        userPhrase: 'I finally understand what I want',
-        significance: 0.8,
-        topic: 'career',
-      });
+      const moment = engine.recordMoment(
+        'breakthrough',
+        'User had a realization about their career',
+        {
+          userPhrase: 'I finally understand what I want',
+          significance: 0.8,
+          topic: 'career',
+        }
+      );
 
       expect(moment.id).toBeDefined();
       expect(moment.type).toBe('breakthrough');

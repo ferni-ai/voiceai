@@ -59,7 +59,8 @@ const SALT_LENGTH = 32;
  * In production, this should be a proper secret management solution
  */
 function getEncryptionKey(): Buffer {
-  const secret = process.env.OAUTH_TOKEN_ENCRYPTION_KEY || 'default-development-key-do-not-use-in-production';
+  const secret =
+    process.env.OAUTH_TOKEN_ENCRYPTION_KEY || 'default-development-key-do-not-use-in-production';
   const salt = process.env.OAUTH_TOKEN_ENCRYPTION_SALT || 'ferni-oauth-salt';
   return scryptSync(secret, salt, 32);
 }
@@ -202,7 +203,10 @@ export async function getOAuthTokens(
 
     // Update last used time in background
     docRef.update({ lastUsedAt: new Date().toISOString() }).catch((err) => {
-      log.debug({ error: String(err), userId, provider }, 'Failed to update token lastUsedAt (non-critical)');
+      log.debug(
+        { error: String(err), userId, provider },
+        'Failed to update token lastUsedAt (non-critical)'
+      );
     });
 
     return tokens;
@@ -337,14 +341,14 @@ export async function getConnectionStatus(
 /**
  * Get all connected integrations for a user
  */
-export async function getConnectedIntegrations(
-  userId: string
-): Promise<Array<{
-  provider: string;
-  status: ConnectionStatus;
-  connectedAt: string;
-  scopes: string[];
-}>> {
+export async function getConnectedIntegrations(userId: string): Promise<
+  Array<{
+    provider: string;
+    status: ConnectionStatus;
+    connectedAt: string;
+    scopes: string[];
+  }>
+> {
   const db = getFirestoreDb();
   if (!db) {
     return [];

@@ -5,7 +5,7 @@
  * -------------------------------------------------
  * The `routeTranscript()` function is now DEPRECATED.
  * Routing is handled by the Unified Tool Orchestrator (UTO):
- *   - src/tools/orchestrator/unified-tool-orchestrator.ts
+ *   - src/tools/orchestrator/tool-orchestrator.ts
  *   - Use: toolOrchestrator.routeAndExecute()
  *
  * This module is kept for backwards compatibility with:
@@ -26,7 +26,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { routeUserInput } from '../router.js';
+// NOTE: routeUserInput deprecated in favor of UTO - see module header
 import type { ToolMatch } from '../types.js';
 import { isToolExecutionResult } from '../types.js';
 import {
@@ -41,7 +41,6 @@ import { hasDomainMapping, executeDomainTool } from '../domain-bridge.js';
 import {
   routeVoiceInput,
   type VoiceRouterContext,
-  type VoiceRouterResult,
 } from '../voice-integration.js';
 import type { voice } from '@livekit/agents';
 // Safe fire-and-forget for non-critical async operations

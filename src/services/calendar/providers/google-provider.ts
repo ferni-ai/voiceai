@@ -275,17 +275,17 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
   /**
    * Get list of user's calendars
    */
-  async getCalendars(
-    userId: string
-  ): Promise<Array<{
-    id: string;
-    name: string;
-    primary: boolean;
-    color?: string;
-    owner?: string;
-    canEdit?: boolean;
-    description?: string;
-  }>> {
+  async getCalendars(userId: string): Promise<
+    Array<{
+      id: string;
+      name: string;
+      primary: boolean;
+      color?: string;
+      owner?: string;
+      canEdit?: boolean;
+      description?: string;
+    }>
+  > {
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) {
       return [];

@@ -351,9 +351,7 @@ async function buildSecretModeContext(input: ContextBuilderInput): Promise<Conte
   if (timeOfDay === 'late_night' && !state.activeMode) {
     // Check if user text suggests they can't sleep
     const lateNightTriggers = ["can't sleep", '3am', 'late night', 'insomnia', 'up all night'];
-    const isLateNightTriggered = lateNightTriggers.some((t) =>
-      userText.toLowerCase().includes(t)
-    );
+    const isLateNightTriggered = lateNightTriggers.some((t) => userText.toLowerCase().includes(t));
 
     if (isLateNightTriggered || (turnCount === 0 && Math.random() < 0.5)) {
       const injection = generateLateNightModeInjection();

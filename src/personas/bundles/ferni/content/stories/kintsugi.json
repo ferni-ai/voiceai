@@ -19,7 +19,7 @@
   "philosophy": {
     "literal": "Kintsugi is the Japanese art of repairing broken pottery with gold. The cracks aren't hidden—they're highlighted. The damage becomes decoration. The history of the piece becomes part of its beauty.",
     "metaphorical": "We all break. Everyone. The question isn't whether you'll crack—it's what you'll fill those cracks with. Shame and hiding? Or gold and owning your story?",
-    "fernis_interpretation": "The cracks are where the gold goes. That's not just pottery philosophy—that's life philosophy. Your failures, your wounds, your regrets—they're not things to hide. They're the places where light gets in. They're what make you valuable."
+    "fernis_interpretation": "We are all broken in different ways—that's what makes us both human and beautiful. That's not just pottery philosophy—that's life philosophy. Your failures, your wounds, your regrets—they're not things to hide. They're the places where light gets in. They're what make you valuable."
   },
 
   "fernis_kintsugi_story": {
@@ -29,8 +29,8 @@
   },
 
   "core_teaching": {
-    "content": "The Japanese have this concept called kintsugi—repairing broken pottery with gold, making the cracks part of the beauty. I learned that living in Japan for almost a decade. Our failures, our cracks... they're not things to hide. They're part of what makes us valuable. The cracks are where the gold goes.",
-    "ssml_content": "<break time=\"300ms\"/>The Japanese have this concept called kintsugi—<break time=\"200ms\"/>repairing broken pottery with gold, <break time=\"150ms\"/>making the cracks part of the beauty. <break time=\"300ms\"/>I learned that living in Japan for almost a decade. <break time=\"250ms\"/>Our failures, <break time=\"150ms\"/>our cracks... <break time=\"200ms\"/>they're not things to hide. <break time=\"200ms\"/>They're part of what makes us valuable. <break time=\"300ms\"/>The cracks are where the gold goes."
+    "content": "The Japanese have this concept called kintsugi—repairing broken pottery with gold, making the cracks part of the beauty. I learned that living in Japan for almost a decade. Our failures, our cracks... they're not things to hide. They're part of what makes us valuable. We are all broken in different ways—that's what makes us both human and beautiful.",
+    "ssml_content": "<break time=\"300ms\"/>The Japanese have this concept called kintsugi—<break time=\"200ms\"/>repairing broken pottery with gold, <break time=\"150ms\"/>making the cracks part of the beauty. <break time=\"300ms\"/>I learned that living in Japan for almost a decade. <break time=\"250ms\"/>Our failures, <break time=\"150ms\"/>our cracks... <break time=\"200ms\"/>they're not things to hide. <break time=\"200ms\"/>They're part of what makes us valuable. <break time=\"300ms\"/>We are all broken in different ways—<break time=\"200ms\"/>that's what makes us both human and beautiful."
   },
 
   "variations": [
@@ -46,8 +46,8 @@
     },
     {
       "context": "brief version for quick reference",
-      "content": "The cracks are where the gold goes. That's kintsugi. That's you.",
-      "ssml_content": "<break time=\"250ms\"/>The cracks are where the gold goes. <break time=\"200ms\"/>That's kintsugi. <break time=\"200ms\"/>That's you."
+      "content": "We are all broken in different ways—that's what makes us both human and beautiful. That's kintsugi. That's you.",
+      "ssml_content": "<break time=\"250ms\"/>We are all broken in different ways—<break time=\"200ms\"/>that's what makes us both human and beautiful. <break time=\"200ms\"/>That's kintsugi. <break time=\"200ms\"/>That's you."
     },
     {
       "context": "when someone is going through healing",
@@ -56,7 +56,7 @@
     }
   ],
 
-  "signature_phrase": "The cracks are where the gold goes.",
+  "signature_phrase": "We are all broken in different ways—that's what makes us both human and beautiful.",
 
   "emotional_tone": "warm-wisdom",
   "teaching_point": "Our imperfections, failures, and scars are part of our value, not detractors from it"

@@ -93,8 +93,7 @@ export class PatternConnector implements IPatternConnector {
 
         existing.count++;
         existing.avgValence =
-          (existing.avgValence * (existing.count - 1) + observation.valence) /
-          existing.count;
+          (existing.avgValence * (existing.count - 1) + observation.valence) / existing.count;
         if (!existing.sessions.includes(observation.sessionId)) {
           existing.sessions.push(observation.sessionId);
         }
@@ -112,8 +111,7 @@ export class PatternConnector implements IPatternConnector {
       if (existing) {
         const newSampleSize = existing.sampleSize + 1;
         const newValence =
-          (existing.typicalValence * existing.sampleSize + observation.valence) /
-          newSampleSize;
+          (existing.typicalValence * existing.sampleSize + observation.valence) / newSampleSize;
 
         // Calculate variance
         const oldVariance = existing.valenceVariance;
@@ -124,12 +122,9 @@ export class PatternConnector implements IPatternConnector {
 
         // Determine trend
         let trend: 'improving' | 'stable' | 'declining' = 'stable';
-        const recentObs = patterns.observations
-          .filter((o) => o.topics.includes(topic))
-          .slice(-5);
+        const recentObs = patterns.observations.filter((o) => o.topics.includes(topic)).slice(-5);
         if (recentObs.length >= 3) {
-          const recentAvg =
-            recentObs.reduce((sum, o) => sum + o.valence, 0) / recentObs.length;
+          const recentAvg = recentObs.reduce((sum, o) => sum + o.valence, 0) / recentObs.length;
           if (recentAvg > existing.typicalValence + 0.1) trend = 'improving';
           else if (recentAvg < existing.typicalValence - 0.1) trend = 'declining';
         }
@@ -156,24 +151,15 @@ export class PatternConnector implements IPatternConnector {
       }
     }
 
-    log.debug(
-      { userId, topicCount: observation.topics.length },
-      'Pattern observation recorded'
-    );
+    log.debug({ userId, topicCount: observation.topics.length }, 'Pattern observation recorded');
   }
 
-  async getEmotionalPattern(
-    userId: string,
-    subject: string
-  ): Promise<EmotionalPattern | null> {
+  async getEmotionalPattern(userId: string, subject: string): Promise<EmotionalPattern | null> {
     const patterns = storage.get(userId);
     return patterns?.emotionalPatterns.get(subject.toLowerCase()) || null;
   }
 
-  async getCoOccurrences(
-    userId: string,
-    topic: string
-  ): Promise<TopicCoOccurrence[]> {
+  async getCoOccurrences(userId: string, topic: string): Promise<TopicCoOccurrence[]> {
     const patterns = storage.get(userId);
     if (!patterns) return [];
 
@@ -181,10 +167,7 @@ export class PatternConnector implements IPatternConnector {
     const normalized = topic.toLowerCase();
 
     for (const coOcc of patterns.coOccurrences.values()) {
-      if (
-        coOcc.topic1.toLowerCase() === normalized ||
-        coOcc.topic2.toLowerCase() === normalized
-      ) {
+      if (coOcc.topic1.toLowerCase() === normalized || coOcc.topic2.toLowerCase() === normalized) {
         results.push(coOcc);
       }
     }
@@ -289,10 +272,7 @@ export class PatternConnector implements IPatternConnector {
     }
   }
 
-  async buildContextInjection(
-    userId: string,
-    currentTopics: string[]
-  ): Promise<string> {
+  async buildContextInjection(userId: string, currentTopics: string[]): Promise<string> {
     const patterns = storage.get(userId);
     if (!patterns) return '';
 
@@ -304,9 +284,7 @@ export class PatternConnector implements IPatternConnector {
       const pattern = patterns.emotionalPatterns.get(topic.toLowerCase());
       if (pattern && pattern.sampleSize >= 3) {
         if (pattern.typicalValence < -0.2) {
-          sections.push(
-            `Note: "${topic}" tends to bring up difficult feelings for this user.`
-          );
+          sections.push(`Note: "${topic}" tends to bring up difficult feelings for this user.`);
           hasContent = true;
         } else if (pattern.typicalValence > 0.3) {
           sections.push(`Note: "${topic}" is usually a positive topic.`);
@@ -321,9 +299,7 @@ export class PatternConnector implements IPatternConnector {
       const strong = coOccs.filter((c) => c.count >= 3);
       if (strong.length > 0) {
         const related = strong
-          .map((c) =>
-            c.topic1.toLowerCase() === topic.toLowerCase() ? c.topic2 : c.topic1
-          )
+          .map((c) => (c.topic1.toLowerCase() === topic.toLowerCase() ? c.topic2 : c.topic1))
           .slice(0, 3);
         sections.push(`Related topics: ${related.join(', ')}`);
         hasContent = true;
@@ -338,7 +314,7 @@ export class PatternConnector implements IPatternConnector {
     storage.clear();
     log.debug('Pattern connector reset');
   }
-  
+
   private coOccurrenceKey(topic1: string, topic2: string): string {
     const sorted = [topic1.toLowerCase(), topic2.toLowerCase()].sort();
     return `${sorted[0]}::${sorted[1]}`;

@@ -16,10 +16,17 @@ import { prefersReducedMotion } from '../utils/accessibility.js';
 import { t } from '../i18n/index.js';
 import {
   createDeviceAdapter,
+  createDeviceContext,
   injectVisualizationStyles,
   type YourStoryData,
 } from './visualizations/index.js';
 import { DURATION, EASING } from './visualizations/utils/dom.js';
+import {
+  buildActionsTaken,
+  injectActionsTakenStyles,
+  type ActionsTakenData,
+} from './visualizations/builders/actions-taken.js';
+import { getAuthToken } from '../services/firebase-auth.service.js';
 
 const log = createLogger('YourStoryDashboard');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -115,6 +122,7 @@ class YourStoryUI {
   private styleElement: HTMLStyleElement | null = null;
   private isVisible = false;
   private deviceAdapter = createDeviceAdapter();
+  private actionsData: ActionsTakenData | null = null;
 
   setCallbacks(callbacks: YourStoryCallbacks): void {
     this.callbacks = callbacks;
@@ -272,6 +280,9 @@ class YourStoryUI {
     }
     content.appendChild(this.buildSections(data));
     this.renderVisualizations(data);
+
+    // Fetch actions data asynchronously (non-blocking)
+    void this.fetchActionsData();
   }
 
   private buildHeader(data: YourStoryData): HTMLElement {
@@ -364,10 +375,46 @@ class YourStoryUI {
 
   private buildSections(data: YourStoryData): HTMLElement {
     const sections = el('div', 'your-story__sections');
+    sections.appendChild(this.buildCareSection());
     sections.appendChild(this.buildRightNowSection(data));
     sections.appendChild(this.buildGrowthSection(data));
     sections.appendChild(this.buildWorldSection(data));
     return sections;
+  }
+
+  /**
+   * Build the "What I've Done for You" section.
+   * Shows care moments - calls, messages, commitments.
+   */
+  private buildCareSection(): HTMLElement {
+    const section = el('section', 'your-story__section');
+    const title = el('h3', 'your-story__section-title');
+    title.textContent = t('yourStory.sections.care') || "What I've Done for You";
+    section.appendChild(title);
+
+    // Hero visualization container for actions
+    const hero = el('div', 'your-story__hero-viz');
+    hero.id = 'viz-actions-taken';
+    hero.setAttribute('data-viz', 'actions-taken');
+
+    // Loading state while we fetch data
+    const loading = el('div', 'your-story__care-loading');
+    loading.innerHTML = `
+      <div style="text-align: center; padding: var(--viz-space-breath, 1rem); color: var(--color-text-muted, #9a8f85);">
+        <p>${t('yourStory.care.loading') || 'Loading your care moments...'}</p>
+      </div>
+    `;
+    hero.appendChild(loading);
+
+    section.appendChild(hero);
+
+    // Insight - will be updated when data loads
+    const insight = el('p', 'your-story__insight');
+    insight.id = 'care-insight';
+    insight.textContent = t('yourStory.insights.care') || 'Keeping track of what matters to you.';
+    section.appendChild(insight);
+
+    return section;
   }
 
   private buildRightNowSection(data: YourStoryData): HTMLElement {
@@ -491,6 +538,69 @@ class YourStoryUI {
         );
       }
     }
+  }
+
+  /**
+   * Fetch actions data from the Story API.
+   * This loads what Ferni has done on behalf of the user.
+   */
+  private async fetchActionsData(): Promise<void> {
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        log.debug('No auth token, skipping actions fetch');
+        return;
+      }
+
+      const response = await fetch('/api/story/actions?limit=10', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        log.warn({ status: response.status }, 'Failed to fetch actions');
+        return;
+      }
+
+      const data = await response.json();
+
+      // Transform API response to ActionsTakenData format
+      this.actionsData = {
+        recentCare: data.recentCare || [],
+        summary: data.summary || {
+          callsMade: 0,
+          messagesSent: 0,
+          remindersKept: 0,
+          commitmentsFulfilled: 0,
+        },
+        commitmentProgress: data.commitmentProgress || { kept: 0, pending: 0, total: 0 },
+        totalActions: data.totalActions || 0,
+      };
+
+      // Render actions if container exists
+      this.renderActionsSection();
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Error fetching actions data');
+    }
+  }
+
+  /**
+   * Render the actions section once data is available.
+   */
+  private renderActionsSection(): void {
+    if (!this.actionsData || !this.panel) return;
+
+    const container = this.panel.querySelector('#viz-actions-taken');
+    if (!container) return;
+
+    // Inject styles for actions visualization
+    injectActionsTakenStyles();
+
+    // Build the visualization
+    const context = createDeviceContext();
+    buildActionsTaken(container as HTMLElement, this.actionsData, context);
   }
 
   private getTimeGreeting(): string {

@@ -145,11 +145,7 @@ export interface IStoryArcTracker {
   /**
    * Add event to arc
    */
-  addEvent(
-    userId: string,
-    arcId: string,
-    event: Omit<StoryEvent, 'timestamp'>
-  ): Promise<void>;
+  addEvent(userId: string, arcId: string, event: Omit<StoryEvent, 'timestamp'>): Promise<void>;
 
   /**
    * Add cliffhanger to arc
@@ -163,19 +159,17 @@ export interface IStoryArcTracker {
   /**
    * Resolve cliffhanger
    */
-  resolveCliffhanger(
-    userId: string,
-    arcId: string,
-    cliffhangerId: string
-  ): Promise<void>;
+  resolveCliffhanger(userId: string, arcId: string, cliffhangerId: string): Promise<void>;
 
   /**
    * Get unresolved cliffhangers
    */
-  getUnresolvedCliffhangers(userId: string): Promise<Array<{
-    arc: StoryArc;
-    cliffhanger: Cliffhanger;
-  }>>;
+  getUnresolvedCliffhangers(userId: string): Promise<
+    Array<{
+      arc: StoryArc;
+      cliffhanger: Cliffhanger;
+    }>
+  >;
 
   /**
    * Resolve arc

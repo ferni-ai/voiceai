@@ -16,7 +16,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import {
   PreSTTProcessor,
   PreSTTPresets,
-} from '../../agents/shared/performance/pre-stt-transform.js';
+} from '../../utils/audio/pre-stt-transform.js';
 
 const log = createLogger({ module: 'twilio-audio-enhance' });
 

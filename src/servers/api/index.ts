@@ -89,8 +89,9 @@ import { handleDiagnosticsRoutes } from '../../api/handoff-diagnostics.js';
 import { handleDashboardMetricsRoutes } from '../../api/dashboard-metrics-routes.js';
 import { handleDORARoutes } from '../../api/dora-routes.js';
 import { handleObservabilityRoutes } from '../../api/observability-routes.js';
-import { handleFTISRoutes } from '../../services/observability/ftis-metrics.js';
+import { handleFTISRoutes } from '../../services/observability/routing-metrics.js';
 import { handleToolsAnalyticsRoutes } from '../../api/tools-analytics-routes.js';
+import { handleChatRoutes } from '../../api/chat-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
 import { handleOutreachRoutes } from '../../api/outreach.routes.js';
 import { handleBackgroundResultsRoutes } from '../../api/background-results-routes.js';
@@ -144,6 +145,7 @@ import { handleHouseholdRoutes } from '../../api/household-routes.js';
 import { handleContactsRoutes } from '../../api/contacts-routes.js';
 import { handleGiftRoutes } from '../../api/gift-routes.js';
 import { handleStoryJourneyRoutes } from '../../api/story-journey-routes.js';
+import { handleStoryRoutes } from '../../api/story-routes.js';
 import { handleSubscriptionRequest, isSubscriptionRoute } from '../../api/subscription-routes.js';
 import { handleAnalyticsRoutes } from '../../api/user-analytics-routes.js';
 import { handleBuilderMetricsRoutes } from '../../api/routes/builder-metrics.js';
@@ -773,6 +775,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Chat API routes (natural language interface)
+    if (pathname.startsWith('/api/chat')) {
+      const handled = await handleChatRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
     // Tools analytics routes
     if (pathname.startsWith('/api/tools')) {
       const handled = await handleToolsAnalyticsRoutes(req, res, pathname);
@@ -1302,6 +1310,12 @@ const server = http.createServer(async (req, res) => {
     // Story journey routes
     if (pathname.startsWith('/api/story-journey')) {
       const handled = await handleStoryJourneyRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Story routes (Your Story dashboard - actions, summary, stream)
+    if (pathname.startsWith('/api/story')) {
+      const handled = await handleStoryRoutes(req, res, pathname);
       if (handled) return;
     }
 

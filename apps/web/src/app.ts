@@ -383,19 +383,23 @@ if (import.meta.env.DEV) {
   (window as any).testFirstTimeUser = {
     reset: () => {
       modalCoordinator.resetToFirstTimeUser();
-      console.log('✅ Reset to first-time user. Reload the page to test.');
+      log.info('Reset to first-time user. Reload the page to test.');
     },
     simulate: (count: number) => {
       modalCoordinator.simulateConversations(count);
-      console.log(`✅ Simulated ${count} conversations. Reload the page to see changes.`);
+      log.info({ count }, 'Simulated conversations. Reload the page to see changes.');
     },
     status: () => {
       const status = modalCoordinator.getFirstTimeUserStatus();
-      console.log('📊 First-Time User Status:');
-      console.log(`   Conversations: ${status.conversationCount}`);
-      console.log(`   Is First-Time User: ${status.isFirstTimeUser}`);
-      console.log(`   ✅ Unlocked: ${status.unlockedFeatures.join(', ') || 'none'}`);
-      console.log(`   🔒 Locked: ${status.lockedFeatures.join(', ') || 'none'}`);
+      log.info(
+        {
+          conversationCount: status.conversationCount,
+          isFirstTimeUser: status.isFirstTimeUser,
+          unlocked: status.unlockedFeatures,
+          locked: status.lockedFeatures,
+        },
+        'First-Time User Status'
+      );
       return status;
     },
   };
@@ -2021,18 +2025,18 @@ class VoiceAIApp {
         onActivityClick: () => showActivity(),
         onYourYearClick: () => {
           // Open "Your Year with Ferni" visualization
-          console.log('[YourYear] Callback triggered, starting import...');
+          log.debug('YourYear callback triggered, starting import');
           import('./ui/your-year-with-ferni.ui.js')
             .then(({ openYourYearWithFerni }) => {
-              console.log('[YourYear] Module loaded successfully, opening...');
+              log.debug('YourYear module loaded, opening');
               const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
               return openYourYearWithFerni(userId);
             })
             .then(() => {
-              console.log('[YourYear] Opened successfully');
+              log.debug('YourYear opened successfully');
             })
             .catch((err) => {
-              console.error('[YourYear] Error:', err?.message || err, err?.stack);
+              log.error({ error: String(err) }, 'YourYear error');
             });
         },
         onFutureInsightsClick: () => futureInsightsUI.open(),
@@ -2217,6 +2221,75 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-team-huddle', () => {
       void showTeamHuddle();
     });
+
+    // 🎤 Voice-Activated Navigation - Handle panel open events from voice commands
+    // These are triggered by the ui-navigation tool domain via show_view events
+    this.addTrackedListener(window, 'ferni:open-your-story', () => {
+      void showYourStoryDashboard();
+    });
+    this.addTrackedListener(window, 'ferni:open-memory-lane', () => {
+      void memoryLaneUI.open();
+    });
+    this.addTrackedListener(window, 'ferni:open-history', () => {
+      void showConversationHistory();
+    });
+    this.addTrackedListener(window, 'ferni:open-patterns', () => {
+      const container = document.querySelector('.app-shell') as HTMLElement | null;
+      if (container) {
+        void patternInsightsUI.show(container);
+      }
+    });
+    this.addTrackedListener(window, 'ferni:open-quiz', () => {
+      void openKnowledgeQuiz();
+    });
+    this.addTrackedListener(window, 'ferni:open-music', () => {
+      void musicDashboard.show();
+    });
+    this.addTrackedListener(window, 'ferni:open-calendar', () => {
+      setCalendarViewCallbacks({
+        onConnectCalendar: () => {
+          const userId = appState.get('deviceId') || 'anonymous';
+          window.location.href = `/auth/google/calendar?userId=${userId}`;
+        },
+      });
+      void showCalendarView();
+    });
+    this.addTrackedListener(window, 'ferni:open-contacts', () => {
+      void openYourPeople();
+    });
+    this.addTrackedListener(window, 'ferni:open-journal', () => {
+      void openChronicle();
+    });
+    this.addTrackedListener(window, 'ferni:open-year-with-ferni', () => {
+      import('./ui/your-year-with-ferni.ui.js')
+        .then(({ openYourYearWithFerni }) => {
+          const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
+          return openYourYearWithFerni(userId);
+        })
+        .catch((err) => {
+          log.error({ error: String(err) }, 'Failed to open Your Year with Ferni');
+        });
+    });
+    this.addTrackedListener(window, 'ferni:open-settings', () => {
+      getSettingsMenuUI().show();
+    });
+    this.addTrackedListener(window, 'ferni:open-practices', () => {
+      void getSanctuaryUI().open();
+    });
+    this.addTrackedListener(window, 'ferni:open-household', () => {
+      void showHouseholdManager();
+    });
+    this.addTrackedListener(window, 'ferni:open-voice-id', () => {
+      void showVoiceEnrollmentModal();
+    });
+    this.addTrackedListener(window, 'ferni:open-notifications', () => {
+      showNotificationSettings();
+    });
+    this.addTrackedListener(window, 'ferni:close-panel', () => {
+      // Close any open modal by dispatching escape key event
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+
     // 🔄 Persona Switch - connects dispatched events to actual handoff
     // Multiple UI components dispatch this event (team-unlock-celebration, command-palette, etc.)
     // but it wasn't triggering the voice agent handoff - this fixes that!

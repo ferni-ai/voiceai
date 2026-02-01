@@ -778,7 +778,8 @@ export async function searchContacts(
             name: mainContact.displayName,
             email: mainContact.emails?.[0]?.address,
             phone: mainContact.phones?.[0]?.number,
-            relationship: (mainContact.relationship as ContactRelationship['relationship']) || 'other',
+            relationship:
+              (mainContact.relationship as ContactRelationship['relationship']) || 'other',
             notes: mainContact.notes || mainContact.nicknames?.join(', '),
             firstInteraction: mainContact.createdAt,
             lastInteraction: mainContact.lastContactedAt || mainContact.updatedAt,

@@ -35,13 +35,14 @@ export function extractEmbedding(
     return undefined;
   }
 
-  // Validate dimension to catch data corruption
+  // Validate dimension - historical data may have different dimensions
+  // (e.g., 384 from LocalEmbeddings fallback vs 768 from Vertex AI)
   if (embedding.length !== expectedDimension) {
-    getLogger().warn(
+    getLogger().debug(
       { docId, expected: expectedDimension, actual: embedding.length },
-      'Embedding dimension mismatch - possible data corruption'
+      'Embedding dimension mismatch - historical data may use different embedding model'
     );
-    // Still return it but log the warning - caller can decide what to do
+    // Still return it - caller can decide what to do with dimension-mismatched embeddings
   }
 
   // Validate all elements are numbers

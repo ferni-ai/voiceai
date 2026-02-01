@@ -30,14 +30,16 @@ const log = createLogger({ module: 'context:generated-insights' });
 // ============================================================================
 
 // Minimum turn count before surfacing proactive insights
-const MIN_TURN_FOR_PROACTIVE = 2;
+// Lowered from 2→1: allow insights on first real turn (session_start insights
+// were permanently blocked because isSessionStart=false by the time turn≥2)
+const MIN_TURN_FOR_PROACTIVE = 1;
 
 // Maximum insights to inject per turn
 const MAX_INSIGHTS_PER_TURN = 2;
 
 // Cache for preventing duplicate surfacing
 const recentlySurfaced = new Map<string, number>();
-const SURFACING_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+const SURFACING_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes (reduced from 5min for more frequent BTH insights)
 
 // ============================================================================
 // BUILDER
@@ -79,13 +81,13 @@ export const generatedInsightsBuilder: ContextBuilder = {
         hourOfDay: new Date().getHours(),
         dayOfWeek: new Date().getDay(),
         recentTopics: analysis?.topics?.detected,
-      voiceMetrics: voiceEmotion
-        ? {
+        voiceMetrics: voiceEmotion
+          ? {
               energy: voiceEmotion.arousal,
               stress: voiceEmotion.stressLevel,
               pace: voiceEmotion.speechRate,
             }
-        : undefined,
+          : undefined,
       };
 
       // Get insights to surface
@@ -123,7 +125,7 @@ export const generatedInsightsBuilder: ContextBuilder = {
       // Format for LLM
       const formatted = formatInsightsForPrompt(toSurface);
 
-      if (!formatted || formatted.length < 100) {
+      if (!formatted || formatted.length < 40) {
         return [];
       }
 

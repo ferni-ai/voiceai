@@ -1,0 +1,147 @@
+{
+  "version": "v3",
+  "generated": "2026-01-24T12:11:10.593Z",
+  "config": {
+    "examplesPerTool": 50,
+    "openIntentExamples": 2000,
+    "hardNegativesPerPair": 100,
+    "multiToolExamples": 500,
+    "edgeCaseExamples": 300,
+    "trainRatio": 0.8,
+    "validationRatio": 0.1,
+    "testRatio": 0.1
+  },
+  "stats": {
+    "totalExamples": 1381,
+    "openIntents": 975,
+    "toolExamples": 370,
+    "hardNegatives": 24,
+    "edgeCases": 12,
+    "trainSize": 1104,
+    "validationSize": 138,
+    "testSize": 139
+  },
+  "categories": [
+    {
+      "id": "music_play",
+      "tools": [
+        "playMusic",
+        "spotify_play",
+        "music_play"
+      ]
+    },
+    {
+      "id": "music_control",
+      "tools": [
+        "pauseMusic",
+        "skipTrack",
+        "adjustVolume"
+      ]
+    },
+    {
+      "id": "calendar_create",
+      "tools": [
+        "createCalendarEvent",
+        "scheduleEvent"
+      ]
+    },
+    {
+      "id": "calendar_view",
+      "tools": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "id": "reminder_set",
+      "tools": [
+        "setReminder",
+        "createReminder"
+      ]
+    },
+    {
+      "id": "weather",
+      "tools": [
+        "getWeather",
+        "weatherForecast"
+      ]
+    },
+    {
+      "id": "timer",
+      "tools": [
+        "setTimer",
+        "createTimer"
+      ]
+    },
+    {
+      "id": "alarm",
+      "tools": [
+        "setAlarm",
+        "createAlarm"
+      ]
+    },
+    {
+      "id": "habit_log",
+      "tools": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ]
+    },
+    {
+      "id": "habit_view",
+      "tools": [
+        "getHabitProgress",
+        "viewStreak",
+        "habitStats"
+      ]
+    },
+    {
+      "id": "memory_save",
+      "tools": [
+        "rememberThis",
+        "saveMemory",
+        "storeInfo"
+      ]
+    },
+    {
+      "id": "memory_recall",
+      "tools": [
+        "recallMemory",
+        "getMemory",
+        "whatDoYouKnow"
+      ]
+    },
+    {
+      "id": "call",
+      "tools": [
+        "makeCall",
+        "callContact"
+      ]
+    },
+    {
+      "id": "message",
+      "tools": [
+        "sendMessage",
+        "textContact",
+        "sendSMS"
+      ]
+    },
+    {
+      "id": "search",
+      "tools": [
+        "webSearch",
+        "search",
+        "lookup"
+      ]
+    },
+    {
+      "id": "news",
+      "tools": [
+        "getNews",
+        "headlines"
+      ]
+    }
+  ],
+  "openIntentRatio": 0.7060101375814627
+}

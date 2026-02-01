@@ -863,16 +863,11 @@ describe('Cross-Service Integration', () => {
   });
 
   it('should support full meeting workflow', async () => {
-    const { addMeeting, updateNotes, addActionItem, completeActionItem } = await import(
-      '../meetings.js'
-    );
+    const { addMeeting, updateNotes, addActionItem, completeActionItem } =
+      await import('../meetings.js');
 
     // 1. Create meeting - addMeeting stores it via our mock
-    const meeting = await addMeeting(
-      TEST_USER_ID,
-      'Quarterly planning',
-      ['CEO', 'CTO', 'CFO']
-    );
+    const meeting = await addMeeting(TEST_USER_ID, 'Quarterly planning', ['CEO', 'CTO', 'CFO']);
     expect(meeting.attendees).toEqual(['CEO', 'CTO', 'CFO']);
 
     // 2. Update notes - updateNotes reads from mock and updates

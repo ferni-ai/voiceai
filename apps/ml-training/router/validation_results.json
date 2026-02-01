@@ -1,0 +1,339 @@
+{
+  "pass_rate": 82.05128205128204,
+  "total_passed": 64,
+  "total_tests": 78,
+  "avg_latency_ms": 6978.566801870609,
+  "model_dir": "/Users/sethford/Documents/voiceai/models/ferni-router-v5-860",
+  "failures": [
+    {
+      "query": "what's on my calendar today",
+      "category": "calendar",
+      "expected": [
+        "getCalendarEvents",
+        "getDailyBriefing",
+        "morningBriefing"
+      ],
+      "actual": [
+        "getMaintenanceSchedule",
+        "listReminders",
+        "listScheduled",
+        "runRoutine",
+        "checkAvailability"
+      ],
+      "top_score": 0.9911914467811584
+    },
+    {
+      "query": "block off Friday afternoon",
+      "category": "calendar",
+      "expected": [
+        "createCalendarEvent",
+        "scheduleEvent",
+        "calendarArchitecture"
+      ],
+      "actual": [
+        "cancelEvent",
+        "modifyEvent",
+        "manageAppointment",
+        "setWorkBoundary",
+        "blockSender"
+      ],
+      "top_score": 0.9546089768409729
+    },
+    {
+      "query": "set up a recurring standup",
+      "category": "calendar",
+      "expected": [
+        "createCalendarEvent",
+        "scheduleEvent"
+      ],
+      "actual": [
+        "sharePatternWithTeam",
+        "requestAlexProductivitySupport",
+        "getMaintenanceSchedule",
+        "planWeeklyMeals",
+        "scheduleCall"
+      ],
+      "top_score": 0.9869308471679688
+    },
+    {
+      "query": "read my messages",
+      "category": "communication",
+      "expected": [
+        "analyzeMessage",
+        "analyzeInboxPriority",
+        "summarizeThread",
+        "__no_tool__"
+      ],
+      "actual": [
+        "broadcastMessage",
+        "noContact",
+        "sendMessage",
+        "textContact",
+        "getMaintenanceSchedule"
+      ],
+      "top_score": 0.41653501987457275
+    },
+    {
+      "query": "arm the security system",
+      "category": "smart_home",
+      "expected": [
+        "controlLock",
+        "createAutomation",
+        "__no_tool__"
+      ],
+      "actual": [
+        "cancelAlarm",
+        "embraceLightness",
+        "getMemory",
+        "setLights",
+        "groundInBody"
+      ],
+      "top_score": 0.4178398549556732
+    },
+    {
+      "query": "how many steps today",
+      "category": "health",
+      "expected": [
+        "trackFitnessGoal",
+        "logExercise",
+        "assessEnergyLevel",
+        "__no_tool__"
+      ],
+      "actual": [
+        "viewStreak",
+        "updateReadingProgress",
+        "trackHabit",
+        "revealBlindSpot",
+        "wellnessCheckin"
+      ],
+      "top_score": 0.36822447180747986
+    },
+    {
+      "query": "remind me to call mom at 5pm",
+      "category": "tasks",
+      "expected": [
+        "createReminder",
+        "setReminder",
+        "scheduleReminder"
+      ],
+      "actual": [
+        "completeTask",
+        "getMemory",
+        "setWorkBoundary",
+        "setTimer",
+        "rememberThis"
+      ],
+      "top_score": 0.9890320897102356
+    },
+    {
+      "query": "mark groceries as done",
+      "category": "tasks",
+      "expected": [
+        "markDone",
+        "completeTask",
+        "markHabitComplete"
+      ],
+      "actual": [
+        "orderGroceries",
+        "logMeal",
+        "checkPlanningReadiness",
+        "trackServiceHistory",
+        "recallMemory"
+      ],
+      "top_score": 0.7977379560470581
+    },
+    {
+      "query": "translate hello to Spanish",
+      "category": "knowledge",
+      "expected": [
+        "search",
+        "webSearch",
+        "explainConcept",
+        "__no_tool__"
+      ],
+      "actual": [
+        "cancelSubscription",
+        "getRideStatus",
+        "planHomeProject",
+        "breatheWithMe",
+        "recallMemory"
+      ],
+      "top_score": 0.4753662347793579
+    },
+    {
+      "query": "define serendipity",
+      "category": "knowledge",
+      "expected": [
+        "explainConcept",
+        "search",
+        "webSearch",
+        "__no_tool__"
+      ],
+      "actual": [
+        "dailyMeaningPractice",
+        "becomeSilly",
+        "sitWithBigQuestion",
+        "listWebhooks",
+        "intimacyTypes"
+      ],
+      "top_score": 0.8180623650550842
+    },
+    {
+      "query": "read me a bedtime story",
+      "category": "entertainment",
+      "expected": [
+        "captureLifeStory",
+        "__no_tool__",
+        "familyStoryPrompts"
+      ],
+      "actual": [
+        "logMeal",
+        "playSonosFavorite",
+        "experienceWonder",
+        "whatDoYouKnow",
+        "becomeSilly"
+      ],
+      "top_score": 0.23323385417461395
+    },
+    {
+      "query": "find my tax documents",
+      "category": "productivity",
+      "expected": [
+        "findDocument",
+        "locateDocument",
+        "searchFiles",
+        "organizeDocuments"
+      ],
+      "actual": [
+        "analyzeInboxPriority",
+        "writeEthicalWill",
+        "planCharitableGiving",
+        "reviewCommitments",
+        "trackGift"
+      ],
+      "top_score": 0.42966336011886597
+    },
+    {
+      "query": "I'm feeling stressed",
+      "category": "open_intent",
+      "expected": [
+        "__no_tool__",
+        "deEscalateAnxiety",
+        "calmingTechnique",
+        "groundingExercise",
+        "breatheWithMe"
+      ],
+      "actual": [
+        "betrayalTrauma",
+        "jobSearchMentalHealth",
+        "naturePrescription",
+        "traumaResponses",
+        "blendedFamilyConflict"
+      ],
+      "top_score": 0.3181686997413635
+    },
+    {
+      "query": "I had a great day",
+      "category": "open_intent",
+      "expected": [
+        "__no_tool__",
+        "celebrateTinyWin",
+        "noticeJoy"
+      ],
+      "actual": [
+        "noteThatWasFun",
+        "celebrateMaintenance",
+        "honorEnding",
+        "addressPerfectionism",
+        "logGratitude"
+      ],
+      "top_score": 0.8254231810569763
+    }
+  ],
+  "category_stats": {
+    "music": {
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "pass_rate": 100.0
+    },
+    "calendar": {
+      "passed": 4,
+      "failed": 3,
+      "total": 7,
+      "pass_rate": 57.14285714285714
+    },
+    "weather": {
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "pass_rate": 100.0
+    },
+    "communication": {
+      "passed": 6,
+      "failed": 1,
+      "total": 7,
+      "pass_rate": 85.71428571428571
+    },
+    "smart_home": {
+      "passed": 6,
+      "failed": 1,
+      "total": 7,
+      "pass_rate": 85.71428571428571
+    },
+    "health": {
+      "passed": 6,
+      "failed": 1,
+      "total": 7,
+      "pass_rate": 85.71428571428571
+    },
+    "tasks": {
+      "passed": 4,
+      "failed": 2,
+      "total": 6,
+      "pass_rate": 66.66666666666666
+    },
+    "navigation": {
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "pass_rate": 100.0
+    },
+    "knowledge": {
+      "passed": 4,
+      "failed": 2,
+      "total": 6,
+      "pass_rate": 66.66666666666666
+    },
+    "entertainment": {
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 66.66666666666666
+    },
+    "system": {
+      "passed": 4,
+      "failed": 0,
+      "total": 4,
+      "pass_rate": 100.0
+    },
+    "social": {
+      "passed": 4,
+      "failed": 0,
+      "total": 4,
+      "pass_rate": 100.0
+    },
+    "productivity": {
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 66.66666666666666
+    },
+    "open_intent": {
+      "passed": 4,
+      "failed": 2,
+      "total": 6,
+      "pass_rate": 66.66666666666666
+    }
+  }
+}

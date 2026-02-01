@@ -9,4 +9,9 @@
  * @module tools/domains/insights
  */
 
-export { getToolDefinitions, domain, definitions, weeklySummaryToolDefinitions } from './weekly-summary-tools.js';
+export {
+  getToolDefinitions,
+  domain,
+  definitions,
+  weeklySummaryToolDefinitions,
+} from './weekly-summary-tools.js';

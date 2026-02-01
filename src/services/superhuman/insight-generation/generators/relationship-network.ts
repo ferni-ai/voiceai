@@ -30,11 +30,11 @@ const log = createLogger({ module: 'insight-gen:relationship' });
 const RELATIONSHIP_TEMPLATES = {
   energizing: [
     "I've noticed you light up when {person} comes up. You've mentioned them {count} times, always with warmth.",
-    "{person} clearly brings you joy. Your energy shifts when they come up in conversation.",
+    '{person} clearly brings you joy. Your energy shifts when they come up in conversation.',
     "Something I love seeing: {person} makes you smile, even in your voice. That's a good one to hold onto.",
   ],
   draining: [
-    "When {person} comes up, I notice a shift. It sounds like that relationship might be taking something from you.",
+    'When {person} comes up, I notice a shift. It sounds like that relationship might be taking something from you.',
     "{person} seems to be weighing on you. You've mentioned them {count} times, and there's often tension there.",
     "I want to gently name something: {person} doesn't seem to fill your cup. How are you managing that relationship?",
   ],
@@ -50,12 +50,12 @@ const RELATIONSHIP_TEMPLATES = {
   ],
   mixed_feelings: [
     "Your feelings about {person} seem mixed. Sometimes warmth, sometimes frustration. That's hard to hold.",
-    "{person} brings up complicated feelings for you. I see both love and tension there.",
+    '{person} brings up complicated feelings for you. I see both love and tension there.',
     "The relationship with {person} isn't simple, is it? I hear both the good and the hard.",
   ],
   support_system: [
     "Looking at who you mention most positively: {people}. That's a solid support system.",
-    "Your people: {people}. These names come up with warmth. Hold onto them.",
+    'Your people: {people}. These names come up with warmth. Hold onto them.',
     "When I think about who fills your cup, it's {people}. Those are your anchors.",
   ],
 };
@@ -72,7 +72,13 @@ interface RelationshipInsightData {
   sentiment: number; // -1 to 1
   impact: 'energizing' | 'neutral' | 'draining';
   daysSinceMention?: number;
-  insightType: 'energizing' | 'draining' | 'silence' | 'frequent' | 'mixed_feelings' | 'support_system';
+  insightType:
+    | 'energizing'
+    | 'draining'
+    | 'silence'
+    | 'frequent'
+    | 'mixed_feelings'
+    | 'support_system';
 }
 
 async function fetchRelationshipData(userId: string): Promise<RelationshipInsightData[]> {

@@ -1,4 +1,3 @@
-// TODO: Fix type errors - DOM element array indexing
 /**
  * ARIA Relationship Utilities - Improved Accessibility
  *

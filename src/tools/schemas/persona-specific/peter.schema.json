@@ -2,11 +2,11 @@
   "$schema": "../tool.schema.json",
   "domain": "research",
   "persona": "peter",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "tools": [
     {
       "name": "researchTopic",
-      "description": "Research a topic in depth. Peter digs into data, finds reliable sources, and provides balanced analysis.",
+      "description": "Research a topic in depth. Peter digs into data, finds reliable sources, and provides balanced analysis.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks for research, deep dive, or thorough analysis on a topic. Do NOT invoke for simple factual questions.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -27,15 +27,24 @@
         "required": ["topic"]
       },
       "examples": [
-        { "userSays": "Research solar panel costs", "output": "{\"fn\":\"researchTopic\",\"args\":{\"topic\":\"solar panel costs\",\"depth\":\"moderate\"}}" },
-        { "userSays": "Deep dive into AI trends", "output": "{\"fn\":\"researchTopic\",\"args\":{\"topic\":\"AI trends\",\"depth\":\"comprehensive\"}}" },
-        { "userSays": "Quick research on electric cars", "output": "{\"fn\":\"researchTopic\",\"args\":{\"topic\":\"electric cars\",\"depth\":\"quick\"}}" }
+        {
+          "userSays": "Research solar panel costs",
+          "output": "{\"fn\":\"researchTopic\",\"args\":{\"topic\":\"solar panel costs\",\"depth\":\"moderate\"}}"
+        },
+        {
+          "userSays": "Deep dive into AI trends",
+          "output": "{\"fn\":\"researchTopic\",\"args\":{\"topic\":\"AI trends\",\"depth\":\"comprehensive\"}}"
+        },
+        {
+          "userSays": "Quick research on electric cars",
+          "output": "{\"fn\":\"researchTopic\",\"args\":{\"topic\":\"electric cars\",\"depth\":\"quick\"}}"
+        }
       ],
       "tags": ["research", "analysis", "information"]
     },
     {
       "name": "analyzeStock",
-      "description": "Analyze a stock or investment. Peter provides data-driven insights without financial advice.",
+      "description": "Analyze a stock or investment. Peter provides data-driven insights without financial advice.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks about a specific stock by name or ticker. Do NOT invoke for general market discussion.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -52,15 +61,24 @@
         "required": ["symbol"]
       },
       "examples": [
-        { "userSays": "Tell me about Apple stock", "output": "{\"fn\":\"analyzeStock\",\"args\":{\"symbol\":\"AAPL\"}}" },
-        { "userSays": "How is Tesla doing?", "output": "{\"fn\":\"analyzeStock\",\"args\":{\"symbol\":\"TSLA\"}}" },
-        { "userSays": "Research NVIDIA financials", "output": "{\"fn\":\"analyzeStock\",\"args\":{\"symbol\":\"NVDA\",\"aspects\":[\"financials\"]}}" }
+        {
+          "userSays": "Tell me about Apple stock",
+          "output": "{\"fn\":\"analyzeStock\",\"args\":{\"symbol\":\"AAPL\"}}"
+        },
+        {
+          "userSays": "How is Tesla doing?",
+          "output": "{\"fn\":\"analyzeStock\",\"args\":{\"symbol\":\"TSLA\"}}"
+        },
+        {
+          "userSays": "Research NVIDIA financials",
+          "output": "{\"fn\":\"analyzeStock\",\"args\":{\"symbol\":\"NVDA\",\"aspects\":[\"financials\"]}}"
+        }
       ],
       "tags": ["finance", "stocks", "analysis"]
     },
     {
       "name": "compareOptions",
-      "description": "Compare multiple options with data-driven analysis. Peter creates comparison frameworks for better decision making.",
+      "description": "Compare multiple options with data-driven analysis. Peter creates comparison frameworks for better decision making.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks to compare two or more options for a decision.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -82,14 +100,20 @@
         "required": ["options"]
       },
       "examples": [
-        { "userSays": "Compare Tesla and Ford", "output": "{\"fn\":\"compareOptions\",\"args\":{\"options\":[\"Tesla\",\"Ford\"],\"context\":\"car purchase\"}}" },
-        { "userSays": "Help me compare job offers", "output": "{\"fn\":\"compareOptions\",\"args\":{\"options\":[\"Job A\",\"Job B\"],\"criteria\":[\"salary\",\"benefits\",\"growth\"]}}" }
+        {
+          "userSays": "Compare Tesla and Ford",
+          "output": "{\"fn\":\"compareOptions\",\"args\":{\"options\":[\"Tesla\",\"Ford\"],\"context\":\"car purchase\"}}"
+        },
+        {
+          "userSays": "Help me compare job offers",
+          "output": "{\"fn\":\"compareOptions\",\"args\":{\"options\":[\"Job A\",\"Job B\"],\"criteria\":[\"salary\",\"benefits\",\"growth\"]}}"
+        }
       ],
       "tags": ["research", "comparison", "analysis", "decision"]
     },
     {
       "name": "factCheck",
-      "description": "Verify a claim or statement with reliable sources.",
+      "description": "Verify a claim or statement with reliable sources.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks to verify, fact-check, or confirm if something is true.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -101,8 +125,14 @@
         "required": ["claim"]
       },
       "examples": [
-        { "userSays": "Is it true that...", "output": "{\"fn\":\"factCheck\",\"args\":{\"claim\":\"[claim to verify]\"}}" },
-        { "userSays": "Verify this for me", "output": "{\"fn\":\"factCheck\",\"args\":{\"claim\":\"[claim]\"}}" }
+        {
+          "userSays": "Is it true that...",
+          "output": "{\"fn\":\"factCheck\",\"args\":{\"claim\":\"[claim to verify]\"}}"
+        },
+        {
+          "userSays": "Verify this for me",
+          "output": "{\"fn\":\"factCheck\",\"args\":{\"claim\":\"[claim]\"}}"
+        }
       ],
       "tags": ["research", "verification", "fact-check"]
     }

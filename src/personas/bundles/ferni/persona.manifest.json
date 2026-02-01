@@ -326,27 +326,34 @@
     "overrides": {
       "disfluency": {
         "enabled": true,
-        "frequency": 0.12
+        "frequency": 0.18,
+        "false_start_probability": 0.12,
+        "self_correction_probability": 0.08
       },
       "active_listening": {
         "enabled": true,
-        "backchannel_probability": 0.4,
-        "emotional_echo_probability": 0.5,
-        "vocabulary_mirroring_probability": 0.3
+        "backchannel_probability": 0.5,
+        "emotional_echo_probability": 0.65,
+        "vocabulary_mirroring_probability": 0.35
       },
       "conversational_memory": {
         "enabled": true,
-        "callback_probability": 0.3
+        "callback_probability": 0.35
+      },
+      "spontaneous_curiosity": {
+        "enabled": true,
+        "probability": 0.15
       }
     },
     "warmup": {
-      "turns": 2,
-      "reduction": 0.6
+      "turns": 3,
+      "reduction": 0.5
     },
     "context_modifiers": {
       "serious_topics_reduction": 0.4,
-      "personal_sharing_warmth_boost": 1.5,
-      "high_emotion_breathing_boost": 1.4
+      "personal_sharing_warmth_boost": 1.6,
+      "high_emotion_breathing_boost": 1.5,
+      "early_turn_humanization_boost": 1.4
     }
   },
 
@@ -403,7 +410,16 @@
       "blended-family"
     ],
     "_domain_ownership": {
-      "exclusive": ["grief", "meaning", "vulnerability", "crisis", "second-chances", "envy", "shame", "resentment"],
+      "exclusive": [
+        "grief",
+        "meaning",
+        "vulnerability",
+        "crisis",
+        "second-chances",
+        "envy",
+        "shame",
+        "resentment"
+      ],
       "shared": ["relationships", "life-transitions", "presence", "wisdom"],
       "handoff_preferred": {
         "intimacy": "sage-relationship-navigator",

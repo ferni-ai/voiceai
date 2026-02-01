@@ -56,7 +56,9 @@ describe('Leave Message Tool', () => {
       sessionId: 'test_session',
       services: {
         has: () => false,
-        get: () => { throw new Error('Service not available'); },
+        get: () => {
+          throw new Error('Service not available');
+        },
         getOptional: () => undefined,
       },
     } as ToolContext;
@@ -66,8 +68,8 @@ describe('Leave Message Tool', () => {
     it('should return three tool definitions', () => {
       const definitions = getToolDefinitions();
       expect(definitions).toHaveLength(3);
-      
-      const ids = definitions.map(d => d.id);
+
+      const ids = definitions.map((d) => d.id);
       expect(ids).toContain('leaveMessageForSponsor');
       expect(ids).toContain('checkFamilyMessages');
       expect(ids).toContain('createCoordinatedReminder');
@@ -75,7 +77,7 @@ describe('Leave Message Tool', () => {
 
     it('should have correct domain for all tools', () => {
       const definitions = getToolDefinitions();
-      definitions.forEach(def => {
+      definitions.forEach((def) => {
         expect(def.domain).toBe('family');
       });
     });
@@ -84,8 +86,8 @@ describe('Leave Message Tool', () => {
   describe('leaveMessageForSponsor tool', () => {
     it('should have correct definition structure', () => {
       const definitions = getToolDefinitions();
-      const leaveMessageDef = definitions.find(d => d.id === 'leaveMessageForSponsor');
-      
+      const leaveMessageDef = definitions.find((d) => d.id === 'leaveMessageForSponsor');
+
       expect(leaveMessageDef).toBeDefined();
       expect(leaveMessageDef!.name).toBe('Leave Message for Sponsor');
       expect(leaveMessageDef!.tags).toContain('family');
@@ -95,9 +97,9 @@ describe('Leave Message Tool', () => {
 
     it('should create a tool with correct description', () => {
       const definitions = getToolDefinitions();
-      const leaveMessageDef = definitions.find(d => d.id === 'leaveMessageForSponsor');
+      const leaveMessageDef = definitions.find((d) => d.id === 'leaveMessageForSponsor');
       const tool = leaveMessageDef!.create(mockContext);
-      
+
       expect(tool.description).toContain('Leave a message for the sponsor');
       expect(tool.parameters).toBeDefined();
       expect(tool.parameters.properties).toHaveProperty('messageContent');
@@ -107,8 +109,8 @@ describe('Leave Message Tool', () => {
   describe('checkFamilyMessages tool', () => {
     it('should have correct definition structure', () => {
       const definitions = getToolDefinitions();
-      const checkMessagesDef = definitions.find(d => d.id === 'checkFamilyMessages');
-      
+      const checkMessagesDef = definitions.find((d) => d.id === 'checkFamilyMessages');
+
       expect(checkMessagesDef).toBeDefined();
       expect(checkMessagesDef!.name).toBe('Check Family Messages');
       expect(typeof checkMessagesDef!.create).toBe('function');
@@ -116,9 +118,9 @@ describe('Leave Message Tool', () => {
 
     it('should create a tool with optional fromName parameter', () => {
       const definitions = getToolDefinitions();
-      const checkMessagesDef = definitions.find(d => d.id === 'checkFamilyMessages');
+      const checkMessagesDef = definitions.find((d) => d.id === 'checkFamilyMessages');
       const tool = checkMessagesDef!.create(mockContext);
-      
+
       expect(tool.parameters.properties).toHaveProperty('fromName');
       expect(tool.parameters.required).toEqual([]);
     });
@@ -127,8 +129,8 @@ describe('Leave Message Tool', () => {
   describe('createCoordinatedReminder tool', () => {
     it('should have correct definition structure', () => {
       const definitions = getToolDefinitions();
-      const reminderDef = definitions.find(d => d.id === 'createCoordinatedReminder');
-      
+      const reminderDef = definitions.find((d) => d.id === 'createCoordinatedReminder');
+
       expect(reminderDef).toBeDefined();
       expect(reminderDef!.name).toBe('Create Coordinated Reminder');
       expect(reminderDef!.tags).toContain('reminders');
@@ -137,9 +139,9 @@ describe('Leave Message Tool', () => {
 
     it('should create a tool with required parameters', () => {
       const definitions = getToolDefinitions();
-      const reminderDef = definitions.find(d => d.id === 'createCoordinatedReminder');
+      const reminderDef = definitions.find((d) => d.id === 'createCoordinatedReminder');
       const tool = reminderDef!.create(mockContext);
-      
+
       expect(tool.parameters.properties).toHaveProperty('reminderMessage');
       expect(tool.parameters.properties).toHaveProperty('reminderTime');
       expect(tool.parameters.required).toContain('reminderMessage');

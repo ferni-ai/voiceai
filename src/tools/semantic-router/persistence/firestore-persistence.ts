@@ -307,7 +307,7 @@ export interface LearningPreferences {
  */
 export interface PersistedUserProfile {
   userId: string;
-  
+
   // === Original fields ===
   toolBoosts: Record<string, number>;
   vocabulary: Record<string, string>;
@@ -316,7 +316,7 @@ export interface PersistedUserProfile {
   totalInteractions: number;
   lastUpdated: Date;
   correctionRate: number;
-  
+
   // === FTIS Enhanced fields (Phase 1.3) ===
   /** Domain-level affinity scores */
   domainAffinities?: Record<string, DomainAffinity>;
@@ -771,17 +771,17 @@ export async function getEffectiveToolBoosts(
   // Apply persona-specific boosts
   if (context?.personaId && profile.personaPreferences?.[context.personaId]) {
     const prefs = profile.personaPreferences[context.personaId];
-    
+
     // Boost favorite tools
     for (const toolId of prefs.favoriteTools) {
       boosts[toolId] = (boosts[toolId] || 0) + 0.15;
     }
-    
+
     // Penalize avoided tools
     for (const toolId of prefs.avoidedTools) {
       boosts[toolId] = (boosts[toolId] || 0) - 0.3;
     }
-    
+
     // Apply custom boosts
     for (const [toolId, boost] of Object.entries(prefs.customBoosts)) {
       boosts[toolId] = (boosts[toolId] || 0) + boost;

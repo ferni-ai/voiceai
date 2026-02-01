@@ -45,12 +45,19 @@ vi.mock('../../../apps/cli/src/commands/growth/growth-storage.js', () => ({
   getDashboard: vi.fn(async () => ({
     overview: {
       totalContent: mockState.contentQueue.length,
-      scheduledContent: mockState.contentQueue.filter((c: { status: string }) => c.status === 'scheduled').length,
-      postedContent: mockState.contentQueue.filter((c: { status: string }) => c.status === 'posted').length,
+      scheduledContent: mockState.contentQueue.filter(
+        (c: { status: string }) => c.status === 'scheduled'
+      ).length,
+      postedContent: mockState.contentQueue.filter((c: { status: string }) => c.status === 'posted')
+        .length,
       totalInfluencers: mockState.influencerLeads.length,
-      activePartnerships: mockState.influencerLeads.filter((l: { status: string }) => l.status === 'live').length,
+      activePartnerships: mockState.influencerLeads.filter(
+        (l: { status: string }) => l.status === 'live'
+      ).length,
       totalArticles: mockState.seoArticles.length,
-      publishedArticles: mockState.seoArticles.filter((a: { status: string }) => a.status === 'published').length,
+      publishedArticles: mockState.seoArticles.filter(
+        (a: { status: string }) => a.status === 'published'
+      ).length,
     },
     activeCampaigns: mockState.campaigns.filter((c: { status: string }) => c.status === 'active'),
     recentContent: mockState.contentQueue.slice(-5),
@@ -63,7 +70,13 @@ vi.mock('../../../apps/cli/src/commands/growth/growth-storage.js', () => ({
   }),
   getTikTokAccounts: vi.fn(async () => mockState.tiktokAccounts),
   addTikTokAccount: vi.fn(async (handle: string, angle: string, description: string) => {
-    const account = { id: `tiktok_${++idCounter}`, handle, angle, description, createdAt: new Date().toISOString() };
+    const account = {
+      id: `tiktok_${++idCounter}`,
+      handle,
+      angle,
+      description,
+      createdAt: new Date().toISOString(),
+    };
     mockState.tiktokAccounts.push(account);
     return account;
   }),
@@ -73,13 +86,15 @@ vi.mock('../../../apps/cli/src/commands/growth/growth-storage.js', () => ({
       id: `content_${++idCounter}`,
       ...content,
       status: 'draft',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
     mockState.contentQueue.push(newContent);
     return newContent;
   }),
   scheduleContent: vi.fn(async (id: string, scheduledFor: string) => {
-    const content = mockState.contentQueue.find((c: { id: string }) => c.id === id) as Record<string, unknown> | undefined;
+    const content = mockState.contentQueue.find((c: { id: string }) => c.id === id) as
+      | Record<string, unknown>
+      | undefined;
     if (content) {
       content.scheduledFor = scheduledFor;
       content.status = 'scheduled';
@@ -87,7 +102,9 @@ vi.mock('../../../apps/cli/src/commands/growth/growth-storage.js', () => ({
     return content;
   }),
   updateContentStatus: vi.fn(async (id: string, status: string) => {
-    const content = mockState.contentQueue.find((c: { id: string }) => c.id === id) as Record<string, unknown> | undefined;
+    const content = mockState.contentQueue.find((c: { id: string }) => c.id === id) as
+      | Record<string, unknown>
+      | undefined;
     if (content) content.status = status;
     return content;
   }),
@@ -97,13 +114,15 @@ vi.mock('../../../apps/cli/src/commands/growth/growth-storage.js', () => ({
       id: `influencer_${++idCounter}`,
       ...lead,
       status: 'researched',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
     mockState.influencerLeads.push(newLead);
     return newLead;
   }),
   updateInfluencerStatus: vi.fn(async (id: string, status: string) => {
-    const lead = mockState.influencerLeads.find((l: { id: string }) => l.id === id) as Record<string, unknown> | undefined;
+    const lead = mockState.influencerLeads.find((l: { id: string }) => l.id === id) as
+      | Record<string, unknown>
+      | undefined;
     if (lead) lead.status = status;
     return lead;
   }),
@@ -113,7 +132,7 @@ vi.mock('../../../apps/cli/src/commands/growth/growth-storage.js', () => ({
       id: `seo_${++idCounter}`,
       ...article,
       status: 'planned',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
     mockState.seoArticles.push(newArticle);
     return newArticle;
@@ -128,13 +147,15 @@ vi.mock('../../../apps/cli/src/commands/growth/growth-storage.js', () => ({
       data,
       scheduledFor,
       status: 'pending',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
     mockState.scheduledTasks.push(task);
     return task;
   }),
   updateTaskStatus: vi.fn(async (id: string, status: string) => {
-    const task = mockState.scheduledTasks.find((t: { id: string }) => t.id === id) as Record<string, unknown> | undefined;
+    const task = mockState.scheduledTasks.find((t: { id: string }) => t.id === id) as
+      | Record<string, unknown>
+      | undefined;
     if (task) task.status = status;
     return task;
   }),
@@ -179,7 +200,11 @@ describe('Growth Module E2E', () => {
   describe('Complete Content Workflow', () => {
     it('should complete full TikTok content lifecycle', async () => {
       // Step 1: Add TikTok account
-      const account = await storage.addTikTokAccount('@fernitest', 'motivation', 'Test motivation account');
+      const account = await storage.addTikTokAccount(
+        '@fernitest',
+        'motivation',
+        'Test motivation account'
+      );
       expect(account.handle).toBe('@fernitest');
       expect(account.angle).toBe('motivation');
 
@@ -200,14 +225,18 @@ describe('Growth Module E2E', () => {
 
       // Verify scheduled
       const queue = await storage.getContentQueue();
-      const scheduled = queue.find((c: { id: string }) => c.id === content.id) as { status: string } | undefined;
+      const scheduled = queue.find((c: { id: string }) => c.id === content.id) as
+        | { status: string }
+        | undefined;
       expect(scheduled?.status).toBe('scheduled');
 
       // Step 4: Post content (simulate)
       await storage.updateContentStatus(content.id, 'posted');
 
       // Verify posted
-      const posted = (await storage.getContentQueue()).find((c: { id: string }) => c.id === content.id) as { status: string } | undefined;
+      const posted = (await storage.getContentQueue()).find(
+        (c: { id: string }) => c.id === content.id
+      ) as { status: string } | undefined;
       expect(posted?.status).toBe('posted');
 
       // Step 5: Check dashboard reflects changes
@@ -246,7 +275,9 @@ describe('Growth Module E2E', () => {
 
       // Verify final state
       const leads = await storage.getInfluencerLeads();
-      const finalLead = leads.find((l: { id: string }) => l.id === lead.id) as { status: string } | undefined;
+      const finalLead = leads.find((l: { id: string }) => l.id === lead.id) as
+        | { status: string }
+        | undefined;
       expect(finalLead?.status).toBe('live');
 
       // Dashboard should show active partnership
@@ -373,7 +404,14 @@ describe('Growth Module E2E', () => {
       // Add various data
       await storage.addTikTokAccount('@account1', 'main', 'Main account');
       await storage.addContent({ platform: 'tiktok', type: 'video_script', content: 'Test' });
-      await storage.addInfluencerLead({ name: 'Test', handle: '@test', platform: 'tiktok', followers: 1000, tier: 'nano', category: 'test' });
+      await storage.addInfluencerLead({
+        name: 'Test',
+        handle: '@test',
+        platform: 'tiktok',
+        followers: 1000,
+        tier: 'nano',
+        category: 'test',
+      });
       await storage.addSEOArticle({ title: 'Test', slug: 'test', targetKeyword: 'test' });
       await storage.scheduleTask('generate_content', {}, new Date().toISOString());
 
@@ -390,7 +428,11 @@ describe('Growth Module E2E', () => {
   describe('Multi-Platform Content', () => {
     it('should handle content for all platforms', async () => {
       // Create content for each platform
-      await storage.addContent({ platform: 'tiktok', type: 'video_script', content: 'TikTok content' });
+      await storage.addContent({
+        platform: 'tiktok',
+        type: 'video_script',
+        content: 'TikTok content',
+      });
       await storage.addContent({ platform: 'reddit', type: 'post', content: 'Reddit content' });
       await storage.addContent({ platform: 'blog', type: 'article', content: 'Blog content' });
       await storage.addContent({ platform: 'twitter', type: 'post', content: 'Twitter content' });
@@ -419,11 +461,13 @@ describe('Growth Module E2E', () => {
       // Create 50 content pieces rapidly
       const promises = [];
       for (let i = 0; i < 50; i++) {
-        promises.push(storage.addContent({
-          platform: 'tiktok',
-          type: 'video_script',
-          content: `Content ${i}`,
-        }));
+        promises.push(
+          storage.addContent({
+            platform: 'tiktok',
+            type: 'video_script',
+            content: `Content ${i}`,
+          })
+        );
       }
 
       await Promise.all(promises);
@@ -447,7 +491,9 @@ describe('Growth Module E2E', () => {
 
       // Verify link is preserved
       const queue = await storage.getContentQueue();
-      const item = queue.find((c: { id: string }) => c.id === content.id) as { accountId: string } | undefined;
+      const item = queue.find((c: { id: string }) => c.id === content.id) as
+        | { accountId: string }
+        | undefined;
       expect(item?.accountId).toBe(account.id);
     });
   });

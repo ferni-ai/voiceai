@@ -1,6 +1,12 @@
 /**
  * Dynamic Tool Router - Intent Detection for Tool Loading
  *
+ * @deprecated Prefer FTIS V7 hierarchical classifier or V5 flat classifier for
+ * ML-based domain detection with 98%+ accuracy. This keyword-based router is
+ * retained as a fast fallback when ONNX classifiers are unavailable.
+ * See: `semantic-router/advanced/intelligent/hierarchical-classifier.ts` (V7)
+ * See: `semantic-router/advanced/intelligent/onnx-classifier.ts` (V5)
+ *
  * Analyzes user transcripts to detect intent and determine which tool domains
  * should be loaded. Used by UnifiedToolOrchestrator for intelligent tool selection.
  *
@@ -22,6 +28,9 @@
 /**
  * Tool domains organized by priority tier.
  * Used by UnifiedToolOrchestrator's alwaysDomains config.
+ *
+ * @deprecated Tier 0/1 domains are still valid, but Tier 2 keyword matching
+ * is superseded by FTIS V7/V5 ONNX classifiers for domain detection.
  */
 export const TOOL_TIERS = {
   /** Always loaded - essential for every conversation */
@@ -337,6 +346,9 @@ export interface DetectedIntent {
 
 /**
  * Detect user intent from transcript to determine which tools to load.
+ *
+ * @deprecated Prefer FTIS V7/V5 ONNX classifiers for ML-based intent detection.
+ * This keyword-based fallback is retained for when ONNX models are unavailable.
  *
  * Used by UnifiedToolOrchestrator for intent-based domain loading.
  * Extend TIER_2_CONTEXTUAL keywords to improve tool detection accuracy.

@@ -188,17 +188,18 @@ if (contrast < 4.5) {
 
 ---
 
-## Files to Create
+## Directory Structure
 
 ```
 color/
 ├── CLAUDE.md           # This file
+├── index.ts            # Exports
 ├── mood-palette.ts     # Mood-responsive colors
 ├── time-fading.ts      # Atmospheric perspective
-├── persona-harmony.ts  # Albers transitions
-├── accessibility.ts    # Contrast checks
-└── index.ts            # Exports
+└── persona-harmony.ts  # Albers transitions
 ```
+
+**Planned:** `accessibility.ts` (contrast checks) - not yet implemented.
 
 ---
 

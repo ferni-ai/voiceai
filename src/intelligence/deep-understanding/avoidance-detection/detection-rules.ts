@@ -135,15 +135,15 @@ export const GENTLE_INQUIRY_WORDINGS: Record<AvoidanceSignalType, string[]> = {
   ],
   vague_response: [
     "I sense there might be more there than you're saying...",
-    "It seems like this is hard to put into words...",
+    'It seems like this is hard to put into words...',
   ],
   deflection: [
-    "We keep turning this around. What about how you feel about it?",
+    'We keep turning this around. What about how you feel about it?',
     "I'm more curious about your experience with this...",
   ],
   minimization: [
     "You say it's not a big deal, but I wonder if it affects you more than that...",
-    "I notice you tend to brush this off. Is it something we should explore?",
+    'I notice you tend to brush this off. Is it something we should explore?',
   ],
   humor_shield: [
     "There's humor there, but I sense something deeper underneath...",
@@ -155,7 +155,7 @@ export const GENTLE_INQUIRY_WORDINGS: Record<AvoidanceSignalType, string[]> = {
   ],
   time_pressure: [
     "We've hit time constraints around this topic before. Is it one we should make more space for?",
-    "I notice time seems to run out when this comes up...",
+    'I notice time seems to run out when this comes up...',
   ],
 };
 

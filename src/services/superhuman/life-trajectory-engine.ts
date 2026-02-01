@@ -441,9 +441,10 @@ function projectCompoundEffects(data: {
         tenYears: projectHabitOutcome(habitName, consistency, 10),
       },
       confidence: Math.min(consistency + 20, 95),
-      sensitivity: consistency < 50
-        ? 'Improving consistency would dramatically change this projection'
-        : 'Maintaining current consistency will achieve this outcome',
+      sensitivity:
+        consistency < 50
+          ? 'Improving consistency would dramatically change this projection'
+          : 'Maintaining current consistency will achieve this outcome',
     };
 
     effects.push(effect);
@@ -459,10 +460,15 @@ function projectHabitOutcome(habitName: string, consistency: number, years: numb
   const habitLower = habitName.toLowerCase();
 
   // Exercise habits
-  if (habitLower.includes('exercise') || habitLower.includes('workout') || habitLower.includes('run')) {
+  if (
+    habitLower.includes('exercise') ||
+    habitLower.includes('workout') ||
+    habitLower.includes('run')
+  ) {
     if (consistency >= 70) {
       if (years === 1) return 'Significantly improved cardiovascular health, 10-15% more energy';
-      if (years === 5) return 'Potential reversal of chronic disease markers, peak physical condition';
+      if (years === 5)
+        return 'Potential reversal of chronic disease markers, peak physical condition';
       return 'Extended healthspan, reduced risk of major diseases by 40%+';
     }
     if (years === 1) return 'Marginal fitness improvements, occasional energy boosts';
@@ -473,7 +479,7 @@ function projectHabitOutcome(habitName: string, consistency: number, years: numb
   if (habitLower.includes('sleep') || habitLower.includes('bedtime')) {
     if (consistency >= 70) {
       if (years === 1) return 'Improved cognitive function, emotional regulation';
-      if (years === 5) return 'Reduced risk of Alzheimer\'s, maintained cognitive sharpness';
+      if (years === 5) return "Reduced risk of Alzheimer's, maintained cognitive sharpness";
       return 'Significantly better brain health and longevity';
     }
     return 'Accumulated sleep debt affecting decision-making and health';
@@ -500,7 +506,11 @@ function projectHabitOutcome(habitName: string, consistency: number, years: numb
   }
 
   // Financial habits
-  if (habitLower.includes('save') || habitLower.includes('budget') || habitLower.includes('invest')) {
+  if (
+    habitLower.includes('save') ||
+    habitLower.includes('budget') ||
+    habitLower.includes('invest')
+  ) {
     if (consistency >= 70) {
       if (years === 1) return 'Solid emergency fund, reduced financial stress';
       if (years === 5) return 'Financial security, options for career pivots';
@@ -538,7 +548,8 @@ function generatePivotSuggestions(data: {
         title: `Revisit: ${dream.title || 'Your dream'}`,
         domain: 'growth',
         description: `You mentioned wanting "${dream.title}" but haven't talked about it in a while.`,
-        reasoning: 'Dreams that go unexplored often create regret. Even small steps keep them alive.',
+        reasoning:
+          'Dreams that go unexplored often create regret. Even small steps keep them alive.',
         urgency: 'medium',
         potentialImpact: 'Reconnecting with this dream could bring renewed purpose and energy.',
         suggestedTiming: 'Consider exploring this in your next planning session',
@@ -574,7 +585,8 @@ function generatePivotSuggestions(data: {
         title: `Reconnect with ${rel.name || 'someone important'}`,
         domain: 'relationships',
         description: `Your relationship with ${rel.name} has been drifting.`,
-        reasoning: 'Important relationships require maintenance. The drift accelerates if unaddressed.',
+        reasoning:
+          'Important relationships require maintenance. The drift accelerates if unaddressed.',
         urgency: importance > 80 ? 'high' : 'medium',
         potentialImpact: 'Maintaining key relationships is essential for wellbeing and support.',
         suggestedTiming: 'Reach out this week',
@@ -609,21 +621,24 @@ function calculateLifeScore(data: {
     ['exercise', 'sleep', 'nutrition', 'workout'].some((k) => h.name?.toLowerCase().includes(k))
   );
   if (healthHabits.length > 0) {
-    const avgConsistency = healthHabits.reduce((sum, h) => sum + (h.consistency || 50), 0) / healthHabits.length;
+    const avgConsistency =
+      healthHabits.reduce((sum, h) => sum + (h.consistency || 50), 0) / healthHabits.length;
     scores.health = Math.round(avgConsistency);
   }
 
   // Adjust based on goal progress
   const activeGoals = data.goals.filter((g) => g.status === 'active');
   if (activeGoals.length > 0) {
-    const avgProgress = activeGoals.reduce((sum, g) => sum + (g.progress || 0), 0) / activeGoals.length;
+    const avgProgress =
+      activeGoals.reduce((sum, g) => sum + (g.progress || 0), 0) / activeGoals.length;
     scores.growth = Math.round(avgProgress);
     scores.career = Math.round((avgProgress + 50) / 2);
   }
 
   // Adjust based on relationship health
   if (data.relationships.length > 0) {
-    const avgHealth = data.relationships.reduce((sum, r) => sum + (r.health || 50), 0) / data.relationships.length;
+    const avgHealth =
+      data.relationships.reduce((sum, r) => sum + (r.health || 50), 0) / data.relationships.length;
     scores.relationships = Math.round(avgHealth);
   }
 
@@ -717,7 +732,8 @@ export async function generateLifeTrajectory(userId: string): Promise<LifeTrajec
       importanceToUser: importance,
       livingScorel: living,
       gap: Math.abs(importance - living),
-      suggestion: importance > living + 20 ? 'Consider aligning actions with this value' : undefined,
+      suggestion:
+        importance > living + 20 ? 'Consider aligning actions with this value' : undefined,
     };
   });
 
@@ -752,7 +768,11 @@ export async function generateLifeTrajectory(userId: string): Promise<LifeTrajec
         'Strong relationships deepened',
         'New opportunities attracted',
       ],
-      requirements: ['Consistent habit execution', 'Proactive relationship maintenance', 'Continued growth mindset'],
+      requirements: [
+        'Consistent habit execution',
+        'Proactive relationship maintenance',
+        'Continued growth mindset',
+      ],
       risks: ['Burnout from over-optimization', 'Missing unexpected opportunities'],
     },
     realistic: {
@@ -765,7 +785,11 @@ export async function generateLifeTrajectory(userId: string): Promise<LifeTrajec
         'Maintained relationships',
         'Steady improvement in key areas',
       ],
-      requirements: ['Maintaining current consistency', 'Adapting to challenges', 'Regular reflection'],
+      requirements: [
+        'Maintaining current consistency',
+        'Adapting to challenges',
+        'Regular reflection',
+      ],
       risks: ['Plateau without new challenges', 'Drift in some relationships'],
     },
     pessimistic: {

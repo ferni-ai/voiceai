@@ -18,7 +18,12 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getOpenAIFallbackModel, getDefaultModel, TEMP_REASONING, MAX_TOKENS_LONG } from '../../config/gemini-config.js';
+import {
+  getOpenAIFallbackModel,
+  getDefaultModel,
+  TEMP_REASONING,
+  MAX_TOKENS_LONG,
+} from '../../config/gemini-config.js';
 
 const log = createLogger({ module: 'call-transcript-intelligence' });
 

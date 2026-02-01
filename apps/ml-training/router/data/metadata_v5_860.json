@@ -1,0 +1,14 @@
+{
+  "total_examples": 499316,
+  "tool_examples": 420115,
+  "open_intent_examples": 78771,
+  "hard_negative_examples": 430,
+  "tools_processed": 860,
+  "examples_per_tool_target": 500,
+  "num_labels": 860,
+  "splits": {
+    "train": 399452,
+    "validation": 49932,
+    "test": 49932
+  }
+}

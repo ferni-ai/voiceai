@@ -30,12 +30,7 @@ const log = createLogger({ module: 'ProactiveFamilyCheckin' });
 /**
  * Frequency options for recurring check-ins
  */
-export type CheckinFrequency =
-  | 'daily'
-  | 'weekly'
-  | 'biweekly'
-  | 'monthly'
-  | 'custom';
+export type CheckinFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'custom';
 
 /**
  * Days of the week for scheduling
@@ -300,7 +295,10 @@ const CHECKIN_CALLS_COLLECTION = 'family_checkin_calls';
  * Create a new family check-in schedule
  */
 export async function createCheckinSchedule(
-  input: Omit<FamilyCheckinSchedule, 'id' | 'createdAt' | 'updatedAt' | 'nextScheduledCall' | 'totalCallsMade'>
+  input: Omit<
+    FamilyCheckinSchedule,
+    'id' | 'createdAt' | 'updatedAt' | 'nextScheduledCall' | 'totalCallsMade'
+  >
 ): Promise<FamilyCheckinSchedule> {
   const db = getFirestoreDb();
   if (!db) {
@@ -606,9 +604,7 @@ export async function getCallRecordById(callId: string): Promise<CheckinCallReco
 /**
  * Get unbriefed call records (calls sponsor hasn't heard about yet)
  */
-export async function getUnbriefedCallRecords(
-  sponsorUserId: string
-): Promise<CheckinCallRecord[]> {
+export async function getUnbriefedCallRecords(sponsorUserId: string): Promise<CheckinCallRecord[]> {
   const db = getFirestoreDb();
   if (!db) return [];
 
@@ -627,10 +623,7 @@ export async function getUnbriefedCallRecords(
 /**
  * Mark a call record as briefed (sponsor has been told about it)
  */
-export async function markCallBriefed(
-  sponsorUserId: string,
-  recordId: string
-): Promise<void> {
+export async function markCallBriefed(sponsorUserId: string, recordId: string): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -725,10 +718,7 @@ function dayOfWeekToNumber(day: DayOfWeek): number {
 /**
  * Update schedule after a successful call
  */
-async function updateScheduleAfterCall(
-  sponsorUserId: string,
-  callRecordId: string
-): Promise<void> {
+async function updateScheduleAfterCall(sponsorUserId: string, callRecordId: string): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -849,9 +839,7 @@ export function generateBriefingSummary(record: CheckinCallRecord): string {
 
   // Follow-ups for sponsor
   if (record.followUpItems && record.followUpItems.length > 0) {
-    const sponsorItems = record.followUpItems.filter(
-      (item) => item.responsibleParty === 'sponsor'
-    );
+    const sponsorItems = record.followUpItems.filter((item) => item.responsibleParty === 'sponsor');
     if (sponsorItems.length > 0) {
       parts.push(`She mentioned ${sponsorItems[0].item}.`);
     }

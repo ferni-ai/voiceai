@@ -10,6 +10,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { handleCleanupOrphanedUploads } from './jobs/cleanup-orphaned-uploads.js';
+import type { SuperhumanInsight } from '../services/automation/insight-action-bridge.js';
+import type { UserProfile } from '../types/user-profile.js';
 
 const log = createLogger({ module: 'ScheduledJobsAPI' });
 
@@ -161,6 +163,13 @@ export async function handleScheduledJobsRoutes(
       return true;
 
     // ========================================================================
+    // PREDICTIVE INTELLIGENCE JOBS (Gemini-powered deep analysis)
+    // ========================================================================
+    case '/api/jobs/deep-analysis':
+      await handleDeepAnalysis(res);
+      return true;
+
+    // ========================================================================
     // KNOWLEDGE GRAPH JOBS (Unified entity knowledge maintenance)
     // ========================================================================
     case '/api/jobs/knowledge-graph-insights':
@@ -223,6 +232,25 @@ export async function handleScheduledJobsRoutes(
 
     case '/api/jobs/gtm-weekly-content':
       await handleGTMWeeklyContent(res);
+      return true;
+
+    // ========================================================================
+    // SEMANTIC ROUTER RETRAINING (State-of-the-Art Tool Routing)
+    // ========================================================================
+    case '/api/jobs/semantic-router-retrain':
+      await handleSemanticRouterRetrain(res);
+      return true;
+
+    case '/api/jobs/semantic-router-volume-check':
+      await handleSemanticRouterVolumeCheck(res);
+      return true;
+
+    case '/api/jobs/semantic-router-quality-check':
+      await handleSemanticRouterQualityCheck(res);
+      return true;
+
+    case '/api/jobs/semantic-router-health':
+      await handleSemanticRouterHealth(res);
       return true;
 
     default:
@@ -543,12 +571,11 @@ async function handleDailyOutreach(res: ServerResponse): Promise<void> {
     const { getFirestoreDb } = await import('../services/superhuman/firestore-utils.js');
 
     // Get all user profiles from Firestore
-    const getUserProfiles = async () => {
+    const getUserProfiles = async (): Promise<UserProfile[]> => {
       const db = getFirestoreDb();
       if (!db) return [];
       const snapshot = await db.collection('bogle_users').limit(1000).get();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as any);
+      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as UserProfile);
     };
 
     const result = await runDailyOutreachJob({
@@ -994,13 +1021,7 @@ async function handleProcessInsightActions(res: ServerResponse): Promise<void> {
       .limit(500)
       .get();
 
-    const insights: Array<{
-      id: string;
-      userId: string;
-      capability: string;
-      timestamp: string;
-      data: Record<string, unknown>;
-    }> = [];
+    const insights: SuperhumanInsight[] = [];
 
     // Gather insights from superhuman services for each user
     for (const userDoc of usersSnap.docs) {
@@ -1118,8 +1139,7 @@ async function handleProcessInsightActions(res: ServerResponse): Promise<void> {
     }
 
     // Process all gathered insights through the insight-action bridge
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const executions = await processInsights(insights as any[]);
+    const executions = await processInsights(insights);
 
     stats.rulesEvaluated = insights.length * INSIGHT_ACTION_RULES.length;
     stats.actionsExecuted = executions.filter((e) => e.status === 'completed').length;
@@ -1802,6 +1822,69 @@ async function handleMemoryHealthCheck(res: ServerResponse): Promise<void> {
 }
 
 // ============================================================================
+// PREDICTIVE INTELLIGENCE JOB HANDLERS
+// ============================================================================
+
+/**
+ * LLM Deep Analysis Job Handler
+ *
+ * Runs Gemini-powered deep analysis on user conversation history.
+ * This is TIER 3 intelligence - designed to run in batch mode during off-peak hours.
+ *
+ * "Better Than Human" - We see patterns humans can't see because we
+ * remember EVERYTHING and can connect dots across months.
+ */
+async function handleDeepAnalysis(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('🧠 Running LLM deep analysis job (Cloud Scheduler)');
+
+    const { runDeepAnalysisJob } = await import('../tasks/scheduled/deep-analysis-job.js');
+
+    const result = await runDeepAnalysisJob({
+      dryRun: false,
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    log.info(
+      {
+        usersProcessed: result.usersProcessed,
+        insightsGenerated: result.insightsGenerated,
+        hypothesesGenerated: result.hypothesesGenerated,
+        errors: result.errors,
+        durationMs,
+      },
+      '✅ LLM deep analysis completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'deep-analysis',
+      stats: {
+        usersProcessed: result.usersProcessed,
+        usersSkipped: result.usersSkipped,
+        insightsGenerated: result.insightsGenerated,
+        hypothesesGenerated: result.hypothesesGenerated,
+        errors: result.errors,
+      },
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'LLM deep analysis job failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'deep-analysis',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+// ============================================================================
 // KNOWLEDGE GRAPH JOB HANDLERS
 // ============================================================================
 
@@ -2074,8 +2157,8 @@ async function handleSemanticRouterLearning(res: ServerResponse): Promise<void> 
         patternsConsolidated: result.patternsConsolidated,
         vocabularyPruned: result.vocabularyPruned,
         totalFeedback: stats.totalFeedback,
-        correctionRate: (stats.correctionRate * 100).toFixed(1) + '%',
-        successRate: (stats.successRate * 100).toFixed(1) + '%',
+        correctionRate: `${(stats.correctionRate * 100).toFixed(1)}%`,
+        successRate: `${(stats.successRate * 100).toFixed(1)}%`,
       },
       durationMs,
       timestamp: new Date().toISOString(),
@@ -2969,6 +3052,161 @@ async function handleGTMWeeklyContent(res: ServerResponse): Promise<void> {
     sendJson(res, 500, {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+// ============================================================================
+// SEMANTIC ROUTER RETRAINING HANDLERS
+// ============================================================================
+
+async function handleSemanticRouterRetrain(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+  try {
+    log.info('Starting semantic router daily retraining (Cloud Scheduler)');
+
+    const { handleScheduledRetraining } =
+      await import('../tools/semantic-router/learning/retraining-pipeline.js');
+    const result = await handleScheduledRetraining();
+
+    const durationMs = Date.now() - startTime;
+    log.info(
+      { success: result.success, durationMs, stats: result.result?.stats },
+      'Semantic router retraining complete'
+    );
+
+    sendJson(res, result.success ? 200 : 500, {
+      success: result.success,
+      job: 'semantic-router-retrain',
+      trigger: 'scheduled',
+      result: result.result,
+      error: result.error,
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Semantic router retraining failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'semantic-router-retrain',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+async function handleSemanticRouterVolumeCheck(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+  try {
+    log.info('Checking semantic router volume-based trigger (Cloud Scheduler)');
+
+    const { handleVolumeBasedRetraining } =
+      await import('../tools/semantic-router/learning/retraining-pipeline.js');
+    const result = await handleVolumeBasedRetraining();
+
+    const durationMs = Date.now() - startTime;
+    log.info(
+      { triggered: result.triggered, success: result.success, durationMs },
+      'Semantic router volume check complete'
+    );
+
+    sendJson(res, result.success ? 200 : 500, {
+      success: result.success,
+      job: 'semantic-router-volume-check',
+      triggered: result.triggered,
+      result: result.result,
+      error: result.error,
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Semantic router volume check failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'semantic-router-volume-check',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+async function handleSemanticRouterQualityCheck(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+  try {
+    log.info('Checking semantic router quality-based trigger (Cloud Scheduler)');
+
+    const { handleQualityBasedRetraining } =
+      await import('../tools/semantic-router/learning/retraining-pipeline.js');
+    const result = await handleQualityBasedRetraining();
+
+    const durationMs = Date.now() - startTime;
+    log.info(
+      { triggered: result.triggered, success: result.success, durationMs },
+      'Semantic router quality check complete'
+    );
+
+    sendJson(res, result.success ? 200 : 500, {
+      success: result.success,
+      job: 'semantic-router-quality-check',
+      triggered: result.triggered,
+      result: result.result,
+      error: result.error,
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Semantic router quality check failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'semantic-router-quality-check',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+async function handleSemanticRouterHealth(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+  try {
+    log.info('Checking semantic router retraining health (Cloud Scheduler)');
+
+    const { getRetrainingPipeline } =
+      await import('../tools/semantic-router/learning/retraining-pipeline.js');
+    const pipeline = getRetrainingPipeline();
+    const status = await pipeline.getStatus();
+
+    const durationMs = Date.now() - startTime;
+
+    // Determine health status
+    const isHealthy =
+      !status.isRunning && // Not stuck in running state
+      (status.lastResult === null || status.lastResult.success); // No failed results
+
+    log.info({ isHealthy, status, durationMs }, 'Semantic router health check complete');
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'semantic-router-health',
+      healthy: isHealthy,
+      status,
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Semantic router health check failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'semantic-router-health',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      durationMs,
       timestamp: new Date().toISOString(),
     });
   }

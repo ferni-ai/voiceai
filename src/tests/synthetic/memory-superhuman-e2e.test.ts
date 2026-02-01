@@ -106,7 +106,8 @@ vi.mock('../../memory/spanner-graph/queries.js', () => ({
         strength: 0.7,
       },
     ],
-    summary: '**Sarah** (person)\n\nWhat you know:\n- relationship: colleague\n- workplace: Tech Company',
+    summary:
+      '**Sarah** (person)\n\nWhat you know:\n- relationship: colleague\n- workplace: Tech Company',
   }),
   getRelationshipContext: vi.fn().mockResolvedValue({
     entity1: { name: 'Sarah' },
@@ -158,11 +159,10 @@ import {
 
 describe('Semantic Memory Search', () => {
   it('should search for semantically similar memories', async () => {
-    const { results, metrics } = await searchMemories(
-      'I am worried about my career',
-      'user-123',
-      { topK: 5, minScore: 0.5 }
-    );
+    const { results, metrics } = await searchMemories('I am worried about my career', 'user-123', {
+      topK: 5,
+      minScore: 0.5,
+    });
 
     expect(results.length).toBeGreaterThan(0);
     expect(results[0].source).toBe('anchor');
@@ -289,9 +289,7 @@ describe('Recall Attribution Parser', () => {
         implicitlyReferenced: 0,
         unused: 2,
         attributionRate: 0.33,
-        attributions: [
-          { tag: 't6', fullId: 't6', type: 'thread', explicit: true, confidence: 1 },
-        ],
+        attributions: [{ tag: 't6', fullId: 't6', type: 'thread', explicit: true, confidence: 1 }],
         unusedMemories: ['t7', 't8'],
       },
     ];
@@ -315,7 +313,7 @@ describe('Graph Context - Entity Detection', () => {
       { input: 'What do I know about Sarah?', expected: 'Sarah' },
       { input: 'Tell me about Mike', expected: 'Mike' },
       { input: 'Who is John?', expected: 'John' },
-      { input: "How is Lisa doing?", expected: 'Lisa' },
+      { input: 'How is Lisa doing?', expected: 'Lisa' },
     ];
 
     for (const { input, expected } of testCases) {
@@ -420,12 +418,8 @@ describe.skip('Attribution Metrics', () => {
   });
 
   it('should track attribution metrics correctly', async () => {
-    const {
-      recordMemoryAttribution,
-      recordMemoriesInjected,
-      getAttributionMetrics,
-      resetMetrics,
-    } = await import('../../memory/dynamic/metrics.js');
+    const { recordMemoryAttribution, recordMemoriesInjected, getAttributionMetrics, resetMetrics } =
+      await import('../../memory/dynamic/metrics.js');
 
     resetMetrics();
 

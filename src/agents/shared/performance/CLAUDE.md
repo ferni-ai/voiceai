@@ -163,6 +163,15 @@ const db = getFirestoreConnection();
 | `streaming-tts-transform.ts` | Streaming TTS |
 | `websocket-keepalive.ts` | WebSocket management |
 
+### Documentation & Tests
+
+| File | Purpose |
+|------|---------|
+| `PERFORMANCE-GUIDE.md` | Comprehensive performance optimization guide |
+| `PERFORMANCE-OPTIMIZATIONS-STATUS.md` | Current optimization status tracker |
+| `PRE-STT-TRANSFORM.md` | Pre-STT audio enhancement details |
+| `__tests__/` | 8 test files (post-tts-transform, pre-stt, parallel, etc.) |
+
 ---
 
 ## Rules

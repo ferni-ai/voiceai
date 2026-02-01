@@ -101,8 +101,7 @@ const CHUNK_SIZE_SAMPLES = 4800; // 200ms at 24kHz
 /**
  * Default Ferni TTS endpoint
  */
-export const DEFAULT_FERNI_TTS_ENDPOINT =
-  process.env.FERNI_TTS_ENDPOINT || 'http://localhost:8080';
+export const DEFAULT_FERNI_TTS_ENDPOINT = process.env.FERNI_TTS_ENDPOINT || 'http://localhost:8080';
 
 /**
  * Ferni persona voice mappings
@@ -267,9 +266,9 @@ export class FerniTTS {
  * Streaming synthesis stream - compatible with LiveKit's SynthesizeStream
  * Yields SynthesizedAudio objects that LiveKit expects
  */
-export class FerniTTSSynthesizeStream
-  implements AsyncIterable<SynthesizedAudio | typeof tts.SynthesizeStream.END_OF_STREAM>
-{
+export class FerniTTSSynthesizeStream implements AsyncIterable<
+  SynthesizedAudio | typeof tts.SynthesizeStream.END_OF_STREAM
+> {
   #endpoint: string;
   #voiceId: string;
   #sampleRate: number;
@@ -946,6 +945,8 @@ export function buildFerniSuperhumanContext(
         hour12: false,
       });
       userLocalHour = parseInt(formatter.format(now), 10);
+      // Handle midnight edge case: some locales return 24 instead of 0
+      if (userLocalHour === 24) userLocalHour = 0;
     } catch {
       // Invalid timezone, use undefined
     }

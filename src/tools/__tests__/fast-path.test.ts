@@ -34,7 +34,12 @@ vi.mock('fs', () => ({
         memory: {
           domainId: 'memory',
           tools: [
-            { id: 'saveMemory', name: 'Save Memory', description: 'Save a memory', domain: 'memory' },
+            {
+              id: 'saveMemory',
+              name: 'Save Memory',
+              description: 'Save a memory',
+              domain: 'memory',
+            },
           ],
           toolCount: 1,
         },
@@ -52,8 +57,24 @@ vi.mock('fs', () => ({
         },
       },
       toolIndex: {
-        savememory: { domain: 'memory', entry: { id: 'saveMemory', name: 'Save Memory', description: 'Save a memory', domain: 'memory' } },
-        handofftoferni: { domain: 'handoff', entry: { id: 'handoffToFerni', name: 'Handoff to Ferni', description: 'Hand off to Ferni', domain: 'handoff' } },
+        savememory: {
+          domain: 'memory',
+          entry: {
+            id: 'saveMemory',
+            name: 'Save Memory',
+            description: 'Save a memory',
+            domain: 'memory',
+          },
+        },
+        handofftoferni: {
+          domain: 'handoff',
+          entry: {
+            id: 'handoffToFerni',
+            name: 'Handoff to Ferni',
+            description: 'Hand off to Ferni',
+            domain: 'handoff',
+          },
+        },
       },
     })
   ),
@@ -119,9 +140,7 @@ describe('Pre-computed Embeddings', () => {
   });
 
   it('should generate consistent query embeddings', async () => {
-    const { generateQueryEmbedding } = await import(
-      '../semantic-router/precomputed-embeddings.js'
-    );
+    const { generateQueryEmbedding } = await import('../semantic-router/precomputed-embeddings.js');
 
     const embedding1 = generateQueryEmbedding('play some music');
     const embedding2 = generateQueryEmbedding('play some music');
@@ -132,9 +151,7 @@ describe('Pre-computed Embeddings', () => {
   });
 
   it('should produce normalized vectors', async () => {
-    const { generateQueryEmbedding } = await import(
-      '../semantic-router/precomputed-embeddings.js'
-    );
+    const { generateQueryEmbedding } = await import('../semantic-router/precomputed-embeddings.js');
 
     const embedding = generateQueryEmbedding('test query');
 
@@ -178,9 +195,8 @@ describe('Session Cache', () => {
   });
 
   it('should clear cache for session', async () => {
-    const { clearHandoffToolsCache, hasHandoffToolsCache } = await import(
-      '../handoff/session-cache.js'
-    );
+    const { clearHandoffToolsCache, hasHandoffToolsCache } =
+      await import('../handoff/session-cache.js');
 
     // Should not throw even if session doesn't exist
     clearHandoffToolsCache('non-existent-session');

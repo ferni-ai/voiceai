@@ -774,7 +774,6 @@ export const ToolDomainSchema = z.enum([
   'pattern-mastery',
   'timeless-perspective',
   'workflow-mastery',
-  'habit-persistence',
   'milestone-mastery',
 ]);
 

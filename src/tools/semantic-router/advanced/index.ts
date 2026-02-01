@@ -95,15 +95,6 @@ export {
 } from './deep-context.js';
 
 // Evaluation
-export {
-  loadBenchmarkDataset,
-  runBenchmark,
-  type BenchmarkTestCase,
-  type BenchmarkDataset,
-  type BenchmarkResults,
-  type BenchmarkOptions,
-} from '../evaluation/benchmark-runner.js';
-
 // ============================================================================
 // EXISTING ADVANCED SYSTEMS (re-exported for compatibility)
 // ============================================================================

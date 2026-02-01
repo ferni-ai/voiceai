@@ -8,7 +8,12 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getEventBus, resetEventBus, type EventPayload, type SystemEventType } from '../../services/workflows/events/event-bus.js';
+import {
+  getEventBus,
+  resetEventBus,
+  type EventPayload,
+  type SystemEventType,
+} from '../../services/workflows/events/event-bus.js';
 
 // ============================================================================
 // EVENT BUS TESTS

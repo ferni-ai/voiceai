@@ -148,7 +148,8 @@ const INTENT_SIGNALS: Record<UserIntent, IntentSignal[]> = {
       indicates: 'seeking_perspective',
     },
     {
-      test: (msg) => /\b(what do you think|what would you do|have you ever|any thoughts)\b/i.test(msg),
+      test: (msg) =>
+        /\b(what do you think|what would you do|have you ever|any thoughts)\b/i.test(msg),
       weight: 0.5,
       indicates: 'seeking_perspective',
     },
@@ -194,7 +195,8 @@ const INTENT_SIGNALS: Record<UserIntent, IntentSignal[]> = {
   ],
   vulnerable_share: [
     {
-      test: (msg) => /\b(never told|hard to say|between us|this is personal|vulnerable)\b/i.test(msg),
+      test: (msg) =>
+        /\b(never told|hard to say|between us|this is personal|vulnerable)\b/i.test(msg),
       weight: 0.6,
       indicates: 'vulnerable_share',
     },

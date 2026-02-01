@@ -371,28 +371,46 @@ function createInMemoryFallback(): FirestoreDB {
 
 export async function saveDecision(userId: string, decision: DecisionRecord): Promise<void> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('n1_analytics').doc('decisions');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('n1_analytics')
+    .doc('decisions');
   const snapshot = await docRef.get();
-  const existing: DecisionRecord[] = snapshot.exists ? (snapshot.data()?.records as DecisionRecord[]) || [] : [];
+  const existing: DecisionRecord[] = snapshot.exists
+    ? (snapshot.data()?.records as DecisionRecord[]) || []
+    : [];
   existing.push(cleanForFirestore(decision) as unknown as DecisionRecord);
   await docRef.set({ records: existing, updatedAt: new Date() });
 }
 
 export async function loadDecisions(userId: string): Promise<DecisionRecord[]> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('n1_analytics').doc('decisions');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('n1_analytics')
+    .doc('decisions');
   const snapshot = await docRef.get();
   if (!snapshot.exists) return [];
   return (snapshot.data()?.records as DecisionRecord[]) || [];
 }
 
-export async function updateDecision(userId: string, decisionId: string, update: Partial<DecisionRecord>): Promise<void> {
+export async function updateDecision(
+  userId: string,
+  decisionId: string,
+  update: Partial<DecisionRecord>
+): Promise<void> {
   const decisions = await loadDecisions(userId);
-  const index = decisions.findIndex(d => d.id === decisionId);
+  const index = decisions.findIndex((d) => d.id === decisionId);
   if (index >= 0) {
     decisions[index] = { ...decisions[index], ...update };
     const db = await getFirestore();
-    const docRef = db.collection('bogle_users').doc(userId).collection('n1_analytics').doc('decisions');
+    const docRef = db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('n1_analytics')
+      .doc('decisions');
     await docRef.set({ records: decisions, updatedAt: new Date() });
   }
 }
@@ -407,11 +425,13 @@ export async function saveSleepData(userId: string, data: SleepData): Promise<vo
   const db = await getFirestore();
   const docRef = db.collection('bogle_users').doc(userId).collection('n1_analytics').doc('sleep');
   const snapshot = await docRef.get();
-  const existing: SleepData[] = snapshot.exists ? (snapshot.data()?.records as SleepData[]) || [] : [];
+  const existing: SleepData[] = snapshot.exists
+    ? (snapshot.data()?.records as SleepData[]) || []
+    : [];
   existing.push(cleanForFirestore(data) as unknown as SleepData);
   // Keep last 365 days
   const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-  const filtered = existing.filter(s => new Date(s.date) > oneYearAgo);
+  const filtered = existing.filter((s) => new Date(s.date) > oneYearAgo);
   await docRef.set({ records: filtered, updatedAt: new Date() });
 }
 
@@ -433,11 +453,13 @@ export async function saveEnergyData(userId: string, data: EnergyData): Promise<
   const db = await getFirestore();
   const docRef = db.collection('bogle_users').doc(userId).collection('n1_analytics').doc('energy');
   const snapshot = await docRef.get();
-  const existing: EnergyData[] = snapshot.exists ? (snapshot.data()?.records as EnergyData[]) || [] : [];
+  const existing: EnergyData[] = snapshot.exists
+    ? (snapshot.data()?.records as EnergyData[]) || []
+    : [];
   existing.push(cleanForFirestore(data) as unknown as EnergyData);
   // Keep last 90 days
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-  const filtered = existing.filter(e => new Date(e.date) > ninetyDaysAgo);
+  const filtered = existing.filter((e) => new Date(e.date) > ninetyDaysAgo);
   await docRef.set({ records: filtered, updatedAt: new Date() });
 }
 
@@ -449,15 +471,28 @@ export async function loadEnergyData(userId: string): Promise<EnergyData[]> {
   return (snapshot.data()?.records as EnergyData[]) || [];
 }
 
-export async function savePerformanceProfile(userId: string, profile: PeakPerformanceProfile): Promise<void> {
+export async function savePerformanceProfile(
+  userId: string,
+  profile: PeakPerformanceProfile
+): Promise<void> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('n1_analytics').doc('performance');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('n1_analytics')
+    .doc('performance');
   await docRef.set(cleanForFirestore({ ...profile, updatedAt: new Date() }) as FirestoreDocument);
 }
 
-export async function loadPerformanceProfile(userId: string): Promise<PeakPerformanceProfile | null> {
+export async function loadPerformanceProfile(
+  userId: string
+): Promise<PeakPerformanceProfile | null> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('n1_analytics').doc('performance');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('n1_analytics')
+    .doc('performance');
   const snapshot = await docRef.get();
   if (!snapshot.exists) return null;
   return snapshot.data() as unknown as PeakPerformanceProfile;
@@ -471,8 +506,10 @@ export async function saveGoalProgress(userId: string, goal: GoalProgress): Prom
   const db = await getFirestore();
   const docRef = db.collection('bogle_users').doc(userId).collection('predictive').doc('goals');
   const snapshot = await docRef.get();
-  const existing: GoalProgress[] = snapshot.exists ? (snapshot.data()?.records as GoalProgress[]) || [] : [];
-  const index = existing.findIndex(g => g.goalId === goal.goalId);
+  const existing: GoalProgress[] = snapshot.exists
+    ? (snapshot.data()?.records as GoalProgress[]) || []
+    : [];
+  const index = existing.findIndex((g) => g.goalId === goal.goalId);
   if (index >= 0) {
     existing[index] = goal;
   } else {
@@ -487,7 +524,7 @@ export async function loadGoalProgress(userId: string, goalId?: string): Promise
   const snapshot = await docRef.get();
   if (!snapshot.exists) return [];
   const records = (snapshot.data()?.records as GoalProgress[]) || [];
-  return goalId ? records.filter(g => g.goalId === goalId) : records;
+  return goalId ? records.filter((g) => g.goalId === goalId) : records;
 }
 
 export interface HabitRecord {
@@ -506,8 +543,10 @@ export async function saveHabit(userId: string, habit: HabitRecord): Promise<voi
   const db = await getFirestore();
   const docRef = db.collection('bogle_users').doc(userId).collection('predictive').doc('habits');
   const snapshot = await docRef.get();
-  const existing: HabitRecord[] = snapshot.exists ? (snapshot.data()?.records as HabitRecord[]) || [] : [];
-  const index = existing.findIndex(h => h.id === habit.id);
+  const existing: HabitRecord[] = snapshot.exists
+    ? (snapshot.data()?.records as HabitRecord[]) || []
+    : [];
+  const index = existing.findIndex((h) => h.id === habit.id);
   if (index >= 0) {
     existing[index] = habit;
   } else {
@@ -528,12 +567,21 @@ export async function loadHabits(userId: string): Promise<HabitRecord[]> {
 // EXPERIMENTATION PERSISTENCE
 // ============================================================================
 
-export async function saveExperiment(userId: string, experiment: PersonalExperiment): Promise<void> {
+export async function saveExperiment(
+  userId: string,
+  experiment: PersonalExperiment
+): Promise<void> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('experimentation').doc('experiments');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('experimentation')
+    .doc('experiments');
   const snapshot = await docRef.get();
-  const existing: PersonalExperiment[] = snapshot.exists ? (snapshot.data()?.records as PersonalExperiment[]) || [] : [];
-  const index = existing.findIndex(e => e.id === experiment.id);
+  const existing: PersonalExperiment[] = snapshot.exists
+    ? (snapshot.data()?.records as PersonalExperiment[]) || []
+    : [];
+  const index = existing.findIndex((e) => e.id === experiment.id);
   if (index >= 0) {
     existing[index] = experiment;
   } else {
@@ -544,7 +592,11 @@ export async function saveExperiment(userId: string, experiment: PersonalExperim
 
 export async function loadExperiments(userId: string): Promise<PersonalExperiment[]> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('experimentation').doc('experiments');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('experimentation')
+    .doc('experiments');
   const snapshot = await docRef.get();
   if (!snapshot.exists) return [];
   return (snapshot.data()?.records as PersonalExperiment[]) || [];
@@ -552,10 +604,16 @@ export async function loadExperiments(userId: string): Promise<PersonalExperimen
 
 export async function saveBelief(userId: string, belief: BeliefTracker): Promise<void> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('experimentation').doc('beliefs');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('experimentation')
+    .doc('beliefs');
   const snapshot = await docRef.get();
-  const existing: BeliefTracker[] = snapshot.exists ? (snapshot.data()?.records as BeliefTracker[]) || [] : [];
-  const index = existing.findIndex(b => b.beliefId === belief.beliefId);
+  const existing: BeliefTracker[] = snapshot.exists
+    ? (snapshot.data()?.records as BeliefTracker[]) || []
+    : [];
+  const index = existing.findIndex((b) => b.beliefId === belief.beliefId);
   if (index >= 0) {
     existing[index] = belief;
   } else {
@@ -566,7 +624,11 @@ export async function saveBelief(userId: string, belief: BeliefTracker): Promise
 
 export async function loadBeliefs(userId: string): Promise<BeliefTracker[]> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('experimentation').doc('beliefs');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('experimentation')
+    .doc('beliefs');
   const snapshot = await docRef.get();
   if (!snapshot.exists) return [];
   return (snapshot.data()?.records as BeliefTracker[]) || [];
@@ -574,10 +636,16 @@ export async function loadBeliefs(userId: string): Promise<BeliefTracker[]> {
 
 export async function saveHypothesis(userId: string, hypothesis: Hypothesis): Promise<void> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('experimentation').doc('hypotheses');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('experimentation')
+    .doc('hypotheses');
   const snapshot = await docRef.get();
-  const existing: Hypothesis[] = snapshot.exists ? (snapshot.data()?.records as Hypothesis[]) || [] : [];
-  const index = existing.findIndex(h => h.id === hypothesis.id);
+  const existing: Hypothesis[] = snapshot.exists
+    ? (snapshot.data()?.records as Hypothesis[]) || []
+    : [];
+  const index = existing.findIndex((h) => h.id === hypothesis.id);
   if (index >= 0) {
     existing[index] = hypothesis;
   } else {
@@ -588,7 +656,11 @@ export async function saveHypothesis(userId: string, hypothesis: Hypothesis): Pr
 
 export async function loadHypotheses(userId: string): Promise<Hypothesis[]> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('experimentation').doc('hypotheses');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('experimentation')
+    .doc('hypotheses');
   const snapshot = await docRef.get();
   if (!snapshot.exists) return [];
   return (snapshot.data()?.records as Hypothesis[]) || [];
@@ -600,19 +672,29 @@ export async function loadHypotheses(userId: string): Promise<Hypothesis[]> {
 
 export async function saveSpendingRecord(userId: string, record: SpendingRecord): Promise<void> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('external_data').doc('spending');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('external_data')
+    .doc('spending');
   const snapshot = await docRef.get();
-  const existing: SpendingRecord[] = snapshot.exists ? (snapshot.data()?.records as SpendingRecord[]) || [] : [];
+  const existing: SpendingRecord[] = snapshot.exists
+    ? (snapshot.data()?.records as SpendingRecord[]) || []
+    : [];
   existing.push(cleanForFirestore(record) as unknown as SpendingRecord);
   // Keep last 2 years
   const twoYearsAgo = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000);
-  const filtered = existing.filter(s => new Date(s.date) > twoYearsAgo);
+  const filtered = existing.filter((s) => new Date(s.date) > twoYearsAgo);
   await docRef.set({ records: filtered, updatedAt: new Date() });
 }
 
 export async function loadSpendingRecords(userId: string): Promise<SpendingRecord[]> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('external_data').doc('spending');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('external_data')
+    .doc('spending');
   const snapshot = await docRef.get();
   if (!snapshot.exists) return [];
   return (snapshot.data()?.records as SpendingRecord[]) || [];
@@ -624,10 +706,16 @@ export async function loadSpendingRecords(userId: string): Promise<SpendingRecor
 
 export async function saveRelationship(userId: string, relationship: Relationship): Promise<void> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('network').doc('relationships');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('network')
+    .doc('relationships');
   const snapshot = await docRef.get();
-  const existing: Relationship[] = snapshot.exists ? (snapshot.data()?.records as Relationship[]) || [] : [];
-  const index = existing.findIndex(r => r.id === relationship.id);
+  const existing: Relationship[] = snapshot.exists
+    ? (snapshot.data()?.records as Relationship[]) || []
+    : [];
+  const index = existing.findIndex((r) => r.id === relationship.id);
   if (index >= 0) {
     existing[index] = relationship;
   } else {
@@ -638,7 +726,11 @@ export async function saveRelationship(userId: string, relationship: Relationshi
 
 export async function loadRelationships(userId: string): Promise<Relationship[]> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('network').doc('relationships');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('network')
+    .doc('relationships');
   const snapshot = await docRef.get();
   if (!snapshot.exists) return [];
   return (snapshot.data()?.records as Relationship[]) || [];
@@ -648,11 +740,13 @@ export async function saveInteraction(userId: string, interaction: Interaction):
   const db = await getFirestore();
   const docRef = db.collection('bogle_users').doc(userId).collection('network').doc('interactions');
   const snapshot = await docRef.get();
-  const existing: Interaction[] = snapshot.exists ? (snapshot.data()?.records as Interaction[]) || [] : [];
+  const existing: Interaction[] = snapshot.exists
+    ? (snapshot.data()?.records as Interaction[]) || []
+    : [];
   existing.push(cleanForFirestore(interaction) as unknown as Interaction);
   // Keep last year of interactions
   const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-  const filtered = existing.filter(i => new Date(i.date) > oneYearAgo);
+  const filtered = existing.filter((i) => new Date(i.date) > oneYearAgo);
   await docRef.set({ records: filtered, updatedAt: new Date() });
 }
 
@@ -678,9 +772,15 @@ export interface VerifiedClaim {
 
 export async function saveVerifiedClaim(userId: string, claim: VerifiedClaim): Promise<void> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('research_synthesis').doc('claims');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('research_synthesis')
+    .doc('claims');
   const snapshot = await docRef.get();
-  const existing: VerifiedClaim[] = snapshot.exists ? (snapshot.data()?.records as VerifiedClaim[]) || [] : [];
+  const existing: VerifiedClaim[] = snapshot.exists
+    ? (snapshot.data()?.records as VerifiedClaim[]) || []
+    : [];
   existing.push(cleanForFirestore(claim) as unknown as VerifiedClaim);
   // Keep last 100 claims
   const limited = existing.slice(-100);
@@ -689,7 +789,11 @@ export async function saveVerifiedClaim(userId: string, claim: VerifiedClaim): P
 
 export async function loadVerifiedClaims(userId: string): Promise<VerifiedClaim[]> {
   const db = await getFirestore();
-  const docRef = db.collection('bogle_users').doc(userId).collection('research_synthesis').doc('claims');
+  const docRef = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('research_synthesis')
+    .doc('claims');
   const snapshot = await docRef.get();
   if (!snapshot.exists) return [];
   return (snapshot.data()?.records as VerifiedClaim[]) || [];

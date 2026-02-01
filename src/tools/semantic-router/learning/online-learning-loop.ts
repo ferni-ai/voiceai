@@ -621,3 +621,21 @@ export function shutdownOnlineLearning(): void {
     log.info('Online learning engine shutdown');
   }
 }
+
+/**
+ * Get online learning statistics (convenience function).
+ */
+export function getOnlineLearningStats(): {
+  pendingExamples: number;
+  adjustedTools: number;
+  lastRetrainTime: number;
+  recentStats: RetrainingStats[];
+  isActive: boolean;
+} {
+  const engine = getOnlineLearningEngine();
+  const stats = engine.getStats();
+  return {
+    ...stats,
+    isActive: engineInstance !== null,
+  };
+}

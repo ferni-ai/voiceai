@@ -17,7 +17,7 @@ import {
   resetSpeechNaturalizer,
   SpeechNaturalizer,
   type SpeechNaturalizer as SpeechNaturalizerInstance,
-} from '../conversation/speech-naturalizer.js';
+} from '../conversation/speech-naturalizer/index.js';
 
 // ============================================================================
 // TESTS

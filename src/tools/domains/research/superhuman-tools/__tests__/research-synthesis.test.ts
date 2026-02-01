@@ -162,10 +162,7 @@ describe('Research Synthesis Tools', () => {
         sources: ['Medical journal', 'WHO guidelines'],
       };
 
-      const result = await researchSynthesisTools.verifyClaim.execute(
-        params,
-        createMockContext()
-      );
+      const result = await researchSynthesisTools.verifyClaim.execute(params, createMockContext());
 
       expect(result).toBeDefined();
       expect(result.toLowerCase()).toContain('verification');

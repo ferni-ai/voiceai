@@ -147,29 +147,33 @@ export async function initializeFastJoin(userConfig?: FastJoinConfig): Promise<v
 /**
  * Pre-generate greeting texts for all configured personas.
  * The model will use these instantly instead of generating from scratch.
+ *
+ * FIX (Jan 2026): Generate fresh greetings each time to get actual variety.
+ * Previously called getPrewarmedGreetingForPersona which returned the same cached value.
  */
 async function prewarmGreetingTexts(): Promise<void> {
   const startTime = Date.now();
   log.info({ personas: config.personas.length }, '📝 Pre-caching greeting texts...');
 
-  // Import greeting generator
-  const { prewarmGreetingsForAllPersonas, getPrewarmedGreetingForPersona } =
-    await import('../shared/warm-greeting.js');
-
-  // First, ensure greeting TEXT is pre-generated
-  prewarmGreetingsForAllPersonas();
+  // Import greeting generator - use generateWarmGreeting directly for fresh randomized greetings
+  const { generateWarmGreeting } = await import('../shared/warm-greeting.js');
 
   // Cache greeting variants per persona
   for (const personaId of config.personas) {
     try {
       const greetingVariants: string[] = [];
 
-      // Get multiple greeting variants for variety
-      for (let i = 0; i < 3; i++) {
-        const greeting = getPrewarmedGreetingForPersona(personaId);
+      // Generate multiple FRESH greeting variants for variety
+      // Each call to generateWarmGreeting uses Math.random() internally
+      const targetVariants = 5; // Generate more to account for potential duplicates
+      for (let i = 0; i < targetVariants; i++) {
+        const greeting = generateWarmGreeting(personaId);
+        // Only add if unique
         if (greeting && !greetingVariants.includes(greeting)) {
           greetingVariants.push(greeting);
         }
+        // Stop once we have 3 unique variants
+        if (greetingVariants.length >= 3) break;
       }
 
       if (greetingVariants.length > 0) {
@@ -198,6 +202,9 @@ async function prewarmGreetingTexts(): Promise<void> {
 /**
  * Get pre-cached greeting text for instant output.
  * Returns null if not cached (fallback to normal generation).
+ *
+ * FIX (Jan 2026): Randomly select from cached variants to avoid repetition.
+ * Previously always returned index 0 or 1, causing the same greeting every time.
  */
 export function getCachedGreetingText(
   personaId: string,
@@ -208,9 +215,9 @@ export function getCachedGreetingText(
     return null;
   }
 
-  // Select variant based on returning user status
-  const index = options?.isReturningUser ? Math.min(1, cached.greetingTexts.length - 1) : 0;
-  return cached.greetingTexts[index] || cached.greetingTexts[0];
+  // Randomly select from available variants for variety
+  const randomIndex = Math.floor(Math.random() * cached.greetingTexts.length);
+  return cached.greetingTexts[randomIndex];
 }
 
 // ============================================================================

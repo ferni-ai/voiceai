@@ -33,7 +33,11 @@ import {
   type ABTest,
 } from '../../../apps/cli/src/commands/growth/growth-intelligence.js';
 import * as storage from '../../../apps/cli/src/commands/growth/growth-storage.js';
-import type { ContentPiece, InfluencerLead, GrowthState } from '../../../apps/cli/src/commands/growth/growth-storage.js';
+import type {
+  ContentPiece,
+  InfluencerLead,
+  GrowthState,
+} from '../../../apps/cli/src/commands/growth/growth-storage.js';
 
 // Mock storage module
 vi.mock('../../../apps/cli/src/commands/growth/growth-storage.js', () => ({
@@ -136,12 +140,53 @@ describe('Growth Intelligence - "Better Than Human" Capabilities', () => {
 
     it('should analyze patterns when sufficient data exists', async () => {
       const mockContent: ContentPiece[] = [
-        { id: '1', platform: 'tiktok', type: 'video_script', hook: 'POV: you tried', metrics: { views: 1000, likes: 100, comments: 20, shares: 5, signups: 2 }, hashtags: ['#fyp', '#ferni'] },
-        { id: '2', platform: 'tiktok', type: 'video_script', hook: 'POV: you discovered', metrics: { views: 2000, likes: 200, comments: 40, shares: 10, signups: 5 }, hashtags: ['#fyp', '#mindset'] },
-        { id: '3', platform: 'tiktok', type: 'video_script', hook: 'Stop scrolling', metrics: { views: 500, likes: 30, comments: 5, shares: 1, signups: 0 }, hashtags: ['#productivity'] },
-        { id: '4', platform: 'tiktok', type: 'video_script', hook: 'POV: you realized', metrics: { views: 3000, likes: 300, comments: 60, shares: 15, signups: 8 }, hashtags: ['#fyp', '#growth'] },
-        { id: '5', platform: 'tiktok', type: 'video_script', hook: 'This changed my life', metrics: { views: 1500, likes: 150, comments: 30, shares: 8, signups: 3 }, hashtags: ['#selfcare'] },
-        { id: '6', platform: 'reddit', type: 'post', metrics: { views: 800, likes: 50, comments: 25, shares: 2, signups: 1 }, hashtags: [] },
+        {
+          id: '1',
+          platform: 'tiktok',
+          type: 'video_script',
+          hook: 'POV: you tried',
+          metrics: { views: 1000, likes: 100, comments: 20, shares: 5, signups: 2 },
+          hashtags: ['#fyp', '#ferni'],
+        },
+        {
+          id: '2',
+          platform: 'tiktok',
+          type: 'video_script',
+          hook: 'POV: you discovered',
+          metrics: { views: 2000, likes: 200, comments: 40, shares: 10, signups: 5 },
+          hashtags: ['#fyp', '#mindset'],
+        },
+        {
+          id: '3',
+          platform: 'tiktok',
+          type: 'video_script',
+          hook: 'Stop scrolling',
+          metrics: { views: 500, likes: 30, comments: 5, shares: 1, signups: 0 },
+          hashtags: ['#productivity'],
+        },
+        {
+          id: '4',
+          platform: 'tiktok',
+          type: 'video_script',
+          hook: 'POV: you realized',
+          metrics: { views: 3000, likes: 300, comments: 60, shares: 15, signups: 8 },
+          hashtags: ['#fyp', '#growth'],
+        },
+        {
+          id: '5',
+          platform: 'tiktok',
+          type: 'video_script',
+          hook: 'This changed my life',
+          metrics: { views: 1500, likes: 150, comments: 30, shares: 8, signups: 3 },
+          hashtags: ['#selfcare'],
+        },
+        {
+          id: '6',
+          platform: 'reddit',
+          type: 'post',
+          metrics: { views: 800, likes: 50, comments: 25, shares: 2, signups: 1 },
+          hashtags: [],
+        },
       ] as ContentPiece[];
 
       vi.mocked(storage.getContentQueue).mockResolvedValue(mockContent);
@@ -149,28 +194,38 @@ describe('Growth Intelligence - "Better Than Human" Capabilities', () => {
       const patterns = await analyzePerformancePatterns();
 
       expect(patterns.length).toBeGreaterThanOrEqual(1);
-      const tiktokPattern = patterns.find(p => p.platform === 'tiktok');
+      const tiktokPattern = patterns.find((p) => p.platform === 'tiktok');
       expect(tiktokPattern).toBeDefined();
       expect(tiktokPattern!.sampleSize).toBeGreaterThan(0);
       expect(tiktokPattern!.avgEngagementRate).toBeGreaterThan(0);
     });
 
     it('should extract winning elements from top performers', async () => {
-      const mockContent: ContentPiece[] = Array.from({ length: 10 }, (_, i) => ({
-        id: `${i}`,
-        platform: 'tiktok',
-        type: 'video_script',
-        hook: i < 5 ? 'POV: winning hook' : 'Weak hook',
-        cta: i < 5 ? 'Link in bio' : 'Check it out',
-        metrics: { views: i < 5 ? 5000 : 500, likes: i < 5 ? 500 : 20, comments: i < 5 ? 100 : 2, shares: i < 5 ? 50 : 1, signups: i < 5 ? 10 : 0 },
-        hashtags: i < 5 ? ['#fyp', '#trending'] : ['#random'],
-      } as ContentPiece));
+      const mockContent: ContentPiece[] = Array.from(
+        { length: 10 },
+        (_, i) =>
+          ({
+            id: `${i}`,
+            platform: 'tiktok',
+            type: 'video_script',
+            hook: i < 5 ? 'POV: winning hook' : 'Weak hook',
+            cta: i < 5 ? 'Link in bio' : 'Check it out',
+            metrics: {
+              views: i < 5 ? 5000 : 500,
+              likes: i < 5 ? 500 : 20,
+              comments: i < 5 ? 100 : 2,
+              shares: i < 5 ? 50 : 1,
+              signups: i < 5 ? 10 : 0,
+            },
+            hashtags: i < 5 ? ['#fyp', '#trending'] : ['#random'],
+          }) as ContentPiece
+      );
 
       vi.mocked(storage.getContentQueue).mockResolvedValue(mockContent);
 
       const patterns = await analyzePerformancePatterns();
 
-      const tiktokPattern = patterns.find(p => p.platform === 'tiktok');
+      const tiktokPattern = patterns.find((p) => p.platform === 'tiktok');
       expect(tiktokPattern).toBeDefined();
       expect(tiktokPattern!.elements.hashtags).toContain('#fyp');
     });
@@ -355,7 +410,9 @@ describe('Growth Intelligence - "Better Than Human" Capabilities', () => {
 
       expect(score.insights.length).toBeGreaterThan(0);
       // High engagement should get positive insights
-      expect(score.insights.some(i => i.includes('engagement') || i.includes('conversion'))).toBe(true);
+      expect(score.insights.some((i) => i.includes('engagement') || i.includes('conversion'))).toBe(
+        true
+      );
     });
   });
 
@@ -374,15 +431,19 @@ describe('Growth Intelligence - "Better Than Human" Capabilities', () => {
 
     it('should provide adaptation rules between platforms', async () => {
       // Create enough content to generate patterns
-      const mockContent: ContentPiece[] = Array.from({ length: 10 }, (_, i) => ({
-        id: `${i}`,
-        platform: 'tiktok',
-        type: 'video_script',
-        hook: 'POV: winning',
-        cta: 'Link in bio',
-        metrics: { views: 5000, likes: 500, comments: 100, shares: 50, signups: 10 },
-        hashtags: ['#fyp'],
-      } as ContentPiece));
+      const mockContent: ContentPiece[] = Array.from(
+        { length: 10 },
+        (_, i) =>
+          ({
+            id: `${i}`,
+            platform: 'tiktok',
+            type: 'video_script',
+            hook: 'POV: winning',
+            cta: 'Link in bio',
+            metrics: { views: 5000, likes: 500, comments: 100, shares: 50, signups: 10 },
+            hashtags: ['#fyp'],
+          }) as ContentPiece
+      );
 
       vi.mocked(storage.getContentQueue).mockResolvedValue(mockContent);
 
@@ -401,7 +462,9 @@ describe('Growth Intelligence - "Better Than Human" Capabilities', () => {
     it('should throw error when influencer not found', async () => {
       vi.mocked(storage.getInfluencerLeads).mockResolvedValue([]);
 
-      await expect(scoreInfluencerFit('nonexistent')).rejects.toThrow('Influencer nonexistent not found');
+      await expect(scoreInfluencerFit('nonexistent')).rejects.toThrow(
+        'Influencer nonexistent not found'
+      );
     });
 
     it('should calculate comprehensive influencer fit score', async () => {
@@ -528,7 +591,8 @@ describe('Growth Intelligence - "Better Than Human" Capabilities', () => {
 
   describe('8. Sentiment Pre-Analysis', () => {
     it('should approve positive, non-controversial content', async () => {
-      const content = 'This amazing productivity tip helped me achieve great results! Try it yourself.';
+      const content =
+        'This amazing productivity tip helped me achieve great results! Try it yourself.';
 
       const analysis = await analyzeSentiment(content);
 
@@ -538,27 +602,30 @@ describe('Growth Intelligence - "Better Than Human" Capabilities', () => {
     });
 
     it('should flag controversial content', async () => {
-      const content = 'This politics debate about the war is controversial and might cause a fight.';
+      const content =
+        'This politics debate about the war is controversial and might cause a fight.';
 
       const analysis = await analyzeSentiment(content);
 
       expect(analysis.riskFactors.length).toBeGreaterThan(0);
-      expect(analysis.riskFactors.some(r => r.factor.includes('controversial'))).toBe(true);
+      expect(analysis.riskFactors.some((r) => r.factor.includes('controversial'))).toBe(true);
     });
 
     it('should flag overly promotional content', async () => {
-      const content = 'BUY NOW! Limited time SALE! Exclusive DISCOUNT! Best DEAL ever! Special OFFER!';
+      const content =
+        'BUY NOW! Limited time SALE! Exclusive DISCOUNT! Best DEAL ever! Special OFFER!';
 
       const analysis = await analyzeSentiment(content);
 
       expect(analysis.toneAnalysis.promotional).toBeGreaterThan(0.5);
-      expect(analysis.riskFactors.some(r => r.factor.includes('promotional'))).toBe(true);
+      expect(analysis.riskFactors.some((r) => r.factor.includes('promotional'))).toBe(true);
     });
 
     it('should calculate platform-specific fit scores', async () => {
       const shortContent = 'Quick tip!';
       // Content must be over 280 chars to get lower twitter score
-      const longContent = 'This is a very detailed and comprehensive guide to improving your productivity through various scientifically-backed methods and techniques. We will explore multiple approaches including time management, focus techniques, habit stacking, deep work protocols, and more. This guide covers everything you need to transform your daily routine.';
+      const longContent =
+        'This is a very detailed and comprehensive guide to improving your productivity through various scientifically-backed methods and techniques. We will explore multiple approaches including time management, focus techniques, habit stacking, deep work protocols, and more. This guide covers everything you need to transform your daily routine.';
 
       const shortAnalysis = await analyzeSentiment(shortContent);
       const longAnalysis = await analyzeSentiment(longContent);
@@ -590,8 +657,18 @@ describe('Growth Intelligence - "Better Than Human" Capabilities', () => {
         id: 'test-1',
         originalContentId: 'content-1',
         variants: [
-          { id: 'control', contentId: 'c1', changes: [], metrics: { views: 1000, likes: 50, comments: 10, shares: 5, signups: 2 } },
-          { id: 'variant-a', contentId: 'c2', changes: ['Better hook'], metrics: { views: 1000, likes: 100, comments: 25, shares: 15, signups: 8 } },
+          {
+            id: 'control',
+            contentId: 'c1',
+            changes: [],
+            metrics: { views: 1000, likes: 50, comments: 10, shares: 5, signups: 2 },
+          },
+          {
+            id: 'variant-a',
+            contentId: 'c2',
+            changes: ['Better hook'],
+            metrics: { views: 1000, likes: 100, comments: 25, shares: 15, signups: 8 },
+          },
         ],
         status: 'running',
         startedAt: new Date().toISOString(),
@@ -653,7 +730,7 @@ describe('Growth Intelligence - "Better Than Human" Capabilities', () => {
 
       const dashboard = await getIntelligenceDashboard();
 
-      expect(dashboard.actionItems.some(a => a.priority === 'high')).toBe(true);
+      expect(dashboard.actionItems.some((a) => a.priority === 'high')).toBe(true);
     });
   });
 });

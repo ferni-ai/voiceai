@@ -160,7 +160,11 @@ function extractRelationship(text: string): RelationshipMatch | null {
 // INTENT CLASSIFICATION
 // ============================================================================
 
-function classifyIntent(text: string, hasContactInfo: boolean, hasRelationship: boolean): DataIntent {
+function classifyIntent(
+  text: string,
+  hasContactInfo: boolean,
+  hasRelationship: boolean
+): DataIntent {
   const lowerText = text.toLowerCase();
 
   // Explicit save commands
@@ -185,7 +189,10 @@ function classifyIntent(text: string, hasContactInfo: boolean, hasRelationship: 
 
   // Relationship mention with action intent (call, text, message, talk to)
   // e.g., "call my mom", "text my brother", "I need to talk to my sister"
-  if (hasRelationship && /\b(call|text|message|reach|contact|talk\s+to|speak\s+(to|with))\s+(my\s+)?/.test(lowerText)) {
+  if (
+    hasRelationship &&
+    /\b(call|text|message|reach|contact|talk\s+to|speak\s+(to|with))\s+(my\s+)?/.test(lowerText)
+  ) {
     return 'relationship_mention';
   }
 
@@ -203,13 +210,21 @@ function classifyIntent(text: string, hasContactInfo: boolean, hasRelationship: 
 
   // Emotional relationship mentions (miss, love, worried about, thinking of)
   // e.g., "I miss my mom", "I love my sister", "worried about my dad"
-  if (hasRelationship && /\b(miss|love|adore|worried\s+(about|for)|thinking\s+(of|about)|care\s+(for|about))\s+(my\s+)?/.test(lowerText)) {
+  if (
+    hasRelationship &&
+    /\b(miss|love|adore|worried\s+(about|for)|thinking\s+(of|about)|care\s+(for|about))\s+(my\s+)?/.test(
+      lowerText
+    )
+  ) {
     return 'relationship_mention';
   }
 
   // First-time relationship introduction (I have a, I've got a, there's my)
   // e.g., "I have a sister", "I've got a brother in Seattle"
-  if (hasRelationship && /\b(i\s+(have|'ve\s+got|got)\s+a|there('s| is)\s+my)\s+/i.test(lowerText)) {
+  if (
+    hasRelationship &&
+    /\b(i\s+(have|'ve\s+got|got)\s+a|there('s| is)\s+my)\s+/i.test(lowerText)
+  ) {
     return 'relationship_mention';
   }
 
@@ -276,9 +291,7 @@ function generateAcknowledgment(items: CapturedItem[]): string | undefined {
       return `Updated! I've got ${name}'s new ${what}.`;
     case 'relationship_mention':
       // Relationship-only save - acknowledge we're remembering them
-      return hasContactInfo
-        ? `I've noted ${name}'s ${what}.`
-        : undefined; // Silent save for relationship-only - more natural
+      return hasContactInfo ? `I've noted ${name}'s ${what}.` : undefined; // Silent save for relationship-only - more natural
     default:
       return undefined;
   }
@@ -299,9 +312,8 @@ async function routeToStorage(item: CapturedItem, context: DataCaptureContext): 
   // This is the PRIMARY storage - legacy collections below are for backwards compatibility
   // ═══════════════════════════════════════════════════════════════════════════
   try {
-    const { capturePersonEntity, isEntityStoreReady } = await import(
-      '../../memory/entity-store/integration.js'
-    );
+    const { capturePersonEntity, isEntityStoreReady } =
+      await import('../../memory/entity-store/integration.js');
 
     if (isEntityStoreReady()) {
       await capturePersonEntity(
@@ -325,7 +337,10 @@ async function routeToStorage(item: CapturedItem, context: DataCaptureContext): 
       );
     }
   } catch (entityErr) {
-    log.warn({ error: String(entityErr) }, 'Entity store capture failed (non-fatal, continuing to legacy)');
+    log.warn(
+      { error: String(entityErr) },
+      'Entity store capture failed (non-fatal, continuing to legacy)'
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -379,23 +394,38 @@ async function routeToStorage(item: CapturedItem, context: DataCaptureContext): 
   // 🐛 FIX: Also add to contact_relationships for telephony/search
   // This ensures "call my brother" will find the contact
   try {
-    const { upsertContact } = await import('../../services/contacts/contact-relationship-service.js');
-    const relationshipType = contact.relationship === 'mother' || contact.relationship === 'father' ||
-      contact.relationship === 'brother' || contact.relationship === 'sister' ||
-      contact.relationship === 'wife' || contact.relationship === 'husband' ||
-      contact.relationship === 'son' || contact.relationship === 'daughter'
-      ? 'family'
-      : contact.relationship === 'friend' ? 'friend'
-      : contact.relationship === 'boss' || contact.relationship === 'coworker' || contact.relationship === 'colleague'
-      ? 'colleague'
-      : 'other';
+    const { upsertContact } =
+      await import('../../services/contacts/contact-relationship-service.js');
+    const relationshipType =
+      contact.relationship === 'mother' ||
+      contact.relationship === 'father' ||
+      contact.relationship === 'brother' ||
+      contact.relationship === 'sister' ||
+      contact.relationship === 'wife' ||
+      contact.relationship === 'husband' ||
+      contact.relationship === 'son' ||
+      contact.relationship === 'daughter'
+        ? 'family'
+        : contact.relationship === 'friend'
+          ? 'friend'
+          : contact.relationship === 'boss' ||
+              contact.relationship === 'coworker' ||
+              contact.relationship === 'colleague'
+            ? 'colleague'
+            : 'other';
 
     await upsertContact(context.userId, {
       contactId: newContact.id,
       name: contact.name || contact.relationship || 'Contact',
       phone: contact.phone,
       email: contact.email,
-      relationship: relationshipType as 'family' | 'friend' | 'colleague' | 'acquaintance' | 'professional' | 'other',
+      relationship: relationshipType as
+        | 'family'
+        | 'friend'
+        | 'colleague'
+        | 'acquaintance'
+        | 'professional'
+        | 'other',
       notes: contact.relationship, // Store the specific relationship (mom, brother, etc.)
     });
 

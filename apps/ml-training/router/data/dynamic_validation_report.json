@@ -1,0 +1,3502 @@
+{
+  "totalQueries": 330,
+  "passed": 194,
+  "failed": 136,
+  "accuracy": 58.78787878787879,
+  "byDifficulty": {
+    "easy": {
+      "total": 75,
+      "passed": 64,
+      "accuracy": 85.33333333333334
+    },
+    "medium": {
+      "total": 105,
+      "passed": 82,
+      "accuracy": 78.0952380952381
+    },
+    "hard": {
+      "total": 75,
+      "passed": 13,
+      "accuracy": 17.333333333333336
+    },
+    "adversarial": {
+      "total": 75,
+      "passed": 35,
+      "accuracy": 46.666666666666664
+    }
+  },
+  "byCategory": {
+    "music": {
+      "total": 20,
+      "passed": 14,
+      "accuracy": 70
+    },
+    "pause_music": {
+      "total": 20,
+      "passed": 11,
+      "accuracy": 55.00000000000001
+    },
+    "weather": {
+      "total": 20,
+      "passed": 10,
+      "accuracy": 50
+    },
+    "create_event": {
+      "total": 20,
+      "passed": 12,
+      "accuracy": 60
+    },
+    "get_events": {
+      "total": 20,
+      "passed": 6,
+      "accuracy": 30
+    },
+    "reminder": {
+      "total": 20,
+      "passed": 11,
+      "accuracy": 55.00000000000001
+    },
+    "alarm": {
+      "total": 20,
+      "passed": 9,
+      "accuracy": 45
+    },
+    "timer": {
+      "total": 20,
+      "passed": 11,
+      "accuracy": 55.00000000000001
+    },
+    "call": {
+      "total": 20,
+      "passed": 14,
+      "accuracy": 70
+    },
+    "message": {
+      "total": 20,
+      "passed": 15,
+      "accuracy": 75
+    },
+    "log_habit": {
+      "total": 20,
+      "passed": 8,
+      "accuracy": 40
+    },
+    "habit_progress": {
+      "total": 20,
+      "passed": 11,
+      "accuracy": 55.00000000000001
+    },
+    "news": {
+      "total": 20,
+      "passed": 11,
+      "accuracy": 55.00000000000001
+    },
+    "save_memory": {
+      "total": 20,
+      "passed": 15,
+      "accuracy": 75
+    },
+    "search": {
+      "total": 20,
+      "passed": 14,
+      "accuracy": 70
+    },
+    "OPEN": {
+      "total": 30,
+      "passed": 22,
+      "accuracy": 73.33333333333333
+    }
+  },
+  "failures": [
+    {
+      "query": "So, I was thinking about that band we saw last year... What was their stuff called again? The ones with the amazing guitar solos.",
+      "expected": {
+        "category": "music",
+        "tools": [
+          "playMusic",
+          "music_play",
+          "spotify_play"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "The user is trying to recall a band they saw, indicating interest in finding and presumably playing music by that band."
+    },
+    {
+      "query": "Ugh, this silence is killing me. Any way to make this less...dull?",
+      "expected": {
+        "category": "music",
+        "tools": [
+          "playMusic",
+          "music_play",
+          "spotify_play"
+        ]
+      },
+      "actual": {
+        "toolId": "pauseMusic",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "The user explicitly mentions that the silence is boring them. This suggests playing music as a way to combat the boredom."
+    },
+    {
+      "query": "Remember that summer when everyone was obsessed with that one song? What even was it called?",
+      "expected": {
+        "category": "music",
+        "tools": [
+          "playMusic",
+          "music_play",
+          "spotify_play"
+        ]
+      },
+      "actual": {
+        "toolId": "rememberThis",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "The user references a popular song from the past, demonstrating an interest in rediscovering and likely playing that song (or something similar)."
+    },
+    {
+      "query": "Alright, I'm officially ready to procrastinate. Give me, uh, something that'll help me avoid doing my taxes.",
+      "expected": {
+        "category": "music",
+        "tools": [
+          "playMusic",
+          "music_play",
+          "spotify_play"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "The user wants something to distract them from a task, and by asking for something to 'procrastinate' with, they implicitly suggest listening to music as a form of entertainment."
+    },
+    {
+      "query": "Okay, so anyway, play it.",
+      "expected": {
+        "category": "music",
+        "tools": [
+          "playMusic",
+          "music_play",
+          "spotify_play"
+        ]
+      },
+      "actual": {
+        "toolId": "rememberThis",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "The phrase \"play it\" clearly indicates a request to play music, likely something previously mentioned in the conversation that is being referenced by 'it'."
+    },
+    {
+      "query": "Spotify, jam time.",
+      "expected": {
+        "category": "music",
+        "tools": [
+          "playMusic",
+          "music_play",
+          "spotify_play"
+        ]
+      },
+      "actual": {
+        "toolId": "skipTrack",
+        "confidence": 0.7998402714729309,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "\"Jam time\" is an informal way of asking to play music. Specifying \"Spotify\" suggests the music source."
+    },
+    {
+      "query": "Would you mind silencing the tunes for a little bit?",
+      "expected": {
+        "category": "pause_music",
+        "tools": [
+          "pauseMusic"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "easy",
+      "reasoning": "Asks to 'silence the tunes', a natural way of saying pause the music."
+    },
+    {
+      "query": "Could you just hold off on the tunes for a sec?",
+      "expected": {
+        "category": "pause_music",
+        "tools": [
+          "pauseMusic"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "The phrase 'hold off on the tunes' clearly implies stopping the music, making it a request to pause."
+    },
+    {
+      "query": "Would you mind killing the music?",
+      "expected": {
+        "category": "pause_music",
+        "tools": [
+          "pauseMusic"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "'Killing the music' is a colloquial, but clear, way of asking to stop the music that is currently playing."
+    },
+    {
+      "query": "Okay, I think I'm good for now. You can, uh, just put it on hold for a bit.",
+      "expected": {
+        "category": "pause_music",
+        "tools": [
+          "pauseMusic"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "The phrase \"put it on hold\" is a colloquial way of saying pause the music, implying a temporary stop to the playback."
+    },
+    {
+      "query": "Actually, could you give my ears a little break?",
+      "expected": {
+        "category": "pause_music",
+        "tools": [
+          "pauseMusic"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Requesting \"a little break\" for their ears implies they want to stop listening to the music that's currently playing."
+    },
+    {
+      "query": "Mind if we just, like, take a breather from the tunes?",
+      "expected": {
+        "category": "pause_music",
+        "tools": [
+          "pauseMusic"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.06106511875987053,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "\"Take a breather from the tunes\" is an indirect way of asking to pause the music, using casual language."
+    },
+    {
+      "query": "I'm gonna jump on this call, so maybe just keep it down?",
+      "expected": {
+        "category": "pause_music",
+        "tools": [
+          "pauseMusic"
+        ]
+      },
+      "actual": {
+        "toolId": "callContact",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "\"Keep it down\" is a softened command that is used to say turn the volume low or pause the music. Considering the context of a phone call it is more likely for the music to be paused."
+    },
+    {
+      "query": "Alright, shush.",
+      "expected": {
+        "category": "pause_music",
+        "tools": [
+          "pauseMusic"
+        ]
+      },
+      "actual": {
+        "toolId": "skipTrack",
+        "confidence": 0.06578325480222702,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "While 'shush' can be used in other contexts, in this case, spoken after 'alright' (indicating task readiness), the intent is clearly to stop any ongoing audio playback."
+    },
+    {
+      "query": "Hold that.",
+      "expected": {
+        "category": "pause_music",
+        "tools": [
+          "pauseMusic"
+        ]
+      },
+      "actual": {
+        "toolId": "rememberThis",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "\"Hold that\" is a very short, colloquial way of asking something to be paused. It implies a temporary cessation of an ongoing activity, in this context, music."
+    },
+    {
+      "query": "Will it be raining tomorrow, do you think?",
+      "expected": {
+        "category": "weather",
+        "tools": [
+          "getWeather",
+          "weatherForecast"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "easy",
+      "reasoning": "Asks about future rain, which falls under weather forecast."
+    },
+    {
+      "query": "Is there any chance of precipitation later this afternoon?",
+      "expected": {
+        "category": "weather",
+        "tools": [
+          "getWeather",
+          "weatherForecast"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Asks about the likelihood of rain (precipitation) within a specific time period. Requires checking weather forecast."
+    },
+    {
+      "query": "What is the high and low expected to be today?",
+      "expected": {
+        "category": "weather",
+        "tools": [
+          "getWeather",
+          "weatherForecast"
+        ]
+      },
+      "actual": {
+        "toolId": "search",
+        "confidence": 0.45,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Asks for both the highest and lowest temperatures expected for the current day, indicating a need for detailed weather information including temperature forecast."
+    },
+    {
+      "query": "So, I'm planning a picnic for tomorrow, you think that's gonna work out okay?",
+      "expected": {
+        "category": "weather",
+        "tools": [
+          "getWeather",
+          "weatherForecast"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Implies a need for a weather forecast for the next day to determine if an outdoor picnic is feasible."
+    },
+    {
+      "query": "Wondering if I should bother washing the car today, you know?",
+      "expected": {
+        "category": "weather",
+        "tools": [
+          "getWeather",
+          "weatherForecast"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Asks implicitly about the chance of rain in the near future, requiring weather information."
+    },
+    {
+      "query": "My sinuses are killing me, is it unusually humid or something lately?",
+      "expected": {
+        "category": "weather",
+        "tools": [
+          "getWeather",
+          "weatherForecast"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Relates sinus issues to potential weather conditions (humidity), implying a need to check weather data."
+    },
+    {
+      "query": "Ugh, what's with this darkness? Is the sun even trying today?",
+      "expected": {
+        "category": "weather",
+        "tools": [
+          "getWeather",
+          "weatherForecast"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Indirectly asks about cloud cover or overall weather conditions affecting sunlight, so weather conditions."
+    },
+    {
+      "query": "So, anyway, is it gonna pour?",
+      "expected": {
+        "category": "weather",
+        "tools": [
+          "getWeather",
+          "weatherForecast"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Implies a question about heavy rain, which is a weather condition."
+    },
+    {
+      "query": "Outside situation?",
+      "expected": {
+        "category": "weather",
+        "tools": [
+          "getWeather",
+          "weatherForecast"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "A short, colloquial way of asking about the weather conditions outdoors."
+    },
+    {
+      "query": "Drizzly, innit?",
+      "expected": {
+        "category": "weather",
+        "tools": [
+          "getWeather",
+          "weatherForecast"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "British slang for 'is it drizzling?', asking about a specific weather condition (light rain)."
+    },
+    {
+      "query": "I need to get something on the calendar for next Thursday. It's a lunch with the team, say around 12:30.",
+      "expected": {
+        "category": "create_event",
+        "tools": [
+          "createCalendarEvent",
+          "scheduleEvent"
+        ]
+      },
+      "actual": {
+        "toolId": "rememberThis",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "The user is explicitly asking to add an event ('get something on the calendar') for a team lunch, implying scheduling."
+    },
+    {
+      "query": "Could you add a reminder to my calendar for next Monday at 9am? It's the team stand-up.",
+      "expected": {
+        "category": "create_event",
+        "tools": [
+          "createCalendarEvent",
+          "scheduleEvent"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Request to add a 'reminder' for a specific time and purpose (team stand-up) is functionally equivalent to creating a calendar event."
+    },
+    {
+      "query": "I'm trying to block out some time next week for that project review, you know, so I don't get double-booked.",
+      "expected": {
+        "category": "create_event",
+        "tools": [
+          "createCalendarEvent",
+          "scheduleEvent"
+        ]
+      },
+      "actual": {
+        "toolId": "getCalendarEvents",
+        "confidence": 0.5,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "'Blocking out time' implies reserving a specific time slot in a calendar, and the concern about being 'double-booked' further suggests a calendar management request."
+    },
+    {
+      "query": "Remind me to call the dentist, say... oh, a week from Friday morning?",
+      "expected": {
+        "category": "create_event",
+        "tools": [
+          "createCalendarEvent",
+          "scheduleEvent"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.4775203764438629,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "This is not just a reminder, but a request to schedule a reminder related to an appointment, effectively implying an appointment booking, or at least marking down the intention to call the dentist in advance."
+    },
+    {
+      "query": "Oh man, I gotta remember to actually meet up with John sometime next month; can you help me not forget?",
+      "expected": {
+        "category": "create_event",
+        "tools": [
+          "createCalendarEvent",
+          "scheduleEvent"
+        ]
+      },
+      "actual": {
+        "toolId": "rememberThis",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "While seemingly a reminder, the context 'meet up with John' implies a meeting that needs scheduling, and the query is focused on ensuring it happens (through scheduling help) not just a simple reminder."
+    },
+    {
+      "query": "Hey, so like, calendar it?",
+      "expected": {
+        "category": "create_event",
+        "tools": [
+          "createCalendarEvent",
+          "scheduleEvent"
+        ]
+      },
+      "actual": {
+        "toolId": "getCalendarEvents",
+        "confidence": 0.5,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Casual, uses filler words, and turns 'calendar' into a verb, but unambiguously requests adding something to the calendar."
+    },
+    {
+      "query": "Gotta add a doctor's thing.",
+      "expected": {
+        "category": "create_event",
+        "tools": [
+          "createCalendarEvent",
+          "scheduleEvent"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Uses 'thing' as a placeholder, but 'doctor's' is the key indicator for scheduling an appointment. Contraction included for naturalness."
+    },
+    {
+      "query": "Later, could you sched lunch?",
+      "expected": {
+        "category": "create_event",
+        "tools": [
+          "createCalendarEvent",
+          "scheduleEvent"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Embedded in a farewell phrase, uses 'sched' (abbreviation for schedule), but the context ('lunch') and verb indicate a scheduling action for the calendar."
+    },
+    {
+      "query": "Hey, is my schedule clear next Wednesday afternoon?",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": "createCalendarEvent",
+        "confidence": 0.55,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "easy",
+      "reasoning": "Specifically asks about schedule availability, triggering get_events to check the calendar."
+    },
+    {
+      "query": "I want to view my schedule for the upcoming week.",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": "createCalendarEvent",
+        "confidence": 0.55,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "easy",
+      "reasoning": "Explicit request to view the schedule, indicating a need for calendar information."
+    },
+    {
+      "query": "Hey, what does my week look like starting Monday?",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Asks for a view of the user's schedule for the upcoming week."
+    },
+    {
+      "query": "Can you, um, check my agenda for, like, the 15th?",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Asks to see their agenda (calendar) on a specific date, using natural filler words."
+    },
+    {
+      "query": "What's penciled in for me tomorrow? I need to figure out if I can fit in a lunch meeting.",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": "createCalendarEvent",
+        "confidence": 0.55,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Asks about scheduled events to determine availability, implying a calendar check. Includes context for why the user needs the information."
+    },
+    {
+      "query": "Hey, could you maybe tell me if I'm slammed with stuff later this week? Just curious.",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Asks about being 'slammed with stuff', implying a need to know the density of calendar events/schedule. Implies checking future time periods (this week)."
+    },
+    {
+      "query": "So, like, if I wanted to pencil something in for Tuesday, would I be able to?",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Asks about ability to 'pencil something in' on a specific day, indicating a need to check available time slots on the calendar for Tuesday."
+    },
+    {
+      "query": "What does the rest of my day look like, time-wise?",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Directly asks about the schedule for the remainder of the current day, implying the need to access the calendar and summarize the events."
+    },
+    {
+      "query": "Ugh, I feel like I'm forgetting something important. Can you, uh, refresh my memory about tomorrow morning?",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.07628244906663895,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Expresses feeling of forgetting something and asking for a 'refresh' about 'tomorrow morning'. It's seeking information present within the calendar for events scheduled."
+    },
+    {
+      "query": "Am I supposed to be anywhere near a computer screen around 3pm on Friday, or can I finally go outside?",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.05323903262615204,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Indirectly asks about scheduled meetings or events near '3pm on Friday' implying an existence of calendar entries and a check for commitment."
+    },
+    {
+      "query": "Uh, book tomorrow?",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": "createCalendarEvent",
+        "confidence": 0.55,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Short query using 'book' (potentially confused with booking travel) but clearly implies checking for existing calendar entries tomorrow."
+    },
+    {
+      "query": "Hey, am I slammed Friday?",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Uses slang ('slammed') which could be misconstrued as something else, but the context of being 'slammed' on a specific day strongly suggests checking calendar availability."
+    },
+    {
+      "query": "So, like, my day, please?",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Very short and conversational, 'my day' with 'please' is a polite request to view the user's calendar schedule for the current day."
+    },
+    {
+      "query": "What's cooking tomorrow morning... calendar-wise?",
+      "expected": {
+        "category": "get_events",
+        "tools": [
+          "getCalendarEvents",
+          "checkAvailability"
+        ]
+      },
+      "actual": {
+        "toolId": "setTimer",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Intentionally uses a potentially distracting opening phrase ('What's cooking') followed by a clarifying phrase 'calendar-wise' to force the intent towards calendar events."
+    },
+    {
+      "query": "So, I don't forget, could you remind me to get milk and eggs when I leave work today?",
+      "expected": {
+        "category": "reminder",
+        "tools": [
+          "createReminder",
+          "setReminder"
+        ]
+      },
+      "actual": {
+        "toolId": "rememberThis",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Requests a reminder for a grocery shopping task upon a specific trigger (leaving work)."
+    },
+    {
+      "query": "Hey, could you, like, ping me about grabbing milk before they close the store?",
+      "expected": {
+        "category": "reminder",
+        "tools": [
+          "createReminder",
+          "setReminder"
+        ]
+      },
+      "actual": {
+        "toolId": "sendMessage",
+        "confidence": 0.5,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Indirectly asks to be reminded to buy milk before the store closes. Uses casual language ('like', 'ping me')."
+    },
+    {
+      "query": "Um, Saturday's the family reunion, right? I'm terrible with dates, help a brother out.",
+      "expected": {
+        "category": "reminder",
+        "tools": [
+          "createReminder",
+          "setReminder"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Indirectly requests help remembering the date of the family reunion, strongly suggesting a reminder would be useful."
+    },
+    {
+      "query": "I've got that conference call at, uh... sometime next week? Let's just say 'mid-week' and I'll figure out the specifics later, if that makes sense?",
+      "expected": {
+        "category": "reminder",
+        "tools": [
+          "createReminder",
+          "setReminder"
+        ]
+      },
+      "actual": {
+        "toolId": "callContact",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Requests help with remembering the conference call next week. The vague request for 'mid-week' implies they want some kind of temporal notification."
+    },
+    {
+      "query": "Shoot, I always forget to water the plants. They're gonna hate me. Maybe if you had a thought for them or something?",
+      "expected": {
+        "category": "reminder",
+        "tools": [
+          "createReminder",
+          "setReminder"
+        ]
+      },
+      "actual": {
+        "toolId": "rememberThis",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "This is a roundabout way of asking to be reminded to water the plants. 'A thought for them' is a playful way of saying 'remind me'."
+    },
+    {
+      "query": "Yo, remind 3pm dentist",
+      "expected": {
+        "category": "reminder",
+        "tools": [
+          "createReminder",
+          "setReminder"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Slang 'yo' and abbreviated time and event clearly indicate setting a reminder."
+    },
+    {
+      "query": "Don't forget milk, tomorrow.",
+      "expected": {
+        "category": "reminder",
+        "tools": [
+          "createReminder",
+          "setReminder"
+        ]
+      },
+      "actual": {
+        "toolId": "rememberThis",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Imperative 'don't forget' followed by a task and timeframe explicitly requires setting a reminder."
+    },
+    {
+      "query": "Set alarm, but a reminder, 8am",
+      "expected": {
+        "category": "reminder",
+        "tools": [
+          "createReminder",
+          "setReminder"
+        ]
+      },
+      "actual": {
+        "toolId": "setAlarm",
+        "confidence": 0.6701696127653122,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Distinguishes from a simple alarm, clarifying that it's a reminder task at a specific time."
+    },
+    {
+      "query": "Heads up: appt Friday",
+      "expected": {
+        "category": "reminder",
+        "tools": [
+          "createReminder",
+          "setReminder"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "'Heads up' implies notifying the user about something, and 'appt Friday' indicates a scheduled appointment, requiring a reminder so the user is notified in advance."
+    },
+    {
+      "query": "Wake me up at 8 AM, please.",
+      "expected": {
+        "category": "alarm",
+        "tools": [
+          "setAlarm",
+          "createAlarm"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.5337843298912048,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "easy",
+      "reasoning": "Uses the phrase 'wake me up' indicating an alarm, followed by a time."
+    },
+    {
+      "query": "Alright, I need a reminder to take the cake out of the oven at 3:45 this afternoon. Set an alarm, would you?",
+      "expected": {
+        "category": "alarm",
+        "tools": [
+          "setAlarm",
+          "createAlarm"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.5594833493232727,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Specifically requests an alarm to be set for a task at a defined time."
+    },
+    {
+      "query": "Hey, just so I don't oversleep tomorrow, you know?",
+      "expected": {
+        "category": "alarm",
+        "tools": [
+          "setAlarm",
+          "createAlarm"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Implies a need to ensure waking up, thus needing an alarm."
+    },
+    {
+      "query": "I've got that early meeting again... need something to make sure I'm up.",
+      "expected": {
+        "category": "alarm",
+        "tools": [
+          "setAlarm",
+          "createAlarm"
+        ]
+      },
+      "actual": {
+        "toolId": "createCalendarEvent",
+        "confidence": 0.55,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Clearly indicates a need to wake up at a specific time due to an early meeting, implying setting an alarm."
+    },
+    {
+      "query": "Could you remind me about that thing tomorrow? Like, *really* remind me.",
+      "expected": {
+        "category": "alarm",
+        "tools": [
+          "setAlarm",
+          "createAlarm"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "The addition of \"really remind me\" suggests a need for a persistent alert to ensure they don't forget, mapping to an alarm function."
+    },
+    {
+      "query": "So, I'm trying to get into a better sleep schedule, think you could give me a nudge in the right direction?",
+      "expected": {
+        "category": "alarm",
+        "tools": [
+          "setAlarm",
+          "createAlarm"
+        ]
+      },
+      "actual": {
+        "toolId": "createCalendarEvent",
+        "confidence": 0.55,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Suggests a need for assistance with waking up at a desired time for a better sleep schedule, i.e., needing an alarm."
+    },
+    {
+      "query": "Ugh, I'm terrible at mornings. Maybe something to help me with the struggle tomorrow?",
+      "expected": {
+        "category": "alarm",
+        "tools": [
+          "setAlarm",
+          "createAlarm"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Indirectly refers to the difficulty of waking up and needing help, indicating an alarm."
+    },
+    {
+      "query": "Remind me 6am.",
+      "expected": {
+        "category": "alarm",
+        "tools": [
+          "setAlarm",
+          "createAlarm"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.39481064677238464,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Short, and could be mistaken for a reminder, but the time specified implies an alarm, especially given the user's request for a reminder at a *specific time*."
+    },
+    {
+      "query": "Hey, can you do 7 sharp?",
+      "expected": {
+        "category": "alarm",
+        "tools": [
+          "setAlarm",
+          "createAlarm"
+        ]
+      },
+      "actual": {
+        "toolId": "skipTrack",
+        "confidence": 0.07937441021203995,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "'7 sharp' implies 7:00 am/pm exactly, and the request to 'do' it hints at setting an alarm. This is slightly ambiguous but points towards alarm setting."
+    },
+    {
+      "query": "Alright, gotta get up early. Gimme 5:30.",
+      "expected": {
+        "category": "alarm",
+        "tools": [
+          "setAlarm",
+          "createAlarm"
+        ]
+      },
+      "actual": {
+        "toolId": "callContact",
+        "confidence": 0.06042751669883728,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "The conversational preamble ('gotta get up early') combined with 'gimme 5:30' strongly suggests setting an alarm for 5:30, despite the casual tone."
+    },
+    {
+      "query": "Set that noise for noonish.",
+      "expected": {
+        "category": "alarm",
+        "tools": [
+          "setAlarm",
+          "createAlarm"
+        ]
+      },
+      "actual": {
+        "toolId": "skipTrack",
+        "confidence": 0.20222912728786469,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "'Set that noise' is an indirect way of asking for an alarm, and 'noonish' provides a rough time, indicating the user wants an alarm near midday."
+    },
+    {
+      "query": "Hey, can you remind me when the cookies are done? They're in the oven now.",
+      "expected": {
+        "category": "timer",
+        "tools": [
+          "setTimer",
+          "createTimer"
+        ]
+      },
+      "actual": {
+        "toolId": "logHabit",
+        "confidence": 0.5,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Implicitly requests a timer by referencing a cooking task that has a time element."
+    },
+    {
+      "query": "Okay, so I'm gonna start watering the plants now, how long do you think I should go for before moving on to the next one?",
+      "expected": {
+        "category": "timer",
+        "tools": [
+          "setTimer",
+          "createTimer"
+        ]
+      },
+      "actual": {
+        "toolId": "rememberThis",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "User wants to keep track of the watering time to be consistent. Therefore a timer request is implicitly given here."
+    },
+    {
+      "query": "Right, I'm off to iron this shirt. I'm gonna give it a good go and then get ready for the zoom meeting. What time do I need to start getting ready to make the meeting?",
+      "expected": {
+        "category": "timer",
+        "tools": [
+          "setTimer",
+          "createTimer"
+        ]
+      },
+      "actual": {
+        "toolId": "createCalendarEvent",
+        "confidence": 0.55,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "The need to get ready for a meeting implies a countdown before which a timer may need to be set. This requires timer functionality to ensure they don't miss the meeting."
+    },
+    {
+      "query": "So, I'm planning on meditating...just need a gentle nudge at the end of it, you know?",
+      "expected": {
+        "category": "timer",
+        "tools": [
+          "setTimer",
+          "createTimer"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Wants to be notified after a period of meditation, implying a need to set a timer to mark the end of the session."
+    },
+    {
+      "query": "I'm gonna try to power nap. Wake me up when I've been resting for a bit, say when I'm getting close to feeling drowsy again.",
+      "expected": {
+        "category": "timer",
+        "tools": [
+          "setTimer",
+          "createTimer"
+        ]
+      },
+      "actual": {
+        "toolId": "setAlarm",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "User wants to be woken up after a nap after a period of rest, which implicates setting a timer."
+    },
+    {
+      "query": "Yo, clock me for a half hour, fam.",
+      "expected": {
+        "category": "timer",
+        "tools": [
+          "setTimer",
+          "createTimer"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Uses slang ('clock me,' 'fam') to request setting a 30-minute timer."
+    },
+    {
+      "query": "Uhh... lemme get a snooze.",
+      "expected": {
+        "category": "timer",
+        "tools": [
+          "setTimer",
+          "createTimer"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "'Snooze' is a colloquial way of saying 'set a short timer for when I want to snooze/nap'."
+    },
+    {
+      "query": "Fifteen on oven.",
+      "expected": {
+        "category": "timer",
+        "tools": [
+          "setTimer",
+          "createTimer"
+        ]
+      },
+      "actual": {
+        "toolId": "callContact",
+        "confidence": 0.31641313433647156,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Very short query; 'fifteen' refers to 15 minutes, and 'on oven' implies setting a timer for oven-related tasks."
+    },
+    {
+      "query": "While I'm showering, gimme ten.",
+      "expected": {
+        "category": "timer",
+        "tools": [
+          "setTimer",
+          "createTimer"
+        ]
+      },
+      "actual": {
+        "toolId": "adjustVolume",
+        "confidence": 0.09843236953020096,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Implies 'give me ten minutes' notice' which means set a timer for 10 minutes. Embedded in a casual statement."
+    },
+    {
+      "query": "Alright Google, dial the number for David Miller.",
+      "expected": {
+        "category": "call",
+        "tools": [
+          "callContact",
+          "makeCall"
+        ]
+      },
+      "actual": {
+        "toolId": "webSearch",
+        "confidence": 0.37871718406677246,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "easy",
+      "reasoning": "Clear instruction to dial a phone number associated with a contact named David Miller."
+    },
+    {
+      "query": "Hey, I was just thinking about catching up with my brother, maybe now's a good time?",
+      "expected": {
+        "category": "call",
+        "tools": [
+          "callContact",
+          "makeCall"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Implies the user wants to initiate a phone call with their brother to 'catch up'."
+    },
+    {
+      "query": "Uh, could you maybe get a hold of Mark for me? I need to ask him something quick.",
+      "expected": {
+        "category": "call",
+        "tools": [
+          "callContact",
+          "makeCall"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "'Get a hold of' is a common idiom for contacting someone, most likely by phone call."
+    },
+    {
+      "query": "I need to tell Aunt Susan about the good news. Think you could help with that?",
+      "expected": {
+        "category": "call",
+        "tools": [
+          "callContact",
+          "makeCall"
+        ]
+      },
+      "actual": {
+        "toolId": "getNews",
+        "confidence": 0.5,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Asking for help to tell someone news implies initiating communication, most likely a phone call given the context and relationship."
+    },
+    {
+      "query": "I'm supposed to check in with the office manager before lunch. Can you set that up?",
+      "expected": {
+        "category": "call",
+        "tools": [
+          "callContact",
+          "makeCall"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "'Check in' implies a brief communication with the office manager, and 'set that up' implies initiating the communication via a phone call."
+    },
+    {
+      "query": "Remind me to speak with David after this song is over.",
+      "expected": {
+        "category": "call",
+        "tools": [
+          "callContact",
+          "makeCall"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 1,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "'Speak with' implies initiating a conversation with David, and the voice assistant is being asked to remind to do this, pointing toward an intent to call."
+    },
+    {
+      "query": "Tell my brother I said happy birthday",
+      "expected": {
+        "category": "message",
+        "tools": [
+          "sendMessage",
+          "sendSMS",
+          "textContact"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Instructs the assistant to relay a message, which in the context of a voice assistant defaults to a text or SMS, especially for short informal greetings."
+    },
+    {
+      "query": "Could you shoot a quick one-liner to Mark about the game tonight?",
+      "expected": {
+        "category": "message",
+        "tools": [
+          "sendMessage",
+          "sendSMS",
+          "textContact"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.17168830335140228,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "'Shoot a quick one-liner' is colloquial for sending a short message, most likely via text, to Mark regarding the game."
+    },
+    {
+      "query": "Just ping Rachel that I'm almost there.",
+      "expected": {
+        "category": "message",
+        "tools": [
+          "sendMessage",
+          "sendSMS",
+          "textContact"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.3636755347251892,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "'Ping' is commonly used to mean sending a quick text message, and the context ('almost there') reinforces this."
+    },
+    {
+      "query": "Would you mind informing Dad that dinner's ready?",
+      "expected": {
+        "category": "message",
+        "tools": [
+          "sendMessage",
+          "sendSMS",
+          "textContact"
+        ]
+      },
+      "actual": {
+        "toolId": "callContact",
+        "confidence": 0.06110329180955887,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Asks the assistant to inform the user's dad of something. Since this is a voice assistant request, it implies sending a message (likely SMS), especially for a short, timely piece of information."
+    },
+    {
+      "query": "Anyways, txt Dave later.",
+      "expected": {
+        "category": "message",
+        "tools": [
+          "sendMessage",
+          "sendSMS",
+          "textContact"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Casual conversation framing, but the use of 'txt' as abbreviation of 'text' directs the system to send a text message to Dave."
+    },
+    {
+      "query": "I want to track my water intake for today.",
+      "expected": {
+        "category": "log_habit",
+        "tools": [
+          "logHabit",
+          "trackHabit",
+          "markHabitComplete"
+        ]
+      },
+      "actual": {
+        "toolId": "playMusic",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "easy",
+      "reasoning": "Directly requests tracking of a habit (water intake)."
+    },
+    {
+      "query": "Please register that I've finished my Duolingo lesson for today.",
+      "expected": {
+        "category": "log_habit",
+        "tools": [
+          "logHabit",
+          "trackHabit",
+          "markHabitComplete"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "'Register' in this context means to log or record the completion of an activity, which is a habit (Duolingo lesson)."
+    },
+    {
+      "query": "Okay Google, go ahead and track that I actually went for my run this morning.",
+      "expected": {
+        "category": "log_habit",
+        "tools": [
+          "logHabit",
+          "trackHabit",
+          "markHabitComplete"
+        ]
+      },
+      "actual": {
+        "toolId": "playMusic",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "'Track' explicitly refers to recording the performance of a habit (running)."
+    },
+    {
+      "query": "So, about that Spanish lesson... let's just say I put in the time.",
+      "expected": {
+        "category": "log_habit",
+        "tools": [
+          "logHabit",
+          "trackHabit",
+          "markHabitComplete"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Implies completion of a habit, requiring logging or tracking. 'Putting in the time' suggests dedicated effort toward something regular."
+    },
+    {
+      "query": "Hey, just wanted to, uh, put another one in the books for reading, if you know what I mean.",
+      "expected": {
+        "category": "log_habit",
+        "tools": [
+          "logHabit",
+          "trackHabit",
+          "markHabitComplete"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Indirectly states completion of a reading session, which is a common habit. 'Another one in the books' implies a recurring action."
+    },
+    {
+      "query": "Remind me how many days in a row I've managed to do my Duolingo?",
+      "expected": {
+        "category": "log_habit",
+        "tools": [
+          "logHabit",
+          "trackHabit",
+          "markHabitComplete"
+        ]
+      },
+      "actual": {
+        "toolId": "getHabitProgress",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Asks about a streak, implying consistent completion of a habit (Duolingo). This necessitates the use of habit tracking functionality."
+    },
+    {
+      "query": "Went for my evening walk, same as always, so yeah...",
+      "expected": {
+        "category": "log_habit",
+        "tools": [
+          "logHabit",
+          "trackHabit",
+          "markHabitComplete"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Describes a recurring activity ('evening walk, same as always'), indicating habit completion and the need for logging or tracking."
+    },
+    {
+      "query": "Did that thing I said I would. The one with the stretching.",
+      "expected": {
+        "category": "log_habit",
+        "tools": [
+          "logHabit",
+          "trackHabit",
+          "markHabitComplete"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Vague, but clearly referencing a pre-established, repeated activity (stretching). The phrase 'that thing I said I would' suggests an agreement to follow a habit, and the completion needs logging."
+    },
+    {
+      "query": "Been hitting the gym, finally.",
+      "expected": {
+        "category": "log_habit",
+        "tools": [
+          "logHabit",
+          "trackHabit",
+          "markHabitComplete"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Implies that the user wants to log their gym visit/workout as a habit."
+    },
+    {
+      "query": "Meditation: crushed it.",
+      "expected": {
+        "category": "log_habit",
+        "tools": [
+          "logHabit",
+          "trackHabit",
+          "markHabitComplete"
+        ]
+      },
+      "actual": {
+        "toolId": "skipTrack",
+        "confidence": 0.22198769450187683,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "\"Crushed it\" implies completion, so the user wants to mark the meditation habit as complete."
+    },
+    {
+      "query": "Yoga, donezo.",
+      "expected": {
+        "category": "log_habit",
+        "tools": [
+          "logHabit",
+          "trackHabit",
+          "markHabitComplete"
+        ]
+      },
+      "actual": {
+        "toolId": "skipTrack",
+        "confidence": 0.38618746399879456,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "\"Donezo\" is slang for \"done\", so user wants to mark Yoga habit complete."
+    },
+    {
+      "query": "Track water intake",
+      "expected": {
+        "category": "log_habit",
+        "tools": [
+          "logHabit",
+          "trackHabit",
+          "markHabitComplete"
+        ]
+      },
+      "actual": {
+        "toolId": "playMusic",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "A very short request, but directly requests tracking of water intake, which is a type of habit. Using \"track\" as the keyword"
+    },
+    {
+      "query": "Alright, let's see my habit progress. Update me.",
+      "expected": {
+        "category": "habit_progress",
+        "tools": [
+          "getHabitProgress",
+          "habitStats",
+          "viewStreak"
+        ]
+      },
+      "actual": {
+        "toolId": "getNews",
+        "confidence": 0.5,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "easy",
+      "reasoning": "Explicitly requests habit progress information using clear keywords."
+    },
+    {
+      "query": "Give me a quick rundown of my daily habit completion rate.",
+      "expected": {
+        "category": "habit_progress",
+        "tools": [
+          "getHabitProgress",
+          "habitStats",
+          "viewStreak"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "easy",
+      "reasoning": "Asks for a summary of habit completion, which is related to habit statistics and progress."
+    },
+    {
+      "query": "I want to know, how consistent have I been with my language learning habit lately?",
+      "expected": {
+        "category": "habit_progress",
+        "tools": [
+          "getHabitProgress",
+          "habitStats",
+          "viewStreak"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Focuses on consistency, which is a form of habit statistic and progress."
+    },
+    {
+      "query": "Hey, can you remind me where I'm at with all those things I was trying to keep up on?",
+      "expected": {
+        "category": "habit_progress",
+        "tools": [
+          "getHabitProgress",
+          "habitStats",
+          "viewStreak"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.6683352276682853,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "The phrase \"things I was trying to keep up on\" implies habits, and the request to know \"where I'm at\" suggests wanting to see progress."
+    },
+    {
+      "query": "So, those daily things... what's the story so far?",
+      "expected": {
+        "category": "habit_progress",
+        "tools": [
+          "getHabitProgress",
+          "habitStats",
+          "viewStreak"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "\"Daily things\" is a subtle way of referring to daily habits. \"What's the story so far?\" clearly points to a desire to see a summary of progress and statistics."
+    },
+    {
+      "query": "Um, did I manage to keep going with my, you know, usual things this week?",
+      "expected": {
+        "category": "habit_progress",
+        "tools": [
+          "getHabitProgress",
+          "habitStats",
+          "viewStreak"
+        ]
+      },
+      "actual": {
+        "toolId": "checkAvailability",
+        "confidence": 0.1499730348587036,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "\"Usual things\" indicates established habits. The question implies a desire to know if they were successfully maintained, pointing to viewing habit progress or a streak."
+    },
+    {
+      "query": "Wondering if I'm on a roll with any of this stuff, you know, the things I'm trying to do every day.",
+      "expected": {
+        "category": "habit_progress",
+        "tools": [
+          "getHabitProgress",
+          "habitStats",
+          "viewStreak"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "\"The things I'm trying to do every day\" are habits, and the phrase \"on a roll\" implies asking about a streak."
+    },
+    {
+      "query": "Yo, habit check?",
+      "expected": {
+        "category": "habit_progress",
+        "tools": [
+          "getHabitProgress",
+          "habitStats",
+          "viewStreak"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Very short, colloquial, and asks for a habit status update. 'Check' implies viewing progress."
+    },
+    {
+      "query": "So, about my habits...",
+      "expected": {
+        "category": "habit_progress",
+        "tools": [
+          "getHabitProgress",
+          "habitStats",
+          "viewStreak"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Starts a conversation casually, but the phrase clearly indicates wanting to discuss habit related data."
+    },
+    {
+      "query": "I want to know what's going on in the news.",
+      "expected": {
+        "category": "news",
+        "tools": [
+          "getNews",
+          "headlines"
+        ]
+      },
+      "actual": {
+        "toolId": "getCalendarEvents",
+        "confidence": 0.5,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "easy",
+      "reasoning": "Clearly states the desire to get news updates."
+    },
+    {
+      "query": "Hey, anything I should know about before heading out?",
+      "expected": {
+        "category": "news",
+        "tools": [
+          "getNews",
+          "headlines"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Implies wanting a summary of current events or important updates, indicating news."
+    },
+    {
+      "query": "So, what's been going on?",
+      "expected": {
+        "category": "news",
+        "tools": [
+          "getNews",
+          "headlines"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "A general inquiry about current affairs; a casual way to ask for news."
+    },
+    {
+      "query": "What are people talking about?",
+      "expected": {
+        "category": "news",
+        "tools": [
+          "getNews",
+          "headlines"
+        ]
+      },
+      "actual": {
+        "toolId": "search",
+        "confidence": 0.45,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Indirectly asking about trending topics and significant events which are typically found in news headlines."
+    },
+    {
+      "query": "What's making the rounds today?",
+      "expected": {
+        "category": "news",
+        "tools": [
+          "getNews",
+          "headlines"
+        ]
+      },
+      "actual": {
+        "toolId": "skipTrack",
+        "confidence": 0.057467103004455566,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Refers to prominent stories circulating, indicating a desire for current news and headline information."
+    },
+    {
+      "query": "So, what's the sitch?",
+      "expected": {
+        "category": "news",
+        "tools": [
+          "getNews",
+          "headlines"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Uses the slang term 'sitch' which in this context implies 'situation' and therefore news."
+    },
+    {
+      "query": "Yo, lemme get the skinny.",
+      "expected": {
+        "category": "news",
+        "tools": [
+          "getNews",
+          "headlines"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "'Skinny' is slang for information or the latest news."
+    },
+    {
+      "query": "Anything breaking?",
+      "expected": {
+        "category": "news",
+        "tools": [
+          "getNews",
+          "headlines"
+        ]
+      },
+      "actual": {
+        "toolId": "getHabitProgress",
+        "confidence": 0.05178244784474373,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Very short query but clearly asking for breaking news headlines."
+    },
+    {
+      "query": "Okay Google, give me deets.",
+      "expected": {
+        "category": "news",
+        "tools": [
+          "getNews",
+          "headlines"
+        ]
+      },
+      "actual": {
+        "toolId": "webSearch",
+        "confidence": 0.5020882532000541,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "'Deets' is short for 'details', implying the user wants the latest news details."
+    },
+    {
+      "query": "Can you hold onto this thought for me? My friend's birthday is June 15th.",
+      "expected": {
+        "category": "save_memory",
+        "tools": [
+          "rememberThis",
+          "saveMemory",
+          "storeInfo"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Asking to 'hold onto this thought' is an idiom for saving the information provided (the birthday) for later."
+    },
+    {
+      "query": "Hey, remind me about the, uh, the thing we talked about with Sarah, you know, about her new job? Just, like, in a week or so.",
+      "expected": {
+        "category": "save_memory",
+        "tools": [
+          "rememberThis",
+          "saveMemory",
+          "storeInfo"
+        ]
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.6848947837948799,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "The user is indirectly asking the assistant to remember details of a conversation and remind them later. 'Remind me' is a key phrase here, and the contextual details imply saving information."
+    },
+    {
+      "query": "So, I was thinking, just keep in mind for me that the oven needs to be preheated to 375 degrees when I start baking tomorrow.",
+      "expected": {
+        "category": "save_memory",
+        "tools": [
+          "rememberThis",
+          "saveMemory",
+          "storeInfo"
+        ]
+      },
+      "actual": {
+        "toolId": "getWeather",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "The user is asking the assistant to 'keep in mind' a specific detail (the oven temperature) which implies storing that information for later retrieval and use."
+    },
+    {
+      "query": "Put a pin in this: I need to order more coffee filters before Friday.",
+      "expected": {
+        "category": "save_memory",
+        "tools": [
+          "rememberThis",
+          "saveMemory",
+          "storeInfo"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "'Put a pin in this' is an idiomatic expression for marking something for later attention, indicating a request to store the coffee filter order information and recall it before Friday."
+    },
+    {
+      "query": "jot this",
+      "expected": {
+        "category": "save_memory",
+        "tools": [
+          "rememberThis",
+          "saveMemory",
+          "storeInfo"
+        ]
+      },
+      "actual": {
+        "toolId": "getHabitProgress",
+        "confidence": 0.4068220853805542,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Short, imperative command to write something down, a clear indicator of the save_memory intent."
+    },
+    {
+      "query": "What's the population of Tokyo?",
+      "expected": {
+        "category": "search",
+        "tools": [
+          "search",
+          "webSearch",
+          "lookup"
+        ]
+      },
+      "actual": {
+        "toolId": "headlines",
+        "confidence": 0.3376419246196747,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "easy",
+      "reasoning": "Seeks a specific piece of information that would require a search engine."
+    },
+    {
+      "query": "Hey, I was wondering what the deal is with those weird lights people are seeing in the sky lately?",
+      "expected": {
+        "category": "search",
+        "tools": [
+          "search",
+          "webSearch",
+          "lookup"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Asks for an explanation of a phenomenon, requiring information retrieval to understand the 'deal' - implying a need to search for relevant reports or explanations."
+    },
+    {
+      "query": "So, I'm trying to figure out if this old coin I found is actually worth anything.",
+      "expected": {
+        "category": "search",
+        "tools": [
+          "search",
+          "webSearch",
+          "lookup"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Indicates a need to assess the value of an object, implying the user wants information from somewhere (online) about how much it is worth."
+    },
+    {
+      "query": "I need to get my head around this whole cryptocurrency thing. Where do I even start?",
+      "expected": {
+        "category": "search",
+        "tools": [
+          "search",
+          "webSearch",
+          "lookup"
+        ]
+      },
+      "actual": {
+        "toolId": "rememberThis",
+        "confidence": 0.6,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "hard",
+      "reasoning": "Implies a need to learn about a complex topic, requiring information gathering and explanation that goes beyond a simple fact. The user needs a starting point for their research."
+    },
+    {
+      "query": "Um, lookit up: capybara",
+      "expected": {
+        "category": "search",
+        "tools": [
+          "search",
+          "webSearch",
+          "lookup"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Uses \"um\" and \"lookit up\" (colloquial form of \"look it up\"), making it sound like casual speech, but clearly requests a search for 'capybara'."
+    },
+    {
+      "query": "So, like, what's GDP?",
+      "expected": {
+        "category": "search",
+        "tools": [
+          "search",
+          "webSearch",
+          "lookup"
+        ]
+      },
+      "actual": {
+        "toolId": null,
+        "confidence": 0,
+        "isOpenIntent": true
+      },
+      "passed": false,
+      "difficulty": "adversarial",
+      "reasoning": "Contains filler words ('so', 'like') typical of casual conversation, but the question 'what's GDP?' requires a search to define the acronym."
+    },
+    {
+      "query": "My favorite movie is 'The Shawshank Redemption'.",
+      "expected": {
+        "category": "OPEN",
+        "tools": []
+      },
+      "actual": {
+        "toolId": "adjustVolume",
+        "confidence": 0.05721452087163925,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Sharing a personal preference, providing information."
+    },
+    {
+      "query": "I see what you mean.",
+      "expected": {
+        "category": "OPEN",
+        "tools": []
+      },
+      "actual": {
+        "toolId": "skipTrack",
+        "confidence": 0.07458391040563583,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Understanding a previous statement, conversational filler."
+    },
+    {
+      "query": "That makes sense.",
+      "expected": {
+        "category": "OPEN",
+        "tools": []
+      },
+      "actual": {
+        "toolId": "skipTrack",
+        "confidence": 0.0752997025847435,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Confirming understanding, conversational filler."
+    },
+    {
+      "query": "Okay, I understand.",
+      "expected": {
+        "category": "OPEN",
+        "tools": []
+      },
+      "actual": {
+        "toolId": "rememberThis",
+        "confidence": 0.1404285579919815,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Confirmation of understanding, closing a topic."
+    },
+    {
+      "query": "This is a very interesting conversation.",
+      "expected": {
+        "category": "OPEN",
+        "tools": []
+      },
+      "actual": {
+        "toolId": "music_play",
+        "confidence": 0.15748806297779083,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Commenting on the current interaction."
+    },
+    {
+      "query": "Thanks for listening.",
+      "expected": {
+        "category": "OPEN",
+        "tools": []
+      },
+      "actual": {
+        "toolId": "skipTrack",
+        "confidence": 0.09171176701784134,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Expressing gratitude for attention, not for a specific action."
+    },
+    {
+      "query": "What is your purpose?",
+      "expected": {
+        "category": "OPEN",
+        "tools": []
+      },
+      "actual": {
+        "toolId": "search",
+        "confidence": 0.45,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Philosophical question directed at the assistant."
+    },
+    {
+      "query": "Can you dream?",
+      "expected": {
+        "category": "OPEN",
+        "tools": []
+      },
+      "actual": {
+        "toolId": "createReminder",
+        "confidence": 0.07014274597167969,
+        "isOpenIntent": false
+      },
+      "passed": false,
+      "difficulty": "medium",
+      "reasoning": "Question about the assistant's simulated mental processes."
+    }
+  ],
+  "suggestedTrainingData": [
+    {
+      "input": "So, I was thinking about that band we saw last year... What was their stuff called again? The ones with the amazing guitar solos.",
+      "labels": [
+        "playMusic",
+        "music_play",
+        "spotify_play"
+      ]
+    },
+    {
+      "input": "Ugh, this silence is killing me. Any way to make this less...dull?",
+      "labels": [
+        "playMusic",
+        "music_play",
+        "spotify_play"
+      ]
+    },
+    {
+      "input": "Remember that summer when everyone was obsessed with that one song? What even was it called?",
+      "labels": [
+        "playMusic",
+        "music_play",
+        "spotify_play"
+      ]
+    },
+    {
+      "input": "Alright, I'm officially ready to procrastinate. Give me, uh, something that'll help me avoid doing my taxes.",
+      "labels": [
+        "playMusic",
+        "music_play",
+        "spotify_play"
+      ]
+    },
+    {
+      "input": "Okay, so anyway, play it.",
+      "labels": [
+        "playMusic",
+        "music_play",
+        "spotify_play"
+      ]
+    },
+    {
+      "input": "Spotify, jam time.",
+      "labels": [
+        "playMusic",
+        "music_play",
+        "spotify_play"
+      ]
+    },
+    {
+      "input": "Would you mind silencing the tunes for a little bit?",
+      "labels": [
+        "pauseMusic"
+      ]
+    },
+    {
+      "input": "Could you just hold off on the tunes for a sec?",
+      "labels": [
+        "pauseMusic"
+      ]
+    },
+    {
+      "input": "Would you mind killing the music?",
+      "labels": [
+        "pauseMusic"
+      ]
+    },
+    {
+      "input": "Okay, I think I'm good for now. You can, uh, just put it on hold for a bit.",
+      "labels": [
+        "pauseMusic"
+      ]
+    },
+    {
+      "input": "Actually, could you give my ears a little break?",
+      "labels": [
+        "pauseMusic"
+      ]
+    },
+    {
+      "input": "Mind if we just, like, take a breather from the tunes?",
+      "labels": [
+        "pauseMusic"
+      ]
+    },
+    {
+      "input": "I'm gonna jump on this call, so maybe just keep it down?",
+      "labels": [
+        "pauseMusic"
+      ]
+    },
+    {
+      "input": "Alright, shush.",
+      "labels": [
+        "pauseMusic"
+      ]
+    },
+    {
+      "input": "Hold that.",
+      "labels": [
+        "pauseMusic"
+      ]
+    },
+    {
+      "input": "Will it be raining tomorrow, do you think?",
+      "labels": [
+        "getWeather",
+        "weatherForecast"
+      ]
+    },
+    {
+      "input": "Is there any chance of precipitation later this afternoon?",
+      "labels": [
+        "getWeather",
+        "weatherForecast"
+      ]
+    },
+    {
+      "input": "What is the high and low expected to be today?",
+      "labels": [
+        "getWeather",
+        "weatherForecast"
+      ]
+    },
+    {
+      "input": "So, I'm planning a picnic for tomorrow, you think that's gonna work out okay?",
+      "labels": [
+        "getWeather",
+        "weatherForecast"
+      ]
+    },
+    {
+      "input": "Wondering if I should bother washing the car today, you know?",
+      "labels": [
+        "getWeather",
+        "weatherForecast"
+      ]
+    },
+    {
+      "input": "My sinuses are killing me, is it unusually humid or something lately?",
+      "labels": [
+        "getWeather",
+        "weatherForecast"
+      ]
+    },
+    {
+      "input": "Ugh, what's with this darkness? Is the sun even trying today?",
+      "labels": [
+        "getWeather",
+        "weatherForecast"
+      ]
+    },
+    {
+      "input": "So, anyway, is it gonna pour?",
+      "labels": [
+        "getWeather",
+        "weatherForecast"
+      ]
+    },
+    {
+      "input": "Outside situation?",
+      "labels": [
+        "getWeather",
+        "weatherForecast"
+      ]
+    },
+    {
+      "input": "Drizzly, innit?",
+      "labels": [
+        "getWeather",
+        "weatherForecast"
+      ]
+    },
+    {
+      "input": "I need to get something on the calendar for next Thursday. It's a lunch with the team, say around 12:30.",
+      "labels": [
+        "createCalendarEvent",
+        "scheduleEvent"
+      ]
+    },
+    {
+      "input": "Could you add a reminder to my calendar for next Monday at 9am? It's the team stand-up.",
+      "labels": [
+        "createCalendarEvent",
+        "scheduleEvent"
+      ]
+    },
+    {
+      "input": "I'm trying to block out some time next week for that project review, you know, so I don't get double-booked.",
+      "labels": [
+        "createCalendarEvent",
+        "scheduleEvent"
+      ]
+    },
+    {
+      "input": "Remind me to call the dentist, say... oh, a week from Friday morning?",
+      "labels": [
+        "createCalendarEvent",
+        "scheduleEvent"
+      ]
+    },
+    {
+      "input": "Oh man, I gotta remember to actually meet up with John sometime next month; can you help me not forget?",
+      "labels": [
+        "createCalendarEvent",
+        "scheduleEvent"
+      ]
+    },
+    {
+      "input": "Hey, so like, calendar it?",
+      "labels": [
+        "createCalendarEvent",
+        "scheduleEvent"
+      ]
+    },
+    {
+      "input": "Gotta add a doctor's thing.",
+      "labels": [
+        "createCalendarEvent",
+        "scheduleEvent"
+      ]
+    },
+    {
+      "input": "Later, could you sched lunch?",
+      "labels": [
+        "createCalendarEvent",
+        "scheduleEvent"
+      ]
+    },
+    {
+      "input": "Hey, is my schedule clear next Wednesday afternoon?",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "I want to view my schedule for the upcoming week.",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "Hey, what does my week look like starting Monday?",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "Can you, um, check my agenda for, like, the 15th?",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "What's penciled in for me tomorrow? I need to figure out if I can fit in a lunch meeting.",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "Hey, could you maybe tell me if I'm slammed with stuff later this week? Just curious.",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "So, like, if I wanted to pencil something in for Tuesday, would I be able to?",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "What does the rest of my day look like, time-wise?",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "Ugh, I feel like I'm forgetting something important. Can you, uh, refresh my memory about tomorrow morning?",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "Am I supposed to be anywhere near a computer screen around 3pm on Friday, or can I finally go outside?",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "Uh, book tomorrow?",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "Hey, am I slammed Friday?",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "So, like, my day, please?",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "What's cooking tomorrow morning... calendar-wise?",
+      "labels": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ]
+    },
+    {
+      "input": "So, I don't forget, could you remind me to get milk and eggs when I leave work today?",
+      "labels": [
+        "createReminder",
+        "setReminder"
+      ]
+    },
+    {
+      "input": "Hey, could you, like, ping me about grabbing milk before they close the store?",
+      "labels": [
+        "createReminder",
+        "setReminder"
+      ]
+    },
+    {
+      "input": "Um, Saturday's the family reunion, right? I'm terrible with dates, help a brother out.",
+      "labels": [
+        "createReminder",
+        "setReminder"
+      ]
+    },
+    {
+      "input": "I've got that conference call at, uh... sometime next week? Let's just say 'mid-week' and I'll figure out the specifics later, if that makes sense?",
+      "labels": [
+        "createReminder",
+        "setReminder"
+      ]
+    },
+    {
+      "input": "Shoot, I always forget to water the plants. They're gonna hate me. Maybe if you had a thought for them or something?",
+      "labels": [
+        "createReminder",
+        "setReminder"
+      ]
+    },
+    {
+      "input": "Yo, remind 3pm dentist",
+      "labels": [
+        "createReminder",
+        "setReminder"
+      ]
+    },
+    {
+      "input": "Don't forget milk, tomorrow.",
+      "labels": [
+        "createReminder",
+        "setReminder"
+      ]
+    },
+    {
+      "input": "Set alarm, but a reminder, 8am",
+      "labels": [
+        "createReminder",
+        "setReminder"
+      ]
+    },
+    {
+      "input": "Heads up: appt Friday",
+      "labels": [
+        "createReminder",
+        "setReminder"
+      ]
+    },
+    {
+      "input": "Wake me up at 8 AM, please.",
+      "labels": [
+        "setAlarm",
+        "createAlarm"
+      ]
+    },
+    {
+      "input": "Alright, I need a reminder to take the cake out of the oven at 3:45 this afternoon. Set an alarm, would you?",
+      "labels": [
+        "setAlarm",
+        "createAlarm"
+      ]
+    },
+    {
+      "input": "Hey, just so I don't oversleep tomorrow, you know?",
+      "labels": [
+        "setAlarm",
+        "createAlarm"
+      ]
+    },
+    {
+      "input": "I've got that early meeting again... need something to make sure I'm up.",
+      "labels": [
+        "setAlarm",
+        "createAlarm"
+      ]
+    },
+    {
+      "input": "Could you remind me about that thing tomorrow? Like, *really* remind me.",
+      "labels": [
+        "setAlarm",
+        "createAlarm"
+      ]
+    },
+    {
+      "input": "So, I'm trying to get into a better sleep schedule, think you could give me a nudge in the right direction?",
+      "labels": [
+        "setAlarm",
+        "createAlarm"
+      ]
+    },
+    {
+      "input": "Ugh, I'm terrible at mornings. Maybe something to help me with the struggle tomorrow?",
+      "labels": [
+        "setAlarm",
+        "createAlarm"
+      ]
+    },
+    {
+      "input": "Remind me 6am.",
+      "labels": [
+        "setAlarm",
+        "createAlarm"
+      ]
+    },
+    {
+      "input": "Hey, can you do 7 sharp?",
+      "labels": [
+        "setAlarm",
+        "createAlarm"
+      ]
+    },
+    {
+      "input": "Alright, gotta get up early. Gimme 5:30.",
+      "labels": [
+        "setAlarm",
+        "createAlarm"
+      ]
+    },
+    {
+      "input": "Set that noise for noonish.",
+      "labels": [
+        "setAlarm",
+        "createAlarm"
+      ]
+    },
+    {
+      "input": "Hey, can you remind me when the cookies are done? They're in the oven now.",
+      "labels": [
+        "setTimer",
+        "createTimer"
+      ]
+    },
+    {
+      "input": "Okay, so I'm gonna start watering the plants now, how long do you think I should go for before moving on to the next one?",
+      "labels": [
+        "setTimer",
+        "createTimer"
+      ]
+    },
+    {
+      "input": "Right, I'm off to iron this shirt. I'm gonna give it a good go and then get ready for the zoom meeting. What time do I need to start getting ready to make the meeting?",
+      "labels": [
+        "setTimer",
+        "createTimer"
+      ]
+    },
+    {
+      "input": "So, I'm planning on meditating...just need a gentle nudge at the end of it, you know?",
+      "labels": [
+        "setTimer",
+        "createTimer"
+      ]
+    },
+    {
+      "input": "I'm gonna try to power nap. Wake me up when I've been resting for a bit, say when I'm getting close to feeling drowsy again.",
+      "labels": [
+        "setTimer",
+        "createTimer"
+      ]
+    },
+    {
+      "input": "Yo, clock me for a half hour, fam.",
+      "labels": [
+        "setTimer",
+        "createTimer"
+      ]
+    },
+    {
+      "input": "Uhh... lemme get a snooze.",
+      "labels": [
+        "setTimer",
+        "createTimer"
+      ]
+    },
+    {
+      "input": "Fifteen on oven.",
+      "labels": [
+        "setTimer",
+        "createTimer"
+      ]
+    },
+    {
+      "input": "While I'm showering, gimme ten.",
+      "labels": [
+        "setTimer",
+        "createTimer"
+      ]
+    },
+    {
+      "input": "Alright Google, dial the number for David Miller.",
+      "labels": [
+        "callContact",
+        "makeCall"
+      ]
+    },
+    {
+      "input": "Hey, I was just thinking about catching up with my brother, maybe now's a good time?",
+      "labels": [
+        "callContact",
+        "makeCall"
+      ]
+    },
+    {
+      "input": "Uh, could you maybe get a hold of Mark for me? I need to ask him something quick.",
+      "labels": [
+        "callContact",
+        "makeCall"
+      ]
+    },
+    {
+      "input": "I need to tell Aunt Susan about the good news. Think you could help with that?",
+      "labels": [
+        "callContact",
+        "makeCall"
+      ]
+    },
+    {
+      "input": "I'm supposed to check in with the office manager before lunch. Can you set that up?",
+      "labels": [
+        "callContact",
+        "makeCall"
+      ]
+    },
+    {
+      "input": "Remind me to speak with David after this song is over.",
+      "labels": [
+        "callContact",
+        "makeCall"
+      ]
+    },
+    {
+      "input": "Tell my brother I said happy birthday",
+      "labels": [
+        "sendMessage",
+        "sendSMS",
+        "textContact"
+      ]
+    },
+    {
+      "input": "Could you shoot a quick one-liner to Mark about the game tonight?",
+      "labels": [
+        "sendMessage",
+        "sendSMS",
+        "textContact"
+      ]
+    },
+    {
+      "input": "Just ping Rachel that I'm almost there.",
+      "labels": [
+        "sendMessage",
+        "sendSMS",
+        "textContact"
+      ]
+    },
+    {
+      "input": "Would you mind informing Dad that dinner's ready?",
+      "labels": [
+        "sendMessage",
+        "sendSMS",
+        "textContact"
+      ]
+    },
+    {
+      "input": "Anyways, txt Dave later.",
+      "labels": [
+        "sendMessage",
+        "sendSMS",
+        "textContact"
+      ]
+    },
+    {
+      "input": "I want to track my water intake for today.",
+      "labels": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ]
+    },
+    {
+      "input": "Please register that I've finished my Duolingo lesson for today.",
+      "labels": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ]
+    },
+    {
+      "input": "Okay Google, go ahead and track that I actually went for my run this morning.",
+      "labels": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ]
+    },
+    {
+      "input": "So, about that Spanish lesson... let's just say I put in the time.",
+      "labels": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ]
+    },
+    {
+      "input": "Hey, just wanted to, uh, put another one in the books for reading, if you know what I mean.",
+      "labels": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ]
+    },
+    {
+      "input": "Remind me how many days in a row I've managed to do my Duolingo?",
+      "labels": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ]
+    },
+    {
+      "input": "Went for my evening walk, same as always, so yeah...",
+      "labels": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ]
+    },
+    {
+      "input": "Did that thing I said I would. The one with the stretching.",
+      "labels": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ]
+    },
+    {
+      "input": "Been hitting the gym, finally.",
+      "labels": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ]
+    },
+    {
+      "input": "Meditation: crushed it.",
+      "labels": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ]
+    },
+    {
+      "input": "Yoga, donezo.",
+      "labels": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ]
+    },
+    {
+      "input": "Track water intake",
+      "labels": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ]
+    },
+    {
+      "input": "Alright, let's see my habit progress. Update me.",
+      "labels": [
+        "getHabitProgress",
+        "habitStats",
+        "viewStreak"
+      ]
+    },
+    {
+      "input": "Give me a quick rundown of my daily habit completion rate.",
+      "labels": [
+        "getHabitProgress",
+        "habitStats",
+        "viewStreak"
+      ]
+    },
+    {
+      "input": "I want to know, how consistent have I been with my language learning habit lately?",
+      "labels": [
+        "getHabitProgress",
+        "habitStats",
+        "viewStreak"
+      ]
+    },
+    {
+      "input": "Hey, can you remind me where I'm at with all those things I was trying to keep up on?",
+      "labels": [
+        "getHabitProgress",
+        "habitStats",
+        "viewStreak"
+      ]
+    },
+    {
+      "input": "So, those daily things... what's the story so far?",
+      "labels": [
+        "getHabitProgress",
+        "habitStats",
+        "viewStreak"
+      ]
+    },
+    {
+      "input": "Um, did I manage to keep going with my, you know, usual things this week?",
+      "labels": [
+        "getHabitProgress",
+        "habitStats",
+        "viewStreak"
+      ]
+    },
+    {
+      "input": "Wondering if I'm on a roll with any of this stuff, you know, the things I'm trying to do every day.",
+      "labels": [
+        "getHabitProgress",
+        "habitStats",
+        "viewStreak"
+      ]
+    },
+    {
+      "input": "Yo, habit check?",
+      "labels": [
+        "getHabitProgress",
+        "habitStats",
+        "viewStreak"
+      ]
+    },
+    {
+      "input": "So, about my habits...",
+      "labels": [
+        "getHabitProgress",
+        "habitStats",
+        "viewStreak"
+      ]
+    },
+    {
+      "input": "I want to know what's going on in the news.",
+      "labels": [
+        "getNews",
+        "headlines"
+      ]
+    },
+    {
+      "input": "Hey, anything I should know about before heading out?",
+      "labels": [
+        "getNews",
+        "headlines"
+      ]
+    },
+    {
+      "input": "So, what's been going on?",
+      "labels": [
+        "getNews",
+        "headlines"
+      ]
+    },
+    {
+      "input": "What are people talking about?",
+      "labels": [
+        "getNews",
+        "headlines"
+      ]
+    },
+    {
+      "input": "What's making the rounds today?",
+      "labels": [
+        "getNews",
+        "headlines"
+      ]
+    },
+    {
+      "input": "So, what's the sitch?",
+      "labels": [
+        "getNews",
+        "headlines"
+      ]
+    },
+    {
+      "input": "Yo, lemme get the skinny.",
+      "labels": [
+        "getNews",
+        "headlines"
+      ]
+    },
+    {
+      "input": "Anything breaking?",
+      "labels": [
+        "getNews",
+        "headlines"
+      ]
+    },
+    {
+      "input": "Okay Google, give me deets.",
+      "labels": [
+        "getNews",
+        "headlines"
+      ]
+    },
+    {
+      "input": "Can you hold onto this thought for me? My friend's birthday is June 15th.",
+      "labels": [
+        "rememberThis",
+        "saveMemory",
+        "storeInfo"
+      ]
+    },
+    {
+      "input": "Hey, remind me about the, uh, the thing we talked about with Sarah, you know, about her new job? Just, like, in a week or so.",
+      "labels": [
+        "rememberThis",
+        "saveMemory",
+        "storeInfo"
+      ]
+    },
+    {
+      "input": "So, I was thinking, just keep in mind for me that the oven needs to be preheated to 375 degrees when I start baking tomorrow.",
+      "labels": [
+        "rememberThis",
+        "saveMemory",
+        "storeInfo"
+      ]
+    },
+    {
+      "input": "Put a pin in this: I need to order more coffee filters before Friday.",
+      "labels": [
+        "rememberThis",
+        "saveMemory",
+        "storeInfo"
+      ]
+    },
+    {
+      "input": "jot this",
+      "labels": [
+        "rememberThis",
+        "saveMemory",
+        "storeInfo"
+      ]
+    },
+    {
+      "input": "What's the population of Tokyo?",
+      "labels": [
+        "search",
+        "webSearch",
+        "lookup"
+      ]
+    },
+    {
+      "input": "Hey, I was wondering what the deal is with those weird lights people are seeing in the sky lately?",
+      "labels": [
+        "search",
+        "webSearch",
+        "lookup"
+      ]
+    },
+    {
+      "input": "So, I'm trying to figure out if this old coin I found is actually worth anything.",
+      "labels": [
+        "search",
+        "webSearch",
+        "lookup"
+      ]
+    },
+    {
+      "input": "I need to get my head around this whole cryptocurrency thing. Where do I even start?",
+      "labels": [
+        "search",
+        "webSearch",
+        "lookup"
+      ]
+    },
+    {
+      "input": "Um, lookit up: capybara",
+      "labels": [
+        "search",
+        "webSearch",
+        "lookup"
+      ]
+    },
+    {
+      "input": "So, like, what's GDP?",
+      "labels": [
+        "search",
+        "webSearch",
+        "lookup"
+      ]
+    }
+  ]
+}

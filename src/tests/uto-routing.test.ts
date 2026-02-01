@@ -25,7 +25,9 @@ describe('UTO Fast-Path Pattern Matching', () => {
   function detectsMusicIntent(text: string): boolean {
     const lowerText = text.toLowerCase();
     // Check if it starts with a music command word
-    const hasCommand = MUSIC_KEYWORDS.some((kw) => lowerText.startsWith(kw) || lowerText.includes(` ${kw} `));
+    const hasCommand = MUSIC_KEYWORDS.some(
+      (kw) => lowerText.startsWith(kw) || lowerText.includes(` ${kw} `)
+    );
     // Check if it mentions music targets
     const hasTarget = MUSIC_TARGETS.some((t) => lowerText.includes(t));
     // Check for "something [mood]" pattern
@@ -136,13 +138,8 @@ describe('UTO Args Extraction', () => {
       .trim();
   }
 
-  function extractWeatherLocation(
-    transcript: string,
-    userCity?: string
-  ): string | undefined {
-    const locationMatch = transcript.match(
-      /(?:weather|forecast)\s+(?:in|for|at)\s+(.+?)(?:\?|$)/i
-    );
+  function extractWeatherLocation(transcript: string, userCity?: string): string | undefined {
+    const locationMatch = transcript.match(/(?:weather|forecast)\s+(?:in|for|at)\s+(.+?)(?:\?|$)/i);
     if (locationMatch) {
       return locationMatch[1].trim();
     }
@@ -150,9 +147,7 @@ describe('UTO Args Extraction', () => {
   }
 
   function extractTimerDuration(transcript: string): { seconds: number; label: string } {
-    const durationMatch = transcript.match(
-      /(\d+)\s*(min(?:ute)?s?|sec(?:ond)?s?|hour?s?)/i
-    );
+    const durationMatch = transcript.match(/(\d+)\s*(min(?:ute)?s?|sec(?:ond)?s?|hour?s?)/i);
     if (durationMatch) {
       const num = parseInt(durationMatch[1], 10);
       const unit = durationMatch[2].toLowerCase();
@@ -174,9 +169,7 @@ describe('UTO Args Extraction', () => {
     });
 
     it('should extract "relaxing piano" from "can you play some relaxing piano music"', () => {
-      expect(extractMusicQuery('can you play some relaxing piano music')).toBe(
-        'relaxing piano'
-      );
+      expect(extractMusicQuery('can you play some relaxing piano music')).toBe('relaxing piano');
     });
 
     it('should handle "please play chill music"', () => {

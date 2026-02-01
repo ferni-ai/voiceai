@@ -14,7 +14,10 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from '../../../../services/superhuman/firestore-utils.js';
+import {
+  getFirestoreDb,
+  cleanForFirestore,
+} from '../../../../services/superhuman/firestore-utils.js';
 import type { CommunicationDebt } from './types.js';
 
 const log = createLogger({ module: 'communication-debt' });
@@ -41,9 +44,7 @@ const PRIORITY_THRESHOLDS = {
 /**
  * Detect communication debt from a transcript.
  */
-export function detectCommunicationDebt(
-  transcript: string
-): Array<{
+export function detectCommunicationDebt(transcript: string): Array<{
   type: CommunicationDebt['type'];
   description: string;
   contactName?: string;
@@ -109,7 +110,7 @@ export function detectCommunicationDebt(
       const contactName = extractName(match);
       debts.push({
         type: 'missed_followup',
-        description: 'Promised to follow up but haven\'t',
+        description: "Promised to follow up but haven't",
         contactName,
       });
     }
@@ -128,7 +129,7 @@ export function detectCommunicationDebt(
       const contactName = extractName(match);
       debts.push({
         type: 'broken_promise',
-        description: 'Made a promise that wasn\'t kept',
+        description: "Made a promise that wasn't kept",
         contactName,
       });
     }
@@ -175,7 +176,9 @@ export async function recordDebt(
     id,
     userId,
     createdAt: Date.now(),
-    daysPastDue: debt.dueBy ? Math.max(0, Math.floor((Date.now() - debt.dueBy) / (24 * 60 * 60 * 1000))) : 0,
+    daysPastDue: debt.dueBy
+      ? Math.max(0, Math.floor((Date.now() - debt.dueBy) / (24 * 60 * 60 * 1000)))
+      : 0,
   };
 
   try {
@@ -299,7 +302,8 @@ function calculatePriority(debt: CommunicationDebt): CommunicationDebt['priority
   const days = debt.daysPastDue;
 
   // Factor in relationship importance
-  const importanceMultiplier = debt.relationshipImportance >= 8 ? 0.5 : debt.relationshipImportance >= 5 ? 0.75 : 1;
+  const importanceMultiplier =
+    debt.relationshipImportance >= 8 ? 0.5 : debt.relationshipImportance >= 5 ? 0.75 : 1;
   const adjustedDays = days * importanceMultiplier;
 
   if (adjustedDays >= thresholds.urgent) return 'urgent';
@@ -319,7 +323,7 @@ export async function generateDashboard(userId: string): Promise<string> {
   const debts = await getPendingDebts(userId);
 
   if (debts.length === 0) {
-    return '✨ **All clear!** No outstanding communication debts. You\'re current with everyone.';
+    return "✨ **All clear!** No outstanding communication debts. You're current with everyone.";
   }
 
   const sections: string[] = ['📋 **Communication Debt Dashboard**\n'];
@@ -438,9 +442,7 @@ export async function getDebtsForContact(
   contactName: string
 ): Promise<CommunicationDebt[]> {
   const allDebts = await getPendingDebts(userId);
-  return allDebts.filter(
-    (d) => d.contactName.toLowerCase() === contactName.toLowerCase()
-  );
+  return allDebts.filter((d) => d.contactName.toLowerCase() === contactName.toLowerCase());
 }
 
 // ============================================================================

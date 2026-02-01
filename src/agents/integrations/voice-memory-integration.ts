@@ -25,6 +25,10 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ProsodyFeatures } from '../../speech/audio-prosody/types.js';
+import {
+  voiceCaptureEnhanced,
+  type VoiceCaptureInput,
+} from '../../memory/dynamic/voice-context-capture.js';
 
 const log = createLogger({ module: 'VoiceMemoryIntegration' });
 
@@ -137,10 +141,32 @@ export function getVoiceMemoryConfig(): VoiceMemoryConfig {
 const voiceContexts = new Map<string, VoiceContext>();
 
 /**
- * Record voice context for a turn
+ * Record voice context for a turn.
+ *
+ * In addition to storing in-memory, this now persists high-importance
+ * voice contexts to Firestore for "Better Than Human" emotional memory.
  */
 export function recordVoiceContext(context: VoiceContext): void {
   voiceContexts.set(context.sessionId, context);
+
+  // Persist to Firestore for "Better Than Human" emotional memory
+  // Only persist when we have meaningful voice data (emotion or prosody)
+  if (context.voiceEmotion || context.prosody) {
+    const captureInput: VoiceCaptureInput = {
+      userId: context.userId,
+      sessionId: context.sessionId,
+      turnNumber: context.turnNumber,
+      transcript: '', // Not available here, but prosody/emotion is the key data
+      prosody: context.prosody,
+      voiceEmotion: context.voiceEmotion,
+      textEmotion: context.textEmotion,
+    };
+
+    // Fire and forget - don't block the turn
+    void voiceCaptureEnhanced(captureInput).catch((err) => {
+      log.debug({ error: String(err) }, 'Voice context persistence failed (non-critical)');
+    });
+  }
 
   log.debug(
     {
@@ -259,8 +285,7 @@ function detectVoiceStrain(prosody: ProsodyFeatures): boolean {
 
   // Strained voice quality
   const strainedQuality =
-    prosody.voiceQuality === 'strained' ||
-    prosody.voiceQuality === 'trembling';
+    prosody.voiceQuality === 'strained' || prosody.voiceQuality === 'trembling';
 
   return (jitterHigh && shimmerHigh) || strainedQuality;
 }
@@ -270,7 +295,15 @@ function detectVoiceStrain(prosody: ProsodyFeatures): boolean {
  */
 function isEmotionAligned(voiceEmotion: string, textEmotion: string): boolean {
   const positiveEmotions = ['happy', 'excited', 'joyful', 'grateful', 'hopeful', 'content'];
-  const negativeEmotions = ['sad', 'angry', 'frustrated', 'anxious', 'worried', 'fearful', 'depressed'];
+  const negativeEmotions = [
+    'sad',
+    'angry',
+    'frustrated',
+    'anxious',
+    'worried',
+    'fearful',
+    'depressed',
+  ];
 
   const voiceLower = voiceEmotion.toLowerCase();
   const textLower = textEmotion.toLowerCase();
@@ -308,8 +341,8 @@ export function calculateRetrievalBoost(
     return result;
   }
 
-  const currentEmotion = currentVoiceContext.voiceEmotion?.primary ||
-    currentVoiceContext.textEmotion?.primary;
+  const currentEmotion =
+    currentVoiceContext.voiceEmotion?.primary || currentVoiceContext.textEmotion?.primary;
 
   if (!currentEmotion || !memoryEmotionalContext?.emotion) {
     return result;
@@ -322,11 +355,11 @@ export function calculateRetrievalBoost(
   } else {
     // Opposite valence - slight penalty (unless joy amplification)
     // We want to surface positive memories when user is struggling
-    const currentNegative = ['sad', 'anxious', 'stressed', 'overwhelmed'].some(
-      (e) => currentEmotion.toLowerCase().includes(e)
+    const currentNegative = ['sad', 'anxious', 'stressed', 'overwhelmed'].some((e) =>
+      currentEmotion.toLowerCase().includes(e)
     );
-    const memoryPositive = ['happy', 'proud', 'excited', 'grateful'].some(
-      (e) => (memoryEmotionalContext.emotion || '').toLowerCase().includes(e)
+    const memoryPositive = ['happy', 'proud', 'excited', 'grateful'].some((e) =>
+      (memoryEmotionalContext.emotion || '').toLowerCase().includes(e)
     );
 
     if (currentNegative && memoryPositive) {
@@ -348,10 +381,7 @@ export function calculateRetrievalBoost(
 /**
  * Apply retrieval boost to a memory score
  */
-export function applyRetrievalBoost(
-  baseScore: number,
-  boost: VoiceRetrievalBoost
-): number {
+export function applyRetrievalBoost(baseScore: number, boost: VoiceRetrievalBoost): number {
   if (!boost.enabled) return baseScore;
 
   let score = baseScore;
@@ -379,8 +409,7 @@ export function adaptMemoryDelivery(
   if (!voiceContext) return memoryText;
 
   let adapted = memoryText;
-  const currentEmotion = voiceContext.voiceEmotion?.primary ||
-    voiceContext.textEmotion?.primary;
+  const currentEmotion = voiceContext.voiceEmotion?.primary || voiceContext.textEmotion?.primary;
 
   // Add thoughtful pause before memory (reflecting)
   adapted = `<break time="300ms"/>${adapted}`;

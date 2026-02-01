@@ -85,6 +85,13 @@ import { buildSpeechNaturalizerContext } from '../../intelligence/context-builde
 // Laughter Contagion - natural laughter joining
 import { buildLaughterContagionContext } from '../../intelligence/context-builders/emotional/laughter-contagion.js';
 
+// WIRED (Jan 2026): Personality A/B Testing
+import {
+  getVariant,
+  isFeatureEnabled as isABFeatureEnabled,
+  type ExperimentVariant,
+} from '../../personas/shared/personality-ab-testing.js';
+
 // ============================================================================
 // PERSONA-SPECIFIC CONTEXT BUILDERS (NEW - January 2026)
 // Deep insights for each persona - runs on first turn and handoffs
@@ -95,7 +102,8 @@ import { buildLaughterContagionContext } from '../../intelligence/context-builde
 // Each builder returns ContextInjection[] based on ContextBuilderInput
 // Note: Context builders return their own ContextInjection type (with optional category)
 // We map these to the turn-processor ContextInjection type (with required category)
-type ContextBuilderInjection = import('../../intelligence/context-builders/core/types.js').ContextInjection;
+type ContextBuilderInjection =
+  import('../../intelligence/context-builders/core/types.js').ContextInjection;
 type PersonaContextBuilder = (
   input: import('../../intelligence/context-builders/index.js').ContextBuilderInput
 ) => Promise<ContextBuilderInjection[]>;
@@ -115,52 +123,45 @@ async function getPersonaBuilder(personaId: string): Promise<PersonaContextBuild
       case 'peter':
       case 'peter-john':
       case 'the-quant': {
-        const mod = await import(
-          '../../intelligence/context-builders/personas/peter-research-insights/index.js'
-        );
+        const mod =
+          await import('../../intelligence/context-builders/personas/peter-research-insights/index.js');
         builder = mod.buildPeterResearchInsightsContext;
         break;
       }
       case 'maya': {
-        const mod = await import(
-          '../../intelligence/context-builders/personas/maya-coaching-insights/index.js'
-        );
+        const mod =
+          await import('../../intelligence/context-builders/personas/maya-coaching-insights/index.js');
         builder = mod.buildMayaCoachingInsightsContext;
         break;
       }
       case 'jordan': {
-        const mod = await import(
-          '../../intelligence/context-builders/personas/jordan-milestone-insights/index.js'
-        );
+        const mod =
+          await import('../../intelligence/context-builders/personas/jordan-milestone-insights/index.js');
         builder = mod.buildJordanMilestoneInsightsContext;
         break;
       }
       case 'alex': {
-        const mod = await import(
-          '../../intelligence/context-builders/personas/alex-communication-insights/index.js'
-        );
+        const mod =
+          await import('../../intelligence/context-builders/personas/alex-communication-insights/index.js');
         builder = mod.buildAlexCommunicationInsightsContext;
         break;
       }
       case 'nayan': {
-        const mod = await import(
-          '../../intelligence/context-builders/personas/nayan-wisdom-insights.js'
-        );
+        const mod =
+          await import('../../intelligence/context-builders/personas/nayan-wisdom-insights.js');
         builder = mod.buildNayanWisdomInsightsContext;
         break;
       }
       case 'ferni': {
-        const mod = await import(
-          '../../intelligence/context-builders/personas/ferni-coordinator-insights.js'
-        );
+        const mod =
+          await import('../../intelligence/context-builders/personas/ferni-coordinator-insights.js');
         builder = mod.buildFerniCoordinatorIntelligenceContext;
         break;
       }
       case 'joel':
       case 'joel-dickson': {
-        const mod = await import(
-          '../../intelligence/context-builders/personas/joel-dickson-insights/index.js'
-        );
+        const mod =
+          await import('../../intelligence/context-builders/personas/joel-dickson-insights/index.js');
         builder = mod.buildJoelDicksonInsightsContext;
         break;
       }
@@ -1178,6 +1179,26 @@ export async function buildDeepHumanInjections(
   let speechNaturalizerApplied = false;
   let laughterTriggered = false;
 
+  // WIRED (Jan 2026): Check A/B testing variant for personality features
+  // If user is in control group, skip personality-enhancing injections
+  const PERSONALITY_EXPERIMENT_ID = 'personality_v2';
+  const experimentVariant = getVariant(userId, PERSONALITY_EXPERIMENT_ID, persona.id);
+  
+  if (experimentVariant === 'control') {
+    // Control group: return minimal injections (no personality enhancements)
+    diag.debug('A/B Testing: User in control group, skipping personality injections', {
+      userId,
+      experimentId: PERSONALITY_EXPERIMENT_ID,
+    });
+    return {
+      injections: [],
+      activeSecretMode: undefined,
+      detectedEnergy: undefined,
+      speechNaturalizerApplied: false,
+      laughterTriggered: false,
+    };
+  }
+
   // Build context input for the Deep Human builders
   // These follow the ContextBuilderInput interface
   // Note: We pass minimal data since Deep Human builders only use a subset of fields
@@ -1229,7 +1250,8 @@ export async function buildDeepHumanInjections(
         injections.push({
           category: 'secret_mode',
           content: injection.content,
-          priority: injection.priority === 'critical' ? 85 : injection.priority === 'high' ? 70 : 55,
+          priority:
+            injection.priority === 'critical' ? 85 : injection.priority === 'high' ? 70 : 55,
         });
       }
     } catch (error) {
@@ -1252,7 +1274,8 @@ export async function buildDeepHumanInjections(
         injections.push({
           category: 'energy_matching',
           content: injection.content,
-          priority: injection.priority === 'critical' ? 80 : injection.priority === 'high' ? 65 : 50,
+          priority:
+            injection.priority === 'critical' ? 80 : injection.priority === 'high' ? 65 : 50,
         });
       }
     } catch (error) {
@@ -1268,7 +1291,8 @@ export async function buildDeepHumanInjections(
         injections.push({
           category: 'deep_human',
           content: injection.content,
-          priority: injection.priority === 'critical' ? 75 : injection.priority === 'high' ? 60 : 45,
+          priority:
+            injection.priority === 'critical' ? 75 : injection.priority === 'high' ? 60 : 45,
         });
       }
     } catch (error) {
@@ -1286,7 +1310,8 @@ export async function buildDeepHumanInjections(
           injections.push({
             category: 'speech_naturalizer',
             content: injection.content,
-            priority: injection.priority === 'critical' ? 70 : injection.priority === 'high' ? 55 : 40,
+            priority:
+              injection.priority === 'critical' ? 70 : injection.priority === 'high' ? 55 : 40,
           });
         }
       }
@@ -1305,7 +1330,8 @@ export async function buildDeepHumanInjections(
           injections.push({
             category: 'laughter_contagion',
             content: injection.content,
-            priority: injection.priority === 'critical' ? 75 : injection.priority === 'high' ? 60 : 45,
+            priority:
+              injection.priority === 'critical' ? 75 : injection.priority === 'high' ? 60 : 45,
           });
         }
       }
@@ -2795,20 +2821,12 @@ export async function buildServiceAvailabilityInjection(
       {
         id: 'spotify',
         name: 'Spotify',
-        unavailableCapabilities: [
-          'play music on Spotify',
-          'create playlists',
-          'control playback',
-        ],
+        unavailableCapabilities: ['play music on Spotify', 'create playlists', 'control playback'],
       },
       {
         id: 'google_calendar',
         name: 'Google Calendar',
-        unavailableCapabilities: [
-          'schedule events',
-          'check your calendar',
-          'set reminders',
-        ],
+        unavailableCapabilities: ['schedule events', 'check your calendar', 'set reminders'],
       },
       {
         id: 'gmail',

@@ -45,9 +45,7 @@ const TOPIC_PATTERNS: Array<{ topic: string; patterns: RegExp[] }> = [
 /**
  * Generate insights from a user's feedback history.
  */
-export async function generateFeedbackInsights(
-  userId: string
-): Promise<FeedbackInsights | null> {
+export async function generateFeedbackInsights(userId: string): Promise<FeedbackInsights | null> {
   try {
     // Get aggregated stats
     const stats = await calculateUserFeedbackStats(userId);
@@ -112,15 +110,14 @@ export async function generateFeedbackInsights(
 /**
  * Calculate resonance rate for each persona.
  */
-function calculatePersonaResonance(
-  stats: UserFeedbackStats
-): Record<string, number> {
+function calculatePersonaResonance(stats: UserFeedbackStats): Record<string, number> {
   const result: Record<string, number> = {};
 
   for (const [personaId, data] of Object.entries(stats.byPersona)) {
     const positiveCount = data.resonated + data.helpful;
-    const totalResponded = data.prompts - (data.prompts - positiveCount - data.tooMuch - data.offTrack);
-    
+    const totalResponded =
+      data.prompts - (data.prompts - positiveCount - data.tooMuch - data.offTrack);
+
     if (totalResponded > 0) {
       result[personaId] = positiveCount / data.prompts;
     }
@@ -132,9 +129,10 @@ function calculatePersonaResonance(
 /**
  * Analyze topics that resonate well vs. fall flat.
  */
-function analyzeTopics(
-  feedback: ConversationFeedback[]
-): { topicsWell: string[]; topicsFlat: string[] } {
+function analyzeTopics(feedback: ConversationFeedback[]): {
+  topicsWell: string[];
+  topicsFlat: string[];
+} {
   const topicScores: Record<string, { positive: number; negative: number }> = {};
 
   for (const fb of feedback) {
@@ -143,7 +141,7 @@ function analyzeTopics(
 
     // Detect topics from context
     const text = `${fb.context.lastAgentMessage} ${fb.context.lastUserMessage} ${fb.context.topic || ''}`;
-    
+
     for (const { topic, patterns } of TOPIC_PATTERNS) {
       if (patterns.some((p) => p.test(text))) {
         if (!topicScores[topic]) {
@@ -161,7 +159,7 @@ function analyzeTopics(
 
   // Sort by score
   const entries = Object.entries(topicScores);
-  
+
   const topicsWell = entries
     .filter(([, scores]) => scores.positive > scores.negative && scores.positive >= 2)
     .sort((a, b) => b[1].positive - a[1].positive)
@@ -180,27 +178,21 @@ function analyzeTopics(
 /**
  * Determine user's preferred conversation depth based on feedback patterns.
  */
-function determinePreferredDepth(
-  feedback: ConversationFeedback[]
-): 'shallow' | 'medium' | 'deep' {
+function determinePreferredDepth(feedback: ConversationFeedback[]): 'shallow' | 'medium' | 'deep' {
   // Simple heuristic: high "too_much" rate suggests preference for lighter/shorter
   // High "resonated" on long turns suggests preference for depth
-  
-  const withReaction = feedback.filter(
-    (f) => f.reaction && f.reaction !== 'skipped'
-  );
+
+  const withReaction = feedback.filter((f) => f.reaction && f.reaction !== 'skipped');
 
   if (withReaction.length < 3) {
     return 'medium'; // Not enough data
   }
 
-  const tooMuchRate = withReaction.filter(
-    (f) => f.reaction === 'too_much'
-  ).length / withReaction.length;
+  const tooMuchRate =
+    withReaction.filter((f) => f.reaction === 'too_much').length / withReaction.length;
 
-  const resonatedRate = withReaction.filter(
-    (f) => f.reaction === 'resonated'
-  ).length / withReaction.length;
+  const resonatedRate =
+    withReaction.filter((f) => f.reaction === 'resonated').length / withReaction.length;
 
   if (tooMuchRate > 0.3) {
     return 'shallow';
@@ -270,9 +262,10 @@ function analyzeTimeOfDay(
 /**
  * Analyze patterns in skipped/dismissed feedback.
  */
-function analyzeSkipPatterns(
-  feedback: ConversationFeedback[]
-): { highSkipTopics: string[]; highSkipPersonas: string[] } {
+function analyzeSkipPatterns(feedback: ConversationFeedback[]): {
+  highSkipTopics: string[];
+  highSkipPersonas: string[];
+} {
   const topicSkips: Record<string, number> = {};
   const personaSkips: Record<string, { skips: number; total: number }> = {};
 

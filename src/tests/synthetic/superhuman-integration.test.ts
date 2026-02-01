@@ -16,12 +16,24 @@ import { analyzeSilence } from '../../services/superhuman/silence-interpreter.js
 // Phase 2 imports
 import { createMicroMomentDetector } from '../../intelligence/deep-understanding/micro-moments/engine.js';
 import { createAvoidanceDetector } from '../../intelligence/deep-understanding/avoidance-detection/engine.js';
-import { createRhythmIntelligence, clearUserData as clearRhythmData } from '../../conversation/rhythm-intelligence/index.js';
+import {
+  createRhythmIntelligence,
+  clearUserData as clearRhythmData,
+} from '../../conversation/rhythm-intelligence/index.js';
 
 // Phase 3 imports
-import { createRelationalMemory, clearUserData as clearRelationalData } from '../../services/superhuman/relational-memory/index.js';
-import { createPatternConnector, clearUserData as clearPatternData } from '../../intelligence/deep-understanding/pattern-connector/index.js';
-import { createStoryArcTracker, clearUserData as clearStoryData } from '../../intelligence/story-tracking/index.js';
+import {
+  createRelationalMemory,
+  clearUserData as clearRelationalData,
+} from '../../services/superhuman/relational-memory/index.js';
+import {
+  createPatternConnector,
+  clearUserData as clearPatternData,
+} from '../../intelligence/deep-understanding/pattern-connector/index.js';
+import {
+  createStoryArcTracker,
+  clearUserData as clearStoryData,
+} from '../../intelligence/story-tracking/index.js';
 
 // Phase 4 imports
 import { createVoiceBiomarkerPipeline } from '../../speech/voice-biomarkers/index.js';
@@ -105,7 +117,15 @@ describe('Superhuman Intelligence Integration', () => {
       });
 
       // Response mode should be valid
-      expect(['presence', 'brief', 'invitation', 'full', 'silence', 'clarify', 'celebration']).toContain(decision.mode);
+      expect([
+        'presence',
+        'brief',
+        'invitation',
+        'full',
+        'silence',
+        'clarify',
+        'celebration',
+      ]).toContain(decision.mode);
     });
   });
 
@@ -129,9 +149,7 @@ describe('Superhuman Intelligence Integration', () => {
 
       // Get acknowledgment (requires the full MicroMoment object)
       if (analysis.primaryMoment) {
-        const acknowledgment = microMoments.getAcknowledgment(
-          analysis.primaryMoment
-        );
+        const acknowledgment = microMoments.getAcknowledgment(analysis.primaryMoment);
         expect(acknowledgment).toBeDefined();
         // Acknowledgment type could be verbal, presence, celebration, or gentle-mirror
         expect(['verbal', 'presence', 'celebration', 'gentle-mirror']).toContain(
@@ -181,7 +199,7 @@ describe('Superhuman Intelligence Integration', () => {
 
       await avoidance.detect({
         userId,
-        message: "Anyway, how about we change the subject?",
+        message: 'Anyway, how about we change the subject?',
         previousTopic: 'family',
         sessionId: 'session-2',
         turnNumber: 4,
@@ -289,11 +307,9 @@ describe('Superhuman Intelligence Integration', () => {
 
       // Generate insights
       const insights = await connector.generateInsights(userId);
-      
+
       // Should have emotional association insight
-      const emotionalInsights = insights.filter(
-        (i) => i.type === 'emotional-association'
-      );
+      const emotionalInsights = insights.filter((i) => i.type === 'emotional-association');
       expect(emotionalInsights.length).toBeGreaterThan(0);
     });
   });
@@ -377,18 +393,18 @@ describe('Superhuman Intelligence Integration', () => {
 
       // Turn 1: User opens up
       const message1 = "I've been thinking a lot lately about where my life is going.";
-      
+
       // Analyze voice
       const voice1 = await biomarkers.analyze({
         speakingRate: 130,
         energy: 0.5,
         pitchMean: 180,
       });
-      
+
       // Record rhythm
       const turnAnalysis1 = rhythm.analyzeTurn(message1);
       await rhythm.recordTurn(userId, turnAnalysis1, true);
-      
+
       // Record emotional state
       momentum.recordTurn(userId, 'session-1', {
         emotion: 'contemplative',
@@ -416,7 +432,7 @@ describe('Superhuman Intelligence Integration', () => {
 
       // Turn 2: User goes deeper
       const message2 = "I've never told anyone this, but I've been feeling really lost.";
-      
+
       // Check micro-moment
       const mm2 = await microMoments.detect({
         message: message2,
@@ -463,8 +479,16 @@ describe('Superhuman Intelligence Integration', () => {
       });
 
       // Response should be appropriate - any mode is valid based on context
-      expect(['presence', 'brief', 'invitation', 'full', 'silence', 'clarify', 'celebration']).toContain(decision2.mode);
-      
+      expect([
+        'presence',
+        'brief',
+        'invitation',
+        'full',
+        'silence',
+        'clarify',
+        'celebration',
+      ]).toContain(decision2.mode);
+
       // Final assertions - systems coordinated
       expect(rhythmGuidance.wordRange).toBeDefined();
       expect(voice1.primary).toBe('calm');

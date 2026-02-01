@@ -1,6 +1,8 @@
 # Ferni Router Model Training
 
-This directory contains the training infrastructure for the Ferni Router Model - a fine-tuned Qwen 2.5 1.5B model for multi-label tool classification.
+This directory contains the training infrastructure for the Ferni Router Model - a fine-tuned **Qwen3-1.7B** model for multi-label tool classification.
+
+> **FTIS V3 Upgrade (January 2026)**: Upgraded from Qwen2.5-1.5B to Qwen3-1.7B for better tool calling performance. Qwen3-1.7B outperforms Qwen2.5-3B on BFCL benchmarks.
 
 ## Overview
 
@@ -87,10 +89,19 @@ Each training example is a JSON line with:
 
 ## Model Architecture
 
-- **Base**: Qwen 2.5 1.5B
+- **Base**: Qwen3-1.7B (upgraded from Qwen2.5-1.5B)
 - **Task**: Multi-label classification (sigmoid output)
-- **Fine-tuning**: LoRA adapters on attention layers
+- **Fine-tuning**: LoRA adapters on attention + FFN layers
 - **Output**: Probability for each tool (0-1)
+
+### Why Qwen3-1.7B?
+
+| Feature | Qwen2.5-1.5B | Qwen3-1.7B |
+|---------|--------------|------------|
+| Parameters | 1.5B | 1.7B |
+| BFCL Score | ~70% | ~85% |
+| Tool Calling | Template-based | Native support |
+| Inference | ~45ms | ~50ms |
 
 ## Metrics
 

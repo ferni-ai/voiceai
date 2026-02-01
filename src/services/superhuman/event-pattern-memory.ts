@@ -164,7 +164,12 @@ async function loadEventPatternProfile(userId: string): Promise<EventPatternProf
   if (!db) return null;
 
   try {
-    const doc = await db.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile').get();
+    const doc = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection(COLLECTION)
+      .doc('profile')
+      .get();
     if (doc.exists) {
       return doc.data() as EventPatternProfile;
     }
@@ -175,7 +180,10 @@ async function loadEventPatternProfile(userId: string): Promise<EventPatternProf
   }
 }
 
-async function saveEventPatternProfile(userId: string, profile: EventPatternProfile): Promise<void> {
+async function saveEventPatternProfile(
+  userId: string,
+  profile: EventPatternProfile
+): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -277,7 +285,10 @@ export async function recordVendorExperience(
   const profile = (await loadEventPatternProfile(userId)) || createDefaultProfile(userId);
   updateVendorPreference(profile, vendor);
   await saveEventPatternProfile(userId, profile);
-  log.info({ userId, vendor: vendor.name, sentiment: vendor.sentiment }, 'Recorded vendor experience');
+  log.info(
+    { userId, vendor: vendor.name, sentiment: vendor.sentiment },
+    'Recorded vendor experience'
+  );
 }
 
 /**
@@ -396,12 +407,16 @@ export async function getEventPatternInsights(
 
   if (lovedVendors.length > 0) {
     for (const vendor of lovedVendors.slice(0, 3)) {
-      insights.vendorRecommendations.push(`Loved: ${vendor.name} (${vendor.category}) - ${vendor.reason}`);
+      insights.vendorRecommendations.push(
+        `Loved: ${vendor.name} (${vendor.category}) - ${vendor.reason}`
+      );
     }
   }
   if (avoidVendors.length > 0) {
     for (const vendor of avoidVendors.slice(0, 3)) {
-      insights.vendorRecommendations.push(`Avoid: ${vendor.name} (${vendor.category}) - ${vendor.reason}`);
+      insights.vendorRecommendations.push(
+        `Avoid: ${vendor.name} (${vendor.category}) - ${vendor.reason}`
+      );
     }
   }
 
@@ -485,9 +500,10 @@ function computeBudgetPatterns(events: EventOutcome[]): BudgetPattern {
 
     // Track category patterns
     for (const [category, spending] of Object.entries(event.categorySpending || {})) {
-      const overPercent = spending.budgeted > 0
-        ? ((spending.actual - spending.budgeted) / spending.budgeted) * 100
-        : 0;
+      const overPercent =
+        spending.budgeted > 0
+          ? ((spending.actual - spending.budgeted) / spending.budgeted) * 100
+          : 0;
 
       if (overPercent > 20) {
         categorySplurges[category] = (categorySplurges[category] || 0) + 1;
@@ -508,15 +524,15 @@ function computeBudgetPatterns(events: EventOutcome[]): BudgetPattern {
       for (const change of event.reflections.whatWouldChange) {
         const match = change.match(/spend more on (\w+)/i);
         if (match) {
-          categoryRegrets[match[1].toLowerCase()] = (categoryRegrets[match[1].toLowerCase()] || 0) + 1;
+          categoryRegrets[match[1].toLowerCase()] =
+            (categoryRegrets[match[1].toLowerCase()] || 0) + 1;
         }
       }
     }
   }
 
-  const avgOverrun = overruns.length > 0
-    ? overruns.reduce((a, b) => a + b, 0) / overruns.length
-    : 0;
+  const avgOverrun =
+    overruns.length > 0 ? overruns.reduce((a, b) => a + b, 0) / overruns.length : 0;
 
   // Categories that appear in >30% of events
   const threshold = events.length * 0.3;
@@ -615,8 +631,10 @@ function updateEmotionalPatterns(
 ): void {
   // Check for 2-weeks-out anxiety
   const twoWeeksAnxiety = timeline.some(
-    (e) => e.daysBefore >= 10 && e.daysBefore <= 18 && 
-           ['anxious', 'stressed', 'worried', 'overwhelmed'].includes(e.emotion.toLowerCase())
+    (e) =>
+      e.daysBefore >= 10 &&
+      e.daysBefore <= 18 &&
+      ['anxious', 'stressed', 'worried', 'overwhelmed'].includes(e.emotion.toLowerCase())
   );
 
   if (twoWeeksAnxiety) {
@@ -628,7 +646,8 @@ function updateEmotionalPatterns(
     ['stressed', 'anxious', 'overwhelmed'].includes(e.emotion.toLowerCase())
   );
   if (stressEntries.length > 0) {
-    const avgStressDays = stressEntries.reduce((a, b) => a + b.daysBefore, 0) / stressEntries.length;
+    const avgStressDays =
+      stressEntries.reduce((a, b) => a + b.daysBefore, 0) / stressEntries.length;
     profile.emotionalPatterns.stressPeakDaysBefore = Math.round(avgStressDays);
   }
 }

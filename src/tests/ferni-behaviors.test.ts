@@ -53,9 +53,8 @@ function createTestInput(overrides: Partial<ContextBuilderInput> = {}): ContextB
 
 describe('VoiceDNAContext', () => {
   it('runs without throwing and returns array', async () => {
-    const { buildVoiceDNAContext, cleanupVoiceDNAState } = await import(
-      '../intelligence/context-builders/personas/voice-dna-context.js'
-    );
+    const { buildVoiceDNAContext, cleanupVoiceDNAState } =
+      await import('../intelligence/context-builders/personas/voice-dna-context.js');
     const input = createTestInput({ userData: { turnCount: 1 } });
 
     const injections = await buildVoiceDNAContext(input);
@@ -65,9 +64,8 @@ describe('VoiceDNAContext', () => {
   });
 
   it('handles distressed user input', async () => {
-    const { buildVoiceDNAContext, cleanupVoiceDNAState } = await import(
-      '../intelligence/context-builders/personas/voice-dna-context.js'
-    );
+    const { buildVoiceDNAContext, cleanupVoiceDNAState } =
+      await import('../intelligence/context-builders/personas/voice-dna-context.js');
     const input = createTestInput({
       analysis: {
         emotion: { primary: 'sad', distressLevel: 0.7 },
@@ -82,9 +80,8 @@ describe('VoiceDNAContext', () => {
   });
 
   it('handles empty user text', async () => {
-    const { buildVoiceDNAContext } = await import(
-      '../intelligence/context-builders/personas/voice-dna-context.js'
-    );
+    const { buildVoiceDNAContext } =
+      await import('../intelligence/context-builders/personas/voice-dna-context.js');
     const input = createTestInput({ userText: '' });
 
     const injections = await buildVoiceDNAContext(input);
@@ -99,9 +96,8 @@ describe('VoiceDNAContext', () => {
 
 describe('BackchannelContext', () => {
   it('runs without throwing and returns array', async () => {
-    const { buildBackchannelContext, cleanupBackchannelState } = await import(
-      '../intelligence/context-builders/conversational/backchannel-context.js'
-    );
+    const { buildBackchannelContext, cleanupBackchannelState } =
+      await import('../intelligence/context-builders/conversational/backchannel-context.js');
     const input = createTestInput({
       userText: 'My grandmother died last week',
       analysis: { emotion: { primary: 'sad', distressLevel: 0.8 } },
@@ -114,9 +110,8 @@ describe('BackchannelContext', () => {
   });
 
   it('handles good news input', async () => {
-    const { buildBackchannelContext, cleanupBackchannelState } = await import(
-      '../intelligence/context-builders/conversational/backchannel-context.js'
-    );
+    const { buildBackchannelContext, cleanupBackchannelState } =
+      await import('../intelligence/context-builders/conversational/backchannel-context.js');
     const input = createTestInput({
       userText: 'I got the promotion!',
       analysis: { emotion: { primary: 'happy' } },
@@ -135,9 +130,8 @@ describe('BackchannelContext', () => {
 
 describe('BreathContext', () => {
   it('runs without throwing for anxious input', async () => {
-    const { buildBreathContext, cleanupBreathState } = await import(
-      '../intelligence/context-builders/emotional/breath-context.js'
-    );
+    const { buildBreathContext, cleanupBreathState } =
+      await import('../intelligence/context-builders/emotional/breath-context.js');
     const input = createTestInput({
       userText: 'I cant stop spiraling about this',
       analysis: { emotion: { primary: 'anxious' } },
@@ -150,9 +144,8 @@ describe('BreathContext', () => {
   });
 
   it('handles neutral input', async () => {
-    const { buildBreathContext } = await import(
-      '../intelligence/context-builders/emotional/breath-context.js'
-    );
+    const { buildBreathContext } =
+      await import('../intelligence/context-builders/emotional/breath-context.js');
     const input = createTestInput({
       userText: 'What time is my meeting tomorrow?',
     });
@@ -169,9 +162,8 @@ describe('BreathContext', () => {
 
 describe('CatchphraseContext', () => {
   it('runs without throwing for kintsugi-related input', async () => {
-    const { buildCatchphraseContext, cleanupCatchphraseState } = await import(
-      '../intelligence/context-builders/personas/catchphrase-context.js'
-    );
+    const { buildCatchphraseContext, cleanupCatchphraseState } =
+      await import('../intelligence/context-builders/personas/catchphrase-context.js');
     const input = createTestInput({
       userText: 'I feel so broken after what happened',
     });
@@ -183,9 +175,8 @@ describe('CatchphraseContext', () => {
   });
 
   it('handles general input', async () => {
-    const { buildCatchphraseContext } = await import(
-      '../intelligence/context-builders/personas/catchphrase-context.js'
-    );
+    const { buildCatchphraseContext } =
+      await import('../intelligence/context-builders/personas/catchphrase-context.js');
     const input = createTestInput({
       userText: 'How is your day going?',
     });
@@ -202,9 +193,8 @@ describe('CatchphraseContext', () => {
 
 describe('GoodbyeContext', () => {
   it('runs without throwing for goodbye input', async () => {
-    const { buildGoodbyeContext } = await import(
-      '../intelligence/context-builders/conversational/goodbye-context.js'
-    );
+    const { buildGoodbyeContext } =
+      await import('../intelligence/context-builders/conversational/goodbye-context.js');
     const input = createTestInput({
       userText: 'Gotta go, bye!',
       userData: { turnCount: 10 },
@@ -216,9 +206,8 @@ describe('GoodbyeContext', () => {
   });
 
   it('returns empty for non-goodbye input', async () => {
-    const { buildGoodbyeContext } = await import(
-      '../intelligence/context-builders/conversational/goodbye-context.js'
-    );
+    const { buildGoodbyeContext } =
+      await import('../intelligence/context-builders/conversational/goodbye-context.js');
     const input = createTestInput({
       userText: 'Tell me about your day',
     });
@@ -235,9 +224,8 @@ describe('GoodbyeContext', () => {
 
 describe('HumorContext', () => {
   it('runs without throwing for celebration input', async () => {
-    const { buildHumorContext, cleanupHumorState } = await import(
-      '../intelligence/context-builders/personas/humor-context.js'
-    );
+    const { buildHumorContext, cleanupHumorState } =
+      await import('../intelligence/context-builders/personas/humor-context.js');
     const input = createTestInput({
       userText: 'I got the job! I did it!',
       analysis: { emotion: { primary: 'excited' } },
@@ -250,9 +238,8 @@ describe('HumorContext', () => {
   });
 
   it('does not throw for crisis input (should block humor)', async () => {
-    const { buildHumorContext } = await import(
-      '../intelligence/context-builders/personas/humor-context.js'
-    );
+    const { buildHumorContext } =
+      await import('../intelligence/context-builders/personas/humor-context.js');
     const input = createTestInput({
       userText: 'I just found out I have cancer',
       analysis: { emotion: { distressLevel: 0.9 } },
@@ -272,9 +259,8 @@ describe('HumorContext', () => {
 
 describe('AffirmationContext', () => {
   it('runs without throwing for breakthrough input', async () => {
-    const { buildAffirmationContext, cleanupAffirmationState } = await import(
-      '../intelligence/context-builders/emotional/affirmation-context.js'
-    );
+    const { buildAffirmationContext, cleanupAffirmationState } =
+      await import('../intelligence/context-builders/emotional/affirmation-context.js');
     const input = createTestInput({
       userText: 'I finally figured it out! I did it!',
     });
@@ -286,9 +272,8 @@ describe('AffirmationContext', () => {
   });
 
   it('runs without throwing for self-doubt input', async () => {
-    const { buildAffirmationContext } = await import(
-      '../intelligence/context-builders/emotional/affirmation-context.js'
-    );
+    const { buildAffirmationContext } =
+      await import('../intelligence/context-builders/emotional/affirmation-context.js');
     const input = createTestInput({
       userText: 'I dont know if I can do this',
       analysis: { emotion: { primary: 'anxious' } },
@@ -306,9 +291,8 @@ describe('AffirmationContext', () => {
 
 describe('PetPeeveContext', () => {
   it('runs without throwing for trigger input', async () => {
-    const { buildPetPeeveContext, cleanupPetPeeveState } = await import(
-      '../intelligence/context-builders/personas/pet-peeve-context.js'
-    );
+    const { buildPetPeeveContext, cleanupPetPeeveState } =
+      await import('../intelligence/context-builders/personas/pet-peeve-context.js');
     const input = createTestInput({
       userText: 'I just need to be more positive, good vibes only!',
     });
@@ -326,9 +310,8 @@ describe('PetPeeveContext', () => {
 
 describe('CoachingModeContext', () => {
   it('runs without throwing and returns array', async () => {
-    const { buildCoachingModeContext, cleanupCoachingModeState } = await import(
-      '../intelligence/context-builders/personas/coaching-mode-context.js'
-    );
+    const { buildCoachingModeContext, cleanupCoachingModeState } =
+      await import('../intelligence/context-builders/personas/coaching-mode-context.js');
     const input = createTestInput({
       userText: 'I just need to vent about my day',
     });
@@ -340,9 +323,8 @@ describe('CoachingModeContext', () => {
   });
 
   it('handles celebrating input', async () => {
-    const { buildCoachingModeContext, cleanupCoachingModeState } = await import(
-      '../intelligence/context-builders/personas/coaching-mode-context.js'
-    );
+    const { buildCoachingModeContext, cleanupCoachingModeState } =
+      await import('../intelligence/context-builders/personas/coaching-mode-context.js');
     const input = createTestInput({
       userText: 'I got the job! I did it!',
       analysis: { emotion: { primary: 'excited' } },
@@ -361,9 +343,8 @@ describe('CoachingModeContext', () => {
 
 describe('PredictiveContext', () => {
   it('runs without throwing for concern-related input', async () => {
-    const { buildPredictiveContext, cleanupPredictiveState } = await import(
-      '../intelligence/context-builders/intelligence/predictive-context.js'
-    );
+    const { buildPredictiveContext, cleanupPredictiveState } =
+      await import('../intelligence/context-builders/intelligence/predictive-context.js');
     const input = createTestInput({
       userText: 'I just feel like theres no point anymore',
     });
@@ -375,9 +356,8 @@ describe('PredictiveContext', () => {
   });
 
   it('runs without throwing for deflection input', async () => {
-    const { buildPredictiveContext, cleanupPredictiveState } = await import(
-      '../intelligence/context-builders/intelligence/predictive-context.js'
-    );
+    const { buildPredictiveContext, cleanupPredictiveState } =
+      await import('../intelligence/context-builders/intelligence/predictive-context.js');
     const input = createTestInput({
       userText: 'Its fine, it doesnt matter anyway',
     });
@@ -395,9 +375,8 @@ describe('PredictiveContext', () => {
 
 describe('SensoryContext', () => {
   it('runs without throwing for anxious input', async () => {
-    const { buildSensoryContext, cleanupSensoryState } = await import(
-      '../intelligence/context-builders/awareness/sensory-context.js'
-    );
+    const { buildSensoryContext, cleanupSensoryState } =
+      await import('../intelligence/context-builders/awareness/sensory-context.js');
     const input = createTestInput({
       userText: 'I cant stop spiraling',
       analysis: { emotion: { primary: 'anxious' } },
@@ -410,9 +389,8 @@ describe('SensoryContext', () => {
   });
 
   it('handles neutral input', async () => {
-    const { buildSensoryContext } = await import(
-      '../intelligence/context-builders/awareness/sensory-context.js'
-    );
+    const { buildSensoryContext } =
+      await import('../intelligence/context-builders/awareness/sensory-context.js');
     const input = createTestInput({
       userText: 'What should I have for lunch?',
     });
@@ -460,9 +438,8 @@ describe('Edge Cases', () => {
   });
 
   it('all builders handle missing persona gracefully', async () => {
-    const { buildVoiceDNAContext } = await import(
-      '../intelligence/context-builders/personas/voice-dna-context.js'
-    );
+    const { buildVoiceDNAContext } =
+      await import('../intelligence/context-builders/personas/voice-dna-context.js');
     const input = createTestInput({
       persona: undefined as unknown as ContextBuilderInput['persona'],
     });
@@ -473,9 +450,8 @@ describe('Edge Cases', () => {
   });
 
   it('all builders handle null services gracefully', async () => {
-    const { buildBackchannelContext } = await import(
-      '../intelligence/context-builders/conversational/backchannel-context.js'
-    );
+    const { buildBackchannelContext } =
+      await import('../intelligence/context-builders/conversational/backchannel-context.js');
     const input = createTestInput({
       services: undefined as unknown as ContextBuilderInput['services'],
     });

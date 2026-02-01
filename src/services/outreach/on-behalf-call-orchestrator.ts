@@ -20,7 +20,7 @@ import {
   checkCallCompliance,
   generateComplianceScript,
 } from '../../tools/domains/telephony/compliance.js';
-import { trackOutboundCall } from '../../servers/api/routes/twilio-call-status.js';
+import { trackOutboundCall } from './outbound-call-tracker.js';
 import {
   enrichMessage,
   enrichVoicemailMessage,

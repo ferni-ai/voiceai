@@ -270,7 +270,7 @@ const NOT_NAMES = new Set([
   'Could',
   'Would',
   'Should',
-  'Will',  // Note: Will as a name is in whitelist, which takes priority
+  'Will', // Note: Will as a name is in whitelist, which takes priority
   'Did',
   'Does',
   'Do',

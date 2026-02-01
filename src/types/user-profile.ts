@@ -654,6 +654,10 @@ export interface UserProfile {
     quietHoursEnd?: number; // Hour (0-23) when do-not-disturb ends
   };
 
+  // Integration Status (for tool loading optimization)
+  hasCalendarLinked?: boolean; // User has connected Google/Apple Calendar
+  hasSpotifyLinked?: boolean; // User has connected Spotify
+
   // 📍 Location (Better than Human - we remember where you are)
   location?: {
     city?: string; // e.g., "San Francisco"

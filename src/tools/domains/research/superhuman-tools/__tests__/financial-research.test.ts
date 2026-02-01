@@ -162,7 +162,11 @@ describe('Financial Research Tools', () => {
     });
 
     it('should handle different macro events', async () => {
-      const macroEvents = ['inflation_rising', 'recession_declared', 'stock_market_correction'] as const;
+      const macroEvents = [
+        'inflation_rising',
+        'recession_declared',
+        'stock_market_correction',
+      ] as const;
 
       for (const macroEvent of macroEvents) {
         const result = await financialResearchTools.bridgeMacroToPersonal.execute(

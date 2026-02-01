@@ -12,7 +12,7 @@
  */
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
-import { join, relative, basename, dirname } from 'path';
+import { join, relative, dirname } from 'path';
 
 // ============================================================================
 // CONFIGURATION
@@ -26,7 +26,7 @@ const THRESHOLDS = {
   maxOrphanFiles: 10,        // Files not imported anywhere
 };
 
-// Patterns to ignore
+// Patterns to ignore (these files are often entry points or public API)
 const IGNORE_PATTERNS = [
   'node_modules',
   'dist/',
@@ -35,23 +35,72 @@ const IGNORE_PATTERNS = [
   '__mocks__',
   '.test.ts',
   '.spec.ts',
+  '.e2e.ts',
   'index.ts',              // Index files are entry points
   'types.ts',              // Type files may be used externally
+  '.types.ts',             // Type definition files
+  '.d.ts',                 // Declaration files
   '/cli/',                 // CLI entry points
   '/api/',                 // API route handlers
+  '/routes/',              // Route handlers
+  '/domains/',             // Tool domains (dynamically loaded)
+  '/bundles/',             // Persona bundles (dynamically loaded)
+  '/context-builders/',    // Context builders (dynamically loaded)
+  '/scheduled/',           // Scheduled jobs
+  '/scripts/',             // Scripts run directly
+  '.generated.',           // Generated files
+  'CLAUDE.md',             // Documentation
 ];
 
 // Files that are entry points (not expected to be imported)
 const ENTRY_POINTS = [
-  'src/agents/realtime/index.ts',
-  'src/agents/voice-agent/index.ts',
+  // Main entry points
+  'src/agent.ts',
   'src/index.ts',
   'token-server.js',
   'ui-server.js',
+
+  // Agent entry points
+  'src/agents/realtime/index.ts',
+  'src/agents/voice-agent/index.ts',
+  'src/agents/voice-agent-entry.ts',
+  'src/agents/gce/',
+
+  // Server entry points
+  'src/servers/api/index.ts',
+  'src/servers/token/index.ts',
+
+  // API routes (all exports are handlers)
+  'src/api/routes/',
+  'src/api/v1/',
+  'src/api/v2/',
+  'src/api/calendar-routes/',
+  'src/api/voice-auth/',
+
+  // Tools domains (dynamically loaded)
+  'src/tools/domains/',
+
+  // Context builders (dynamically loaded)
+  'src/intelligence/context-builders/',
+
+  // Persona bundles (dynamically loaded)
+  'src/personas/bundles/',
+
+  // Scheduled jobs (invoked by Cloud Scheduler)
+  'src/tasks/scheduled/',
+  'src/api/scheduled-jobs.routes.ts',
+
+  // Test fixtures (used by test runner)
+  'src/tests/',
+  'src/e2e/',
+
+  // Scripts (run directly)
+  'scripts/',
 ];
 
 // Exports that are intentionally public API (may not be used internally)
-const PUBLIC_API_PATTERNS = [
+// TODO: Implement filtering using these patterns in the export analysis
+const _PUBLIC_API_PATTERNS = [
   /^export (type|interface) /,  // Type exports
   /^export default/,            // Default exports
 ];
@@ -73,9 +122,17 @@ interface ImportInfo {
   toFile: string;
 }
 
+interface RegistrySyncIssue {
+  type: 'manifest-only' | 'imports-only' | 'duplicate';
+  name: string;
+  category?: string;
+  detail: string;
+}
+
 interface DeadCodeReport {
   unusedExports: ExportInfo[];
   orphanFiles: string[];
+  registrySyncIssues: RegistrySyncIssue[];
   totalExports: number;
   totalFiles: number;
 }
@@ -111,6 +168,140 @@ function getAllTypeScriptFiles(dir: string, files: string[] = []): string[] {
     // Ignore errors
   }
   return files;
+}
+
+// ============================================================================
+// CONTEXT BUILDER REGISTRY SYNC CHECK
+// ============================================================================
+
+/**
+ * Parse BUILDER_MANIFEST from loader.ts to extract all builder names by category.
+ * The manifest uses the pattern: [BuilderCategory.NAME]: ['builder1', 'builder2', ...]
+ */
+function parseBuilderManifest(): Map<string, string[]> {
+  const loaderPath = join(SRC_DIR, 'intelligence/context-builders/core/loader.ts');
+  if (!existsSync(loaderPath)) return new Map();
+
+  const content = readFileSync(loaderPath, 'utf-8');
+  const result = new Map<string, string[]>();
+
+  // Match each category block: [BuilderCategory.X]: [ ... ]
+  const categoryRegex = /\[BuilderCategory\.(\w+)\]\s*:\s*\[([\s\S]*?)\]/g;
+  let match;
+
+  while ((match = categoryRegex.exec(content)) !== null) {
+    const category = match[1];
+    const block = match[2];
+    const names: string[] = [];
+
+    // Extract quoted builder names (skip comments)
+    // Don't anchor to line start - entries may be on same line (e.g., ['a', 'b', 'c'])
+    const nameRegex = /'([^']+)'/g;
+    let nameMatch;
+    while ((nameMatch = nameRegex.exec(block)) !== null) {
+      // Check the line isn't commented out
+      const lineStart = block.lastIndexOf('\n', nameMatch.index);
+      const linePrefix = block.substring(lineStart + 1, nameMatch.index);
+      if (!linePrefix.includes('//')) {
+        names.push(nameMatch[1]);
+      }
+    }
+
+    result.set(category, names);
+  }
+
+  return result;
+}
+
+/**
+ * Parse BUILDER_IMPORTS from builder-imports.ts to extract all import keys.
+ * The imports use the pattern: 'name': async () => import(...)
+ */
+function parseBuilderImports(): Set<string> {
+  const importsPath = join(SRC_DIR, 'intelligence/context-builders/core/builder-imports.ts');
+  if (!existsSync(importsPath)) return new Set();
+
+  const content = readFileSync(importsPath, 'utf-8');
+  const names = new Set<string>();
+
+  // Match uncommented import entries: 'name': async () => import(...)
+  const lines = content.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Skip commented-out lines
+    if (trimmed.startsWith('//')) continue;
+
+    // Match both quoted keys ('name': async () =>) and unquoted keys (name: async () =>)
+    const match = trimmed.match(/^(?:'([^']+)'|(\w+))\s*:\s*async\s*\(\)/);
+    if (match) {
+      names.add(match[1] || match[2]);
+    }
+  }
+
+  return names;
+}
+
+/**
+ * Check that BUILDER_MANIFEST and BUILDER_IMPORTS are in sync.
+ * Reports:
+ *  - manifest-only: In manifest but not imports (will silently fail to load)
+ *  - imports-only: In imports but not manifest (imported but never loaded)
+ *  - duplicate: Same name appears in multiple manifest categories
+ */
+function checkContextBuilderRegistrySync(): RegistrySyncIssue[] {
+  const manifest = parseBuilderManifest();
+  const imports = parseBuilderImports();
+  const issues: RegistrySyncIssue[] = [];
+
+  // Flatten manifest into a set and check for duplicates
+  const allManifestNames = new Set<string>();
+  const nameToCategories = new Map<string, string[]>();
+
+  for (const [category, names] of manifest) {
+    for (const name of names) {
+      if (allManifestNames.has(name)) {
+        // Duplicate within manifest
+        const existingCats = nameToCategories.get(name) || [];
+        existingCats.push(category);
+        nameToCategories.set(name, existingCats);
+        issues.push({
+          type: 'duplicate',
+          name,
+          category,
+          detail: `Duplicate in manifest: appears in ${existingCats.join(', ')} (causes double loading)`,
+        });
+      } else {
+        allManifestNames.add(name);
+        nameToCategories.set(name, [category]);
+      }
+    }
+  }
+
+  // Check manifest entries missing from imports
+  for (const name of allManifestNames) {
+    if (!imports.has(name)) {
+      const cats = nameToCategories.get(name) || [];
+      issues.push({
+        type: 'manifest-only',
+        name,
+        category: cats[0],
+        detail: `In BUILDER_MANIFEST (${cats[0]}) but not in BUILDER_IMPORTS (will silently fail to load)`,
+      });
+    }
+  }
+
+  // Check import entries missing from manifest
+  for (const name of imports) {
+    if (!allManifestNames.has(name)) {
+      issues.push({
+        type: 'imports-only',
+        name,
+        detail: `In BUILDER_IMPORTS but not in BUILDER_MANIFEST (dead import, never loaded)`,
+      });
+    }
+  }
+
+  return issues;
 }
 
 // ============================================================================
@@ -337,9 +528,13 @@ function analyzeDeadCode(files: string[]): DeadCodeReport {
     }
   }
 
+  // Check context builder registry sync
+  const registrySyncIssues = checkContextBuilderRegistrySync();
+
   return {
     unusedExports,
     orphanFiles,
+    registrySyncIssues,
     totalExports: allExports.length,
     totalFiles: files.length,
   };
@@ -360,6 +555,7 @@ function printReport(report: DeadCodeReport): void {
   console.log(`  Total exports found: ${report.totalExports}`);
   console.log(`  Potentially unused exports: ${report.unusedExports.length}`);
   console.log(`  Orphan files (not imported): ${report.orphanFiles.length}`);
+  console.log(`  Registry sync issues: ${report.registrySyncIssues.length}`);
   console.log();
 
   if (report.unusedExports.length > 0) {
@@ -408,10 +604,46 @@ function printReport(report: DeadCodeReport): void {
     console.log();
   }
 
+  if (report.registrySyncIssues.length > 0) {
+    const manifestOnly = report.registrySyncIssues.filter(i => i.type === 'manifest-only');
+    const importsOnly = report.registrySyncIssues.filter(i => i.type === 'imports-only');
+    const duplicates = report.registrySyncIssues.filter(i => i.type === 'duplicate');
+
+    console.log(`🔗 Context Builder Registry Sync (${report.registrySyncIssues.length} issues)`);
+    console.log('----------------------------------------------------------------------');
+
+    if (manifestOnly.length > 0) {
+      console.log(`\n  In BUILDER_MANIFEST but not BUILDER_IMPORTS (${manifestOnly.length}):`);
+      console.log(`  These builders are listed but will SILENTLY FAIL to load!`);
+      for (const issue of manifestOnly) {
+        console.log(`    ✗ '${issue.name}' (${issue.category})`);
+      }
+    }
+
+    if (importsOnly.length > 0) {
+      console.log(`\n  In BUILDER_IMPORTS but not BUILDER_MANIFEST (${importsOnly.length}):`);
+      console.log(`  These have import code but are never loaded (dead imports).`);
+      for (const issue of importsOnly) {
+        console.log(`    - '${issue.name}'`);
+      }
+    }
+
+    if (duplicates.length > 0) {
+      console.log(`\n  Duplicates in BUILDER_MANIFEST (${duplicates.length}):`);
+      console.log(`  These load twice, wasting startup time.`);
+      for (const issue of duplicates) {
+        console.log(`    ✗ '${issue.name}' - ${issue.detail}`);
+      }
+    }
+
+    console.log();
+  }
+
   // Status
   const hasBlockingIssues =
     report.unusedExports.length > THRESHOLDS.maxUnusedExports ||
-    report.orphanFiles.length > THRESHOLDS.maxOrphanFiles;
+    report.orphanFiles.length > THRESHOLDS.maxOrphanFiles ||
+    report.registrySyncIssues.some(i => i.type === 'manifest-only' || i.type === 'duplicate');
 
   console.log('======================================================================');
   if (hasBlockingIssues) {
@@ -422,6 +654,10 @@ function printReport(report: DeadCodeReport): void {
     }
     if (report.orphanFiles.length > THRESHOLDS.maxOrphanFiles) {
       console.log(`  ✗ Orphan files (${report.orphanFiles.length}) exceeds threshold (${THRESHOLDS.maxOrphanFiles})`);
+    }
+    const criticalSync = report.registrySyncIssues.filter(i => i.type === 'manifest-only' || i.type === 'duplicate');
+    if (criticalSync.length > 0) {
+      console.log(`  ✗ Registry desync (${criticalSync.length} critical issues) - BUILDER_MANIFEST and BUILDER_IMPORTS must be in sync`);
     }
   } else {
     console.log('  STATUS: PASSED');
@@ -443,7 +679,8 @@ function main(): void {
 
   const hasBlockingIssues =
     report.unusedExports.length > THRESHOLDS.maxUnusedExports ||
-    report.orphanFiles.length > THRESHOLDS.maxOrphanFiles;
+    report.orphanFiles.length > THRESHOLDS.maxOrphanFiles ||
+    report.registrySyncIssues.some(i => i.type === 'manifest-only' || i.type === 'duplicate');
 
   process.exit(hasBlockingIssues ? 1 : 0);
 }

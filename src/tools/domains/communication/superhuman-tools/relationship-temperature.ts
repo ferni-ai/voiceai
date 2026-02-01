@@ -11,7 +11,10 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from '../../../../services/superhuman/firestore-utils.js';
+import {
+  getFirestoreDb,
+  cleanForFirestore,
+} from '../../../../services/superhuman/firestore-utils.js';
 import type { RelationshipTemperature, CommunicationEvent } from './types.js';
 
 const log = createLogger({ module: 'relationship-temperature' });
@@ -57,9 +60,10 @@ function calculateTemperature(
 /**
  * Determine trend from temperature history.
  */
-function determineTrend(
-  history: RelationshipTemperature['temperatureHistory']
-): { trend: 'warming' | 'cooling' | 'stable'; strength: number } {
+function determineTrend(history: RelationshipTemperature['temperatureHistory']): {
+  trend: 'warming' | 'cooling' | 'stable';
+  strength: number;
+} {
   if (history.length < 2) {
     return { trend: 'stable', strength: 0 };
   }
@@ -105,7 +109,9 @@ export async function updateTemperature(
         currentTemperature: calculateTemperature(sentiment, 0, [sentiment]),
         trend: 'stable',
         trendStrength: 0,
-        temperatureHistory: [{ temperature: calculateTemperature(sentiment, 0, []), date: Date.now(), event }],
+        temperatureHistory: [
+          { temperature: calculateTemperature(sentiment, 0, []), date: Date.now(), event },
+        ],
         alerts: [],
         lastInteraction: Date.now(),
         daysSinceLastInteraction: 0,
@@ -113,11 +119,7 @@ export async function updateTemperature(
       };
     }
 
-    const docRef = db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc(contactId);
+    const docRef = db.collection('bogle_users').doc(userId).collection(COLLECTION).doc(contactId);
 
     const existing = await docRef.get();
     const existingData = existing.data() as RelationshipTemperature | undefined;
@@ -127,10 +129,11 @@ export async function updateTemperature(
       ? Math.floor((Date.now() - existingData.lastInteraction) / (24 * 60 * 60 * 1000))
       : 0;
 
-    const recentSentiments = existingData?.temperatureHistory.slice(-5).map((h) => {
-      // Estimate sentiment from temperature (reverse calculation)
-      return (h.temperature / 50) - 1;
-    }) || [];
+    const recentSentiments =
+      existingData?.temperatureHistory.slice(-5).map((h) => {
+        // Estimate sentiment from temperature (reverse calculation)
+        return h.temperature / 50 - 1;
+      }) || [];
 
     const newTemp = calculateTemperature(sentiment, daysSinceLastMention, recentSentiments);
 
@@ -164,11 +167,7 @@ export async function updateTemperature(
     }
 
     // Drift alert (gradual long-term cooling)
-    if (
-      history.length >= 10 &&
-      history[0].temperature - newTemp >= 20 &&
-      trend === 'cooling'
-    ) {
+    if (history.length >= 10 && history[0].temperature - newTemp >= 20 && trend === 'cooling') {
       const existingDriftAlert = alerts.find(
         (a) => a.type === 'drift' && Date.now() - a.createdAt < 14 * 24 * 60 * 60 * 1000
       );
@@ -183,9 +182,7 @@ export async function updateTemperature(
     }
 
     // Keep only recent alerts
-    const recentAlerts = alerts.filter(
-      (a) => Date.now() - a.createdAt < 30 * 24 * 60 * 60 * 1000
-    );
+    const recentAlerts = alerts.filter((a) => Date.now() - a.createdAt < 30 * 24 * 60 * 60 * 1000);
 
     const record: RelationshipTemperature = {
       contactId,
@@ -216,7 +213,10 @@ export async function updateTemperature(
 
     return record;
   } catch (error) {
-    log.warn({ error: String(error), userId, contactName }, 'Failed to update relationship temperature');
+    log.warn(
+      { error: String(error), userId, contactName },
+      'Failed to update relationship temperature'
+    );
     throw error;
   }
 }
@@ -264,7 +264,10 @@ export async function getTemperature(
 
     return data;
   } catch (error) {
-    log.warn({ error: String(error), userId, contactName }, 'Failed to get relationship temperature');
+    log.warn(
+      { error: String(error), userId, contactName },
+      'Failed to get relationship temperature'
+    );
     return null;
   }
 }
@@ -279,11 +282,7 @@ export async function getRelationshipsNeedingAttention(
     const db = getFirestoreDb();
     if (!db) return [];
 
-    const snapshot = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .get();
+    const snapshot = await db.collection('bogle_users').doc(userId).collection(COLLECTION).get();
 
     const allTemps = snapshot.docs.map((doc) => {
       const data = doc.data() as RelationshipTemperature;
@@ -349,18 +348,14 @@ export async function buildTemperatureContext(userId: string): Promise<string> {
     sections.push('\n🟡 **Worth Checking In:**');
     for (const t of moderate) {
       const tempEmoji = t.trend === 'cooling' ? '📉' : t.trend === 'warming' ? '📈' : '📊';
-      sections.push(
-        `• ${t.contactName}: ${t.currentTemperature}° ${tempEmoji} (${t.trend})`
-      );
+      sections.push(`• ${t.contactName}: ${t.currentTemperature}° ${tempEmoji} (${t.trend})`);
     }
   }
 
   if (watchList.length > 0 && urgent.length === 0 && moderate.length === 0) {
     sections.push('\n👀 **On Your Radar:**');
     for (const t of watchList.slice(0, 3)) {
-      sections.push(
-        `• ${t.contactName}: ${t.daysSinceLastInteraction} days since last mention`
-      );
+      sections.push(`• ${t.contactName}: ${t.daysSinceLastInteraction} days since last mention`);
     }
   }
 
@@ -388,8 +383,7 @@ export async function buildContactTemperatureContext(
   sections.push(`Current: ${temp.currentTemperature}° ${tempEmoji}`);
 
   // Trend
-  const trendEmoji =
-    temp.trend === 'warming' ? '📈' : temp.trend === 'cooling' ? '📉' : '➡️';
+  const trendEmoji = temp.trend === 'warming' ? '📈' : temp.trend === 'cooling' ? '📉' : '➡️';
   sections.push(`Trend: ${temp.trend} ${trendEmoji}`);
 
   // Time since contact

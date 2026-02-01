@@ -361,15 +361,23 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   }
 
   // =========================================================================
-  // PRIMING DISABLED - chatCtx.addMessage causes turns to be spoken aloud
-  // TODO: Find alternative approach that doesn't trigger TTS
-  // Options to explore:
-  // 1. Add priming examples directly into system prompt
-  // 2. Use a different LiveKit API that marks turns as "historical"
-  // 3. Filter priming content in the TTS sanitizer
+  // CONVERSATION PRIMING: ARCHITECTURAL DECISION
   // =========================================================================
-  // const personaId = sessionPersona?.id || 'ferni';
-  // diag.debug('🎯 PRIMING: Disabled - exploring alternative approaches');
+  // We experimented with chatCtx.addMessage() to prime the LLM with example
+  // turns, but this caused the TTS to speak them aloud. Current solution:
+  //
+  // - System prompt priming: Examples are embedded in the system prompt via
+  //   context builders (src/intelligence/context-builders/). This gives the
+  //   LLM the same context without triggering TTS.
+  //
+  // - LiveKit limitation: As of Jan 2026, there's no "historical-only" message
+  //   flag in the LiveKit Agents SDK. Messages added to chatCtx always appear
+  //   as new turns to the TTS pipeline.
+  //
+  // - Acceptable tradeoff: System prompt priming works well for our use case.
+  //   The greeting already leverages memory context and the LLM adapts to the
+  //   user's history through the injected context blocks.
+  // =========================================================================
 
   return {
     greeting,

@@ -66,15 +66,20 @@ export interface CelebrationBalance {
   daysSinceLastCelebration: number;
   /** Average celebrations per month */
   avgCelebrationsPerMonth: number;
-  
+
   /** Balance metrics */
   selfVsOthersRatio: number; // 0 = all others, 1 = all self
   largeVsSmallRatio: number; // 0 = all small, 1 = all large
   energyBalance: number; // Avg joy received / avg energy cost
-  
+
   /** Current state assessment */
-  state: 'balanced' | 'celebration_drought' | 'celebration_fatigue' | 'others_focused' | 'self_focused';
-  
+  state:
+    | 'balanced'
+    | 'celebration_drought'
+    | 'celebration_fatigue'
+    | 'others_focused'
+    | 'self_focused';
+
   /** Recommendations */
   recommendations: string[];
 }
@@ -125,7 +130,12 @@ async function loadCelebrationProfile(userId: string): Promise<CelebrationBalanc
   if (!db) return null;
 
   try {
-    const doc = await db.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile').get();
+    const doc = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection(COLLECTION)
+      .doc('profile')
+      .get();
     if (doc.exists) {
       return doc.data() as CelebrationBalanceProfile;
     }
@@ -136,7 +146,10 @@ async function loadCelebrationProfile(userId: string): Promise<CelebrationBalanc
   }
 }
 
-async function saveCelebrationProfile(userId: string, profile: CelebrationBalanceProfile): Promise<void> {
+async function saveCelebrationProfile(
+  userId: string,
+  profile: CelebrationBalanceProfile
+): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -180,7 +193,7 @@ export async function recordCelebration(
 
   const id = `cel_${Date.now()}`;
   const date = options?.date || new Date().toISOString().split('T')[0];
-  
+
   // Default energy cost based on size
   const energyCost = options?.energyCost ?? SIZE_ENERGY_MAP[size];
   // Default joy to match energy (balanced)
@@ -237,9 +250,7 @@ export async function getCelebrationBalance(userId: string): Promise<Celebration
   const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
   // Recent celebrations (last 30 days)
-  const recentCelebrations = profile.celebrations.filter(
-    (c) => new Date(c.date) >= thirtyDaysAgo
-  );
+  const recentCelebrations = profile.celebrations.filter((c) => new Date(c.date) >= thirtyDaysAgo);
 
   // Last celebration
   const sortedByDate = [...profile.celebrations].sort(
@@ -255,25 +266,30 @@ export async function getCelebrationBalance(userId: string): Promise<Celebration
   const lastSixMonthsCelebrations = profile.celebrations.filter(
     (c) => new Date(c.date) >= sixMonthsAgo
   );
-  const monthsOfData = Math.min(6, profile.celebrations.length > 0 ? 
-    Math.ceil((now.getTime() - new Date(sortedByDate[sortedByDate.length - 1].date).getTime()) / (30 * 24 * 60 * 60 * 1000)) : 1);
+  const monthsOfData = Math.min(
+    6,
+    profile.celebrations.length > 0
+      ? Math.ceil(
+          (now.getTime() - new Date(sortedByDate[sortedByDate.length - 1].date).getTime()) /
+            (30 * 24 * 60 * 60 * 1000)
+        )
+      : 1
+  );
   const avgCelebrationsPerMonth = lastSixMonthsCelebrations.length / Math.max(1, monthsOfData);
 
   // Self vs others ratio
   const selfCelebrations = profile.celebrations.filter(
     (c) => c.honoree === 'self' || c.honoree === 'both'
   ).length;
-  const selfVsOthersRatio = profile.celebrations.length > 0 
-    ? selfCelebrations / profile.celebrations.length 
-    : 0.5;
+  const selfVsOthersRatio =
+    profile.celebrations.length > 0 ? selfCelebrations / profile.celebrations.length : 0.5;
 
   // Large vs small ratio
-  const largeCelebrations = profile.celebrations.filter(
-    (c) => ['large', 'major'].includes(c.size)
+  const largeCelebrations = profile.celebrations.filter((c) =>
+    ['large', 'major'].includes(c.size)
   ).length;
-  const largeVsSmallRatio = profile.celebrations.length > 0 
-    ? largeCelebrations / profile.celebrations.length 
-    : 0;
+  const largeVsSmallRatio =
+    profile.celebrations.length > 0 ? largeCelebrations / profile.celebrations.length : 0;
 
   // Energy balance (joy received / energy cost)
   const totalJoy = profile.celebrations.reduce((sum, c) => sum + c.joyReceived, 0);
@@ -290,24 +306,18 @@ export async function getCelebrationBalance(userId: string): Promise<Celebration
       `It's been ${daysSinceLastCelebration} days since your last celebration. Life has good moments worth marking!`
     );
     recommendations.push(
-      "Even small wins count - finishing a project, a good conversation, making progress on a goal."
+      'Even small wins count - finishing a project, a good conversation, making progress on a goal.'
     );
   } else if (recentCelebrations.length >= CELEBRATION_FATIGUE_THRESHOLD) {
     state = 'celebration_fatigue';
     recommendations.push(
       `You've had ${recentCelebrations.length} celebrations in the last 30 days. That's wonderful, but also tiring!`
     );
-    recommendations.push(
-      "Consider some quieter, lower-energy ways to mark moments for a bit."
-    );
+    recommendations.push('Consider some quieter, lower-energy ways to mark moments for a bit.');
   } else if (selfVsOthersRatio < 0.25) {
     state = 'others_focused';
-    recommendations.push(
-      "You celebrate others beautifully, but you deserve celebration too!"
-    );
-    recommendations.push(
-      "What personal win have you not acknowledged lately?"
-    );
+    recommendations.push('You celebrate others beautifully, but you deserve celebration too!');
+    recommendations.push('What personal win have you not acknowledged lately?');
   } else if (selfVsOthersRatio > 0.85) {
     state = 'self_focused';
     recommendations.push(
@@ -318,13 +328,13 @@ export async function getCelebrationBalance(userId: string): Promise<Celebration
   // Additional recommendations based on patterns
   if (energyBalance < 0.7) {
     recommendations.push(
-      "Your celebrations have been costing more energy than joy they bring. Try some lower-key celebrations."
+      'Your celebrations have been costing more energy than joy they bring. Try some lower-key celebrations.'
     );
   }
 
   if (avgCelebrationsPerMonth < 1) {
     recommendations.push(
-      "Research shows celebrating small wins regularly boosts wellbeing. Aim for 2-3 moments of celebration per month."
+      'Research shows celebrating small wins regularly boosts wellbeing. Aim for 2-3 moments of celebration per month.'
     );
   }
 
@@ -358,30 +368,30 @@ export async function getCelebrationSuggestions(userId: string): Promise<{
 
   if (balance.state === 'celebration_drought') {
     result.suggestions = [
-      "Plan a small celebration this week - even just a nice dinner for yourself",
-      "Write down 3 things worth celebrating from the past month",
-      "Schedule a call with someone to share good news",
-      "Buy yourself something small as a treat",
+      'Plan a small celebration this week - even just a nice dinner for yourself',
+      'Write down 3 things worth celebrating from the past month',
+      'Schedule a call with someone to share good news',
+      'Buy yourself something small as a treat',
     ];
   } else if (balance.state === 'celebration_fatigue') {
     result.suggestions = [
-      "This week, try internal celebration - just pause and feel good about something",
-      "Skip the next event invitation if you need to - rest is important",
-      "Journal about recent wins instead of planning another party",
-      "Celebrate with solitude - a walk, a bath, quiet appreciation",
+      'This week, try internal celebration - just pause and feel good about something',
+      'Skip the next event invitation if you need to - rest is important',
+      'Journal about recent wins instead of planning another party',
+      'Celebrate with solitude - a walk, a bath, quiet appreciation',
     ];
   } else if (balance.state === 'others_focused') {
     result.suggestions = [
-      "What have YOU accomplished lately that deserves acknowledgment?",
-      "Schedule a self-date to celebrate your own wins",
+      'What have YOU accomplished lately that deserves acknowledgment?',
+      'Schedule a self-date to celebrate your own wins',
       "Tell someone about something you're proud of",
       "Treat yourself to something you've been putting off",
     ];
   } else {
     result.suggestions = [
-      "Your celebration balance is healthy!",
-      "Keep acknowledging both big and small wins",
-      "Mix personal celebrations with celebrating others",
+      'Your celebration balance is healthy!',
+      'Keep acknowledging both big and small wins',
+      'Mix personal celebrations with celebrating others',
     ];
   }
 
@@ -477,7 +487,10 @@ function createDefaultProfile(userId: string): CelebrationBalanceProfile {
   };
 }
 
-function updatePatterns(profile: CelebrationBalanceProfile, celebration: RecordedCelebration): void {
+function updatePatterns(
+  profile: CelebrationBalanceProfile,
+  celebration: RecordedCelebration
+): void {
   const date = new Date(celebration.date);
   const month = date.getMonth() + 1;
   const dayOfWeek = date.getDay();
@@ -502,13 +515,19 @@ function updatePatterns(profile: CelebrationBalanceProfile, celebration: Recorde
 
   // Detect preferred size from history
   const sizeCounts: Record<CelebrationSize, number> = {
-    micro: 0, small: 0, medium: 0, large: 0, major: 0
+    micro: 0,
+    small: 0,
+    medium: 0,
+    large: 0,
+    major: 0,
   };
   for (const c of profile.celebrations) {
     sizeCounts[c.size]++;
   }
-  const preferredSize = (Object.entries(sizeCounts) as [CelebrationSize, number][])
-    .sort((a, b) => b[1] - a[1])[0]?.[0] || 'small';
+  const preferredSize =
+    (Object.entries(sizeCounts) as [CelebrationSize, number][]).sort(
+      (a, b) => b[1] - a[1]
+    )[0]?.[0] || 'small';
   profile.preferences.preferredSize = preferredSize;
 }
 

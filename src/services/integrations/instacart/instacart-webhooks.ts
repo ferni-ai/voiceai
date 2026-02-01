@@ -18,7 +18,7 @@ const log = createLogger({ module: 'instacart-webhooks' });
 // TYPES
 // ============================================================================
 
-export type InstacartOrderStatus = 
+export type InstacartOrderStatus =
   | 'pending'
   | 'confirmed'
   | 'shopping'
@@ -42,8 +42,18 @@ export interface InstacartWebhookEvent {
 }
 
 export interface InstacartWebhookHandlers {
-  onOrderStatusChange?: (userId: string, orderId: string, status: InstacartOrderStatus, order?: InstacartOrder) => Promise<void>;
-  onItemSubstituted?: (userId: string, orderId: string, originalItem: string, newItem: string) => Promise<void>;
+  onOrderStatusChange?: (
+    userId: string,
+    orderId: string,
+    status: InstacartOrderStatus,
+    order?: InstacartOrder
+  ) => Promise<void>;
+  onItemSubstituted?: (
+    userId: string,
+    orderId: string,
+    originalItem: string,
+    newItem: string
+  ) => Promise<void>;
   onOrderDelivered?: (userId: string, orderId: string, deliveredAt: Date) => Promise<void>;
 }
 
@@ -51,19 +61,13 @@ export interface InstacartWebhookHandlers {
 // WEBHOOK SIGNATURE VERIFICATION
 // ============================================================================
 
-function verifySignature(
-  payload: string,
-  signature: string,
-  secret: string
-): boolean {
+function verifySignature(payload: string, signature: string, secret: string): boolean {
   if (!signature || !secret) {
     return false;
   }
 
   try {
-    const expectedSignature = createHmac('sha256', secret)
-      .update(payload)
-      .digest('hex');
+    const expectedSignature = createHmac('sha256', secret).update(payload).digest('hex');
 
     const signatureBuffer = Buffer.from(signature, 'hex');
     const expectedBuffer = Buffer.from(expectedSignature, 'hex');
@@ -110,7 +114,12 @@ async function processInstacartWebhook(
       }
 
       case 'order.item_substituted': {
-        if (handlers.onItemSubstituted && user_id && data?.original_item && data?.substituted_item) {
+        if (
+          handlers.onItemSubstituted &&
+          user_id &&
+          data?.original_item &&
+          data?.substituted_item
+        ) {
           await handlers.onItemSubstituted(
             user_id,
             order_id,
@@ -233,7 +242,7 @@ async function defaultStatusChangeHandler(
     confirmed: 'Your order has been confirmed!',
     shopping: 'A shopper is picking up your items.',
     delivering: 'Your groceries are on the way!',
-    delivered: "Your groceries have been delivered. Enjoy!",
+    delivered: 'Your groceries have been delivered. Enjoy!',
     cancelled: 'Your order was cancelled.',
   };
 

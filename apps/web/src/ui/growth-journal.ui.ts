@@ -20,6 +20,8 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
+import { getGrowthJournalIcon, GROWTH_ICONS } from './icons/shared-icons.js';
+import { createEmptyState } from './components/empty-state.js';
 
 const log = createLogger('GrowthJournal');
 
@@ -60,20 +62,13 @@ let isOpen = false;
 const STORAGE_KEY = 'ferni_growth_journal_cache';
 const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 
-const TYPE_ICONS: Record<string, string> = {
-  milestone: '🏆',
-  pattern: '🔄',
-  insight: '💡',
-  celebration: '🎉',
-  nudge: '🌱',
-};
-
+// Type colors using CSS variables with warm fallbacks (brand-compliant)
 const TYPE_COLORS: Record<string, string> = {
-  milestone: 'rgba(255, 215, 0, 0.1)',    // Gold
-  pattern: 'rgba(100, 180, 255, 0.1)',    // Blue
-  insight: 'rgba(255, 180, 100, 0.1)',    // Orange
-  celebration: 'rgba(255, 100, 180, 0.1)', // Pink
-  nudge: 'rgba(100, 200, 150, 0.1)',      // Green
+  milestone: 'var(--color-entry-milestone, rgba(196, 162, 101, 0.12))', // Warm amber
+  pattern: 'var(--color-entry-pattern, rgba(61, 90, 69, 0.12))',       // Ferni sage
+  insight: 'var(--color-entry-insight, rgba(168, 133, 98, 0.12))',     // Warm brown
+  celebration: 'var(--color-entry-celebration, rgba(196, 133, 106, 0.12))', // Warm coral
+  nudge: 'var(--color-entry-nudge, rgba(74, 103, 65, 0.12))',          // Forest green
 };
 
 // ============================================================================
@@ -230,18 +225,8 @@ function createDrawer(): void {
   content.className = 'growth-journal-content';
 
   if (entries.length === 0) {
-    const emptyState = document.createElement('div');
-    emptyState.className = 'growth-journal-empty';
-
-    const emptyIcon = document.createElement('span');
-    emptyIcon.textContent = '📓';
-    emptyIcon.setAttribute('aria-hidden', 'true');
-
-    const emptyText = document.createElement('p');
-    emptyText.textContent = 'Keep chatting - entries will appear as I notice patterns';
-
-    emptyState.appendChild(emptyIcon);
-    emptyState.appendChild(emptyText);
+    // Use shared empty state component for consistency
+    const emptyState = createEmptyState('growth-journal');
     content.appendChild(emptyState);
   } else {
     for (const entry of entries) {
@@ -282,7 +267,7 @@ function createEntryCard(entry: GrowthEntry): HTMLElement {
 
   const typeIcon = document.createElement('span');
   typeIcon.className = 'growth-journal-entry-icon';
-  typeIcon.textContent = TYPE_ICONS[entry.type] || '📝';
+  typeIcon.innerHTML = getGrowthJournalIcon(entry.type);
   typeIcon.setAttribute('aria-hidden', 'true');
 
   const date = document.createElement('span');
@@ -365,14 +350,14 @@ function injectStyles(): void {
       bottom: 0;
       width: 100%;
       max-width: 400px;
-      background: var(--color-bg-secondary, #1a1a2e);
-      border-left: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+      background: var(--color-bg-secondary, #2C2520);
+      border-left: 1px solid var(--glass-border, rgba(44, 37, 32, 0.2));
       z-index: var(--z-modal, 2100);
       display: flex;
       flex-direction: column;
       transform: translateX(100%);
       transition: transform ${DURATION.SLOW}ms ${EASING.EXPO_OUT};
-      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+      box-shadow: -4px 0 20px var(--shadow-color, rgba(44, 37, 32, 0.3));
     }
 
     .growth-journal-drawer--open {
@@ -385,7 +370,7 @@ function injectStyles(): void {
       align-items: flex-start;
       justify-content: space-between;
       padding: var(--space-lg, 26px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.05));
+      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
       flex-shrink: 0;
     }
 
@@ -393,13 +378,13 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-lg, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #ffffff);
+      color: var(--color-text-primary, #F5F1E8);
       margin: 0;
     }
 
     .growth-journal-subtitle {
       font-size: var(--font-size-sm, 0.875rem);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
       margin: var(--space-2xs, 2px) 0 0;
     }
 
@@ -412,7 +397,7 @@ function injectStyles(): void {
       background: transparent;
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
       font-size: 24px;
       cursor: pointer;
       flex-shrink: 0;
@@ -420,8 +405,8 @@ function injectStyles(): void {
     }
 
     .growth-journal-close:hover {
-      color: var(--color-text-primary, #ffffff);
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.1));
+      color: var(--color-text-primary, #F5F1E8);
+      background: var(--color-bg-elevated, rgba(245, 241, 232, 0.1));
     }
 
     .growth-journal-close:focus-visible {
@@ -447,18 +432,39 @@ function injectStyles(): void {
       justify-content: center;
       text-align: center;
       padding: var(--space-xl, 42px);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
     }
 
-    .growth-journal-empty span {
-      font-size: 2rem;
-      margin-bottom: var(--space-sm, 8px);
+    .growth-journal-empty-icon {
+      width: 48px;
+      height: 48px;
+      margin-bottom: var(--space-md, 16px);
+      color: var(--color-accent-primary, #4a6741);
+    }
+
+    .growth-journal-empty-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .growth-journal-empty-headline {
+      font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
+      font-size: var(--font-size-md, 1rem);
+      font-weight: 600;
+      color: var(--color-text-primary, #F5F1E8);
+      margin: 0 0 var(--space-sm, 8px);
+    }
+
+    .growth-journal-empty p {
+      font-size: var(--font-size-sm, 0.875rem);
+      line-height: 1.5;
+      margin: 0;
     }
 
     /* Entry cards */
     .growth-journal-entry {
       background: var(--entry-bg, transparent);
-      border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.05));
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
       border-radius: var(--radius-lg, 16px);
       padding: var(--space-md, 16px);
       transition: transform ${DURATION.FAST}ms, box-shadow ${DURATION.FAST}ms;
@@ -466,7 +472,7 @@ function injectStyles(): void {
 
     .growth-journal-entry:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 12px var(--shadow-color, rgba(44, 37, 32, 0.15));
     }
 
     .growth-journal-entry-meta {
@@ -477,25 +483,32 @@ function injectStyles(): void {
     }
 
     .growth-journal-entry-icon {
-      font-size: 1rem;
+      width: 18px;
+      height: 18px;
+      color: var(--color-accent-primary, #4a6741);
+    }
+
+    .growth-journal-entry-icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     .growth-journal-entry-date {
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
     }
 
     .growth-journal-entry-title {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-md, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #ffffff);
+      color: var(--color-text-primary, #F5F1E8);
       margin: 0 0 var(--space-xs, 4px);
     }
 
     .growth-journal-entry-content {
       font-size: var(--font-size-sm, 0.875rem);
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      color: var(--color-text-secondary, rgba(245, 241, 232, 0.8));
       line-height: 1.5;
       margin: 0;
     }
@@ -509,10 +522,10 @@ function injectStyles(): void {
 
     .growth-journal-entry-tag {
       padding: var(--space-2xs, 2px) var(--space-xs, 4px);
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-elevated, rgba(245, 241, 232, 0.08));
       border-radius: var(--radius-sm, 4px);
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
     }
 
     /* Mobile responsive */

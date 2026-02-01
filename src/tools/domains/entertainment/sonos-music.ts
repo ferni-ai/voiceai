@@ -76,11 +76,15 @@ export function createSonosMusicTools(userId: string) {
       parameters: z.object({
         query: z
           .string()
-          .describe('Music to play - song name, artist, genre, or mood (e.g., "jazz", "Taylor Swift", "chill vibes")'),
+          .describe(
+            'Music to play - song name, artist, genre, or mood (e.g., "jazz", "Taylor Swift", "chill vibes")'
+          ),
         room: z
           .string()
           .optional()
-          .describe('Room name to play on (e.g., "living room", "kitchen"). If not specified, uses last room or first available.'),
+          .describe(
+            'Room name to play on (e.g., "living room", "kitchen"). If not specified, uses last room or first available.'
+          ),
       }),
       execute: async ({ query, room }) => {
         log.info({ userId, query, room }, '🔊 TOOL: playSonosMusic called');
@@ -123,7 +127,7 @@ export function createSonosMusicTools(userId: string) {
      */
     searchSonosFavorites: llm.tool({
       description:
-        'Search the user\'s Sonos favorites. Use this to help find what music they have saved. Returns a list of matching favorites.',
+        "Search the user's Sonos favorites. Use this to help find what music they have saved. Returns a list of matching favorites.",
       parameters: z.object({
         query: z.string().describe('Search query for favorites'),
       }),
@@ -139,7 +143,10 @@ export function createSonosMusicTools(userId: string) {
           return `No favorites found matching "${query}". Try a different search or say "list my Sonos favorites" to see all of them.`;
         }
 
-        const list = favorites.slice(0, 10).map((f) => f.name).join(', ');
+        const list = favorites
+          .slice(0, 10)
+          .map((f) => f.name)
+          .join(', ');
         return `Found these favorites matching "${query}": ${list}`;
       },
     }),

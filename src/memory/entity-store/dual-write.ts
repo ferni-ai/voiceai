@@ -14,13 +14,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { resolvePerson } from './entity-resolver.js';
 import { createMention, recordMention, upsertRelationship } from './storage.js';
-import type {
-  Entity,
-  PersonCaptureInput,
-  CaptureContext,
-  EdgeType,
-  MentionType,
-} from './types.js';
+import type { Entity, PersonCaptureInput, CaptureContext, EdgeType, MentionType } from './types.js';
 
 const log = createLogger({ module: 'entity-store:dual-write' });
 
@@ -292,7 +286,10 @@ export async function interceptCommitmentWrite(
       type: 'commitment',
       canonicalName: commitmentData.content.slice(0, 100),
       aliases: [],
-      searchTokens: commitmentData.content.toLowerCase().split(/\s+/).filter(t => t.length > 2),
+      searchTokens: commitmentData.content
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((t) => t.length > 2),
       embedding: [],
       firstSeen: now,
       lastSeen: now,
@@ -387,7 +384,10 @@ export async function interceptDreamWrite(
       type: 'dream',
       canonicalName: dreamData.content.slice(0, 100),
       aliases: [],
-      searchTokens: dreamData.content.toLowerCase().split(/\s+/).filter(t => t.length > 2),
+      searchTokens: dreamData.content
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((t) => t.length > 2),
       embedding: [],
       firstSeen: now,
       lastSeen: now,
@@ -405,8 +405,22 @@ export async function interceptDreamWrite(
       },
       attributes: {
         _type: 'dream',
-        dreamCategory: (dreamData.category as 'career' | 'family' | 'creative' | 'travel' | 'lifestyle' | 'learning' | 'other') || 'other',
-        status: (dreamData.status as 'active_pursuit' | 'someday' | 'back_burner' | 'achieved' | 'abandoned') || 'someday',
+        dreamCategory:
+          (dreamData.category as
+            | 'career'
+            | 'family'
+            | 'creative'
+            | 'travel'
+            | 'lifestyle'
+            | 'learning'
+            | 'other') || 'other',
+        status:
+          (dreamData.status as
+            | 'active_pursuit'
+            | 'someday'
+            | 'back_burner'
+            | 'achieved'
+            | 'abandoned') || 'someday',
         underlyingMotivation: dreamData.motivation,
         obstacles: dreamData.obstacles,
       },
@@ -463,7 +477,10 @@ export async function interceptValueWrite(
       type: 'value',
       canonicalName: valueData.value,
       aliases: [],
-      searchTokens: valueData.value.toLowerCase().split(/\s+/).filter(t => t.length > 2),
+      searchTokens: valueData.value
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((t) => t.length > 2),
       embedding: [],
       firstSeen: now,
       lastSeen: now,
@@ -481,7 +498,17 @@ export async function interceptValueWrite(
       },
       attributes: {
         _type: 'value',
-        valueCategory: (valueData.category as 'family' | 'career' | 'health' | 'relationships' | 'growth' | 'creativity' | 'security' | 'freedom' | 'other') || 'other',
+        valueCategory:
+          (valueData.category as
+            | 'family'
+            | 'career'
+            | 'health'
+            | 'relationships'
+            | 'growth'
+            | 'creativity'
+            | 'security'
+            | 'freedom'
+            | 'other') || 'other',
         strength: (valueData.strength as 'mentioned' | 'evident' | 'core_identity') || 'mentioned',
         demonstrations: valueData.demonstrations,
       },

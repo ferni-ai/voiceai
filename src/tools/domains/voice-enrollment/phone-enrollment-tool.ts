@@ -58,9 +58,8 @@ Parameters:
       }
 
       try {
-        const { startPhoneVoiceEnrollment } = await import(
-          '../../../services/identity/sponsored-identity.js'
-        );
+        const { startPhoneVoiceEnrollment } =
+          await import('../../../services/identity/sponsored-identity.js');
 
         const result = await startPhoneVoiceEnrollment(identityId);
 
@@ -139,9 +138,8 @@ Parameters:
         };
       }
 
-      const { hasActiveEnrollment } = await import(
-        '../../../services/identity/sponsored-identity.js'
-      );
+      const { hasActiveEnrollment } =
+        await import('../../../services/identity/sponsored-identity.js');
 
       if (!hasActiveEnrollment(identityId)) {
         return {
@@ -197,9 +195,8 @@ Parameters:
         };
       }
 
-      const { cancelPhoneVoiceEnrollment, hasActiveEnrollment } = await import(
-        '../../../services/identity/sponsored-identity.js'
-      );
+      const { cancelPhoneVoiceEnrollment, hasActiveEnrollment } =
+        await import('../../../services/identity/sponsored-identity.js');
 
       if (!hasActiveEnrollment(identityId)) {
         return {

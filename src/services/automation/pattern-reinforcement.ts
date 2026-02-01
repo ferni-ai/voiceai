@@ -36,11 +36,11 @@ export type PatternType =
   | 'work_life_balance';
 
 export type ReinforcementMoment =
-  | 'in_conversation'  // During active chat
-  | 'session_start'    // At beginning of next session
-  | 'session_end'      // At end of session
+  | 'in_conversation' // During active chat
+  | 'session_start' // At beginning of next session
+  | 'session_end' // At end of session
   | 'proactive_outreach' // Via push/SMS/email
-  | 'milestone';       // At specific achievement points
+  | 'milestone'; // At specific achievement points
 
 export interface PatternOccurrence {
   id: string;
@@ -128,7 +128,7 @@ export const REINFORCEMENT_TEMPLATES: ReinforcementTemplate[] = [
     status: 'emerging',
     templates: [
       "I've noticed you've been {habit} a couple times now. That's the seed of something good.",
-      "You mentioned {habit} again - there might be a pattern forming here.",
+      'You mentioned {habit} again - there might be a pattern forming here.',
     ],
     personaPreference: 'maya',
     moment: 'in_conversation',
@@ -173,7 +173,7 @@ export const REINFORCEMENT_TEMPLATES: ReinforcementTemplate[] = [
     patternType: 'mood_improvement',
     status: 'emerging',
     templates: [
-      "Your energy feels different lately - lighter somehow. I noticed it in our last couple conversations.",
+      'Your energy feels different lately - lighter somehow. I noticed it in our last couple conversations.',
       "There's something shifting in how you're showing up. It's subtle but it's there.",
     ],
     personaPreference: 'ferni',
@@ -195,7 +195,7 @@ export const REINFORCEMENT_TEMPLATES: ReinforcementTemplate[] = [
     patternType: 'mood_improvement',
     status: 'established',
     templates: [
-      "Looking back at where you were {weeks} weeks ago... the shift is remarkable.",
+      'Looking back at where you were {weeks} weeks ago... the shift is remarkable.',
       "You've done the hard work of changing your emotional baseline. That's rare.",
     ],
     personaPreference: 'nayan',
@@ -209,7 +209,7 @@ export const REINFORCEMENT_TEMPLATES: ReinforcementTemplate[] = [
     status: 'emerging',
     templates: [
       "The way you talked about that difficult conversation - you're getting better at this.",
-      "I noticed you tried something different in how you communicated. How did it feel?",
+      'I noticed you tried something different in how you communicated. How did it feel?',
     ],
     personaPreference: 'alex',
     moment: 'in_conversation',
@@ -232,7 +232,7 @@ export const REINFORCEMENT_TEMPLATES: ReinforcementTemplate[] = [
     patternType: 'boundary_setting',
     status: 'emerging',
     templates: [
-      "You said no to something that would have been a yes before. That takes courage.",
+      'You said no to something that would have been a yes before. That takes courage.',
       "I heard you set a boundary. That's growth showing up in real life.",
     ],
     personaPreference: 'maya',
@@ -244,7 +244,7 @@ export const REINFORCEMENT_TEMPLATES: ReinforcementTemplate[] = [
     status: 'established',
     templates: [
       "You've become someone who protects their own needs. That's not selfish - that's healthy.",
-      "Your boundaries have become consistent. People are learning how to be around you.",
+      'Your boundaries have become consistent. People are learning how to be around you.',
     ],
     personaPreference: 'maya',
     moment: 'session_end',
@@ -256,7 +256,7 @@ export const REINFORCEMENT_TEMPLATES: ReinforcementTemplate[] = [
     patternType: 'resilience',
     status: 'emerging',
     templates: [
-      "You bounced back from that faster than before. Did you notice?",
+      'You bounced back from that faster than before. Did you notice?',
       "I see you recovering from setbacks differently now. Something's shifted.",
     ],
     personaPreference: 'ferni',
@@ -268,7 +268,7 @@ export const REINFORCEMENT_TEMPLATES: ReinforcementTemplate[] = [
     status: 'established',
     templates: [
       "You've built real resilience. Life still throws things at you, but you're different with it.",
-      "The version of you from {weeks} weeks ago would be amazed at how you handle challenges now.",
+      'The version of you from {weeks} weeks ago would be amazed at how you handle challenges now.',
     ],
     personaPreference: 'nayan',
     moment: 'session_end',
@@ -291,7 +291,7 @@ export const REINFORCEMENT_TEMPLATES: ReinforcementTemplate[] = [
     patternType: 'gratitude',
     status: 'established',
     templates: [
-      "Gratitude has become part of how you see the world. That changes everything.",
+      'Gratitude has become part of how you see the world. That changes everything.',
       "You've trained yourself to see good. That's a superpower.",
     ],
     personaPreference: 'nayan',
@@ -304,7 +304,7 @@ export const REINFORCEMENT_TEMPLATES: ReinforcementTemplate[] = [
     patternType: 'self_care',
     status: 'emerging',
     templates: [
-      "Taking care of yourself is starting to feel less like a luxury and more like a priority. I see it.",
+      'Taking care of yourself is starting to feel less like a luxury and more like a priority. I see it.',
       "You're putting yourself on your own to-do list. That's new.",
     ],
     personaPreference: 'maya',
@@ -433,7 +433,9 @@ async function updateDetectedPattern(
       pattern.totalOccurrences++;
 
       // Recalculate streak
-      const lastOccDate = new Date(pattern.occurrences[pattern.occurrences.length - 2]?.timestamp || pattern.firstOccurrence);
+      const lastOccDate = new Date(
+        pattern.occurrences[pattern.occurrences.length - 2]?.timestamp || pattern.firstOccurrence
+      );
       const daysSinceLast = (now.getTime() - lastOccDate.getTime()) / (1000 * 60 * 60 * 24);
 
       if (daysSinceLast <= PATTERN_THRESHOLDS.atRiskDays) {
@@ -489,7 +491,8 @@ async function updateDetectedPattern(
  * Determine pattern status based on occurrences
  */
 function determinePatternStatus(pattern: DetectedPattern): DetectedPattern['status'] {
-  const daysSinceLast = (Date.now() - new Date(pattern.lastOccurrence).getTime()) / (1000 * 60 * 60 * 24);
+  const daysSinceLast =
+    (Date.now() - new Date(pattern.lastOccurrence).getTime()) / (1000 * 60 * 60 * 24);
 
   if (daysSinceLast > PATTERN_THRESHOLDS.atRiskDays) {
     return 'at_risk';
@@ -521,7 +524,8 @@ function isReinforcementEligible(pattern: DetectedPattern): boolean {
 
   // Check cooldown
   if (pattern.lastReinforced) {
-    const daysSinceReinforcement = (Date.now() - new Date(pattern.lastReinforced).getTime()) / (1000 * 60 * 60 * 24);
+    const daysSinceReinforcement =
+      (Date.now() - new Date(pattern.lastReinforced).getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceReinforcement < PATTERN_THRESHOLDS.reinforcementCooldownDays) {
       return false;
     }
@@ -554,7 +558,9 @@ export async function getUserPatterns(userId: string): Promise<DetectedPattern[]
       .collection('detected_patterns')
       .get();
 
-    return snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as DetectedPattern);
+    return snapshot.docs.map(
+      (doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as DetectedPattern
+    );
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get user patterns');
     return [];
@@ -577,14 +583,19 @@ export function generateReinforcementMessage(
   context?: Record<string, string>
 ): ReinforcementMessage | null {
   // Find matching template
-  const template = REINFORCEMENT_TEMPLATES.find(
-    (t) => t.patternType === pattern.patternType && t.status === pattern.status
-  ) || REINFORCEMENT_TEMPLATES.find(
-    (t) => t.status === pattern.status // Fallback to status-only match
-  );
+  const template =
+    REINFORCEMENT_TEMPLATES.find(
+      (t) => t.patternType === pattern.patternType && t.status === pattern.status
+    ) ||
+    REINFORCEMENT_TEMPLATES.find(
+      (t) => t.status === pattern.status // Fallback to status-only match
+    );
 
   if (!template || template.templates.length === 0) {
-    log.warn({ patternType: pattern.patternType, status: pattern.status }, 'No template found for pattern');
+    log.warn(
+      { patternType: pattern.patternType, status: pattern.status },
+      'No template found for pattern'
+    );
     return null;
   }
 
@@ -597,8 +608,22 @@ export function generateReinforcementMessage(
     .replace('{pattern}', pattern.name.toLowerCase())
     .replace('{count}', String(pattern.totalOccurrences))
     .replace('{streak}', String(pattern.streak))
-    .replace('{weeks}', String(Math.floor((Date.now() - new Date(pattern.firstOccurrence).getTime()) / (1000 * 60 * 60 * 24 * 7))))
-    .replace('{days}', String(Math.floor((Date.now() - new Date(pattern.lastOccurrence).getTime()) / (1000 * 60 * 60 * 24))))
+    .replace(
+      '{weeks}',
+      String(
+        Math.floor(
+          (Date.now() - new Date(pattern.firstOccurrence).getTime()) / (1000 * 60 * 60 * 24 * 7)
+        )
+      )
+    )
+    .replace(
+      '{days}',
+      String(
+        Math.floor(
+          (Date.now() - new Date(pattern.lastOccurrence).getTime()) / (1000 * 60 * 60 * 24)
+        )
+      )
+    )
     .replace('{goal}', context?.goal || 'your goal');
 
   return {
@@ -617,9 +642,7 @@ export function generateReinforcementMessage(
 /**
  * Store and mark reinforcement as delivered
  */
-export async function deliverReinforcement(
-  reinforcement: ReinforcementMessage
-): Promise<void> {
+export async function deliverReinforcement(reinforcement: ReinforcementMessage): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -643,13 +666,17 @@ export async function deliverReinforcement(
       .doc(reinforcement.patternType)
       .update({
         lastReinforced: reinforcement.deliveredAt,
-        reinforcementCount: (await db
-          .collection('bogle_users')
-          .doc(reinforcement.userId)
-          .collection('detected_patterns')
-          .doc(reinforcement.patternType)
-          .get()
-          .then((doc: FirebaseFirestore.DocumentSnapshot) => (doc.data() as DetectedPattern)?.reinforcementCount || 0)) + 1,
+        reinforcementCount:
+          (await db
+            .collection('bogle_users')
+            .doc(reinforcement.userId)
+            .collection('detected_patterns')
+            .doc(reinforcement.patternType)
+            .get()
+            .then(
+              (doc: FirebaseFirestore.DocumentSnapshot) =>
+                (doc.data() as DetectedPattern)?.reinforcementCount || 0
+            )) + 1,
       });
 
     log.info(
@@ -724,101 +751,117 @@ export async function analyzeConversationForPatterns(
 
   for (const { regex, habit } of habitPatterns) {
     if (regex.test(conversationText)) {
-      occurrences.push(await recordPatternOccurrence({
-        userId,
-        patternType: 'habit_consistency',
-        description: habit,
-        context: `Discussed ${habit}`,
-        timestamp: new Date().toISOString(),
-        sessionId,
-        personaId,
-        strength: 0.6,
-      }));
+      occurrences.push(
+        await recordPatternOccurrence({
+          userId,
+          patternType: 'habit_consistency',
+          description: habit,
+          context: `Discussed ${habit}`,
+          timestamp: new Date().toISOString(),
+          sessionId,
+          personaId,
+          strength: 0.6,
+        })
+      );
     }
   }
 
   // Detect mood improvement
   if (metadata?.mood && metadata.mood.end > metadata.mood.start + 1) {
-    occurrences.push(await recordPatternOccurrence({
-      userId,
-      patternType: 'mood_improvement',
-      description: 'Mood improved during conversation',
-      context: `Mood: ${metadata.mood.start} → ${metadata.mood.end}`,
-      timestamp: new Date().toISOString(),
-      sessionId,
-      personaId,
-      strength: (metadata.mood.end - metadata.mood.start) / 5,
-    }));
+    occurrences.push(
+      await recordPatternOccurrence({
+        userId,
+        patternType: 'mood_improvement',
+        description: 'Mood improved during conversation',
+        context: `Mood: ${metadata.mood.start} → ${metadata.mood.end}`,
+        timestamp: new Date().toISOString(),
+        sessionId,
+        personaId,
+        strength: (metadata.mood.end - metadata.mood.start) / 5,
+      })
+    );
   }
 
   // Detect boundary setting
-  if (/said no|declined|set.*boundary|limit|couldn't take on|protected my/i.test(conversationText)) {
-    occurrences.push(await recordPatternOccurrence({
-      userId,
-      patternType: 'boundary_setting',
-      description: 'Set a boundary',
-      context: 'User mentioned setting a boundary',
-      timestamp: new Date().toISOString(),
-      sessionId,
-      personaId,
-      strength: 0.7,
-    }));
+  if (
+    /said no|declined|set.*boundary|limit|couldn't take on|protected my/i.test(conversationText)
+  ) {
+    occurrences.push(
+      await recordPatternOccurrence({
+        userId,
+        patternType: 'boundary_setting',
+        description: 'Set a boundary',
+        context: 'User mentioned setting a boundary',
+        timestamp: new Date().toISOString(),
+        sessionId,
+        personaId,
+        strength: 0.7,
+      })
+    );
   }
 
   // Detect resilience
   if (/bounced back|recovered|got through|handled it|managed to|despite/i.test(conversationText)) {
-    occurrences.push(await recordPatternOccurrence({
-      userId,
-      patternType: 'resilience',
-      description: 'Showed resilience',
-      context: 'User demonstrated recovery from setback',
-      timestamp: new Date().toISOString(),
-      sessionId,
-      personaId,
-      strength: 0.7,
-    }));
+    occurrences.push(
+      await recordPatternOccurrence({
+        userId,
+        patternType: 'resilience',
+        description: 'Showed resilience',
+        context: 'User demonstrated recovery from setback',
+        timestamp: new Date().toISOString(),
+        sessionId,
+        personaId,
+        strength: 0.7,
+      })
+    );
   }
 
   // Detect gratitude
   if (/grateful|thankful|appreciate|lucky to have|blessed/i.test(conversationText)) {
-    occurrences.push(await recordPatternOccurrence({
-      userId,
-      patternType: 'gratitude',
-      description: 'Expressed gratitude',
-      context: 'User expressed gratitude',
-      timestamp: new Date().toISOString(),
-      sessionId,
-      personaId,
-      strength: 0.6,
-    }));
+    occurrences.push(
+      await recordPatternOccurrence({
+        userId,
+        patternType: 'gratitude',
+        description: 'Expressed gratitude',
+        context: 'User expressed gratitude',
+        timestamp: new Date().toISOString(),
+        sessionId,
+        personaId,
+        strength: 0.6,
+      })
+    );
   }
 
   // Detect self-care
   if (/took.*break|rest.*day|treated myself|self.care|pamper|relax/i.test(conversationText)) {
-    occurrences.push(await recordPatternOccurrence({
-      userId,
-      patternType: 'self_care',
-      description: 'Self-care activity',
-      context: 'User mentioned self-care',
-      timestamp: new Date().toISOString(),
-      sessionId,
-      personaId,
-      strength: 0.6,
-    }));
+    occurrences.push(
+      await recordPatternOccurrence({
+        userId,
+        patternType: 'self_care',
+        description: 'Self-care activity',
+        context: 'User mentioned self-care',
+        timestamp: new Date().toISOString(),
+        sessionId,
+        personaId,
+        strength: 0.6,
+      })
+    );
   }
 
   // Detect goal progress
   if (metadata?.commitments && metadata.commitments.length > 0) {
-    occurrences.push(await recordPatternOccurrence({
-      userId,
-      patternType: 'goal_progress',
-      description: 'Made progress on goals',
-      context: `Commitments: ${metadata.commitments.join(', ')}`,
-      timestamp: new Date().toISOString(),
-      sessionId,
-      personaId,
-      strength: 0.7,
-    }));
+    occurrences.push(
+      await recordPatternOccurrence({
+        userId,
+        patternType: 'goal_progress',
+        description: 'Made progress on goals',
+        context: `Commitments: ${metadata.commitments.join(', ')}`,
+        timestamp: new Date().toISOString(),
+        sessionId,
+        personaId,
+        strength: 0.7,
+      })
+    );
   }
 
   log.info(

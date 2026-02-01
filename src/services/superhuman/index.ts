@@ -33,6 +33,19 @@ import { buildMilestoneContext } from './relationship-milestones.js';
 
 import { buildSeasonalContext } from './seasonal-awareness.js';
 
+// V5 "Better Than Human" - Advanced Intelligence Services (January 2026)
+import { buildBiometricHabitContext } from './biometric-habit-intelligence.js';
+import { buildCausalInferenceContext } from './causal-inference-engine.js';
+import { buildCommunicationIntelligenceContext } from './communication-intelligence-engine.js';
+import { buildContemplativeContext } from './contemplative-intelligence.js';
+import { buildDevelopmentalContext } from './developmental-stage-awareness.js';
+import { buildFinancialPatternContext } from './financial-pattern-intelligence.js';
+import { buildHabitEconomicsContext } from './habit-economics.js';
+import { buildHabitOptimizationContext } from './habit-optimization-engine.js';
+import { buildLifeTrajectoryContext } from './life-trajectory-simulator.js';
+import { buildExperimentationContext } from './n1-experimentation-platform.js';
+import { buildOrchestrationContext } from './orchestration-intelligence.js';
+
 // ============================================================================
 // RE-EXPORTS
 // ============================================================================
@@ -298,6 +311,18 @@ export interface SuperhumanContext {
   planningCoordination: string;
   seasonalPlanning: string;
   postEventLearning: string;
+  // "Better Than Human" V5 - Advanced Intelligence Services (January 2026)
+  biometricHabit: string;
+  causalInference: string;
+  communicationIntelligence: string;
+  contemplative: string;
+  developmental: string;
+  financialPattern: string;
+  habitEconomics: string;
+  habitOptimization: string;
+  lifeTrajectory: string;
+  experimentation: string;
+  orchestration: string;
 }
 
 /**
@@ -374,6 +399,18 @@ export async function buildSuperhumanContext(
     planningCoordination,
     seasonalPlanning,
     postEventLearning,
+    // V5 Advanced Intelligence Services
+    biometricHabit,
+    causalInference,
+    communicationIntelligence,
+    contemplative,
+    developmental,
+    financialPattern,
+    habitEconomics,
+    habitOptimization,
+    lifeTrajectory,
+    experimentation,
+    orchestration,
   ] = await Promise.all([
     buildCommitmentContext(userId),
     buildPredictiveContextString(userId),
@@ -416,6 +453,18 @@ export async function buildSuperhumanContext(
     buildPlanningCoordinationContext(userId),
     buildSeasonalPlanningContext(userId),
     buildPostEventLearningContext(userId),
+    // V5 Advanced Intelligence Services (January 2026)
+    buildBiometricHabitContext(userId),
+    buildCausalInferenceContext(userId),
+    buildCommunicationIntelligenceContext(userId),
+    buildContemplativeContext(userId),
+    buildDevelopmentalContext(userId),
+    buildFinancialPatternContext(userId),
+    buildHabitEconomicsContext(userId),
+    buildHabitOptimizationContext(userId),
+    buildLifeTrajectoryContext(userId),
+    buildExperimentationContext(userId),
+    buildOrchestrationContext(userId),
   ]);
 
   // Synchronous builders (don't need await)
@@ -482,6 +531,18 @@ export async function buildSuperhumanContext(
     planningCoordination,
     seasonalPlanning,
     postEventLearning,
+    // V5 Advanced Intelligence Services
+    biometricHabit,
+    causalInference,
+    communicationIntelligence,
+    contemplative,
+    developmental,
+    financialPattern,
+    habitEconomics,
+    habitOptimization,
+    lifeTrajectory,
+    experimentation,
+    orchestration,
   };
 }
 
@@ -572,6 +633,26 @@ export function formatSuperhumanContextForPrompt(context: SuperhumanContext): st
     if (betterThanHumanV4.length > 0) {
       sections.push('\n[BETTER THAN HUMAN V4 - Jordan Superhuman Planning]\n');
       sections.push(...betterThanHumanV4);
+    }
+
+    // V5 Advanced Intelligence Services
+    const betterThanHumanV5 = [
+      context.biometricHabit,
+      context.causalInference,
+      context.communicationIntelligence,
+      context.contemplative,
+      context.developmental,
+      context.financialPattern,
+      context.habitEconomics,
+      context.habitOptimization,
+      context.lifeTrajectory,
+      context.experimentation,
+      context.orchestration,
+    ].filter((c) => c && c.length > 0);
+
+    if (betterThanHumanV5.length > 0) {
+      sections.push('\n[BETTER THAN HUMAN V5 - Advanced Intelligence]\n');
+      sections.push(...betterThanHumanV5);
     }
   }
 

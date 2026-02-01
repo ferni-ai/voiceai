@@ -17,7 +17,11 @@
 
 import { createLogger } from '../../../../utils/safe-logger.js';
 import { callLLM } from '../../../../services/llm-utils.js';
-import { TEMP_REASONING, MAX_TOKENS_TINY, LLM_TIMEOUT_MS } from '../../../../config/gemini-config.js';
+import {
+  TEMP_REASONING,
+  MAX_TOKENS_TINY,
+  LLM_TIMEOUT_MS,
+} from '../../../../config/gemini-config.js';
 import type { OutreachIntent } from './unified-outreach.js';
 
 const log = createLogger({ module: 'message-crafting' });

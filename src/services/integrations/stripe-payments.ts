@@ -12,7 +12,10 @@
 
 import { getConfig } from '../../config/environment.js';
 import { getStore } from '../../memory/store-factory.js';
-import { createDefaultMonetizationData, type UserMonetizationData } from '../../types/monetization.js';
+import {
+  createDefaultMonetizationData,
+  type UserMonetizationData,
+} from '../../types/monetization.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 

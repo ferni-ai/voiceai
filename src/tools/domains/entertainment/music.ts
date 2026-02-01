@@ -236,7 +236,10 @@ export async function playMusicUnified(query: string): Promise<string> {
   // 🔊 If user mentions Sonos but this tool was called, guide them
   // Note: The LLM should route Sonos requests to playSonosMusic tool instead
   if (explicitSonos || roomName) {
-    log.info({ query, roomName, explicitSonos }, '🎵 Sonos mentioned - LLM should use playSonosMusic');
+    log.info(
+      { query, roomName, explicitSonos },
+      '🎵 Sonos mentioned - LLM should use playSonosMusic'
+    );
     // Return helpful message - this shouldn't happen if tools are configured correctly
     // but provides fallback UX if it does
     return `To play on Sonos, I'll use the playSonosMusic tool. Let me try that for "${query}"${roomName ? ` in ${roomName}` : ''}...`;
@@ -342,26 +345,30 @@ async function playAmbientMusic(query: string): Promise<string> {
     return `Something went wrong with the audio system while trying to play ${query} music. You might need to reconnect for music to work.`;
   }
 
-  // 🎧 DJ MODE: Queue just ONE backup track for smooth transition
-  // After that, let the DJ decide whether to keep it going with personality!
-  // This makes the DJ feel more alive - not just an auto-queue robot.
-  if (tracksWithPreviews.length > 1) {
-    const backupTrack = tracksWithPreviews[1];
+  // 🎧 DJ MODE: Queue multiple tracks for a continuous DJ experience
+  // Each track is ~30 seconds, so 5 tracks = ~2.5 minutes of continuous music
+  // This gives the user a proper music session, not just 2 quick songs!
+  const TRACKS_TO_QUEUE = 4; // Queue 4 backup tracks (+ 1 playing = 5 total)
+  const tracksToQueue = tracksWithPreviews.slice(1, TRACKS_TO_QUEUE + 1);
+
+  for (const backupTrack of tracksToQueue) {
     musicPlayer.addToQueue({
       name: backupTrack.trackName,
       artist: backupTrack.artistName,
       previewUrl: backupTrack.previewUrl!,
       duration: ITUNES_PREVIEW_DURATION_MS,
+      albumArt: backupTrack.artworkUrl100,
     });
   }
 
   log.info(
     {
       firstTrack: firstTrack.trackName,
-      backupTrack: tracksWithPreviews[1]?.trackName || 'none',
+      queuedTracks: tracksToQueue.map((t) => t.trackName),
+      queueLength: tracksToQueue.length,
       totalTracksFound: tracksWithPreviews.length,
     },
-    '🎧 DJ Mode: Playing with one backup, DJ will decide from there!'
+    '🎧 DJ Mode: Playing with continuous queue for a proper music session!'
   );
 
   // Return ambient-style response (short, doesn't interrupt conversation)
@@ -1143,16 +1150,16 @@ export function createMusicTools() {
         // The DJ Controller tracks music state but preferences are per-user
         const djController = getDJController();
         const state = djController.getState();
-        
+
         const parts: string[] = [];
-        
+
         if (state.currentTrack) {
           parts.push(`I know you're currently listening to ${state.currentTrack.name}.`);
         }
-        
+
         parts.push("I'm learning your music preferences as we listen together!");
-        
-        return parts.length > 0 
+
+        return parts.length > 0
           ? parts.join(' ')
           : "I'm still learning your music preferences! Play some music and tell me what you like.";
       },

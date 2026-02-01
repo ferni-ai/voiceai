@@ -68,9 +68,8 @@ export const VOICE_IDS = {
   JOEL_DICKSON: '3ebcd114-d280-4eed-a238-b9323a6b8e52',
 
   // Financial Legends team - Added Jan 2026
-  // NOTE: Select appropriate voices from https://play.cartesia.ai/library
-  PETER_LYNCH: 'a0e99841-438c-4a64-b679-ae501e7d6091', // Placeholder - select mature male voice
-  JOHN_BOGLE: '79a125e8-cd45-4c13-8a67-188112f4dd22',  // Placeholder - select warm elder male voice
+  PETER_LYNCH: '85680374-8d94-43a1-bb15-5eea7a8bdbb8',
+  JOHN_BOGLE: '9c10dc48-8799-42f9-a72a-0c7dfe13a06d',
 
   // Generic advisor fallback
   GENERIC: '79a125e8-cd45-4c13-8a67-188112f4dd22',

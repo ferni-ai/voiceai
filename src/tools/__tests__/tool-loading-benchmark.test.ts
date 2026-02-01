@@ -90,9 +90,7 @@ describe('Tool Loading Performance Benchmarks', () => {
       console.log('\n' + '='.repeat(80));
       console.log('TOOL LOADING BENCHMARK RESULTS');
       console.log('='.repeat(80));
-      console.log(
-        '\n| Strategy | Avg | Min | Max | P50 | P95 | P99 |'
-      );
+      console.log('\n| Strategy | Avg | Min | Max | P50 | P95 | P99 |');
       console.log('|----------|-----|-----|-----|-----|-----|-----|');
       for (const r of results) {
         console.log(
@@ -131,9 +129,8 @@ describe('Tool Loading Performance Benchmarks', () => {
         async () => {
           // Reset state for each iteration
           (globalThis as any)[Symbol.for('ferni.toolEmbeddings')] = undefined;
-          const { loadPrecomputedEmbeddings } = await import(
-            '../../tools/semantic-router/precomputed-embeddings.js'
-          );
+          const { loadPrecomputedEmbeddings } =
+            await import('../../tools/semantic-router/precomputed-embeddings.js');
           await loadPrecomputedEmbeddings();
         },
         5
@@ -147,9 +144,8 @@ describe('Tool Loading Performance Benchmarks', () => {
     it('should benchmark semantic matching with pre-computed embeddings', async () => {
       // Pre-load embeddings
       (globalThis as any)[Symbol.for('ferni.toolEmbeddings')] = undefined;
-      const { loadPrecomputedEmbeddings, semanticSearchTools } = await import(
-        '../../tools/semantic-router/precomputed-embeddings.js'
-      );
+      const { loadPrecomputedEmbeddings, semanticSearchTools } =
+        await import('../../tools/semantic-router/precomputed-embeddings.js');
       await loadPrecomputedEmbeddings();
 
       const testQueries = [
@@ -180,9 +176,8 @@ describe('Tool Loading Performance Benchmarks', () => {
         'Session Cache Warmup',
         async () => {
           const sessionId = `bench-${Date.now()}-${Math.random()}`;
-          const { warmupHandoffToolsForSession, clearHandoffToolsCache } = await import(
-            '../../tools/handoff/session-cache.js'
-          );
+          const { warmupHandoffToolsForSession, clearHandoffToolsCache } =
+            await import('../../tools/handoff/session-cache.js');
           await warmupHandoffToolsForSession(sessionId, null, 'free', {});
           clearHandoffToolsCache(sessionId);
         },
@@ -242,9 +237,8 @@ describe('Tool Loading Performance Benchmarks', () => {
 
       const start = performance.now();
       try {
-        const { loadPrecomputedEmbeddings } = await import(
-          '../../tools/semantic-router/precomputed-embeddings.js'
-        );
+        const { loadPrecomputedEmbeddings } =
+          await import('../../tools/semantic-router/precomputed-embeddings.js');
         await loadPrecomputedEmbeddings();
         const elapsed = performance.now() - start;
         console.log(`🧠 Embeddings cold load: ${Math.round(elapsed)}ms`);

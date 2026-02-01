@@ -188,19 +188,14 @@ export async function insertFact(fact: Omit<GraphFact, 'createdAt'>): Promise<vo
     log.debug({ factId: fact.factId, domain }, 'Fact inserted with domain');
 
     // Index for semantic search (non-blocking)
-    fireAndForget(
-      async () => {
-        const { indexMemory } = await import('../retrieval/semantic-memory-search.js');
-        await indexMemory(
-          fact.userId,
-          `${fact.key}: ${fact.value}`,
-          'fact',
-          fact.factId,
-          { domain, factType: fact.factType, confidence: fact.confidence }
-        );
-      },
-      `index-fact-for-semantic-search:${fact.factId}`
-    );
+    fireAndForget(async () => {
+      const { indexMemory } = await import('../retrieval/semantic-memory-search.js');
+      await indexMemory(fact.userId, `${fact.key}: ${fact.value}`, 'fact', fact.factId, {
+        domain,
+        factType: fact.factType,
+        confidence: fact.confidence,
+      });
+    }, `index-fact-for-semantic-search:${fact.factId}`);
   } catch (error) {
     log.warn({ error: String(error), factId: fact.factId }, 'Failed to insert fact');
   }

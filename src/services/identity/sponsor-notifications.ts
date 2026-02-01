@@ -143,10 +143,7 @@ export function getPendingApproval(approvalId: string): PendingApproval | undefi
 /**
  * Update a pending approval's status.
  */
-export function updateApprovalStatus(
-  approvalId: string,
-  status: 'approved' | 'rejected'
-): boolean {
+export function updateApprovalStatus(approvalId: string, status: 'approved' | 'rejected'): boolean {
   const approval = pendingApprovals.get(approvalId);
   if (!approval) return false;
 
@@ -191,10 +188,7 @@ export async function findUsersByName(sponsorName: string): Promise<UserProfile[
       }
     }
 
-    log.debug(
-      { sponsorName, matchCount: results.length },
-      'Found potential sponsors by name'
-    );
+    log.debug({ sponsorName, matchCount: results.length }, 'Found potential sponsors by name');
   } catch (error) {
     log.warn({ error: String(error), sponsorName }, 'Error searching for sponsors by name');
   }
@@ -356,7 +350,9 @@ export async function approvePendingApproval(
 
     await approveSelfRegisteredIdentity(approval.identityId, sponsorUserId, {
       displayName: updates?.displayName || approval.callerName,
-      relationship: (updates?.relationship || approval.relationship) as import('./sponsored-identity.js').RelationshipType | undefined,
+      relationship: (updates?.relationship || approval.relationship) as
+        | import('./sponsored-identity.js').RelationshipType
+        | undefined,
       accessLevel: updates?.accessLevel || 'full',
       notes: updates?.notes || approval.notes,
     });
@@ -404,10 +400,7 @@ export async function rejectPendingApproval(
   try {
     const { deleteSponsoredIdentity } = await import('./sponsored-identity.js');
     await deleteSponsoredIdentity(approval.identityId, sponsorUserId);
-    log.info(
-      { approvalId, identityId: approval.identityId },
-      'Deleted rejected pending identity'
-    );
+    log.info({ approvalId, identityId: approval.identityId }, 'Deleted rejected pending identity');
   } catch (error) {
     // Non-fatal - identity might not exist
     log.debug({ error: String(error) }, 'Could not delete rejected identity (may not exist)');

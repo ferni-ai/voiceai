@@ -262,9 +262,11 @@ This caller likely already has a web/app account. Linking their phone will:
 - Keep all their memories and context in one place
 
 SUGGEST NATURALLY:
-${match.matchType === 'email' 
-  ? `- "I think I know you from the app! Is this ${match.profile.name || 'you'}?"` 
-  : `- "That name sounds familiar - do you also use the Ferni app?"`}
+${
+  match.matchType === 'email'
+    ? `- "I think I know you from the app! Is this ${match.profile.name || 'you'}?"`
+    : `- "That name sounds familiar - do you also use the Ferni app?"`
+}
 - "Would you like me to link this phone to your account?"
 
 If they confirm, use the link_phone_to_account tool with:
@@ -307,9 +309,11 @@ I found a potential match, but not 100% sure:
 - What they mentioned: ${signalDescriptions.join(', ')}
 
 VERIFY BEFORE OFFERING TO LINK:
-${match.matchType === 'name' 
-  ? `- "Do you also use the Ferni app? I think we may have talked there before."` 
-  : `- "I think I recognize you - do you use Ferni on your phone or computer too?"`}
+${
+  match.matchType === 'name'
+    ? `- "Do you also use the Ferni app? I think we may have talked there before."`
+    : `- "I think I recognize you - do you use Ferni on your phone or computer too?"`
+}
 
 If they confirm AND want to link:
 - Use the link_phone_to_account tool

@@ -137,9 +137,9 @@ describe('async utilities', () => {
     it('should throw after max retries', async () => {
       const fn = vi.fn().mockRejectedValue(new Error('network error'));
 
-      await expect(
-        retry(fn, { maxRetries: 2, initialDelay: 10, jitter: false })
-      ).rejects.toThrow('network error');
+      await expect(retry(fn, { maxRetries: 2, initialDelay: 10, jitter: false })).rejects.toThrow(
+        'network error'
+      );
 
       expect(fn).toHaveBeenCalledTimes(3); // Initial + 2 retries
     });

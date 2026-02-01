@@ -12,7 +12,10 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from '../../../../services/superhuman/firestore-utils.js';
+import {
+  getFirestoreDb,
+  cleanForFirestore,
+} from '../../../../services/superhuman/firestore-utils.js';
 import type { ConflictRecord } from './types.js';
 
 const log = createLogger({ module: 'conflict-replay' });
@@ -61,7 +64,7 @@ const ESCALATION_TRIGGERS = [
   {
     pattern: /\bi don('t|'t) (even )?care\b/i,
     trigger: 'Expressing indifference',
-    suggestion: 'Even if frustrated, this signals you\'ve checked out',
+    suggestion: "Even if frustrated, this signals you've checked out",
     escalationLevel: 8,
   },
   {
@@ -85,7 +88,7 @@ const ESCALATION_TRIGGERS = [
   {
     pattern: /\b(see|this is) why (i|we)\b/i,
     trigger: '"This is why" statements',
-    suggestion: 'Sounds like you\'ve given up. Stay in problem-solving mode.',
+    suggestion: "Sounds like you've given up. Stay in problem-solving mode.",
     escalationLevel: 7,
   },
 ];
@@ -467,10 +470,7 @@ export async function analyzeConflictPatterns(
 /**
  * Build conflict analysis context for LLM.
  */
-export async function buildConflictContext(
-  userId: string,
-  contactName?: string
-): Promise<string> {
+export async function buildConflictContext(userId: string, contactName?: string): Promise<string> {
   if (contactName) {
     const patterns = await analyzeConflictPatterns(userId, contactName);
 

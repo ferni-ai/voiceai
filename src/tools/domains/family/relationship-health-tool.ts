@@ -37,18 +37,16 @@ export async function checkRelationshipHealth(
   const { contactName } = params;
 
   try {
-    const { getAllRelationshipHealth, getRelationshipHealth } = await import(
-      '../../../services/outreach/relationship-health-tracker.js'
-    );
+    const { getAllRelationshipHealth, getRelationshipHealth } =
+      await import('../../../services/outreach/relationship-health-tracker.js');
 
     // If specific contact, get their health
     if (contactName) {
       // First, resolve contact phone
       let contactPhone: string | undefined;
       try {
-        const { findContactForTelephony, isEntityStoreReady } = await import(
-          '../../../memory/entity-store/integration.js'
-        );
+        const { findContactForTelephony, isEntityStoreReady } =
+          await import('../../../memory/entity-store/integration.js');
         if (isEntityStoreReady()) {
           const contact = await findContactForTelephony(ctx.userId, contactName);
           contactPhone = contact?.phone;
@@ -82,14 +80,14 @@ export async function checkRelationshipHealth(
       return (
         "I don't have enough call history yet to assess relationship health. " +
         "As I make more calls on your behalf, I'll track how your conversations are going " +
-        "and let you know if anything needs attention."
+        'and let you know if anything needs attention.'
       );
     }
 
     return formatAllRelationshipHealth(allHealth);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to check relationship health');
-    return "I had trouble checking relationship health. Let me try again later.";
+    return 'I had trouble checking relationship health. Let me try again later.';
   }
 }
 
@@ -115,23 +113,30 @@ function formatSingleRelationshipHealth(
 
   // Overall assessment
   const healthEmoji = health.healthScore >= 70 ? '💚' : health.healthScore >= 40 ? '💛' : '🧡';
-  const healthDescription = 
-    health.healthScore >= 80 ? 'strong and healthy' :
-    health.healthScore >= 60 ? 'good' :
-    health.healthScore >= 40 ? 'okay, but could use some attention' :
-    'needing some care';
+  const healthDescription =
+    health.healthScore >= 80
+      ? 'strong and healthy'
+      : health.healthScore >= 60
+        ? 'good'
+        : health.healthScore >= 40
+          ? 'okay, but could use some attention'
+          : 'needing some care';
 
   parts.push(
     `${healthEmoji} Your relationship with ${contactName} is ${healthDescription}. ` +
-    `Based on ${health.totalCalls} call${health.totalCalls !== 1 ? 's' : ''}, ` +
-    `here's what I'm noticing:`
+      `Based on ${health.totalCalls} call${health.totalCalls !== 1 ? 's' : ''}, ` +
+      `here's what I'm noticing:`
   );
 
   // Trend
-  const trendEmoji = health.trend === 'improving' ? '📈' : health.trend === 'declining' ? '📉' : '➡️';
-  const trendText = health.trend === 'improving' ? 'getting stronger' :
-                   health.trend === 'declining' ? 'could use more attention' :
-                   'staying steady';
+  const trendEmoji =
+    health.trend === 'improving' ? '📈' : health.trend === 'declining' ? '📉' : '➡️';
+  const trendText =
+    health.trend === 'improving'
+      ? 'getting stronger'
+      : health.trend === 'declining'
+        ? 'could use more attention'
+        : 'staying steady';
   parts.push(`\n${trendEmoji} **Trend:** Things are ${trendText}.`);
 
   // Sentiment
@@ -200,7 +205,8 @@ function formatAllRelationshipHealth(
     parts.push('**💛 Doing okay:**');
     for (const health of middle) {
       const name = health.contactName || 'Contact';
-      const trendArrow = health.trend === 'improving' ? '↑' : health.trend === 'declining' ? '↓' : '→';
+      const trendArrow =
+        health.trend === 'improving' ? '↑' : health.trend === 'declining' ? '↓' : '→';
       parts.push(`- ${name}: Score ${health.healthScore}/100 ${trendArrow}`);
     }
     parts.push('');
@@ -219,7 +225,9 @@ function formatAllRelationshipHealth(
   // Overall recommendation
   if (needsAttention.length > 0) {
     const priority = needsAttention[0];
-    parts.push(`\n💡 **Suggestion:** ${priority.contactName} could use some extra attention. Want me to call them?`);
+    parts.push(
+      `\n💡 **Suggestion:** ${priority.contactName} could use some extra attention. Want me to call them?`
+    );
   } else if (healthy.length === allHealth.length) {
     parts.push('\n✨ All your relationships are in great shape! Keep up the regular check-ins.');
   }

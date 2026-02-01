@@ -14,15 +14,14 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
-import type { LeakageDetection, LeakagePatternType } from '../types.js';
-import { getAllToolPatterns, getParamPatterns, getTeamMemberNames } from './patterns-loader.js';
 import {
-  likelyContainsFunctionCall as nativeLikelyContains,
-  containsAnyToolName,
   buildToolNameAutomaton,
-  isNativeJsonParserAvailable,
   extractFunctionCalls,
+  isNativeJsonParserAvailable,
+  likelyContainsFunctionCall as nativeLikelyContains,
 } from '../../native-json-parser.js';
+import type { LeakageDetection } from '../types.js';
+import { getAllToolPatterns, getParamPatterns, getTeamMemberNames } from './patterns-loader.js';
 
 const log = createLogger({ module: 'leakage-detector' });
 
@@ -116,11 +115,11 @@ const INTENTION_PATTERNS: RegExp[] = [
  * These are specific patterns for music-related tool call announcements
  */
 const MUSIC_ANNOUNCEMENT_PATTERNS: RegExp[] = [
-  /^i(?:'ll| will) play\b/i,          // "I'll play jazz for you"
-  /^let me play\b/i,                  // "Let me play that song"
-  /^i(?:'m| am) going to play\b/i,    // "I'm going to play some music"
-  /^playing\b.*\bfor you/i,           // "Playing some jazz for you"
-  /^playing\b/i,                       // "Playing 'Bohemian Rhapsody' now" or "Playing some jazz"
+  /^i(?:'ll| will) play\b/i, // "I'll play jazz for you"
+  /^let me play\b/i, // "Let me play that song"
+  /^i(?:'m| am) going to play\b/i, // "I'm going to play some music"
+  /^playing\b.*\bfor you/i, // "Playing some jazz for you"
+  /^playing\b/i, // "Playing 'Bohemian Rhapsody' now" or "Playing some jazz"
 ];
 
 /**
@@ -199,24 +198,35 @@ const INSTRUCTION_LEAKAGE_PATTERNS_ANYWHERE: RegExp[] = [
   /\[DO:\s/i,
   /\[SITUATION:\s/i,
   /\[TOPIC SHIFT:/i,
-  
+
   // Silence handler instruction patterns (Jan 2026)
   // These are format instructions sent to LLM that it sometimes echoes back
-  /\[TYPE:\s/i,           // [TYPE: presence]
-  /\[TONE:\s/i,           // [TONE: warm]
-  /\[OUTPUT:\s/i,         // [OUTPUT: plain text only...]
-  /\[MAX:\s/i,            // [MAX: 8 words]
-  /\[STYLE:\s/i,          // [STYLE: conversational]
-  /\[FORMAT:\s/i,         // [FORMAT: ...]
-  /\[RESPONSE:\s/i,       // [RESPONSE: ...]
-  /\[CONTEXT:\s/i,        // [CONTEXT: ...]
-  /\[USER:\s/i,           // [USER: name]
-  /\[PERSONA:\s/i,        // [PERSONA: ferni]
-  /→\s*\[/i,              // Arrow pointing to instruction: → [MAX: 8 words]
-  
+  /\[TYPE:\s/i, // [TYPE: presence]
+  /\[TONE:\s/i, // [TONE: warm]
+  /\[OUTPUT:\s/i, // [OUTPUT: plain text only...]
+  /\[MAX:\s/i, // [MAX: 8 words]
+  /\[STYLE:\s/i, // [STYLE: conversational]
+  /\[FORMAT:\s/i, // [FORMAT: ...]
+  /\[RESPONSE:\s/i, // [RESPONSE: ...]
+  /\[CONTEXT:\s/i, // [CONTEXT: ...]
+  /\[USER:\s/i, // [USER: name]
+  /\[PERSONA:\s/i, // [PERSONA: ferni]
+
+  // <system> and guidance tags that should never appear in speech
+  /<system>/i,
+  /<\/system>/i,
+  /<guidance>/i,
+  /<\/guidance>/i,
+
+  // Silence instruction leakage (legacy patterns before inner-monologue reframing)
+  /seconds? of silence/i,
+  /Respond with ONLY your spoken words/i,
+  /No formatting,? no labels/i,
+  /→\s*\[/i, // Arrow pointing to instruction: → [MAX: 8 words]
+
   // Catch-all for uppercase bracketed instructions [WORD: ...]
   // This catches any instruction format we might have missed
-  /\[[A-Z]{2,}:\s/,       // [ANYWORD: ...] where ANYWORD is 2+ uppercase chars
+  /\[[A-Z]{2,}:\s/, // [ANYWORD: ...] where ANYWORD is 2+ uppercase chars
 
   // Claude Code edit format - NEVER speak code edit instructions
   /<edit>/i,
@@ -243,6 +253,26 @@ const INSTRUCTION_LEAKAGE_PATTERNS_ANYWHERE: RegExp[] = [
   /keep it SHORT \(under \d+ words\)/i,
   /don't ask questions\s*[-–—]?\s*just acknowledge/i,
   /be warm but not needy/i,
+
+  // Context injection patterns (Jan 2026) - Gemini echoing full instruction blocks
+  // These appear in silence handler and timing-aware injections
+  /CONTEXT\s*\(read but do NOT include/i, // "CONTEXT (read but do NOT include in your response):"
+  /YOUR TASK:/i, // "YOUR TASK: Check in gently"
+  /CRITICAL:\s*Output ONLY/i, // "CRITICAL: Output ONLY your spoken response"
+  /No meta-commentary/i, // "No meta-commentary, no brackets"
+  /Just speak naturally/i, // "Just speak naturally."
+  /do NOT include in your response/i, // Common instruction pattern
+  /Output ONLY your spoken response/i, // Common instruction pattern
+  /Check in gently/i, // Silence handler instruction
+  /Be curious,? not concerned/i, // Silence handler instruction
+  /\(under \d+ words\)/i, // "(under 10 words)" with parens
+  /under \d+ words/i, // "under 10 words" without parens
+  /warm but not pushy/i, // Silence handler instruction
+  /warm but not needy/i, // Silence handler instruction
+  /I should be present/i, // Inner monologue leakage
+  /I should check in/i, // Inner monologue leakage
+  /Speaking now:/i, // Cue that shouldn't be spoken
+  /—\s*(under|warm|be\s+\w+)/i, // Em-dash followed by instruction pattern
 ];
 
 /**
@@ -286,6 +316,17 @@ const INTERNAL_MARKER_PATTERNS: RegExp[] = [
   /^\[(?:action|tool|function|execute|system|internal|note|thinking|processing)\]/i,
   /^<(?:action|tool|function|execute|system|internal|note|thinking|processing)>/i,
   /^\{(?:action|tool|function|execute|system|internal|note|thinking|processing)\}/i,
+  // XML guidance tags (Jan 2026) - per Google Gemini prompting guidelines
+  /<guidance>/i, // Opening guidance tag
+  /<\/guidance>/i, // Closing guidance tag
+  /<context>/i, // Opening context tag
+  /<\/context>/i, // Closing context tag
+  /<internal>/i, // Opening internal tag
+  /<\/internal>/i, // Closing internal tag
+  /<constraints>/i, // Opening constraints tag
+  /<\/constraints>/i, // Closing constraints tag
+  /<task>/i, // Opening task tag (shouldn't appear in voice output)
+  /<\/task>/i, // Closing task tag
 ];
 
 /**
@@ -302,9 +343,9 @@ const FN_PREFIX_PATTERNS: RegExp[] = [
  * Function call syntax patterns - toolName() or toolName(args)
  */
 const FUNCTION_CALL_SYNTAX_PATTERNS: RegExp[] = [
-  /^(\w+)\(\s*\)/,                          // playMusic()
-  /^(\w+)\(\s*[^)]+\s*\)/,                  // playMusic(query: 'jazz')
-  /^(\w+)\s*\(\s*(['"])[^'"]*\2\s*\)/,      // playMusic('jazz')
+  /^(\w+)\(\s*\)/, // playMusic()
+  /^(\w+)\(\s*[^)]+\s*\)/, // playMusic(query: 'jazz')
+  /^(\w+)\s*\(\s*(['"])[^'"]*\2\s*\)/, // playMusic('jazz')
 ];
 
 // ============================================================================
@@ -621,15 +662,15 @@ export function detectsFunctionCallLeakage(text: string): LeakageDetection {
   // Run checks in order of specificity (most specific first)
   const checks = [
     detectFnPrefix,
-    detectFunctionCallSyntax,   // Catches playMusic(), handoffToMaya() syntax
+    detectFunctionCallSyntax, // Catches playMusic(), handoffToMaya() syntax
     detectToolParam,
     detectMultiWordTool,
     detectToolMention,
     detectAnnouncement,
-    detectMusicAnnouncement,     // Catches "I'll play jazz" music announcements
+    detectMusicAnnouncement, // Catches "I'll play jazz" music announcements
     detectIntention,
-    detectBehavioralMarker,      // Catches [INTERNAL:...] markers
-    detectInternalInstruction,   // Catches "do NOT read this" patterns
+    detectBehavioralMarker, // Catches [INTERNAL:...] markers
+    detectInternalInstruction, // Catches "do NOT read this" patterns
     detectInternalMarker,
     detectInstructionLeakage,
   ];
@@ -701,36 +742,40 @@ export function looksLikeJsonFunctionCall(text: string): boolean {
 
   // JS fallback - handles backticks (common LLM output) and whitespace
   const trimmed = text.trim();
-  
+
   // Must contain "fn" key and have valid JSON structure indicators
   const hasFnKey = trimmed.includes('"fn"') || trimmed.includes("'fn'");
   const hasArgsKey = trimmed.includes('"args"') || trimmed.includes("'args'");
-  
+
   if (!hasFnKey || !hasArgsKey) {
     return false;
   }
-  
+
   // Check 1: Standalone JSON (whole text is JSON)
   // Strip leading/trailing backticks (LLMs often wrap JSON in backticks)
   const stripped = trimmed.replace(/^`+|`+$/g, '').trim();
   const startsWithBrace = stripped.startsWith('{');
   const endsWithBrace = stripped.endsWith('}');
-  
+
   if (startsWithBrace && endsWithBrace) {
     return true;
   }
-  
+
   // Check 2: JSON embedded in markdown code fence (common Gemini pattern)
   // Pattern: ```json\n{"fn":"toolName","args":{...}}\n```
-  const hasCodeFenceJson = /```(?:json)?\s*\{[^`]*"fn"\s*:\s*"[^"]+"\s*[^`]*\}\s*```/s.test(trimmed);
+  const hasCodeFenceJson = /```(?:json)?\s*\{[^`]*"fn"\s*:\s*"[^"]+"\s*[^`]*\}\s*```/s.test(
+    trimmed
+  );
   if (hasCodeFenceJson) {
     return true;
   }
-  
+
   // Check 3: JSON embedded in text (text before/after JSON block)
   // Look for complete JSON object with fn and args
-  const hasEmbeddedJson = /\{[^{}]*"fn"\s*:\s*"[^"]+"\s*,\s*"args"\s*:\s*\{[^{}]*\}[^{}]*\}/.test(trimmed);
-  
+  const hasEmbeddedJson = /\{[^{}]*"fn"\s*:\s*"[^"]+"\s*,\s*"args"\s*:\s*\{[^{}]*\}[^{}]*\}/.test(
+    trimmed
+  );
+
   return hasEmbeddedJson;
 }
 
@@ -751,52 +796,101 @@ export function containsToolCallLeakage(text: string): boolean {
  * These are more aggressive than detection - they strip entire lines/blocks.
  */
 const INSTRUCTION_BLOCK_STRIP_PATTERNS: RegExp[] = [
-  // Full bracketed instruction lines: [WORD: anything]
-  /\[[A-Z][A-Z_\-]+:\s*[^\]]*\]/g,  // [TYPE: presence], [OUTPUT: plain text only...]
-  
+  // Full bracketed instruction lines: [WORD: anything] or [WORD WORD: anything]
+  // Updated to support spaces in tag names like [TOOL RESULT: ...]
+  /\[[A-Z][A-Z_\- ]+:\s*[^\]]*\]/g, // [TYPE: presence], [TOOL RESULT: playMusic], [DATA: ...]
+
+  // Stage directions that should never be spoken (Jan 2026)
+  // LLMs sometimes output [action] instead of calling tools - strip them
+  /\[music playing\]/gi,
+  /\[playing music\]/gi,
+  /\[now playing\]/gi,
+  /\[searching\]/gi,
+  /\[thinking\]/gi,
+  /\[pausing\]/gi,
+  /\[loading\]/gi,
+  /\[waiting\]/gi,
+
+  // Specific tool result format from safe-generate-reply.ts
+  // [TOOL RESULT: toolName] [DATA: result] [DO: instructions]
+  /\[TOOL RESULT:[^\]]*\]/gi,
+  /\[DATA:[^\]]*\]/gi,
+  /\[DO:[^\]]*\]/gi,
+
   // Arrow-prefixed instructions: → [...]
   /→\s*\[[^\]]*\]/g,
-  
+
   // Parenthetical instructions: (internal), (do not speak)
   /\([^)]*internal[^)]*\)/gi,
   /\([^)]*do not[^)]*\)/gi,
-  
+
   // Lines that are ONLY instruction markers (newline followed by [WORD:)
-  /\n\[[A-Z][A-Z_\-]+:[^\n]*/g,
-  
+  /\n\[[A-Z][A-Z_\- ]+:[^\n]*/g,
+
   // 🚫 FTIS V2 tool result metadata that leaked to TTS
   // Catches: "Status: SUCCESS Result: Now playing..." format
   // This should NEVER reach TTS, but acts as a safety net
   /Status:\s*(SUCCESS|FAILED)\s*Result:\s*/gi,
   /Status:\s*(SUCCESS|FAILED)\s*Error:\s*/gi,
-  
+
   // Catch full tool result blocks on single line (legacy format)
   // [TOOL_RESULT: xxx] Status: SUCCESS Result: ...
   /\[TOOL_RESULT:[^\]]*\]\s*Status:\s*(SUCCESS|FAILED)[^\n]*/gi,
+
+  // <system> tag blocks (matches transform-stream.ts guidance patterns)
+  // Ensures both sanitizer paths catch the same patterns
+  /<system>[\s\S]*?<\/system>/gi,
+  /<guidance>[\s\S]*?<\/guidance>/gi,
+  /<internal>[\s\S]*?<\/internal>/gi,
+
+  // Context injection blocks (Jan 2026) - Gemini echoing full instruction blocks
+  // These appear when the LLM echoes timing-aware/silence handler context
+  /CONTEXT\s*\(read but do NOT include[\s\S]*?Just speak naturally\.?/gi,
+  /YOUR TASK:[\s\S]*?Just speak naturally\.?/gi,
+  /CRITICAL:\s*Output ONLY your spoken response[\s\S]*?Just speak naturally\.?/gi,
+
+  // Individual instruction fragments that should never be spoken
+  /CONTEXT\s*\(read but do NOT include in your response\):[^\n]*/gi,
+  /YOUR TASK:\s*[^\n]*/gi,
+  /CRITICAL:\s*Output ONLY[^\n]*/gi,
+  /No meta-commentary[^\n]*/gi,
+  /Just speak naturally\.?\s*/gi,
+  /Be curious,? not concerned\.?\s*/gi,
+  /Check in gently\s*\([^)]+\)\.?\s*/gi,
+
+  // Silence instruction fragments that should never be spoken (Jan 2026)
+  // These are legacy patterns from before inner-monologue reframing
+  /It's been \d+ seconds? of silence\.?\s*/gi,
+  /Respond with ONLY your spoken words[^.]*\.?\s*/gi,
+  /No formatting,? no labels,? no quotes\.?\s*/gi,
+  /Say something warm[^.]*\.?\s*/gi,
+
+  // Speaking cue that should be stripped if echoed (Jan 2026)
+  /Speaking to them now:\s*/gi,
 ];
 
 /**
  * Strip instruction blocks from text.
  * Use as a final safety net AFTER streaming transforms, before TTS.
- * 
+ *
  * @param text - Text that may contain instruction blocks
  * @returns Text with instruction blocks removed
  */
 export function stripInstructionBlocks(text: string): string {
   if (!text) return text;
-  
+
   let result = text;
-  
+
   for (const pattern of INSTRUCTION_BLOCK_STRIP_PATTERNS) {
     result = result.replace(pattern, '');
   }
-  
+
   // Clean up extra whitespace left behind
   result = result
-    .replace(/\n\s*\n\s*\n/g, '\n\n')  // Collapse multiple blank lines
-    .replace(/^\s+|\s+$/g, '')          // Trim
-    .replace(/\s+\n/g, '\n');           // Trim trailing space before newlines
-  
+    .replace(/\n\s*\n\s*\n/g, '\n\n') // Collapse multiple blank lines
+    .replace(/^\s+|\s+$/g, '') // Trim
+    .replace(/\s+\n/g, '\n'); // Trim trailing space before newlines
+
   return result;
 }
 
@@ -805,5 +899,5 @@ export function stripInstructionBlocks(text: string): string {
  */
 export function containsInstructionBlocks(text: string): boolean {
   if (!text) return false;
-  return INSTRUCTION_BLOCK_STRIP_PATTERNS.some(pattern => pattern.test(text));
+  return INSTRUCTION_BLOCK_STRIP_PATTERNS.some((pattern) => pattern.test(text));
 }

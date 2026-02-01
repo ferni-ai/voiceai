@@ -356,9 +356,7 @@ export async function saveAvoidanceState(
   await saveToFirestore(userId, 'avoidance', data);
 }
 
-export async function loadAvoidanceState(
-  userId: string
-): Promise<AvoidancePersistenceData | null> {
+export async function loadAvoidanceState(userId: string): Promise<AvoidancePersistenceData | null> {
   return loadFromFirestore<AvoidancePersistenceData>(userId, 'avoidance');
 }
 
@@ -431,10 +429,7 @@ export async function loadCognitiveFingerprintState(
   return loadFromFirestore<CognitiveFingerprintPersistenceData>(userId, 'cognitive_fingerprint');
 }
 
-export async function saveRippleState(
-  userId: string,
-  data: RipplePersistenceData
-): Promise<void> {
+export async function saveRippleState(userId: string, data: RipplePersistenceData): Promise<void> {
   // Trim event history
   const trimmedData = {
     ...data,
@@ -443,9 +438,7 @@ export async function saveRippleState(
   await saveToFirestore(userId, 'ripple', trimmedData);
 }
 
-export async function loadRippleState(
-  userId: string
-): Promise<RipplePersistenceData | null> {
+export async function loadRippleState(userId: string): Promise<RipplePersistenceData | null> {
   return loadFromFirestore<RipplePersistenceData>(userId, 'ripple');
 }
 
@@ -456,9 +449,7 @@ export async function saveLifePhaseState(
   await saveToFirestore(userId, 'life_phase', data);
 }
 
-export async function loadLifePhaseState(
-  userId: string
-): Promise<LifePhasePersistenceData | null> {
+export async function loadLifePhaseState(userId: string): Promise<LifePhasePersistenceData | null> {
   return loadFromFirestore<LifePhasePersistenceData>(userId, 'life_phase');
 }
 
@@ -520,7 +511,8 @@ export async function flushSuperhumanState(
   if (conversationPrep) promises.push(saveConversationPrepState(userId, conversationPrep));
 
   const cognitiveFingerprint = getters.getCognitiveFingerprint(userId);
-  if (cognitiveFingerprint) promises.push(saveCognitiveFingerprintState(userId, cognitiveFingerprint));
+  if (cognitiveFingerprint)
+    promises.push(saveCognitiveFingerprintState(userId, cognitiveFingerprint));
 
   const ripple = getters.getRipple(userId);
   if (ripple) promises.push(saveRippleState(userId, ripple));

@@ -15,14 +15,14 @@
  * Types of micro-moments we detect
  */
 export type MicroMomentType =
-  | 'vulnerability-edge'    // "I've never told anyone..."
-  | 'small-win'            // "I almost made it to..."
-  | 'relationship-shift'   // Changed how they refer to someone
-  | 'language-change'      // "We" instead of "I"
-  | 'hope-glimmer'         // "Maybe things could..."
-  | 'self-compassion'      // "I guess it's okay that..."
-  | 'boundary-attempt'     // Trying to set limits
-  | 'growth-evidence';     // Evidence of change
+  | 'vulnerability-edge' // "I've never told anyone..."
+  | 'small-win' // "I almost made it to..."
+  | 'relationship-shift' // Changed how they refer to someone
+  | 'language-change' // "We" instead of "I"
+  | 'hope-glimmer' // "Maybe things could..."
+  | 'self-compassion' // "I guess it's okay that..."
+  | 'boundary-attempt' // Trying to set limits
+  | 'growth-evidence'; // Evidence of change
 
 /**
  * A detected micro-moment
@@ -165,10 +165,7 @@ export interface IMicroMomentDetector {
    * @param moment - The moment that was acknowledged
    * @param userReaction - How user responded
    */
-  recordOutcome(
-    moment: MicroMoment,
-    userReaction: 'positive' | 'neutral' | 'negative'
-  ): void;
+  recordOutcome(moment: MicroMoment, userReaction: 'positive' | 'neutral' | 'negative'): void;
 
   /**
    * Reset for new session

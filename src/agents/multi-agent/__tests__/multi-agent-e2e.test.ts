@@ -352,7 +352,12 @@ describe('Data Channel Messages E2E', () => {
     });
 
     // Start message
-    const startMsg = createHandoffMessage('handoff_start', 'ferni', 'peter-john', 'Research request');
+    const startMsg = createHandoffMessage(
+      'handoff_start',
+      'ferni',
+      'peter-john',
+      'Research request'
+    );
     expect(startMsg.type).toBe('handoff_start');
     expect(startMsg.fromPersonaId).toBe('ferni');
     expect(startMsg.toPersonaId).toBe('peter-john');

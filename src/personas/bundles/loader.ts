@@ -852,6 +852,12 @@ export async function loadBundle(
         behaviors.music_preferences = await loadJsonFile(musicPreferencesPath);
       }
 
+      // Load team coordination (handoff routing, team awareness)
+      const teamCoordinationPath = join(behaviorsPath, 'team-coordination.json');
+      if (await fileExists(teamCoordinationPath)) {
+        behaviors.team_coordination = await loadJsonFile(teamCoordinationPath);
+      }
+
       behaviorsCache = behaviors;
       return behaviors;
     },

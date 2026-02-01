@@ -35,8 +35,8 @@
  */
 
 import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-auth.service.js';
-import { createLogger } from './logger.js';
 import { fetchWithRetry, isOffline, type FetchRetryOptions } from './fetch-retry.js';
+import { createLogger } from './logger.js';
 
 const log = createLogger('API');
 
@@ -76,15 +76,29 @@ let authReadyPromise: Promise<void> | null = null;
 /**
  * Ensure Firebase Auth is initialized before making API calls.
  * This prevents race conditions where API calls happen before auth is ready.
+ * Includes a timeout to prevent hanging if Firebase doesn't respond.
  */
 async function ensureAuthReady(): Promise<void> {
   if (!authReadyPromise) {
-    authReadyPromise = initAuth().then(() => {
-      // Auth is now ready
-    }).catch(() => {
-      // Auth failed to initialize - continue without it
-      // API calls will use X-User-Id fallback
-    });
+    // Create auth init with a 5-second timeout to prevent hanging
+    const authWithTimeout = Promise.race([
+      initAuth()
+        .then(() => {
+          // Auth is now ready
+        })
+        .catch(() => {
+          // Auth failed to initialize - continue without it
+          // API calls will use X-User-Id fallback
+        }),
+      new Promise<void>((resolve) => {
+        setTimeout(() => {
+          log.warn('Auth init timed out after 5s - continuing without auth');
+          resolve();
+        }, 5000);
+      }),
+    ]);
+
+    authReadyPromise = authWithTimeout;
   }
   return authReadyPromise;
 }
@@ -157,7 +171,7 @@ export function getApiHeaders(includeJson = true): HeadersInit {
 /**
  * Build standard headers for API requests with Firebase auth token (async version).
  * This is the preferred method for authenticated API calls.
- * 
+ *
  * IMPORTANT: This ensures Firebase Auth is initialized before getting the token.
  * This prevents 401 errors from race conditions during app startup.
  */
@@ -165,7 +179,7 @@ export async function getApiHeadersAsync(includeJson = true): Promise<HeadersIni
   // Ensure auth is ready before trying to get the token
   // This prevents race conditions where API calls happen before auth initializes
   await ensureAuthReady();
-  
+
   const headers = getApiHeaders(includeJson);
 
   // Get Firebase auth token
@@ -241,11 +255,11 @@ export async function apiGet<T = unknown>(
       if (result.status === 401) {
         log.debug('API GET unauthorized (auth pending)', { path });
       } else {
-        log.warn('API GET failed', { 
-          path, 
-          status: result.status, 
+        log.warn('API GET failed', {
+          path,
+          status: result.status,
           error: result.error.message,
-          retries: result.retries 
+          retries: result.retries,
         });
       }
       return {
@@ -261,9 +275,9 @@ export async function apiGet<T = unknown>(
       log.debug('API GET succeeded after retry', { path, retries: result.retries });
     }
 
-    return { 
-      ok: true, 
-      data: result.data!, 
+    return {
+      ok: true,
+      data: result.data!,
       status: result.status ?? 200,
       retries: result.retries,
     };
@@ -303,8 +317,8 @@ export async function apiPost<T = unknown>(
     // Use fetchWithRetry for self-healing
     const result = await fetchWithRetry<T>(
       path,
-      { 
-        method: 'POST', 
+      {
+        method: 'POST',
         headers,
         body: JSON.stringify(finalBody),
       },
@@ -316,11 +330,11 @@ export async function apiPost<T = unknown>(
       if (result.status === 401) {
         log.debug('API POST unauthorized (auth pending)', { path });
       } else {
-        log.warn('API POST failed', { 
-          path, 
-          status: result.status, 
+        log.warn('API POST failed', {
+          path,
+          status: result.status,
           error: result.error.message,
-          retries: result.retries 
+          retries: result.retries,
         });
       }
       return {
@@ -336,9 +350,9 @@ export async function apiPost<T = unknown>(
       log.debug('API POST succeeded after retry', { path, retries: result.retries });
     }
 
-    return { 
-      ok: true, 
-      data: result.data!, 
+    return {
+      ok: true,
+      data: result.data!,
       status: result.status ?? 200,
       retries: result.retries,
     };
@@ -356,7 +370,14 @@ export async function apiPut<T = unknown>(
   path: string,
   body?: unknown,
   retryOptions?: Partial<FetchRetryOptions>
-): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+): Promise<{
+  ok: boolean;
+  data?: T;
+  error?: string;
+  status: number;
+  retries?: number;
+  offline?: boolean;
+}> {
   // Early exit if offline
   if (isOffline()) {
     log.warn('API PUT skipped: device is offline', { path });
@@ -368,9 +389,8 @@ export async function apiPut<T = unknown>(
 
     // Always include userId in body if not already present
     const userId = getUserId();
-    const bodyWithUser = body && typeof body === 'object'
-      ? { userId, ...(body as Record<string, unknown>) }
-      : body;
+    const bodyWithUser =
+      body && typeof body === 'object' ? { userId, ...(body as Record<string, unknown>) } : body;
 
     // Get async headers with Firebase auth token
     const headers = await getApiHeadersAsync(true);
@@ -391,11 +411,11 @@ export async function apiPut<T = unknown>(
       if (result.status === 401) {
         log.debug('API PUT unauthorized (auth pending)', { path });
       } else {
-        log.warn('API PUT failed', { 
-          path, 
-          status: result.status, 
+        log.warn('API PUT failed', {
+          path,
+          status: result.status,
           error: result.error.message,
-          retries: result.retries 
+          retries: result.retries,
         });
       }
       return {
@@ -411,9 +431,9 @@ export async function apiPut<T = unknown>(
       log.debug('API PUT succeeded after retry', { path, retries: result.retries });
     }
 
-    return { 
-      ok: true, 
-      data: result.data!, 
+    return {
+      ok: true,
+      data: result.data!,
       status: result.status ?? 200,
       retries: result.retries,
     };
@@ -431,7 +451,14 @@ export async function apiPatch<T = unknown>(
   path: string,
   body?: unknown,
   retryOptions?: Partial<FetchRetryOptions>
-): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+): Promise<{
+  ok: boolean;
+  data?: T;
+  error?: string;
+  status: number;
+  retries?: number;
+  offline?: boolean;
+}> {
   // Early exit if offline
   if (isOffline()) {
     log.warn('API PATCH skipped: device is offline', { path });
@@ -443,9 +470,8 @@ export async function apiPatch<T = unknown>(
 
     // Always include userId in body if not already present
     const userId = getUserId();
-    const bodyWithUser = body && typeof body === 'object'
-      ? { userId, ...(body as Record<string, unknown>) }
-      : body;
+    const bodyWithUser =
+      body && typeof body === 'object' ? { userId, ...(body as Record<string, unknown>) } : body;
 
     // Get async headers with Firebase auth token
     const headers = await getApiHeadersAsync(true);
@@ -465,11 +491,11 @@ export async function apiPatch<T = unknown>(
       if (result.status === 401) {
         log.debug('API PATCH unauthorized (auth pending)', { path });
       } else {
-        log.warn('API PATCH failed', { 
-          path, 
-          status: result.status, 
+        log.warn('API PATCH failed', {
+          path,
+          status: result.status,
           error: result.error.message,
-          retries: result.retries 
+          retries: result.retries,
         });
       }
       return {
@@ -485,9 +511,9 @@ export async function apiPatch<T = unknown>(
       log.debug('API PATCH succeeded after retry', { path, retries: result.retries });
     }
 
-    return { 
-      ok: true, 
-      data: result.data!, 
+    return {
+      ok: true,
+      data: result.data!,
       status: result.status ?? 200,
       retries: result.retries,
     };
@@ -545,11 +571,11 @@ export async function apiDelete<T = unknown>(
       if (result.status === 401) {
         log.debug('API DELETE unauthorized (auth pending)', { path });
       } else {
-        log.warn('API DELETE failed', { 
-          path, 
-          status: result.status, 
+        log.warn('API DELETE failed', {
+          path,
+          status: result.status,
           error: result.error.message,
-          retries: result.retries 
+          retries: result.retries,
         });
       }
       return {
@@ -565,9 +591,9 @@ export async function apiDelete<T = unknown>(
       log.debug('API DELETE succeeded after retry', { path, retries: result.retries });
     }
 
-    return { 
-      ok: true, 
-      data: result.data!, 
+    return {
+      ok: true,
+      data: result.data!,
       status: result.status ?? 200,
       retries: result.retries,
     };

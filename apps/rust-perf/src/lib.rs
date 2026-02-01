@@ -16,10 +16,20 @@ mod embedding_cache;
 mod fft_analyzer;
 mod fluency_analyzer;
 mod json_parser;
+mod onnx_router;
 mod signal_extractor;
 mod ssml_processor;
 mod token_counter;
 mod turn_analyzer;
+
+// Candle GPU router (Metal acceleration for Apple Silicon)
+mod candle_router;
+
+// Re-export ONNX router for FTIS V3 (CPU fallback)
+pub use onnx_router::*;
+
+// Re-export Candle router for GPU-accelerated FTIS V3
+pub use candle_router::*;
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;

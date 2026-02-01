@@ -1,0 +1,456 @@
+{
+  "version": "v5",
+  "generated": "2026-01-27T22:41:26.828Z",
+  "config": {
+    "examplesPerCategory": 1000,
+    "quickMode": true,
+    "categoryFilter": "all"
+  },
+  "stats": {
+    "totalExamples": 36552,
+    "toolExamples": 34400,
+    "openIntents": 500,
+    "trainSize": 29572,
+    "validationSize": 3490,
+    "testSize": 3490
+  },
+  "categories": [
+    {
+      "id": "music_play",
+      "tools": [
+        "playMusic",
+        "spotify_play"
+      ],
+      "count": 800
+    },
+    {
+      "id": "music_control",
+      "tools": [
+        "pauseMusic",
+        "skipTrack",
+        "adjustVolume",
+        "resumeMusic"
+      ],
+      "count": 800
+    },
+    {
+      "id": "music_search",
+      "tools": [
+        "searchMusic",
+        "findSong"
+      ],
+      "count": 600
+    },
+    {
+      "id": "music_mood",
+      "tools": [
+        "playMoodMusic",
+        "getRecommendations"
+      ],
+      "count": 600
+    },
+    {
+      "id": "calendar_create",
+      "tools": [
+        "createCalendarEvent",
+        "scheduleEvent"
+      ],
+      "count": 800
+    },
+    {
+      "id": "calendar_view",
+      "tools": [
+        "getCalendarEvents",
+        "checkAvailability"
+      ],
+      "count": 800
+    },
+    {
+      "id": "calendar_modify",
+      "tools": [
+        "modifyEvent",
+        "cancelEvent",
+        "rescheduleEvent"
+      ],
+      "count": 600
+    },
+    {
+      "id": "alarm_set",
+      "tools": [
+        "setAlarm",
+        "createAlarm"
+      ],
+      "count": 1000
+    },
+    {
+      "id": "alarm_manage",
+      "tools": [
+        "snoozeAlarm",
+        "cancelAlarm",
+        "listAlarms"
+      ],
+      "count": 600
+    },
+    {
+      "id": "timer_set",
+      "tools": [
+        "setTimer",
+        "createTimer"
+      ],
+      "count": 1000
+    },
+    {
+      "id": "timer_manage",
+      "tools": [
+        "stopTimer",
+        "checkTimer",
+        "listTimers"
+      ],
+      "count": 600
+    },
+    {
+      "id": "reminder_set",
+      "tools": [
+        "setReminder",
+        "createReminder"
+      ],
+      "count": 800
+    },
+    {
+      "id": "reminder_manage",
+      "tools": [
+        "listReminders",
+        "cancelReminder"
+      ],
+      "count": 600
+    },
+    {
+      "id": "todo_add",
+      "tools": [
+        "addTask",
+        "createTodo"
+      ],
+      "count": 800
+    },
+    {
+      "id": "todo_view",
+      "tools": [
+        "getTasks",
+        "listTodos"
+      ],
+      "count": 600
+    },
+    {
+      "id": "todo_complete",
+      "tools": [
+        "completeTask",
+        "markDone"
+      ],
+      "count": 800
+    },
+    {
+      "id": "weather",
+      "tools": [
+        "getWeather",
+        "weatherForecast"
+      ],
+      "count": 600
+    },
+    {
+      "id": "habit_log",
+      "tools": [
+        "logHabit",
+        "trackHabit",
+        "markHabitComplete"
+      ],
+      "count": 800
+    },
+    {
+      "id": "habit_view",
+      "tools": [
+        "getHabitProgress",
+        "viewStreak",
+        "habitStats"
+      ],
+      "count": 800
+    },
+    {
+      "id": "habit_create",
+      "tools": [
+        "createHabit",
+        "addHabit"
+      ],
+      "count": 600
+    },
+    {
+      "id": "habit_coaching",
+      "tools": [
+        "getHabitAdvice",
+        "habitCoaching"
+      ],
+      "count": 600
+    },
+    {
+      "id": "memory_save",
+      "tools": [
+        "rememberThis",
+        "saveMemory",
+        "storeInfo"
+      ],
+      "count": 800
+    },
+    {
+      "id": "memory_recall",
+      "tools": [
+        "recallMemory",
+        "getMemory",
+        "whatDoYouKnow"
+      ],
+      "count": 800
+    },
+    {
+      "id": "call_make",
+      "tools": [
+        "makeCall",
+        "callContact"
+      ],
+      "count": 800
+    },
+    {
+      "id": "message_send",
+      "tools": [
+        "sendMessage",
+        "textContact",
+        "sendSMS"
+      ],
+      "count": 800
+    },
+    {
+      "id": "email_send",
+      "tools": [
+        "sendEmail",
+        "composeEmail"
+      ],
+      "count": 600
+    },
+    {
+      "id": "search",
+      "tools": [
+        "webSearch",
+        "search",
+        "lookup"
+      ],
+      "count": 600
+    },
+    {
+      "id": "news",
+      "tools": [
+        "getNews",
+        "headlines"
+      ],
+      "count": 600
+    },
+    {
+      "id": "handoff_maya",
+      "tools": [
+        "handoffToMaya"
+      ],
+      "count": 600
+    },
+    {
+      "id": "handoff_peter",
+      "tools": [
+        "handoffToPeter"
+      ],
+      "count": 600
+    },
+    {
+      "id": "handoff_alex",
+      "tools": [
+        "handoffToAlex"
+      ],
+      "count": 600
+    },
+    {
+      "id": "handoff_jordan",
+      "tools": [
+        "handoffToJordan"
+      ],
+      "count": 600
+    },
+    {
+      "id": "handoff_nayan",
+      "tools": [
+        "handoffToNayan"
+      ],
+      "count": 600
+    },
+    {
+      "id": "handoff_ferni",
+      "tools": [
+        "handoffToFerni"
+      ],
+      "count": 400
+    },
+    {
+      "id": "crisis_support",
+      "tools": [
+        "crisisSupport",
+        "emergencyHelp"
+      ],
+      "count": 600
+    },
+    {
+      "id": "grounding",
+      "tools": [
+        "groundingExercise",
+        "calmingTechnique"
+      ],
+      "count": 600
+    },
+    {
+      "id": "wellness_check",
+      "tools": [
+        "wellnessCheck",
+        "moodCheck"
+      ],
+      "count": 600
+    },
+    {
+      "id": "grief_support",
+      "tools": [
+        "griefSupport"
+      ],
+      "count": 600
+    },
+    {
+      "id": "relationship_advice",
+      "tools": [
+        "relationshipAdvice"
+      ],
+      "count": 400
+    },
+    {
+      "id": "coaching_motivation",
+      "tools": [
+        "getMotivation",
+        "encouragement"
+      ],
+      "count": 600
+    },
+    {
+      "id": "coaching_goals",
+      "tools": [
+        "setGoal",
+        "trackGoal",
+        "getGoalProgress"
+      ],
+      "count": 600
+    },
+    {
+      "id": "coaching_reflection",
+      "tools": [
+        "journalPrompt",
+        "reflectionExercise"
+      ],
+      "count": 600
+    },
+    {
+      "id": "health_exercise",
+      "tools": [
+        "logExercise",
+        "trackWorkout"
+      ],
+      "count": 800
+    },
+    {
+      "id": "health_nutrition",
+      "tools": [
+        "logMeal",
+        "trackNutrition"
+      ],
+      "count": 600
+    },
+    {
+      "id": "health_water",
+      "tools": [
+        "logWater",
+        "trackHydration"
+      ],
+      "count": 600
+    },
+    {
+      "id": "health_sleep",
+      "tools": [
+        "logSleep",
+        "trackSleep"
+      ],
+      "count": 600
+    },
+    {
+      "id": "home_lights",
+      "tools": [
+        "controlLights",
+        "setLights"
+      ],
+      "count": 600
+    },
+    {
+      "id": "home_thermostat",
+      "tools": [
+        "setThermostat",
+        "adjustTemperature"
+      ],
+      "count": 600
+    },
+    {
+      "id": "ceo_briefing",
+      "tools": [
+        "getDailyBriefing",
+        "morningBriefing"
+      ],
+      "count": 600
+    },
+    {
+      "id": "ceo_priorities",
+      "tools": [
+        "setPriority",
+        "getPriorities"
+      ],
+      "count": 600
+    },
+    {
+      "id": "ceo_journal",
+      "tools": [
+        "ceoJournal",
+        "logReflection"
+      ],
+      "count": 600
+    },
+    {
+      "id": "ceo_gratitude",
+      "tools": [
+        "logGratitude",
+        "gratitudeEntry"
+      ],
+      "count": 600
+    }
+  ],
+  "augmented": {
+    "timestamp": "2026-01-27T22:54:53.065Z",
+    "count": 1601,
+    "categories": [
+      "alarm_set",
+      "timer_set",
+      "habit_log",
+      "music_play",
+      "music_control",
+      "memory_save",
+      "calendar_create",
+      "reminder_set",
+      "weather",
+      "call_make",
+      "message_send"
+    ]
+  }
+}

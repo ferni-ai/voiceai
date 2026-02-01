@@ -1,4 +1,3 @@
-// TODO: Fix type errors - array indexing for observations
 /**
  * Team Observations Panel
  *

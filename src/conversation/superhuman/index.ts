@@ -346,7 +346,7 @@ export function clearAllSuperhumanSessionState(): void {
   clearSharedLanguage();
   clearRitualStates();
   clearMetaMomentStates();
-  
+
   // Clear brand evolution state
   resetBrandEvolutionSession();
 }

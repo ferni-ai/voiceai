@@ -123,9 +123,8 @@ export function processRealtimeLearning(input: RealtimeLearningInput): void {
   safeFireAndForget(
     async () => {
       try {
-        const { captureTurn, isKnowledgeCaptureReady } = await import(
-          '../../memory/knowledge-graph/index.js'
-        );
+        const { captureTurn, isKnowledgeCaptureReady } =
+          await import('../../memory/knowledge-graph/index.js');
 
         if (!isKnowledgeCaptureReady()) return;
 
@@ -217,9 +216,8 @@ export async function checkProactiveSurfacing(
   }
 ): Promise<ProactiveSurfacingOpportunity[]> {
   try {
-    const { checkProactiveSurfacing: checkSurfacing, isEntityStoreReady } = await import(
-      '../../memory/entity-store/integration.js'
-    );
+    const { checkProactiveSurfacing: checkSurfacing, isEntityStoreReady } =
+      await import('../../memory/entity-store/integration.js');
 
     if (!isEntityStoreReady()) {
       return [];
@@ -246,24 +244,22 @@ export async function checkProactiveSurfacing(
  *
  * This feeds the "Better Than Human" proactive outreach system.
  */
-export function extractOutreachContext(
-  userId: string,
-  sessionId: string,
-  userText: string
-): void {
+export function extractOutreachContext(userId: string, sessionId: string, userText: string): void {
   if (!userId || userText.length <= 10) {
     return;
   }
 
   // Import and call is handled via the intelligence publisher
   // This is a fire-and-forget operation
-  import('../../services/intelligence-publisher.js').then(({ publishOutreachExtraction }) => {
-    publishOutreachExtraction(userId, sessionId, {
-      message: userText,
+  import('../../services/intelligence-publisher.js')
+    .then(({ publishOutreachExtraction }) => {
+      publishOutreachExtraction(userId, sessionId, {
+        message: userText,
+      });
+    })
+    .catch((error) => {
+      diag.debug('Outreach extraction failed (non-blocking)', { error: String(error) });
     });
-  }).catch((error) => {
-    diag.debug('Outreach extraction failed (non-blocking)', { error: String(error) });
-  });
 }
 
 /**
@@ -285,9 +281,8 @@ export async function processReflectionMoment(
   }
 
   try {
-    const { detectReflectionMoment, saveReflectionMoment } = await import(
-      '../../intelligence/cross-session-reflection.js'
-    );
+    const { detectReflectionMoment, saveReflectionMoment } =
+      await import('../../intelligence/cross-session-reflection.js');
 
     const reflectionMoment = detectReflectionMoment(
       userText,

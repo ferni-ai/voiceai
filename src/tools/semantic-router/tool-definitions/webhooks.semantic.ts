@@ -66,13 +66,15 @@ export const triggerWebhookTool: SemanticToolDefinition = {
     'Execute my morning workflow',
   ],
 
-  counterExamples: [
-    'I want to create a new automation',
-    'Help me set up webhooks',
-  ],
+  counterExamples: ['I want to create a new automation', 'Help me set up webhooks'],
 
   arguments: [
-    { name: 'phrase', type: 'string', required: true, description: 'Trigger phrase or webhook name' },
+    {
+      name: 'phrase',
+      type: 'string',
+      required: true,
+      description: 'Trigger phrase or webhook name',
+    },
     { name: 'data', type: 'object', required: false, description: 'Optional data to send' },
   ],
 
@@ -206,7 +208,12 @@ export const getWebhookStatusTool: SemanticToolDefinition = {
   counterExamples: ['Run my automation'],
 
   arguments: [
-    { name: 'webhookName', type: 'string', required: false, description: 'Specific webhook to check' },
+    {
+      name: 'webhookName',
+      type: 'string',
+      required: false,
+      description: 'Specific webhook to check',
+    },
   ],
 
   confidence: {

@@ -1050,6 +1050,7 @@
       "pinned": "お気に入り",
       "yourPractices": "一緒に練習しよう",
       "understandingYou": "あなたの調子",
+      "ourStory": "私たちの物語",
       "waysToConnect": "何かしよう",
       "yourPeople": "あなたの世界",
       "connectedLife": "つながっているもの",
@@ -1943,11 +1944,16 @@
       "dayStreak": "[NEEDS_TRANSLATION] day streak"
     },
     "sections": {
+      "care": "[NEEDS_TRANSLATION] What I've Done for You",
       "rightNow": "[NEEDS_TRANSLATION] Right Now",
       "yourGrowth": "[NEEDS_TRANSLATION] Your Growth",
       "yourWorld": "[NEEDS_TRANSLATION] Your World"
     },
+    "care": {
+      "loading": "[NEEDS_TRANSLATION] Loading your care moments..."
+    },
     "insights": {
+      "care": "[NEEDS_TRANSLATION] Keeping track of what matters to you.",
       "moodSummary": "[NEEDS_TRANSLATION] You've been feeling mostly {mood} this week",
       "chapterFocus": "[NEEDS_TRANSLATION] Current chapter: {chapter} | Focus area: {focus}",
       "connections": "[NEEDS_TRANSLATION] {active} active connections | {open} open loops"

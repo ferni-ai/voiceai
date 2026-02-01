@@ -9,12 +9,7 @@
  * @module services/data-hygiene
  */
 
-export {
-  runTTLCleanup,
-  calculateExpiresAt,
-  addTTLFields,
-  TTL_DAYS,
-} from './ttl-cleanup.js';
+export { runTTLCleanup, calculateExpiresAt, addTTLFields, TTL_DAYS } from './ttl-cleanup.js';
 
 export {
   runDocumentSizeMonitor,
@@ -25,8 +20,4 @@ export {
 
 export { runDataHealthJob, handleDataHealthRequest } from './scheduled-jobs.js';
 
-export {
-  runTTLBackfill,
-  TTL_DAYS as BACKFILL_TTL_DAYS,
-  BACKFILL_CONFIGS,
-} from './ttl-backfill.js';
+export { runTTLBackfill, TTL_DAYS as BACKFILL_TTL_DAYS, BACKFILL_CONFIGS } from './ttl-backfill.js';

@@ -114,19 +114,16 @@ describe('TTS Gateway E2E Validation', () => {
   // ==========================================================================
 
   describe('SSML is NEVER spoken literally', () => {
-    it.each(REAL_FERNI_SSML_PATTERNS)(
-      'strips SSML from: %s',
-      (input) => {
-        const result = parseSSML(input);
+    it.each(REAL_FERNI_SSML_PATTERNS)('strips SSML from: %s', (input) => {
+      const result = parseSSML(input);
 
-        // Check that forbidden patterns are not in output
-        const forbidden = containsForbiddenLiteral(result.cleanText);
-        expect(forbidden).toBeNull();
+      // Check that forbidden patterns are not in output
+      const forbidden = containsForbiddenLiteral(result.cleanText);
+      expect(forbidden).toBeNull();
 
-        // Check no XML-like tags remain
-        expect(containsSSML(result.cleanText)).toBe(false);
-      }
-    );
+      // Check no XML-like tags remain
+      expect(containsSSML(result.cleanText)).toBe(false);
+    });
 
     it('never outputs "break" as spoken text', () => {
       const inputs = [
@@ -145,11 +142,7 @@ describe('TTS Gateway E2E Validation', () => {
     });
 
     it('never outputs time values as spoken text', () => {
-      const inputs = [
-        '<break time="280ms"/>',
-        '<break time="1500"/>',
-        '<break time="2s"/>',
-      ];
+      const inputs = ['<break time="280ms"/>', '<break time="1500"/>', '<break time="2s"/>'];
 
       for (const input of inputs) {
         const result = parseSSML(input);
@@ -160,11 +153,7 @@ describe('TTS Gateway E2E Validation', () => {
     });
 
     it('never outputs speed/volume ratio values', () => {
-      const inputs = [
-        '<speed ratio="0.9"/>',
-        '<speed ratio="1.2"/>',
-        '<volume ratio="0.8"/>',
-      ];
+      const inputs = ['<speed ratio="0.9"/>', '<speed ratio="1.2"/>', '<volume ratio="0.8"/>'];
 
       for (const input of inputs) {
         const result = parseSSML(input);
@@ -209,10 +198,10 @@ describe('TTS Gateway E2E Validation', () => {
     it('preserves text content with natural cleanup', () => {
       // Note: Multiple periods are collapsed to single period (natural speech)
       const testCases = [
-        { input: "Hello, how are you?", expected: "Hello, how are you?" },
+        { input: 'Hello, how are you?', expected: 'Hello, how are you?' },
         { input: "I'm doing great!", expected: "I'm doing great!" },
         { input: "Let's think about that...", expected: "Let's think about that." }, // Normalized
-        { input: "Yes! Absolutely.", expected: "Yes! Absolutely." },
+        { input: 'Yes! Absolutely.', expected: 'Yes! Absolutely.' },
       ];
 
       for (const { input, expected } of testCases) {
@@ -322,12 +311,7 @@ describe('TTS Gateway E2E Validation', () => {
     it('handles fragmented input gracefully', () => {
       // Simulate what happens when SSML gets fragmented
       // (though with buffering, this shouldn't happen)
-      const fragments = [
-        'Hello ',
-        '<break time="',
-        '280ms"/>',
-        ' world',
-      ];
+      const fragments = ['Hello ', '<break time="', '280ms"/>', ' world'];
 
       // Each fragment should be safe even if incomplete
       for (const fragment of fragments) {

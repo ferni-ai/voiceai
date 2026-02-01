@@ -398,7 +398,7 @@ export async function identifyFromMetadata(
               },
               '✅ AUTO-MIGRATION: Successfully migrated device profile'
             );
-            
+
             // Also run comprehensive subcollection linking (catches any collections the old migration missed)
             try {
               const { autoLinkOnAuth } = await import('./identity-linking.js');
@@ -638,7 +638,10 @@ export async function findPotentialLinkedAccounts(
         }
       }
     } catch (error) {
-      getLogger().warn({ error: String(error), name: hints.name }, 'Error searching profiles by name');
+      getLogger().warn(
+        { error: String(error), name: hints.name },
+        'Error searching profiles by name'
+      );
     }
   }
 
@@ -652,7 +655,9 @@ export async function findPotentialLinkedAccounts(
  * Find a profile by phone number in linkedIdentifiers array.
  * Used for multi-phone support.
  */
-export async function findProfileByLinkedPhone(normalizedPhone: string): Promise<UserProfile | null> {
+export async function findProfileByLinkedPhone(
+  normalizedPhone: string
+): Promise<UserProfile | null> {
   const store = getStore();
 
   try {

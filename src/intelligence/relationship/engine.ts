@@ -423,10 +423,7 @@ export class RelationshipEngine {
   }
 
   private calculateCallbackEffectiveness(): CallbackEffectiveness[] {
-    const byReference = new Map<
-      string,
-      { total: number; positive: number; lastAttempt: Date }
-    >();
+    const byReference = new Map<string, { total: number; positive: number; lastAttempt: Date }>();
 
     for (const attempt of this.memory.callbackAttempts) {
       const existing = byReference.get(attempt.reference) ?? {
@@ -479,9 +476,7 @@ export class RelationshipEngine {
     );
 
     // Get recent significant moments
-    const recentMoments = this.memory.sharedMoments
-      .filter((m) => m.significance > 0.5)
-      .slice(-5);
+    const recentMoments = this.memory.sharedMoments.filter((m) => m.significance > 0.5).slice(-5);
 
     // Get active inside jokes
     const activeJokes = this.memory.insideJokes.filter(
@@ -553,10 +548,10 @@ export class RelationshipEngine {
 
   private checkSessionMilestones(): SessionStartResult['milestone'] | undefined {
     const sessionMilestones: Array<{ sessions: number; type: MilestoneType; message: string }> = [
-      { sessions: 10, type: 'session_10', message: "This is our 10th conversation!" },
-      { sessions: 25, type: 'session_25', message: "25 conversations together!" },
+      { sessions: 10, type: 'session_10', message: 'This is our 10th conversation!' },
+      { sessions: 25, type: 'session_25', message: '25 conversations together!' },
       { sessions: 50, type: 'session_50', message: "50 conversations - look how far we've come!" },
-      { sessions: 100, type: 'session_100', message: "100 conversations! What a journey." },
+      { sessions: 100, type: 'session_100', message: '100 conversations! What a journey.' },
     ];
 
     for (const milestone of sessionMilestones) {
@@ -575,9 +570,9 @@ export class RelationshipEngine {
 
     const timeMilestones: Array<{ days: number; type: MilestoneType; message: string }> = [
       { days: 30, type: 'one_month', message: "It's been a month since we started talking!" },
-      { days: 90, type: 'three_months', message: "Three months together!" },
-      { days: 180, type: 'six_months', message: "Half a year of growing together!" },
-      { days: 365, type: 'one_year', message: "One year anniversary! This is special." },
+      { days: 90, type: 'three_months', message: 'Three months together!' },
+      { days: 180, type: 'six_months', message: 'Half a year of growing together!' },
+      { days: 365, type: 'one_year', message: 'One year anniversary! This is special.' },
     ];
 
     for (const milestone of timeMilestones) {
@@ -649,7 +644,8 @@ export class RelationshipEngine {
 
     const scores = recent.map((s) => moodScores[s.mood]);
     const avgRecent = scores.slice(-3).reduce((a, b) => a + b, 0) / 3;
-    const avgOlder = scores.slice(0, -3).reduce((a, b) => a + b, 0) / Math.max(1, scores.length - 3);
+    const avgOlder =
+      scores.slice(0, -3).reduce((a, b) => a + b, 0) / Math.max(1, scores.length - 3);
 
     const diff = avgRecent - avgOlder;
 

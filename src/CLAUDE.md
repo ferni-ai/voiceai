@@ -70,15 +70,15 @@ Level 10  (Foundation)      ← Config, utils, types
 | `memory/` | ✅ | Firestore, Postgres, Redis, embeddings |
 | `context/` | ✅ | ContextManager, session context |
 | `personality/` | ✅ | Personality emergence, timing |
-| `workers/` | - | Background worker processes |
+| `workers/` | ✅ | Background worker processes |
 
 ### Level 10: Foundation Layer
 
 | Module | CLAUDE.md | Purpose |
 |--------|-----------|---------|
-| `config/` | - | Environment, feature flags |
-| `utils/` | - | Logging, validation, helpers |
-| `types/` | - | Shared TypeScript types |
+| `config/` | ✅ | Environment, feature flags |
+| `utils/` | ✅ | Logging, validation, helpers |
+| `types/` | ✅ | Shared TypeScript types |
 | `errors/` | ✅ | FerniError base class, error codes |
 | `i18n/` | ✅ | 11 locales, RTL support |
 
@@ -90,7 +90,7 @@ Level 10  (Foundation)      ← Config, utils, types
 | `scripts/` | ✅ | One-off and scheduled scripts |
 | `jobs/` | ✅ | Background maintenance jobs |
 | `runtime/` | ✅ | Local/remote runtime abstraction |
-| `ssml/` | - | SSML generation utilities |
+| `ssml/` | ✅ | SSML generation utilities |
 
 ---
 

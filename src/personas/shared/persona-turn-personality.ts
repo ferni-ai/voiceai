@@ -20,9 +20,17 @@ type GeneratedExpression = { content: string; theme: string; ssml?: string; id?:
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const hasPersonaExpressionSupport = (_personaId: string): boolean => false;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const getPersonaExpression = (_personaId: string, _theme: string, _context: ExpressionContext): GeneratedExpression | null => null;
+const getPersonaExpression = (
+  _personaId: string,
+  _theme: string,
+  _context: ExpressionContext
+): GeneratedExpression | null => null;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const generatePersonaExpressions = (_personaId: string, _themes: { id: string; contextHints?: string[] }[], _context: ExpressionContext): Promise<void> => Promise.resolve();
+const generatePersonaExpressions = (
+  _personaId: string,
+  _themes: { id: string; contextHints?: string[] }[],
+  _context: ExpressionContext
+): Promise<void> => Promise.resolve();
 const PERSONA_CONFIGS: Record<string, { themes: { id: string; contextHints?: string[] }[] }> = {};
 
 import {

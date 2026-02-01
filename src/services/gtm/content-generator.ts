@@ -367,9 +367,9 @@ export async function generateContent(brief: ContentBrief): Promise<GeneratedCon
   let parsed: { title: string; body: string; excerpt: string; hashtags: string[] };
   try {
     // Extract JSON from response (handle markdown code blocks)
-    const jsonMatch = responseText.match(/```json\n?([\s\S]*?)\n?```/) ||
-      responseText.match(/\{[\s\S]*\}/);
-    const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : responseText;
+    const jsonMatch =
+      responseText.match(/```json\n?([\s\S]*?)\n?```/) || responseText.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : responseText;
     parsed = JSON.parse(jsonStr);
   } catch (e) {
     log.error('Failed to parse LLM response', { error: String(e) });
@@ -422,11 +422,11 @@ export async function generateContent(brief: ContentBrief): Promise<GeneratedCon
 // SPECIALIZED GENERATORS
 // ============================================================================
 
-export async function generateDailyContent(
-  dayOfWeek: number
-): Promise<GeneratedContent | null> {
+export async function generateDailyContent(dayOfWeek: number): Promise<GeneratedContent | null> {
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const dayName = days[dayOfWeek] as keyof typeof import('./brand-voice.js').DEFAULT_WEEKLY_SCHEDULE;
+  const dayName = days[
+    dayOfWeek
+  ] as keyof typeof import('./brand-voice.js').DEFAULT_WEEKLY_SCHEDULE;
 
   const { DEFAULT_WEEKLY_SCHEDULE } = await import('./brand-voice.js');
   const schedule = DEFAULT_WEEKLY_SCHEDULE[dayName];
@@ -519,9 +519,9 @@ Return improved content in JSON format:
   const responseText = result.response.text();
 
   try {
-    const jsonMatch = responseText.match(/```json\n?([\s\S]*?)\n?```/) ||
-      responseText.match(/\{[\s\S]*\}/);
-    const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : responseText;
+    const jsonMatch =
+      responseText.match(/```json\n?([\s\S]*?)\n?```/) || responseText.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : responseText;
     const parsed = JSON.parse(jsonStr);
 
     return {

@@ -28,10 +28,12 @@ apps/rust-perf/
 ├── index.d.ts          # Auto-generated TypeScript types
 └── src/
     ├── lib.rs              # Main entry - NAPI exports and core algorithms
+    ├── candle_router.rs    # Candle framework model inference
     ├── embedding_cache.rs  # LRU cache with SHA256 keys
     ├── fft_analyzer.rs     # FFT audio analysis (SIMD)
     ├── fluency_analyzer.rs # Speech disfluency detection
     ├── json_parser.rs      # SIMD-accelerated JSON parsing
+    ├── onnx_router.rs      # ONNX runtime model routing
     ├── signal_extractor.rs # Human signal extraction (dates, values, etc.)
     ├── ssml_processor.rs   # SSML tag processing
     ├── token_counter.rs    # Fast word/token counting

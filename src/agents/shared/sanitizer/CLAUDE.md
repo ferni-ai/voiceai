@@ -14,12 +14,15 @@ sanitizer/
 │   └── tool-patterns.json    # Single source of truth for tool patterns
 ├── types.ts                  # Shared type definitions
 ├── detectors/
+│   ├── index.ts              # Detector re-exports
 │   ├── patterns-loader.ts    # Loads and caches patterns from JSON
 │   └── leakage-detector.ts   # Detection logic for various leak patterns
 ├── executors/
+│   ├── index.ts              # Executor re-exports
 │   ├── deduplication.ts      # Prevents duplicate tool execution
 │   └── retry-analyzer.ts     # Determines when to retry failed tool calls
 ├── streams/
+│   ├── index.ts              # Stream re-exports
 │   └── transform-stream.ts   # Real-time sanitization transform streams
 └── index.ts                  # Main exports (backward compatible)
 ```
@@ -229,5 +232,5 @@ import { detectsFunctionCallLeakage } from './sanitizer/index.js';
 
 ---
 
-*Last updated: December 2024*
+*Last updated: January 2026*
 

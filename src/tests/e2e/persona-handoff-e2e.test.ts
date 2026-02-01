@@ -259,9 +259,8 @@ describe('Handoff Context Preservation', () => {
   });
 
   it('should preserve conversation context during handoff', async () => {
-    const { captureHandoffContext, formatHandoffContextForAgent } = await import(
-      '../../tools/handoff/index.js'
-    );
+    const { captureHandoffContext, formatHandoffContextForAgent } =
+      await import('../../tools/handoff/index.js');
 
     // Capture context from conversation with Ferni
     captureHandoffContext({
@@ -278,9 +277,8 @@ describe('Handoff Context Preservation', () => {
   });
 
   it('should track handoff history across multiple transitions', async () => {
-    const { recordHandoff, getHandoffHistory, resetHandoffState } = await import(
-      '../../tools/handoff/index.js'
-    );
+    const { recordHandoff, getHandoffHistory, resetHandoffState } =
+      await import('../../tools/handoff/index.js');
 
     resetHandoffState();
 
@@ -302,9 +300,8 @@ describe('Handoff Context Preservation', () => {
   });
 
   it('should format context appropriately for each receiving persona', async () => {
-    const { captureHandoffContext, formatHandoffContextForAgent, resetHandoffState } = await import(
-      '../../tools/handoff/index.js'
-    );
+    const { captureHandoffContext, formatHandoffContextForAgent, resetHandoffState } =
+      await import('../../tools/handoff/index.js');
 
     resetHandoffState();
 
@@ -332,9 +329,8 @@ describe('Handoff Context Preservation', () => {
 
 describe('Handoff Banter for All Persona Pairs', () => {
   it('should generate banter for all 30 persona transitions', async () => {
-    const { getHandoffBanter, getArrivingBanter } = await import(
-      '../../services/engagement/team-engagement.js'
-    );
+    const { getHandoffBanter, getArrivingBanter } =
+      await import('../../services/engagement/team-engagement.js');
 
     const transitions: { from: PersonaId; to: PersonaId }[] = [];
 
@@ -369,9 +365,8 @@ describe('Handoff Banter for All Persona Pairs', () => {
   });
 
   it('should have persona-appropriate banter content', async () => {
-    const { getHandoffBanter, getArrivingBanter } = await import(
-      '../../services/engagement/team-engagement.js'
-    );
+    const { getHandoffBanter, getArrivingBanter } =
+      await import('../../services/engagement/team-engagement.js');
 
     // Test specific transitions for appropriate content
 
@@ -388,11 +383,16 @@ describe('Handoff Banter for All Persona Pairs', () => {
     const nayanFromAlex = await getArrivingBanter('nayan', 'alex');
 
     // All should be strings or null
-    [ferniToPeter, peterFromFerni, mayaToJordan, jordanFromMaya, alexToNayan, nayanFromAlex].forEach(
-      (banter) => {
-        expect(banter === null || banter === undefined || typeof banter === 'string').toBe(true);
-      }
-    );
+    [
+      ferniToPeter,
+      peterFromFerni,
+      mayaToJordan,
+      jordanFromMaya,
+      alexToNayan,
+      nayanFromAlex,
+    ].forEach((banter) => {
+      expect(banter === null || banter === undefined || typeof banter === 'string').toBe(true);
+    });
   });
 });
 
@@ -437,9 +437,7 @@ describe('Persona Bundle Loading for Handoffs', () => {
       // Check for personality in manifest or other bundle data
       expect(bundle).not.toBeNull();
       const hasPersonalityData =
-        bundle!.manifest.personality ||
-        bundle!.manifest.cognitive ||
-        bundle!.manifest.identity;
+        bundle!.manifest.personality || bundle!.manifest.cognitive || bundle!.manifest.identity;
 
       expect(hasPersonalityData).toBeTruthy();
     }
@@ -475,9 +473,8 @@ describe('Cross-Persona Intelligence During Handoff', () => {
 
   it('should preserve emotional context across handoffs', async () => {
     // Test that emotional state is captured and passed
-    const { captureHandoffContext, formatHandoffContextForAgent, resetHandoffState } = await import(
-      '../../tools/handoff/index.js'
-    );
+    const { captureHandoffContext, formatHandoffContextForAgent, resetHandoffState } =
+      await import('../../tools/handoff/index.js');
 
     resetHandoffState();
 
@@ -645,9 +642,8 @@ describe('Complete Handoff Cycle Integration', () => {
   });
 
   it('should complete team roundtable: all 6 personas in sequence', async () => {
-    const { recordHandoff, getHandoffHistory, resetHandoffState, isSameAgent } = await import(
-      '../../tools/handoff/index.js'
-    );
+    const { recordHandoff, getHandoffHistory, resetHandoffState, isSameAgent } =
+      await import('../../tools/handoff/index.js');
 
     resetHandoffState();
 

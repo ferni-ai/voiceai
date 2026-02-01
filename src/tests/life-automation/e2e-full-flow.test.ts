@@ -21,8 +21,14 @@ import {
   type WorkflowAction,
 } from '../../services/stores/workflow-store.js';
 import { getJobQueue, resetJobQueue } from '../../services/workflows/jobs/job-queue.js';
-import { getTemplateLibrary, resetTemplateLibrary } from '../../services/workflows/templates/template-library.js';
-import { getSchedulerService, resetSchedulerService } from '../../services/workflows/scheduler/scheduler-service.js';
+import {
+  getTemplateLibrary,
+  resetTemplateLibrary,
+} from '../../services/workflows/templates/template-library.js';
+import {
+  getSchedulerService,
+  resetSchedulerService,
+} from '../../services/workflows/scheduler/scheduler-service.js';
 import { initWorkflowExecutionHandler } from '../../api/life-automation-routes.js';
 
 const TEST_USER_ID = 'e2e-test-user-' + Date.now();
@@ -146,7 +152,7 @@ describe('Life Automation E2E Full Flow', () => {
 
       expect(templates).toBeDefined();
       expect(templates.length).toBeGreaterThan(0);
-      
+
       // Each template should have required fields
       templates.forEach((t) => {
         expect(t.id).toBeDefined();
@@ -332,7 +338,12 @@ describe('Life Automation E2E Full Flow', () => {
         trigger: { type: 'time', schedule: '0 9 * * *' },
         actions: [
           { id: 'a1', type: 'speak_message', name: 'First', params: { message: 'First message' } },
-          { id: 'a2', type: 'send_notification', name: 'Second', params: { title: 'Test', body: 'Body' } },
+          {
+            id: 'a2',
+            type: 'send_notification',
+            name: 'Second',
+            params: { title: 'Test', body: 'Body' },
+          },
           { id: 'a3', type: 'log_habit', name: 'Third', params: { habitId: 'test-habit' } },
         ],
       });
@@ -417,7 +428,7 @@ describe('Life Automation E2E Full Flow', () => {
         timezone: 'UTC',
         enabled: true,
       });
-      
+
       // Invalid expression
       const invalidResult = await scheduler.scheduleWorkflow({
         workflowId: 'test-wf-2',

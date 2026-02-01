@@ -60,9 +60,8 @@ describe('Session Health Monitor', () => {
 
   describe('Initialization', () => {
     it('should initialize session health tracking', async () => {
-      const { initializeHealthMonitor, getSessionHealth, clearHealthMonitor } = await import(
-        '../../agents/shared/session-health-monitor.js'
-      );
+      const { initializeHealthMonitor, getSessionHealth, clearHealthMonitor } =
+        await import('../../agents/shared/session-health-monitor.js');
 
       const sessionId = 'test-init-session';
       initializeHealthMonitor(sessionId);
@@ -78,9 +77,8 @@ describe('Session Health Monitor', () => {
     });
 
     it('should accept optional refresh callback', async () => {
-      const { initializeHealthMonitor, clearHealthMonitor } = await import(
-        '../../agents/shared/session-health-monitor.js'
-      );
+      const { initializeHealthMonitor, clearHealthMonitor } =
+        await import('../../agents/shared/session-health-monitor.js');
 
       const sessionId = 'test-callback-session';
       const refreshCallback = vi.fn().mockResolvedValue(undefined);
@@ -277,9 +275,8 @@ describe('Parallel Tool Executor', () => {
     });
 
     it('should allow adding custom critical tools', async () => {
-      const { isCriticalTool, addCriticalTool, removeCriticalTool } = await import(
-        '../../agents/shared/parallel-tool-executor.js'
-      );
+      const { isCriticalTool, addCriticalTool, removeCriticalTool } =
+        await import('../../agents/shared/parallel-tool-executor.js');
 
       // Add a custom critical tool
       expect(isCriticalTool('customCritical')).toBe(false);
@@ -311,9 +308,8 @@ describe('Parallel Tool Executor', () => {
 
   describe('Parallel Execution', () => {
     it('should execute critical tool with parallel attempts', async () => {
-      const { executeWithParallelFallback } = await import(
-        '../../agents/shared/parallel-tool-executor.js'
-      );
+      const { executeWithParallelFallback } =
+        await import('../../agents/shared/parallel-tool-executor.js');
 
       let callCount = 0;
       const executor = vi.fn().mockImplementation(async () => {
@@ -321,10 +317,15 @@ describe('Parallel Tool Executor', () => {
         return { success: true, data: { handoffComplete: true } };
       });
 
-      const result = await executeWithParallelFallback('handoff', { targetPersona: 'maya' }, executor, {
-        maxParallel: 2,
-        timeoutMs: 5000,
-      });
+      const result = await executeWithParallelFallback(
+        'handoff',
+        { targetPersona: 'maya' },
+        executor,
+        {
+          maxParallel: 2,
+          timeoutMs: 5000,
+        }
+      );
 
       expect(result.success).toBe(true);
       // Should have called executor (may be 1 or 2 times depending on race)
@@ -332,9 +333,8 @@ describe('Parallel Tool Executor', () => {
     });
 
     it('should use first successful result from parallel attempts', async () => {
-      const { executeWithParallelFallback } = await import(
-        '../../agents/shared/parallel-tool-executor.js'
-      );
+      const { executeWithParallelFallback } =
+        await import('../../agents/shared/parallel-tool-executor.js');
 
       let callCount = 0;
       const executor = vi.fn().mockImplementation(async () => {
@@ -355,9 +355,8 @@ describe('Parallel Tool Executor', () => {
     });
 
     it('should handle failure from all parallel attempts', async () => {
-      const { executeWithParallelFallback } = await import(
-        '../../agents/shared/parallel-tool-executor.js'
-      );
+      const { executeWithParallelFallback } =
+        await import('../../agents/shared/parallel-tool-executor.js');
 
       const executor = vi.fn().mockRejectedValue(new Error('Network error'));
 
@@ -371,9 +370,8 @@ describe('Parallel Tool Executor', () => {
     });
 
     it('should timeout long-running parallel attempts', async () => {
-      const { executeWithParallelFallback } = await import(
-        '../../agents/shared/parallel-tool-executor.js'
-      );
+      const { executeWithParallelFallback } =
+        await import('../../agents/shared/parallel-tool-executor.js');
 
       const executor = vi.fn().mockImplementation(async () => {
         await new Promise((r) => setTimeout(r, 10000)); // Very long
@@ -434,7 +432,8 @@ describe('Conversation Priming', () => {
 
   describe('Leakage Detection', () => {
     it('should detect tool call leakage patterns', async () => {
-      const { detectsToolCallLeakage } = await import('../../agents/shared/conversation-priming.js');
+      const { detectsToolCallLeakage } =
+        await import('../../agents/shared/conversation-priming.js');
 
       // These are leakage patterns that match actual TOOL_CALL_LEAKAGE_PATTERNS:
       // - /i(?:'ll| will) play/i - "I'll play" or "I will play"
@@ -444,21 +443,25 @@ describe('Conversation Priming', () => {
       // - /i(?:'ll| will) hand you off/i - "I'll hand you off"
       expect(detectsToolCallLeakage("I'll play some music for you").isLeakage).toBe(true);
       expect(detectsToolCallLeakage("I'll check the weather for you").isLeakage).toBe(true);
-      expect(detectsToolCallLeakage("Let me transfer you to Maya").isLeakage).toBe(true);
+      expect(detectsToolCallLeakage('Let me transfer you to Maya').isLeakage).toBe(true);
       expect(detectsToolCallLeakage("I'll hand you off to Alex").isLeakage).toBe(true);
     });
 
     it('should NOT flag normal conversation as leakage', async () => {
-      const { detectsToolCallLeakage } = await import('../../agents/shared/conversation-priming.js');
+      const { detectsToolCallLeakage } =
+        await import('../../agents/shared/conversation-priming.js');
 
       // Normal conversation should not be flagged
-      expect(detectsToolCallLeakage("How are you feeling today?").isLeakage).toBe(false);
-      expect(detectsToolCallLeakage("That sounds like a challenging situation").isLeakage).toBe(false);
-      expect(detectsToolCallLeakage("I understand what you mean").isLeakage).toBe(false);
+      expect(detectsToolCallLeakage('How are you feeling today?').isLeakage).toBe(false);
+      expect(detectsToolCallLeakage('That sounds like a challenging situation').isLeakage).toBe(
+        false
+      );
+      expect(detectsToolCallLeakage('I understand what you mean').isLeakage).toBe(false);
     });
 
     it('should suggest appropriate tool when leakage detected', async () => {
-      const { detectsToolCallLeakage } = await import('../../agents/shared/conversation-priming.js');
+      const { detectsToolCallLeakage } =
+        await import('../../agents/shared/conversation-priming.js');
 
       const musicLeakage = detectsToolCallLeakage("I'll play some jazz for you");
       expect(musicLeakage.isLeakage).toBe(true);
@@ -522,7 +525,8 @@ describe('Context Pruning', () => {
 
   describe('Pruning Execution', () => {
     it('should preserve priming turns when pruning', async () => {
-      const { pruneConversationContext } = await import('../../agents/shared/conversation-priming.js');
+      const { pruneConversationContext } =
+        await import('../../agents/shared/conversation-priming.js');
 
       const turns = [
         // Priming turns (should be preserved)
@@ -549,7 +553,8 @@ describe('Context Pruning', () => {
     });
 
     it('should preserve recent turns when pruning', async () => {
-      const { pruneConversationContext } = await import('../../agents/shared/conversation-priming.js');
+      const { pruneConversationContext } =
+        await import('../../agents/shared/conversation-priming.js');
 
       const turns = Array.from({ length: 60 }, (_, i) => ({
         role: i % 2 === 0 ? ('user' as const) : ('assistant' as const),
@@ -566,7 +571,8 @@ describe('Context Pruning', () => {
     });
 
     it('should preserve turns with successful tool calls', async () => {
-      const { pruneConversationContext } = await import('../../agents/shared/conversation-priming.js');
+      const { pruneConversationContext } =
+        await import('../../agents/shared/conversation-priming.js');
 
       const turns = [
         ...Array.from({ length: 20 }, (_, i) => ({
@@ -608,9 +614,8 @@ describe('Function Call Telemetry', () => {
 
   describe('Metric Recording', () => {
     it('should record successful JSON function calls', async () => {
-      const { logJsonExecuted, getGeminiHealthMetrics, clearSession } = await import(
-        '../../agents/shared/function-call-telemetry.js'
-      );
+      const { logJsonExecuted, getGeminiHealthMetrics, clearSession } =
+        await import('../../agents/shared/function-call-telemetry.js');
 
       const sessionId = 'telemetry-test-session';
 
@@ -629,9 +634,8 @@ describe('Function Call Telemetry', () => {
     });
 
     it('should record leakage events', async () => {
-      const { logLeakageDetected, getGeminiHealthMetrics, clearSession } = await import(
-        '../../agents/shared/function-call-telemetry.js'
-      );
+      const { logLeakageDetected, getGeminiHealthMetrics, clearSession } =
+        await import('../../agents/shared/function-call-telemetry.js');
 
       const sessionId = 'leakage-test-session';
 
@@ -654,12 +658,8 @@ describe('Function Call Telemetry', () => {
 
   describe('Health Dashboard', () => {
     it('should generate comprehensive health dashboard', async () => {
-      const {
-        logJsonExecuted,
-        logLeakageDetected,
-        getFunctionCallHealthDashboard,
-        clearSession,
-      } = await import('../../agents/shared/function-call-telemetry.js');
+      const { logJsonExecuted, logLeakageDetected, getFunctionCallHealthDashboard, clearSession } =
+        await import('../../agents/shared/function-call-telemetry.js');
 
       const sessionId = 'dashboard-test-session';
 
@@ -694,9 +694,8 @@ describe('Hybrid Scenarios', () => {
     it('should coordinate health monitor and telemetry tracking', async () => {
       const { initializeHealthMonitor, recordTurn, getSessionHealth, clearHealthMonitor } =
         await import('../../agents/shared/session-health-monitor.js');
-      const { logJsonExecuted, getGeminiHealthMetrics, clearSession } = await import(
-        '../../agents/shared/function-call-telemetry.js'
-      );
+      const { logJsonExecuted, getGeminiHealthMetrics, clearSession } =
+        await import('../../agents/shared/function-call-telemetry.js');
 
       const sessionId = 'hybrid-integration-test';
 
@@ -757,7 +756,13 @@ describe('Hybrid Scenarios', () => {
             logJsonExecuted(sessionId, `tool${turn}`, true, 150 + Math.random() * 150);
           } else if (roll < 0.7) {
             recordToolCallLeakage(sessionId, `tool${turn}`);
-            logLeakageDetected(sessionId, 'leakage-pattern', `tool${turn}`, 'Simulated leakage', turn);
+            logLeakageDetected(
+              sessionId,
+              'leakage-pattern',
+              `tool${turn}`,
+              'Simulated leakage',
+              turn
+            );
           }
         } else {
           // Degradation phase - 30% success, 40% leakage
@@ -767,7 +772,13 @@ describe('Hybrid Scenarios', () => {
             logJsonExecuted(sessionId, `tool${turn}`, true, 200 + Math.random() * 200);
           } else if (roll < 0.7) {
             recordToolCallLeakage(sessionId, `tool${turn}`);
-            logLeakageDetected(sessionId, 'leakage-pattern', `tool${turn}`, 'Simulated leakage', turn);
+            logLeakageDetected(
+              sessionId,
+              'leakage-pattern',
+              `tool${turn}`,
+              'Simulated leakage',
+              turn
+            );
           }
         }
       }
@@ -786,9 +797,8 @@ describe('Hybrid Scenarios', () => {
 
   describe('Critical Tool + Parallel Execution', () => {
     it('should use parallel execution for persona-specific handoff', async () => {
-      const { isCriticalTool, executeWithParallelFallback } = await import(
-        '../../agents/shared/parallel-tool-executor.js'
-      );
+      const { isCriticalTool, executeWithParallelFallback } =
+        await import('../../agents/shared/parallel-tool-executor.js');
 
       // Use actual registered critical tool name
       expect(isCriticalTool('handoffToMaya')).toBe(true);

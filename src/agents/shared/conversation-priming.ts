@@ -76,12 +76,10 @@ export function getPrimingTurns(config: ConversationPrimingConfig): PrimingTurn[
   // When FTIS handles all tools, Gemini should NOT know about JSON format
   // It would output JSON as speech instead of natural language
   if (process.env.FTIS_ONLY_MODE === 'true') {
-    log.info(
-      '🎯 FTIS_ONLY_MODE=true: Skipping JSON priming (FTIS handles all tools)'
-    );
+    log.info('🎯 FTIS_ONLY_MODE=true: Skipping JSON priming (FTIS handles all tools)');
     return turns;
   }
-  
+
   // 🎯 SEMANTIC ROUTING PRIMARY: Skip JSON priming entirely
   // When semantic routing handles tools, we don't want to teach the LLM
   // the JSON format (it would output JSON as speech instead of natural language)
@@ -646,7 +644,8 @@ export function pruneConversationContext(
   result.estimatedTokensBefore = turns.reduce((sum, turn) => sum + estimateTokens(turn.content), 0);
 
   // Check if pruning is needed
-  const shouldPrune = turns.length > config.maxTurns || result.estimatedTokensBefore > config.tokenThreshold;
+  const shouldPrune =
+    turns.length > config.maxTurns || result.estimatedTokensBefore > config.tokenThreshold;
 
   if (!shouldPrune) {
     result.keptTurns = turns;
@@ -704,7 +703,8 @@ export function pruneConversationContext(
   });
 
   // Calculate how many middle turns we can keep
-  const preservedCount = systemTurns.length + primingTurns.length + toolCallTurns.length + recentTurns.length;
+  const preservedCount =
+    systemTurns.length + primingTurns.length + toolCallTurns.length + recentTurns.length;
   const remainingSlots = Math.max(0, config.maxTurns - preservedCount);
 
   // Keep the most recent middle turns if we have room
@@ -724,7 +724,10 @@ export function pruneConversationContext(
   result.keptTurns = turns.filter((turn) => keptTurnIndices.has(turn.index));
   result.prunedTurns = turns.filter((turn) => !keptTurnIndices.has(turn.index));
   result.wasApplied = result.prunedTurns.length > 0;
-  result.estimatedTokensAfter = result.keptTurns.reduce((sum, turn) => sum + estimateTokens(turn.content), 0);
+  result.estimatedTokensAfter = result.keptTurns.reduce(
+    (sum, turn) => sum + estimateTokens(turn.content),
+    0
+  );
 
   result.reason = `Pruned ${result.prunedTurns.length} turns (kept: ${systemTurns.length} system, ${primingTurns.length} priming, ${toolCallTurns.length} tool calls, ${keptMiddleTurns.length} middle, ${recentTurns.length} recent)`;
 
@@ -758,12 +761,18 @@ export function shouldPruneContext(
   }
 
   if (turns.length > config.maxTurns) {
-    return { shouldPrune: true, reason: `Turn count (${turns.length}) exceeds max (${config.maxTurns})` };
+    return {
+      shouldPrune: true,
+      reason: `Turn count (${turns.length}) exceeds max (${config.maxTurns})`,
+    };
   }
 
   const estimatedTokens = turns.reduce((sum, turn) => sum + estimateTokens(turn.content), 0);
   if (estimatedTokens > config.tokenThreshold) {
-    return { shouldPrune: true, reason: `Token count (~${estimatedTokens}) exceeds threshold (${config.tokenThreshold})` };
+    return {
+      shouldPrune: true,
+      reason: `Token count (~${estimatedTokens}) exceeds threshold (${config.tokenThreshold})`,
+    };
   }
 
   return { shouldPrune: false, reason: 'Under thresholds' };
@@ -777,7 +786,10 @@ export function shouldPruneContext(
  * @param primingCount - Number of priming turns that were added
  * @returns Turns with priming flags set
  */
-export function markPrimingTurns(turns: ConversationTurn[], primingCount: number): ConversationTurn[] {
+export function markPrimingTurns(
+  turns: ConversationTurn[],
+  primingCount: number
+): ConversationTurn[] {
   // Priming turns are added after system prompt, so they're at indices 1 through primingCount
   return turns.map((turn, idx) => {
     // Skip system prompt (index 0)

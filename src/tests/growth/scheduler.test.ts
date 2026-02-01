@@ -38,9 +38,7 @@ vi.mock('../../../apps/cli/src/commands/growth/content-engine.js', () => ({
     emotional: ['Emotional topic'],
     comparison: ['Comparison topic'],
   },
-  SEO_KEYWORD_BANK: [
-    { keyword: 'AI companion', topic: 'Best AI companions' },
-  ],
+  SEO_KEYWORD_BANK: [{ keyword: 'AI companion', topic: 'Best AI companions' }],
   REDDIT_TOPICS: {
     selfimprovement: ['Self improvement topic'],
   },
@@ -64,7 +62,13 @@ describe('Scheduler', () => {
     (storage.updateTaskStatus as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
     (storage.scheduleTask as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'task-1' });
     (storage.getTikTokAccounts as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: '1', handle: '@ferni', angle: 'main', description: 'Main', createdAt: new Date().toISOString() },
+      {
+        id: '1',
+        handle: '@ferni',
+        angle: 'main',
+        description: 'Main',
+        createdAt: new Date().toISOString(),
+      },
     ]);
     (storage.getInfluencerLeads as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (storage.getSEOArticles as ReturnType<typeof vi.fn>).mockResolvedValue([]);
@@ -84,8 +88,16 @@ describe('Scheduler', () => {
       id: 'content-2',
     });
     // Mock batchGenerateTikTokScripts - used by runPendingTasks for generate_content
-    ((contentEngine as Record<string, ReturnType<typeof vi.fn>>).batchGenerateTikTokScripts).mockResolvedValue([
-      { id: 'batch-1', platform: 'tiktok', type: 'video_script', content: 'Batch content 1', status: 'draft' },
+    (
+      contentEngine as Record<string, ReturnType<typeof vi.fn>>
+    ).batchGenerateTikTokScripts.mockResolvedValue([
+      {
+        id: 'batch-1',
+        platform: 'tiktok',
+        type: 'video_script',
+        content: 'Batch content 1',
+        status: 'draft',
+      },
     ]);
   });
 
@@ -134,9 +146,9 @@ describe('Scheduler', () => {
       ]);
 
       // Mock batchGenerateTikTokScripts to throw
-      ((contentEngine as Record<string, ReturnType<typeof vi.fn>>).batchGenerateTikTokScripts).mockRejectedValue(
-        new Error('API error')
-      );
+      (
+        contentEngine as Record<string, ReturnType<typeof vi.fn>>
+      ).batchGenerateTikTokScripts.mockRejectedValue(new Error('API error'));
 
       // Should not throw - handles errors gracefully
       const result = await runPendingTasks();
@@ -159,7 +171,9 @@ describe('Scheduler', () => {
       await runPendingTasks(true); // dry run
 
       // In dry run, batchGenerateTikTokScripts should not be called
-      expect((contentEngine as Record<string, ReturnType<typeof vi.fn>>).batchGenerateTikTokScripts).not.toHaveBeenCalled();
+      expect(
+        (contentEngine as Record<string, ReturnType<typeof vi.fn>>).batchGenerateTikTokScripts
+      ).not.toHaveBeenCalled();
     });
   });
 

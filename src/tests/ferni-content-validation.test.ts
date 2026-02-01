@@ -18,10 +18,7 @@ import { join } from 'path';
 // PATHS
 // ============================================================================
 
-const BEHAVIORS_PATH = join(
-  process.cwd(),
-  'src/personas/bundles/ferni/content/behaviors'
-);
+const BEHAVIORS_PATH = join(process.cwd(), 'src/personas/bundles/ferni/content/behaviors');
 
 // ============================================================================
 // HELPERS
@@ -143,7 +140,7 @@ describe('Ferni Content Validation', () => {
     });
 
     it('voice-dna.json has core_identity if it exists', async () => {
-      const content = await loadJson('voice-dna.json') as Record<string, unknown> | null;
+      const content = (await loadJson('voice-dna.json')) as Record<string, unknown> | null;
       if (content) {
         // Either has core_identity or is structured differently
         expect(typeof content === 'object').toBe(true);
@@ -151,7 +148,7 @@ describe('Ferni Content Validation', () => {
     });
 
     it('coaching-modes.json has modes if it exists', async () => {
-      const content = await loadJson('coaching-modes.json') as Record<string, unknown> | null;
+      const content = (await loadJson('coaching-modes.json')) as Record<string, unknown> | null;
       if (content) {
         expect(typeof content === 'object').toBe(true);
       }
@@ -299,7 +296,9 @@ describe('Bundle Loader Integration', () => {
 
     // Check each loader exists in the module
     for (const loaderName of expectedLoaders) {
-      const exists = loaderName in loader || typeof (loader as Record<string, unknown>)[loaderName] === 'function';
+      const exists =
+        loaderName in loader ||
+        typeof (loader as Record<string, unknown>)[loaderName] === 'function';
       if (!exists) {
         // The loader might exist in the TS source but not in the built JS
         // This is acceptable during testing

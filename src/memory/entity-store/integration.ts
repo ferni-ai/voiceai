@@ -54,7 +54,10 @@ export async function initializeEntityStore(): Promise<void> {
     log.info('Entity store initialized');
   } catch (error) {
     initializationError = String(error);
-    log.warn({ error: initializationError }, 'Entity store initialization failed - will use legacy collections');
+    log.warn(
+      { error: initializationError },
+      'Entity store initialization failed - will use legacy collections'
+    );
   }
 }
 
@@ -142,9 +145,7 @@ function inferMentionType(transcript: string, input: PersonCaptureInput): Mentio
   }
 
   // Check for planning
-  if (
-    /\b(meeting|call|see|visit|meet up|hang out|tomorrow|next week|this weekend)\b/.test(lower)
-  ) {
+  if (/\b(meeting|call|see|visit|meet up|hang out|tomorrow|next week|this weekend)\b/.test(lower)) {
     return 'planning';
   }
 
@@ -731,9 +732,10 @@ export async function retrieveMemoriesUnified(
                 return `${rel.type} (strength: ${rel.strength.toFixed(2)})`;
               });
 
-            relationshipContext = relationshipDescriptions.length > 0
-              ? ` | Connected via: ${relationshipDescriptions.join(', ')}`
-              : '';
+            relationshipContext =
+              relationshipDescriptions.length > 0
+                ? ` | Connected via: ${relationshipDescriptions.join(', ')}`
+                : '';
           }
         } catch {
           // Silently continue if relationship fetch fails
@@ -748,13 +750,14 @@ export async function retrieveMemoriesUnified(
             const daysAgo = Math.floor(
               (Date.now() - new Date(latestMention.timestamp).getTime()) / (1000 * 60 * 60 * 24)
             );
-            recentMentionContext = daysAgo === 0
-              ? ' | Mentioned today'
-              : daysAgo === 1
-                ? ' | Mentioned yesterday'
-                : daysAgo < 7
-                  ? ` | Mentioned ${daysAgo} days ago`
-                  : '';
+            recentMentionContext =
+              daysAgo === 0
+                ? ' | Mentioned today'
+                : daysAgo === 1
+                  ? ' | Mentioned yesterday'
+                  : daysAgo < 7
+                    ? ` | Mentioned ${daysAgo} days ago`
+                    : '';
           }
         } catch {
           // Silently continue if mention fetch fails
@@ -842,7 +845,12 @@ function buildEnrichedReason(
   },
   searchResult: {
     score: number;
-    scoreBreakdown: { semantic: number; temporal: number; emotional: number; graphDistance: number };
+    scoreBreakdown: {
+      semantic: number;
+      temporal: number;
+      emotional: number;
+      graphDistance: number;
+    };
     graphPath?: string[];
   },
   query: string,
@@ -1330,7 +1338,8 @@ export async function updateCommitmentEntityStatus(
 
   // Sync status to Commitment Keeper
   try {
-    const { updateCommitmentStatus } = await import('../../services/superhuman/commitment-keeper.js');
+    const { updateCommitmentStatus } =
+      await import('../../services/superhuman/commitment-keeper.js');
     // Map entity status to commitment keeper status
     const keeperStatus =
       status === 'deferred' ? 'deferred' : status === 'abandoned' ? 'abandoned' : status;

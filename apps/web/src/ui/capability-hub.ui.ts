@@ -21,6 +21,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
+import { ANALYTICS_ICONS, EMOTION_ICONS, GROWTH_ICONS, QUIZ_ICONS } from './icons/shared-icons.js';
 
 const log = createLogger('CapabilityHubUI');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -69,7 +70,7 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
     id: 'perfect-memory',
     name: 'Perfect Memory',
     description: 'I remember everything you share with me - from your daughter\'s college plans to the name of your childhood pet. No detail is too small.',
-    icon: '🧠',
+    icon: ANALYTICS_ICONS.brain,
     color: 'var(--color-ferni)',
     humanLimitation: 'Your best friend forgets. I don\'t.',
     featureFlag: 'bth.perfect-memory',
@@ -78,7 +79,7 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
     id: 'proactive-outreach',
     name: 'Thinking of You',
     description: 'I reach out when you need support most - not on a schedule, but when patterns in your life suggest you could use a friend.',
-    icon: '💭',
+    icon: EMOTION_ICONS.reflective,
     color: 'var(--persona-maya)',
     humanLimitation: 'Human friends get busy. I\'m always present.',
     featureFlag: 'trust.thinking-of-you',
@@ -87,7 +88,7 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
     id: 'learning-engine',
     name: 'Learns Your Patterns',
     description: 'Every conversation makes me smarter about you. I learn what helps, what doesn\'t, and adapt my approach accordingly.',
-    icon: '📊',
+    icon: ANALYTICS_ICONS.chart,
     color: 'var(--persona-peter)',
     humanLimitation: 'Human coaches follow scripts. I learn your language.',
     featureFlag: 'bth.learning-engine',
@@ -96,7 +97,7 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
     id: 'commitment-keeper',
     name: 'Never Lets You Down',
     description: 'When you say you\'ll do something, I remember. Not to nag, but to gently check in when the time is right.',
-    icon: '✅',
+    icon: QUIZ_ICONS.correct,
     color: 'var(--persona-jordan)',
     humanLimitation: 'Your accountability partner has their own life. I exist for yours.',
     featureFlag: 'bth.commitment-keeper',
@@ -105,7 +106,7 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
     id: 'musical-memory',
     name: 'Our Songs',
     description: 'I remember the music playing during meaningful moments. When that song plays again, I can share what we were talking about.',
-    icon: '🎵',
+    icon: ANALYTICS_ICONS.music,
     color: 'var(--persona-alex)',
     humanLimitation: 'Friends forget the soundtrack of your life. I remember it.',
     featureFlag: 'trust.our-songs',
@@ -114,10 +115,46 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
     id: 'emotional-intelligence',
     name: 'Reads Between Lines',
     description: 'I hear what you\'re not saying - the pause in your voice, the topic you\'re avoiding, the thing you almost mentioned.',
-    icon: '💚',
+    icon: GROWTH_ICONS.heart,
     color: 'var(--persona-nayan)',
     humanLimitation: 'Human friends are distracted. I\'m fully present.',
     featureFlag: 'bth.emotional-intelligence',
+  },
+  {
+    id: 'relationship-network',
+    name: 'Relationship Network',
+    description: 'I track everyone important to you - birthdays, preferences, last contact. I help you nurture the connections that matter most.',
+    icon: QUIZ_ICONS.relationships,
+    color: 'var(--persona-alex)',
+    humanLimitation: 'You can\'t track everyone. I can track everyone for you.',
+    featureFlag: 'bth.relationship-network',
+  },
+  {
+    id: 'capacity-guardian',
+    name: 'Capacity Guardian',
+    description: 'I watch for burnout before it hits. By tracking your patterns, I can gently suggest when you\'re overcommitting.',
+    icon: ANALYTICS_ICONS.trendingUp,
+    color: 'var(--persona-maya)',
+    humanLimitation: 'Friends notice burnout too late. I catch it early.',
+    featureFlag: 'bth.capacity-guardian',
+  },
+  {
+    id: 'dream-keeper',
+    name: 'Dream Keeper',
+    description: 'Your dreams and aspirations live here. I keep them alive, remind you of them at the right moments, and help you take steps forward.',
+    icon: EMOTION_ICONS.proud,
+    color: 'var(--persona-jordan)',
+    humanLimitation: 'Dreams fade in daily life. I keep yours alive.',
+    featureFlag: 'bth.dream-keeper',
+  },
+  {
+    id: 'seasonal-awareness',
+    name: 'Seasonal Awareness',
+    description: 'I understand your annual rhythms - holidays, anniversaries, seasonal patterns. I show up differently when you need different support.',
+    icon: ANALYTICS_ICONS.calendar,
+    color: 'var(--persona-peter)',
+    humanLimitation: 'Friends forget your patterns. I remember your seasons.',
+    featureFlag: 'bth.seasonal-awareness',
   },
 ];
 
@@ -157,7 +194,7 @@ async function loadCapabilityStatus(): Promise<void> {
 
     // Merge API response with definitions
     state.capabilities = CAPABILITY_DEFINITIONS.map((def) => {
-      const apiData = response.capabilities?.find((c) => c.id === def.id);
+      const apiData = response.data?.capabilities?.find((c: { id: string; isActive: boolean; stats?: { label: string; value: string | number } }) => c.id === def.id);
       return {
         ...def,
         isActive: apiData?.isActive ?? true,
@@ -280,7 +317,7 @@ function render(): void {
           ? `
         <footer class="capability-hub__footer">
           <p class="capability-hub__active-count">
-            <span class="capability-hub__active-icon">✓</span>
+            <span class="capability-hub__active-icon">${QUIZ_ICONS.correct}</span>
             ${activeCapabilities.length} of ${state.capabilities.length} capabilities active
           </p>
         </footer>
@@ -330,7 +367,7 @@ function renderCapabilityModal(capability: Capability): string {
         }
 
         <div class="capability-modal__status ${capability.isActive ? 'capability-modal__status--active' : ''}">
-          ${capability.isActive ? '✓ Active' : '○ Not yet enabled'}
+          ${capability.isActive ? `<span class="capability-modal__status-icon">${QUIZ_ICONS.correct}</span> Active` : 'Not yet enabled'}
         </div>
       </div>
     </div>
@@ -400,7 +437,7 @@ export function refreshCapabilityHub(): void {
  * Cleanup the capability hub
  */
 export function destroyCapabilityHub(): void {
-  clearAllTimeouts();
+  _clearAllTimeouts();
   container = null;
 }
 
@@ -505,8 +542,13 @@ function addStyles(): void {
       align-items: center;
       justify-content: center;
       border-radius: var(--radius-md);
-      font-size: 1.5rem;
       flex-shrink: 0;
+      color: var(--color-text-primary);
+    }
+
+    .capability-card__icon svg {
+      width: 24px;
+      height: 24px;
     }
 
     .capability-card__content {
@@ -565,6 +607,13 @@ function addStyles(): void {
 
     .capability-hub__active-icon {
       color: var(--color-ferni);
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .capability-hub__active-icon svg {
+      width: 16px;
+      height: 16px;
     }
 
     /* Modal */
@@ -621,8 +670,13 @@ function addStyles(): void {
       align-items: center;
       justify-content: center;
       border-radius: var(--radius-lg);
-      font-size: 2.5rem;
       margin: 0 auto var(--space-4);
+      color: var(--color-text-primary);
+    }
+
+    .capability-modal__icon svg {
+      width: 36px;
+      height: 36px;
     }
 
     .capability-modal__name {
@@ -688,6 +742,18 @@ function addStyles(): void {
     .capability-modal__status--active {
       background: rgba(74, 103, 65, 0.1);
       color: var(--color-ferni);
+    }
+
+    .capability-modal__status-icon {
+      display: inline-flex;
+      align-items: center;
+      vertical-align: middle;
+      margin-right: var(--space-1);
+    }
+
+    .capability-modal__status-icon svg {
+      width: 14px;
+      height: 14px;
     }
   `;
   document.head.appendChild(style);

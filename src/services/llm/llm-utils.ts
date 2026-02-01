@@ -15,7 +15,11 @@
  * @module services/llm-utils
  */
 
-import { getDefaultModel, getGeminiClient } from '../../config/gemini-config.js';
+import {
+  getExtractionModel,
+  getGeminiClient,
+  getOpenAIFallbackModel,
+} from '../../config/gemini-config.js';
 import { CircuitOpenError, getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
@@ -112,8 +116,24 @@ async function initializeVertexAIClient(): Promise<VertexAIClient | null> {
 }
 
 /**
+ * Check if an error is a 429 rate limit error
+ */
+function is429Error(error: unknown): boolean {
+  const errorStr = String(error);
+  return errorStr.includes('429') || errorStr.includes('RESOURCE_EXHAUSTED');
+}
+
+/**
+ * Sleep for a given number of milliseconds
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
  * Call Vertex AI (Gemini) for supplementary analysis
  * Uses enterprise tier with much higher quotas than consumer API
+ * Includes retry with exponential backoff for 429 rate limit errors
  */
 async function callVertexAI(prompt: string, options: LLMCallOptions = {}): Promise<string | null> {
   // Check circuit breaker first
@@ -122,56 +142,76 @@ async function callVertexAI(prompt: string, options: LLMCallOptions = {}): Promi
     return null;
   }
 
-  try {
-    const client = await getVertexAIClient();
-    if (!client) {
-      getLogger().warn('Vertex AI client is null - initialization failed');
-      return null;
-    }
+  const MAX_RETRIES = 3;
+  const BASE_DELAY_MS = 500; // Start with 500ms, then 1s, then 2s
 
-    const { maxTokens = 500, temperature = 0.3, timeout = 5000 } = options;
-
-    // Use AbortController for timeout
-    // eslint-disable-next-line no-undef
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const response = await vertexAICircuitBreaker.execute(async () => {
-        // Use Vertex AI SDK - model from centralized config
-        const model = client.getGenerativeModel({ model: getDefaultModel() });
-        const result = await model.generateContent({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            maxOutputTokens: maxTokens,
-            temperature,
-          },
+      const client = await getVertexAIClient();
+      if (!client) {
+        getLogger().warn('Vertex AI client is null - initialization failed');
+        return null;
+      }
+
+      const { maxTokens = 500, temperature = 0.3, timeout = 5000 } = options;
+
+      // Use AbortController for timeout
+      // eslint-disable-next-line no-undef
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      try {
+        const response = await vertexAICircuitBreaker.execute(async () => {
+          // Use Vertex AI SDK - extraction model for supplementary analysis
+          // NOTE: Do NOT use getDefaultModel() as it may return a realtime-only model
+          // that doesn't work with generateContent API
+          const model = client.getGenerativeModel({ model: getExtractionModel() });
+          const result = await model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+              maxOutputTokens: maxTokens,
+              temperature,
+            },
+          });
+
+          // Extract text from Vertex AI response
+          const candidate = result.response?.candidates?.[0];
+          const text = candidate?.content?.parts?.[0]?.text;
+          return text?.trim() || null;
         });
 
-        // Extract text from Vertex AI response
-        const candidate = result.response?.candidates?.[0];
-        const text = candidate?.content?.parts?.[0]?.text;
-        return text?.trim() || null;
-      });
-
-      clearTimeout(timeoutId);
-      return typeof response === 'string' ? response : null;
+        clearTimeout(timeoutId);
+        return typeof response === 'string' ? response : null;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if ((error as Error).name === 'AbortError') {
+          getLogger().debug('LLM call timed out');
+          return null;
+        }
+        if (error instanceof CircuitOpenError) {
+          getLogger().debug('Vertex AI circuit breaker opened');
+          return null;
+        }
+        throw error;
+      }
     } catch (error) {
-      clearTimeout(timeoutId);
-      if ((error as Error).name === 'AbortError') {
-        getLogger().debug('LLM call timed out');
-        return null;
+      // Retry on 429 rate limit errors with exponential backoff
+      if (is429Error(error) && attempt < MAX_RETRIES) {
+        const delayMs = BASE_DELAY_MS * Math.pow(2, attempt);
+        getLogger().debug(
+          { attempt: attempt + 1, maxRetries: MAX_RETRIES, delayMs },
+          'Vertex AI 429 rate limit, retrying with backoff'
+        );
+        await sleep(delayMs);
+        continue;
       }
-      if (error instanceof CircuitOpenError) {
-        getLogger().debug('Vertex AI circuit breaker opened');
-        return null;
-      }
-      throw error;
+
+      getLogger().warn({ error: String(error) }, 'Vertex AI call failed');
+      return null;
     }
-  } catch (error) {
-    getLogger().warn({ error: String(error) }, 'Vertex AI call failed');
-    return null;
   }
+
+  return null;
 }
 
 // ============================================================================
@@ -212,6 +252,7 @@ async function callGeminiAPI(prompt: string, options: LLMCallOptions = {}): Prom
     try {
       const response = await geminiAPICircuitBreaker.execute(async () => {
         // Use centralized Gemini client (respects USE_VERTEX_AI setting)
+        // NOTE: Use extraction model, NOT default model (may be realtime-only)
         const model = (
           client as {
             models: {
@@ -223,7 +264,7 @@ async function callGeminiAPI(prompt: string, options: LLMCallOptions = {}): Prom
             };
           }
         ).models.generateContent({
-          model: getDefaultModel(),
+          model: getExtractionModel(),
           contents: prompt,
           config: {
             maxOutputTokens: maxTokens,
@@ -323,7 +364,7 @@ async function callOpenAI(prompt: string, options: LLMCallOptions = {}): Promise
             };
           }
         ).chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: getOpenAIFallbackModel(),
           messages: [{ role: 'user', content: prompt }],
           max_tokens: maxTokens,
           temperature,

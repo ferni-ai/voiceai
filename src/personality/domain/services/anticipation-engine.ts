@@ -11,7 +11,11 @@
  */
 
 import type { EmotionalPattern } from '../model/emotional-pattern.js';
-import type { EmotionalState, PrimaryEmotion, GranularEmotion } from '../model/value-objects/emotional-state.js';
+import type {
+  EmotionalState,
+  PrimaryEmotion,
+  GranularEmotion,
+} from '../model/value-objects/emotional-state.js';
 import {
   AnticipatedEmotion,
   type AnticipationSignal,
@@ -145,7 +149,10 @@ const SPEECH_PATTERN_SIGNALS: SpeechPatternSignal[] = [
 /**
  * Voice tone emotion mapping
  */
-const VOICE_TONE_MAP: Record<string, { emotion: PrimaryEmotion; granular: GranularEmotion | null; confidence: number }> = {
+const VOICE_TONE_MAP: Record<
+  string,
+  { emotion: PrimaryEmotion; granular: GranularEmotion | null; confidence: number }
+> = {
   breaking: { emotion: 'sadness', granular: 'overwhelmed', confidence: 0.85 },
   falling: { emotion: 'sadness', granular: 'melancholy', confidence: 0.65 },
   rising: { emotion: 'anticipation', granular: 'nervous', confidence: 0.55 },
@@ -208,7 +215,10 @@ export class AnticipationEngine {
 
     // 4. Check historical patterns
     if (context.topics || context.currentTime || context.mentionedPeople) {
-      const patternAnticipation = this.anticipateFromHistoricalPatterns(context, historicalPatterns);
+      const patternAnticipation = this.anticipateFromHistoricalPatterns(
+        context,
+        historicalPatterns
+      );
       if (patternAnticipation) {
         candidates.push(patternAnticipation);
       }
@@ -245,18 +255,30 @@ export class AnticipationEngine {
   /**
    * Anticipate from voice tone
    */
-  anticipateFromVoiceTone(tone: NonNullable<AnticipationContext['voiceTone']>): AnticipatedEmotion | null {
+  anticipateFromVoiceTone(
+    tone: NonNullable<AnticipationContext['voiceTone']>
+  ): AnticipatedEmotion | null {
     const mapping = VOICE_TONE_MAP[tone];
     if (!mapping) return null;
 
-    return AnticipatedEmotion.fromVoiceTone(tone, mapping.emotion, mapping.confidence, mapping.granular);
+    return AnticipatedEmotion.fromVoiceTone(
+      tone,
+      mapping.emotion,
+      mapping.confidence,
+      mapping.granular
+    );
   }
 
   /**
    * Anticipate from breath pattern
    */
-  anticipateFromBreathPattern(pattern: NonNullable<AnticipationContext['breathPattern']>): AnticipatedEmotion | null {
-    const breathEmotionMap: Record<string, { emotion: PrimaryEmotion; granular: GranularEmotion | null; confidence: number }> = {
+  anticipateFromBreathPattern(
+    pattern: NonNullable<AnticipationContext['breathPattern']>
+  ): AnticipatedEmotion | null {
+    const breathEmotionMap: Record<
+      string,
+      { emotion: PrimaryEmotion; granular: GranularEmotion | null; confidence: number }
+    > = {
       sighing: { emotion: 'sadness', granular: 'melancholy', confidence: 0.5 },
       shallow: { emotion: 'fear', granular: 'anxious', confidence: 0.55 },
       held: { emotion: 'fear', granular: 'nervous', confidence: 0.6 },

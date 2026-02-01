@@ -170,14 +170,17 @@ function createSSMLBufferingTransform() {
 
 ```
 src/ssml/
-├── index.ts          # Main exports (IMPORT FROM HERE!)
-├── types.ts          # Type definitions & Cartesia emotions
-├── constants.ts      # All SSML constants (single source of truth)
-├── tags.ts           # Tag generation helpers (speed, volume, break, emotion)
-├── detection.ts      # Text analysis (emotion, pacing, volume, vocal cues)
-├── core.ts           # Main functions (tagTextWithSsmlPersonaAware, sanitizeSsml)
-├── cartesia.ts       # Cartesia-specific helpers
-└── CLAUDE.md         # This file
+├── index.ts                    # Main exports (IMPORT FROM HERE!)
+├── types.ts                    # Type definitions & Cartesia emotions
+├── constants.ts                # SSML constants (single source of truth)
+├── constants/                  # Additional constant modules
+├── tags.ts                     # Tag generation helpers (speed, volume, break, emotion)
+├── detection.ts                # Text analysis (emotion, pacing, volume, vocal cues)
+├── core.ts                     # Main functions (tagTextWithSsmlPersonaAware, sanitizeSsml)
+├── cartesia.ts                 # Cartesia-specific helpers
+├── native-ssml-processor.ts    # Native SSML processing pipeline
+├── pronunciation-processor.ts  # Custom pronunciation handling
+└── CLAUDE.md                   # This file
 ```
 
 ## Key Concepts

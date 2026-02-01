@@ -37,7 +37,7 @@ import { buildHandoffTools, createHandoffTools } from '../../handoff/index.js';
 async function getHandoffToolDefinitionsAsync(): Promise<ToolDefinition[]> {
   // Get raw definitions for metadata (triggers, agentId, etc.)
   const handoffToolSet = await createHandoffTools();
-  
+
   // Get properly wrapped llm.tool() tools
   const { tools: wrappedTools } = await buildHandoffTools();
 
@@ -46,12 +46,12 @@ async function getHandoffToolDefinitionsAsync(): Promise<ToolDefinition[]> {
   for (const toolDef of handoffToolSet.tools) {
     // Get the corresponding wrapped tool
     const wrappedTool = wrappedTools[toolDef.name];
-    
+
     if (!wrappedTool) {
       // Tool was filtered out (e.g., locked team member) - skip it
       continue;
     }
-    
+
     definitions.push({
       id: toolDef.name,
       name: toolDef.name.replace(/([A-Z])/g, ' $1').trim(), // CamelCase to Title Case

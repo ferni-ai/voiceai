@@ -167,8 +167,7 @@ export class VectorSearchCache {
       if (cached.options.topK !== topK || cached.options.minScore !== minScore) continue;
 
       // Check if filter matches
-      const filterMatch =
-        JSON.stringify(filter || {}) === JSON.stringify(cached.filter || {});
+      const filterMatch = JSON.stringify(filter || {}) === JSON.stringify(cached.filter || {});
       if (!filterMatch) continue;
 
       // Calculate similarity
@@ -211,7 +210,11 @@ export class VectorSearchCache {
       fuzzyMatch.accessedAt = Date.now();
       fuzzyMatch.accessCount++;
       log.debug(
-        { key: fuzzyMatch.key.slice(0, 8), originalQuery: query.slice(0, 30), matchedQuery: fuzzyMatch.query.slice(0, 30) },
+        {
+          key: fuzzyMatch.key.slice(0, 8),
+          originalQuery: query.slice(0, 30),
+          matchedQuery: fuzzyMatch.query.slice(0, 30),
+        },
         'Search cache hit (fuzzy)'
       );
       return fuzzyMatch.results;
@@ -258,7 +261,10 @@ export class VectorSearchCache {
     // Add to embedding index for fuzzy matching
     this.embeddingIndex.push({ key, embedding: queryEmbedding });
 
-    log.debug({ key: key.slice(0, 8), query: query.slice(0, 30), resultCount: results.length }, 'Search cached');
+    log.debug(
+      { key: key.slice(0, 8), query: query.slice(0, 30), resultCount: results.length },
+      'Search cached'
+    );
   }
 
   /**

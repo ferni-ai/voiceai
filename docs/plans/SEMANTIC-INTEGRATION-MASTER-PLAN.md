@@ -145,7 +145,7 @@ Miscellaneous integrations. **Priority: LOW**
 | 8.4 | Life Thesis | `life_thesis_component` | `life-thesis/thesis-service.ts` | ✅ DONE |
 | 8.5 | Journal | `journal` | `journal/index.ts` | ⛔ Uses productivity-store |
 | 8.9 | Revelation Moments | `breakthrough_moment` | `revelation-moments/storage.ts` | ✅ DONE |
-| 8.10 | Story Tracking | `memory` | `story-tracking.ts` | ⛔ Uses user profile |
+| 8.10 | Story Tracking | `memory` | `intelligence/story-tracking/` (was `story-tracking.ts`, moved) | ⛔ Uses user profile |
 
 ---
 

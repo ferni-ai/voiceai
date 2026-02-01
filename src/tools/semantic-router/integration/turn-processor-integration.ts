@@ -32,8 +32,15 @@ import {
   recordConversation,
   recordRoutingError,
 } from './metrics.js';
-import { recordRoutingEvent, recordRoutingOutcome } from '../analytics/routing-analytics.js';
+import { recordRoutingEvent, recordRoutingOutcome } from './routing-analytics.js';
 import { isSemanticRoutingEnabled as isRoutingEnabledFromConfig } from '../config.js';
+
+// Phase 5: Adversarial Defense - sanitize inputs before routing
+import {
+  sanitizeInput,
+  shouldBlockInput,
+  recordDefenseStats,
+} from '../defense/index.js';
 import { hasDomainMapping, executeDomainTool } from '../domain-bridge.js';
 
 // SOTA Integration - 4 "Better Than Human" learning systems
@@ -44,6 +51,9 @@ import {
   type SOTARoutingContext,
   type SOTARoutingResult,
 } from './sota-integration.js';
+
+// Phase 3: Implicit correction capture for learning loop closure
+import { recordRoutingPrediction } from '../learning/implicit-correction-capture.js';
 
 const log = createLogger({ module: 'semantic-router-integration' });
 
@@ -220,6 +230,55 @@ export async function startSemanticRouting(
 
   const startTime = performance.now();
 
+  // =========================================================================
+  // PHASE 5: ADVERSARIAL DEFENSE - Sanitize input before routing
+  // Protects against prompt injection, homoglyphs, and malicious inputs
+  // =========================================================================
+  const sanitizationResult = sanitizeInput(userText);
+  const wasBlocked = shouldBlockInput(sanitizationResult);
+  recordDefenseStats(sanitizationResult, wasBlocked);
+
+  if (wasBlocked) {
+    const latencyMs = Math.round(performance.now() - startTime);
+    log.warn(
+      {
+        userText: userText.slice(0, 50),
+        threats: sanitizationResult.threats.map((t) => t.type),
+        riskScore: sanitizationResult.riskScore,
+        latencyMs,
+      },
+      '🛡️ INPUT BLOCKED by adversarial defense (high threat detected)'
+    );
+    recordRoutingError(
+      context.userId,
+      context.sessionId,
+      userText,
+      `Input blocked: ${sanitizationResult.threats.map((t) => t.type).join(', ')}`,
+      latencyMs
+    );
+    return {
+      attempted: true,
+      executed: false,
+      error: 'Input blocked by security filter',
+      routingPath: 'error',
+    };
+  }
+
+  // Use sanitized input for routing (homoglyphs normalized, invisible chars removed)
+  const sanitizedText = sanitizationResult.sanitized;
+
+  if (sanitizationResult.threats.length > 0) {
+    log.debug(
+      {
+        originalLength: userText.length,
+        sanitizedLength: sanitizedText.length,
+        threatsFound: sanitizationResult.threats.length,
+        riskScore: sanitizationResult.riskScore,
+      },
+      '🛡️ Input sanitized (threats detected but below block threshold)'
+    );
+  }
+
   // SOTA context for "Better Than Human" enhancements
   let sotaResult: SOTARoutingResult | undefined;
 
@@ -257,14 +316,14 @@ export async function startSemanticRouting(
       log.debug({ error: String(sotaError) }, 'SOTA pre-routing skipped (non-fatal)');
     }
 
-    log.info({ userText }, '🔍 Routing user input');
+    log.info({ userText, sanitizedText }, '🔍 Routing user input (using sanitized text)');
     // Map conversation history to expected format (or skip if types mismatch)
     const mappedHistory = context.conversationHistory?.map((turn) => ({
       role: turn.role as 'user' | 'assistant',
       text: turn.content,
       timestamp: new Date(),
     }));
-    let routeResult = await routeUserInput(userText, {
+    let routeResult = await routeUserInput(sanitizedText, {
       userId: context.userId,
       sessionId: context.sessionId,
       personaId: context.personaId,
@@ -298,6 +357,9 @@ export async function startSemanticRouting(
       '🎯 Route result'
     );
     const latencyMs = Math.round(performance.now() - startTime);
+
+    // Phase 3: Record prediction for implicit correction tracking
+    recordRoutingPrediction(context.sessionId, userText, routeResult);
 
     // Record to advanced analytics (Firestore persistence + outcome tracking)
     const analyticsEventId = recordRoutingEvent(routeResult, {

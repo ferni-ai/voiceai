@@ -44,6 +44,7 @@ export { handleObservabilityRoutes } from './observability-routes.js';
 export { handleOptimizerRoutes } from './optimizer-routes.js';
 export { handleStoryJourneyRoutes } from './story-journey-routes.js';
 export { handleToolsAnalyticsRoutes } from './tools-analytics-routes.js';
+export { handleChatRoutes } from './chat-routes.js';
 export { handleTrustExportRoutes } from './trust-export-routes.js';
 export { handleTrustJourneyRoutes } from './trust-journey-routes.js';
 export { handleTrustSystemsRoutes } from './trust-systems-routes.js';
@@ -62,6 +63,7 @@ export { handleVisualStorytellingRoutes } from './visual-storytelling-routes.js'
 export { handleAutomationRoutes } from './automation-routes.js';
 export { handleSuperhumanMetricsRoutes } from './superhuman-metrics-routes.js';
 export { handleInsightsRoutes } from './insights-routes.js';
+export { handleStoryRoutes, isStoryRoute } from './story-routes.js';
 
 // Modular route handlers
 export { handleVoiceAuthRoutes } from './voice-auth.routes.js';

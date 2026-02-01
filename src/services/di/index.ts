@@ -56,5 +56,12 @@ export {
 } from './setup.js';
 
 // Persona Registry (OCP-compliant)
-export type { IPersonaRegistry, PersonaDefinition, RegisteredPersona } from '../../personas/registry/persona-registry-interface.js';
-export { getPersonaRegistry, resetPersonaRegistry } from '../../personas/registry/persona-registry-impl.js';
+export type {
+  IPersonaRegistry,
+  PersonaDefinition,
+  RegisteredPersona,
+} from '../../personas/registry/persona-registry-interface.js';
+export {
+  getPersonaRegistry,
+  resetPersonaRegistry,
+} from '../../personas/registry/persona-registry-impl.js';

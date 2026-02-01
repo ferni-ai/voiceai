@@ -10,7 +10,11 @@
  * @module tests/fixtures/memory-conversations
  */
 
-import type { EntityMention, EmotionSignal, DateSignal } from '../../memory/dynamic/fast-capture.js';
+import type {
+  EntityMention,
+  EmotionSignal,
+  DateSignal,
+} from '../../memory/dynamic/fast-capture.js';
 
 // ============================================================================
 // TYPES
@@ -217,7 +221,7 @@ export const HEALTH_TRACKING_CONVERSATION: SyntheticConversation = {
     },
     {
       turnNumber: 3,
-      transcript: "My therapist Dr. Johnson thinks it might be stress-related.",
+      transcript: 'My therapist Dr. Johnson thinks it might be stress-related.',
       expected: {
         entities: [{ name: 'therapist', type: 'person' }],
         emotions: [],
@@ -287,7 +291,7 @@ export const EMOTIONAL_SUPPORT_CONVERSATION: SyntheticConversation = {
     },
     {
       turnNumber: 3,
-      transcript: "My husband Mike has been really supportive though.",
+      transcript: 'My husband Mike has been really supportive though.',
       expected: {
         entities: [{ name: 'husband', type: 'person' }],
         emotions: [],

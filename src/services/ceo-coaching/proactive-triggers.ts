@@ -40,15 +40,15 @@ const log = createLogger({ module: 'ceo-proactive-triggers' });
 // ============================================================================
 
 export type CEOTriggerType =
-  | 'energy_downtrend'      // Energy dropping over several days
-  | 'energy_crash'          // Sudden energy drop (≤3)
-  | 'stale_blocker'         // Blocker unresolved 14+ days
-  | 'decision_paralysis'    // Decision pending 14+ days
-  | 'win_streak'            // 5+ wins in a week - celebrate!
-  | 'win_milestone'         // 5, 10, 25, 50 total wins
-  | 'gratitude_gap'         // No gratitude logged in 7+ days
-  | 'priority_overload'     // 5+ active priorities
-  | 'morning_briefing'      // Proactive morning check-in
+  | 'energy_downtrend' // Energy dropping over several days
+  | 'energy_crash' // Sudden energy drop (≤3)
+  | 'stale_blocker' // Blocker unresolved 14+ days
+  | 'decision_paralysis' // Decision pending 14+ days
+  | 'win_streak' // 5+ wins in a week - celebrate!
+  | 'win_milestone' // 5, 10, 25, 50 total wins
+  | 'gratitude_gap' // No gratitude logged in 7+ days
+  | 'priority_overload' // 5+ active priorities
+  | 'morning_briefing'; // Proactive morning check-in
 
 export interface CEOTrigger {
   type: CEOTriggerType;
@@ -126,7 +126,11 @@ export async function analyzeUserForTriggers(userId: string): Promise<CEOTrigger
     ]);
 
     // 1. Check for energy downtrend
-    if (energyTrend?.trend === 'down' && energyTrend.weekAverage && energyTrend.weekAverage < TRIGGER_CONFIG.ENERGY_LOW_THRESHOLD) {
+    if (
+      energyTrend?.trend === 'down' &&
+      energyTrend.weekAverage &&
+      energyTrend.weekAverage < TRIGGER_CONFIG.ENERGY_LOW_THRESHOLD
+    ) {
       triggers.push({
         type: 'energy_downtrend',
         priority: 'high',
@@ -151,7 +155,9 @@ export async function analyzeUserForTriggers(userId: string): Promise<CEOTrigger
     // 3. Check for stale blockers
     const now = new Date();
     const staleBlockers = activeBlockers.filter((b) => {
-      const daysOld = Math.floor((now.getTime() - new Date(b.createdAt).getTime()) / (24 * 60 * 60 * 1000));
+      const daysOld = Math.floor(
+        (now.getTime() - new Date(b.createdAt).getTime()) / (24 * 60 * 60 * 1000)
+      );
       return daysOld >= TRIGGER_CONFIG.BLOCKER_STALE_DAYS;
     });
 
@@ -160,14 +166,19 @@ export async function analyzeUserForTriggers(userId: string): Promise<CEOTrigger
         type: 'stale_blocker',
         priority: staleBlockers.length >= 3 ? 'high' : 'medium',
         message: `${staleBlockers.length} blocker(s) stuck for 14+ days`,
-        data: { count: staleBlockers.length, blockers: staleBlockers.map((b) => b.text).slice(0, 3) },
+        data: {
+          count: staleBlockers.length,
+          blockers: staleBlockers.map((b) => b.text).slice(0, 3),
+        },
         outreachType: 'momentum_check',
       });
     }
 
     // 4. Check for decision paralysis
     const staleDecisions = pendingDecisions.filter((d) => {
-      const daysOld = Math.floor((now.getTime() - new Date(d.createdAt).getTime()) / (24 * 60 * 60 * 1000));
+      const daysOld = Math.floor(
+        (now.getTime() - new Date(d.createdAt).getTime()) / (24 * 60 * 60 * 1000)
+      );
       return daysOld >= TRIGGER_CONFIG.DECISION_STALE_DAYS;
     });
 
@@ -176,7 +187,10 @@ export async function analyzeUserForTriggers(userId: string): Promise<CEOTrigger
         type: 'decision_paralysis',
         priority: staleDecisions.length >= 2 ? 'high' : 'medium',
         message: `${staleDecisions.length} decision(s) pending 14+ days`,
-        data: { count: staleDecisions.length, decisions: staleDecisions.map((d) => d.description).slice(0, 3) },
+        data: {
+          count: staleDecisions.length,
+          decisions: staleDecisions.map((d) => d.description).slice(0, 3),
+        },
         outreachType: 'momentum_check',
       });
     }
@@ -198,9 +212,12 @@ export async function analyzeUserForTriggers(userId: string): Promise<CEOTrigger
     // This is a simplified check - in production, track total in storage
 
     // 7. Check for gratitude gap
-    const daysSinceGratitude = recentGratitude.length > 0
-      ? Math.floor((now.getTime() - new Date(recentGratitude[0].date).getTime()) / (24 * 60 * 60 * 1000))
-      : 999;
+    const daysSinceGratitude =
+      recentGratitude.length > 0
+        ? Math.floor(
+            (now.getTime() - new Date(recentGratitude[0].date).getTime()) / (24 * 60 * 60 * 1000)
+          )
+        : 999;
 
     if (daysSinceGratitude >= TRIGGER_CONFIG.GRATITUDE_GAP_DAYS) {
       triggers.push({
@@ -305,10 +322,11 @@ export async function triggerProactiveOutreach(
     );
 
     // Build user context
-    const recentTopics = trigger.data?.blockers as string[] ||
-                         trigger.data?.decisions as string[] ||
-                         trigger.data?.wins as string[] ||
-                         [];
+    const recentTopics =
+      (trigger.data?.blockers as string[]) ||
+      (trigger.data?.decisions as string[]) ||
+      (trigger.data?.wins as string[]) ||
+      [];
 
     const userContext = await buildUserContextForOutreach(userId, userName, recentTopics);
 

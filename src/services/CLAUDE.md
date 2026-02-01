@@ -26,16 +26,22 @@ Level 10:  config/, utils/, types/
 
 ```
 services/
-├── superhuman/           # 10 "Better than Human" capabilities (see README.md)
-├── trust-systems/        # Trust-building services
+├── superhuman/           # 70+ "Better than Human" capabilities (see README.md)
+├── trust-systems/        # 47 trust-building services
 ├── trust-and-identity/   # Voice identity, 2FA, verification
 ├── outreach/             # Proactive messaging and delivery
 ├── calendar/             # Calendar integration and awareness
 ├── contacts/             # Contact management and relationships
 ├── coaching/             # Life coaching frameworks
-├── self-healing/         # Error recovery and resilience
+├── self-healing/         # Error recovery, circuit breakers, resilience
+├── data-layer/           # Domain stores, semantic memory, intelligent loading
+├── session-manager/      # Session lifecycle (22 modules)
+├── observability/        # Health metrics, alerting, cost tracking (20 files)
 ├── cache/                # Caching layer
 ├── brand/                # Brand consistency
+├── di/                   # Dependency injection container
+├── identity/             # Identity linking, OAuth
+├── voice/                # Voice services
 └── [200+ individual service files]
 ```
 
@@ -245,12 +251,18 @@ pnpm vitest src/services/
 
 ---
 
-## Key Subdirectory READMEs
+## Key Subdirectory Documentation
 
-- `superhuman/README.md` - 10 "Better than Human" capabilities
+- `superhuman/README.md` - 70+ "Better than Human" capabilities
+- `superhuman/CLAUDE.md` - Superhuman service patterns
+- `trust-systems/CLAUDE.md` - 47 trust-building services
+- `data-layer/CLAUDE.md` - Domain stores, semantic memory, WAL
+- `session-manager/CLAUDE.md` - Session lifecycle (22 modules)
+- `calendar/CLAUDE.md` - Calendar integration and providers
+- `observability/CLAUDE.md` - Health metrics and alerting
+- `self-healing/CLAUDE.md` - Circuit breakers and resilience
 - `outreach/README.md` - Outreach and delivery system
-- `principal-alignment/README.md` - Principal alignment service
 
 ---
 
-*Last updated: December 2024*
+*Last updated: January 2026*

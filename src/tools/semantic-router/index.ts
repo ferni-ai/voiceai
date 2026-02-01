@@ -188,7 +188,7 @@ export {
   type RoutingOutcome,
   type RoutingStats,
   type ToolPerformance,
-} from './analytics/index.js';
+} from './integration/routing-analytics.js';
 
 // Turn Processor Integration (NEW - Primary Tool Calling Path)
 export {
@@ -200,13 +200,6 @@ export {
   type TurnRouterResult,
   type RoutingContext,
 } from './integration/index.js';
-
-// Auto-Conversion
-export {
-  autoRegisterDomainTools,
-  convertManyTools,
-  convertToSemanticTool,
-} from './auto-convert/index.js';
 
 // Compatibility Layer (for legacy code)
 export { semanticRouter, type SemanticMatch } from './compat.js';
@@ -309,6 +302,21 @@ export {
 } from './multi-intent.js';
 export type { DetectedIntent as MultiDetectedIntent, MultiIntentResult } from './multi-intent.js';
 
+// Phase 4: Semantic Multi-Intent (embedding-based, replaces keyword detection)
+export {
+  semanticSplit,
+  likelyMultiIntent,
+  rankIntents,
+  getPrimaryIntent,
+  getSecondaryIntents,
+} from './multi-intent/index.js';
+export type {
+  IntentSpan,
+  SemanticSplitResult,
+  RankedIntent,
+  RankingResult,
+} from './multi-intent/index.js';
+
 // Holistic Layer Integration
 export {
   runHolisticLayer,
@@ -320,3 +328,39 @@ export {
   pruneHolisticCache,
 } from './holistic-layer.js';
 export type { HolisticLayerResult, HolisticCacheStats } from './holistic-layer.js';
+
+// ============================================================================
+// PHASE 5: ADVERSARIAL DEFENSE
+// ============================================================================
+// Protection against prompt injection, homoglyphs, and out-of-distribution inputs.
+
+// Input Sanitization
+export {
+  sanitizeInput,
+  shouldBlockInput,
+  getThreatSummary,
+  calculateEntropy,
+  recordDefenseStats,
+  getDefenseStats,
+  resetDefenseStats,
+} from './defense/index.js';
+export type {
+  SanitizationResult,
+  DetectedThreat,
+  ThreatType,
+} from './defense/index.js';
+
+// Anomaly Detection
+export {
+  detectAnomaly,
+  applyAnomalyPenalty,
+  shouldBlockExecution,
+  resetIntentClusters,
+  getIntentClusters,
+  addCluster,
+} from './defense/index.js';
+export type {
+  AnomalyResult,
+  IntentCluster,
+  AnomalyDetectorConfig,
+} from './defense/index.js';

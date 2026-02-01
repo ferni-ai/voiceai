@@ -175,25 +175,16 @@ export async function initiateCheckinCall(
     }
 
     // 2. Get recent call records for context
-    const recentCalls = await getRecentCallRecords(
-      schedule.sponsorUserId,
-      schedule.id,
-      5
-    );
+    const recentCalls = await getRecentCallRecords(schedule.sponsorUserId, schedule.id, 5);
 
     // 3. Get sponsor name from profile
     const sponsorName = await getSponsorName(schedule.sponsorUserId);
 
     // 4. Build the check-in context
-    const { buildFamilyCheckinContext, generateFamilyCheckinSystemPrompt } = await import(
-      '../../intelligence/context-builders/family/family-wellbeing-context.js'
-    );
+    const { buildFamilyCheckinContext, generateFamilyCheckinSystemPrompt } =
+      await import('../../intelligence/context-builders/family/family-wellbeing-context.js');
 
-    const context = await buildFamilyCheckinContext(
-      schedule,
-      identity,
-      recentCalls
-    );
+    const context = await buildFamilyCheckinContext(schedule, identity, recentCalls);
 
     // 5. Generate the system prompt for the agent
     const systemPrompt = generateFamilyCheckinSystemPrompt(context);
@@ -351,17 +342,12 @@ async function initiateViaLiveKitSip(
     const cleanPhone = schedule.phoneNumber.replace(/\D/g, '');
     const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
 
-    const sipParticipant = await sipClient.createSipParticipant(
-      sipTrunkId,
-      e164Phone,
-      roomName,
-      {
-        participantIdentity: `phone_${callId}`,
-        participantName: schedule.familyMemberName,
-        playDialtone: false, // Agent should speak first
-        hidePhoneNumber: false,
-      }
-    );
+    const sipParticipant = await sipClient.createSipParticipant(sipTrunkId, e164Phone, roomName, {
+      participantIdentity: `phone_${callId}`,
+      participantName: schedule.familyMemberName,
+      playDialtone: false, // Agent should speak first
+      hidePhoneNumber: false,
+    });
 
     log.info(
       {
@@ -611,10 +597,7 @@ async function sendUrgentNotificationToSponsor(
       log.info({ sponsorUserId }, '✅ Urgent SMS notification sent');
     }
   } catch (error) {
-    log.error(
-      { sponsorUserId, error: String(error) },
-      'Failed to send urgent notification'
-    );
+    log.error({ sponsorUserId, error: String(error) }, 'Failed to send urgent notification');
   }
 }
 

@@ -17,13 +17,13 @@
  * Types of avoidance signals we detect
  */
 export type AvoidanceSignalType =
-  | 'topic_change'     // Abrupt topic shift
-  | 'vague_response'   // Non-committal, surface-level answer
-  | 'deflection'       // Redirecting to someone/something else
-  | 'minimization'     // "It's not a big deal"
-  | 'humor_shield'     // Using humor to avoid depth
-  | 'generalization'   // "Everyone goes through this"
-  | 'time_pressure';   // "We don't have time for that now"
+  | 'topic_change' // Abrupt topic shift
+  | 'vague_response' // Non-committal, surface-level answer
+  | 'deflection' // Redirecting to someone/something else
+  | 'minimization' // "It's not a big deal"
+  | 'humor_shield' // Using humor to avoid depth
+  | 'generalization' // "Everyone goes through this"
+  | 'time_pressure'; // "We don't have time for that now"
 
 /**
  * A detected avoidance signal

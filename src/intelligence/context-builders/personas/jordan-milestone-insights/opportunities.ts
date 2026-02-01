@@ -86,7 +86,9 @@ export function detectCelebrationOpportunities(
   for (const win of recentSignificantWins) {
     const daysAgo = getDaysAgo(win.date);
     const timing = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`;
-    opportunities.push(`🚀 PROFESSIONAL WIN (${timing}): "${win.text}" - this deserves celebration!`);
+    opportunities.push(
+      `🚀 PROFESSIONAL WIN (${timing}): "${win.text}" - this deserves celebration!`
+    );
   }
 
   // Also surface any wins from today (regardless of significance)

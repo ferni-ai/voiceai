@@ -35,9 +35,8 @@ describeWithEmulator('Relationship Memory Firestore Integration', () => {
   afterAll(async () => {
     // Cleanup test data
     try {
-      const { deleteRelationshipMemory } = await import(
-        '../../intelligence/relationship/persistence.js'
-      );
+      const { deleteRelationshipMemory } =
+        await import('../../intelligence/relationship/persistence.js');
       await deleteRelationshipMemory(testUserId, testPersonaId);
     } catch {
       // Ignore cleanup errors
@@ -46,17 +45,15 @@ describeWithEmulator('Relationship Memory Firestore Integration', () => {
 
   beforeEach(async () => {
     // Clear any existing test data
-    const { clearAllRelationshipEngines } = await import(
-      '../../intelligence/relationship/index.js'
-    );
+    const { clearAllRelationshipEngines } =
+      await import('../../intelligence/relationship/index.js');
     clearAllRelationshipEngines();
   });
 
   describe('Basic Persistence', () => {
     it('should save and load relationship memory', async () => {
-      const { initializeRelationship, clearAllRelationshipEngines } = await import(
-        '../../intelligence/relationship/index.js'
-      );
+      const { initializeRelationship, clearAllRelationshipEngines } =
+        await import('../../intelligence/relationship/index.js');
 
       // Create and initialize engine
       const engine1 = await initializeRelationship(testUserId, testPersonaId);
@@ -89,9 +86,8 @@ describeWithEmulator('Relationship Memory Firestore Integration', () => {
     });
 
     it('should persist trust score increases', async () => {
-      const { initializeRelationship, clearAllRelationshipEngines } = await import(
-        '../../intelligence/relationship/index.js'
-      );
+      const { initializeRelationship, clearAllRelationshipEngines } =
+        await import('../../intelligence/relationship/index.js');
 
       // First session
       const engine1 = await initializeRelationship(testUserId, testPersonaId);
@@ -121,9 +117,8 @@ describeWithEmulator('Relationship Memory Firestore Integration', () => {
     });
 
     it('should persist inside jokes', async () => {
-      const { initializeRelationship, clearAllRelationshipEngines } = await import(
-        '../../intelligence/relationship/index.js'
-      );
+      const { initializeRelationship, clearAllRelationshipEngines } =
+        await import('../../intelligence/relationship/index.js');
 
       // Create and register an inside joke
       const engine1 = await initializeRelationship(testUserId, testPersonaId);
@@ -151,9 +146,8 @@ describeWithEmulator('Relationship Memory Firestore Integration', () => {
 
   describe('Stage Progression Persistence', () => {
     it('should persist stage advancement', async () => {
-      const { initializeRelationship, clearAllRelationshipEngines } = await import(
-        '../../intelligence/relationship/index.js'
-      );
+      const { initializeRelationship, clearAllRelationshipEngines } =
+        await import('../../intelligence/relationship/index.js');
 
       // Create engine and manually advance stage (simulating multiple sessions)
       const engine1 = await initializeRelationship(testUserId, testPersonaId);
@@ -182,9 +176,8 @@ describeWithEmulator('Relationship Memory Firestore Integration', () => {
 
   describe('Milestone Persistence', () => {
     it('should persist reached milestones', async () => {
-      const { initializeRelationship, clearAllRelationshipEngines } = await import(
-        '../../intelligence/relationship/index.js'
-      );
+      const { initializeRelationship, clearAllRelationshipEngines } =
+        await import('../../intelligence/relationship/index.js');
 
       const engine1 = await initializeRelationship(testUserId, testPersonaId);
       engine1.startSession();
@@ -214,9 +207,8 @@ describeWithEmulator('Relationship Memory Firestore Integration', () => {
 
   describe('Emotional Trajectory Persistence', () => {
     it('should persist emotional trajectory across sessions', async () => {
-      const { initializeRelationship, clearAllRelationshipEngines } = await import(
-        '../../intelligence/relationship/index.js'
-      );
+      const { initializeRelationship, clearAllRelationshipEngines } =
+        await import('../../intelligence/relationship/index.js');
 
       // Session 1: positive
       const engine1 = await initializeRelationship(testUserId, testPersonaId);
@@ -248,9 +240,8 @@ describeWithEmulator('Relationship Memory Firestore Integration', () => {
 
   describe('Context Building with Persisted Data', () => {
     it('should build context from persisted relationship data', async () => {
-      const { initializeRelationship, clearAllRelationshipEngines } = await import(
-        '../../intelligence/relationship/index.js'
-      );
+      const { initializeRelationship, clearAllRelationshipEngines } =
+        await import('../../intelligence/relationship/index.js');
 
       // Build up some relationship history
       const engine1 = await initializeRelationship(testUserId, testPersonaId);
@@ -280,9 +271,8 @@ describeWithEmulator('Relationship Memory Firestore Integration', () => {
 
   describe('Multi-Persona Isolation', () => {
     it('should keep relationship memory isolated per persona', async () => {
-      const { initializeRelationship, clearAllRelationshipEngines } = await import(
-        '../../intelligence/relationship/index.js'
-      );
+      const { initializeRelationship, clearAllRelationshipEngines } =
+        await import('../../intelligence/relationship/index.js');
 
       // Build relationship with Ferni
       const ferniEngine = await initializeRelationship(testUserId, 'ferni');
@@ -310,9 +300,8 @@ describeWithEmulator('Relationship Memory Firestore Integration', () => {
       expect(mayaEngine2.getMemory().sharedMoments.length).toBe(2);
 
       // Clean up maya's data
-      const { deleteRelationshipMemory } = await import(
-        '../../intelligence/relationship/persistence.js'
-      );
+      const { deleteRelationshipMemory } =
+        await import('../../intelligence/relationship/persistence.js');
       await deleteRelationshipMemory(testUserId, 'maya-santos');
     });
   });

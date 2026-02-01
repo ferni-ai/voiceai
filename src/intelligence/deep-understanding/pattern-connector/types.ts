@@ -126,10 +126,7 @@ export interface IPatternConnector {
   /**
    * Get emotional pattern for a subject
    */
-  getEmotionalPattern(
-    userId: string,
-    subject: string
-  ): Promise<EmotionalPattern | null>;
+  getEmotionalPattern(userId: string, subject: string): Promise<EmotionalPattern | null>;
 
   /**
    * Get co-occurrences for a topic

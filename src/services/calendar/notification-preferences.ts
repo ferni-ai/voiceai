@@ -60,9 +60,7 @@ async function getFirestore() {
 /**
  * Get notification preferences for a user
  */
-export async function getNotificationPreferences(
-  userId: string
-): Promise<NotificationPreferences> {
+export async function getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
   // Check cache first
   const cached = preferencesCache.get(userId);
   if (cached) {
@@ -75,7 +73,11 @@ export async function getNotificationPreferences(
       return { ...DEFAULT_PREFERENCES };
     }
 
-    const docRef = db.collection('users').doc(cleanForFirestore(userId)).collection('settings').doc('calendar_notifications');
+    const docRef = db
+      .collection('users')
+      .doc(cleanForFirestore(userId))
+      .collection('settings')
+      .doc('calendar_notifications');
     const doc = await docRef.get();
 
     if (doc.exists) {
@@ -112,7 +114,11 @@ export async function setNotificationPreference(
       return;
     }
 
-    const docRef = db.collection('users').doc(cleanForFirestore(userId)).collection('settings').doc('calendar_notifications');
+    const docRef = db
+      .collection('users')
+      .doc(cleanForFirestore(userId))
+      .collection('settings')
+      .doc('calendar_notifications');
     await docRef.set(
       {
         [setting]: enabled,
@@ -163,7 +169,11 @@ export async function setNotificationPreferences(
       return;
     }
 
-    const docRef = db.collection('users').doc(cleanForFirestore(userId)).collection('settings').doc('calendar_notifications');
+    const docRef = db
+      .collection('users')
+      .doc(cleanForFirestore(userId))
+      .collection('settings')
+      .doc('calendar_notifications');
     await docRef.set(
       {
         ...preferences,

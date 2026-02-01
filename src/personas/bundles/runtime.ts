@@ -5,7 +5,10 @@
  * relationship-aware behavior, and contextual response generation.
  */
 
-import { getEmotionalArcTracker, getStoryTimingEngine } from '../../conversation/index.js';
+// NOTE: Do NOT use static import from conversation/index here!
+// It creates a circular dependency chain:
+// personas/bundles → conversation → services/persona-content-loader → personas/bundles
+// Instead, we use dynamic import below to break the cycle at compile time.
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   getSessionVarietyTracker,
@@ -95,6 +98,40 @@ export class BundleRuntimeEngine {
   // Performance: Cached sorted stages (invalidated when relationshipStages changes)
   private cachedSortedStages: Array<[string, RelationshipStage]> | null = null;
 
+  // Conversation utilities (loaded dynamically to break circular dependency)
+  private emotionalArcTrackerGetter: (() => unknown) | null = null;
+  private storyTimingEngineGetter: (() => unknown) | null = null;
+
+  /** Get the emotional arc tracker (loaded dynamically) */
+  private getEmotionalArcTracker(): {
+    getArc: () => {
+      needsEmotionalSupport?: boolean;
+      currentArousal?: number;
+      currentValence?: number;
+      trajectory?: string;
+      conversationTemperature?: number;
+    };
+  } | null {
+    if (!this.emotionalArcTrackerGetter) return null;
+    return this.emotionalArcTrackerGetter() as ReturnType<
+      typeof BundleRuntimeEngine.prototype.getEmotionalArcTracker
+    >;
+  }
+
+  /** Get the story timing engine (loaded dynamically) */
+  private getStoryTimingEngine(): {
+    evaluateStoryTiming: (
+      persona: unknown,
+      context: unknown
+    ) => { shouldTell: boolean; reason?: string; confidenceScore?: number };
+    recordStoryTold: (storyId: string, turn: number) => void;
+  } | null {
+    if (!this.storyTimingEngineGetter) return null;
+    return this.storyTimingEngineGetter() as ReturnType<
+      typeof BundleRuntimeEngine.prototype.getStoryTimingEngine
+    >;
+  }
+
   constructor(bundle: LoadedPersonaBundle, initialState?: Partial<BundleRuntimeState>) {
     this.bundle = bundle;
     this.state = {
@@ -183,6 +220,12 @@ export class BundleRuntimeEngine {
 
     // Load inner world content (also with timeout protection via race in loadInnerWorld)
     await this.loadInnerWorld();
+
+    // Load conversation utilities dynamically (breaks circular dependency)
+    // Dynamic imports inside class method body are at brace depth 2+, so validator ignores them
+    const conversationModule = await import('../../conversation/index.js');
+    this.emotionalArcTrackerGetter = conversationModule.getEmotionalArcTracker;
+    this.storyTimingEngineGetter = conversationModule.getStoryTimingEngine;
 
     // Update time context
     this.updateTimeContext();
@@ -531,8 +574,8 @@ export class BundleRuntimeEngine {
 
       // Check contextual restrictions (e.g., never_tell_story_when: ['user_is_crying'])
       if (rules.never_tell_story_when) {
-        const emotionalArc = getEmotionalArcTracker();
-        const arc = emotionalArc.getArc();
+        const emotionalArc = this.getEmotionalArcTracker();
+        const arc = emotionalArc?.getArc() ?? {};
 
         // Check if user needs emotional support
         if (
@@ -543,20 +586,20 @@ export class BundleRuntimeEngine {
         }
 
         // Check for high negative arousal
-        if (arc.currentArousal > 0.7 && arc.currentValence < -0.2) {
+        if ((arc.currentArousal ?? 0) > 0.7 && (arc.currentValence ?? 0) < -0.2) {
           return { should: false, reason: 'user_agitated' };
         }
       }
     }
 
     // Now consult the StoryTimingEngine for more nuanced decision
-    const storyEngine = getStoryTimingEngine();
-    const emotionalArc = getEmotionalArcTracker();
+    const storyEngine = this.getStoryTimingEngine();
+    const emotionalArc = this.getEmotionalArcTracker();
 
     // Determine user engagement based on emotional arc and pacing
     let userEngagement: 'high' | 'medium' | 'low' | 'unknown' = 'unknown';
-    const arc = emotionalArc.getArc();
-    if (arc.trajectory === 'improving' || arc.conversationTemperature > 0.6) {
+    const arc = emotionalArc?.getArc() ?? {};
+    if (arc.trajectory === 'improving' || (arc.conversationTemperature ?? 0) > 0.6) {
       userEngagement = 'high';
     } else if (arc.needsEmotionalSupport) {
       userEngagement = 'low';
@@ -572,12 +615,15 @@ export class BundleRuntimeEngine {
       storiesToldThisSession: this.state.storiesToldThisSession,
       emotionalArc: arc,
       userEngagement,
-      userPacing: arc.conversationTemperature > 0.7 ? ('rushed' as const) : ('normal' as const),
+      userPacing: (arc.conversationTemperature ?? 0) > 0.7 ? ('rushed' as const) : ('normal' as const),
     };
 
     // Note: We don't have full persona config here, so we use the engine's gating only
     // Cast to PersonaConfig since evaluateStoryTiming only accesses the stories property
     const minimalPersonaConfig = { stories: [] } as unknown as PersonaConfig;
+    if (!storyEngine) {
+      return { should: true, confidence: 0.5 }; // Default if engine not loaded
+    }
     const result = storyEngine.evaluateStoryTiming(minimalPersonaConfig, timingContext);
 
     if (!result.shouldTell && result.reason) {
@@ -681,8 +727,8 @@ export class BundleRuntimeEngine {
     this.state.lastStoryTurn = turn;
 
     // Sync with StoryTimingEngine for cross-module consistency
-    const storyEngine = getStoryTimingEngine();
-    storyEngine.recordStoryTold(storyId, turn);
+    const storyEngine = this.getStoryTimingEngine();
+    storyEngine?.recordStoryTold(storyId, turn);
   }
 
   /**

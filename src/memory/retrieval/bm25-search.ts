@@ -27,8 +27,8 @@ const log = createLogger({ module: 'BM25Search' });
 // ============================================================================
 
 /** Default BM25 parameters */
-const DEFAULT_K1 = 1.5;  // Term saturation parameter
-const DEFAULT_B = 0.75;  // Length normalization parameter
+const DEFAULT_K1 = 1.5; // Term saturation parameter
+const DEFAULT_B = 0.75; // Length normalization parameter
 
 // ============================================================================
 // TYPES
@@ -256,7 +256,7 @@ export class BM25Index {
       if (tf === 0) continue;
 
       const idf = this.calculateIDF(term);
-      
+
       // BM25 term score
       const numerator = tf * (k1 + 1);
       const denominator = tf + k1 * (1 - b + b * (doc.length / avgdl));
@@ -273,11 +273,7 @@ export class BM25Index {
    * Search the index using BM25
    */
   search(query: string, options: BM25SearchOptions = {}): BM25SearchResult[] {
-    const {
-      topK = 10,
-      minScore = 0.0,
-      boostExactMatch = 1.5,
-    } = options;
+    const { topK = 10, minScore = 0.0, boostExactMatch = 1.5 } = options;
 
     const queryTokens = tokenizeForQuery(query);
     const normalizedQuery = query.toLowerCase().trim();

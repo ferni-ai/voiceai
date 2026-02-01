@@ -11,6 +11,7 @@ firestore-vector-store/
 ├── helpers.ts         # Embedding extraction, filter matching
 ├── fallback-cache.ts  # In-memory fallback when Firestore unavailable
 ├── recovery.ts        # Recovery manager for auto-reconnection
+├── search-cache.ts    # Search result caching (TTL-based, reduces duplicate queries)
 └── core.ts            # Main FirestoreVectorStore class
 ```
 

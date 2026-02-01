@@ -47,6 +47,7 @@ import { handleTeamRoutes } from './routes/team.js';
 import { handleTeamInsightsRoutes } from './routes/team-insights.js';
 import { handleLifeContextRoutes } from './life-context-routes.js';
 import { handleQuizRoutes } from './routes/quiz.js';
+import { handleSemanticIntelligenceRoutes } from './semantic-intelligence-routes.js';
 import { handleVideoSessionRoutes } from './routes/video-sessions.js';
 import { handleWearableRoutes } from './routes/wearable.js';
 
@@ -73,6 +74,7 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
   '/api/group',
   '/api/team-insights',
   '/api/life-context',
+  '/api/semantic-intelligence',
 ];
 
 /**
@@ -220,6 +222,11 @@ export async function handleEngagementRoutes(
 
   // Life Context (Phase 6 Cross-Domain Synthesis)
   if (await handleLifeContextRoutes(req, res, pathname)) {
+    return true;
+  }
+
+  // Semantic Intelligence (Better Than Human - "What I've Noticed")
+  if (await handleSemanticIntelligenceRoutes(req, res, pathname)) {
     return true;
   }
 

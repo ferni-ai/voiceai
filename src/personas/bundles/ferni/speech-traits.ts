@@ -26,7 +26,7 @@ export function addCatchphraseEmphasis(text: string, _emotion: string): string {
   const catchphrases = [
     // Kintsugi philosophy - peak moments
     { pattern: /\bkintsugi\b/gi, gravitas: 'peak' },
-    { pattern: /\bthe cracks are where the gold goes\b/gi, gravitas: 'peak' },
+    { pattern: /\bwe are all broken in different ways\b/gi, gravitas: 'peak' },
     { pattern: /\bbroken (and|but) beautiful\b/gi, gravitas: 'peak' },
     // Second chances - high gravitas
     { pattern: /\bsecond chance(s)?\b/gi, gravitas: 'high' },

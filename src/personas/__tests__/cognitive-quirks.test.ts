@@ -28,7 +28,14 @@ import {
 describe('Cognitive Quirks', () => {
   describe('Quirks Loading', () => {
     it('should return quirks for all 6 personas', () => {
-      const personaIds = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+      const personaIds = [
+        'ferni',
+        'peter-john',
+        'alex-chen',
+        'maya-santos',
+        'jordan-taylor',
+        'nayan-patel',
+      ];
 
       for (const personaId of personaIds) {
         const quirks = getCognitiveQuirks(personaId);
@@ -121,7 +128,14 @@ describe('Cognitive Quirks', () => {
 
   describe('Transition Phrases', () => {
     it('should return transition phrase for all personas', () => {
-      const personaIds = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+      const personaIds = [
+        'ferni',
+        'peter-john',
+        'alex-chen',
+        'maya-santos',
+        'jordan-taylor',
+        'nayan-patel',
+      ];
 
       for (const personaId of personaIds) {
         // getTransitionPhrase has randomness, try multiple times
@@ -162,7 +176,7 @@ describe('Cognitive Quirks', () => {
       expect(peterPhrases.size).toBeGreaterThan(0);
 
       // Phrases should be different (not all overlap)
-      const overlap = [...ferniPhrases].filter(p => peterPhrases.has(p));
+      const overlap = [...ferniPhrases].filter((p) => peterPhrases.has(p));
       expect(overlap.length).toBeLessThan(ferniPhrases.size);
     });
   });
@@ -170,15 +184,15 @@ describe('Cognitive Quirks', () => {
   describe('Quirk Uniqueness', () => {
     it('each persona should have unique quirks', () => {
       // Collect all quirk names per persona
-      const ferniNames = new Set(ferniQuirks.quirks.map(q => q.name));
-      const peterNames = new Set(peterQuirks.quirks.map(q => q.name));
+      const ferniNames = new Set(ferniQuirks.quirks.map((q) => q.name));
+      const peterNames = new Set(peterQuirks.quirks.map((q) => q.name));
 
       // Names should be unique within each persona
       expect(ferniNames.size).toBe(ferniQuirks.quirks.length);
       expect(peterNames.size).toBe(peterQuirks.quirks.length);
 
       // Names should be different between personas (at least some)
-      const overlap = [...ferniNames].filter(name => peterNames.has(name));
+      const overlap = [...ferniNames].filter((name) => peterNames.has(name));
       expect(overlap.length).toBeLessThan(ferniNames.size);
     });
   });

@@ -397,13 +397,19 @@ export async function handleTokenRoutes(
           city: demoGeoData.city,
           regionCode: demoGeoData.regionCode,
         };
-        log.info({ room: roomName, agent: AGENT_NAME, persona: personaId, city: demoGeoData.city }, '🚀 Dispatching agent');
+        log.info(
+          { room: roomName, agent: AGENT_NAME, persona: personaId, city: demoGeoData.city },
+          '🚀 Dispatching agent'
+        );
         await getAgentDispatch().createDispatch(roomName, AGENT_NAME, {
           metadata: JSON.stringify(agentMetadata),
         });
         log.info({ room: roomName, agent: AGENT_NAME, persona: personaId }, '✅ Agent dispatched');
       } catch (dispatchErr) {
-        log.error({ error: (dispatchErr as Error).message, room: roomName }, '❌ Agent dispatch failed');
+        log.error(
+          { error: (dispatchErr as Error).message, room: roomName },
+          '❌ Agent dispatch failed'
+        );
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -415,7 +421,9 @@ export async function handleTokenRoutes(
           username,
           demo_id: demoId,
           expires_in_minutes: DEMO_CONFIG.sessionDurationMinutes,
-          sessions_remaining: isBrandedPersona ? 999 : (checkDemoAllowed(ip).sessionsRemaining ?? 1) - 1,
+          sessions_remaining: isBrandedPersona
+            ? 999
+            : (checkDemoAllowed(ip).sessionsRemaining ?? 1) - 1,
           claim_token: demoSession.claimToken,
           claim_expires_at: demoSession.expiresAt,
           // 🌍 Include detected location for UI (weather, personalization)
@@ -603,13 +611,17 @@ export async function handleTokenRoutes(
           '🔑 Using firebase_uid from query param (header auth unavailable)'
         );
       }
-      
+
       // 🧠 MEMORY AUDIT: Log identity chain for debugging memory issues
       log.info(
         {
           room,
           hasFirebaseUid: !!firebaseUid,
-          firebaseUidSource: firebaseUid ? (firebase_uid_param ? 'query_param' : 'auth_header') : 'none',
+          firebaseUidSource: firebaseUid
+            ? firebase_uid_param
+              ? 'query_param'
+              : 'auth_header'
+            : 'none',
           firebaseUidPrefix: firebaseUid ? firebaseUid.substring(0, 8) : 'none',
           hasDeviceId: !!device_id,
           deviceIdPrefix: device_id ? device_id.substring(0, 16) : 'none',
@@ -778,13 +790,22 @@ export async function handleTokenRoutes(
           city: geoData.city,
           regionCode: geoData.regionCode,
         };
-        log.info({ agent: AGENT_NAME, room, persona_id: selectedPersona }, '🎯 Dispatching agent with persona');
+        log.info(
+          { agent: AGENT_NAME, room, persona_id: selectedPersona },
+          '🎯 Dispatching agent with persona'
+        );
         await getAgentDispatch().createDispatch(room, AGENT_NAME, {
           metadata: JSON.stringify(agentMetadata),
         });
-        log.info({ agent: AGENT_NAME, room, persona_id: selectedPersona }, '✅ Agent dispatch successful');
+        log.info(
+          { agent: AGENT_NAME, room, persona_id: selectedPersona },
+          '✅ Agent dispatch successful'
+        );
       } catch (dispatchErr) {
-        log.error({ error: (dispatchErr as Error).message, room, persona_id: selectedPersona }, '❌ Agent dispatch FAILED');
+        log.error(
+          { error: (dispatchErr as Error).message, room, persona_id: selectedPersona },
+          '❌ Agent dispatch FAILED'
+        );
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });

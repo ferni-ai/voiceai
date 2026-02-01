@@ -26,49 +26,41 @@ import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
 import type { SessionStateManager } from '../session/session-state.js';
-import { PROCESSING_TIMEOUTS } from '../shared/constants.js';
 import type { UserData } from '../shared/types.js';
 import { handleSlashCommand, sendCelebrationEvents } from './index.js';
 
 // Import extracted modules
-import {
-  processPersonality,
-  cleanupPersonalityState as cleanupPersonalityStateInternal,
-  type PersonalityContext,
-} from './turn-personality.js';
 import { dispatchAllTurnEvents, type EventDispatchContext } from './turn-events.js';
 import { recordAllLearningData, type LearningContext } from './turn-learning.js';
+import { processPersonality, type PersonalityContext } from './turn-personality.js';
 
 // Performance optimization imports
-import {
-  getTurnProfiler,
-  startTurnProfiling,
-  markTurnCheckpoint,
-  completeTurnProfiling,
-} from '../../services/performance/turn-profiler.js';
 import { speculateTTS } from '../../services/performance/speculative-tts.js';
+import {
+  completeTurnProfiling,
+  markTurnCheckpoint,
+  startTurnProfiling,
+} from '../../services/performance/turn-profiler.js';
 
 // "Better Than Human" emotion dispatch for frontend EQ system
 import {
+  detectMetaRelationship,
+  detectUserDelightWithContext,
+  dispatchAnticipatoryPresence,
+  dispatchEmotionalBondDeepen,
   dispatchEmotionEvents,
-  dispatchHolisticEvents,
   dispatchExpressionUpdate,
+  dispatchHolisticEvents,
+  dispatchInsideJokeCallback,
+  dispatchMetaRelationshipMoment,
+  dispatchMicroExpression,
+  dispatchProtectiveInstinct,
+  dispatchSomaticPresence,
   // BTH signal dispatchers (10 superhuman capabilities)
   dispatchSpontaneousDelight,
-  dispatchVisibleVulnerability,
-  dispatchTemporalInsight,
-  dispatchAnticipatoryPresence,
-  dispatchProtectiveInstinct,
   dispatchSuperhumanObservation,
-  dispatchEmotionalBondDeepen,
-  dispatchMicroExpression,
-  dispatchMetaRelationshipMoment,
-  dispatchSomaticPresence,
-  dispatchInsideJokeCallback,
-  // BTH detection helpers
-  detectUserDelight,
-  detectUserDelightWithContext,
-  detectMetaRelationship,
+  dispatchTemporalInsight,
+  dispatchVisibleVulnerability,
   getTimeContext,
 } from '../realtime/emotion-event-dispatcher.js';
 // Safe fire-and-forget pattern for non-critical async operations
@@ -83,18 +75,18 @@ import {
 import type { ProsodyFeatures } from '../../speech/audio-prosody/types.js';
 // Adaptive timing for "Better than Human" response latency
 import {
-  getAdaptiveTimeouts,
-  shouldInjectFiller,
-  recordFillerInjection,
-  startTurnProfile,
   completeTurnProfile,
+  getAdaptiveTimeouts,
+  recordFillerInjection,
+  shouldInjectFiller,
+  startTurnProfile,
 } from '../shared/performance/adaptive-timing.js';
 // Unified Naturalness Engine - combines stress, patterns, ambient, rapport
 import {
   getNaturalnessEngine,
   processTurn as processNaturalnessTurn,
-  type TurnInput as NaturalnessTurnInput,
   type NaturalnessResult,
+  type TurnInput as NaturalnessTurnInput,
 } from '../../speech/naturalness/index.js';
 
 // "Better Than Human v3" - Semantic Intelligence System
@@ -104,23 +96,22 @@ import {
 } from '../../services/superhuman/semantic-intelligence/integration.js';
 
 // "Better Than Human v4" - Superhuman Intelligence Enhancements (10 modules)
+import { getRhythmIntelligence } from '../../conversation/rhythm-intelligence/engine.js';
 import {
-  recordEmotionalMomentum,
-  checkEmotionalIntervention,
   analyzeVoiceAndIntervene,
-  cleanupSession as cleanupSuperhumanIntelligenceSession,
+  checkEmotionalIntervention,
+  recordEmotionalMomentum,
 } from '../../intelligence/context-builders/superhuman/superhuman-intelligence-context.js';
 import { getMicroMomentDetector } from '../../intelligence/deep-understanding/micro-moments/engine.js';
-import { getRhythmIntelligence } from '../../conversation/rhythm-intelligence/engine.js';
-import { getRelationalMemory } from '../../services/superhuman/relational-memory/engine.js';
 import { getPatternConnector } from '../../intelligence/deep-understanding/pattern-connector/engine.js';
+import { getRelationalMemory } from '../../services/superhuman/relational-memory/engine.js';
 import { getPrimaryPersonName } from '../../services/superhuman/semantic-intelligence/person-extractor.js';
 
 // NEW: Unified Intelligence System (Levels 2-5)
 import {
   getUnifiedIntelligence,
-  processTurnLearning,
   markProactiveInsightSurfaced,
+  processTurnLearning,
 } from '../integrations/unified-intelligence-integration.js';
 
 // "Better Than Human" dynamic memory capture - LLM-powered extraction
@@ -130,10 +121,6 @@ import { fastCapture } from '../../memory/dynamic/index.js';
 import {
   initializeHealthMonitor,
   recordTurn as recordHealthTurn,
-  recordToolCallSuccess,
-  recordToolCallLeakage,
-  getSessionHealth,
-  clearHealthMonitor,
 } from '../shared/session-health-monitor.js';
 
 // Conversation Priming - Context refresh callback for health monitor
@@ -154,8 +141,8 @@ import { getRedisCache } from '../../memory/redis-cache.js';
 
 // Phase 11: Voice-Memory Integration - record prosody signals with memories
 import {
-  recordVoiceContext,
   calculateEmotionalWeight as calculateVoiceEmotionalWeight,
+  recordVoiceContext,
   type VoiceContext,
 } from '../integrations/voice-memory-integration.js';
 
@@ -1347,6 +1334,28 @@ You are their lifeline right now. Be fully present.`,
         const { buildToolResponseInstructions } =
           await import('../processors/tool-routing-integration.js');
 
+        // FIX (Jan 2026): Get memory context even on FTIS V2 fast path.
+        // The memoryRetrievalPromise was started earlier in parallel.
+        // We await it with a short timeout to not delay tool responses.
+        let memoryContextStr: string | undefined;
+        try {
+          const memoryResult = await Promise.race([
+            memoryRetrievalPromise,
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 100)), // 100ms timeout
+          ]);
+          if (memoryResult?.injections?.[0]?.content) {
+            memoryContextStr = memoryResult.injections[0].content;
+            diag.debug('🧠 FTIS V2: Memory context retrieved for fast path', {
+              hasMemory: true,
+              memoryLength: memoryContextStr.length,
+            });
+          }
+        } catch (memoryErr) {
+          diag.debug('🧠 FTIS V2: Memory retrieval failed (non-fatal)', {
+            error: String(memoryErr),
+          });
+        }
+
         const instructions = buildToolResponseInstructions({
           toolId: toolResult.toolId,
           result: toolResult.output || toolResult.speakableResponse || 'Success',
@@ -1354,6 +1363,10 @@ You are their lifeline right now. Be fully present.`,
           personaId: persona.id,
           personaDisplayName: persona.displayName,
           userRequest: userText,
+          // FIX (Jan 2026): Pass user name for personalized responses on FTIS V2 fast path
+          userName: services.userProfile?.name,
+          // FIX (Jan 2026): Pass memory context for Better Than Human memory on fast path
+          memoryContext: memoryContextStr,
         });
 
         diag.debug('🎯 DIRECT TOOL: Calling generateReplyBySessionId', {
@@ -2136,7 +2149,8 @@ IMPORTANT:
     // ================================================================
     fireAndForget(async () => {
       try {
-        const { recordUnifiedMoment } = await import('../../personality/bridge/personality-bridge.js');
+        const { recordUnifiedMoment } =
+          await import('../../personality/bridge/personality-bridge.js');
 
         // Detect shared moments based on emotional intensity and content
         const emotionalAnalysis = result.analysis.analysis.emotion;
@@ -2295,13 +2309,17 @@ IMPORTANT:
     }, 'unified-personality-recording');
 
     // ================================================================
-    // 🔮 PERSONALITY V2 SIGNAL DISPATCH
+    // 🔮 PERSONALITY SIGNAL DISPATCH
     // Dispatches anticipation, vulnerability, pattern, and growth signals
-    // that were stored by the personality-v2 context builder.
+    // that were stored by the personality-context builder.
     // ================================================================
     fireAndForget(async () => {
       try {
-        const v2Signals = (userData as { personalityV2Signals?: import('../../intelligence/context-builders/personality-v2.js').PersonalityV2Signals }).personalityV2Signals;
+        const v2Signals = (
+          userData as {
+            personalityV2Signals?: import('../../intelligence/context-builders/personality-context.js').PersonalityV2Signals;
+          }
+        ).personalityV2Signals;
         if (!v2Signals) return;
 
         const {
@@ -2323,12 +2341,13 @@ IMPORTANT:
         if (v2Signals.pendingVulnerabilities?.length) {
           for (const vuln of v2Signals.pendingVulnerabilities) {
             // Create a VulnerabilityData object (plain data interface, not class)
-            const deposit: import('../../personality/bridge/signal-dispatchers.js').VulnerabilityData = {
-              level: vuln.level,
-              category: vuln.category,
-              isFirstTime: vuln.isFirstTime,
-              acknowledgment: vuln.suggestedAcknowledgment,
-            };
+            const deposit: import('../../personality/bridge/signal-dispatchers.js').VulnerabilityData =
+              {
+                level: vuln.level,
+                category: vuln.category,
+                isFirstTime: vuln.isFirstTime,
+                acknowledgment: vuln.suggestedAcknowledgment,
+              };
             await dispatchVulnerabilitySignal(sendDataMessage, deposit, vuln.isFirstTime);
           }
           diag.debug('💜 Dispatched vulnerability signals', {
@@ -2357,13 +2376,14 @@ IMPORTANT:
         if (v2Signals.celebratableMilestones?.length) {
           for (const milestone of v2Signals.celebratableMilestones) {
             // Create a GrowthMilestoneData object (plain data interface, not class)
-            const growthMilestone: import('../../personality/bridge/signal-dispatchers.js').GrowthMilestoneData = {
-              area: milestone.area,
-              significance: milestone.significance,
-              description: milestone.description,
-              celebrationMessage: milestone.celebrationMessage,
-              isReadyToCelebrate: true,
-            };
+            const growthMilestone: import('../../personality/bridge/signal-dispatchers.js').GrowthMilestoneData =
+              {
+                area: milestone.area,
+                significance: milestone.significance,
+                description: milestone.description,
+                celebrationMessage: milestone.celebrationMessage,
+                isReadyToCelebrate: true,
+              };
             await dispatchGrowthCelebrationSignal(sendDataMessage, growthMilestone);
           }
           diag.debug('🌱 Dispatched growth signals', {
@@ -2376,7 +2396,7 @@ IMPORTANT:
       } catch {
         // Non-critical - signal dispatch is enhancement
       }
-    }, 'personality-v2-signal-dispatch');
+    }, 'personality-signal-dispatch');
 
     // ================================================================
     // 🎵 BTH v4: RHYTHM INTELLIGENCE RECORDING

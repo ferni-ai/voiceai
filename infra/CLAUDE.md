@@ -17,10 +17,12 @@
 | File | Purpose |
 |------|---------|
 | `cloud-scheduler-jobs.yaml` | Main scheduled jobs |
-| `cloud-scheduler-memory.yaml` | Memory-related jobs |
+| `cloud-scheduler-knowledge-graph.yaml` | Knowledge graph maintenance |
 | `cloud-scheduler-landing.yaml` | Landing page jobs |
 | `cloud-scheduler-llm-content.yaml` | LLM content generation |
 | `cloud-scheduler-marketplace.yaml` | Marketplace jobs |
+| `cloud-scheduler-memory.yaml` | Memory-related jobs |
+| `cloud-scheduler-retraining.yaml` | Model retraining jobs |
 
 ## Cloud Run Configurations
 

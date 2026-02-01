@@ -17,10 +17,10 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { apiGet, apiPost, apiDelete } from '../utils/api.js';
-import { toast } from './whisper.ui.js';
-import { appState } from '../state/index.js';
 import { t } from '../i18n/index.js';
+import { appState } from '../state/index.js';
+import { apiDelete, apiGet, apiPost } from '../utils/api.js';
+import { toast } from './whisper.ui.js';
 
 // ============================================================================
 // TYPES
@@ -91,7 +91,7 @@ function checkSonosOAuthReturn(): 'success' | 'error' | null {
   const params = new URLSearchParams(window.location.search);
   const smartHomeStatus = params.get('smart_home');
   const integration = params.get('integration');
-  
+
   if (integration === 'sonos') {
     // Clean up URL params after reading
     const newUrl = new URL(window.location.href);
@@ -99,7 +99,7 @@ function checkSonosOAuthReturn(): 'success' | 'error' | null {
     newUrl.searchParams.delete('integration');
     newUrl.searchParams.delete('reason');
     window.history.replaceState({}, '', newUrl);
-    
+
     sonosAuthPending = false;
     return smartHomeStatus === 'success' ? 'success' : 'error';
   }
@@ -111,20 +111,30 @@ function checkSonosOAuthReturn(): 'success' | 'error' | null {
 // ============================================================================
 
 const SVG_ICONS = {
-  close: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  close:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   home: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
-  thermometer: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>',
-  lightbulb: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>',
+  thermometer:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>',
+  lightbulb:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>',
   sun: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
-  check: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  check:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
   link: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
-  unlink: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-.12-7.07 5 5 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5 5 0 0 0 .12 7.07 5 5 0 0 0 6.95 0l1.71-1.71"/></svg>',
-  chevronRight: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
-  chevronLeft: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+  unlink:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-.12-7.07 5 5 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5 5 0 0 0 .12 7.07 5 5 0 0 0 6.95 0l1.71-1.71"/></svg>',
+  chevronRight:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+  chevronLeft:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
   wifi: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>',
-  sparkles: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
-  speaker: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><circle cx="12" cy="14" r="4"/><line x1="12" y1="6" x2="12.01" y2="6"/></svg>',
-  apple: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/></svg>',
+  sparkles:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
+  speaker:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><circle cx="12" cy="14" r="4"/><line x1="12" y1="6" x2="12.01" y2="6"/></svg>',
+  apple:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/></svg>',
 } as const;
 
 type IconName = keyof typeof SVG_ICONS;
@@ -702,15 +712,32 @@ function injectStyles(): void {
 
 async function fetchStatus(): Promise<IntegrationStatus> {
   const userId = getUserId();
-  
-  // Fetch status for all integrations in parallel
+
+  // Short timeout options for fast UX - show disconnected rather than spinning forever
+  const fastTimeout = { timeout: 8000 }; // 8 seconds max per call
+
+  // Fetch status for all integrations in parallel with aggressive timeout
   // Note: Ecobee uses /api/ecobee/status (separate route)
   const [ecobeeRes, hueRes, lifxRes, sonosRes, homekitRes] = await Promise.all([
-    apiGet<IntegrationStatus['ecobee']>(`/api/ecobee/status`, { userId }).catch(() => ({ ok: false, data: null })),
-    apiGet<IntegrationStatus['hue']>(`/api/smart-home/hue/status`, { userId }).catch(() => ({ ok: false, data: null })),
-    apiGet<IntegrationStatus['lifx']>(`/api/smart-home/lifx/status`, { userId }).catch(() => ({ ok: false, data: null })),
-    apiGet<IntegrationStatus['sonos']>(`/api/smart-home/sonos/status`, { userId }).catch(() => ({ ok: false, data: null })),
-    apiGet<IntegrationStatus['homeKit']>(`/api/smart-home/homekit/status`, { userId }).catch(() => ({ ok: false, data: null })),
+    apiGet<IntegrationStatus['ecobee']>(`/api/ecobee/status`, { userId }, fastTimeout).catch(
+      () => ({ ok: false, data: null })
+    ),
+    apiGet<IntegrationStatus['hue']>(`/api/smart-home/hue/status`, { userId }, fastTimeout).catch(
+      () => ({ ok: false, data: null })
+    ),
+    apiGet<IntegrationStatus['lifx']>(`/api/smart-home/lifx/status`, { userId }, fastTimeout).catch(
+      () => ({ ok: false, data: null })
+    ),
+    apiGet<IntegrationStatus['sonos']>(
+      `/api/smart-home/sonos/status`,
+      { userId },
+      fastTimeout
+    ).catch(() => ({ ok: false, data: null })),
+    apiGet<IntegrationStatus['homeKit']>(
+      `/api/smart-home/homekit/status`,
+      { userId },
+      fastTimeout
+    ).catch(() => ({ ok: false, data: null })),
   ]);
 
   return {
@@ -746,9 +773,10 @@ function renderMainView(status: IntegrationStatus): void {
 
   // Welcome message
   const welcome = createElement('div', { className: 'smart-home-settings__welcome' });
-  const welcomeText = createElement('p', { 
+  const welcomeText = createElement('p', {
     className: 'smart-home-settings__welcome-text',
-    textContent: "Connect your home and I can help set the perfect atmosphere—dimming lights for movie night, warming things up when you're chilly, or creating calm when you need to focus."
+    textContent:
+      "Connect your home and I can help set the perfect atmosphere—dimming lights for movie night, warming things up when you're chilly, or creating calm when you need to focus.",
   });
   welcome.appendChild(welcomeText);
   content.appendChild(welcome);
@@ -757,70 +785,88 @@ function renderMainView(status: IntegrationStatus): void {
   const integrations = createElement('div', { className: 'smart-home-settings__integrations' });
 
   // Ecobee card
-  integrations.appendChild(createIntegrationCard({
-    id: 'ecobee',
-    name: 'Ecobee',
-    description: 'Thermostat & sensors',
-    icon: 'thermometer',
-    connected: status.ecobee.connected,
-    details: status.ecobee.connected ? [
-      { label: 'Name', value: status.ecobee.thermostatName || 'My Thermostat' },
-      { label: 'Current', value: `${status.ecobee.currentTemp || '--'}°F` },
-      { label: 'Mode', value: status.ecobee.mode || 'auto' },
-    ] : undefined,
-  }));
+  integrations.appendChild(
+    createIntegrationCard({
+      id: 'ecobee',
+      name: 'Ecobee',
+      description: 'Thermostat & sensors',
+      icon: 'thermometer',
+      connected: status.ecobee.connected,
+      details: status.ecobee.connected
+        ? [
+            { label: 'Name', value: status.ecobee.thermostatName || 'My Thermostat' },
+            { label: 'Current', value: `${status.ecobee.currentTemp || '--'}°F` },
+            { label: 'Mode', value: status.ecobee.mode || 'auto' },
+          ]
+        : undefined,
+    })
+  );
 
   // Philips Hue card
-  integrations.appendChild(createIntegrationCard({
-    id: 'hue',
-    name: 'Philips Hue',
-    description: 'Smart lights (local)',
-    icon: 'lightbulb',
-    connected: status.hue.connected,
-    details: status.hue.connected ? [
-      { label: 'Bridge', value: status.hue.bridgeIp || 'Connected' },
-      { label: 'Lights', value: `${status.hue.lightCount || 0}` },
-    ] : undefined,
-  }));
+  integrations.appendChild(
+    createIntegrationCard({
+      id: 'hue',
+      name: 'Philips Hue',
+      description: 'Smart lights (local)',
+      icon: 'lightbulb',
+      connected: status.hue.connected,
+      details: status.hue.connected
+        ? [
+            { label: 'Bridge', value: status.hue.bridgeIp || 'Connected' },
+            { label: 'Lights', value: `${status.hue.lightCount || 0}` },
+          ]
+        : undefined,
+    })
+  );
 
   // LIFX card
-  integrations.appendChild(createIntegrationCard({
-    id: 'lifx',
-    name: 'LIFX',
-    description: 'Smart lights (cloud)',
-    icon: 'sun',
-    connected: status.lifx.connected,
-    details: status.lifx.connected ? [
-      { label: 'Lights', value: `${status.lifx.lightCount || 0}` },
-    ] : undefined,
-  }));
+  integrations.appendChild(
+    createIntegrationCard({
+      id: 'lifx',
+      name: 'LIFX',
+      description: 'Smart lights (cloud)',
+      icon: 'sun',
+      connected: status.lifx.connected,
+      details: status.lifx.connected
+        ? [{ label: 'Lights', value: `${status.lifx.lightCount || 0}` }]
+        : undefined,
+    })
+  );
 
   // Sonos card
-  integrations.appendChild(createIntegrationCard({
-    id: 'sonos',
-    name: 'Sonos',
-    description: 'Speakers & music',
-    icon: 'speaker',
-    connected: status.sonos.connected,
-    details: status.sonos.connected ? [
-      { label: 'Speakers', value: `${status.sonos.speakerCount || 0}` },
-      { label: 'Now Playing', value: status.sonos.primaryGroup || 'Idle' },
-    ] : undefined,
-  }));
+  integrations.appendChild(
+    createIntegrationCard({
+      id: 'sonos',
+      name: 'Sonos',
+      description: 'Speakers & music',
+      icon: 'speaker',
+      connected: status.sonos.connected,
+      details: status.sonos.connected
+        ? [
+            { label: 'Speakers', value: `${status.sonos.speakerCount || 0}` },
+            { label: 'Now Playing', value: status.sonos.primaryGroup || 'Idle' },
+          ]
+        : undefined,
+    })
+  );
 
   // HomeKit card
-  integrations.appendChild(createIntegrationCard({
-    id: 'homekit',
-    name: 'HomeKit',
-    description: 'Apple home & Siri',
-    icon: 'apple',
-    connected: status.homeKit.connected,
-    details: status.homeKit.connected ? [
-      { label: 'Home', value: status.homeKit.homeName || 'My Home' },
-      { label: 'Devices', value: `${status.homeKit.deviceCount || 0}` },
-      { label: 'Scenes', value: `${status.homeKit.sceneCount || 0}` },
-    ] : undefined,
-  }));
+  integrations.appendChild(
+    createIntegrationCard({
+      id: 'homekit',
+      name: 'HomeKit',
+      description: 'Apple home & Siri',
+      icon: 'apple',
+      connected: status.homeKit.connected,
+      details: status.homeKit.connected
+        ? [
+            { label: 'Home', value: status.homeKit.homeName || 'My Home' },
+            { label: 'Devices', value: `${status.homeKit.deviceCount || 0}` },
+            { label: 'Scenes', value: `${status.homeKit.sceneCount || 0}` },
+          ]
+        : undefined,
+    })
+  );
 
   content.appendChild(integrations);
 }
@@ -833,14 +879,14 @@ function createIntegrationCard(options: {
   connected: boolean;
   details?: Array<{ label: string; value: string }>;
 }): HTMLElement {
-  const card = createElement('div', { 
-    className: `smart-home-settings__card${options.connected ? ' smart-home-settings__card--connected' : ''}` 
+  const card = createElement('div', {
+    className: `smart-home-settings__card${options.connected ? ' smart-home-settings__card--connected' : ''}`,
   });
 
   const header = createElement('div', { className: 'smart-home-settings__card-header' });
 
   const info = createElement('div', { className: 'smart-home-settings__card-info' });
-  
+
   const iconDiv = createElement('div', { className: 'smart-home-settings__card-icon' });
   const icon = createIcon(options.icon);
   if (icon) iconDiv.appendChild(icon);
@@ -853,12 +899,14 @@ function createIntegrationCard(options: {
 
   header.appendChild(info);
 
-  const status = createElement('div', { 
-    className: `smart-home-settings__card-status smart-home-settings__card-status--${options.connected ? 'connected' : 'disconnected'}` 
+  const status = createElement('div', {
+    className: `smart-home-settings__card-status smart-home-settings__card-status--${options.connected ? 'connected' : 'disconnected'}`,
   });
   const statusIcon = createIcon(options.connected ? 'check' : 'chevronRight');
   if (statusIcon) status.appendChild(statusIcon);
-  status.appendChild(createElement('span', { textContent: options.connected ? 'Connected' : 'Set up' }));
+  status.appendChild(
+    createElement('span', { textContent: options.connected ? 'Connected' : 'Set up' })
+  );
   header.appendChild(status);
 
   card.appendChild(header);
@@ -868,8 +916,18 @@ function createIntegrationCard(options: {
     const details = createElement('div', { className: 'smart-home-settings__card-details' });
     for (const detail of options.details) {
       const detailEl = createElement('div', { className: 'smart-home-settings__detail' });
-      detailEl.appendChild(createElement('span', { className: 'smart-home-settings__detail-label', textContent: `${detail.label}: ` }));
-      detailEl.appendChild(createElement('span', { className: 'smart-home-settings__detail-value', textContent: detail.value }));
+      detailEl.appendChild(
+        createElement('span', {
+          className: 'smart-home-settings__detail-label',
+          textContent: `${detail.label}: `,
+        })
+      );
+      detailEl.appendChild(
+        createElement('span', {
+          className: 'smart-home-settings__detail-value',
+          textContent: detail.value,
+        })
+      );
       details.appendChild(detailEl);
     }
     card.appendChild(details);
@@ -906,7 +964,7 @@ function renderSetupStep(): void {
 
   // Header with back button
   const header = createElement('div', { className: 'smart-home-settings__setup-header' });
-  
+
   const backBtn = createElement('button', { className: 'smart-home-settings__back-btn' });
   const backIcon = createIcon('chevronLeft');
   if (backIcon) backBtn.appendChild(backIcon);
@@ -929,7 +987,9 @@ function renderSetupStep(): void {
     homekit: 'Connect HomeKit',
   };
   const title = titles[currentSetupFlow] || 'Set up';
-  header.appendChild(createElement('h3', { className: 'smart-home-settings__setup-title', textContent: title }));
+  header.appendChild(
+    createElement('h3', { className: 'smart-home-settings__setup-title', textContent: title })
+  );
   setup.appendChild(header);
 
   // Render specific setup step
@@ -950,12 +1010,12 @@ function renderSetupStep(): void {
 
 function renderEcobeeSetup(container: HTMLElement): void {
   const totalSteps = 2;
-  
+
   // Step indicator
   const indicator = createElement('div', { className: 'smart-home-settings__step-indicator' });
   for (let i = 0; i < totalSteps; i++) {
-    const dot = createElement('div', { 
-      className: `smart-home-settings__step-dot${i === setupStep ? ' smart-home-settings__step-dot--active' : i < setupStep ? ' smart-home-settings__step-dot--complete' : ''}` 
+    const dot = createElement('div', {
+      className: `smart-home-settings__step-dot${i === setupStep ? ' smart-home-settings__step-dot--active' : i < setupStep ? ' smart-home-settings__step-dot--complete' : ''}`,
     });
     indicator.appendChild(dot);
   }
@@ -970,36 +1030,42 @@ function renderEcobeeSetup(container: HTMLElement): void {
     if (icon) iconDiv.appendChild(icon);
     content.appendChild(iconDiv);
 
-    content.appendChild(createElement('h4', { 
-      className: 'smart-home-settings__step-title', 
-      textContent: 'Get your Ecobee API Key' 
-    }));
+    content.appendChild(
+      createElement('h4', {
+        className: 'smart-home-settings__step-title',
+        textContent: 'Get your Ecobee API Key',
+      })
+    );
 
-    content.appendChild(createElement('p', { 
-      className: 'smart-home-settings__step-description',
-      textContent: "First, we need a key from Ecobee's developer portal. Don't worry, it's quick!"
-    }));
+    content.appendChild(
+      createElement('p', {
+        className: 'smart-home-settings__step-description',
+        textContent:
+          "First, we need a key from Ecobee's developer portal. Don't worry, it's quick!",
+      })
+    );
 
-    const btn = createElement('button', { 
+    const btn = createElement('button', {
       className: 'smart-home-settings__btn smart-home-settings__btn--primary',
-      textContent: 'Open Ecobee Developer Portal'
+      textContent: 'Open Ecobee Developer Portal',
     });
     btn.addEventListener('click', () => {
       window.open('https://www.ecobee.com/developers/', '_blank');
     });
     content.appendChild(btn);
 
-    const hint = createElement('p', { 
+    const hint = createElement('p', {
       className: 'smart-home-settings__hint',
-      textContent: '1. Sign in with your Ecobee account\n2. Click "Create New" to register an app\n3. Copy your API Key'
+      textContent:
+        '1. Sign in with your Ecobee account\n2. Click "Create New" to register an app\n3. Copy your API Key',
     });
     hint.style.whiteSpace = 'pre-line';
     content.appendChild(hint);
 
     // Next button
-    const nextBtn = createElement('button', { 
+    const nextBtn = createElement('button', {
       className: 'smart-home-settings__btn smart-home-settings__btn--secondary',
-      textContent: 'I have my API key'
+      textContent: 'I have my API key',
     });
     nextBtn.style.marginTop = '16px';
     nextBtn.addEventListener('click', () => {
@@ -1007,7 +1073,6 @@ function renderEcobeeSetup(container: HTMLElement): void {
       renderSetupStep();
     });
     content.appendChild(nextBtn);
-
   } else if (setupStep === 1) {
     // Step 2: Enter API Key & Authorize
     const iconDiv = createElement('div', { className: 'smart-home-settings__step-icon' });
@@ -1015,34 +1080,40 @@ function renderEcobeeSetup(container: HTMLElement): void {
     if (icon) iconDiv.appendChild(icon);
     content.appendChild(iconDiv);
 
-    content.appendChild(createElement('h4', { 
-      className: 'smart-home-settings__step-title', 
-      textContent: 'Connect your thermostat' 
-    }));
+    content.appendChild(
+      createElement('h4', {
+        className: 'smart-home-settings__step-title',
+        textContent: 'Connect your thermostat',
+      })
+    );
 
-    content.appendChild(createElement('p', { 
-      className: 'smart-home-settings__step-description',
-      textContent: 'Paste your API key below and we\'ll guide you through the authorization.'
-    }));
+    content.appendChild(
+      createElement('p', {
+        className: 'smart-home-settings__step-description',
+        textContent: "Paste your API key below and we'll guide you through the authorization.",
+      })
+    );
 
     const inputGroup = createElement('div', { className: 'smart-home-settings__input-group' });
-    inputGroup.appendChild(createElement('label', { 
-      className: 'smart-home-settings__input-label', 
-      textContent: 'Ecobee API Key' 
-    }));
-    const input = createElement('input', { 
+    inputGroup.appendChild(
+      createElement('label', {
+        className: 'smart-home-settings__input-label',
+        textContent: 'Ecobee API Key',
+      })
+    );
+    const input = createElement('input', {
       className: 'smart-home-settings__input',
-      attributes: { type: 'text', placeholder: 'Paste your API key here...' }
+      attributes: { type: 'text', placeholder: 'Paste your API key here...' },
     });
     inputGroup.appendChild(input);
     content.appendChild(inputGroup);
 
-    const btn = createElement('button', { 
-      className: 'smart-home-settings__btn smart-home-settings__btn--primary' 
+    const btn = createElement('button', {
+      className: 'smart-home-settings__btn smart-home-settings__btn--primary',
     });
     btn.textContent = t('ui.smarthomesettings.connectEcobee');
     btn.addEventListener('click', async () => {
-      const apiKey = (input).value.trim();
+      const apiKey = input.value.trim();
       if (!apiKey) {
         toast.warning(t('toasts.enterApiKeyFirst'));
         return;
@@ -1057,12 +1128,12 @@ function renderEcobeeSetup(container: HTMLElement): void {
 
 function renderHueSetup(container: HTMLElement): void {
   const totalSteps = 3;
-  
+
   // Step indicator
   const indicator = createElement('div', { className: 'smart-home-settings__step-indicator' });
   for (let i = 0; i < totalSteps; i++) {
-    const dot = createElement('div', { 
-      className: `smart-home-settings__step-dot${i === setupStep ? ' smart-home-settings__step-dot--active' : i < setupStep ? ' smart-home-settings__step-dot--complete' : ''}` 
+    const dot = createElement('div', {
+      className: `smart-home-settings__step-dot${i === setupStep ? ' smart-home-settings__step-dot--active' : i < setupStep ? ' smart-home-settings__step-dot--complete' : ''}`,
     });
     indicator.appendChild(dot);
   }
@@ -1077,37 +1148,45 @@ function renderHueSetup(container: HTMLElement): void {
     if (icon) iconDiv.appendChild(icon);
     content.appendChild(iconDiv);
 
-    content.appendChild(createElement('h4', { 
-      className: 'smart-home-settings__step-title', 
-      textContent: 'Find your Hue Bridge' 
-    }));
+    content.appendChild(
+      createElement('h4', {
+        className: 'smart-home-settings__step-title',
+        textContent: 'Find your Hue Bridge',
+      })
+    );
 
-    content.appendChild(createElement('p', { 
-      className: 'smart-home-settings__step-description',
-      textContent: "Let's find your Hue Bridge on your network. Make sure you're connected to the same WiFi as your bridge."
-    }));
+    content.appendChild(
+      createElement('p', {
+        className: 'smart-home-settings__step-description',
+        textContent:
+          "Let's find your Hue Bridge on your network. Make sure you're connected to the same WiFi as your bridge.",
+      })
+    );
 
     const inputGroup = createElement('div', { className: 'smart-home-settings__input-group' });
-    inputGroup.appendChild(createElement('label', { 
-      className: 'smart-home-settings__input-label', 
-      textContent: 'Bridge IP Address' 
-    }));
-    const input = createElement('input', { 
+    inputGroup.appendChild(
+      createElement('label', {
+        className: 'smart-home-settings__input-label',
+        textContent: 'Bridge IP Address',
+      })
+    );
+    const input = createElement('input', {
       className: 'smart-home-settings__input',
-      attributes: { type: 'text', placeholder: 'e.g., 192.168.1.100' }
+      attributes: { type: 'text', placeholder: 'e.g., 192.168.1.100' },
     });
     if (hueBridgeIp) input.value = hueBridgeIp;
     inputGroup.appendChild(input);
-    
-    const hint = createElement('p', { 
+
+    const hint = createElement('p', {
       className: 'smart-home-settings__hint',
-      textContent: 'You can find this in the Hue app under Settings → Hue Bridges, or check your router.'
+      textContent:
+        'You can find this in the Hue app under Settings → Hue Bridges, or check your router.',
     });
     inputGroup.appendChild(hint);
     content.appendChild(inputGroup);
 
-    const btn = createElement('button', { 
-      className: 'smart-home-settings__btn smart-home-settings__btn--primary' 
+    const btn = createElement('button', {
+      className: 'smart-home-settings__btn smart-home-settings__btn--primary',
     });
     btn.textContent = t('ui.smarthomesettings.findBridge');
     btn.addEventListener('click', async () => {
@@ -1117,10 +1196,12 @@ function renderHueSetup(container: HTMLElement): void {
         return;
       }
       hueBridgeIp = ip;
-      
+
       // Test connection
       try {
-        const response = await fetch(`http://${ip}/api/config`, { signal: AbortSignal.timeout(5000) });
+        const response = await fetch(`http://${ip}/api/config`, {
+          signal: AbortSignal.timeout(5000),
+        });
         if (response.ok) {
           toast.success(t('toasts.bridgeFound'));
           setupStep = 1;
@@ -1133,7 +1214,6 @@ function renderHueSetup(container: HTMLElement): void {
       }
     });
     content.appendChild(btn);
-
   } else if (setupStep === 1) {
     // Step 2: Press link button
     const iconDiv = createElement('div', { className: 'smart-home-settings__step-icon' });
@@ -1141,18 +1221,23 @@ function renderHueSetup(container: HTMLElement): void {
     if (icon) iconDiv.appendChild(icon);
     content.appendChild(iconDiv);
 
-    content.appendChild(createElement('h4', { 
-      className: 'smart-home-settings__step-title', 
-      textContent: 'Press the link button' 
-    }));
+    content.appendChild(
+      createElement('h4', {
+        className: 'smart-home-settings__step-title',
+        textContent: 'Press the link button',
+      })
+    );
 
-    content.appendChild(createElement('p', { 
-      className: 'smart-home-settings__step-description',
-      textContent: "Walk over to your Hue Bridge and press the big button on top. This lets Ferni talk to your lights."
-    }));
+    content.appendChild(
+      createElement('p', {
+        className: 'smart-home-settings__step-description',
+        textContent:
+          'Walk over to your Hue Bridge and press the big button on top. This lets Ferni talk to your lights.',
+      })
+    );
 
-    const btn = createElement('button', { 
-      className: 'smart-home-settings__btn smart-home-settings__btn--primary' 
+    const btn = createElement('button', {
+      className: 'smart-home-settings__btn smart-home-settings__btn--primary',
     });
     btn.textContent = t('ui.smarthomesettings.iPressedIt');
     btn.addEventListener('click', async () => {
@@ -1160,12 +1245,12 @@ function renderHueSetup(container: HTMLElement): void {
     });
     content.appendChild(btn);
 
-    const hint = createElement('p', { 
+    const hint = createElement('p', {
       className: 'smart-home-settings__hint',
-      textContent: 'The button is usually in the center of the bridge. Press it and tap the button above within 30 seconds.'
+      textContent:
+        'The button is usually in the center of the bridge. Press it and tap the button above within 30 seconds.',
     });
     content.appendChild(hint);
-
   } else if (setupStep === 2) {
     // Step 3: Success
     renderSuccessState(container, 'Philips Hue', 'hue');
@@ -1177,12 +1262,12 @@ function renderHueSetup(container: HTMLElement): void {
 
 function renderLifxSetup(container: HTMLElement): void {
   const totalSteps = 2;
-  
+
   // Step indicator
   const indicator = createElement('div', { className: 'smart-home-settings__step-indicator' });
   for (let i = 0; i < totalSteps; i++) {
-    const dot = createElement('div', { 
-      className: `smart-home-settings__step-dot${i === setupStep ? ' smart-home-settings__step-dot--active' : i < setupStep ? ' smart-home-settings__step-dot--complete' : ''}` 
+    const dot = createElement('div', {
+      className: `smart-home-settings__step-dot${i === setupStep ? ' smart-home-settings__step-dot--active' : i < setupStep ? ' smart-home-settings__step-dot--complete' : ''}`,
     });
     indicator.appendChild(dot);
   }
@@ -1197,36 +1282,41 @@ function renderLifxSetup(container: HTMLElement): void {
     if (icon) iconDiv.appendChild(icon);
     content.appendChild(iconDiv);
 
-    content.appendChild(createElement('h4', { 
-      className: 'smart-home-settings__step-title', 
-      textContent: 'Get your LIFX token' 
-    }));
+    content.appendChild(
+      createElement('h4', {
+        className: 'smart-home-settings__step-title',
+        textContent: 'Get your LIFX token',
+      })
+    );
 
-    content.appendChild(createElement('p', { 
-      className: 'smart-home-settings__step-description',
-      textContent: "LIFX uses a simple cloud token. Let's grab one from their website."
-    }));
+    content.appendChild(
+      createElement('p', {
+        className: 'smart-home-settings__step-description',
+        textContent: "LIFX uses a simple cloud token. Let's grab one from their website.",
+      })
+    );
 
-    const btn = createElement('button', { 
+    const btn = createElement('button', {
       className: 'smart-home-settings__btn smart-home-settings__btn--primary',
-      textContent: 'Open LIFX Settings'
+      textContent: 'Open LIFX Settings',
     });
     btn.addEventListener('click', () => {
       window.open('https://cloud.lifx.com/settings', '_blank');
     });
     content.appendChild(btn);
 
-    const hint = createElement('p', { 
+    const hint = createElement('p', {
       className: 'smart-home-settings__hint',
-      textContent: '1. Sign in with your LIFX account\n2. Find "Personal Access Tokens"\n3. Generate a new token and copy it'
+      textContent:
+        '1. Sign in with your LIFX account\n2. Find "Personal Access Tokens"\n3. Generate a new token and copy it',
     });
     hint.style.whiteSpace = 'pre-line';
     content.appendChild(hint);
 
     // Next button
-    const nextBtn = createElement('button', { 
+    const nextBtn = createElement('button', {
       className: 'smart-home-settings__btn smart-home-settings__btn--secondary',
-      textContent: 'I have my token'
+      textContent: 'I have my token',
     });
     nextBtn.style.marginTop = '16px';
     nextBtn.addEventListener('click', () => {
@@ -1234,7 +1324,6 @@ function renderLifxSetup(container: HTMLElement): void {
       renderSetupStep();
     });
     content.appendChild(nextBtn);
-
   } else if (setupStep === 1) {
     // Step 2: Enter token
     const iconDiv = createElement('div', { className: 'smart-home-settings__step-icon' });
@@ -1242,34 +1331,40 @@ function renderLifxSetup(container: HTMLElement): void {
     if (icon) iconDiv.appendChild(icon);
     content.appendChild(iconDiv);
 
-    content.appendChild(createElement('h4', { 
-      className: 'smart-home-settings__step-title', 
-      textContent: 'Connect your lights' 
-    }));
+    content.appendChild(
+      createElement('h4', {
+        className: 'smart-home-settings__step-title',
+        textContent: 'Connect your lights',
+      })
+    );
 
-    content.appendChild(createElement('p', { 
-      className: 'smart-home-settings__step-description',
-      textContent: 'Paste your token below and we\'ll connect to your LIFX lights.'
-    }));
+    content.appendChild(
+      createElement('p', {
+        className: 'smart-home-settings__step-description',
+        textContent: "Paste your token below and we'll connect to your LIFX lights.",
+      })
+    );
 
     const inputGroup = createElement('div', { className: 'smart-home-settings__input-group' });
-    inputGroup.appendChild(createElement('label', { 
-      className: 'smart-home-settings__input-label', 
-      textContent: 'LIFX Token' 
-    }));
-    const input = createElement('input', { 
+    inputGroup.appendChild(
+      createElement('label', {
+        className: 'smart-home-settings__input-label',
+        textContent: 'LIFX Token',
+      })
+    );
+    const input = createElement('input', {
       className: 'smart-home-settings__input',
-      attributes: { type: 'text', placeholder: 'Paste your token here...' }
+      attributes: { type: 'text', placeholder: 'Paste your token here...' },
     });
     inputGroup.appendChild(input);
     content.appendChild(inputGroup);
 
-    const btn = createElement('button', { 
-      className: 'smart-home-settings__btn smart-home-settings__btn--primary' 
+    const btn = createElement('button', {
+      className: 'smart-home-settings__btn smart-home-settings__btn--primary',
     });
     btn.textContent = t('ui.smarthomesettings.connectLifx');
     btn.addEventListener('click', async () => {
-      const token = (input).value.trim();
+      const token = input.value.trim();
       if (!token) {
         toast.warning(t('toasts.enterTokenFirst'));
         return;
@@ -1291,28 +1386,33 @@ function renderSonosSetup(container: HTMLElement): void {
   if (icon) iconDiv.appendChild(icon);
   content.appendChild(iconDiv);
 
-  content.appendChild(createElement('h4', { 
-    className: 'smart-home-settings__step-title', 
-    textContent: 'Sign in with Sonos' 
-  }));
+  content.appendChild(
+    createElement('h4', {
+      className: 'smart-home-settings__step-title',
+      textContent: 'Sign in with Sonos',
+    })
+  );
 
-  content.appendChild(createElement('p', { 
-    className: 'smart-home-settings__step-description',
-    textContent: "Connect your Sonos account to let me play music that matches your mood. I can set the vibe with just the right playlist."
-  }));
+  content.appendChild(
+    createElement('p', {
+      className: 'smart-home-settings__step-description',
+      textContent:
+        'Connect your Sonos account to let me play music that matches your mood. I can set the vibe with just the right playlist.',
+    })
+  );
 
-  const btn = createElement('button', { 
+  const btn = createElement('button', {
     className: 'smart-home-settings__btn smart-home-settings__btn--primary',
-    textContent: 'Connect with Sonos'
+    textContent: 'Connect with Sonos',
   });
   btn.addEventListener('click', async () => {
     await startSonosOAuth();
   });
   content.appendChild(btn);
 
-  const hint = createElement('p', { 
+  const hint = createElement('p', {
     className: 'smart-home-settings__hint',
-    textContent: "You'll be redirected to Sonos to sign in, then brought back here automatically."
+    textContent: "You'll be redirected to Sonos to sign in, then brought back here automatically.",
   });
   content.appendChild(hint);
 
@@ -1327,25 +1427,30 @@ function renderHomeKitSetup(container: HTMLElement): void {
   if (icon) iconDiv.appendChild(icon);
   content.appendChild(iconDiv);
 
-  content.appendChild(createElement('h4', { 
-    className: 'smart-home-settings__step-title', 
-    textContent: 'Connect via iOS app' 
-  }));
+  content.appendChild(
+    createElement('h4', {
+      className: 'smart-home-settings__step-title',
+      textContent: 'Connect via iOS app',
+    })
+  );
 
-  content.appendChild(createElement('p', { 
-    className: 'smart-home-settings__step-description',
-    textContent: "HomeKit connects through the Ferni iOS app. Open the app on your iPhone to link your Apple Home."
-  }));
+  content.appendChild(
+    createElement('p', {
+      className: 'smart-home-settings__step-description',
+      textContent:
+        'HomeKit connects through the Ferni iOS app. Open the app on your iPhone to link your Apple Home.',
+    })
+  );
 
   // Check if they have the iOS app
-  const checkBtn = createElement('button', { 
+  const checkBtn = createElement('button', {
     className: 'smart-home-settings__btn smart-home-settings__btn--primary',
-    textContent: 'Open Ferni iOS App'
+    textContent: 'Open Ferni iOS App',
   });
   checkBtn.addEventListener('click', () => {
     // Try to open the iOS app via deep link
     window.location.href = 'ferni://settings/homekit';
-    
+
     // Fallback to app store after a delay
     setTimeout(() => {
       toast.info("Don't have the app? Get it from the App Store!");
@@ -1353,23 +1458,26 @@ function renderHomeKitSetup(container: HTMLElement): void {
   });
   content.appendChild(checkBtn);
 
-  const hint = createElement('p', { 
+  const hint = createElement('p', {
     className: 'smart-home-settings__hint',
-    textContent: "Once connected, say \"Hey Siri, tell Ferni to set the vibe to relax\" and your whole home responds."
+    textContent:
+      'Once connected, say "Hey Siri, tell Ferni to set the vibe to relax" and your whole home responds.',
   });
   content.appendChild(hint);
 
   // Already connected button
-  const alreadyBtn = createElement('button', { 
+  const alreadyBtn = createElement('button', {
     className: 'smart-home-settings__btn smart-home-settings__btn--secondary',
-    textContent: "I've already connected"
+    textContent: "I've already connected",
   });
   alreadyBtn.style.marginTop = '12px';
   alreadyBtn.addEventListener('click', async () => {
     // Check if HomeKit is actually connected
     const userId = getUserId();
-    const status = await apiGet<IntegrationStatus['homeKit']>(`/api/smart-home/homekit/status?userId=${userId}`);
-    
+    const status = await apiGet<IntegrationStatus['homeKit']>(
+      `/api/smart-home/homekit/status?userId=${userId}`
+    );
+
     if (status.ok && status.data?.connected) {
       toast.success(t('toasts.homeKitConnected'));
       currentSetupFlow = null;
@@ -1383,7 +1491,11 @@ function renderHomeKitSetup(container: HTMLElement): void {
   container.appendChild(content);
 }
 
-function renderSuccessState(parentContainer: HTMLElement, name: string, _integration: string): void {
+function renderSuccessState(
+  parentContainer: HTMLElement,
+  name: string,
+  _integration: string
+): void {
   const success = createElement('div', { className: 'smart-home-settings__success' });
 
   const iconDiv = createElement('div', { className: 'smart-home-settings__success-icon' });
@@ -1391,18 +1503,23 @@ function renderSuccessState(parentContainer: HTMLElement, name: string, _integra
   if (icon) iconDiv.appendChild(icon);
   success.appendChild(iconDiv);
 
-  success.appendChild(createElement('h4', { 
-    className: 'smart-home-settings__success-title', 
-    textContent: `${name} connected!` 
-  }));
+  success.appendChild(
+    createElement('h4', {
+      className: 'smart-home-settings__success-title',
+      textContent: `${name} connected!`,
+    })
+  );
 
-  success.appendChild(createElement('p', { 
-    className: 'smart-home-settings__success-message',
-    textContent: "You're all set! Just ask me to set the mood—\"dim the lights\" or \"make it cozy\"—and I'll take care of it."
-  }));
+  success.appendChild(
+    createElement('p', {
+      className: 'smart-home-settings__success-message',
+      textContent:
+        'You\'re all set! Just ask me to set the mood—"dim the lights" or "make it cozy"—and I\'ll take care of it.',
+    })
+  );
 
-  const btn = createElement('button', { 
-    className: 'smart-home-settings__btn smart-home-settings__btn--primary' 
+  const btn = createElement('button', {
+    className: 'smart-home-settings__btn smart-home-settings__btn--primary',
   });
   const sparklesIcon = createIcon('sparkles');
   if (sparklesIcon) btn.appendChild(sparklesIcon);
@@ -1426,9 +1543,11 @@ async function connectEcobee(_apiKey: string): Promise<void> {
 
   try {
     const userId = getUserId();
-    
+
     // Start the Ecobee link flow (gets PIN)
-    const response = await apiPost<{ pin: string; expiresIn: number }>('/api/ecobee/link/start', { userId });
+    const response = await apiPost<{ pin: string; expiresIn: number }>('/api/ecobee/link/start', {
+      userId,
+    });
 
     if (!response.ok || !response.data?.pin) {
       throw new Error(response.error || 'Failed to get PIN');
@@ -1436,14 +1555,16 @@ async function connectEcobee(_apiKey: string): Promise<void> {
 
     // Show PIN to user
     toast.info(t('toasts.yourPinResponsedatapin'));
-    
+
     // Open Ecobee authorization page
     window.open('https://www.ecobee.com/consumerportal/index.html#/my-apps/add/new', '_blank');
 
     // Poll for completion
     const checkInterval = setInterval(async () => {
-      const statusRes = await apiGet<{ authorized: boolean }>('/api/ecobee/link/status', { userId });
-      
+      const statusRes = await apiGet<{ authorized: boolean }>('/api/ecobee/link/status', {
+        userId,
+      });
+
       if (statusRes.ok && statusRes.data?.authorized) {
         clearInterval(checkInterval);
         toast.success(t('toasts.ecobeeConnected'));
@@ -1460,7 +1581,6 @@ async function connectEcobee(_apiKey: string): Promise<void> {
 
     isLoading = false;
     renderEcobeeWaitingState();
-
   } catch (error) {
     toast.error("Couldn't connect to Ecobee. Try again?");
     setupStep = 1;
@@ -1476,30 +1596,34 @@ function renderEcobeeWaitingState(): void {
   while (content.firstChild) content.removeChild(content.firstChild);
 
   const waiting = createElement('div', { className: 'smart-home-settings__step-content' });
-  
+
   const iconDiv = createElement('div', { className: 'smart-home-settings__step-icon' });
   const icon = createIcon('thermometer');
   if (icon) iconDiv.appendChild(icon);
   waiting.appendChild(iconDiv);
 
-  waiting.appendChild(createElement('h4', { 
-    className: 'smart-home-settings__step-title', 
-    textContent: 'Waiting for authorization...' 
-  }));
+  waiting.appendChild(
+    createElement('h4', {
+      className: 'smart-home-settings__step-title',
+      textContent: 'Waiting for authorization...',
+    })
+  );
 
-  waiting.appendChild(createElement('p', { 
-    className: 'smart-home-settings__step-description',
-    textContent: "Enter the PIN on ecobee.com, then come back here. I'll know when you're done!"
-  }));
+  waiting.appendChild(
+    createElement('p', {
+      className: 'smart-home-settings__step-description',
+      textContent: "Enter the PIN on ecobee.com, then come back here. I'll know when you're done!",
+    })
+  );
 
-  const hint = createElement('p', { 
+  const hint = createElement('p', {
     className: 'smart-home-settings__hint',
-    textContent: "Tip: Look for 'My Apps' → 'Add Application' on ecobee.com"
+    textContent: "Tip: Look for 'My Apps' → 'Add Application' on ecobee.com",
   });
   waiting.appendChild(hint);
 
-  const cancelBtn = createElement('button', { 
-    className: 'smart-home-settings__btn smart-home-settings__btn--secondary' 
+  const cancelBtn = createElement('button', {
+    className: 'smart-home-settings__btn smart-home-settings__btn--secondary',
   });
   cancelBtn.textContent = t('ui.smarthomesettings.cancel');
   cancelBtn.addEventListener('click', () => {
@@ -1525,11 +1649,14 @@ async function pairHueBridge(): Promise<void> {
       throw new Error('Failed to communicate with bridge');
     }
 
-    const result = await response.json() as Array<{ success?: { username: string }; error?: { description: string } }>;
+    const result = (await response.json()) as Array<{
+      success?: { username: string };
+      error?: { description: string };
+    }>;
 
     if (result[0]?.success?.username) {
       hueUsername = result[0].success.username;
-      
+
       // Save to backend
       const userId = getUserId();
       await apiPost('/api/smart-home/hue/save', {
@@ -1542,7 +1669,6 @@ async function pairHueBridge(): Promise<void> {
       callbacks.onConnected?.('hue');
       setupStep = 2;
       renderSetupStep();
-
     } else if (result[0]?.error) {
       if (result[0].error.description.includes('link button')) {
         toast.warning(t('toasts.pressLinkButton'));
@@ -1552,7 +1678,6 @@ async function pairHueBridge(): Promise<void> {
       setupStep = 1;
       renderSetupStep();
     }
-
   } catch {
     toast.error("Couldn't connect to bridge. Try again.");
     setupStep = 1;
@@ -1576,8 +1701,8 @@ async function connectLifx(token: string): Promise<void> {
       throw new Error('Invalid token');
     }
 
-    const lights = await testResponse.json() as Array<{ label: string }>;
-    
+    const lights = (await testResponse.json()) as Array<{ label: string }>;
+
     // Save to backend
     const userId = getUserId();
     await apiPost('/api/smart-home/lifx/save', {
@@ -1589,7 +1714,6 @@ async function connectLifx(token: string): Promise<void> {
     callbacks.onConnected?.('lifx');
     currentSetupFlow = null;
     loadAndRenderStatus();
-
   } catch {
     toast.error(t('toasts.invalidTokenCheckAndTryAgain'));
     setupStep = 1;
@@ -1601,11 +1725,13 @@ async function connectLifx(token: string): Promise<void> {
 
 async function startSonosOAuth(): Promise<void> {
   const userId = getUserId();
-  
+
   try {
     // Get OAuth URL from backend
-    const response = await apiPost<{ authUrl: string }>('/api/smart-home/sonos/auth-url', { userId });
-    
+    const response = await apiPost<{ authUrl: string }>('/api/smart-home/sonos/auth-url', {
+      userId,
+    });
+
     if (response.ok && response.data?.authUrl) {
       sonosAuthPending = true;
       // Redirect to Sonos OAuth
@@ -1624,14 +1750,14 @@ async function disconnectIntegration(integration: string): Promise<void> {
 
   try {
     const userId = getUserId();
-    
+
     // Ecobee uses a different route
     if (integration === 'ecobee') {
       await apiDelete(`/api/ecobee/disconnect?userId=${userId}`);
     } else {
       await apiDelete(`/api/smart-home/${integration}/disconnect?userId=${userId}`);
     }
-    
+
     toast.success(t('toasts.disconnected'));
     callbacks.onDisconnected?.(integration);
     loadAndRenderStatus();
@@ -1657,13 +1783,26 @@ async function loadAndRenderStatus(): Promise<void> {
   isLoading = true;
   renderLoadingState();
 
+  // Failsafe timeout - never spin for more than 15 seconds total
+  const timeout = new Promise<IntegrationStatus>((resolve) => {
+    setTimeout(() => {
+      resolve({
+        ecobee: { connected: false },
+        hue: { connected: false },
+        lifx: { connected: false },
+        sonos: { connected: false },
+        homeKit: { connected: false },
+      });
+    }, 15000);
+  });
+
   try {
-    const status = await fetchStatus();
+    const status = await Promise.race([fetchStatus(), timeout]);
     renderMainView(status);
   } catch {
-    renderMainView({ 
-      ecobee: { connected: false }, 
-      hue: { connected: false }, 
+    renderMainView({
+      ecobee: { connected: false },
+      hue: { connected: false },
       lifx: { connected: false },
       sonos: { connected: false },
       homeKit: { connected: false },
@@ -1679,7 +1818,7 @@ async function loadAndRenderStatus(): Promise<void> {
 
 export async function showSmartHomeSettings(cbs?: SmartHomeCallbacks): Promise<void> {
   if (container) return;
-  
+
   callbacks = cbs || {};
   injectStyles();
 
@@ -1765,7 +1904,7 @@ export function hideSmartHomeSettings(): void {
 export function initSmartHomeSettings(): void {
   // Check for OAuth callback on page load
   const oauthResult = checkSonosOAuthReturn();
-  
+
   if (oauthResult) {
     // User is returning from OAuth flow
     void showSmartHomeSettings().then(() => {
@@ -1780,7 +1919,7 @@ export function initSmartHomeSettings(): void {
     });
     return;
   }
-  
+
   // Legacy check for other smart_home params
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.has('smart_home')) {

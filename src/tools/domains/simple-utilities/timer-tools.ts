@@ -12,7 +12,6 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import {
   recordUsage,
-  generateInsight,
   getTimerFollowUp,
   getUserPatterns,
 } from './pattern-intelligence.js';
@@ -67,14 +66,21 @@ const setTimerDef: ToolDefinition = {
           activeTimers.delete(userId);
 
           // Trigger voice callback - actually speaks to user!
-          void onTimerComplete(userId, timerLabel, minutes + seconds / 60).then(() => {
-            // Get personalized follow-up message for logging
-            const followUpMsg = getTimerFollowUp(userId);
-            getLogger().info(
-              { userId, label: timerLabel, followUp: followUpMsg },
-              '⏰ Timer finished!'
-            );
-          });
+          void onTimerComplete(userId, timerLabel, minutes + seconds / 60)
+            .then(() => {
+              // Get personalized follow-up message for logging
+              const followUpMsg = getTimerFollowUp(userId);
+              getLogger().info(
+                { userId, label: timerLabel, followUp: followUpMsg },
+                '⏰ Timer finished!'
+              );
+            })
+            .catch((err) => {
+              getLogger().warn(
+                { error: String(err), userId, label: timerLabel },
+                '⏰ Timer completion callback failed'
+              );
+            });
         }, totalMs);
 
         // Persist timer preference for cross-session learning

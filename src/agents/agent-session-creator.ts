@@ -13,6 +13,7 @@
 
 import type { PersonaConfig } from '../personas/types.js';
 import type { BundleRuntimeEngine } from '../personas/bundles/runtime.js';
+import type { EnglishAccent } from '../config/voice-accents.js';
 
 // ============================================================================
 // TYPES
@@ -182,7 +183,7 @@ export async function localizeVoice(
 
     const localizationResult = await getLocalizedVoiceId(
       config.personaId,
-      config.userAccent as any
+      config.userAccent as EnglishAccent
     );
     process.stderr.write(
       `[agent-session-creator] 🌍 Voice localized: ${config.userAccent} (cached: ${localizationResult.cached})\n`

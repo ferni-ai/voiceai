@@ -315,9 +315,8 @@ const backgroundFollowUpDef: ToolDefinition = {
         log.info({ userId, recipientName, channel }, 'Queueing background follow-up');
 
         try {
-          const { queueFollowup } = await import(
-            '../../../services/background-agents/executors/followup-executor.js'
-          );
+          const { queueFollowup } =
+            await import('../../../services/background-agents/executors/followup-executor.js');
 
           const taskId = await queueFollowup({
             userId,

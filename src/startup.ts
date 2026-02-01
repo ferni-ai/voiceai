@@ -162,9 +162,8 @@ export async function startup(): Promise<AppConfig> {
   logger.info('Initializing Redis Pub/Sub...');
   const pubsubStart = Date.now();
   try {
-    const { initializeRedisPubSub, subscribeToCacheInvalidation } = await import(
-      './services/redis-pubsub.js'
-    );
+    const { initializeRedisPubSub, subscribeToCacheInvalidation } =
+      await import('./services/redis-pubsub.js');
     const pubsubReady = await initializeRedisPubSub();
     if (pubsubReady) {
       // Subscribe to cache invalidation events
@@ -242,7 +241,8 @@ export async function startup(): Promise<AppConfig> {
 
   // Start scheduled actions worker (for workflow routine reminders)
   try {
-    const { startScheduledActionsWorker } = await import('./services/workflows/scheduled-actions.js');
+    const { startScheduledActionsWorker } =
+      await import('./services/workflows/scheduled-actions.js');
     await startScheduledActionsWorker();
     logger.info('📅 Scheduled actions worker started');
   } catch (error) {
@@ -251,7 +251,8 @@ export async function startup(): Promise<AppConfig> {
 
   // Start calendar trigger worker (for calendar-based workflow triggers)
   try {
-    const { startCalendarTriggerWorker } = await import('./services/workflows/calendar-trigger-worker.js');
+    const { startCalendarTriggerWorker } =
+      await import('./services/workflows/calendar-trigger-worker.js');
     startCalendarTriggerWorker();
     logger.info('📅 Calendar trigger worker started');
   } catch (error) {
@@ -260,9 +261,8 @@ export async function startup(): Promise<AppConfig> {
 
   // Start scheduled outreach executor (for multiOutreach scheduled messages)
   try {
-    const { startScheduledOutreachExecutor } = await import(
-      './services/outreach/scheduled-outreach-executor.js'
-    );
+    const { startScheduledOutreachExecutor } =
+      await import('./services/outreach/scheduled-outreach-executor.js');
     startScheduledOutreachExecutor({ pollIntervalMs: 60000 }); // Check every minute
     logger.info('✓ Scheduled outreach executor running');
   } catch (err) {
@@ -411,10 +411,7 @@ export async function startup(): Promise<AppConfig> {
       // This ensures stale data is cleaned up after restarts
       import('./services/data-layer/ttl-cleanup.js').then(async ({ runTTLCleanup }) => {
         const result = await runTTLCleanup({ dryRun: false });
-        logger.debug(
-          { deletedCount: result.totalDeleted },
-          '✓ TTL cleanup completed (deferred)'
-        );
+        logger.debug({ deletedCount: result.totalDeleted }, '✓ TTL cleanup completed (deferred)');
         return 'ttl_cleanup';
       }),
     ]);
@@ -488,7 +485,8 @@ export async function shutdown(): Promise<void> {
 
     // Stop scheduled actions worker
     try {
-      const { stopScheduledActionsWorker } = await import('./services/workflows/scheduled-actions.js');
+      const { stopScheduledActionsWorker } =
+        await import('./services/workflows/scheduled-actions.js');
       stopScheduledActionsWorker();
     } catch {
       // Ignore if not running
@@ -496,7 +494,8 @@ export async function shutdown(): Promise<void> {
 
     // Stop calendar trigger worker
     try {
-      const { stopCalendarTriggerWorker } = await import('./services/workflows/calendar-trigger-worker.js');
+      const { stopCalendarTriggerWorker } =
+        await import('./services/workflows/calendar-trigger-worker.js');
       stopCalendarTriggerWorker();
     } catch {
       // Ignore if not running

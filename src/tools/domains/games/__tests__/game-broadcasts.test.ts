@@ -120,7 +120,12 @@ describe('Game Tools Integration', () => {
     });
 
     it('should include text game tools', () => {
-      const textGameTools = ['startTextGame', 'makeTextGameMove', 'endTextGame', 'getTextGameBoard'];
+      const textGameTools = [
+        'startTextGame',
+        'makeTextGameMove',
+        'endTextGame',
+        'getTextGameBoard',
+      ];
       textGameTools.forEach((toolId) => {
         const tool = tools.find((t) => t.id === toolId);
         expect(tool, `Tool ${toolId} should exist`).toBeDefined();
@@ -136,7 +141,13 @@ describe('Game Tools Integration', () => {
     });
 
     it('should include helper tools', () => {
-      const helperTools = ['getGameHint', 'skipGameRound', 'getGameStatus', 'getGameHistory', 'suggestGame'];
+      const helperTools = [
+        'getGameHint',
+        'skipGameRound',
+        'getGameStatus',
+        'getGameHistory',
+        'suggestGame',
+      ];
       helperTools.forEach((toolId) => {
         const tool = tools.find((t) => t.id === toolId);
         expect(tool, `Tool ${toolId} should exist`).toBeDefined();
@@ -286,7 +297,7 @@ describe('Game Tools Integration', () => {
       // Without starting a game first
       const result = await tool.execute({ answer: 'test' });
       expect(typeof result).toBe('string');
-      expect(result).toContain("not playing");
+      expect(result).toContain('not playing');
     });
 
     it('should return helpful message for endGame when no game active', async () => {
@@ -295,7 +306,7 @@ describe('Game Tools Integration', () => {
 
       const result = await tool.execute({});
       expect(typeof result).toBe('string');
-      expect(result).toContain("not playing");
+      expect(result).toContain('not playing');
     });
   });
 });

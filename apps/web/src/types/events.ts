@@ -836,6 +836,25 @@ export function isConversationEndMessage(data: unknown): data is ConversationEnd
 }
 
 // ============================================================================
+// ENGAGEMENT DATA EVENTS (streaks, predictions, conversation stats)
+// ============================================================================
+
+/**
+ * Event containing engagement data from the voice agent.
+ * Includes streaks, total conversations, and predictions.
+ */
+export interface EngagementDataEvent {
+  readonly type: 'engagement_data';
+  /** User's current conversation streak */
+  readonly streak?: number;
+  /** Total conversations the user has had */
+  readonly totalConversations?: number;
+  /** Predictions from the predictive intelligence system */
+  readonly predictions?: unknown[];
+  readonly timestamp?: number;
+}
+
+// ============================================================================
 // AGGREGATED EVENT TYPES
 // ============================================================================
 
@@ -854,6 +873,7 @@ export type AppEvent =
   | ExpressionEvent
   | EngagementEvent
   | EngagementTriggerEvent
+  | EngagementDataEvent
   | WrapUpEvent;
 
 /**

@@ -68,9 +68,8 @@ async function execute(
 
     try {
       // Check if voice synthesis is available
-      const { isVoiceSynthesisAvailable, generateVoiceMessage } = await import(
-        '../../../services/outreach/voice-synthesis.js'
-      );
+      const { isVoiceSynthesisAvailable, generateVoiceMessage } =
+        await import('../../../services/outreach/voice-synthesis.js');
 
       if (!isVoiceSynthesisAvailable()) {
         log.warn('Voice synthesis not configured');
@@ -78,9 +77,8 @@ async function execute(
       }
 
       // Find the contact
-      const { searchContacts } = await import(
-        '../../../services/contacts/contact-relationship-service.js'
-      );
+      const { searchContacts } =
+        await import('../../../services/contacts/contact-relationship-service.js');
       const matches = await searchContacts(ctx.userId, contactName);
 
       if (matches.length === 0) {
@@ -172,9 +170,8 @@ async function execute(
 
     try {
       // Find the contact
-      const { searchContacts } = await import(
-        '../../../services/contacts/contact-relationship-service.js'
-      );
+      const { searchContacts } =
+        await import('../../../services/contacts/contact-relationship-service.js');
       const matches = await searchContacts(ctx.userId, contactName);
 
       if (matches.length === 0) {
@@ -254,9 +251,8 @@ async function execute(
 
     try {
       // Find the contact
-      const { searchContacts } = await import(
-        '../../../services/contacts/contact-relationship-service.js'
-      );
+      const { searchContacts } =
+        await import('../../../services/contacts/contact-relationship-service.js');
       const matches = await searchContacts(ctx.userId, contactName);
 
       if (matches.length === 0) {
@@ -311,9 +307,8 @@ async function execute(
     log.info({ situation, tone }, '✍️ Draft message requested');
 
     try {
-      const { createCommunicationCoachingTools } = await import(
-        '../../../tools/domains/communication/communication-coaching.js'
-      );
+      const { createCommunicationCoachingTools } =
+        await import('../../../tools/domains/communication/communication-coaching.js');
       const tools = createCommunicationCoachingTools();
 
       // Use the draft difficult message tool
@@ -355,9 +350,8 @@ async function execute(
     log.info({ messageLength: message.length }, '🔍 Analyze message requested');
 
     try {
-      const { createCommunicationCoachingTools } = await import(
-        '../../../tools/domains/communication/communication-coaching.js'
-      );
+      const { createCommunicationCoachingTools } =
+        await import('../../../tools/domains/communication/communication-coaching.js');
       const tools = createCommunicationCoachingTools();
 
       // Use the review message tool

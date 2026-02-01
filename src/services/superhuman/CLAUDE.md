@@ -34,16 +34,19 @@ Superhuman isn't about artificial intelligence - it's about leveraging technolog
 | **Relationship Milestones** | `relationship-milestones.ts` | Forgets anniversaries |
 | **Seasonal Awareness** | `seasonal-awareness.ts` | Doesn't track cycles |
 
-### Extended Capabilities (45 total services)
+### Extended Capabilities (70+ files across 3 subdirectories)
 
-| Category | Services | Purpose |
-|----------|----------|---------|
+| Category | Key Services | Purpose |
+|----------|-------------|---------|
 | **Planning** | `anticipatory-planning.ts`, `planning-coordination.ts` | Proactive preparation |
-| **Events** | `event-pattern-memory.ts`, `event-story-capture.ts` | Life event tracking |
-| **Emotional** | `emotional-vocabulary.ts`, `energy-wave-mapping.ts` | Deep emotional support |
-| **Social** | `guest-intelligence.ts`, `conflict-resolution-memory.ts` | Relationship intelligence |
-| **Integration** | `commitment-calendar-integration.ts` | Cross-system coordination |
-| **Celebration** | `celebration-balance.ts`, `micro-celebrations.ts` | Joy amplification |
+| **Events** | `event-pattern-memory.ts`, `event-story-capture.ts`, `post-event-learning.ts` | Life event tracking |
+| **Emotional** | `emotional-vocabulary.ts`, `energy-wave-mapping.ts`, `voice-biomarkers.ts` | Deep emotional support |
+| **Social** | `guest-intelligence.ts`, `conflict-resolution-memory.ts`, `social-battery.ts` | Relationship intelligence |
+| **Integration** | `commitment-calendar-integration.ts`, `calendar-prep-coaching.ts` | Cross-system coordination |
+| **Celebration** | `celebration-balance.ts`, `milestone-calendar-coordinator.ts` | Joy amplification |
+| **Intelligence** | `semantic-intelligence/`, `insight-generation/` | Deep semantic analysis |
+| **Habits** | `habit-economics.ts`, `habit-optimization-engine.ts`, `biometric-habit-intelligence.ts` | Habit intelligence |
+| **Life Modeling** | `life-trajectory-engine.ts`, `future-self.ts`, `developmental-stage-awareness.ts` | Life trajectory |
 
 ---
 
@@ -55,8 +58,11 @@ src/services/superhuman/
 ├── types.ts                         # Shared type definitions
 ├── firestore-utils.ts               # Persistence helpers
 ├── README.md                        # Detailed service documentation
+├── health-check.ts                  # Superhuman service health checks
 │
+├── # Core 10 Services
 ├── commitment-keeper.ts             # Promise tracking
+├── commitment-keeper-e2e.ts         # E2E validation for commitments
 ├── predictive-coaching.ts           # Pattern recognition
 ├── life-narrative.ts                # Story threading
 ├── values-alignment.ts              # Values detection
@@ -67,7 +73,96 @@ src/services/superhuman/
 ├── relationship-milestones.ts       # Anniversary tracking
 ├── seasonal-awareness.ts            # Cyclical patterns
 │
-└── [35+ additional service files]
+├── # Extended Services (55+ files)
+├── anticipatory-planning.ts         # Proactive preparation
+├── biometric-habit-intelligence.ts  # Biometric-informed habits
+├── calendar-prep-coaching.ts        # Calendar-aware coaching
+├── causal-inference-engine.ts       # Causal reasoning
+├── celebration-balance.ts           # Joy amplification
+├── commitment-calendar-integration.ts # Cross-system coordination
+├── communication-intelligence-engine.ts # Communication patterns
+├── compound-effects.ts              # Compound growth tracking
+├── conflict-resolution-memory.ts    # Conflict pattern memory
+├── contemplative-intelligence.ts    # Reflective insights
+├── contradiction-comfort.ts         # Holding contradictions
+├── cross-domain-synthesis.ts        # Cross-domain pattern synthesis
+├── developmental-stage-awareness.ts # Life stage awareness
+├── emotional-vocabulary.ts          # Emotional language support
+├── energy-wave-mapping.ts           # Energy pattern mapping
+├── event-intelligence-services.ts   # Event pattern analysis
+├── event-pattern-memory.ts          # Event memory
+├── event-story-capture.ts           # Event storytelling
+├── financial-pattern-intelligence.ts # Financial patterns
+├── future-self.ts                   # Future self visualization
+├── guest-intelligence.ts            # Guest/social intelligence
+├── habit-economics.ts               # Habit cost-benefit analysis
+├── habit-intelligence-services.ts   # Habit pattern services
+├── habit-optimization-engine.ts     # Habit optimization
+├── inside-joke-memory.ts            # Inside joke tracking
+├── life-trajectory-engine.ts        # Life trajectory modeling
+├── life-trajectory-simulator.ts     # Life trajectory simulation
+├── milestone-calendar-coordinator.ts # Milestone scheduling
+├── mood-calendar.ts                 # Mood-calendar correlation
+├── n1-experimentation-platform.ts   # N=1 experimentation
+├── observations.ts                  # User observation tracking
+├── orchestration-intelligence.ts    # Service orchestration
+├── pattern-analytics-services.ts    # Pattern analytics
+├── pattern-mirror.ts                # Pattern mirroring
+├── perfect-timing.ts                # Optimal timing detection
+├── persona-affinity.ts              # Persona affinity tracking
+├── planning-coordination.ts         # Planning coordination
+├── post-event-learning.ts           # Post-event learning
+├── proactive-insight-generator.ts   # Proactive insight generation
+├── proactive-milestone-detector.ts  # Milestone detection
+├── protective-silence.ts            # Protective silence timing
+├── recovery-tracking.ts             # Recovery pattern tracking
+├── relationship-health.ts           # Relationship health scoring
+├── seasonal-planning-intelligence.ts # Season-aware planning
+├── silence-interpreter.ts           # Silence interpretation
+├── social-battery.ts                # Social energy tracking
+├── unified-user-knowledge.ts        # Unified user knowledge
+├── user-corrections.ts              # User correction handling
+├── voice-biomarkers.ts              # Voice biomarker analysis
+├── wisdom-intelligence-services.ts  # Wisdom generation
+│
+├── # Subdirectories
+├── insight-generation/              # Automated insight generation
+│   ├── index.ts
+│   ├── engine.ts                    # Insight generation engine
+│   ├── types.ts                     # Insight types
+│   └── generators/                  # Domain-specific generators
+├── relational-memory/               # Relational memory subsystem
+│   ├── index.ts
+│   ├── engine.ts                    # Relational memory engine
+│   ├── types.ts                     # Relational types
+│   └── __tests__/
+├── semantic-intelligence/           # Semantic analysis (24 files)
+│   ├── index.ts
+│   ├── types.ts
+│   ├── integration.ts
+│   ├── README.md
+│   ├── advice-detector.ts           # Advice pattern detection
+│   ├── advice-matcher.ts            # Advice matching
+│   ├── behavioral-intelligence.ts   # Behavioral analysis
+│   ├── coaching-intelligence.ts     # Coaching pattern detection
+│   ├── correlation-mining.ts        # Cross-domain correlations
+│   ├── counterfactual-memory.ts     # "What if" reasoning
+│   ├── cross-session-threading.ts   # Cross-session threads
+│   ├── emotional-semantics.ts       # Emotional semantic analysis
+│   ├── emotional-trajectories.ts    # Emotional trajectory tracking
+│   ├── ferni-commitments.ts         # Ferni's own commitments
+│   ├── growth-fingerprint.ts        # Growth pattern fingerprint
+│   ├── insight-broker.ts            # Insight brokering
+│   ├── llm-detector.ts              # LLM-based detection
+│   ├── open-loops.ts                # Open loop tracking
+│   ├── person-extractor.ts          # Person extraction from text
+│   ├── relational-semantics.ts      # Relationship semantic analysis
+│   ├── relationship-graph.ts        # Relationship graph building
+│   ├── self-awareness.ts            # Self-awareness detection
+│   ├── temporal-patterns.ts         # Temporal pattern analysis
+│   └── __tests__/
+│
+└── __tests__/                       # Superhuman service tests
 ```
 
 ---

@@ -261,10 +261,7 @@ function getSourceDate(
 /**
  * Backfill a single collection with TTL fields
  */
-async function backfillCollection(
-  config: BackfillConfig,
-  dryRun: boolean
-): Promise<BackfillStats> {
+async function backfillCollection(config: BackfillConfig, dryRun: boolean): Promise<BackfillStats> {
   const startTime = Date.now();
   const stats: BackfillStats = {
     collection: config.collection,
@@ -353,16 +350,10 @@ async function backfillCollection(
         try {
           await batch.commit();
           stats.updated += batchCount;
-          log.debug(
-            { collection: config.collection, updated: batchCount },
-            'Batch updated'
-          );
+          log.debug({ collection: config.collection, updated: batchCount }, 'Batch updated');
         } catch (error) {
           stats.errors += batchCount;
-          log.error(
-            { error: String(error), collection: config.collection },
-            'Batch update failed'
-          );
+          log.error({ error: String(error), collection: config.collection }, 'Batch update failed');
         }
       }
 
@@ -472,13 +463,15 @@ async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
   const collectionIndex = args.indexOf('--collection');
-  const collection =
-    collectionIndex !== -1 ? args[collectionIndex + 1] : undefined;
+  const collection = collectionIndex !== -1 ? args[collectionIndex + 1] : undefined;
 
   log.info('═══════════════════════════════════════════════════════════════');
   log.info('                     TTL BACKFILL MIGRATION                    ');
   log.info('═══════════════════════════════════════════════════════════════');
-  log.info({ dryRun, collection }, `Mode: ${dryRun ? 'DRY RUN (no changes)' : 'LIVE (will update documents)'}`);
+  log.info(
+    { dryRun, collection },
+    `Mode: ${dryRun ? 'DRY RUN (no changes)' : 'LIVE (will update documents)'}`
+  );
   log.info('═══════════════════════════════════════════════════════════════');
 
   try {
@@ -490,13 +483,22 @@ async function main() {
     log.info({ success: result.success }, `Status: ${result.success ? 'SUCCESS' : 'FAILED'}`);
     log.info({ dryRun: result.dryRun }, `Mode: ${result.dryRun ? 'DRY RUN' : 'LIVE'}`);
     log.info({ totalUpdated: result.totalUpdated }, `Total Updated: ${result.totalUpdated}`);
-    log.info({ totalSkipped: result.totalSkipped }, `Total Skipped (already had TTL): ${result.totalSkipped}`);
+    log.info(
+      { totalSkipped: result.totalSkipped },
+      `Total Skipped (already had TTL): ${result.totalSkipped}`
+    );
     log.info({ totalErrors: result.totalErrors }, `Total Errors: ${result.totalErrors}`);
     log.info({ durationMs: result.durationMs }, `Duration: ${result.durationMs}ms`);
     log.info('Per-Collection Stats:');
     for (const stat of result.stats) {
       log.info(
-        { collection: stat.collection, scanned: stat.scanned, updated: stat.updated, skipped: stat.skipped, errors: stat.errors },
+        {
+          collection: stat.collection,
+          scanned: stat.scanned,
+          updated: stat.updated,
+          skipped: stat.skipped,
+          errors: stat.errors,
+        },
         `  ${stat.collection}: scanned=${stat.scanned}, updated=${stat.updated}, skipped=${stat.skipped}, errors=${stat.errors}`
       );
     }

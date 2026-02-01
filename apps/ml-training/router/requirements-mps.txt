@@ -1,0 +1,29 @@
+# Requirements for Apple Silicon MPS training
+# Install: pip install -r requirements-mps.txt
+
+# PyTorch with MPS support
+torch>=2.2.0
+
+# Transformers & PEFT
+transformers>=4.40.0
+peft>=0.10.0
+accelerate>=0.28.0
+
+# Data processing
+datasets>=2.18.0
+sentencepiece>=0.2.0
+
+# Metrics
+scikit-learn>=1.4.0
+
+# ONNX export
+onnx>=1.15.0
+onnxruntime>=1.17.0
+optimum>=1.18.0
+
+# Logging
+tensorboard>=2.16.0
+
+# Misc
+numpy>=1.24.0
+tqdm>=4.66.0

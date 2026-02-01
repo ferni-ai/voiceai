@@ -239,9 +239,7 @@ export async function createThinkingOfYouContext(params: {
  * Get pending shareable contexts for a user.
  * Returns contexts that haven't been delivered yet.
  */
-export async function getPendingContexts(
-  userId: string
-): Promise<ShareableContext[]> {
+export async function getPendingContexts(userId: string): Promise<ShareableContext[]> {
   const db = getFirestore();
   if (!db) return [];
 
@@ -309,9 +307,7 @@ export async function getEmotionalStateSummary(
 // HELPERS
 // ============================================================================
 
-function docToContext(
-  doc: FirebaseFirestore.DocumentSnapshot
-): ShareableContext {
+function docToContext(doc: FirebaseFirestore.DocumentSnapshot): ShareableContext {
   const data = doc.data()!;
   return {
     id: doc.id,
@@ -370,10 +366,7 @@ export async function cleanupExpiredContexts(): Promise<number> {
   const now = new Date();
 
   try {
-    const snapshot = await db
-      .collection(COLLECTION_NAME)
-      .where('expiresAt', '<', now)
-      .get();
+    const snapshot = await db.collection(COLLECTION_NAME).where('expiresAt', '<', now).get();
 
     if (snapshot.empty) return 0;
 

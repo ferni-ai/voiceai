@@ -58,10 +58,7 @@ import {
   type TranscriptMessage,
 } from '../family-checkin-summary.js';
 
-import type {
-  FamilyCheckinSchedule,
-  CheckinCallRecord,
-} from '../proactive-family-checkin.js';
+import type { FamilyCheckinSchedule, CheckinCallRecord } from '../proactive-family-checkin.js';
 
 // ============================================================================
 // SUMMARY ANALYSIS TESTS
@@ -72,9 +69,16 @@ describe('Family Check-in Summary', () => {
     it('should detect happy mood from positive transcript', async () => {
       const transcript: TranscriptMessage[] = [
         { role: 'ferni', content: 'Good morning! How are you doing today?' },
-        { role: 'family_member', content: "I'm doing great! Had a wonderful time at the garden club." },
+        {
+          role: 'family_member',
+          content: "I'm doing great! Had a wonderful time at the garden club.",
+        },
         { role: 'ferni', content: 'That sounds lovely! Tell me more about it.' },
-        { role: 'family_member', content: 'Oh it was fantastic! We planted some beautiful roses and I won the flower arrangement contest!' },
+        {
+          role: 'family_member',
+          content:
+            'Oh it was fantastic! We planted some beautiful roses and I won the flower arrangement contest!',
+        },
       ];
 
       const result = await analyzeCheckinCall(transcript, 'Mom', 'Seth', 'mother');
@@ -103,8 +107,11 @@ describe('Family Check-in Summary', () => {
     it('should detect worried mood and flag concerns', async () => {
       const transcript: TranscriptMessage[] = [
         { role: 'ferni', content: 'Hello! How are things going?' },
-        { role: 'family_member', content: "I'm worried about my health. I've been feeling dizzy lately." },
-        { role: 'ferni', content: "That sounds concerning. Have you seen a doctor?" },
+        {
+          role: 'family_member',
+          content: "I'm worried about my health. I've been feeling dizzy lately.",
+        },
+        { role: 'ferni', content: 'That sounds concerning. Have you seen a doctor?' },
         { role: 'family_member', content: "Not yet, but I probably should. I'm a bit scared." },
       ];
 
@@ -126,7 +133,7 @@ describe('Family Check-in Summary', () => {
       const result = await analyzeCheckinCall(transcript, 'Mom', 'Seth', 'mother');
 
       expect(result.concerns.length).toBeGreaterThan(0);
-      const fallConcern = result.concerns.find(c => c.description.toLowerCase().includes('fall'));
+      const fallConcern = result.concerns.find((c) => c.description.toLowerCase().includes('fall'));
       expect(fallConcern).toBeDefined();
       expect(fallConcern?.urgency).toBe('high');
     });
@@ -134,15 +141,16 @@ describe('Family Check-in Summary', () => {
     it('should extract topics from conversation', async () => {
       const transcript: TranscriptMessage[] = [
         { role: 'ferni', content: 'What have you been up to?' },
-        { role: 'family_member', content: 'I went to church on Sunday and cooked a nice dinner. Then watched some TV.' },
+        {
+          role: 'family_member',
+          content: 'I went to church on Sunday and cooked a nice dinner. Then watched some TV.',
+        },
       ];
 
       const result = await analyzeCheckinCall(transcript, 'Mom', 'Seth', 'mother');
 
       expect(result.topics.length).toBeGreaterThan(0);
-      expect(result.topics).toEqual(
-        expect.arrayContaining(['Church', 'Cooking', 'TV/Movies'])
-      );
+      expect(result.topics).toEqual(expect.arrayContaining(['Church', 'Cooking', 'TV/Movies']));
     });
 
     it('should return content or neutral mood for sparse conversation', async () => {
@@ -242,9 +250,8 @@ describe('Family Check-in Summary', () => {
 
 describe('Family Wellbeing Context Builder', () => {
   it('should be importable', async () => {
-    const { buildFamilyCheckinContext, generateFamilyCheckinSystemPrompt } = await import(
-      '../../../intelligence/context-builders/family/family-wellbeing-context.js'
-    );
+    const { buildFamilyCheckinContext, generateFamilyCheckinSystemPrompt } =
+      await import('../../../intelligence/context-builders/family/family-wellbeing-context.js');
 
     expect(buildFamilyCheckinContext).toBeDefined();
     expect(typeof buildFamilyCheckinContext).toBe('function');
@@ -253,9 +260,8 @@ describe('Family Wellbeing Context Builder', () => {
   });
 
   it('should generate appropriate system prompt', async () => {
-    const { generateFamilyCheckinSystemPrompt } = await import(
-      '../../../intelligence/context-builders/family/family-wellbeing-context.js'
-    );
+    const { generateFamilyCheckinSystemPrompt } =
+      await import('../../../intelligence/context-builders/family/family-wellbeing-context.js');
 
     const context = {
       schedule: {
@@ -319,9 +325,8 @@ describe('Family Wellbeing Context Builder', () => {
 
 describe('Helper Functions', () => {
   it('should export getSponsorRelationshipTerm', async () => {
-    const { getSponsorRelationshipTerm } = await import(
-      '../../../intelligence/context-builders/family/family-wellbeing-context.js'
-    );
+    const { getSponsorRelationshipTerm } =
+      await import('../../../intelligence/context-builders/family/family-wellbeing-context.js');
 
     expect(getSponsorRelationshipTerm('mother', 'Seth')).toBe('your son Seth');
     expect(getSponsorRelationshipTerm('grandmother', 'Seth')).toBe('your grandchild Seth');
@@ -330,9 +335,8 @@ describe('Helper Functions', () => {
   });
 
   it('should export generateHealthQuestions', async () => {
-    const { generateHealthQuestions } = await import(
-      '../../../intelligence/context-builders/family/family-wellbeing-context.js'
-    );
+    const { generateHealthQuestions } =
+      await import('../../../intelligence/context-builders/family/family-wellbeing-context.js');
 
     const schedule = {
       healthConcerns: ['arthritis', 'blood pressure'],
@@ -346,7 +350,7 @@ describe('Helper Functions', () => {
 
     expect(questions.length).toBeGreaterThan(0);
     expect(questions).toContain('How are you feeling today?');
-    expect(questions.some(q => q.toLowerCase().includes('arthritis'))).toBe(true);
+    expect(questions.some((q) => q.toLowerCase().includes('arthritis'))).toBe(true);
   });
 });
 
@@ -356,9 +360,8 @@ describe('Helper Functions', () => {
 
 describe('Family Check-in Caller', () => {
   it('should be importable', async () => {
-    const { runFamilyCheckinJob, initiateCheckinCall, handleCheckinCallComplete } = await import(
-      '../family-checkin-caller.js'
-    );
+    const { runFamilyCheckinJob, initiateCheckinCall, handleCheckinCallComplete } =
+      await import('../family-checkin-caller.js');
 
     expect(runFamilyCheckinJob).toBeDefined();
     expect(typeof runFamilyCheckinJob).toBe('function');

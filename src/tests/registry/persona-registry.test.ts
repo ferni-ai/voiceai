@@ -263,12 +263,15 @@ describe('PersonaRegistry', () => {
   describe('getStats()', () => {
     it('should return accurate statistics', async () => {
       await registry.register(testPersona);
-      await registry.register({
-        ...testPersona,
-        id: 'plugin-agent',
-        name: 'Plugin Agent',
-        aliases: [],
-      }, { source: 'plugin' });
+      await registry.register(
+        {
+          ...testPersona,
+          id: 'plugin-agent',
+          name: 'Plugin Agent',
+          aliases: [],
+        },
+        { source: 'plugin' }
+      );
 
       const stats = await registry.getStats();
 

@@ -11,8 +11,17 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import {
+  QUIZ_ICONS,
+  GROWTH_ICONS,
+  ANALYTICS_ICONS,
+  EMOTION_ICONS,
+} from '../icons/shared-icons.js';
 
 const log = createLogger('FerniKnowsUI');
+
+// Close icon SVG
+const CLOSE_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
 
 // ============================================================================
 // TYPES
@@ -91,13 +100,13 @@ export interface FerniKnowsState {
 // ============================================================================
 
 const CATEGORY_CONFIG: Record<KnowledgeCategory, { label: string; icon: string }> = {
-  about_you: { label: 'About You', icon: '👤' },
-  relationships: { label: 'People', icon: '👥' },
-  preferences: { label: 'Preferences', icon: '❤️' },
-  goals: { label: 'Goals', icon: '🎯' },
-  commitments: { label: 'Commitments', icon: '✅' },
-  milestones: { label: 'Milestones', icon: '🎉' },
-  emotions: { label: 'Emotional Patterns', icon: '💭' },
+  about_you: { label: 'About You', icon: QUIZ_ICONS.personality },
+  relationships: { label: 'People', icon: QUIZ_ICONS.relationships },
+  preferences: { label: 'Preferences', icon: GROWTH_ICONS.heart },
+  goals: { label: 'Goals', icon: ANALYTICS_ICONS.target },
+  commitments: { label: 'Commitments', icon: QUIZ_ICONS.correct },
+  milestones: { label: 'Milestones', icon: GROWTH_ICONS.celebration },
+  emotions: { label: 'Emotional Patterns', icon: EMOTION_ICONS.reflective },
 };
 
 // ============================================================================
@@ -268,16 +277,26 @@ function createPanelHeader(): HTMLElement {
 
   // Close button
   const closeBtn = document.createElement('button');
-  closeBtn.innerHTML = '✕';
+  closeBtn.innerHTML = CLOSE_ICON;
   closeBtn.style.cssText = `
     background: none;
     border: none;
-    font-size: 1.2em;
     cursor: pointer;
     padding: var(--space-2);
     color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    transition: background var(--duration-fast);
   `;
   closeBtn.addEventListener('click', closeFerniKnowsPanel);
+  closeBtn.addEventListener('mouseenter', () => {
+    closeBtn.style.background = 'var(--color-background-subtle)';
+  });
+  closeBtn.addEventListener('mouseleave', () => {
+    closeBtn.style.background = 'none';
+  });
   header.appendChild(closeBtn);
 
   return header;
@@ -348,8 +367,17 @@ function createCategoryTabs(summaries: KnowledgeSummary[]): HTMLElement {
       background: ${isSelected ? 'var(--color-accent)' : 'var(--color-background-subtle)'};
       color: ${isSelected ? 'white' : 'var(--color-text-secondary)'};
       transition: all var(--duration-normal);
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
     `;
-    tab.innerHTML = `${summary.icon} ${summary.label} (${summary.count})`;
+    tab.innerHTML = `<span class="tab-icon" style="display: inline-flex; align-items: center; width: 16px; height: 16px;">${summary.icon}</span> ${summary.label} (${summary.count})`;
+    // Style the SVG icon inside the tab
+    const iconEl = tab.querySelector('.tab-icon svg');
+    if (iconEl) {
+      (iconEl as SVGElement).style.width = '16px';
+      (iconEl as SVGElement).style.height = '16px';
+    }
 
     tab.addEventListener('click', () => {
       panelState.selectedCategory = summary.category;

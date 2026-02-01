@@ -311,7 +311,7 @@
     },
     "awardBadgeV2": {
       "description": "Award a specific badge to the user. Checks if already earned.",
-      "file": "src/tools/gamification-v2.ts"
+      "file": "src/tools/domains/habits/gamification.ts"
     },
     "awardXP": {
       "description": "Award XP to the user for completing an action. Use when user completes habits, challenges, or other achievements.",
@@ -319,7 +319,7 @@
     },
     "awardXPV2": {
       "description": "Award XP to the user. Automatically handles level-ups and leaderboard updates.",
-      "file": "src/tools/gamification-v2.ts"
+      "file": "src/tools/domains/habits/gamification.ts"
     },
     "backgroundFollowUp": {
       "description": "Schedule a background follow-up to check in with the user later about something they mentioned. Use when user mentions something they're working on, struggling with, or planning that deserves a future check-in.",
@@ -530,7 +530,7 @@
     },
     "celebrateProgressV2": {
       "description": "Generate a celebration of the user.",
-      "file": "src/tools/gamification-v2.ts",
+      "file": "src/tools/domains/habits/gamification.ts",
       "_original": "Generate a celebration of the user"
     },
     "celebrateTinyWin": {
@@ -1464,7 +1464,7 @@
     },
     "exportGamificationData": {
       "description": "Export all gamification data for backup. Returns a JSON structure that can be imported later.",
-      "file": "src/tools/gamification-v2.ts"
+      "file": "src/tools/domains/habits/gamification.ts"
     },
     "express": {
       "description": "Express a meaningful moment visually by morphing the waveform into an emoji shape. Use this sparingly for impactful moments - greetings, achievements, insights, or emotional highlights. Available expressions depend on your persona. Examples of when to use: - Greeting a user:.",
@@ -1891,7 +1891,7 @@
     },
     "getGamificationProfileV2": {
       "description": "Get the user.",
-      "file": "src/tools/gamification-v2.ts",
+      "file": "src/tools/domains/habits/gamification.ts",
       "_original": "Get the user"
     },
     "getGeneralNews": {
@@ -1947,7 +1947,7 @@
     },
     "getLeaderboard": {
       "description": "Get the leaderboard rankings. Shows top players by XP.",
-      "file": "src/tools/gamification-v2.ts"
+      "file": "src/tools/domains/habits/gamification.ts"
     },
     "getLifeDomains": {
       "description": "Show life domains for organizing habits. Use when user wants to explore different areas for improvement.",
@@ -2486,7 +2486,7 @@
     },
     "importGamificationData": {
       "description": "Import gamification data from a backup. Use with caution - this can overwrite existing data.",
-      "file": "src/tools/gamification-v2.ts"
+      "file": "src/tools/domains/habits/gamification.ts"
     },
     "impulseSpendingCheck": {
       "description": "Help user evaluate an impulse purchase before making it. Use when user mentions: - Wanting to buy something - Thinking about a purchase -.",
@@ -3775,7 +3775,7 @@
     },
     "setLeaderboardPrivacy": {
       "description": "Configure privacy settings for the leaderboard.",
-      "file": "src/tools/gamification-v2.ts"
+      "file": "src/tools/domains/habits/gamification.ts"
     },
     "setLearningGoal": {
       "description": "Help user set clear, achievable learning goals.",
@@ -4465,7 +4465,7 @@
     },
     "viewBadgeCollectionV2": {
       "description": "View user.",
-      "file": "src/tools/gamification-v2.ts",
+      "file": "src/tools/domains/habits/gamification.ts",
       "_original": "View user"
     },
     "viewLifeMilestones": {

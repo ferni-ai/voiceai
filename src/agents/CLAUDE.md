@@ -59,16 +59,19 @@ agents/
 │   ├── group-conversation-manager.ts
 │   ├── turn-taking.ts     # Turn management
 │   └── transcript-service.ts
-├── (outbound deleted)     # ✅ Removed - use services/outreach/ instead
-├── processors/            # Turn processing pipeline
+├── model-provider/        # LLM providers (OpenAI Realtime, Gemini Live)
+├── processors/            # Turn processing pipeline (26 files)
 ├── realtime/              # Real-time streaming events
 ├── integrations/          # Service integrations
 ├── session/               # Session state management
-├── shared/                # Shared utilities
+├── shared/                # Shared utilities (52+ files, 5 subdirectories)
 ├── personas/              # Persona agent wrappers
 ├── safety/                # Crisis guard, safety checks
 ├── trust/                 # Trust enforcement
 ├── core/                  # Result types, pipeline base
+├── gce/                   # GCE-specific (warmup, LiveKit connection)
+├── handlers/              # Shared handlers (silence handler)
+├── feedback/              # Feedback trigger engine
 └── __tests__/             # Test suites
 ```
 
@@ -322,4 +325,4 @@ See `group-conversation/CLAUDE.md` for details.
 
 ---
 
-*Last updated: December 30, 2024*
+*Last updated: January 2026*

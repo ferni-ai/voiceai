@@ -40,13 +40,13 @@ export interface EmotionSnapshot {
  * Emotional trajectory classification
  */
 export type EmotionalTrajectory =
-  | 'improving'      // Getting more positive
-  | 'declining'      // Getting more negative
+  | 'improving' // Getting more positive
+  | 'declining' // Getting more negative
   | 'stable-positive' // Steady positive
   | 'stable-negative' // Steady negative
-  | 'volatile'       // Rapidly changing
-  | 'recovering'     // Coming back from negative
-  | 'spiral-down';   // Accelerating negative (needs intervention)
+  | 'volatile' // Rapidly changing
+  | 'recovering' // Coming back from negative
+  | 'spiral-down'; // Accelerating negative (needs intervention)
 
 /**
  * A turning point in the conversation
@@ -161,10 +161,7 @@ export interface IEmotionalMomentumTracker {
    * @param sessionId - Session identifier
    * @param snapshot - Emotion snapshot (without timestamp)
    */
-  recordTurn(
-    sessionId: string,
-    snapshot: Omit<EmotionSnapshot, 'timestamp'>
-  ): void;
+  recordTurn(sessionId: string, snapshot: Omit<EmotionSnapshot, 'timestamp'>): void;
 
   /**
    * Get current momentum state

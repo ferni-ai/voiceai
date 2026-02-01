@@ -32,3 +32,23 @@ export type {
   ChapterIconName,
 } from './hub-icons.js';
 
+export {
+  GROWTH_ICONS,
+  ANALYTICS_ICONS,
+  EMOTION_ICONS,
+  QUIZ_ICONS,
+  getGrowthIcon,
+  getAnalyticsIcon,
+  getEmotionIcon,
+  getQuizIcon,
+  getGrowthJournalIcon,
+  getPatternInsightIcon,
+  getQuizCategoryIcon,
+  getMemoryMoodIcon,
+} from './shared-icons.js';
+export type {
+  GrowthIconName,
+  AnalyticsIconName,
+  EmotionIconName,
+  QuizIconName,
+} from './shared-icons.js';

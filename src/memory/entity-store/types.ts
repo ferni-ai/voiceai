@@ -22,6 +22,7 @@ export type EntityType =
   | 'commitment' // Promises, intentions, decisions
   | 'value' // Core values
   | 'dream' // Long-term aspirations
+  | 'fear' // Worries, concerns, anxieties (Jan 2026)
   | 'pattern' // Behavioral patterns
   | 'preference' // Likes, dislikes, preferences
   | 'memory' // Specific remembered moments

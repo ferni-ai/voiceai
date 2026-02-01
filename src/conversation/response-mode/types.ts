@@ -199,10 +199,7 @@ export interface IResponseModeDecider {
    * @param mode - Mode that was used
    * @param userReaction - How user responded
    */
-  recordOutcome(
-    mode: ResponseMode,
-    userReaction: 'positive' | 'neutral' | 'negative'
-  ): void;
+  recordOutcome(mode: ResponseMode, userReaction: 'positive' | 'neutral' | 'negative'): void;
 
   /**
    * Reset state for new session

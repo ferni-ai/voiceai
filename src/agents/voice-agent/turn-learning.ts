@@ -16,6 +16,8 @@ import { log } from '@livekit/agents';
 import {
   analyzeUserEngagement,
   recordResponseForLearning,
+  recordBreakthroughForLearning,
+  recordStoryForLearning,
   type ConversationSignalContext,
 } from '../../intelligence/index.js';
 import { learnTemporalPattern } from '../../intelligence/context-builders/intelligence/temporal-intelligence.js';
@@ -72,6 +74,10 @@ export interface LearningContext {
       };
     };
   };
+  /** Story that was shared in the previous turn (if any) */
+  lastStoryId?: string;
+  /** Whether a story was told in the previous turn */
+  wasStoryTold?: boolean;
 }
 
 export interface LearningResult {
@@ -192,11 +198,104 @@ export async function recordCollectiveLearning(ctx: LearningContext): Promise<bo
       'Collective learning signal recorded'
     );
 
+    // 📚 STORY EFFECTIVENESS: Record how users respond to shared stories
+    // "Better than Human" - learn which stories resonate with which users
+    if (ctx.wasStoryTold && ctx.lastStoryId) {
+      // Determine reaction based on user response
+      const reaction = determineStoryReaction(ctx.userText, ctx.emotionalResult);
+      const engagementScore = calculateEngagementScore(ctx.userText, ctx.emotionalResult);
+
+      recordStoryForLearning(learningContext, ctx.lastStoryId, reaction, engagementScore);
+
+      logger.debug(
+        { storyId: ctx.lastStoryId, reaction, engagement: engagementScore },
+        '📚 Story effectiveness recorded'
+      );
+    }
+
     return true;
   } catch (learningError) {
     logger.debug({ error: String(learningError) }, 'Collective learning recording (non-critical)');
     return false;
   }
+}
+
+// ============================================================================
+// STORY REACTION HELPERS
+// ============================================================================
+
+/**
+ * Determine user reaction to a shared story based on their response
+ */
+function determineStoryReaction(
+  userText: string,
+  emotionalResult: { primary: string; intensity: number }
+): 'moved' | 'inspired' | 'connected' | 'curious' | 'indifferent' {
+  const lower = userText.toLowerCase();
+
+  // Moved: emotional response, vulnerability
+  if (
+    /\b(that (really )?(touched|hit|moved|resonated)|i felt|wow|same|me too|exactly)\b/i.test(
+      lower
+    ) ||
+    emotionalResult.primary === 'sadness' ||
+    (emotionalResult.primary === 'joy' && emotionalResult.intensity > 0.7)
+  ) {
+    return 'moved';
+  }
+
+  // Inspired: action-oriented, forward-looking
+  if (
+    /\b(i (should|could|want to|need to|will)|that makes me want|inspiring|motivating)\b/i.test(
+      lower
+    )
+  ) {
+    return 'inspired';
+  }
+
+  // Connected: relating to their own experience
+  if (
+    /\b(same thing|reminds me|happened to me|i've been there|i know what|similar)\b/i.test(lower)
+  ) {
+    return 'connected';
+  }
+
+  // Curious: follow-up questions, wanting more
+  if (
+    userText.includes('?') ||
+    /\b(tell me more|what happened|how did|then what|why)\b/i.test(lower)
+  ) {
+    return 'curious';
+  }
+
+  // Default: indifferent (short response, topic change, neutral)
+  return 'indifferent';
+}
+
+/**
+ * Calculate engagement score from user response
+ */
+function calculateEngagementScore(
+  userText: string,
+  emotionalResult: { intensity: number }
+): number {
+  let score = 0.3; // Base score
+
+  // Response length (longer = more engaged)
+  const wordCount = userText.split(/\s+/).length;
+  if (wordCount > 20) score += 0.2;
+  else if (wordCount > 10) score += 0.1;
+
+  // Emotional intensity
+  score += emotionalResult.intensity * 0.3;
+
+  // Questions indicate engagement
+  if (userText.includes('?')) score += 0.15;
+
+  // Self-reference indicates connection
+  if (/\b(i|me|my|i'm|i've)\b/i.test(userText)) score += 0.1;
+
+  return Math.min(1, score);
 }
 
 // ============================================================================
@@ -266,6 +365,32 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
       }).catch((err) => {
         logger.debug({ error: String(err) }, 'Shared moment recording (non-critical)');
       });
+
+      // 🎯 BREAKTHROUGH DETECTION: Record breakthrough moments for collective learning
+      // "Better than Human" - learn which question patterns lead to breakthroughs
+      const isBreakthroughMoment =
+        ctx.emotionalResult.intensity > 0.7 &&
+        /realize|understand|get it|makes sense|aha|finally|never thought|see now|clicked|figured out/i.test(
+          ctx.userText
+        );
+
+      if (isBreakthroughMoment) {
+        // Extract the question pattern from the last few injections that might have triggered this
+        const questionPattern =
+          ctx.injections.find((i) => i.content.includes('?'))?.content.slice(0, 100) ||
+          'open_question';
+        const topic =
+          ctx.injections.find((i) => i.category === 'topics')?.content?.split(' ')[0] || 'general';
+
+        recordBreakthroughForLearning(
+          ctx.personaId,
+          topic,
+          questionPattern,
+          ctx.userText.slice(0, 200),
+          ctx.emotionalResult.intensity // engagement lift
+        );
+        logger.debug({ topic, intensity: ctx.emotionalResult.intensity }, '💡 Breakthrough recorded');
+      }
 
       // 📚 CAPABILITY LEARNING: Track user engagement with surfaced capabilities
       // If user asks follow-up, shows interest, or continues on a capability topic, mark engaged

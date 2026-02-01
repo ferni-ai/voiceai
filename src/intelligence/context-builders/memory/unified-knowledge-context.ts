@@ -89,9 +89,8 @@ async function buildUnifiedKnowledgeContext(
 
   try {
     // Lazy import to avoid circular dependencies
-    const { getUnifiedKnowledgeInjection } = await import(
-      '../../../services/superhuman/unified-user-knowledge.js'
-    );
+    const { getUnifiedKnowledgeInjection } =
+      await import('../../../services/superhuman/unified-user-knowledge.js');
 
     const result = await getUnifiedKnowledgeInjection(userId);
 

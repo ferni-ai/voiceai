@@ -6,15 +6,21 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock the logger
-vi.mock('../../../utils/safe-logger.js', () => ({
-  getLogger: vi.fn(() => ({
+// Mock the logger - defined inline since vi.mock is hoisted
+vi.mock('../../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  })),
-}));
+    child: vi.fn(),
+  };
+  mockLogger.child.mockReturnValue(mockLogger);
+  return {
+    getLogger: vi.fn(() => mockLogger),
+    createLogger: vi.fn(() => mockLogger),
+  };
+});
 
 import {
   Container,

@@ -121,6 +121,26 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
   session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, (event) => {
     fireAndForget(async () => {
       const toolStartTime = Date.now();
+      const timestamp = new Date().toISOString();
+
+      // 🔧 ALWAYS log tool execution for native FC debugging
+      // This is step 2 of the native FC flow:
+      // 1. function_calls_collected (Gemini requests tool)
+      // 2. FunctionToolsExecuted (tool runs, result ready) ← WE ARE HERE
+      // 3. Result sent back to Gemini for response generation
+      const toolInfo = event as ToolInfo;
+      const toolNames: string[] = [];
+
+      if (toolInfo.functionCallOutputs) {
+        toolNames.push(...toolInfo.functionCallOutputs.map((t) => t.name || 'unknown'));
+      } else if (toolInfo.tools) {
+        toolNames.push(...toolInfo.tools.map((t) => t.name || 'unknown'));
+      } else if (toolInfo.name) {
+        toolNames.push(toolInfo.name);
+      }
+
+      process.stderr.write(`\n✅ [NATIVE FC] TOOL EXECUTED at ${timestamp}\n`);
+      process.stderr.write(`   Tools: ${toolNames.join(', ') || 'unknown'}\n`);
 
       // Verbose tool result logging (controlled by admin config)
       if (logToolResults) {
@@ -245,6 +265,11 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
           // With createResponse=false, OpenAI doesn't auto-generate speech after
           // receiving function call results. We need to explicitly trigger a response.
           //
+          // CRITICAL (Jan 2026): DO NOT call safeGenerateReply for Gemini native FC!
+          // Gemini automatically continues streaming after receiving tool results.
+          // Calling safeGenerateReply conflicts with Gemini's auto-continuation
+          // and causes 6-second timeouts.
+          //
           // Priority tools that get direct speech (info-heavy results):
           // - News, weather, sports (data that needs to be read)
           // - Music control (simple confirmations already in tool output)
@@ -252,54 +277,72 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
           // Note: Other tools let the LLM decide what to say based on context.
           // ================================================================
           const shouldSpeakDirectly = isNewsOrWeather || isMusic;
-          
+
           if (shouldSpeakDirectly && !hasError && toolResult) {
             const resultToSpeak =
               typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
 
             // Only speak if there's meaningful content (not empty or too short)
             if (resultToSpeak && resultToSpeak.length > 10) {
-              logger.info(
-                {
-                  toolName,
-                  resultLength: resultToSpeak.length,
-                  sessionId,
-                },
-                '🔧 Tool result - speaking via safeGenerateReply'
+              // Check if using Gemini native FC - if so, skip safeGenerateReply
+              // Gemini automatically responds after tool execution in native FC mode
+              const { getModelProvider, isUsingGemini } = await import(
+                '../model-provider/index.js'
               );
 
-              // Fire-and-forget: speak the result via safeGenerateReply
-              fireAndForget(async () => {
-                try {
-                  const { safeGenerateReply, formatToolResult } =
-                    await import('../shared/safe-generate-reply.js');
+              const provider = getModelProvider();
+              const isGeminiNativeFC = isUsingGemini() && provider.hasNativeFunctionCalling();
 
-                  // Format the tool result with behavioral instructions
-                  const instructions = formatToolResult(toolName, resultToSpeak);
-
-                  await safeGenerateReply(session, {
-                    instructions,
-                    allowInterruptions: true,
-                    context: `native-tool-result-${toolName}`,
-                    waitForPlayout: true,
-                    timeoutMs: 6000,
-                    fallbackMessage: toolName.toLowerCase().includes('music') 
-                      ? 'Done!' 
-                      : 'Let me share what I found...',
+              if (isGeminiNativeFC) {
+                logger.info(
+                  {
+                    toolName,
                     sessionId,
-                  });
+                  },
+                  '🔧 Gemini native FC - skipping safeGenerateReply (Gemini auto-responds)'
+                );
+                // Gemini will automatically continue after tool result - no need to prompt
+              } else {
+                // OpenAI Realtime with createResponse=false needs explicit speech trigger
+                logger.info(
+                  {
+                    toolName,
+                    resultLength: resultToSpeak.length,
+                    sessionId,
+                  },
+                  '🔧 Tool result - speaking via safeGenerateReply (OpenAI mode)'
+                );
 
-                  logger.info(
-                    { toolName, sessionId },
-                    '🔧 Tool result spoken successfully'
-                  );
-                } catch (speakErr) {
-                  logger.warn(
-                    { toolName, error: String(speakErr), sessionId },
-                    '🔧 Failed to speak tool result (watchdog will catch this)'
-                  );
-                }
-              }, `speak-tool-result-${toolName}`);
+                // Fire-and-forget: speak the result via safeGenerateReply
+                fireAndForget(async () => {
+                  try {
+                    const { safeGenerateReply, formatToolResult } =
+                      await import('../shared/safe-generate-reply.js');
+
+                    // Format the tool result with behavioral instructions
+                    const instructions = formatToolResult(toolName, resultToSpeak);
+
+                    await safeGenerateReply(session, {
+                      instructions,
+                      allowInterruptions: true,
+                      context: `native-tool-result-${toolName}`,
+                      waitForPlayout: true,
+                      timeoutMs: 6000,
+                      fallbackMessage: toolName.toLowerCase().includes('music')
+                        ? 'Done!'
+                        : 'Let me share what I found...',
+                      sessionId,
+                    });
+
+                    logger.info({ toolName, sessionId }, '🔧 Tool result spoken successfully');
+                  } catch (speakErr) {
+                    logger.warn(
+                      { toolName, error: String(speakErr), sessionId },
+                      '🔧 Failed to speak tool result (watchdog will catch this)'
+                    );
+                  }
+                }, `speak-tool-result-${toolName}`);
+              }
             }
           }
 

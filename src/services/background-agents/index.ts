@@ -62,7 +62,8 @@ export async function initializeBackgroundDelivery(): Promise<void> {
         // Try to use Firebase Admin messaging (auto-initialized with ADC)
         const admin = await import('firebase-admin');
         if (admin.apps.length > 0 || process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-          const { initializePushNotifications } = await import('../outreach/delivery/push-notifications.js');
+          const { initializePushNotifications } =
+            await import('../outreach/delivery/push-notifications.js');
           // Firebase Admin with ADC doesn't need explicit credentials
           initializePushNotifications({
             firebaseProjectId,

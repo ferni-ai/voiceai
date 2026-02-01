@@ -413,12 +413,7 @@ describe('RequestCoalescer', () => {
 
       // onComplete should be called once with success=true
       expect(onComplete).toHaveBeenCalledTimes(1);
-      expect(onComplete).toHaveBeenCalledWith(
-        'metrics-complete',
-        'key',
-        expect.any(Number),
-        true
-      );
+      expect(onComplete).toHaveBeenCalledWith('metrics-complete', 'key', expect.any(Number), true);
 
       metricsCoalescer.clear();
     });
@@ -445,12 +440,7 @@ describe('RequestCoalescer', () => {
 
       // onComplete should be called once with success=false
       expect(onComplete).toHaveBeenCalledTimes(1);
-      expect(onComplete).toHaveBeenCalledWith(
-        'metrics-error',
-        'key',
-        expect.any(Number),
-        false
-      );
+      expect(onComplete).toHaveBeenCalledWith('metrics-error', 'key', expect.any(Number), false);
 
       metricsCoalescer.clear();
     });

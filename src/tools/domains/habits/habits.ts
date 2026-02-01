@@ -404,7 +404,7 @@ export function logHabit(params: {
         habitName: habit.name,
         streak,
       });
-      
+
       // Check for streak achievement
       if (streak > 0 && streak % 7 === 0) {
         await engine.handleHabitTrigger('streak_achieved', {

@@ -152,7 +152,16 @@ export interface CameoHandlerResult {
  * Create handlers for cameo lifecycle events
  */
 export function createCameoHandlers(config: CameoHandlerConfig) {
-  const { ctx, session, tts, hostPersonaId, hostVoiceId, getVoiceAgentRef, hostPersona, sessionId: configSessionId } = config;
+  const {
+    ctx,
+    session,
+    tts,
+    hostPersonaId,
+    hostVoiceId,
+    getVoiceAgentRef,
+    hostPersona,
+    sessionId: configSessionId,
+  } = config;
 
   // Use passed sessionId if available, to match speech coordination
   // CRITICAL: Must match the sessionId used in initializeSpeechCoordination()
@@ -222,10 +231,7 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
           voiceManager.switchVoice(personaId);
 
           // VOICE ID FIX: Use resolver as single source of truth for Cartesia voice ID
-          const voiceIdResult = resolveVoiceId(
-            { voiceId, personaId },
-            { logLevel: 'debug' }
-          );
+          const voiceIdResult = resolveVoiceId({ voiceId, personaId }, { logLevel: 'debug' });
           const resolvedVoiceId = voiceIdResult.success
             ? voiceIdResult.voiceId
             : getVoiceId(personaId); // Fallback
@@ -233,7 +239,11 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
           if (tts.switchVoice && resolvedVoiceId) {
             tts.switchVoice(getPersonaDisplayName(personaId), resolvedVoiceId);
             logger.info(
-              { personaId, voiceId: resolvedVoiceId, source: voiceIdResult.success ? voiceIdResult.source : 'fallback' },
+              {
+                personaId,
+                voiceId: resolvedVoiceId,
+                source: voiceIdResult.success ? voiceIdResult.source : 'fallback',
+              },
               '🎤 Cameo TTS voice switched via resolver'
             );
           }
@@ -409,9 +419,7 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
           { voiceId: hostVoiceId, personaId: hostPersonaId },
           { logLevel: 'debug' }
         );
-        const resolvedHostVoiceId = voiceIdResult.success
-          ? voiceIdResult.voiceId
-          : hostVoiceId; // Use passed value as fallback
+        const resolvedHostVoiceId = voiceIdResult.success ? voiceIdResult.voiceId : hostVoiceId; // Use passed value as fallback
 
         // Also switch session TTS
         if (tts.switchVoice) {
@@ -535,9 +543,7 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
           { voiceId: hostVoiceId, personaId: hostPersonaId },
           { logLevel: 'debug' }
         );
-        const resolvedHostVoiceId = voiceIdResult.success
-          ? voiceIdResult.voiceId
-          : hostVoiceId;
+        const resolvedHostVoiceId = voiceIdResult.success ? voiceIdResult.voiceId : hostVoiceId;
 
         if (tts && 'switchVoice' in tts) {
           (tts as { switchVoice: (name: string, id: string) => void }).switchVoice(

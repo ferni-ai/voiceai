@@ -153,7 +153,10 @@ describe('EmotionalMomentumTracker', () => {
   describe('turning points', () => {
     it('detects upward turning point', () => {
       tracker.recordTurn(sessionId, createSnapshot(1, 'sad', -0.5, { topic: 'work' }));
-      tracker.recordTurn(sessionId, createSnapshot(2, 'hopeful', 0.3, { topic: 'hobby', trigger: 'mentioned painting' }));
+      tracker.recordTurn(
+        sessionId,
+        createSnapshot(2, 'hopeful', 0.3, { topic: 'hobby', trigger: 'mentioned painting' })
+      );
 
       const momentum = tracker.getMomentum(sessionId);
       expect(momentum?.turningPoints.length).toBe(1);
@@ -162,7 +165,10 @@ describe('EmotionalMomentumTracker', () => {
 
     it('detects downward turning point', () => {
       tracker.recordTurn(sessionId, createSnapshot(1, 'happy', 0.5, { topic: 'vacation' }));
-      tracker.recordTurn(sessionId, createSnapshot(2, 'anxious', -0.4, { topic: 'work', trigger: 'mentioned deadline' }));
+      tracker.recordTurn(
+        sessionId,
+        createSnapshot(2, 'anxious', -0.4, { topic: 'work', trigger: 'mentioned deadline' })
+      );
 
       const momentum = tracker.getMomentum(sessionId);
       expect(momentum?.turningPoints.length).toBe(1);

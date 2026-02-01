@@ -104,10 +104,7 @@ export async function requirePublisherAuth(
   // Check for empty or obviously invalid token
   if (!idToken || idToken.length < 100) {
     // SECURITY: Never log any part of the token
-    log.warn(
-      { tokenLength: idToken?.length ?? 0 },
-      'Empty or malformed token received'
-    );
+    log.warn({ tokenLength: idToken?.length ?? 0 }, 'Empty or malformed token received');
     sendError(res, 'Invalid token format', 401);
     return null;
   }
@@ -179,7 +176,7 @@ export async function requireApiKeyAuth(
   res: ServerResponse
 ): Promise<AuthContext | null> {
   const apiKey =
-    req.headers['x-api-key'] as string | undefined ||
+    (req.headers['x-api-key'] as string | undefined) ||
     req.headers.authorization?.replace('Bearer ', '');
 
   if (!apiKey) {

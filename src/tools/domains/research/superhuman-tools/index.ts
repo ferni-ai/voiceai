@@ -611,25 +611,25 @@ export const originalSuperhumanTools = {
 export const superhumanTools = {
   // Original tools
   ...originalSuperhumanTools,
-  
+
   // N=1 Personal Analytics
   ...n1AnalyticsTools,
-  
+
   // Research Synthesis
   ...researchSynthesisTools,
-  
+
   // Predictive Modeling
   ...predictiveModelingTools,
-  
+
   // Financial Research
   ...financialResearchTools,
-  
+
   // Experimentation Framework
   ...experimentationTools,
-  
+
   // External Data Integration
   ...externalDataTools,
-  
+
   // Network Analytics
   ...networkAnalyticsTools,
 };

@@ -33,6 +33,8 @@ This module provides the persistent graph database layer for Ferni's "Better Tha
 | `schema.ts` | DDL for tables and property graph, TypeScript types |
 | `client.ts` | Spanner client with connection pooling, write operations |
 | `queries.ts` | Pre-built GQL queries for common patterns |
+| `graph-expansion.ts` | Multi-hop graph expansion for relationship traversal |
+| `path-finder.ts` | Shortest path and weighted path finding between entities |
 | `index.ts` | Public exports |
 
 ## Usage

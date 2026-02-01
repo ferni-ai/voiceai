@@ -27,11 +27,11 @@ Files exceeding the 500-line limit per CLAUDE.md guidelines:
 | File | Lines | Status |
 |------|-------|--------|
 | `orchestrator/conversation-orchestrator.ts` | 1,298 | 🔴 2.6x limit |
-| `humanizer.ts` | 1,285 | 🔴 2.6x limit |
-| `conversational-memory.ts` | 1,267 | 🔴 2.5x limit |
+| `humanizer.ts` | 1,285 | 🔴 2.6x limit (refactored into `humanizer/` directory) |
+| `conversational-memory.ts` | 1,267 | 🔴 2.5x limit (removed) |
 | `proactive-memory.ts` | 1,254 | 🔴 2.5x limit |
 | `deep-humanization.ts` | 1,114 | 🔴 2.2x limit (LEGACY) |
-| `predictive-anticipation.ts` | 992 | 🔴 2.0x limit |
+| `predictive-anticipation.ts` | 992 | 🔴 2.0x limit (removed) |
 | `active-listening.ts` | 936 | 🔴 1.9x limit |
 | `humanization/voice-agent-integration.ts` | 918 | 🔴 1.8x limit |
 | `superhuman/orchestrator.ts` | 876 | 🔴 1.8x limit |
@@ -40,13 +40,13 @@ Files exceeding the 500-line limit per CLAUDE.md guidelines:
 | `superhuman/types.ts` | 832 | 🔴 1.7x limit |
 | `humanization/index.ts` | 818 | 🔴 1.6x limit |
 | `emotional-arc.ts` | 759 | 🔴 1.5x limit |
-| `question-patterns.ts` | 749 | 🔴 1.5x limit |
+| `question-patterns.ts` | 749 | 🔴 1.5x limit (refactored into `question-patterns/` directory) |
 | `humanization/ambient-awareness.ts` | 744 | 🔴 1.5x limit |
-| `speech-naturalizer.ts` | 741 | 🔴 1.5x limit |
+| `speech-naturalizer.ts` | 741 | 🔴 1.5x limit (refactored into `speech-naturalizer/` directory) |
 | `micro-affirmations.ts` | 739 | 🔴 1.5x limit |
 | `advanced-humanization.ts` | 732 | 🔴 1.5x limit |
 | `humanization/voice-print.ts` | 717 | 🔴 1.4x limit |
-| `temporal-context.ts` | 715 | 🔴 1.4x limit |
+| `temporal-context.ts` | 715 | 🔴 1.4x limit (removed) |
 | `session-intelligence.ts` | 700 | 🔴 1.4x limit |
 | `superhuman/emotional-memory.ts` | 688 | 🔴 1.4x limit |
 | `humanization/emotional-leading.ts` | 687 | 🔴 1.4x limit |
@@ -65,7 +65,7 @@ The module has accumulated **five different orchestrators** doing similar work:
 
 | Orchestrator | Location | Purpose | Status |
 |--------------|----------|---------|--------|
-| `ConversationHumanizer` | `humanizer.ts` | Original humanization | 🟡 Legacy, still primary |
+| `ConversationHumanizer` | `humanizer/` directory (was `humanizer.ts`) | Original humanization | 🟡 Legacy, refactored |
 | `ConversationOrchestrator` | `orchestrator/conversation-orchestrator.ts` | New unified orchestration | 🟢 Recommended |
 | `HumanizationOrchestrator` | `humanization/index.ts` | Advanced speech humanization | 🟡 Active |
 | `AdvancedHumanizationOrchestrator` | `advanced-humanization.ts` | 10 deep capabilities | 🟡 Active |
@@ -151,21 +151,9 @@ This indicates:
 
 ## 4. Deprecated Code in Critical Path (HIGH)
 
-### 4.1 `humanizer.ts` deprecation
+### 4.1 `humanizer.ts` deprecation (now refactored)
 
-The `humanizeResponseAsync` method is marked deprecated:
-
-```typescript
-/**
- * @deprecated For voice agent POST-LLM humanization, use the unified API instead:
- * ```typescript
- * import { humanizeAgentResponse } from './agents/integrations/conversation-session-integration.js';
- * ```
- */
-async humanizeResponseAsync(...)
-```
-
-**But** this method is still called in the primary humanization pipeline.
+The monolithic `humanizer.ts` has been refactored into the `humanizer/` directory with separate files for pre-LLM, post-LLM, types, and utilities.
 
 ### 4.2 `deep-humanization.ts` migration incomplete
 
@@ -174,7 +162,6 @@ async humanizeResponseAsync(...)
 ```
 
 Yet the legacy module is still:
-- Imported in `humanizer.ts`
 - Has its reset called in `resetAllConversationState()`
 - Contains 1,114 lines of active code
 
@@ -246,7 +233,7 @@ __tests__/
 Critical untested modules:
 - `concern-detection.ts` (876 lines)
 - `proactive-memory.ts` (1,254 lines)
-- `predictive-anticipation.ts` (992 lines)
+- `predictive-anticipation.ts` (removed - was 992 lines)
 - Most superhuman modules
 
 ---
@@ -262,8 +249,8 @@ Critical untested modules:
    | File | Suggested Split |
    |------|-----------------|
    | `conversation-orchestrator.ts` | `phases/analysis.ts`, `phases/intelligence.ts`, `phases/humanization.ts` |
-   | `humanizer.ts` | `humanizer-core.ts`, `humanizer-guidance.ts`, `humanizer-integrations.ts` |
-   | `conversational-memory.ts` | `memory/threads.ts`, `memory/callbacks.ts`, `memory/topics.ts` |
+   | `humanizer.ts` | (done - refactored into `humanizer/` directory) |
+   | `conversational-memory.ts` | (removed - functionality consolidated into `memory/` module) |
    | `proactive-memory.ts` | `proactive/patterns.ts`, `proactive/suggestions.ts`, `proactive/storage.ts` |
 
 2. **Remove Legacy deep-humanization.ts**

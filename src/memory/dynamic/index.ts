@@ -107,7 +107,22 @@ export {
   recordFirestoreRead,
   recordSyncCycle,
   resetMetrics,
+  // Memory health status (Jan 2026)
+  getMemoryHealthStatus,
+  // Knowledge graph metrics (Jan 2026)
+  recordKnowledgeCapture,
+  recordKnowledgeGraphStatus,
+  getKnowledgeGraphMetrics,
+  // Human signal metrics (Jan 2026)
+  recordHumanSignalExtraction,
+  recordHumanSignalPersistence,
+  getHumanSignalMetrics,
+  // Memory attribution metrics
+  recordMemoryAttribution,
+  recordMemoriesInjected,
+  getAttributionMetrics,
   type DynamicMemoryMetrics,
+  type MemoryHealthStatus,
 } from './metrics.js';
 
 // Voice Context Capture (Phase 11: Better Than Human)

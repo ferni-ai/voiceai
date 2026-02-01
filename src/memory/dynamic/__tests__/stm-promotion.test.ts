@@ -788,13 +788,7 @@ describe('calculateOverallEmotionalShift edge cases', () => {
   it('should return neutral for empty trajectory', async () => {
     // Get buffer but don't add emotional content
     getSTMBuffer(testSessionId, testUserId);
-    recordTurn(
-      testSessionId,
-      testUserId,
-      createMockCaptureResult(),
-      'No emotions',
-      1
-    );
+    recordTurn(testSessionId, testUserId, createMockCaptureResult(), 'No emotions', 1);
 
     // This won't promote because not enough turns, but tests the data setup
     const trajectory = getEmotionalTrajectory(testSessionId);
@@ -850,13 +844,7 @@ describe('Entity importance calculation', () => {
     // Mention entity in last 3 turns
     for (let i = 0; i < 5; i++) {
       const entities = i >= 2 ? [{ name: 'Recent', type: 'person' as const }] : [];
-      recordTurn(
-        testSessionId,
-        testUserId,
-        createMockCaptureResult(entities),
-        `Turn ${i}`,
-        i
-      );
+      recordTurn(testSessionId, testUserId, createMockCaptureResult(entities), `Turn ${i}`, i);
     }
 
     const result = await promoteSessionToFirestore(testSessionId, testUserId);

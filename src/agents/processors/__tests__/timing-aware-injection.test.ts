@@ -124,7 +124,11 @@ describe('filterInjectionsByPressure', () => {
 
     // TIER 3 - Optional (skipped under pressure)
     createMockInjection({ category: 'catchphrase', content: 'Catchphrase', priority: 70 }),
-    createMockInjection({ category: 'story_opportunity', content: 'Story suggestion', priority: 75 }),
+    createMockInjection({
+      category: 'story_opportunity',
+      content: 'Story suggestion',
+      priority: 75,
+    }),
     createMockInjection({ category: 'ambient_awareness', content: 'Ambient note', priority: 80 }),
   ];
 
@@ -245,10 +249,13 @@ describe('insight caching', () => {
   it('keeps last 10 insights', () => {
     // Cache 15 insights
     for (let i = 0; i < 15; i++) {
-      cacheInsight(testSessionId, createMockInjection({
-        category: 'emotional',
-        content: `Insight ${i}`,
-      }));
+      cacheInsight(
+        testSessionId,
+        createMockInjection({
+          category: 'emotional',
+          content: `Insight ${i}`,
+        })
+      );
     }
 
     const cached = getCachedInsights(testSessionId);
@@ -258,10 +265,13 @@ describe('insight caching', () => {
   it('filters out old insights (> 60s)', () => {
     vi.useFakeTimers();
 
-    cacheInsight(testSessionId, createMockInjection({
-      category: 'emotional',
-      content: 'Old insight',
-    }));
+    cacheInsight(
+      testSessionId,
+      createMockInjection({
+        category: 'emotional',
+        content: 'Old insight',
+      })
+    );
 
     // Advance time 61 seconds
     vi.advanceTimersByTime(61000);
@@ -273,10 +283,13 @@ describe('insight caching', () => {
   });
 
   it('clears insights for session', () => {
-    cacheInsight(testSessionId, createMockInjection({
-      category: 'emotional',
-      content: 'Test insight',
-    }));
+    cacheInsight(
+      testSessionId,
+      createMockInjection({
+        category: 'emotional',
+        content: 'Test insight',
+      })
+    );
 
     clearCachedInsights(testSessionId);
 
@@ -301,9 +314,7 @@ describe('applyTimingAwareDegradation', () => {
   });
 
   it('returns injections unchanged when no pressure', () => {
-    const injections = [
-      createMockInjection({ category: 'emotional', content: 'Test' }),
-    ];
+    const injections = [createMockInjection({ category: 'emotional', content: 'Test' })];
     const timingState = createMockTimingState({ userWaitingTime: 0 });
 
     const result = applyTimingAwareDegradation(injections, testSessionId, timingState);
@@ -343,9 +354,7 @@ describe('applyTimingAwareDegradation', () => {
   });
 
   it('handles null timing state gracefully', () => {
-    const injections = [
-      createMockInjection({ category: 'emotional', content: 'Test' }),
-    ];
+    const injections = [createMockInjection({ category: 'emotional', content: 'Test' })];
 
     const result = applyTimingAwareDegradation(injections, testSessionId, null);
 
@@ -370,9 +379,9 @@ describe('applyTimingAwareDegradation', () => {
     expect(result.pressureLevel).toBe('critical');
     expect(result.degradationApplied).toBe(true);
     // At critical, only TIER 1 allowed
-    expect(result.injections.every((i) =>
-      TIER_1_ESSENTIAL.has(i.category?.toLowerCase() || '')
-    )).toBe(true);
+    expect(
+      result.injections.every((i) => TIER_1_ESSENTIAL.has(i.category?.toLowerCase() || ''))
+    ).toBe(true);
   });
 });
 
@@ -429,9 +438,15 @@ describe('pressure configuration', () => {
   });
 
   it('limits decrease with pressure level', () => {
-    expect(PRESSURE_CONFIG.NORMAL.maxInjections).toBeGreaterThan(PRESSURE_CONFIG.MODERATE.maxInjections);
-    expect(PRESSURE_CONFIG.MODERATE.maxInjections).toBeGreaterThan(PRESSURE_CONFIG.SEVERE.maxInjections);
-    expect(PRESSURE_CONFIG.SEVERE.maxInjections).toBeGreaterThan(PRESSURE_CONFIG.CRITICAL.maxInjections);
+    expect(PRESSURE_CONFIG.NORMAL.maxInjections).toBeGreaterThan(
+      PRESSURE_CONFIG.MODERATE.maxInjections
+    );
+    expect(PRESSURE_CONFIG.MODERATE.maxInjections).toBeGreaterThan(
+      PRESSURE_CONFIG.SEVERE.maxInjections
+    );
+    expect(PRESSURE_CONFIG.SEVERE.maxInjections).toBeGreaterThan(
+      PRESSURE_CONFIG.CRITICAL.maxInjections
+    );
 
     expect(PRESSURE_CONFIG.NORMAL.maxChars).toBeGreaterThan(PRESSURE_CONFIG.MODERATE.maxChars);
     expect(PRESSURE_CONFIG.MODERATE.maxChars).toBeGreaterThan(PRESSURE_CONFIG.SEVERE.maxChars);

@@ -95,7 +95,7 @@ All 20 originally failing service tests have been fixed:
 |-----------|----------------|-------------|
 | `llm-detector.test.ts` | Mock not matching prompts | Fixed `createMockResponse` to extract user text from prompt |
 | `vibe.test.ts` | Light settings mock mismatch | Updated to use `setLightsForVibe` instead of `controlDevice` |
-| `alive-orchestrator.test.ts` | Mock state bleeding | Added `mockReset()` in `beforeEach` |
+| `alive-orchestrator.test.ts` | Mock state bleeding | Added `mockReset()` in `beforeEach` (file since removed) |
 | `persona-observation-patterns.test.ts` | "matters" matching existential domain | Changed test input to use domain-specific keywords |
 | `team-huddle.test.ts` | Synthesis not generated | Changed observation types to `concern`/`opportunity` |
 | `turn-profiler.test.ts` | Threshold values changed | Updated test expectations to match new thresholds |

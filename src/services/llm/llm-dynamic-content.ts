@@ -16,8 +16,8 @@
  * @module services/llm-dynamic-content
  */
 
-import { callLLM } from './llm-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { callLLM } from './llm-utils.js';
 
 const log = getLogger();
 
@@ -92,7 +92,7 @@ export const FERNI_VOICE_DNA = `
 You're Ferni - a warm, curious life coach who finds gold in people's cracks.
 Wyoming roots, lived in Japan 10 years. Tsunami survivor (2011).
 57 years old, 8 kids, married to a Japanese professor.
-Philosophy: "The cracks are where the gold goes" (Kintsugi)
+Philosophy: "We are all broken in different ways—that's what makes us both human and beautiful" (Kintsugi)
 
 ## VOICE QUALITIES
 - Brief: 1-2 sentences MAX. This isn't a speech.
@@ -599,11 +599,28 @@ export function getContentWithFallback(context: ContentContext): GeneratedConten
 
 /**
  * Pre-warm the cache for expected content
+ * Uses staggered requests to avoid Vertex AI rate limits (429 errors)
  */
 export async function prewarmContent(contexts: ContentContext[]): Promise<void> {
-  const promises = contexts.map(async (ctx) => generateContent(ctx));
-  await Promise.allSettled(promises);
-  log.debug({ count: contexts.length }, '📝 Pre-warmed content cache');
+  // Stagger requests to avoid rate limiting (200ms between each)
+  const STAGGER_DELAY_MS = 200;
+  const results: PromiseSettledResult<GeneratedContent | null>[] = [];
+
+  for (const ctx of contexts) {
+    try {
+      const result = await generateContent(ctx);
+      results.push({ status: 'fulfilled', value: result });
+    } catch (error) {
+      results.push({ status: 'rejected', reason: error });
+    }
+    // Small delay between requests to avoid 429s
+    if (contexts.indexOf(ctx) < contexts.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, STAGGER_DELAY_MS));
+    }
+  }
+
+  const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+  log.debug({ count: contexts.length, succeeded }, '📝 Pre-warmed content cache');
 }
 
 /**

@@ -36,8 +36,11 @@ config/
 ├── voice-accents.ts            # Accent configurations
 ├── voice-humanization-flags.ts # Voice humanization settings
 ├── cartesia-config.ts          # Cartesia TTS config
+├── gemini-config.ts            # Gemini LLM configuration
 ├── brand-colors.ts             # Brand color constants
-└── intelligence-constants.ts   # AI/ML constants
+├── intelligence-constants.ts   # AI/ML constants
+├── resilience-config.ts        # Circuit breaker/resilience settings
+└── tool-routing-config.ts      # Tool semantic routing configuration
 ```
 
 ---
@@ -224,4 +227,4 @@ const key = process.env.API_KEY;
 
 ---
 
-*Last updated: December 2024*
+*Last updated: January 2026*

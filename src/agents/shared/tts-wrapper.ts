@@ -42,7 +42,7 @@ import { getVoiceIdForPersona } from '../../config/voice-ids.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic-mirroring.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
-import { isFTISV2OnlyMode } from '../processors/ftis-v2-integration.js';
+import { isFTISV2OnlyMode } from '../processors/tool-routing-integration.js';
 import {
   bridgeToFerniContext,
   enrichContextFromFirestore,
@@ -69,8 +69,7 @@ const log = createLogger({ module: 'TtsWrapper' });
  */
 function isFerniTTSEnabled(): boolean {
   return (
-    process.env.TTS_PROVIDER === 'ferni-tts' ||
-    process.env.ENABLE_FERNI_TTS_TRANSFORMS === 'true'
+    process.env.TTS_PROVIDER === 'ferni-tts' || process.env.ENABLE_FERNI_TTS_TRANSFORMS === 'true'
   );
 }
 
@@ -169,9 +168,8 @@ async function triggerGarbageRecovery(
   // Record this as a quality degradation event
   if (sessionId) {
     try {
-      const { recordGeminiEmptyResponse } = await import(
-        '../voice-agent/quality-degradation-monitor.js'
-      );
+      const { recordGeminiEmptyResponse } =
+        await import('../voice-agent/quality-degradation-monitor.js');
       recordGeminiEmptyResponse(sessionId);
     } catch {
       // Non-critical - just logging
@@ -183,8 +181,8 @@ async function triggerGarbageRecovery(
 
   // Warm, human fallback messages (not robotic "I didn't understand")
   const fallbackMessages = [
-    "Hmm, I lost my train of thought for a second there. What were you saying?",
-    "Sorry, something slipped. Can you say that again?",
+    'Hmm, I lost my train of thought for a second there. What were you saying?',
+    'Sorry, something slipped. Can you say that again?',
     "My mind wandered for a moment. I'm back - what's up?",
     "Oops, I got a little distracted. I'm here now.",
   ];
@@ -229,7 +227,7 @@ const TOOL_ARG_SIGNATURES: Record<string, string[]> = {
 
 /**
  * Analyze leaked JSON to extract useful debugging info.
- * 
+ *
  * Attempts to identify:
  * - Which tool's function call leaked
  * - What arguments were included
@@ -243,13 +241,13 @@ function analyzeLeakedJson(leakedJson: string): {
 } {
   const detectedArgs: string[] = [];
   let probableTool: string | undefined;
-  
+
   // Check for known argument keys
   for (const [toolName, argKeys] of Object.entries(TOOL_ARG_SIGNATURES)) {
-    const matchingArgs = argKeys.filter(key => 
-      leakedJson.includes(`"${key}"`) || leakedJson.includes(`"${key}":`)
+    const matchingArgs = argKeys.filter(
+      (key) => leakedJson.includes(`"${key}"`) || leakedJson.includes(`"${key}":`)
     );
-    
+
     if (matchingArgs.length > 0) {
       detectedArgs.push(...matchingArgs);
       // Tool with most matching args is probably the source
@@ -258,7 +256,7 @@ function analyzeLeakedJson(leakedJson: string): {
       }
     }
   }
-  
+
   // Check for common argument values (helps identify even if keys don't match)
   const commonValues = ['personal', 'work', 'health', 'high', 'medium', 'low'];
   for (const value of commonValues) {
@@ -266,7 +264,7 @@ function analyzeLeakedJson(leakedJson: string): {
       detectedArgs.push(`value:${value}`);
     }
   }
-  
+
   return {
     probableTool,
     detectedArgs: [...new Set(detectedArgs)], // Dedupe
@@ -277,7 +275,7 @@ function analyzeLeakedJson(leakedJson: string): {
 
 /**
  * Record telemetry about JSON leaks for observability.
- * 
+ *
  * Uses structured logging that can be picked up by log aggregation systems.
  * This helps us:
  * - Track how often the OpenAI Realtime SDK leaks function calls
@@ -332,11 +330,11 @@ export interface TtsSessionContext {
     regionCode?: string;
     countryCode?: string;
   };
-  
+
   // =========================================================================
   // BETTER THAN HUMAN: Rich context for natural tool responses
   // =========================================================================
-  
+
   /** User's name for personalized responses */
   userName?: string;
   /** What the user originally asked (from last transcript) */
@@ -474,7 +472,7 @@ export async function wrappedTtsNode(
   // and executes tools directly. The LLM then receives tool results and responds naturally.
   const provider = getModelProvider();
   const skipJsonWorkaround =
-    isFTISV2OnlyMode() ||  // FTIS V2 handles all tools - no JSON workaround needed
+    isFTISV2OnlyMode() || // FTIS V2 handles all tools - no JSON workaround needed
     process.env.DISABLE_JSON_WORKAROUND === 'true' ||
     process.env.SEMANTIC_ROUTING_PRIMARY === 'true' ||
     !provider.needsJsonWorkaround();
@@ -489,11 +487,11 @@ export async function wrappedTtsNode(
           ? 'semantic routing is primary'
           : 'explicitly disabled';
     log.info(`${provider.getLogPrefix()} JSON workaround DISABLED - ${reason}`);
-    
+
     // BUG FIX: Even with native function calling, OpenAI Realtime can sometimes
     // leak function call JSON into the text stream (race condition in SDK or model).
     // Add a lightweight filter to strip JSON-like content that shouldn't be spoken.
-    // 
+    //
     // Observed pattern: When model outputs BOTH text AND function call in same response,
     // part of the function call args leak into text:
     //   'tomorrow",  \n  "category": "personal",  \n  "importance": "medium" \n}'
@@ -501,7 +499,7 @@ export async function wrappedTtsNode(
     // This filter catches and strips such leaks without the full JSON workaround overhead.
     // We also capture telemetry to track this SDK/model behavior.
     let jsonLeakBuffer = ''; // Accumulate leaked chunks for analysis
-    
+
     const jsonLeakFilter = new NodeTransformStream<string, string>({
       transform(chunk, controller) {
         // Patterns that indicate leaked function call JSON (not natural speech)
@@ -519,7 +517,7 @@ export async function wrappedTtsNode(
           /^\s*"[a-z_]+"\s*:\s*"[^"]+"\s*,?\s*$/i,
           // Function call argument patterns (category, importance, fact, etc.)
           /"\s*(category|importance|fact|medium|high|low|personal)"\s*[:,]/i,
-          
+
           // ========================================================================
           // CURSOR/CLAUDE CODE EDIT FORMAT PATTERNS (STRENGTHENED Jan 2026)
           // These catch IDE edit commands that should NEVER be spoken
@@ -546,23 +544,28 @@ export async function wrappedTtsNode(
           // XML-style code tags
           /<\/?(?:edit|path|code|file|start_line|end_line)[^>]*>/i,
         ];
-        
+
         // Check if chunk looks like leaked JSON
-        const looksLikeJson = jsonLeakPatterns.some(pattern => pattern.test(chunk));
-        
+        const looksLikeJson = jsonLeakPatterns.some((pattern) => pattern.test(chunk));
+
         // Also check for specific known function call argument values
         const knownArgValues = ['personal', 'medium', 'high', 'low', 'category', 'importance'];
-        const hasKnownArgPattern = knownArgValues.some(val => 
-          chunk.includes(`"${val}"`) && (chunk.includes(':') || chunk.includes(','))
+        const hasKnownArgPattern = knownArgValues.some(
+          (val) => chunk.includes(`"${val}"`) && (chunk.includes(':') || chunk.includes(','))
         );
-        
+
         // Check for Cursor/Claude Code edit format specifically (STRENGTHENED Jan 2026)
         // Catches: {"edits, edits[, .go, .ts, start_line, end_line, path: "file.ext"
-        const hasCursorEditPattern = 
+        const hasCursorEditPattern =
           // Core edit format
-          (chunk.includes('edits') && (chunk.includes('path') || chunk.includes('line') || chunk.includes('[') || chunk.includes('{'))) ||
+          (chunk.includes('edits') &&
+            (chunk.includes('path') ||
+              chunk.includes('line') ||
+              chunk.includes('[') ||
+              chunk.includes('{'))) ||
           // Line number fields
-          (chunk.includes('start_line') || chunk.includes('end_line')) ||
+          chunk.includes('start_line') ||
+          chunk.includes('end_line') ||
           // JSON-like edit structure
           /\{["\s]*edits/i.test(chunk) ||
           /\[\s*\{["\s]*path/i.test(chunk) ||
@@ -572,11 +575,11 @@ export async function wrappedTtsNode(
           (chunk.includes('path') && /\.(go|ts|tsx|js|jsx|py|rs|json|yaml|md)/i.test(chunk)) ||
           // Malformed JSON-like start
           /^\s*\{"?\w/.test(chunk);
-        
+
         if (looksLikeJson || hasKnownArgPattern || hasCursorEditPattern) {
           // Accumulate leaked JSON for analysis
           jsonLeakBuffer += chunk;
-          
+
           // Log detection for debugging context contamination
           if (hasCursorEditPattern) {
             log.warn(
@@ -584,11 +587,11 @@ export async function wrappedTtsNode(
               '🚨 [JSON-LEAK-FILTER] Cursor/Claude Code edit format detected - stripping'
             );
           }
-          
+
           // Don't enqueue - strip from TTS stream
           return;
         }
-        
+
         // Clean chunk: pass through to TTS
         controller.enqueue(chunk);
       },
@@ -597,10 +600,10 @@ export async function wrappedTtsNode(
         if (jsonLeakBuffer.length > 0) {
           // Try to extract useful info from the leaked JSON
           const extractedInfo = analyzeLeakedJson(jsonLeakBuffer);
-          
+
           // Log with structured data for observability
           log.warn(
-            { 
+            {
               leakedJson: jsonLeakBuffer.slice(0, 200),
               leakLength: jsonLeakBuffer.length,
               sessionId,
@@ -609,16 +612,16 @@ export async function wrappedTtsNode(
             },
             '🚨 [JSON-LEAK-FILTER] Stripped leaked function call JSON from TTS stream'
           );
-          
+
           // Record telemetry for tracking this SDK behavior
           // Fire-and-forget to avoid blocking TTS
           recordJsonLeakTelemetry(sessionId, personaId, jsonLeakBuffer, extractedInfo).catch(() => {
             // Non-critical - ignore errors
           });
         }
-      }
+      },
     });
-    
+
     filteredText = text.pipeThrough(jsonLeakFilter);
   } else {
     // Legacy path: intercept JSON function calls from LLM text output
@@ -643,7 +646,13 @@ export async function wrappedTtsNode(
         if (rawLLMChunkCount === 1) {
           const latencyMs = Date.now() - rawLLMStartTime;
           log.info(
-            { sessionId, personaId, chunkLength: chunk.length, latencyMs, trace: 'STREAM_LIFECYCLE' },
+            {
+              sessionId,
+              personaId,
+              chunkLength: chunk.length,
+              latencyMs,
+              trace: 'STREAM_LIFECYCLE',
+            },
             `🔄 [0.5/4] First LLM chunk arrived after ${latencyMs}ms: "${chunk.slice(0, 50)}..."`
           );
           // P1 UTO Fix (January 2026): Mark LLM first token checkpoint for latency tracking
@@ -726,7 +735,10 @@ export async function wrappedTtsNode(
                 hasGeminiProblem,
                 personaId,
                 // Character codes to see invisible chars
-                charCodes: rawLLMBuffer.slice(0, 20).split('').map(c => c.charCodeAt(0)),
+                charCodes: rawLLMBuffer
+                  .slice(0, 20)
+                  .split('')
+                  .map((c) => c.charCodeAt(0)),
               },
               '🚨 GARBAGE RESPONSE DETECTED - Gemini output is meaningless!'
             );
@@ -819,9 +831,7 @@ export async function wrappedTtsNode(
   // Must happen BEFORE cost tracking so we count the actual characters sent to TTS
   let linguisticallyMirroredText: NodeReadableStream<string>;
   const enableLinguisticMirroring =
-    process.env.DISABLE_LINGUISTIC_MIRRORING !== 'true' &&
-    userId &&
-    userId !== 'anonymous';
+    process.env.DISABLE_LINGUISTIC_MIRRORING !== 'true' && userId && userId !== 'anonymous';
 
   if (enableLinguisticMirroring) {
     const mirroringEngine = getLinguisticMirroring(userId);
@@ -914,9 +924,11 @@ export async function wrappedTtsNode(
           /\.(go|ts|tsx|js|jsx|py|rs)\s*["{\d]/i,
           /^[^a-zA-Z]*\{.*path.*line/is, // JSON-like with path and line
         ];
-        
-        const looksLikeCodeEdit = codeEditIndicators.some(pattern => pattern.test(ttsOutputBuffer));
-        
+
+        const looksLikeCodeEdit = codeEditIndicators.some((pattern) =>
+          pattern.test(ttsOutputBuffer)
+        );
+
         if (looksLikeCodeEdit) {
           log.error(
             {
@@ -927,12 +939,42 @@ export async function wrappedTtsNode(
             },
             '🚨 [SAFETY] Full TTS output looks like code-editing format - context contamination detected'
           );
-          
+
           // Note: We can't modify the stream here (chunks already enqueued), but
           // the log alert will help diagnose the issue. The garbage recovery
           // triggered by garbage response detection should catch this.
         }
-        
+
+        // =========================================================================
+        // SAFETY CHECK (Jan 2026): Detect instruction leakage
+        // If TTS output contains LLM instructions that were meant to be context
+        // only (not spoken), log an error. This happens when LLM echoes instructions.
+        // =========================================================================
+        const instructionLeakageIndicators = [
+          /A tool just executed successfully/i,
+          /YOUR RESPONSE:/i,
+          /PERSONA:\s*(Warm|Energetic|Calm|Professional|Creative|Wise)/i,
+          /NEVER say "Status SUCCESS"/i,
+          /Sound natural - like YOU did this/i,
+          /Tool:\s+\w+\nResult:/i,
+        ];
+
+        const looksLikeInstructionLeak = instructionLeakageIndicators.some((pattern) =>
+          pattern.test(ttsOutputBuffer)
+        );
+
+        if (looksLikeInstructionLeak) {
+          log.error(
+            {
+              sessionId,
+              personaId,
+              outputSample: ttsOutputBuffer.slice(0, 300),
+              totalLength: totalCharacters,
+            },
+            '🚨 [SAFETY] TTS output contains instruction leakage - LLM echoed context meant for prompt only'
+          );
+        }
+
         finops.recordTTSCost({
           characters: totalCharacters,
           userId,
@@ -1089,10 +1131,10 @@ export async function wrappedTtsNode(
       );
     },
   });
-  
+
   // Detect when the readable side is cancelled
   const wrappedText = optimizedText.pipeThrough(diagnosticTextStream);
-  
+
   // Track when stream reader is released without consuming
   const originalReader = wrappedText.getReader();
   const trackedTextStream = new ReadableStream<string>({
@@ -1115,7 +1157,13 @@ export async function wrappedTtsNode(
     cancel(reason) {
       textStreamCancelled = true;
       log.warn(
-        { sessionId, personaId, reason: String(reason), consumed: textStreamConsumed, trace: 'STREAM_CANCELLED' },
+        {
+          sessionId,
+          personaId,
+          reason: String(reason),
+          consumed: textStreamConsumed,
+          trace: 'STREAM_CANCELLED',
+        },
         '🚨 [TEXT STREAM CANCELLED] TTS text stream was cancelled - this explains missing audio!'
       );
       originalReader.cancel(reason);
@@ -1126,7 +1174,7 @@ export async function wrappedTtsNode(
   // This completely replaces LiveKit's internal Cartesia with our gateway
   if (isTTSGatewayEnabled()) {
     const actualVoiceId = getVoiceIdForPersona(personaId);
-    
+
     log.info(
       { personaId, voiceId: actualVoiceId, emotion, sessionId },
       '🚀 Using FULL TTS Gateway - bypassing LiveKit Cartesia'
@@ -1175,7 +1223,7 @@ export async function wrappedTtsNode(
     // This prevents SSML tags from being spoken literally by Cartesia
     const processor = getSSMLProcessor();
     const bufferTransform = processor.createBufferTransform();
-    
+
     const stripTransform = new NodeTransformStream<string, string>({
       transform(chunk, controller) {
         const result = processor.parse(chunk);
@@ -1184,13 +1232,17 @@ export async function wrappedTtsNode(
         }
       },
     });
-    
+
     const ssmlStrippedStream = trackedTextStream
       .pipeThrough(bufferTransform)
       .pipeThrough(stripTransform);
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    audioStream = await (voice.Agent.default as any).ttsNode(agent, ssmlStrippedStream, modelSettings);
+    audioStream = await (voice.Agent.default as any).ttsNode(
+      agent,
+      ssmlStrippedStream,
+      modelSettings
+    );
   }
 
   // =========================================================================
@@ -1254,7 +1306,7 @@ export async function wrappedTtsNode(
  * Persona display names for personalized voice guidance
  */
 const PERSONA_DISPLAY_NAMES: Record<string, string> = {
-  'ferni': 'Ferni',
+  ferni: 'Ferni',
   'maya-santos': 'Maya',
   'peter-john': 'Peter',
   'alex-chen': 'Alex',
@@ -1277,7 +1329,7 @@ function computeTimeContext(): TtsSessionContext['timeContext'] {
   const now = new Date();
   const hour = now.getHours();
   const day = now.getDay();
-  
+
   // Determine time of day
   let timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' | 'late-night';
   if (hour < 6) {
@@ -1291,9 +1343,9 @@ function computeTimeContext(): TtsSessionContext['timeContext'] {
   } else {
     timeOfDay = 'night';
   }
-  
+
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  
+
   return {
     timeOfDay,
     dayOfWeek: dayNames[day],
@@ -1348,17 +1400,21 @@ export function extractTtsSessionContext(
   }
 
   // Extract voice emotion data if available
-  const voiceEmotion = userData?.voiceEmotion as {
-    primary?: string;
-    intensity?: number;
-    valence?: number;
-  } | undefined;
-  
+  const voiceEmotion = userData?.voiceEmotion as
+    | {
+        primary?: string;
+        intensity?: number;
+        valence?: number;
+      }
+    | undefined;
+
   // Extract last emotion analysis as fallback
-  const lastEmotionAnalysis = userData?.lastEmotionAnalysis as {
-    primary?: string;
-    intensity?: number;
-  } | undefined;
+  const lastEmotionAnalysis = userData?.lastEmotionAnalysis as
+    | {
+        primary?: string;
+        intensity?: number;
+      }
+    | undefined;
 
   return {
     // Core session info
@@ -1372,33 +1428,35 @@ export function extractTtsSessionContext(
       | { city?: string; regionCode?: string; countryCode?: string }
       | undefined,
     // Turn number for profiling checkpoints (P1 UTO Fix - January 2026)
-    turnNumber: (userData?.turnCount as number | undefined) ?? (userData?.turnNumber as number | undefined),
-    
+    turnNumber:
+      (userData?.turnCount as number | undefined) ?? (userData?.turnNumber as number | undefined),
+
     // =========================================================================
     // BETTER THAN HUMAN: Rich context for natural tool responses
     // =========================================================================
-    
+
     // User's name for personalized responses
     userName: (userData?.userName as string | undefined) || (userData?.name as string | undefined),
-    
+
     // What the user originally asked (from last transcript)
     userRequest: userData?.lastUserMessage as string | undefined,
-    
+
     // User's detected emotional state (prefer voice emotion, fallback to last analysis)
-    userEmotion: voiceEmotion || lastEmotionAnalysis
-      ? {
-          primary: voiceEmotion?.primary || lastEmotionAnalysis?.primary,
-          intensity: voiceEmotion?.intensity || lastEmotionAnalysis?.intensity,
-          valence: voiceEmotion?.valence,
-        }
-      : undefined,
-    
+    userEmotion:
+      voiceEmotion || lastEmotionAnalysis
+        ? {
+            primary: voiceEmotion?.primary || lastEmotionAnalysis?.primary,
+            intensity: voiceEmotion?.intensity || lastEmotionAnalysis?.intensity,
+            valence: voiceEmotion?.valence,
+          }
+        : undefined,
+
     // Time context for awareness
     timeContext: computeTimeContext(),
-    
+
     // Recent conversation topics for continuity (last 3)
     recentTopics: (userData?.recentTopics as string[] | undefined)?.slice(0, 3),
-    
+
     // Persona display name for voice guidance
     personaDisplayName: getPersonaDisplayName(personaId),
   };

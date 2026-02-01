@@ -54,39 +54,39 @@ async function sendPreMeetingPushNotification(
   minutesBefore: number
 ): Promise<boolean> {
   const notificationId = `${userId}:${event.id}:push`;
-  
+
   // Skip if already sent
   if (sentPushNotifications.has(notificationId)) {
     return false;
   }
-  
+
   try {
     // Get enriched briefing if available
     let briefingBody = `${event.title || 'Meeting'} starts in ${minutesBefore} minutes`;
     let briefingData: Record<string, unknown> = { eventId: event.id };
-    
+
     try {
       const { enrichPreMeetingBriefing } = await import('../calendar/meeting-memory-service.js');
       const briefing = await enrichPreMeetingBriefing(userId, event);
-      
+
       if (briefing) {
         // Add relationship context if available
         if (briefing.relationshipContext && briefing.relationshipContext.length > 0) {
           const firstPerson = briefing.relationshipContext[0];
           const name = firstPerson.displayName || firstPerson.attendeeEmail.split('@')[0];
           briefingBody = `Meeting with ${name} in ${minutesBefore} min`;
-          
+
           // Add past topics as hint
           if (briefing.pastTopics && briefing.pastTopics.length > 0) {
             briefingBody += `. Last time: ${briefing.pastTopics[0]}`;
           }
         }
-        
+
         // Add open commitments to data
         if (briefing.openCommitments && briefing.openCommitments.length > 0) {
           briefingData.openCommitments = briefing.openCommitments;
         }
-        
+
         // Add suggested agenda items
         if (briefing.suggestedAgendaItems && briefing.suggestedAgendaItems.length > 0) {
           briefingData.suggestedAgenda = briefing.suggestedAgendaItems;
@@ -95,11 +95,11 @@ async function sendPreMeetingPushNotification(
     } catch (briefingError) {
       log.debug({ error: String(briefingError) }, 'Could not enrich briefing');
     }
-    
+
     // Send push notification
     const { getPushNotificationsService } = await import('../push-notifications.js');
     const pushService = getPushNotificationsService();
-    
+
     const sent = await pushService.sendNotification(userId, {
       title: `📅 ${event.title || 'Meeting'} soon`,
       body: briefingBody,
@@ -107,12 +107,15 @@ async function sendPreMeetingPushNotification(
       personaId: 'alex-chen', // Alex handles calendar
       data: briefingData,
     });
-    
+
     if (sent) {
       sentPushNotifications.set(notificationId, new Date());
-      log.info({ userId, event: event.title, minutesBefore }, '📅 Pre-meeting push notification sent');
+      log.info(
+        { userId, event: event.title, minutesBefore },
+        '📅 Pre-meeting push notification sent'
+      );
     }
-    
+
     return sent;
   } catch (error) {
     log.debug({ userId, error: String(error) }, 'Failed to send pre-meeting push');
@@ -130,7 +133,7 @@ async function getUsersWithCalendarConnected(): Promise<string[]> {
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
       databaseId: process.env.FIRESTORE_DATABASE || '(default)',
     });
-    
+
     // Get users from Google Calendar tokens
     const googleSnapshot = await db.collection('google_calendar_tokens').get();
     const userIds = new Set<string>(
@@ -139,13 +142,13 @@ async function getUsersWithCalendarConnected(): Promise<string[]> {
         // Filter out test users to avoid token refresh errors
         .filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'))
     );
-    
+
     // Also check unified calendar providers
     const providersSnapshot = await db
       .collectionGroup('calendar_providers')
       .where('connected', '==', true)
       .get();
-    
+
     for (const doc of providersSnapshot.docs) {
       const pathParts = doc.ref.path.split('/');
       if (pathParts.length >= 2 && pathParts[0] === 'users') {
@@ -156,7 +159,7 @@ async function getUsersWithCalendarConnected(): Promise<string[]> {
         }
       }
     }
-    
+
     return Array.from(userIds);
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to get calendar users');
@@ -207,27 +210,27 @@ async function getUsersWithCalendarWorkflows(): Promise<string[]> {
 async function checkUserCalendar(userId: string, sendPushNotifications = false): Promise<void> {
   try {
     const { getEvents } = await import('../calendar/unified-calendar-store.js');
-    
+
     const now = new Date();
     const lookAhead = new Date(now.getTime() + 20 * 60 * 1000); // 20 minutes ahead
     const lookBack = new Date(now.getTime() - 5 * 60 * 1000); // 5 minutes back (for event_end)
-    
+
     // Get upcoming events
     const events = await getEvents(userId, lookBack, lookAhead);
-    
+
     if (events.length === 0) return;
-    
+
     const engine = getWorkflowEngine(userId);
-    
+
     for (const event of events) {
       // Skip all-day events for notifications
       if (event.isAllDay) continue;
-      
+
       const eventStart = new Date(event.startTime);
       const eventEnd = new Date(event.endTime);
       const minutesUntilStart = (eventStart.getTime() - now.getTime()) / (60 * 1000);
       const minutesSinceEnd = (now.getTime() - eventEnd.getTime()) / (60 * 1000);
-      
+
       // Check for pre-meeting push notification (15 minutes before)
       if (sendPushNotifications) {
         if (
@@ -237,7 +240,7 @@ async function checkUserCalendar(userId: string, sendPushNotifications = false):
           await sendPreMeetingPushNotification(userId, event, Math.round(minutesUntilStart));
         }
       }
-      
+
       // Check for event reminders (15, 10, 5 minutes before) - workflow triggers
       for (const reminderMinutes of REMINDER_WINDOWS) {
         if (
@@ -258,11 +261,14 @@ async function checkUserCalendar(userId: string, sendPushNotifications = false):
               triggerType: 'event_reminder',
               triggeredAt: now,
             });
-            log.info({ userId, event: event.title, reminderMinutes }, '📅 Calendar reminder triggered');
+            log.info(
+              { userId, event: event.title, reminderMinutes },
+              '📅 Calendar reminder triggered'
+            );
           }
         }
       }
-      
+
       // Check for event start (within 2 minutes of start)
       if (Math.abs(minutesUntilStart) < 2) {
         const triggerId = `${userId}:${event.id}:start`;
@@ -282,7 +288,7 @@ async function checkUserCalendar(userId: string, sendPushNotifications = false):
           log.info({ userId, event: event.title }, '📅 Calendar event started trigger');
         }
       }
-      
+
       // Check for event end (within 2 minutes of end)
       if (minutesSinceEnd > 0 && minutesSinceEnd < 2) {
         const triggerId = `${userId}:${event.id}:end`;
@@ -313,14 +319,14 @@ async function checkUserCalendar(userId: string, sendPushNotifications = false):
  */
 function cleanupTriggeredEvents(): void {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-  
+
   // Clean up workflow triggers
   for (const [id, event] of triggeredEvents.entries()) {
     if (event.triggeredAt < oneHourAgo) {
       triggeredEvents.delete(id);
     }
   }
-  
+
   // Clean up push notification tracking
   for (const [id, sentAt] of sentPushNotifications.entries()) {
     if (sentAt < oneHourAgo) {
@@ -334,31 +340,31 @@ function cleanupTriggeredEvents(): void {
  */
 async function checkAllCalendars(): Promise<void> {
   if (!isRunning) return;
-  
+
   try {
     // Get users with calendar workflows (for workflow triggers)
     const workflowUserIds = await getUsersWithCalendarWorkflows();
-    
+
     // Get all users with calendar connected (for push notifications)
     const calendarUserIds = await getUsersWithCalendarConnected();
-    
+
     // Combine unique user IDs
     const allUserIds = new Set([...workflowUserIds, ...calendarUserIds]);
-    
+
     if (allUserIds.size === 0) {
       log.debug('No users with calendars');
       return;
     }
-    
+
     log.debug(
       { workflowUsers: workflowUserIds.length, calendarUsers: calendarUserIds.length },
       'Checking calendars'
     );
-    
+
     // Process users in parallel (with limit)
     const BATCH_SIZE = 10;
     const userIdArray = Array.from(allUserIds);
-    
+
     for (let i = 0; i < userIdArray.length; i += BATCH_SIZE) {
       const batch = userIdArray.slice(i, i + BATCH_SIZE);
       await Promise.all(
@@ -370,10 +376,9 @@ async function checkAllCalendars(): Promise<void> {
         })
       );
     }
-    
+
     // Cleanup old triggers
     cleanupTriggeredEvents();
-    
   } catch (error) {
     log.error({ error: String(error) }, 'Calendar trigger check failed');
   }
@@ -391,16 +396,16 @@ export function startCalendarTriggerWorker(): void {
     log.warn('Calendar trigger worker already running');
     return;
   }
-  
+
   isRunning = true;
-  
+
   // Run immediately, then on interval
   void checkAllCalendars();
-  
+
   workerInterval = setInterval(() => {
     void checkAllCalendars();
   }, CHECK_INTERVAL_MS);
-  
+
   log.info({ intervalMs: CHECK_INTERVAL_MS }, '📅 Calendar trigger worker started');
 }
 
@@ -409,7 +414,7 @@ export function startCalendarTriggerWorker(): void {
  */
 export function stopCalendarTriggerWorker(): void {
   isRunning = false;
-  
+
   if (workerInterval) {
     clearInterval(workerInterval);
     workerInterval = null;

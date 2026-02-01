@@ -6,11 +6,7 @@
 
 import { resolvePath } from '../context-factory.js';
 import { validateFieldMatchers } from './api-validator.js';
-import type {
-  StorageExpectation,
-  StorageValidationResult,
-  E2ETestContext,
-} from '../types.js';
+import type { StorageExpectation, StorageValidationResult, E2ETestContext } from '../types.js';
 
 // ============================================================================
 // Storage Validation
@@ -227,7 +223,9 @@ export async function assertCollectionHasDocuments(
   if (docs.length < minCount) {
     return {
       passed: false,
-      error: message || `Expected collection "${collectionPath}" to have at least ${minCount} documents, but found ${docs.length}`,
+      error:
+        message ||
+        `Expected collection "${collectionPath}" to have at least ${minCount} documents, but found ${docs.length}`,
       actualCount: docs.length,
     };
   }

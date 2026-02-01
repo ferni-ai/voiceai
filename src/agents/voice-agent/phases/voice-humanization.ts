@@ -51,26 +51,30 @@ export async function setupVoiceHumanization(
 
   try {
     const { getEmotionalArcTracker } = await import('../../../conversation/index.js');
-    const { quickSetupVoiceHumanization } = await import(
-      '../../integrations/voice-humanization-integration.js'
-    );
+    const { quickSetupVoiceHumanization } =
+      await import('../../integrations/voice-humanization-integration.js');
 
     const emotionalArcTracker = getEmotionalArcTracker();
 
-    const voiceHumanization = quickSetupVoiceHumanization(sessionId, personaId, emotionalArcTracker, {
-      onInterrupt: () => {
-        // When micro-interruption detected, interrupt the agent
-        process.stderr.write(`[voice-humanization] 🛑 Micro-interruption detected\n`);
-        try {
-          session.interrupt();
-        } catch {
-          // Ignore interrupt errors
-        }
-      },
-      onLaughter: (laughType: string) => {
-        process.stderr.write(`[voice-humanization] 😄 User laughter detected: ${laughType}\n`);
-      },
-    });
+    const voiceHumanization = quickSetupVoiceHumanization(
+      sessionId,
+      personaId,
+      emotionalArcTracker,
+      {
+        onInterrupt: () => {
+          // When micro-interruption detected, interrupt the agent
+          process.stderr.write(`[voice-humanization] 🛑 Micro-interruption detected\n`);
+          try {
+            session.interrupt();
+          } catch {
+            // Ignore interrupt errors
+          }
+        },
+        onLaughter: (laughType: string) => {
+          process.stderr.write(`[voice-humanization] 😄 User laughter detected: ${laughType}\n`);
+        },
+      }
+    );
 
     process.stderr.write(`[voice-humanization] 🎤 Voice humanization initialized\n`);
 

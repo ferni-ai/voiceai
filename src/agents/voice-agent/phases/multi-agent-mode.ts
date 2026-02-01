@@ -163,12 +163,10 @@ export async function runMultiAgentMode(
 
   try {
     // Import dependencies
-    const { initializeMultiAgentSession, handleHandoffFromDataChannel } = await import(
-      '../../multi-agent/multi-agent-entry.js'
-    );
-    const { createGroupVoiceIntegration } = await import(
-      '../../group-conversation/voice-integration.js'
-    );
+    const { initializeMultiAgentSession, handleHandoffFromDataChannel } =
+      await import('../../multi-agent/multi-agent-entry.js');
+    const { createGroupVoiceIntegration } =
+      await import('../../group-conversation/voice-integration.js');
     const { handoffEvents } = await import('../../../handoff/index.js');
 
     // Initialize multi-agent session

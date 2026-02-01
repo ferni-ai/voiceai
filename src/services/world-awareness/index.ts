@@ -805,24 +805,32 @@ export function updateUserInterests(userId: string, interests: Partial<UserInter
     if (newTeams.length > 0) {
       cache.interests.favoriteTeams.push(...newTeams);
       // Fetch scores for new teams
-      void fetchSportsData(newTeams).then((sports) => {
-        if (sports && cache.sports) {
-          for (const [team, score] of sports.scores) {
-            cache.sports.scores.set(team, score);
+      void fetchSportsData(newTeams)
+        .then((sports) => {
+          if (sports && cache.sports) {
+            for (const [team, score] of sports.scores) {
+              cache.sports.scores.set(team, score);
+            }
           }
-        }
-      });
+        })
+        .catch((err) => {
+          log.warn({ error: String(err), teams: newTeams }, 'Failed to fetch sports data for new teams');
+        });
     }
   }
 
   if (interests.location && interests.location !== cache.interests.location) {
     cache.interests.location = interests.location;
     // Fetch weather for new location
-    void fetchWeatherData(interests.location).then((weather) => {
-      if (weather) {
-        cache.weather = weather;
-      }
-    });
+    void fetchWeatherData(interests.location)
+      .then((weather) => {
+        if (weather) {
+          cache.weather = weather;
+        }
+      })
+      .catch((err) => {
+        log.warn({ error: String(err), location: interests.location }, 'Failed to fetch weather for new location');
+      });
   }
 
   if (interests.industries) {

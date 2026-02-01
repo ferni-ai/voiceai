@@ -61,15 +61,42 @@ This directory contains tests that span multiple modules - integration tests, E2
 
 ## Subdirectories
 
+364 test files across 32 subdirectories:
+
 | Directory | Purpose |
 |-----------|---------|
 | `__snapshots__/` | Jest/Vitest snapshots |
+| `agi-features/` | AGI feature tests |
 | `better-than-human/` | BTH-specific test fixtures |
+| `context-builders/` | Context builder tests |
+| `creative-you/` | Creative feature tests |
+| `data-layer/` | Data layer tests |
 | `e2e/` | End-to-end test suites |
+| `features/` | Feature-specific tests |
 | `fixtures/` | Test data and mocks |
-| `unit/` | Additional unit tests |
+| `games/` | Game feature tests |
+| `growth/` | Growth system tests |
+| `handoff/` | Handoff/transition tests |
+| `helpers/` | Test helper utilities |
+| `humanization/` | Humanization pipeline tests |
+| `integration/` | Integration test suites |
+| `intelligence/` | Intelligence system tests |
+| `life-automation/` | Life automation tests |
+| `memory-lane/` | Memory lane feature tests |
+| `monetization/` | Monetization/subscription tests |
+| `personal-journey/` | Personal journey tests |
+| `personality/` | Personality system tests |
+| `registry/` | Registry tests |
+| `revelation-moments/` | Revelation moment tests |
+| `semantic-coherence/` | Semantic coherence tests |
 | `services/` | Service-specific tests |
-| `integrations/` | Integration test suites |
+| `superhuman/` | Superhuman capability tests |
+| `synthetic/` | Synthetic/generated tests |
+| `telephony/` | Phone call tests |
+| `tools/` | Tool tests |
+| `types/` | Type validation tests |
+| `unit/` | Additional unit tests |
+| `utils/` | Utility tests |
 
 ---
 

@@ -10,7 +10,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 // Use real implementations (no mocks)
-import { toolOrchestrator } from '../unified-tool-orchestrator.js';
+import { toolOrchestrator } from '../tool-orchestrator.js';
 import { detectToolIntent } from '../../dynamic-tool-router.js';
 import { autoRegisterAllDomains } from '../../registry/loader.js';
 

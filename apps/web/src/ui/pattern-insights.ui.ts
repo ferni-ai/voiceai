@@ -22,6 +22,8 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
+import { getPatternInsightIcon, ANALYTICS_ICONS, GROWTH_ICONS } from './icons/shared-icons.js';
+import { createEmptyState } from './components/empty-state.js';
 
 const log = createLogger('PatternInsights');
 
@@ -60,15 +62,6 @@ let isExpanded = false;
 
 const STORAGE_KEY = 'ferni_pattern_insights_cache';
 const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
-
-// Icons for each insight type
-const TYPE_ICONS: Record<string, string> = {
-  timing: '🕐',
-  mood: '🌈',
-  frequency: '📊',
-  topic: '💬',
-  growth: '🌱',
-};
 
 // ============================================================================
 // INITIALIZATION
@@ -181,9 +174,9 @@ function getDefaultInsights(): PatternInsight[] {
     {
       id: 'welcome',
       type: 'growth',
-      title: 'Getting to know you',
-      description: 'Chat more to unlock personalized insights',
-      icon: '✨',
+      title: "I'm learning your rhythms",
+      description: 'After a few more conversations, I\'ll show you patterns that might surprise you.',
+      icon: '', // Will use SVG icon from getPatternInsightIcon
     },
   ];
 }
@@ -274,10 +267,9 @@ function renderInsights(container: HTMLElement): void {
   container.textContent = '';
 
   if (insights.length === 0) {
-    const emptyText = document.createElement('p');
-    emptyText.className = 'pattern-insights-card__empty';
-    emptyText.textContent = 'Keep chatting to build insights';
-    container.appendChild(emptyText);
+    // Use shared empty state component
+    const emptyState = createEmptyState('pattern-insights', true);
+    container.appendChild(emptyState);
     return;
   }
 
@@ -291,10 +283,10 @@ function createInsightItem(insight: PatternInsight): HTMLElement {
   const item = document.createElement('div');
   item.className = `pattern-insights-item pattern-insights-item--${insight.type}`;
 
-  // Icon
+  // Icon (SVG from shared icons)
   const icon = document.createElement('span');
   icon.className = 'pattern-insights-item__icon';
-  icon.textContent = insight.icon || TYPE_ICONS[insight.type] || '💭';
+  icon.innerHTML = getPatternInsightIcon(insight.type);
   icon.setAttribute('aria-hidden', 'true');
 
   // Content wrapper
@@ -357,10 +349,10 @@ function injectStyles(): void {
        ======================================== */
 
     .pattern-insights-card {
-      background: var(--glass-background, rgba(255, 255, 255, 0.05));
+      background: var(--glass-background, rgba(245, 241, 232, 0.08));
       backdrop-filter: blur(var(--glass-blur-subtle, 8px));
       -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-      border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+      border: 1px solid var(--glass-border, rgba(44, 37, 32, 0.1));
       border-radius: var(--radius-lg, 16px);
       overflow: hidden;
       opacity: 0;
@@ -380,20 +372,20 @@ function injectStyles(): void {
       align-items: center;
       justify-content: space-between;
       padding: var(--space-md, 16px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.05));
+      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     }
 
     .pattern-insights-card__title {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-md, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #ffffff);
+      color: var(--color-text-primary, #F5F1E8);
       margin: 0;
     }
 
     .pattern-insights-card__subtitle {
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
       margin: var(--space-2xs, 2px) 0 0;
     }
 
@@ -403,10 +395,10 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.1));
+      background: var(--color-bg-elevated, rgba(245, 241, 232, 0.1));
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      color: var(--color-text-secondary, rgba(245, 241, 232, 0.8));
       font-size: 18px;
       font-weight: bold;
       cursor: pointer;
@@ -414,8 +406,8 @@ function injectStyles(): void {
     }
 
     .pattern-insights-card__toggle:hover {
-      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.15));
-      color: var(--color-text-primary, #ffffff);
+      background: var(--color-bg-tertiary, rgba(245, 241, 232, 0.15));
+      color: var(--color-text-primary, #F5F1E8);
     }
 
     .pattern-insights-card__toggle:focus-visible {
@@ -437,7 +429,7 @@ function injectStyles(): void {
     .pattern-insights-card__empty {
       padding: var(--space-lg, 26px);
       text-align: center;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
       font-style: italic;
       margin: 0;
     }
@@ -447,7 +439,7 @@ function injectStyles(): void {
       display: flex;
       gap: var(--space-sm, 8px);
       padding: var(--space-md, 16px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.05));
+      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     }
 
     .pattern-insights-item:last-child {
@@ -455,9 +447,15 @@ function injectStyles(): void {
     }
 
     .pattern-insights-item__icon {
-      font-size: 1.25rem;
-      line-height: 1;
+      width: 20px;
+      height: 20px;
       flex-shrink: 0;
+      color: var(--color-accent-primary, #4a6741);
+    }
+
+    .pattern-insights-item__icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     .pattern-insights-item__content {
@@ -475,7 +473,7 @@ function injectStyles(): void {
     .pattern-insights-item__title {
       font-size: var(--font-size-sm, 0.875rem);
       font-weight: 500;
-      color: var(--color-text-primary, #ffffff);
+      color: var(--color-text-primary, #F5F1E8);
     }
 
     .pattern-insights-item__trend {
@@ -492,7 +490,7 @@ function injectStyles(): void {
     }
 
     .pattern-insights-item__trend--stable {
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
     }
 
     .pattern-insights-item__value {
@@ -504,30 +502,30 @@ function injectStyles(): void {
 
     .pattern-insights-item__description {
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      color: var(--color-text-secondary, rgba(245, 241, 232, 0.8));
       line-height: 1.4;
       margin: var(--space-2xs, 2px) 0 0;
     }
 
-    /* Type-specific backgrounds */
+    /* Type-specific backgrounds using warm brand colors */
     .pattern-insights-item--timing {
-      background: rgba(100, 180, 255, 0.03);
+      background: var(--color-insight-timing, rgba(61, 90, 69, 0.06));
     }
 
     .pattern-insights-item--mood {
-      background: rgba(255, 180, 200, 0.03);
+      background: var(--color-insight-mood, rgba(196, 133, 106, 0.06));
     }
 
     .pattern-insights-item--frequency {
-      background: rgba(180, 255, 200, 0.03);
+      background: var(--color-insight-frequency, rgba(74, 103, 65, 0.06));
     }
 
     .pattern-insights-item--topic {
-      background: rgba(255, 220, 150, 0.03);
+      background: var(--color-insight-topic, rgba(168, 133, 98, 0.06));
     }
 
     .pattern-insights-item--growth {
-      background: rgba(150, 220, 180, 0.03);
+      background: var(--color-insight-growth, rgba(74, 103, 65, 0.08));
     }
 
     /* Reduced motion */

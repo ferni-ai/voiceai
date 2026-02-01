@@ -14,9 +14,29 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { ClassificationResult } from './tool-classifier.js';
 
 const log = createLogger({ module: 'tool-executor' });
+
+/**
+ * Classification result from the FTIS V2 tool classifier.
+ * Defines the expected shape for direct tool execution.
+ */
+export interface ClassificationResult {
+  /** Fine-grained category (e.g., 'weather', 'music', 'calendar') */
+  fineCategory: string;
+  /** Ranked list of candidate tool IDs */
+  toolIds: string[];
+  /** Combined confidence score from all signals */
+  combinedConfidence: number;
+  /** Effective confidence after calibration/boundary adjustment */
+  effectiveConfidence?: number;
+  /** Whether this appears to be an open-ended intent (conversation, not tool) */
+  isOpenIntent?: boolean;
+  /** Raw embedding confidence */
+  embeddingConfidence?: number;
+  /** Pattern match confidence */
+  patternConfidence?: number;
+}
 
 // ============================================================================
 // TYPES
@@ -752,8 +772,22 @@ export async function executeDirectFromClassification(
       classification.toolIds
     );
 
+    // FIX (Jan 2026): Merge userLocation into args for weather when no location in query
+    // extractWeatherArgs() returns {} when user says "what's the weather?" without a location.
+    // The userLocation from IP geo is in context but wasn't being passed to the tool.
+    if (classification.fineCategory === 'weather' && !args.location && context.userLocation?.city) {
+      args.location = context.userLocation.regionCode
+        ? `${context.userLocation.city}, ${context.userLocation.regionCode}`
+        : context.userLocation.city;
+      log.debug(
+        { location: args.location, source: 'IP_GEO', trace: 'FTIS_V2_WEATHER_LOCATION' },
+        `📍 Weather: Using IP-detected location: ${args.location}`
+      );
+    }
+
     // Use effective confidence in logging (accounts for boundary detection + calibration)
-    const routingConfidence = classification.effectiveConfidence ?? classification.combinedConfidence;
+    const routingConfidence =
+      classification.effectiveConfidence ?? classification.combinedConfidence;
 
     log.info(
       {

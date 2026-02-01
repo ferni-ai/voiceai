@@ -295,14 +295,14 @@ export const DEFAULT_TOOL_CONFIG: ToolConfig = {
  */
 export const AVAILABLE_MODELS = [
   {
-    id: 'gemini-3-flash-preview',
-    name: 'Gemini 3 Flash (Preview)',
-    description: 'Latest model with improved capabilities',
-  },
-  {
     id: 'gemini-2.5-flash',
     name: 'Gemini 2.5 Flash',
     description: 'Fast, stable, recommended',
+  },
+  {
+    id: 'gemini-2.0-flash',
+    name: 'Gemini 2.0 Flash',
+    description: 'Fast, stable, good for extraction',
   },
   {
     id: 'gemini-2.0-flash-live-001',

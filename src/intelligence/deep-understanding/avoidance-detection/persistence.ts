@@ -29,10 +29,7 @@ const signalStorage = new Map<string, AvoidanceSignal[]>();
 /**
  * Save a new avoidance signal and update patterns
  */
-export async function saveSignal(
-  userId: string,
-  signal: AvoidanceSignal
-): Promise<void> {
+export async function saveSignal(userId: string, signal: AvoidanceSignal): Promise<void> {
   // Get existing signals
   const signals = signalStorage.get(userId) || [];
   signals.push(signal);
@@ -56,10 +53,7 @@ export async function saveSignal(
 /**
  * Update patterns based on accumulated signals
  */
-async function updatePatterns(
-  userId: string,
-  signals: AvoidanceSignal[]
-): Promise<void> {
+async function updatePatterns(userId: string, signals: AvoidanceSignal[]): Promise<void> {
   const patterns = new Map<string, AvoidancePattern>();
 
   // Group by topic
@@ -98,9 +92,7 @@ async function updatePatterns(
   // Save patterns
   patternStorage.set(
     userId,
-    Array.from(patterns.values()).filter(
-      (p) => p.frequency >= THRESHOLDS.minSignalsForPattern
-    )
+    Array.from(patterns.values()).filter((p) => p.frequency >= THRESHOLDS.minSignalsForPattern)
   );
 }
 
@@ -121,8 +113,7 @@ function calculatePatternStrength(pattern: AvoidancePattern): number {
 
   // Recency bonus (up to 0.1)
   const daysSinceLastDetection =
-    (Date.now() - new Date(pattern.lastDetected).getTime()) /
-    (1000 * 60 * 60 * 24);
+    (Date.now() - new Date(pattern.lastDetected).getTime()) / (1000 * 60 * 60 * 24);
   if (daysSinceLastDetection < 7) {
     strength += 0.1;
   }
@@ -163,14 +154,9 @@ export async function getPatternsByTopics(
 /**
  * Mark a pattern as acknowledged
  */
-export async function acknowledgePattern(
-  userId: string,
-  topic: string
-): Promise<void> {
+export async function acknowledgePattern(userId: string, topic: string): Promise<void> {
   const patterns = patternStorage.get(userId) || [];
-  const pattern = patterns.find(
-    (p) => p.topic.toLowerCase() === topic.toLowerCase()
-  );
+  const pattern = patterns.find((p) => p.topic.toLowerCase() === topic.toLowerCase());
 
   if (pattern) {
     pattern.acknowledged = true;

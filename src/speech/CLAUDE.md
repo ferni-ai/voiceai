@@ -2,17 +2,18 @@
 
 > "We believe in making AI human, and the decisions we make will reflect that."
 
-The speech module provides voice-based capabilities that make Ferni feel truly human. It handles everything from SSML generation to emotion detection from voice prosody.
+The speech module (~82,140 lines across 276 files) provides voice-based capabilities that make Ferni feel truly human. It handles everything from SSML generation to emotion detection from voice prosody.
 
-## 🎯 Production-Ready Status
+## Production-Ready Status
 
 This module is **production-ready** with:
 
-- ✅ Full session-scoped service management
-- ✅ Comprehensive test coverage (including session-cleanup, ssml-tagger)
-- ✅ Memory-safe cleanup for 29+ services
-- ✅ Optimized FFT with iterative Cooley-Tukey algorithm
-- ✅ Tunable detection thresholds via exported constants
+- Full session-scoped service management (29+ services)
+- 24 test files in `__tests__/`
+- Memory-safe cleanup via `session-cleanup.ts`
+- Optimized FFT with iterative Cooley-Tukey algorithm
+- Tunable detection thresholds via exported constants
+- 28 subdirectories including `adaptive-ssml/` (50 files), `tts-gateway/` (17 files)
 
 ## 🎭 Speech Orchestrator (NEW - Recommended Entry Point)
 
@@ -149,62 +150,66 @@ This unifies:
 
 ## Architecture Overview
 
+The speech module contains **276 .ts files** (~82,140 lines) across **28 subdirectories** plus **50 root-level files**.
+
 ```
 src/speech/
-├── orchestrator/                 # 🆕 Unified coordination layer
-│   ├── orchestrator.ts          # Main SpeechOrchestrator class
-│   ├── types.ts                 # Type definitions
-│   └── index.ts                 # Re-exports
-├── config/                       # 🆕 Centralized configuration
-│   ├── speech-config.ts         # All tunable constants
-│   └── index.ts                 # Re-exports
-├── anticipation/                 # 🆕 Unified anticipation pipeline
-│   ├── types.ts                 # Type definitions
-│   ├── intent-predictor.ts      # Intent prediction
-│   ├── emotion-predictor.ts     # Emotional trajectory prediction
-│   ├── pipeline.ts              # Unified pipeline
-│   └── index.ts                 # Re-exports
-├── pronunciation-memory/         # 🆕 Split into subdirectory (was 616 lines)
-│   ├── types.ts                 # Type definitions
-│   ├── constants.ts             # Difficult name pronunciations
-│   ├── service.ts               # Main service class
-│   ├── session.ts               # Session management
-│   └── index.ts                 # Re-exports
-├── persona-voice-loader.ts       # 🆕 Dynamic loading from persona bundles
-├── __tests__/                    # Test files
-│   ├── audio-prosody.test.ts    # ✅ Comprehensive
-│   ├── human-listening-pipeline.test.ts # ✅ Good
-│   ├── voice-humanization.test.ts # ✅ Good
-│   ├── session-cleanup.test.ts  # ✅ NEW - Memory safety tests
-│   └── ssml-tagger.test.ts      # ✅ NEW - SSML generation tests
-├── audio-prosody/                # Voice emotion detection (split module)
-│   ├── types.ts                 # Type definitions
-│   ├── analyzer.ts              # Main AudioProsodyAnalyzer class
-│   ├── feature-extraction.ts    # Audio DSP functions
-│   ├── emotion-mapping.ts       # VAD emotion mapping
-│   ├── session-management.ts    # Session handling & metrics
-│   └── index.ts                 # Re-exports
-├── ssml-tagger/                  # DEPRECATED - Now re-exports from src/ssml/
-│   ├── types.ts                 # → Re-exports from ../../ssml/types.js
-│   ├── constants.ts             # → Re-exports from ../../ssml/constants.js
-│   ├── detection.ts             # → Re-exports from ../../ssml/detection.js
-│   ├── financial.ts
-│   ├── jack-bogle.ts            # → Re-exports from persona bundle
-│   ├── processors.ts
-│   └── index.ts
-├── voice-manager/                # Session-scoped voice management
-│   ├── manager.ts               # VoiceManager class (now session-scoped!)
-│   └── index.ts
+├── orchestrator/                 # Unified coordination layer (3 files)
+├── config/                       # Centralized configuration (2 files)
+├── anticipation/                 # Unified anticipation pipeline (5 files)
+├── pronunciation-memory/         # Pronunciation learning (5 files)
+├── audio-prosody/                # Voice emotion detection (9 files)
+├── adaptive-ssml/                # Advanced SSML features (50 files) ← LARGEST
+├── advanced-humanization/        # Advanced voice humanization (7 files)
+├── ambient-reactivity/           # Ambient sound reactions (4 files)
+├── backchanneling/               # Unified backchannel engine (5 files)
+├── coordination/                 # Speech coordination (12 files)
+├── fft-analyzer/                 # FFT audio analysis (9 files)
+├── graceful-interrupt/           # Graceful interruption handling (2 files)
+├── human-listening-pipeline/     # Human listening orchestration (6 files)
+├── humanization/                 # Speech humanization (5 files)
+├── live-backchanneling/          # Real-time backchannel (6 files)
+├── metrics/                      # Speech observability metrics (1 file)
+├── naturalness/                  # Naturalness scoring (4 files)
+├── persona-phrases/              # Persona-specific phrases (8 files)
+├── response-anticipation/        # Response anticipation (5 files)
+├── sesame-inspired/              # Sesame-inspired prosody features (7 files)
+├── tts-gateway/                  # TTS gateway orchestration (17 files)
+├── tts/                          # TTS utilities (10 files)
+├── types/                        # Shared type definitions (1 file)
+├── voice-biomarkers/             # Voice health biomarkers (4 files)
+├── voice-humanization/           # Voice humanization (5 files)
+├── voice-manager/                # Session-scoped voice management (6 files)
+├── audio-dsp/                    # Audio DSP utilities (3 files)
+├── __tests__/                    # Test files (24 files)
+│
 ├── index.ts                      # Main exports
-├── session-cleanup.ts            # Unified session cleanup (IMPORTANT!)
-└── [other modules]
+├── session-cleanup.ts            # Unified session cleanup (CRITICAL)
+├── session-service.ts            # Session service abstraction
+├── persona-voice-loader.ts       # Dynamic loading from persona bundles
+└── [46 more root-level .ts files]
 ```
 
-## SSML Architecture (Important!)
+### Key Root-Level Files
+
+| Category | Files |
+|----------|-------|
+| **Backchannel** | `backchanneling.ts`, `enhanced-backchanneling.ts`, `live-backchanneling.ts`, `llm-backchannel.ts`, `backchannel-phrase-selector.ts` |
+| **Voice Analysis** | `audio-prosody.ts`, `fft-analyzer.ts`, `breath-detection.ts`, `voice-tremor.ts`, `volume-dynamics.ts`, `energy-dynamics.ts` |
+| **Humanization** | `voice-humanization.ts`, `advanced-humanization.ts`, `response-naturalness.ts`, `consonant-smoothing.ts` |
+| **TTS** | `tts-context.ts`, `tts-bulkhead.ts`, `tts-monitoring.ts`, `cartesia-context-patch.ts`, `cartesia-expressiveness.ts` |
+| **Speech Flow** | `enhanced-turn-prediction.ts`, `prosody-turn-bridge.ts`, `word-timing-rhythm.ts`, `adaptive-ssml.ts` |
+| **Cognitive** | `cognitive-speech.ts`, `cognitive-speech-integration.ts`, `conversational-presence.ts` |
+| **Emotion** | `emotion-matching.ts`, `emotion-profiles.ts`, `emotional-contagion.ts` |
+| **Analysis** | `fluency-analysis.ts`, `filler-analysis.ts`, `multi-signal-laughter.ts` |
+| **Session** | `session-cleanup.ts`, `session-debug.ts`, `session-service.ts`, `speech-context.ts` |
+| **Other** | `human-listening-pipeline.ts`, `persona-voice-loader.ts`, `tool-fillers.ts`, `music-reactions.ts` |
+
+## SSML Architecture
 
 ### Canonical SSML Source: `src/ssml/`
 
-The **canonical source** for all SSML functionality is now `src/ssml/`, NOT `src/speech/ssml-tagger/`.
+The **canonical source** for all SSML functionality is `src/ssml/`. The `ssml-tagger/` subdirectory has been removed.
 
 ```
 src/ssml/                    ← CANONICAL SSML SOURCE
@@ -212,8 +217,7 @@ src/ssml/                    ← CANONICAL SSML SOURCE
     │ imports
     │
 src/speech/                  ← Voice/audio processing
-├── ssml-tagger/             ← DEPRECATED (re-exports from src/ssml/)
-├── adaptive-ssml/           ← Advanced SSML features (uses src/ssml/)
+├── adaptive-ssml/           ← Advanced SSML features (50 files, uses src/ssml/)
 └── ...
 ```
 
@@ -231,27 +235,19 @@ import {
 
 // ⚠️ ALSO OK - Import through speech module (re-exports canonical)
 import { tagTextWithSsmlPersonaAware, sanitizeSsml } from '../speech/index.js';
-
-// ❌ DEPRECATED - Don't import directly from ssml-tagger
-import { tagTextWithSsml } from '../speech/ssml-tagger/index.js';
-import { FINANCIAL_PRONUNCIATIONS } from '../speech/ssml-tagger/constants.js';
 ```
 
-### Jack Bogle (Peter John) Speech Traits
+### Character Speech Traits
 
-Character-specific speech patterns are in the persona bundle, NOT in ssml-tagger:
+Character-specific speech patterns are in persona bundles:
 
 ```typescript
-// ✅ CORRECT - Import from persona bundle
 import {
   applyPeterJohnSpeechTraits,
   addCatchphraseEmphasis,
   addWisdomCadence,
   PETER_JOHN_SPEECH_CONFIG,
 } from '../personas/bundles/peter-john/speech-traits.js';
-
-// ❌ DEPRECATED - Don't import from ssml-tagger
-import { addCatchphraseEmphasis } from '../speech/ssml-tagger/jack-bogle.js';
 ```
 
 See `src/ssml/CLAUDE.md` for complete SSML module documentation.
@@ -516,23 +512,14 @@ These functions are deprecated and will be removed according to the timeline bel
 
 ### 📅 Deprecation Timeline
 
-| API Category | Status | Removal Target | Migration Guide |
-|--------------|--------|----------------|-----------------|
-| **ssml-tagger/** module | ✅ **REMOVED** | - | Migrate to `src/ssml/` |
-| **jack-bogle.ts** | ✅ **REMOVED** | - | Use persona bundles |
-| **Legacy global managers** | ⚠️ Deprecated | Q1 2025 | Use session-scoped APIs |
-| **remove* naming** | ⚠️ Deprecated | Q2 2025 | Use `reset*` naming |
-| **ACKNOWLEDGMENT_PREFIXES** | ⚠️ Deprecated | Q2 2025 | LLM generates naturally |
-| **getThinkingFiller()** | ⚠️ Deprecated | Q2 2025 | Use `getContextAwareThinkingFiller()` |
-
-**Deprecation Stages:**
-1. **Warning** (Current): APIs work but log deprecation warnings
-2. **Runtime Warning**: APIs emit console warnings in development
-3. **Removal**: APIs are removed from exports
-
-### How to Migrate
-
-See `docs/SPEECH-MIGRATION-GUIDE.md` for step-by-step migration instructions.
+| API Category | Status | Migration Guide |
+|--------------|--------|-----------------|
+| **ssml-tagger/** module | ✅ Removed | Migrate to `src/ssml/` |
+| **jack-bogle.ts** | ✅ Removed | Use persona bundles |
+| **Legacy global managers** | ⚠️ Deprecated | Use session-scoped APIs |
+| **remove* naming** | ⚠️ Deprecated | Use `reset*` naming |
+| **ACKNOWLEDGMENT_PREFIXES** | ⚠️ Deprecated | LLM generates naturally |
+| **getThinkingFiller()** | ⚠️ Deprecated | Use `getContextAwareThinkingFiller()` |
 
 ---
 

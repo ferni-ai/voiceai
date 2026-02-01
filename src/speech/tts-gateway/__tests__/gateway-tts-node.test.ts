@@ -147,7 +147,7 @@ describe('Gateway TTS Node', () => {
       expect(callArgs[0]).not.toContain('<speed');
     });
 
-    it('should return null for empty text', async () => {
+    it('should return empty stream for empty text', async () => {
       const gatewayTTS = createGatewayTTSNode({
         voiceId: 'test-voice',
         sessionId: 'test-session',
@@ -156,7 +156,10 @@ describe('Gateway TTS Node', () => {
       const textStream = createTextStream('   ');
       const audioStream = await gatewayTTS(textStream);
 
-      expect(audioStream).toBeNull();
+      // Returns empty stream (not null) to avoid LiveKit SDK errors
+      expect(audioStream).not.toBeNull();
+      const frames = await collectFrames(audioStream);
+      expect(frames.length).toBe(0);
       expect(mockProvider.synthesize).not.toHaveBeenCalled();
     });
 
@@ -294,7 +297,10 @@ describe('Gateway TTS Node', () => {
       const textStream = createTextStream('Error test');
       const audioStream = await gatewayTTS(textStream);
 
-      expect(audioStream).toBeNull();
+      // Returns empty stream (not null) to avoid LiveKit SDK errors
+      expect(audioStream).not.toBeNull();
+      const frames = await collectFrames(audioStream);
+      expect(frames.length).toBe(0);
 
       const metrics = getGatewayTTSMetrics();
       expect(metrics.errors).toBe(1);
@@ -311,7 +317,10 @@ describe('Gateway TTS Node', () => {
       const textStream = createTextStream('Empty response test');
       const audioStream = await gatewayTTS(textStream);
 
-      expect(audioStream).toBeNull();
+      // Returns empty stream (not null) to avoid LiveKit SDK errors
+      expect(audioStream).not.toBeNull();
+      const frames = await collectFrames(audioStream);
+      expect(frames.length).toBe(0);
     });
   });
 
@@ -338,7 +347,11 @@ describe('Gateway TTS Node', () => {
       expect(frames.length).toBe(5);
 
       // Each frame should have correct properties
-      const frame = frames[0] as { samplesPerChannel: number; sampleRate: number; channels: number };
+      const frame = frames[0] as {
+        samplesPerChannel: number;
+        sampleRate: number;
+        channels: number;
+      };
       expect(frame.samplesPerChannel).toBe(480); // 20ms at 24kHz
       expect(frame.sampleRate).toBe(24000);
       expect(frame.channels).toBe(1);

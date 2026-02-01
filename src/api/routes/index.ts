@@ -96,4 +96,9 @@ export { handleLandingAIRoutes } from './landing-ai.js';
 export { handleReviewsRoutes as handleMarketplaceReviewsRoutes } from './marketplace-reviews.js';
 
 // Family routes (sponsored identity approvals)
-export { familyRouter, handleGetPendingApprovals, handleApproveFamily, handleRejectFamily } from './family.js';
+export {
+  familyRouter,
+  handleGetPendingApprovals,
+  handleApproveFamily,
+  handleRejectFamily,
+} from './family.js';

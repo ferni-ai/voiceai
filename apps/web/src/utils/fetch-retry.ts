@@ -57,7 +57,11 @@ const DEFAULT_OPTIONS: Required<FetchRetryOptions> = {
 // ============================================================================
 
 /**
- * Check if the browser is currently offline.
+ * Check if the browser reports offline status.
+ *
+ * NOTE: navigator.onLine is unreliable on some platforms (macOS VPNs, proxies).
+ * This function is kept for backward compatibility, but fetchWithRetry no longer
+ * short-circuits based on it — actual fetch attempts are more reliable.
  */
 export function isOffline(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -136,16 +140,12 @@ export async function fetchWithRetry<T>(
   let lastStatus: number | null = null;
   let retries = 0;
 
-  // Check offline status first
+  // Log if navigator reports offline, but don't short-circuit —
+  // navigator.onLine is unreliable on some platforms. Let the fetch
+  // attempt proceed; if we're truly offline, it will fail with a
+  // network error and the retry logic will handle it.
   if (isOffline()) {
-    log.warn(`Cannot fetch ${url}: device is offline`);
-    return {
-      data: null,
-      error: new Error('Device is offline'),
-      status: null,
-      retries: 0,
-      offline: true,
-    };
+    log.debug(`navigator.onLine=false for ${url}, attempting fetch anyway`);
   }
 
   for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {

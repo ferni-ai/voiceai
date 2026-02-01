@@ -183,8 +183,18 @@ describe('External Data Integration Tools', () => {
   describe('calculatePersonalInflation', () => {
     it('should calculate personal inflation rate', async () => {
       vi.mocked(persistence.loadSpendingRecords).mockResolvedValueOnce([
-        { id: 's1', date: new Date(Date.now() - 365 * 86400000), amount: 500, category: 'groceries' },
-        { id: 's2', date: new Date(Date.now() - 180 * 86400000), amount: 520, category: 'groceries' },
+        {
+          id: 's1',
+          date: new Date(Date.now() - 365 * 86400000),
+          amount: 500,
+          category: 'groceries',
+        },
+        {
+          id: 's2',
+          date: new Date(Date.now() - 180 * 86400000),
+          amount: 520,
+          category: 'groceries',
+        },
         { id: 's3', date: new Date(), amount: 550, category: 'groceries' },
       ]);
 

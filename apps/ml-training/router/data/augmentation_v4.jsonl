@@ -1,0 +1,55 @@
+{"id": "aug_v4_weather_001", "query": "do I need an umbrella today", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_002", "query": "should I bring an umbrella", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_003", "query": "will I need an umbrella", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_004", "query": "do I need a jacket today", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_005", "query": "should I wear a coat", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_006", "query": "is it going to rain", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_007", "query": "will it rain today", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_008", "query": "is it going to be cold", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_009", "query": "should I bring sunscreen", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_010", "query": "do I need sunglasses today", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_011", "query": "is it going to snow", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_012", "query": "will it be sunny", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_013", "query": "how's the weather looking", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_014", "query": "what should I wear outside", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_weather_015", "query": "is it warm enough for shorts", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_001", "query": "give me the headlines", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_002", "query": "what are the headlines", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_003", "query": "show me the headlines", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_004", "query": "read me the headlines", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_005", "query": "what's happening in the news", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_006", "query": "any breaking news", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_007", "query": "what's the latest news", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_008", "query": "tell me the top stories", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_009", "query": "news update please", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_010", "query": "what's going on in the world", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_011", "query": "catch me up on the news", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_012", "query": "today's top headlines", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_013", "query": "brief me on current events", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_014", "query": "morning news briefing", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_news_015", "query": "what's trending in the news", "selected_tools": ["getNews", "headlines"], "is_open_intent": false, "source": "augmentation_v4"}
+{"id": "aug_v4_open_001", "query": "what's your favorite color", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_002", "query": "what is your favorite color", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_003", "query": "do you have a favorite color", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_004", "query": "what's your favorite food", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_005", "query": "what's your favorite movie", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_006", "query": "what's your favorite song", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_007", "query": "do you have feelings", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_008", "query": "are you alive", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_009", "query": "are you real", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_010", "query": "do you like music", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_011", "query": "what do you like to do", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_012", "query": "what are you thinking about", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_013", "query": "do you dream", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_014", "query": "what's it like being an AI", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_015", "query": "do you get bored", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_016", "query": "what's your name", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_017", "query": "how old are you", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_018", "query": "where are you from", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_019", "query": "do you have a personality", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_020", "query": "what makes you happy", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_021", "query": "are you conscious", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_022", "query": "do you have a soul", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_023", "query": "what's your opinion on that", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_024", "query": "do you ever get lonely", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}
+{"id": "aug_v4_open_025", "query": "what's your favorite thing about yourself", "selected_tools": [], "is_open_intent": true, "source": "augmentation_v4"}

@@ -75,9 +75,10 @@ export class RateLimiter {
 
     // Calculate remaining
     const remaining = config.requests - currentCount;
-    const resetAt = timestamps.length > 0
-      ? new Date(timestamps[0] + config.windowMs)
-      : new Date(Date.now() + config.windowMs);
+    const resetAt =
+      timestamps.length > 0
+        ? new Date(timestamps[0] + config.windowMs)
+        : new Date(Date.now() + config.windowMs);
 
     return {
       allowed: true,

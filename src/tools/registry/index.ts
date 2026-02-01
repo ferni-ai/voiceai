@@ -90,9 +90,10 @@ export class ToolRegistry {
       throw new Error(`Invalid tool definition: ${errors.join(', ')}`);
     }
 
-    // Check for duplicates
+    // Check for duplicates - this is expected during parallel initialization
+    // (Tool Gateway + Unified Tool Orchestrator may both load the same domains)
     if (this.tools.has(definition.id)) {
-      getLogger().warn({ toolId: definition.id }, 'Tool already registered, overwriting');
+      getLogger().debug({ toolId: definition.id }, 'Tool already registered, overwriting (expected during parallel init)');
     }
 
     // Store the definition

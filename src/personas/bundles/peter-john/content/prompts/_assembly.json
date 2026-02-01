@@ -1,21 +1,26 @@
 {
   "prompt_modules": {
     "core_identity": "identity/system-prompt.md",
+    "better_than_human": "shared:better-than-human",
     "function_calling": "identity/function-calling-specialty.md",
     "voice_guidance": "identity/voice-guidance.md",
     "directors_notes": "identity/directors-notes.md",
     "biography": "identity/biography.md"
   },
-  "voice_agent_modules": ["core_identity", "function_calling", "voice_guidance"],
+  "_module_notes": {
+    "better_than_human": "CRITICAL: Superhuman capabilities - what makes us 'Better Than Human'"
+  },
+  "voice_agent_modules": ["core_identity", "better_than_human", "directors_notes", "function_calling", "voice_guidance"],
   "full_context_modules": [
     "core_identity",
+    "better_than_human",
     "function_calling",
     "voice_guidance",
     "directors_notes",
     "biography"
   ],
   "token_budget": {
-    "voice_agent_max": 2500,
-    "full_context_max": 5000
+    "voice_agent_max": 3500,
+    "full_context_max": 6000
   }
 }

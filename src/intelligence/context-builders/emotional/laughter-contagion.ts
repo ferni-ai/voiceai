@@ -207,7 +207,10 @@ function detectLaughterContext(input: ContextBuilderInput): LaughterContext {
   };
 }
 
-function shouldBlockLaughter(input: ContextBuilderInput, rules?: { never_when?: string[] }): boolean {
+function shouldBlockLaughter(
+  input: ContextBuilderInput,
+  rules?: { never_when?: string[] }
+): boolean {
   const emotion = input.analysis?.emotion;
   const distressLevel = emotion?.distressLevel || 0;
 
@@ -441,9 +444,7 @@ export function cleanupLaughterState(sessionId: string): void {
   stateCache.delete(sessionId);
 }
 
-export function getLaughterStats(
-  sessionId: string
-): { count: number; types: string[] } {
+export function getLaughterStats(sessionId: string): { count: number; types: string[] } {
   const state = getLaughterState(sessionId);
   return {
     count: state.laughsThisSession,

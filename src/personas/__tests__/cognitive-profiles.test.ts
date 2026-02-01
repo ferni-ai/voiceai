@@ -35,7 +35,14 @@ describe('Cognitive Profiles', () => {
 
   describe('Profile Loading', () => {
     it('should return profile for all 6 personas', () => {
-      const personaIds = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+      const personaIds = [
+        'ferni',
+        'peter-john',
+        'alex-chen',
+        'maya-santos',
+        'jordan-taylor',
+        'nayan-patel',
+      ];
 
       for (const personaId of personaIds) {
         const profile = getCognitiveProfile(personaId);
@@ -67,7 +74,14 @@ describe('Cognitive Profiles', () => {
     ];
 
     it.each(allProfiles)('$name should have valid reasoning style', ({ profile }) => {
-      const validStyles = ['narrative', 'analytical', 'systematic', 'empathetic', 'pragmatic', 'intuitive'];
+      const validStyles = [
+        'narrative',
+        'analytical',
+        'systematic',
+        'empathetic',
+        'pragmatic',
+        'intuitive',
+      ];
       expect(validStyles).toContain(profile.reasoningStyle);
     });
 
@@ -106,7 +120,14 @@ describe('Cognitive Profiles', () => {
   });
 
   describe('Persona-Specific Reasoning Styles', () => {
-    const validReasoningStyles = ['narrative', 'analytical', 'systematic', 'empathetic', 'pragmatic', 'intuitive'];
+    const validReasoningStyles = [
+      'narrative',
+      'analytical',
+      'systematic',
+      'empathetic',
+      'pragmatic',
+      'intuitive',
+    ];
 
     it('Ferni should be narrative-focused', () => {
       expect(ferniCognitiveProfile.reasoningStyle).toBe('narrative');
@@ -145,7 +166,7 @@ describe('Cognitive Profiles', () => {
       const focus = peterCognitiveProfile.attention.primaryFocus;
       expect(focus).toContain('patterns');
       // Should have details or accuracy related focus
-      const hasAnalyticalFocus = focus.some(f =>
+      const hasAnalyticalFocus = focus.some((f) =>
         ['details', 'accuracy', 'evidence', 'data', 'facts'].includes(f)
       );
       expect(hasAnalyticalFocus).toBe(true);
@@ -159,7 +180,7 @@ describe('Cognitive Profiles', () => {
     it('Alex should focus on systems and structure', () => {
       const focus = alexCognitiveProfile.attention.primaryFocus;
       // Alex is systematic - should have systems or structure related focus
-      const hasSystematicFocus = focus.some(f =>
+      const hasSystematicFocus = focus.some((f) =>
         ['systems', 'structure', 'efficiency', 'process', 'actions'].includes(f)
       );
       expect(hasSystematicFocus).toBe(true);
@@ -170,7 +191,7 @@ describe('Cognitive Profiles', () => {
       const peterBlindSpots = new Set(peterCognitiveProfile.attention.blindSpots);
 
       // They shouldn't be identical
-      const overlap = [...ferniBlindSpots].filter(x => peterBlindSpots.has(x));
+      const overlap = [...ferniBlindSpots].filter((x) => peterBlindSpots.has(x));
       expect(overlap.length).toBeLessThan(ferniBlindSpots.size);
     });
   });

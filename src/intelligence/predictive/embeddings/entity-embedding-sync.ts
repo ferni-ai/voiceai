@@ -178,7 +178,9 @@ export async function feedEntityMentionToTrajectory(
     // Update domain state with entity mention
     await rippleEmbeddingSpace.updateDomainState(userId, domain, {
       recentTopics: [mention.entityName],
-      emotionalAssociation: mention.emotionalContext ? parseEmotionalValence(mention.emotionalContext) : undefined,
+      emotionalAssociation: mention.emotionalContext
+        ? parseEmotionalValence(mention.emotionalContext)
+        : undefined,
     });
 
     log.debug(

@@ -35,7 +35,7 @@ export type DataDomain =
   | 'games' // Game history
   | 'trust' // Commitments, boundaries
   | 'insights' // Cross-persona insights
-  | 'intelligence' // Learning state, patterns;
+  | 'intelligence'; // Learning state, patterns;
 
 /**
  * Domain loading configuration
@@ -335,9 +335,7 @@ export class IntelligentDataLoader {
     );
 
     // Load detected domains in parallel (but don't wait)
-    const loadPromises = detectedDomains.map((domain) =>
-      this.loadDomain(domain).catch(() => null)
-    );
+    const loadPromises = detectedDomains.map((domain) => this.loadDomain(domain).catch(() => null));
 
     // Return immediately - loading happens in background
     Promise.all(loadPromises);
@@ -358,7 +356,10 @@ export class IntelligentDataLoader {
   clearCache(): void {
     this.domainCache.clear();
     this.loadingPromises.clear();
-    log.debug({ userId: this.userId, sessionId: this.sessionId }, 'Intelligent loader cache cleared');
+    log.debug(
+      { userId: this.userId, sessionId: this.sessionId },
+      'Intelligent loader cache cleared'
+    );
   }
 
   // ============================================================================
@@ -379,8 +380,8 @@ export class IntelligentDataLoader {
       }
 
       // Check if any trigger keywords match
-      const matches = config.triggerKeywords.some(
-        (keyword) => textLower.includes(keyword.toLowerCase())
+      const matches = config.triggerKeywords.some((keyword) =>
+        textLower.includes(keyword.toLowerCase())
       );
 
       if (matches) {
@@ -612,9 +613,8 @@ export class IntelligentDataLoader {
 
   private async loadSocialGraph(maxItems = 100) {
     try {
-      const { loadGraphFromFirestore, getImportantPeople, getSocialInsights } = await import(
-        '../social-graph/index.js'
-      );
+      const { loadGraphFromFirestore, getImportantPeople, getSocialInsights } =
+        await import('../social-graph/index.js');
 
       await loadGraphFromFirestore(this.userId);
 
@@ -652,9 +652,8 @@ export class IntelligentDataLoader {
 
   private async loadCoaching() {
     try {
-      const { getDomainStats, getAllStats } = await import(
-        '../coaching/semantic-confidence-tracker.js'
-      );
+      const { getDomainStats, getAllStats } =
+        await import('../coaching/semantic-confidence-tracker.js');
 
       // Get all domain stats as an approximation of coaching state
       const allStats = getAllStats();
@@ -727,7 +726,8 @@ export class IntelligentDataLoader {
     // Intelligence state is typically in user profile
     const profile = await this.getDomain('profile');
     return {
-      cognitiveIntelligence: (profile as { cognitiveIntelligence?: unknown })?.cognitiveIntelligence,
+      cognitiveIntelligence: (profile as { cognitiveIntelligence?: unknown })
+        ?.cognitiveIntelligence,
       intelligenceState: (profile as { intelligenceState?: unknown })?.intelligenceState,
     };
   }

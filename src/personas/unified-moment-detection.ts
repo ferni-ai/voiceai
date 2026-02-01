@@ -18,7 +18,8 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import type { SharedMomentType } from './relationship-memory/types.js';
+// UPDATED (Jan 2026): Import from intelligence/relationship (relationship-memory deleted)
+import type { SharedMomentType } from '../intelligence/relationship/types.js';
 
 const log = createLogger({ module: 'UnifiedMomentDetection' });
 

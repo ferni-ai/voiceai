@@ -18,10 +18,7 @@
  * @module speech/tts-gateway/gateway
  */
 
-import {
-  TransformStream,
-  type ReadableStream as NodeReadableStream,
-} from 'node:stream/web';
+import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 import {
   DEFAULT_AUDIO_FORMAT,
   type ITTSGateway,
@@ -38,7 +35,7 @@ import {
   type TraceEvent,
   type TraceEventType,
 } from './types.js';
-import { getSSMLProcessor, type SSMLParseResult } from './ssml/index.js';
+import { getSSMLProcessor } from './ssml/index.js';
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import { finops } from '../../services/observability/finops.js';
 
@@ -407,9 +404,7 @@ export class TTSGateway implements ITTSGateway {
         },
       });
 
-      return textStream
-        .pipeThrough(bufferTransform)
-        .pipeThrough(parseTransform);
+      return textStream.pipeThrough(bufferTransform).pipeThrough(parseTransform);
     };
   }
 
@@ -432,10 +427,7 @@ export class TTSGateway implements ITTSGateway {
     // Log cache stats
     if (this.cache) {
       const stats = this.cache.getStats();
-      log.info(
-        { cacheSize: stats.size, hitRate: stats.hitRate },
-        '📊 TTS Cache stats'
-      );
+      log.info({ cacheSize: stats.size, hitRate: stats.hitRate }, '📊 TTS Cache stats');
     }
   }
 
@@ -499,10 +491,7 @@ export class TTSGateway implements ITTSGateway {
   /**
    * Merge prosody configurations
    */
-  private mergeProsody(
-    parsed: SSMLProsodyConfig,
-    override?: SSMLProsodyConfig
-  ): SSMLProsodyConfig {
+  private mergeProsody(parsed: SSMLProsodyConfig, override?: SSMLProsodyConfig): SSMLProsodyConfig {
     if (!override) {
       return parsed;
     }
@@ -613,7 +602,10 @@ export function createTTSGateway(config: TTSGatewayConfig): ITTSGateway {
  */
 export function resetTTSGateway(): void {
   if (gatewayInstance) {
-    gatewayInstance.shutdown().catch(() => {});
+    // FIX: Log shutdown errors instead of silently ignoring them
+    gatewayInstance.shutdown().catch((err) => {
+      log.warn({ error: String(err) }, 'TTS gateway shutdown failed during reset');
+    });
     gatewayInstance = null;
   }
 }

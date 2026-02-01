@@ -440,9 +440,7 @@ export class RedisJobQueue {
       // Execute with timeout
       const result = await Promise.race([
         handler.handler(job),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Job timeout')), job.timeout)
-        ),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Job timeout')), job.timeout)),
       ]);
 
       await this.completeJob(job, result);
@@ -460,7 +458,13 @@ export class RedisJobQueue {
         await this.requeueJob(job);
 
         log.warn(
-          { jobId, type: job.type, attempt: job.attempts, maxAttempts: job.maxAttempts, error: errorMessage },
+          {
+            jobId,
+            type: job.type,
+            attempt: job.attempts,
+            maxAttempts: job.maxAttempts,
+            error: errorMessage,
+          },
           'Job failed, will retry'
         );
       } else {
@@ -491,7 +495,10 @@ export class RedisJobQueue {
       await this.redis.hincrby(KEYS.stats(), 'pending', -1);
     }
 
-    log.info({ jobId: job.id, type: job.type, durationMs: Date.now() - job.startedAt!.getTime() }, 'Job completed');
+    log.info(
+      { jobId: job.id, type: job.type, durationMs: Date.now() - job.startedAt!.getTime() },
+      'Job completed'
+    );
   }
 
   private async failJob(job: Job, error: string): Promise<void> {
@@ -589,7 +596,13 @@ interface RedisClient {
   scard: (key: string) => Promise<number>;
   lpush: (key: string, value: string) => Promise<number>;
   llen: (key: string) => Promise<number>;
-  set: (key: string, value: string, mode: string, type: string, ttl: number) => Promise<string | null>;
+  set: (
+    key: string,
+    value: string,
+    mode: string,
+    type: string,
+    ttl: number
+  ) => Promise<string | null>;
   del: (key: string) => Promise<number>;
 }
 

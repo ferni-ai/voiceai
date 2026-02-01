@@ -101,9 +101,10 @@ apps/cli/
 │       │   ├── csco.ts             # Main command entry
 │       │   └── ...                 # costs, vendors, slas, capacity, automation
 │       ├── quality/                # Code quality
-│       ├── runtime/                # Runtime management
-│       ├── tokens/                 # Design token management
-│       └── watch/                  # File watching
+│       ├── validate/               # Validation checks
+│       ├── setup/                  # Environment setup
+│       ├── tools/                  # LLM tool management
+│       └── ...                     # 40+ command directories total
 ├── package.json
 └── tsconfig.json
 ```
@@ -222,6 +223,119 @@ ferni ops zombies
 ferni ops zombies --fix
 ```
 
+### Phone Calls
+
+Initiate outbound calls through Ferni. Requires authentication (`ferni auth login`).
+
+```bash
+# Call someone by name (looks up in contacts) or phone number
+ferni call "Jordan"
+ferni call +14845551234
+
+# Add context for the call
+ferni call "Jordan" --reason "checking in about the snowstorm"
+ferni call mom --message "Hi mom, just calling to say hi!"
+
+# Use a different persona
+ferni call "Jordan" --persona maya
+
+# Check call status
+ferni calls status <callId>
+
+# List active calls
+ferni calls list
+```
+
+### Natural Language Chat
+
+Text-based interface that routes through the same tool system as voice. Great for testing the platform.
+
+```bash
+# Single message
+ferni chat "play some jazz music"
+ferni chat "what's on my calendar today?"
+
+# Interactive conversation mode
+ferni chat --interactive
+ferni chat -i --persona maya
+
+# List available tools
+ferni chat --tools
+ferni chat --tools music
+
+# Execute a tool directly
+ferni chat --exec playMusic '{"query":"jazz"}'
+```
+
+### Music Control
+
+```bash
+ferni music play "relaxing piano"    # Play music
+ferni music pause                    # Pause playback
+ferni music resume                   # Resume playback
+ferni music stop                     # Stop playback
+ferni music skip                     # Skip track
+ferni music volume 70                # Set volume (0-100)
+ferni music status                   # What's playing
+ferni music suggest "focused work"   # Suggest music for mood
+```
+
+### Contacts Management
+
+```bash
+ferni contacts list                  # List all contacts
+ferni contacts search "mom"          # Search contacts
+ferni contacts show "Jordan"         # Show contact details
+ferni contacts groups                # List contact groups
+ferni contacts needing-attention     # Contacts needing outreach
+```
+
+### Scheduling
+
+```bash
+ferni schedule call "Jordan" "tomorrow 3pm" --reason "birthday"
+ferni schedule message "mom" "8am" --message "Good morning!"
+ferni schedule reminder "Take vitamins" "every day 9am"
+ferni schedule list                  # List scheduled items
+ferni schedule cancel <id>           # Cancel scheduled item
+```
+
+### Email Intelligence
+
+```bash
+ferni email summary                  # Inbox overview
+ferni email followups                # Emails needing follow-up
+ferni email important                # High-priority emails
+ferni email unread                   # Unread summary
+ferni email from "John"              # Emails from a person
+ferni email search "project"         # Search emails
+```
+
+### Family Check-ins
+
+```bash
+ferni family checkin                 # Start check-in round
+ferni family checkin mom             # Check in on specific member
+ferni family status                  # View pending check-ins
+ferni family summary                 # Family wellness summary
+ferni family message "mom" "Hi!"     # Send message
+ferni family members                 # List family members
+```
+
+### Memory/Brain
+
+Search and manage what Ferni knows about you.
+
+```bash
+ferni brain                          # Summary of what Ferni knows
+ferni brain search "birthday"        # Search memories
+ferni brain about "Jordan"           # What Ferni knows about someone
+ferni brain remember "My dog Max"    # Teach Ferni something
+ferni brain insights                 # Personalized insights
+ferni brain stats                    # Memory system stats
+ferni brain recent                   # Recently learned facts
+```
+
 ### Experiments & A/B Testing (NEW!)
 
 The autonomous experimentation system supports A/B tests, multi-armed bandits, and auto-escalating rollouts.
@@ -251,7 +365,7 @@ ferni experiments delete <id> -f    # Delete an experiment
 | `bandit` | Thompson Sampling | Dynamic traffic optimization |
 | `rollout` | Stage-based (2%→10%→25%→50%→100%) | Safe feature rollouts |
 
-**Full docs:** `src/tools/intelligence/learning/CLAUDE.md`
+**Full docs:** `src/tools/experiments/CLAUDE.md`
 
 ### GitHub Actions Runner
 

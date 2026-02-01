@@ -792,9 +792,11 @@ async function serveStaticSite(
       "base-uri 'self'",
     ].join('; ');
 
+    // Short cache for landing pages - allows quick updates after regeneration
+    // CloudFlare will also cache, but can be purged manually if needed
     res.writeHead(200, {
       'Content-Type': contentType,
-      'Cache-Control': 'public, max-age=3600',
+      'Cache-Control': 'public, max-age=300, s-maxage=60',
       'Content-Security-Policy': landingPageCSP,
     });
     res.end(content);

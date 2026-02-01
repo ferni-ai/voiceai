@@ -1050,6 +1050,7 @@
       "pinned": "즐겨찾기",
       "yourPractices": "함께 연습해요",
       "understandingYou": "당신의 상태",
+      "ourStory": "우리의 이야기",
       "waysToConnect": "뭔가 해볼까요",
       "yourPeople": "당신의 세계",
       "connectedLife": "연결된 것들",
@@ -1943,11 +1944,16 @@
       "dayStreak": "[NEEDS_TRANSLATION] day streak"
     },
     "sections": {
+      "care": "[NEEDS_TRANSLATION] What I've Done for You",
       "rightNow": "[NEEDS_TRANSLATION] Right Now",
       "yourGrowth": "[NEEDS_TRANSLATION] Your Growth",
       "yourWorld": "[NEEDS_TRANSLATION] Your World"
     },
+    "care": {
+      "loading": "[NEEDS_TRANSLATION] Loading your care moments..."
+    },
     "insights": {
+      "care": "[NEEDS_TRANSLATION] Keeping track of what matters to you.",
       "moodSummary": "[NEEDS_TRANSLATION] You've been feeling mostly {mood} this week",
       "chapterFocus": "[NEEDS_TRANSLATION] Current chapter: {chapter} | Focus area: {focus}",
       "connections": "[NEEDS_TRANSLATION] {active} active connections | {open} open loops"

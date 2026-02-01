@@ -1,4 +1,5 @@
 // @ts-nocheck - Skipping type check until API is aligned
+/* eslint-disable no-console -- CLI benchmark tool outputs to console */
 /**
  * Semantic Router Benchmarks
  *

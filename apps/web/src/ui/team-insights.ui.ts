@@ -1,4 +1,3 @@
-// TODO: Fix type errors - array indexing for insights
 /**
  * Team Insights UI
  *

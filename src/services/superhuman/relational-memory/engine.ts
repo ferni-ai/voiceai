@@ -59,7 +59,10 @@ export class RelationalMemoryEngine implements IRelationalMemory {
 
   async addJoke(
     userId: string,
-    joke: Omit<InsideJoke, 'id' | 'createdAt' | 'timesReferenced' | 'lastReferencedAt' | 'reactions'>
+    joke: Omit<
+      InsideJoke,
+      'id' | 'createdAt' | 'timesReferenced' | 'lastReferencedAt' | 'reactions'
+    >
   ): Promise<InsideJoke> {
     const memory = getOrCreate(userId);
 
@@ -84,10 +87,7 @@ export class RelationalMemoryEngine implements IRelationalMemory {
     return memory?.jokes || [];
   }
 
-  async findRelevantJoke(
-    userId: string,
-    keywords: string[]
-  ): Promise<InsideJoke | null> {
+  async findRelevantJoke(userId: string, keywords: string[]): Promise<InsideJoke | null> {
     const jokes = await this.getJokes(userId);
     if (jokes.length === 0) return null;
 
@@ -112,11 +112,7 @@ export class RelationalMemoryEngine implements IRelationalMemory {
       : matches[0];
   }
 
-  async recordJokeUse(
-    userId: string,
-    jokeId: string,
-    wasPositive: boolean
-  ): Promise<void> {
+  async recordJokeUse(userId: string, jokeId: string, wasPositive: boolean): Promise<void> {
     const memory = getOrCreate(userId);
     const joke = memory.jokes.find((j) => j.id === jokeId);
 
@@ -168,9 +164,7 @@ export class RelationalMemoryEngine implements IRelationalMemory {
     timing: ConversationRitual['timing']
   ): Promise<ConversationRitual[]> {
     const rituals = await this.getRituals(userId);
-    return rituals.filter(
-      (r) => r.timing === timing || r.timing === 'any'
-    );
+    return rituals.filter((r) => r.timing === timing || r.timing === 'any');
   }
 
   async recordRitualUse(userId: string, ritualId: string): Promise<void> {
@@ -187,14 +181,9 @@ export class RelationalMemoryEngine implements IRelationalMemory {
   // PREFERENCES
   // ==========================================================================
 
-  async updatePreference(
-    userId: string,
-    preference: CommunicationPreference
-  ): Promise<void> {
+  async updatePreference(userId: string, preference: CommunicationPreference): Promise<void> {
     const memory = getOrCreate(userId);
-    const existing = memory.preferences.findIndex(
-      (p) => p.category === preference.category
-    );
+    const existing = memory.preferences.findIndex((p) => p.category === preference.category);
 
     if (existing >= 0) {
       memory.preferences[existing] = {
@@ -353,10 +342,7 @@ export class RelationalMemoryEngine implements IRelationalMemory {
     const ritualBoost = Math.min(0.2, memory.rituals.length * 0.05);
     const jokeBoost = Math.min(0.2, memory.jokes.length * 0.05);
 
-    memory.stats.trustLevel = Math.min(
-      1,
-      0.3 + milestoneBoost + ritualBoost + jokeBoost
-    );
+    memory.stats.trustLevel = Math.min(1, 0.3 + milestoneBoost + ritualBoost + jokeBoost);
   }
 }
 

@@ -3,7 +3,7 @@
  *
  * Store and retrieve relationship-specific memories:
  * - Inside jokes
- * - Conversation rituals  
+ * - Conversation rituals
  * - Communication preferences
  * - Trust milestones
  *

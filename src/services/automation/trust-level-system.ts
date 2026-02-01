@@ -69,7 +69,7 @@ export type ActionCategory =
   | 'smart_home' // Control lights, thermostat, etc.
   | 'music' // Play music, create playlists
   | 'reminder' // Set reminders
-  | 'task' // Create tasks/todos;
+  | 'task'; // Create tasks/todos;
 
 export interface ActionType {
   category: ActionCategory;
@@ -274,10 +274,7 @@ function calculateTrustLevel(approvalCount: number, rejectionCount: number): Tru
 /**
  * Get effective trust level considering action type limits
  */
-function getEffectiveTrustLevel(
-  userTrustLevel: TrustLevel,
-  actionType: ActionType
-): TrustLevel {
+function getEffectiveTrustLevel(userTrustLevel: TrustLevel, actionType: ActionType): TrustLevel {
   const trustOrder: TrustLevel[] = ['new', 'routine', 'trusted'];
   const userIndex = trustOrder.indexOf(userTrustLevel);
   const maxIndex = trustOrder.indexOf(actionType.maxTrustLevel);
@@ -378,10 +375,7 @@ export async function updateTrustProfile(
         updatedAt: now,
       });
 
-      log.info(
-        { userId, actionType, approved, newTrustLevel },
-        'Updated trust profile'
-      );
+      log.info({ userId, actionType, approved, newTrustLevel }, 'Updated trust profile');
     } else {
       // Create new profile
       const newProfile: ActionTrustProfile = {
@@ -451,10 +445,10 @@ export async function createPendingAction(
   }
 
   log.info({ pendingActionId: pendingAction.id, userId, actionType }, 'Created pending action');
-  
+
   // Emit event for action dispatcher to pick up
   actionEvents.emit('action_created', { action: pendingAction } as ActionCreatedEvent);
-  
+
   return pendingAction;
 }
 
@@ -517,11 +511,17 @@ export async function resolvePendingAction(
 
     log.info({ pendingActionId, userId, approved }, 'Resolved pending action');
 
-    const resolvedAction = { ...pendingAction, status: approved ? 'approved' : 'rejected' } as PendingAction;
-    
+    const resolvedAction = {
+      ...pendingAction,
+      status: approved ? 'approved' : 'rejected',
+    } as PendingAction;
+
     // Emit event for action dispatcher to pick up
-    actionEvents.emit('action_resolved', { action: resolvedAction, approved } as ActionResolvedEvent);
-    
+    actionEvents.emit('action_resolved', {
+      action: resolvedAction,
+      approved,
+    } as ActionResolvedEvent);
+
     return resolvedAction;
   } catch (error) {
     log.error({ error: String(error), pendingActionId }, 'Failed to resolve pending action');
@@ -616,10 +616,7 @@ export async function checkActionPermission(
 /**
  * Mark a pending action as executed
  */
-export async function markActionExecuted(
-  userId: string,
-  pendingActionId: string
-): Promise<void> {
+export async function markActionExecuted(userId: string, pendingActionId: string): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -632,9 +629,12 @@ export async function markActionExecuted(
       .update({
         status: 'executed',
       });
-    
+
     // Emit event
-    actionEvents.emit('action_executed', { userId, actionId: pendingActionId } as ActionExecutedEvent);
+    actionEvents.emit('action_executed', {
+      userId,
+      actionId: pendingActionId,
+    } as ActionExecutedEvent);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to mark action executed');
   }

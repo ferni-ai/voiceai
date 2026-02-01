@@ -231,7 +231,7 @@ export const recordDecisionOutcome = llm.tool({
 
 export const analyzeDecisionQuality = llm.tool({
   description:
-    "Analyze patterns in your decision quality. Find out WHEN you make your best decisions - time of day, day of week, sleep levels, etc. This is something no human friend could track for you.",
+    'Analyze patterns in your decision quality. Find out WHEN you make your best decisions - time of day, day of week, sleep levels, etc. This is something no human friend could track for you.',
   parameters: z.object({
     domain: z
       .enum(['financial', 'career', 'health', 'relationship', 'habit', 'purchase', 'all'])
@@ -403,15 +403,12 @@ export const analyzeDecisionQuality = llm.tool({
 
 export const recordSleepData = llm.tool({
   description:
-    "Record your sleep data. Peter will correlate this with your spending, mood, productivity, and decisions to find YOUR patterns.",
+    'Record your sleep data. Peter will correlate this with your spending, mood, productivity, and decisions to find YOUR patterns.',
   parameters: z.object({
     hoursSlept: z.number().min(0).max(24).describe('Hours of sleep last night'),
     quality: z.number().min(1).max(10).optional().describe('Sleep quality 1-10'),
   }),
-  execute: async (
-    params: { hoursSlept: number; quality?: number },
-    { ctx }: { ctx: unknown }
-  ) => {
+  execute: async (params: { hoursSlept: number; quality?: number }, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
     if (!userId) return 'I need to know who you are.';
 
@@ -437,8 +434,7 @@ export const recordSleepData = llm.tool({
 
     const avgSleep =
       userSleep.length > 0
-        ? userSleep.slice(-30).reduce((sum, s) => sum + s.hours, 0) /
-          Math.min(userSleep.length, 30)
+        ? userSleep.slice(-30).reduce((sum, s) => sum + s.hours, 0) / Math.min(userSleep.length, 30)
         : params.hoursSlept;
 
     const comparison =
@@ -593,15 +589,12 @@ export const analyzeSleepCorrelations = llm.tool({
 
 export const recordEnergyLevel = llm.tool({
   description:
-    "Record your current energy level. Over time, Peter will learn to PREDICT your energy throughout the day.",
+    'Record your current energy level. Over time, Peter will learn to PREDICT your energy throughout the day.',
   parameters: z.object({
     level: z.number().min(1).max(10).describe('Current energy level 1-10'),
     notes: z.string().optional().describe('What might be affecting your energy?'),
   }),
-  execute: async (
-    params: { level: number; notes?: string },
-    { ctx }: { ctx: unknown }
-  ) => {
+  execute: async (params: { level: number; notes?: string }, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
     if (!userId) return 'I need to know who you are.';
 
@@ -651,7 +644,7 @@ export const recordEnergyLevel = llm.tool({
 
 export const predictEnergy = llm.tool({
   description:
-    "Predict your energy levels for today based on your patterns. Know your peaks and valleys BEFORE they happen.",
+    'Predict your energy levels for today based on your patterns. Know your peaks and valleys BEFORE they happen.',
   parameters: z.object({
     sleepLastNight: z.number().optional().describe('Hours of sleep last night'),
     calendarLoad: z
@@ -759,8 +752,12 @@ export const predictEnergy = llm.tool({
       `🔮 **YOUR ENERGY FORECAST FOR TODAY**`,
       '',
       `Based on ${userEnergy.length} historical readings`,
-      params.sleepLastNight ? `Sleep modifier: ${sleepModifier > 0 ? '+' : ''}${sleepModifier.toFixed(1)}` : '',
-      params.calendarLoad ? `Calendar modifier: ${calendarModifier > 0 ? '+' : ''}${calendarModifier.toFixed(1)}` : '',
+      params.sleepLastNight
+        ? `Sleep modifier: ${sleepModifier > 0 ? '+' : ''}${sleepModifier.toFixed(1)}`
+        : '',
+      params.calendarLoad
+        ? `Calendar modifier: ${calendarModifier > 0 ? '+' : ''}${calendarModifier.toFixed(1)}`
+        : '',
       '',
       `═══════════════════════════════════`,
       `📈 **HOURLY PREDICTIONS**`,
@@ -803,7 +800,7 @@ export const predictEnergy = llm.tool({
 
 export const analyzePeakPerformance = llm.tool({
   description:
-    "Map YOUR personal peak performance times for creative work, analytical work, decisions, and communication. No generic advice - this is YOUR data.",
+    'Map YOUR personal peak performance times for creative work, analytical work, decisions, and communication. No generic advice - this is YOUR data.',
   parameters: z.object({}),
   execute: async (_params: Record<string, never>, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
@@ -872,7 +869,9 @@ export const analyzePeakPerformance = llm.tool({
       .sort((a, b) => b.avgSatisfaction - a.avgSatisfaction);
 
     const bestDecisionHours =
-      decisionHours.length > 0 ? decisionHours.slice(0, 2).map((h) => h.hour) : peakHours.slice(0, 2);
+      decisionHours.length > 0
+        ? decisionHours.slice(0, 2).map((h) => h.hour)
+        : peakHours.slice(0, 2);
 
     log.info({ userId }, '🏆 Peak performance profile generated');
 
@@ -889,7 +888,10 @@ export const analyzePeakPerformance = llm.tool({
       `═══════════════════════════════════`,
       `🔢 **ANALYTICAL WORK**`,
       `═══════════════════════════════════`,
-      `Best hours: ${peakHours.slice(0, 2).map((h) => `${h}:00`).join(', ')}`,
+      `Best hours: ${peakHours
+        .slice(0, 2)
+        .map((h) => `${h}:00`)
+        .join(', ')}`,
       `Requires peak cognitive function.`,
       `→ Financial analysis, complex problems, coding`,
       '',
@@ -905,7 +907,10 @@ export const analyzePeakPerformance = llm.tool({
       `═══════════════════════════════════`,
       `📧 **COMMUNICATION**`,
       `═══════════════════════════════════`,
-      `Best hours: ${peakHours.slice(0, 2).map((h) => `${h}:00`).join(', ')}`,
+      `Best hours: ${peakHours
+        .slice(0, 2)
+        .map((h) => `${h}:00`)
+        .join(', ')}`,
       `When you're energized, you communicate better.`,
       `→ Difficult conversations, presentations, networking`,
       '',
@@ -936,7 +941,16 @@ export const calculateLifestyleImpact = llm.tool({
   parameters: z.object({
     change: z.string().describe('What change are you considering?'),
     type: z
-      .enum(['habit_add', 'habit_remove', 'schedule_change', 'diet_change', 'exercise_change', 'sleep_change', 'work_change', 'relationship_change'])
+      .enum([
+        'habit_add',
+        'habit_remove',
+        'schedule_change',
+        'diet_change',
+        'exercise_change',
+        'sleep_change',
+        'work_change',
+        'relationship_change',
+      ])
       .describe('Type of change'),
     magnitude: z.enum(['small', 'medium', 'large']).describe('How big is this change?'),
   }),
@@ -1015,7 +1029,10 @@ export const calculateLifestyleImpact = llm.tool({
       0
     );
 
-    log.info({ userId, change: params.change, type: params.type }, '🔄 Lifestyle impact calculated');
+    log.info(
+      { userId, change: params.change, type: params.type },
+      '🔄 Lifestyle impact calculated'
+    );
 
     return [
       `🔄 **LIFESTYLE IMPACT PREDICTION**`,

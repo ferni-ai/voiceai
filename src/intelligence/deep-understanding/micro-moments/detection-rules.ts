@@ -156,7 +156,7 @@ export const MICRO_MOMENT_RULES: MicroMomentRule[] = [
       /That('s| is) not (okay|acceptable) (with|for) me/i,
       /I (need|deserve) (space|time|respect)/i,
     ],
-    keywords: ['boundary', 'no', 'stop', 'won\'t allow', 'need space', 'stood up'],
+    keywords: ['boundary', 'no', 'stop', "won't allow", 'need space', 'stood up'],
     baseConfidence: 0.75,
     defaultAcknowledgment: 'celebration',
     defaultTiming: 'immediate',
@@ -196,20 +196,20 @@ export const MICRO_MOMENT_RULES: MicroMomentRule[] = [
  */
 export const ACKNOWLEDGMENT_PHRASES: Record<MicroMomentType, string[]> = {
   'vulnerability-edge': [
-    "Thank you for trusting me with that.",
-    "I hear you. That took courage.",
+    'Thank you for trusting me with that.',
+    'I hear you. That took courage.',
     "I'm honored you shared that.",
     "That's a big thing to say out loud.",
   ],
   'small-win': [
     "That's wonderful! How does that feel?",
-    "Yes! That matters.",
+    'Yes! That matters.',
     "I see you. That's not small at all.",
     "That's real progress.",
   ],
   'relationship-shift': [
     "I notice you're seeing them differently now.",
-    "Something shifted in how you talk about them.",
+    'Something shifted in how you talk about them.',
     "That's a different lens.",
   ],
   'language-change': [
@@ -218,26 +218,26 @@ export const ACKNOWLEDGMENT_PHRASES: Record<MicroMomentType, string[]> = {
     "That 'we' feels significant.",
   ],
   'hope-glimmer': [
-    "I hear a little hope in that.",
+    'I hear a little hope in that.',
     "That's a beautiful 'maybe'.",
-    "Something is opening.",
-    "Hold onto that possibility.",
+    'Something is opening.',
+    'Hold onto that possibility.',
   ],
   'self-compassion': [
-    "Yes. You deserve that kindness.",
+    'Yes. You deserve that kindness.',
     "That's a gift you're giving yourself.",
-    "Being gentle with yourself is growth.",
-    "I love hearing you say that.",
+    'Being gentle with yourself is growth.',
+    'I love hearing you say that.',
   ],
   'boundary-attempt': [
-    "That took strength.",
+    'That took strength.',
     "You're protecting something important.",
-    "Good for you.",
+    'Good for you.',
     "That's honoring yourself.",
   ],
   'growth-evidence': [
     "You've come so far.",
-    "I see the growth in you.",
+    'I see the growth in you.',
     "That's not who you are anymore.",
     "Look how far you've traveled.",
   ],
@@ -255,27 +255,15 @@ export const ACKNOWLEDGMENT_SSML: Record<MicroMomentType, string[]> = {
     "That's wonderful!<break time='200ms'/> How does that feel?",
     "Yes!<break time='150ms'/> That matters.",
   ],
-  'relationship-shift': [
-    "<break time='200ms'/>I notice you're seeing them differently now.",
-  ],
-  'language-change': [
-    "<break time='200ms'/>I notice you said 'we' there.",
-  ],
+  'relationship-shift': ["<break time='200ms'/>I notice you're seeing them differently now."],
+  'language-change': ["<break time='200ms'/>I notice you said 'we' there."],
   'hope-glimmer': [
     "<break time='300ms'/>I hear a little hope in that.",
     "That's a beautiful 'maybe'.",
   ],
-  'self-compassion': [
-    "<break time='200ms'/>Yes.<break time='150ms'/> You deserve that kindness.",
-  ],
-  'boundary-attempt': [
-    "That took strength.",
-    "<break time='200ms'/>Good for you.",
-  ],
-  'growth-evidence': [
-    "You've come so far.",
-    "<break time='200ms'/>I see the growth in you.",
-  ],
+  'self-compassion': ["<break time='200ms'/>Yes.<break time='150ms'/> You deserve that kindness."],
+  'boundary-attempt': ['That took strength.', "<break time='200ms'/>Good for you."],
+  'growth-evidence': ["You've come so far.", "<break time='200ms'/>I see the growth in you."],
 };
 
 // ============================================================================

@@ -53,16 +53,8 @@ const LIFE_AUTOMATION_COLLECTION = 'life_automation';
 /**
  * Get the document reference for a user's life automation domain data
  */
-function getDocRef(
-  db: Firestore,
-  userId: string,
-  domain: LifeAutomationDomain
-): DocumentReference {
-  return db
-    .collection('users')
-    .doc(userId)
-    .collection(LIFE_AUTOMATION_COLLECTION)
-    .doc(domain);
+function getDocRef(db: Firestore, userId: string, domain: LifeAutomationDomain): DocumentReference {
+  return db.collection('users').doc(userId).collection(LIFE_AUTOMATION_COLLECTION).doc(domain);
 }
 
 /**
@@ -185,10 +177,7 @@ export async function batchSaveLifeAutomationData(
     }
 
     await batch.commit();
-    log.info(
-      { userId, domainCount: domains.length },
-      'Batch saved life automation data'
-    );
+    log.info({ userId, domainCount: domains.length }, 'Batch saved life automation data');
     return { success: true };
   } catch (error) {
     const errorMsg = String(error);

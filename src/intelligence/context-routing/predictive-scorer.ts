@@ -24,11 +24,7 @@ import type {
   UserBuilderPreferences,
   ContextInjection,
 } from './types.js';
-import {
-  SCORE_WEIGHTS,
-  MIN_SAMPLES_FOR_ML,
-  MIN_SAMPLES_FOR_HEURISTIC,
-} from './types.js';
+import { SCORE_WEIGHTS, MIN_SAMPLES_FOR_ML, MIN_SAMPLES_FOR_HEURISTIC } from './types.js';
 import { CacheManager } from './cache-manager.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -178,8 +174,7 @@ export class PredictiveScorer {
   private readonly cacheManager: CacheManager;
 
   // Session-local tracking of recent successes
-  private readonly recentSuccesses: Map<string, { count: number; lastSuccess: Date }> =
-    new Map();
+  private readonly recentSuccesses: Map<string, { count: number; lastSuccess: Date }> = new Map();
 
   constructor(userId: string, sessionId: string, cacheManager: CacheManager) {
     this.userId = userId;

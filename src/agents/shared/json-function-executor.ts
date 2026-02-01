@@ -28,25 +28,25 @@
  * @module agents/shared/json-function-executor
  */
 
-import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
-import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
-import { recordAction } from './action-history.js';
-import { logJsonDetected, logJsonExecuted } from './function-call-telemetry.js';
 import {
   getActionTracker,
-  isTrackableTool,
   getActionTypeForTool,
+  isTrackableTool,
 } from '../../services/action-tracker/index.js';
+import { executeWithReliability } from '../../services/performance/tool-execution-reliability.js';
 import {
   cacheToolResult,
   checkToolCache,
   invalidateToolCache,
 } from '../../services/performance/tool-response-cache.js';
-import { executeWithReliability } from '../../services/performance/tool-execution-reliability.js';
+import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
+import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
+import { recordAction } from './action-history.js';
+import { logJsonDetected, logJsonExecuted } from './function-call-telemetry.js';
 // Parallel tool executor for critical tools (Jan 2026)
 import {
-  isCriticalTool,
   executeWithParallelFallback,
+  isCriticalTool,
   type ToolResult as ParallelToolResult,
 } from './parallel-tool-executor.js';
 // Developer Platform: Webhook integration for tool events
@@ -57,8 +57,8 @@ import {
 } from '../integrations/developer-webhook-integration.js';
 // Timing-aware tool tracking (Phase 3 BTH Communication Overhaul)
 import {
-  registerToolInFlight,
   completeToolInFlight,
+  registerToolInFlight,
 } from '../../intelligence/context-builders/awareness/system-state-awareness.js';
 // Centralized conversation state for tool tracking (P0-#2 UTO Fix - January 2026)
 import { getConversationState } from '../../services/conversation-state.js';
@@ -69,14 +69,16 @@ import { recordActualToolExecution } from '../../tools/semantic-router/learning/
 // LLMCompiler: Parallel function calling with dependency tracking (Jan 2026)
 import {
   containsLLMCompilerPlan,
-  parseLLMCompilerPlan,
-  executeLLMCompilerPlan,
-  stripLLMCompilerPlan,
   // Pre-Act: Upfront reasoning before tool execution
   containsPreActPlan,
+  executeLLMCompilerPlan,
+  parseLLMCompilerPlan,
   parsePreActPlan,
+  stripLLMCompilerPlan,
   stripPreActFormat,
 } from './llm-compiler/index.js';
+// Meta-tool pattern: Single executeTool instead of 100+ declarations (Jan 2026)
+import { isMetaToolCall, unwrapMetaToolCall } from './meta-tool.js';
 
 const log = createLogger({ module: 'json-function-executor' });
 
@@ -570,9 +572,38 @@ export async function executeJsonFunction(
   call: JsonFunctionCall,
   ctx: ToolExecutionContext = {}
 ): Promise<FunctionExecutionResult> {
-  const { fn, args } = call;
+  let { fn, args } = call;
   const startTime = Date.now();
   const sessionId = ctx.sessionId || 'unknown';
+
+  // =========================================================================
+  // META-TOOL UNWRAPPING (Jan 2026)
+  // =========================================================================
+  // If this is a meta-tool call (executeTool), unwrap it to get the actual
+  // tool name and args. The meta-tool pattern lets the LLM make a simple
+  // binary decision ("use tool?") and specify which via executeTool.
+  // =========================================================================
+  if (isMetaToolCall(fn)) {
+    const unwrapped = unwrapMetaToolCall(args);
+    if (unwrapped) {
+      log.debug(
+        { originalFn: fn, actualFn: unwrapped.toolName, argsKeys: Object.keys(unwrapped.toolArgs) },
+        '🎯 Unwrapped meta-tool call'
+      );
+      fn = unwrapped.toolName;
+      args = unwrapped.toolArgs;
+    } else {
+      log.warn({ fn, args }, '⚠️ Failed to unwrap meta-tool call');
+      return {
+        success: false,
+        fn,
+        args,
+        result: 'Invalid meta-tool call: missing toolName or invalid args',
+        error: 'Invalid meta-tool call format',
+        durationMs: Date.now() - startTime,
+      };
+    }
+  }
 
   // 🔍 E2E TRACE: Tool execution started
   log.info(

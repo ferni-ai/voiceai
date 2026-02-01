@@ -63,7 +63,7 @@ function stripSSMLFromStream(textStream: NodeReadableStream<string>): NodeReadab
   const processor = getSSMLProcessor();
   // Buffer incomplete tags, then strip via parse
   const bufferTransform = processor.createBufferTransform();
-  
+
   const stripTransform = new TransformStream<string, string>({
     transform(chunk, controller) {
       const result = processor.parse(chunk);
@@ -72,7 +72,7 @@ function stripSSMLFromStream(textStream: NodeReadableStream<string>): NodeReadab
       }
     },
   }) as NodeTransformStream<string, string>;
-  
+
   return textStream.pipeThrough(bufferTransform).pipeThrough(stripTransform);
 }
 
@@ -290,9 +290,9 @@ export async function processTTSWithCache(
 
           const frames = [...splitIntoFrames(cached.audio, sampleRate)];
           log.info(
-            { 
-              frameCount: frames.length, 
-              sessionId, 
+            {
+              frameCount: frames.length,
+              sessionId,
               cache: 'unified-gateway',
               trace: 'E2E_AUDIO_START',
             },
@@ -337,9 +337,9 @@ export async function processTTSWithCache(
         const frames = [...splitIntoFrames(conversationalAudio, sampleRate)];
         // 🔍 E2E TRACE: Audio frames starting (from conversational cache)
         log.info(
-          { 
-            frameCount: frames.length, 
-            sessionId, 
+          {
+            frameCount: frames.length,
+            sessionId,
             cache: 'conversational',
             trace: 'E2E_AUDIO_START',
           },
@@ -383,9 +383,9 @@ export async function processTTSWithCache(
         const frames = [...splitIntoFrames(greetingAudio, sampleRate)];
         // 🔍 E2E TRACE: Audio frames starting (from greeting cache)
         log.info(
-          { 
-            frameCount: frames.length, 
-            sessionId, 
+          {
+            frameCount: frames.length,
+            sessionId,
             cache: 'greeting',
             trace: 'E2E_AUDIO_START',
           },
@@ -433,9 +433,9 @@ export async function processTTSWithCache(
         const frames = [...splitIntoFrames(cacheResult.audio, sampleRate)];
         // 🔍 E2E TRACE: Audio frames starting (from speculative cache)
         log.info(
-          { 
-            frameCount: frames.length, 
-            sessionId, 
+          {
+            frameCount: frames.length,
+            sessionId,
             cache: 'speculative',
             trace: 'E2E_AUDIO_START',
           },
@@ -829,9 +829,11 @@ export function createCacheAwareTTSNode(
         }) as NodeReadableStream<AudioFrame>;
       }
 
-      // We have cached audio for first phrase, but more text follows
-      // For now, just use default TTS for the remaining text
-      // TODO: Could concat cached audio + generated audio for best of both
+      // We have cached audio for first phrase, but more text follows.
+      // TRADEOFF: We could concat cached audio + generated audio for lower latency,
+      // but this adds complexity (dual stream management, potential audio glitches at
+      // the seam). Current approach prioritizes consistency over latency optimization.
+      // The cache already provides significant TTFB improvement for greetings.
 
       log.debug(
         { cachedPhrase: true, remainingText: buffer.length, sessionId },
@@ -867,13 +869,13 @@ export function createCacheAwareTTSNode(
 
     // 🔍 E2E TRACE: Cache miss - handing off to Cartesia TTS
     log.info(
-      { 
-        text: buffer.slice(0, 50), 
-        emotion, 
-        sessionId, 
+      {
+        text: buffer.slice(0, 50),
+        emotion,
+        sessionId,
         missLatencyMs: missLatency,
         trace: 'E2E_TTS_CARTESIA',
-      }, 
+      },
       `🔍 E2E TRACE [TTS] Cache miss - calling Cartesia for "${buffer.slice(0, 30)}..."`
     );
 
@@ -914,7 +916,11 @@ export function createCacheAwareTTSNode(
     }) as NodeReadableStream<string>;
 
     // 🔧 FIX: Buffer SSML tags to prevent fragmentation (Cartesia speaks fragmented tags!)
-    return getDefaultTTSNode().ttsNode(agent, stripSSMLFromStream(reconstructedStream), modelSettings);
+    return getDefaultTTSNode().ttsNode(
+      agent,
+      stripSSMLFromStream(reconstructedStream),
+      modelSettings
+    );
   };
 }
 

@@ -15,8 +15,23 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getBetterThanHumanTelemetry } from '../../services/analytics/better-than-human-telemetry.js';
 
 const log = createLogger({ module: 'EmotionEventDispatcher' });
+
+// ============================================================================
+// TELEMETRY CONTEXT
+// ============================================================================
+
+/**
+ * Optional user context for BTH telemetry tracking.
+ * When provided, BTH signals are tracked for analytics.
+ */
+export interface BTHTelemetryContext {
+  userId: string;
+  personaId: string;
+  sessionId?: string;
+}
 
 // ============================================================================
 // TYPES
@@ -775,11 +790,13 @@ export type MicroExpressionType =
  * @param expressionType - The type of micro-expression to trigger
  * @param sendDataMessage - Function to send data message to frontend
  * @param intensity - Expression intensity (0-1), defaults to 0.7
+ * @param telemetryCtx - Optional telemetry context for analytics
  */
 export async function dispatchMicroExpression(
   expressionType: MicroExpressionType,
   sendDataMessage: SendDataMessageFn,
-  intensity = 0.7
+  intensity = 0.7,
+  telemetryCtx?: BTHTelemetryContext
 ): Promise<void> {
   try {
     await sendDataMessage('micro_expression', {
@@ -787,6 +804,16 @@ export async function dispatchMicroExpression(
       intensity,
       timestamp: Date.now(),
     });
+
+    // Track for analytics
+    if (telemetryCtx) {
+      const telemetry = getBetterThanHumanTelemetry();
+      telemetry.trackMicroExpression(
+        telemetryCtx.userId,
+        telemetryCtx.personaId,
+        expressionType
+      );
+    }
 
     log.debug({ expressionType, intensity }, '✨ Micro-expression dispatched to frontend');
   } catch (error) {
@@ -826,7 +853,12 @@ export async function dispatchEmotionalBondDeepen(
  */
 export async function dispatchProtectiveInstinct(
   sendDataMessage: SendDataMessageFn,
-  context: { mismatchType?: string; voiceEmotion?: string; textEmotion?: string; intensity?: number }
+  context: {
+    mismatchType?: string;
+    voiceEmotion?: string;
+    textEmotion?: string;
+    intensity?: number;
+  }
 ): Promise<void> {
   try {
     await sendDataMessage('humanization_signal', {
@@ -837,7 +869,10 @@ export async function dispatchProtectiveInstinct(
       timestamp: Date.now(),
     });
 
-    log.debug({ mismatchType: context.mismatchType }, '🛡️ BTH: Protective instinct signal dispatched');
+    log.debug(
+      { mismatchType: context.mismatchType },
+      '🛡️ BTH: Protective instinct signal dispatched'
+    );
   } catch (error) {
     log.warn({ error: String(error) }, 'protective_instinct dispatch failed');
   }
@@ -850,7 +885,8 @@ export async function dispatchProtectiveInstinct(
  */
 export async function dispatchSpontaneousDelight(
   sendDataMessage: SendDataMessageFn,
-  context: { trigger: string; intensity?: number }
+  context: { trigger: string; intensity?: number },
+  telemetryCtx?: BTHTelemetryContext
 ): Promise<void> {
   try {
     await sendDataMessage('humanization_signal', {
@@ -861,6 +897,18 @@ export async function dispatchSpontaneousDelight(
 
     // Also trigger delight_flash micro-expression
     await dispatchMicroExpression('delight_flash', sendDataMessage, context.intensity ?? 0.85);
+
+    // Track for analytics
+    if (telemetryCtx) {
+      const telemetry = getBetterThanHumanTelemetry();
+      telemetry.track(
+        'celebration_triggered',
+        telemetryCtx.userId,
+        telemetryCtx.personaId,
+        telemetryCtx.sessionId,
+        { trigger: context.trigger, type: 'spontaneous_delight' }
+      );
+    }
 
     log.debug({ trigger: context.trigger }, '🎉 BTH: Spontaneous delight signal dispatched');
   } catch (error) {
@@ -875,7 +923,8 @@ export async function dispatchSpontaneousDelight(
  */
 export async function dispatchInsideJokeCallback(
   sendDataMessage: SendDataMessageFn,
-  context: { memoryReference: string; intensity?: number }
+  context: { memoryReference: string; intensity?: number },
+  telemetryCtx?: BTHTelemetryContext
 ): Promise<void> {
   try {
     await sendDataMessage('humanization_signal', {
@@ -888,7 +937,22 @@ export async function dispatchInsideJokeCallback(
     // Also trigger insider micro-expression
     await dispatchMicroExpression('insider', sendDataMessage, context.intensity ?? 0.75);
 
-    log.debug({ memoryReference: context.memoryReference }, '😄 BTH: Inside joke callback dispatched');
+    // Track for analytics
+    if (telemetryCtx) {
+      const telemetry = getBetterThanHumanTelemetry();
+      telemetry.track(
+        'quoted_memory_recalled',
+        telemetryCtx.userId,
+        telemetryCtx.personaId,
+        telemetryCtx.sessionId,
+        { type: 'inside_joke_callback' }
+      );
+    }
+
+    log.debug(
+      { memoryReference: context.memoryReference },
+      '😄 BTH: Inside joke callback dispatched'
+    );
   } catch (error) {
     log.warn({ error: String(error) }, 'inside_joke_callback dispatch failed');
   }
@@ -906,7 +970,8 @@ export async function dispatchSuperhumanObservation(
     observationType: 'pattern' | 'correlation' | 'temporal' | 'insight';
     observationContent: string;
     intensity?: number;
-  }
+  },
+  telemetryCtx?: BTHTelemetryContext
 ): Promise<void> {
   try {
     await sendDataMessage('humanization_signal', {
@@ -919,6 +984,16 @@ export async function dispatchSuperhumanObservation(
 
     // Also trigger noticing micro-expression
     await dispatchMicroExpression('noticing', sendDataMessage, context.intensity ?? 0.9);
+
+    // Track for analytics
+    if (telemetryCtx) {
+      const telemetry = getBetterThanHumanTelemetry();
+      telemetry.trackPatternSurfaced(
+        telemetryCtx.userId,
+        telemetryCtx.personaId,
+        `superhuman_${context.observationType}`
+      );
+    }
 
     log.debug(
       { observationType: context.observationType },
@@ -968,7 +1043,8 @@ export async function dispatchVisibleVulnerability(
  */
 export async function dispatchTemporalInsight(
   sendDataMessage: SendDataMessageFn,
-  context: { memoryReference: string; timeSpan?: string; intensity?: number }
+  context: { memoryReference: string; timeSpan?: string; intensity?: number },
+  telemetryCtx?: BTHTelemetryContext
 ): Promise<void> {
   try {
     await sendDataMessage('humanization_signal', {
@@ -980,6 +1056,12 @@ export async function dispatchTemporalInsight(
 
     // Also trigger memory_spark micro-expression
     await dispatchMicroExpression('memory_spark', sendDataMessage, context.intensity ?? 0.8);
+
+    // Track for analytics
+    if (telemetryCtx) {
+      const telemetry = getBetterThanHumanTelemetry();
+      telemetry.trackCrossSessionReflection(telemetryCtx.userId, telemetryCtx.personaId);
+    }
 
     log.debug({ memoryReference: context.memoryReference }, '⏳ BTH: Temporal insight dispatched');
   } catch (error) {
@@ -1055,7 +1137,8 @@ export async function dispatchAnticipatoryPresence(
   context: {
     timeContext: 'late_night' | 'early_morning' | 'weekend' | 'monday' | 'evening';
     intensity?: number;
-  }
+  },
+  telemetryCtx?: BTHTelemetryContext
 ): Promise<void> {
   try {
     await sendDataMessage('humanization_signal', {
@@ -1065,7 +1148,16 @@ export async function dispatchAnticipatoryPresence(
       timestamp: Date.now(),
     });
 
-    log.debug({ timeContext: context.timeContext }, '🌙 BTH: Anticipatory presence signal dispatched');
+    // Track for analytics
+    if (telemetryCtx) {
+      const telemetry = getBetterThanHumanTelemetry();
+      telemetry.trackAnticipation(telemetryCtx.userId, telemetryCtx.personaId);
+    }
+
+    log.debug(
+      { timeContext: context.timeContext },
+      '🌙 BTH: Anticipatory presence signal dispatched'
+    );
   } catch (error) {
     log.warn({ error: String(error) }, 'anticipatory_presence dispatch failed');
   }
@@ -1323,7 +1415,9 @@ export function detectVulnerabilityWithContext(
 
   if (isTechnicalContext) {
     // Check if there's ALSO emotional vulnerability layered in
-    const hasEmotionalVulnerability = EMOTIONAL_VULNERABILITY_PATTERNS.some((p) => p.test(ferniResponse));
+    const hasEmotionalVulnerability = EMOTIONAL_VULNERABILITY_PATTERNS.some((p) =>
+      p.test(ferniResponse)
+    );
     if (!hasEmotionalVulnerability) {
       return {
         detected: false,
@@ -1403,7 +1497,13 @@ export function detectTemporalInsight(ferniResponse: string): boolean {
 /**
  * Get appropriate time context for anticipatory presence
  */
-export function getTimeContext(): 'late_night' | 'early_morning' | 'weekend' | 'monday' | 'evening' | null {
+export function getTimeContext():
+  | 'late_night'
+  | 'early_morning'
+  | 'weekend'
+  | 'monday'
+  | 'evening'
+  | null {
   const now = new Date();
   const hour = now.getHours();
   const day = now.getDay();

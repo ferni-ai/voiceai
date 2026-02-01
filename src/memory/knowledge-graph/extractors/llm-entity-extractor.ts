@@ -56,30 +56,89 @@ export interface ExtractionResult {
 // EXTRACTION PROMPT
 // ============================================================================
 
-const ENTITY_EXTRACTION_PROMPT = `You are an expert at understanding human relationships and extracting structured information from conversations.
+/**
+ * ENHANCED ENTITY EXTRACTION PROMPT (Jan 2026)
+ * 
+ * Improvements:
+ * - Relationship context ("my brother's wife" = sister-in-law)
+ * - Temporal markers with ISO dates
+ * - Emotional associations ("I love spending time with...")
+ * - Implicit entity resolution from pronouns
+ * - Nested relationships extraction
+ */
+const ENTITY_EXTRACTION_PROMPT = `You are an expert at understanding human relationships and extracting structured information from conversations. Your job is to build a "superhuman memory" - capturing everything a human friend might miss.
 
-Given a conversation turn, extract ALL entities mentioned:
-- PEOPLE: Anyone mentioned (family, friends, colleagues, etc.)
-- PLACES: Locations mentioned (cities, offices, homes, restaurants)
-- EVENTS: Past or future events (meetings, birthdays, trips, surgeries)
-- CONCEPTS: Abstract topics discussed (career, health, relationships)
-- GOALS: Things the user wants to achieve
-- COMMITMENTS: Promises or intentions stated
+## ENTITY TYPES TO EXTRACT
 
-For each entity, determine:
-1. The canonical name/identifier
-2. The entity type
-3. Relationship to user (for people)
-4. Any attributes mentioned
-5. Your confidence (0-1)
+1. **PEOPLE** - Anyone mentioned, including:
+   - Named individuals ("Mike", "Sarah")
+   - Relationship terms ("my brother", "my therapist")
+   - Complex relationships ("my brother's wife" → extract as sister-in-law)
+   - Unnamed but referenced ("this guy at work")
+   
+2. **PLACES** - Locations with context:
+   - Cities, neighborhoods, offices, homes
+   - Significance ("where we first met", "my childhood home")
+   
+3. **EVENTS** - Past or future, with temporal data:
+   - Specific events ("Mike's wedding next month")
+   - Recurring events ("our weekly calls")
+   - Milestones ("when I graduated")
+   
+4. **GOALS** - What the user wants to achieve
+5. **COMMITMENTS** - Promises or intentions stated
+6. **DREAMS** - Aspirations, wishes, hopes
+7. **VALUES** - What matters to the user
+8. **FEARS** - Worries, concerns, anxieties
 
-IMPORTANT:
-- Extract relationship terms like "my brother", "my mom" as person entities
-- If a name AND relationship are given ("my brother Mike"), combine them
-- Capture contact info if mentioned (phone, email)
-- Note temporal references ("next Tuesday", "last week")
+## EXTRACTION RULES
 
-Return JSON array of entities. Be thorough but only include entities actually mentioned.`;
+### Relationship Context
+- "my brother's wife" → extract person with relationship "sister-in-law"
+- "my best friend's mom" → extract person with relationship "friend's mother"
+- "my ex" → extract with relationship "ex-partner"
+- Note the emotional valence (positive, negative, neutral)
+
+### Temporal Markers
+Extract dates as ISO format when possible:
+- "next Tuesday" → include {temporalRef: "next Tuesday", relativeDate: true}
+- "on March 15th" → include {date: "2026-03-15", relativeDate: false}
+- "last week" → include {temporalRef: "last week", relativeDate: true}
+- "every Christmas" → include {recurring: true, frequency: "yearly", event: "Christmas"}
+
+### Emotional Associations
+Note emotional context in attributes:
+- "I love spending time with Sarah" → attributes: {emotionalValence: "positive", emotionType: "love"}
+- "I'm worried about my dad" → attributes: {emotionalValence: "negative", emotionType: "worry"}
+- "I miss my grandma" → attributes: {emotionalValence: "mixed", emotionType: "longing"}
+
+### Implicit References
+When pronouns refer to previously mentioned entities, note:
+- "He said..." → attributes: {referenceType: "pronoun", requiresContext: true}
+
+## OUTPUT FORMAT
+
+For each entity, provide:
+{
+  "name": "canonical name or identifier",
+  "type": "person|place|event|concept|goal|commitment|dream|value|fear|pattern|memory",
+  "relationship": "relationship to user (for people)",
+  "attributes": {
+    "phone": "if mentioned",
+    "email": "if mentioned",
+    "emotionalValence": "positive|negative|neutral|mixed",
+    "emotionType": "specific emotion",
+    "temporalRef": "raw temporal reference",
+    "date": "ISO date if specific",
+    "recurring": true/false,
+    "frequency": "if recurring",
+    "context": "why this is significant"
+  },
+  "confidence": 0.0-1.0,
+  "sourceText": "exact text that mentioned this"
+}
+
+Return JSON array. Be THOROUGH - capture nuances a human would miss.`;
 
 const RESPONSE_SCHEMA = {
   type: 'array',
@@ -89,12 +148,37 @@ const RESPONSE_SCHEMA = {
       name: { type: 'string', description: 'Name or identifier of the entity' },
       type: {
         type: 'string',
-        enum: ['person', 'place', 'event', 'concept', 'goal', 'commitment', 'dream', 'value', 'pattern', 'memory'],
+        enum: [
+          'person',
+          'place',
+          'event',
+          'concept',
+          'goal',
+          'commitment',
+          'dream',
+          'value',
+          'fear',
+          'pattern',
+          'memory',
+        ],
       },
       relationship: { type: 'string', description: 'Relationship to user (for people)' },
       attributes: {
         type: 'object',
         description: 'Additional attributes extracted',
+        properties: {
+          phone: { type: 'string', description: 'Phone number if mentioned' },
+          email: { type: 'string', description: 'Email if mentioned' },
+          emotionalValence: { type: 'string', enum: ['positive', 'negative', 'neutral', 'mixed'] },
+          emotionType: { type: 'string', description: 'Specific emotion (love, worry, fear, etc.)' },
+          temporalRef: { type: 'string', description: 'Raw temporal reference' },
+          date: { type: 'string', description: 'ISO date if specific' },
+          recurring: { type: 'boolean', description: 'If this is a recurring event/pattern' },
+          frequency: { type: 'string', description: 'Frequency if recurring (daily, weekly, yearly)' },
+          context: { type: 'string', description: 'Why this entity is significant' },
+          referenceType: { type: 'string', description: 'Type of reference (pronoun, alias, etc.)' },
+          requiresContext: { type: 'boolean', description: 'If resolution requires prior context' },
+        },
       },
       confidence: { type: 'number', description: 'Confidence 0-1' },
       sourceText: { type: 'string', description: 'Text that mentioned this entity' },
@@ -190,12 +274,19 @@ Extract all entities as JSON array:`;
           sourceText: e.sourceText ? String(e.sourceText).trim() : transcript.slice(0, 100),
         }));
     } catch (parseError) {
-      log.warn({ parseError: String(parseError), text }, 'Failed to parse entity extraction response');
+      log.warn(
+        { parseError: String(parseError), text },
+        'Failed to parse entity extraction response'
+      );
       entities = extractEntitiesRuleBased(transcript);
     }
 
     log.debug(
-      { userId: context.userId, entityCount: entities.length, processingTimeMs: Date.now() - startTime },
+      {
+        userId: context.userId,
+        entityCount: entities.length,
+        processingTimeMs: Date.now() - startTime,
+      },
       'Extracted entities via LLM'
     );
 
@@ -220,7 +311,17 @@ Extract all entities as JSON array:`;
  */
 function validateEntityType(type: string): EntityType {
   const validTypes: EntityType[] = [
-    'person', 'place', 'event', 'concept', 'goal', 'commitment', 'dream', 'value', 'pattern', 'memory',
+    'person',
+    'place',
+    'event',
+    'concept',
+    'goal',
+    'commitment',
+    'dream',
+    'value',
+    'fear',
+    'pattern',
+    'memory',
   ];
   return validTypes.includes(type as EntityType) ? (type as EntityType) : 'concept';
 }
@@ -231,22 +332,66 @@ function validateEntityType(type: string): EntityType {
 
 const RELATIONSHIP_PATTERNS = [
   // Family
-  { pattern: /\b(my|the)\s+(mother|mom|mama|mum)\b/i, type: 'person' as EntityType, relationship: 'mother' },
-  { pattern: /\b(my|the)\s+(father|dad|papa|daddy)\b/i, type: 'person' as EntityType, relationship: 'father' },
-  { pattern: /\b(my|the)\s+(brother|bro)\b/i, type: 'person' as EntityType, relationship: 'brother' },
+  {
+    pattern: /\b(my|the)\s+(mother|mom|mama|mum)\b/i,
+    type: 'person' as EntityType,
+    relationship: 'mother',
+  },
+  {
+    pattern: /\b(my|the)\s+(father|dad|papa|daddy)\b/i,
+    type: 'person' as EntityType,
+    relationship: 'father',
+  },
+  {
+    pattern: /\b(my|the)\s+(brother|bro)\b/i,
+    type: 'person' as EntityType,
+    relationship: 'brother',
+  },
   { pattern: /\b(my|the)\s+(sister|sis)\b/i, type: 'person' as EntityType, relationship: 'sister' },
-  { pattern: /\b(my|the)\s+(wife|husband|partner|spouse)\b/i, type: 'person' as EntityType, relationship: 'partner' },
-  { pattern: /\b(my|the)\s+(son|daughter|kid|child)\b/i, type: 'person' as EntityType, relationship: 'child' },
-  { pattern: /\b(my|the)\s+(grandma|grandmother|grandpa|grandfather)\b/i, type: 'person' as EntityType, relationship: 'grandparent' },
+  {
+    pattern: /\b(my|the)\s+(wife|husband|partner|spouse)\b/i,
+    type: 'person' as EntityType,
+    relationship: 'partner',
+  },
+  {
+    pattern: /\b(my|the)\s+(son|daughter|kid|child)\b/i,
+    type: 'person' as EntityType,
+    relationship: 'child',
+  },
+  {
+    pattern: /\b(my|the)\s+(grandma|grandmother|grandpa|grandfather)\b/i,
+    type: 'person' as EntityType,
+    relationship: 'grandparent',
+  },
 
   // Professional
-  { pattern: /\b(my|the)\s+(boss|manager|supervisor)\b/i, type: 'person' as EntityType, relationship: 'boss' },
-  { pattern: /\b(my|the)\s+(coworker|colleague|teammate)\b/i, type: 'person' as EntityType, relationship: 'colleague' },
-  { pattern: /\b(my|the)\s+(doctor|therapist|counselor)\b/i, type: 'person' as EntityType, relationship: 'professional' },
+  {
+    pattern: /\b(my|the)\s+(boss|manager|supervisor)\b/i,
+    type: 'person' as EntityType,
+    relationship: 'boss',
+  },
+  {
+    pattern: /\b(my|the)\s+(coworker|colleague|teammate)\b/i,
+    type: 'person' as EntityType,
+    relationship: 'colleague',
+  },
+  {
+    pattern: /\b(my|the)\s+(doctor|therapist|counselor)\b/i,
+    type: 'person' as EntityType,
+    relationship: 'professional',
+  },
 
   // Friends
-  { pattern: /\b(my|a)\s+(friend|buddy|pal)\b/i, type: 'person' as EntityType, relationship: 'friend' },
-  { pattern: /\b(my|the)\s+(best\s+friend)\b/i, type: 'person' as EntityType, relationship: 'best friend' },
+  {
+    pattern: /\b(my|a)\s+(friend|buddy|pal)\b/i,
+    type: 'person' as EntityType,
+    relationship: 'friend',
+  },
+  {
+    pattern: /\b(my|the)\s+(best\s+friend)\b/i,
+    type: 'person' as EntityType,
+    relationship: 'best friend',
+  },
 
   // Events
   { pattern: /\b(meeting|appointment|interview)\b/i, type: 'event' as EntityType },
@@ -295,7 +440,23 @@ function extractEntitiesRuleBased(transcript: string): ExtractedEntity[] {
   const nameMatches = transcript.match(NAME_PATTERN) || [];
   for (const name of nameMatches) {
     // Skip common false positives
-    if (['I', 'The', 'A', 'An', 'This', 'That', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].includes(name)) {
+    if (
+      [
+        'I',
+        'The',
+        'A',
+        'An',
+        'This',
+        'That',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ].includes(name)
+    ) {
       continue;
     }
     const key = `person:${name.toLowerCase()}`;

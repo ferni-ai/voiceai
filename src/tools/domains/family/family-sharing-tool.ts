@@ -53,10 +53,7 @@ Parameters:
       },
       required: ['message', 'familyMember'],
     },
-    execute: async (args: {
-      message: string;
-      familyMember: string;
-    }): Promise<unknown> => {
+    execute: async (args: { message: string; familyMember: string }): Promise<unknown> => {
       const { message, familyMember } = args;
       const userId = ctx.userId;
 
@@ -69,16 +66,14 @@ Parameters:
 
       try {
         // Look up the family member's sponsored identity
-        const { getSponsoredIdentities } = await import(
-          '../../../services/identity/sponsored-identity.js'
-        );
+        const { getSponsoredIdentities } =
+          await import('../../../services/identity/sponsored-identity.js');
         const identities = await getSponsoredIdentities(userId);
 
         if (identities.length === 0) {
           return {
             success: false,
-            message:
-              "I don't have any family members set up yet. Would you like to add someone?",
+            message: "I don't have any family members set up yet. Would you like to add someone?",
           };
         }
 
@@ -88,8 +83,7 @@ Parameters:
           (id: SponsoredIdentity) =>
             id.displayName.toLowerCase().includes(normalizedSearch) ||
             id.relationship.toLowerCase().includes(normalizedSearch) ||
-            (id.preferredName &&
-              id.preferredName.toLowerCase().includes(normalizedSearch))
+            (id.preferredName && id.preferredName.toLowerCase().includes(normalizedSearch))
         );
 
         if (!matchingIdentity) {
@@ -103,9 +97,8 @@ Parameters:
         }
 
         // Create the shareable context
-        const { createExplicitShare } = await import(
-          '../../../services/family/family-context-sharing.js'
-        );
+        const { createExplicitShare } =
+          await import('../../../services/family/family-context-sharing.js');
 
         const context = await createExplicitShare({
           fromUserId: userId,
@@ -184,10 +177,7 @@ Parameters:
       },
       required: ['familyMember'],
     },
-    execute: async (args: {
-      familyMember: string;
-      reason?: string;
-    }): Promise<unknown> => {
+    execute: async (args: { familyMember: string; reason?: string }): Promise<unknown> => {
       const { familyMember, reason } = args;
       const userId = ctx.userId;
 
@@ -200,16 +190,14 @@ Parameters:
 
       try {
         // Look up the family member's sponsored identity
-        const { getSponsoredIdentities } = await import(
-          '../../../services/identity/sponsored-identity.js'
-        );
+        const { getSponsoredIdentities } =
+          await import('../../../services/identity/sponsored-identity.js');
         const identities = await getSponsoredIdentities(userId);
 
         if (identities.length === 0) {
           return {
             success: false,
-            message:
-              "I don't have any family members set up yet. Would you like to add someone?",
+            message: "I don't have any family members set up yet. Would you like to add someone?",
           };
         }
 
@@ -219,8 +207,7 @@ Parameters:
           (id: SponsoredIdentity) =>
             id.displayName.toLowerCase().includes(normalizedSearch) ||
             id.relationship.toLowerCase().includes(normalizedSearch) ||
-            (id.preferredName &&
-              id.preferredName.toLowerCase().includes(normalizedSearch))
+            (id.preferredName && id.preferredName.toLowerCase().includes(normalizedSearch))
         );
 
         if (!matchingIdentity) {
@@ -234,9 +221,8 @@ Parameters:
         }
 
         // Create the check-in request context
-        const { createCheckInRequest } = await import(
-          '../../../services/family/family-context-sharing.js'
-        );
+        const { createCheckInRequest } =
+          await import('../../../services/family/family-context-sharing.js');
 
         const context = await createCheckInRequest({
           fromUserId: userId,
@@ -250,8 +236,7 @@ Parameters:
         if (!context) {
           return {
             success: false,
-            message:
-              "I couldn't set up that check-in. Let me make a note to do it manually.",
+            message: "I couldn't set up that check-in. Let me make a note to do it manually.",
           };
         }
 

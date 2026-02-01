@@ -308,7 +308,7 @@ await recordToolHumanization({
 **Effort**: 5-7 days | **Impact**: Critical | **Risk**: Medium
 
 ### 4.1 Relationship Memory Firestore Persistence
-**File**: `src/personality/relationship-memory.ts`
+**File**: `src/personality/relationship-memory.ts` (removed - relationship memory consolidated into `src/memory/` module)
 
 Add Firestore initialization and persistence helper:
 
@@ -678,7 +678,7 @@ After verification:
 - `src/agents/voice-agent.ts` - Add emotion dispatch
 - `src/agents/realtime/frontend-publisher.ts` - Add custom event method
 - `src/tools/utils/tool-wrapper.ts` - Add humanization
-- `src/personality/relationship-memory.ts` - Add Firestore
+- `src/personality/relationship-memory.ts` - (removed - consolidated into `src/memory/`)
 - `apps/web/src/app/data-message-handlers.ts` - Handle custom events
 - `CLAUDE.md` - Update EQ documentation
 

@@ -59,6 +59,8 @@ type OfflineChangeCallback = (isOffline: boolean) => void;
 const SYNC_QUEUE_KEY = 'ferni_sync_queue';
 const MAX_QUEUE_SIZE = 100;
 const MAX_RETRIES = 3;
+const CONNECTIVITY_CHECK_TIMEOUT_MS = 4000;
+const CONNECTIVITY_RECHECK_INTERVAL_MS = 10_000;
 
 const offlineState: OfflineState = {
   isOffline: typeof navigator !== 'undefined' ? !navigator.onLine : false,
@@ -69,6 +71,7 @@ const offlineState: OfflineState = {
 
 const listeners: Set<OfflineChangeCallback> = new Set();
 let syncInProgress = false;
+let connectivityRecheckTimer: ReturnType<typeof setInterval> | null = null;
 
 // ============================================================================
 // CORE FUNCTIONS
@@ -109,10 +112,14 @@ export function initOfflineService(): void {
   const queue = loadSyncQueue();
   offlineState.pendingSyncCount = queue.length;
 
-  // Set initial state
+  // Set initial state from navigator.onLine, but verify with a real request
   offlineState.isOffline = !navigator.onLine;
   if (navigator.onLine) {
     offlineState.lastOnline = Date.now();
+  } else {
+    // navigator.onLine says offline — verify with an actual network request
+    // since navigator.onLine is unreliable on some platforms
+    void verifyConnectivity();
   }
 
   // Listen for online/offline events
@@ -136,6 +143,7 @@ export function disposeOfflineService(): void {
   window.removeEventListener('online', handleOnline);
   window.removeEventListener('offline', handleOffline);
   listeners.clear();
+  stopConnectivityRecheck();
 }
 
 // ============================================================================
@@ -284,10 +292,17 @@ function handleSWMessage(event: MessageEvent): void {
 // ============================================================================
 
 function handleOnline(): void {
+  if (!offlineState.isOffline) {
+    return; // Already online
+  }
+
   offlineState.isOffline = false;
   offlineState.lastOnline = Date.now();
 
   log.info('Connection restored');
+
+  // Stop periodic recheck since we're back online
+  stopConnectivityRecheck();
 
   // Notify listeners
   listeners.forEach((callback) => {
@@ -306,9 +321,23 @@ function handleOnline(): void {
 }
 
 function handleOffline(): void {
-  offlineState.isOffline = true;
+  // navigator.onLine is unreliable — verify with a real network request
+  // before telling the UI we're offline
+  log.info('Browser reported offline, verifying with network request...');
+  void verifyConnectivity();
+}
 
-  log.warn('Connection lost');
+/**
+ * Actually set offline state and notify listeners.
+ * Called after verification confirms we're truly offline.
+ */
+function setOffline(): void {
+  if (offlineState.isOffline) {
+    return; // Already offline
+  }
+
+  offlineState.isOffline = true;
+  log.warn('Connection lost (verified)');
 
   // Notify listeners
   listeners.forEach((callback) => {
@@ -321,6 +350,61 @@ function handleOffline(): void {
 
   // Dispatch event
   window.dispatchEvent(new CustomEvent('ferni:offline'));
+
+  // Start periodic recheck — we might come back online without the
+  // browser firing an 'online' event (known macOS/VPN issue)
+  startConnectivityRecheck();
+}
+
+/**
+ * Verify actual connectivity with a lightweight network request.
+ * navigator.onLine is unreliable on many platforms (macOS VPNs, proxies, etc.)
+ */
+async function verifyConnectivity(): Promise<void> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), CONNECTIVITY_CHECK_TIMEOUT_MS);
+
+    // Use a lightweight HEAD request to the app's own origin
+    // This avoids CORS issues and is the fastest possible check
+    const response = await fetch('/health/circuits', {
+      method: 'HEAD',
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (response.ok || response.status === 405 || response.status === 404) {
+      // Any response (even 404/405) means we have network connectivity
+      log.info('Connectivity verified — actually online despite navigator.onLine=false');
+      if (offlineState.isOffline) {
+        handleOnline();
+      }
+      stopConnectivityRecheck();
+    } else {
+      setOffline();
+    }
+  } catch {
+    // Fetch failed — we're genuinely offline
+    log.debug('Connectivity check failed — confirming offline');
+    setOffline();
+  }
+}
+
+function startConnectivityRecheck(): void {
+  if (connectivityRecheckTimer) {
+    return;
+  }
+  connectivityRecheckTimer = setInterval(() => {
+    void verifyConnectivity();
+  }, CONNECTIVITY_RECHECK_INTERVAL_MS);
+}
+
+function stopConnectivityRecheck(): void {
+  if (connectivityRecheckTimer) {
+    clearInterval(connectivityRecheckTimer);
+    connectivityRecheckTimer = null;
+  }
 }
 
 // ============================================================================

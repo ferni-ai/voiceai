@@ -6,11 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  RequestCoalescer,
-  getRequestCoalescer,
-  resetAllCoalescers,
-} from '../request-coalescer.js';
+import { RequestCoalescer, getRequestCoalescer, resetAllCoalescers } from '../request-coalescer.js';
 
 describe('Request Coalescer Edge Cases', () => {
   beforeEach(() => {
@@ -135,10 +131,12 @@ describe('Request Coalescer Edge Cases', () => {
       let resolveB: (value: string) => void;
 
       // t=0: Request A starts
-      const promiseA = coalescer.execute('key', () =>
-        new Promise<string>((resolve) => {
-          resolveA = resolve;
-        })
+      const promiseA = coalescer.execute(
+        'key',
+        () =>
+          new Promise<string>((resolve) => {
+            resolveA = resolve;
+          })
       );
 
       expect(coalescer.getStats().actualExecutions).toBe(1);
@@ -147,10 +145,12 @@ describe('Request Coalescer Edge Cases', () => {
       await vi.advanceTimersByTimeAsync(110);
 
       // t=110: Request B starts (A is expired, creates new entry)
-      const promiseB = coalescer.execute('key', () =>
-        new Promise<string>((resolve) => {
-          resolveB = resolve;
-        })
+      const promiseB = coalescer.execute(
+        'key',
+        () =>
+          new Promise<string>((resolve) => {
+            resolveB = resolve;
+          })
       );
 
       expect(coalescer.getStats().actualExecutions).toBe(2);

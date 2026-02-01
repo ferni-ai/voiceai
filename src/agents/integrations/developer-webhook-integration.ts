@@ -84,9 +84,7 @@ export function onSessionStarted(ctx: SessionEventContext): void {
  *
  * Call this from cleanup-handler.ts during session cleanup.
  */
-export function onSessionEnded(
-  ctx: SessionEventContext & { duration?: number }
-): void {
+export function onSessionEnded(ctx: SessionEventContext & { duration?: number }): void {
   const { sessionId, userId, personaId, publisherId, duration } = ctx;
 
   if (!publisherId) {
@@ -119,9 +117,7 @@ export function onSessionEnded(
  *
  * Call this from tool executor when a tool is invoked.
  */
-export function onToolCalled(
-  ctx: ToolEventContext & { args?: Record<string, unknown> }
-): void {
+export function onToolCalled(ctx: ToolEventContext & { args?: Record<string, unknown> }): void {
   const { sessionId, userId, personaId, publisherId, toolName, toolDomain, args } = ctx;
 
   if (!publisherId) {
@@ -150,7 +146,16 @@ export function onToolCalled(
 export function onToolCompleted(
   ctx: ToolEventContext & { result?: unknown; executionTimeMs?: number }
 ): void {
-  const { sessionId, userId, personaId, publisherId, toolName, toolDomain, result, executionTimeMs } = ctx;
+  const {
+    sessionId,
+    userId,
+    personaId,
+    publisherId,
+    toolName,
+    toolDomain,
+    result,
+    executionTimeMs,
+  } = ctx;
 
   if (!publisherId) {
     return;
@@ -176,9 +181,7 @@ export function onToolCompleted(
  *
  * Call this from tool executor when a tool fails.
  */
-export function onToolFailed(
-  ctx: ToolEventContext & { error: string }
-): void {
+export function onToolFailed(ctx: ToolEventContext & { error: string }): void {
   const { sessionId, userId, personaId, publisherId, toolName, toolDomain, error } = ctx;
 
   if (!publisherId) {
@@ -203,32 +206,62 @@ export function onToolFailed(
 // CONTEXT HELPER
 // ============================================================================
 
+// Built-in personas that don't have publishers
+const BUILT_IN_PERSONAS = new Set(['ferni', 'maya', 'peter', 'jordan', 'alex', 'nayan']);
+
 /**
- * Get publisherId from persona or session context
+ * Get publisherId from session metadata or persona configuration.
  *
- * This is a placeholder for where publisherId would come from.
- * In practice, it would be:
- * - Loaded from marketplace persona metadata
- * - Passed through from token generation
- * - Retrieved from a custom persona's configuration
+ * Priority order:
+ * 1. Session metadata (passed from token generation) - synchronous, fast
+ * 2. Marketplace persona lookup - async, requires API call
+ *
+ * Most calls should use the sync version with session metadata since
+ * the token server already resolves publisherId and passes it via room metadata.
  */
 export function getPublisherId(
   personaId: string,
-  _sessionMetadata?: Record<string, unknown>
+  sessionMetadata?: Record<string, unknown>
 ): string | undefined {
-  // TODO: Look up publisherId from:
-  // 1. Marketplace persona metadata
-  // 2. Custom persona configuration
-  // 3. Session metadata passed from token endpoint
-
-  // For now, built-in personas don't have publisherIds
-  const builtInPersonas = ['ferni', 'maya', 'peter', 'jordan', 'alex', 'nayan'];
-  if (builtInPersonas.includes(personaId)) {
+  // Built-in personas never have publishers
+  if (BUILT_IN_PERSONAS.has(personaId)) {
     return undefined;
   }
 
-  // For marketplace/custom personas, publisherId would be looked up here
+  // Check session metadata first (fastest path)
+  if (sessionMetadata?.publisher_id) {
+    return sessionMetadata.publisher_id as string;
+  }
+
+  // For marketplace/custom personas without session metadata,
+  // caller should use getPublisherIdAsync() for dynamic lookup
   return undefined;
+}
+
+/**
+ * Async version that looks up publisherId from the marketplace registry.
+ * Use this when session metadata isn't available.
+ */
+export async function getPublisherIdAsync(personaId: string): Promise<string | undefined> {
+  // Built-in personas never have publishers
+  if (BUILT_IN_PERSONAS.has(personaId)) {
+    return undefined;
+  }
+
+  try {
+    // Lazy import to avoid circular dependencies
+    const { getAgentAsync } = await import('../../marketplace/registry.js');
+    const agent = await getAgentAsync(personaId);
+    if (agent?.publisher?.id) {
+      log.debug({ personaId, publisherId: agent.publisher.id }, '🔗 Publisher ID resolved');
+      return agent.publisher.id;
+    }
+    return undefined;
+  } catch (err) {
+    // Non-fatal - fall back to no publisher
+    log.debug({ personaId, error: String(err) }, 'Publisher lookup failed (non-fatal)');
+    return undefined;
+  }
 }
 
 export default {
@@ -238,4 +271,5 @@ export default {
   onToolCompleted,
   onToolFailed,
   getPublisherId,
+  getPublisherIdAsync,
 };

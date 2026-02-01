@@ -911,6 +911,59 @@ export class UserLearningEngine {
       updated.sharedStories = updated.sharedStories.slice(-50);
     }
 
+    // Extract family members from small details
+    // Look for person_name details with family relationship context
+    if (learning.smallDetails && learning.smallDetails.length > 0) {
+      if (!updated.familyMembers) {
+        updated.familyMembers = [];
+      }
+
+      const familyRelationships = [
+        'wife',
+        'husband',
+        'spouse',
+        'partner',
+        'son',
+        'daughter',
+        'mother',
+        'father',
+        'mom',
+        'dad',
+        'brother',
+        'sister',
+        'grandma',
+        'grandpa',
+        'grandmother',
+        'grandfather',
+        'aunt',
+        'uncle',
+        'cousin',
+        'niece',
+        'nephew',
+      ];
+
+      for (const detail of learning.smallDetails) {
+        if (detail.type === 'person_name' && detail.context) {
+          const contextLower = detail.context.toLowerCase();
+          // Check if context contains a family relationship word
+          const relationship = familyRelationships.find((rel) => contextLower.includes(rel));
+          if (relationship) {
+            // Check if not already in familyMembers
+            const alreadyExists = updated.familyMembers.some(
+              (m) => m.name?.toLowerCase() === detail.value.toLowerCase()
+            );
+            if (!alreadyExists) {
+              updated.familyMembers.push({
+                relationship,
+                name: detail.value,
+                mentionedTopics: [],
+              });
+            }
+          }
+        }
+      }
+    }
+
     updated.updatedAt = now;
     updated.version++;
 

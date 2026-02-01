@@ -3,8 +3,17 @@
  *
  * ⚡ CRITICAL PERFORMANCE OPTIMIZATION
  *
- * Executes context builders in tiers with strict timing budgets.
- * Slow builders are dropped rather than blocking response.
+ * @deprecated This module is SUPERSEDED by behavioral/orchestrator.ts which provides
+ * the same tiered execution with timing budgets, integrated with the turn processor.
+ *
+ * This file is kept for:
+ * 1. Reference documentation of tier configuration
+ * 2. TIER_BUDGETS and BUILDER_TIERS constants (can be imported)
+ * 3. Historical context
+ *
+ * For actual tiered execution, see:
+ * - turn-processor.ts: Uses parallel Promise.all with withTimeout()
+ * - behavioral/orchestrator.ts: Orchestrates context building with budgets
  *
  * Tiers:
  * - CRITICAL (0-50ms): Safety, identity, emotion - MUST run, blocks until complete

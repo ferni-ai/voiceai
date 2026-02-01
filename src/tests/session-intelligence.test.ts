@@ -20,7 +20,7 @@ import {
   PredictiveAnticipationEngine,
   clearPredictiveAnticipationEngine,
   getPredictiveAnticipationEngine,
-} from '../conversation/predictive-anticipation.js';
+} from '../conversation/predictive-anticipation/index.js';
 import {
   ProactiveMemoryEngine,
   clearProactiveMemoryEngine,

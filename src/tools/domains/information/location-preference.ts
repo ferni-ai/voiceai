@@ -107,10 +107,7 @@ export function getCurrentSessionLocation(): string | null {
     return cachedLocation;
   }
 
-  log.debug(
-    { userId: currentActiveSession.userId },
-    '📍 No location available for active session'
-  );
+  log.debug({ userId: currentActiveSession.userId }, '📍 No location available for active session');
   return null;
 }
 

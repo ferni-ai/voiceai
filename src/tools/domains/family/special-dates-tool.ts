@@ -26,17 +26,9 @@ export const rememberSpecialDateSchema = z.object({
   dateType: z
     .enum(['birthday', 'anniversary', 'memorial', 'custom'])
     .describe('Type of special date'),
-  date: z
-    .string()
-    .describe('The date in natural format (e.g., "March 15", "3/15", "March 15th")'),
-  year: z
-    .number()
-    .optional()
-    .describe('Birth year (for calculating age) - optional'),
-  label: z
-    .string()
-    .optional()
-    .describe('Custom label for the date (e.g., "Mom\'s retirement")'),
+  date: z.string().describe('The date in natural format (e.g., "March 15", "3/15", "March 15th")'),
+  year: z.number().optional().describe('Birth year (for calculating age) - optional'),
+  label: z.string().optional().describe('Custom label for the date (e.g., "Mom\'s retirement")'),
 });
 
 export const listSpecialDatesSchema = z.object({
@@ -56,10 +48,20 @@ export const listSpecialDatesSchema = z.object({
 function isValidDayForMonth(month: number, day: number): boolean {
   // Days in each month (non-leap year - we're lenient on Feb 29)
   const daysInMonth: Record<number, number> = {
-    1: 31, 2: 29, 3: 31, 4: 30, 5: 31, 6: 30,
-    7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31,
+    1: 31,
+    2: 29,
+    3: 31,
+    4: 30,
+    5: 31,
+    6: 30,
+    7: 31,
+    8: 31,
+    9: 30,
+    10: 31,
+    11: 30,
+    12: 31,
   };
-  
+
   if (month < 1 || month > 12) return false;
   if (day < 1 || day > daysInMonth[month]) return false;
   return true;
@@ -70,18 +72,30 @@ function isValidDayForMonth(month: number, day: number): boolean {
  */
 function parseToMMDD(dateStr: string): string | null {
   const months: Record<string, number> = {
-    january: 1, jan: 1,
-    february: 2, feb: 2,
-    march: 3, mar: 3,
-    april: 4, apr: 4,
+    january: 1,
+    jan: 1,
+    february: 2,
+    feb: 2,
+    march: 3,
+    mar: 3,
+    april: 4,
+    apr: 4,
     may: 5,
-    june: 6, jun: 6,
-    july: 7, jul: 7,
-    august: 8, aug: 8,
-    september: 9, sep: 9, sept: 9,
-    october: 10, oct: 10,
-    november: 11, nov: 11,
-    december: 12, dec: 12,
+    june: 6,
+    jun: 6,
+    july: 7,
+    jul: 7,
+    august: 8,
+    aug: 8,
+    september: 9,
+    sep: 9,
+    sept: 9,
+    october: 10,
+    oct: 10,
+    november: 11,
+    nov: 11,
+    december: 12,
+    dec: 12,
   };
 
   const lower = dateStr.toLowerCase().trim();
@@ -134,13 +148,23 @@ function parseToMMDD(dateStr: string): string | null {
  */
 function formatDate(mmdd: string): string {
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
-  
+
   const [month, day] = mmdd.split('-').map(Number);
   if (!month || !day) return mmdd;
-  
+
   return `${months[month - 1]} ${day}`;
 }
 
@@ -163,17 +187,15 @@ export async function rememberSpecialDate(
   const mmdd = parseToMMDD(date);
   if (!mmdd) {
     return (
-      `I couldn't understand the date "${date}". ` +
-      `Could you say it like "March 15" or "3/15"?`
+      `I couldn't understand the date "${date}". ` + `Could you say it like "March 15" or "3/15"?`
     );
   }
 
   // Try to resolve contact phone from entity store
   let phone: string | undefined;
   try {
-    const { findContactForTelephony, isEntityStoreReady } = await import(
-      '../../../memory/entity-store/integration.js'
-    );
+    const { findContactForTelephony, isEntityStoreReady } =
+      await import('../../../memory/entity-store/integration.js');
     if (isEntityStoreReady()) {
       const contact = await findContactForTelephony(ctx.userId, contactName);
       if (contact) {
@@ -205,12 +227,12 @@ export async function rememberSpecialDate(
   }[dateType];
 
   let response = `Got it! I'll remember ${contactName}'s ${dateTypeText} is on ${formattedDate}`;
-  
+
   if (year && dateType === 'birthday') {
     const age = new Date().getFullYear() - year;
     response += ` (${age} years old this year)`;
   }
-  
+
   response += `. I'll remind you when it's coming up!`;
 
   if (phone) {
@@ -234,7 +256,7 @@ export async function getSpecialDates(
   if (dates.length === 0) {
     return (
       "I don't have any special dates saved yet. " +
-      "You can tell me birthdays and anniversaries like: " +
+      'You can tell me birthdays and anniversaries like: ' +
       '"Mom\'s birthday is March 15th" or "My parents\' anniversary is June 20th".'
     );
   }
@@ -244,7 +266,7 @@ export async function getSpecialDates(
   if (contactName) {
     const lower = contactName.toLowerCase();
     filtered = dates.filter((d) => d.contactName.toLowerCase().includes(lower));
-    
+
     if (filtered.length === 0) {
       return `I don't have any special dates saved for "${contactName}". Want to add one?`;
     }
@@ -261,16 +283,21 @@ export async function getSpecialDates(
     return aNext - bNext;
   });
 
-  const lines: string[] = ['Here are the special dates I\'m tracking:', ''];
+  const lines: string[] = ["Here are the special dates I'm tracking:", ''];
 
   for (const date of sorted) {
     const formattedDate = formatDate(date.date);
     const daysUntil = getDaysUntil(date.date);
-    const untilText = daysUntil === 0 ? '**TODAY!**' : 
-                      daysUntil === 1 ? 'tomorrow' : 
-                      daysUntil <= 7 ? `in ${daysUntil} days` :
-                      daysUntil <= 30 ? `in ${Math.ceil(daysUntil / 7)} weeks` :
-                      `on ${formattedDate}`;
+    const untilText =
+      daysUntil === 0
+        ? '**TODAY!**'
+        : daysUntil === 1
+          ? 'tomorrow'
+          : daysUntil <= 7
+            ? `in ${daysUntil} days`
+            : daysUntil <= 30
+              ? `in ${Math.ceil(daysUntil / 7)} weeks`
+              : `on ${formattedDate}`;
 
     const typeEmoji = {
       birthday: '🎂',
@@ -279,7 +306,9 @@ export async function getSpecialDates(
       custom: '📅',
     }[date.dateType];
 
-    lines.push(`${typeEmoji} **${date.contactName}**'s ${date.dateType}: ${formattedDate} (${untilText})`);
+    lines.push(
+      `${typeEmoji} **${date.contactName}**'s ${date.dateType}: ${formattedDate} (${untilText})`
+    );
   }
 
   lines.push('');
@@ -323,8 +352,7 @@ export const specialDateTools = [
   },
   {
     name: 'listSpecialDates',
-    description:
-      'List saved birthdays, anniversaries, and special dates. Can filter by person.',
+    description: 'List saved birthdays, anniversaries, and special dates. Can filter by person.',
     schema: listSpecialDatesSchema,
     execute: getSpecialDates,
   },

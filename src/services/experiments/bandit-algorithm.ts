@@ -372,10 +372,7 @@ export function createArm(id: string): BanditArm {
 /**
  * Record a conversion (success or failure) for an arm
  */
-export function recordConversion(
-  arm: BanditArm,
-  success: boolean
-): BanditArm {
+export function recordConversion(arm: BanditArm, success: boolean): BanditArm {
   return {
     ...arm,
     successes: arm.successes + (success ? 1 : 0),

@@ -1,7 +1,7 @@
 /**
  * Cross-Cultural Wisdom Context Builder
  *
- * > "The cracks are where the gold goes." - Kintsugi
+ * > "We are all broken in different ways—that's what makes us both human and beautiful." - Kintsugi
  *
  * Surfaces Japanese philosophy, poetry, and multicultural wisdom at the right moments.
  * This is one of Ferni's most distinctive "Better Than Human" capabilities -
@@ -62,7 +62,10 @@ interface CrossCulturalContent {
 
 interface WisdomTrigger {
   patterns: RegExp[];
-  wisdomType: keyof NonNullable<CrossCulturalContent['multicultural_wisdom']> | 'japanese_philosophy' | 'japanese_poetry';
+  wisdomType:
+    | keyof NonNullable<CrossCulturalContent['multicultural_wisdom']>
+    | 'japanese_philosophy'
+    | 'japanese_poetry';
   concept?: string;
   probability: number;
   relationshipGate?: 'new' | 'acquaintance' | 'friend' | 'established';
@@ -203,10 +206,7 @@ async function loadCrossCulturalContent(): Promise<CrossCulturalContent | null> 
 // WISDOM RETRIEVAL
 // ============================================================================
 
-function getWisdomContent(
-  content: CrossCulturalContent,
-  trigger: WisdomTrigger
-): string | null {
+function getWisdomContent(content: CrossCulturalContent, trigger: WisdomTrigger): string | null {
   if (trigger.wisdomType === 'japanese_philosophy' && trigger.concept) {
     const concepts = content.japanese_philosophy?.core_concepts;
     if (!concepts) return null;
@@ -223,7 +223,9 @@ function getWisdomContent(
 
     // Prioritize Mitsuo Aida (Ferni's favorite)
     if (poetry.favorite_poet?.quotes && poetry.favorite_poet.quotes.length > 0) {
-      return poetry.favorite_poet.quotes[Math.floor(Math.random() * poetry.favorite_poet.quotes.length)];
+      return poetry.favorite_poet.quotes[
+        Math.floor(Math.random() * poetry.favorite_poet.quotes.length)
+      ];
     }
 
     // Fall back to haiku masters
@@ -319,7 +321,8 @@ ${wisdom}
 
 Note: Share this as your own wisdom learned from travels/study, not as a lecture.
 The goal is connection through shared human experience across cultures.`,
-      priority: emotionalState === 'reflective' || emotionalState === 'vulnerable' ? 'high' : 'standard',
+      priority:
+        emotionalState === 'reflective' || emotionalState === 'vulnerable' ? 'high' : 'standard',
     });
 
     // Only inject one piece of wisdom per turn

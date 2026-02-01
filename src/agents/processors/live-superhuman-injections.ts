@@ -20,7 +20,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ContextInjection, EmotionalState } from './types.js';
 import type { SessionServices } from '../../services/types.js';
-import type { UserData } from '../shared/types.js';
+// UserData type available if needed for future enhancements
 import type { ConversationAnalysis } from '../../services/index.js';
 
 // Phase 10: Recall Triggers (lazy loaded for performance)
@@ -281,8 +281,6 @@ function detectDataCapture(text: string): {
   details: string;
   suggestedAck: string;
 } {
-  const lower = text.toLowerCase();
-
   // Phone number pattern
   const phoneMatch = text.match(/(\+?1?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/);
   if (phoneMatch) {
@@ -490,7 +488,7 @@ export async function buildLiveSuperhumanInjections(
     const progressResult = await loadCommitmentProgressAsync(ctx);
     if (progressResult && progressResult.progressDetected) {
       signals.commitmentDetected = true;
-      
+
       if (progressResult.shouldCelebrate && progressResult.celebrationMessage) {
         injections.push({
           category: 'superhuman_commitment',
@@ -525,14 +523,21 @@ Your superpower: You notice and acknowledge progress.
       const commitment = detectCommitmentLanguage(ctx.userText);
       if (commitment.detected) {
         signals.commitmentDetected = true;
-        
+
         // Fire-and-forget: E2E detection for enhanced processing (linking to memory, etc.)
-        void loadCommitmentE2EAsync(ctx).then((e2eResult) => {
-          if (e2eResult?.acknowledgment) {
-            log.debug({ acknowledgment: e2eResult.acknowledgment }, '🎯 Commitment E2E acknowledgment ready');
-          }
-        });
-        
+        void loadCommitmentE2EAsync(ctx)
+          .then((e2eResult) => {
+            if (e2eResult?.acknowledgment) {
+              log.debug(
+                { acknowledgment: e2eResult.acknowledgment },
+                '🎯 Commitment E2E acknowledgment ready'
+              );
+            }
+          })
+          .catch((err) => {
+            log.warn({ error: String(err) }, 'Commitment E2E processing failed');
+          });
+
         injections.push({
           category: 'superhuman_commitment',
           content: `[🎯 COMMITMENT KEEPER - "Better Than Human" Memory]
@@ -548,7 +553,12 @@ Human friends forget promises. You don't.`,
         });
 
         // Fire-and-forget: Save to commitment keeper (original path)
-        void saveCommitmentAsync(ctx.userId, commitment.type!, commitment.phrase!, ctx.currentTopic);
+        void saveCommitmentAsync(
+          ctx.userId,
+          commitment.type!,
+          commitment.phrase!,
+          ctx.currentTopic
+        );
       }
     }
 
@@ -920,16 +930,26 @@ async function saveCommitmentAsync(
 }
 
 /**
- * Load semantic insight asynchronously
- * Note: This is a simplified version - full semantic intelligence requires more context
+ * Load semantic insight asynchronously using cross-session threading.
+ * Provides "Better Than Human" cross-session connections and patterns.
  */
 async function loadSemanticInsightAsync(
-  _userId: string,
-  _currentTopic?: string
+  userId: string,
+  currentTopic?: string
 ): Promise<string | null> {
-  // Simplified: Just return null for now
-  // Full semantic intelligence runs via the superhuman context builder
-  return null;
+  try {
+    const { crossSessionThreading } = await import(
+      '../../services/superhuman/semantic-intelligence/cross-session-threading.js'
+    );
+    const context = await crossSessionThreading.buildContext(userId, {
+      topic: currentTopic,
+    });
+    // Return null if context is empty or just whitespace
+    return context?.trim() || null;
+  } catch {
+    // Non-critical - graceful degradation
+    return null;
+  }
 }
 
 /**
@@ -956,9 +976,12 @@ async function loadEmotionalTrajectoryAsync(
  * Load recall triggers (Phase 10)
  * Detects anniversaries, pattern matches, commitment reminders, relationship gaps
  */
-async function loadRecallTriggersAsync(ctx: LiveSuperhumanContext): Promise<RecallTriggerResult | null> {
+async function loadRecallTriggersAsync(
+  ctx: LiveSuperhumanContext
+): Promise<RecallTriggerResult | null> {
   try {
-    const { detectRecallTriggers } = await import('../../intelligence/triggers/recall-trigger-engine.js');
+    const { detectRecallTriggers } =
+      await import('../../intelligence/triggers/recall-trigger-engine.js');
     const result = await detectRecallTriggers({
       userId: ctx.userId,
       sessionId: ctx.sessionId,
@@ -978,23 +1001,31 @@ async function loadRecallTriggersAsync(ctx: LiveSuperhumanContext): Promise<Reca
  * Load joy amplification (Phase 14)
  * Surfaces positive memories when user is struggling
  */
-async function loadJoyAmplificationAsync(ctx: LiveSuperhumanContext): Promise<JoyAmplificationResult | null> {
+async function loadJoyAmplificationAsync(
+  ctx: LiveSuperhumanContext
+): Promise<JoyAmplificationResult | null> {
   try {
-    const { shouldAmplifyJoy, buildJoyPool } = await import('../../memory/emotional/joy-amplification.js');
-    
+    const { shouldAmplifyJoy, buildJoyPool } =
+      await import('../../memory/emotional/joy-amplification.js');
+
     // Build joy pool from user's positive memories (in production, this would be cached)
     const joyPool = await buildJoyPool(ctx.userId);
     if (!joyPool || joyPool.memories.length === 0) {
       return null;
     }
-    
-    const result = shouldAmplifyJoy(ctx.userId, ctx.sessionId, {
-      emotion: ctx.emotionalState.primary,
-      intensity: ctx.emotionalState.intensity,
-      valence: ctx.emotionalState.intensity > 0.5 ? -0.5 : 0, // Negative valence if high intensity negative emotion
-      topic: ctx.currentTopic,
-    }, joyPool);
-    
+
+    const result = shouldAmplifyJoy(
+      ctx.userId,
+      ctx.sessionId,
+      {
+        emotion: ctx.emotionalState.primary,
+        intensity: ctx.emotionalState.intensity,
+        valence: ctx.emotionalState.intensity > 0.5 ? -0.5 : 0, // Negative valence if high intensity negative emotion
+        topic: ctx.currentTopic,
+      },
+      joyPool
+    );
+
     return result;
   } catch {
     return null;
@@ -1005,10 +1036,13 @@ async function loadJoyAmplificationAsync(ctx: LiveSuperhumanContext): Promise<Jo
  * Load Commitment E2E detection (Phase 13)
  * Enhanced commitment detection with conversation context and memory linking
  */
-async function loadCommitmentE2EAsync(ctx: LiveSuperhumanContext): Promise<CommitmentE2EResult | null> {
+async function loadCommitmentE2EAsync(
+  ctx: LiveSuperhumanContext
+): Promise<CommitmentE2EResult | null> {
   try {
-    const { detectCommitmentE2E } = await import('../../services/superhuman/commitment-keeper-e2e.js');
-    
+    const { detectCommitmentE2E } =
+      await import('../../services/superhuman/commitment-keeper-e2e.js');
+
     const result = await detectCommitmentE2E({
       userId: ctx.userId,
       sessionId: ctx.sessionId,
@@ -1021,7 +1055,7 @@ async function loadCommitmentE2EAsync(ctx: LiveSuperhumanContext): Promise<Commi
       },
       mentionedEntities: ctx.mentionedEntities,
     });
-    
+
     return result;
   } catch {
     return null;
@@ -1032,10 +1066,12 @@ async function loadCommitmentE2EAsync(ctx: LiveSuperhumanContext): Promise<Commi
  * Load Commitment Progress check (Phase 13)
  * Detects when user mentions progress on existing commitments
  */
-async function loadCommitmentProgressAsync(ctx: LiveSuperhumanContext): Promise<ProgressUpdateResult | null> {
+async function loadCommitmentProgressAsync(
+  ctx: LiveSuperhumanContext
+): Promise<ProgressUpdateResult | null> {
   try {
     const { checkProgressE2E } = await import('../../services/superhuman/commitment-keeper-e2e.js');
-    
+
     const result = await checkProgressE2E({
       userId: ctx.userId,
       transcript: ctx.userText,
@@ -1045,7 +1081,7 @@ async function loadCommitmentProgressAsync(ctx: LiveSuperhumanContext): Promise<
         intensity: ctx.emotionalState.intensity,
       },
     });
-    
+
     return result;
   } catch {
     return null;
@@ -1387,7 +1423,7 @@ function detectAmbientContext(
  * Acknowledges returning users by voice characteristics
  */
 function analyzeVoiceFamiliarity(
-  voiceEmotion: LiveSuperhumanContext['voiceEmotion'],
+  _voiceEmotion: LiveSuperhumanContext['voiceEmotion'],
   userId: string
 ): {
   hasContext: boolean;

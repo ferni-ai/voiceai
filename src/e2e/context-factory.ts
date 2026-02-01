@@ -101,7 +101,7 @@ export function createTestContext(
   };
 
   context.log.info('Test context created', {
-    userId: userId.substring(0, 20) + '...',
+    userId: `${userId.substring(0, 20)}...`,
     apiBaseUrl,
   });
 
@@ -200,7 +200,7 @@ interface MockFirestore {
       get: () => Promise<{ docs: unknown[]; empty: boolean }>;
     };
     get: () => Promise<{
-      docs: { id: string; exists: boolean; data: () => Record<string, unknown> }[];
+      docs: Array<{ id: string; exists: boolean; data: () => Record<string, unknown> }>;
       empty: boolean;
     }>;
   };
@@ -233,11 +233,7 @@ export function getInsightsPath(userId: string): string {
  * @param userId - User ID to substitute
  * @param documentId - Optional document ID to substitute
  */
-export function resolvePath(
-  path: string,
-  userId: string,
-  documentId?: string
-): string {
+export function resolvePath(path: string, userId: string, documentId?: string): string {
   let resolved = path.replace('{userId}', userId);
   if (documentId) {
     resolved = resolved.replace('{id}', documentId);

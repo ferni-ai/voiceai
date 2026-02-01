@@ -1,4 +1,3 @@
-// TODO: Fix type errors - step array indexing
 /**
  * Custom Ritual Builder UI
  *

@@ -16,7 +16,11 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getCircuitBreaker, CircuitOpenError } from '../../../utils/circuit-breaker.js';
-import { getGeminiClient, TEMP_CLASSIFICATION, MAX_TOKENS_SHORT } from '../../../config/gemini-config.js';
+import {
+  getGeminiClient,
+  TEMP_CLASSIFICATION,
+  MAX_TOKENS_SHORT,
+} from '../../../config/gemini-config.js';
 import { getDefaultModel, getShortLLMTimeout } from '../../model-config.js';
 import type { ExtractedPerson, PersonRelationship } from './person-extractor.js';
 

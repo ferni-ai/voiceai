@@ -176,10 +176,7 @@ export interface IPersonaRegistry {
    * Register a persona programmatically.
    * This enables runtime extension without modifying code.
    */
-  register(
-    persona: PersonaDefinition,
-    options?: RegistrationOptions
-  ): Promise<RegistrationResult>;
+  register(persona: PersonaDefinition, options?: RegistrationOptions): Promise<RegistrationResult>;
 
   /**
    * Register multiple personas at once.

@@ -782,7 +782,7 @@ export async function routeVoiceInput(
 
     // Apply emotion-based boosts to tool matches
     // Map ToolMatch (confidence) to ScoredToolMatch (score) format
-    const scoredMatches = routingResult.matches.map(m => ({
+    const scoredMatches = routingResult.matches.map((m) => ({
       toolId: m.toolId,
       score: m.confidence,
       domain: m.metadata?.domain as string | undefined,
@@ -791,14 +791,14 @@ export async function routeVoiceInput(
     const boostedMatches = applyEmotionBoosts(scoredMatches, emotionContext);
     // Map boosted scores back to confidence
     for (let i = 0; i < routingResult.matches.length; i++) {
-      const boosted = boostedMatches.find(b => b.toolId === routingResult.matches[i].toolId);
+      const boosted = boostedMatches.find((b) => b.toolId === routingResult.matches[i].toolId);
       if (boosted) {
         routingResult.matches[i].confidence = boosted.score;
       }
     }
     // Re-sort by confidence
     routingResult.matches.sort((a, b) => b.confidence - a.confidence);
-    
+
     log.debug(
       { emotion: emotionContext.primary, matchCount: routingResult.matches.length },
       '🎭 Applied emotion-based tool boosts'
@@ -810,24 +810,32 @@ export async function routeVoiceInput(
     const trajectoryArc: EmotionalArc = {
       id: `${context.sessionId}_arc`,
       type: 'mood',
-      direction: emotionalArc.trend === 'improving' ? 'rising' :
-                 emotionalArc.trend === 'declining' ? 'falling' : 'stable',
+      direction:
+        emotionalArc.trend === 'improving'
+          ? 'rising'
+          : emotionalArc.trend === 'declining'
+            ? 'falling'
+            : 'stable',
       intensity: emotionalArc.needsAttention ? 'high' : 'medium',
       durationDays: 1,
       startedAt: new Date().toISOString(),
     };
 
     // Map ToolMatch (confidence) to ScoredToolMatch (score) format for trajectory boosts
-    const scoredMatchesForTrajectory = routingResult.matches.map(m => ({
+    const scoredMatchesForTrajectory = routingResult.matches.map((m) => ({
       toolId: m.toolId,
       score: m.confidence,
       domain: m.metadata?.domain as string | undefined,
       category: m.metadata?.category as string | undefined,
     }));
-    const trajectoryBoostedMatches = applyTrajectoryBoosts(scoredMatchesForTrajectory, [trajectoryArc]);
+    const trajectoryBoostedMatches = applyTrajectoryBoosts(scoredMatchesForTrajectory, [
+      trajectoryArc,
+    ]);
     // Map boosted scores back to confidence
     for (let i = 0; i < routingResult.matches.length; i++) {
-      const boosted = trajectoryBoostedMatches.find(b => b.toolId === routingResult.matches[i].toolId);
+      const boosted = trajectoryBoostedMatches.find(
+        (b) => b.toolId === routingResult.matches[i].toolId
+      );
       if (boosted) {
         routingResult.matches[i].confidence = boosted.score;
       }

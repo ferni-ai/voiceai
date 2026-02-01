@@ -535,7 +535,7 @@ function applyEmotionEffect(text: string, effect: string, pattern: RegExp): stri
 
 /**
  * Add potential mid-sentence reaction points
- * Not every response, but when natural
+ * Not every response, but when natural - creates "thinking out loud" feel
  */
 export function addMidSentenceReactions(text: string, context: VocalContext): string {
   const rng =
@@ -544,26 +544,37 @@ export function addMidSentenceReactions(text: string, context: VocalContext): st
       ? createSeededRandom(`${context.randomSeed}:vocal-mid-reaction`)
       : createSystemRandom());
 
-  // Only occasionally add mid-sentence reactions
-  if (!chance(rng, 0.15)) return text;
+  // More frequent mid-sentence reactions - this is what makes speech feel alive
+  if (!chance(rng, 0.22)) return text;
 
-  // Don't add to short responses
-  if (text.length < 100) return text;
+  // Don't add to very short responses
+  if (text.length < 80) return text;
 
   // Don't add in heavy/serious contexts
   if (context.isHeavyContent) return text;
 
   const reactions = [
+    // Self-corrections - very human
     { trigger: /\b(and then|so then)\b/i, insert: '—<break time="100ms"/>actually, wait—' },
     { trigger: /\b(I think)\b/i, insert: '—<break time="150ms"/>no, I know—' },
     { trigger: /\b(the thing is)\b/i, insert: '—<break time="100ms"/>well—' },
+    // Genuine processing moments
+    {
+      trigger: /\b(what I mean is)\b/i,
+      insert: '—<break time="120ms"/>hmm, let me put it differently—',
+    },
+    { trigger: /\b(it's like)\b/i, insert: '—<break time="80ms"/>okay so—' },
+    // Emphatic moments
+    { trigger: /\b(really)\b/i, insert: '<break time="100ms"/>like, really' },
+    // Thinking pauses
+    { trigger: /\b(because)\b/i, insert: '—<break time="150ms"/>because' },
   ];
 
   let result = text;
   let usedOne = false;
 
   for (const { trigger, insert } of reactions) {
-    if (!usedOne && trigger.test(result) && chance(rng, 0.3)) {
+    if (!usedOne && trigger.test(result) && chance(rng, 0.35)) {
       result = result.replace(trigger, insert);
       usedOne = true;
       break; // Only one mid-sentence reaction per response

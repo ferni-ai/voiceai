@@ -17,7 +17,11 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getContentGenerationModel, TEMP_CONTENT, MAX_TOKENS_SHORT } from '../../config/gemini-config.js';
+import {
+  getContentGenerationModel,
+  TEMP_CONTENT,
+  MAX_TOKENS_SHORT,
+} from '../../config/gemini-config.js';
 
 const log = createLogger({ module: 'LLMContentGenerator' });
 

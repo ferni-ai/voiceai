@@ -7,11 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  CleanupManager,
-  addAutoCleanupListener,
-  addOnceListener,
-} from '../cleanup-patterns.js';
+import { CleanupManager, addAutoCleanupListener, addOnceListener } from '../cleanup-patterns.js';
 
 // Mock event target
 function createMockEventTarget() {

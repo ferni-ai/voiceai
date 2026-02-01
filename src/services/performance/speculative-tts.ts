@@ -670,8 +670,8 @@ class SpeculativeTTSEngine {
       // Cartesia's bytes API doesn't reliably handle SSML in streaming mode,
       // and even in bytes mode, fragmented tags can be spoken literally.
       const plainText = text
-        .replace(/<[^>]+>/g, ' ')  // Strip all XML-like tags
-        .replace(/\s+/g, ' ')       // Collapse whitespace
+        .replace(/<[^>]+>/g, ' ') // Strip all XML-like tags
+        .replace(/\s+/g, ' ') // Collapse whitespace
         .trim();
 
       const response = await fetch(CARTESIA_API_URL, {
@@ -750,14 +750,14 @@ class SpeculativeTTSEngine {
    * separate cache entries for each emotion variant.
    *
    * Key format: `${voiceId}:${emotion}:${normalized_text}`
-   * 
+   *
    * IMPORTANT: Strips SSML tags so that text with or without SSML hits same cache.
    */
   private getCacheKey(text: string, voiceId: string, emotion?: string): string {
     // Normalize text for caching - strip SSML tags first!
     const normalized = text
-      .replace(/<[^>]+>/g, ' ')  // Strip all XML-like tags (SSML)
-      .replace(/\s+/g, ' ')       // Collapse whitespace
+      .replace(/<[^>]+>/g, ' ') // Strip all XML-like tags (SSML)
+      .replace(/\s+/g, ' ') // Collapse whitespace
       .toLowerCase()
       .trim();
     // Use default emotion if none specified for consistent cache keys

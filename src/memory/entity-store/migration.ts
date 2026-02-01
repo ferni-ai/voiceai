@@ -22,7 +22,13 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { createEntity, updateEntity, findEntityByAlias, getAllEntities, deleteEntity } from './storage.js';
+import {
+  createEntity,
+  updateEntity,
+  findEntityByAlias,
+  getAllEntities,
+  deleteEntity,
+} from './storage.js';
 import { mergeEntities } from './entity-resolver.js';
 import type {
   Entity,
@@ -110,7 +116,7 @@ export function getUserMigrationStates(userId: string): ExtendedMigrationResult[
  */
 async function saveCheckpoint(checkpoint: MigrationCheckpoint): Promise<void> {
   checkpoints.set(`${checkpoint.userId}_${checkpoint.collection}`, checkpoint);
-  
+
   // Also persist to Firestore for durability
   try {
     const firestore = await getFirestore();
@@ -141,7 +147,7 @@ async function loadCheckpoint(
       .collection('migration_checkpoints')
       .doc(`${userId}_${collection}`)
       .get();
-    
+
     if (doc.exists) {
       return doc.data() as MigrationCheckpoint;
     }
@@ -180,7 +186,11 @@ async function readUserContacts(userId: string): Promise<LegacyContact[]> {
   const firestore = await getFirestore();
 
   try {
-    const snapshot = await firestore.collection('user_contacts').doc(userId).collection('contacts').get();
+    const snapshot = await firestore
+      .collection('user_contacts')
+      .doc(userId)
+      .collection('contacts')
+      .get();
 
     return snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -200,7 +210,10 @@ async function readContactRelationships(userId: string): Promise<LegacyContact[]
   const firestore = await getFirestore();
 
   try {
-    const snapshot = await firestore.collection('contact_relationships').where('userId', '==', userId).get();
+    const snapshot = await firestore
+      .collection('contact_relationships')
+      .where('userId', '==', userId)
+      .get();
 
     return snapshot.docs
       .map((doc) => {
@@ -347,14 +360,22 @@ interface CandidateEntity {
   lastMentioned?: Date;
   context?: string[];
   legacyId: string;
-  source: 'user_contacts' | 'contact_relationships' | 'relationship_network' | 'relationship_nodes' | 'guest_profiles';
+  source:
+    | 'user_contacts'
+    | 'contact_relationships'
+    | 'relationship_network'
+    | 'relationship_nodes'
+    | 'guest_profiles';
 }
 
 /**
  * Normalize name for comparison
  */
 function normalizeName(name: string): string {
-  return name.toLowerCase().trim().replace(/[^a-z\s]/g, '');
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z\s]/g, '');
 }
 
 /**
@@ -419,11 +440,22 @@ function deduplicateCandidates(candidates: CandidateEntity[]): CandidateEntity[]
  */
 function mergeCandidates(group: CandidateEntity[]): Partial<Entity> {
   // Pick best name (prefer actual names over relationship terms)
-  const RELATIONSHIP_TERMS = ['mom', 'dad', 'brother', 'sister', 'wife', 'husband', 'boss', 'friend'];
+  const RELATIONSHIP_TERMS = [
+    'mom',
+    'dad',
+    'brother',
+    'sister',
+    'wife',
+    'husband',
+    'boss',
+    'friend',
+  ];
   let bestName = group[0].name;
   for (const candidate of group) {
-    if (!RELATIONSHIP_TERMS.includes(candidate.name.toLowerCase()) &&
-        RELATIONSHIP_TERMS.includes(bestName.toLowerCase())) {
+    if (
+      !RELATIONSHIP_TERMS.includes(candidate.name.toLowerCase()) &&
+      RELATIONSHIP_TERMS.includes(bestName.toLowerCase())
+    ) {
       bestName = candidate.name;
     }
   }
@@ -455,10 +487,14 @@ function mergeCandidates(group: CandidateEntity[]): Partial<Entity> {
   // Get date range
   const firstMentioned = group
     .filter((c) => c.firstMentioned)
-    .sort((a, b) => (a.firstMentioned?.getTime() || 0) - (b.firstMentioned?.getTime() || 0))[0]?.firstMentioned;
+    .sort(
+      (a, b) => (a.firstMentioned?.getTime() || 0) - (b.firstMentioned?.getTime() || 0)
+    )[0]?.firstMentioned;
   const lastMentioned = group
     .filter((c) => c.lastMentioned)
-    .sort((a, b) => (b.lastMentioned?.getTime() || 0) - (a.lastMentioned?.getTime() || 0))[0]?.lastMentioned;
+    .sort(
+      (a, b) => (b.lastMentioned?.getTime() || 0) - (a.lastMentioned?.getTime() || 0)
+    )[0]?.lastMentioned;
 
   // Collect legacy IDs
   const legacyIds: Entity['legacyIds'] = {};
@@ -504,7 +540,22 @@ function mergeCandidates(group: CandidateEntity[]): Partial<Entity> {
 function mapRelationshipType(rel: string): RelationshipType {
   const normalized = rel.toLowerCase();
 
-  if (['family', 'mother', 'father', 'brother', 'sister', 'son', 'daughter', 'aunt', 'uncle', 'cousin', 'grandmother', 'grandfather'].includes(normalized)) {
+  if (
+    [
+      'family',
+      'mother',
+      'father',
+      'brother',
+      'sister',
+      'son',
+      'daughter',
+      'aunt',
+      'uncle',
+      'cousin',
+      'grandmother',
+      'grandfather',
+    ].includes(normalized)
+  ) {
     return 'family';
   }
   if (['wife', 'husband', 'partner', 'boyfriend', 'girlfriend', 'romantic'].includes(normalized)) {
@@ -541,16 +592,19 @@ async function storeRollbackData(
 ): Promise<void> {
   try {
     const firestore = await getFirestore();
-    await firestore.collection('migration_rollbacks').doc(migrationId).set(
-      cleanForFirestore({
-        migrationId,
-        userId,
-        createdEntityIds: createdIds,
-        updatedEntityIds: updatedIds,
-        timestamp: new Date(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-      })
-    );
+    await firestore
+      .collection('migration_rollbacks')
+      .doc(migrationId)
+      .set(
+        cleanForFirestore({
+          migrationId,
+          userId,
+          createdEntityIds: createdIds,
+          updatedEntityIds: updatedIds,
+          timestamp: new Date(),
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        })
+      );
   } catch (error) {
     log.warn({ migrationId, error: String(error) }, 'Failed to store rollback data');
   }
@@ -567,10 +621,7 @@ export async function rollbackMigration(
 
   try {
     const firestore = await getFirestore();
-    const rollbackDoc = await firestore
-      .collection('migration_rollbacks')
-      .doc(migrationId)
-      .get();
+    const rollbackDoc = await firestore.collection('migration_rollbacks').doc(migrationId).get();
 
     if (!rollbackDoc.exists) {
       result.errors.push('Rollback data not found');
@@ -602,10 +653,7 @@ export async function rollbackMigration(
     }
 
     result.success = result.errors.length === 0;
-    log.info(
-      { migrationId, userId, deletedCount: result.deletedCount },
-      'Migration rolled back'
-    );
+    log.info({ migrationId, userId, deletedCount: result.deletedCount }, 'Migration rolled back');
 
     return result;
   } catch (error) {
@@ -656,13 +704,13 @@ function resolveConflict(
       // Note: We don't merge attributes here since they have strict type unions
       const mergedAliases = [...(existing.aliases || []), ...(newData.aliases || [])];
       const uniqueAliases = Array.from(new Set(mergedAliases));
-      
+
       return {
         canonicalName: newData.canonicalName || existing.canonicalName,
         aliases: uniqueAliases,
         contact: {
-          phone: (newData.contact?.phone || existing.contact?.phone),
-          email: (newData.contact?.email || existing.contact?.email),
+          phone: newData.contact?.phone || existing.contact?.phone,
+          email: newData.contact?.email || existing.contact?.email,
         },
         salience: Math.max(existing.salience || 0, newData.salience || 0),
         emotionalWeight: Math.max(existing.emotionalWeight || 0, newData.emotionalWeight || 0),
@@ -751,14 +799,19 @@ export async function migrateUser(
 
   try {
     // Step 1: Read all legacy collections
-    const [userContacts, contactRelationships, relationshipNetwork, relationshipNodes, guestProfiles] =
-      await Promise.all([
-        readUserContacts(userId),
-        readContactRelationships(userId),
-        readRelationshipNetwork(userId),
-        readRelationshipNodes(userId),
-        readGuestProfiles(userId),
-      ]);
+    const [
+      userContacts,
+      contactRelationships,
+      relationshipNetwork,
+      relationshipNodes,
+      guestProfiles,
+    ] = await Promise.all([
+      readUserContacts(userId),
+      readContactRelationships(userId),
+      readRelationshipNetwork(userId),
+      readRelationshipNodes(userId),
+      readGuestProfiles(userId),
+    ]);
 
     result.legacyCollections = {
       userContacts: userContacts.length,
@@ -768,10 +821,7 @@ export async function migrateUser(
       guestProfiles: guestProfiles.length,
     };
 
-    log.info(
-      { userId, ...result.legacyCollections },
-      'Read legacy collections'
-    );
+    log.info({ userId, ...result.legacyCollections }, 'Read legacy collections');
 
     // Step 2: Convert to candidates
     const candidates: CandidateEntity[] = [];
@@ -854,10 +904,7 @@ export async function migrateUser(
     const groups = deduplicateCandidates(candidates);
     const mergedCount = candidates.length - groups.length;
 
-    log.info(
-      { userId, groups: groups.length, merged: mergedCount },
-      'Deduplicated candidates'
-    );
+    log.info({ userId, groups: groups.length, merged: mergedCount }, 'Deduplicated candidates');
 
     // Step 4: Create entities with progress tracking
     const conflictStrategy = options.conflictStrategy || 'merge';
@@ -920,7 +967,10 @@ export async function migrateUser(
           }
         } catch (error) {
           result.errors.push(`Failed to create entity for ${group[0].name}: ${error}`);
-          log.warn({ userId, name: group[0].name, error: String(error) }, 'Failed to create entity');
+          log.warn(
+            { userId, name: group[0].name, error: String(error) },
+            'Failed to create entity'
+          );
         }
       }
     }
@@ -1057,7 +1107,7 @@ export async function migrateAllUsers(
   // Process users in parallel batches
   for (let i = 0; i < userIds.length; i += parallelism) {
     const batch = userIds.slice(i, i + parallelism);
-    
+
     const batchResults = await Promise.allSettled(
       batch.map(async (userId) => {
         const result = await migrateUser(userId, {
@@ -1104,14 +1154,17 @@ export async function migrateAllUsers(
 
     // Store batch checkpoint
     try {
-      await firestore.collection('migration_batch_checkpoints').doc(batchId).set(
-        cleanForFirestore({
-          batchId,
-          lastUserId: results.lastUserId,
-          processedCount: results.successfulUsers + results.failedUsers,
-          timestamp: new Date(),
-        })
-      );
+      await firestore
+        .collection('migration_batch_checkpoints')
+        .doc(batchId)
+        .set(
+          cleanForFirestore({
+            batchId,
+            lastUserId: results.lastUserId,
+            processedCount: results.successfulUsers + results.failedUsers,
+            timestamp: new Date(),
+          })
+        );
     } catch (error) {
       log.warn({ batchId, error: String(error) }, 'Failed to save batch checkpoint');
     }
@@ -1150,14 +1203,19 @@ export async function validateMigration(userId: string): Promise<{
 
   try {
     // Read legacy data
-    const [userContacts, contactRelationships, relationshipNetwork, relationshipNodes, guestProfiles] =
-      await Promise.all([
-        readUserContacts(userId),
-        readContactRelationships(userId),
-        readRelationshipNetwork(userId),
-        readRelationshipNodes(userId),
-        readGuestProfiles(userId),
-      ]);
+    const [
+      userContacts,
+      contactRelationships,
+      relationshipNetwork,
+      relationshipNodes,
+      guestProfiles,
+    ] = await Promise.all([
+      readUserContacts(userId),
+      readContactRelationships(userId),
+      readRelationshipNetwork(userId),
+      readRelationshipNodes(userId),
+      readGuestProfiles(userId),
+    ]);
 
     const legacyRecordCount =
       userContacts.length +
@@ -1234,4 +1292,10 @@ export function getMigrationHealth(): {
 // EXPORT
 // ============================================================================
 
-export { readUserContacts, readContactRelationships, readRelationshipNetwork, readRelationshipNodes, readGuestProfiles };
+export {
+  readUserContacts,
+  readContactRelationships,
+  readRelationshipNetwork,
+  readRelationshipNodes,
+  readGuestProfiles,
+};

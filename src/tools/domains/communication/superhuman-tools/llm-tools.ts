@@ -40,7 +40,7 @@ export function createSuperhumanCommunicationTools() {
       description:
         getToolDescription('recallConversation') ||
         'Recall past conversations the user mentioned about a specific person. ' +
-        'Use when they ask "What did I tell you about..." or reference past discussions.',
+          'Use when they ask "What did I tell you about..." or reference past discussions.',
       parameters: z.object({
         userId: z.string().describe('User ID'),
         contactName: z.string().describe('Name of the person they talked about'),
@@ -55,8 +55,10 @@ export function createSuperhumanCommunicationTools() {
         });
 
         if (history.length === 0) {
-          return `I don't have any records of conversations you've mentioned about ${contactName}. ` +
-            'Tell me about your conversations with them and I\'ll remember for next time.';
+          return (
+            `I don't have any records of conversations you've mentioned about ${contactName}. ` +
+            "Tell me about your conversations with them and I'll remember for next time."
+          );
         }
 
         const profile = await communicationArchaeology.getProfile(userId, contactName);
@@ -91,7 +93,7 @@ export function createSuperhumanCommunicationTools() {
       description:
         getToolDescription('checkRelationshipHealth') ||
         'Check the health/temperature of a relationship based on past mentions. ' +
-        'Use when they ask "How are things with..." or you sense relationship drift.',
+          'Use when they ask "How are things with..." or you sense relationship drift.',
       parameters: z.object({
         userId: z.string().describe('User ID'),
         contactName: z.string().describe('Name of the person to check'),
@@ -102,23 +104,25 @@ export function createSuperhumanCommunicationTools() {
         const temp = await relationshipTemperature.get(userId, contactName);
 
         if (!temp) {
-          return `I don't have enough data about your relationship with ${contactName} yet. ` +
-            'Tell me about your recent interactions and I\'ll start tracking.';
+          return (
+            `I don't have enough data about your relationship with ${contactName} yet. ` +
+            "Tell me about your recent interactions and I'll start tracking."
+          );
         }
 
         const tempEmoji =
           temp.currentTemperature >= 70 ? '🔥' : temp.currentTemperature >= 40 ? '😐' : '🥶';
-        const trendEmoji =
-          temp.trend === 'warming' ? '📈' : temp.trend === 'cooling' ? '📉' : '➡️';
+        const trendEmoji = temp.trend === 'warming' ? '📈' : temp.trend === 'cooling' ? '📉' : '➡️';
 
         let response = `**Relationship Temperature with ${contactName}:**\n\n`;
         response += `${tempEmoji} Current: ${temp.currentTemperature}° (${temp.trend} ${trendEmoji})\n`;
         response += `Last mentioned: ${temp.daysSinceLastInteraction} days ago\n`;
 
         if (temp.alerts.length > 0) {
-          response += '\n**Things I\'ve Noticed:**\n';
+          response += "\n**Things I've Noticed:**\n";
           for (const alert of temp.alerts) {
-            const emoji = alert.severity === 'high' ? '🔴' : alert.severity === 'medium' ? '🟡' : '🟢';
+            const emoji =
+              alert.severity === 'high' ? '🔴' : alert.severity === 'medium' ? '🟡' : '🟢';
             response += `${emoji} ${alert.message}\n`;
           }
         }
@@ -131,7 +135,7 @@ export function createSuperhumanCommunicationTools() {
       description:
         getToolDescription('getRelationshipsNeedingAttention') ||
         'Get a list of relationships that may need attention. ' +
-        'Use when they want to know who they should check in with.',
+          'Use when they want to know who they should check in with.',
       parameters: z.object({
         userId: z.string().describe('User ID'),
       }),
@@ -147,7 +151,8 @@ export function createSuperhumanCommunicationTools() {
         let response = '**Relationships That Could Use Attention:**\n\n';
 
         for (const rel of relationships.slice(0, 5)) {
-          const emoji = rel.trend === 'cooling' ? '📉' : rel.daysSinceLastInteraction > 14 ? '⏰' : '👀';
+          const emoji =
+            rel.trend === 'cooling' ? '📉' : rel.daysSinceLastInteraction > 14 ? '⏰' : '👀';
           response += `${emoji} **${rel.contactName}**: ${rel.currentTemperature}° `;
 
           if (rel.alerts.length > 0) {
@@ -169,11 +174,11 @@ export function createSuperhumanCommunicationTools() {
       description:
         getToolDescription('predictMessageReception') ||
         'Predict how a message will be received by a specific person. ' +
-        'Use when they\'re drafting something important and want feedback.',
+          "Use when they're drafting something important and want feedback.",
       parameters: z.object({
         userId: z.string().describe('User ID'),
         message: z.string().describe('The message they want to send'),
-        contactName: z.string().describe('Who they\'re sending it to'),
+        contactName: z.string().describe("Who they're sending it to"),
       }),
       execute: async ({ userId, message, contactName }) => {
         log.debug({ userId, contactName }, 'Predicting message reception');
@@ -214,12 +219,12 @@ export function createSuperhumanCommunicationTools() {
     getApologyAdvice: llm.tool({
       description:
         getToolDescription('getApologyAdvice') ||
-        'Get advice on how to apologize to a specific person based on what\'s worked before. ' +
-        'Use when they need to apologize and want to do it effectively.',
+        "Get advice on how to apologize to a specific person based on what's worked before. " +
+          'Use when they need to apologize and want to do it effectively.',
       parameters: z.object({
         userId: z.string().describe('User ID'),
         contactName: z.string().describe('Who they need to apologize to'),
-        whatFor: z.string().optional().describe('What they\'re apologizing for'),
+        whatFor: z.string().optional().describe("What they're apologizing for"),
       }),
       execute: async ({ userId, contactName, whatFor }) => {
         log.debug({ userId, contactName }, 'Getting apology advice');
@@ -244,7 +249,7 @@ export function createSuperhumanCommunicationTools() {
       description:
         getToolDescription('analyzeConflict') ||
         'Analyze a conflict or argument for escalation patterns and alternatives. ' +
-        'Use when they describe a fight or disagreement.',
+          'Use when they describe a fight or disagreement.',
       parameters: z.object({
         userId: z.string().describe('User ID'),
         description: z.string().describe('Description of the conflict'),
@@ -302,7 +307,7 @@ export function createSuperhumanCommunicationTools() {
       description:
         getToolDescription('getCommunicationDebts') ||
         'Get a dashboard of communication obligations - unreturned calls, unanswered texts, etc. ' +
-        'Use when they want to know who they owe a response to.',
+          'Use when they want to know who they owe a response to.',
       parameters: z.object({
         userId: z.string().describe('User ID'),
       }),
@@ -317,8 +322,7 @@ export function createSuperhumanCommunicationTools() {
     markCommunicationDone: llm.tool({
       description:
         getToolDescription('markCommunicationDone') ||
-        'Mark a communication debt as addressed. ' +
-        'Use when they\'ve followed up with someone.',
+        'Mark a communication debt as addressed. ' + "Use when they've followed up with someone.",
       parameters: z.object({
         userId: z.string().describe('User ID'),
         contactName: z.string().describe('Who they followed up with'),
@@ -348,7 +352,7 @@ export function createSuperhumanCommunicationTools() {
       description:
         getToolDescription('getObjectivePerspective') ||
         'Get an objective, third-party perspective on a conflict or grievance. ' +
-        'Use when they\'re venting and might benefit from another viewpoint.',
+          "Use when they're venting and might benefit from another viewpoint.",
       parameters: z.object({
         userId: z.string().describe('User ID'),
         theirStory: z.string().describe('Their description of the situation'),
@@ -392,7 +396,7 @@ export function createSuperhumanCommunicationTools() {
       description:
         getToolDescription('shouldISendThis') ||
         'Get advice on whether to send a message now or wait. ' +
-        'Use when they\'re emotional or the situation is sensitive.',
+          "Use when they're emotional or the situation is sensitive.",
       parameters: z.object({
         userId: z.string().describe('User ID'),
         situation: z.string().describe('Description of the situation'),
@@ -431,12 +435,16 @@ export function createSuperhumanCommunicationTools() {
       description:
         getToolDescription('holdMessageForLater') ||
         'Hold a message for review later instead of sending now. ' +
-        'Use when they want to cool off before sending.',
+          'Use when they want to cool off before sending.',
       parameters: z.object({
         userId: z.string().describe('User ID'),
         message: z.string().describe('The message to hold'),
-        contactName: z.string().describe('Who it\'s for'),
-        holdHours: z.number().optional().default(24).describe('How many hours to hold (default 24)'),
+        contactName: z.string().describe("Who it's for"),
+        holdHours: z
+          .number()
+          .optional()
+          .default(24)
+          .describe('How many hours to hold (default 24)'),
       }),
       execute: async ({ userId, message, contactName, holdHours }) => {
         log.debug({ userId, contactName, holdHours }, 'Holding message');
@@ -470,7 +478,7 @@ Sometimes the best messages are the ones we don't send. 💭`;
       description:
         getToolDescription('translateMyNeed') ||
         'Translate a complaint into the underlying need. ' +
-        'Use when they\'re complaining and might benefit from understanding what they really want.',
+          "Use when they're complaining and might benefit from understanding what they really want.",
       parameters: z.object({
         userId: z.string().describe('User ID'),
         complaint: z.string().describe('The complaint or frustration they expressed'),
@@ -482,7 +490,7 @@ Sometimes the best messages are the ones we don't send. 💭`;
         const translation = unspokenNeeds.translate(complaint, aboutPerson);
 
         if (!translation) {
-          return 'I hear the frustration, but I\'m not sure what the underlying need is. Can you tell me more about what you wish was different?';
+          return "I hear the frustration, but I'm not sure what the underlying need is. Can you tell me more about what you wish was different?";
         }
 
         let response = '**Let Me Translate:**\n\n';
@@ -503,7 +511,7 @@ Sometimes the best messages are the ones we don't send. 💭`;
       description:
         getToolDescription('whatAmIAvoiding') ||
         'Surface topics they may be avoiding based on patterns. ' +
-        'Use when they seem to be dancing around something.',
+          'Use when they seem to be dancing around something.',
       parameters: z.object({
         userId: z.string().describe('User ID'),
       }),
@@ -513,8 +521,10 @@ Sometimes the best messages are the ones we don't send. 💭`;
         const unsaid = await unsaidWordsDetector.get(userId);
 
         if (unsaid.length === 0) {
-          return 'I haven\'t noticed any topics you\'re consistently avoiding. ' +
-            'But if there\'s something on your mind that\'s hard to talk about, I\'m here.';
+          return (
+            "I haven't noticed any topics you're consistently avoiding. " +
+            "But if there's something on your mind that's hard to talk about, I'm here."
+          );
         }
 
         let response = '**Topics You Might Be Avoiding:**\n\n';

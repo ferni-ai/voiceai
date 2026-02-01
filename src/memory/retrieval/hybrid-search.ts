@@ -33,7 +33,12 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { searchEntitiesBM25, type BM25SearchResult } from './bm25-search.js';
 import { searchMemories, type SemanticSearchResult } from './semantic-memory-search.js';
-import { fuseSearchResults, reciprocalRankFusion, type FusedResult, type RankedItem } from './rank-fusion.js';
+import {
+  fuseSearchResults,
+  reciprocalRankFusion,
+  type FusedResult,
+  type RankedItem,
+} from './rank-fusion.js';
 import type { Entity, EntitySearchOptions } from '../entity-store/types.js';
 
 const log = createLogger({ module: 'HybridSearch' });

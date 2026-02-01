@@ -57,7 +57,7 @@ export function parseCronExpression(cron: string): {
   error?: string;
 } {
   const parts = cron.trim().split(/\s+/);
-  
+
   if (parts.length < 5 || parts.length > 6) {
     return { valid: false, error: 'Cron expression must have 5-6 fields' };
   }
@@ -65,7 +65,7 @@ export function parseCronExpression(cron: string): {
   // Calculate next run time based on cron
   const now = new Date();
   const nextRun = calculateNextRun(parts, now);
-  
+
   return {
     valid: true,
     nextRun,
@@ -78,11 +78,11 @@ export function parseCronExpression(cron: string): {
  */
 function calculateNextRun(parts: string[], from: Date): Date {
   const [minuteSpec, hourSpec, daySpec, monthSpec, dowSpec] = parts;
-  
+
   const next = new Date(from);
   next.setSeconds(0);
   next.setMilliseconds(0);
-  
+
   // Handle common patterns
   if (minuteSpec.startsWith('*/')) {
     // Every X minutes
@@ -97,7 +97,7 @@ function calculateNextRun(parts: string[], from: Date): Date {
     }
     return next;
   }
-  
+
   if (hourSpec.startsWith('*/')) {
     // Every X hours
     const interval = parseInt(hourSpec.slice(2)) || 1;
@@ -113,19 +113,19 @@ function calculateNextRun(parts: string[], from: Date): Date {
     }
     return next;
   }
-  
+
   // Specific time
   const minute = minuteSpec === '*' ? 0 : parseInt(minuteSpec);
   const hour = hourSpec === '*' ? from.getHours() : parseInt(hourSpec);
-  
+
   next.setMinutes(minute);
   next.setHours(hour);
-  
+
   // If we've passed this time today, move to tomorrow
   if (next <= from) {
     next.setDate(next.getDate() + 1);
   }
-  
+
   // Handle day of week
   if (dowSpec !== '*' && dowSpec !== '?') {
     const targetDow = parseDayOfWeek(dowSpec);
@@ -135,7 +135,7 @@ function calculateNextRun(parts: string[], from: Date): Date {
       }
     }
   }
-  
+
   return next;
 }
 
@@ -155,9 +155,9 @@ function parseDayOfWeek(spec: string): number[] {
  */
 function describeCron(parts: string[]): string {
   const [minute, hour, day, month, dow] = parts;
-  
+
   let desc = '';
-  
+
   // Time
   if (minute.startsWith('*/')) {
     desc = `Every ${minute.slice(2)} minutes`;
@@ -170,7 +170,7 @@ function describeCron(parts: string[]): string {
   } else {
     desc = 'Every minute';
   }
-  
+
   // Day of week
   if (dow !== '*' && dow !== '?') {
     if (dow === '1-5') {
@@ -185,12 +185,12 @@ function describeCron(parts: string[]): string {
       }
     }
   }
-  
+
   // Day of month
   if (day !== '*' && day !== '?') {
     desc += ` on day ${day}`;
   }
-  
+
   return desc;
 }
 
@@ -223,7 +223,7 @@ export class SchedulerService {
     // Store schedule in workflow data
     const data = await getWorkflowData(config.userId);
     const workflow = data.workflows.find((w: Workflow) => w.id === config.workflowId);
-    
+
     if (!workflow) {
       return { success: false, error: 'Workflow not found' };
     }
@@ -258,7 +258,7 @@ export class SchedulerService {
     updates: Partial<ScheduleConfig>
   ): Promise<ScheduleResult> {
     const timerId = `${userId}:${workflowId}`;
-    
+
     // Clear existing timer
     const existingTimer = this.activeTimers.get(timerId);
     if (existingTimer) {
@@ -269,7 +269,7 @@ export class SchedulerService {
     // Get current workflow
     const data = await getWorkflowData(userId);
     const workflow = data.workflows.find((w: Workflow) => w.id === workflowId);
-    
+
     if (!workflow) {
       return { success: false, error: 'Workflow not found' };
     }
@@ -282,13 +282,16 @@ export class SchedulerService {
       }
 
       if (updates.enabled !== false && parsed.nextRun) {
-        this.setupTimer({
-          workflowId,
-          userId,
-          schedule: updates.schedule,
-          timezone: updates.timezone || 'UTC',
-          enabled: true,
-        }, parsed.nextRun);
+        this.setupTimer(
+          {
+            workflowId,
+            userId,
+            schedule: updates.schedule,
+            timezone: updates.timezone || 'UTC',
+            enabled: true,
+          },
+          parsed.nextRun
+        );
       }
 
       return { success: true, nextRun: parsed.nextRun };
@@ -302,7 +305,7 @@ export class SchedulerService {
    */
   async cancelSchedule(userId: string, workflowId: string): Promise<ScheduleResult> {
     const timerId = `${userId}:${workflowId}`;
-    
+
     const existingTimer = this.activeTimers.get(timerId);
     if (existingTimer) {
       clearTimeout(existingTimer);
@@ -320,7 +323,7 @@ export class SchedulerService {
    */
   async pauseSchedule(userId: string, workflowId: string): Promise<ScheduleResult> {
     const timerId = `${userId}:${workflowId}`;
-    
+
     const existingTimer = this.activeTimers.get(timerId);
     if (existingTimer) {
       clearTimeout(existingTimer);
@@ -337,7 +340,7 @@ export class SchedulerService {
   async resumeSchedule(userId: string, workflowId: string): Promise<ScheduleResult> {
     const data = await getWorkflowData(userId);
     const workflow = data.workflows.find((w: Workflow) => w.id === workflowId);
-    
+
     if (!workflow) {
       return { success: false, error: 'Workflow not found' };
     }
@@ -358,13 +361,16 @@ export class SchedulerService {
       return { success: false, error: 'Invalid schedule' };
     }
 
-    this.setupTimer({
-      workflowId,
-      userId,
-      schedule,
-      timezone: trigger.timezone || 'UTC',
-      enabled: true,
-    }, parsed.nextRun);
+    this.setupTimer(
+      {
+        workflowId,
+        userId,
+        schedule,
+        timezone: trigger.timezone || 'UTC',
+        enabled: true,
+      },
+      parsed.nextRun
+    );
 
     log.info({ workflowId, nextRun: parsed.nextRun }, 'Schedule resumed');
     return { success: true, nextRun: parsed.nextRun };
@@ -376,7 +382,7 @@ export class SchedulerService {
   async getScheduleInfo(userId: string, workflowId: string): Promise<ScheduleInfo | null> {
     const data = await getWorkflowData(userId);
     const workflow = data.workflows.find((w: Workflow) => w.id === workflowId);
-    
+
     if (!workflow) {
       return null;
     }
@@ -457,7 +463,10 @@ export class SchedulerService {
           await callback();
           log.debug({ workflowId: config.workflowId }, 'Scheduled workflow executed');
         } catch (error) {
-          log.error({ error: String(error), workflowId: config.workflowId }, 'Scheduled workflow failed');
+          log.error(
+            { error: String(error), workflowId: config.workflowId },
+            'Scheduled workflow failed'
+          );
         }
       }
 

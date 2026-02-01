@@ -69,7 +69,7 @@ import {
   getTemporalContextEngine,
   type TemporalGuidance,
   type TemporalState,
-} from './temporal-context.js';
+} from './temporal-context/index.js';
 
 import {
   getRelationshipEventsEngine,

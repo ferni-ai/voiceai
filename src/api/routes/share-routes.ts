@@ -45,7 +45,10 @@ const pngCacheTimestamps = new Map<string, number>();
 /**
  * Convert SVG to PNG using Sharp
  */
-async function convertSvgToPng(svg: string, dimensions: { width: number; height: number }): Promise<Buffer> {
+async function convertSvgToPng(
+  svg: string,
+  dimensions: { width: number; height: number }
+): Promise<Buffer> {
   try {
     // Convert SVG string to buffer
     const svgBuffer = Buffer.from(svg);
@@ -212,13 +215,17 @@ function handleGetCardSVG(req: IncomingMessage, res: ServerResponse, cardId: str
  * GET /api/share/cards/:cardId/image
  * Get card as PNG image using Sharp for conversion
  */
-async function handleGetCardImage(req: IncomingMessage, res: ServerResponse, cardId: string): Promise<void> {
+async function handleGetCardImage(
+  req: IncomingMessage,
+  res: ServerResponse,
+  cardId: string
+): Promise<void> {
   try {
     // Check PNG cache first (with TTL)
     const cachedPng = cardPNGCache.get(cardId);
     const cacheTimestamp = pngCacheTimestamps.get(cardId);
 
-    if (cachedPng && cacheTimestamp && (Date.now() - cacheTimestamp < PNG_CACHE_TTL_MS)) {
+    if (cachedPng && cacheTimestamp && Date.now() - cacheTimestamp < PNG_CACHE_TTL_MS) {
       sendPNG(res, cachedPng);
       return;
     }

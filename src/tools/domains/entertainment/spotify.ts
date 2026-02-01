@@ -105,10 +105,7 @@ async function getAvailableDevices(): Promise<
 > {
   // Check cache first
   if (deviceCache && Date.now() - deviceCache.timestamp < DEVICE_CACHE_TTL_MS) {
-    getLogger().debug(
-      { deviceCount: deviceCache.devices.length },
-      '🎵 Using cached device list'
-    );
+    getLogger().debug({ deviceCount: deviceCache.devices.length }, '🎵 Using cached device list');
     return deviceCache.devices;
   }
 
@@ -182,16 +179,10 @@ async function wakeDevice(deviceId: string): Promise<boolean> {
 
       // Device still not active, might need more time
       if (attempt < MAX_RETRIES) {
-        getLogger().debug(
-          { deviceId, attempt },
-          '🎵 Device not yet active, retrying...'
-        );
+        getLogger().debug({ deviceId, attempt }, '🎵 Device not yet active, retrying...');
       }
     } catch (error) {
-      getLogger().debug(
-        { error, deviceId, attempt },
-        '🎵 Wake attempt failed'
-      );
+      getLogger().debug({ error, deviceId, attempt }, '🎵 Wake attempt failed');
 
       // On last attempt, don't retry
       if (attempt >= MAX_RETRIES) {
@@ -212,10 +203,7 @@ async function wakeDevice(deviceId: string): Promise<boolean> {
 async function wakeAnyDevice(
   devices: Array<{ id: string; name: string }>
 ): Promise<{ deviceId: string; deviceName: string } | null> {
-  getLogger().info(
-    { deviceCount: devices.length },
-    '🎵 Attempting to wake any available device'
-  );
+  getLogger().info({ deviceCount: devices.length }, '🎵 Attempting to wake any available device');
 
   // Try to wake devices in parallel (faster)
   const wakePromises = devices.slice(0, 3).map(async (device) => {

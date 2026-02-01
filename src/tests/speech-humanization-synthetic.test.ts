@@ -1089,7 +1089,7 @@ describe('Catchphrase Trigger Tests', () => {
   // Ferni's signature catchphrases from catchphrases.json
   const FERNI_CATCHPHRASES = {
     core: {
-      phrase: 'The cracks are where the gold goes',
+      phrase: "We are all broken in different ways—that's what makes us both human and beautiful",
       triggers: ['failure', 'vulnerability', 'kintsugi', 'redemption'],
     },
     secondary: [

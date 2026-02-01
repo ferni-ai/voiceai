@@ -196,6 +196,33 @@ shared/
 
 ---
 
+## Infrastructure Files
+
+Beyond persona content, the bundles directory contains loading and integration infrastructure:
+
+| File | Purpose |
+|------|---------|
+| `loader.ts` | Bundle loading and discovery |
+| `runtime.ts` | Runtime bundle management |
+| `preloader.ts` | Bundle preloading |
+| `prompt-assembler.ts` | Prompt assembly from bundle parts |
+| `converter.ts` | Bundle format conversion |
+| `adapter.ts` | Bundle adapter for legacy systems |
+| `index.ts` | Main exports |
+| `mcp-integration.ts` | MCP server integration |
+| `mcp-loader.ts` | MCP loader |
+| `command-loader.ts` | Command loading from bundles |
+| `commands-loader.ts` | Commands discovery |
+| `local-tools-loader.ts` | Local tool loading |
+| `advanced-humanization-loader.ts` | Advanced humanization loading |
+| `extensibility-integration.ts` | Extensibility system integration |
+| `model-provider-config.ts` | Model provider configuration |
+| `behavior-schema.ts` | Behavior JSON schema |
+| `persona-manifest.schema.json` | Manifest JSON schema |
+| `types/` | Bundle type definitions |
+
+---
+
 ## Reference Docs
 
 - Persona Development: `../CLAUDE.md`

@@ -181,12 +181,15 @@ describe('SilenceInterpreter', () => {
         silenceHistory: [],
         baselinePauseTolerance: 2500,
         responseEffectiveness: {
-          byType: {} as Record<SilenceType, {
-            totalResponses: number;
-            helpfulResponses: number;
-            topPhrases: Array<{ phrase: string; score: number }>;
-            optimalWaitMs: number;
-          }>,
+          byType: {} as Record<
+            SilenceType,
+            {
+              totalResponses: number;
+              helpfulResponses: number;
+              topPhrases: Array<{ phrase: string; score: number }>;
+              optimalWaitMs: number;
+            }
+          >,
           overallScore: 0.5,
           lastUpdated: new Date(),
         },

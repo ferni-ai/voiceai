@@ -142,11 +142,11 @@ export interface SanitizerStreamOptions {
   userId?: string;
   /** Persona ID for persona-aware responses */
   personaId?: string;
-  
+
   // =========================================================================
   // BETTER THAN HUMAN: Rich context for natural tool responses
   // =========================================================================
-  
+
   /** User's name for personalized responses */
   userName?: string;
   /** What the user originally asked (their intent) */

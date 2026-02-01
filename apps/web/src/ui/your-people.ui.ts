@@ -72,6 +72,7 @@ interface PersonGroup {
 interface YourPeopleState {
   isOpen: boolean;
   isLoading: boolean;
+  error: string | null;
   people: Person[];
   nudges: Nudge[];
   groups: PersonGroup[];
@@ -82,6 +83,7 @@ interface YourPeopleState {
 let state: YourPeopleState = {
   isOpen: false,
   isLoading: false,
+  error: null,
   people: [],
   nudges: [],
   groups: [],
@@ -673,6 +675,41 @@ function injectStyles(): void {
       font-size: var(--text-sm, 0.875rem);
     }
 
+    .yp-error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-4, 1rem);
+      padding: var(--space-10, 2.5rem);
+      text-align: center;
+    }
+
+    .yp-error-icon {
+      color: var(--color-warning, #d97706);
+      opacity: 0.8;
+    }
+
+    .yp-error-message {
+      color: var(--color-text-muted, #70605a);
+      font-size: var(--text-sm, 0.875rem);
+    }
+
+    .yp-error-retry {
+      background: var(--color-accent, #3D5A45);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md, 0.5rem);
+      padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+      font-size: var(--text-sm, 0.875rem);
+      cursor: pointer;
+      transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+
+    .yp-error-retry:hover {
+      background: var(--color-accent-hover, #4a6741);
+    }
+
     /* =========================================================================
        RESPONSIVE
        ========================================================================= */
@@ -725,11 +762,21 @@ function render(): void {
   const panel = panelContainer.querySelector('.your-people-panel');
   if (!panel) return;
 
+  // Determine content based on state
+  let contentHtml: string;
+  if (state.isLoading) {
+    contentHtml = renderLoading();
+  } else if (state.error) {
+    contentHtml = renderError();
+  } else {
+    contentHtml = renderPeopleList();
+  }
+
   panel.innerHTML = `
     ${renderHeader()}
-    ${renderNudges()}
+    ${state.error ? '' : renderNudges()}
     <div class="yp-content">
-      ${state.isLoading ? renderLoading() : renderPeopleList()}
+      ${contentHtml}
     </div>
   `;
 
@@ -953,6 +1000,16 @@ function renderLoading(): string {
   return `<div class="yp-loading">Loading your people...</div>`;
 }
 
+function renderError(): string {
+  return `
+    <div class="yp-error">
+      <div class="yp-error-icon">${ICONS.alertCircle}</div>
+      <div class="yp-error-message">${escapeHtml(state.error ?? 'Something went wrong')}</div>
+      <button class="yp-error-retry" aria-label="Retry loading contacts">Try again</button>
+    </div>
+  `;
+}
+
 // ============================================================================
 // EVENT BINDING
 // ============================================================================
@@ -963,6 +1020,11 @@ function bindEvents(): void {
   // Close
   panelContainer.querySelector('.yp-close')?.addEventListener('click', closeYourPeople);
   panelContainer.querySelector('.your-people-backdrop')?.addEventListener('click', closeYourPeople);
+
+  // Retry on error
+  panelContainer.querySelector('.yp-error-retry')?.addEventListener('click', () => {
+    loadPeopleData();
+  });
 
   // Search
   const searchInput = panelContainer.querySelector('.yp-search-input') as HTMLInputElement;
@@ -1131,6 +1193,7 @@ function capitalizeFirst(str: string): string {
 
 async function loadPeopleData(): Promise<void> {
   state.isLoading = true;
+  state.error = null;
   render();
 
   const useMockData = shouldUseDemoData();
@@ -1152,6 +1215,9 @@ async function loadPeopleData(): Promise<void> {
       // API failed, use mock data in dev
       state.people = getAllMockContacts();
       log.debug('Using mock contact data (API unavailable)');
+    } else {
+      // Production: set error state
+      state.error = 'Couldn\'t load your contacts';
     }
 
     // Load nudges
@@ -1169,6 +1235,9 @@ async function loadPeopleData(): Promise<void> {
       state.people = getAllMockContacts();
       state.nudges = MOCK_NUDGES as unknown as Nudge[];
       log.debug('Using mock data due to API error');
+    } else {
+      // Production: set error state
+      state.error = 'Couldn\'t load your contacts. Try again?';
     }
   } finally {
     state.isLoading = false;
@@ -1197,6 +1266,7 @@ export async function openYourPeople(): Promise<void> {
   state = {
     isOpen: true,
     isLoading: true,
+    error: null,
     people: [],
     nudges: [],
     groups: [],

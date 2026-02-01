@@ -55,8 +55,8 @@ const INTERVENTION_SCRIPTS = {
     "Take your time. I'm here with you.",
   ],
   'breathing-exercise': [
-    'Let\'s pause for a moment. Breathe in slowly... and out...',
-    'I\'d like to try something. Can you take a slow, deep breath with me?',
+    "Let's pause for a moment. Breathe in slowly... and out...",
+    "I'd like to try something. Can you take a slow, deep breath with me?",
   ],
   grounding: [
     "Let's ground ourselves. What's one thing you can see right now?",
@@ -68,12 +68,9 @@ const INTERVENTION_SCRIPTS = {
   ],
   'gentle-check-in': [
     'How are you feeling right now, really?',
-    'I want to make sure you\'re okay. How are you doing?',
+    "I want to make sure you're okay. How are you doing?",
   ],
-  celebration: [
-    'I can hear the excitement in your voice!',
-    "Your energy is wonderful right now!",
-  ],
+  celebration: ['I can hear the excitement in your voice!', 'Your energy is wonderful right now!'],
 };
 
 // ============================================================================
@@ -81,11 +78,14 @@ const INTERVENTION_SCRIPTS = {
 // ============================================================================
 
 const stateHistory = new Map<string, VoiceState[]>();
-const interventionHistory = new Map<string, Array<{
-  intervention: VoiceIntervention;
-  wasEffective: boolean;
-  timestamp: Date;
-}>>();
+const interventionHistory = new Map<
+  string,
+  Array<{
+    intervention: VoiceIntervention;
+    wasEffective: boolean;
+    timestamp: Date;
+  }>
+>();
 
 // ============================================================================
 // ENGINE IMPLEMENTATION
@@ -207,7 +207,10 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
 
   getIntervention(state: VoiceState): VoiceIntervention {
     // High stress or anxiety → breathing/grounding
-    if (state.stressLevel > 0.7 || state.biomarkers.some((b) => b.type === 'anxiety' && b.confidence > 0.7)) {
+    if (
+      state.stressLevel > 0.7 ||
+      state.biomarkers.some((b) => b.type === 'anxiety' && b.confidence > 0.7)
+    ) {
       return {
         type: 'breathing-exercise',
         reason: 'High stress/anxiety detected',
@@ -288,10 +291,7 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
       interventionHistory.set(userId, history);
     }
 
-    log.debug(
-      { userId, type: intervention.type, wasEffective },
-      'Intervention recorded'
-    );
+    log.debug({ userId, type: intervention.type, wasEffective }, 'Intervention recorded');
   }
 
   async getStateHistory(userId: string, limit = 10): Promise<VoiceState[]> {
@@ -313,9 +313,7 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
     if (state.biomarkers.length > 0) {
       sections.push('Detected biomarkers:');
       for (const marker of state.biomarkers.slice(0, 3)) {
-        sections.push(
-          `- ${marker.type}: ${(marker.confidence * 100).toFixed(0)}% confidence`
-        );
+        sections.push(`- ${marker.type}: ${(marker.confidence * 100).toFixed(0)}% confidence`);
       }
     }
 
@@ -518,13 +516,8 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
     return factors > 0 ? Math.min(1, confidence) : 0;
   }
 
-  private calculateStressLevel(
-    biomarkers: DetectedBiomarker[],
-    features: VoiceFeatures
-  ): number {
-    const stressMarkers = biomarkers.filter((b) =>
-      ['stress', 'anxiety'].includes(b.type)
-    );
+  private calculateStressLevel(biomarkers: DetectedBiomarker[], features: VoiceFeatures): number {
+    const stressMarkers = biomarkers.filter((b) => ['stress', 'anxiety'].includes(b.type));
 
     if (stressMarkers.length === 0) {
       // Base stress on features

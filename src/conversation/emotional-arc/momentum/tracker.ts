@@ -44,10 +44,7 @@ export class EmotionalMomentumTracker implements IEmotionalMomentumTracker {
   // CORE METHODS
   // ==========================================================================
 
-  recordTurn(
-    sessionId: string,
-    snapshot: Omit<EmotionSnapshot, 'timestamp'>
-  ): void {
+  recordTurn(sessionId: string, snapshot: Omit<EmotionSnapshot, 'timestamp'>): void {
     const fullSnapshot: EmotionSnapshot = {
       ...snapshot,
       timestamp: new Date(),
@@ -84,10 +81,7 @@ export class EmotionalMomentumTracker implements IEmotionalMomentumTracker {
 
     // Check for turning point (only if not first turn)
     if (!isFirstTurn) {
-      const turningPoint = this.detectTurningPoint(
-        momentum.currentState,
-        fullSnapshot
-      );
+      const turningPoint = this.detectTurningPoint(momentum.currentState, fullSnapshot);
 
       if (turningPoint) {
         momentum.turningPoints.push(turningPoint);
@@ -214,9 +208,7 @@ export class EmotionalMomentumTracker implements IEmotionalMomentumTracker {
     };
   }
 
-  private getMagnitude(
-    valenceShift: number
-  ): 'slight' | 'moderate' | 'significant' {
+  private getMagnitude(valenceShift: number): 'slight' | 'moderate' | 'significant' {
     const absShift = Math.abs(valenceShift);
 
     if (absShift >= MAGNITUDE_THRESHOLDS.significant.min) {
@@ -381,9 +373,7 @@ export class EmotionalMomentumTracker implements IEmotionalMomentumTracker {
     };
   }
 
-  private checkInterventionInternal(
-    momentum: EmotionalMomentum
-  ): InterventionGuidance | null {
+  private checkInterventionInternal(momentum: EmotionalMomentum): InterventionGuidance | null {
     const { trajectory, snapshots, prediction } = momentum;
 
     // Spiral down - immediate intervention

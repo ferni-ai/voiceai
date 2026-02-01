@@ -36,7 +36,7 @@ registerActionType({
   prepare: async (payload, context) => {
     const p = payload as UberRidePayload;
     const client = getUberClient(context.userId);
-    
+
     // Get fare estimate
     const estimate = await client.getFareEstimate({
       productId: p.productId || 'uberx',
@@ -45,18 +45,18 @@ registerActionType({
       endLatitude: p.endLatitude,
       endLongitude: p.endLongitude,
     });
-    
+
     if (!estimate.success || !estimate.data) {
-      return { 
-        valid: false, 
+      return {
+        valid: false,
         error: estimate.error || 'Could not get fare estimate',
         confirmationMessage: estimate.error || 'Could not get fare estimate',
       };
     }
-    
+
     const fare = estimate.data.fare.value;
     const duration = Math.round(estimate.data.trip.duration / 60);
-    
+
     return {
       valid: true,
       enrichedPayload: {
@@ -72,11 +72,11 @@ registerActionType({
   executor: async (action, context) => {
     const payload = action.payload as UberRidePayload;
     const client = getUberClient(context.userId);
-    
+
     if (!payload.fareId) {
       return { success: false, message: 'Missing fare ID - please request a new estimate' };
     }
-    
+
     const response = await client.requestRide({
       productId: payload.productId || 'uberx',
       fareId: payload.fareId,
@@ -87,11 +87,11 @@ registerActionType({
       endLongitude: payload.endLongitude,
       endAddress: payload.endAddress,
     });
-    
+
     if (!response.success || !response.data) {
       return { success: false, message: response.error || 'Failed to request ride' };
     }
-    
+
     return {
       success: true,
       message: `Your Uber is on the way! ETA: ${response.data.eta || 'calculating'} minutes`,
@@ -101,7 +101,10 @@ registerActionType({
   rollback: async (action, context) => {
     const client = getUberClient(context.userId);
     const response = await client.cancelRide(action.externalIds?.primary);
-    return { success: response.success, message: response.success ? 'Ride cancelled' : 'Could not cancel ride' };
+    return {
+      success: response.success,
+      message: response.success ? 'Ride cancelled' : 'Could not cancel ride',
+    };
   },
 });
 
@@ -116,7 +119,7 @@ registerActionType({
   prepare: async (payload, context) => {
     const p = payload as LyftRidePayload;
     const client = getLyftClient(context.userId);
-    
+
     // Get cost estimate
     const estimate = await client.getCostEstimates(
       p.startLatitude,
@@ -125,25 +128,25 @@ registerActionType({
       p.endLongitude,
       p.rideType
     );
-    
+
     if (!estimate.success || !estimate.data?.costEstimates?.length) {
-      return { 
-        valid: false, 
+      return {
+        valid: false,
         error: estimate.error || 'Could not get cost estimate',
         confirmationMessage: estimate.error || 'Could not get cost estimate',
       };
     }
-    
+
     const lyftEstimate = estimate.data.costEstimates[0];
     const avgCost = (lyftEstimate.estimatedCostMin + lyftEstimate.estimatedCostMax) / 2 / 100;
     const duration = Math.round(lyftEstimate.estimatedDurationSeconds / 60);
-    
+
     let message = `A Lyft will cost $${(lyftEstimate.estimatedCostMin / 100).toFixed(2)}-$${(lyftEstimate.estimatedCostMax / 100).toFixed(2)}`;
     if (lyftEstimate.primetimePercentage > 0) {
       message += ` (${lyftEstimate.primetimePercentage}% primetime)`;
     }
     message += ` and take about ${duration} minutes. Should I request it?`;
-    
+
     return {
       valid: true,
       enrichedPayload: {
@@ -154,15 +157,14 @@ registerActionType({
       },
       confirmationMessage: message,
       estimatedCost: avgCost,
-      warnings: lyftEstimate.primetimePercentage > 50 
-        ? ['High surge pricing is in effect'] 
-        : undefined,
+      warnings:
+        lyftEstimate.primetimePercentage > 50 ? ['High surge pricing is in effect'] : undefined,
     };
   },
   executor: async (action, context) => {
     const payload = action.payload as LyftRidePayload;
     const client = getLyftClient(context.userId);
-    
+
     const response = await client.requestRide({
       rideType: payload.rideType || 'lyft',
       origin: {
@@ -176,11 +178,11 @@ registerActionType({
         address: payload.endAddress,
       },
     });
-    
+
     if (!response.success || !response.data) {
       return { success: false, message: response.error || 'Failed to request ride' };
     }
-    
+
     return {
       success: true,
       message: 'Your Lyft is on the way!',
@@ -191,7 +193,10 @@ registerActionType({
     const client = getLyftClient(context.userId);
     if (action.externalIds?.primary) {
       const response = await client.cancelRide(action.externalIds.primary);
-      return { success: response.success, message: response.success ? 'Ride cancelled' : 'Could not cancel ride' };
+      return {
+        success: response.success,
+        message: response.success ? 'Ride cancelled' : 'Could not cancel ride',
+      };
     }
     return { success: false, message: 'No ride to cancel' };
   },
@@ -209,15 +214,13 @@ export function getTransportationToolDefinitions(): ToolDefinition[] {
     {
       id: 'requestRide',
       name: 'Request Ride',
-      description:
-        'Request an Uber or Lyft ride with price estimate and confirmation.',
+      description: 'Request an Uber or Lyft ride with price estimate and confirmation.',
       domain: 'transportation',
       tags: ['uber', 'lyft', 'ride', 'transport'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Request an Uber or Lyft ride with price estimate and confirmation.',
+          description: 'Request an Uber or Lyft ride with price estimate and confirmation.',
           parameters: z.object({
             destination: z.string().describe('Where you want to go'),
             from: z.string().optional().describe('Pickup location (default: current location)'),
@@ -234,22 +237,24 @@ export function getTransportationToolDefinitions(): ToolDefinition[] {
 
             const uberClient = getUberClient(userId);
             const lyftClient = getLyftClient(userId);
-            
+
             const uberConnected = uberClient.isConnected();
             const lyftConnected = lyftClient.isConnected();
-            
+
             if (!uberConnected && !lyftConnected) {
               return 'Neither Uber nor Lyft is connected. Would you like me to help you connect your account?';
             }
 
             // For now, return information about the feature
             // In production, this would geocode addresses and get real estimates
-            return `To request a ride to **${params.destination}**:\n\n` +
+            return (
+              `To request a ride to **${params.destination}**:\n\n` +
               `1. I'll get price estimates from ${uberConnected && lyftConnected ? 'Uber and Lyft' : uberConnected ? 'Uber' : 'Lyft'}\n` +
               `2. Show you the options with ETAs\n` +
               `3. Ask you to confirm before requesting\n\n` +
               `${!uberConnected ? '📱 Connect Uber for more options\n' : ''}` +
-              `${!lyftConnected ? '📱 Connect Lyft for more options\n' : ''}`;
+              `${!lyftConnected ? '📱 Connect Lyft for more options\n' : ''}`
+            );
           },
         });
       },
@@ -261,15 +266,13 @@ export function getTransportationToolDefinitions(): ToolDefinition[] {
     {
       id: 'comparePrices',
       name: 'Compare Ride Prices',
-      description:
-        'Compare prices between Uber and Lyft for a trip.',
+      description: 'Compare prices between Uber and Lyft for a trip.',
       domain: 'transportation',
       tags: ['uber', 'lyft', 'price', 'compare'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Compare prices between Uber and Lyft for a trip.',
+          description: 'Compare prices between Uber and Lyft for a trip.',
           parameters: z.object({
             destination: z.string().describe('Where you want to go'),
             from: z.string().optional().describe('Pickup location'),
@@ -281,13 +284,15 @@ export function getTransportationToolDefinitions(): ToolDefinition[] {
             }
 
             // This would fetch real estimates in production
-            return `📊 **Price Comparison to ${params.destination}**\n\n` +
+            return (
+              `📊 **Price Comparison to ${params.destination}**\n\n` +
               `Connect your Uber and Lyft accounts to see real-time price comparisons.\n\n` +
               `I'll show you:\n` +
               `- Prices for different ride types\n` +
               `- ETAs for pickup\n` +
               `- Surge/primetime pricing alerts\n` +
-              `- The best value option`;
+              `- The best value option`
+            );
           },
         });
       },
@@ -299,15 +304,13 @@ export function getTransportationToolDefinitions(): ToolDefinition[] {
     {
       id: 'getRideStatus',
       name: 'Get Ride Status',
-      description:
-        'Check the status of your current ride.',
+      description: 'Check the status of your current ride.',
       domain: 'transportation',
       tags: ['uber', 'lyft', 'status', 'tracking'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Check the status of your current ride.',
+          description: 'Check the status of your current ride.',
           parameters: z.object({}),
           execute: async () => {
             const userId = ctx.userId;
@@ -316,20 +319,22 @@ export function getTransportationToolDefinitions(): ToolDefinition[] {
             }
 
             const uberClient = getUberClient(userId);
-            
+
             // Try to get current ride from Uber
             if (uberClient.isConnected()) {
               const uberRide = await uberClient.getCurrentRide();
               if (uberRide.success && uberRide.data) {
                 const ride = uberRide.data;
-                return `🚗 **Your Uber**\n\n` +
+                return (
+                  `🚗 **Your Uber**\n\n` +
                   `Status: ${ride.status}\n` +
                   `${ride.driver ? `Driver: ${ride.driver.name} (${ride.driver.rating}⭐)\n` : ''}` +
                   `${ride.vehicle ? `Vehicle: ${ride.vehicle.make} ${ride.vehicle.model} - ${ride.vehicle.licensePlate}\n` : ''}` +
-                  `${ride.eta ? `ETA: ${ride.eta} minutes` : ''}`;
+                  `${ride.eta ? `ETA: ${ride.eta} minutes` : ''}`
+                );
               }
             }
-            
+
             return "You don't have an active ride right now.";
           },
         });
@@ -342,15 +347,13 @@ export function getTransportationToolDefinitions(): ToolDefinition[] {
     {
       id: 'cancelRide',
       name: 'Cancel Ride',
-      description:
-        'Cancel your current ride request.',
+      description: 'Cancel your current ride request.',
       domain: 'transportation',
       tags: ['uber', 'lyft', 'cancel'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Cancel your current ride request.',
+          description: 'Cancel your current ride request.',
           parameters: z.object({}),
           execute: async () => {
             const userId = ctx.userId;
@@ -359,14 +362,14 @@ export function getTransportationToolDefinitions(): ToolDefinition[] {
             }
 
             const uberClient = getUberClient(userId);
-            
+
             if (uberClient.isConnected()) {
               const result = await uberClient.cancelRide();
               if (result.success) {
                 return '✅ Your ride has been cancelled.';
               }
             }
-            
+
             return "I couldn't find an active ride to cancel.";
           },
         });
@@ -379,15 +382,13 @@ export function getTransportationToolDefinitions(): ToolDefinition[] {
     {
       id: 'getCommuteTime',
       name: 'Get Commute Time',
-      description:
-        'Check current traffic conditions for your commute.',
+      description: 'Check current traffic conditions for your commute.',
       domain: 'transportation',
       tags: ['commute', 'traffic', 'time'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Check current traffic conditions for your commute.',
+          description: 'Check current traffic conditions for your commute.',
           parameters: z.object({
             to: z.string().optional().describe('Destination (default: work)'),
             from: z.string().optional().describe('Starting point (default: current location)'),
@@ -399,7 +400,8 @@ export function getTransportationToolDefinitions(): ToolDefinition[] {
             }
 
             // This would use Google Maps API in production
-            return `🚗 **Commute Check**\n\n` +
+            return (
+              `🚗 **Commute Check**\n\n` +
               `To get real-time commute information, I need:\n` +
               `1. Your home and work addresses saved\n` +
               `2. Google Maps integration\n\n` +
@@ -407,7 +409,8 @@ export function getTransportationToolDefinitions(): ToolDefinition[] {
               `- Current drive time with traffic\n` +
               `- Best departure time\n` +
               `- Alternative routes\n` +
-              `- Proactive alerts when you should leave`;
+              `- Proactive alerts when you should leave`
+            );
           },
         });
       },
@@ -419,15 +422,13 @@ export function getTransportationToolDefinitions(): ToolDefinition[] {
     {
       id: 'scheduleRide',
       name: 'Schedule Ride',
-      description:
-        'Schedule a ride for a future time.',
+      description: 'Schedule a ride for a future time.',
       domain: 'transportation',
       tags: ['uber', 'lyft', 'schedule', 'future'],
 
       create: (ctx: ToolContext): Tool => {
         return llm.tool({
-          description:
-            'Schedule a ride for a future time.',
+          description: 'Schedule a ride for a future time.',
           parameters: z.object({
             destination: z.string().describe('Where you want to go'),
             pickupTime: z.string().describe('When to be picked up'),
@@ -440,11 +441,13 @@ export function getTransportationToolDefinitions(): ToolDefinition[] {
             }
 
             // This would schedule via the APIs in production
-            return `📅 **Ride Scheduled**\n\n` +
+            return (
+              `📅 **Ride Scheduled**\n\n` +
               `Destination: ${params.destination}\n` +
               `Pickup: ${params.pickupTime}\n` +
               `${params.from ? `From: ${params.from}\n` : ''}\n` +
-              `I'll remind you before your ride and help you request it at the right time.`;
+              `I'll remind you before your ride and help you request it at the right time.`
+            );
           },
         });
       },

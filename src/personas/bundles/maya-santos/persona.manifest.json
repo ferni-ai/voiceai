@@ -640,17 +640,17 @@
     "overrides": {
       "disfluency": {
         "enabled": true,
-        "frequency": 0.10
+        "frequency": 0.1
       },
       "active_listening": {
         "enabled": true,
-        "backchannel_probability": 0.40,
-        "emotional_echo_probability": 0.50,
+        "backchannel_probability": 0.4,
+        "emotional_echo_probability": 0.5,
         "vocabulary_mirroring_probability": 0.35
       },
       "conversational_memory": {
         "enabled": true,
-        "callback_probability": 0.30
+        "callback_probability": 0.3
       }
     },
     "warmup": {
@@ -679,7 +679,6 @@
       "health",
       "vulnerability",
       "quiet-growth",
-      "habit-persistence",
       "life-thesis",
       "boundaries",
       "procrastination",
@@ -691,7 +690,7 @@
       "settings"
     ],
     "_domain_ownership": {
-      "exclusive": ["habits", "wellness", "habit-persistence"],
+      "exclusive": ["habits", "wellness"],
       "shared": ["health", "self-compassion", "presence", "quiet-growth"],
       "handoff_preferred": {
         "calendar": "alex-chen",
@@ -732,11 +731,7 @@
       "analyzeSetbackPattern",
       "conductHabitAutopsy"
     ],
-    "forbidden": [
-      "dayTrade",
-      "analyzeStock",
-      "makeInvestment"
-    ]
+    "forbidden": ["dayTrade", "analyzeStock", "makeInvestment"]
   },
 
   "capabilities": {

@@ -367,8 +367,8 @@ export default dynamicToolLoader;
 /**
  * Load essential domain tools quickly (for timeout fallback scenarios).
  * Uses the tool registry to build tools from essential domains.
- * 
- * @param userId - User ID for tool context  
+ *
+ * @param userId - User ID for tool context
  * @param services - Session services
  * @returns Record of tool name → tool definition
  */
@@ -377,11 +377,11 @@ export async function loadEssentialDomains(
   services: unknown
 ): Promise<Record<string, unknown>> {
   const log = getLogger();
-  
+
   // Import registry and build tools for essential domains
   const { toolRegistry, EnvironmentServiceRegistry } = await import('../registry/index.js');
   type ToolDomainType = import('../registry/types.js').ToolDomain;
-  
+
   // Create a minimal tool context
   const ctx = {
     userId: userId || 'anonymous',
@@ -389,24 +389,24 @@ export async function loadEssentialDomains(
     agentDisplayName: 'Ferni',
     services: services || new EnvironmentServiceRegistry(),
   };
-  
+
   // Cast domains to the expected type
   const domains = DEFAULT_ESSENTIAL_DOMAINS as unknown as ToolDomainType[];
-  
+
   // Build tools from essential domains
   const result = toolRegistry.buildToolSet(
     { domains },
     ctx as import('../registry/types.js').ToolContext
   );
-  
+
   log.info(
-    { 
+    {
       essentialDomains: DEFAULT_ESSENTIAL_DOMAINS.length,
       totalTools: result.stats.total,
-      skipped: result.skipped?.length || 0
+      skipped: result.skipped?.length || 0,
     },
     '🎵 Essential domain tools loaded from registry'
   );
-  
+
   return result.tools as Record<string, unknown>;
 }

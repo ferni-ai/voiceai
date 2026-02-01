@@ -37,6 +37,145 @@ export async function handleHealthRoutes(
     return true;
   }
 
+  // Unified readiness check - aggregates all critical subsystems
+  if (pathname === '/health/ready') {
+    try {
+      const checks: Record<string, { status: 'ok' | 'degraded' | 'error'; latencyMs?: number; details?: string }> = {};
+      const alerts: Array<{ level: 'warn' | 'error'; message: string }> = [];
+      let overallStatus: 'ready' | 'degraded' | 'not_ready' = 'ready';
+
+      // 1. Tool Registry Check
+      const toolStart = Date.now();
+      try {
+        const { toolRegistry } = await import('../../../tools/registry/index.js');
+        const stats = toolRegistry.getStats();
+        const initialized = toolRegistry.isInitialized();
+
+        if (!initialized || stats.totalTools === 0) {
+          checks.tools = { status: 'error', latencyMs: Date.now() - toolStart, details: 'Not initialized' };
+          overallStatus = 'not_ready';
+          alerts.push({ level: 'error', message: 'Tool registry not ready' });
+        } else if (stats.totalTools < 50) {
+          checks.tools = { status: 'degraded', latencyMs: Date.now() - toolStart, details: `${stats.totalTools} tools` };
+          if (overallStatus === 'ready') overallStatus = 'degraded';
+          alerts.push({ level: 'warn', message: `Only ${stats.totalTools} tools loaded` });
+        } else {
+          checks.tools = { status: 'ok', latencyMs: Date.now() - toolStart, details: `${stats.totalTools} tools` };
+        }
+      } catch (err) {
+        checks.tools = { status: 'error', latencyMs: Date.now() - toolStart, details: (err as Error).message };
+        overallStatus = 'not_ready';
+        alerts.push({ level: 'error', message: 'Tool registry check failed' });
+      }
+
+      // 2. Firestore Check
+      const fsStart = Date.now();
+      try {
+        const { Firestore } = await import('@google-cloud/firestore');
+        const db = new Firestore({
+          projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+          databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+        });
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Timeout')), 3000);
+        });
+        await Promise.race([db.listCollections().then((c) => c.slice(0, 1)), timeoutPromise]);
+        checks.firestore = { status: 'ok', latencyMs: Date.now() - fsStart };
+      } catch (err) {
+        checks.firestore = { status: 'error', latencyMs: Date.now() - fsStart, details: (err as Error).message };
+        overallStatus = 'not_ready';
+        alerts.push({ level: 'error', message: 'Firestore not connected' });
+      }
+
+      // 3. LLM Connectivity Check (OpenAI key present)
+      const llmStart = Date.now();
+      const hasOpenAI = !!process.env.OPENAI_API_KEY;
+      const hasGemini = !!process.env.GOOGLE_API_KEY;
+      if (hasOpenAI || hasGemini) {
+        checks.llm = { status: 'ok', latencyMs: Date.now() - llmStart, details: hasOpenAI ? 'OpenAI' : 'Gemini' };
+      } else {
+        checks.llm = { status: 'error', latencyMs: Date.now() - llmStart, details: 'No API key' };
+        overallStatus = 'not_ready';
+        alerts.push({ level: 'error', message: 'No LLM API key configured' });
+      }
+
+      // 4. TTS Check (Cartesia key present)
+      const ttsStart = Date.now();
+      const hasCartesia = !!process.env.CARTESIA_API_KEY;
+      if (hasCartesia) {
+        checks.tts = { status: 'ok', latencyMs: Date.now() - ttsStart, details: 'Cartesia' };
+      } else {
+        checks.tts = { status: 'error', latencyMs: Date.now() - ttsStart, details: 'No API key' };
+        overallStatus = 'not_ready';
+        alerts.push({ level: 'error', message: 'No TTS API key configured' });
+      }
+
+      // 5. LiveKit Check
+      const lkStart = Date.now();
+      const hasLiveKit = !!(LIVEKIT_URL && LIVEKIT_API_KEY && LIVEKIT_API_SECRET);
+      if (hasLiveKit) {
+        checks.livekit = { status: 'ok', latencyMs: Date.now() - lkStart, details: LIVEKIT_URL.includes('dev') ? 'dev' : 'prod' };
+      } else {
+        checks.livekit = { status: 'error', latencyMs: Date.now() - lkStart, details: 'Not configured' };
+        overallStatus = 'not_ready';
+        alerts.push({ level: 'error', message: 'LiveKit not configured' });
+      }
+
+      // 6. Tool Routing Check (Semantic Router + LLM Native Function Calling)
+      // NOTE: FTIS was removed in Jan 2026. Tool routing now uses:
+      // - Semantic router for pre-filtering tools
+      // - LLM native function calling for selection
+      const routingStart = Date.now();
+      checks.toolRouting = {
+        status: 'ok',
+        latencyMs: Date.now() - routingStart,
+        details: 'Semantic router + LLM native function calling'
+      };
+
+      // 7. Persistence Layer Check
+      const persistStart = Date.now();
+      try {
+        const stats = getPersistenceStats();
+        const storeCount = Object.keys(stats).length;
+        checks.persistence = { status: storeCount > 0 ? 'ok' : 'degraded', latencyMs: Date.now() - persistStart, details: `${storeCount} stores` };
+        if (storeCount === 0 && overallStatus === 'ready') {
+          overallStatus = 'degraded';
+        }
+      } catch (err) {
+        checks.persistence = { status: 'degraded', latencyMs: Date.now() - persistStart, details: (err as Error).message };
+        if (overallStatus === 'ready') overallStatus = 'degraded';
+      }
+
+      const readyResponse = {
+        ready: overallStatus !== 'not_ready',
+        status: overallStatus,
+        timestamp: new Date().toISOString(),
+        checks,
+        alerts,
+        environment: {
+          nodeEnv: process.env.NODE_ENV || 'development',
+          version: process.env.npm_package_version || 'unknown',
+        },
+      };
+
+      const httpStatus = overallStatus === 'not_ready' ? 503 : 200;
+      res.writeHead(httpStatus, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(readyResponse, null, 2));
+    } catch (err) {
+      log.error({ error: (err as Error).message }, 'Readiness check error');
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          ready: false,
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          error: (err as Error).message,
+        })
+      );
+    }
+    return true;
+  }
+
   // Comprehensive health dashboard
   if (pathname === '/health/dashboard') {
     const spotifyConfig = spotifyService.getConfig();
@@ -496,7 +635,7 @@ export async function handleHealthRoutes(
       if (!healthStatus.dbAvailable) {
         superhumanHealth.status = 'unavailable';
         superhumanHealth.userImpact =
-          "Ferni cannot remember commitments, track patterns, or provide personalized insights. Memory features are offline.";
+          'Ferni cannot remember commitments, track patterns, or provide personalized insights. Memory features are offline.';
         superhumanHealth.alerts.push({
           level: 'error',
           message: `Superhuman Firestore unavailable - all ${SUPERHUMAN_SERVICES.length} services degraded`,
@@ -537,7 +676,10 @@ export async function handleHealthRoutes(
           timestamp: new Date().toISOString(),
           error: (err as Error).message,
           alerts: [
-            { level: 'error', message: `Superhuman health check failed: ${(err as Error).message}` },
+            {
+              level: 'error',
+              message: `Superhuman health check failed: ${(err as Error).message}`,
+            },
           ],
         })
       );
@@ -719,7 +861,9 @@ export async function handleHealthRoutes(
           status: 'error',
           timestamp: new Date().toISOString(),
           error: (err as Error).message,
-          alerts: [{ level: 'error', message: `OpenAI health check failed: ${(err as Error).message}` }],
+          alerts: [
+            { level: 'error', message: `OpenAI health check failed: ${(err as Error).message}` },
+          ],
         })
       );
     }
@@ -743,21 +887,150 @@ export async function handleHealthRoutes(
     return true;
   }
 
+  // Tool System health (tool registration, loading, availability)
+  if (pathname === '/health/tools' || pathname === '/api/health/tools') {
+    try {
+      const { toolRegistry } = await import('../../../tools/registry/index.js');
+      const { getLoadedDomains, isDomainLoaded } = await import('../../../tools/registry/loader.js');
+      const { ALL_TOOL_DOMAINS } = await import('../../../tools/registry/types.js');
+
+      const stats = toolRegistry.getStats();
+      const loadedDomains = getLoadedDomains();
+      const initialized = toolRegistry.isInitialized();
+
+      // Check for domains that should be loaded but aren't
+      const essentialDomains = ['memory', 'handoff', 'calendar', 'communication', 'entertainment'];
+      const missingEssential = essentialDomains.filter((d) => !isDomainLoaded(d as never));
+
+      // Calculate domain loading status
+      const domainStatus = ALL_TOOL_DOMAINS.map((domain) => ({
+        domain,
+        loaded: isDomainLoaded(domain),
+        toolCount: stats.byDomain[domain] || 0,
+      }));
+
+      const loadedCount = domainStatus.filter((d) => d.loaded).length;
+      const totalDomains = ALL_TOOL_DOMAINS.length;
+
+      interface HealthAlert {
+        level: 'warn' | 'error';
+        message: string;
+      }
+
+      const toolHealth: {
+        status: 'healthy' | 'degraded' | 'unhealthy';
+        timestamp: string;
+        registry: {
+          initialized: boolean;
+          totalTools: number;
+          experimental: number;
+          deprecated: number;
+        };
+        domains: {
+          total: number;
+          loaded: number;
+          loadedList: string[];
+          byCategory: Record<string, number>;
+        };
+        topDomains: Array<{ domain: string; toolCount: number }>;
+        alerts: HealthAlert[];
+      } = {
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        registry: {
+          initialized,
+          totalTools: stats.totalTools,
+          experimental: stats.experimental,
+          deprecated: stats.deprecated,
+        },
+        domains: {
+          total: totalDomains,
+          loaded: loadedCount,
+          loadedList: loadedDomains,
+          byCategory: stats.byCategory,
+        },
+        topDomains: Object.entries(stats.byDomain)
+          .filter(([, count]) => count > 0)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([domain, toolCount]) => ({ domain, toolCount })),
+        alerts: [],
+      };
+
+      // Determine status and add alerts
+      if (!initialized) {
+        toolHealth.status = 'unhealthy';
+        toolHealth.alerts.push({
+          level: 'error',
+          message: 'Tool registry not initialized - tools will not be available',
+        });
+      }
+
+      if (stats.totalTools === 0) {
+        toolHealth.status = 'unhealthy';
+        toolHealth.alerts.push({
+          level: 'error',
+          message: 'No tools registered - voice agent cannot function',
+        });
+      } else if (stats.totalTools < 50) {
+        toolHealth.status = toolHealth.status === 'healthy' ? 'degraded' : toolHealth.status;
+        toolHealth.alerts.push({
+          level: 'warn',
+          message: `Only ${stats.totalTools} tools registered - expected 100+`,
+        });
+      }
+
+      if (missingEssential.length > 0) {
+        toolHealth.status = toolHealth.status === 'healthy' ? 'degraded' : toolHealth.status;
+        toolHealth.alerts.push({
+          level: 'warn',
+          message: `Essential domains not loaded: ${missingEssential.join(', ')}`,
+        });
+      }
+
+      if (stats.deprecated > 10) {
+        toolHealth.alerts.push({
+          level: 'warn',
+          message: `${stats.deprecated} deprecated tools still registered`,
+        });
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(toolHealth, null, 2));
+    } catch (err) {
+      log.error({ error: (err as Error).message }, 'Tool health check error');
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          error: (err as Error).message,
+          alerts: [{ level: 'error', message: `Tool health check failed: ${(err as Error).message}` }],
+        })
+      );
+    }
+    return true;
+  }
+
   // Data integrity health (memory persistence audit)
   if (pathname === '/health/data-integrity' || pathname === '/api/health/data-integrity') {
     try {
       const { checkDataIntegrity } = await import('../../../api/health/data-integrity.js');
-      
+
       // Parse userId from query string if provided
       const url = new URL(req.url || '', `http://${req.headers.host}`);
       const userId = url.searchParams.get('userId') || undefined;
-      
+
       const report = await checkDataIntegrity(userId);
-      
+
       // Determine response status based on health
-      const status = report.firestore.healthStatus === 'healthy' ? 200 : 
-                     report.firestore.healthStatus === 'degraded' ? 200 : 503;
-      
+      const status =
+        report.firestore.healthStatus === 'healthy'
+          ? 200
+          : report.firestore.healthStatus === 'degraded'
+            ? 200
+            : 503;
+
       res.writeHead(status, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(report, null, 2));
     } catch (err) {

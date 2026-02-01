@@ -81,12 +81,12 @@ Already well-organized. Contains:
 - `gamification.ts` (root) - V1, in-memory storage (deprecated!)
 
 #### After
-- `domains/habits/gamification-v2.ts` - **V2 with Firestore persistence**
+- `domains/habits/gamification.ts` - **V2 with Firestore persistence**
 
 #### Usage
 ```typescript
 // NEW (recommended)
-import { createGamificationToolsV2 } from './domains/habits/gamification-v2.js';
+import { createGamificationToolsV2 } from './domains/habits/gamification.js';
 
 // OLD (deprecated - uses in-memory storage!)
 import { createGamificationTools } from './gamification.js'; // ⚠️ Deprecated
@@ -118,7 +118,7 @@ These root files now just re-export from their new domain locations for backward
 | File | New Location | Status |
 |------|--------------|--------|
 | `persona-memory-tools.ts` | `domains/memory/persona-tools.ts` | Re-export shim |
-| `gamification.ts` | `domains/habits/gamification-v2.ts` + `gamification-constants.ts` | Re-export shim |
+| `gamification.ts` | `domains/habits/gamification.ts` + `gamification-constants.ts` | Re-export shim |
 
 ---
 
@@ -245,7 +245,7 @@ import { createTeamIntegrationTools } from './team-integration.js';
 
 | File | Status | Reason |
 |------|--------|--------|
-| `gamification.ts` | ✅ Deleted | Moved to `domains/habits/gamification-v2.ts` |
+| `gamification.ts` | ✅ Deleted | Moved to `domains/habits/gamification.ts` |
 | `persona-memory-tools.ts` | ✅ Deleted | Moved to `domains/memory/persona-tools.ts` |
 
 ---

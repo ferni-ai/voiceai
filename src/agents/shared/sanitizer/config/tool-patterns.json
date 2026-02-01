@@ -773,6 +773,27 @@
         "whats happening",
         "What is happening"
       ]
+    },
+
+    "openclawMessaging": {
+      "description": "OpenClaw multi-channel messaging tools (WhatsApp, Telegram, Discord, Slack)",
+      "patterns": [
+        "sendWhatsApp",
+        "send whatsapp",
+        "Send WhatsApp",
+        "sendTelegram",
+        "send telegram",
+        "Send Telegram",
+        "sendDiscord",
+        "send discord",
+        "Send Discord",
+        "sendSlack",
+        "send slack",
+        "Send Slack",
+        "sendMessageChannel",
+        "send message channel",
+        "Send message channel"
+      ]
     }
   },
 

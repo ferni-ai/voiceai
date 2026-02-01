@@ -88,34 +88,89 @@ export interface LinkingSignal {
 
 /** Common relationship words that indicate a person mention */
 const RELATIONSHIP_WORDS = [
-  'mom', 'dad', 'mother', 'father', 'brother', 'sister',
-  'wife', 'husband', 'partner', 'girlfriend', 'boyfriend',
-  'son', 'daughter', 'grandma', 'grandpa', 'aunt', 'uncle',
-  'cousin', 'friend', 'coworker', 'boss', 'therapist', 'doctor',
-  'neighbor', 'roommate', 'ex', 'fiancé', 'fiancée',
+  'mom',
+  'dad',
+  'mother',
+  'father',
+  'brother',
+  'sister',
+  'wife',
+  'husband',
+  'partner',
+  'girlfriend',
+  'boyfriend',
+  'son',
+  'daughter',
+  'grandma',
+  'grandpa',
+  'aunt',
+  'uncle',
+  'cousin',
+  'friend',
+  'coworker',
+  'boss',
+  'therapist',
+  'doctor',
+  'neighbor',
+  'roommate',
+  'ex',
+  'fiancé',
+  'fiancée',
 ];
 
 /** Emotion keywords with intensity */
-const EMOTION_PATTERNS: Array<{ pattern: RegExp; emotion: string; intensity: 'low' | 'medium' | 'high' }> = [
+const EMOTION_PATTERNS: Array<{
+  pattern: RegExp;
+  emotion: string;
+  intensity: 'low' | 'medium' | 'high';
+}> = [
   // High intensity negative
-  { pattern: /\b(furious|devastated|terrified|heartbroken|enraged)\b/i, emotion: 'distress', intensity: 'high' },
-  { pattern: /\b(can't take|breaking down|falling apart|at my limit)\b/i, emotion: 'overwhelm', intensity: 'high' },
-  
+  {
+    pattern: /\b(furious|devastated|terrified|heartbroken|enraged)\b/i,
+    emotion: 'distress',
+    intensity: 'high',
+  },
+  {
+    pattern: /\b(can't take|breaking down|falling apart|at my limit)\b/i,
+    emotion: 'overwhelm',
+    intensity: 'high',
+  },
+
   // Medium intensity negative
-  { pattern: /\b(frustrated|annoyed|worried|anxious|stressed|upset)\b/i, emotion: 'stress', intensity: 'medium' },
+  {
+    pattern: /\b(frustrated|annoyed|worried|anxious|stressed|upset)\b/i,
+    emotion: 'stress',
+    intensity: 'medium',
+  },
   { pattern: /\b(sad|down|lonely|disappointed|hurt)\b/i, emotion: 'sadness', intensity: 'medium' },
-  
+
   // Low intensity negative
-  { pattern: /\b(kind of|a bit|slightly|somewhat)\s+(worried|stressed|anxious)/i, emotion: 'concern', intensity: 'low' },
-  
+  {
+    pattern: /\b(kind of|a bit|slightly|somewhat)\s+(worried|stressed|anxious)/i,
+    emotion: 'concern',
+    intensity: 'low',
+  },
+
   // High intensity positive
-  { pattern: /\b(ecstatic|thrilled|overjoyed|elated|incredible)\b/i, emotion: 'joy', intensity: 'high' },
-  { pattern: /\b(best day|amazing news|so happy|couldn't be happier)\b/i, emotion: 'celebration', intensity: 'high' },
-  
+  {
+    pattern: /\b(ecstatic|thrilled|overjoyed|elated|incredible)\b/i,
+    emotion: 'joy',
+    intensity: 'high',
+  },
+  {
+    pattern: /\b(best day|amazing news|so happy|couldn't be happier)\b/i,
+    emotion: 'celebration',
+    intensity: 'high',
+  },
+
   // Medium intensity positive
-  { pattern: /\b(happy|excited|grateful|proud|relieved)\b/i, emotion: 'positive', intensity: 'medium' },
+  {
+    pattern: /\b(happy|excited|grateful|proud|relieved)\b/i,
+    emotion: 'positive',
+    intensity: 'medium',
+  },
   { pattern: /\b(good|great|nice|wonderful)\b/i, emotion: 'contentment', intensity: 'medium' },
-  
+
   // Low intensity positive
   { pattern: /\b(okay|fine|not bad|alright)\b/i, emotion: 'neutral', intensity: 'low' },
 ];
@@ -123,16 +178,28 @@ const EMOTION_PATTERNS: Array<{ pattern: RegExp; emotion: string; intensity: 'lo
 /** Date patterns for important moments */
 const DATE_PATTERNS: Array<{ pattern: RegExp; type: 'absolute' | 'relative' | 'recurring' }> = [
   // Absolute dates
-  { pattern: /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?\b/i, type: 'absolute' },
+  {
+    pattern:
+      /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?\b/i,
+    type: 'absolute',
+  },
   { pattern: /\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/, type: 'absolute' },
-  
+
   // Relative dates
   { pattern: /\b(tomorrow|yesterday|today|tonight)\b/i, type: 'relative' },
-  { pattern: /\b(next|this|last)\s+(week|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i, type: 'relative' },
+  {
+    pattern:
+      /\b(next|this|last)\s+(week|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
+    type: 'relative',
+  },
   { pattern: /\b(in|after)\s+(\d+|a|an)\s+(day|week|month|year)s?\b/i, type: 'relative' },
-  
+
   // Recurring
-  { pattern: /\b(every|each)\s+(day|week|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i, type: 'recurring' },
+  {
+    pattern:
+      /\b(every|each)\s+(day|week|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
+    type: 'recurring',
+  },
   { pattern: /\b(birthday|anniversary|holiday)\b/i, type: 'recurring' },
 ];
 
@@ -165,18 +232,39 @@ const LINKING_PATTERNS: Array<{
   extractGroup?: number;
 }> = [
   // Email mentions
-  { pattern: /my\s+email\s+is\s+([\w.+-]+@[\w.-]+\.\w{2,})/i, type: 'email_mention', extractGroup: 1 },
-  { pattern: /email\s+(?:me\s+)?at\s+([\w.+-]+@[\w.-]+\.\w{2,})/i, type: 'email_mention', extractGroup: 1 },
+  {
+    pattern: /my\s+email\s+is\s+([\w.+-]+@[\w.-]+\.\w{2,})/i,
+    type: 'email_mention',
+    extractGroup: 1,
+  },
+  {
+    pattern: /email\s+(?:me\s+)?at\s+([\w.+-]+@[\w.-]+\.\w{2,})/i,
+    type: 'email_mention',
+    extractGroup: 1,
+  },
   { pattern: /([\w.+-]+@[\w.-]+\.\w{2,})/i, type: 'email_mention', extractGroup: 1 }, // Plain email mention
-  
+
   // App/web account mentions
   { pattern: /i\s+(?:also\s+)?use\s+the\s+(?:ferni\s+)?app/i, type: 'app_mention' },
   { pattern: /i\s+have\s+an?\s+(?:ferni\s+)?account/i, type: 'account_mention' },
-  { pattern: /i'm\s+(?:also\s+)?(?:on|using)\s+(?:the\s+)?(?:ferni\s+)?(?:app|website)/i, type: 'app_mention' },
-  { pattern: /we'?ve\s+(?:talked|chatted|spoken)\s+(?:on\s+)?(?:the\s+)?(?:website|web|app)/i, type: 'web_mention' },
-  { pattern: /i\s+(?:usually\s+)?(?:use|call)\s+(?:you\s+)?(?:from\s+)?(?:the\s+)?(?:website|web|app)/i, type: 'web_mention' },
+  {
+    pattern: /i'm\s+(?:also\s+)?(?:on|using)\s+(?:the\s+)?(?:ferni\s+)?(?:app|website)/i,
+    type: 'app_mention',
+  },
+  {
+    pattern: /we'?ve\s+(?:talked|chatted|spoken)\s+(?:on\s+)?(?:the\s+)?(?:website|web|app)/i,
+    type: 'web_mention',
+  },
+  {
+    pattern:
+      /i\s+(?:usually\s+)?(?:use|call)\s+(?:you\s+)?(?:from\s+)?(?:the\s+)?(?:website|web|app)/i,
+    type: 'web_mention',
+  },
   { pattern: /my\s+(?:phone\s+)?number\s+is\s+different/i, type: 'account_mention' },
-  { pattern: /this\s+is\s+(?:my|a)\s+(?:new|different)\s+(?:phone|number)/i, type: 'account_mention' },
+  {
+    pattern: /this\s+is\s+(?:my|a)\s+(?:new|different)\s+(?:phone|number)/i,
+    type: 'account_mention',
+  },
 ];
 
 // ============================================================================
@@ -190,13 +278,13 @@ const LINKING_PATTERNS: Array<{
 export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureResult> {
   const startTime = Date.now();
   const { transcript, userId, sessionId, turnNumber, voiceEmotion, personaId } = input;
-  
+
   // 🧠 MEMORY AUDIT: Log every capture attempt for debugging
   log.info(
     { userId, sessionId, turnNumber, transcriptLen: transcript.length, personaId },
     '🧠 [MEMORY-AUDIT] fastCapture START'
   );
-  
+
   // Run all fast extractions in parallel
   const [
     mentionedEntities,
@@ -213,17 +301,18 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
     detectRelationshipSignals(transcript),
     detectLinkingSignals(transcript),
   ]);
-  
+
   const captureTimeMs = Date.now() - startTime;
-  
+
   // Queue deep extraction if there's meaningful content
   let asyncJobId: string | null = null;
-  const hasSignals = mentionedEntities.length > 0 || 
-                     emotionSignals.some(e => e.intensity !== 'low') ||
-                     dateSignals.length > 0 ||
-                     relationshipSignals.length > 0 ||
-                     linkingSignals.length > 0;
-  
+  const hasSignals =
+    mentionedEntities.length > 0 ||
+    emotionSignals.some((e) => e.intensity !== 'low') ||
+    dateSignals.length > 0 ||
+    relationshipSignals.length > 0 ||
+    linkingSignals.length > 0;
+
   if (hasSignals && transcript.length > 20) {
     asyncJobId = await queueDeepExtraction({
       userId,
@@ -243,28 +332,31 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
       },
     });
   }
-  
+
   // Log performance - upgraded to INFO for memory audit
   if (captureTimeMs > 50) {
-    log.warn({ captureTimeMs, transcriptLength: transcript.length }, 'Fast capture exceeded target latency');
+    log.warn(
+      { captureTimeMs, transcriptLength: transcript.length },
+      'Fast capture exceeded target latency'
+    );
   }
-  
+
   // 🧠 MEMORY AUDIT: Log capture results (always, not just debug)
   log.info(
-    { 
+    {
       userId,
       sessionId,
-      captureTimeMs, 
-      entityCount: mentionedEntities.length, 
+      captureTimeMs,
+      entityCount: mentionedEntities.length,
       emotionCount: emotionSignals.length,
       topicCount: topicHints.length,
       hasSignals,
       asyncJobId,
-      entities: mentionedEntities.map(e => e.name).slice(0, 5),
-    }, 
+      entities: mentionedEntities.map((e) => e.name).slice(0, 5),
+    },
     '🧠 [MEMORY-AUDIT] fastCapture COMPLETE'
   );
-  
+
   // Record metrics
   recordFastCapture(
     captureTimeMs,
@@ -273,7 +365,7 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
     topicHints.length,
     asyncJobId !== null
   );
-  
+
   return {
     mentionedEntities,
     emotionSignals,
@@ -292,7 +384,7 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
 
 function detectEntityMentions(transcript: string): EntityMention[] {
   const mentions: EntityMention[] = [];
-  
+
   // Detect relationship words (person mentions) - "my mom", "dad", etc.
   for (const word of RELATIONSHIP_WORDS) {
     const regex = new RegExp(`\\b(?:my\\s+)?${word}\\b`, 'gi');
@@ -306,11 +398,12 @@ function detectEntityMentions(transcript: string): EntityMention[] {
       });
     }
   }
-  
+
   // 🧠 IMPROVED: Detect named entities more comprehensively
   // Pattern: "my [relationship] [Name]" or "[relationship] [Name]"
   // e.g., "my sister Sarah", "friend Mike", "boss Jennifer"
-  const namedRelationPattern = /\b(?:my\s+)?(?:sister|brother|friend|boss|coworker|partner|wife|husband|girlfriend|boyfriend|mom|dad)\s+([A-Z][a-z]+)\b/gi;
+  const namedRelationPattern =
+    /\b(?:my\s+)?(?:sister|brother|friend|boss|coworker|partner|wife|husband|girlfriend|boyfriend|mom|dad)\s+([A-Z][a-z]+)\b/gi;
   let match;
   while ((match = namedRelationPattern.exec(transcript)) !== null) {
     const name = match[1];
@@ -323,7 +416,7 @@ function detectEntityMentions(transcript: string): EntityMention[] {
       });
     }
   }
-  
+
   // Pattern: "[Name]'s [thing]" - possessive names
   // e.g., "Sarah's wedding", "Mike's birthday"
   const possessivePattern = /\b([A-Z][a-z]+)'s\s+\w+/g;
@@ -338,9 +431,10 @@ function detectEntityMentions(transcript: string): EntityMention[] {
       });
     }
   }
-  
+
   // Pattern: Names followed by common verbs
-  const verbFollowingPattern = /\b([A-Z][a-z]+)\b\s+(?:said|told|asked|called|texted|is|was|has|had|wants|needs|likes|loves|thinks)\b/gi;
+  const verbFollowingPattern =
+    /\b([A-Z][a-z]+)\b\s+(?:said|told|asked|called|texted|is|was|has|had|wants|needs|likes|loves|thinks)\b/gi;
   while ((match = verbFollowingPattern.exec(transcript)) !== null) {
     const name = match[1];
     if (!RELATIONSHIP_WORDS.includes(name.toLowerCase()) && name.length > 2) {
@@ -352,10 +446,11 @@ function detectEntityMentions(transcript: string): EntityMention[] {
       });
     }
   }
-  
+
   // Pattern: Common name introductions
   // "talked to [Name]", "called [Name]", "met [Name]", "with [Name]"
-  const interactionPattern = /\b(?:talked?\s+to|called|texted|met|met\s+with|with|saw|visited|emailed)\s+([A-Z][a-z]+)\b/gi;
+  const interactionPattern =
+    /\b(?:talked?\s+to|called|texted|met|met\s+with|with|saw|visited|emailed)\s+([A-Z][a-z]+)\b/gi;
   while ((match = interactionPattern.exec(transcript)) !== null) {
     const name = match[1];
     if (!RELATIONSHIP_WORDS.includes(name.toLowerCase()) && name.length > 2) {
@@ -367,7 +462,7 @@ function detectEntityMentions(transcript: string): EntityMention[] {
       });
     }
   }
-  
+
   // Pattern: "named [Name]" or "called [Name]"
   const namedPattern = /\b(?:named|called|name\s+is)\s+([A-Z][a-z]+)\b/gi;
   while ((match = namedPattern.exec(transcript)) !== null) {
@@ -378,9 +473,10 @@ function detectEntityMentions(transcript: string): EntityMention[] {
       confidence: 0.9, // Very high - explicit naming
     });
   }
-  
+
   // Detect place mentions
-  const placePattern = /\b(?:in|at|to|from|visiting|live\s+in|moved\s+to)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g;
+  const placePattern =
+    /\b(?:in|at|to|from|visiting|live\s+in|moved\s+to)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g;
   while ((match = placePattern.exec(transcript)) !== null) {
     const placeName = match[1];
     // Exclude common false positives
@@ -394,9 +490,10 @@ function detectEntityMentions(transcript: string): EntityMention[] {
       });
     }
   }
-  
+
   // Detect organization/company mentions
-  const orgPattern = /\b(?:work\s+(?:at|for)|company|employer|job\s+at)\s+([A-Z][a-zA-Z\s]+?)(?:\s+(?:and|but|where|which)|\.|,|$)/gi;
+  const orgPattern =
+    /\b(?:work\s+(?:at|for)|company|employer|job\s+at)\s+([A-Z][a-zA-Z\s]+?)(?:\s+(?:and|but|where|which)|\.|,|$)/gi;
   while ((match = orgPattern.exec(transcript)) !== null) {
     mentions.push({
       name: match[1].trim(),
@@ -405,20 +502,20 @@ function detectEntityMentions(transcript: string): EntityMention[] {
       confidence: 0.65,
     });
   }
-  
+
   return deduplicateMentions(mentions);
 }
 
 function detectEmotionSignals(transcript: string, voiceEmotion?: string): EmotionSignal[] {
   const signals: EmotionSignal[] = [];
-  
+
   // Keyword-based detection
   for (const { pattern, emotion, intensity } of EMOTION_PATTERNS) {
     if (pattern.test(transcript)) {
       signals.push({ emotion, intensity, source: 'keyword' });
     }
   }
-  
+
   // Voice-based emotion (if available)
   if (voiceEmotion) {
     signals.push({
@@ -427,25 +524,25 @@ function detectEmotionSignals(transcript: string, voiceEmotion?: string): Emotio
       source: 'voice',
     });
   }
-  
+
   return signals;
 }
 
 function detectTopicHints(transcript: string): string[] {
   const topics = new Set<string>();
-  
+
   for (const { pattern, topic } of TOPIC_PATTERNS) {
     if (pattern.test(transcript)) {
       topics.add(topic);
     }
   }
-  
+
   return Array.from(topics);
 }
 
 function detectDateSignals(transcript: string): DateSignal[] {
   const signals: DateSignal[] = [];
-  
+
   for (const { pattern, type } of DATE_PATTERNS) {
     const matches = transcript.match(pattern);
     if (matches) {
@@ -456,13 +553,13 @@ function detectDateSignals(transcript: string): DateSignal[] {
       });
     }
   }
-  
+
   return signals;
 }
 
 function detectRelationshipSignals(transcript: string): RelationshipSignal[] {
   const signals: RelationshipSignal[] = [];
-  
+
   for (const pattern of RELATIONSHIP_PATTERNS) {
     const match = transcript.match(pattern);
     if (match) {
@@ -474,24 +571,24 @@ function detectRelationshipSignals(transcript: string): RelationshipSignal[] {
       });
     }
   }
-  
+
   return signals;
 }
 
 function detectLinkingSignals(transcript: string): LinkingSignal[] {
   const signals: LinkingSignal[] = [];
-  
+
   for (const { pattern, type, extractGroup } of LINKING_PATTERNS) {
     const match = transcript.match(pattern);
     if (match) {
       // For email patterns, extract the email if a group is specified
       const value = extractGroup && match[extractGroup] ? match[extractGroup] : null;
-      
+
       // Skip plain email pattern if we already have a more specific match
-      if (type === 'email_mention' && signals.some(s => s.type === 'email_mention' && s.value)) {
+      if (type === 'email_mention' && signals.some((s) => s.type === 'email_mention' && s.value)) {
         continue;
       }
-      
+
       signals.push({
         type,
         value,
@@ -500,15 +597,15 @@ function detectLinkingSignals(transcript: string): LinkingSignal[] {
       });
     }
   }
-  
+
   // Log when linking signals detected (important for account merging)
   if (signals.length > 0) {
     log.info(
-      { signalCount: signals.length, types: signals.map(s => s.type) },
+      { signalCount: signals.length, types: signals.map((s) => s.type) },
       '🔗 Account linking signals detected'
     );
   }
-  
+
   return signals;
 }
 
@@ -519,16 +616,16 @@ function detectLinkingSignals(transcript: string): LinkingSignal[] {
 function extractContext(transcript: string, keyword: string): string {
   const index = transcript.toLowerCase().indexOf(keyword.toLowerCase());
   if (index === -1) return '';
-  
+
   const start = Math.max(0, index - 30);
   const end = Math.min(transcript.length, index + keyword.length + 30);
-  
+
   return transcript.slice(start, end).trim();
 }
 
 function deduplicateMentions(mentions: EntityMention[]): EntityMention[] {
   const seen = new Set<string>();
-  return mentions.filter(m => {
+  return mentions.filter((m) => {
     const key = `${m.name.toLowerCase()}-${m.type}`;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -560,27 +657,46 @@ interface DeepExtractionJob {
 /**
  * Queue deep extraction for background processing.
  * Fire-and-forget - returns immediately with job ID.
+ * 
+ * MEMORY FIX: Added better logging to track job queuing
  */
 async function queueDeepExtraction(job: DeepExtractionJob): Promise<string> {
   const jobId = `deep-${job.userId}-${job.sessionId}-${job.turnNumber}-${Date.now()}`;
-  
+  const priority = job.fastCaptureHints.emotionSignals.some((e) => e.intensity === 'high')
+    ? 'high'
+    : 'normal';
+
   try {
     // Emit event for background worker via DI wrapper (avoids layer violation)
     const emitted = safeEmitEvent('memory:deep-extraction', {
       jobId,
       ...job,
-      priority: job.fastCaptureHints.emotionSignals.some(e => e.intensity === 'high')
-        ? 'high'
-        : 'normal',
+      priority,
     });
 
     if (emitted) {
-      log.debug({ jobId, userId: job.userId }, 'Queued deep extraction job');
+      log.info(
+        { 
+          jobId, 
+          userId: job.userId, 
+          sessionId: job.sessionId,
+          turnNumber: job.turnNumber,
+          priority,
+          entityHints: job.fastCaptureHints.mentionedEntities.length,
+          emotionSignals: job.fastCaptureHints.emotionSignals.length,
+        }, 
+        '🧠 [MEMORY-AUDIT] Queued deep extraction job'
+      );
+    } else {
+      log.warn(
+        { jobId, userId: job.userId },
+        '🧠 [MEMORY-AUDIT] Failed to emit deep extraction event (AsyncEvents not configured?)'
+      );
     }
   } catch (error) {
-    log.warn({ error: String(error), jobId }, 'Failed to queue deep extraction (non-blocking)');
+    log.warn({ error: String(error), jobId }, '🧠 [MEMORY-AUDIT] Failed to queue deep extraction (non-blocking)');
   }
-  
+
   return jobId;
 }
 

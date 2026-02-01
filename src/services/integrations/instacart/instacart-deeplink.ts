@@ -71,7 +71,7 @@ export function getStoreSearchDeepLink(query?: string, zipcode?: string): DeepLi
   if (zipcode) params.set('zipcode', zipcode);
 
   const queryString = params.toString();
-  const webUrl = queryString 
+  const webUrl = queryString
     ? `${INSTACART_WEB_BASE}/store?${queryString}`
     : `${INSTACART_WEB_BASE}/store`;
 
@@ -87,13 +87,10 @@ export function getStoreSearchDeepLink(query?: string, zipcode?: string): DeepLi
 /**
  * Generate deep link for product search at a specific store
  */
-export function getProductSearchDeepLink(
-  storeName: string,
-  searchQuery: string
-): DeepLinkResult {
+export function getProductSearchDeepLink(storeName: string, searchQuery: string): DeepLinkResult {
   // Format store name for URL (e.g., "Whole Foods" -> "whole-foods")
   const storeSlug = storeName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  
+
   const params = new URLSearchParams({ q: searchQuery });
   const webUrl = `${INSTACART_WEB_BASE}/store/${storeSlug}/search?${params.toString()}`;
 
@@ -130,14 +127,11 @@ export function getProductDeepLink(
  * Generate a shopping list link
  * Opens Instacart with pre-populated search terms
  */
-export function getShoppingListDeepLink(
-  items: string[],
-  preferredStore?: string
-): DeepLinkResult {
+export function getShoppingListDeepLink(items: string[], preferredStore?: string): DeepLinkResult {
   // Instacart doesn't support adding multiple items via URL,
   // so we create a search for the first item and include context
   const firstItem = items[0] || 'groceries';
-  
+
   if (preferredStore) {
     return getProductSearchDeepLink(preferredStore, firstItem);
   }
@@ -164,15 +158,12 @@ export function getShoppingListDeepLink(
  * Returns false since API requires partnership
  */
 export function isInstacartApiAvailable(): boolean {
-  const hasCredentials = !!(
-    process.env.INSTACART_CLIENT_ID && 
-    process.env.INSTACART_CLIENT_SECRET
-  );
-  
+  const hasCredentials = !!(process.env.INSTACART_CLIENT_ID && process.env.INSTACART_CLIENT_SECRET);
+
   if (!hasCredentials) {
     log.debug('Instacart API not available - using deep links');
   }
-  
+
   return hasCredentials;
 }
 
@@ -208,9 +199,9 @@ export function getInstacartFallbackMessage(options: DeepLinkOptions = {}): {
   link: DeepLinkResult;
 } {
   const link = getGroceryLink(options);
-  
+
   let message: string;
-  
+
   if (options.query && options.store) {
     message = `I'll help you find "${options.query}" at ${options.store}. Tap here to open Instacart:`;
   } else if (options.query) {
@@ -234,24 +225,24 @@ export const STORE_SLUGS: Record<string, string> = {
   'whole foods market': 'whole-foods',
   'trader joes': 'trader-joes',
   "trader joe's": 'trader-joes',
-  'costco': 'costco',
-  'safeway': 'safeway',
-  'kroger': 'kroger',
-  'publix': 'publix',
-  'albertsons': 'albertsons',
-  'target': 'target',
-  'walmart': 'walmart',
-  'cvs': 'cvs',
-  'walgreens': 'walgreens',
-  'sprouts': 'sprouts',
+  costco: 'costco',
+  safeway: 'safeway',
+  kroger: 'kroger',
+  publix: 'publix',
+  albertsons: 'albertsons',
+  target: 'target',
+  walmart: 'walmart',
+  cvs: 'cvs',
+  walgreens: 'walgreens',
+  sprouts: 'sprouts',
   'harris teeter': 'harris-teeter',
   'food lion': 'food-lion',
-  'giant': 'giant',
+  giant: 'giant',
   'stop & shop': 'stop-and-shop',
-  'wegmans': 'wegmans',
-  'heb': 'h-e-b',
+  wegmans: 'wegmans',
+  heb: 'h-e-b',
   'h-e-b': 'h-e-b',
-  'aldi': 'aldi',
+  aldi: 'aldi',
   'food city': 'food-city',
   'winn dixie': 'winn-dixie',
   'piggly wiggly': 'piggly-wiggly',

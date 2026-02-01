@@ -93,13 +93,7 @@ export function reciprocalRankFusion<T>(
   rankedLists: Map<string, RankedItem<T>[]>,
   options: RankFusionOptions = {}
 ): FusedResult<T>[] {
-  const {
-    k = DEFAULT_K,
-    sourceWeights = {},
-    topK = 100,
-    minScore = 0,
-    minSources = 1,
-  } = options;
+  const { k = DEFAULT_K, sourceWeights = {}, topK = 100, minScore = 0, minSources = 1 } = options;
 
   // Build a map of item ID -> contributions from each source
   const fusionMap = new Map<
@@ -142,7 +136,10 @@ export function reciprocalRankFusion<T>(
   for (const [id, entry] of fusionMapEntries) {
     // Sum RRF contributions from all sources
     let fusedScore = 0;
-    const contributionValues = Object.values(entry.contributions) as Array<{ rank: number; rrfScore: number }>;
+    const contributionValues = Object.values(entry.contributions) as Array<{
+      rank: number;
+      rrfScore: number;
+    }>;
     for (const contribution of contributionValues) {
       fusedScore += contribution.rrfScore;
     }
@@ -292,7 +289,9 @@ export function weightedScoreFusion<T extends { id: string; score: number }>(
   for (const [id, entry] of fusionMapEntries2) {
     if (entry.weightedScore < minScore) continue;
 
-    const contributionEntries = Object.entries(entry.contributions) as Array<[string, { score: number; weightedScore: number }]>;
+    const contributionEntries = Object.entries(entry.contributions) as Array<
+      [string, { score: number; weightedScore: number }]
+    >;
     results.push({
       id,
       fusedScore: entry.weightedScore,

@@ -842,7 +842,8 @@ async function storeInUnifiedResults(
   callId: string
 ): Promise<void> {
   try {
-    const { captureBackgroundResult } = await import('../background-agents/unified-result-capture.js');
+    const { captureBackgroundResult } =
+      await import('../background-agents/unified-result-capture.js');
 
     const contactName = request.resolvedContact?.name || request.contactQuery;
 
@@ -882,7 +883,7 @@ async function storeInUnifiedResults(
       status,
       summary,
       priority,
-      initiatedBy: 'ferni',  // Calls are typically initiated by Ferni
+      initiatedBy: 'ferni', // Calls are typically initiated by Ferni
       sessionId: request.originalSessionId,
       contactName,
       contactId: request.resolvedContact?.id,
@@ -901,7 +902,10 @@ async function storeInUnifiedResults(
     log.debug({ callId }, 'Call result stored in unified background results');
   } catch (error) {
     // Don't fail the whole capture if unified storage fails
-    log.debug({ error: String(error), callId }, 'Could not store in unified results (non-blocking)');
+    log.debug(
+      { error: String(error), callId },
+      'Could not store in unified results (non-blocking)'
+    );
   }
 }
 

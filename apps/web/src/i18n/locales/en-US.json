@@ -113,11 +113,16 @@
       "dayStreak": "day streak"
     },
     "sections": {
+      "care": "What I've Done for You",
       "rightNow": "Right Now",
       "yourGrowth": "Your Growth",
       "yourWorld": "Your World"
     },
+    "care": {
+      "loading": "Loading your care moments..."
+    },
     "insights": {
+      "care": "Keeping track of what matters to you.",
       "moodSummary": "You've been feeling mostly {mood} this week",
       "chapterFocus": "Current chapter: {chapter} | Focus area: {focus}",
       "connections": "{active} active connections | {open} open loops"
@@ -155,6 +160,7 @@
       "pinned": "Your Favorites",
       "yourPractices": "Let's Practice",
       "understandingYou": "How You're Doing",
+      "ourStory": "Our Story",
       "waysToConnect": "Let's Do Something",
       "yourPeople": "Your World",
       "connectedLife": "What We're Connected To",

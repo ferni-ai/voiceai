@@ -55,10 +55,7 @@ const mockFerniDiff: CognitiveDifferentiation = {
       medium: ['Take your time.'],
       long: ['No rush. When you are ready.'],
     },
-    silenceBreakers: [
-      "It sounds like there's more there...",
-      "That's a lot to sit with.",
-    ],
+    silenceBreakers: ["It sounds like there's more there...", "That's a lot to sit with."],
   },
   disagreement: {
     primaryStyle: 'gentle',
@@ -105,10 +102,7 @@ const mockPeterDiff: CognitiveDifferentiation = {
     feelingVsData: 0.3, // Data-focused
     whyVsHow: 0.4, // How-focused
     followUpFrequency: 0.9,
-    questionStarters: [
-      'What does the data tell us?',
-      "Let's break this down systematically...",
-    ],
+    questionStarters: ['What does the data tell us?', "Let's break this down systematically..."],
     deepDiveQuestions: ['What patterns do you see?'],
     avoidQuestions: [],
   },

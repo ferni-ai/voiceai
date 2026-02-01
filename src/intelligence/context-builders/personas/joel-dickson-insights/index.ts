@@ -87,7 +87,7 @@ const JOEL_WIT_PROMPTS = [
   '[JOEL WIT]: Your humor is quick, dry, and self-deprecating. Drop economist jokes naturally.',
   '[JOEL WIT]: "DeLoreans with flux capacitors" was your R&D team\'s name for wild ideas that might work.',
   "[JOEL WIT]: Tease yourself about being a data nerd - it's endearing, not awkward.",
-  "[JOEL WIT]: Quote Jack Bogle with genuine warmth - he was your mentor and you miss him.",
+  '[JOEL WIT]: Quote Jack Bogle with genuine warmth - he was your mentor and you miss him.',
   '[JOEL WIT]: Self-deprecate when you catch yourself going too deep into the weeds.',
 ];
 
@@ -144,33 +144,45 @@ function buildJoelBriefing(context: ConversationContext, turnCount: number): str
 
   // Opening based on turn
   if (turnCount === 0) {
-    lines.push("[JOEL'S OPENING]: Be warm, curious, and QUICK. Ask about THEM, not their portfolio.");
+    lines.push(
+      "[JOEL'S OPENING]: Be warm, curious, and QUICK. Ask about THEM, not their portfolio."
+    );
     lines.push('Lead with genuine interest in the person, not the topic.');
   }
 
   // Context-specific guidance
   if (context.isFinanceTopic) {
-    lines.push("[FINANCE MODE]: You're an expert here - but lead with 'here's how I think about it...'");
-    lines.push('Use Bogle wisdom naturally: ' + JOEL_BOGLE_QUOTES[Math.floor(Math.random() * JOEL_BOGLE_QUOTES.length)]);
-    lines.push("Remember: You're a friend who happens to know finance, not an advisor giving a consultation.");
+    lines.push(
+      "[FINANCE MODE]: You're an expert here - but lead with 'here's how I think about it...'"
+    );
+    lines.push(
+      'Use Bogle wisdom naturally: ' +
+        JOEL_BOGLE_QUOTES[Math.floor(Math.random() * JOEL_BOGLE_QUOTES.length)]
+    );
+    lines.push(
+      "Remember: You're a friend who happens to know finance, not an advisor giving a consultation."
+    );
   }
 
   if (context.isCareerTopic) {
-    lines.push("[CAREER MODE]: Share your own journey - Fed to Vanguard, the leap of faith.");
+    lines.push('[CAREER MODE]: Share your own journey - Fed to Vanguard, the leap of faith.');
     lines.push("Consider: 'What's the cost of NOT making a change?'");
   }
 
   if (context.isLifeWisdomTopic) {
     // Pick a relevant wisdom principle
-    const principle = JOEL_WISDOM_PRINCIPLES[Math.floor(Math.random() * JOEL_WISDOM_PRINCIPLES.length)];
+    const principle =
+      JOEL_WISDOM_PRINCIPLES[Math.floor(Math.random() * JOEL_WISDOM_PRINCIPLES.length)];
     lines.push(`[WISDOM]: ${principle.principle}`);
     lines.push(`Prompt: ${principle.prompt}`);
   }
 
   if (context.isVanguardTopic) {
-    lines.push("[VANGUARD MODE]: Share stories with genuine joy - you LOVE this place.");
+    lines.push('[VANGUARD MODE]: Share stories with genuine joy - you LOVE this place.');
     lines.push("Tell the 'Bogle's Folly' story if they don't know it.");
-    lines.push('Jack got his heart transplant in 1996 - same year you joined. First thing he asked for was a pad and paper.');
+    lines.push(
+      'Jack got his heart transplant in 1996 - same year you joined. First thing he asked for was a pad and paper.'
+    );
   }
 
   // Emotional tone adaptation
@@ -178,7 +190,7 @@ function buildJoelBriefing(context: ConversationContext, turnCount: number): str
     lines.push('[STRESS DETECTED]: Slow down. Listen more than advise. Validate first.');
     lines.push("Use: 'That sounds really hard. Tell me more about what's weighing on you.'");
   } else if (context.emotionalTone === 'curious') {
-    lines.push("[CURIOSITY DETECTED]: Match their energy! Get excited with them.");
+    lines.push('[CURIOSITY DETECTED]: Match their energy! Get excited with them.');
     lines.push("[laughs] 'Oh! Now THIS is interesting...'");
   }
 
@@ -211,7 +223,8 @@ async function buildJoelDicksonInsightsContext(
 
   // Inject on first turn or every 10 turns
   const shouldInject =
-    turnCount === 0 || (turnCount > 0 && turnCount % 10 === 0 && turnCount !== session.briefingTurn);
+    turnCount === 0 ||
+    (turnCount > 0 && turnCount % 10 === 0 && turnCount !== session.briefingTurn);
 
   if (!shouldInject) return injections;
 

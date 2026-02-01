@@ -125,12 +125,9 @@ async function registerApplicationServices(): Promise<void> {
     }
 
     // Import existing caches for delegation
-    const { getCachedGreetingAudio } = await import(
-      '../../agents/shared/greeting-audio-cache.js'
-    );
-    const { getCachedAudio: getCachedConversationalAudio } = await import(
-      '../../agents/shared/conversational-audio-cache.js'
-    );
+    const { getCachedGreetingAudio } = await import('../../agents/shared/greeting-audio-cache.js');
+    const { getCachedAudio: getCachedConversationalAudio } =
+      await import('../../agents/shared/conversational-audio-cache.js');
 
     // Create delegating cache that checks existing caches on miss
     // Note: Legacy caches return ArrayBuffer | null, so we estimate duration
@@ -212,7 +209,8 @@ async function registerSuperhumanIntelligenceServices(): Promise<void> {
 
   // Phase 1: Emotional Momentum Tracking
   container.registerSingleton(Tokens.EmotionalMomentumTracker, async () => {
-    const { getEmotionalMomentumTracker } = await import('../../conversation/emotional-arc/momentum/tracker.js');
+    const { getEmotionalMomentumTracker } =
+      await import('../../conversation/emotional-arc/momentum/tracker.js');
     return getEmotionalMomentumTracker();
   });
 
@@ -224,19 +222,22 @@ async function registerSuperhumanIntelligenceServices(): Promise<void> {
 
   // Phase 2: Micro-Moment Recognition
   container.registerSingleton(Tokens.MicroMomentDetector, async () => {
-    const { getMicroMomentDetector } = await import('../../intelligence/deep-understanding/micro-moments/engine.js');
+    const { getMicroMomentDetector } =
+      await import('../../intelligence/deep-understanding/micro-moments/engine.js');
     return getMicroMomentDetector();
   });
 
   // Phase 2: Avoidance Pattern Detection
   container.registerSingleton(Tokens.AvoidanceDetector, async () => {
-    const { getAvoidanceDetector } = await import('../../intelligence/deep-understanding/avoidance-detection/engine.js');
+    const { getAvoidanceDetector } =
+      await import('../../intelligence/deep-understanding/avoidance-detection/engine.js');
     return getAvoidanceDetector();
   });
 
   // Phase 2: Rhythm Intelligence
   container.registerSingleton(Tokens.RhythmIntelligence, async () => {
-    const { getRhythmIntelligence } = await import('../../conversation/rhythm-intelligence/engine.js');
+    const { getRhythmIntelligence } =
+      await import('../../conversation/rhythm-intelligence/engine.js');
     return getRhythmIntelligence();
   });
 
@@ -248,7 +249,8 @@ async function registerSuperhumanIntelligenceServices(): Promise<void> {
 
   // Phase 3: Pattern Connector
   container.registerSingleton(Tokens.PatternConnector, async () => {
-    const { getPatternConnector } = await import('../../intelligence/deep-understanding/pattern-connector/engine.js');
+    const { getPatternConnector } =
+      await import('../../intelligence/deep-understanding/pattern-connector/engine.js');
     return getPatternConnector();
   });
 
@@ -302,16 +304,17 @@ async function registerReliabilityServices(): Promise<void> {
 
   // Parallel Tool Executor - runs critical tools with parallel attempts
   container.registerSingleton(Tokens.ParallelToolExecutor, async () => {
-    const { isCriticalTool, executeWithParallelFallback } = await import(
-      '../../agents/shared/parallel-tool-executor.js'
-    );
+    const { isCriticalTool, executeWithParallelFallback } =
+      await import('../../agents/shared/parallel-tool-executor.js');
 
     // Return object implementing IParallelToolExecutor
     return {
       execute: async (
         toolId: string,
         args: Record<string, unknown>,
-        executor: (args: Record<string, unknown>) => Promise<{ success: boolean; data?: unknown; error?: string }>
+        executor: (
+          args: Record<string, unknown>
+        ) => Promise<{ success: boolean; data?: unknown; error?: string }>
       ) => {
         if (!isCriticalTool(toolId)) {
           // For non-critical tools, just execute directly
@@ -330,9 +333,8 @@ async function registerReliabilityServices(): Promise<void> {
 
   // Context Pruner - prunes conversation context to improve reliability
   container.registerSingleton(Tokens.ContextPruner, async () => {
-    const { shouldPruneContext, pruneConversationContext } = await import(
-      '../../agents/shared/conversation-priming.js'
-    );
+    const { shouldPruneContext, pruneConversationContext } =
+      await import('../../agents/shared/conversation-priming.js');
 
     // Return object implementing IContextPruner
     return {
@@ -341,7 +343,9 @@ async function registerReliabilityServices(): Promise<void> {
     };
   });
 
-  getLogger().info('Registered reliability services (Session Health, Parallel Executor, Context Pruner)');
+  getLogger().info(
+    'Registered reliability services (Session Health, Parallel Executor, Context Pruner)'
+  );
 }
 
 /**

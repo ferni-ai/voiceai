@@ -45,7 +45,8 @@ export function createSuperhumanPlanningTools() {
      * Get insights from past event patterns
      */
     getEventPatternInsights: llm.tool({
-      description: getToolDescription('getEventPatternInsights') ||
+      description:
+        getToolDescription('getEventPatternInsights') ||
         'Get planning insights from patterns across all past events - budget tendencies, guest dynamics, emotional patterns, vendor preferences. Use when starting to plan any event.',
       parameters: z.object({
         eventType: z
@@ -172,9 +173,11 @@ export function createSuperhumanPlanningTools() {
         });
 
         let response = `✅ Updated profile for ${guestName}.\n`;
-        if (dietaryRestrictions?.length) response += `🍽️ Dietary: ${dietaryRestrictions.join(', ')}\n`;
+        if (dietaryRestrictions?.length)
+          response += `🍽️ Dietary: ${dietaryRestrictions.join(', ')}\n`;
         if (allergies?.length) response += `⚠️ Allergies: ${allergies.join(', ')}\n`;
-        if (accessibilityNeeds?.length) response += `♿ Accessibility: ${accessibilityNeeds.join(', ')}\n`;
+        if (accessibilityNeeds?.length)
+          response += `♿ Accessibility: ${accessibilityNeeds.join(', ')}\n`;
         response += `\nI'll remember this for all future events!`;
 
         return response;
@@ -302,7 +305,11 @@ export function createSuperhumanPlanningTools() {
         });
 
         const dateObj = new Date(date);
-        const formatted = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        const formatted = dateObj.toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        });
 
         return `📅 Tracking "${label}" (${formatted}). I'll proactively remind you of significant anniversaries!`;
       },
@@ -341,7 +348,10 @@ export function createSuperhumanPlanningTools() {
         userId: z.string().optional().default('default'),
       }),
       execute: async ({ daysAhead, userId }) => {
-        const milestones = await proactiveMilestoneDetector.detectUpcomingMilestones(userId, daysAhead);
+        const milestones = await proactiveMilestoneDetector.detectUpcomingMilestones(
+          userId,
+          daysAhead
+        );
 
         if (milestones.length === 0) {
           return `No tracked milestones in the next ${daysAhead} days. Want to add some dates to track?`;
@@ -351,7 +361,11 @@ export function createSuperhumanPlanningTools() {
 
         for (const m of milestones.slice(0, 10)) {
           const timing =
-            m.daysAway === 0 ? '**TODAY!**' : m.daysAway > 0 ? `in ${m.daysAway} days` : `${Math.abs(m.daysAway)} days ago`;
+            m.daysAway === 0
+              ? '**TODAY!**'
+              : m.daysAway > 0
+                ? `in ${m.daysAway} days`
+                : `${Math.abs(m.daysAway)} days ago`;
 
           const anniversary = m.anniversaryNumber ? ` (${m.anniversaryNumber} years!)` : '';
           response += `• **${m.label}**${anniversary} - ${timing}\n`;
@@ -386,9 +400,16 @@ export function createSuperhumanPlanningTools() {
             'recovery',
           ])
           .describe('Type of celebration'),
-        size: z.enum(['micro', 'small', 'medium', 'large', 'major']).describe('Size of celebration'),
+        size: z
+          .enum(['micro', 'small', 'medium', 'large', 'major'])
+          .describe('Size of celebration'),
         honoree: z.enum(['self', 'others', 'both']).describe('Who was being celebrated'),
-        joyReceived: z.number().min(1).max(10).optional().describe('How much joy did it bring? (1-10)'),
+        joyReceived: z
+          .number()
+          .min(1)
+          .max(10)
+          .optional()
+          .describe('How much joy did it bring? (1-10)'),
         userId: z.string().optional().default('default'),
       }),
       execute: async ({ description, type, size, honoree, joyReceived, userId }) => {
@@ -466,7 +487,7 @@ export function createSuperhumanPlanningTools() {
      */
     checkPlanningReadiness: llm.tool({
       description:
-        'Check if you\'re ready to plan an event - finances, calendar capacity, energy levels. Gives a traffic light assessment.',
+        "Check if you're ready to plan an event - finances, calendar capacity, energy levels. Gives a traffic light assessment.",
       parameters: z.object({
         eventType: z.string().describe('Type of event'),
         budget: z.number().describe('Estimated budget'),
@@ -481,7 +502,8 @@ export function createSuperhumanPlanningTools() {
           eventDate
         );
 
-        const statusEmoji = assessment.status === 'green' ? '🟢' : assessment.status === 'yellow' ? '🟡' : '🔴';
+        const statusEmoji =
+          assessment.status === 'green' ? '🟢' : assessment.status === 'yellow' ? '🟡' : '🔴';
 
         let response = `${statusEmoji} **Planning Readiness: ${assessment.status.toUpperCase()}**\n`;
         response += `Overall Score: ${assessment.overallScore}/100\n\n`;
@@ -535,8 +557,12 @@ export function createSuperhumanPlanningTools() {
 
         const top5 = recommendations.slice(0, 5);
         for (const rec of top5) {
-          const month = new Date(rec.dateRange.start).toLocaleString('en-US', { month: 'long', year: 'numeric' });
-          const scoreBar = '█'.repeat(Math.round(rec.score / 10)) + '░'.repeat(10 - Math.round(rec.score / 10));
+          const month = new Date(rec.dateRange.start).toLocaleString('en-US', {
+            month: 'long',
+            year: 'numeric',
+          });
+          const scoreBar =
+            '█'.repeat(Math.round(rec.score / 10)) + '░'.repeat(10 - Math.round(rec.score / 10));
 
           response += `**${month}** ${scoreBar} ${rec.score}/100\n`;
 
@@ -568,7 +594,12 @@ export function createSuperhumanPlanningTools() {
       execute: async ({ date, userId }) => {
         const conflicts = await seasonalPlanningIntelligence.checkDateConflicts(userId, date);
 
-        const statusEmoji = conflicts.recommendation === 'clear' ? '✅' : conflicts.recommendation === 'caution' ? '🟡' : '🔴';
+        const statusEmoji =
+          conflicts.recommendation === 'clear'
+            ? '✅'
+            : conflicts.recommendation === 'caution'
+              ? '🟡'
+              : '🔴';
 
         let response = `${statusEmoji} **Date Check: ${date}**\n\n`;
         response += `**Recommendation:** ${conflicts.recommendation}\n\n`;
@@ -657,7 +688,8 @@ export function createSuperhumanPlanningTools() {
      * Check for due follow-ups
      */
     checkEventFollowUps: llm.tool({
-      description: 'Check if any post-event follow-ups are due - I follow up at the perfect times to capture learnings.',
+      description:
+        'Check if any post-event follow-ups are due - I follow up at the perfect times to capture learnings.',
       parameters: z.object({
         userId: z.string().optional().default('default'),
       }),
@@ -701,7 +733,12 @@ export function createSuperhumanPlanningTools() {
         userId: z.string().optional().default('default'),
       }),
       execute: async ({ eventName, eventType, eventDate, whyThisMattered, userId }) => {
-        const story = await eventStoryCapture.startStoryCapture(userId, eventName, eventType, eventDate);
+        const story = await eventStoryCapture.startStoryCapture(
+          userId,
+          eventName,
+          eventType,
+          eventDate
+        );
 
         await eventStoryCapture.updateEventStory(userId, story.id, {
           meaning: { whyThisMattered, honorees: [], whatWasCelebrated: '' },
@@ -724,7 +761,8 @@ export function createSuperhumanPlanningTools() {
      * Recall what an event meant
      */
     recallEventMeaning: llm.tool({
-      description: 'Remember what a past event meant - the emotional significance, key moments, and lessons.',
+      description:
+        'Remember what a past event meant - the emotional significance, key moments, and lessons.',
       parameters: z.object({
         eventName: z.string().describe('Name of the event to recall'),
         userId: z.string().optional().default('default'),
@@ -767,7 +805,7 @@ export function createSuperhumanPlanningTools() {
      */
     getAnticipatedTransitions: llm.tool({
       description:
-        'See what life transitions I\'ve detected approaching - empty nest, retirement, career change, etc. I notice signals humans miss.',
+        "See what life transitions I've detected approaching - empty nest, retirement, career change, etc. I notice signals humans miss.",
       parameters: z.object({
         userId: z.string().optional().default('default'),
       }),

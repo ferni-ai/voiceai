@@ -13,11 +13,7 @@ import { createLogger } from '../../../../utils/safe-logger.js';
 import { getRelevantCorrelations } from '../../semantic-intelligence/correlation-mining.js';
 import type { SemanticCorrelation } from '../../semantic-intelligence/types.js';
 import { registerInsightGenerator } from '../engine.js';
-import type {
-  GeneratedInsight,
-  InsightGenerator,
-  InsightGeneratorContext,
-} from '../types.js';
+import type { GeneratedInsight, InsightGenerator, InsightGeneratorContext } from '../types.js';
 
 const log = createLogger({ module: 'insight-gen:correlation' });
 
@@ -29,14 +25,14 @@ const CORRELATION_TEMPLATES = {
   positive: {
     sleep_stress: [
       "I've noticed your sleep tends to suffer when work stress comes up. The last few times you mentioned feeling overwhelmed at work, sleep was harder within a day or two.",
-      "There seems to be a pattern: when work pressure builds, your sleep takes a hit. Your body might be telling you something.",
+      'There seems to be a pattern: when work pressure builds, your sleep takes a hit. Your body might be telling you something.',
     ],
     mood_topic: [
       "I've noticed you light up when we talk about {topic}. Your energy shifts - it's like you come alive.",
       "Something I keep seeing: discussions about {topic} seem to lift your mood. Maybe there's something there worth exploring?",
     ],
     person_emotion: [
-      "Interesting pattern: when {person} comes up, you often seem {emotion}. Is that how they make you feel?",
+      'Interesting pattern: when {person} comes up, you often seem {emotion}. Is that how they make you feel?',
       "I've noticed that talking about {person} tends to bring out {emotion} in you. Worth paying attention to?",
     ],
     activity_energy: [
@@ -46,7 +42,7 @@ const CORRELATION_TEMPLATES = {
   },
   negative: {
     sleep_stress: [
-      "I see a tough pattern: sleep struggles and stress seem to feed each other for you. When one gets worse, the other follows.",
+      'I see a tough pattern: sleep struggles and stress seem to feed each other for you. When one gets worse, the other follows.',
       "Your sleep and stress levels seem connected in a challenging way. It's like they're in a cycle together.",
     ],
     mood_topic: [
@@ -110,10 +106,14 @@ function buildCorrelationInsight(
   const pattern2 = domainB.pattern;
 
   // Determine if correlation is positive or negative based on patterns
-  const sleepPattern = pattern1.toLowerCase().includes('sleep') || pattern2.toLowerCase().includes('sleep');
-  const stressPattern = pattern1.toLowerCase().includes('stress') || pattern2.toLowerCase().includes('stress');
-  const isNegative = (sleepPattern && stressPattern) ||
-    pattern1.toLowerCase().includes('avoid') || pattern2.toLowerCase().includes('avoid');
+  const sleepPattern =
+    pattern1.toLowerCase().includes('sleep') || pattern2.toLowerCase().includes('sleep');
+  const stressPattern =
+    pattern1.toLowerCase().includes('stress') || pattern2.toLowerCase().includes('stress');
+  const isNegative =
+    (sleepPattern && stressPattern) ||
+    pattern1.toLowerCase().includes('avoid') ||
+    pattern2.toLowerCase().includes('avoid');
 
   // Select template based on domains
   const templates = isNegative ? CORRELATION_TEMPLATES.negative : CORRELATION_TEMPLATES.positive;
@@ -154,9 +154,9 @@ function buildCorrelationInsight(
     headline,
     message: template,
     evidence: coOccurrences
-      ? coOccurrences.slice(0, 3).map(
-          (e) => `${e.contextSnippet?.slice(0, 30) || pattern1} ↔ ${pattern2}`
-        )
+      ? coOccurrences
+          .slice(0, 3)
+          .map((e) => `${e.contextSnippet?.slice(0, 30) || pattern1} ↔ ${pattern2}`)
       : [],
     surfacingMoment: 'natural_pause',
     tone: isNegative ? 'protective_care' : 'warm_observation',

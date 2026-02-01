@@ -104,7 +104,7 @@ const researchDatabase: ResearchEntry[] = [
       '~90% of active funds underperform index over 15 years (SPIVA)',
       'Fees are the strongest predictor of underperformance',
       'Past performance does not predict future results',
-      "Survivorship bias makes active look better than it is",
+      'Survivorship bias makes active look better than it is',
     ],
     limitations: ['Some markets less efficient', 'Tax considerations vary'],
     practicalTakeaway: 'For most investors, low-cost index funds win.',
@@ -176,7 +176,10 @@ const researchDatabase: ResearchEntry[] = [
 ];
 
 // Base rate database for common claims
-const baseRateDatabase: Record<string, { rate: number; context: string; comparisons: { category: string; rate: number }[] }> = {
+const baseRateDatabase: Record<
+  string,
+  { rate: number; context: string; comparisons: { category: string; rate: number }[] }
+> = {
   'startup success': {
     rate: 10,
     context: '~90% of startups fail within 10 years',
@@ -264,7 +267,7 @@ function findRelevantResearch(query: string): ResearchEntry[] {
 
 export const scoreEvidenceQuality = llm.tool({
   description:
-    "Score the evidence quality behind any claim. Get instant meta-analysis: study count, sample size, effect size, consistency. Know if advice is well-supported or just popular.",
+    'Score the evidence quality behind any claim. Get instant meta-analysis: study count, sample size, effect size, consistency. Know if advice is well-supported or just popular.',
   parameters: z.object({
     claim: z.string().describe('The claim or advice to evaluate'),
   }),
@@ -381,7 +384,7 @@ export const scoreEvidenceQuality = llm.tool({
 
 export const synthesizeResearch = llm.tool({
   description:
-    "Get an instant synthesis of research on any life topic. What would take you weeks to read, I can summarize in seconds.",
+    'Get an instant synthesis of research on any life topic. What would take you weeks to read, I can summarize in seconds.',
   parameters: z.object({
     topic: z.string().describe('Topic to synthesize research on'),
     depth: z
@@ -493,7 +496,7 @@ export const synthesizeResearch = llm.tool({
 
 export const findCounterArguments = llm.tool({
   description:
-    "Find the strongest arguments AGAINST something you believe. Combat confirmation bias by seeing the other side. No human friend will do this for you.",
+    'Find the strongest arguments AGAINST something you believe. Combat confirmation bias by seeing the other side. No human friend will do this for you.',
   parameters: z.object({
     belief: z.string().describe('Your belief or position'),
     domain: z
@@ -515,33 +518,29 @@ export const findCounterArguments = llm.tool({
           argument: 'Survivorship bias may be inflating your perception',
           strength: 'strong',
           evidence:
-            "You hear about winners, not the 90% who failed. The full picture may be less optimistic.",
+            'You hear about winners, not the 90% who failed. The full picture may be less optimistic.',
         },
         {
-          argument: 'Past performance doesn\'t predict future results',
+          argument: "Past performance doesn't predict future results",
           strength: 'strong',
-          evidence:
-            'What worked before happened in a specific context that may not repeat.',
+          evidence: 'What worked before happened in a specific context that may not repeat.',
         },
         {
           argument: 'Confirmation bias shapes what evidence you notice',
           strength: 'moderate',
-          evidence:
-            "You may be unconsciously filtering for information that supports your view.",
+          evidence: 'You may be unconsciously filtering for information that supports your view.',
         },
         {
           argument: 'The opportunity cost may be higher than you think',
           strength: 'moderate',
-          evidence:
-            'Every choice closes other doors. Have you fully evaluated alternatives?',
+          evidence: 'Every choice closes other doors. Have you fully evaluated alternatives?',
         },
       ],
       health: [
         {
           argument: 'Individual variation is huge in health interventions',
           strength: 'strong',
-          evidence:
-            'What works for the average may not work for YOU. N=1 matters.',
+          evidence: 'What works for the average may not work for YOU. N=1 matters.',
         },
         {
           argument: 'Placebo effect may be a factor',
@@ -552,28 +551,24 @@ export const findCounterArguments = llm.tool({
         {
           argument: 'Short-term vs long-term effects differ',
           strength: 'moderate',
-          evidence:
-            'Many interventions show short-term benefits that fade or reverse over time.',
+          evidence: 'Many interventions show short-term benefits that fade or reverse over time.',
         },
       ],
       productivity: [
         {
-          argument: "What works for others may not work for you",
+          argument: 'What works for others may not work for you',
           strength: 'strong',
-          evidence:
-            'Productivity systems depend on personality, work type, and context.',
+          evidence: 'Productivity systems depend on personality, work type, and context.',
         },
         {
           argument: 'The Hawthorne effect may be at play',
           strength: 'moderate',
-          evidence:
-            'Measuring something often improves it temporarily, regardless of the method.',
+          evidence: 'Measuring something often improves it temporarily, regardless of the method.',
         },
         {
           argument: 'Complexity may be masquerading as effectiveness',
           strength: 'moderate',
-          evidence:
-            'Elaborate systems feel productive but simple approaches often work better.',
+          evidence: 'Elaborate systems feel productive but simple approaches often work better.',
         },
       ],
       general: [
@@ -586,14 +581,12 @@ export const findCounterArguments = llm.tool({
         {
           argument: 'The base rate may not support your belief',
           strength: 'strong',
-          evidence:
-            'How often does this actually happen vs how often you think it happens?',
+          evidence: 'How often does this actually happen vs how often you think it happens?',
         },
         {
           argument: 'Your sample size is probably too small',
           strength: 'moderate',
-          evidence:
-            'Personal experience is compelling but statistically weak.',
+          evidence: 'Personal experience is compelling but statistically weak.',
         },
         {
           argument: 'Regression to the mean may explain the effect',
@@ -604,8 +597,7 @@ export const findCounterArguments = llm.tool({
       ],
     };
 
-    const counterArgs =
-      counterArgumentTemplates[params.domain] || counterArgumentTemplates.general;
+    const counterArgs = counterArgumentTemplates[params.domain] || counterArgumentTemplates.general;
 
     return [
       `⚖️ **COUNTER-ARGUMENT ANALYSIS**`,
@@ -617,8 +609,7 @@ export const findCounterArguments = llm.tool({
       `═══════════════════════════════════`,
       '',
       ...counterArgs.map(
-        (ca, i) =>
-          `**${i + 1}. ${ca.argument}** (${ca.strength})\n${ca.evidence}\n`
+        (ca, i) => `**${i + 1}. ${ca.argument}** (${ca.strength})\n${ca.evidence}\n`
       ),
       `═══════════════════════════════════`,
       `💭 **THE STEEL MAN**`,
@@ -657,7 +648,7 @@ export const findCounterArguments = llm.tool({
 
 export const verifyClaim = llm.tool({
   description:
-    "Fact-check any life advice or claim against peer-reviewed research. Know if that productivity tip is backed by science or just popular.",
+    'Fact-check any life advice or claim against peer-reviewed research. Know if that productivity tip is backed by science or just popular.',
   parameters: z.object({
     claim: z.string().describe('The claim to verify'),
   }),
@@ -674,7 +665,7 @@ export const verifyClaim = llm.tool({
         reality:
           'The 21-day habit myth comes from a misquoted 1960s book. Research shows 66 days on average, ranging from 18-254 days.',
       },
-      'multitask': {
+      multitask: {
         verdict: 'MYTH',
         reality:
           "True multitasking is neurologically impossible for complex tasks. What we call 'multitasking' is task-switching, which costs 20-40% productivity.",
@@ -692,7 +683,7 @@ export const verifyClaim = llm.tool({
       '10000 hours': {
         verdict: 'OVERSIMPLIFIED',
         reality:
-          "Deliberate practice matters, but 10,000 hours is an average, not a rule. Quality of practice and domain matter more than raw hours.",
+          'Deliberate practice matters, but 10,000 hours is an average, not a rule. Quality of practice and domain matter more than raw hours.',
       },
       'right brain left brain': {
         verdict: 'MYTH',
@@ -823,7 +814,11 @@ export const getBaseRate = llm.tool({
     log.info({ userId, scenario: params.scenario }, '📊 Getting base rate');
 
     // Find matching base rate
-    let matchedRate: { rate: number; context: string; comparisons: { category: string; rate: number }[] } | null = null;
+    let matchedRate: {
+      rate: number;
+      context: string;
+      comparisons: { category: string; rate: number }[];
+    } | null = null;
     let matchedKey = '';
 
     for (const [key, data] of Object.entries(baseRateDatabase)) {

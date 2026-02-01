@@ -66,14 +66,16 @@ export const familyNetworkStatusSchema = z.object({
 /**
  * Get family members from entity store
  */
-async function getFamilyMembers(userId: string): Promise<Array<{
-  name: string;
-  relationship: string;
-  phone?: string;
-}>> {
+async function getFamilyMembers(userId: string): Promise<
+  Array<{
+    name: string;
+    relationship: string;
+    phone?: string;
+  }>
+> {
   try {
     const { isEntityStoreReady } = await import('../../../memory/entity-store/integration.js');
-    
+
     if (!isEntityStoreReady()) {
       return [];
     }
@@ -139,7 +141,7 @@ async function getRecentFamilyCalls(
     for (const doc of snapshot.docs) {
       const data = doc.data();
       const contactName = data.request?.contactName || data.request?.contactQuery || '';
-      
+
       // Only keep the most recent call per contact
       if (contactName && !callMap.has(contactName.toLowerCase())) {
         callMap.set(contactName.toLowerCase(), {
@@ -229,7 +231,10 @@ export async function getFamilyNetworkStatus(
   // Fetch recent calls and reminders in parallel
   const [recentCalls, reminders] = await Promise.all([
     getRecentFamilyCalls(ctx.userId),
-    getFamilyReminders(ctx.userId, familyMembers.map((m) => m.name)),
+    getFamilyReminders(
+      ctx.userId,
+      familyMembers.map((m) => m.name)
+    ),
   ]);
 
   // Build status for each member
@@ -246,9 +251,7 @@ export async function getFamilyNetworkStatus(
     let daysSinceLastContact: number | null = null;
     if (recentCall) {
       const callDate = new Date(recentCall.date);
-      daysSinceLastContact = Math.floor(
-        (Date.now() - callDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
+      daysSinceLastContact = Math.floor((Date.now() - callDate.getTime()) / (1000 * 60 * 60 * 24));
     }
 
     // Determine if needs attention
@@ -257,9 +260,10 @@ export async function getFamilyNetworkStatus(
 
     if (daysSinceLastContact === null || daysSinceLastContact > 14) {
       needsAttention = true;
-      attentionReason = daysSinceLastContact === null
-        ? "Haven't connected recently"
-        : `${daysSinceLastContact} days since last contact`;
+      attentionReason =
+        daysSinceLastContact === null
+          ? "Haven't connected recently"
+          : `${daysSinceLastContact} days since last contact`;
     } else if (memberReminders.length > 0) {
       needsAttention = true;
       attentionReason = `${memberReminders.length} pending reminder(s)`;
@@ -314,19 +318,19 @@ function buildFamilyStatusResponse(overview: FamilyNetworkOverview, detailed: bo
   if (overview.needingAttention === 0) {
     parts.push(
       `Great news! You're staying connected with your family. ` +
-      `I've helped you reach out to ${overview.recentlyContacted} of ${overview.totalMembers} ` +
-      `family members recently.`
+        `I've helped you reach out to ${overview.recentlyContacted} of ${overview.totalMembers} ` +
+        `family members recently.`
     );
   } else if (overview.needingAttention === overview.totalMembers) {
     parts.push(
       `It's been a while since you've connected with family. ` +
-      `Want me to help you reach out to someone?`
+        `Want me to help you reach out to someone?`
     );
   } else {
     parts.push(
       `Here's how your family connections are looking: ` +
-      `${overview.recentlyContacted} recently contacted, ` +
-      `${overview.needingAttention} could use some attention.`
+        `${overview.recentlyContacted} recently contacted, ` +
+        `${overview.needingAttention} could use some attention.`
     );
   }
 
@@ -337,7 +341,7 @@ function buildFamilyStatusResponse(overview: FamilyNetworkOverview, detailed: bo
     for (const member of needAttention.slice(0, 3)) {
       const reason = member.attentionReason || 'no recent contact';
       parts.push(`- ${formatRelationship(member.relationship)} ${member.name}: ${reason}`);
-      
+
       if (detailed && member.pendingReminders.length > 0) {
         parts.push(`  📝 Reminder: ${member.pendingReminders[0]}`);
       }
@@ -367,9 +371,7 @@ function buildFamilyStatusResponse(overview: FamilyNetworkOverview, detailed: bo
 
   // Call to action
   if (overview.needingAttention > 0) {
-    parts.push(
-      '\nWant me to call someone for you? Just say "call mom" or "check in with dad".'
-    );
+    parts.push('\nWant me to call someone for you? Just say "call mom" or "check in with dad".');
   }
 
   return parts.join('\n');
@@ -407,7 +409,7 @@ function truncate(text: string, maxLength: number): string {
 export const familyNetworkStatusTool = {
   name: 'getFamilyNetworkStatus',
   description:
-    'Get an overview of how you\'re staying connected with family. Shows who you\'ve talked to recently and who might need attention.',
+    "Get an overview of how you're staying connected with family. Shows who you've talked to recently and who might need attention.",
   schema: familyNetworkStatusSchema,
   execute: getFamilyNetworkStatus,
 };

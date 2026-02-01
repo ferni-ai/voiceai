@@ -48,7 +48,7 @@ Response              ✅ What to say           ❌ That it just leaked a tool c
 
 ### Gap #1: Tool Results NOT Stored in Chat History
 
-**Location:** `src/agents/processors/ftis-v2-integration.ts`
+**Location:** `src/agents/processors/turn-processor.ts` (previously `ftis-v2-integration.ts`, now removed)
 
 **Problem:** Tool results are passed as ephemeral `instructions` parameter, NOT stored in chat history.
 
@@ -241,7 +241,7 @@ LLM receives 10 injections, never knows about crisis signal
 
 ### Gap #8: FTIS V2 Fallback Loses Context
 
-**Location:** `src/tools/intelligence/ftis-v2-executor.ts` lines 456-463
+**Location:** `src/tools/intelligence/tool-executor.ts` (was `ftis-v2-executor.ts`)
 
 **Problem:** When FTIS V2 fails and falls back to LLM, it loses critical context.
 
@@ -393,13 +393,13 @@ After implementing fixes:
 
 | File | Change |
 |------|--------|
-| `src/agents/processors/ftis-v2-integration.ts` | Store tool results in history |
+| `src/agents/processors/turn-processor.ts` | Store tool results in history (was `ftis-v2-integration.ts`, now removed) |
 | `src/agents/voice-agent/turn-handler.ts` | Add tool-in-flight blocking |
 | `src/tools/orchestrator/unified-tool-orchestrator.ts` | Propagate service status |
 | `src/tools/execution/semantic-tool-presence.ts` | Add timeout mechanism |
 | `src/agents/shared/session-health-monitor.ts` | Inject leakage warnings immediately |
 | `src/agents/processors/injection-filter.ts` | Log filtered context summary |
-| `src/tools/intelligence/ftis-v2-executor.ts` | Include classification in fallback |
+| `src/tools/intelligence/tool-executor.ts` | Include classification in fallback (was `ftis-v2-executor.ts`) |
 | `src/agents/shared/parallel-tool-executor.ts` | Preserve all attempt results |
 
 ---

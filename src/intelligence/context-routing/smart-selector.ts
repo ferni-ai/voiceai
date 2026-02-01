@@ -56,9 +56,8 @@ export const SMART_ROUTING_EXPERIMENT_ID = 'smart-context-routing-v1';
 async function getRoutingVariant(userId: string): Promise<RoutingVariant> {
   try {
     // Dynamic import to avoid circular dependency
-    const { getExperimentManager, getABTestingManager } = await import(
-      '../../tools/intelligence/learning/index.js'
-    );
+    const { getExperimentManager, getABTestingManager } =
+      await import('../../tools/intelligence/learning/index.js');
     const manager = getExperimentManager();
 
     const experiment = manager.getExperiment(SMART_ROUTING_EXPERIMENT_ID);
@@ -116,16 +115,11 @@ export class SmartSelector {
     // Determine conversation mode
     const mode =
       options.forceMode ??
-      detectConversationMode(
-        options.userText,
-        options.emotionalIntensity,
-        options.crisisDetected
-      );
+      detectConversationMode(options.userText, options.emotionalIntensity, options.crisisDetected);
 
     // Get routing variant for this user
-    const variant = options.useSmartSelection === false
-      ? 'priority'
-      : await getRoutingVariant(this.userId);
+    const variant =
+      options.useSmartSelection === false ? 'priority' : await getRoutingVariant(this.userId);
 
     // Route to appropriate algorithm
     let decision: SelectionDecision;
@@ -448,9 +442,7 @@ export async function selectInjections(
  */
 export async function setupSmartRoutingExperiment(): Promise<void> {
   try {
-    const { getExperimentManager } = await import(
-      '../../tools/intelligence/learning/index.js'
-    );
+    const { getExperimentManager } = await import('../../tools/intelligence/learning/index.js');
     const manager = getExperimentManager();
 
     // Check if experiment already exists

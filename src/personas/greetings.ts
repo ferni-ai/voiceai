@@ -529,7 +529,23 @@ export function generateStaticGreeting(
   const { isWeekend } = getDayContext();
   const hour = new Date().getHours();
 
-  // 25% chance for time-aware greeting (increased from 20%)
+  // PRIORITY 1: Returning user with known name - always personalize
+  // This takes precedence over time-aware greetings because known users
+  // should always feel recognized
+  if (isReturningUser && userName) {
+    const greeting = pickUnusedTemplate(templates.returningUser, usedGreetings);
+    let personalized = greeting.replace(/{name}/g, userName);
+
+    // 40% chance to reference last conversation (increased from 30%)
+    if (lastConversationSummary && Math.random() < 0.4) {
+      const summary = lastConversationSummary.split('.')[0].toLowerCase();
+      personalized += ` <break time="300ms"/>Last time we talked about ${summary}. How's that going?`;
+    }
+
+    return personalized;
+  }
+
+  // PRIORITY 2: 25% chance for time-aware greeting for new/anonymous users
   if (Math.random() < 0.25) {
     if (hour < 9 && templates.timeAware.earlyMorning.length > 0) {
       return pickUnusedTemplate(templates.timeAware.earlyMorning, usedGreetings);
@@ -542,22 +558,9 @@ export function generateStaticGreeting(
     }
   }
 
-  // Returning user greetings
+  // PRIORITY 3: Returning user without name - ask for it
   if (isReturningUser) {
-    if (userName) {
-      const greeting = pickUnusedTemplate(templates.returningUser, usedGreetings);
-      let personalized = greeting.replace(/{name}/g, userName);
-
-      // 40% chance to reference last conversation (increased from 30%)
-      if (lastConversationSummary && Math.random() < 0.4) {
-        const summary = lastConversationSummary.split('.')[0].toLowerCase();
-        personalized += ` <break time="300ms"/>Last time we talked about ${summary}. How's that going?`;
-      }
-
-      return personalized;
-    } else {
-      return pickUnusedTemplate(templates.returningNoName, usedGreetings);
-    }
+    return pickUnusedTemplate(templates.returningNoName, usedGreetings);
   }
 
   // New user greetings

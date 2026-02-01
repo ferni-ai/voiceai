@@ -375,7 +375,11 @@ export function shouldAttemptReconnection(sessionId: string): boolean {
     const timeSinceOpened = Date.now() - (circuitBreaker.openedAt || 0);
     if (timeSinceOpened < CIRCUIT_OPEN_DURATION_MS) {
       log.debug(
-        { sessionId, circuitState: 'open', timeRemainingMs: CIRCUIT_OPEN_DURATION_MS - timeSinceOpened },
+        {
+          sessionId,
+          circuitState: 'open',
+          timeRemainingMs: CIRCUIT_OPEN_DURATION_MS - timeSinceOpened,
+        },
         '🔌 [CIRCUIT] Circuit is OPEN - blocking reconnection'
       );
       return false;
@@ -484,7 +488,8 @@ export function getBackoffState(sessionId: string): {
 
   const isBlocked =
     health.reconnectionAttempts >= MAX_RECONNECTION_ATTEMPTS ||
-    (health.nextReconnectionAllowedAt !== undefined && Date.now() < health.nextReconnectionAllowedAt);
+    (health.nextReconnectionAllowedAt !== undefined &&
+      Date.now() < health.nextReconnectionAllowedAt);
 
   return {
     attempts: health.reconnectionAttempts,
@@ -733,7 +738,9 @@ export function getHealthSummary(): {
   ).length;
 
   // Calculate overall average response time
-  const allAvgs = all.filter((h) => h.avgResponseTimeMs !== undefined).map((h) => h.avgResponseTimeMs!);
+  const allAvgs = all
+    .filter((h) => h.avgResponseTimeMs !== undefined)
+    .map((h) => h.avgResponseTimeMs!);
   const overallAvg = allAvgs.length > 0 ? allAvgs.reduce((a, b) => a + b, 0) / allAvgs.length : 0;
 
   // Calculate total pings
@@ -793,15 +800,14 @@ export function getObservabilityMetrics(): {
   }
   allResponseTimes.sort((a, b) => a - b);
 
-  const p50 = allResponseTimes.length > 0
-    ? allResponseTimes[Math.floor(allResponseTimes.length * 0.5)]
-    : 0;
-  const p95 = allResponseTimes.length > 0
-    ? allResponseTimes[Math.floor(allResponseTimes.length * 0.95)]
-    : 0;
-  const avg = allResponseTimes.length > 0
-    ? allResponseTimes.reduce((a, b) => a + b, 0) / allResponseTimes.length
-    : 0;
+  const p50 =
+    allResponseTimes.length > 0 ? allResponseTimes[Math.floor(allResponseTimes.length * 0.5)] : 0;
+  const p95 =
+    allResponseTimes.length > 0 ? allResponseTimes[Math.floor(allResponseTimes.length * 0.95)] : 0;
+  const avg =
+    allResponseTimes.length > 0
+      ? allResponseTimes.reduce((a, b) => a + b, 0) / allResponseTimes.length
+      : 0;
 
   // Calculate ping stats
   const totalPingSuccess = all.reduce((sum, h) => sum + h.pingSuccessCount, 0);

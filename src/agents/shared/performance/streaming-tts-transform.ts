@@ -31,19 +31,19 @@ const log = createLogger({ module: 'StreamingTTS' });
 export interface StreamingTTSConfig {
   /**
    * Minimum chars for first chunk (aggressive for fast startup)
-   * @default 15
+   * @default 6
    */
   firstChunkMinSize?: number;
 
   /**
    * Minimum chars for subsequent chunks
-   * @default 30
+   * @default 18
    */
   minChunkSize?: number;
 
   /**
    * Maximum chars before forced flush
-   * @default 150
+   * @default 100
    */
   maxChunkSize?: number;
 
@@ -154,9 +154,9 @@ export function createStreamingTTSTransform(
 ): NodeTransformStream<string, string> {
   const {
     // AGGRESSIVE DEFAULTS for low latency (optimized Dec 2024)
-    firstChunkMinSize = 8, // Was 15 - send "I hear..." faster
-    minChunkSize = 20, // Was 30 - smaller chunks = faster audio
-    maxChunkSize = 120, // Was 150 - prevents long waits
+    firstChunkMinSize = 6, // Was 8 - send first word/phrase to TTS sooner
+    minChunkSize = 18, // Was 20 - slightly tighter chunks
+    maxChunkSize = 100, // Was 120 - shorter chunks = faster TTS synthesis per chunk
     firstChunkDelayMs = 10, // Was 20 - faster first audio
     chunkDelayMs = 40, // Was 50 - tighter timing
     enableMetrics = true,

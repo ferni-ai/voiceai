@@ -13,7 +13,7 @@
 import { embed } from '../../memory/embeddings.js';
 import { getFirestoreVectorStore } from '../../memory/firestore-vector-store/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getIndexingPolicy, shouldIndex, getEntityPolicy } from './indexing-policy.js';
+import { getEntityPolicy, getIndexingPolicy, shouldIndex } from './indexing-policy.js';
 import { trackIndexingError, trackIndexingOperation } from './observability.js';
 import type { ChangeType, EntityType, StoreChangeEvent } from './types.js';
 
@@ -89,13 +89,11 @@ async function enforceMaxPerUser(
 
   try {
     // Query existing documents for this user + entity type
-    const existingDocs = await vectorStore.search('', {
-      topK: maxPerUser + 10, // Get a bit more than limit to check
-      filter: {
-        userId,
-        metadata: { entityType },
-      },
-    });
+    // Use list() instead of search('') to avoid empty embedding error
+    const allDocs = await vectorStore.list({ userId });
+
+    // Filter client-side for entityType since list() doesn't support metadata filters
+    const existingDocs = allDocs.filter((doc) => doc.metadata?.entityType === entityType);
 
     // If under limit, no action needed
     if (existingDocs.length < maxPerUser) {
@@ -105,12 +103,12 @@ async function enforceMaxPerUser(
     // Sort by indexedAt (oldest first) and delete excess
     const toDelete = existingDocs
       .sort((a, b) => {
-        const aTime = (a.document.metadata?.indexedAt as string) || '';
-        const bTime = (b.document.metadata?.indexedAt as string) || '';
+        const aTime = (a.metadata?.indexedAt as string) || '';
+        const bTime = (b.metadata?.indexedAt as string) || '';
         return aTime.localeCompare(bTime);
       })
       .slice(0, existingDocs.length - maxPerUser + 1) // Keep room for the new one
-      .map((doc) => doc.document.id);
+      .map((doc) => doc.id);
 
     // Delete oldest documents
     for (const docId of toDelete) {

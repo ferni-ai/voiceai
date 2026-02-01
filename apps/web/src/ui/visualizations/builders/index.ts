@@ -28,6 +28,8 @@ export { buildSocialBattery } from './social-battery.js';
 export type { SocialBatteryData } from './social-battery.js';
 export { buildCelebrationWheel } from './celebration-wheel.js';
 export type { CelebrationWheelData } from './celebration-wheel.js';
+export { buildActionsTaken, injectActionsTakenStyles } from './actions-taken.js';
+export type { ActionsTakenData, CareMoment, CareMomentType } from './actions-taken.js';
 
 // Data-ink optimization utilities (Tufte principles)
 export {

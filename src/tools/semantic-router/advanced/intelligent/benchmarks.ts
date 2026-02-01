@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- CLI benchmark tool outputs to console */
 /**
  * Intelligent Routing Benchmark Suite
  *

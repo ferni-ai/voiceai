@@ -2,53 +2,7 @@
 
 > **We believe in making AI human, and the decisions we make will reflect that.**
 
-The conversation module is the largest subsystem (~26,500 lines) - responsible for making AI conversations feel genuinely human through humanization, emotional tracking, and natural dialogue patterns.
-
----
-
-## 🏗️ Clean Architecture Refactoring (January 2026)
-
-The conversation module has undergone comprehensive clean architecture refactoring. Large monolithic files have been split into focused, testable modules.
-
-### ✅ Completed Refactoring
-
-| Original File | Lines | Status | New Module | Files |
-|--------------|-------|--------|------------|-------|
-| `humanizer.ts` | 1,292 | ✅ Done | `humanizer/` | 6 files |
-| `concern-detection.ts` | 880 | ✅ Done | `concern-detection/` | 5 files |
-| `question-patterns.ts` | 822 | ✅ Done | `question-patterns/` | 5 files |
-| `temporal-context.ts` | 769 | ✅ Done | `temporal-context/` | 4 files |
-| `emotional-arc.ts` | 760 | ✅ Done | `emotional-arc/` | 3 files |
-| `speech-naturalizer.ts` | 741 | ✅ Done | `speech-naturalizer/` | 5 files |
-| `humanization/voice-agent-integration.ts` | 927 | ✅ Done | `humanization/voice-agent-integration/` | 10 files |
-| `superhuman/orchestrator.ts` | 962 | ✅ Done | `superhuman/orchestrator/` | 5 files |
-
-**Total refactored:** ~7,153 lines → 43 focused modules
-
-### 📋 Architecture Improvements Added
-
-- **`interfaces/index.ts`** - Clean DI interfaces for all engines
-  - `IConcernDetector`
-  - `IEmotionalArcTracker`
-  - `IQuestionPatternEngine`
-  - `ITemporalContextEngine`
-  - `ISpeechNaturalizer`
-  - `ISessionIntelligence`
-- **DI Tokens** - `ConversationTokens` for dependency injection
-- **Backward Compatibility** - All original imports continue to work via re-export files
-
-### Module Structure Pattern
-
-Each refactored module follows this pattern:
-```
-module-name/
-├── types.ts       # Type definitions
-├── [data].ts      # Static data (templates, patterns)
-├── engine.ts      # Main class implementation
-└── index.ts       # Re-exports + singleton/registry
-```
-
-Backward compatibility is maintained via re-export files.
+The conversation module is the largest subsystem (~85,700 lines across 251 files) — responsible for making AI conversations feel genuinely human through humanization, emotional tracking, natural dialogue patterns, and superhuman relationship features.
 
 ---
 
@@ -70,13 +24,16 @@ Level 10: config/, utils/, types/
 
 ```
 conversation/
-├── index.ts                          # Main exports + unified API docs
-├── humanizing-config.ts              # All humanization config
+├── index.ts                          # Main exports + unified API
+├── humanizing-config.ts              # All humanization config (20K+)
+├── unified-integration.ts            # Session-based unified API
+├── constants.ts                      # Module constants
+├── interfaces/                       # Clean DI interfaces (1 file)
 │
-├── humanization/                     # 🎭 Core humanization (12K+ lines)
-│   ├── voice-agent-integration.ts    # Main integration point
-│   ├── breathing-sync.ts             # Breath synchronization
+├── humanization/                     # 🎭 Core humanization (32 files)
+│   ├── voice-agent-integration/      # Voice agent integration (refactored)
 │   ├── disfluency-injection.ts       # Natural speech patterns
+│   ├── breathing-sync.ts             # Breath synchronization
 │   ├── phonetic-mirroring.ts         # Mirror user's speech
 │   ├── self-correction.ts            # "I mean..." patterns
 │   ├── vocal-fatigue.ts              # Energy modeling
@@ -84,23 +41,71 @@ conversation/
 │   ├── comfort-progression.ts        # Trust building over time
 │   └── voice-pattern-learning.ts     # Learn user preferences
 │
-├── deep-humanization/                # 🧠 Advanced behaviors
+├── deep-humanization/                # 🧠 Advanced behaviors (15 files)
 │   ├── mood-tracker.ts               # Track emotional state
 │   ├── behavior-loader.ts            # Load behavior configs
 │   └── generators/                   # Dynamic content generation
 │
-├── active-listening/                 # 👂 Listening behaviors
-│   └── (backchannels, mirroring, silence)
+├── superhuman/                       # ⭐ "Better than Human" features (40 files)
+│   ├── orchestrator/                 # Refactored orchestrator (5 files)
+│   ├── quote-memory.ts               # Remember user quotes
+│   ├── inside-jokes.ts               # Shared humor
+│   ├── emotional-forecasting.ts      # Anticipate difficult days
+│   └── (see superhuman/CLAUDE.md)    # Full documentation
 │
-├── conversational-memory/            # 💭 Conversation threading
-│   └── (callbacks, commitments, context)
+├── effects/                          # ✨ Audio/visual effects (18 files)
 │
-├── effects/                          # ✨ Audio/visual effects
+├── humanizer/                        # Main humanization orchestrator (6 files)
 │
-├── eval/                             # 📊 Quality evaluation
+├── orchestrator/                     # Conversation orchestration (10 files)
 │
-└── __tests__/                        # Unit tests
+├── active-listening/                 # 👂 Listening behaviors (6 files)
+│
+├── conversational-memory/            # 💭 Conversation threading (8 files)
+│
+├── emotional-arc/                    # Emotional arc tracking (8 files)
+│   └── momentum/                     # Emotional momentum subsystem
+│
+├── question-patterns/                # Question pattern engine (5 files)
+│
+├── speech-naturalizer/               # Speech naturalization (5 files)
+│
+├── concern-detection/                # Concern/distress detection (5 files)
+│
+├── temporal-context/                 # Temporal context engine (4 files)
+│
+├── response-mode/                    # Response mode engine (5 files)
+│
+├── rhythm-intelligence/              # Conversation rhythm (6 files)
+│
+├── rapport/                          # Rapport building (5 files)
+│
+├── predictive-anticipation/          # Predictive anticipation (3 files)
+│
+├── proactive-memory/                 # Proactive memory surfacing (5 files)
+│
+├── utils/                            # Shared utilities (3 files)
+│
+├── eval/                             # Quality evaluation (2 files)
+│
+└── __tests__/                        # Unit tests (11 files)
 ```
+
+### Root-Level Files (~42 files)
+
+The module also has many standalone root-level `.ts` files for specific conversation features:
+
+| Category | Key Files |
+|----------|-----------|
+| **Cognitive** | `cognitive-questions.ts`, `self-awareness-loop.ts` |
+| **Emotional** | `emotional-aftercare.ts`, `emotional-journey-orchestrator.ts`, `hope-injection.ts` |
+| **Speech Flow** | `turn-taking.ts`, `turn-prediction.ts`, `interruption-handler.ts`, `silence-presence.ts` |
+| **Content** | `content-delivery-pacing.ts`, `narrative-arc.ts`, `story-timing.ts`, `mid-response-tangents.ts` |
+| **Humanization** | `vocal-humanization.ts`, `advanced-humanization.ts`, `humanization-tuning.ts`, `micro-affirmations.ts` |
+| **Engagement** | `engagement-scoring.ts`, `curiosity-engine.ts`, `momentum-tracker.ts`, `proactive-starters.ts` |
+| **Analysis** | `subtext-detection.ts`, `response-dynamics.ts`, `energy-regulation.ts`, `awareness-metrics.ts` |
+| **Repair** | `conversational-repair.ts`, `paradoxical-intervention.ts`, `thinking-phrase-coordinator.ts` |
+| **Other** | `conversation-rhythm.ts`, `adaptive-endpointing.ts`, `session-intelligence.ts`, `relationship-events.ts` |
 
 ---
 
@@ -109,24 +114,50 @@ conversation/
 | Component | File | Purpose |
 |-----------|------|---------|
 | **Unified Integration** | `unified-integration.ts` | Session-based API (recommended) |
-| **Voice Agent Integration** | `humanization/voice-agent-integration.ts` | Connect to voice agent |
-| **Humanizer** | `humanizer.ts` | Main humanization orchestrator |
+| **Voice Agent Integration** | `humanization/voice-agent-integration/` | Connect to voice agent (10 files) |
+| **Humanizer** | `humanizer/` | Main humanization orchestrator (6 files) |
 | **Mood Tracker** | `deep-humanization/mood-tracker.ts` | Emotional state tracking |
 | **Config** | `humanizing-config.ts` | All tunable parameters |
+| **Superhuman Orchestrator** | `superhuman/orchestrator/` | "Better than Human" features (5 files) |
 
 ---
 
-## Humanization Techniques
+## Refactored Modules
 
-The module implements 20+ humanization techniques:
+Large monolithic files have been split into focused, testable modules:
 
-| Category | Techniques |
-|----------|------------|
-| **Speech Naturalization** | Disfluency injection, self-correction, hedging, filler words |
-| **Voice Patterns** | Breathing sync, vocal fatigue, prosody matching |
-| **Emotional** | Mood tracking, emotional leading, comfort progression |
-| **Listening** | Backchannels, mirroring, silence handling |
-| **Memory** | Callbacks, threading, commitments |
+| Original File | New Module | Files |
+|--------------|------------|-------|
+| `humanizer.ts` | `humanizer/` | 6 files |
+| `concern-detection.ts` | `concern-detection/` | 5 files |
+| `question-patterns.ts` | `question-patterns/` | 5 files |
+| `temporal-context.ts` | `temporal-context/` | 4 files |
+| `emotional-arc.ts` | `emotional-arc/` | 8 files |
+| `speech-naturalizer.ts` | `speech-naturalizer/` | 5 files |
+| `humanization/voice-agent-integration.ts` | `humanization/voice-agent-integration/` | 10 files |
+| `superhuman/orchestrator.ts` | `superhuman/orchestrator/` | 5 files |
+
+Original imports continue to work — some via re-export root files (e.g., `concern-detection.ts`), others via directory `index.ts` resolution (e.g., `humanizer/index.ts`).
+
+### Module Structure Pattern
+
+Each refactored module follows:
+```
+module-name/
+├── types.ts       # Type definitions
+├── constants.ts   # Static data / config
+├── engine.ts      # Main class implementation
+└── index.ts       # Re-exports + singleton/registry
+```
+
+### DI Interfaces (`interfaces/index.ts`)
+
+- `IConcernDetector`
+- `IEmotionalArcTracker`
+- `IQuestionPatternEngine`
+- `ITemporalContextEngine`
+- `ISpeechNaturalizer`
+- `ISessionIntelligence`
 
 ---
 
@@ -166,6 +197,20 @@ const h = new Humanizer(); // No session context!
 
 ---
 
+## Humanization Techniques
+
+The module implements 20+ humanization techniques:
+
+| Category | Techniques |
+|----------|------------|
+| **Speech Naturalization** | Disfluency injection, self-correction, hedging, filler words |
+| **Voice Patterns** | Breathing sync, vocal fatigue, prosody matching |
+| **Emotional** | Mood tracking, emotional leading, comfort progression |
+| **Listening** | Backchannels, mirroring, silence handling |
+| **Memory** | Callbacks, threading, commitments |
+
+---
+
 ## Configuration
 
 All tuning happens in `humanizing-config.ts`:
@@ -200,14 +245,17 @@ pnpm vitest run src/conversation/humanization/__tests__/
 
 # Run deep-humanization tests
 pnpm vitest run src/conversation/deep-humanization/__tests__/
+
+# Run superhuman tests
+pnpm vitest run src/conversation/superhuman/__tests__/
 ```
 
 ---
 
 ## Rules
 
-| ✅ Do | ❌ Don't |
-|-------|---------|
+| Do | Don't |
+|---|---|
 | Use unified session API | Instantiate components directly |
 | Configure via `humanizing-config.ts` | Hardcode values in components |
 | Clean up sessions on end | Leave sessions orphaned |
@@ -224,6 +272,10 @@ pnpm vitest run src/conversation/deep-humanization/__tests__/
 - Session cleanup is automatic via TTL
 
 ---
+
+## Subdirectory Documentation
+
+- `superhuman/CLAUDE.md` — "Better than Human" conversational features (40 files)
 
 ## Related Docs
 

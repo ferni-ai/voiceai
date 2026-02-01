@@ -927,9 +927,9 @@ class CalendarViewUI {
         dayNum: date.getDate(),
         isToday: date.toDateString() === today.toDateString(),
         hasEvent: hasEvents,
-        hasTask: Math.random() > 0.6, // TODO: Get from real task data
-        hasReminder: Math.random() > 0.7, // TODO: Get from real reminder data
-        hasHabit: Math.random() > 0.5, // TODO: Get from real habit data
+        hasTask: dayData?.tasks?.length ? dayData.tasks.length > 0 : false,
+        hasReminder: dayData?.reminders?.length ? dayData.reminders.length > 0 : false,
+        hasHabit: dayData?.habits?.length ? dayData.habits.length > 0 : false,
         insight: this.getDayInsight(date, today, dayInsights[dayOfWeek] ?? ''),
       });
     }
@@ -1587,49 +1587,18 @@ class CalendarViewUI {
       if (response?.ok && response.data) {
         this.analyticsData = response.data;
       } else {
-        // Generate mock data for demo purposes if API fails
-        this.analyticsData = this.generateMockAnalyticsData();
+        // No analytics data available yet - UI will show appropriate empty state
+        this.analyticsData = null;
+        log.debug('No calendar analytics data available');
       }
     } catch (error) {
-      log.error('Failed to load calendar analytics', error);
-      // Generate mock data for demo purposes if API fails
-      this.analyticsData = this.generateMockAnalyticsData();
+      log.warn({ error: String(error) }, 'Failed to load calendar analytics');
+      // No analytics data - UI will show appropriate empty state
+      this.analyticsData = null;
     } finally {
       this.isLoadingAnalytics = false;
       this.renderContent();
     }
-  }
-
-  /**
-   * Generate mock analytics data for demo/fallback
-   */
-  private generateMockAnalyticsData(): CalendarAnalyticsData {
-    return {
-      loadFactors: {
-        weeklyMeetingHours: 18,
-        weeklyFocusTimeRatio: 0.45,
-        weeklyBackToBackPercentage: 25,
-        consecutiveOverloadedDays: 2,
-        consecutiveMeetingStreak: 4,
-        heaviestDayThisWeek: 'Tuesday',
-        lightestDayThisWeek: 'Friday',
-      },
-      dailyTrends: [
-        { date: '2024-12-16', dayName: 'Monday', meetingHours: 4, focusHours: 4, meetingCount: 5, isOverloaded: false },
-        { date: '2024-12-17', dayName: 'Tuesday', meetingHours: 6, focusHours: 2, meetingCount: 7, isOverloaded: true },
-        { date: '2024-12-18', dayName: 'Wednesday', meetingHours: 3, focusHours: 5, meetingCount: 4, isOverloaded: false },
-        { date: '2024-12-19', dayName: 'Thursday', meetingHours: 4, focusHours: 4, meetingCount: 5, isOverloaded: false },
-        { date: '2024-12-20', dayName: 'Friday', meetingHours: 1, focusHours: 7, meetingCount: 2, isOverloaded: false },
-      ],
-      recoveryInsight: null,
-      patterns: [],
-      weekOverWeekChange: {
-        meetingHoursChange: -10,
-        focusTimeChange: 15,
-      },
-      healthScore: 72,
-      recommendations: ['Good balance this week. Keep protecting your focus time.'],
-    };
   }
 
   private bindActions(): void {

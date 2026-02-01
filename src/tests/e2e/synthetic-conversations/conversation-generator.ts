@@ -43,9 +43,10 @@ export interface SyntheticConversation {
 }
 
 export interface ExpectedExtraction {
-  type: 'user_name' | 'person_name' | 'location' | 'emotion' | 'correction' | 'relationship';
+  type: 'user_name' | 'person_name' | 'location' | 'emotion' | 'correction' | 'relationship' | 'tool_call' | 'tool_result';
   value: string;
   turnIndex: number;
+  toolArgs?: Record<string, unknown>;  // For tool_call type
 }
 
 export interface ValidationCheck {
@@ -68,7 +69,14 @@ export type ConversationCategory =
   | 'pattern_recognition'
   | 'commitment_tracking'
   | 'relationship_network'
-  | 'emotional_anticipation';
+  | 'emotional_anticipation'
+  // Tool Execution categories (January 2026)
+  | 'tool_execution_music'
+  | 'tool_execution_productivity'
+  | 'tool_execution_memory'
+  | 'tool_execution_calendar'
+  | 'tool_execution_wellness'
+  | 'tool_execution_multi_chain';
 
 // ============================================================================
 // SCENARIO PROMPTS
@@ -212,6 +220,70 @@ Examples of user building up:
 - "I'm fine. I mean. Work is work, you know?"
 - "Ha ha, anyway, totally unrelated, but have you ever felt like..."
 - User talks about surface topic but tone suggests deeper issue`,
+
+  // ============================================================================
+  // TOOL EXECUTION CATEGORIES (January 2026)
+  // These test that natural language correctly triggers tool execution
+  // ============================================================================
+
+  tool_execution_music: `Generate a conversation where the user wants to listen to music.
+Include various ways of requesting music:
+- "Play some jazz"
+- "I want to hear something relaxing"
+- "Put on music for working out"
+- "Can you play The Beatles"
+- "Some background music would be nice"
+The assistant should call playMusic tool with appropriate query.
+Expected tool: playMusic
+expectedExtractions should include:
+- { "type": "tool_call", "value": "playMusic", "toolArgs": { "query": "..." } }`,
+
+  tool_execution_productivity: `Generate a conversation where the user manages tasks and notes.
+Include:
+- Adding a task: "Add a task to call mom"
+- Checking tasks: "What's on my to-do list"
+- Adding notes: "Take a note about the meeting"
+- Setting reminders: "Remind me to take medicine at 8pm"
+- Creating goals: "I want to set a goal to read more"
+The assistant should call appropriate productivity tools.
+Expected tools: addTask, getTasks, addNote, setReminder, addGoal
+expectedExtractions should include tool_call entries with the tool name and args.`,
+
+  tool_execution_memory: `Generate a conversation where the user teaches Ferni facts and recalls them.
+Include:
+- User shares facts: "Remember that my dog's name is Max"
+- User asks for recall: "What do you know about my pets"
+- User updates info: "Actually, I got a new cat named Luna"
+- User tests memory: "What's my dog's name again?"
+The assistant should call rememberAboutUser and recallFromMemory.
+Expected tools: rememberAboutUser, recallFromMemory
+expectedExtractions should include tool_call entries.`,
+
+  tool_execution_calendar: `Generate a conversation about calendar management.
+Include:
+- Checking schedule: "What do I have today"
+- Creating events: "Schedule a meeting with John tomorrow at 3pm"
+- Appointment booking: "I need to schedule a dentist appointment"
+- Time-based queries: "Am I free this afternoon"
+The assistant should call getCalendarToday or createCalendarEvent.
+Expected tools: getCalendarToday, createCalendarEvent, createAppointment`,
+
+  tool_execution_wellness: `Generate a conversation about emotional wellness and self-care.
+Include:
+- Breathing exercises: "I'm feeling anxious, help me calm down"
+- Mood logging: "I want to log my mood"
+- Burnout check: "I think I'm burning out"
+- Stress management: "I'm so stressed about work"
+The assistant should call breatheWithMe, logMood, assessBurnout.
+Expected tools: breatheWithMe, logMood, assessBurnout, deEscalateAnxiety`,
+
+  tool_execution_multi_chain: `Generate a conversation that requires MULTIPLE tools in sequence.
+Include scenarios like:
+- "Play some jazz and remind me to stop working in an hour" (playMusic + setReminder)
+- "Add a task for the dentist and put it on my calendar" (addTask + createCalendarEvent)
+- "Remember that I'm allergic to peanuts and check if there's anything about food on my calendar" (rememberAboutUser + getCalendarToday)
+The assistant should execute multiple tools to fulfill the complex request.
+expectedExtractions should include multiple tool_call entries in sequence.`,
 };
 
 // ============================================================================
@@ -297,8 +369,7 @@ IMPORTANT: Respond ONLY with valid JSON in this exact format:
 
       // Extract JSON from response (handle markdown code blocks)
       const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) ||
-        responseText.match(/```\s*([\s\S]*?)\s*```/) ||
-        [null, responseText];
+        responseText.match(/```\s*([\s\S]*?)\s*```/) || [null, responseText];
 
       const jsonStr = jsonMatch[1] || responseText;
       const parsed = JSON.parse(jsonStr.trim());
@@ -322,7 +393,12 @@ IMPORTANT: Respond ONLY with valid JSON in this exact format:
   async generateTestSuite(count: number = 20): Promise<SyntheticConversation[]> {
     const conversations: SyntheticConversation[] = [];
     const categories = Object.keys(SCENARIO_PROMPTS) as ConversationCategory[];
-    const difficulties: SyntheticConversation['difficulty'][] = ['easy', 'medium', 'hard', 'edge-case'];
+    const difficulties: SyntheticConversation['difficulty'][] = [
+      'easy',
+      'medium',
+      'hard',
+      'edge-case',
+    ];
 
     console.log(`\n🧪 Generating ${count} synthetic conversations...\n`);
 
@@ -385,7 +461,7 @@ IMPORTANT: Respond ONLY with valid JSON in this exact format:
 async function main() {
   console.log('╔════════════════════════════════════════════════════════════╗');
   console.log('║   LLM-Powered Synthetic Conversation Generator             ║');
-  console.log('║   Stress-testing Ferni\'s memory pipeline                   ║');
+  console.log("║   Stress-testing Ferni's memory pipeline                   ║");
   console.log('╚════════════════════════════════════════════════════════════╝');
 
   const generator = new ConversationGenerator();
@@ -419,7 +495,9 @@ async function main() {
   }
 
   console.log(`\n✅ Test suite ready at: ${outputPath}`);
-  console.log('Run: npx vitest run src/tests/e2e/synthetic-conversations/run-synthetic-tests.test.ts');
+  console.log(
+    'Run: npx vitest run src/tests/e2e/synthetic-conversations/run-synthetic-tests.test.ts'
+  );
 }
 
 // Run if executed directly

@@ -148,16 +148,16 @@ export function recordTurn(
 ): void {
   // 🧠 MEMORY AUDIT: Log every turn recording
   log.info(
-    { 
-      sessionId, 
-      userId, 
-      turnNumber, 
+    {
+      sessionId,
+      userId,
+      turnNumber,
       entityCount: captureResult.mentionedEntities.length,
       transcriptLen: transcript.length,
     },
     '🧠 [MEMORY-AUDIT] recordTurn START'
   );
-  
+
   const buffer = getSTMBuffer(sessionId, userId);
 
   // Create turn memory
@@ -202,8 +202,9 @@ export function recordTurn(
 
     // Evict least-frequent entities if over limit
     if (buffer.entityFrequency.size > config.maxEntities) {
-      const sorted = Array.from(buffer.entityFrequency.entries())
-        .sort((a, b) => a[1].mentionCount - b[1].mentionCount);
+      const sorted = Array.from(buffer.entityFrequency.entries()).sort(
+        (a, b) => a[1].mentionCount - b[1].mentionCount
+      );
       buffer.entityFrequency.delete(sorted[0][0]);
     }
   }
@@ -258,10 +259,7 @@ export function getRecentTurns(sessionId: string, limit?: number): TurnMemory[] 
 /**
  * Get frequently mentioned entities
  */
-export function getFrequentEntities(
-  sessionId: string,
-  limit: number = 10
-): EntityFrequency[] {
+export function getFrequentEntities(sessionId: string, limit: number = 10): EntityFrequency[] {
   const buffer = sessionBuffers.get(sessionId);
   if (!buffer) return [];
 
@@ -345,8 +343,7 @@ export function buildSTMContext(sessionId: string): string | null {
   }
 
   // Frequently mentioned people
-  const people = getFrequentEntities(sessionId, 5)
-    .filter((e) => e.type === 'person');
+  const people = getFrequentEntities(sessionId, 5).filter((e) => e.type === 'person');
   if (people.length > 0) {
     const peopleStr = people.map((p) => `${p.name} (${p.mentionCount}x)`).join(', ');
     lines.push(`**People mentioned this session**: ${peopleStr}`);

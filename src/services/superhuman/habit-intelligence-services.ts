@@ -299,7 +299,11 @@ export async function recordTendencySignal(userId: string, signal: TendencySigna
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('tendency_signals').add(signal);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('tendency_signals')
+      .add(signal);
     void onTendencyProfileChange(userId, docRef.id, signal, 'create');
     log.info({ userId, signal: signal.signal }, 'Tendency signal recorded');
   } catch (error) {
@@ -532,7 +536,11 @@ export async function recordSetbackPattern(userId: string, pattern: SetbackPatte
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('setback_patterns').add(pattern);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('setback_patterns')
+      .add(pattern);
     void onSetbackPatternChange(userId, docRef.id, pattern, 'create');
     log.info({ userId, habitName: pattern.habitName }, 'Setback pattern recorded');
   } catch (error) {
@@ -573,7 +581,11 @@ export async function recordHabitAutopsy(userId: string, autopsy: HabitAutopsy):
   }
 
   try {
-    const docRef = await db.collection('bogle_users').doc(userId).collection('habit_autopsies').add(autopsy);
+    const docRef = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('habit_autopsies')
+      .add(autopsy);
     void onHabitAutopsyChange(userId, docRef.id, autopsy, 'create');
     log.info({ userId, habitName: autopsy.habitName }, 'Habit autopsy recorded');
   } catch (error) {

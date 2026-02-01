@@ -1,7 +1,7 @@
 /**
  * Context Builder Output Format Validation Tests
  *
- * Validates that the personality-v2 context builder produces
+ * Validates that the personality-context builder produces
  * correctly formatted output for LLM injection.
  *
  * @module tests/personality/v2/context-builder-output

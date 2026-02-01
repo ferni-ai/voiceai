@@ -198,7 +198,10 @@ describe('Coaching Support Domain', () => {
     it('boundaryCoaching - should help set boundaries', async () => {
       const toolDef = toolDefinitions.find((t) => t.id === 'boundaryCoaching');
       const tool = toolDef!.create(ctx);
-      const result = await tool.execute({ relationship: 'coworker', situation: 'constant interruptions' });
+      const result = await tool.execute({
+        relationship: 'coworker',
+        situation: 'constant interruptions',
+      });
 
       const resultStr = String(result);
       assertNoPlaceholders(resultStr);
@@ -370,7 +373,10 @@ describe('Coaching Support Domain', () => {
     it('sleepSupport - should provide sleep improvement', async () => {
       const toolDef = toolDefinitions.find((t) => t.id === 'sleepSupport');
       const tool = toolDef!.create(ctx);
-      const result = await tool.execute({ issue: 'racing thoughts', currentPattern: 'midnight to 6am' });
+      const result = await tool.execute({
+        issue: 'racing thoughts',
+        currentPattern: 'midnight to 6am',
+      });
 
       const resultStr = String(result);
       assertNoPlaceholders(resultStr);

@@ -582,7 +582,14 @@ export interface SpendingRecord {
 export interface Relationship {
   id: string;
   name: string;
-  relationship: 'family' | 'friend' | 'colleague' | 'mentor' | 'mentee' | 'partner' | 'acquaintance';
+  relationship:
+    | 'family'
+    | 'friend'
+    | 'colleague'
+    | 'mentor'
+    | 'mentee'
+    | 'partner'
+    | 'acquaintance';
   energyImpact: 'draining' | 'neutral' | 'energizing';
   influenceDomains: string[];
   lastInteraction?: Date;

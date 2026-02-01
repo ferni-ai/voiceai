@@ -39,7 +39,7 @@ export { handleTwinProfileRoutes } from './twin-profile.js';
 // Utilities API (reminders, lists, alarms, voice memos)
 export { handleUtilitiesRoutes } from './utilities.js';
 // "Better Than Human" Intelligence Debug API
-export { handleBTHIntelligenceRoutes } from './bth-intelligence.js';
+export { handleBTHIntelligenceRoutes } from './better-than-human-intelligence.js';
 // NOTE: Semantic store routes are in health.ts (uses raw HTTP pattern)
 // Available at: /api/semantic-store/health, /api/semantic-store/metrics, /api/semantic-store/dashboard
 //               /api/semantic-store/diagnostics, /api/semantic-store/cleanup, /api/semantic-store/ttl-statistics

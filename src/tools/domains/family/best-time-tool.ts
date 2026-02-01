@@ -41,9 +41,8 @@ export async function getBestTimeToCall(
     let resolvedName = contactName;
 
     try {
-      const { findContactForTelephony, isEntityStoreReady } = await import(
-        '../../../memory/entity-store/integration.js'
-      );
+      const { findContactForTelephony, isEntityStoreReady } =
+        await import('../../../memory/entity-store/integration.js');
       if (isEntityStoreReady()) {
         const contact = await findContactForTelephony(ctx.userId, contactName);
         if (contact) {
@@ -63,9 +62,8 @@ export async function getBestTimeToCall(
     }
 
     // Get best times
-    const { getBestTimesForContact } = await import(
-      '../../../intelligence/context-builders/family/best-time-awareness.js'
-    );
+    const { getBestTimesForContact } =
+      await import('../../../intelligence/context-builders/family/best-time-awareness.js');
 
     const timing = await getBestTimesForContact(ctx.userId, contactPhone);
 
@@ -79,7 +77,7 @@ export async function getBestTimeToCall(
     return formatBestTimeResponse(resolvedName, timing);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get best time');
-    return "I had trouble looking up timing data. Let me try again later.";
+    return 'I had trouble looking up timing data. Let me try again later.';
   }
 }
 
@@ -125,7 +123,7 @@ function formatBestTimeResponse(
   // Current time assessment
   const now = new Date();
   const hour = now.getHours();
-  
+
   if (hour >= 9 && hour <= 19) {
     parts.push('');
     parts.push('Right now is within typical calling hours - want me to try them?');

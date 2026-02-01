@@ -77,7 +77,8 @@ export interface QuerySnapshot {
 // FIREBASE AUTH (Singleton)
 // ============================================================================
 
-let firebaseAuthInstance: Awaited<ReturnType<typeof import('firebase-admin/auth').getAuth>> | null = null;
+let firebaseAuthInstance: Awaited<ReturnType<typeof import('firebase-admin/auth').getAuth>> | null =
+  null;
 let authInitPromise: Promise<void> | null = null;
 
 /**
@@ -204,10 +205,7 @@ export async function verifyFirebaseToken(idToken: string): Promise<FirebaseDeco
     // SECURITY: Log only metadata, never any part of the token
     const tokenLength = idToken?.length ?? 0;
     const tokenParts = idToken?.split('.').length ?? 0;
-    log.warn(
-      { error: err.message, tokenLength, tokenParts },
-      'Invalid Firebase ID token'
-    );
+    log.warn({ error: err.message, tokenLength, tokenParts }, 'Invalid Firebase ID token');
     return null;
   }
 }

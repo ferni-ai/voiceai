@@ -1,0 +1,119 @@
+{
+  "$comment": "SINGLE SOURCE OF TRUTH for tool loading tiers. Edit this file to change what tools load when.",
+  "version": "1.0.0",
+  "tiers": {
+    "instant": {
+      "description": "Always in memory at process start. Zero latency. CRITICAL for user experience.",
+      "domains": [
+        "memory",
+        "handoff",
+        "entertainment",
+        "awareness",
+        "behavior"
+      ],
+      "criticalTools": [
+        "playMusic",
+        "musicControl", 
+        "musicInfo",
+        "musicProvider",
+        "rememberAboutUser",
+        "recallFromMemory",
+        "handoffToMaya",
+        "handoffToPeter",
+        "handoffToJordan",
+        "handoffToAlex",
+        "handoffToNayan",
+        "handoffToFerni"
+      ]
+    },
+    "preloaded": {
+      "description": "Loaded at session start. <100ms latency. Common user requests.",
+      "domains": [
+        "calendar",
+        "scheduling",
+        "telephony",
+        "communication",
+        "productivity",
+        "habits",
+        "information",
+        "simple-utilities",
+        "family"
+      ],
+      "conditionalDomains": {
+        "userHasCalendarLinked": ["scheduling"],
+        "userHasSpotifyLinked": ["entertainment"],
+        "userInCrisis": ["crisis", "trauma-support"]
+      }
+    },
+    "predictive": {
+      "description": "Prefetched based on context. <500ms. Reduces latency for likely requests.",
+      "rules": [
+        {
+          "id": "grief-support",
+          "triggers": ["sad", "loss", "died", "death", "grieving", "passed away", "funeral"],
+          "domains": ["grief", "meaning", "presence"],
+          "priority": "high"
+        },
+        {
+          "id": "career-help",
+          "triggers": ["job", "career", "interview", "resume", "work", "boss", "promotion"],
+          "domains": ["career", "decisions", "learning"],
+          "priority": "medium"
+        },
+        {
+          "id": "financial-help",
+          "triggers": ["money", "budget", "savings", "debt", "invest", "bills", "afford"],
+          "domains": ["finance", "decisions"],
+          "priority": "medium"
+        },
+        {
+          "id": "health-wellness",
+          "triggers": ["health", "exercise", "workout", "diet", "weight", "sleep", "tired"],
+          "domains": ["health", "wellness", "habits"],
+          "priority": "medium"
+        },
+        {
+          "id": "anxiety-support",
+          "triggers": ["anxious", "anxiety", "panic", "stressed", "overwhelmed", "can't breathe"],
+          "domains": ["presence", "wellness", "crisis"],
+          "priority": "high"
+        },
+        {
+          "id": "relationship-help",
+          "triggers": ["relationship", "partner", "spouse", "boyfriend", "girlfriend", "dating", "breakup"],
+          "domains": ["relationships", "connection", "decisions"],
+          "priority": "medium"
+        },
+        {
+          "id": "play-games",
+          "triggers": ["game", "play", "bored", "fun", "tic tac toe", "trivia"],
+          "domains": ["games", "play"],
+          "priority": "low"
+        },
+        {
+          "id": "late-night",
+          "triggers": [],
+          "timeCondition": { "hours": [22, 23, 0, 1, 2, 3, 4, 5] },
+          "domains": ["presence", "wellness", "self-compassion"],
+          "priority": "low"
+        }
+      ]
+    },
+    "onDemand": {
+      "description": "Loaded only when explicitly needed. Rare or heavyweight tools.",
+      "domains": [
+        "legal-admin",
+        "meal-planning",
+        "finance",
+        "research",
+        "travel"
+      ]
+    }
+  },
+  "metrics": {
+    "targetTier0LoadTime": 0,
+    "targetTier1LoadTime": 100,
+    "targetTier2LoadTime": 500,
+    "targetTier3LoadTime": 2000
+  }
+}

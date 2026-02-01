@@ -75,11 +75,10 @@ export {
   type ClassificationOutcome,
   type CalibrationBin,
   type FTISMetricsSummary,
-} from './ftis-v3-metrics.js';
+} from './routing-metrics.js';
 
 // BTH Injection Metrics (Phase 1 Communication System Overhaul)
 export {
-  recordInjectionFeedback,
   recordInjectionBloat,
   getInjectionMetrics,
-} from './ftis-metrics.js';
+} from './routing-metrics.js';

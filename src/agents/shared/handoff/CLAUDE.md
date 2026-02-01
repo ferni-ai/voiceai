@@ -13,6 +13,7 @@ This directory manages seamless handoffs between Ferni team members (personas). 
 | Coordinator Adapter | `coordinator-adapter.ts` |
 | Event Handler | `event-handler.ts` |
 | Session State | `session-state.ts` |
+| Cached Modules | `cached-modules.ts` |
 | Types | `types.ts` |
 | Index | `index.ts` |
 

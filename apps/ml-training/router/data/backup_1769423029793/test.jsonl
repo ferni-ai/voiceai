@@ -1,0 +1,491 @@
+{"id": "ftis_v3_1769261365265_0", "query": "I don't understand", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_1", "query": "until next time", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_2", "query": "so, I want to hear Taylor Swift", "selected_tools": ["music_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_3", "query": "makes sense", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_4", "query": "my streak", "selected_tools": ["viewStreak"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_5", "query": "search for best restaurants nearby", "selected_tools": ["search", "lookup"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_6", "query": "life is hard sometimes", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_7", "query": "set a reminder", "selected_tools": ["setReminder"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_8", "query": "track exercise for me", "selected_tools": ["trackHabit"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_9", "query": "yeah, if that makes sense", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_10", "query": "honestly, things have been tough", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_11", "query": "I'm struggling lately", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_12", "query": "weather for next week", "selected_tools": ["weatherForecast"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_13", "query": "put haircut on my calendar", "selected_tools": ["createCalendarEvent"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_14", "query": "I like to read before bed", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_15", "query": "honestly, interesting point", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_16", "query": "awesome", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_17", "query": "fair enough", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_18", "query": "tell John that running behind", "selected_tools": ["sendMessage"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_19", "query": "that's interesting, you know what I mean?", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_20", "query": "how do you work", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_21", "query": "put a meeting on my schedule", "selected_tools": ["createCalendarEvent"], "is_open_intent": false, "source": "hard_negative"}
+{"id": "ftis_v3_1769261365265_22", "query": "fair enough", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_23", "query": "I like to read before bed", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_24", "query": "I see your perspective", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_25", "query": "send SMS to Lisa", "selected_tools": ["sendSMS"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_26", "query": "I want to hear music", "selected_tools": ["playMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_27", "query": "remind me about work stuff", "selected_tools": ["recallMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_28", "query": "I'm worried about something", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_29", "query": "any conflicts on next week", "selected_tools": ["checkAvailability"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_30", "query": "play my spotify playlist", "selected_tools": ["spotify_play", "playMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_31", "query": "so I need some advice", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_32", "query": "you might be right", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_33", "query": "I don't know where to start, if that makes sense", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_34", "query": "reminder at 3pm", "selected_tools": ["setReminder"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_35", "query": "weekend weather", "selected_tools": ["weatherForecast", "search"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_36", "query": "book 6:30pm for lunch", "selected_tools": ["scheduleEvent"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_37", "query": "stop this", "selected_tools": ["pauseMusic", "music_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_38", "query": "I'm a night owl", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_39", "query": "store this information", "selected_tools": ["saveMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_40", "query": "alarm at tomorrow at 2", "selected_tools": ["setAlarm", "setTimer"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_41", "query": "I'm feeling lost, I guess", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_42", "query": "that's a lot to process", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_43", "query": "what's the weather", "selected_tools": ["getWeather"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_44", "query": "text my boss", "selected_tools": ["textContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_45", "query": "main headlines", "selected_tools": ["headlines"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_46", "query": "life is hard sometimes", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_47", "query": "keep track of my favorite color is blue", "selected_tools": ["storeInfo"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_48", "query": "I'm a night owl", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_49", "query": "alarm at in 30 minutes", "selected_tools": ["createAlarm", "createReminder"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_50", "query": "get memory about my preferences", "selected_tools": ["getMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_51", "query": "remember what I just said", "selected_tools": ["rememberThis", "whatDoYouKnow"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_52", "query": "look up weather tomorrow", "selected_tools": ["search"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_53", "query": "put on lo-fi", "selected_tools": ["playMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_54", "query": "I'm struggling lately", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_55", "query": "what matters most in life", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_56", "query": "I hadn't thought of that", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_57", "query": "forecast", "selected_tools": ["weatherForecast", "search"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_58", "query": "look up how to cook pasta", "selected_tools": ["search"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_59", "query": "keep this in memory", "selected_tools": ["rememberThis"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_60", "query": "plan a lunch", "selected_tools": ["scheduleEvent"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_61", "query": "bye for now", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_62", "query": "you know, I'm struggling lately", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_63", "query": "I think uh huh", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_64", "query": "talk to you soon", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_65", "query": "I think sounds good", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_66", "query": "store this information", "selected_tools": ["saveMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_67", "query": "go on, if that makes sense", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_68", "query": "great", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_69", "query": "actually, quiet please", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_70", "query": "google weather tomorrow", "selected_tools": ["webSearch"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_71", "query": "too quiet", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_72", "query": "like, what was that", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_73", "query": "turn it down", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_74", "query": "I think what do you mean", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_75", "query": "perfect", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_76", "query": "block off next Monday for doctor appointment", "selected_tools": ["createCalendarEvent"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_77", "query": "pause this song", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_78", "query": "can you explain that", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_79", "query": "open spotify and play", "selected_tools": ["spotify_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_80", "query": "internet search for best restaurants nearby", "selected_tools": ["webSearch"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_81", "query": "I was wondering about life choices, I guess", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_82", "query": "quiet please", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_83", "query": "remind me about work stuff", "selected_tools": ["recallMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_84", "query": "go on", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_85", "query": "show my stretching history", "selected_tools": ["getHabitProgress"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_86", "query": "I've always been a coffee person", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_87", "query": "I just need to vent, you know what I mean?", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_88", "query": "open spotify and play", "selected_tools": ["spotify_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_89", "query": "what would you do in my situation", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_90", "query": "what if I tried something new", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_91", "query": "well, what was that", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_92", "query": "I think I don't know where to start", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_93", "query": "what would you do in my situation", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_94", "query": "create reminder for water plants", "selected_tools": ["setReminder"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_95", "query": "have a good one", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_96", "query": "weather today", "selected_tools": ["getWeather"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_97", "query": "wake up alarm 3pm", "selected_tools": ["setAlarm", "createReminder"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_98", "query": "that's interesting, if that makes sense", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_99", "query": "I mean, fair enough", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_100", "query": "honestly, how are you doing today", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_101", "query": "I mean, I like to read before bed", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_102", "query": "you know, what do you know about me", "selected_tools": ["whatDoYouKnow"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_103", "query": "thanks", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_104", "query": "honestly, talk to you soon", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_105", "query": "check off meditation", "selected_tools": ["markHabitComplete"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_106", "query": "play the song Blinding Lights", "selected_tools": ["music_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_107", "query": "wake me up at 6:30pm", "selected_tools": ["createAlarm", "createTimer"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_108", "query": "play my spotify playlist", "selected_tools": ["spotify_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_109", "query": "interesting point", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_110", "query": "send a message to Sarah", "selected_tools": ["sendMessage", "callContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_111", "query": "actually, should I take a risk", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_112", "query": "how many times did I journaling", "selected_tools": ["getHabitProgress"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_113", "query": "web search how to cook pasta", "selected_tools": ["webSearch"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_114", "query": "any news", "selected_tools": ["getNews"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_115", "query": "okay", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_116", "query": "I think could you clarify", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_117", "query": "what have I told you", "selected_tools": ["whatDoYouKnow", "getMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_118", "query": "like, I was wondering about life choices", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_119", "query": "that's a good point, if that makes sense", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_120", "query": "awesome", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_121", "query": "gotta go", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_122", "query": "how about some music", "selected_tools": ["playMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_123", "query": "I enjoy cooking", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_124", "query": "do you remember my preferences", "selected_tools": ["getMemory", "recallMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_125", "query": "it's complicated", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_126", "query": "show my water intake history", "selected_tools": ["getHabitProgress"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_127", "query": "next please", "selected_tools": ["skipTrack"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_128", "query": "note that allergic to peanuts", "selected_tools": ["saveMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_129", "query": "thank you", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_130", "query": "I think I need someone to listen", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_131", "query": "what if I tried something new", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_132", "query": "put on Bohemian Rhapsody", "selected_tools": ["music_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_133", "query": "I prefer texting to well calling", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_134", "query": "that's interesting", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_135", "query": "makes sense, if that makes sense", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_136", "query": "I mean, what are you", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_137", "query": "see you later", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_138", "query": "I appreciate that", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_139", "query": "what's your name", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_140", "query": "can you think, I guess", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_141", "query": "what's happening in the world", "selected_tools": ["getNews"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_142", "query": "don't let me forget call mom", "selected_tools": ["createReminder"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_143", "query": "you might be right", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_144", "query": "I hadn't thought of that, I guess", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_145", "query": "add journaling to tracking", "selected_tools": ["trackHabit"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_146", "query": "will it rain next Tuesday", "selected_tools": ["weatherForecast"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_147", "query": "remember what I just said", "selected_tools": ["rememberThis", "recallMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_148", "query": "make a call to Lisa", "selected_tools": ["makeCall", "sendSMS"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_149", "query": "I prefer mornings to nights", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_150", "query": "too quiet", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_151", "query": "calendar event for lunch", "selected_tools": ["createCalendarEvent"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_152", "query": "countdown 1 hour", "selected_tools": ["setTimer"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_153", "query": "I mean, you're the best", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_154", "query": "great, if that makes sense", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_155", "query": "uh huh", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_156", "query": "next track", "selected_tools": ["skipTrack"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_157", "query": "make a call to John", "selected_tools": ["makeCall", "callContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_158", "query": "make a call to the doctor", "selected_tools": ["makeCall"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_159", "query": "get memory about work stuff", "selected_tools": ["getMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_160", "query": "should I take a risk", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_161", "query": "top stories", "selected_tools": ["headlines"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_162", "query": "well, catch you later", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_163", "query": "wake up alarm 3pm", "selected_tools": ["setAlarm"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_164", "query": "how many times did I exercise", "selected_tools": ["getHabitProgress"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_165", "query": "I prefer texting to calling", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_166", "query": "well, I need an alarm for in 30 minutes", "selected_tools": ["createAlarm"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_167", "query": "google best restaurants nearby", "selected_tools": ["webSearch"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_168", "query": "I don't know where to start, you know what I mean?", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_169", "query": "well, what if I tried something new", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_170", "query": "reminder to pick up groceries", "selected_tools": ["setReminder", "createAlarm"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_171", "query": "thanks", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_172", "query": "basically, well, take care", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_173", "query": "make it louder", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_174", "query": "skip this song", "selected_tools": ["skipTrack"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_175", "query": "what meetings do I have", "selected_tools": ["getCalendarEvents", "checkAvailability"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_176", "query": "show my stretching history", "selected_tools": ["getHabitProgress"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_177", "query": "one more time", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_178", "query": "message mom", "selected_tools": ["sendMessage"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_179", "query": "throw on some tunes", "selected_tools": ["playMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_180", "query": "my streak", "selected_tools": ["viewStreak"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_181", "query": "I'm considering something big", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_182", "query": "record I like coffee", "selected_tools": ["storeInfo"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_183", "query": "google best restaurants nearby", "selected_tools": ["webSearch"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_184", "query": "can you just listen", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_185", "query": "I'm worried about something", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_186", "query": "search for how to cook pasta", "selected_tools": ["search"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_187", "query": "interesting point", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_188", "query": "I think tell me more", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_189", "query": "play Drake", "selected_tools": ["music_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_190", "query": "I mean, are you real", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_191", "query": "what would you do in my situation", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_192", "query": "volume", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "hard_negative"}
+{"id": "ftis_v3_1769261365265_193", "query": "basically, define how to cook pasta", "selected_tools": ["lookup"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_194", "query": "I like to read before bed", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_195", "query": "show my exercise history", "selected_tools": ["getHabitProgress"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_196", "query": "what meetings do I have", "selected_tools": ["getCalendarEvents"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_197", "query": "I guess so", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_198", "query": "so I just want to talk", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_199", "query": "thanks", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_200", "query": "am I on a streak", "selected_tools": ["viewStreak"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_201", "query": "text my boss", "selected_tools": ["sendMessage"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_202", "query": "streak for stretching", "selected_tools": ["viewStreak"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_203", "query": "record I have a meeting tomorrow", "selected_tools": ["storeInfo"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_204", "query": "you might be right", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_205", "query": "alarm for at noon", "selected_tools": ["setAlarm"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_206", "query": "how are you doing today", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_207", "query": "send a message to Lisa", "selected_tools": ["sendMessage"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_208", "query": "morning alarm for 6:30pm", "selected_tools": ["createAlarm"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_209", "query": "track that I did stretching", "selected_tools": ["logHabit"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_210", "query": "like, who are you", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_211", "query": "set reminder water plants", "selected_tools": ["setReminder", "setTimer"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_212", "query": "life is hard sometimes", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_213", "query": "you know, fair enough", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_214", "query": "pause", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "hard_negative"}
+{"id": "ftis_v3_1769261365265_215", "query": "uh huh", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_216", "query": "tell mom that thanks", "selected_tools": ["sendMessage", "callContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_217", "query": "I mean, okay", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_218", "query": "countdown 45 minutes", "selected_tools": ["setTimer"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_219", "query": "put on Bad Guy", "selected_tools": ["music_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_220", "query": "what if I tried something new", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_221", "query": "I finished reading", "selected_tools": ["logHabit"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_222", "query": "today's news", "selected_tools": ["getNews"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_223", "query": "search for weather tomorrow", "selected_tools": ["search", "getNews"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_224", "query": "well, reminder for pick up groceries at 6:30pm", "selected_tools": ["createReminder", "createAlarm"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_225", "query": "track reading for me", "selected_tools": ["trackHabit"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_226", "query": "awesome", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_227", "query": "get memory about that meeting", "selected_tools": ["getMemory", "whatDoYouKnow"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_228", "query": "google best restaurants nearby", "selected_tools": ["webSearch"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_229", "query": "are you an AI, I guess", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_230", "query": "so until next time", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_231", "query": "honestly, what was that", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_232", "query": "increase volume", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_233", "query": "well, how do you work", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_234", "query": "can you explain that", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_235", "query": "so it's been a rough day", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_236", "query": "I want to hear music", "selected_tools": ["playMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_237", "query": "dial Mike", "selected_tools": ["callContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_238", "query": "hold the music", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_239", "query": "phone my boss", "selected_tools": ["callContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_240", "query": "I didn't basically catch that", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_241", "query": "thanks for listening, you know what I mean?", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_242", "query": "keep this in memory", "selected_tools": ["rememberThis"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_243", "query": "current streak", "selected_tools": ["viewStreak"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_244", "query": "countdown for 30 minutes", "selected_tools": ["createTimer"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_245", "query": "play Billie Eilish", "selected_tools": ["music_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_246", "query": "set an alarm for tomorrow at 2", "selected_tools": ["createAlarm"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_247", "query": "spotify play Taylor Swift", "selected_tools": ["spotify_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_248", "query": "I did my stretching", "selected_tools": ["logHabit"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_249", "query": "I don't know what to do", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_250", "query": "I think that's a good point", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_251", "query": "honestly, are you an AI", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_252", "query": "I don't understand", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_253", "query": "my streak", "selected_tools": ["viewStreak"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_254", "query": "will it rain tomorrow", "selected_tools": ["weatherForecast"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_255", "query": "I completed sleep", "selected_tools": ["logHabit"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_256", "query": "monitor my water intake", "selected_tools": ["trackHabit", "getHabitProgress"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_257", "query": "it's been a rough day", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_258", "query": "life is hard sometimes", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_259", "query": "text Mike", "selected_tools": ["sendMessage", "makeCall"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_260", "query": "send a message to Sarah", "selected_tools": ["sendMessage"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_261", "query": "headlines", "selected_tools": ["headlines"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_262", "query": "SMS to Lisa saying running behind", "selected_tools": ["sendSMS"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_263", "query": "get memory about work stuff", "selected_tools": ["getMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_264", "query": "what's on my calendar", "selected_tools": ["getCalendarEvents", "createCalendarEvent"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_265", "query": "how am I doing with reading", "selected_tools": ["getHabitProgress"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_266", "query": "set an alarm for tomorrow at 2", "selected_tools": ["createAlarm"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_267", "query": "create reminder for water plants", "selected_tools": ["setReminder"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_268", "query": "how are you doing today, I guess", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_269", "query": "place a call", "selected_tools": ["makeCall"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_270", "query": "I enjoy cooking", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_271", "query": "one more time", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_272", "query": "send SMS to the doctor", "selected_tools": ["sendSMS"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_273", "query": "log sleep", "selected_tools": ["logHabit"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_274", "query": "keep track of my favorite color is blue", "selected_tools": ["storeInfo"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_275", "query": "you're the best", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_276", "query": "look up how to cook pasta", "selected_tools": ["search"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_277", "query": "I've always been a coffee person", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_278", "query": "honestly, one more time", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_279", "query": "calendar event for dentist", "selected_tools": ["createCalendarEvent"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_280", "query": "I'm feeling a bit down", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_281", "query": "keep this in memory", "selected_tools": ["rememberThis", "recallMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_282", "query": "alarm for in an hour", "selected_tools": ["setAlarm"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_283", "query": "pause the music", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_284", "query": "set up haircut", "selected_tools": ["scheduleEvent"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_285", "query": "I need someone to listen", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_286", "query": "my streak", "selected_tools": ["viewStreak"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_287", "query": "can you explain that", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_288", "query": "will it rain this weekend", "selected_tools": ["weatherForecast"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_289", "query": "info on best restaurants nearby", "selected_tools": ["lookup"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_290", "query": "I prefer texting to calling", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_291", "query": "can you explain that", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_292", "query": "tell the doctor that running behind", "selected_tools": ["sendMessage"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_293", "query": "so, morning alarm for tomorrow at 2", "selected_tools": ["createAlarm"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_294", "query": "honestly, how are you doing today", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_295", "query": "go on", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_296", "query": "what's in uh the news", "selected_tools": ["getNews"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_297", "query": "breaking news", "selected_tools": ["headlines"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_298", "query": "I was wondering about life choices, you know what I mean?", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_299", "query": "play some pop", "selected_tools": ["playMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_300", "query": "remind me about the meeting", "selected_tools": ["setReminder", "createReminder"], "is_open_intent": false, "source": "hard_negative"}
+{"id": "ftis_v3_1769261365265_301", "query": "breaking news", "selected_tools": ["headlines"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_302", "query": "timer an hour", "selected_tools": ["setTimer", "createReminder"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_303", "query": "SMS Sarah", "selected_tools": ["sendSMS"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_304", "query": "have a good one", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_305", "query": "top stories", "selected_tools": ["headlines"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_306", "query": "SMS Mike", "selected_tools": ["sendSMS"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_307", "query": "latest news", "selected_tools": ["getNews"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_308", "query": "tell me about best restaurants nearby", "selected_tools": ["lookup"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_309", "query": "I appreciate you", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_310", "query": "like, I'm worried about something", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_311", "query": "I'm going through something", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_312", "query": "my sleep progress", "selected_tools": ["getHabitProgress"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_313", "query": "message Sarah", "selected_tools": ["textContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_314", "query": "you know, could you clarify", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_315", "query": "can you just listen", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_316", "query": "you know, let me consider that", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_317", "query": "store allergic to peanuts", "selected_tools": ["storeInfo"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_318", "query": "I'm worried about something, you know what I mean?", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_319", "query": "I'm struggling lately", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_320", "query": "call the doctor", "selected_tools": ["callContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_321", "query": "text Lisa", "selected_tools": ["sendMessage"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_322", "query": "too loud", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_323", "query": "remind me at in an hour", "selected_tools": ["setReminder", "createTimer"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_324", "query": "what do you know about my preferences", "selected_tools": ["getMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_325", "query": "any events today", "selected_tools": ["getCalendarEvents"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_326", "query": "set up call with mom", "selected_tools": ["scheduleEvent"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_327", "query": "what's happening in the world", "selected_tools": ["getNews", "webSearch"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_328", "query": "I think see ya", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_329", "query": "turn it down", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_330", "query": "I love rainy days", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_331", "query": "top stories", "selected_tools": ["headlines"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_332", "query": "I love rainy days", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_333", "query": "record I like coffee", "selected_tools": ["storeInfo"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_334", "query": "honestly, do you think I should change careers", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_335", "query": "what's the weather", "selected_tools": ["getWeather", "weatherForecast"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_336", "query": "schedule time for lunch", "selected_tools": ["scheduleEvent"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_337", "query": "save allergic to peanuts", "selected_tools": ["storeInfo"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_338", "query": "that's a good point", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_339", "query": "am I free Monday", "selected_tools": ["getCalendarEvents"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_340", "query": "honestly, catch you later", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_341", "query": "well, I need someone to listen", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_342", "query": "send mom a message", "selected_tools": ["sendMessage"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_343", "query": "how many times did I journaling", "selected_tools": ["getHabitProgress", "habitStats"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_344", "query": "open slots this week", "selected_tools": ["checkAvailability", "getCalendarEvents"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_345", "query": "you might be right", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_346", "query": "SMS to mom saying call me back", "selected_tools": ["sendSMS"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_347", "query": "I hadn't thought of that, I guess", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_348", "query": "keep in mind that allergic to peanuts", "selected_tools": ["saveMemory", "whatDoYouKnow"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_349", "query": "save this: my favorite color is blue", "selected_tools": ["saveMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_350", "query": "I see what you mean", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_351", "query": "I'm feeling lost, I guess", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_352", "query": "am I free on today", "selected_tools": ["checkAvailability"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_353", "query": "too quiet", "selected_tools": ["adjustVolume", "playMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_354", "query": "google how to cook pasta", "selected_tools": ["webSearch"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_355", "query": "I just need to vent", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_356", "query": "tell me what I told you about my preferences", "selected_tools": ["recallMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_357", "query": "play on spotify", "selected_tools": ["spotify_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_358", "query": "monitor my water intake", "selected_tools": ["trackHabit", "habitStats"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_359", "query": "how am I doing with reading", "selected_tools": ["getHabitProgress"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_360", "query": "skip to next", "selected_tools": ["skipTrack"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_361", "query": "phone mom", "selected_tools": ["callContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_362", "query": "remind me in 30 minutes to call mom", "selected_tools": ["createReminder", "setTimer"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_363", "query": "hit me with some beats", "selected_tools": ["playMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_364", "query": "remember what I just said", "selected_tools": ["rememberThis"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_365", "query": "1 hour please", "selected_tools": ["setTimer"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_366", "query": "play some relaxing music", "selected_tools": ["playMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_367", "query": "quieter", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_368", "query": "start a call with my boss", "selected_tools": ["makeCall"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_369", "query": "play me a song", "selected_tools": ["playMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_370", "query": "too loud", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_371", "query": "search for Python tutorials", "selected_tools": ["search"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_372", "query": "I'm not sure how I feel", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_373", "query": "hmm let me think, I guess", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_374", "query": "google how to cook pasta", "selected_tools": ["webSearch"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_375", "query": "honestly, go on", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_376", "query": "next track", "selected_tools": ["skipTrack"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_377", "query": "go on, I guess", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_378", "query": "send text to Sarah", "selected_tools": ["textContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_379", "query": "text mom", "selected_tools": ["textContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_380", "query": "any news", "selected_tools": ["getNews", "search"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_381", "query": "play Billie Eilish", "selected_tools": ["music_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_382", "query": "spotify shuffle", "selected_tools": ["spotify_play"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_383", "query": "I'm not sure yet", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_384", "query": "text Mike", "selected_tools": ["textContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_385", "query": "get memory about that meeting", "selected_tools": ["getMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_386", "query": "I just need to vent, you know what I mean?", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_387", "query": "when am I available", "selected_tools": ["checkAvailability"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_388", "query": "I need someone to listen", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_389", "query": "how's the weather", "selected_tools": ["getWeather"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_390", "query": "I didn't catch that", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_391", "query": "I prefer texting to calling", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_392", "query": "monitor my water intake", "selected_tools": ["trackHabit", "markHabitComplete"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_393", "query": "do you remember work stuff", "selected_tools": ["getMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_394", "query": "I mean, I've always been a coffee person", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_395", "query": "make a call to John", "selected_tools": ["makeCall"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_396", "query": "text message to John", "selected_tools": ["sendSMS"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_397", "query": "weekend weather", "selected_tools": ["weatherForecast"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_398", "query": "make a call to Lisa", "selected_tools": ["makeCall"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_399", "query": "remember what I just said", "selected_tools": ["rememberThis"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_400", "query": "I'm worried about something", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_401", "query": "temperature outside", "selected_tools": ["getWeather"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_402", "query": "I need some advice", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_403", "query": "save this for later", "selected_tools": ["rememberThis"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_404", "query": "gotta go", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_405", "query": "look up weather tomorrow", "selected_tools": ["lookup"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_406", "query": "I'm not a fan of crowds", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_407", "query": "volume up", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_408", "query": "play Taylor Swift", "selected_tools": ["music_play", "pauseMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_409", "query": "I just want to talk", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_410", "query": "tell me more", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_411", "query": "talk to you soon", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_412", "query": "how are my habits", "selected_tools": ["habitStats"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_413", "query": "wake me up well at at noon", "selected_tools": ["createAlarm"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_414", "query": "send a message to Lisa", "selected_tools": ["sendMessage", "callContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_415", "query": "hold the music", "selected_tools": ["pauseMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_416", "query": "what's happening in the world", "selected_tools": ["getNews"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_417", "query": "what's the weather", "selected_tools": ["getWeather"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_418", "query": "weather for Monday", "selected_tools": ["weatherForecast"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_419", "query": "make it louder", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_420", "query": "send text to Mike", "selected_tools": ["textContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_421", "query": "finished reading", "selected_tools": ["markHabitComplete"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_422", "query": "ring my boss", "selected_tools": ["callContact", "makeCall"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_423", "query": "I need an alarm for at noon", "selected_tools": ["createAlarm", "setReminder"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_424", "query": "honestly, I'm not sure how I feel", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_425", "query": "done with journaling", "selected_tools": ["markHabitComplete"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_426", "query": "log meditation", "selected_tools": ["logHabit"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_427", "query": "start tracking reading", "selected_tools": ["trackHabit"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_428", "query": "so I'm not sure yet", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_429", "query": "today's news", "selected_tools": ["getNews"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_430", "query": "basically, that helps", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_431", "query": "turn on music", "selected_tools": ["playMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_432", "query": "well, I've been thinking a lot", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_433", "query": "say that again", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_434", "query": "life is hard sometimes", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_435", "query": "book 6:30pm for call with mom", "selected_tools": ["scheduleEvent"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_436", "query": "so that's interesting", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_437", "query": "what do you know about that meeting", "selected_tools": ["getMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_438", "query": "I mean, I'm feeling a bit down", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_439", "query": "am I free on Monday", "selected_tools": ["checkAvailability"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_440", "query": "I need a like timer", "selected_tools": ["createTimer"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_441", "query": "remind me at at noon", "selected_tools": ["setReminder"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_442", "query": "ring Mike", "selected_tools": ["callContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_443", "query": "ring the doctor", "selected_tools": ["callContact", "makeCall"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_444", "query": "you know, fair enough", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_445", "query": "I don't understand", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_446", "query": "my schedule for this weekend", "selected_tools": ["getCalendarEvents"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_447", "query": "SMS Lisa", "selected_tools": ["sendSMS", "callContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_448", "query": "alarm at tomorrow at 2", "selected_tools": ["setAlarm", "createAlarm"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_449", "query": "send John a message", "selected_tools": ["sendMessage"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_450", "query": "I'm considering something big, if that makes sense", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_451", "query": "well, have a good one", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_452", "query": "well, I just need to vent", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_453", "query": "all my habits", "selected_tools": ["habitStats"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_454", "query": "I need to remember to exercise", "selected_tools": ["createReminder"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_455", "query": "send a message to the doctor", "selected_tools": ["sendMessage"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_456", "query": "play my spotify playlist", "selected_tools": ["spotify_play", "skipTrack"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_457", "query": "gotta go", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_458", "query": "finished reading", "selected_tools": ["markHabitComplete", "habitStats"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_459", "query": "so thank you", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_460", "query": "monitor my exercise", "selected_tools": ["trackHabit"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_461", "query": "hmm let me think, you know what I mean?", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_462", "query": "should I take a risk", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_463", "query": "who are you", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_464", "query": "breaking news", "selected_tools": ["headlines"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_465", "query": "how are you doing today", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_466", "query": "I think cats are better than dogs", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_467", "query": "track sleep for me", "selected_tools": ["trackHabit"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_468", "query": "set a reminder for take medicine", "selected_tools": ["createReminder"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_469", "query": "see you later", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_470", "query": "I want to hear music", "selected_tools": ["playMusic"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_471", "query": "google best restaurants nearby", "selected_tools": ["webSearch"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_472", "query": "remember I exercised", "selected_tools": ["logHabit", "trackHabit"], "is_open_intent": false, "source": "hard_negative"}
+{"id": "ftis_v3_1769261365265_473", "query": "weather today", "selected_tools": ["getWeather", "getNews"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_474", "query": "book in an hour for lunch", "selected_tools": ["scheduleEvent"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_475", "query": "can I share something with you", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_476", "query": "ring Lisa", "selected_tools": ["callContact"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_477", "query": "current streak", "selected_tools": ["viewStreak"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_478", "query": "thanks for listening", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_479", "query": "I need to remember to call mom", "selected_tools": ["createReminder", "setReminder"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_480", "query": "increase volume", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_481", "query": "what's happening in the world", "selected_tools": ["getNews", "search"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_482", "query": "internet search for best restaurants nearby", "selected_tools": ["webSearch"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_483", "query": "too loud", "selected_tools": ["adjustVolume"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_484", "query": "info on how to cook pasta", "selected_tools": ["lookup"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_485", "query": "my habit statistics", "selected_tools": ["habitStats", "markHabitComplete"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_486", "query": "wake up alarm next Monday", "selected_tools": ["setAlarm"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_487", "query": "bye for now", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_488", "query": "save this: I have a meeting tomorrow", "selected_tools": ["saveMemory"], "is_open_intent": false, "source": "synthetic"}
+{"id": "ftis_v3_1769261365265_489", "query": "can you just listen", "selected_tools": [], "is_open_intent": true, "source": "open_intent"}
+{"id": "ftis_v3_1769261365265_490", "query": "alarm at tomorrow at 2", "selected_tools": ["setAlarm"], "is_open_intent": false, "source": "synthetic"}

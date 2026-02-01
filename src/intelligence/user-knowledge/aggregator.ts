@@ -678,16 +678,19 @@ async function aggregatePatterns(userId: string): Promise<PatternKnowledge> {
     }
 
     // Get cross-domain correlations
-    // TODO: cross-domain-correlator.js is planned but not yet implemented
-    // Once implemented, uncomment the following:
-    // const { getCrossCorrelator } = await import('../patterns/cross-domain-correlator.js');
-    // const correlations = getCrossCorrelator().getCorrelations(userId, { minConfidence: 'likely' });
-    // patterns.correlations = correlations.slice(0, 5).map((c: { domains: string[], insight: string, confidence: string }) => ({
-    //   domains: c.domains,
-    //   insight: c.insight,
-    //   confidence: c.confidence === 'confirmed' ? 1 : c.confidence === 'likely' ? 0.7 : 0.4,
-    // }));
-    patterns.correlations = []; // Placeholder until cross-domain-correlator is implemented
+    // "Better than Human" - detect patterns across life domains that humans miss
+    try {
+      const { getCorrelations } = await import('../patterns/cross-domain-correlator.js');
+      const correlations = getCorrelations(userId, { minConfidence: 'likely' });
+      patterns.correlations = correlations.slice(0, 5).map((c) => ({
+        domains: [c.domainA.domain, c.domainB.domain],
+        insight: c.insight,
+        confidence: c.confidence === 'confirmed' ? 1 : c.confidence === 'likely' ? 0.7 : 0.4,
+      }));
+    } catch (correlationError) {
+      log.debug({ error: String(correlationError), userId }, 'Cross-domain correlator failed');
+      patterns.correlations = [];
+    }
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to aggregate patterns');
   }

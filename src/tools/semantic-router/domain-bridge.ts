@@ -102,6 +102,13 @@ const TOOL_MAPPINGS: Record<string, ToolMapping> = {
       query: args.query || args.genre || args.mood || args.artist || 'music',
     }),
   },
+  // Shortcut tool that delegates to music domain
+  shortcuts_music: {
+    domainToolId: 'playMusic',
+    transformArgs: (args) => ({
+      query: args.query || 'music',
+    }),
+  },
   spotify_pause: {
     domainToolId: 'musicControl',
     transformArgs: () => ({ action: 'pause' }),

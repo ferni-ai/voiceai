@@ -14,6 +14,7 @@ apps/ios-native/
 │   ├── App/                    # App entry, main views
 │   ├── Design/                 # FerniColors, design system
 │   ├── Services/
+│   │   ├── AmbientModeService.swift
 │   │   ├── AuthService.swift
 │   │   ├── BetterThanHumanIntegration.swift
 │   │   ├── CalendarService.swift
@@ -21,11 +22,14 @@ apps/ios-native/
 │   │   ├── HealthKitService.swift
 │   │   ├── HomeKitService.swift
 │   │   ├── IOSLiveKitSession.swift
+│   │   ├── KeychainManager.swift
 │   │   ├── LocationService.swift
 │   │   ├── MusicKitService.swift
+│   │   ├── ProactiveNotificationsService.swift
 │   │   ├── SharedItemsService.swift
 │   │   ├── SiriShortcutsService.swift
 │   │   ├── SubscriptionService.swift     # StoreKit 2
+│   │   ├── TeamUnlockService.swift
 │   │   └── WatchConnectivityService.swift
 │   └── Views/
 ├── FerniWidgets/               # Home screen widgets

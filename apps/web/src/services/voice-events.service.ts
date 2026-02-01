@@ -29,6 +29,11 @@ interface ThemeChangeData {
   source: 'voice' | 'system' | 'api';
 }
 
+interface ShowViewData {
+  view: string;
+  params?: Record<string, unknown>;
+}
+
 interface UserEvent<T = unknown> {
   type: string;
   data: T;
@@ -94,6 +99,47 @@ function handleThemeChange(data: ThemeChangeData): void {
 }
 
 /**
+ * Handle show_view event from voice - opens UI panels/dashboards
+ * 
+ * Maps panel IDs to custom events that app.ts listens for.
+ * This enables voice-activated navigation: "Show me my story", "Open memory lane", etc.
+ */
+function handleShowView(data: ShowViewData): void {
+  const { view, params } = data;
+  log.info({ view, params }, 'Voice-triggered panel navigation');
+
+  // Map panel IDs to custom event names
+  const panelEventMap: Record<string, string> = {
+    'your-story': 'ferni:open-your-story',
+    'memory-lane': 'ferni:open-memory-lane',
+    'history': 'ferni:open-history',
+    'patterns': 'ferni:open-patterns',
+    'quiz': 'ferni:open-quiz',
+    'music': 'ferni:open-music',
+    'calendar': 'ferni:open-calendar',
+    'contacts': 'ferni:open-contacts',
+    'journal': 'ferni:open-journal',
+    'year-with-ferni': 'ferni:open-year-with-ferni',
+    'settings': 'ferni:open-settings',
+    'guided-practices': 'ferni:open-practices',
+    'household-members': 'ferni:open-household',
+    'voice-id': 'ferni:open-voice-id',
+    'notifications': 'ferni:open-notifications',
+    'close': 'ferni:close-panel',
+  };
+
+  const eventName = panelEventMap[view];
+  
+  if (eventName) {
+    // Dispatch custom event that app.ts will handle
+    window.dispatchEvent(new CustomEvent(eventName, { detail: params }));
+    log.debug({ view, eventName }, 'Dispatched panel open event');
+  } else {
+    log.warn({ view }, 'Unknown panel requested via voice');
+  }
+}
+
+/**
  * Handle incoming WebSocket message
  */
 function handleMessage(event: MessageEvent): void {
@@ -114,8 +160,7 @@ function handleMessage(event: MessageEvent): void {
         break;
 
       case 'show_view':
-        // Future: handle navigation events
-        log.debug({ view: message.data }, 'Show view event (not implemented)');
+        handleShowView(message.data as ShowViewData);
         break;
 
       case 'pong':

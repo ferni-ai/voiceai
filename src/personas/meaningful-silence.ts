@@ -169,6 +169,7 @@ export type SilenceResponseType =
   | 'game_suggestion' // Suggest a fun music game
   | 'gentle_observation' // Share an observation about life
   | 'gentle_humor' // Light humor (persona-appropriate)
+  | 'thinking_out_loud' // Share a thought that just surfaced
   | 'time_aware' // Acknowledge the time of day
   | 'topic_specific' // Response related to what they were discussing
   | 'warm_check_in'; // Genuine "how are you" energy
@@ -2137,6 +2138,10 @@ export interface LLMSilenceInstructions {
  *
  * This is the sync version that uses fallback guidance. For dynamic
  * persona-specific guidance, use buildLLMSilenceInstructionsAsync.
+ *
+ * @deprecated Instructions are now framed as inner monologue to prevent LLM echoing.
+ * Still functional but callers should ensure instructions are never used as imperative
+ * directives. See Jan 2026 fix notes in buildLLMSilenceInstructionsInternal().
  */
 export function buildLLMSilenceInstructions(
   persona: PersonaConfig,
@@ -2150,6 +2155,10 @@ export function buildLLMSilenceInstructions(
  *
  * Loads persona-specific guidance templates from bundles for more
  * natural, persona-voiced responses.
+ *
+ * @deprecated Instructions are now framed as inner monologue to prevent LLM echoing.
+ * Still functional but callers should ensure instructions are never used as imperative
+ * directives. See Jan 2026 fix notes in buildLLMSilenceInstructionsInternal().
  */
 export async function buildLLMSilenceInstructionsAsync(
   persona: PersonaConfig,
@@ -2158,6 +2167,211 @@ export async function buildLLMSilenceInstructionsAsync(
   const canonicalId = getCanonicalPersonaId(persona.id);
   const dynamicContent = await getSilenceContent(canonicalId);
   return buildLLMSilenceInstructionsInternal(persona, context, dynamicContent);
+}
+
+/**
+ * Sample a random example phrase from the persona's silence bundle for style inspiration.
+ * The example is included in instructions as a "vibe" cue, not a script to copy.
+ */
+function sampleBundleExample(
+  type: SilenceResponseType,
+  dynamicContent: SilenceResponses | null
+): string | null {
+  if (!dynamicContent) return null;
+
+  switch (type) {
+    case 'thinking_out_loud': {
+      const pool = [
+        ...(dynamicContent.thinking_out_loud?.general ?? []),
+        ...(dynamicContent.thinking_out_loud?.after_personal_share ?? []),
+      ];
+      return pool.length > 0 ? randomFrom(pool) : null;
+    }
+    case 'gentle_observation':
+      return dynamicContent.gentle_observations?.length
+        ? randomFrom(dynamicContent.gentle_observations)
+        : null;
+    case 'micro_story':
+      return dynamicContent.micro_stories?.length
+        ? randomFrom(dynamicContent.micro_stories)
+        : null;
+    case 'gentle_humor':
+      return dynamicContent.gentle_humor?.length
+        ? randomFrom(dynamicContent.gentle_humor)
+        : null;
+    case 'thoughtful_question': {
+      const pool = [
+        ...(dynamicContent.thoughtful_questions?.persona_voice ?? []),
+        ...(dynamicContent.thoughtful_questions?.general ?? []),
+      ];
+      return pool.length > 0 ? randomFrom(pool) : null;
+    }
+    case 'memory_callback':
+      return dynamicContent.memory_callback_templates?.length
+        ? randomFrom(dynamicContent.memory_callback_templates)
+        : null;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Response vibe definition for weighted random selection.
+ */
+interface SilenceVibe {
+  type: SilenceResponseType;
+  guidance: string;
+  invitesReply: boolean;
+  /** Base weight (higher = more likely to be picked) */
+  baseWeight: number;
+}
+
+/**
+ * All available response vibes with base weights and inner-monologue-framed guidance.
+ */
+const SILENCE_VIBES: SilenceVibe[] = [
+  {
+    type: 'thoughtful_question',
+    guidance:
+      'I want to gently re-engage with a thoughtful question about something specific they mentioned — curious, not generic',
+    invitesReply: true,
+    baseWeight: 3,
+  },
+  {
+    type: 'thinking_out_loud',
+    guidance:
+      'Something just occurred to me — I want to think out loud about it briefly, like a genuine thought that just surfaced',
+    invitesReply: false,
+    baseWeight: 3,
+  },
+  {
+    type: 'gentle_observation',
+    guidance:
+      'I want to share a small observation about life or this moment — something honest and unhurried, no questions',
+    invitesReply: false,
+    baseWeight: 2,
+  },
+  {
+    type: 'micro_story',
+    guidance:
+      'A brief personal moment or memory just came to mind — I want to share it naturally, just 1-2 sentences, something real from my life',
+    invitesReply: false,
+    baseWeight: 2,
+  },
+  {
+    type: 'gentle_humor',
+    guidance:
+      'Something light just occurred to me — I want to share it, nothing forced, just a small human moment',
+    invitesReply: false,
+    baseWeight: 1,
+  },
+  {
+    type: 'memory_callback',
+    guidance:
+      'Something they said earlier is still resonating with me — I want to reflect on it briefly, just acknowledging it',
+    invitesReply: false,
+    baseWeight: 2,
+  },
+];
+
+/**
+ * For established conversations with longer silences, use weighted random selection
+ * influenced by conversation context and escalating silence probability.
+ *
+ * Three "Better than Human" behaviors:
+ * 1. Weighted random — unpredictable like a real person, not a fixed playlist
+ * 2. Context-sensitive — emotional conversations weight toward presence/thinking,
+ *    casual conversations allow humor and stories
+ * 3. Escalating silence — the more you've spoken during quiet, the more likely
+ *    you should just stay quiet (returns null = "don't speak")
+ */
+function getVariedLongSilenceResponse(
+  silenceNum: number,
+  dynamicContent: SilenceResponses | null,
+  context: SilenceContext
+): { type: SilenceResponseType; guidance: string; invitesReply: boolean } | null {
+  // --- Escalating silence probability ---
+  // A real friend doesn't fill every silence. The more times we've already spoken
+  // during quiet moments, the more likely we should just be present.
+  //   silenceNum 0: 0% chance of staying silent (first response always speaks)
+  //   silenceNum 1: 15% chance of staying silent
+  //   silenceNum 2: 35% chance
+  //   silenceNum 3+: 55% chance
+  const silenceProbability =
+    silenceNum === 0 ? 0 : silenceNum === 1 ? 0.15 : silenceNum === 2 ? 0.35 : 0.55;
+
+  if (Math.random() < silenceProbability) {
+    return null; // Stay quiet — the most human response
+  }
+
+  // --- Context-sensitive weighting ---
+  // Clone base weights and adjust based on what's actually happening
+  const weights = SILENCE_VIBES.map((v) => ({ ...v, weight: v.baseWeight }));
+
+  const tone = context.recentEmotionalTone;
+  const hasTopics =
+    (context.topicsDiscussed && context.topicsDiscussed.length > 0) ||
+    context.wasDiscussingTopic ||
+    context.lastUserMessage;
+
+  for (const w of weights) {
+    // After emotional/heavy conversation: boost presence-oriented types, suppress humor
+    if (tone === 'heavy') {
+      if (w.type === 'thinking_out_loud' || w.type === 'memory_callback') w.weight += 3;
+      if (w.type === 'gentle_humor' || w.type === 'micro_story') w.weight = 0;
+      if (w.type === 'thoughtful_question') w.weight = 1; // gentle, not probing
+    }
+
+    // Light/casual tone: humor and stories become viable
+    if (tone === 'light') {
+      if (w.type === 'gentle_humor' || w.type === 'micro_story') w.weight += 2;
+    }
+
+    // No topics to reference: suppress memory_callback, boost observation/story
+    if (!hasTopics) {
+      if (w.type === 'memory_callback') w.weight = 0;
+      if (w.type === 'thoughtful_question') w.weight = 1;
+      if (w.type === 'gentle_observation' || w.type === 'micro_story') w.weight += 2;
+    }
+
+    // Suppress thoughtful_question after first silence (prevents "how's your week" repeat)
+    if (silenceNum >= 1 && w.type === 'thoughtful_question') {
+      w.weight = Math.max(0, w.weight - 2);
+    }
+  }
+
+  // --- Weighted random selection ---
+  const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
+  if (totalWeight === 0) {
+    // All weights zeroed out — fall back to thinking_out_loud
+    return {
+      type: 'thinking_out_loud',
+      guidance: 'Something just occurred to me — I want to share a brief genuine thought',
+      invitesReply: false,
+    };
+  }
+
+  let roll = Math.random() * totalWeight;
+  let selected = weights[0];
+  for (const w of weights) {
+    roll -= w.weight;
+    if (roll <= 0) {
+      selected = w;
+      break;
+    }
+  }
+
+  // --- Sample a style example from the persona bundle ---
+  let guidance = selected.guidance;
+  const example = sampleBundleExample(selected.type, dynamicContent);
+  if (example) {
+    const cleanExample = context.wasDiscussingTopic
+      ? example.replace(/\{topic\}/g, context.wasDiscussingTopic)
+      : example.replace(/\{topic\}/g, 'what they shared');
+    guidance += `. Something in this vibe: "${cleanExample}"`;
+  }
+
+  return { type: selected.type, guidance, invitesReply: selected.invitesReply };
 }
 
 /**
@@ -2180,25 +2394,21 @@ function buildLLMSilenceInstructionsInternal(
     isMusicPlaying,
   } = context;
 
-  // Build context hints
+  // Build context hints as inner monologue (safe if echoed as speech).
+  // NOTE: lastUserMessage and wasDiscussingTopic are handled in innerThoughts
+  // below (lines 2316-2327) — do NOT duplicate them here.
   const contextHints: string[] = [];
 
-  if (lastUserMessage) {
-    contextHints.push(`Last thing user said: "${lastUserMessage.slice(0, 100)}"`);
-  }
-
-  if (wasDiscussingTopic) {
-    contextHints.push(`You were discussing: ${wasDiscussingTopic}`);
-  } else if (topicsDiscussed && topicsDiscussed.length > 0) {
-    contextHints.push(`Topics this session: ${topicsDiscussed.slice(-3).join(', ')}`);
+  if (!wasDiscussingTopic && topicsDiscussed && topicsDiscussed.length > 0) {
+    contextHints.push(`We've been talking about ${topicsDiscussed.slice(-3).join(', ')}`);
   }
 
   if (recentEmotionalTone === 'heavy') {
-    contextHints.push('The conversation has been heavy/emotional - be gentle');
+    contextHints.push('This has been a heavy conversation, I should be gentle');
   }
 
   if (userName) {
-    contextHints.push(`User's name: ${userName}`);
+    contextHints.push(`I know their name is ${userName}`);
   }
 
   // CRITICAL: Tell the LLM when music is playing!
@@ -2206,18 +2416,17 @@ function buildLLMSilenceInstructionsInternal(
   // "I can't play music" or offer to play music when it's already playing.
   if (isMusicPlaying) {
     contextHints.push(
-      'MUSIC IS CURRENTLY PLAYING - You already started music. Do NOT say you cannot play music. ' +
-        'Do NOT offer to play music. Simply enjoy the musical moment together. ' +
-        'You can comment on the music if appropriate, or just be present.'
+      'I already put on some music for us — I should just enjoy this moment together ' +
+        'and not offer to play anything else'
     );
   }
 
-  // Time of day awareness
+  // Time of day awareness (inner monologue framing)
   const timeHint =
     currentHour >= 22 || currentHour < 6
-      ? "It's late night - gentle, soft energy"
+      ? "It's late at night, I should keep things gentle and soft"
       : currentHour >= 6 && currentHour < 12
-        ? "It's morning - steady energy"
+        ? "It's morning, a calm steady energy feels right"
         : '';
 
   // Get usage rules from dynamic content or use defaults
@@ -2238,24 +2447,20 @@ function buildLLMSilenceInstructionsInternal(
   // Get dynamic guidance templates if available
   const llmGuidance = dynamicContent?.llm_guidance;
 
-  // CRITICAL: Response guidance uses STRUCTURED COMMANDS only.
-  // NO conversational phrases that could be echoed as speech!
-  // Format: [TYPE] → [CONSTRAINTS]
-
-  // FIX (Jan 2026): Changed instruction format to be IMPERATIVES, not bracketed markers.
-  // Gemini was echoing back [TYPE: presence] as if it were output format.
-  // Now we use clear imperative instructions like "Say something warm..."
+  // CRITICAL (Jan 2026): generateReply(instructions) sends instructions as a MODEL ROLE turn
+  // in Gemini Live (not as system instructions). This means Gemini sees them as its own prior
+  // output and can echo them as speech. Instructions MUST be phrased as inner monologue
+  // ("I should..." / "I want to...") so if echoed they still sound natural, and must NEVER
+  // contain imperative directives like "Say X" or "Ask Y" which get spoken verbatim.
 
   if (silenceDurationSeconds < firstThreshold || recentEmotionalTone === 'heavy') {
     // Short silence or heavy topic - just presence
     responseType = 'comfortable_presence';
-    // FIX (Jan 2026): Removed "OR silence" - this caused LLM to output nothing
-    // We want a brief acknowledgment, not literal silence
     responseGuidance =
       llmGuidance?.presence?.instruction_template?.replace(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
-      ) || "Say something warm and brief (under 5 words). Just acknowledge you're here.";
+      ) || 'I want to offer a brief warm presence — just a few words, under 5, no questions.';
     invitesReply = false;
   } else if (silenceDurationSeconds < secondThreshold && hasTopicsToReference) {
     // Medium silence WITH something to reference - use memory callback
@@ -2265,7 +2470,7 @@ function buildLLMSilenceInstructionsInternal(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
       ) ||
-      "Reference something specific they shared. Don't ask a question - just acknowledge what they said.";
+      'I should reference something specific they shared — just acknowledging it, not asking a question.';
     invitesReply = false;
   } else if (silenceDurationSeconds < secondThreshold) {
     // Medium silence but NO topics to reference - fall back to presence
@@ -2274,18 +2479,26 @@ function buildLLMSilenceInstructionsInternal(
       llmGuidance?.presence?.instruction_template?.replace(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
-      ) || 'Say something warm (under 8 words). Be present without pressure.';
+      ) || 'I want to be present without pressure — something warm, under 8 words.';
     invitesReply = false;
   } else if (turnCount >= questionMinTurns) {
-    // Longer silence, established conversation - thoughtful question
-    responseType = 'thoughtful_question';
-    responseGuidance =
-      llmGuidance?.thoughtful_question?.instruction_template?.replace(
-        '{duration}',
-        String(Math.round(silenceDurationSeconds))
-      ) ||
-      'Ask a thoughtful question about something specific they mentioned. Make it feel curious, not generic.';
-    invitesReply = true;
+    // Longer silence, established conversation — weighted random selection with
+    // context-sensitive weighting and escalating silence probability (BTH strategy)
+    const silenceNum = context.silenceResponseCount ?? 0;
+    const varied = getVariedLongSilenceResponse(silenceNum, dynamicContent, context);
+    if (!varied) {
+      // Escalating silence: decided to stay quiet — the most human response
+      return {
+        instructions: '',
+        allowInterruptions: true,
+        fallback: '',
+        type: 'comfortable_presence',
+        invitesReply: false,
+      };
+    }
+    responseType = varied.type;
+    responseGuidance = varied.guidance;
+    invitesReply = varied.invitesReply;
   } else {
     // Early conversation, long silence - gentle check-in
     responseType = 'warm_check_in';
@@ -2293,7 +2506,7 @@ function buildLLMSilenceInstructionsInternal(
       llmGuidance?.check_in?.instruction_template?.replace(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
-      ) || 'Check in gently (under 10 words). Be curious, not concerned.';
+      ) || 'I should check in gently — under 10 words, curious not concerned.';
     invitesReply = true;
   }
 
@@ -2309,49 +2522,31 @@ function buildLLMSilenceInstructionsInternal(
     };
   }
 
-  // Include actual conversation content, not just metadata
-  const conversationContext: string[] = [];
+  // FIX (Jan 2026): generateReply(instructions) sends as a MODEL ROLE turn in Gemini Live.
+  // The model sees these as its own prior output and ECHOES them as speech!
+  //
+  // CRITICAL FIX (Jan 2026 v2): DO NOT include context hints, inner thoughts, or metadata
+  // in the instructions. Gemini Live echoes EVERYTHING sent via generateReply().
+  // Only send the minimal response guidance - the context should be in system instructions.
+  //
+  // The "Speaking now:" cue tells Gemini its next output IS the spoken words.
 
-  if (lastUserMessage) {
-    // Include more of their actual words for genuine reference
-    conversationContext.push(`They said: "${lastUserMessage.slice(0, 200)}"`);
-  }
+  // REMOVED: All innerThoughts that were being echoed as speech:
+  // - "I know their name is X"
+  // - "It's late at night, I should..."
+  // - "We were talking about X"
+  // - "I remember they were saying..."
+  // These were all being spoken aloud by Gemini!
 
-  if (context.memorableMoments && context.memorableMoments.length > 0) {
-    conversationContext.push(
-      `Key moments shared: ${context.memorableMoments.slice(0, 3).join('; ')}`
-    );
-  }
-
-  if (wasDiscussingTopic) {
-    conversationContext.push(`Topic: ${wasDiscussingTopic}`);
-  }
-
-  // FIX (Jan 2026): Build clear imperative instructions without bracket markers.
-  // Gemini was echoing back [SITUATION:], [TYPE:], etc. as if they were output format.
-  // Now we use natural language that clearly separates context from instructions.
-
-  const contextLine = conversationContext.length > 0 ? conversationContext.join('. ') : '';
-  const hintsLine = contextHints.length > 0 ? contextHints.join('. ') : '';
-
-  // Build context section (clearly labeled as CONTEXT to read, not output)
-  const contextSection = [
-    contextLine,
-    hintsLine,
-    timeHint,
-    `It's been ${Math.round(silenceDurationSeconds)} seconds of silence.`,
-  ]
-    .filter(Boolean)
-    .join(' ');
-
-  // Build clear instructions that won't be echoed
-  const instructions = `CONTEXT (read but do NOT include in your response):
-${contextSection}
-
-YOUR TASK:
-${responseGuidance}
-
-CRITICAL: Output ONLY your spoken response. No meta-commentary, no brackets, no quotes around your response. Just speak naturally.`;
+  // CRITICAL FIX (Jan 2026 v3): Strip ALL meta-instruction patterns from responseGuidance.
+  // Patterns like "(under 10 words)", "warm but not pushy", "Be curious not concerned"
+  // are meant to guide the LLM's style but Gemini echoes them as speech!
+  //
+  // The cleanest approach: Send ONLY "Speaking now:" and let the LLM use its general
+  // training + system prompt for tone. The responseType guides fallback selection.
+  //
+  // Previous attempts kept responseGuidance which still had meta-instructions leaking.
+  const instructions = 'Speaking now:';
 
   // Generate smart fallback instead of random static selection
   const smartFallback = getSmartFallbackWithRecency(context, invitesReply);
@@ -2370,6 +2565,10 @@ CRITICAL: Output ONLY your spoken response. No meta-commentary, no brackets, no 
  *
  * Use this with session.generateReply() for natural, contextual responses
  * that feel genuinely responsive to the moment.
+ *
+ * @deprecated Instructions are now framed as inner monologue to prevent LLM echoing.
+ * Still functional but callers should ensure instructions are never used as imperative
+ * directives. See Jan 2026 fix notes in buildLLMSilenceInstructionsInternal().
  *
  * @example
  * const silenceInstructions = getLLMSilenceInstructions(persona, context);
@@ -2392,6 +2591,10 @@ export function getLLMSilenceInstructions(
  *
  * This version loads persona-specific content from bundles for
  * more natural, persona-voiced responses.
+ *
+ * @deprecated Instructions are now framed as inner monologue to prevent LLM echoing.
+ * Still functional but callers should ensure instructions are never used as imperative
+ * directives. See Jan 2026 fix notes in buildLLMSilenceInstructionsInternal().
  *
  * @example
  * const silenceInstructions = await getLLMSilenceInstructionsAsync(persona, context);

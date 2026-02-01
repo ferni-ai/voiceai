@@ -1,4 +1,3 @@
-// TODO: Fix type errors - API response indexing
 /**
  * Insights API Client
  *

@@ -114,12 +114,74 @@ Defined in `src/personas/cognitive-profiles.ts`:
 - Planning/milestone → 🎉
 - Default → ✨
 
+## Module Structure
+
+Beyond bundles, the personas module contains supporting infrastructure:
+
+```
+personas/
+├── bundles/                      # Persona content bundles (see bundles/CLAUDE.md)
+├── registry/                     # Persona registry
+│   └── persona-registry-impl.ts  # Registry implementation
+├── shared/                       # Shared persona utilities
+│   ├── persona-turn-personality.ts
+│   └── team-chemistry.ts
+├── __tests__/                    # 6+ test files
+├── cognitive-advanced/           # Advanced cognitive module
+│
+├── # Core Files
+├── index.ts                      # Main exports
+├── types.ts                      # Persona type definitions
+├── persona-ids.ts                # Persona ID constants
+├── agent-directory.ts            # Agent directory for handoffs
+├── voice-registry.ts             # Voice registry
+├── id-mapping.ts                 # ID mapping utilities
+│
+├── # Cognitive System (8 files)
+├── cognitive-profiles.ts         # Base cognitive profiles
+├── cognitive-types.ts            # Cognitive type definitions
+├── cognitive-index.ts            # Cognitive index
+├── cognitive-intelligence.ts     # Cognitive intelligence engine
+├── cognitive-persistence.ts      # Cognitive data persistence
+├── cognitive-differentiation.ts  # Cognitive differentiation
+├── cognitive-quirks.ts           # Personality quirks
+├── cognitive-advanced.ts         # Advanced cognitive features
+├── collaborative-cognition.ts    # Multi-persona cognitive collaboration
+│
+├── # Behaviors & Greetings
+├── greetings.ts                  # Greeting generation
+├── compositional-greetings.ts    # Compositional greeting builder
+├── alive-entrances.ts            # Dynamic entrance behaviors
+├── voice-emotion-entrances.ts    # Emotion-driven entrances
+├── behaviors.ts                  # Behavior system
+├── dynamic-responses.ts          # Dynamic response generation
+├── easter-eggs.ts                # Easter egg behaviors
+├── theatrical.ts                 # Theatrical moments
+│
+├── # Moment & Silence
+├── meaningful-silence/           # Meaningful silence detection
+├── meaningful-silence.ts         # Silence interpretation
+├── moment-detection.ts           # Moment detection engine
+├── unified-moment-detection.ts   # Unified moment detection
+│
+├── # Team & Support
+├── team/                         # Team coordination
+├── generic-advisor/              # Generic advisor persona
+├── wellness-coach/               # Wellness coach persona
+├── base-identity.ts              # Base identity template
+└── _archived/                    # Archived files
+```
+
 ## Adding a New Persona
 
 1. Create bundle directory: `bundles/{persona-id}/`
 2. Create `persona.manifest.json` with required fields
 3. Write `identity/biography.md` and `identity/system-prompt.md`
 4. Add voice ID to `src/config/voice-ids.ts`
-5. Register in `src/personas/registry/unified-registry.ts`
+5. Register in `src/personas/registry/persona-registry-impl.ts`
 6. Add color to design tokens if needed
-7. Test with: `npm run dev -- --persona={persona-id}`
+7. Test with: `pnpm dev -- --persona={persona-id}`
+
+---
+
+*Last updated: January 2026*

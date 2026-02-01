@@ -831,7 +831,11 @@ export class ConversationStateManager {
 
     this.touch();
     this.logger.debug(
-      { toolName, success: options?.success ?? true, historyLength: this.state.toolExecution.history.length },
+      {
+        toolName,
+        success: options?.success ?? true,
+        historyLength: this.state.toolExecution.history.length,
+      },
       '🔧 Tool call recorded with history'
     );
   }
@@ -881,7 +885,12 @@ export class ConversationStateManager {
    * Get the currently executing tool (if any).
    * Returns null if no tool is in-flight.
    */
-  getToolInFlight(): { toolId: string; startedAt: number; elapsedMs: number; expectedDurationMs?: number } | null {
+  getToolInFlight(): {
+    toolId: string;
+    startedAt: number;
+    elapsedMs: number;
+    expectedDurationMs?: number;
+  } | null {
     const inFlight = this.state.toolExecution.toolInFlight;
     if (!inFlight) return null;
 

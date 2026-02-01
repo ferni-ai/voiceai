@@ -29,7 +29,11 @@ const log = createLogger({ module: 'WebExperiments' });
 function safeToDate(value: unknown): Date {
   if (!value) return new Date();
   if (value instanceof Date) return value;
-  if (typeof value === 'object' && 'toDate' in value && typeof (value as { toDate: () => Date }).toDate === 'function') {
+  if (
+    typeof value === 'object' &&
+    'toDate' in value &&
+    typeof (value as { toDate: () => Date }).toDate === 'function'
+  ) {
     return (value as { toDate: () => Date }).toDate();
   }
   if (typeof value === 'string' || typeof value === 'number') {

@@ -465,11 +465,7 @@ export {
 } from './marketing.semantic.js';
 
 // Referral (voice calls via Twilio)
-export {
-  referralTools,
-  inviteFriendByCallTool,
-  sendSupportCallTool,
-} from './referral.semantic.js';
+export { referralTools, inviteFriendByCallTool, sendSupportCallTool } from './referral.semantic.js';
 
 // Voice Enrollment (speaker recognition)
 export {

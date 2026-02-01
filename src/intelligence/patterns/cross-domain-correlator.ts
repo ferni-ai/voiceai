@@ -284,8 +284,7 @@ function updateOrCreateCorrelation(
   signalB: DomainSignal
 ): void {
   // Normalize order for consistent matching
-  const [first, second] =
-    signalA.domain < signalB.domain ? [signalA, signalB] : [signalB, signalA];
+  const [first, second] = signalA.domain < signalB.domain ? [signalA, signalB] : [signalB, signalA];
 
   // Look for existing correlation
   const existing = state.correlations.find(
@@ -346,9 +345,7 @@ function updateOrCreateCorrelation(
 /**
  * Calculate confidence level based on observation count.
  */
-function calculateConfidence(
-  observationCount: number
-): 'suspected' | 'likely' | 'confirmed' {
+function calculateConfidence(observationCount: number): 'suspected' | 'likely' | 'confirmed' {
   if (observationCount >= CONFIG.MIN_OBSERVATIONS_FOR_CONFIRMED) {
     return 'confirmed';
   }
@@ -524,8 +521,7 @@ export function getCorrelations(
   if (options?.domains?.length) {
     correlations = correlations.filter(
       (c) =>
-        options.domains!.includes(c.domainA.domain) ||
-        options.domains!.includes(c.domainB.domain)
+        options.domains!.includes(c.domainA.domain) || options.domains!.includes(c.domainB.domain)
     );
   }
 
@@ -601,8 +597,7 @@ export function getRelevantCorrelations(
     if (corr.confidence === 'confirmed') relevance += 0.2;
 
     // Recency boost
-    const daysSince =
-      (Date.now() - new Date(corr.lastObserved).getTime()) / (1000 * 60 * 60 * 24);
+    const daysSince = (Date.now() - new Date(corr.lastObserved).getTime()) / (1000 * 60 * 60 * 24);
     if (daysSince < 7) relevance += 0.1;
 
     // Penalty if recently surfaced

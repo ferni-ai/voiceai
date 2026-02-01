@@ -8,6 +8,11 @@ import type { llm } from '@livekit/agents';
 // Import base type from shared types to avoid circular dependency
 // (intelligence/context-builders → ... → agents/processors → intelligence/context-builders)
 import type { HumanizingResultBase } from '../../types/humanizing-types.js';
+// ContextInjection is now in types/context-injection-types.ts to avoid architecture violations
+// Re-export for backward compatibility with existing importers
+export type { ContextInjection } from '../../types/context-injection-types.js';
+// Import for local use within this file
+import type { ContextInjection } from '../../types/context-injection-types.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationAnalysis, SessionServices } from '../../services/index.js';
@@ -57,6 +62,10 @@ export interface TurnContext {
     naturalPhrasing: string;
     receptivityScore?: number;
   }>;
+  /** Memory IDs surfaced in the PREVIOUS turn (for response tracking) */
+  lastSurfacedMemoryIds?: string[];
+  /** Memory IDs surfaced this session (for deduplication) */
+  memoriesSurfacedThisSession?: string[];
 }
 
 // ============================================================================
@@ -81,17 +90,9 @@ export interface TurnAnalysisResult {
 // CONTEXT INJECTIONS - Guidance for LLM
 // ============================================================================
 
-/**
- * A single context injection to add to the LLM prompt
- */
-export interface ContextInjection {
-  /** Category of the injection (for filtering/logging) */
-  category: string;
-  /** The injection content */
-  content: string;
-  /** Priority (higher = more important) */
-  priority: number;
-}
+// NOTE: ContextInjection interface has been moved to types/context-injection-types.ts
+// to avoid architecture layer violations (intelligence -> agents).
+// It is re-exported above for backward compatibility.
 
 /**
  * Result of building all context injections
@@ -373,6 +374,20 @@ export interface TurnProcessorResult {
    * to trigger a natural backchannel like "Does that track?"
    */
   resonanceCheck?: ResonanceCheckResult;
+
+  /**
+   * 🧠 MEMORY INTELLIGENCE: Surfaced memory tracking for preference learning
+   * Pass these IDs to the next turn's TurnContext.lastSurfacedMemoryIds
+   * to enable response tracking and preference learning.
+   */
+  memoryIntelligence?: {
+    /** Memory IDs surfaced this turn (for next turn's response tracking) */
+    surfacedMemoryIds: string[];
+    /** Total surfacings this session */
+    surfacingCount: number;
+    /** All memory IDs surfaced this session (for deduplication) */
+    memoriesSurfacedThisSession: string[];
+  };
 }
 
 /**

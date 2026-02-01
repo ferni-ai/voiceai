@@ -23,7 +23,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 // Use centralized FTIS V2 mode check - single source of truth
-import { isFTISV2OnlyMode } from '../processors/ftis-v2-integration.js';
+import { isFTISV2OnlyMode } from '../processors/tool-routing-integration.js';
 
 const log = createLogger({ module: 'PromptLoader' });
 
@@ -98,7 +98,11 @@ function truncatePromptToTokenLimit(prompt: string, maxTokens: number): string {
       }
       // Skip remaining sections
       log.info(
-        { sectionsKept: result.length, sectionsTotal: sections.length, sectionsSkipped: sections.length - result.length },
+        {
+          sectionsKept: result.length,
+          sectionsTotal: sections.length,
+          sectionsSkipped: sections.length - result.length,
+        },
         '📏 Skipping remaining sections to fit token limit'
       );
       break;
@@ -234,13 +238,22 @@ async function loadGeneratedToolDocs(): Promise<string | null> {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = dirname(__filename);
 
-    const filePath = join(__dirname, '../../../tools/schemas/generated/function-calling-base.generated.md');
+    const filePath = join(
+      __dirname,
+      '../../../tools/schemas/generated/function-calling-base.generated.md'
+    );
     const content = await fs.readFile(filePath, 'utf-8');
 
-    log.info({ source: 'generated' }, '📝 Loaded generated function-calling docs from tool schemas');
+    log.info(
+      { source: 'generated' },
+      '📝 Loaded generated function-calling docs from tool schemas'
+    );
     return content;
   } catch {
-    log.warn({}, '⚠️ USE_GENERATED_TOOL_DOCS=true but generated file not found - falling back to manual');
+    log.warn(
+      {},
+      '⚠️ USE_GENERATED_TOOL_DOCS=true but generated file not found - falling back to manual'
+    );
     return null;
   }
 }
@@ -251,6 +264,60 @@ async function loadGeneratedToolDocs(): Promise<string | null> {
  */
 async function loadSafetyDisclaimer(): Promise<string | null> {
   return loadSharedFile('safety-disclaimer.md');
+}
+
+// ============================================================================
+// BETTER THAN HUMAN (BTH) MODULES
+// ============================================================================
+
+/**
+ * Load "Better Than Human" shared modules.
+ *
+ * These are CRITICAL for our brand promise - they define what makes Ferni
+ * superhuman, not just another AI assistant.
+ *
+ * Modules:
+ * 1. mission-and-principles.md - Core philosophy and decision framework
+ * 2. superhuman-capabilities.md - The 10 superhuman insight types
+ * 3. proactive-responsibilities.md - When and how to be proactive
+ *
+ * @returns Combined BTH content, or null if files not found
+ */
+async function loadBetterThanHumanModules(): Promise<string | null> {
+  const parts: string[] = [];
+
+  // 1. Mission & Principles (foundational - load first)
+  const mission = await loadSharedFile('mission-and-principles.md');
+  if (mission) {
+    parts.push(mission);
+    log.debug('Loaded mission-and-principles.md');
+  }
+
+  // 2. Superhuman Capabilities (10 insight types)
+  const capabilities = await loadSharedFile('superhuman-capabilities.md');
+  if (capabilities) {
+    parts.push(capabilities);
+    log.debug('Loaded superhuman-capabilities.md');
+  }
+
+  // 3. Proactive Responsibilities (when to act)
+  const proactive = await loadSharedFile('proactive-responsibilities.md');
+  if (proactive) {
+    parts.push(proactive);
+    log.debug('Loaded proactive-responsibilities.md');
+  }
+
+  if (parts.length === 0) {
+    log.warn('No Better Than Human modules found');
+    return null;
+  }
+
+  log.info(
+    { modulesLoaded: parts.length },
+    '🦸 Loaded Better Than Human modules (superhuman capabilities)'
+  );
+
+  return parts.join('\n\n---\n\n');
 }
 
 /**
@@ -327,7 +394,10 @@ async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | 
 
   // If generated docs available and enabled, use them instead of manual base
   if (generatedDocs && specialty) {
-    log.debug({ bundleDir, source: 'generated' }, 'Using generated function-calling docs + persona specialty');
+    log.debug(
+      { bundleDir, source: 'generated' },
+      'Using generated function-calling docs + persona specialty'
+    );
     parts.push(generatedDocs, specialty);
     return parts.join('\n\n---\n\n');
   }
@@ -497,6 +567,17 @@ export async function loadSystemPrompt(
         continue;
       }
 
+      // Special handling for better_than_human - shared superhuman capabilities
+      // (ALL personas need this - it's what makes us "Better Than Human")
+      if (moduleKey === 'better_than_human') {
+        const bthContent = await loadBetterThanHumanModules();
+        if (bthContent) {
+          sections.push(bthContent);
+          loadedModules.push(moduleKey);
+        }
+        continue;
+      }
+
       const content = await loadFile(bundleDir, modulePath);
       if (content) {
         sections.push(content);
@@ -586,6 +667,14 @@ export async function loadDirectorsNotes(personaId: string): Promise<string | nu
   return loadFile(bundleDir, 'identity/directors-notes.md');
 }
 
+/**
+ * Load "Better Than Human" shared modules.
+ * Exported for testing and validation.
+ */
+export async function loadBetterThanHuman(): Promise<string | null> {
+  return loadBetterThanHumanModules();
+}
+
 // ============================================================================
 // CACHING
 // ============================================================================
@@ -648,31 +737,24 @@ let modelBaseInstructionsCache: string | null = null;
  * NOTE: Providers with native function calling (e.g., OpenAI Realtime) use
  * minimal instructions to prevent the LLM from outputting "fn:speak" etc.
  *
- * NOTE: When FTIS V2 mode is active, load model-base-instructions-ftis.md which
- * does NOT include JSON format examples (FTIS handles all tools externally).
+ * NOTE: When FTIS V2 mode is active OR native prompts mode is enabled,
+ * load model-base-instructions-ftis.md which does NOT include JSON format examples.
  */
 export async function loadModelBaseInstructions(): Promise<string> {
-  // Check if provider uses minimal instructions (native function calling)
-  const provider = getModelProvider();
-  const promptConfig = provider.getPromptModules();
-
-  if (promptConfig.useMinimalInstructions) {
-    const minimalInstructions = provider.getMinimalInstructions();
-    log.info(
-      { providerId: provider.id, length: minimalInstructions.length },
-      `${provider.getLogPrefix()} Using minimal instructions (native function calling)`
-    );
-    return minimalInstructions;
-  }
-
-  // Return cached if available (providers that need full instructions)
+  // Return cached if available
   if (modelBaseInstructionsCache) {
     return modelBaseInstructionsCache;
   }
 
-  // Check if FTIS V2 mode is active - use FTIS-specific instructions (no JSON)
+  const provider = getModelProvider();
+  const promptConfig = provider.getPromptModules();
+
+  // Check if FTIS V2 mode is active OR provider uses native prompts (no JSON format)
   // Uses isFTISV2OnlyMode() as SINGLE SOURCE OF TRUTH (enabled by default!)
   const isFTISV2Mode = isFTISV2OnlyMode();
+  // Also skip JSON instructions when provider uses native FC with native prompts
+  const useNativePrompts = !promptConfig.includeFunctionCallingBase;
+  const skipJsonInstructions = isFTISV2Mode || useNativePrompts;
 
   try {
     const fs = await import('fs/promises');
@@ -681,31 +763,74 @@ export async function loadModelBaseInstructions(): Promise<string> {
 
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = dirname(__filename);
+    const sharedDir = join(__dirname, '../../personas/bundles/shared');
 
-    // Load from shared bundles directory
-    // Use FTIS-specific instructions when FTIS V2 mode is active (no JSON examples)
-    const fileName = isFTISV2Mode ? 'model-base-instructions-ftis.md' : 'model-base-instructions.md';
-    const basePath = join(__dirname, '../../personas/bundles/shared', fileName);
-    const content = await fs.readFile(basePath, 'utf-8');
+    // ALWAYS load voice-output-rules.md (critical anti-reasoning rules)
+    // This file is loaded regardless of provider or mode
+    let voiceOutputRules = '';
+    try {
+      voiceOutputRules = await fs.readFile(join(sharedDir, 'voice-output-rules.md'), 'utf-8');
+      log.debug({}, 'Loaded voice-output-rules.md (anti-reasoning rules)');
+    } catch {
+      log.warn({}, '⚠️ voice-output-rules.md not found - reasoning may leak through');
+    }
+
+    let baseContent: string;
+
+    // Check if provider uses minimal instructions (native function calling)
+    if (promptConfig.useMinimalInstructions) {
+      baseContent = provider.getMinimalInstructions();
+      log.info(
+        { providerId: provider.id, length: baseContent.length },
+        `${provider.getLogPrefix()} Using minimal instructions (native function calling)`
+      );
+    } else {
+      // Load from shared bundles directory
+      // Use FTIS-specific instructions when FTIS V2 mode is active OR native prompts enabled (no JSON examples)
+      const fileName = skipJsonInstructions
+        ? 'model-base-instructions-ftis.md'
+        : 'model-base-instructions.md';
+      const basePath = join(sharedDir, fileName);
+      baseContent = await fs.readFile(basePath, 'utf-8');
+
+      log.info(
+        {
+          length: baseContent.length,
+          estimatedTokens: Math.round(baseContent.length / 4),
+          isFTISV2Mode,
+          useNativePrompts,
+          skipJsonInstructions,
+          fileName,
+        },
+        `Loaded model-level base instructions${skipJsonInstructions ? ' (no JSON format - FTIS V2 or native prompts)' : ''}`
+      );
+    }
+
+    // Combine: base content + voice output rules (always appended)
+    const combined = voiceOutputRules
+      ? `${baseContent}\n\n---\n\n${voiceOutputRules}`
+      : baseContent;
 
     // Cache it
-    modelBaseInstructionsCache = content;
-    log.info(
-      { 
-        length: content.length, 
-        estimatedTokens: Math.round(content.length / 4),
-        isFTISV2Mode,
-        fileName,
-      },
-      `Loaded model-level base instructions${isFTISV2Mode ? ' (FTIS V2 mode - no JSON)' : ''}`
+    modelBaseInstructionsCache = combined;
+    return combined;
+  } catch (error) {
+    log.warn(
+      { error: String(error), skipJsonInstructions },
+      'Failed to load model-base-instructions, using fallback'
     );
 
-    return content;
-  } catch (error) {
-    log.warn({ error: String(error), isFTISV2Mode }, 'Failed to load model-base-instructions, using fallback');
+    // Fallback: different based on mode, but ALWAYS include anti-reasoning rules
+    const antiReasoningRules = `
 
-    // Fallback: different based on mode
-    const fallback = isFTISV2Mode
+CRITICAL: NO INTERNAL REASONING OR THINKING
+Your output is SPOKEN ALOUD. NEVER include:
+- Internal thoughts: "The user seems..." or "I should..."
+- Meta-commentary: "I'll respond with..." or "I'm going to..."
+- Thinking tags: Never output <thinking>, </thinking>, or similar
+Your ENTIRE output becomes audio. Only output what you'd say out loud.`;
+
+    const fallback = skipJsonInstructions
       ? `You are part of Ferni, a voice-first life coaching platform.
 
 Actions happen automatically in the background. You don't call tools or announce actions.
@@ -715,7 +840,7 @@ Just be conversational. When users ask for things like music or weather, respond
 
 CRITICAL: Never output technical text like brackets, status messages, or "tool" language. Just chat naturally.
 
-Never claim capabilities you don't have. Be honest.`
+Never claim capabilities you don't have. Be honest.${antiReasoningRules}`
       : `You are part of Ferni, a voice-first life coaching platform.
 
 When user requests a tool action, output ONLY raw JSON:
@@ -725,7 +850,7 @@ NO speech before or after JSON. Just JSON and stop.
 
 For normal conversation, speak naturally with no JSON.
 
-Never claim capabilities you don't have. Be honest.`;
+Never claim capabilities you don't have. Be honest.${antiReasoningRules}`;
 
     modelBaseInstructionsCache = fallback;
     return fallback;

@@ -97,11 +97,15 @@ export class WebhookRouter {
   /**
    * Remove a handler
    */
-  removeHandler(integrationId: string, eventType: string, handler: WebhookHandler['handler']): void {
+  removeHandler(
+    integrationId: string,
+    eventType: string,
+    handler: WebhookHandler['handler']
+  ): void {
     const key = this.getHandlerKey(integrationId, eventType);
     const existing = this.handlers.get(key) || [];
     const filtered = existing.filter((h) => h.handler !== handler);
-    
+
     if (filtered.length === 0) {
       this.handlers.delete(key);
     } else {
@@ -137,11 +141,7 @@ export class WebhookRouter {
         return { success: false, error: 'Missing signature' };
       }
 
-      const isValid = this.verifySignature(
-        config,
-        signature,
-        rawBody || Buffer.from(body)
-      );
+      const isValid = this.verifySignature(config, signature, rawBody || Buffer.from(body));
 
       if (!isValid) {
         log.warn({ integrationId: config.integrationId }, 'Invalid webhook signature');
@@ -191,11 +191,7 @@ export class WebhookRouter {
   /**
    * Verify webhook signature
    */
-  private verifySignature(
-    config: WebhookConfig,
-    signature: string,
-    body: Buffer
-  ): boolean {
+  private verifySignature(config: WebhookConfig, signature: string, body: Buffer): boolean {
     const secret = this.getWebhookSecret(config.integrationId);
     if (!secret) {
       log.warn({ integrationId: config.integrationId }, 'No webhook secret configured');

@@ -52,7 +52,7 @@ describe('AvoidanceDetector', () => {
 
     it('detects "can we talk about something else"', async () => {
       const analysis = await detector.detect(
-        createContext("Can we talk about something else please?", {
+        createContext('Can we talk about something else please?', {
           previousTopic: 'family',
         })
       );
@@ -80,7 +80,7 @@ describe('AvoidanceDetector', () => {
     it('detects "I don\'t know"', async () => {
       const analysis = await detector.detect(
         createContext("I don't know, I guess.", {
-          previousMessage: "How do you feel about that?",
+          previousMessage: 'How do you feel about that?',
         })
       );
 
@@ -91,7 +91,7 @@ describe('AvoidanceDetector', () => {
     it('detects "it\'s complicated"', async () => {
       const analysis = await detector.detect(
         createContext("It's complicated.", {
-          previousMessage: "Tell me about your relationship with your sister.",
+          previousMessage: 'Tell me about your relationship with your sister.',
         })
       );
 
@@ -101,8 +101,8 @@ describe('AvoidanceDetector', () => {
 
     it('detects single-word dismissals', async () => {
       const analysis = await detector.detect(
-        createContext("Fine.", {
-          previousMessage: "How was your day at work?",
+        createContext('Fine.', {
+          previousMessage: 'How was your day at work?',
         })
       );
 
@@ -118,8 +118,8 @@ describe('AvoidanceDetector', () => {
   describe('deflection detection', () => {
     it('detects "what about you"', async () => {
       const analysis = await detector.detect(
-        createContext("What about you? How do you feel?", {
-          previousMessage: "What happened when you talked to your boss?",
+        createContext('What about you? How do you feel?', {
+          previousMessage: 'What happened when you talked to your boss?',
         })
       );
 
@@ -129,7 +129,7 @@ describe('AvoidanceDetector', () => {
 
     it('detects "you should ask them"', async () => {
       const analysis = await detector.detect(
-        createContext("You should ask my wife about that.", {
+        createContext('You should ask my wife about that.', {
           previousTopic: 'marriage',
         })
       );
@@ -147,7 +147,7 @@ describe('AvoidanceDetector', () => {
     it('detects "it\'s not a big deal"', async () => {
       const analysis = await detector.detect(
         createContext("It's not a big deal, really.", {
-          previousMessage: "That sounds like it hurt you.",
+          previousMessage: 'That sounds like it hurt you.',
         })
       );
 
@@ -158,21 +158,19 @@ describe('AvoidanceDetector', () => {
     it('detects "I\'m fine"', async () => {
       const analysis = await detector.detect(
         createContext("I'm fine.", {
-          previousMessage: "How are you holding up after the breakup?",
+          previousMessage: 'How are you holding up after the breakup?',
         })
       );
 
       expect(analysis.hasAvoidance).toBe(true);
       // Could be detected as minimization or vague_response (both valid)
-      expect(['minimization', 'vague_response']).toContain(
-        analysis.primarySignal?.type
-      );
+      expect(['minimization', 'vague_response']).toContain(analysis.primarySignal?.type);
     });
 
     it('detects "I\'ve had worse"', async () => {
       const analysis = await detector.detect(
         createContext("I've had worse. This is nothing.", {
-          previousMessage: "That situation at work sounds stressful.",
+          previousMessage: 'That situation at work sounds stressful.',
         })
       );
 
@@ -188,8 +186,8 @@ describe('AvoidanceDetector', () => {
   describe('humor_shield detection', () => {
     it('detects "haha" in serious context', async () => {
       const analysis = await detector.detect(
-        createContext("Haha yeah my childhood was great. Anyway.", {
-          previousMessage: "Tell me about your relationship with your parents.",
+        createContext('Haha yeah my childhood was great. Anyway.', {
+          previousMessage: 'Tell me about your relationship with your parents.',
         })
       );
 
@@ -217,7 +215,7 @@ describe('AvoidanceDetector', () => {
     it('detects "everyone goes through this"', async () => {
       const analysis = await detector.detect(
         createContext("Everyone goes through this. It's normal.", {
-          previousMessage: "How do you feel about your anxiety?",
+          previousMessage: 'How do you feel about your anxiety?',
         })
       );
 
@@ -228,7 +226,7 @@ describe('AvoidanceDetector', () => {
     it('detects "that\'s just how things are"', async () => {
       const analysis = await detector.detect(
         createContext("That's just how things are.", {
-          previousMessage: "Do you wish things were different?",
+          previousMessage: 'Do you wish things were different?',
         })
       );
 
@@ -289,7 +287,7 @@ describe('AvoidanceDetector', () => {
 
       // Third avoidance
       await detector.detect(
-        createContext("Can we discuss something else?", {
+        createContext('Can we discuss something else?', {
           previousTopic: 'work',
           sessionId: 'session-3',
         })
@@ -321,7 +319,7 @@ describe('AvoidanceDetector', () => {
 
       // New avoidance
       const analysis = await detector.detect(
-        createContext("Can we talk about something else?", {
+        createContext('Can we talk about something else?', {
           previousTopic: 'family',
           sessionId: 'session-new',
         })
@@ -338,7 +336,7 @@ describe('AvoidanceDetector', () => {
   describe('suggested approach', () => {
     it('returns "note" for first occurrence', async () => {
       const analysis = await detector.detect(
-        createContext("Can we talk about something else please?", {
+        createContext('Can we talk about something else please?', {
           previousTopic: 'new-topic',
         })
       );
@@ -354,8 +352,8 @@ describe('AvoidanceDetector', () => {
 
     it('returns "ignore" when no avoidance', async () => {
       const analysis = await detector.detect(
-        createContext("I really enjoyed that movie we talked about.", {
-          previousMessage: "What did you think of the film?",
+        createContext('I really enjoyed that movie we talked about.', {
+          previousMessage: 'What did you think of the film?',
         })
       );
 
@@ -382,9 +380,7 @@ describe('AvoidanceDetector', () => {
     });
 
     it('returns empty for no avoidance', async () => {
-      const analysis = await detector.detect(
-        createContext("I love talking about this!")
-      );
+      const analysis = await detector.detect(createContext('I love talking about this!'));
 
       const injection = detector.buildContextInjection(analysis);
 
@@ -412,9 +408,7 @@ describe('AvoidanceDetector', () => {
       await detector.acknowledgePattern(userId, 'relationship');
 
       const patterns = await detector.getPatterns(userId);
-      const relationshipPattern = patterns.find(
-        (p) => p.topic.toLowerCase() === 'relationship'
-      );
+      const relationshipPattern = patterns.find((p) => p.topic.toLowerCase() === 'relationship');
 
       expect(relationshipPattern?.acknowledged).toBe(true);
     });

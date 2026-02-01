@@ -182,7 +182,8 @@ export async function warmSessionCaches(
       name: 'embedding-cache',
       fn: async () => {
         try {
-          const { precomputeUserMemoryEmbeddings } = await import('../../memory/embedding-cache.js');
+          const { precomputeUserMemoryEmbeddings } =
+            await import('../../memory/embedding-cache.js');
           // Trigger precomputation with empty array just to initialize the cache
           // Real memories will be loaded when conversation starts
           precomputeUserMemoryEmbeddings([]);

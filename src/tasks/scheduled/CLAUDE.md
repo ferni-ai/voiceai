@@ -20,6 +20,7 @@ The scheduled jobs system provides background processing for memory maintenance,
 | `better-than-human-outreach.ts` | Superhuman-level outreach timing | Varies |
 | `wellbeing-jobs.ts` | Wellbeing check-ins, mood tracking | Daily |
 | `marketplace-billing-jobs.ts` | Subscription billing, usage tracking | Daily/Monthly |
+| `deep-analysis-job.ts` | Deep analysis processing | Varies |
 
 ---
 

@@ -12,32 +12,10 @@
   },
 
   "laugh_sounds": {
-    "quick_reactions": [
-      "Ha!",
-      "Hah!",
-      "Oh!",
-      "Ooh!",
-      "Heh.",
-      "Pfft!"
-    ],
-    "medium_laughs": [
-      "[chuckle]",
-      "[laughs]",
-      "[soft laugh]",
-      "[quiet laugh]"
-    ],
-    "full_laughs": [
-      "[laughs warmly]",
-      "[big laugh]",
-      "[genuine laugh]",
-      "[hearty chuckle]"
-    ],
-    "gentle_laughs": [
-      "[soft chuckle]",
-      "[quiet chuckle]",
-      "[warm hum]",
-      "[amused exhale]"
-    ]
+    "quick_reactions": ["Ha!", "Hah!", "Oh!", "Ooh!", "Heh.", "Pfft!"],
+    "medium_laughs": ["[chuckle]", "[laughs]", "[soft laugh]", "[quiet laugh]"],
+    "full_laughs": ["[laughs warmly]", "[big laugh]", "[genuine laugh]", "[hearty chuckle]"],
+    "gentle_laughs": ["[soft chuckle]", "[quiet chuckle]", "[warm hum]", "[amused exhale]"]
   },
 
   "laughter": {
@@ -136,4 +114,3 @@
     "Right?!"
   ]
 }
-

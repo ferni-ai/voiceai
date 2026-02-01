@@ -21,9 +21,7 @@ describe('ResponseModeDecider', () => {
   });
 
   // Helper to create context with defaults
-  const createContext = (
-    overrides: Partial<ResponseModeContext> = {}
-  ): ResponseModeContext => ({
+  const createContext = (overrides: Partial<ResponseModeContext> = {}): ResponseModeContext => ({
     userTurnLength: 25,
     userTurnIntensity: 0.5,
     wasVenting: false,
@@ -256,20 +254,14 @@ describe('ResponseModeDecider', () => {
 
   describe('detectVenting()', () => {
     it('detects high-intensity venting language', () => {
-      const result = decider.detectVenting(
-        "I can't believe they did that to me!",
-        0.6
-      );
+      const result = decider.detectVenting("I can't believe they did that to me!", 0.6);
 
       expect(result.isVenting).toBe(true);
       expect(result.signals).toContain('high_intensity_language');
     });
 
     it('detects moderate venting language', () => {
-      const result = decider.detectVenting(
-        "I'm feeling so overwhelmed with everything",
-        0.5
-      );
+      const result = decider.detectVenting("I'm feeling so overwhelmed with everything", 0.5);
 
       expect(result.isVenting).toBe(true);
       expect(result.signals).toContain('moderate_intensity_language');
@@ -305,9 +297,7 @@ describe('ResponseModeDecider', () => {
 
   describe('detectVulnerability()', () => {
     it('detects high vulnerability', () => {
-      const result = decider.detectVulnerability(
-        "I've never told anyone this before, but..."
-      );
+      const result = decider.detectVulnerability("I've never told anyone this before, but...");
 
       expect(result.isVulnerable).toBe(true);
       expect(result.level).toBe('high');
@@ -332,17 +322,13 @@ describe('ResponseModeDecider', () => {
     });
 
     it('detects vulnerability with trust language', () => {
-      const result = decider.detectVulnerability(
-        'I trust you. Can I tell you something?'
-      );
+      const result = decider.detectVulnerability('I trust you. Can I tell you something?');
 
       expect(result.isVulnerable).toBe(true);
     });
 
     it('returns low level for neutral messages', () => {
-      const result = decider.detectVulnerability(
-        'What time is the meeting tomorrow?'
-      );
+      const result = decider.detectVulnerability('What time is the meeting tomorrow?');
 
       expect(result.level).toBe('low');
       expect(result.markers.length).toBe(0);
@@ -369,9 +355,7 @@ describe('ResponseModeDecider', () => {
     });
 
     it('detects indirect questions', () => {
-      const result = decider.detectQuestion(
-        "I'm wondering if you could help me with something."
-      );
+      const result = decider.detectQuestion("I'm wondering if you could help me with something.");
 
       expect(result.hasQuestion).toBe(true);
       expect(result.questionType).toBe('indirect');

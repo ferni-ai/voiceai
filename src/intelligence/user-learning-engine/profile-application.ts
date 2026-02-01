@@ -121,6 +121,9 @@ export function applyLearningToProfile(
     updated.sharedStories = updated.sharedStories.slice(-50);
   }
 
+  // NOTE: Family member extraction is now handled in the static method
+  // in engine.ts (UserLearningEngine.applyLearningToProfile)
+
   updated.updatedAt = now;
   updated.version++;
 

@@ -43,7 +43,7 @@ const CALLBACK_PROBABILITY_BY_STAGE: Record<string, number> = {
   acquaintance: 0.15, // Occasionally - starting to build history
   friend: 0.25, // Regularly - natural part of conversation
   trusted: 0.35, // Frequently - deep shared history
-  confidant: 0.40, // Often - rich tapestry of memories
+  confidant: 0.4, // Often - rich tapestry of memories
 };
 
 /**

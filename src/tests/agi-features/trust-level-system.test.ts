@@ -34,7 +34,14 @@ describe('Trust Level System', () => {
 
   describe('ACTION_TYPES Configuration', () => {
     it('should define all required action types', () => {
-      const requiredTypes = ['send_sms', 'send_email', 'create_event', 'book_restaurant', 'book_ride', 'send_payment'];
+      const requiredTypes = [
+        'send_sms',
+        'send_email',
+        'create_event',
+        'book_restaurant',
+        'book_ride',
+        'send_payment',
+      ];
       for (const type of requiredTypes) {
         expect(ACTION_TYPES[type]).toBeDefined();
         expect(ACTION_TYPES[type].category).toBeDefined();
@@ -98,14 +105,16 @@ describe('Trust Level System', () => {
     });
 
     it('should calculate ROUTINE level for 3+ approvals', () => {
-      const approvalCount = 5, rejectionCount = 0;
+      const approvalCount = 5,
+        rejectionCount = 0;
       const rejectionRate = rejectionCount / (approvalCount + rejectionCount);
       expect(approvalCount >= 3).toBe(true);
       expect(rejectionRate < 0.2).toBe(true);
     });
 
     it('should calculate TRUSTED level for 10+ approvals', () => {
-      const approvalCount = 15, rejectionCount = 1;
+      const approvalCount = 15,
+        rejectionCount = 1;
       const rejectionRate = rejectionCount / (approvalCount + rejectionCount);
       expect(approvalCount >= 10).toBe(true);
       expect(rejectionRate < 0.1).toBe(true);

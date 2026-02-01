@@ -149,8 +149,7 @@ export const INSIGHT_ACTION_RULES: InsightActionRule[] = [
     name: 'Dream Revival',
     description: 'When important dream becomes dormant, Jordan reaches out',
     insightType: 'dream_keeper',
-    condition: (insight) =>
-      (insight.dormantDays ?? 0) > 30 && (insight.dreamImportance ?? 0) > 0.6,
+    condition: (insight) => (insight.dormantDays ?? 0) > 30 && (insight.dreamImportance ?? 0) > 0.6,
     action: {
       type: 'outreach',
       persona: 'jordan',
@@ -169,8 +168,7 @@ export const INSIGHT_ACTION_RULES: InsightActionRule[] = [
     description: 'When commitments become overdue, Ferni gently reminds',
     insightType: 'commitment_keeper',
     condition: (insight) =>
-      insight.commitmentOverdue === true &&
-      (insight.overdueCommitments?.length ?? 0) > 0,
+      insight.commitmentOverdue === true && (insight.overdueCommitments?.length ?? 0) > 0,
     action: {
       type: 'outreach',
       persona: 'ferni',
@@ -188,8 +186,7 @@ export const INSIGHT_ACTION_RULES: InsightActionRule[] = [
     name: 'Habit Streak at Risk',
     description: 'When a habit streak is about to break, Maya reaches out',
     insightType: 'habit_tracker',
-    condition: (insight) =>
-      insight.habitAtRisk === true && (insight.habitStreak ?? 0) >= 7,
+    condition: (insight) => insight.habitAtRisk === true && (insight.habitStreak ?? 0) >= 7,
     action: {
       type: 'outreach',
       persona: 'maya',
@@ -244,8 +241,7 @@ export const INSIGHT_ACTION_RULES: InsightActionRule[] = [
     description: 'When positive pattern detected, celebrate it',
     insightType: 'pattern_detector',
     condition: (insight) =>
-      insight.patternDetected !== undefined &&
-      !insight.patternDetected.includes('negative'),
+      insight.patternDetected !== undefined && !insight.patternDetected.includes('negative'),
     action: {
       type: 'notification',
       template: 'pattern_celebration',
@@ -262,8 +258,7 @@ export const INSIGHT_ACTION_RULES: InsightActionRule[] = [
     description: 'Remind about upcoming relationship milestones',
     insightType: 'relationship_milestones',
     condition: (insight) =>
-      insight.milestoneApproaching === true &&
-      (insight.daysUntilMilestone ?? 999) <= 7,
+      insight.milestoneApproaching === true && (insight.daysUntilMilestone ?? 999) <= 7,
     action: {
       type: 'outreach',
       persona: 'ferni',
@@ -510,14 +505,10 @@ export async function executeAction(
     switch (rule.action.type) {
       case 'outreach': {
         // Integrate with outreach orchestrator for real delivery
-        const { getOutreachOrchestrator } =
-          await import('../outreach/outreach-orchestrator.js');
+        const { getOutreachOrchestrator } = await import('../outreach/outreach-orchestrator.js');
         const orchestrator = getOutreachOrchestrator();
 
-        const message = generateMessageFromTemplate(
-          rule.action.template || 'default',
-          insight
-        );
+        const message = generateMessageFromTemplate(rule.action.template || 'default', insight);
 
         let sent = false;
 
@@ -578,14 +569,10 @@ export async function executeAction(
 
       case 'notification': {
         // Create push notification via orchestrator
-        const { getOutreachOrchestrator } =
-          await import('../outreach/outreach-orchestrator.js');
+        const { getOutreachOrchestrator } = await import('../outreach/outreach-orchestrator.js');
         const orchestrator = getOutreachOrchestrator();
 
-        const message = generateMessageFromTemplate(
-          rule.action.template || 'default',
-          insight
-        );
+        const message = generateMessageFromTemplate(rule.action.template || 'default', insight);
 
         const result = await orchestrator.sendPushNotification(userId, message, {
           trigger: `notification_${rule.id}`,
@@ -608,20 +595,16 @@ export async function executeAction(
       case 'task': {
         // Store task in Firestore for processing
         if (db) {
-          await db
-            .collection('bogle_users')
-            .doc(userId)
-            .collection('insight_tasks')
-            .add({
-              type: 'insight_action',
-              title: rule.name,
-              description: rule.description,
-              ruleId: rule.id,
-              insightId: insight.id,
-              status: 'pending',
-              createdAt: new Date().toISOString(),
-              metadata: rule.action.data,
-            });
+          await db.collection('bogle_users').doc(userId).collection('insight_tasks').add({
+            type: 'insight_action',
+            title: rule.name,
+            description: rule.description,
+            ruleId: rule.id,
+            insightId: insight.id,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            metadata: rule.action.data,
+          });
         }
 
         log.info({ userId, ruleId: rule.id }, 'Created insight task');
@@ -687,7 +670,10 @@ export async function processInsights(insights: SuperhumanInsight[]): Promise<Ac
     }
   }
 
-  log.info({ insightCount: insights.length, executionCount: executions.length }, 'Processed insights batch');
+  log.info(
+    { insightCount: insights.length, executionCount: executions.length },
+    'Processed insights batch'
+  );
 
   return executions;
 }
@@ -695,10 +681,7 @@ export async function processInsights(insights: SuperhumanInsight[]): Promise<Ac
 /**
  * Get action execution history for a user
  */
-export async function getActionHistory(
-  userId: string,
-  limit = 50
-): Promise<ActionExecution[]> {
+export async function getActionHistory(userId: string, limit = 50): Promise<ActionExecution[]> {
   const db = getFirestoreDb();
   if (!db) return [];
 

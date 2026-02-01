@@ -160,22 +160,41 @@ function getHabitParameters(category: HabitCategory): {
   decayRate: number;
   outcomes: Record<string, string[]>;
 } {
-  const params: Record<HabitCategory, {
-    dailyEffect: number;
-    compoundRate: number;
-    decayRate: number;
-    outcomes: Record<string, string[]>;
-  }> = {
+  const params: Record<
+    HabitCategory,
+    {
+      dailyEffect: number;
+      compoundRate: number;
+      decayRate: number;
+      outcomes: Record<string, string[]>;
+    }
+  > = {
     fitness: {
       dailyEffect: 0.5,
       compoundRate: 0.0015,
       decayRate: 0.001,
       outcomes: {
         '30': ['Noticeable energy increase', 'Better mood regulation', 'Initial strength gains'],
-        '90': ['Visible body composition changes', 'Significantly improved stamina', 'Better sleep quality'],
-        '180': ['Substantial fitness transformation', 'Reduced resting heart rate', 'Higher baseline energy'],
-        '365': ['Peak physical condition achievable', 'Chronic disease risk reduced', 'Athletic performance unlocked'],
-        '1825': ['Optimal physical health for your age', 'Decades added to healthspan', 'Fitness as identity'],
+        '90': [
+          'Visible body composition changes',
+          'Significantly improved stamina',
+          'Better sleep quality',
+        ],
+        '180': [
+          'Substantial fitness transformation',
+          'Reduced resting heart rate',
+          'Higher baseline energy',
+        ],
+        '365': [
+          'Peak physical condition achievable',
+          'Chronic disease risk reduced',
+          'Athletic performance unlocked',
+        ],
+        '1825': [
+          'Optimal physical health for your age',
+          'Decades added to healthspan',
+          'Fitness as identity',
+        ],
       },
     },
     nutrition: {
@@ -199,7 +218,7 @@ function getHabitParameters(category: HabitCategory): {
         '90': ['Memory consolidation improved', 'Stress resilience', 'Optimized hormones'],
         '180': ['Cognitive enhancement', 'Reduced disease markers', 'Peak performance baseline'],
         '365': ['Brain health protected', 'Optimal recovery', 'Sleep as superpower'],
-        '1825': ['Cognitive aging slowed', 'Alzheimer\'s risk reduced', 'Lifetime mental clarity'],
+        '1825': ['Cognitive aging slowed', "Alzheimer's risk reduced", 'Lifetime mental clarity'],
       },
     },
     mindfulness: {
@@ -208,7 +227,11 @@ function getHabitParameters(category: HabitCategory): {
       decayRate: 0.0006,
       outcomes: {
         '30': ['Reduced anxiety', 'Better response to stress', 'Increased awareness'],
-        '90': ['Changed relationship with thoughts', 'Improved focus', 'Emotional intelligence boost'],
+        '90': [
+          'Changed relationship with thoughts',
+          'Improved focus',
+          'Emotional intelligence boost',
+        ],
         '180': ['Lasting neural changes', 'Default calm state', 'Compassion increase'],
         '365': ['Transformed stress response', 'Deep self-knowledge', 'Presence as default'],
         '1825': ['Wisdom cultivation', 'Emotional mastery', 'Profound inner peace'],
@@ -310,16 +333,14 @@ function getHabitParameters(category: HabitCategory): {
 /**
  * Generate a compound effect model for a habit
  */
-export function generateHabitCompoundModel(
-  habit: {
-    id: string;
-    name: string;
-    category: HabitCategory;
-    consistency: number;
-    streak: number;
-    totalDays?: number;
-  }
-): HabitCompoundModel {
+export function generateHabitCompoundModel(habit: {
+  id: string;
+  name: string;
+  category: HabitCategory;
+  consistency: number;
+  streak: number;
+  totalDays?: number;
+}): HabitCompoundModel {
   const params = getHabitParameters(habit.category);
   const timeframes = [
     { label: '1 month', days: 30 },
@@ -397,10 +418,30 @@ export function generateHabitCompoundModel(
       consistencyChange: -20,
       description: 'What if consistency drops 20%?',
       projectedDifference: {
-        oneMonth: calculateDifference(params, 30, habit.consistency, Math.max(0, habit.consistency - 20)),
-        sixMonths: calculateDifference(params, 180, habit.consistency, Math.max(0, habit.consistency - 20)),
-        oneYear: calculateDifference(params, 365, habit.consistency, Math.max(0, habit.consistency - 20)),
-        fiveYears: calculateDifference(params, 1825, habit.consistency, Math.max(0, habit.consistency - 20)),
+        oneMonth: calculateDifference(
+          params,
+          30,
+          habit.consistency,
+          Math.max(0, habit.consistency - 20)
+        ),
+        sixMonths: calculateDifference(
+          params,
+          180,
+          habit.consistency,
+          Math.max(0, habit.consistency - 20)
+        ),
+        oneYear: calculateDifference(
+          params,
+          365,
+          habit.consistency,
+          Math.max(0, habit.consistency - 20)
+        ),
+        fiveYears: calculateDifference(
+          params,
+          1825,
+          habit.consistency,
+          Math.max(0, habit.consistency - 20)
+        ),
       },
       keyDifferences: [
         'Significant loss of momentum',
@@ -460,39 +501,104 @@ function calculateDifference(
 function getHabitSynergies(category: HabitCategory): Synergy[] {
   const synergies: Record<HabitCategory, Synergy[]> = {
     fitness: [
-      { habitId: 'sleep', habitName: 'Sleep', multiplierEffect: 1.4, explanation: 'Recovery happens during sleep' },
-      { habitId: 'nutrition', habitName: 'Nutrition', multiplierEffect: 1.3, explanation: 'Fuel for workouts' },
+      {
+        habitId: 'sleep',
+        habitName: 'Sleep',
+        multiplierEffect: 1.4,
+        explanation: 'Recovery happens during sleep',
+      },
+      {
+        habitId: 'nutrition',
+        habitName: 'Nutrition',
+        multiplierEffect: 1.3,
+        explanation: 'Fuel for workouts',
+      },
     ],
     nutrition: [
-      { habitId: 'mindfulness', habitName: 'Mindfulness', multiplierEffect: 1.2, explanation: 'Mindful eating' },
+      {
+        habitId: 'mindfulness',
+        habitName: 'Mindfulness',
+        multiplierEffect: 1.2,
+        explanation: 'Mindful eating',
+      },
     ],
     sleep: [
-      { habitId: 'fitness', habitName: 'Exercise', multiplierEffect: 1.3, explanation: 'Exercise improves sleep' },
+      {
+        habitId: 'fitness',
+        habitName: 'Exercise',
+        multiplierEffect: 1.3,
+        explanation: 'Exercise improves sleep',
+      },
     ],
     mindfulness: [
-      { habitId: 'sleep', habitName: 'Sleep', multiplierEffect: 1.2, explanation: 'Calm mind sleeps better' },
+      {
+        habitId: 'sleep',
+        habitName: 'Sleep',
+        multiplierEffect: 1.2,
+        explanation: 'Calm mind sleeps better',
+      },
     ],
     learning: [
-      { habitId: 'sleep', habitName: 'Sleep', multiplierEffect: 1.4, explanation: 'Memory consolidation' },
+      {
+        habitId: 'sleep',
+        habitName: 'Sleep',
+        multiplierEffect: 1.4,
+        explanation: 'Memory consolidation',
+      },
     ],
     finance: [
-      { habitId: 'productivity', habitName: 'Productivity', multiplierEffect: 1.2, explanation: 'Earn more, save more' },
+      {
+        habitId: 'productivity',
+        habitName: 'Productivity',
+        multiplierEffect: 1.2,
+        explanation: 'Earn more, save more',
+      },
     ],
     productivity: [
-      { habitId: 'sleep', habitName: 'Sleep', multiplierEffect: 1.3, explanation: 'Rest enables focus' },
+      {
+        habitId: 'sleep',
+        habitName: 'Sleep',
+        multiplierEffect: 1.3,
+        explanation: 'Rest enables focus',
+      },
     ],
     relationships: [
-      { habitId: 'mindfulness', habitName: 'Mindfulness', multiplierEffect: 1.3, explanation: 'Presence in conversations' },
+      {
+        habitId: 'mindfulness',
+        habitName: 'Mindfulness',
+        multiplierEffect: 1.3,
+        explanation: 'Presence in conversations',
+      },
     ],
     health: [
-      { habitId: 'fitness', habitName: 'Exercise', multiplierEffect: 1.4, explanation: 'Foundation of health' },
-      { habitId: 'nutrition', habitName: 'Nutrition', multiplierEffect: 1.3, explanation: 'You are what you eat' },
+      {
+        habitId: 'fitness',
+        habitName: 'Exercise',
+        multiplierEffect: 1.4,
+        explanation: 'Foundation of health',
+      },
+      {
+        habitId: 'nutrition',
+        habitName: 'Nutrition',
+        multiplierEffect: 1.3,
+        explanation: 'You are what you eat',
+      },
     ],
     creativity: [
-      { habitId: 'learning', habitName: 'Learning', multiplierEffect: 1.3, explanation: 'Ideas combine' },
+      {
+        habitId: 'learning',
+        habitName: 'Learning',
+        multiplierEffect: 1.3,
+        explanation: 'Ideas combine',
+      },
     ],
     environment: [
-      { habitId: 'mindfulness', habitName: 'Mindfulness', multiplierEffect: 1.1, explanation: 'Space reflects mind' },
+      {
+        habitId: 'mindfulness',
+        habitName: 'Mindfulness',
+        multiplierEffect: 1.1,
+        explanation: 'Space reflects mind',
+      },
     ],
   };
 
@@ -565,9 +671,15 @@ export function generateFinancialCompoundModel(
     const compoundGains = projectedValue - totalContributed;
 
     let milestone: string | undefined;
-    if (projectedValue >= 1000000 && (projections.length === 0 || projections[projections.length - 1].projectedValue < 1000000)) {
+    if (
+      projectedValue >= 1000000 &&
+      (projections.length === 0 || projections[projections.length - 1].projectedValue < 1000000)
+    ) {
       milestone = 'Millionaire status';
-    } else if (projectedValue >= 100000 && (projections.length === 0 || projections[projections.length - 1].projectedValue < 100000)) {
+    } else if (
+      projectedValue >= 100000 &&
+      (projections.length === 0 || projections[projections.length - 1].projectedValue < 100000)
+    ) {
       milestone = 'Six figures milestone';
     }
 
@@ -585,12 +697,9 @@ export function generateFinancialCompoundModel(
     {
       name: 'Double monthly contribution',
       change: `$${monthlyContribution} → $${monthlyContribution * 2}/month`,
-      impact: calculateFinancialDifference(
-        currentAmount,
-        monthlyContribution * 2,
-        annualRate,
-        10
-      ) - (projections.find((p) => p.year === 10)?.projectedValue || 0),
+      impact:
+        calculateFinancialDifference(currentAmount, monthlyContribution * 2, annualRate, 10) -
+        (projections.find((p) => p.year === 10)?.projectedValue || 0),
     },
     {
       name: 'Start 5 years earlier equivalent',
@@ -600,12 +709,9 @@ export function generateFinancialCompoundModel(
     {
       name: '1% higher return',
       change: `${(annualRate * 100).toFixed(1)}% → ${((annualRate + 0.01) * 100).toFixed(1)}% annual`,
-      impact: calculateFinancialDifference(
-        currentAmount,
-        monthlyContribution,
-        annualRate + 0.01,
-        10
-      ) - (projections.find((p) => p.year === 10)?.projectedValue || 0),
+      impact:
+        calculateFinancialDifference(currentAmount, monthlyContribution, annualRate + 0.01, 10) -
+        (projections.find((p) => p.year === 10)?.projectedValue || 0),
     },
   ];
 
@@ -632,9 +738,7 @@ function calculateFinancialDifference(
   const months = years * 12;
   const growthFactor = Math.pow(1 + monthlyRate, months);
   const contributionGrowth =
-    monthlyRate > 0
-      ? monthlyContrib * ((growthFactor - 1) / monthlyRate)
-      : monthlyContrib * months;
+    monthlyRate > 0 ? monthlyContrib * ((growthFactor - 1) / monthlyRate) : monthlyContrib * months;
   return Math.round(principal * growthFactor + contributionGrowth);
 }
 
@@ -646,11 +750,7 @@ export async function getUserCompoundModels(userId: string): Promise<HabitCompou
   if (!db) return [];
 
   try {
-    const snapshot = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('habits')
-      .get();
+    const snapshot = await db.collection('bogle_users').doc(userId).collection('habits').get();
 
     return snapshot.docs.map((doc) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

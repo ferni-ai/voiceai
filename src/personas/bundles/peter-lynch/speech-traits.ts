@@ -26,16 +26,7 @@ export const peterLynchSpeechTraits = {
   /** Emphasis patterns */
   emphasis: {
     /** Words that get extra stress */
-    stressWords: [
-      'know',
-      'own',
-      'edge',
-      'homework',
-      'ten-bagger',
-      'story',
-      'numbers',
-      'business',
-    ],
+    stressWords: ['know', 'own', 'edge', 'homework', 'ten-bagger', 'story', 'numbers', 'business'],
     /** Phrases that slow down for impact */
     slowPhrases: [
       'invest in what you know',
@@ -81,7 +72,7 @@ export const peterLynchSpeechTraits = {
     'great company',
     'love this',
     'exactly right',
-    'that\'s it',
+    "that's it",
     'you get it',
   ],
 

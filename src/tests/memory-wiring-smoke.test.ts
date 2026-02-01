@@ -36,9 +36,8 @@ describe('Voice Context Capture Integration', () => {
     }));
 
     // Import the module under test
-    const { recordVoiceContext } = await import(
-      '../agents/integrations/voice-memory-integration.js'
-    );
+    const { recordVoiceContext } =
+      await import('../agents/integrations/voice-memory-integration.js');
 
     // Call with voice emotion data
     recordVoiceContext({
@@ -73,9 +72,8 @@ describe('Voice Context Capture Integration', () => {
       voiceCaptureEnhanced: voiceCaptureEnhancedMock,
     }));
 
-    const { recordVoiceContext } = await import(
-      '../agents/integrations/voice-memory-integration.js'
-    );
+    const { recordVoiceContext } =
+      await import('../agents/integrations/voice-memory-integration.js');
 
     // Call without voice emotion
     recordVoiceContext({
@@ -211,9 +209,7 @@ describe('Correlation Tracking Integration', () => {
       }),
     }));
 
-    const { getActiveCorrelations } = await import(
-      '../memory/knowledge-graph/storage/index.js'
-    );
+    const { getActiveCorrelations } = await import('../memory/knowledge-graph/storage/index.js');
 
     const result = await getActiveCorrelations('test-user', { minConfidence: 0.5 });
 
@@ -232,9 +228,7 @@ describe('Correlation Tracking Integration', () => {
       }),
     }));
 
-    const { getActiveCorrelations } = await import(
-      '../memory/knowledge-graph/storage/index.js'
-    );
+    const { getActiveCorrelations } = await import('../memory/knowledge-graph/storage/index.js');
 
     const result = await getActiveCorrelations('test-user');
 

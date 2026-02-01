@@ -34,66 +34,66 @@ const log = createLogger({ module: 'PreTrajectoryDetection' });
 /** Emotional trajectories we can predict */
 export type EmotionalTrajectory =
   // Negative trajectories
-  | 'mood_decline'            // General mood going down
-  | 'anxiety_spike'           // Anxiety incoming
-  | 'overwhelm_building'      // Overwhelm accumulating
-  | 'depression_dip'          // Depressive episode approaching
-  | 'irritability_surge'      // Irritability increasing
-  | 'withdrawal_pattern'      // Social withdrawal starting
-  | 'burnout_cascade'         // Burnout spiral beginning
-  | 'grief_wave'              // Grief resurfacing
+  | 'mood_decline' // General mood going down
+  | 'anxiety_spike' // Anxiety incoming
+  | 'overwhelm_building' // Overwhelm accumulating
+  | 'depression_dip' // Depressive episode approaching
+  | 'irritability_surge' // Irritability increasing
+  | 'withdrawal_pattern' // Social withdrawal starting
+  | 'burnout_cascade' // Burnout spiral beginning
+  | 'grief_wave' // Grief resurfacing
   // Positive trajectories
-  | 'mood_lift'               // Mood improving
-  | 'motivation_surge'        // Motivation increasing
-  | 'confidence_building'     // Confidence growing
-  | 'connection_deepening'    // Relationships strengthening
-  | 'clarity_emerging'        // Mental clarity increasing
-  | 'energy_upswing'          // Energy recovering
+  | 'mood_lift' // Mood improving
+  | 'motivation_surge' // Motivation increasing
+  | 'confidence_building' // Confidence growing
+  | 'connection_deepening' // Relationships strengthening
+  | 'clarity_emerging' // Mental clarity increasing
+  | 'energy_upswing' // Energy recovering
   // Transitions
-  | 'emotional_shift'         // Major emotional state change
-  | 'stability_period'        // Moving into stable period
-  | 'growth_phase_entry'      // Entering growth period
-  | 'rest_phase_entry';       // Entering rest/recovery period
+  | 'emotional_shift' // Major emotional state change
+  | 'stability_period' // Moving into stable period
+  | 'growth_phase_entry' // Entering growth period
+  | 'rest_phase_entry'; // Entering rest/recovery period
 
 /** Precursor signals we track */
 export type PrecursorSignal =
   // Behavioral precursors
-  | 'sleep_pattern_change'    // Sleep quality/duration shifting
-  | 'energy_fluctuation'      // Energy levels inconsistent
-  | 'exercise_drop'           // Physical activity declining
-  | 'social_pattern_change'   // Social engagement changing
-  | 'routine_disruption'      // Daily routines breaking down
-  | 'self_care_drop'          // Self-care declining
+  | 'sleep_pattern_change' // Sleep quality/duration shifting
+  | 'energy_fluctuation' // Energy levels inconsistent
+  | 'exercise_drop' // Physical activity declining
+  | 'social_pattern_change' // Social engagement changing
+  | 'routine_disruption' // Daily routines breaking down
+  | 'self_care_drop' // Self-care declining
   // Communication precursors
-  | 'message_frequency_change'// More or less frequent communication
-  | 'message_length_change'   // Longer or shorter messages
-  | 'topic_shift'             // Different topics than usual
-  | 'vocabulary_change'       // Language patterns shifting
-  | 'humor_change'            // Humor style changing
-  | 'response_latency'        // Response time changing
+  | 'message_frequency_change' // More or less frequent communication
+  | 'message_length_change' // Longer or shorter messages
+  | 'topic_shift' // Different topics than usual
+  | 'vocabulary_change' // Language patterns shifting
+  | 'humor_change' // Humor style changing
+  | 'response_latency' // Response time changing
   // Emotional precursors
-  | 'emotional_volatility'    // Emotions more variable
-  | 'valence_shift'           // Positive/negative balance shifting
-  | 'rumination_increase'     // More repetitive thinking
-  | 'future_focus_change'     // How they talk about future
-  | 'self_talk_shift'         // How they talk about themselves
+  | 'emotional_volatility' // Emotions more variable
+  | 'valence_shift' // Positive/negative balance shifting
+  | 'rumination_increase' // More repetitive thinking
+  | 'future_focus_change' // How they talk about future
+  | 'self_talk_shift' // How they talk about themselves
   // Contextual precursors
   | 'anniversary_approaching' // Significant date coming
-  | 'deadline_approaching'    // Stressful deadline coming
-  | 'seasonal_pattern'        // Seasonal influence
-  | 'relationship_stress'     // Relationship strain signals
-  | 'work_stress_signals'     // Work pressure building
+  | 'deadline_approaching' // Stressful deadline coming
+  | 'seasonal_pattern' // Seasonal influence
+  | 'relationship_stress' // Relationship strain signals
+  | 'work_stress_signals' // Work pressure building
   | 'health_concern_signals'; // Health worry emerging
 
 /** A single precursor observation */
 export interface PrecursorObservation {
   signal: PrecursorSignal;
-  value: number;             // Normalized 0-1 (0.5 = baseline)
-  baseline: number;          // Their typical value
-  deviation: number;         // How far from baseline
+  value: number; // Normalized 0-1 (0.5 = baseline)
+  baseline: number; // Their typical value
+  deviation: number; // How far from baseline
   timestamp: number;
-  confidence: number;        // How confident we are in this observation
-  source: string;            // Where we got this from
+  confidence: number; // How confident we are in this observation
+  source: string; // Where we got this from
 }
 
 /** A learned precursor pattern */
@@ -104,9 +104,9 @@ export interface PrecursorPattern {
   signals: Array<{
     signal: PrecursorSignal;
     direction: 'increase' | 'decrease' | 'volatility';
-    typicalLeadTime: number;  // ms before trajectory manifests
-    reliability: number;      // 0-1, how reliably this predicts
-    weight: number;           // Importance in prediction
+    typicalLeadTime: number; // ms before trajectory manifests
+    reliability: number; // 0-1, how reliably this predicts
+    weight: number; // Importance in prediction
   }>;
   /** Historical accuracy of this pattern */
   accuracy: number;
@@ -131,14 +131,14 @@ export interface TrajectoryPrediction {
     currentValue: number;
     baseline: number;
     deviation: number;
-    contribution: number;  // How much this contributes to prediction
+    contribution: number; // How much this contributes to prediction
   }>;
   /** What might be causing this */
   likelyTriggers: string[];
   /** Interventions that might help */
   preventiveActions: Array<{
     action: string;
-    effectiveness: number;  // Historical effectiveness
+    effectiveness: number; // Historical effectiveness
     timing: string;
   }>;
   /** Warning level */
@@ -173,7 +173,7 @@ interface BaselineStats {
   stdDev: number;
   min: number;
   max: number;
-  recentTrend: number;  // -1 to 1
+  recentTrend: number; // -1 to 1
   lastUpdated: number;
   sampleCount: number;
 }
@@ -188,7 +188,7 @@ const CONFIG = {
   /** How many observations to keep for recent analysis */
   MAX_RECENT_OBSERVATIONS: 100,
   /** Deviation threshold to trigger concern */
-  DEVIATION_THRESHOLD: 1.5,  // Standard deviations
+  DEVIATION_THRESHOLD: 1.5, // Standard deviations
   /** How far ahead we try to predict */
   MAX_PREDICTION_HORIZON_HOURS: 72,
   /** Minimum pattern observations for reliable prediction */
@@ -240,9 +240,7 @@ export function recordPrecursorObservation(
   }
 
   // Calculate deviation
-  const deviation = baseline.stdDev > 0
-    ? (value - baseline.mean) / baseline.stdDev
-    : 0;
+  const deviation = baseline.stdDev > 0 ? (value - baseline.mean) / baseline.stdDev : 0;
 
   // Create observation
   const observation: PrecursorObservation = {
@@ -305,9 +303,11 @@ export function recordTrajectoryEvent(
   );
 
   const precursorsObserved = [...new Set(precedingObservations.map((o) => o.signal))];
-  const avgLeadTime = precedingObservations.length > 0
-    ? precedingObservations.reduce((sum, o) => sum + (now - o.timestamp), 0) / precedingObservations.length
-    : 0;
+  const avgLeadTime =
+    precedingObservations.length > 0
+      ? precedingObservations.reduce((sum, o) => sum + (now - o.timestamp), 0) /
+        precedingObservations.length
+      : 0;
 
   // Record the event
   profile.trajectoryHistory.push({
@@ -350,14 +350,14 @@ export function recordTrajectoryEvent(
 export function recordConversationSignals(
   userId: string,
   analysis: {
-    emotionalValence?: number;  // -1 to 1
-    emotionalVolatility?: number;  // 0-1
-    messageLength?: number;  // Relative to their average
-    responseLatency?: number;  // Relative to their average
-    selfTalkValence?: number;  // -1 to 1
-    futureOrientation?: number;  // -1 (past) to 1 (future)
-    socialMentions?: number;  // Relative to average
-    topicDiversity?: number;  // 0-1
+    emotionalValence?: number; // -1 to 1
+    emotionalVolatility?: number; // 0-1
+    messageLength?: number; // Relative to their average
+    responseLatency?: number; // Relative to their average
+    selfTalkValence?: number; // -1 to 1
+    futureOrientation?: number; // -1 (past) to 1 (future)
+    socialMentions?: number; // Relative to average
+    topicDiversity?: number; // 0-1
   }
 ): void {
   // Map analysis to precursor signals
@@ -365,7 +365,7 @@ export function recordConversationSignals(
     recordPrecursorObservation(
       userId,
       'valence_shift',
-      (analysis.emotionalValence + 1) / 2,  // Convert to 0-1
+      (analysis.emotionalValence + 1) / 2, // Convert to 0-1
       'conversation_analysis'
     );
   }
@@ -383,7 +383,7 @@ export function recordConversationSignals(
     recordPrecursorObservation(
       userId,
       'message_length_change',
-      Math.min(1, analysis.messageLength),  // Cap at 1
+      Math.min(1, analysis.messageLength), // Cap at 1
       'conversation_analysis'
     );
   }
@@ -520,26 +520,32 @@ export function predictSpecificTrajectory(
  * @returns Context string for prompt injection
  */
 export function buildPreTrajectoryContext(userId: string): string {
-  const predictions = predictTrajectories(userId).filter(
-    (p) => p.severity !== 'watch'
-  );
-  
+  const predictions = predictTrajectories(userId).filter((p) => p.severity !== 'watch');
+
   if (predictions.length === 0) return '';
 
   const sections: string[] = [];
   sections.push('[PRE-TRAJECTORY INTELLIGENCE - Weather Before the Storm]');
-  sections.push('You see patterns forming that they can\'t see yet:');
+  sections.push("You see patterns forming that they can't see yet:");
   sections.push('');
 
   for (const pred of predictions.slice(0, 3)) {
     const trajectoryName = pred.trajectory.replace(/_/g, ' ');
-    const isNegative = ['decline', 'spike', 'building', 'dip', 'surge', 'withdrawal', 'cascade', 'wave']
-      .some((w) => pred.trajectory.includes(w));
+    const isNegative = [
+      'decline',
+      'spike',
+      'building',
+      'dip',
+      'surge',
+      'withdrawal',
+      'cascade',
+      'wave',
+    ].some((w) => pred.trajectory.includes(w));
 
     sections.push(`• **${trajectoryName}** (${pred.severity})`);
     sections.push(`  - Probability: ${Math.round(pred.probability * 100)}%`);
     sections.push(`  - Expected: ${pred.expectedDuration}`);
-    
+
     if (pred.activePrecursors.length > 0) {
       const topPrecursor = pred.activePrecursors[0];
       sections.push(`  - Key signal: ${topPrecursor.signal.replace(/_/g, ' ')}`);
@@ -551,7 +557,9 @@ export function buildPreTrajectoryContext(userId: string): string {
     sections.push('');
   }
 
-  sections.push('**Your role:** Address gently without alarming. Create conditions for resilience.');
+  sections.push(
+    '**Your role:** Address gently without alarming. Create conditions for resilience.'
+  );
 
   return sections.join('\n');
 }
@@ -584,19 +592,19 @@ function getOrCreateProfile(userId: string): UserTrajectoryProfile {
 
 function updateBaseline(baseline: BaselineStats, value: number): void {
   const decay = CONFIG.BASELINE_DECAY_RATE;
-  
+
   // Update mean with exponential moving average
   baseline.mean = baseline.mean * decay + value * (1 - decay);
-  
+
   // Update standard deviation approximation
   const deviation = Math.abs(value - baseline.mean);
   baseline.stdDev = baseline.stdDev * decay + deviation * (1 - decay);
-  baseline.stdDev = Math.max(0.05, baseline.stdDev);  // Floor to prevent div by zero
-  
+  baseline.stdDev = Math.max(0.05, baseline.stdDev); // Floor to prevent div by zero
+
   // Update min/max
   baseline.min = Math.min(baseline.min, value);
   baseline.max = Math.max(baseline.max, value);
-  
+
   baseline.sampleCount++;
   baseline.lastUpdated = Date.now();
 }
@@ -607,7 +615,7 @@ function updatePatterns(
   precedingObservations: PrecursorObservation[]
 ): void {
   let pattern = profile.patterns.get(trajectory);
-  
+
   if (!pattern) {
     pattern = {
       trajectory,
@@ -623,10 +631,10 @@ function updatePatterns(
   // Learn from preceding observations
   for (const obs of precedingObservations) {
     const existingSignal = pattern.signals.find((s) => s.signal === obs.signal);
-    
+
     if (existingSignal) {
       // Update existing signal
-      existingSignal.reliability = existingSignal.reliability * 0.9 + 0.1;  // Increase reliability
+      existingSignal.reliability = existingSignal.reliability * 0.9 + 0.1; // Increase reliability
       existingSignal.weight = existingSignal.weight * 0.9 + Math.abs(obs.deviation) * 0.05;
     } else {
       // Add new signal
@@ -634,7 +642,7 @@ function updatePatterns(
         signal: obs.signal,
         direction: obs.deviation > 0 ? 'increase' : 'decrease',
         typicalLeadTime: Date.now() - obs.timestamp,
-        reliability: 0.3,  // Start low
+        reliability: 0.3, // Start low
         weight: 0.5,
       });
     }
@@ -642,7 +650,7 @@ function updatePatterns(
 
   // Prune low-reliability signals
   pattern.signals = pattern.signals.filter((s) => s.reliability > 0.1);
-  
+
   // Sort by reliability
   pattern.signals.sort((a, b) => b.reliability - a.reliability);
 }
@@ -653,7 +661,7 @@ function evaluatePattern(
   pattern: PrecursorPattern
 ): TrajectoryPrediction | null {
   const now = Date.now();
-  
+
   if (pattern.signals.length === 0) return null;
 
   // Check recent observations against pattern
@@ -671,7 +679,7 @@ function evaluatePattern(
 
     const latestObs = recentObs[recentObs.length - 1];
     const baseline = profile.baselines.get(patternSignal.signal);
-    
+
     if (!baseline) continue;
 
     // Check if deviation matches pattern direction
@@ -681,8 +689,9 @@ function evaluatePattern(
       (patternSignal.direction === 'volatility' && Math.abs(latestObs.deviation) > 1);
 
     if (matchesDirection) {
-      const contribution = patternSignal.weight * patternSignal.reliability * Math.abs(latestObs.deviation);
-      
+      const contribution =
+        patternSignal.weight * patternSignal.reliability * Math.abs(latestObs.deviation);
+
       activePrecursors.push({
         signal: patternSignal.signal,
         currentValue: latestObs.value,
@@ -704,11 +713,10 @@ function evaluatePattern(
   const probability = Math.min(1, baseProb * 0.7 + vulnerabilityBonus * 0.3);
 
   // Calculate expected onset
-  const avgLeadTime = pattern.signals.reduce(
-    (sum, s) => sum + s.typicalLeadTime * s.reliability,
-    0
-  ) / pattern.signals.reduce((sum, s) => sum + s.reliability, 0);
-  
+  const avgLeadTime =
+    pattern.signals.reduce((sum, s) => sum + s.typicalLeadTime * s.reliability, 0) /
+    pattern.signals.reduce((sum, s) => sum + s.reliability, 0);
+
   const expectedOnset = new Date(now + avgLeadTime * (1 - probability));
 
   // Determine severity
@@ -760,51 +768,59 @@ function evaluateGenericPatterns(profile: UserTrajectoryProfile): TrajectoryPred
 
   // Look for recent significant deviations
   const recentDeviations = profile.recentObservations
-    .filter((o) => now - o.timestamp < 24 * 60 * 60 * 1000)  // Last 24 hours
+    .filter((o) => now - o.timestamp < 24 * 60 * 60 * 1000) // Last 24 hours
     .filter((o) => Math.abs(o.deviation) >= CONFIG.DEVIATION_THRESHOLD);
 
   if (recentDeviations.length === 0) return predictions;
 
   // Map signals to likely trajectories
   const signalToTrajectory: Record<PrecursorSignal, EmotionalTrajectory[]> = {
-    'sleep_pattern_change': ['mood_decline', 'anxiety_spike', 'burnout_cascade'],
-    'energy_fluctuation': ['mood_decline', 'burnout_cascade', 'overwhelm_building'],
-    'exercise_drop': ['mood_decline', 'energy_upswing'],
-    'social_pattern_change': ['withdrawal_pattern', 'connection_deepening'],
-    'routine_disruption': ['overwhelm_building', 'stability_period'],
-    'self_care_drop': ['burnout_cascade', 'mood_decline'],
-    'message_frequency_change': ['withdrawal_pattern', 'anxiety_spike'],
-    'message_length_change': ['emotional_shift', 'overwhelm_building'],
-    'emotional_volatility': ['emotional_shift', 'anxiety_spike'],
-    'valence_shift': ['mood_decline', 'mood_lift'],
-    'rumination_increase': ['anxiety_spike', 'depression_dip'],
-    'future_focus_change': ['clarity_emerging', 'depression_dip'],
-    'self_talk_shift': ['confidence_building', 'depression_dip'],
-    'topic_shift': ['emotional_shift', 'clarity_emerging'],
-    'vocabulary_change': ['growth_phase_entry', 'emotional_shift'],
-    'humor_change': ['mood_decline', 'mood_lift'],
-    'response_latency': ['overwhelm_building', 'withdrawal_pattern'],
-    'anniversary_approaching': ['grief_wave', 'emotional_shift'],
-    'deadline_approaching': ['anxiety_spike', 'overwhelm_building'],
-    'seasonal_pattern': ['mood_decline', 'mood_lift'],
-    'relationship_stress': ['mood_decline', 'irritability_surge'],
-    'work_stress_signals': ['burnout_cascade', 'anxiety_spike'],
-    'health_concern_signals': ['anxiety_spike', 'mood_decline'],
+    sleep_pattern_change: ['mood_decline', 'anxiety_spike', 'burnout_cascade'],
+    energy_fluctuation: ['mood_decline', 'burnout_cascade', 'overwhelm_building'],
+    exercise_drop: ['mood_decline', 'energy_upswing'],
+    social_pattern_change: ['withdrawal_pattern', 'connection_deepening'],
+    routine_disruption: ['overwhelm_building', 'stability_period'],
+    self_care_drop: ['burnout_cascade', 'mood_decline'],
+    message_frequency_change: ['withdrawal_pattern', 'anxiety_spike'],
+    message_length_change: ['emotional_shift', 'overwhelm_building'],
+    emotional_volatility: ['emotional_shift', 'anxiety_spike'],
+    valence_shift: ['mood_decline', 'mood_lift'],
+    rumination_increase: ['anxiety_spike', 'depression_dip'],
+    future_focus_change: ['clarity_emerging', 'depression_dip'],
+    self_talk_shift: ['confidence_building', 'depression_dip'],
+    topic_shift: ['emotional_shift', 'clarity_emerging'],
+    vocabulary_change: ['growth_phase_entry', 'emotional_shift'],
+    humor_change: ['mood_decline', 'mood_lift'],
+    response_latency: ['overwhelm_building', 'withdrawal_pattern'],
+    anniversary_approaching: ['grief_wave', 'emotional_shift'],
+    deadline_approaching: ['anxiety_spike', 'overwhelm_building'],
+    seasonal_pattern: ['mood_decline', 'mood_lift'],
+    relationship_stress: ['mood_decline', 'irritability_surge'],
+    work_stress_signals: ['burnout_cascade', 'anxiety_spike'],
+    health_concern_signals: ['anxiety_spike', 'mood_decline'],
   };
 
   // Count trajectory signals
   const trajectoryCounts = new Map<EmotionalTrajectory, number>();
-  
+
   for (const deviation of recentDeviations) {
     const possibleTrajectories = signalToTrajectory[deviation.signal] || [];
-    
+
     // Direction matters
     const isNegative = deviation.deviation < 0;
-    
+
     for (const traj of possibleTrajectories) {
-      const isNegativeTrajectory = ['decline', 'spike', 'building', 'dip', 'surge', 'withdrawal', 'cascade', 'wave']
-        .some((w) => traj.includes(w));
-      
+      const isNegativeTrajectory = [
+        'decline',
+        'spike',
+        'building',
+        'dip',
+        'surge',
+        'withdrawal',
+        'cascade',
+        'wave',
+      ].some((w) => traj.includes(w));
+
       // Only count if directions align
       if (isNegative === isNegativeTrajectory || traj.includes('shift') || traj.includes('phase')) {
         const count = trajectoryCounts.get(traj) || 0;
@@ -823,7 +839,7 @@ function evaluateGenericPatterns(profile: UserTrajectoryProfile): TrajectoryPred
 
     if (adjustedProbability < 0.3) continue;
 
-    const relevantDeviations = recentDeviations.filter((d) => 
+    const relevantDeviations = recentDeviations.filter((d) =>
       (signalToTrajectory[d.signal] || []).includes(trajectory)
     );
 
@@ -836,9 +852,9 @@ function evaluateGenericPatterns(profile: UserTrajectoryProfile): TrajectoryPred
     predictions.push({
       trajectory,
       probability: adjustedProbability,
-      expectedOnset: new Date(now + 24 * 60 * 60 * 1000),  // Within 24 hours
+      expectedOnset: new Date(now + 24 * 60 * 60 * 1000), // Within 24 hours
       expectedDuration: 'unknown',
-      confidence: 0.4,  // Lower confidence for generic patterns
+      confidence: 0.4, // Lower confidence for generic patterns
       activePrecursors: relevantDeviations.map((d) => ({
         signal: d.signal,
         currentValue: d.value,
@@ -846,13 +862,15 @@ function evaluateGenericPatterns(profile: UserTrajectoryProfile): TrajectoryPred
         deviation: d.deviation,
         contribution: Math.abs(d.deviation) * 0.3,
       })),
-      likelyTriggers: generateLikelyTriggers(relevantDeviations.map((d) => ({
-        signal: d.signal,
-        currentValue: d.value,
-        baseline: d.baseline,
-        deviation: d.deviation,
-        contribution: Math.abs(d.deviation),
-      }))),
+      likelyTriggers: generateLikelyTriggers(
+        relevantDeviations.map((d) => ({
+          signal: d.signal,
+          currentValue: d.value,
+          baseline: d.baseline,
+          deviation: d.deviation,
+          contribution: Math.abs(d.deviation),
+        }))
+      ),
       preventiveActions: generatePreventiveActions(trajectory, []),
       severity,
     });
@@ -867,7 +885,7 @@ function evaluateGenericTrajectory(
 ): TrajectoryPrediction | null {
   // Simple generic evaluation
   const vulnerability = profile.vulnerabilities.get(trajectory) || 0.5;
-  
+
   // Check if recent deviations suggest this trajectory
   const now = Date.now();
   const recentDeviations = profile.recentObservations
@@ -934,33 +952,73 @@ function generatePreventiveActions(
   switch (trajectory) {
     case 'mood_decline':
     case 'depression_dip':
-      actions.push({ action: 'Encourage connection with supportive people', effectiveness: 0.7, timing: 'now' });
+      actions.push({
+        action: 'Encourage connection with supportive people',
+        effectiveness: 0.7,
+        timing: 'now',
+      });
       actions.push({ action: 'Suggest physical activity', effectiveness: 0.6, timing: 'today' });
-      actions.push({ action: 'Validate current experience without fixing', effectiveness: 0.8, timing: 'ongoing' });
+      actions.push({
+        action: 'Validate current experience without fixing',
+        effectiveness: 0.8,
+        timing: 'ongoing',
+      });
       break;
     case 'anxiety_spike':
       actions.push({ action: 'Ground in present moment', effectiveness: 0.7, timing: 'now' });
-      actions.push({ action: 'Break down overwhelming tasks', effectiveness: 0.8, timing: 'when ready' });
-      actions.push({ action: 'Address specific worries directly', effectiveness: 0.6, timing: 'gently' });
+      actions.push({
+        action: 'Break down overwhelming tasks',
+        effectiveness: 0.8,
+        timing: 'when ready',
+      });
+      actions.push({
+        action: 'Address specific worries directly',
+        effectiveness: 0.6,
+        timing: 'gently',
+      });
       break;
     case 'burnout_cascade':
       actions.push({ action: 'Identify one thing to let go', effectiveness: 0.8, timing: 'soon' });
       actions.push({ action: 'Protect rest time', effectiveness: 0.9, timing: 'immediately' });
-      actions.push({ action: 'Lower expectations temporarily', effectiveness: 0.7, timing: 'this week' });
+      actions.push({
+        action: 'Lower expectations temporarily',
+        effectiveness: 0.7,
+        timing: 'this week',
+      });
       break;
     case 'overwhelm_building':
       actions.push({ action: 'Simplify and prioritize', effectiveness: 0.8, timing: 'now' });
-      actions.push({ action: 'Give permission to not be perfect', effectiveness: 0.7, timing: 'ongoing' });
-      actions.push({ action: 'Break things into smaller pieces', effectiveness: 0.8, timing: 'when planning' });
+      actions.push({
+        action: 'Give permission to not be perfect',
+        effectiveness: 0.7,
+        timing: 'ongoing',
+      });
+      actions.push({
+        action: 'Break things into smaller pieces',
+        effectiveness: 0.8,
+        timing: 'when planning',
+      });
       break;
     case 'withdrawal_pattern':
-      actions.push({ action: 'Gentle outreach (don\'t push)', effectiveness: 0.6, timing: 'ongoing' });
-      actions.push({ action: 'Maintain low-pressure connection', effectiveness: 0.7, timing: 'consistently' });
+      actions.push({
+        action: "Gentle outreach (don't push)",
+        effectiveness: 0.6,
+        timing: 'ongoing',
+      });
+      actions.push({
+        action: 'Maintain low-pressure connection',
+        effectiveness: 0.7,
+        timing: 'consistently',
+      });
       actions.push({ action: 'Validate need for space', effectiveness: 0.8, timing: 'always' });
       break;
     default:
       actions.push({ action: 'Stay present and attuned', effectiveness: 0.7, timing: 'ongoing' });
-      actions.push({ action: 'Create safety for expression', effectiveness: 0.8, timing: 'always' });
+      actions.push({
+        action: 'Create safety for expression',
+        effectiveness: 0.8,
+        timing: 'always',
+      });
   }
 
   return actions;
@@ -975,25 +1033,79 @@ function initializeCommonPatterns(profile: UserTrajectoryProfile): void {
     {
       trajectory: 'mood_decline',
       signals: [
-        { signal: 'sleep_pattern_change', direction: 'decrease', typicalLeadTime: 3 * 24 * 60 * 60 * 1000, reliability: 0.6, weight: 0.8 },
-        { signal: 'energy_fluctuation', direction: 'decrease', typicalLeadTime: 2 * 24 * 60 * 60 * 1000, reliability: 0.5, weight: 0.7 },
-        { signal: 'valence_shift', direction: 'decrease', typicalLeadTime: 1 * 24 * 60 * 60 * 1000, reliability: 0.7, weight: 0.9 },
+        {
+          signal: 'sleep_pattern_change',
+          direction: 'decrease',
+          typicalLeadTime: 3 * 24 * 60 * 60 * 1000,
+          reliability: 0.6,
+          weight: 0.8,
+        },
+        {
+          signal: 'energy_fluctuation',
+          direction: 'decrease',
+          typicalLeadTime: 2 * 24 * 60 * 60 * 1000,
+          reliability: 0.5,
+          weight: 0.7,
+        },
+        {
+          signal: 'valence_shift',
+          direction: 'decrease',
+          typicalLeadTime: 1 * 24 * 60 * 60 * 1000,
+          reliability: 0.7,
+          weight: 0.9,
+        },
       ],
     },
     {
       trajectory: 'anxiety_spike',
       signals: [
-        { signal: 'rumination_increase', direction: 'increase', typicalLeadTime: 2 * 24 * 60 * 60 * 1000, reliability: 0.7, weight: 0.9 },
-        { signal: 'future_focus_change', direction: 'increase', typicalLeadTime: 1 * 24 * 60 * 60 * 1000, reliability: 0.5, weight: 0.6 },
-        { signal: 'emotional_volatility', direction: 'increase', typicalLeadTime: 1 * 24 * 60 * 60 * 1000, reliability: 0.6, weight: 0.7 },
+        {
+          signal: 'rumination_increase',
+          direction: 'increase',
+          typicalLeadTime: 2 * 24 * 60 * 60 * 1000,
+          reliability: 0.7,
+          weight: 0.9,
+        },
+        {
+          signal: 'future_focus_change',
+          direction: 'increase',
+          typicalLeadTime: 1 * 24 * 60 * 60 * 1000,
+          reliability: 0.5,
+          weight: 0.6,
+        },
+        {
+          signal: 'emotional_volatility',
+          direction: 'increase',
+          typicalLeadTime: 1 * 24 * 60 * 60 * 1000,
+          reliability: 0.6,
+          weight: 0.7,
+        },
       ],
     },
     {
       trajectory: 'burnout_cascade',
       signals: [
-        { signal: 'self_care_drop', direction: 'decrease', typicalLeadTime: 7 * 24 * 60 * 60 * 1000, reliability: 0.7, weight: 0.9 },
-        { signal: 'work_stress_signals', direction: 'increase', typicalLeadTime: 5 * 24 * 60 * 60 * 1000, reliability: 0.6, weight: 0.8 },
-        { signal: 'social_pattern_change', direction: 'decrease', typicalLeadTime: 4 * 24 * 60 * 60 * 1000, reliability: 0.5, weight: 0.6 },
+        {
+          signal: 'self_care_drop',
+          direction: 'decrease',
+          typicalLeadTime: 7 * 24 * 60 * 60 * 1000,
+          reliability: 0.7,
+          weight: 0.9,
+        },
+        {
+          signal: 'work_stress_signals',
+          direction: 'increase',
+          typicalLeadTime: 5 * 24 * 60 * 60 * 1000,
+          reliability: 0.6,
+          weight: 0.8,
+        },
+        {
+          signal: 'social_pattern_change',
+          direction: 'decrease',
+          typicalLeadTime: 4 * 24 * 60 * 60 * 1000,
+          reliability: 0.5,
+          weight: 0.6,
+        },
       ],
     },
   ];

@@ -91,9 +91,9 @@ export async function setupHandlers(config: HandlerSetupConfig): Promise<Handler
     import('../cleanup-handler.js'),
   ]);
 
-  // TODO: Add conversation manager integration when API is available
-  // The conversation module provides session-based APIs via createConversationSession()
-  // See: src/conversation/unified-integration.ts
+  // NOTE: Conversation session is initialized separately in voice-agent-entry.ts
+  // via initConversationSession() from conversation-session-integration.ts.
+  // This separation allows greeting generation before conversation tracking starts.
 
   process.stderr.write(`[handler-setup] ✅ All handlers imported\n`);
 

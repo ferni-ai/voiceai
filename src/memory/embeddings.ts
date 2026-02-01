@@ -6,18 +6,18 @@
  * Protected by circuit breaker to prevent cascading failures.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import {
   getCircuitBreaker,
   getRedisCircuitBreakerAsync,
   type CircuitBreaker,
 } from '../utils/circuit-breaker.js';
 import {
+  getAllCoalescerStats,
   getRequestCoalescer,
   hashContent,
-  getAllCoalescerStats,
   type CoalescerStats,
 } from '../utils/request-coalescer.js';
+import { getLogger } from '../utils/safe-logger.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import {
   cosineSimilarity,
@@ -139,6 +139,11 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
   }
 
   async embed(text: string): Promise<number[]> {
+    // Validate non-empty text
+    const trimmed = text?.trim();
+    if (!trimmed) {
+      throw new Error('Cannot generate OpenAI embedding for empty text');
+    }
     const results = await this.embedBatch([text]);
     return results[0];
   }
@@ -149,6 +154,24 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
 
     if (!this.apiKey) {
       throw new Error('OpenAI API key not configured');
+    }
+
+    // Track valid text indices for proper result mapping
+    const validIndices: number[] = [];
+    const validTexts: string[] = [];
+
+    for (let i = 0; i < texts.length; i++) {
+      const text = texts[i];
+      if (text?.trim()) {
+        validIndices.push(i);
+        validTexts.push(text);
+      }
+    }
+
+    // If all texts were empty, return empty arrays
+    if (validTexts.length === 0) {
+      getLogger().warn('All texts in batch were empty, returning empty results');
+      return texts.map(() => []);
     }
 
     // Check circuit breaker before making request
@@ -166,7 +189,7 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
           },
           body: JSON.stringify({
             model: this._model,
-            input: texts,
+            input: validTexts,
           }),
         });
 
@@ -195,10 +218,16 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
         // Sort by index to maintain order
         const sorted = data.data.sort((a, b) => a.index - b.index);
 
+        // Map results back to original indices, empty arrays for empty texts
+        const results: number[][] = texts.map(() => []);
+        for (let i = 0; i < validIndices.length; i++) {
+          results[validIndices[i]] = sorted[i].embedding;
+        }
+
         getLogger().debug(
-          `Generated ${texts.length} embeddings, ${data.usage.total_tokens} tokens`
+          `Generated ${validTexts.length} embeddings, ${data.usage.total_tokens} tokens`
         );
-        return sorted.map((d) => d.embedding);
+        return results;
       });
     } catch (error) {
       getLogger().error(`Embedding error: ${error}`);
@@ -209,8 +238,9 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
 
 /**
  * Google AI embedding provider
- * Uses text-embedding-004 model via Google AI Generative Language API
- * Supports 768 dimensions, 2048 token max sequence length
+ * Uses gemini-embedding-001 model via Google AI Generative Language API
+ * Note: text-embedding-004/005 are listed but not actually available in v1beta
+ * gemini-embedding-001 returns 3072 dimensions
  */
 export class GoogleEmbeddings extends EmbeddingProvider {
   private _model: string;
@@ -219,8 +249,8 @@ export class GoogleEmbeddings extends EmbeddingProvider {
 
   constructor(config?: { model?: string; apiKey?: string; dimensions?: number }) {
     super();
-    this._model = config?.model || 'text-embedding-004';
-    this._dimensions = config?.dimensions || 768;
+    this._model = config?.model || 'gemini-embedding-001';
+    this._dimensions = config?.dimensions || 3072; // gemini-embedding-001 returns 3072d
     // Use explicit apiKey if provided (even empty string), otherwise fall back to env var
     this.apiKey = config?.apiKey !== undefined ? config.apiKey : process.env.GOOGLE_API_KEY || '';
 
@@ -241,6 +271,11 @@ export class GoogleEmbeddings extends EmbeddingProvider {
     if (!this.apiKey) {
       throw new Error('Google API key not configured');
     }
+    // Validate non-empty text
+    const trimmed = text?.trim();
+    if (!trimmed) {
+      throw new Error('Cannot generate Google AI embedding for empty text');
+    }
     const results = await this.embedBatch([text]);
     if (!results || results.length === 0) {
       throw new Error('No embedding results returned');
@@ -253,6 +288,24 @@ export class GoogleEmbeddings extends EmbeddingProvider {
       throw new Error('Google API key not configured');
     }
 
+    // Track valid text indices for proper result mapping
+    const validIndices: number[] = [];
+    const validTexts: string[] = [];
+
+    for (let i = 0; i < texts.length; i++) {
+      const text = texts[i];
+      if (text?.trim()) {
+        validIndices.push(i);
+        validTexts.push(text);
+      }
+    }
+
+    // If all texts were empty, return empty arrays
+    if (validTexts.length === 0) {
+      getLogger().warn('All texts in batch were empty, returning empty results');
+      return texts.map(() => []);
+    }
+
     // Check circuit breaker before making request
     if (!googleEmbeddingBreaker.canRequest()) {
       throw new Error('Google embedding service unavailable (circuit breaker open)');
@@ -263,7 +316,7 @@ export class GoogleEmbeddings extends EmbeddingProvider {
         // Use Google AI Generative Language API (simpler, API key auth)
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${this._model}:batchEmbedContents?key=${this.apiKey}`;
 
-        const requests = texts.map((text) => ({
+        const requests = validTexts.map((text) => ({
           model: `models/${this._model}`,
           content: { parts: [{ text }] },
         }));
@@ -285,10 +338,16 @@ export class GoogleEmbeddings extends EmbeddingProvider {
           embeddings: Array<{ values: number[] }>;
         };
 
+        // Map results back to original indices, empty arrays for empty texts
+        const results: number[][] = texts.map(() => []);
+        for (let i = 0; i < validIndices.length; i++) {
+          results[validIndices[i]] = data.embeddings[i].values;
+        }
+
         getLogger().debug(
-          `Generated ${texts.length} Google AI embeddings (${this._model}), ${this._dimensions}d`
+          `Generated ${validTexts.length} Google AI embeddings (${this._model}), ${this._dimensions}d`
         );
-        return data.embeddings.map((e) => e.values);
+        return results;
       });
     } catch (error) {
       getLogger().error(`Google embedding error: ${error}`);
@@ -339,19 +398,49 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
   }
 
   async embed(text: string): Promise<number[]> {
+    // Validate non-empty text
+    const trimmed = text?.trim();
+    if (!trimmed) {
+      throw new Error('Cannot generate Vertex AI embedding for empty text');
+    }
     const results = await this.embedBatch([text]);
     return results[0];
   }
 
   async embedBatch(texts: string[]): Promise<number[][]> {
+    // Track valid text indices for proper result mapping
+    const validIndices: number[] = [];
+    const validTexts: string[] = [];
+
+    for (let i = 0; i < texts.length; i++) {
+      const text = texts[i];
+      if (text?.trim()) {
+        validIndices.push(i);
+        validTexts.push(text);
+      }
+    }
+
+    // If all texts were empty, return empty arrays
+    if (validTexts.length === 0) {
+      getLogger().warn('All texts in batch were empty, returning empty results');
+      return texts.map(() => []);
+    }
+
+    if (validTexts.length !== texts.length) {
+      getLogger().warn(
+        { original: texts.length, valid: validTexts.length },
+        'Filtered empty texts from Vertex AI embedding batch'
+      );
+    }
+
     try {
       const token = await this.getToken();
       const url = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this._model}:predict`;
 
       // Vertex AI expects a different format - one request per text for batch
-      const results: number[][] = [];
+      const validResults: number[][] = [];
 
-      for (const text of texts) {
+      for (const text of validTexts) {
         const response = await fetch(url, {
           method: 'POST',
           headers: {
@@ -378,10 +467,16 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
           }>;
         };
 
-        results.push(data.predictions[0].embeddings.values);
+        validResults.push(data.predictions[0].embeddings.values);
       }
 
-      getLogger().debug(`Generated ${texts.length} Vertex AI embeddings (${this._model})`);
+      // Map results back to original indices, empty arrays for empty texts
+      const results: number[][] = texts.map(() => []);
+      for (let i = 0; i < validIndices.length; i++) {
+        results[validIndices[i]] = validResults[i];
+      }
+
+      getLogger().debug(`Generated ${validTexts.length} Vertex AI embeddings (${this._model})`);
       return results;
     } catch (error) {
       getLogger().error(`Vertex AI embedding error: ${error}`);
@@ -493,18 +588,47 @@ export function findTopK(
 let defaultProvider: EmbeddingProvider | null = null;
 
 /**
+ * Get access token for Vertex AI using Application Default Credentials
+ */
+async function getVertexAIAccessToken(): Promise<string> {
+  const { GoogleAuth } = await import('google-auth-library');
+  const auth = new GoogleAuth({
+    scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+  });
+  const client = await auth.getClient();
+  const tokenResponse = await client.getAccessToken();
+  if (!tokenResponse.token) {
+    throw new Error('Failed to get Vertex AI access token');
+  }
+  return tokenResponse.token;
+}
+
+/**
  * Get the default embedding provider
- * Priority: Google AI > OpenAI > Local
+ * Priority: Vertex AI (if USE_VERTEX_AI) > OpenAI > Google AI > Local
  */
 export function getEmbeddingProvider(): EmbeddingProvider {
   if (!defaultProvider) {
-    // Try Google AI first (preferred), then OpenAI, fall back to local
-    if (process.env.GOOGLE_API_KEY) {
-      defaultProvider = new GoogleEmbeddings();
-      getLogger().info('Using Google AI embeddings (text-embedding-004)');
+    const useVertexAI = process.env.USE_VERTEX_AI !== 'false';
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT;
+
+    // Use Vertex AI when configured (default in production)
+    if (useVertexAI && projectId) {
+      defaultProvider = new VertexAIEmbeddings({
+        projectId,
+        location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1',
+        model: 'text-embedding-005', // Latest Vertex AI embedding model
+        accessToken: getVertexAIAccessToken,
+      });
+      getLogger().info({ projectId, model: 'text-embedding-005' }, 'Using Vertex AI embeddings');
     } else if (process.env.OPENAI_API_KEY) {
+      // Prefer OpenAI over Google AI v1beta (more reliable)
       defaultProvider = new OpenAIEmbeddings();
       getLogger().info('Using OpenAI embeddings');
+    } else if (process.env.GOOGLE_API_KEY) {
+      // Google AI v1beta API - use gemini-embedding-001 (text-embedding-004/005 not actually available)
+      defaultProvider = new GoogleEmbeddings({ model: 'gemini-embedding-001' });
+      getLogger().info('Using Google AI embeddings (gemini-embedding-001)');
     } else {
       defaultProvider = new LocalEmbeddings();
       getLogger().warn('Using local embeddings (no semantic meaning - for development only)');
@@ -544,8 +668,15 @@ function getEmbeddingCoalescer() {
  *
  * @param text - Text to generate embedding for
  * @returns The embedding vector
+ * @throws Error if text is empty or whitespace-only
  */
 export async function embed(text: string): Promise<number[]> {
+  // Validate non-empty text to prevent API errors
+  const trimmed = text?.trim();
+  if (!trimmed) {
+    throw new Error('Cannot generate embedding for empty text');
+  }
+
   const hash = hashContent(text);
   // Clone the result to prevent mutation bugs when requests coalesce.
   // Without cloning, all coalesced callers share the same array reference.
@@ -559,22 +690,35 @@ export async function embed(text: string): Promise<number[]> {
  * Generate batch embeddings using the default provider with deduplication.
  *
  * Deduplicates texts within the batch to avoid generating embeddings
- * for the same text multiple times.
+ * for the same text multiple times. Empty/whitespace-only texts are filtered out.
  *
  * @param texts - Array of texts to generate embeddings for
- * @returns Array of embedding vectors (preserves original order)
+ * @returns Array of embedding vectors (preserves original order, empty texts get empty arrays)
  */
 export async function embedBatch(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) {
     return [];
   }
 
-  // Deduplicate texts while preserving order
+  // Track which indices have empty text (will return empty arrays for these)
+  const emptyIndices = new Set<number>();
+
+  // Deduplicate non-empty texts while preserving order
   const uniqueTexts: string[] = [];
   const textToIndex = new Map<string, number>();
   const originalToUnique: number[] = [];
 
-  for (const text of texts) {
+  for (let i = 0; i < texts.length; i++) {
+    const text = texts[i];
+    const trimmed = text?.trim();
+
+    // Skip empty/whitespace-only texts
+    if (!trimmed) {
+      emptyIndices.add(i);
+      originalToUnique.push(-1); // Marker for empty text
+      continue;
+    }
+
     const hash = hashContent(text);
     let uniqueIndex = textToIndex.get(hash);
 
@@ -587,21 +731,39 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
     originalToUnique.push(uniqueIndex);
   }
 
-  // Log deduplication stats
-  if (uniqueTexts.length < texts.length) {
+  // Log empty text filtering
+  if (emptyIndices.size > 0) {
     getLogger().debug(
-      { original: texts.length, unique: uniqueTexts.length },
+      { total: texts.length, empty: emptyIndices.size },
+      'Filtered empty texts from embedding batch'
+    );
+  }
+
+  // If all texts were empty, return empty arrays
+  if (uniqueTexts.length === 0) {
+    return texts.map(() => []);
+  }
+
+  // Log deduplication stats
+  if (uniqueTexts.length < texts.length - emptyIndices.size) {
+    getLogger().debug(
+      { original: texts.length - emptyIndices.size, unique: uniqueTexts.length },
       'Embedding batch deduplicated'
     );
   }
 
-  // Generate embeddings for unique texts
+  // Generate embeddings for unique non-empty texts
   const uniqueEmbeddings = await getEmbeddingProvider().embedBatch(uniqueTexts);
 
   // Map back to original order, cloning arrays for duplicates to prevent
   // mutation bugs (if caller modifies their array, it shouldn't affect others)
   const usedIndices = new Set<number>();
-  return originalToUnique.map((uniqueIndex) => {
+  return originalToUnique.map((uniqueIndex, originalIndex) => {
+    // Return empty array for empty texts
+    if (emptyIndices.has(originalIndex)) {
+      return [];
+    }
+
     const embedding = uniqueEmbeddings[uniqueIndex];
     if (usedIndices.has(uniqueIndex)) {
       // Clone for duplicates to prevent shared mutation
@@ -631,10 +793,14 @@ export const EMBEDDING_DIMENSIONS: Record<string, number> = {
   'text-embedding-3-small': 1536,
   'text-embedding-3-large': 3072,
   'text-embedding-ada-002': 1536,
-  // Google models
+  // Google models (Vertex AI)
+  'text-embedding-005': 768,
   'text-embedding-004': 768,
   'textembedding-gecko': 768,
   'textembedding-gecko@003': 768,
+  // Google AI v1beta models
+  'gemini-embedding-001': 3072, // Actual dimension from API
+  'embedding-001': 768,
   // Local/hash embeddings
   'local-hash': 384,
 };

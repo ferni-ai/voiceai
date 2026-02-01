@@ -1,4 +1,3 @@
-// TODO: Fix type errors - array indexing
 /**
  * Demo Data for "Your Story" Dashboard
  *

@@ -91,7 +91,11 @@ export {
 // ============================================================================
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { detectsFunctionCallLeakage, getReplacementText, containsToolCallLeakage } from './detectors/index.js';
+import {
+  detectsFunctionCallLeakage,
+  getReplacementText,
+  containsToolCallLeakage,
+} from './detectors/index.js';
 
 const log = createLogger({ module: 'tool-call-sanitizer' });
 

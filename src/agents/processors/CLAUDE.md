@@ -24,23 +24,45 @@ Level 10:  config/, utils/, types/
 
 ```
 processors/
-├── turn-processor.ts          # Main turn orchestration (~1400 lines)
-├── types.ts                   # Shared type definitions
-├── injection-builders.ts      # Context injection builders
-├── injection-filter.ts        # Smart injection filtering
-├── message-analyzer.ts        # Message analysis
-├── cached-modules.ts          # Lazy-loaded module caching
-├── conversation-dynamics.ts   # Narrative arc, engagement, rhythm
-├── easter-egg-handler.ts      # Easter egg detection
-├── emotional-state-builder.ts # Emotional state with mismatch detection
-├── response-guidance-builder.ts # Response length, pacing, stories
-├── identity-context-builder.ts  # Post-handoff identity reinforcement
-├── humanizing-context-builder.ts # Voice emotion, inner world, mood
-├── bundle-runtime-processor.ts  # Modes, situational responses
-├── advanced-humanization.ts     # 10 deep humanization capabilities
-├── index.ts                   # Public exports
-├── __tests__/                 # Test files
-└── CLAUDE.md                  # This file
+├── # Core Orchestration
+├── turn-processor.ts              # Main turn orchestration (~1400 lines)
+├── types.ts                       # Shared type definitions
+├── index.ts                       # Public exports
+│
+├── # Context Injection Pipeline
+├── injection-builders.ts          # Context injection builders (safety, trust, coaching)
+├── injection-filter.ts            # Smart injection filtering & prioritization
+├── context-injection-builder.ts   # Full context injection assembly
+├── timing-aware-injection.ts      # Timing-aware injection scheduling
+├── live-superhuman-injections.ts  # Live superhuman context injections
+├── topic-builder-filter.ts        # Topic-based builder filtering
+│
+├── # Analysis & Response Shaping
+├── message-analyzer.ts            # Message analysis
+├── emotional-state-builder.ts     # Emotional state with mismatch detection
+├── response-guidance-builder.ts   # Response length, pacing, stories
+├── conversation-dynamics.ts       # Narrative arc, engagement, rhythm
+├── coaching-intelligence.ts       # Coaching intelligence integration
+├── semantic-short-circuit.ts      # Fast semantic intent short-circuit
+│
+├── # Humanization & Identity
+├── identity-context-builder.ts    # Post-handoff identity reinforcement
+├── humanizing-context-builder.ts  # Voice emotion, inner world, mood
+├── bundle-runtime-processor.ts    # Modes, situational responses
+├── advanced-humanization.ts       # 10 deep humanization capabilities
+├── easter-egg-handler.ts          # Easter egg detection
+│
+├── # Learning & Tool Integration
+├── realtime-learning.ts           # Real-time learning from conversation
+├── tool-routing-integration.ts    # Tool routing integration for turn processing
+├── trigger-outcome-handler.ts     # Handle trigger outcomes from intelligence layer
+├── team-huddle-recording.ts       # Record team huddle sessions
+│
+├── # Utilities
+├── cached-modules.ts              # Lazy-loaded module caching
+├── EXTRACTION-CANDIDATES.md       # Future refactoring candidates
+├── __tests__/                     # Test files
+└── CLAUDE.md                      # This file
 ```
 
 ---
@@ -68,6 +90,16 @@ The main orchestrator that coordinates all processing:
 | `humanizing-context-builder.ts` | Human-like responses | `buildHumanizingContextForTurn()` |
 | `bundle-runtime-processor.ts` | Persona behaviors | `processBundleRuntime()` |
 | `advanced-humanization.ts` | Deep capabilities | `processAdvancedHumanization()` |
+| `context-injection-builder.ts` | Full context injection assembly | `buildContextInjections()` |
+| `timing-aware-injection.ts` | Timing-aware injection scheduling | `scheduleTimedInjections()` |
+| `live-superhuman-injections.ts` | Live superhuman context injections | `buildSuperhumanInjections()` |
+| `topic-builder-filter.ts` | Topic-based builder filtering | `filterBuildersByTopic()` |
+| `coaching-intelligence.ts` | Coaching intelligence integration | `processCoachingIntelligence()` |
+| `semantic-short-circuit.ts` | Fast semantic intent short-circuit | `checkSemanticShortCircuit()` |
+| `realtime-learning.ts` | Real-time learning from turns | `processRealtimeLearning()` |
+| `tool-routing-integration.ts` | Tool routing for turn processing | `integrateToolRouting()` |
+| `trigger-outcome-handler.ts` | Handle intelligence trigger outcomes | `handleTriggerOutcome()` |
+| `team-huddle-recording.ts` | Record team huddle sessions | `recordTeamHuddle()` |
 
 ### Injection Builders (injection-builders.ts)
 Builds specific context injections:
@@ -136,5 +168,5 @@ pnpm vitest run src/agents/processors/__tests__/
 
 ---
 
-*Created: December 2024*
-*Status: Refactoring complete (2277 → 1433 lines)*
+*Last updated: January 2026*
+*Status: 26 TypeScript files + tests (originally refactored from 2277 → 1433 lines, then expanded)*

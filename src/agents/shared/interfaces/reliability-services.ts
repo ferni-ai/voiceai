@@ -215,8 +215,5 @@ export interface IContextPruner {
    * @param config - Optional pruning configuration
    * @returns Pruning result with kept and pruned turns
    */
-  prune(
-    turns: ConversationTurn[],
-    config?: Partial<ContextPruningConfig>
-  ): PruningResult;
+  prune(turns: ConversationTurn[], config?: Partial<ContextPruningConfig>): PruningResult;
 }

@@ -595,6 +595,89 @@ export {
 export { routeSignalsToSuperhuman } from './superhuman-signal-router.js';
 
 // ============================================================================
+// UNIFIED MEMORY STORE (Superhuman Memory Phase 1)
+// ============================================================================
+//
+// The unified memory store provides a single interface for all memory operations
+// across multiple storage backends (Firestore, Vector, Redis, In-Memory).
+//
+// Usage:
+//   import { getUnifiedStore } from './memory/unified-store';
+//   const store = getUnifiedStore();
+//   await store.initialize();
+//   const memory = await store.store({ userId, type: 'entity', content: '...' });
+//   const result = await store.recall({ userId, query: '...' });
+//
+// This is part of the Superhuman Memory implementation (Phase 1).
+// See docs/plans/SUPERHUMAN-MEMORY-IMPLEMENTATION-PLAN.md
+
+export {
+  // Main entry point
+  getUnifiedStore,
+  resetUnifiedStore,
+  UnifiedMemoryStoreFacade,
+
+  // Configuration
+  DEFAULT_CONFIG,
+
+  // Adapters (for advanced use cases)
+  FirestoreAdapter,
+  getFirestoreAdapter,
+  VectorAdapter,
+  getVectorAdapter,
+  RedisAdapter,
+  getRedisAdapter,
+  MemoryAdapter,
+  getMemoryAdapter,
+} from './unified-store/index.js';
+
+// Types from unified store
+export type {
+  UnifiedMemoryStore,
+  UnifiedStoreConfig,
+  UnifiedStoreHealth,
+  StoredMemory,
+  MemoryInput,
+  MemoryType as UnifiedMemoryType,
+  RecallQuery,
+  RecallResult,
+  SearchParams as UnifiedSearchParams,
+  SearchResult as UnifiedSearchResult,
+  ScoredMemory,
+  MemoryLink,
+  MemoryLinkInput,
+  MemoryLinkType,
+  ConsolidationReport as UnifiedConsolidationReport,
+  DecayReport as UnifiedDecayReport,
+  StoreHealth,
+  MemoryStoreAdapter,
+  VectorStoreAdapter as UnifiedVectorStoreAdapter,
+  CacheStoreAdapter,
+} from './unified-store/index.js';
+
+// Graph module exports
+export {
+  LINK_TYPE_CONFIGS,
+  LINK_DETECTION_RULES,
+  detectLinks,
+  applyLinkDecay,
+  calculateReinforcementBoost,
+  cosineSimilarity as linkCosineSimilarity,
+  FirestoreLinkStore,
+  getFirestoreLinkStore,
+  LinkManager,
+  getLinkManager,
+} from './unified-store/graph/index.js';
+
+export type {
+  LinkTypeConfig,
+  LinkDetectionRule,
+  LinkManagerConfig,
+  GraphTraversalResult,
+  MaintenanceReport as LinkMaintenanceReport,
+} from './unified-store/graph/index.js';
+
+// ============================================================================
 // UNIFIED ENTITY STORE (Better Than Human Memory)
 // ============================================================================
 

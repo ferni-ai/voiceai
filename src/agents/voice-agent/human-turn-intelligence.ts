@@ -392,27 +392,29 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
 
   // =========================================================================
   // RESPONSE TIMING CALCULATION - "Better than Human"
-  // Research: Human turn-taking gaps are 200-500ms. We aim for 100-300ms.
+  // Research: Human turn-taking gaps are 200-500ms. We aim for 30-150ms.
+  // TTS synthesis is the real bottleneck (700-5000ms), so shaving delay here
+  // directly improves perceived responsiveness.
   // =========================================================================
 
-  // Base delay - INSTANT response feels superhuman
-  let recommendedDelay = 100; // Was 150ms - human-like turn-taking
+  // Base delay - superhuman responsiveness
+  let recommendedDelay = 50; // Was 100ms - minimize gap before TTS starts
 
-  // Emotional adjustment - still give SOME space, but stay present
+  // Emotional adjustment - brief space for sensitive moments
   if (context.emotion === 'sad' || context.emotion === 'anxious') {
-    recommendedDelay += 150; // Was 200ms - presence over silence
+    recommendedDelay += 80; // Was 150ms - presence over silence
   } else if (isUrgent || context.emotion === 'excited') {
-    recommendedDelay = 50; // Was 80ms - INSTANT response to urgency
+    recommendedDelay = 20; // Was 50ms - near-instant for urgency
   }
 
   // Hesitation adjustment - wait briefly, not forever
   if (isHesitating && !context.isFinal) {
-    recommendedDelay += 150; // Was 250ms - brief patience, not awkward silence
+    recommendedDelay += 80; // Was 150ms - brief patience, not awkward silence
   }
 
   // Low confidence adjustment - minimal wait
   if (completionConfidence < 0.6) {
-    recommendedDelay += 100; // Was 150ms - stay engaged even when uncertain
+    recommendedDelay += 50; // Was 100ms - stay engaged even when uncertain
   }
 
   // =========================================================================
@@ -440,10 +442,11 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
     shouldBackchannel,
     backchannelSuggestion,
     // Action requests don't want to continue - they want the action executed
-    wantsToContinue: !isActionRequest && (hasContinuationMarker || (isHesitating && completionConfidence < 0.5)),
+    wantsToContinue:
+      !isActionRequest && (hasContinuationMarker || (isHesitating && completionConfidence < 0.5)),
     isUrgent: isUrgent || isActionRequest, // Action requests have implicit urgency
     isHesitating,
-    recommendedDelay: isActionRequest ? 80 : recommendedDelay, // Respond faster to action requests
+    recommendedDelay: isActionRequest ? 30 : recommendedDelay, // Near-instant for action requests
     shouldYieldFloor,
   };
 

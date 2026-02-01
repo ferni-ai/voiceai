@@ -47,12 +47,36 @@ personality/
 │
 ├── infrastructure/            # Implementations (I/O)
 │   ├── firestore-personality-repository.ts
-│   └── in-memory-personality-repository.ts
+│   ├── in-memory-personality-repository.ts
+│   ├── legacy-bridge.ts       # Bridge to legacy personality code
+│   └── adapters/
+│       ├── index.ts
+│       ├── emotion-detector-adapter.ts
+│       └── voice-analyzer-adapter.ts
 │
 ├── v2/                        # Public API
 │   └── index.ts               # Main exports + factory functions
 │
-└── [legacy files]             # Original implementation (to be migrated)
+├── bridge/                    # Unified recording bridge
+│   ├── index.ts
+│   ├── personality-bridge.ts  # Unified recording entry point
+│   └── signal-dispatchers.ts  # EQ signal dispatchers
+│
+└── # Legacy files (to be migrated)
+    ├── index.ts               # Legacy exports
+    ├── types.ts               # Legacy types
+    ├── emotional-data.ts
+    ├── emotional-patterns.ts
+    ├── growth-tracking.ts
+    ├── memory-adapter.ts
+    ├── pattern-analysis.ts
+    ├── pattern-persistence.ts
+    ├── personal-moment-store.ts
+    ├── timing-intelligence.ts
+    ├── transitions.ts
+    ├── callback-helpers.ts
+    ├── callback-persistence.ts
+    └── moments/               # Moment detection
 ```
 
 ---
@@ -335,7 +359,7 @@ The v2 system integrates with the context builder infrastructure:
 
 ```typescript
 // Auto-registered on import (added to BUILDER_MANIFEST in loader.ts)
-// The personality-v2 builder automatically runs for every turn, injecting:
+// The personality-context builder automatically runs for every turn, injecting:
 // - Relationship stage and trust health
 // - Timing guidance
 // - Anticipated emotions
@@ -344,7 +368,7 @@ The v2 system integrates with the context builder infrastructure:
 // - Growth celebrations
 
 // Manual registration (if needed):
-import { registerPersonalityV2Builder } from './intelligence/context-builders/personality-v2';
+import { registerPersonalityV2Builder } from './intelligence/context-builders/personality-context';
 registerPersonalityV2Builder();
 ```
 
@@ -363,6 +387,126 @@ await service.recordMoment({ ... }); // Automatically invalidates cache
 // For testing, you can clear the cache:
 import { clearProfileCache } from './personality/application/build-personality-context';
 clearProfileCache();
+```
+
+---
+
+## Bridge Module (Unified Recording)
+
+The bridge module unifies the two parallel personality systems into a single recording path with frontend signal dispatch.
+
+### Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                           turn-handler.ts                               │
+│                                                                         │
+│  recordUnifiedMoment() ─────────┬──────────────────────────────────────│
+│                                 │                                       │
+│         ┌───────────────────────┼──────────────────────────────────┐   │
+│         ▼                       ▼                                   │   │
+│  RelationshipEngine      PersonalityService v2                     │   │
+│  (intelligence/)         (personality/v2/)                         │   │
+│  - Shared moments        - Vulnerability tracking                  │   │
+│  - Milestones            - Pattern detection                       │   │
+│  - Inside jokes          - Growth tracking                         │   │
+│         │                       │                                   │   │
+│         └───────────────────────┼──────────────────────────────────┘   │
+│                                 ▼                                       │
+│                    emotion-event-dispatcher.ts                          │
+│                    (Canonical Signal Dispatchers)                       │
+│                                 │                                       │
+│                                 ▼                                       │
+│                          Frontend EQ                                    │
+│                    (humanization-bridge.ts)                             │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `bridge/personality-bridge.ts` | Unified recording entry point |
+| `bridge/signal-dispatchers.ts` | Wrappers around canonical EQ dispatchers |
+| `bridge/index.ts` | Barrel exports |
+
+### Data Flow
+
+1. **Turn handler** calls `recordUnifiedMoment()` for significant moments (breakthrough, vulnerability, celebration, etc.)
+2. **Bridge** routes data to both RelationshipEngine AND PersonalityService v2
+3. **Bridge** dispatches frontend signals using canonical functions from `emotion-event-dispatcher.ts`
+4. **Frontend EQ system** receives signals and triggers avatar behaviors
+
+### Signal Type Mapping
+
+| Personality v2 Event     | Canonical Dispatcher          | Frontend Signal        |
+| ------------------------ | ----------------------------- | ---------------------- |
+| vulnerability_recorded   | dispatchVisibleVulnerability  | visible_vulnerability  |
+| growth_milestone_ready   | dispatchSpontaneousDelight    | spontaneous_delight    |
+| pattern_ready_to_surface | dispatchSuperhumanObservation | superhuman_observation |
+| emotional_bond           | dispatchEmotionalBondDeepen   | emotional_bond_deepen  |
+| anticipation             | dispatchAnticipationSignal*   | anticipatory_presence  |
+
+*Anticipation uses a custom dispatcher because the canonical `dispatchAnticipatoryPresence` is designed for time-of-day context, not emotion prediction.
+
+### Vulnerability Level to Type Mapping
+
+The frontend expects specific vulnerability types, so we map v2 levels:
+
+| v2 Level | Frontend Type | Meaning |
+|----------|---------------|---------|
+| `sacred` | `growth` | Deep vulnerability = growth through sharing |
+| `vulnerable` | `admission` | Admitting struggles |
+| `personal` | `reflection` | Reflecting on personal matters |
+| `surface` | `uncertainty` | Surface-level uncertainty |
+
+### Voice Features
+
+The bridge accepts voice features for multimodal personality analysis:
+
+```typescript
+await recordUnifiedMoment({
+  userId: 'user_123',
+  personaId: 'ferni',
+  type: 'vulnerability',
+  message: 'I am scared...',
+  emotionalIntensity: 0.85,
+  voiceFeatures: {          // 👈 "Better Than Human" - memories tied to how they sounded
+    pitchMean: 180.5,
+    speakingRate: 120,
+    energyLevel: -25.3,
+    jitter: 0.03,
+    shimmer: 0.08,
+  },
+  sendDataMessage,
+});
+```
+
+### Usage Example
+
+```typescript
+import { recordUnifiedMoment, recordBreakthrough } from './personality/bridge';
+
+// Full recording with all options
+await recordUnifiedMoment({
+  userId: 'user_123',
+  personaId: 'ferni',
+  type: 'breakthrough',
+  message: 'I finally understand!',
+  emotionalIntensity: 0.85,
+  voiceFeatures: { ... },
+  sendDataMessage,
+});
+
+// Convenience function
+await recordBreakthrough('user_123', 'ferni', 'I finally understand!', sendDataMessage);
+```
+
+### Testing
+
+```bash
+# Run bridge tests
+pnpm vitest run src/tests/personality/bridge.test.ts
 ```
 
 ---

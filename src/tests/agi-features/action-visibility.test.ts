@@ -38,10 +38,9 @@ vi.mock('../../agents/realtime/frontend-publisher.js', () => ({
   })),
 }));
 
-// Mock the generate reply gateway
-const mockGenerateReply = vi.fn().mockResolvedValue(undefined);
+// Mock the generate reply gateway - define inline to avoid hoisting issues
 vi.mock('../../agents/shared/generate-reply-gateway.js', () => ({
-  generateReply: mockGenerateReply,
+  generateReply: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Import after mocking
@@ -263,7 +262,9 @@ describe('Action Visibility System', () => {
       });
 
       it('should return "It\'s on your calendar." for create_event', () => {
-        expect(generateConfirmationResponse('create_event', 'calendar')).toBe("It's on your calendar.");
+        expect(generateConfirmationResponse('create_event', 'calendar')).toBe(
+          "It's on your calendar."
+        );
       });
 
       it('should return "You\'re all set!" for book_restaurant', () => {
@@ -304,7 +305,7 @@ describe('Action Visibility System', () => {
         };
 
         const result = await dispatchPendingAction(action, { skipVoice: true });
-        
+
         expect(result.sentToUI).toBe(true);
         expect(mockSendPendingAction).toHaveBeenCalledWith(action);
       });
@@ -326,7 +327,7 @@ describe('Action Visibility System', () => {
         };
 
         const result = await dispatchPendingAction(action, { skipVoice: true });
-        
+
         expect(result.sentToUI).toBe(false);
       });
 
@@ -345,7 +346,7 @@ describe('Action Visibility System', () => {
         };
 
         const result = await dispatchPendingAction(action, { skipUI: true, skipVoice: true });
-        
+
         expect(result.sentToUI).toBe(false);
         expect(mockSendPendingAction).not.toHaveBeenCalled();
       });

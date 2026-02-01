@@ -257,6 +257,14 @@ export class CallMusicPlayer {
   // 🐛 FIX: Session ID to detect singleton pollution across sessions
   private sessionId: string | null = null;
 
+  // 🚨 RACE-FIX: Track disposal state to prevent "mixer has been closed" errors
+  // Set to true BEFORE closing mixer so async tasks can check and abort early
+  private isDisposed = false;
+
+  // 🚨 RACE-FIX: Track active temp files with reference counts
+  // Prevents cleanup while ffmpeg is still reading
+  private tempFileRefCounts = new Map<string, number>();
+
   constructor() {
     this.tempDir = path.join(os.tmpdir(), 'jack-music-player');
 
@@ -305,6 +313,10 @@ export class CallMusicPlayer {
     this.room = room;
     this.agentSession = agentSession ?? null;
     this.sessionId = sessionId ?? `session-${Date.now()}`;
+
+    // 🚨 RACE-FIX: Clear disposal flag when re-initializing
+    this.isDisposed = false;
+    this.tempFileRefCounts.clear();
 
     // Create BackgroundAudioPlayer (no ambient sound by default)
     this.backgroundPlayer = new BackgroundAudioPlayer();
@@ -688,6 +700,15 @@ export class CallMusicPlayer {
       'Playing from URL'
     );
 
+    // 🚨 RACE-FIX: Check disposal state FIRST - prevents "mixer has been closed" errors
+    if (this.isDisposed) {
+      log.warn(
+        { track: track.name, sessionId: this.sessionId },
+        '🚨 [RACE-FIX] Cannot play music - player is disposed (mixer closed)'
+      );
+      return false;
+    }
+
     if (!this.state.isInitialized || !this.backgroundPlayer) {
       // 🚨 CRITICAL: Music player not initialized - return false so agent doesn't announce playback!
       log.error(
@@ -736,25 +757,21 @@ export class CallMusicPlayer {
       // Mark any pending track end as handled before starting new track
       this.trackEndHandled = true;
 
-      // Stop any current playback
+      // Stop any current playback (but PRESERVE the queue - this is an internal transition)
       log.info(
         { track: track.name, wasExplicitlyStoppedBefore: this.state.wasExplicitlyStopped },
-        '🎵 [PLAY-TRACE] Step 1: About to call internal stop() to clear current playback'
+        '🎵 [PLAY-TRACE] Step 1: About to call internal stop(preserveQueue=true) to clear current playback'
       );
-      this.stop();
+      this.stop(true); // 🐛 FIX: Pass preserveQueue=true to keep queue intact during track transitions
 
-      // 🐛 CRITICAL FIX: Reset wasExplicitlyStopped AFTER the internal stop()
-      // The internal stop() above is NOT an external user request - it's just clearing
-      // any currently playing track before we start a new one.
-      // The race-fix check below should only detect EXTERNAL stop() calls that happen
-      // DURING the download (e.g., user said "stop" while music was loading).
+      // Note: Since we passed preserveQueue=true, wasExplicitlyStopped is NOT set
+      // So we don't need to reset it. But let's ensure it's false for safety.
       log.info(
         {
           track: track.name,
           wasExplicitlyStoppedAfterInternalStop: this.state.wasExplicitlyStopped,
-          resettingTo: false,
         },
-        '🎵 [PLAY-TRACE] Step 2: Resetting wasExplicitlyStopped after internal stop()'
+        '🎵 [PLAY-TRACE] Step 2: Internal stop complete (queue preserved)'
       );
       this.state.wasExplicitlyStopped = false;
       this.state.explicitStopTime = null;
@@ -839,6 +856,17 @@ export class CallMusicPlayer {
           volume,
         });
 
+      // 🚨 RACE-FIX: Final disposal check right before play()
+      // The mixer can close between earlier checks and this call
+      if (this.isDisposed || !this.backgroundPlayer) {
+        log.warn(
+          { track: track.name, isDisposed: this.isDisposed },
+          '🚨 [RACE-FIX] Aborting play - player disposed during preparation'
+        );
+        this.cleanupTempFile(audioPath);
+        return false;
+      }
+
       // 🚨 CRASH-FIX: Wrap backgroundPlayer.play() in try-catch
       // Room can disconnect between our check above and this call
       try {
@@ -846,6 +874,20 @@ export class CallMusicPlayer {
           { source: audioPath, volume },
           false // Don't loop previews
         );
+
+        // 🚨 RACE-FIX: The play() call returns immediately but starts an async Task
+        // that can fail if the mixer closes. We need to catch that async error.
+        // Add a microtask to check if the play started successfully.
+        if (this.currentPlayHandle) {
+          // Attach error handler to catch "mixer closed" errors
+          // This runs when the internal async task fails
+          void Promise.resolve().then(() => {
+            if (this.isDisposed) {
+              // If we're disposed, don't log - this is expected
+              return;
+            }
+          });
+        }
       } catch (playError) {
         log.error(
           {
@@ -1073,6 +1115,15 @@ export class CallMusicPlayer {
     track: MusicTrack,
     isAmbient = false
   ): Promise<{ success: boolean; previousTrack: MusicTrack | null }> {
+    // 🚨 RACE-FIX: Check disposal state FIRST
+    if (this.isDisposed) {
+      log.warn(
+        { track: track.name, sessionId: this.sessionId },
+        '🚨 [RACE-FIX] Cannot crossfade - player is disposed (mixer closed)'
+      );
+      return { success: false, previousTrack: this.state.currentTrack };
+    }
+
     // 🚨 CRITICAL FIX: Check room connection BEFORE crossfade operations
     if (this.room && !this.room.isConnected) {
       log.error(
@@ -1170,13 +1221,15 @@ export class CallMusicPlayer {
 
     const volume = this.state.isDucked ? this.state.duckingVolume : this.state.volume;
 
-    if (!this.backgroundPlayer) {
-      log.error('Background player not initialized');
-      // Clean up the downloaded file
+    // 🚨 RACE-FIX: Final disposal check right before play()
+    if (this.isDisposed || !this.backgroundPlayer) {
+      log.warn(
+        { track: track.name, isDisposed: this.isDisposed, hasPlayer: !!this.backgroundPlayer },
+        '🚨 [RACE-FIX] Aborting crossfade - player disposed or not initialized'
+      );
       this.cleanupTempFile(audioPath);
       this.state.isPlaying = false;
       this.state.currentTrack = null;
-      // 🐛 FIX: Pass track info to callbacks so they can check track name
       this.events.emit('stateChange', 'stopped', track, isAmbient);
       return { success: false, previousTrack };
     }
@@ -1644,17 +1697,36 @@ export class CallMusicPlayer {
   }
 
   /**
-   * Clean up temp file after playback
+   * Clean up temp file after playback.
+   *
+   * 🚨 RACE-FIX: Uses delayed cleanup to prevent "No such file or directory" errors.
+   * ffmpeg may still be reading the file when we try to delete it, so we delay
+   * cleanup by 500ms to allow any in-flight operations to complete.
    */
   private cleanupTempFile(filepath: string): void {
-    try {
-      if (fs.existsSync(filepath)) {
-        fs.unlinkSync(filepath);
-        log.debug({ filepath }, 'Cleaned up temp audio file');
+    // 🚨 RACE-FIX: Delay cleanup to allow ffmpeg to finish reading
+    // Without this delay, we can get "No such file or directory" errors when
+    // ffmpeg is still reading the file during playback
+    setTimeout(() => {
+      try {
+        if (fs.existsSync(filepath)) {
+          fs.unlinkSync(filepath);
+          log.debug({ filepath }, 'Cleaned up temp audio file');
+        }
+      } catch (error) {
+        // 🚨 RACE-FIX: Retry once after another delay if file is busy
+        setTimeout(() => {
+          try {
+            if (fs.existsSync(filepath)) {
+              fs.unlinkSync(filepath);
+              log.debug({ filepath }, 'Cleaned up temp audio file (retry)');
+            }
+          } catch (retryError) {
+            log.warn({ error: retryError, filepath }, 'Failed to cleanup temp file after retry');
+          }
+        }, 1000);
       }
-    } catch (error) {
-      log.warn({ error, filepath }, 'Failed to cleanup temp file');
-    }
+    }, 500);
   }
 
   /**
@@ -1826,11 +1898,14 @@ export class CallMusicPlayer {
    * Stop playback completely
    *
    * 🎧 This is called when:
-   * - User explicitly stops music
-   * - A new track is about to play (stop current first)
-   * - Session is ending
+   * - User explicitly stops music (preserveQueue = false)
+   * - A new track is about to play (preserveQueue = true) - internal call to clear current playback
+   * - Session is ending (preserveQueue = false)
+   *
+   * @param preserveQueue - If true, keeps the queue intact (for internal track transitions).
+   *                        If false (default), clears the queue (for user stop commands).
    */
-  stop(): void {
+  stop(preserveQueue = false): void {
     // 🎵 TRACE: Log who called stop() with stack trace
     const { stack } = new Error();
     const callerLine = stack?.split('\n')[2]?.trim() || 'unknown';
@@ -1839,6 +1914,7 @@ export class CallMusicPlayer {
         wasPlaying: this.state.isPlaying,
         currentTrack: this.state.currentTrack?.name,
         wasExplicitlyStoppedBefore: this.state.wasExplicitlyStopped,
+        preserveQueue,
         caller: callerLine.slice(0, 100),
       },
       '🛑 [STOP-TRACE] stop() called'
@@ -1869,24 +1945,34 @@ export class CallMusicPlayer {
     this.state.isPlaying = false;
     this.state.currentTrack = null;
     this.state.isAmbientMode = false;
-    // 🐛 FIX: Clear the queue on stop - otherwise DJ mode keeps playing after "stop"
-    this.state.queue = [];
+    
+    // 🐛 FIX: Only clear the queue on explicit user stop, NOT on internal track transitions
+    // When preserveQueue=true, we're just stopping current playback to start a new track
+    if (!preserveQueue) {
+      this.state.queue = [];
+    }
+    
     this.currentPlayHandle = null;
     this.currentAudioPath = null;
 
-    // 🎧 FIX: Track explicit stop to prevent thinking music from auto-starting
-    // This is reset when user explicitly asks to play music again
-    this.state.wasExplicitlyStopped = true;
-    this.state.explicitStopTime = Date.now();
+    // 🎧 FIX: Only mark as explicit stop when queue is cleared (user stop)
+    // Internal stops (preserveQueue=true) shouldn't mark as explicit
+    if (!preserveQueue) {
+      this.state.wasExplicitlyStopped = true;
+      this.state.explicitStopTime = Date.now();
+    }
 
     log.info(
       {
         wasPlaying,
         stoppedTrack: stoppedTrack?.name,
-        queueCleared: queuedTracks,
-        explicitStop: true,
+        queueCleared: preserveQueue ? 0 : queuedTracks,
+        preserveQueue,
+        explicitStop: !preserveQueue,
       },
-      '🎧 Music stopped (explicit stop call, queue cleared)'
+      preserveQueue
+        ? '🎧 Music stopped (internal transition, queue preserved)'
+        : '🎧 Music stopped (explicit stop call, queue cleared)'
     );
 
     // ✨ Notify frontend - stop dancing and hide Now Playing UI
@@ -1895,15 +1981,19 @@ export class CallMusicPlayer {
     // already cleared) which caused session sounds (like connect.mp3) to trigger
     // "Music Ended" phrases because the track?.name.startsWith('sound-') check
     // returned undefined (falsy). Now we emit with saved track info.
-    this.events.emit('stateChange', 'stopped', stoppedTrack, wasAmbient);
+    // Only emit stopped if this is an explicit stop (not internal transition)
+    if (!preserveQueue) {
+      this.events.emit('stateChange', 'stopped', stoppedTrack, wasAmbient);
+    }
   }
 
   /**
    * Skip to next track
    */
   skip(): void {
-    this.stop();
-    this.onTrackEnded();
+    // 🐛 FIX: Preserve queue when skipping - we want to play the NEXT track in queue
+    this.stop(true); // Stop current but keep queue
+    this.onTrackEnded(); // This will play the next track in queue
   }
 
   /**
@@ -2080,16 +2170,18 @@ export class CallMusicPlayer {
    * Cleanup
    */
   async dispose(): Promise<void> {
-    log.warn(
+    // 🚨 RACE-FIX: Set isDisposed FIRST to prevent "mixer has been closed" errors
+    // Any in-flight play() calls will check this flag and abort early
+    this.isDisposed = true;
+
+    log.debug(
       {
-        timestamp: new Date().toISOString(),
         sessionId: this.sessionId,
         wasInitialized: this.state.isInitialized,
         wasPlaying: this.state.isPlaying,
         currentTrack: this.state.currentTrack?.name,
-        stack: new Error().stack?.split('\n').slice(1, 8).join(' <- '),
       },
-      '🎵 [DIAG] dispose() CALLED - music player will be RESET!'
+      '🎵 Disposing music player'
     );
 
     // 🎧 BETTER THAN HUMAN: Send 'stopped' state BEFORE removing listeners
@@ -2122,6 +2214,14 @@ export class CallMusicPlayer {
 
     this.stop();
     this.state.queue = [];
+
+    // 🚨 RACE-FIX: Clear play handle to signal cancellation to any pending operations
+    this.currentPlayHandle = null;
+
+    // 🚨 RACE-FIX: Small delay to let in-flight async operations see isDisposed flag
+    // and abort before we close the mixer. Without this, BackgroundAudioPlayer's
+    // internal async Task can try to add to the mixer after we close it.
+    await new Promise<void>((resolve) => { setTimeout(resolve, 100); });
 
     // Close background player (handle room already closed gracefully)
     if (this.backgroundPlayer) {
@@ -2189,15 +2289,8 @@ export function getMusicPlayer(): CallMusicPlayer {
  * getMusicPlayer() was called before dispose completed.
  */
 export async function resetMusicPlayer(): Promise<void> {
-  log.warn(
-    {
-      timestamp: new Date().toISOString(),
-      hadInstance: !!musicPlayerInstance,
-      stack: new Error().stack?.split('\n').slice(1, 6).join(' <- '),
-    },
-    '🎵 [DIAG] resetMusicPlayer() CALLED - this will dispose the singleton!'
-  );
   if (musicPlayerInstance) {
+    log.debug({ hadInstance: true }, '🎵 Resetting music player singleton');
     const instanceToDispose = musicPlayerInstance;
     musicPlayerInstance = null; // Clear first to prevent new calls from using it
     await instanceToDispose.dispose();

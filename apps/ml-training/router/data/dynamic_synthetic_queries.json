@@ -1,0 +1,3312 @@
+[
+  {
+    "query": "Hey, play my chill playlist on Spotify, please.",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly asks to play a playlist on Spotify, directly indicating a music request."
+  },
+  {
+    "query": "I want to hear some classic rock. Play it now.",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Requests a specific genre of music, 'classic rock', indicating a music request."
+  },
+  {
+    "query": "Can you put on some music, I'm bored.",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "easy",
+    "reasoning": "A general request for music to alleviate boredom, clearly a music-related intent."
+  },
+  {
+    "query": "Play the new Taylor Swift song.",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Requests a specific song by a specific artist, which is a direct music request."
+  },
+  {
+    "query": "Please start playing some background music.",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Asks to play 'background music,' directly indicates a music request."
+  },
+  {
+    "query": "Hey, can you get some blues music going?",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Explicitly requests a music genre, indicating music playback."
+  },
+  {
+    "query": "Um, play the new Taylor Swift song, if you would.",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Requests a specific song by a specific artist - clearly music related."
+  },
+  {
+    "query": "I'm feeling like some chill tunes, go ahead and queue something up for me.",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Asks for music with a specific vibe (chill) and implies playing it."
+  },
+  {
+    "query": "Could you please play my 'Workout' playlist on Spotify?",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Specifies a playlist and the music platform (Spotify), leaving no ambiguity."
+  },
+  {
+    "query": "Alright, let's hear some old school hip hop, fire it up.",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Requests a music genre (hip hop) and uses colloquial language to mean 'play it'."
+  },
+  {
+    "query": "Hey, I'm kinda in the mood for something...uptempo, you know? Like, get me moving.",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "hard",
+    "reasoning": "The user wants something 'uptempo' and to 'get me moving', implying a desire for music with a certain energetic quality."
+  },
+  {
+    "query": "So, I was thinking about that band we saw last year... What was their stuff called again? The ones with the amazing guitar solos.",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "hard",
+    "reasoning": "The user is trying to recall a band they saw, indicating interest in finding and presumably playing music by that band."
+  },
+  {
+    "query": "Ugh, this silence is killing me. Any way to make this less...dull?",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "hard",
+    "reasoning": "The user explicitly mentions that the silence is boring them. This suggests playing music as a way to combat the boredom."
+  },
+  {
+    "query": "Remember that summer when everyone was obsessed with that one song? What even was it called?",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "hard",
+    "reasoning": "The user references a popular song from the past, demonstrating an interest in rediscovering and likely playing that song (or something similar)."
+  },
+  {
+    "query": "Alright, I'm officially ready to procrastinate. Give me, uh, something that'll help me avoid doing my taxes.",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "hard",
+    "reasoning": "The user wants something to distract them from a task, and by asking for something to 'procrastinate' with, they implicitly suggest listening to music as a form of entertainment."
+  },
+  {
+    "query": "yo, lemme hear some tunes",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "\"tunes\" is slang for music. The user is asking to listen to music."
+  },
+  {
+    "query": "Like, play something chill, you know?",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "\"Play something\" implies playing music. \"Chill\" suggests a genre or mood for the music."
+  },
+  {
+    "query": "Okay, so anyway, play it.",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "The phrase \"play it\" clearly indicates a request to play music, likely something previously mentioned in the conversation that is being referenced by 'it'."
+  },
+  {
+    "query": "Spotify, jam time.",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "\"Jam time\" is an informal way of asking to play music. Specifying \"Spotify\" suggests the music source."
+  },
+  {
+    "query": "I need music stat!",
+    "category": "music",
+    "tools": [
+      "playMusic",
+      "music_play",
+      "spotify_play"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "\"Music stat\" uses slang similar to \"ASAP\" and shows urgency for playing music now."
+  },
+  {
+    "query": "Can you just pause the music for a sec?",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Directly requests to 'pause the music'."
+  },
+  {
+    "query": "Stop the current song, please.",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Clear instruction to 'stop' the song."
+  },
+  {
+    "query": "Music off.",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Short, unambiguous request to turn the music off, implying pause/stop."
+  },
+  {
+    "query": "Hey, can you halt the music playback?",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses 'halt' which is a synonym for pause/stop, and specifies 'music playback'."
+  },
+  {
+    "query": "Would you mind silencing the tunes for a little bit?",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Asks to 'silence the tunes', a natural way of saying pause the music."
+  },
+  {
+    "query": "Could you just hold off on the tunes for a sec?",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "medium",
+    "reasoning": "The phrase 'hold off on the tunes' clearly implies stopping the music, making it a request to pause."
+  },
+  {
+    "query": "Hey, can you give the music a rest for a bit?",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "medium",
+    "reasoning": "'Give the music a rest' is a natural way of saying to stop the music temporarily."
+  },
+  {
+    "query": "Okay Google, time to quiet things down now, if you would.",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "medium",
+    "reasoning": "'Quiet things down' directly implies pausing or stopping the music playing."
+  },
+  {
+    "query": "Alright, I think I'm good with the music for now, so just stop.",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Explicitly saying 'stop' in the context of music implies pausing or stopping the playback."
+  },
+  {
+    "query": "Would you mind killing the music?",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "medium",
+    "reasoning": "'Killing the music' is a colloquial, but clear, way of asking to stop the music that is currently playing."
+  },
+  {
+    "query": "Okay, I think I'm good for now. You can, uh, just put it on hold for a bit.",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "hard",
+    "reasoning": "The phrase \"put it on hold\" is a colloquial way of saying pause the music, implying a temporary stop to the playback."
+  },
+  {
+    "query": "Actually, could you give my ears a little break?",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Requesting \"a little break\" for their ears implies they want to stop listening to the music that's currently playing."
+  },
+  {
+    "query": "Alright, that's enough of that for the time being, thanks.",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "hard",
+    "reasoning": "\"Enough of that\" refers to the current playing music, and \"for the time being\" indicates a desire to temporarily halt it."
+  },
+  {
+    "query": "Mind if we just, like, take a breather from the tunes?",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "hard",
+    "reasoning": "\"Take a breather from the tunes\" is an indirect way of asking to pause the music, using casual language."
+  },
+  {
+    "query": "I'm gonna jump on this call, so maybe just keep it down?",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "hard",
+    "reasoning": "\"Keep it down\" is a softened command that is used to say turn the volume low or pause the music. Considering the context of a phone call it is more likely for the music to be paused."
+  },
+  {
+    "query": "Alright, shush.",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "While 'shush' can be used in other contexts, in this case, spoken after 'alright' (indicating task readiness), the intent is clearly to stop any ongoing audio playback."
+  },
+  {
+    "query": "Hold that.",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "\"Hold that\" is a very short, colloquial way of asking something to be paused. It implies a temporary cessation of an ongoing activity, in this context, music."
+  },
+  {
+    "query": "Anyways, halt.",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "The word \"halt\" definitively means to stop. The inclusion of \"anyways\" makes it conversational but doesn't negate the command to stop the music playing."
+  },
+  {
+    "query": "Can you, like, kill the tunes?",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "\"Kill the tunes\" is slang for stopping music. The filler word \"like\" adds to the naturalness, making it less of a direct command but still unambiguous."
+  },
+  {
+    "query": "Quiet now, please.",
+    "category": "pause_music",
+    "tools": [
+      "pauseMusic"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "The use of \"Quiet now\" is a polite request to silence the current audio output, implying the music that is currently playing."
+  },
+  {
+    "query": "Hey, what's the weather like today?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Directly asks about the weather, a clear indication of the weather category."
+  },
+  {
+    "query": "Give me the current temperature, please.",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Specifically requests the temperature, a core weather metric."
+  },
+  {
+    "query": "Will it be raining tomorrow, do you think?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Asks about future rain, which falls under weather forecast."
+  },
+  {
+    "query": "What's the weather forecast for this weekend?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly requests a weather forecast for a specific time period."
+  },
+  {
+    "query": "So, what are the weather conditions outside?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Directly inquires about weather conditions outdoors, obviously weather-related."
+  },
+  {
+    "query": "Hey, can you tell me what the weather's looking like for tomorrow?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Asks for weather forecast for the next day, indicating intent to know weather conditions."
+  },
+  {
+    "query": "Do I need a jacket today? What's the temperature outside?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Directly asks for the temperature and uses that information to make a decision about clothing, indicating a need for weather conditions information."
+  },
+  {
+    "query": "Okay Google, what's the weather going to be like in Chicago this weekend?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Explicitly asks for weather forecast, specifying a location and timeframe."
+  },
+  {
+    "query": "Is there any chance of precipitation later this afternoon?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Asks about the likelihood of rain (precipitation) within a specific time period. Requires checking weather forecast."
+  },
+  {
+    "query": "What is the high and low expected to be today?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Asks for both the highest and lowest temperatures expected for the current day, indicating a need for detailed weather information including temperature forecast."
+  },
+  {
+    "query": "Hey, I'm heading out soon, should I grab a jacket or anything?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Indirectly asks about the temperature or potential for rain/cold, thus needing weather information."
+  },
+  {
+    "query": "So, I'm planning a picnic for tomorrow, you think that's gonna work out okay?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Implies a need for a weather forecast for the next day to determine if an outdoor picnic is feasible."
+  },
+  {
+    "query": "Wondering if I should bother washing the car today, you know?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Asks implicitly about the chance of rain in the near future, requiring weather information."
+  },
+  {
+    "query": "My sinuses are killing me, is it unusually humid or something lately?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Relates sinus issues to potential weather conditions (humidity), implying a need to check weather data."
+  },
+  {
+    "query": "Ugh, what's with this darkness? Is the sun even trying today?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Indirectly asks about cloud cover or overall weather conditions affecting sunlight, so weather conditions."
+  },
+  {
+    "query": "So, anyway, is it gonna pour?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Implies a question about heavy rain, which is a weather condition."
+  },
+  {
+    "query": "Yo, temperature check?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses slang for 'what is the current temperature?', clearly a weather request."
+  },
+  {
+    "query": "Forecast, fam.",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses slang to request a weather forecast."
+  },
+  {
+    "query": "Outside situation?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "A short, colloquial way of asking about the weather conditions outdoors."
+  },
+  {
+    "query": "Drizzly, innit?",
+    "category": "weather",
+    "tools": [
+      "getWeather",
+      "weatherForecast"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "British slang for 'is it drizzling?', asking about a specific weather condition (light rain)."
+  },
+  {
+    "query": "Hey, can you add a dentist appointment to my calendar for next Tuesday at 2 pm?",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly asks to add an appointment to the calendar, indicating event creation."
+  },
+  {
+    "query": "Schedule a meeting with John and Jane for Friday morning to discuss the Q3 report.",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses the keyword 'schedule' a 'meeting', directly related to creating a calendar event."
+  },
+  {
+    "query": "I need to book a doctor's visit next week. Can you find an open slot and put it on my calendar?",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Asks to 'book' and 'put it on my calendar', clearly requesting event scheduling."
+  },
+  {
+    "query": "Could you add 'Dinner with Sarah' to my calendar for Saturday at 7?",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Directly asks to 'add' an event ('Dinner with Sarah') to the user's calendar."
+  },
+  {
+    "query": "Um, can you, like, schedule an oil change for my car sometime this week? Doesn't really matter when.",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses 'schedule' in the context of a real-world appointment ('oil change'), a clear indication of create_event."
+  },
+  {
+    "query": "Hey, can you pencil in a doctor's appointment for me next Tuesday, like around 2 PM?",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Explicit request to schedule a doctor's appointment, indicating creating a calendar event."
+  },
+  {
+    "query": "Okay Google, I need you to book me a meeting with Sarah and John next Friday at 10am to discuss the quarterly report.",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "medium",
+    "reasoning": "User is asking to 'book' a meeting with specific participants, date, and time. Clearly indicates creating a calendar event."
+  },
+  {
+    "query": "I need to get something on the calendar for next Thursday. It's a lunch with the team, say around 12:30.",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "medium",
+    "reasoning": "The user is explicitly asking to add an event ('get something on the calendar') for a team lunch, implying scheduling."
+  },
+  {
+    "query": "Could you add a reminder to my calendar for next Monday at 9am? It's the team stand-up.",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Request to add a 'reminder' for a specific time and purpose (team stand-up) is functionally equivalent to creating a calendar event."
+  },
+  {
+    "query": "Right, I need to schedule something. It's a presentation rehearsal for my big talk, maybe put it down for Wednesday afternoon at 3?",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "medium",
+    "reasoning": "The user uses the phrase 'schedule something' which is a direct indication to create_event, then gives the specifics of the event."
+  },
+  {
+    "query": "Hey, could you, like, pencil me in for lunch with Sarah next Tuesday?",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "hard",
+    "reasoning": "The phrase 'pencil me in' is an idiom that means to tentatively schedule something, indicating a desire to create a calendar entry."
+  },
+  {
+    "query": "I'm trying to block out some time next week for that project review, you know, so I don't get double-booked.",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "hard",
+    "reasoning": "'Blocking out time' implies reserving a specific time slot in a calendar, and the concern about being 'double-booked' further suggests a calendar management request."
+  },
+  {
+    "query": "Remind me to call the dentist, say... oh, a week from Friday morning?",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "hard",
+    "reasoning": "This is not just a reminder, but a request to schedule a reminder related to an appointment, effectively implying an appointment booking, or at least marking down the intention to call the dentist in advance."
+  },
+  {
+    "query": "Oh man, I gotta remember to actually meet up with John sometime next month; can you help me not forget?",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "hard",
+    "reasoning": "While seemingly a reminder, the context 'meet up with John' implies a meeting that needs scheduling, and the query is focused on ensuring it happens (through scheduling help) not just a simple reminder."
+  },
+  {
+    "query": "So, I was thinking of grabbing coffee with the team before the all-hands meeting on the 15th. Maybe 9 AM? Just making sure it actually happens, y'know?",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "hard",
+    "reasoning": "The user is not explicitly scheduling, but is describing a scenario where a 'coffee' meeting needs to be secured, and the user is trying to ensure it happens, implying a need to schedule it in the calendar."
+  },
+  {
+    "query": "Yo, book me.",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Short, slangy, and ambiguous on the surface, but clearly implies scheduling a meeting or appointment in a business context ('book me')."
+  },
+  {
+    "query": "uhh... meeting Tuesday",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Very short and fragmented, but 'meeting Tuesday' directly indicates the intent to schedule something for the calendar."
+  },
+  {
+    "query": "Hey, so like, calendar it?",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Casual, uses filler words, and turns 'calendar' into a verb, but unambiguously requests adding something to the calendar."
+  },
+  {
+    "query": "Gotta add a doctor's thing.",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses 'thing' as a placeholder, but 'doctor's' is the key indicator for scheduling an appointment. Contraction included for naturalness."
+  },
+  {
+    "query": "Later, could you sched lunch?",
+    "category": "create_event",
+    "tools": [
+      "createCalendarEvent",
+      "scheduleEvent"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Embedded in a farewell phrase, uses 'sched' (abbreviation for schedule), but the context ('lunch') and verb indicate a scheduling action for the calendar."
+  },
+  {
+    "query": "What does my calendar look like for this Friday?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Directly asks about the calendar, indicating a need to view scheduled events."
+  },
+  {
+    "query": "Hey, is my schedule clear next Wednesday afternoon?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Specifically asks about schedule availability, triggering get_events to check the calendar."
+  },
+  {
+    "query": "Can you check what's planned for tomorrow in my calendar?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Clear request to check calendar events for a specific day."
+  },
+  {
+    "query": "Am I busy at all next Monday?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Asks for availability, implicitly referencing the calendar."
+  },
+  {
+    "query": "I want to view my schedule for the upcoming week.",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicit request to view the schedule, indicating a need for calendar information."
+  },
+  {
+    "query": "Hey, what does my week look like starting Monday?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Asks for a view of the user's schedule for the upcoming week."
+  },
+  {
+    "query": "Okay Google, am I slammed next Wednesday, or do I have some breathing room?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Directly asks about availability on a specific day, implying a calendar check is needed."
+  },
+  {
+    "query": "Can you, um, check my agenda for, like, the 15th?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Asks to see their agenda (calendar) on a specific date, using natural filler words."
+  },
+  {
+    "query": "Show me everything I've got planned for this afternoon, please.",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Requests a display of calendar events scheduled for a specific timeframe (this afternoon)."
+  },
+  {
+    "query": "What's penciled in for me tomorrow? I need to figure out if I can fit in a lunch meeting.",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Asks about scheduled events to determine availability, implying a calendar check. Includes context for why the user needs the information."
+  },
+  {
+    "query": "Hey, could you maybe tell me if I'm slammed with stuff later this week? Just curious.",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Asks about being 'slammed with stuff', implying a need to know the density of calendar events/schedule. Implies checking future time periods (this week)."
+  },
+  {
+    "query": "So, like, if I wanted to pencil something in for Tuesday, would I be able to?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Asks about ability to 'pencil something in' on a specific day, indicating a need to check available time slots on the calendar for Tuesday."
+  },
+  {
+    "query": "What does the rest of my day look like, time-wise?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Directly asks about the schedule for the remainder of the current day, implying the need to access the calendar and summarize the events."
+  },
+  {
+    "query": "Ugh, I feel like I'm forgetting something important. Can you, uh, refresh my memory about tomorrow morning?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Expresses feeling of forgetting something and asking for a 'refresh' about 'tomorrow morning'. It's seeking information present within the calendar for events scheduled."
+  },
+  {
+    "query": "Am I supposed to be anywhere near a computer screen around 3pm on Friday, or can I finally go outside?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Indirectly asks about scheduled meetings or events near '3pm on Friday' implying an existence of calendar entries and a check for commitment."
+  },
+  {
+    "query": "Uh, book tomorrow?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Short query using 'book' (potentially confused with booking travel) but clearly implies checking for existing calendar entries tomorrow."
+  },
+  {
+    "query": "Hey, am I slammed Friday?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses slang ('slammed') which could be misconstrued as something else, but the context of being 'slammed' on a specific day strongly suggests checking calendar availability."
+  },
+  {
+    "query": "So, like, my day, please?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Very short and conversational, 'my day' with 'please' is a polite request to view the user's calendar schedule for the current day."
+  },
+  {
+    "query": "What's cooking tomorrow morning... calendar-wise?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Intentionally uses a potentially distracting opening phrase ('What's cooking') followed by a clarifying phrase 'calendar-wise' to force the intent towards calendar events."
+  },
+  {
+    "query": "Anything free next week?",
+    "category": "get_events",
+    "tools": [
+      "getCalendarEvents",
+      "checkAvailability"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Short query; 'free' can be used in different context, but coupled with 'next week' strongly indicates a request for checking availability/calendar events next week."
+  },
+  {
+    "query": "Remind me to take out the trash tomorrow morning at 7 AM.",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly uses 'Remind me to' which is a core indicator of a reminder request."
+  },
+  {
+    "query": "Set a reminder for Friday to call my dentist.",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses the key phrase 'Set a reminder' and specifies a task and a day."
+  },
+  {
+    "query": "Can you remind me about my meeting with John at 2pm?",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Asks to be reminded about a specific event with a time, clearly a reminder intent."
+  },
+  {
+    "query": "Hey, set up a reminder to pay the electricity bill on the 28th.",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses the phrase 'set up a reminder' and provides a clear task and date."
+  },
+  {
+    "query": "Um, remind me to pick up milk after work today, please.",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses 'remind me to', a simple task, and includes filler ('um') and politeness ('please') for natural speech."
+  },
+  {
+    "query": "Hey, can you put a thing on my calendar to remind me to water the plants next Tuesday at 6pm?",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Explicitly requests a reminder to be created for a specific task and time."
+  },
+  {
+    "query": "Alright Google, set a reminder for me to call the dentist office, oh, say in about two hours from now?",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Clearly asks for a reminder with a specific task and uses relative timing."
+  },
+  {
+    "query": "Remind me to pick up the dry cleaning, um, Friday morning please.",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Requests a reminder for a task on a specific day of the week."
+  },
+  {
+    "query": "I need a reminder to pay the electricity bill before the 15th, make sure of it!",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Requests a reminder for a crucial task, specifying a deadline."
+  },
+  {
+    "query": "So, I don't forget, could you remind me to get milk and eggs when I leave work today?",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Requests a reminder for a grocery shopping task upon a specific trigger (leaving work)."
+  },
+  {
+    "query": "Hey, could you, like, ping me about grabbing milk before they close the store?",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Indirectly asks to be reminded to buy milk before the store closes. Uses casual language ('like', 'ping me')."
+  },
+  {
+    "query": "So, about that doctor's appointment, I'm probably gonna be swamped. Can you make sure I don't space on it?",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "hard",
+    "reasoning": "User wants the assistant to ensure they remember their appointment, which implies setting a reminder."
+  },
+  {
+    "query": "Um, Saturday's the family reunion, right? I'm terrible with dates, help a brother out.",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Indirectly requests help remembering the date of the family reunion, strongly suggesting a reminder would be useful."
+  },
+  {
+    "query": "I've got that conference call at, uh... sometime next week? Let's just say 'mid-week' and I'll figure out the specifics later, if that makes sense?",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Requests help with remembering the conference call next week. The vague request for 'mid-week' implies they want some kind of temporal notification."
+  },
+  {
+    "query": "Shoot, I always forget to water the plants. They're gonna hate me. Maybe if you had a thought for them or something?",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "hard",
+    "reasoning": "This is a roundabout way of asking to be reminded to water the plants. 'A thought for them' is a playful way of saying 'remind me'."
+  },
+  {
+    "query": "Yo, remind 3pm dentist",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Slang 'yo' and abbreviated time and event clearly indicate setting a reminder."
+  },
+  {
+    "query": "Don't forget milk, tomorrow.",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Imperative 'don't forget' followed by a task and timeframe explicitly requires setting a reminder."
+  },
+  {
+    "query": "Set alarm, but a reminder, 8am",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Distinguishes from a simple alarm, clarifying that it's a reminder task at a specific time."
+  },
+  {
+    "query": "Laterz remind pick up dry cleaning",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "'Laterz' slang implies action in the future. 'Remind' explicitly asks for a reminder for a task."
+  },
+  {
+    "query": "Heads up: appt Friday",
+    "category": "reminder",
+    "tools": [
+      "createReminder",
+      "setReminder"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "'Heads up' implies notifying the user about something, and 'appt Friday' indicates a scheduled appointment, requiring a reminder so the user is notified in advance."
+  },
+  {
+    "query": "Hey, can you set an alarm for 6:30 tomorrow morning?",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly asks to set an alarm with a specific time."
+  },
+  {
+    "query": "Wake me up at 8 AM, please.",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses the phrase 'wake me up' indicating an alarm, followed by a time."
+  },
+  {
+    "query": "Set alarm for 2 PM.",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Clear and direct request to set an alarm at a specific time."
+  },
+  {
+    "query": "I need an alarm set for nine in the morning.",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Clearly indicates a need for an alarm and specifies a time."
+  },
+  {
+    "query": "Okay Google, create an alarm that goes off at 7:15 AM.",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses 'create an alarm' and provides a specific time, making the intent unambiguous."
+  },
+  {
+    "query": "Hey, can you set an alarm for me tomorrow morning at, let's say, 6:30?",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Explicit request to set an alarm with a specific time."
+  },
+  {
+    "query": "I need to get up early tomorrow. Wake me up at a quarter to eight, please.",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Request to be woken up at a specific time, indicating an alarm."
+  },
+  {
+    "query": "Alright, I need a reminder to take the cake out of the oven at 3:45 this afternoon. Set an alarm, would you?",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Specifically requests an alarm to be set for a task at a defined time."
+  },
+  {
+    "query": "Um, could you please set an alarm for 9 AM? I have a meeting then.",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Polite request for an alarm at a given time, related to a meeting."
+  },
+  {
+    "query": "Set an alarm for 7:15 AM. Make it loud, I sleep heavy.",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Clear directive to set an alarm for a particular time."
+  },
+  {
+    "query": "Hey, just so I don't oversleep tomorrow, you know?",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Implies a need to ensure waking up, thus needing an alarm."
+  },
+  {
+    "query": "I've got that early meeting again... need something to make sure I'm up.",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Clearly indicates a need to wake up at a specific time due to an early meeting, implying setting an alarm."
+  },
+  {
+    "query": "Could you remind me about that thing tomorrow? Like, *really* remind me.",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "hard",
+    "reasoning": "The addition of \"really remind me\" suggests a need for a persistent alert to ensure they don't forget, mapping to an alarm function."
+  },
+  {
+    "query": "So, I'm trying to get into a better sleep schedule, think you could give me a nudge in the right direction?",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Suggests a need for assistance with waking up at a desired time for a better sleep schedule, i.e., needing an alarm."
+  },
+  {
+    "query": "Ugh, I'm terrible at mornings. Maybe something to help me with the struggle tomorrow?",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Indirectly refers to the difficulty of waking up and needing help, indicating an alarm."
+  },
+  {
+    "query": "Yo, wake me!",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "The phrase 'wake me' is a very direct, albeit slangy, way to request setting an alarm. The brevity makes it tricky, as it could be misinterpreted, but the core intent is clear."
+  },
+  {
+    "query": "Remind me 6am.",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Short, and could be mistaken for a reminder, but the time specified implies an alarm, especially given the user's request for a reminder at a *specific time*."
+  },
+  {
+    "query": "Hey, can you do 7 sharp?",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "'7 sharp' implies 7:00 am/pm exactly, and the request to 'do' it hints at setting an alarm. This is slightly ambiguous but points towards alarm setting."
+  },
+  {
+    "query": "Alright, gotta get up early. Gimme 5:30.",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "The conversational preamble ('gotta get up early') combined with 'gimme 5:30' strongly suggests setting an alarm for 5:30, despite the casual tone."
+  },
+  {
+    "query": "Set that noise for noonish.",
+    "category": "alarm",
+    "tools": [
+      "setAlarm",
+      "createAlarm"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "'Set that noise' is an indirect way of asking for an alarm, and 'noonish' provides a rough time, indicating the user wants an alarm near midday."
+  },
+  {
+    "query": "Hey Google, can you set a timer for 30 seconds?",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly asks to 'set a timer', indicating the timer category and action."
+  },
+  {
+    "query": "I want a countdown for 2 minutes, please.",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses 'countdown' which is a clear synonym for a timer, and specifies a duration."
+  },
+  {
+    "query": "Set a timer to remind me in one hour.",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Similar to example, using 'set a timer' but with a different time and adding 'to remind me' which implies a timer function."
+  },
+  {
+    "query": "Um, set a timer for, like, 5 minutes and 30 seconds. Thanks.",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Natural speech with filler words ('um', 'like') but the core request is 'set a timer' with a duration."
+  },
+  {
+    "query": "Alright, create a timer that goes off in 15 minutes.",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses 'create a timer' and clarifies that the timer should 'go off in' a specified time."
+  },
+  {
+    "query": "Hey Google, can you set a timer for, um, let's say, 22 minutes, please?",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Explicit request to set a timer for a specific duration; 'um' and 'please' add naturalness."
+  },
+  {
+    "query": "Okay, I need a countdown timer, like right now, for 1 hour and 15 minutes.",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Clearly specifies a 'countdown timer' and provides a duration. 'like right now' indicates immediacy."
+  },
+  {
+    "query": "Set a timer for when the football game starts, it's in half an hour.",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Requests setting a timer with a relative duration ('half an hour') linked to a specific event."
+  },
+  {
+    "query": "Could you please create a timer? I want it to go off after 47 minutes and 30 seconds.",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Asks to 'create a timer' and provides a precise duration. The 'please' makes it more polite and natural."
+  },
+  {
+    "query": "Alright assistant, I'm putting cookies in the oven, so set a timer for 13 minutes. Thanks!",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Contextual setting of a timer related to baking, specifies a duration, and includes 'Thanks!' for added naturalness."
+  },
+  {
+    "query": "Hey, can you remind me when the cookies are done? They're in the oven now.",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Implicitly requests a timer by referencing a cooking task that has a time element."
+  },
+  {
+    "query": "Okay, so I'm gonna start watering the plants now, how long do you think I should go for before moving on to the next one?",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "hard",
+    "reasoning": "User wants to keep track of the watering time to be consistent. Therefore a timer request is implicitly given here."
+  },
+  {
+    "query": "Right, I'm off to iron this shirt. I'm gonna give it a good go and then get ready for the zoom meeting. What time do I need to start getting ready to make the meeting?",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "hard",
+    "reasoning": "The need to get ready for a meeting implies a countdown before which a timer may need to be set. This requires timer functionality to ensure they don't miss the meeting."
+  },
+  {
+    "query": "So, I'm planning on meditating...just need a gentle nudge at the end of it, you know?",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Wants to be notified after a period of meditation, implying a need to set a timer to mark the end of the session."
+  },
+  {
+    "query": "I'm gonna try to power nap. Wake me up when I've been resting for a bit, say when I'm getting close to feeling drowsy again.",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "hard",
+    "reasoning": "User wants to be woken up after a nap after a period of rest, which implicates setting a timer."
+  },
+  {
+    "query": "Yo, clock me for a half hour, fam.",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses slang ('clock me,' 'fam') to request setting a 30-minute timer."
+  },
+  {
+    "query": "Hey, later I have to bake something, can you like, set a b timer?",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses 'b timer' which is clearly derived from and meaning 'baking timer'."
+  },
+  {
+    "query": "Uhh... lemme get a snooze.",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "'Snooze' is a colloquial way of saying 'set a short timer for when I want to snooze/nap'."
+  },
+  {
+    "query": "Fifteen on oven.",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Very short query; 'fifteen' refers to 15 minutes, and 'on oven' implies setting a timer for oven-related tasks."
+  },
+  {
+    "query": "While I'm showering, gimme ten.",
+    "category": "timer",
+    "tools": [
+      "setTimer",
+      "createTimer"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Implies 'give me ten minutes' notice' which means set a timer for 10 minutes. Embedded in a casual statement."
+  },
+  {
+    "query": "Hey, can you call my brother?",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicit request to initiate a phone call to a contact (brother)."
+  },
+  {
+    "query": "Alright Google, dial the number for David Miller.",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Clear instruction to dial a phone number associated with a contact named David Miller."
+  },
+  {
+    "query": "I wanna phone up Jennifer, please.",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "easy",
+    "reasoning": "The phrase 'phone up' and the contact name 'Jennifer' unambiguously indicate a call."
+  },
+  {
+    "query": "Um, call Emily.",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Simple and direct request to call a contact named Emily."
+  },
+  {
+    "query": "Make a call to Dad.",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly requests making a phone call to a contact named 'Dad'."
+  },
+  {
+    "query": "Hey, can you please call David for me?",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Explicit request to 'call' a named contact."
+  },
+  {
+    "query": "Um, could you maybe give my sister a call, please?",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Clear request to 'give a call' to a family member, which implies a contact."
+  },
+  {
+    "query": "I need to phone my dentist, Dr. Smith, right now.",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Uses 'phone' as a verb, indicating a call, and specifies a contact (dentist)."
+  },
+  {
+    "query": "Go ahead and dial up John Miller, would you?",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Uses 'dial up' indicating a call and provides a full name for the contact."
+  },
+  {
+    "query": "Could you please connect me with Aunt Susan?",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "medium",
+    "reasoning": "'Connect me with' is a common way to request a phone call with a contact."
+  },
+  {
+    "query": "Hey, I was just thinking about catching up with my brother, maybe now's a good time?",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Implies the user wants to initiate a phone call with their brother to 'catch up'."
+  },
+  {
+    "query": "Uh, could you maybe get a hold of Mark for me? I need to ask him something quick.",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "hard",
+    "reasoning": "'Get a hold of' is a common idiom for contacting someone, most likely by phone call."
+  },
+  {
+    "query": "I need to tell Aunt Susan about the good news. Think you could help with that?",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Asking for help to tell someone news implies initiating communication, most likely a phone call given the context and relationship."
+  },
+  {
+    "query": "I'm supposed to check in with the office manager before lunch. Can you set that up?",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "hard",
+    "reasoning": "'Check in' implies a brief communication with the office manager, and 'set that up' implies initiating the communication via a phone call."
+  },
+  {
+    "query": "Remind me to speak with David after this song is over.",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "hard",
+    "reasoning": "'Speak with' implies initiating a conversation with David, and the voice assistant is being asked to remind to do this, pointing toward an intent to call."
+  },
+  {
+    "query": "Yo, call 911!",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses slang ('Yo') and an emergency number to indicate an urgent call request."
+  },
+  {
+    "query": "Ring up Dave, would ya?",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses colloquialism 'ring up' for 'call' and a tag question to make it sound conversational."
+  },
+  {
+    "query": "Call Trish, ASAP!",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses abbreviation ASAP and a short query for calling Trish."
+  },
+  {
+    "query": "Uh, lemme call him.",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses filler words ('uh', 'lemme') and a pronoun ('him') requiring context, but clearly indicates an intention to make a call."
+  },
+  {
+    "query": "Dial it, to Sheila",
+    "category": "call",
+    "tools": [
+      "callContact",
+      "makeCall"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Short, uses slang 'dial it', and implies a phone call request for 'Sheila'."
+  },
+  {
+    "query": "Hey Google, send a text to Sarah Miller saying I'm running late.",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly uses 'send a text', directly indicating the user wants to send a message."
+  },
+  {
+    "query": "Text my wife, honey I'll be home soon.",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses 'text' followed by a contact name, making it clear it's a messaging request."
+  },
+  {
+    "query": "Okay, send SMS to David, \"Meet me at the usual spot.\"",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses the term 'SMS' and directly specifies a recipient and message content."
+  },
+  {
+    "query": "Could you please send a message to Uncle Joe? Tell him Happy Birthday!",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses 'send a message' clearly indicating a messaging action, with specified recipient and content."
+  },
+  {
+    "query": "Alright, send a text message to my boss that I will be there in 10 minutes.",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly says 'send a text message', leaving no ambiguity about the desired action."
+  },
+  {
+    "query": "Hey, could you shoot a text to Sarah saying I'll be there in 10?",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Direct request to send a text message to a contact with a specific message."
+  },
+  {
+    "query": "Send a SMS to my brother, please. Tell him I forgot my keys.",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Explicit instruction to send an SMS to a contact, including the message content."
+  },
+  {
+    "query": "Would you please send a message to Robert about the meeting?",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Request to send a message to a contact regarding a meeting, indicating a communication via messaging is desired."
+  },
+  {
+    "query": "I need to send a text message real quick. Can you text Ashley and tell her I'm running late?",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "medium",
+    "reasoning": "User expresses the need to send a text message and directly asks the assistant to send one to a specific contact with a reason."
+  },
+  {
+    "query": "Okay, text Mark, saying 'See you soon!'",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Clear instruction to send a text message to a specified contact with a specific message content."
+  },
+  {
+    "query": "Hey, can you, uh, like, let Sarah know I'm running late?",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Indirectly requests sending a message to Sarah. 'Let Sarah know' implies communication, strongly suggesting a text message."
+  },
+  {
+    "query": "Tell my brother I said happy birthday",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Instructs the assistant to relay a message, which in the context of a voice assistant defaults to a text or SMS, especially for short informal greetings."
+  },
+  {
+    "query": "Could you shoot a quick one-liner to Mark about the game tonight?",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "hard",
+    "reasoning": "'Shoot a quick one-liner' is colloquial for sending a short message, most likely via text, to Mark regarding the game."
+  },
+  {
+    "query": "Just ping Rachel that I'm almost there.",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "hard",
+    "reasoning": "'Ping' is commonly used to mean sending a quick text message, and the context ('almost there') reinforces this."
+  },
+  {
+    "query": "Would you mind informing Dad that dinner's ready?",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Asks the assistant to inform the user's dad of something. Since this is a voice assistant request, it implies sending a message (likely SMS), especially for a short, timely piece of information."
+  },
+  {
+    "query": "Yo, text Liz!",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Slang 'yo' and directive 'text' makes it a clear request to send a text message to Liz."
+  },
+  {
+    "query": "Anyways, txt Dave later.",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Casual conversation framing, but the use of 'txt' as abbreviation of 'text' directs the system to send a text message to Dave."
+  },
+  {
+    "query": "SMS my boss, I'm late.",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Unambiguous use of SMS clarifies the intent, despite the short sentence and urgent tone."
+  },
+  {
+    "query": "Send message, Amy.",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Short sentence and use of command word 'Send' clarifies that user wants to send an email to Amy."
+  },
+  {
+    "query": "Hey, can you like, send a message to, uh, Jenny?",
+    "category": "message",
+    "tools": [
+      "sendMessage",
+      "sendSMS",
+      "textContact"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "The conversational filler ('like', 'uh') and question format try to throw it off, but 'send a message to Jenny' directly indicates texting."
+  },
+  {
+    "query": "Okay Google, I completed my Duolingo lesson today.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly states completion of a habit (Duolingo lesson)."
+  },
+  {
+    "query": "Mark guitar practice as done.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses the direct command 'mark...as done' indicating habit completion tracking."
+  },
+  {
+    "query": "Just finished my daily reading, log that.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Clear instruction to 'log' the completion of a daily activity, implying a habit."
+  },
+  {
+    "query": "I want to track my water intake for today.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Directly requests tracking of a habit (water intake)."
+  },
+  {
+    "query": "Hey Assistant, go ahead and log that I went for my run this morning.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses 'log' and specifies a habitual activity ('my run') with a time context ('this morning')."
+  },
+  {
+    "query": "Hey, just wanted to, like, mark my daily reading as complete.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "medium",
+    "reasoning": "The phrase 'mark ... as complete' directly indicates logging the completion of a habit (reading)."
+  },
+  {
+    "query": "Please register that I've finished my Duolingo lesson for today.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "medium",
+    "reasoning": "'Register' in this context means to log or record the completion of an activity, which is a habit (Duolingo lesson)."
+  },
+  {
+    "query": "Okay Google, go ahead and track that I actually went for my run this morning.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "medium",
+    "reasoning": "'Track' explicitly refers to recording the performance of a habit (running)."
+  },
+  {
+    "query": "Um, can you log my practice session on the guitar for 30 minutes, please?",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "medium",
+    "reasoning": "'Log' directly refers to recording the time spent on a habit (guitar practice)."
+  },
+  {
+    "query": "Alright, I'm all done with flossing my teeth. Go ahead and put that in the system.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "medium",
+    "reasoning": "'Put that in the system' is a more casual way of saying 'record' or 'log', and flossing is a habit."
+  },
+  {
+    "query": "So, about that Spanish lesson... let's just say I put in the time.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Implies completion of a habit, requiring logging or tracking. 'Putting in the time' suggests dedicated effort toward something regular."
+  },
+  {
+    "query": "Hey, just wanted to, uh, put another one in the books for reading, if you know what I mean.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Indirectly states completion of a reading session, which is a common habit. 'Another one in the books' implies a recurring action."
+  },
+  {
+    "query": "Remind me how many days in a row I've managed to do my Duolingo?",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Asks about a streak, implying consistent completion of a habit (Duolingo). This necessitates the use of habit tracking functionality."
+  },
+  {
+    "query": "Went for my evening walk, same as always, so yeah...",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Describes a recurring activity ('evening walk, same as always'), indicating habit completion and the need for logging or tracking."
+  },
+  {
+    "query": "Did that thing I said I would. The one with the stretching.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Vague, but clearly referencing a pre-established, repeated activity (stretching). The phrase 'that thing I said I would' suggests an agreement to follow a habit, and the completion needs logging."
+  },
+  {
+    "query": "Been hitting the gym, finally.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Implies that the user wants to log their gym visit/workout as a habit."
+  },
+  {
+    "query": "Yeah, logged it.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Assuming the context of habit completion, 'logged it' clearly refers to logging the habit."
+  },
+  {
+    "query": "Meditation: crushed it.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "\"Crushed it\" implies completion, so the user wants to mark the meditation habit as complete."
+  },
+  {
+    "query": "Yoga, donezo.",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "\"Donezo\" is slang for \"done\", so user wants to mark Yoga habit complete."
+  },
+  {
+    "query": "Track water intake",
+    "category": "log_habit",
+    "tools": [
+      "logHabit",
+      "trackHabit",
+      "markHabitComplete"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "A very short request, but directly requests tracking of water intake, which is a type of habit. Using \"track\" as the keyword"
+  },
+  {
+    "query": "Hey, can you show me my habit stats for this week?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly asks for habit stats, indicating a desire to view habit statistics."
+  },
+  {
+    "query": "What's my current streak at for running?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Directly requests streak information, which falls under viewing habit progress and streaks."
+  },
+  {
+    "query": "Alright, let's see my habit progress. Update me.",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly requests habit progress information using clear keywords."
+  },
+  {
+    "query": "So, uh, what's my progress on my reading habit been like lately?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Asks about progress on a habit, using natural filler and phrasing."
+  },
+  {
+    "query": "Give me a quick rundown of my daily habit completion rate.",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Asks for a summary of habit completion, which is related to habit statistics and progress."
+  },
+  {
+    "query": "Hey, could you give me an update on how my habits are going?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Asks for an update which implicitly means habit progress."
+  },
+  {
+    "query": "What's my longest streak for meditation been so far?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Specifically mentions 'streak' which is a core component of habit progress tracking."
+  },
+  {
+    "query": "Okay, I'm curious, what are the stats looking like for my daily water intake?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Requests stats, specifically related to a habit (water intake)."
+  },
+  {
+    "query": "Um, show me my progress this week towards achieving my fitness goals.",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Asks for a view of progress explicitly."
+  },
+  {
+    "query": "I want to know, how consistent have I been with my language learning habit lately?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Focuses on consistency, which is a form of habit statistic and progress."
+  },
+  {
+    "query": "Hey, can you remind me where I'm at with all those things I was trying to keep up on?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "hard",
+    "reasoning": "The phrase \"things I was trying to keep up on\" implies habits, and the request to know \"where I'm at\" suggests wanting to see progress."
+  },
+  {
+    "query": "So, those daily things... what's the story so far?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "hard",
+    "reasoning": "\"Daily things\" is a subtle way of referring to daily habits. \"What's the story so far?\" clearly points to a desire to see a summary of progress and statistics."
+  },
+  {
+    "query": "Um, did I manage to keep going with my, you know, usual things this week?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "hard",
+    "reasoning": "\"Usual things\" indicates established habits. The question implies a desire to know if they were successfully maintained, pointing to viewing habit progress or a streak."
+  },
+  {
+    "query": "I'm curious, about how many times did I actually do those, uh, you know... my goals, this month?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "hard",
+    "reasoning": "\"My goals\" refers to tracked habits. Asking \"how many times did I actually do\" something points toward needing habit statistics."
+  },
+  {
+    "query": "Wondering if I'm on a roll with any of this stuff, you know, the things I'm trying to do every day.",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "hard",
+    "reasoning": "\"The things I'm trying to do every day\" are habits, and the phrase \"on a roll\" implies asking about a streak."
+  },
+  {
+    "query": "Yo, habit check?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Very short, colloquial, and asks for a habit status update. 'Check' implies viewing progress."
+  },
+  {
+    "query": "So, about my habits...",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Starts a conversation casually, but the phrase clearly indicates wanting to discuss habit related data."
+  },
+  {
+    "query": "Longest streak ever?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Extremely short query, but explicitly mentions 'streak' which strongly suggests viewing habit streak information. The phrase implicitly asks for viewing the user's longest streak."
+  },
+  {
+    "query": "Uh, how's my habit sitch?",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses slang ('sitch' for situation) to ask about the status of their habits. Implies wanting a progress update."
+  },
+  {
+    "query": "Hey, habit stats, please.",
+    "category": "habit_progress",
+    "tools": [
+      "getHabitProgress",
+      "habitStats",
+      "viewStreak"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "A short and direct request, using 'stats' as an abbreviation for 'statistics' related to habits. The casual 'Hey' adds to the natural feel."
+  },
+  {
+    "query": "Hey, can you get me the latest news headlines?",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly requests news headlines using clear keywords."
+  },
+  {
+    "query": "What are the top news stories right now?",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Asks for 'news stories,' a clear indicator of wanting news updates."
+  },
+  {
+    "query": "Give me today's news, please.",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Directly requests the news for the current day."
+  },
+  {
+    "query": "I want to know what's going on in the news.",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Clearly states the desire to get news updates."
+  },
+  {
+    "query": "Tell me about the most recent headlines.",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Focuses on 'headlines,' a key component of news updates, and specifies 'most recent.'"
+  },
+  {
+    "query": "Hey, can you tell me about the latest news?",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Directly asks for 'latest news', indicating a general news request."
+  },
+  {
+    "query": "I'm interested in hearing today's top headlines, please.",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Explicitly asks for 'top headlines' which is a function within the news category."
+  },
+  {
+    "query": "So, what's been going on in the news lately?",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Asks for recent happenings in the news, implying a news update."
+  },
+  {
+    "query": "Give me a quick rundown of what's making the news right now.",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Requests a summary of current news, clear intent for news information."
+  },
+  {
+    "query": "Okay Google, I'd like a news update. What are the big stories?",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Explicitly requests a 'news update' and clarifies by asking for 'big stories' showing intent."
+  },
+  {
+    "query": "Hey, anything I should know about before heading out?",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Implies wanting a summary of current events or important updates, indicating news."
+  },
+  {
+    "query": "So, what's been going on?",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "hard",
+    "reasoning": "A general inquiry about current affairs; a casual way to ask for news."
+  },
+  {
+    "query": "Fill me in on things.",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Requests a briefing on recent happenings, naturally aligning with news updates."
+  },
+  {
+    "query": "What are people talking about?",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Indirectly asking about trending topics and significant events which are typically found in news headlines."
+  },
+  {
+    "query": "What's making the rounds today?",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Refers to prominent stories circulating, indicating a desire for current news and headline information."
+  },
+  {
+    "query": "So, what's the sitch?",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses the slang term 'sitch' which in this context implies 'situation' and therefore news."
+  },
+  {
+    "query": "Yo, lemme get the skinny.",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "'Skinny' is slang for information or the latest news."
+  },
+  {
+    "query": "Anything breaking?",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Very short query but clearly asking for breaking news headlines."
+  },
+  {
+    "query": "Okay Google, give me deets.",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "'Deets' is short for 'details', implying the user wants the latest news details."
+  },
+  {
+    "query": "Uh, news, please.",
+    "category": "news",
+    "tools": [
+      "getNews",
+      "headlines"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Very short and almost sounds like an interruption. The single word 'news' makes it clear."
+  },
+  {
+    "query": "Hey, can you save this recipe for later? It's called Grandma's Famous Cookies.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "easy",
+    "reasoning": "The phrase \"save this recipe for later\" directly indicates the user wants to store information for future retrieval."
+  },
+  {
+    "query": "Remember that my doctor's appointment is on Tuesday at 2 PM, please.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "easy",
+    "reasoning": "The keyword \"remember\" clearly signals the intention to store and later recall information."
+  },
+  {
+    "query": "Store my parking spot number, it's B7.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "easy",
+    "reasoning": "The keyword \"store\" explicitly requests the assistant to save information (the parking spot number)."
+  },
+  {
+    "query": "Okay, note this down: I need to buy milk, eggs, and bread tomorrow.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "easy",
+    "reasoning": "The phrase \"note this down\" is a direct instruction to record information for future reference."
+  },
+  {
+    "query": "Could you, um, just save the Wi-Fi password for the guest network? It's 'Sunshine123'.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "easy",
+    "reasoning": "The phrase \"save the Wi-Fi password\" clearly requests that information be stored for later use, and therefore belongs in the save_memory category. The inclusion of 'um' adds a natural speech pattern."
+  },
+  {
+    "query": "Hey, could you like, stash this away for me? It's the address of the new bakery.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "medium",
+    "reasoning": "The user wants to 'stash away' information (the address), implying they want to save it for later recall."
+  },
+  {
+    "query": "Make a note of this, please: my doctor's appointment is on Tuesday at 2 PM.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Explicitly asks to 'make a note' of the appointment details, indicating a request to save the information."
+  },
+  {
+    "query": "Okay Google, I want to remember the name of that movie... uh... \"Space Explorers 7\", yeah, save that one.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "medium",
+    "reasoning": "The user is trying to recall and then explicitly states they want to 'save' the movie name for future use."
+  },
+  {
+    "query": "Can you hold onto this thought for me? My friend's birthday is June 15th.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Asking to 'hold onto this thought' is an idiom for saving the information provided (the birthday) for later."
+  },
+  {
+    "query": "I need to remember something important. The combination to my lock is 12-34-56. Can you store that?",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Directly states the need to 'remember' and then asks to 'store' the combination, clearly indicating a request to save the information."
+  },
+  {
+    "query": "Hey, remind me about the, uh, the thing we talked about with Sarah, you know, about her new job? Just, like, in a week or so.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "hard",
+    "reasoning": "The user is indirectly asking the assistant to remember details of a conversation and remind them later. 'Remind me' is a key phrase here, and the contextual details imply saving information."
+  },
+  {
+    "query": "So, I was thinking, just keep in mind for me that the oven needs to be preheated to 375 degrees when I start baking tomorrow.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "hard",
+    "reasoning": "The user is asking the assistant to 'keep in mind' a specific detail (the oven temperature) which implies storing that information for later retrieval and use."
+  },
+  {
+    "query": "Oh, also, can you just... jot down that the confirmation number for the hotel is alpha bravo charlie 123?",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "hard",
+    "reasoning": "'Jot down' is a synonym for saving or noting information. The user explicitly requests the assistant to record the hotel confirmation number."
+  },
+  {
+    "query": "Put a pin in this: I need to order more coffee filters before Friday.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "hard",
+    "reasoning": "'Put a pin in this' is an idiomatic expression for marking something for later attention, indicating a request to store the coffee filter order information and recall it before Friday."
+  },
+  {
+    "query": "Hold that thought about needing to get milk. I always forget, so, like, yeah, hold that thought.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "hard",
+    "reasoning": "'Hold that thought' requests that the assistant remember that the user needs to get milk, which implies that the assistant needs to store this information for later, to remind the user when a relevant situation arises (e.g., going to the store)."
+  },
+  {
+    "query": "jot this",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Short, imperative command to write something down, a clear indicator of the save_memory intent."
+  },
+  {
+    "query": "Hold that thought",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Implies saving the current idea or topic for later recall; 'hold' might be misconstrued but 'thought' clarifies it relates to information storage."
+  },
+  {
+    "query": "So, like, lemme note this",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses filler words and slang ('lemme') within a conversational structure, but explicitly requests noting something down, directly related to saving memory."
+  },
+  {
+    "query": "Okay, stash that.",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "'Stash' is slang for storing something away for later. The context implies a piece of information."
+  },
+  {
+    "query": "Mm-hmm, keep this in mind",
+    "category": "save_memory",
+    "tools": [
+      "rememberThis",
+      "saveMemory",
+      "storeInfo"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Affirmative start, indicating agreement or acknowledging receipt of information, followed by a request to 'keep this in mind', implying a desire to remember it later. The initial 'Mm-hmm' makes it sound like an ongoing conversation."
+  },
+  {
+    "query": "Hey, can you search the web for the highest mountain in Europe?",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Explicitly requests a web search using the keyword 'search'."
+  },
+  {
+    "query": "I need to look up the capital of Australia",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Uses the phrase 'look up', clearly indicating a search for information."
+  },
+  {
+    "query": "Find information about the history of the Roman Empire.",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Directly asks to 'find information about' a specific topic."
+  },
+  {
+    "query": "What's the population of Tokyo?",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Seeks a specific piece of information that would require a search engine."
+  },
+  {
+    "query": "Search for the best pizza restaurants near me",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "easy",
+    "reasoning": "Directly requests a web search using the keyword 'search'."
+  },
+  {
+    "query": "Okay Google, could you find out the average rainfall in Seattle during the month of January, please?",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "medium",
+    "reasoning": "The phrase 'find out' and the specific request for data clearly indicates a search query."
+  },
+  {
+    "query": "Hey Assistant, I need to look up what year the Eiffel Tower was originally built.",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "medium",
+    "reasoning": "The phrase 'look up' along with a factual question about a specific topic implies a search intent."
+  },
+  {
+    "query": "Um, Google, can you search for the best restaurants near me that serve vegetarian food?",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "medium",
+    "reasoning": "Explicit use of 'search for' combined with location and dietary preferences makes this a definite search query."
+  },
+  {
+    "query": "I wonder, can you find information about the current price of Bitcoin?",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "medium",
+    "reasoning": "'Find information about' is a clear indicator of searching for data."
+  },
+  {
+    "query": "Alright Google, I want you to search the web for articles about the latest advancements in renewable energy.",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "medium",
+    "reasoning": "The explicit statement 'search the web' combined with a specific topic indicates a search intent."
+  },
+  {
+    "query": "Hey, I was wondering what the deal is with those weird lights people are seeing in the sky lately?",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Asks for an explanation of a phenomenon, requiring information retrieval to understand the 'deal' - implying a need to search for relevant reports or explanations."
+  },
+  {
+    "query": "So, I'm trying to figure out if this old coin I found is actually worth anything.",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Indicates a need to assess the value of an object, implying the user wants information from somewhere (online) about how much it is worth."
+  },
+  {
+    "query": "Okay, remind me again, what's the capital of Burkina Faso?",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "hard",
+    "reasoning": "A direct request for a specific piece of factual information that requires a knowledge lookup or quick information search."
+  },
+  {
+    "query": "I need to get my head around this whole cryptocurrency thing. Where do I even start?",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "hard",
+    "reasoning": "Implies a need to learn about a complex topic, requiring information gathering and explanation that goes beyond a simple fact. The user needs a starting point for their research."
+  },
+  {
+    "query": "Tell me something interesting about the Mariana Trench.",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "hard",
+    "reasoning": "A request for engaging information regarding a specific topic. Requires a more complex, curated search rather than just a simple definition. The word 'interesting' implies a non-literal and less direct answer is wanted."
+  },
+  {
+    "query": "Yo, Google, wiki that",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses slang (\"yo\", \"wiki\") and a shortened verb. 'Wiki that' clearly implies looking something up on Wikipedia, thus requiring a search."
+  },
+  {
+    "query": "Um, lookit up: capybara",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Uses \"um\" and \"lookit up\" (colloquial form of \"look it up\"), making it sound like casual speech, but clearly requests a search for 'capybara'."
+  },
+  {
+    "query": "So, like, what's GDP?",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Contains filler words ('so', 'like') typical of casual conversation, but the question 'what's GDP?' requires a search to define the acronym."
+  },
+  {
+    "query": "Best pizza toppings?",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Extremely short query. Could be interpreted as asking for an opinion, but the context strongly implies a need to search for popular/recommended pizza toppings. A simple conversation would not yield this info."
+  },
+  {
+    "query": "I'm wondering, research mRNA vaccines",
+    "category": "search",
+    "tools": [
+      "search",
+      "webSearch",
+      "lookup"
+    ],
+    "difficulty": "adversarial",
+    "reasoning": "Framed as expressing a thought ('I'm wondering'), but the phrase 'research mRNA vaccines' directly indicates a request for information on the topic."
+  },
+  {
+    "query": "Hello there, how are you doing today?",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Simple greeting and inquiry about the assistant's well-being, requiring no specific action."
+  },
+  {
+    "query": "Good morning! It's a beautiful day outside.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Greeting and observation about the weather, conversational and doesn't trigger a tool."
+  },
+  {
+    "query": "Hi, just wanted to say I appreciate your help.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Expressing gratitude, a simple statement of appreciation."
+  },
+  {
+    "query": "I'm feeling a bit down today.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Expressing an emotional state, not requiring any external tool or service."
+  },
+  {
+    "query": "That's really interesting!",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Expression of interest, a conversational filler."
+  },
+  {
+    "query": "Wow, that's surprising.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Expressing surprise, a purely emotional reaction."
+  },
+  {
+    "query": "Oh, that's too bad.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Expressing sympathy, a standard conversational reaction."
+  },
+  {
+    "query": "What's your favorite color?",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Asking a personal preference question to the assistant."
+  },
+  {
+    "query": "Do you like talking to people?",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Inquiry about the assistant's experience, purely conversational."
+  },
+  {
+    "query": "Are you having a good day?",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Inquiry about the assistant's current state, no tool needed."
+  },
+  {
+    "query": "I had a great time at the park yesterday.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Sharing a personal experience, providing information."
+  },
+  {
+    "query": "My favorite movie is 'The Shawshank Redemption'.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Sharing a personal preference, providing information."
+  },
+  {
+    "query": "Learning new things is always fun.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "General statement about learning, no tool required."
+  },
+  {
+    "query": "I think kindness is very important.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Sharing a personal belief, providing information."
+  },
+  {
+    "query": "The sky is so blue today.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Observation about the environment, purely descriptive."
+  },
+  {
+    "query": "How are you programmed?",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Inquiry about the assistant's inner workings."
+  },
+  {
+    "query": "What can you do?",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "General inquiry about the assistant's capabilities, broader than a specific tool request."
+  },
+  {
+    "query": "Do you ever get bored?",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Question about the assistant's simulated emotions."
+  },
+  {
+    "query": "That's a good point.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Agreement with a previous statement, conversational filler."
+  },
+  {
+    "query": "I see what you mean.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Understanding a previous statement, conversational filler."
+  },
+  {
+    "query": "That makes sense.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Confirming understanding, conversational filler."
+  },
+  {
+    "query": "Interesting, tell me more.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Request for elaboration, continuing the conversation."
+  },
+  {
+    "query": "Okay, I understand.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Confirmation of understanding, closing a topic."
+  },
+  {
+    "query": "Just thinking out loud here...",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Indicates the following statement is a thought, not a command."
+  },
+  {
+    "query": "This is a very interesting conversation.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Commenting on the current interaction."
+  },
+  {
+    "query": "Thanks for listening.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Expressing gratitude for attention, not for a specific action."
+  },
+  {
+    "query": "What is your purpose?",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Philosophical question directed at the assistant."
+  },
+  {
+    "query": "Can you dream?",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Question about the assistant's simulated mental processes."
+  },
+  {
+    "query": "I wonder what the future holds.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "General thought about the future, philosophical."
+  },
+  {
+    "query": "Let's chat about something random.",
+    "category": "OPEN",
+    "tools": [],
+    "difficulty": "medium",
+    "reasoning": "Initiating a general conversation without specifying a topic requiring a tool."
+  }
+]

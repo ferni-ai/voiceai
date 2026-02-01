@@ -466,13 +466,7 @@
       "ancestralWisdom",
       "trackWisdomIncubation"
     ],
-    "forbidden": [
-      "dayTrade",
-      "makeInvestment",
-      "analyzeStock",
-      "getStockQuote",
-      "createHabit"
-    ]
+    "forbidden": ["dayTrade", "makeInvestment", "analyzeStock", "getStockQuote", "createHabit"]
   },
 
   "capabilities": {

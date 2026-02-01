@@ -58,11 +58,7 @@ function getIdeasPath(userId: string): string {
 /**
  * Add a new idea with optional tags.
  */
-export async function addIdea(
-  userId: string,
-  content: string,
-  tags: string[] = []
-): Promise<Idea> {
+export async function addIdea(userId: string, content: string, tags: string[] = []): Promise<Idea> {
   const db = getFirestoreDb();
 
   const idea: Idea = {
@@ -109,10 +105,7 @@ export async function getIdeas(userId: string, limit = 50): Promise<Idea[]> {
 
   try {
     const ideasRef = db.collection(getIdeasPath(userId));
-    const query = ideasRef
-      .where('archived', '==', false)
-      .orderBy('createdAt', 'desc')
-      .limit(limit);
+    const query = ideasRef.where('archived', '==', false).orderBy('createdAt', 'desc').limit(limit);
 
     const snapshot = await query.get();
 

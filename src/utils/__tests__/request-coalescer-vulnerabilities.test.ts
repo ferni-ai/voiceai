@@ -117,15 +117,19 @@ describe('Request Coalescer Vulnerabilities', () => {
       // The vector search coalescer uses JSON.stringify for the key
       // This can fail for certain values
 
-      const key1 = hashContent(JSON.stringify({
-        query: 'test',
-        filter: { metadata: { date: new Date('2024-01-01') } },
-      }));
+      const key1 = hashContent(
+        JSON.stringify({
+          query: 'test',
+          filter: { metadata: { date: new Date('2024-01-01') } },
+        })
+      );
 
-      const key2 = hashContent(JSON.stringify({
-        query: 'test',
-        filter: { metadata: { date: new Date('2024-01-01') } },
-      }));
+      const key2 = hashContent(
+        JSON.stringify({
+          query: 'test',
+          filter: { metadata: { date: new Date('2024-01-01') } },
+        })
+      );
 
       // These match because Date.toJSON() is called by JSON.stringify
       expect(key1).toBe(key2);
@@ -159,9 +163,7 @@ describe('Request Coalescer Vulnerabilities', () => {
       };
 
       // Launch many concurrent requests
-      const promises = Array.from({ length: 100 }, () =>
-        coalescer.execute('same-key', executor)
-      );
+      const promises = Array.from({ length: 100 }, () => coalescer.execute('same-key', executor));
 
       vi.advanceTimersByTime(200);
       const results = await Promise.all(promises);
@@ -283,7 +285,7 @@ describe('Request Coalescer Vulnerabilities', () => {
       expect(results).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
     });
 
-    it('SAFE: TTL expiration and completion don\'t interfere', async () => {
+    it("SAFE: TTL expiration and completion don't interfere", async () => {
       const coalescer = new RequestCoalescer<number>('ttl-race-test', {
         pendingTtlMs: 100,
       });
@@ -321,20 +323,24 @@ describe('Request Coalescer Vulnerabilities', () => {
       const executors: Array<(value: number) => void> = [];
 
       // Create first request
-      const promise1 = coalescer.execute('key', () =>
-        new Promise<number>((resolve) => {
-          executors.push(resolve);
-        })
+      const promise1 = coalescer.execute(
+        'key',
+        () =>
+          new Promise<number>((resolve) => {
+            executors.push(resolve);
+          })
       );
 
       // Expire TTL
       vi.advanceTimersByTime(15);
 
       // Create second request (should NOT coalesce with expired first)
-      const promise2 = coalescer.execute('key', () =>
-        new Promise<number>((resolve) => {
-          executors.push(resolve);
-        })
+      const promise2 = coalescer.execute(
+        'key',
+        () =>
+          new Promise<number>((resolve) => {
+            executors.push(resolve);
+          })
       );
 
       // We should have 2 executors
@@ -412,9 +418,7 @@ describe('Request Coalescer Vulnerabilities', () => {
       };
 
       // The async wrapper should catch this
-      await expect(coalescer.execute('key', executor)).rejects.toThrow(
-        'Synchronous throw'
-      );
+      await expect(coalescer.execute('key', executor)).rejects.toThrow('Synchronous throw');
     });
 
     it('executor returning non-promise is handled', async () => {

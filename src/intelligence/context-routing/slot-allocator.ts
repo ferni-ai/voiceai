@@ -335,10 +335,7 @@ export class SlotAllocator {
     byType: Record<keyof SlotAllocation, { allocated: number; used: number }>;
   } {
     const totalUsed =
-      this.usage.emotional +
-      this.usage.practical +
-      this.usage.memory +
-      this.usage.superhuman;
+      this.usage.emotional + this.usage.practical + this.usage.memory + this.usage.superhuman;
 
     return {
       mode: this.mode,
@@ -375,21 +372,13 @@ export class SlotAllocator {
 /**
  * Create a slot allocator for the given mode.
  */
-export function createSlotAllocator(
-  mode: ConversationMode,
-  isFastMode = false
-): SlotAllocator {
+export function createSlotAllocator(mode: ConversationMode, isFastMode = false): SlotAllocator {
   return new SlotAllocator(mode, isFastMode);
 }
 
 /**
  * Get the allocation for a mode without creating an allocator.
  */
-export function getAllocationForMode(
-  mode: ConversationMode,
-  isFastMode = false
-): SlotAllocation {
-  return isFastMode
-    ? { ...FAST_MODE_ALLOCATIONS[mode] }
-    : { ...MODE_ALLOCATIONS[mode] };
+export function getAllocationForMode(mode: ConversationMode, isFastMode = false): SlotAllocation {
+  return isFastMode ? { ...FAST_MODE_ALLOCATIONS[mode] } : { ...MODE_ALLOCATIONS[mode] };
 }

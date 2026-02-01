@@ -1,10 +1,13 @@
 # Ferni Router Model Training Configuration
+# FTIS V6 - Full 860-label dataset with hard negatives + open intent boost
 
 # Model settings
 model:
-  base_model: "Qwen/Qwen2.5-1.5B"
-  task: "multi_label_classification"
-  num_labels: 150  # Max number of tools (will be set dynamically)
+  # Qwen3-1.7B outperforms Qwen2.5-3B on tool calling benchmarks
+  # See: https://arxiv.org/pdf/2505.09388 (Qwen3 Technical Report)
+  base_model: "Qwen/Qwen3-1.7B"
+  task: "single_label_classification"
+  num_labels: 861  # 860 tools + __no_tool__ (set dynamically from data)
   
 # LoRA configuration
 lora:
@@ -26,9 +29,10 @@ lora:
 training:
   learning_rate: 2.0e-5
   num_train_epochs: 3
-  per_device_train_batch_size: 8
-  per_device_eval_batch_size: 16
-  gradient_accumulation_steps: 4
+  # GCE g2-standard-8 (L4 GPU, 24GB VRAM)
+  per_device_train_batch_size: 16
+  per_device_eval_batch_size: 32
+  gradient_accumulation_steps: 4  # Effective batch size: 16 * 4 = 64
   warmup_ratio: 0.1
   weight_decay: 0.01
   max_grad_norm: 1.0
@@ -36,29 +40,32 @@ training:
   
   # Evaluation
   eval_strategy: "steps"
-  eval_steps: 100
+  eval_steps: 500
   save_strategy: "steps"
-  save_steps: 200
+  save_steps: 500
   save_total_limit: 3
   load_best_model_at_end: true
-  metric_for_best_model: "f1"
+  metric_for_best_model: "f1_weighted"
   greater_is_better: true
   
-  # Performance
-  fp16: true
+  # Performance - GCE with NVIDIA L4 GPU
+  # bf16 instead of fp16: avoids GradScaler conflict with custom RouterTrainer optimizer
+  fp16: false
+  bf16: true
   dataloader_num_workers: 4
   
 # Data settings
 data:
-  max_length: 512
+  # Reduced from 512 - queries are typically <50 tokens
+  max_length: 128
   pad_to_max_length: false
-  train_file: "data/train.jsonl"
-  validation_file: "data/validation.jsonl"
-  test_file: "data/test.jsonl"
+  train_file: "data/train_v6.jsonl"
+  validation_file: "data/validation_v6.jsonl"
+  test_file: "data/test_v5_860.jsonl"
 
 # Output settings
 output:
-  output_dir: "outputs/ferni-router"
+  output_dir: "outputs/ferni-router-v6"
   logging_dir: "logs"
   report_to: "tensorboard"
 

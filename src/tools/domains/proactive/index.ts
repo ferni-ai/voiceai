@@ -665,9 +665,8 @@ const backgroundCallDef: ToolDefinition = {
         log.info({ userId, contactName, objective }, 'Queueing background call');
 
         try {
-          const { queueCall } = await import(
-            '../../../services/background-agents/executors/call-executor.js'
-          );
+          const { queueCall } =
+            await import('../../../services/background-agents/executors/call-executor.js');
 
           const taskId = await queueCall({
             userId,

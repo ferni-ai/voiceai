@@ -205,21 +205,36 @@ export interface RelationshipStats {
  */
 export interface IRelationalMemory {
   // Jokes
-  addJoke(userId: string, joke: Omit<InsideJoke, 'id' | 'createdAt' | 'timesReferenced' | 'lastReferencedAt' | 'reactions'>): Promise<InsideJoke>;
+  addJoke(
+    userId: string,
+    joke: Omit<
+      InsideJoke,
+      'id' | 'createdAt' | 'timesReferenced' | 'lastReferencedAt' | 'reactions'
+    >
+  ): Promise<InsideJoke>;
   getJokes(userId: string): Promise<InsideJoke[]>;
   findRelevantJoke(userId: string, keywords: string[]): Promise<InsideJoke | null>;
   recordJokeUse(userId: string, jokeId: string, wasPositive: boolean): Promise<void>;
 
   // Rituals
-  addRitual(userId: string, ritual: Omit<ConversationRitual, 'id' | 'establishedAt' | 'timesPerformed'>): Promise<ConversationRitual>;
+  addRitual(
+    userId: string,
+    ritual: Omit<ConversationRitual, 'id' | 'establishedAt' | 'timesPerformed'>
+  ): Promise<ConversationRitual>;
   getRituals(userId: string): Promise<ConversationRitual[]>;
-  getRitualsForTiming(userId: string, timing: ConversationRitual['timing']): Promise<ConversationRitual[]>;
+  getRitualsForTiming(
+    userId: string,
+    timing: ConversationRitual['timing']
+  ): Promise<ConversationRitual[]>;
   recordRitualUse(userId: string, ritualId: string): Promise<void>;
 
   // Preferences
   updatePreference(userId: string, preference: CommunicationPreference): Promise<void>;
   getPreferences(userId: string): Promise<CommunicationPreference[]>;
-  getPreferenceByCategory(userId: string, category: CommunicationPreference['category']): Promise<CommunicationPreference | null>;
+  getPreferenceByCategory(
+    userId: string,
+    category: CommunicationPreference['category']
+  ): Promise<CommunicationPreference | null>;
 
   // Milestones
   addMilestone(userId: string, milestone: Omit<TrustMilestone, 'id'>): Promise<TrustMilestone>;

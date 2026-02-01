@@ -188,7 +188,8 @@ export async function loadPersonaPatterns(
 
     // Try to load predictive patterns from behaviors (via accessor function)
     const behaviors = await bundle.getBehaviors();
-    const predictivePatterns = behaviors['predictive-patterns'] || behaviors['predictive-intelligence'];
+    const predictivePatterns =
+      behaviors['predictive-patterns'] || behaviors['predictive-intelligence'];
 
     if (!predictivePatterns) {
       log.debug({ personaId }, 'No predictive patterns in bundle');
@@ -237,55 +238,59 @@ function normalizePredictiveConfig(raw: unknown): PersonaPredictiveConfig {
     patterns: {
       temporal: normalizePatterns(
         patterns?.temporal ||
-        patternRecognition?.temporal_patterns ||
-        patternRecognition?.temporal ||
-        {}
+          patternRecognition?.temporal_patterns ||
+          patternRecognition?.temporal ||
+          {}
       ),
       emotional: normalizePatterns(
         patterns?.emotional ||
-        patternRecognition?.emotional_patterns ||
-        patternRecognition?.emotional ||
-        // Also check for persona-specific pattern categories (e.g., existential_patterns, wisdom_patterns)
-        patternRecognition?.existential_patterns ||
-        patternRecognition?.wisdom_patterns ||
-        {}
+          patternRecognition?.emotional_patterns ||
+          patternRecognition?.emotional ||
+          // Also check for persona-specific pattern categories (e.g., existential_patterns, wisdom_patterns)
+          patternRecognition?.existential_patterns ||
+          patternRecognition?.wisdom_patterns ||
+          {}
       ),
       behavioral: normalizePatterns(
         patterns?.behavioral ||
-        patternRecognition?.behavioral_patterns ||
-        patternRecognition?.behavioral ||
-        patternRecognition?.growth_patterns ||
-        {}
+          patternRecognition?.behavioral_patterns ||
+          patternRecognition?.behavioral ||
+          patternRecognition?.growth_patterns ||
+          {}
       ),
     },
     concernDetection: {
       warningSigns: normalizeConcerns(
         (rawConfig.concernDetection as Record<string, unknown>)?.warningSigns ||
-        (rawConfig.concern_detection as Record<string, unknown>)?.warning_signs ||
-        {}
+          (rawConfig.concern_detection as Record<string, unknown>)?.warning_signs ||
+          {}
       ),
     },
     proactiveFollowUps: normalizeFollowUps(
       rawConfig.proactiveFollowUps || rawConfig.proactive_follow_ups || {}
     ),
-    usageRules: rawConfig.usageRules || rawConfig.usage_rules
-      ? {
-          minSessionsForPatterns:
-            (rawConfig.usageRules as Record<string, number>)?.minSessionsForPatterns ||
-            (rawConfig.usage_rules as Record<string, number>)?.pattern_recognition_min_sessions,
-          minSessionsForProactive:
-            (rawConfig.usageRules as Record<string, number>)?.minSessionsForProactive ||
-            (rawConfig.usage_rules as Record<string, number>)?.proactive_followup_min_sessions,
-          maxProactiveMentionsPerSession:
-            (rawConfig.usageRules as Record<string, number>)?.maxProactiveMentionsPerSession ||
-            (rawConfig.usage_rules as Record<string, number>)?.max_proactive_mentions_per_session ||
-            (rawConfig.usage_rules as Record<string, number>)?.max_proactive_per_session,
-        }
-      : undefined,
+    usageRules:
+      rawConfig.usageRules || rawConfig.usage_rules
+        ? {
+            minSessionsForPatterns:
+              (rawConfig.usageRules as Record<string, number>)?.minSessionsForPatterns ||
+              (rawConfig.usage_rules as Record<string, number>)?.pattern_recognition_min_sessions,
+            minSessionsForProactive:
+              (rawConfig.usageRules as Record<string, number>)?.minSessionsForProactive ||
+              (rawConfig.usage_rules as Record<string, number>)?.proactive_followup_min_sessions,
+            maxProactiveMentionsPerSession:
+              (rawConfig.usageRules as Record<string, number>)?.maxProactiveMentionsPerSession ||
+              (rawConfig.usage_rules as Record<string, number>)
+                ?.max_proactive_mentions_per_session ||
+              (rawConfig.usage_rules as Record<string, number>)?.max_proactive_per_session,
+          }
+        : undefined,
   };
 }
 
-function normalizePatterns(raw: unknown): Record<string, TemporalPattern | EmotionalPattern | BehavioralPattern> {
+function normalizePatterns(
+  raw: unknown
+): Record<string, TemporalPattern | EmotionalPattern | BehavioralPattern> {
   if (!raw || typeof raw !== 'object') return {};
 
   const result: Record<string, TemporalPattern | EmotionalPattern | BehavioralPattern> = {};

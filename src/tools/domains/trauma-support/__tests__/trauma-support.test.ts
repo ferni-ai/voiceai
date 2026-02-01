@@ -382,7 +382,7 @@ describe('Trauma Support Domain', () => {
     it('should address self-blame when provided', async () => {
       const toolDef = toolDefinitions.find((t) => t.id === 'selfCompassionTrauma')!;
       const tool = toolDef.create(mockContext);
-      const result = await tool.execute({ selfBlame: "I should have done something" });
+      const result = await tool.execute({ selfBlame: 'I should have done something' });
 
       expect(result).toContain('I should have done something');
       expect(result).toContain('blame');

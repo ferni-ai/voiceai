@@ -29,6 +29,10 @@ import {
   stripInstructionBlocks,
   containsInstructionBlocks,
 } from '../../agents/shared/sanitizer/detectors/leakage-detector.js';
+import {
+  stripGuidanceBlocks,
+  containsGuidanceBlocks,
+} from '../../agents/shared/sanitizer/index.js';
 
 // FIX (Jan 2026): Create require for ESM compatibility
 // ESM doesn't have global require, so we create one for dynamic imports
@@ -44,12 +48,12 @@ import type { SSMLProsodyConfig } from './types.js';
 
 /**
  * Pattern to detect JSON function calls that should NOT be spoken.
- * 
+ *
  * These patterns catch:
  * - Complete JSON: `{"fn":"toolName","args":{...}}`
  * - Partial JSON (streaming): `{"fn":"
  * - With backticks: `` `{"fn":"
- * 
+ *
  * FIX (Jan 2026): Prevents tool call leakage to TTS when LLM outputs
  * another function call instead of speaking naturally.
  */
@@ -64,30 +68,30 @@ const JSON_FUNCTION_CALL_PATTERNS = [
 
 /**
  * Check if text is a JSON function call that should not be spoken.
- * 
+ *
  * This catches both complete and partial JSON function calls.
  * Even partial JSON like `{"fn":"` should NOT be spoken.
  */
 function isJsonFunctionCall(text: string): boolean {
   const trimmed = text.trim();
-  
+
   // Empty or very short - not a function call
   if (trimmed.length < 5) {
     return false;
   }
-  
+
   // Check for JSON function call patterns
   for (const pattern of JSON_FUNCTION_CALL_PATTERNS) {
     if (pattern.test(trimmed)) {
       return true;
     }
   }
-  
+
   // Additional check: starts with backtick + brace (common LLM output)
   if (trimmed.startsWith('`{') || trimmed.startsWith('` {')) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -225,7 +229,7 @@ function* splitIntoFrames(
 
 /**
  * Create an empty, already-completed stream for when there's no audio to play.
- * 
+ *
  * This is important for LiveKit SDK compatibility - returning `null` can cause
  * "WritableStream is closed" errors because the SDK tries to close streams
  * that are already closed. An empty completed stream is handled gracefully.
@@ -312,7 +316,9 @@ export function createGatewayTTSNode(
   const provider = getCartesiaProvider();
   const ssmlProcessor = getSSMLProcessor();
 
-  return async (textStream: NodeReadableStream<string>): Promise<NodeReadableStream<AudioFrame> | null> => {
+  return async (
+    textStream: NodeReadableStream<string>
+  ): Promise<NodeReadableStream<AudioFrame> | null> => {
     const startTime = Date.now();
     metrics.totalRequests++;
 
@@ -361,7 +367,10 @@ export function createGatewayTTSNode(
     const cleanText = ssmlResult.cleanText;
 
     if (!cleanText.trim()) {
-      log.debug({ sessionId, originalText: truncateForLog(fullText, 50) }, 'Empty text after SSML strip');
+      log.debug(
+        { sessionId, originalText: truncateForLog(fullText, 50) },
+        'Empty text after SSML strip'
+      );
       // Return empty completed stream instead of null to avoid LiveKit SDK errors
       // ("WritableStream is closed" when SDK tries to close already-closed streams)
       return createEmptyAudioStream();
@@ -378,7 +387,7 @@ export function createGatewayTTSNode(
     // - Complete JSON: `{"fn":"toolName","args":{}}`
     // - Partial JSON (streaming): `{"fn":"
     // - With backticks: `` `{"fn":"
-    
+
     if (isJsonFunctionCall(cleanText)) {
       log.warn(
         {
@@ -399,12 +408,12 @@ export function createGatewayTTSNode(
     // =========================================================================
     // Final safety net: Strip instruction blocks like [TYPE: presence], [TONE: warm]
     // that Gemini sometimes echoes back from the prompt.
-    // 
+    //
     // This catches:
     // - [SITUATION: 15s silence | User's name: seth]
     // - [TYPE: presence] → [MAX: 8 words] [TONE: warm]
     // - [OUTPUT: plain text only, no quotes, no meta-commentary]
-    
+
     let finalText = cleanText;
     if (containsInstructionBlocks(cleanText)) {
       finalText = stripInstructionBlocks(cleanText);
@@ -418,11 +427,34 @@ export function createGatewayTTSNode(
         },
         '🚫 Gateway TTS: Stripped instruction blocks from speech'
       );
-      
+
       // If nothing remains after stripping, return empty
       if (!finalText.trim()) {
         log.debug({ sessionId }, 'Empty text after instruction stripping');
         return createEmptyAudioStream();
+      }
+    }
+
+    // Second pass: strip guidance blocks (<system>, <guidance>, <internal> tags etc.)
+    // This catches patterns that stripInstructionBlocks doesn't know about.
+    // Both passes are idempotent and O(n) (Rust-accelerated Aho-Corasick when available).
+    if (containsGuidanceBlocks(finalText)) {
+      const guidanceStripped = stripGuidanceBlocks(finalText);
+      if (guidanceStripped !== finalText) {
+        log.warn(
+          {
+            sessionId,
+            personaId,
+            trace: 'GATEWAY_TTS_GUIDANCE_STRIPPED',
+          },
+          '🚫 Gateway TTS: Stripped guidance blocks from speech'
+        );
+        finalText = guidanceStripped;
+
+        if (!finalText.trim()) {
+          log.debug({ sessionId }, 'Empty text after guidance stripping');
+          return createEmptyAudioStream();
+        }
       }
     }
 

@@ -1,12 +1,12 @@
 /**
  * Late Night Warmth System (2am Mode)
- * 
+ *
  * "Ferni at 2am hits different" - A signature brand moment.
- * 
+ *
  * When users open Ferni late at night (11pm-5am), the experience is subtly
  * different—warmer, slower, more protective. This creates a memorable
  * brand signature that users talk about.
- * 
+ *
  * Changes during late night mode:
  * - Softer greetings
  * - Slower pacing (10% slower animations)
@@ -14,7 +14,7 @@
  * - More listening, less guidance
  * - Grounding exercises available
  * - Protective presence
- * 
+ *
  * @module conversation/superhuman/late-night-warmth
  */
 
@@ -58,13 +58,13 @@ export interface LateNightBehaviorAdjustment {
  */
 export function getLateNightContext(localTime: Date = new Date()): LateNightContext {
   const hour = localTime.getHours();
-  
+
   // Define phases
   let phase: LateNightContext['phase'];
   let isLateNight = false;
   let warmthLevel = 0.5;
   let suggestedPaceMultiplier = 1.0;
-  
+
   if (hour >= 23 || hour <= 1) {
     // 11pm - 1am: Late evening, transitioning to night
     phase = 'late_night';
@@ -94,9 +94,9 @@ export function getLateNightContext(localTime: Date = new Date()): LateNightCont
     warmthLevel = 0.6;
     suggestedPaceMultiplier = 1.0;
   }
-  
+
   log.debug({ hour, phase, isLateNight, warmthLevel }, '🌙 Late night context determined');
-  
+
   return {
     isLateNight,
     hour,
@@ -123,7 +123,7 @@ const LATE_NIGHT_GREETINGS: Record<LateNightContext['phase'], LateNightGreeting[
       emotion: 'gentle',
     },
     {
-      text: "The quiet hours. Sometimes these are the most honest ones.",
+      text: 'The quiet hours. Sometimes these are the most honest ones.',
       ssml: "<volume ratio='0.85'><break time='400ms'/>The quiet hours. <break time='300ms'/>Sometimes these are the most honest ones.</volume>",
       emotion: 'soft',
     },
@@ -138,7 +138,7 @@ const LATE_NIGHT_GREETINGS: Record<LateNightContext['phase'], LateNightGreeting[
       emotion: 'soft',
     },
     {
-      text: "The 2am kind of conversation. Those are often the real ones.",
+      text: 'The 2am kind of conversation. Those are often the real ones.',
       ssml: "<volume ratio='0.9'><break time='300ms'/>The 2am kind of conversation. <break time='300ms'/>Those are often the real ones.</volume>",
       emotion: 'warm',
     },
@@ -162,11 +162,11 @@ const LATE_NIGHT_GREETINGS: Record<LateNightContext['phase'], LateNightGreeting[
   ],
   evening: [
     {
-      text: "Winding down? Or just getting started?",
+      text: 'Winding down? Or just getting started?',
       emotion: 'gentle',
     },
     {
-      text: "Evening check-in. How was your day?",
+      text: 'Evening check-in. How was your day?',
       emotion: 'warm',
     },
   ],
@@ -180,12 +180,12 @@ export function getLateNightGreeting(context: LateNightContext): LateNightGreeti
   if (!context.isLateNight && context.phase !== 'evening') {
     return null;
   }
-  
+
   const greetings = LATE_NIGHT_GREETINGS[context.phase];
   if (!greetings || greetings.length === 0) {
     return null;
   }
-  
+
   // Use seeded random for consistency within a session
   const greeting = seededPick(`${Date.now()}:late-night`, greetings);
   return greeting ?? greetings[0];
@@ -208,10 +208,10 @@ export function getLateNightBehaviors(context: LateNightContext): LateNightBehav
       softerTone: false,
     };
   }
-  
+
   // Maximum adjustments at peak late night (2-4am)
   const isPeakLateNight = context.hour >= 2 && context.hour <= 4;
-  
+
   return {
     avoidProductivity: true, // Never suggest tasks at 2am
     emphasizeListening: true, // More questions, fewer suggestions
@@ -228,22 +228,26 @@ export function getLateNightBehaviors(context: LateNightContext): LateNightBehav
 const GROUNDING_EXERCISES = [
   {
     name: 'Box Breathing',
-    instruction: "Let's do some box breathing. Breathe in for 4 counts... hold for 4... out for 4... hold for 4. I'll count with you.",
+    instruction:
+      "Let's do some box breathing. Breathe in for 4 counts... hold for 4... out for 4... hold for 4. I'll count with you.",
     duration: '2 minutes',
   },
   {
     name: '5-4-3-2-1 Senses',
-    instruction: "Tell me: 5 things you can see right now. 4 things you can touch. 3 things you can hear. Take your time.",
+    instruction:
+      'Tell me: 5 things you can see right now. 4 things you can touch. 3 things you can hear. Take your time.',
     duration: '3 minutes',
   },
   {
     name: 'Body Scan',
-    instruction: "Starting from your toes, just notice how each part of your body feels. No need to change anything. Just notice.",
+    instruction:
+      'Starting from your toes, just notice how each part of your body feels. No need to change anything. Just notice.',
     duration: '5 minutes',
   },
   {
     name: 'Simple Grounding',
-    instruction: "Feel your feet on the floor. Feel your hands wherever they're resting. You're here. You're safe.",
+    instruction:
+      "Feel your feet on the floor. Feel your hands wherever they're resting. You're here. You're safe.",
     duration: '1 minute',
   },
 ];
@@ -251,7 +255,7 @@ const GROUNDING_EXERCISES = [
 /**
  * Get a grounding exercise suggestion
  */
-export function getGroundingExercise(): typeof GROUNDING_EXERCISES[0] {
+export function getGroundingExercise(): (typeof GROUNDING_EXERCISES)[0] {
   const index = Math.floor(Math.random() * GROUNDING_EXERCISES.length);
   return GROUNDING_EXERCISES[index];
 }
@@ -267,10 +271,10 @@ export function formatLateNightContextForPrompt(context: LateNightContext): stri
   if (!context.isLateNight) {
     return null;
   }
-  
+
   const behaviors = getLateNightBehaviors(context);
   const greeting = getLateNightGreeting(context);
-  
+
   const lines = [
     '[🌙 LATE NIGHT MODE ACTIVE]',
     '',
@@ -279,41 +283,41 @@ export function formatLateNightContextForPrompt(context: LateNightContext): stri
     '',
     'BEHAVIORAL GUIDELINES:',
   ];
-  
+
   if (behaviors.avoidProductivity) {
     lines.push('- Do NOT suggest tasks, productivity, or action items');
     lines.push('- This is not the time for "have you tried..." suggestions');
   }
-  
+
   if (behaviors.emphasizeListening) {
     lines.push('- Emphasize listening over advice');
     lines.push('- Ask questions, hold space, be present');
   }
-  
+
   if (behaviors.offerGrounding) {
     lines.push('- Be ready to offer grounding exercises if they seem distressed');
     lines.push('- "Would a breathing exercise help?" is appropriate');
   }
-  
+
   if (behaviors.slowerPacing) {
     lines.push('- Speak more slowly, use longer pauses');
     lines.push('- Silence is okay. Let them fill it.');
   }
-  
+
   if (behaviors.softerTone) {
     lines.push('- Use a softer, gentler tone');
     lines.push('- Lower energy, more warmth');
   }
-  
+
   if (greeting) {
     lines.push('');
     lines.push('SUGGESTED OPENING:');
     lines.push(`"${greeting.text}"`);
   }
-  
+
   lines.push('');
   lines.push('Remember: 2am Ferni is a signature moment. Make them feel held.');
-  
+
   return lines.join('\n');
 }
 
@@ -329,13 +333,13 @@ export function getLateNightCSSVariables(context: LateNightContext): Record<stri
   if (!context.isLateNight) {
     return {};
   }
-  
+
   return {
-    '--glow-intensity': `${1 - (context.warmthLevel * 0.3)}`, // Softer glow
+    '--glow-intensity': `${1 - context.warmthLevel * 0.3}`, // Softer glow
     '--animation-speed': `${context.suggestedPaceMultiplier}`, // Slower animations
-    '--background-warmth': `${1 + (context.warmthLevel * 0.1)}`, // Warmer background
-    '--voice-volume': `${1 - (context.warmthLevel * 0.15)}`, // Quieter voice
-    '--ambient-brightness': `${0.7 - (context.warmthLevel * 0.2)}`, // Dimmer
+    '--background-warmth': `${1 + context.warmthLevel * 0.1}`, // Warmer background
+    '--voice-volume': `${1 - context.warmthLevel * 0.15}`, // Quieter voice
+    '--ambient-brightness': `${0.7 - context.warmthLevel * 0.2}`, // Dimmer
   };
 }
 
@@ -352,11 +356,11 @@ export function shouldAnnounceLateNightMode(context: LateNightContext): boolean 
   if (!context.isLateNight) {
     return false;
   }
-  
+
   if (lateNightModeAnnouncedThisSession) {
     return false;
   }
-  
+
   return true;
 }
 

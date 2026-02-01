@@ -241,13 +241,22 @@ visualizations/
 │   ├── relationship-network.ts  # People connections
 │   ├── open-loops.ts      # Unfinished items
 │   ├── energy-rings.ts    # Energy levels
-│   ├── sparkline-lifeline.ts   # Tufte sparklines (NEW)
-│   ├── micro-trend.ts     # Ultra-compact trends (NEW)
-│   └── data-ink-optimizer.ts   # Tufte analysis (NEW)
-├── living-data/           # Lupi-inspired components (PLANNED)
-│   ├── organic-forms.ts
-│   ├── emotional-encoding.ts
-│   └── weekly-ritual.ts
+│   ├── sparkline-lifeline.ts   # Tufte sparklines
+│   ├── micro-trend.ts     # Ultra-compact trends
+│   ├── data-ink-optimizer.ts   # Tufte analysis
+│   ├── actions-taken.ts   # Actions taken visualization
+│   ├── celebration-wheel.ts # Celebration wheel
+│   ├── energy-wave.ts     # Energy wave visualization
+│   └── social-battery.ts  # Social battery gauge
+├── api/                   # Data fetching
+│   ├── index.ts           # API exports
+│   ├── demo-data.ts       # Demo/mock data
+│   ├── firestore-fetcher.ts # Firestore data fetching
+│   └── insights-client.ts # Insights API client
+├── native/                # Native platform renderers
+│   ├── index.ts           # Native exports
+│   ├── swift-types.ts     # iOS Swift type mappings
+│   └── kotlin-types.ts    # Android Kotlin type mappings
 ├── utils/
 │   └── dom.ts             # Safe DOM helpers
 ├── adapters/              # Platform adapters

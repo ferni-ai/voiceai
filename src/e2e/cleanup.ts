@@ -69,17 +69,14 @@ export async function cleanupTestUser(ctx: E2ETestContext): Promise<number> {
   }
 
   ctx.log.info('Starting cleanup for test user', {
-    userId: ctx.userId.substring(0, 20) + '...',
+    userId: `${ctx.userId.substring(0, 20)}...`,
   });
 
   let totalDeleted = 0;
 
   // Delete all subcollections
   for (const subcollection of USER_SUBCOLLECTIONS) {
-    const deleted = await deleteCollection(
-      ctx,
-      `${getUserPath(ctx.userId)}/${subcollection}`
-    );
+    const deleted = await deleteCollection(ctx, `${getUserPath(ctx.userId)}/${subcollection}`);
     totalDeleted += deleted;
   }
 
@@ -103,10 +100,7 @@ export async function cleanupTestUser(ctx: E2ETestContext): Promise<number> {
 /**
  * Delete all documents in a collection.
  */
-async function deleteCollection(
-  ctx: E2ETestContext,
-  collectionPath: string
-): Promise<number> {
+async function deleteCollection(ctx: E2ETestContext, collectionPath: string): Promise<number> {
   let totalDeleted = 0;
 
   try {
@@ -210,7 +204,10 @@ export async function cleanupStaleTestUsers(
           log.info({ userId: userId.substring(0, 20) }, 'Cleaned up stale test user');
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          log.warn({ userId: userId.substring(0, 20), error: errorMessage }, 'Failed to clean up stale test user');
+          log.warn(
+            { userId: userId.substring(0, 20), error: errorMessage },
+            'Failed to clean up stale test user'
+          );
         }
       }
     }
@@ -230,10 +227,7 @@ export async function cleanupStaleTestUsers(
 /**
  * Delete specific data for a test.
  */
-export async function deleteTestData(
-  ctx: E2ETestContext,
-  paths: string[]
-): Promise<number> {
+export async function deleteTestData(ctx: E2ETestContext, paths: string[]): Promise<number> {
   let deleted = 0;
 
   for (const path of paths) {
@@ -263,10 +257,7 @@ export async function deleteTestData(
 /**
  * Delete a single document.
  */
-export async function deleteDocument(
-  ctx: E2ETestContext,
-  documentPath: string
-): Promise<boolean> {
+export async function deleteDocument(ctx: E2ETestContext, documentPath: string): Promise<boolean> {
   try {
     const resolvedPath = documentPath.replace('{userId}', ctx.userId);
     const docRef = ctx.firestore.doc(resolvedPath);

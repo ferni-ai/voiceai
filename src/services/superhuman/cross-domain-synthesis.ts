@@ -69,7 +69,7 @@ export type ConnectionType =
   | 'correlational' // A and B move together
   | 'enabling' // A enables B to improve
   | 'blocking' // A blocks B from improving
-  | 'competing' // A and B compete for resources;
+  | 'competing'; // A and B compete for resources;
 
 export interface CascadeEffect {
   trigger: {
@@ -171,9 +171,7 @@ export interface OpportunityWindow {
 /**
  * Gather cross-domain data for synthesis
  */
-async function gatherSynthesisData(
-  userId: string
-): Promise<{
+async function gatherSynthesisData(userId: string): Promise<{
   health: unknown[];
   career: unknown[];
   relationships: unknown[];
@@ -288,7 +286,8 @@ function analyzeDomain(
 
   // Habit consistency metric
   if (domainHabits.length > 0) {
-    const avgConsistency = domainHabits.reduce((sum, h) => sum + (h.consistency || 50), 0) / domainHabits.length;
+    const avgConsistency =
+      domainHabits.reduce((sum, h) => sum + (h.consistency || 50), 0) / domainHabits.length;
     metrics.push({
       name: 'Habit Consistency',
       value: Math.round(avgConsistency),
@@ -751,7 +750,8 @@ function detectOpportunities(
     opportunities.push({
       id: `opp_momentum_${Date.now()}`,
       title: 'Momentum Window Open',
-      description: 'Multiple domains with strong positive momentum create opportunity for breakthrough',
+      description:
+        'Multiple domains with strong positive momentum create opportunity for breakthrough',
       domains: highMomentum.map((d) => d.name),
       catalysts: highMomentum.map((d) => `${d.name} momentum: +${d.momentum}`),
       potentialGain: 'Significant life upgrade possible with focused effort',

@@ -43,8 +43,14 @@ servers/
 │   │   └── (smart-home, twin-profile, etc.)
 │   └── services/               # API services
 │
+├── __tests__/                  # Server tests
+│
 └── shared/                     # 🔧 Shared utilities
-    └── (middleware, auth, cors)
+    ├── index.ts                # Shared exports
+    ├── cors.ts                 # CORS handling
+    ├── encryption.ts           # Encryption utilities
+    ├── security-headers.ts     # Security header middleware
+    └── types.ts                # Shared types
 ```
 
 ---

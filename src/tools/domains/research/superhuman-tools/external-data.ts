@@ -53,10 +53,25 @@ function getLocalEconomicData(location: string): LocalEconomicIndicators {
     'san francisco': {
       location: 'San Francisco Bay Area',
       indicators: [
-        { name: 'Tech Employment Growth', value: 2.3, trend: 'up', comparison: 'vs 1.8% nationally' },
-        { name: 'Cost of Living Index', value: 182, trend: 'stable', comparison: 'vs 100 national avg' },
+        {
+          name: 'Tech Employment Growth',
+          value: 2.3,
+          trend: 'up',
+          comparison: 'vs 1.8% nationally',
+        },
+        {
+          name: 'Cost of Living Index',
+          value: 182,
+          trend: 'stable',
+          comparison: 'vs 100 national avg',
+        },
         { name: 'Median Income', value: 142000, trend: 'up', comparison: 'vs $74k nationally' },
-        { name: 'Housing Affordability', value: 15, trend: 'down', comparison: '15% can afford median home' },
+        {
+          name: 'Housing Affordability',
+          value: 15,
+          trend: 'down',
+          comparison: '15% can afford median home',
+        },
       ],
       housingMarket: {
         medianPrice: 1450000,
@@ -75,13 +90,18 @@ function getLocalEconomicData(location: string): LocalEconomicIndicators {
         'AI sector is driving new job creation despite overall tech slowdown',
       ],
     },
-    'austin': {
+    austin: {
       location: 'Austin, TX Metro',
       indicators: [
         { name: 'Population Growth', value: 2.8, trend: 'up', comparison: 'vs 0.4% nationally' },
         { name: 'Tech Job Growth', value: 4.5, trend: 'up', comparison: 'Fastest in US' },
         { name: 'Cost of Living Index', value: 103, trend: 'up', comparison: 'Rising quickly' },
-        { name: 'Housing Affordability', value: 32, trend: 'down', comparison: 'vs 45% pre-pandemic' },
+        {
+          name: 'Housing Affordability',
+          value: 32,
+          trend: 'down',
+          comparison: 'vs 45% pre-pandemic',
+        },
       ],
       housingMarket: {
         medianPrice: 545000,
@@ -103,8 +123,18 @@ function getLocalEconomicData(location: string): LocalEconomicIndicators {
     'new york': {
       location: 'New York City Metro',
       indicators: [
-        { name: 'Finance Sector Health', value: 1.2, trend: 'down', comparison: 'Moderate contraction' },
-        { name: 'Remote Work Impact', value: -12, trend: 'stable', comparison: 'Office occupancy vs 2019' },
+        {
+          name: 'Finance Sector Health',
+          value: 1.2,
+          trend: 'down',
+          comparison: 'Moderate contraction',
+        },
+        {
+          name: 'Remote Work Impact',
+          value: -12,
+          trend: 'stable',
+          comparison: 'Office occupancy vs 2019',
+        },
         { name: 'Cost of Living Index', value: 187, trend: 'up', comparison: 'Highest in US' },
         { name: 'Rental Prices', value: 8.5, trend: 'up', comparison: 'YoY increase' },
       ],
@@ -166,9 +196,11 @@ function getLocalEconomicData(location: string): LocalEconomicIndicators {
 
 export const getLocalEconomics = llm.tool({
   description:
-    "Get local economic conditions for your area. Housing market, job market, cost of living - contextualized for your location.",
+    'Get local economic conditions for your area. Housing market, job market, cost of living - contextualized for your location.',
   parameters: z.object({
-    location: z.string().describe('City or metro area (e.g., "San Francisco", "Austin", "New York")'),
+    location: z
+      .string()
+      .describe('City or metro area (e.g., "San Francisco", "Austin", "New York")'),
   }),
   execute: async (params: { location: string }, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
@@ -183,7 +215,7 @@ export const getLocalEconomics = llm.tool({
       `📊 **KEY INDICATORS**`,
       `═══════════════════════════════════`,
       '',
-      ...data.indicators.map(i => {
+      ...data.indicators.map((i) => {
         const trendEmoji = i.trend === 'up' ? '📈' : i.trend === 'down' ? '📉' : '➡️';
         return `${trendEmoji} **${i.name}:** ${typeof i.value === 'number' && i.value > 100 ? i.value.toLocaleString() : i.value}${typeof i.value === 'number' && i.value < 10 ? '%' : ''}\n   ${i.comparison}`;
       }),
@@ -215,7 +247,7 @@ export const getLocalEconomics = llm.tool({
       `💡 **LOCAL INSIGHTS**`,
       `═══════════════════════════════════`,
       '',
-      ...data.insights.map(i => `• ${i}`),
+      ...data.insights.map((i) => `• ${i}`),
       '',
       `═══════════════════════════════════`,
       `🎯 **WHAT THIS MEANS FOR YOU**`,
@@ -267,9 +299,14 @@ function getIndustryTrends(industry: string): IndustryTrendSynthesis {
       topCompanies: [
         { name: 'Microsoft', ticker: 'MSFT', position: 'AI infrastructure leader via OpenAI' },
         { name: 'NVIDIA', ticker: 'NVDA', position: 'AI chip monopoly (for now)' },
-        { name: 'Google', ticker: 'GOOGL', position: 'Search disruption risk but strong AI capabilities' },
+        {
+          name: 'Google',
+          ticker: 'GOOGL',
+          position: 'Search disruption risk but strong AI capabilities',
+        },
       ],
-      outlook: 'Bifurcated market - AI winners gaining while others struggle. Focus on companies with clear AI advantage.',
+      outlook:
+        'Bifurcated market - AI winners gaining while others struggle. Focus on companies with clear AI advantage.',
     },
     healthcare: {
       industry: 'Healthcare',
@@ -297,7 +334,8 @@ function getIndustryTrends(industry: string): IndustryTrendSynthesis {
         { name: 'UnitedHealth', ticker: 'UNH', position: 'Diversified healthcare giant' },
         { name: 'Novo Nordisk', ticker: 'NVO', position: 'Ozempic dominance' },
       ],
-      outlook: 'Secular growth driven by demographics and innovation. GLP-1 drugs are generational change.',
+      outlook:
+        'Secular growth driven by demographics and innovation. GLP-1 drugs are generational change.',
     },
     finance: {
       industry: 'Financial Services',
@@ -325,7 +363,8 @@ function getIndustryTrends(industry: string): IndustryTrendSynthesis {
         { name: 'Visa', ticker: 'V', position: 'Payments network effect' },
         { name: 'Blackstone', ticker: 'BX', position: 'Alternative assets leader' },
       ],
-      outlook: 'Mature industry with steady returns. Winners have scale, technology, and diversification.',
+      outlook:
+        'Mature industry with steady returns. Winners have scale, technology, and diversification.',
     },
     realestate: {
       industry: 'Real Estate',
@@ -377,7 +416,11 @@ function getIndustryTrends(industry: string): IndustryTrendSynthesis {
         'Nuclear renaissance',
       ],
       topCompanies: [
-        { name: 'ExxonMobil', ticker: 'XOM', position: 'Integrated major with strong balance sheet' },
+        {
+          name: 'ExxonMobil',
+          ticker: 'XOM',
+          position: 'Integrated major with strong balance sheet',
+        },
         { name: 'NextEra', ticker: 'NEE', position: 'Renewable energy leader' },
         { name: 'Schlumberger', ticker: 'SLB', position: 'Oilfield services leader' },
       ],
@@ -406,9 +449,11 @@ function getIndustryTrends(industry: string): IndustryTrendSynthesis {
 
 export const synthesizeIndustryTrends = llm.tool({
   description:
-    "Get a synthesis of trends in any industry. Key developments, disruption risks, opportunities, and leading companies.",
+    'Get a synthesis of trends in any industry. Key developments, disruption risks, opportunities, and leading companies.',
   parameters: z.object({
-    industry: z.string().describe('Industry to analyze (e.g., "technology", "healthcare", "finance")'),
+    industry: z
+      .string()
+      .describe('Industry to analyze (e.g., "technology", "healthcare", "finance")'),
   }),
   execute: async (params: { industry: string }, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
@@ -416,8 +461,12 @@ export const synthesizeIndustryTrends = llm.tool({
 
     const data = getIndustryTrends(params.industry);
 
-    const sentimentEmoji = data.overallSentiment === 'bullish' ? '🟢' :
-                          data.overallSentiment === 'bearish' ? '🔴' : '🟡';
+    const sentimentEmoji =
+      data.overallSentiment === 'bullish'
+        ? '🟢'
+        : data.overallSentiment === 'bearish'
+          ? '🔴'
+          : '🟡';
 
     return [
       `📈 **INDUSTRY TREND SYNTHESIS: ${data.industry.toUpperCase()}**`,
@@ -430,25 +479,25 @@ export const synthesizeIndustryTrends = llm.tool({
       `🔑 **KEY TRENDS**`,
       `═══════════════════════════════════`,
       '',
-      ...data.keyTrends.map(t => `• ${t}`),
+      ...data.keyTrends.map((t) => `• ${t}`),
       '',
       `═══════════════════════════════════`,
       `⚠️ **DISRUPTION RISKS**`,
       `═══════════════════════════════════`,
       '',
-      ...data.disruptionRisks.map(r => `• ${r}`),
+      ...data.disruptionRisks.map((r) => `• ${r}`),
       '',
       `═══════════════════════════════════`,
       `✅ **OPPORTUNITIES**`,
       `═══════════════════════════════════`,
       '',
-      ...data.opportunities.map(o => `• ${o}`),
+      ...data.opportunities.map((o) => `• ${o}`),
       '',
       data.topCompanies.length > 0 ? `═══════════════════════════════════` : '',
       data.topCompanies.length > 0 ? `🏢 **LEADING COMPANIES**` : '',
       data.topCompanies.length > 0 ? `═══════════════════════════════════` : '',
       data.topCompanies.length > 0 ? '' : '',
-      ...data.topCompanies.map(c => `• **${c.name}** (${c.ticker}): ${c.position}`),
+      ...data.topCompanies.map((c) => `• **${c.name}** (${c.ticker}): ${c.position}`),
       '',
       `═══════════════════════════════════`,
       `🔮 **OUTLOOK**`,
@@ -466,7 +515,9 @@ export const synthesizeIndustryTrends = llm.tool({
       `• Is my career aligned with industry tailwinds?`,
       `• Am I exposed to disruption risks?`,
       `• Should I be building skills for the emerging opportunities?`,
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   },
 });
 
@@ -477,7 +528,7 @@ export const synthesizeIndustryTrends = llm.tool({
 function getNewsSentiment(topic: string): NewsSentiment {
   // Simulated sentiment analysis (would use news API + NLP in production)
   const topics: Record<string, NewsSentiment> = {
-    'economy': {
+    economy: {
       topic: 'Economy',
       period: 'Last 30 days',
       sentimentScore: 0.15,
@@ -495,7 +546,7 @@ function getNewsSentiment(topic: string): NewsSentiment {
         'Corporate earnings holding up',
       ],
     },
-    'ai': {
+    ai: {
       topic: 'Artificial Intelligence',
       period: 'Last 30 days',
       sentimentScore: 0.65,
@@ -513,7 +564,7 @@ function getNewsSentiment(topic: string): NewsSentiment {
         'Regulatory developments in EU and US',
       ],
     },
-    'housing': {
+    housing: {
       topic: 'Housing Market',
       period: 'Last 30 days',
       sentimentScore: -0.35,
@@ -531,7 +582,7 @@ function getNewsSentiment(topic: string): NewsSentiment {
         'Generational wealth transfer concerns',
       ],
     },
-    'crypto': {
+    crypto: {
       topic: 'Cryptocurrency',
       period: 'Last 30 days',
       sentimentScore: 0.25,
@@ -572,7 +623,7 @@ function getNewsSentiment(topic: string): NewsSentiment {
 
 export const analyzeNewsSentiment = llm.tool({
   description:
-    "Analyze news sentiment on any topic. See if coverage is positive/negative and trending up/down. Useful for timing decisions.",
+    'Analyze news sentiment on any topic. See if coverage is positive/negative and trending up/down. Useful for timing decisions.',
   parameters: z.object({
     topic: z.string().describe('Topic to analyze (e.g., "economy", "AI", "housing", "crypto")'),
   }),
@@ -585,15 +636,17 @@ export const analyzeNewsSentiment = llm.tool({
     const sentimentBar = (score: number) => {
       const normalized = (score + 1) / 2; // Convert -1 to 1 → 0 to 1
       const filled = Math.round(normalized * 10);
-      return '░'.repeat(5 - Math.min(5, Math.max(0, 5 - filled))) + 
-             '█'.repeat(Math.min(10, Math.max(0, filled))) +
-             '░'.repeat(Math.max(0, 5 - filled));
+      return (
+        '░'.repeat(5 - Math.min(5, Math.max(0, 5 - filled))) +
+        '█'.repeat(Math.min(10, Math.max(0, filled))) +
+        '░'.repeat(Math.max(0, 5 - filled))
+      );
     };
 
-    const sentimentLabel = data.sentimentScore > 0.3 ? 'POSITIVE' :
-                          data.sentimentScore < -0.3 ? 'NEGATIVE' : 'NEUTRAL';
-    const sentimentEmoji = data.sentimentScore > 0.3 ? '🟢' :
-                          data.sentimentScore < -0.3 ? '🔴' : '🟡';
+    const sentimentLabel =
+      data.sentimentScore > 0.3 ? 'POSITIVE' : data.sentimentScore < -0.3 ? 'NEGATIVE' : 'NEUTRAL';
+    const sentimentEmoji =
+      data.sentimentScore > 0.3 ? '🟢' : data.sentimentScore < -0.3 ? '🔴' : '🟡';
 
     return [
       `📰 **NEWS SENTIMENT ANALYSIS: ${data.topic.toUpperCase()}**`,
@@ -614,13 +667,13 @@ export const analyzeNewsSentiment = llm.tool({
       `📋 **KEY NARRATIVES**`,
       `═══════════════════════════════════`,
       '',
-      ...data.keyNarratives.map(n => `• ${n}`),
+      ...data.keyNarratives.map((n) => `• ${n}`),
       '',
       `═══════════════════════════════════`,
       `🎯 **SENTIMENT DRIVERS**`,
       `═══════════════════════════════════`,
       '',
-      ...data.sentimentDrivers.map(d => `• ${d}`),
+      ...data.sentimentDrivers.map((d) => `• ${d}`),
       '',
       `═══════════════════════════════════`,
       `💡 **WHAT THIS MEANS**`,
@@ -646,12 +699,22 @@ export const analyzeNewsSentiment = llm.tool({
 
 export const recordSpending = llm.tool({
   description:
-    "Record spending data to calculate your personal inflation rate. Track how YOUR costs compare to official CPI.",
+    'Record spending data to calculate your personal inflation rate. Track how YOUR costs compare to official CPI.',
   parameters: z.object({
-    category: z.enum([
-      'housing', 'food', 'transportation', 'healthcare', 'utilities',
-      'entertainment', 'education', 'childcare', 'clothing', 'other'
-    ]).describe('Spending category'),
+    category: z
+      .enum([
+        'housing',
+        'food',
+        'transportation',
+        'healthcare',
+        'utilities',
+        'entertainment',
+        'education',
+        'childcare',
+        'clothing',
+        'other',
+      ])
+      .describe('Spending category'),
     amount: z.number().describe('Amount spent'),
     description: z.string().optional().describe('What was it for?'),
   }),
@@ -681,8 +744,8 @@ export const recordSpending = llm.tool({
     }
 
     const categoryTotal = userSpending
-      .filter(s => s.category === params.category)
-      .filter(s => Date.now() - s.date.getTime() < 30 * 24 * 60 * 60 * 1000)
+      .filter((s) => s.category === params.category)
+      .filter((s) => Date.now() - s.date.getTime() < 30 * 24 * 60 * 60 * 1000)
       .reduce((sum, s) => sum + s.amount, 0);
 
     return [
@@ -692,13 +755,15 @@ export const recordSpending = llm.tool({
       `${params.category} this month: $${categoryTotal.toFixed(2)}`,
       '',
       `Track more spending to calculate your personal inflation rate!`,
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   },
 });
 
 export const calculatePersonalInflation = llm.tool({
   description:
-    "Calculate YOUR personal inflation rate vs official CPI. See how your actual cost increases compare to government statistics.",
+    'Calculate YOUR personal inflation rate vs official CPI. See how your actual cost increases compare to government statistics.',
   parameters: z.object({
     monthlyIncome: z.number().optional().describe('Your monthly income (for context)'),
   }),
@@ -707,10 +772,10 @@ export const calculatePersonalInflation = llm.tool({
     if (!userId) return 'I need to know who you are.';
 
     const userSpending = spendingStore.get(userId) || [];
-    
+
     // Get spending from last 30 days
     const recentSpending = userSpending.filter(
-      s => Date.now() - s.date.getTime() < 30 * 24 * 60 * 60 * 1000
+      (s) => Date.now() - s.date.getTime() < 30 * 24 * 60 * 60 * 1000
     );
 
     if (recentSpending.length < 10) {
@@ -757,7 +822,12 @@ export const calculatePersonalInflation = llm.tool({
 
     // Calculate weighted personal inflation
     let personalInflation = 0;
-    const categoryBreakdown: { category: string; weight: number; inflation: number; contribution: number }[] = [];
+    const categoryBreakdown: {
+      category: string;
+      weight: number;
+      inflation: number;
+      contribution: number;
+    }[] = [];
 
     for (const [category, amount] of Object.entries(byCategory)) {
       const weight = amount / totalSpending;
@@ -800,19 +870,20 @@ export const calculatePersonalInflation = llm.tool({
       `📋 **BREAKDOWN BY CATEGORY**`,
       `═══════════════════════════════════`,
       '',
-      ...categoryBreakdown.map(c => 
-        `**${c.category.charAt(0).toUpperCase() + c.category.slice(1)}**\n` +
-        `• Your weight: ${c.weight.toFixed(0)}% of spending\n` +
-        `• Category inflation: ${c.inflation}%\n` +
-        `• Contribution: ${c.contribution.toFixed(2)}%\n`
+      ...categoryBreakdown.map(
+        (c) =>
+          `**${c.category.charAt(0).toUpperCase() + c.category.slice(1)}**\n` +
+          `• Your weight: ${c.weight.toFixed(0)}% of spending\n` +
+          `• Category inflation: ${c.inflation}%\n` +
+          `• Contribution: ${c.contribution.toFixed(2)}%\n`
       ),
       `═══════════════════════════════════`,
       `🎯 **BIGGEST INFLATION DRIVERS**`,
       `═══════════════════════════════════`,
       '',
-      ...categoryBreakdown.slice(0, 3).map((c, i) => 
-        `${i + 1}. ${c.category} (${c.contribution.toFixed(1)}% contribution)`
-      ),
+      ...categoryBreakdown
+        .slice(0, 3)
+        .map((c, i) => `${i + 1}. ${c.category} (${c.contribution.toFixed(1)}% contribution)`),
       '',
       `═══════════════════════════════════`,
       `💡 **HEDGING STRATEGIES**`,
@@ -821,10 +892,10 @@ export const calculatePersonalInflation = llm.tool({
       categoryBreakdown[0].category === 'housing'
         ? `• Housing: Fixed-rate mortgage locks in costs. Renting exposes you to rent inflation.`
         : '',
-      categoryBreakdown.find(c => c.category === 'food')
+      categoryBreakdown.find((c) => c.category === 'food')
         ? `• Food: Meal planning and bulk buying can reduce impact.`
         : '',
-      categoryBreakdown.find(c => c.category === 'healthcare')
+      categoryBreakdown.find((c) => c.category === 'healthcare')
         ? `• Healthcare: HSA contributions hedge against future costs.`
         : '',
       '',
@@ -833,7 +904,9 @@ export const calculatePersonalInflation = llm.tool({
       `Wealthy people with paid-off houses experience low inflation.`,
       `Young renters in cities experience much higher inflation.`,
       `Know YOUR number, not the government's.`,
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   },
 });
 

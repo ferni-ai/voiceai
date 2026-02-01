@@ -62,10 +62,7 @@ export const voiceEnrollmentSelfTool: SemanticToolDefinition = {
     'Teach Ferni to recognize my voice',
   ],
 
-  counterExamples: [
-    'Change the voice to something else',
-    'Send a voice message',
-  ],
+  counterExamples: ['Change the voice to something else', 'Send a voice message'],
 
   arguments: [],
 

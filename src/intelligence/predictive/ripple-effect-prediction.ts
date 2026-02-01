@@ -40,7 +40,7 @@ export type LifeDomain =
   | 'creativity'
   | 'spirituality'
   | 'personal_growth'
-  | 'growth'  // Alias for personal_growth
+  | 'growth' // Alias for personal_growth
   | 'habits'
   | 'energy'
   | 'sleep'
@@ -50,7 +50,7 @@ export type LifeDomain =
 export interface DomainEvent {
   domain: LifeDomain;
   eventType: EventType;
-  magnitude: number;  // -1 (very negative) to 1 (very positive)
+  magnitude: number; // -1 (very negative) to 1 (very positive)
   description: string;
   timestamp: number;
 }
@@ -106,7 +106,7 @@ export interface RipplePrediction {
     effect: RippleEffect;
     probability: number;
     timeframe: 'immediate' | 'days' | 'weeks' | 'months';
-    magnitude: number;  // -1 to 1
+    magnitude: number; // -1 to 1
     reasoning: string;
     mitigationOpportunity?: string;
   }>;
@@ -150,7 +150,7 @@ interface InfluencePattern {
   eventType: EventType;
   typicalEffect: RippleEffect;
   typicalMagnitude: number;
-  typicalDelay: number;  // hours
+  typicalDelay: number; // hours
   observationCount: number;
   reliability: number;
 }
@@ -158,8 +158,8 @@ interface InfluencePattern {
 /** Domain state snapshot */
 interface DomainState {
   domain: LifeDomain;
-  health: number;  // 0-1
-  stability: number;  // 0-1
+  health: number; // 0-1
+  stability: number; // 0-1
   trend: 'improving' | 'stable' | 'declining';
   lastEvent?: DomainEvent;
   lastUpdated: number;
@@ -345,7 +345,10 @@ export function recordObservedRipple(
   // Update domain state
   const domainState = profile.domainStates.get(observedEffect.targetDomain);
   if (domainState) {
-    domainState.health = Math.max(0, Math.min(1, domainState.health + observedEffect.magnitude * 0.1));
+    domainState.health = Math.max(
+      0,
+      Math.min(1, domainState.health + observedEffect.magnitude * 0.1)
+    );
     domainState.lastUpdated = Date.now();
   }
 
@@ -370,18 +373,14 @@ export function recordObservedRipple(
  * @param domain - Domain to update
  * @param health - New health value (0-1)
  */
-export function updateDomainHealth(
-  userId: string,
-  domain: LifeDomain,
-  health: number
-): void {
+export function updateDomainHealth(userId: string, domain: LifeDomain, health: number): void {
   const profile = getOrCreateProfile(userId);
-  
+
   const state = profile.domainStates.get(domain);
   if (state) {
     const previousHealth = state.health;
     state.health = Math.max(0, Math.min(1, health));
-    
+
     // Update trend
     if (health > previousHealth + 0.1) {
       state.trend = 'improving';
@@ -390,7 +389,7 @@ export function updateDomainHealth(
     } else {
       state.trend = 'stable';
     }
-    
+
     state.lastUpdated = Date.now();
   }
 
@@ -408,17 +407,26 @@ export function updateDomainHealth(
  * @param event - The triggering event
  * @returns Ripple prediction
  */
-function predictRipples(
-  profile: UserRippleProfile,
-  event: DomainEvent
-): RipplePrediction {
+function predictRipples(profile: UserRippleProfile, event: DomainEvent): RipplePrediction {
   const ripples: RipplePrediction['ripples'] = [];
 
   // Get all domains that could be affected
   const allDomains: LifeDomain[] = [
-    'work', 'relationships', 'health', 'finances', 'family', 'social',
-    'mental_health', 'physical_health', 'creativity', 'spirituality',
-    'personal_growth', 'habits', 'energy', 'sleep', 'self_care'
+    'work',
+    'relationships',
+    'health',
+    'finances',
+    'family',
+    'social',
+    'mental_health',
+    'physical_health',
+    'creativity',
+    'spirituality',
+    'personal_growth',
+    'habits',
+    'energy',
+    'sleep',
+    'self_care',
   ];
 
   for (const targetDomain of allDomains) {
@@ -497,7 +505,7 @@ export function getRippleStatus(userId: string): {
   overallRisk: 'low' | 'moderate' | 'high';
 } {
   const profile = userProfiles.get(userId);
-  
+
   if (!profile) {
     return {
       domainStates: [],
@@ -518,7 +526,8 @@ export function getRippleStatus(userId: string): {
 
   for (const event of recentEvents) {
     const daysSinceEvent = (Date.now() - event.timestamp) / (1000 * 60 * 60 * 24);
-    if (daysSinceEvent < 7) {  // Still "active" if within a week
+    if (daysSinceEvent < 7) {
+      // Still "active" if within a week
       activeRipples.push(predictRipples(profile, event));
     }
   }
@@ -526,7 +535,7 @@ export function getRippleStatus(userId: string): {
   // Determine overall risk
   const lowHealthDomains = domainStates.filter((d) => d.health < 0.4).length;
   const decliningDomains = domainStates.filter((d) => d.trend === 'declining').length;
-  
+
   let overallRisk: 'low' | 'moderate' | 'high' = 'low';
   if (lowHealthDomains >= 3 || decliningDomains >= 3) {
     overallRisk = 'high';
@@ -553,7 +562,7 @@ export function simulateRipples(
   hypotheticalEvent: Omit<DomainEvent, 'timestamp'>
 ): RipplePrediction {
   const profile = getOrCreateProfile(userId);
-  
+
   const event: DomainEvent = {
     ...hypotheticalEvent,
     timestamp: Date.now(),
@@ -574,7 +583,7 @@ export function simulateRipples(
  */
 export function buildRippleContext(userId: string): string {
   const status = getRippleStatus(userId);
-  
+
   if (status.domainStates.length === 0) return '';
 
   const sections: string[] = [];
@@ -590,8 +599,8 @@ export function buildRippleContext(userId: string): string {
   if (concerningDomains.length > 0) {
     sections.push('**Domains Needing Attention:**');
     for (const domain of concerningDomains.slice(0, 3)) {
-      const healthDesc = domain.health < 0.3 ? 'struggling' :
-        domain.health < 0.5 ? 'strained' : 'moderate';
+      const healthDesc =
+        domain.health < 0.3 ? 'struggling' : domain.health < 0.5 ? 'strained' : 'moderate';
       sections.push(`• ${domain.domain}: ${healthDesc} (${domain.trend})`);
     }
     sections.push('');
@@ -657,15 +666,27 @@ function getOrCreateProfile(userId: string): UserRippleProfile {
 
     // Initialize all domain states
     const allDomains: LifeDomain[] = [
-      'work', 'relationships', 'health', 'finances', 'family', 'social',
-      'mental_health', 'physical_health', 'creativity', 'spirituality',
-      'personal_growth', 'habits', 'energy', 'sleep', 'self_care'
+      'work',
+      'relationships',
+      'health',
+      'finances',
+      'family',
+      'social',
+      'mental_health',
+      'physical_health',
+      'creativity',
+      'spirituality',
+      'personal_growth',
+      'habits',
+      'energy',
+      'sleep',
+      'self_care',
     ];
 
     for (const domain of allDomains) {
       profile.domainStates.set(domain, {
         domain,
-        health: 0.6,  // Neutral-good starting point
+        health: 0.6, // Neutral-good starting point
         stability: 0.5,
         trend: 'stable',
         lastUpdated: Date.now(),
@@ -683,20 +704,20 @@ function updateDomainState(profile: UserRippleProfile, event: DomainEvent): void
   if (!state) return;
 
   const previousHealth = state.health;
-  
+
   // Update health based on event magnitude
   state.health = Math.max(0, Math.min(1, state.health + event.magnitude * 0.2));
-  
+
   // Update trend
   if (state.health > previousHealth + 0.1) {
     state.trend = 'improving';
   } else if (state.health < previousHealth - 0.1) {
     state.trend = 'declining';
   }
-  
+
   // Stability decreases with events, especially negative ones
   state.stability = Math.max(0, state.stability - Math.abs(event.magnitude) * 0.1);
-  
+
   state.lastEvent = event;
   state.lastUpdated = Date.now();
 }
@@ -715,7 +736,7 @@ function determineEffect(
     if (targetDomain === 'self_care') return 'neglect';
     return 'decline';
   }
-  
+
   if (magnitude > 0.3) {
     if (targetDomain === 'energy') return 'energy_boost';
     if (targetDomain === 'mental_health') return 'decreased_stress';
@@ -727,7 +748,7 @@ function determineEffect(
   if (event.eventType.includes('stress') || event.eventType.includes('pressure')) {
     return 'increased_stress';
   }
-  
+
   if (event.eventType.includes('success') || event.eventType.includes('improvement')) {
     return 'motivation_change';
   }
@@ -795,14 +816,12 @@ function determineCascadeRisk(
 ): RipplePrediction['cascadeRisk'] {
   const highProbRipples = ripples.filter((r) => r.probability > 0.6);
   const negativeRipples = ripples.filter((r) => r.magnitude < -0.2);
-  
+
   // Check domain health
   const weakDomains = Array.from(profile.domainStates.values()).filter((s) => s.health < 0.4);
 
   const riskScore =
-    highProbRipples.length * 0.2 +
-    negativeRipples.length * 0.15 +
-    weakDomains.length * 0.1;
+    highProbRipples.length * 0.2 + negativeRipples.length * 0.15 + weakDomains.length * 0.1;
 
   if (riskScore >= CONFIG.CASCADE_RISK_THRESHOLDS.critical) return 'critical';
   if (riskScore >= CONFIG.CASCADE_RISK_THRESHOLDS.high) return 'high';
@@ -856,7 +875,7 @@ function detectSpiral(
 ): RipplePrediction['spiralWarning'] | undefined {
   // Check for potential negative spiral
   const negativeRipples = ripples.filter((r) => r.magnitude < -0.2 && r.probability > 0.5);
-  
+
   if (negativeRipples.length < 2) return undefined;
 
   // Check if affected domains are already weak
@@ -867,7 +886,7 @@ function detectSpiral(
 
   if (weakAffectedDomains.length >= 2) {
     const domains = weakAffectedDomains.map((r) => r.targetDomain);
-    
+
     return {
       domains,
       description: `${event.domain} stress may cascade into already-strained ${domains.join(' and ')}`,

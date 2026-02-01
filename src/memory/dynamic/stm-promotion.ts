@@ -24,6 +24,8 @@ import {
   type TurnMemory,
   type EntityFrequency,
 } from './stm-buffer.js';
+import { extractHumanSignals, mergeSignalsIntoMemory } from '../human-signal-extractor.js';
+import { persistHumanSignals } from '../human-signal-persistence.js';
 
 const log = createLogger({ module: 'STMPromotion' });
 
@@ -113,10 +115,7 @@ interface PromotionResult {
 // IMPORTANCE CALCULATION
 // ============================================================================
 
-function calculateEntityImportance(
-  entity: EntityFrequency,
-  turns: TurnMemory[]
-): number {
+function calculateEntityImportance(entity: EntityFrequency, turns: TurnMemory[]): number {
   let importance = 0;
 
   // Base importance from mention count
@@ -154,7 +153,15 @@ function calculateOverallEmotionalShift(
   if (trajectory.length < 2) return 'neutral';
 
   const positiveEmotions = ['happy', 'excited', 'grateful', 'relieved', 'hopeful', 'positive'];
-  const negativeEmotions = ['sad', 'angry', 'anxious', 'stressed', 'frustrated', 'negative', 'fear'];
+  const negativeEmotions = [
+    'sad',
+    'angry',
+    'anxious',
+    'stressed',
+    'frustrated',
+    'negative',
+    'fear',
+  ];
 
   let positiveCount = 0;
   let negativeCount = 0;
@@ -174,7 +181,11 @@ function calculateOverallEmotionalShift(
       currentValence = 'negative';
     }
 
-    if (lastValence !== 'neutral' && currentValence !== 'neutral' && lastValence !== currentValence) {
+    if (
+      lastValence !== 'neutral' &&
+      currentValence !== 'neutral' &&
+      lastValence !== currentValence
+    ) {
       shifts++;
     }
     if (currentValence !== 'neutral') {
@@ -212,7 +223,10 @@ export async function promoteSessionToFirestore(
   // Check if promotion is already in progress for this session
   const existing = promotionInProgress.get(sessionId);
   if (existing) {
-    log.debug({ sessionId, userId }, '🧠 [MEMORY-AUDIT] Promotion already in progress, awaiting existing');
+    log.debug(
+      { sessionId, userId },
+      '🧠 [MEMORY-AUDIT] Promotion already in progress, awaiting existing'
+    );
     return existing;
   }
 
@@ -237,11 +251,8 @@ async function doPromoteSessionToFirestore(
   options?: Partial<PromotionConfig>
 ): Promise<PromotionResult> {
   // 🧠 MEMORY AUDIT: Log promotion attempt
-  log.info(
-    { sessionId, userId },
-    '🧠 [MEMORY-AUDIT] promoteSessionToFirestore START'
-  );
-  
+  log.info({ sessionId, userId }, '🧠 [MEMORY-AUDIT] promoteSessionToFirestore START');
+
   const activeConfig = { ...config, ...options };
   const result: PromotionResult = {
     entitiesPromoted: 0,
@@ -252,23 +263,32 @@ async function doPromoteSessionToFirestore(
 
   const db = getFirestoreDb();
   if (!db) {
-    log.warn({ sessionId, userId, fallbackReason: 'Firestore unavailable' }, '🧠 [MEMORY-AUDIT] Firestore not available, skipping promotion');
+    log.warn(
+      { sessionId, userId, fallbackReason: 'Firestore unavailable' },
+      '🧠 [MEMORY-AUDIT] Firestore not available, skipping promotion'
+    );
     // Emit event for observability (services layer can subscribe)
-    emitInfraEvent('firestore:fallback', { service: 'stm-promotion', reason: 'Firestore unavailable' });
+    emitInfraEvent('firestore:fallback', {
+      service: 'stm-promotion',
+      reason: 'Firestore unavailable',
+    });
     return result;
   }
 
   const buffer = getSTMBuffer(sessionId, userId);
   if (!buffer || buffer.turns.length === 0) {
-    log.info({ sessionId, userId, bufferExists: !!buffer }, '🧠 [MEMORY-AUDIT] No STM data to promote (empty buffer)');
+    log.info(
+      { sessionId, userId, bufferExists: !!buffer },
+      '🧠 [MEMORY-AUDIT] No STM data to promote (empty buffer)'
+    );
     return result;
   }
-  
+
   // 🧠 MEMORY AUDIT: Log buffer state before promotion
   log.info(
-    { 
-      sessionId, 
-      userId, 
+    {
+      sessionId,
+      userId,
       turnCount: buffer.turns.length,
       entityCount: buffer.entityFrequency.size,
       topicCount: buffer.topicHistory.length,
@@ -282,33 +302,45 @@ async function doPromoteSessionToFirestore(
   try {
     // 1. Promote frequent entities
     const frequentEntities = getFrequentEntities(sessionId);
-    
+
     // 🧠 MEMORY AUDIT: Log all entities found in STM
     log.info(
-      { 
+      {
         sessionId,
         userId,
         frequentEntitiesCount: frequentEntities.length,
-        entities: frequentEntities.map(e => ({ name: e.name, count: e.mentionCount })),
-        config: { minMentionCount: activeConfig.minMentionCount, minImportanceScore: activeConfig.minImportanceScore },
+        entities: frequentEntities.map((e) => ({ name: e.name, count: e.mentionCount })),
+        config: {
+          minMentionCount: activeConfig.minMentionCount,
+          minImportanceScore: activeConfig.minImportanceScore,
+        },
       },
       '🧠 [MEMORY-AUDIT] Checking entities for promotion'
     );
-    
+
     const entitiesToPromote: PromotedEntity[] = [];
 
     for (const entity of frequentEntities) {
       if (entitiesToPromote.length >= activeConfig.maxEntitiesPerSession) break;
 
       const importance = calculateEntityImportance(entity, buffer.turns);
-      
+
       // 🧠 MEMORY AUDIT: Log each entity evaluation
       log.debug(
-        { entity: entity.name, mentionCount: entity.mentionCount, importance, minCount: activeConfig.minMentionCount, minImportance: activeConfig.minImportanceScore },
+        {
+          entity: entity.name,
+          mentionCount: entity.mentionCount,
+          importance,
+          minCount: activeConfig.minMentionCount,
+          minImportance: activeConfig.minImportanceScore,
+        },
         '🧠 [MEMORY-AUDIT] Evaluating entity for promotion'
       );
 
-      if (entity.mentionCount >= activeConfig.minMentionCount || importance >= activeConfig.minImportanceScore) {
+      if (
+        entity.mentionCount >= activeConfig.minMentionCount ||
+        importance >= activeConfig.minImportanceScore
+      ) {
         // Find last context for this entity
         let lastContext = '';
         for (let i = buffer.turns.length - 1; i >= 0; i--) {
@@ -336,11 +368,7 @@ async function doPromoteSessionToFirestore(
 
     // Write entities to Firestore
     for (const entity of entitiesToPromote) {
-      const ref = db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('promoted_entities')
-        .doc();
+      const ref = db.collection('bogle_users').doc(userId).collection('promoted_entities').doc();
       batch.set(ref, entity);
     }
     result.entitiesPromoted = entitiesToPromote.length;
@@ -411,12 +439,12 @@ async function doPromoteSessionToFirestore(
       },
       '📤 Promoted STM to Firestore'
     );
-    
+
     // Emit success event for observability
-    emitInfraEvent('memory:promotion', { 
-      userId, 
-      entitiesPromoted: result.entitiesPromoted, 
-      sessionId 
+    emitInfraEvent('memory:promotion', {
+      userId,
+      entitiesPromoted: result.entitiesPromoted,
+      sessionId,
     });
     emitInfraEvent('firestore:success', { service: 'stm-promotion' });
 
@@ -439,10 +467,69 @@ async function doPromoteSessionToFirestore(
 export async function onSessionEnd(sessionId: string, userId: string): Promise<void> {
   log.info({ sessionId, userId }, '🧠 [MEMORY-AUDIT] onSessionEnd called');
   const result = await promoteSessionToFirestore(sessionId, userId);
+
+  // 🧠 BTH FIX: Extract and persist human signals (dreams, fears, values)
+  // This is the #1 BTH blocker - without this, Ferni forgets deepest revelations
+  try {
+    const buffer = getSTMBuffer(sessionId, userId);
+    if (buffer && buffer.turns.length > 0) {
+      // Convert STM turns to conversation format for signal extraction
+      const turns = buffer.turns.map((turn) => ({
+        role: 'user' as const,
+        content: turn.transcript || '',
+        timestamp: new Date(turn.timestamp),
+      }));
+
+      // Extract human signals from conversation
+      const personaId = buffer.turns[0]?.personaId || 'ferni';
+      const signals = extractHumanSignals(turns, {
+        userId,
+        personaId,
+      });
+
+      // Count non-empty signals
+      const signalCount =
+        signals.importantDates.length +
+        signals.values.length +
+        signals.dreams.length +
+        signals.fears.length +
+        signals.growthMarkers.length +
+        signals.challenges.length +
+        signals.comfortPatterns.length +
+        signals.stressTriggers.length +
+        signals.avoidances.length +
+        signals.insideJokes.length;
+
+      if (signalCount > 0) {
+        // Persist to Firestore
+        const persistResult = await persistHumanSignals(userId, signals, { sessionId });
+
+        log.info(
+          {
+            sessionId,
+            userId,
+            signalCount,
+            persisted: persistResult.persisted,
+            success: persistResult.success,
+          },
+          '💾 [BTH] Human signals extracted and persisted'
+        );
+      } else {
+        log.debug({ sessionId, userId }, '🧠 [BTH] No human signals detected in session');
+      }
+    }
+  } catch (humanSignalErr) {
+    log.error(
+      { sessionId, userId, error: String(humanSignalErr) },
+      '❌ [BTH] Failed to extract/persist human signals'
+    );
+    // Non-critical - don't fail the session end
+  }
+
   log.info(
-    { 
-      sessionId, 
-      userId, 
+    {
+      sessionId,
+      userId,
       entitiesPromoted: result.entitiesPromoted,
       emotionalArcPromoted: result.emotionalArcPromoted,
       topicPatternPromoted: result.topicPatternPromoted,
@@ -456,4 +543,10 @@ export async function onSessionEnd(sessionId: string, userId: string): Promise<v
 // EXPORTS
 // ============================================================================
 
-export type { PromotionConfig, PromotionResult, PromotedEntity, PromotedEmotionalArc, PromotedTopicPattern };
+export type {
+  PromotionConfig,
+  PromotionResult,
+  PromotedEntity,
+  PromotedEmotionalArc,
+  PromotedTopicPattern,
+};

@@ -110,9 +110,7 @@ function createTestCapsule(overrides?: Partial<MemoryCapsule>): MemoryCapsule {
       { theme: 'career', lastUpdated: new Date().toISOString(), sessionCount: 3 },
       { theme: 'relationships', lastUpdated: new Date().toISOString(), sessionCount: 2 },
     ],
-    topAnchors: [
-      { type: 'breakthrough', summary: 'Realized fear of failure', significance: 0.9 },
-    ],
+    topAnchors: [{ type: 'breakthrough', summary: 'Realized fear of failure', significance: 0.9 }],
     lastEmotionalState: 'hopeful',
     pendingTopics: ['work-life balance'],
     lastSessionId: 'session-prev-123',
@@ -465,7 +463,7 @@ describe('Session Continuity Cache', () => {
 
   it('should handle missing session gracefully', () => {
     const nonexistentSession = 'nonexistent-session';
-    
+
     const cached = getCachedContinuity(nonexistentSession);
     const enriched = getEnrichedContinuity(nonexistentSession);
 

@@ -190,14 +190,10 @@ export const firstCallOnboardingBuilder: ContextBuilder = {
     // ---------------------------------------------------------
     if (turnCount <= 1) {
       injections.push(
-        createHighInjection(
-          'first_call_welcome',
-          buildWelcomeGuidance(),
-          {
-            category: 'first-call-onboarding',
-            confidence: 1.0,
-          }
-        )
+        createHighInjection('first_call_welcome', buildWelcomeGuidance(), {
+          category: 'first-call-onboarding',
+          confidence: 1.0,
+        })
       );
     }
 
@@ -206,14 +202,10 @@ export const firstCallOnboardingBuilder: ContextBuilder = {
     // ---------------------------------------------------------
     if (turnCount >= 2 && turnCount <= 3 && !hasName) {
       injections.push(
-        createStandardInjection(
-          'first_call_name_reminder',
-          buildNameReminderGuidance(),
-          {
-            category: 'first-call-onboarding',
-            confidence: 0.9,
-          }
-        )
+        createStandardInjection('first_call_name_reminder', buildNameReminderGuidance(), {
+          category: 'first-call-onboarding',
+          confidence: 0.9,
+        })
       );
     }
 
@@ -223,14 +215,10 @@ export const firstCallOnboardingBuilder: ContextBuilder = {
     if (turnCount >= 3 && turnCount <= 5 && hasName && !progress.rememberedOffered) {
       const userName = userData?.name || 'them';
       injections.push(
-        createStandardInjection(
-          'first_call_remember_offer',
-          buildRememberOfferGuidance(userName),
-          {
-            category: 'first-call-onboarding',
-            confidence: 0.85,
-          }
-        )
+        createStandardInjection('first_call_remember_offer', buildRememberOfferGuidance(userName), {
+          category: 'first-call-onboarding',
+          confidence: 0.85,
+        })
       );
     }
 

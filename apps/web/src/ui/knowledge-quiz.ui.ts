@@ -20,6 +20,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
+import { getQuizCategoryIcon, ANALYTICS_ICONS, GROWTH_ICONS, EMOTION_ICONS, QUIZ_ICONS } from './icons/shared-icons.js';
 
 const log = createLogger('KnowledgeQuiz');
 
@@ -71,14 +72,6 @@ let state: QuizState = {
 // ============================================================================
 // CONSTANTS
 // ============================================================================
-
-const CATEGORY_ICONS: Record<string, string> = {
-  preferences: '❤️',
-  memories: '📸',
-  goals: '🎯',
-  personality: '✨',
-  fun_facts: '🎉',
-};
 
 const CATEGORY_LABELS: Record<string, string> = {
   preferences: 'Your Favorites',
@@ -305,7 +298,8 @@ function renderCurrentQuestion(): void {
   category.className = 'knowledge-quiz-category';
 
   const categoryIcon = document.createElement('span');
-  categoryIcon.textContent = CATEGORY_ICONS[question.category] || '💭';
+  categoryIcon.className = 'knowledge-quiz-category-icon';
+  categoryIcon.innerHTML = getQuizCategoryIcon(question.category);
   categoryIcon.setAttribute('aria-hidden', 'true');
 
   const categoryLabel = document.createElement('span');
@@ -413,7 +407,7 @@ function renderResults(container: HTMLElement): void {
 
   const celebrationIcon = document.createElement('span');
   celebrationIcon.className = 'knowledge-quiz-celebration-icon';
-  celebrationIcon.textContent = getResultIcon(correctCount, totalQuestions);
+  celebrationIcon.innerHTML = getResultIcon(correctCount, totalQuestions);
   celebrationIcon.setAttribute('aria-hidden', 'true');
 
   const celebrationText = document.createElement('h3');
@@ -462,9 +456,9 @@ function renderResults(container: HTMLElement): void {
 
 function getResultIcon(correct: number, total: number): string {
   const ratio = total > 0 ? correct / total : 0;
-  if (ratio >= 0.8) return '🌟';
-  if (ratio >= 0.5) return '✨';
-  return '💭';
+  if (ratio >= 0.8) return EMOTION_ICONS.proud;
+  if (ratio >= 0.5) return ANALYTICS_ICONS.sparkles;
+  return GROWTH_ICONS.seedling;
 }
 
 function getResultMessage(correct: number, total: number): string {
@@ -510,7 +504,7 @@ function injectStyles(): void {
     .knowledge-quiz-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.7);
+      background: var(--backdrop-overlay, rgba(44, 37, 32, 0.7));
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       display: flex;
@@ -527,8 +521,8 @@ function injectStyles(): void {
     }
 
     .knowledge-quiz-modal {
-      background: var(--color-bg-secondary, #1a1a2e);
-      border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+      background: var(--color-bg-secondary, #2C2520);
+      border: 1px solid var(--glass-border, rgba(44, 37, 32, 0.2));
       border-radius: var(--radius-xl, 24px);
       width: 100%;
       max-width: 400px;
@@ -547,20 +541,20 @@ function injectStyles(): void {
       position: relative;
       padding: var(--space-lg, 26px) var(--space-lg, 26px) var(--space-md, 16px);
       text-align: center;
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.05));
+      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
     }
 
     .knowledge-quiz-title {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-lg, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #ffffff);
+      color: var(--color-text-primary, #F5F1E8);
       margin: 0;
     }
 
     .knowledge-quiz-subtitle {
       font-size: var(--font-size-sm, 0.875rem);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
       margin: var(--space-xs, 4px) 0 0;
     }
 
@@ -576,15 +570,15 @@ function injectStyles(): void {
       background: transparent;
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
       font-size: 24px;
       cursor: pointer;
       transition: color ${DURATION.FAST}ms, background ${DURATION.FAST}ms;
     }
 
     .knowledge-quiz-close:hover {
-      color: var(--color-text-primary, #ffffff);
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.1));
+      color: var(--color-text-primary, #F5F1E8);
+      background: var(--color-bg-elevated, rgba(245, 241, 232, 0.1));
     }
 
     .knowledge-quiz-close:focus-visible {
@@ -605,13 +599,13 @@ function injectStyles(): void {
     .knowledge-quiz-progress-text {
       display: block;
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
       margin-bottom: var(--space-xs, 4px);
     }
 
     .knowledge-quiz-progress-bar {
       height: 4px;
-      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.1));
+      background: var(--color-bg-tertiary, rgba(245, 241, 232, 0.1));
       border-radius: 2px;
       overflow: hidden;
     }
@@ -629,11 +623,22 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-xs, 4px);
       padding: var(--space-2xs, 2px) var(--space-sm, 8px);
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-elevated, rgba(245, 241, 232, 0.08));
       border-radius: var(--radius-full, 999px);
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      color: var(--color-text-secondary, rgba(245, 241, 232, 0.8));
       margin-bottom: var(--space-md, 16px);
+    }
+
+    .knowledge-quiz-category-icon {
+      width: 14px;
+      height: 14px;
+      color: var(--color-accent-primary, #4a6741);
+    }
+
+    .knowledge-quiz-category-icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     /* Question text */
@@ -641,7 +646,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-md, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #ffffff);
+      color: var(--color-text-primary, #F5F1E8);
       line-height: 1.5;
       margin: 0 0 var(--space-lg, 26px);
     }
@@ -656,10 +661,10 @@ function injectStyles(): void {
     .knowledge-quiz-option {
       width: 100%;
       padding: var(--space-md, 16px);
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.05));
-      border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      background: var(--color-bg-elevated, rgba(245, 241, 232, 0.08));
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
       border-radius: var(--radius-md, 8px);
-      color: var(--color-text-primary, #ffffff);
+      color: var(--color-text-primary, #F5F1E8);
       font-size: var(--font-size-sm, 0.875rem);
       text-align: left;
       cursor: pointer;
@@ -670,7 +675,7 @@ function injectStyles(): void {
     }
 
     .knowledge-quiz-option:hover:not(:disabled) {
-      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.1));
+      background: var(--color-bg-tertiary, rgba(245, 241, 232, 0.12));
       transform: translateX(4px);
     }
 
@@ -684,8 +689,8 @@ function injectStyles(): void {
     }
 
     .knowledge-quiz-option--selected {
-      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.1));
-      border-color: var(--color-text-muted, rgba(255, 255, 255, 0.3));
+      background: var(--color-bg-tertiary, rgba(245, 241, 232, 0.12));
+      border-color: var(--color-text-muted, rgba(245, 241, 232, 0.3));
     }
 
     .knowledge-quiz-option--correct {
@@ -696,7 +701,7 @@ function injectStyles(): void {
     /* Hint */
     .knowledge-quiz-hint {
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
       font-style: italic;
       margin-top: var(--space-md, 16px);
       text-align: center;
@@ -713,10 +718,19 @@ function injectStyles(): void {
     }
 
     .knowledge-quiz-celebration-icon {
-      display: block;
-      font-size: 48px;
-      margin-bottom: var(--space-sm, 8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      margin: 0 auto var(--space-sm, 8px);
+      color: var(--color-accent-primary, #4a6741);
       animation: celebratePop 0.6s ${EASING.SPRING};
+    }
+
+    .knowledge-quiz-celebration-icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     @keyframes celebratePop {
@@ -729,7 +743,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-lg, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #ffffff);
+      color: var(--color-text-primary, #F5F1E8);
       margin: 0;
     }
 
@@ -750,12 +764,12 @@ function injectStyles(): void {
 
     .knowledge-quiz-score-label {
       font-size: var(--font-size-sm, 0.875rem);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
     }
 
     .knowledge-quiz-warm-message {
       font-size: var(--font-size-sm, 0.875rem);
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      color: var(--color-text-secondary, rgba(245, 241, 232, 0.8));
       line-height: 1.5;
       margin: 0 0 var(--space-lg, 26px);
       padding: 0 var(--space-md, 16px);

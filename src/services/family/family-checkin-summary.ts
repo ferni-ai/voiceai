@@ -260,9 +260,7 @@ function detectMoodFromText(text: string): DetectedMood {
   };
 
   // Find highest count
-  const maxKey = Object.entries(counts).reduce((a, b) =>
-    b[1] > a[1] ? b : a
-  )[0] as DetectedMood;
+  const maxKey = Object.entries(counts).reduce((a, b) => (b[1] > a[1] ? b : a))[0] as DetectedMood;
 
   if (counts[maxKey as keyof typeof counts] === 0) {
     return 'neutral';
@@ -308,16 +306,40 @@ function detectConcerns(text: string, familyMemberName: string): FlaggedConcern[
 
   // Health concerns
   const healthPatterns = [
-    { pattern: /\b(fell|fall|tripped)\b/i, description: 'Mentioned a fall', urgency: 'high' as ConcernUrgency },
-    { pattern: /\b(chest pain|heart)\b/i, description: 'Mentioned chest/heart issues', urgency: 'urgent' as ConcernUrgency },
-    { pattern: /\b(dizzy|faint|lightheaded)\b/i, description: 'Mentioned dizziness', urgency: 'medium' as ConcernUrgency },
-    { pattern: /\b(forgot|forget|memory)\b/i, description: 'Mentioned memory issues', urgency: 'medium' as ConcernUrgency },
+    {
+      pattern: /\b(fell|fall|tripped)\b/i,
+      description: 'Mentioned a fall',
+      urgency: 'high' as ConcernUrgency,
+    },
+    {
+      pattern: /\b(chest pain|heart)\b/i,
+      description: 'Mentioned chest/heart issues',
+      urgency: 'urgent' as ConcernUrgency,
+    },
+    {
+      pattern: /\b(dizzy|faint|lightheaded)\b/i,
+      description: 'Mentioned dizziness',
+      urgency: 'medium' as ConcernUrgency,
+    },
+    {
+      pattern: /\b(forgot|forget|memory)\b/i,
+      description: 'Mentioned memory issues',
+      urgency: 'medium' as ConcernUrgency,
+    },
   ];
 
   // Emotional concerns
   const emotionalPatterns = [
-    { pattern: /\b(lonely|alone|no one)\b/i, description: 'Expressed feeling lonely', urgency: 'medium' as ConcernUrgency },
-    { pattern: /\b(scared|afraid|worried about)\b/i, description: 'Expressed fear or worry', urgency: 'low' as ConcernUrgency },
+    {
+      pattern: /\b(lonely|alone|no one)\b/i,
+      description: 'Expressed feeling lonely',
+      urgency: 'medium' as ConcernUrgency,
+    },
+    {
+      pattern: /\b(scared|afraid|worried about)\b/i,
+      description: 'Expressed fear or worry',
+      urgency: 'low' as ConcernUrgency,
+    },
   ];
 
   for (const { pattern, description, urgency } of [...healthPatterns, ...emotionalPatterns]) {
@@ -353,11 +375,7 @@ function detectPositives(text: string): string[] {
   return positives.slice(0, 3);
 }
 
-function generateHeuristicSummary(
-  name: string,
-  mood: DetectedMood,
-  topics: string[]
-): string {
+function generateHeuristicSummary(name: string, mood: DetectedMood, topics: string[]): string {
   const moodPhrases: Record<DetectedMood, string> = {
     happy: `${name} sounded really happy`,
     content: `${name} seemed to be doing well`,
@@ -384,7 +402,13 @@ function generateHeuristicSummary(
 
 function validateMood(mood: string): DetectedMood {
   const validMoods: DetectedMood[] = [
-    'happy', 'content', 'neutral', 'tired', 'worried', 'sad', 'unwell'
+    'happy',
+    'content',
+    'neutral',
+    'tired',
+    'worried',
+    'sad',
+    'unwell',
   ];
   return validMoods.includes(mood as DetectedMood) ? (mood as DetectedMood) : 'neutral';
 }
@@ -395,7 +419,9 @@ function validateConcern(concern: Partial<FlaggedConcern>): FlaggedConcern {
     urgency: (['low', 'medium', 'high', 'urgent'].includes(concern.urgency || '')
       ? concern.urgency
       : 'low') as ConcernUrgency,
-    category: (['health', 'safety', 'emotional', 'financial', 'other'].includes(concern.category || '')
+    category: (['health', 'safety', 'emotional', 'financial', 'other'].includes(
+      concern.category || ''
+    )
       ? concern.category
       : 'other') as FlaggedConcern['category'],
     quote: concern.quote,
@@ -407,7 +433,9 @@ function validateFollowUp(followUp: Partial<FollowUpItem>): FollowUpItem {
   return {
     item: followUp.item || 'Follow up',
     suggestedFollowUp: followUp.suggestedFollowUp,
-    responsibleParty: (['sponsor', 'ferni', 'family_member'].includes(followUp.responsibleParty || '')
+    responsibleParty: (['sponsor', 'ferni', 'family_member'].includes(
+      followUp.responsibleParty || ''
+    )
       ? followUp.responsibleParty
       : 'ferni') as FollowUpItem['responsibleParty'],
   };
@@ -420,9 +448,7 @@ function validateFollowUp(followUp: Partial<FollowUpItem>): FollowUpItem {
 /**
  * Generate a notification message for the sponsor about urgent concerns
  */
-export function generateUrgentNotification(
-  record: CheckinCallRecord
-): string | null {
+export function generateUrgentNotification(record: CheckinCallRecord): string | null {
   if (!record.concernsIdentified || record.concernsIdentified.length === 0) {
     return null;
   }

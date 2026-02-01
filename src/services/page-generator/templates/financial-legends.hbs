@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>{{seo.title}}</title>
+  <meta name="description" content="{{seo.description}}">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="{{seo.title}}">
+  <meta property="og:description" content="{{seo.description}}">
+  {{#if seo.ogImage}}<meta property="og:image" content="{{seo.ogImage}}">{{/if}}
+  <meta property="og:type" content="website">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="{{seo.twitterCard}}">
+  <meta name="twitter:title" content="{{seo.title}}">
+  <meta name="twitter:description" content="{{seo.description}}">
+  {{#if seo.ogImage}}<meta name="twitter:image" content="{{seo.ogImage}}">{{/if}}
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="{{favicon}}">
+
+  <!-- LiveKit SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.1.0/dist/livekit-client.umd.min.js"></script>
+
+  <style>
+    /* =========================================================================
+       CSS RESET & BASE
+       ========================================================================= */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      /* Page brand colors */
+      --brand-primary: {{brand.primary}};
+      --brand-secondary: {{brand.secondary}};
+      --brand-glow: {{brand.glow}};
+      --brand-tint: {{brand.tint}};
+
+      /* Theme colors */
+      --bg-primary: {{#if (eq theme "dark")}}#0a0a0a{{else}}#faf9f7{{/if}};
+      --bg-secondary: {{#if (eq theme "dark")}}#141414{{else}}#f5f3f0{{/if}};
+      --text-primary: {{#if (eq theme "dark")}}#f5f5f5{{else}}#1a1a1a{{/if}};
+      --text-secondary: {{#if (eq theme "dark")}}#a0a0a0{{else}}#666666{{/if}};
+      --border-color: {{#if (eq theme "dark")}}rgba(255,255,255,0.1){{else}}rgba(0,0,0,0.08){{/if}};
+
+      /* Spacing */
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      --spacing-xl: 3rem;
+
+      /* Typography */
+      --font-body: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-display: var(--font-body);
+
+      /* Animation */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font-body);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* =========================================================================
+       SELECTION VIEW - Advisor Cards
+       ========================================================================= */
+    .selection-view {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-lg);
+      opacity: 1;
+      transition: opacity 0.4s var(--ease-out);
+    }
+
+    .selection-view.hidden {
+      opacity: 0;
+      pointer-events: none;
+      position: absolute;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .page-title {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .page-subtitle {
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      max-width: 500px;
+      line-height: 1.6;
+    }
+
+    .advisors-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--spacing-lg);
+      max-width: 1000px;
+      width: 100%;
+    }
+
+    .advisor-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: var(--spacing-lg);
+      cursor: pointer;
+      transition: all 0.3s var(--ease-out);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .advisor-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--advisor-color);
+      opacity: 0;
+      transition: opacity 0.3s var(--ease-out);
+    }
+
+    .advisor-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+      border-color: var(--advisor-color);
+    }
+
+    .advisor-card:hover::before {
+      opacity: 1;
+    }
+
+    .advisor-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--advisor-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--spacing-md);
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: white;
+      box-shadow: 0 4px 20px var(--advisor-glow);
+    }
+
+    .advisor-name {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .advisor-tagline {
+      font-size: 0.875rem;
+      color: var(--advisor-color);
+      font-weight: 500;
+      margin-bottom: var(--spacing-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .advisor-description {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .advisor-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--advisor-color);
+      color: white;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-out);
+    }
+
+    .advisor-cta:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 16px var(--advisor-glow);
+    }
+
+    .advisor-cta svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Per-advisor colors */
+    {{#each advisors}}
+    .advisor-card[data-advisor="{{id}}"] {
+      --advisor-color: {{color}};
+      --advisor-glow: {{color}}40;
+    }
+    {{/each}}
+
+    /* =========================================================================
+       CONVERSATION VIEW - Active Session
+       ========================================================================= */
+    .conversation-view {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-lg);
+      position: relative;
+    }
+
+    .conversation-view.active {
+      display: flex;
+      animation: fadeIn 0.5s var(--ease-out);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .back-button {
+      position: absolute;
+      top: var(--spacing-md);
+      left: var(--spacing-md);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-out);
+    }
+
+    .back-button:hover {
+      background: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .back-button svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Coach Avatar (during conversation) */
+    .coach-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--spacing-md);
+    }
+
+    .coach-avatar {
+      position: relative;
+      width: 140px;
+      height: 140px;
+    }
+
+    .avatar-ring {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid var(--active-color);
+      opacity: 0;
+      transition: opacity 0.3s var(--ease-out);
+    }
+
+    .coach-avatar.speaking .avatar-ring {
+      opacity: 1;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.05); opacity: 1; }
+    }
+
+    .avatar-circle {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: var(--active-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      font-weight: 600;
+      color: white;
+      box-shadow: 0 8px 32px var(--active-glow);
+      transition: transform 0.3s var(--ease-spring);
+    }
+
+    .coach-avatar.speaking .avatar-circle {
+      transform: scale(1.02);
+    }
+
+    .avatar-label {
+      text-align: center;
+    }
+
+    .avatar-name {
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .avatar-status {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    /* Waveform Visualization */
+    .waveform-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 40px;
+      margin-top: var(--spacing-md);
+    }
+
+    .waveform-bar {
+      width: 4px;
+      height: 8px;
+      background: var(--active-color);
+      border-radius: 2px;
+      transition: height 0.1s ease;
+    }
+
+    .coach-avatar.speaking .waveform-bar {
+      animation: wave 0.5s ease-in-out infinite;
+    }
+
+    .waveform-bar:nth-child(1) { animation-delay: 0s; }
+    .waveform-bar:nth-child(2) { animation-delay: 0.1s; }
+    .waveform-bar:nth-child(3) { animation-delay: 0.2s; }
+    .waveform-bar:nth-child(4) { animation-delay: 0.1s; }
+    .waveform-bar:nth-child(5) { animation-delay: 0s; }
+
+    @keyframes wave {
+      0%, 100% { height: 8px; }
+      50% { height: 32px; }
+    }
+
+    /* Connection Status */
+    .connection-status {
+      margin-top: var(--spacing-lg);
+      text-align: center;
+    }
+
+    .status-text {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+    }
+
+    .status-text.connected {
+      color: #22c55e;
+    }
+
+    .status-text.error {
+      color: #ef4444;
+    }
+
+    /* End Call Button */
+    .end-call-button {
+      margin-top: var(--spacing-lg);
+      padding: 0.75rem 1.5rem;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s var(--ease-out);
+    }
+
+    .end-call-button:hover {
+      background: #dc2626;
+      transform: scale(1.02);
+    }
+
+    .end-call-button svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Handoff Notification */
+    .handoff-notification {
+      position: fixed;
+      bottom: var(--spacing-lg);
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: var(--spacing-sm) var(--spacing-md);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: all 0.4s var(--ease-spring);
+      z-index: 100;
+    }
+
+    .handoff-notification.visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .handoff-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      font-size: 0.875rem;
+    }
+
+    .handoff-text {
+      font-size: 0.9375rem;
+    }
+
+    .handoff-text strong {
+      font-weight: 600;
+    }
+
+    /* =========================================================================
+       RESPONSIVE
+       ========================================================================= */
+    @media (max-width: 768px) {
+      .advisors-grid {
+        grid-template-columns: 1fr;
+        max-width: 400px;
+      }
+
+      .page-title {
+        font-size: 2rem;
+      }
+
+      .coach-avatar {
+        width: 120px;
+        height: 120px;
+      }
+
+      .avatar-circle {
+        font-size: 2.5rem;
+      }
+    }
+
+    /* =========================================================================
+       CUSTOM CSS INJECTION POINT
+       ========================================================================= */
+    {{#if customCss}}
+    {{{customCss}}}
+    {{/if}}
+  </style>
+</head>
+<body data-theme="{{theme}}">
+  <!-- ========================================================================
+       SELECTION VIEW
+       ======================================================================== -->
+  <div id="selectionView" class="selection-view">
+    <header class="page-header">
+      <h1 class="page-title">{{title}}</h1>
+      <p class="page-subtitle">{{description}}</p>
+    </header>
+
+    <div class="advisors-grid">
+      {{#each advisors}}
+      <div class="advisor-card" data-advisor="{{id}}" data-voice-id="{{voiceId}}">
+        <div class="advisor-avatar">{{initials}}</div>
+        <h2 class="advisor-name">{{name}}</h2>
+        <div class="advisor-tagline">{{tagline}}</div>
+        <p class="advisor-description">{{description}}</p>
+        <button class="advisor-cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+          Start with {{name}}
+        </button>
+      </div>
+      {{/each}}
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       CONVERSATION VIEW
+       ======================================================================== -->
+  <div id="conversationView" class="conversation-view">
+    <button id="backButton" class="back-button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Back to Advisors
+    </button>
+
+    <div class="coach-container">
+      <div id="coachAvatar" class="coach-avatar">
+        <div class="avatar-ring"></div>
+        <div class="avatar-circle">
+          <span id="avatarText"></span>
+        </div>
+      </div>
+
+      <div class="avatar-label">
+        <span id="avatarName" class="avatar-name"></span>
+        <span id="avatarStatus" class="avatar-status">Connecting...</span>
+      </div>
+
+      <div class="waveform-container">
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+      </div>
+
+      <div class="connection-status">
+        <span id="statusText" class="status-text">Connecting...</span>
+      </div>
+
+      <button id="endCallButton" class="end-call-button" style="display: none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+        End Conversation
+      </button>
+    </div>
+  </div>
+
+  <!-- Handoff Notification -->
+  <div id="handoffNotification" class="handoff-notification">
+    <div id="handoffAvatar" class="handoff-avatar"></div>
+    <div class="handoff-text">
+      Connecting you with <strong id="handoffName"></strong>...
+    </div>
+  </div>
+
+  <!-- Audio elements for playback -->
+  <audio id="agentAudio" autoplay></audio>
+
+  <script>
+    // =========================================================================
+    // CONFIGURATION
+    // =========================================================================
+    const CONFIG = {
+      tokenEndpoint: '{{deployment.tokenEndpoint}}',
+      livekitUrl: '{{deployment.livekitUrl}}',
+      isProduction: {{deployment.isProduction}},
+      advisors: {{{json advisors}}}
+    };
+
+    // Map advisor IDs to colors for dynamic styling
+    const ADVISOR_COLORS = {};
+    CONFIG.advisors.forEach(a => {
+      ADVISOR_COLORS[a.id] = a.color;
+    });
+
+    // =========================================================================
+    // STATE
+    // =========================================================================
+    let state = {
+      currentAdvisor: null,
+      room: null,
+      isConnected: false,
+      isSpeaking: false,
+      mediaStream: null,
+      audioContext: null
+    };
+
+    // =========================================================================
+    // DOM ELEMENTS
+    // =========================================================================
+    const els = {
+      selectionView: document.getElementById('selectionView'),
+      conversationView: document.getElementById('conversationView'),
+      backButton: document.getElementById('backButton'),
+      coachAvatar: document.getElementById('coachAvatar'),
+      avatarText: document.getElementById('avatarText'),
+      avatarName: document.getElementById('avatarName'),
+      avatarStatus: document.getElementById('avatarStatus'),
+      statusText: document.getElementById('statusText'),
+      endCallButton: document.getElementById('endCallButton'),
+      handoffNotification: document.getElementById('handoffNotification'),
+      handoffAvatar: document.getElementById('handoffAvatar'),
+      handoffName: document.getElementById('handoffName'),
+      agentAudio: document.getElementById('agentAudio')
+    };
+
+    // =========================================================================
+    // VIEW MANAGEMENT
+    // =========================================================================
+    function showSelectionView() {
+      els.selectionView.classList.remove('hidden');
+      els.conversationView.classList.remove('active');
+    }
+
+    function showConversationView(advisor) {
+      state.currentAdvisor = advisor;
+
+      // Update UI with advisor info
+      els.avatarText.textContent = advisor.initials;
+      els.avatarName.textContent = advisor.name;
+      els.avatarStatus.textContent = 'Connecting...';
+
+      // Set active color
+      document.documentElement.style.setProperty('--active-color', advisor.color);
+      document.documentElement.style.setProperty('--active-glow', advisor.color + '40');
+      els.coachAvatar.querySelector('.avatar-circle').style.background = advisor.color;
+
+      // Switch views
+      els.selectionView.classList.add('hidden');
+      els.conversationView.classList.add('active');
+
+      // Connect to LiveKit
+      connectToRoom(advisor);
+    }
+
+    function showHandoffNotification(newAdvisor) {
+      els.handoffAvatar.textContent = newAdvisor.initials;
+      els.handoffAvatar.style.background = newAdvisor.color;
+      els.handoffName.textContent = newAdvisor.name;
+      els.handoffNotification.classList.add('visible');
+
+      // Update UI after delay
+      setTimeout(() => {
+        els.handoffNotification.classList.remove('visible');
+
+        // Update current advisor
+        state.currentAdvisor = newAdvisor;
+        els.avatarText.textContent = newAdvisor.initials;
+        els.avatarName.textContent = newAdvisor.name;
+        document.documentElement.style.setProperty('--active-color', newAdvisor.color);
+        document.documentElement.style.setProperty('--active-glow', newAdvisor.color + '40');
+        els.coachAvatar.querySelector('.avatar-circle').style.background = newAdvisor.color;
+      }, 2000);
+    }
+
+    // =========================================================================
+    // LIVEKIT CONNECTION
+    // =========================================================================
+    async function getToken(advisorId) {
+      const response = await fetch(CONFIG.tokenEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentId: advisorId,
+          identity: `user-${Date.now()}`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Token request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.token;
+    }
+
+    async function connectToRoom(advisor) {
+      try {
+        updateStatus('Requesting access...', 'default');
+
+        // Get token
+        const token = await getToken(advisor.id);
+
+        updateStatus('Connecting...', 'default');
+
+        // Create room
+        const room = new LivekitClient.Room({
+          adaptiveStream: true,
+          dynacast: true
+        });
+
+        state.room = room;
+
+        // Set up event handlers
+        room.on(LivekitClient.RoomEvent.Connected, () => {
+          state.isConnected = true;
+          updateStatus('Connected', 'connected');
+          els.endCallButton.style.display = 'flex';
+        });
+
+        room.on(LivekitClient.RoomEvent.Disconnected, () => {
+          state.isConnected = false;
+          updateStatus('Disconnected', 'default');
+          els.endCallButton.style.display = 'none';
+        });
+
+        room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+          if (track.kind === 'audio') {
+            track.attach(els.agentAudio);
+          }
+        });
+
+        room.on(LivekitClient.RoomEvent.ActiveSpeakersChanged, (speakers) => {
+          // Check if agent is speaking
+          const agentSpeaking = speakers.some(s => s.identity !== room.localParticipant?.identity);
+
+          if (agentSpeaking !== state.isSpeaking) {
+            state.isSpeaking = agentSpeaking;
+            els.coachAvatar.classList.toggle('speaking', agentSpeaking);
+            els.avatarStatus.textContent = agentSpeaking ? 'Speaking...' : 'Listening';
+          }
+        });
+
+        // Listen for agent data messages (handoff notifications)
+        room.on(LivekitClient.RoomEvent.DataReceived, (payload, participant) => {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(payload));
+
+            if (data.type === 'handoff' && data.newPersona) {
+              const newAdvisor = CONFIG.advisors.find(a => a.id === data.newPersona);
+              if (newAdvisor) {
+                showHandoffNotification(newAdvisor);
+              }
+            }
+          } catch (e) {
+            // Ignore non-JSON messages
+          }
+        });
+
+        // Request microphone and connect
+        state.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        await room.connect(CONFIG.livekitUrl, token);
+
+        // Publish local microphone
+        await room.localParticipant.setMicrophoneEnabled(true);
+
+      } catch (error) {
+        console.error('Connection error:', error);
+        updateStatus('Connection failed: ' + error.message, 'error');
+      }
+    }
+
+    async function disconnectFromRoom() {
+      if (state.room) {
+        await state.room.disconnect();
+        state.room = null;
+      }
+
+      if (state.mediaStream) {
+        state.mediaStream.getTracks().forEach(t => t.stop());
+        state.mediaStream = null;
+      }
+
+      state.isConnected = false;
+      state.isSpeaking = false;
+      state.currentAdvisor = null;
+
+      showSelectionView();
+    }
+
+    function updateStatus(text, type) {
+      els.statusText.textContent = text;
+      els.statusText.className = 'status-text ' + type;
+    }
+
+    // =========================================================================
+    // EVENT LISTENERS
+    // =========================================================================
+    document.querySelectorAll('.advisor-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const advisorId = card.dataset.advisor;
+        const advisor = CONFIG.advisors.find(a => a.id === advisorId);
+        if (advisor) {
+          showConversationView(advisor);
+        }
+      });
+    });
+
+    els.backButton.addEventListener('click', () => {
+      disconnectFromRoom();
+    });
+
+    els.endCallButton.addEventListener('click', () => {
+      disconnectFromRoom();
+    });
+
+    // =========================================================================
+    // CUSTOM JS INJECTION POINT
+    // =========================================================================
+    {{#if customJs}}
+    {{{customJs}}}
+    {{/if}}
+  </script>
+</body>
+</html>

@@ -10,6 +10,10 @@ Central location for all marketing collateral - app store descriptions, blog pos
 
 ```
 apps/marketing/
+├── assets/                     # Generated image assets
+│   ├── app-stores/             # App store icons
+│   ├── social/                 # Social media profile images
+│   └── web/                    # Web assets (favicon, OG, cards)
 ├── copy/                       # Marketing copy
 │   ├── app-store-description.md
 │   ├── play-store-description.md
@@ -45,6 +49,11 @@ apps/marketing/
 │   ├── generate-social-posts.ts
 │   ├── content-calendar.ts
 │   └── schedule-buffer.ts
+│
+├── site/                       # Static marketing site
+│   ├── blog/                   # HTML blog posts
+│   ├── css/                    # Marketing CSS
+│   └── screenshots/            # Screenshot generator
 │
 └── config/                     # Configuration
     ├── CALENDAR.md

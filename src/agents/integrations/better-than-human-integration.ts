@@ -37,7 +37,7 @@ import {
   instrumentVoiceBiomarkers,
   instrumentEmotionalVocabulary,
   trackCapabilityOutcome,
-} from '../../services/bth-validation/instrumentation.js';
+} from '../../services/better-than-human-validation/instrumentation.js';
 
 // Silence Interpreter
 import {

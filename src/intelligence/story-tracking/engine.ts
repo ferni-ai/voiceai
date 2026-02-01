@@ -110,18 +110,11 @@ export class StoryArcTracker implements IStoryArcTracker {
     arc.updatedAt = new Date();
     setArcs(userId, arcs);
 
-    log.debug(
-      { userId, arcId, cliffhangerId: newCliffhanger.id },
-      'Cliffhanger added'
-    );
+    log.debug({ userId, arcId, cliffhangerId: newCliffhanger.id }, 'Cliffhanger added');
     return newCliffhanger;
   }
 
-  async resolveCliffhanger(
-    userId: string,
-    arcId: string,
-    cliffhangerId: string
-  ): Promise<void> {
+  async resolveCliffhanger(userId: string, arcId: string, cliffhangerId: string): Promise<void> {
     const arcs = getArcs(userId);
     const arc = arcs.find((a) => a.id === arcId);
 
@@ -135,10 +128,12 @@ export class StoryArcTracker implements IStoryArcTracker {
     }
   }
 
-  async getUnresolvedCliffhangers(userId: string): Promise<Array<{
-    arc: StoryArc;
-    cliffhanger: Cliffhanger;
-  }>> {
+  async getUnresolvedCliffhangers(userId: string): Promise<
+    Array<{
+      arc: StoryArc;
+      cliffhanger: Cliffhanger;
+    }>
+  > {
     const result: Array<{ arc: StoryArc; cliffhanger: Cliffhanger }> = [];
     const arcs = getArcs(userId);
 
@@ -156,8 +151,7 @@ export class StoryArcTracker implements IStoryArcTracker {
     return result.sort((a, b) => {
       const priorityOrder = { high: 0, medium: 1, low: 2 };
       const priorityDiff =
-        priorityOrder[a.cliffhanger.priority] -
-        priorityOrder[b.cliffhanger.priority];
+        priorityOrder[a.cliffhanger.priority] - priorityOrder[b.cliffhanger.priority];
       if (priorityDiff !== 0) return priorityDiff;
 
       return (
@@ -167,11 +161,7 @@ export class StoryArcTracker implements IStoryArcTracker {
     });
   }
 
-  async resolveArc(
-    userId: string,
-    arcId: string,
-    resolution: string
-  ): Promise<void> {
+  async resolveArc(userId: string, arcId: string, resolution: string): Promise<void> {
     const arcs = getArcs(userId);
     const arc = arcs.find((a) => a.id === arcId);
 
@@ -193,8 +183,7 @@ export class StoryArcTracker implements IStoryArcTracker {
 
     for (const { arc, cliffhanger } of cliffhangers.slice(0, 3)) {
       const daysSince = Math.floor(
-        (Date.now() - new Date(cliffhanger.lastMentioned).getTime()) /
-          (1000 * 60 * 60 * 24)
+        (Date.now() - new Date(cliffhanger.lastMentioned).getTime()) / (1000 * 60 * 60 * 24)
       );
 
       if (daysSince <= 14) {
@@ -223,8 +212,7 @@ export class StoryArcTracker implements IStoryArcTracker {
       if (arc.events.length > 0) {
         const lastEvent = arc.events[arc.events.length - 1];
         const daysSince = Math.floor(
-          (Date.now() - new Date(lastEvent.timestamp).getTime()) /
-            (1000 * 60 * 60 * 24)
+          (Date.now() - new Date(lastEvent.timestamp).getTime()) / (1000 * 60 * 60 * 24)
         );
 
         if (daysSince >= 3 && daysSince <= 14) {

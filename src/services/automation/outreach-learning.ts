@@ -126,7 +126,10 @@ export async function recordOutreachFeedback(
       });
     }
 
-    log.debug({ userId: feedback.userId, outreachId: feedback.outreachId }, 'Recorded outreach feedback');
+    log.debug(
+      { userId: feedback.userId, outreachId: feedback.outreachId },
+      'Recorded outreach feedback'
+    );
   } catch (error) {
     log.error({ error: String(error), feedback }, 'Failed to record outreach feedback');
   }
@@ -157,7 +160,9 @@ export async function updateLearning(userId: string): Promise<LearningUpdate[]> 
       return updates;
     }
 
-    const feedbacks = feedbackSnapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as OutreachFeedback);
+    const feedbacks = feedbackSnapshot.docs.map(
+      (doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as OutreachFeedback
+    );
 
     // Get current preferences
     const prefsDoc = await db
@@ -227,7 +232,10 @@ export async function updateLearning(userId: string): Promise<LearningUpdate[]> 
 
     // Identify disliked templates (opt-out or negative sentiment)
     const dislikedTemplates = feedbacks
-      .filter((f: OutreachFeedback) => f.optedOut || f.sentiment === 'negative' || (f.userRating && f.userRating <= 2))
+      .filter(
+        (f: OutreachFeedback) =>
+          f.optedOut || f.sentiment === 'negative' || (f.userRating && f.userRating <= 2)
+      )
       .map((f: OutreachFeedback) => f.templateId)
       .filter((t: string | undefined): t is string => t !== undefined);
 
@@ -317,7 +325,9 @@ export async function getTemplateEffectiveness(
 
     if (snapshot.empty) return null;
 
-    const feedbacks = snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as OutreachFeedback);
+    const feedbacks = snapshot.docs.map(
+      (doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as OutreachFeedback
+    );
 
     const totalSent = feedbacks.length;
     const opened = feedbacks.filter((f: OutreachFeedback) => f.opened).length;
@@ -327,7 +337,9 @@ export async function getTemplateEffectiveness(
 
     const sentiments: number[] = feedbacks
       .filter((f: OutreachFeedback) => f.sentiment !== 'unknown')
-      .map((f: OutreachFeedback) => (f.sentiment === 'positive' ? 1 : f.sentiment === 'negative' ? -1 : 0));
+      .map((f: OutreachFeedback) =>
+        f.sentiment === 'positive' ? 1 : f.sentiment === 'negative' ? -1 : 0
+      );
 
     const ratings = feedbacks
       .filter((f: OutreachFeedback) => f.userRating !== undefined)
@@ -340,8 +352,14 @@ export async function getTemplateEffectiveness(
         openRate: totalSent > 0 ? opened / totalSent : 0,
         responseRate: totalSent > 0 ? responded / totalSent : 0,
         conversionRate: totalSent > 0 ? converted / totalSent : 0,
-        averageSentiment: sentiments.length > 0 ? sentiments.reduce((a: number, b: number) => a + b, 0) / sentiments.length : 0,
-        averageRating: ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length : 0,
+        averageSentiment:
+          sentiments.length > 0
+            ? sentiments.reduce((a: number, b: number) => a + b, 0) / sentiments.length
+            : 0,
+        averageRating:
+          ratings.length > 0
+            ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length
+            : 0,
         optOutRate: totalSent > 0 ? optedOut / totalSent : 0,
       },
     };
@@ -517,9 +535,10 @@ function findBestPersona(
     if (data.total < 2) continue;
 
     const positiveRate = data.positive / data.total;
-    const avgRating = data.rating.length > 0
-      ? data.rating.reduce((a, b) => a + b, 0) / data.rating.length / 5
-      : 0.5;
+    const avgRating =
+      data.rating.length > 0
+        ? data.rating.reduce((a, b) => a + b, 0) / data.rating.length / 5
+        : 0.5;
     const score = positiveRate * 0.5 + avgRating * 0.5;
 
     if (score > bestScore) {
@@ -546,7 +565,8 @@ function calculateOptimalFrequency(feedbacks: OutreachFeedback[]): number {
   for (const feedback of sorted) {
     if (feedback.sentiment === 'positive' || feedback.responded) {
       if (lastPositive) {
-        const gap = (new Date(feedback.sentAt!).getTime() - lastPositive.getTime()) / (1000 * 60 * 60 * 24);
+        const gap =
+          (new Date(feedback.sentAt!).getTime() - lastPositive.getTime()) / (1000 * 60 * 60 * 24);
         positiveGaps.push(gap);
       }
       lastPositive = new Date(feedback.sentAt!);

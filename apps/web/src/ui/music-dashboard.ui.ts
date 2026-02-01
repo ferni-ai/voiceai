@@ -20,6 +20,7 @@ import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { createEmptyState } from './components/empty-state.js';
 
 // Import types and icons from modular structure
 import type {
@@ -222,6 +223,9 @@ class MusicDashboardUI {
   private renderEmptyState(insights: MusicInsights): void {
     if (!this.wrapper) return;
 
+    // Create brand-compliant empty state element
+    const emptyStateEl = createEmptyState('music-dashboard');
+
     this.wrapper.innerHTML = `
       <header class="music-dashboard__header">
         <div class="music-dashboard__header-content">
@@ -232,10 +236,7 @@ class MusicDashboardUI {
       </header>
 
       <div class="music-dashboard__scroll">
-        <div class="music-dashboard__empty-intro">
-          <div class="music-dashboard__empty-icon">${ICONS.music}</div>
-          <h3>${t('musicDashboard.empty.title')}</h3>
-          <p>${insights.coachingMessage}</p>
+        <div class="music-dashboard__empty-intro" id="music-empty-state-container">
         </div>
 
         ${this.renderMusicSourcesCompact()}
@@ -248,6 +249,12 @@ class MusicDashboardUI {
         </div>
       </div>
     `;
+
+    // Insert the brand-compliant empty state component
+    const emptyContainer = this.wrapper.querySelector('#music-empty-state-container');
+    if (emptyContainer) {
+      emptyContainer.appendChild(emptyStateEl);
+    }
 
     this.wrapper
       .querySelector('.music-dashboard__close')

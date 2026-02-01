@@ -21,7 +21,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { SuperhumanCapabilities } from '../core/shared-types.js';
-import { emitSuperhumanActivation } from '../../../api/observability-routes.js';
+import { emitSuperhumanActivation } from '../../../services/observability/superhuman-events.js';
 
 const log = createLogger({ module: 'context:superhuman-integration' });
 

@@ -14,13 +14,15 @@
 export {
   toolOrchestrator,
   UnifiedToolOrchestrator,
+  // Alias for cleaner external API
+  UnifiedToolOrchestrator as ToolOrchestrator,
   type ToolSelectionRequest,
   type ToolSelectionResult,
   type ToolSelectionContext,
   type RefreshRequest,
   type RefreshResult,
   type OrchestratorConfig,
-} from './unified-tool-orchestrator.js';
+} from './tool-orchestrator.js';
 
 // Voice agent integration - the main entry point for voice-agent.ts
 export {

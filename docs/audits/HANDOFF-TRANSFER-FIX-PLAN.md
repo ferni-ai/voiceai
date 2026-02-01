@@ -438,7 +438,7 @@ if (response.error === 'rate_limited') {
 |------|---------|
 | `src/tools/handoff/session-state.ts` | Promote to primary state source |
 | `src/config/handoff-timing.ts` | Centralize all timeouts |
-| `src/services/handoff-metrics.ts` | Integration with all phases |
+| `src/services/handoff-metrics.ts` | (removed - metrics now handled elsewhere) |
 
 ### New Files
 | File | Purpose |
@@ -504,7 +504,7 @@ describe('Handoff E2E', () => {
 ## References
 
 - `docs/architecture/AGENT-TRANSFER-BUGS-GAPS.md` - Previous audit
-- `src/services/handoff-metrics.ts` - Backend metrics
+- `src/services/handoff-metrics.ts` - Backend metrics (removed)
 - `apps/web/src/services/handoff-diagnostics.service.ts` - Frontend diagnostics
 - `src/config/handoff-timing.ts` - Timing constants
 

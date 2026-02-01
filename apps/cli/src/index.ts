@@ -355,13 +355,20 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Run validations',
     icon: icons.check,
     handler: handleValidate,
-    subcommands: ['voices', 'humanization', 'integrations', 'persistence', 'e2e', 'memory-e2e', 'all'],
+    subcommands: ['voices', 'humanization', 'integrations', 'persistence', 'e2e', 'memory-e2e', 'memory-intelligence', 'cortex', 'lifecycle', 'tools-e2e', 'nl-routing', 'all'],
     examples: [
       'ferni validate voices',
       'ferni validate e2e',
       'ferni validate e2e --ci',
       'ferni validate memory-e2e',
       'ferni validate memory-e2e --thorough',
+      'ferni validate memory-intelligence',
+      'ferni validate cortex',
+      'ferni validate lifecycle',
+      'ferni validate tools-e2e',
+      'ferni validate tools-e2e --quick',
+      'ferni validate nl-routing',
+      'ferni validate nl-routing --quick',
       'ferni validate all',
     ],
   },
@@ -546,6 +553,105 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: [],
     examples: ['ferni voice', 'ferni voice --persona maya', 'ferni voice --debug'],
   },
+  chat: {
+    name: 'Chat',
+    description: 'Natural language chat with Ferni (text-based, same tools as voice)',
+    icon: '💬',
+    script: 'apps/cli/src/commands/chat/chat.ts',
+    subcommands: ['--interactive', '--tools', '--exec'],
+    examples: [
+      'ferni chat "play some jazz music"',
+      'ferni chat "call Jordan about the snowstorm"',
+      'ferni chat -i --persona maya',
+      'ferni chat --tools music',
+    ],
+  },
+  music: {
+    name: 'Music',
+    description: 'Control music playback',
+    icon: '🎵',
+    script: 'apps/cli/src/commands/music/music.ts',
+    subcommands: ['play', 'pause', 'resume', 'stop', 'skip', 'volume', 'status', 'suggest'],
+    examples: [
+      'ferni music play "relaxing piano"',
+      'ferni music pause',
+      'ferni music volume 70',
+      'ferni music suggest "focused work"',
+    ],
+  },
+  contacts: {
+    name: 'Contacts',
+    description: 'Manage contacts and relationships',
+    icon: '👥',
+    script: 'apps/cli/src/commands/contacts/contacts.ts',
+    subcommands: ['list', 'search', 'show', 'groups', 'needing-attention'],
+    examples: [
+      'ferni contacts list',
+      'ferni contacts search "mom"',
+      'ferni contacts show "Jordan"',
+      'ferni contacts needing-attention',
+    ],
+  },
+  schedule: {
+    name: 'Schedule',
+    description: 'Schedule calls, messages, and reminders',
+    icon: '📅',
+    script: 'apps/cli/src/commands/scheduled/scheduled.ts',
+    subcommands: ['call', 'message', 'reminder', 'list', 'cancel'],
+    examples: [
+      'ferni schedule call "Jordan" "tomorrow 3pm" --reason "birthday"',
+      'ferni schedule message "mom" "8am" --message "Good morning!"',
+      'ferni schedule reminder "Take vitamins" "every day 9am"',
+      'ferni schedule list',
+    ],
+  },
+  email: {
+    name: 'Email',
+    description: 'Email intelligence and follow-ups',
+    icon: '📧',
+    script: 'apps/cli/src/commands/email/email.ts',
+    subcommands: ['summary', 'followups', 'important', 'unread', 'from', 'search'],
+    examples: [
+      'ferni email summary',
+      'ferni email followups',
+      'ferni email important',
+      'ferni email from "John"',
+    ],
+  },
+  family: {
+    name: 'Family',
+    description: 'Family check-ins and wellness',
+    icon: '👨‍👩‍👧‍👦',
+    script: 'apps/cli/src/commands/family/family.ts',
+    subcommands: ['checkin', 'status', 'summary', 'message', 'members'],
+    examples: [
+      'ferni family checkin',
+      'ferni family status',
+      'ferni family summary',
+      'ferni family message "mom" "Hi!"',
+    ],
+  },
+  brain: {
+    name: 'Brain',
+    description: 'Search and manage Ferni\'s memory of you',
+    icon: '🧠',
+    script: 'apps/cli/src/commands/memory/memory.ts',
+    subcommands: ['summary', 'search', 'about', 'remember', 'insights', 'stats', 'recent'],
+    examples: [
+      'ferni brain',
+      'ferni brain search "favorite restaurant"',
+      'ferni brain about "Jordan"',
+      'ferni brain remember "My dog is named Max"',
+    ],
+  },
+  memory: {
+    name: 'Memory',
+    description: 'Alias for brain command',
+    icon: '🧠',
+    script: 'apps/cli/src/commands/memory/memory.ts',
+    subcommands: ['summary', 'search', 'about', 'remember', 'insights', 'stats', 'recent'],
+    examples: ['ferni memory search "birthday"'],
+  },
   code: {
     name: 'Code',
     description: 'Voice-driven coding with Ferni + Claude Code (auto-starts services)',
@@ -642,17 +748,28 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni users cleanup --dry-run',
     ],
   },
+  call: {
+    name: 'Call',
+    description: 'Call someone (shorthand for quick calls)',
+    icon: '📞',
+    script: 'apps/cli/src/commands/calls/calls.ts',
+    subcommands: [],
+    examples: [
+      'ferni call "Jordan"',
+      'ferni call +14845551234 --reason "checking in"',
+      'ferni call mom --message "Hi mom!"',
+    ],
+  },
   calls: {
     name: 'Calls',
-    description: 'Test outbound phone calls',
+    description: 'Manage outbound phone calls',
     icon: '📞',
-    handler: handleCalls,
-    subcommands: ['test', 'status', 'family', 'invite'],
+    script: 'apps/cli/src/commands/calls/calls.ts',
+    subcommands: ['status', 'list', 'help'],
     examples: [
-      'ferni calls test +1234567890',
       'ferni calls status <callId>',
-      'ferni calls family mom',
-      'ferni calls invite user@example.com',
+      'ferni calls list',
+      'ferni call "Jordan" --reason "snowstorm check-in"',
     ],
   },
   icons: {
@@ -7229,6 +7346,60 @@ async function handleValidate(args: string[]): Promise<void> {
     return;
   }
 
+  // Handle Memory Intelligence validation
+  if (subcommand === 'memory-intelligence' || subcommand === 'mem-intel') {
+    const { runMemoryIntelligenceValidation } = await import('./commands/validate/validate-memory-intelligence.js');
+    const modeArg = subArgs.find(a => ['timing', 'phrasing', 'learning', 'e2e', 'all'].includes(a));
+    const options = {
+      mode: (modeArg as 'timing' | 'phrasing' | 'learning' | 'e2e' | 'all') || 'all',
+      reportFormat: subArgs.includes('--report') && subArgs[subArgs.indexOf('--report') + 1] === 'json' ? 'json' as const : 'console' as const,
+    };
+    await runMemoryIntelligenceValidation(options);
+    return;
+  }
+
+  // Handle Associative Cortex validation
+  if (subcommand === 'cortex' || subcommand === 'associative-cortex') {
+    const { runAssociativeCortexValidation } = await import('./commands/validate/validate-associative-cortex.js');
+    const modeArg = subArgs.find(a => ['activation', 'links', 'narratives', 'connections', 'all'].includes(a));
+    const options = {
+      mode: (modeArg as 'activation' | 'links' | 'narratives' | 'connections' | 'all') || 'all',
+      reportFormat: subArgs.includes('--report') && subArgs[subArgs.indexOf('--report') + 1] === 'json' ? 'json' as const : 'console' as const,
+    };
+    await runAssociativeCortexValidation(options);
+    return;
+  }
+
+  // Handle Memory Lifecycle validation
+  if (subcommand === 'lifecycle' || subcommand === 'memory-lifecycle') {
+    const { runMemoryLifecycleValidation } = await import('./commands/validate/validate-memory-lifecycle.js');
+    const modeArg = subArgs.find(a => ['decay', 'consolidation', 'health', 'jobs', 'all'].includes(a));
+    const options = {
+      mode: (modeArg as 'decay' | 'consolidation' | 'health' | 'jobs' | 'all') || 'all',
+      reportFormat: subArgs.includes('--report') && subArgs[subArgs.indexOf('--report') + 1] === 'json' ? 'json' as const : 'console' as const,
+    };
+    await runMemoryLifecycleValidation(options);
+    return;
+  }
+
+  // Handle Tools E2E validation
+  if (subcommand === 'tools-e2e' || subcommand === 'tools') {
+    // Import and run the tools E2E validator
+    const validateToolsPath = join(PROJECT_ROOT, 'apps', 'cli', 'src', 'commands', 'validate', 'validate-tools-e2e.ts');
+    const { spawnSync } = await import('child_process');
+    spawnSync('sh', ['-c', `npx tsx ${validateToolsPath} ${subArgs.join(' ')}`], { stdio: 'inherit' });
+    return;
+  }
+
+  // Handle NL Routing validation
+  if (subcommand === 'nl-routing' || subcommand === 'routing') {
+    // Import and run the NL routing validator
+    const validateNLPath = join(PROJECT_ROOT, 'apps', 'cli', 'src', 'commands', 'validate', 'validate-nl-routing.ts');
+    const { spawnSync } = await import('child_process');
+    spawnSync('sh', ['-c', `npx tsx ${validateNLPath} ${subArgs.join(' ')}`], { stdio: 'inherit' });
+    return;
+  }
+
   // For other validations, delegate to the legacy validate script
   const validateScriptsDir = join(PROJECT_ROOT, 'apps', 'cli', 'src', 'commands', 'validate');
 
@@ -7245,6 +7416,13 @@ async function handleValidate(args: string[]): Promise<void> {
     console.log(`  ${colors.cyan}ferni validate memory-e2e${colors.reset}     - Memory pipeline E2E (key moments, insights, etc.)`);
     console.log(`  ${colors.cyan}ferni validate memory-e2e --quick${colors.reset}     Quick mode (5 turns)`);
     console.log(`  ${colors.cyan}ferni validate memory-e2e --thorough${colors.reset}  Thorough mode (16+ turns)`);
+    console.log(`  ${colors.cyan}ferni validate tools-e2e${colors.reset}      - Tool execution E2E (via /api/chat/tool)`);
+    console.log(`  ${colors.cyan}ferni validate tools-e2e --quick${colors.reset}      Quick mode (~30 core tools)`);
+    console.log(`  ${colors.cyan}ferni validate nl-routing${colors.reset}     - NL → Tool routing (via /api/chat/message)`);
+    console.log(`  ${colors.cyan}ferni validate nl-routing --quick${colors.reset}     Quick mode (~40 core cases)`);
+    console.log(`  ${colors.cyan}ferni validate memory-intelligence${colors.reset}    - Memory Intelligence system validation`);
+    console.log(`  ${colors.cyan}ferni validate cortex${colors.reset}         - Associative Cortex validation`);
+    console.log(`  ${colors.cyan}ferni validate lifecycle${colors.reset}      - Memory Lifecycle validation`);
     console.log(`  ${colors.cyan}ferni validate all${colors.reset}            - Run all validations`);
     return;
   }

@@ -189,9 +189,8 @@ describe('Session-End Memory Integration', () => {
   });
 
   it('should have promoteSTMToFirestore function exported', async () => {
-    const { promoteSTMToFirestore } = await import(
-      '../../services/session-manager/session-end-cleanup.js'
-    );
+    const { promoteSTMToFirestore } =
+      await import('../../services/session-manager/session-end-cleanup.js');
     expect(promoteSTMToFirestore).toBeDefined();
     expect(typeof promoteSTMToFirestore).toBe('function');
   });
@@ -273,11 +272,7 @@ describe('Scheduler Configuration', () => {
     const { existsSync } = await import('fs');
     const { join } = await import('path');
 
-    const yamlPath = join(
-      process.cwd(),
-      'infra',
-      'cloud-scheduler-memory.yaml'
-    );
+    const yamlPath = join(process.cwd(), 'infra', 'cloud-scheduler-memory.yaml');
     expect(existsSync(yamlPath)).toBe(true);
   });
 
@@ -285,11 +280,7 @@ describe('Scheduler Configuration', () => {
     const { existsSync } = await import('fs');
     const { join } = await import('path');
 
-    const yamlPath = join(
-      process.cwd(),
-      'infra',
-      'cloud-scheduler-knowledge-graph.yaml'
-    );
+    const yamlPath = join(process.cwd(), 'infra', 'cloud-scheduler-knowledge-graph.yaml');
     expect(existsSync(yamlPath)).toBe(true);
   });
 });

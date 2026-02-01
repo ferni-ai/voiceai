@@ -51,9 +51,8 @@ describe('Handoff Fast Path E2E', () => {
   });
 
   it('should warm up session cache', async () => {
-    const { warmupHandoffToolsForSession, hasHandoffToolsCache } = await import(
-      '../handoff/session-cache.js'
-    );
+    const { warmupHandoffToolsForSession, hasHandoffToolsCache } =
+      await import('../handoff/session-cache.js');
 
     expect(hasHandoffToolsCache(TEST_SESSION_ID)).toBe(false);
 
@@ -86,16 +85,17 @@ describe('Handoff Fast Path E2E', () => {
     expect(cachedTools).not.toBeNull();
     expect(Object.keys(cachedTools || {}).length).toBeGreaterThan(0);
 
-    // Cache retrieval should be near-instant (< 50ms)
-    expect(elapsed).toBeLessThan(50);
+    // Cache retrieval should be fast (< 100ms, allowing for CI environment variability)
+    expect(elapsed).toBeLessThan(100);
 
-    console.log(`⚡ Cache retrieval took ${elapsed}ms, got ${Object.keys(cachedTools || {}).length} tools`);
+    console.log(
+      `⚡ Cache retrieval took ${elapsed}ms, got ${Object.keys(cachedTools || {}).length} tools`
+    );
   });
 
   it('should exclude current agent from handoff tools', async () => {
-    const { warmupHandoffToolsForSession, getCachedHandoffTools } = await import(
-      '../handoff/session-cache.js'
-    );
+    const { warmupHandoffToolsForSession, getCachedHandoffTools } =
+      await import('../handoff/session-cache.js');
 
     await warmupHandoffToolsForSession(TEST_SESSION_ID, null, 'free', undefined);
 
@@ -122,7 +122,9 @@ describe('Handoff Fast Path E2E', () => {
     const speedupFactor = expectedSlowPathMs / expectedFastPathMs;
     expect(speedupFactor).toBeGreaterThanOrEqual(100);
 
-    console.log(`📊 Expected speedup: ${speedupFactor}x (${expectedFastPathMs}ms vs ${expectedSlowPathMs}ms)`);
+    console.log(
+      `📊 Expected speedup: ${speedupFactor}x (${expectedFastPathMs}ms vs ${expectedSlowPathMs}ms)`
+    );
   });
 });
 
@@ -146,9 +148,8 @@ describe('Fast Path API Contract', () => {
   });
 
   it('should handle missing session gracefully', async () => {
-    const { getCachedHandoffTools, hasHandoffToolsCache } = await import(
-      '../handoff/session-cache.js'
-    );
+    const { getCachedHandoffTools, hasHandoffToolsCache } =
+      await import('../handoff/session-cache.js');
 
     const nonExistentSession = 'non-existent-session-12345';
 

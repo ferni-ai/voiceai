@@ -7,7 +7,9 @@
  * @module context-routing/types
  */
 
-import type { ContextInjection } from '../../agents/processors/types.js';
+// Import from shared types (level 10) to avoid architecture violation
+// (intelligence is level 70, agents is level 100)
+import type { ContextInjection } from '../../types/context-injection-types.js';
 
 // Re-export for convenience
 export type { ContextInjection };

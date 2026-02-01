@@ -137,10 +137,10 @@ function formatRelationshipContext(ctx: RelationshipContext): string {
   // Unlocked capabilities
   const unlocked = ctx.unlockedContent;
   if (unlocked.protectiveResponses) {
-    lines.push("\nYou CAN push back gently on negative self-talk at this trust level.");
+    lines.push('\nYou CAN push back gently on negative self-talk at this trust level.');
   }
   if (unlocked.vulnerabilitySharing) {
-    lines.push("You CAN share vulnerable reflections from your own experience.");
+    lines.push('You CAN share vulnerable reflections from your own experience.');
   }
 
   return lines.filter(Boolean).join('\n');
@@ -155,12 +155,11 @@ function formatMilestoneContext(ctx: RelationshipContext): string | null {
 
   const milestone = pendingMilestones[0];
   const milestoneMessages: Record<string, string> = {
-    session_10: "This is your 10th conversation! Consider acknowledging this milestone.",
+    session_10: 'This is your 10th conversation! Consider acknowledging this milestone.',
     session_25: '25 conversations together - a significant relationship has developed.',
     session_50: '50 conversations! This is a deeply established relationship.',
-    session_100: "100 conversations - an extraordinary journey together.",
-    first_vulnerability:
-      'They recently opened up vulnerably for the first time. Handle with care.',
+    session_100: '100 conversations - an extraordinary journey together.',
+    first_vulnerability: 'They recently opened up vulnerably for the first time. Handle with care.',
     first_laugh: 'You shared genuine laughter together recently. This is a bonding moment.',
     first_breakthrough: 'They had a breakthrough recently. Reference and celebrate it.',
     reached_friend: 'Your relationship has deepened to a genuine friendship.',
@@ -169,7 +168,7 @@ function formatMilestoneContext(ctx: RelationshipContext): string | null {
     one_month: "It's been one month since you started talking!",
     three_months: 'Three months together - a meaningful relationship.',
     six_months: 'Half a year of growing together!',
-    one_year: "One year anniversary! This is a special milestone worth celebrating.",
+    one_year: 'One year anniversary! This is a special milestone worth celebrating.',
   };
 
   const message = milestoneMessages[milestone.type];

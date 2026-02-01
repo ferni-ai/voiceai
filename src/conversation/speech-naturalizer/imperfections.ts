@@ -6,7 +6,11 @@
  * @module @ferni/conversation/speech-naturalizer/imperfections
  */
 
-import { createSeededRandom, createSystemRandom, type RandomSource } from '../utils/random-generator.js';
+import {
+  createSeededRandom,
+  createSystemRandom,
+  type RandomSource,
+} from '../utils/random-generator.js';
 import type { RandomOptions } from './types.js';
 
 function getRng(options: RandomOptions | undefined, salt: string): RandomSource {
@@ -160,10 +164,22 @@ export function generateGracefulUncertainty(statement: string): string {
  * Self-interruption patterns
  */
 export const SELF_INTERRUPTIONS: Array<{ start: string; interrupt: string; resume: string }> = [
-  { start: "So what you're saying is—", interrupt: 'wait, let me make sure I understand—', resume: 'okay, so' },
+  {
+    start: "So what you're saying is—",
+    interrupt: 'wait, let me make sure I understand—',
+    resume: 'okay, so',
+  },
   { start: 'The thing is—', interrupt: 'actually, hold on—', resume: 'the REAL thing is' },
-  { start: 'I think—', interrupt: "no, 'think' is too weak—", resume: 'I feel pretty strongly that' },
-  { start: 'You should—', interrupt: "wait, I don't want to tell you what to do—", resume: 'what if you tried' },
+  {
+    start: 'I think—',
+    interrupt: "no, 'think' is too weak—",
+    resume: 'I feel pretty strongly that',
+  },
+  {
+    start: 'You should—',
+    interrupt: "wait, I don't want to tell you what to do—",
+    resume: 'what if you tried',
+  },
 ];
 
 /**

@@ -1,0 +1,71 @@
+# Ferni Router Model Training Configuration
+# FTIS V4 - With targeted augmentation for edge cases
+
+# Model settings
+model:
+  base_model: "Qwen/Qwen3-1.7B"
+  task: "multi_label_classification"
+  num_labels: 150  # Max number of tools (will be set dynamically)
+
+# LoRA configuration
+lora:
+  r: 16
+  lora_alpha: 32
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  lora_dropout: 0.1
+  bias: "none"
+  task_type: "SEQ_CLS"
+
+# Training hyperparameters
+training:
+  learning_rate: 2.0e-5
+  num_train_epochs: 3
+  per_device_train_batch_size: 8
+  per_device_eval_batch_size: 16
+  gradient_accumulation_steps: 4
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  lr_scheduler_type: "cosine"
+
+  # Evaluation
+  eval_strategy: "steps"
+  eval_steps: 100
+  save_strategy: "steps"
+  save_steps: 200
+  save_total_limit: 3
+  load_best_model_at_end: true
+  metric_for_best_model: "f1"
+  greater_is_better: true
+
+  # Performance (fp16 disabled for MPS compatibility)
+  fp16: false
+  dataloader_num_workers: 4
+
+# Data settings - V4 with augmentation
+data:
+  max_length: 128
+  pad_to_max_length: false
+  train_file: "data/train_v4.jsonl"
+  validation_file: "data/validation.jsonl"
+  test_file: "data/test.jsonl"
+
+# Output settings
+output:
+  output_dir: "outputs/ferni-router-v4"
+  logging_dir: "logs"
+  report_to: "tensorboard"
+
+# ONNX export settings
+onnx:
+  export: false  # We'll use Candle instead
+  opset_version: 14
+  optimize: true
+  quantize: false

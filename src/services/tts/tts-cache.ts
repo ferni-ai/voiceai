@@ -34,30 +34,30 @@ const DEFAULT_MAX_ENTRIES = 500;
 
 /**
  * Check if text looks like a JSON function call that should NOT be cached.
- * 
+ *
  * FIX (Jan 2026): Prevents caching audio for tool call leakage.
  * When LLM outputs `{"fn":"getNews"}` instead of speaking, we were
  * caching the audio for this gibberish, causing repeated playback.
  */
 function isJsonFunctionCall(text: string): boolean {
   const trimmed = text.trim();
-  
+
   // Empty or very short - not a function call
   if (trimmed.length < 5) {
     return false;
   }
-  
+
   // Check for JSON function call patterns
   // Complete or partial JSON: `{"fn":"...
   if (/^\s*`?\s*\{\s*["']?fn["']?\s*:/i.test(trimmed)) {
     return true;
   }
-  
+
   // Backtick-wrapped JSON start
   if (trimmed.startsWith('`{') || trimmed.startsWith('` {')) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -189,10 +189,7 @@ export class TTSCache implements ITTSCache {
     // FIX (Jan 2026): Don't cache JSON function calls
     // These are tool call leakage and should NEVER be spoken or cached
     if (isJsonFunctionCall(text)) {
-      log.warn(
-        { text: text.slice(0, 50) },
-        '🚫 TTS Cache: Refusing to cache JSON function call'
-      );
+      log.warn({ text: text.slice(0, 50) }, '🚫 TTS Cache: Refusing to cache JSON function call');
       return;
     }
 
@@ -356,12 +353,7 @@ export class DelegatingTTSCache implements ITTSCache {
         const legacyResult = await this.legacyCacheLookup(text, voiceId);
         if (legacyResult) {
           // Store in primary cache for future lookups
-          await this.primaryCache.set(
-            text,
-            voiceId,
-            legacyResult.audio,
-            legacyResult.durationMs
-          );
+          await this.primaryCache.set(text, voiceId, legacyResult.audio, legacyResult.durationMs);
 
           return {
             audio: legacyResult.audio,

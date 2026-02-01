@@ -142,6 +142,9 @@ function startPingKeepalive(): void {
       _log('Ping failed', { error: String(error) });
     }
   }, PING_INTERVAL_MS);
+
+  // FIX: Unref to prevent blocking process exit if closeConnection() isn't called
+  pingInterval.unref();
 }
 
 export function stopPingKeepalive(): void {
@@ -182,6 +185,9 @@ function startPendingJobsCleanup(): void {
       _log('Pending jobs cleanup complete', { cleaned, remaining: pendingJobs.size });
     }
   }, 30_000);
+
+  // FIX: Unref to prevent blocking process exit if closeConnection() isn't called
+  pendingJobsCleanupInterval.unref();
 
   pendingJobsCleanupStarting = false;
 }
@@ -240,6 +246,9 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
           ws.send(updateMsg.toBinary());
         }
       }, 10000);
+
+      // FIX: Unref to prevent blocking process exit if closeConnection() isn't called
+      statusUpdateInterval.unref();
       break;
     }
 

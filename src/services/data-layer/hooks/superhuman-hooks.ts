@@ -60,11 +60,7 @@ export const onLifeChapterChange = createDomainHook<LifeChapterEntity>({
         : `${formatDate(c.period.start)}${c.period.end ? ` - ${formatDate(c.period.end)}` : ' - present'}`
       : '';
     // Support both themes array and singular theme
-    const themesStr = c.themes?.length
-      ? c.themes.join(', ')
-      : c.theme
-        ? c.theme
-        : '';
+    const themesStr = c.themes?.length ? c.themes.join(', ') : c.theme ? c.theme : '';
     return joinNonEmpty([
       c.title ? `Life chapter: "${c.title}".` : '',
       c.summary,
@@ -553,7 +549,9 @@ export const onIdentityStatementChange = createDomainHook<IdentityStatementEntit
   contentBuilder: (i) =>
     joinNonEmpty([
       i.statement ? `Identity: "${i.statement}".` : '',
-      i.domain || i.confidence ? `Domain: ${i.domain ?? 'unknown'}, confidence: ${i.confidence ?? 'unknown'}.` : '',
+      i.domain || i.confidence
+        ? `Domain: ${i.domain ?? 'unknown'}, confidence: ${i.confidence ?? 'unknown'}.`
+        : '',
       i.recordedAt ? `Recorded: ${i.recordedAt}.` : '',
     ]),
   metadataExtractor: (i) => ({
@@ -889,10 +887,7 @@ export const onCelebrationChange = createDomainHook<CelebrationEntity>({
   storeType: 'superhuman',
   entityType: 'celebration',
   contentBuilder: (c) =>
-    joinNonEmpty([
-      `Celebration: ${c.what}.`,
-      `For: ${c.forWhom}, size: ${c.size}.`,
-    ]),
+    joinNonEmpty([`Celebration: ${c.what}.`, `For: ${c.forWhom}, size: ${c.size}.`]),
   metadataExtractor: (c) => ({
     forWhom: c.forWhom,
     size: c.size,
@@ -912,10 +907,7 @@ export const onTransitionSignalChange = createDomainHook<TransitionSignalEntity>
   storeType: 'superhuman',
   entityType: 'transition_signal',
   contentBuilder: (t) =>
-    joinNonEmpty([
-      `Transition signal for ${t.type}: ${t.signal}.`,
-      `Strength: ${t.strength}.`,
-    ]),
+    joinNonEmpty([`Transition signal for ${t.type}: ${t.signal}.`, `Strength: ${t.strength}.`]),
   metadataExtractor: (t) => ({
     type: t.type,
     strength: t.strength,
@@ -1137,7 +1129,12 @@ export const onAnticipatedTransitionChange = createDomainHook<AnticipatedTransit
 // ============================================================================
 
 interface SuperhumanObservationEntity {
-  type: 'linguistic_pattern' | 'behavioral_pattern' | 'emotional_pattern' | 'relationship_pattern' | 'timing_pattern';
+  type:
+    | 'linguistic_pattern'
+    | 'behavioral_pattern'
+    | 'emotional_pattern'
+    | 'relationship_pattern'
+    | 'timing_pattern';
   observation: string;
   evidenceCount: number;
   confidence: number;

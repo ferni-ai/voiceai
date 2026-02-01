@@ -26,14 +26,35 @@ Level 10:  config/, utils/, types/
 services/
 ├── session-manager.ts           # Main orchestration (profile loading, services)
 └── session-manager/
+    ├── index.ts                 # Re-exports for external consumers
+    │
+    ├── # Core Infrastructure
     ├── access.ts                # Session access functions (getSession, clearAll)
     ├── cleanup.ts               # TTL and cleanup management
     ├── constants.ts             # Configuration constants
     ├── utils.ts                 # Utility functions (withTimeout)
     ├── validation.ts            # User ID validation
+    │
+    ├── # Session Lifecycle
     ├── engine-factory.ts        # Intelligence engine initialization
     ├── session-primer.ts        # Session priming for returning users
+    ├── pre-session-briefing.ts  # Pre-session context briefing
+    ├── session-warmup.ts        # Session warm-up optimization
+    ├── session-lifecycle-hooks.ts # Lifecycle event hooks
+    │
+    ├── # Session End & Cleanup
     ├── end-session.ts           # Session end lifecycle
+    ├── session-end-cleanup.ts   # Post-session cleanup tasks
+    ├── session-summary.ts       # Session summary generation
+    ├── summarization.ts         # Conversation summarization logic
+    │
+    ├── # State & Data
+    ├── session-data-manager.ts  # Session data CRUD operations
+    ├── state-persistence.ts     # State persistence to Firestore
+    ├── humanizing-state.ts      # Humanization state tracking
+    ├── session-variety-tracker.ts # Track conversation variety/freshness
+    ├── tts-registry.ts          # TTS instance registry per session
+    │
     ├── __tests__/               # Test files
     └── CLAUDE.md                # This file
 ```
@@ -70,24 +91,31 @@ services/
 
 ## Module Responsibilities
 
-| Module | Lines | Purpose |
-|--------|-------|---------|
-| `session-manager.ts` | ~1000 | Main orchestration, profile loading, SessionServices object |
-| `engine-factory.ts` | ~200 | Intelligence engine creation |
-| `session-primer.ts` | ~230 | Session priming, superhuman context |
-| `end-session.ts` | ~550 | Session end lifecycle |
-| `access.ts` | ~105 | Session access functions |
-| `cleanup.ts` | ~130 | TTL and cleanup |
-| `constants.ts` | ~45 | Configuration |
-| `utils.ts` | ~90 | Utility functions |
-| `validation.ts` | ~50 | User ID validation |
+| Module | Purpose |
+|--------|---------|
+| `session-manager.ts` | Main orchestration, profile loading, SessionServices object |
+| `index.ts` | Re-exports for external consumers |
+| `access.ts` | Session access functions (getSession, clearAll, getActiveIds) |
+| `cleanup.ts` | TTL and cleanup management |
+| `constants.ts` | Configuration constants |
+| `utils.ts` | Utility functions (withTimeout) |
+| `validation.ts` | User ID validation |
+| `engine-factory.ts` | Intelligence engine creation |
+| `session-primer.ts` | Session priming, superhuman context |
+| `pre-session-briefing.ts` | Pre-session context briefing |
+| `session-warmup.ts` | Session warm-up optimization |
+| `session-lifecycle-hooks.ts` | Lifecycle event hooks |
+| `end-session.ts` | Session end lifecycle |
+| `session-end-cleanup.ts` | Post-session cleanup tasks |
+| `session-summary.ts` | Session summary generation |
+| `summarization.ts` | Conversation summarization logic |
+| `session-data-manager.ts` | Session data CRUD operations |
+| `state-persistence.ts` | State persistence to Firestore |
+| `humanizing-state.ts` | Humanization state tracking |
+| `session-variety-tracker.ts` | Conversation variety/freshness tracking |
+| `tts-registry.ts` | TTS instance registry per session |
 
-**Total: ~2400 lines across 9 modules**
-
-**Note:** Profile loading is handled directly in `session-manager.ts` (not extracted) because it:
-- Requires `userName` parameter for onboarding integration
-- Needs tight coupling with session services creation
-- Is critical path code that benefits from inline visibility
+**Total: 22 modules across core infrastructure, lifecycle, state, and cleanup**
 
 ---
 
@@ -153,5 +181,4 @@ pnpm vitest run src/services/session-manager/__tests__/
 
 ---
 
-*Created: December 2024*
-*Status: Refactoring complete (2139 → ~10 focused modules)*
+*Last updated: January 2026*

@@ -10,7 +10,10 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreHealthMetrics, getHealthSummary } from '../../services/observability/firestore-monitor.js';
+import {
+  getFirestoreHealthMetrics,
+  getHealthSummary,
+} from '../../services/observability/firestore-monitor.js';
 import { getDynamicMemoryMetrics } from '../../memory/dynamic/metrics.js';
 
 const log = createLogger({ module: 'data-integrity-health' });
@@ -216,8 +219,12 @@ export async function handleDataIntegrityHealth(
     const report = await checkDataIntegrity(userId);
 
     // Determine response status
-    const status = report.firestore.healthStatus === 'healthy' ? 200 : 
-                   report.firestore.healthStatus === 'degraded' ? 200 : 503;
+    const status =
+      report.firestore.healthStatus === 'healthy'
+        ? 200
+        : report.firestore.healthStatus === 'degraded'
+          ? 200
+          : 503;
 
     res.writeHead(status, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(report, null, 2));

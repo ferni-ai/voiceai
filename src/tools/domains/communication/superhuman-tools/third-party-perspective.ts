@@ -26,20 +26,20 @@ const log = createLogger({ module: 'third-party-perspective' });
 const COGNITIVE_BIASES = {
   fundamental_attribution_error: {
     name: 'Fundamental Attribution Error',
-    description: 'Attributing others\' behavior to character while attributing your own to circumstances',
+    description:
+      "Attributing others' behavior to character while attributing your own to circumstances",
     check: (story: string) =>
       /they('re| are) (just|always|so) (selfish|lazy|difficult|mean|stubborn)/i.test(story) &&
       /i (had to|was trying|didn't mean|was just)/i.test(story),
     counter:
-      'What circumstances might explain their behavior the way you\'d want circumstances to explain yours?',
+      "What circumstances might explain their behavior the way you'd want circumstances to explain yours?",
   },
   confirmation_bias: {
     name: 'Confirmation Bias',
     description: 'Focusing only on evidence that supports your view',
     check: (story: string) =>
       /\b(see|proves|shows|exactly|always) (that|what|how) (they|he|she)\b/i.test(story),
-    counter:
-      'What evidence have you dismissed that might support their perspective?',
+    counter: 'What evidence have you dismissed that might support their perspective?',
   },
   mind_reading: {
     name: 'Mind Reading',
@@ -56,8 +56,7 @@ const COGNITIVE_BIASES = {
     check: (story: string) =>
       /\b(completely|totally|entirely|100%|always|never)\b/i.test(story) &&
       (story.match(/\b(wrong|right|fault|blame)\b/gi) || []).length > 2,
-    counter:
-      'What percentage of the responsibility might each person bear? It\'s rarely 100/0.',
+    counter: "What percentage of the responsibility might each person bear? It's rarely 100/0.",
   },
   victimhood: {
     name: 'Victimhood Narrative',
@@ -66,7 +65,7 @@ const COGNITIVE_BIASES = {
       /they (did this|made me|forced me|put me)/i.test(story) &&
       !/i (also|could have|should have|might have)/i.test(story),
     counter:
-      'What choices did you have that you didn\'t take? What role did you play in creating this situation?',
+      "What choices did you have that you didn't take? What role did you play in creating this situation?",
   },
   emotional_reasoning: {
     name: 'Emotional Reasoning',
@@ -74,7 +73,7 @@ const COGNITIVE_BIASES = {
     check: (story: string) =>
       /i (feel like|felt like) (they|he|she) (doesn't|didn't|never|always)/i.test(story),
     counter:
-      'Feelings are valid, but they\'re not facts. What\'s the evidence separate from how you feel?',
+      "Feelings are valid, but they're not facts. What's the evidence separate from how you feel?",
   },
 };
 
@@ -154,7 +153,7 @@ function extractValidPoints(story: string, perspective: 'user' | 'other'): strin
     if (points.length === 0) {
       points.push(
         'You cared enough about this to seek perspective',
-        'You\'re trying to understand the situation'
+        "You're trying to understand the situation"
       );
     }
   }
@@ -168,9 +167,18 @@ function generateOtherPerspective(story: string, otherName: string): string[] {
   // What might the other person validly feel?
   const defenseTriggers = [
     { pattern: /i (told|said|yelled|accused)/i, point: 'May have felt attacked or criticized' },
-    { pattern: /i (expected|assumed|thought they would)/i, point: 'May have felt pressured by unspoken expectations' },
-    { pattern: /they (didn't|never|failed to)/i, point: 'May have had reasons you don\'t know about' },
-    { pattern: /i (need|needed|want|wanted) them to/i, point: 'May have felt unable to meet those needs' },
+    {
+      pattern: /i (expected|assumed|thought they would)/i,
+      point: 'May have felt pressured by unspoken expectations',
+    },
+    {
+      pattern: /they (didn't|never|failed to)/i,
+      point: "May have had reasons you don't know about",
+    },
+    {
+      pattern: /i (need|needed|want|wanted) them to/i,
+      point: 'May have felt unable to meet those needs',
+    },
     { pattern: /(ignored|dismissed|didn't listen)/i, point: 'May feel unheard too' },
   ];
 
@@ -237,9 +245,7 @@ function generatePathForward(
 
   // Bias-specific paths
   if (biases.some((b) => b.name === 'Mind Reading')) {
-    paths.push(
-      `Start by asking ${otherName} what they actually intended. You might be surprised.`
-    );
+    paths.push(`Start by asking ${otherName} what they actually intended. You might be surprised.`);
   }
 
   if (biases.some((b) => b.name === 'Fundamental Attribution Error')) {
@@ -249,9 +255,7 @@ function generatePathForward(
   }
 
   if (biases.some((b) => b.name === 'Victimhood Narrative')) {
-    paths.push(
-      `Own your part - even if it's small. It disarms defensiveness and opens dialogue.`
-    );
+    paths.push(`Own your part - even if it's small. It disarms defensiveness and opens dialogue.`);
   }
 
   // Default paths
@@ -263,9 +267,7 @@ function generatePathForward(
   }
 
   // Add universal closer
-  paths.push(
-    `The goal isn't to be right - it's to understand each other and move forward.`
-  );
+  paths.push(`The goal isn't to be right - it's to understand each other and move forward.`);
 
   return paths.slice(0, 2).join(' ');
 }
@@ -319,7 +321,7 @@ export function generateReframe(
   if (/they (don't|doesn't|didn't) care/i.test(lower)) {
     return {
       reframe: `${otherName} might express care in ways you're not recognizing`,
-      insight: 'How might they show care that you\'re missing?',
+      insight: "How might they show care that you're missing?",
     };
   }
 

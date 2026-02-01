@@ -202,22 +202,54 @@ describe('GeminiLiveProvider', () => {
     provider = new GeminiLiveProvider();
   });
 
+  afterEach(() => {
+    // Reset FTIS mode env var
+    delete process.env.FTIS_V2_ONLY_MODE;
+  });
+
   it('should have correct identity', () => {
     expect(provider.id).toBe('gemini-live');
     expect(provider.displayName).toBe('Gemini Live API');
   });
 
-  it('should not have native function calling', () => {
-    expect(provider.hasNativeFunctionCalling()).toBe(false);
-    expect(provider.needsJsonWorkaround()).toBe(true);
+  // FTIS V2 is now DEFAULT (Jan 2026)
+  // When FTIS_V2_ONLY_MODE is true (default), Gemini has no tool knowledge
+  describe('FTIS V2 mode (default)', () => {
+    it('should not have native function calling in FTIS mode', () => {
+      // FTIS handles all tool routing - Gemini is pure conversation
+      expect(provider.hasNativeFunctionCalling()).toBe(false);
+      expect(provider.needsJsonWorkaround()).toBe(false);
+    });
+
+    it('should not include function calling prompts in FTIS mode', () => {
+      const modules = provider.getPromptModules();
+      // FTIS handles all tools - no JSON prompts needed
+      expect(modules.includeFunctionCallingBase).toBe(false);
+      expect(modules.includeFunctionCallingSpecialty).toBe(false);
+      expect(modules.includeModelBaseInstructions).toBe(true);
+      expect(modules.useMinimalInstructions).toBe(false);
+    });
   });
 
-  it('should have correct prompt modules', () => {
-    const modules = provider.getPromptModules();
-    expect(modules.includeFunctionCallingBase).toBe(true);
-    expect(modules.includeFunctionCallingSpecialty).toBe(true);
-    expect(modules.includeModelBaseInstructions).toBe(true);
-    expect(modules.useMinimalInstructions).toBe(false);
+  describe('non-FTIS mode (legacy)', () => {
+    beforeEach(() => {
+      process.env.FTIS_V2_ONLY_MODE = 'false';
+      // Recreate provider with new env
+      provider = new GeminiLiveProvider();
+    });
+
+    it('should have native function calling as backup in non-FTIS mode', () => {
+      expect(provider.hasNativeFunctionCalling()).toBe(true);
+      expect(provider.needsJsonWorkaround()).toBe(true);
+    });
+
+    it('should include function calling prompts in non-FTIS mode', () => {
+      const modules = provider.getPromptModules();
+      expect(modules.includeFunctionCallingBase).toBe(true);
+      expect(modules.includeFunctionCallingSpecialty).toBe(true);
+      expect(modules.includeModelBaseInstructions).toBe(true);
+      expect(modules.useMinimalInstructions).toBe(false);
+    });
   });
 
   it('should return correct token limit', () => {

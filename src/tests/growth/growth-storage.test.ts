@@ -99,9 +99,7 @@ describe('Growth Storage', () => {
       await updateSettings({ autoPost: true, contentPerDay: 10 });
 
       expect(fs.writeFile).toHaveBeenCalled();
-      const writtenData = JSON.parse(
-        (fs.writeFile as ReturnType<typeof vi.fn>).mock.calls[0][1]
-      );
+      const writtenData = JSON.parse((fs.writeFile as ReturnType<typeof vi.fn>).mock.calls[0][1]);
       expect(writtenData.settings.autoPost).toBe(true);
       expect(writtenData.settings.contentPerDay).toBe(10);
     });
@@ -121,10 +119,18 @@ describe('Growth Storage', () => {
       const stateWithAccounts: GrowthState = {
         ...mockState,
         tiktokAccounts: [
-          { id: '1', handle: '@ferni', angle: 'main', description: 'Main', createdAt: new Date().toISOString() },
+          {
+            id: '1',
+            handle: '@ferni',
+            angle: 'main',
+            description: 'Main',
+            createdAt: new Date().toISOString(),
+          },
         ],
       };
-      (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(stateWithAccounts));
+      (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(
+        JSON.stringify(stateWithAccounts)
+      );
 
       const accounts = await getTikTokAccounts();
 
@@ -151,8 +157,22 @@ describe('Growth Storage', () => {
       const stateWithContent: GrowthState = {
         ...mockState,
         contentQueue: [
-          { id: '1', platform: 'tiktok', type: 'video_script', content: 'TikTok', status: 'draft', createdAt: new Date().toISOString() },
-          { id: '2', platform: 'reddit', type: 'post', content: 'Reddit', status: 'draft', createdAt: new Date().toISOString() },
+          {
+            id: '1',
+            platform: 'tiktok',
+            type: 'video_script',
+            content: 'TikTok',
+            status: 'draft',
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: '2',
+            platform: 'reddit',
+            type: 'post',
+            content: 'Reddit',
+            status: 'draft',
+            createdAt: new Date().toISOString(),
+          },
         ],
       };
       (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(stateWithContent));
@@ -168,7 +188,14 @@ describe('Growth Storage', () => {
       const stateWithContent: GrowthState = {
         ...mockState,
         contentQueue: [
-          { id: '1', platform: 'tiktok', type: 'video_script', content: 'Test', status: 'draft', createdAt: new Date().toISOString() },
+          {
+            id: '1',
+            platform: 'tiktok',
+            type: 'video_script',
+            content: 'Test',
+            status: 'draft',
+            createdAt: new Date().toISOString(),
+          },
         ],
       };
       (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(stateWithContent));
@@ -183,16 +210,21 @@ describe('Growth Storage', () => {
       const stateWithContent: GrowthState = {
         ...mockState,
         contentQueue: [
-          { id: '1', platform: 'tiktok', type: 'video_script', content: 'Test', status: 'draft', createdAt: new Date().toISOString() },
+          {
+            id: '1',
+            platform: 'tiktok',
+            type: 'video_script',
+            content: 'Test',
+            status: 'draft',
+            createdAt: new Date().toISOString(),
+          },
         ],
       };
       (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(stateWithContent));
 
       await updateContentStatus('1', 'posted');
 
-      const writtenData = JSON.parse(
-        (fs.writeFile as ReturnType<typeof vi.fn>).mock.calls[0][1]
-      );
+      const writtenData = JSON.parse((fs.writeFile as ReturnType<typeof vi.fn>).mock.calls[0][1]);
       expect(writtenData.contentQueue[0].status).toBe('posted');
     });
   });
@@ -218,8 +250,28 @@ describe('Growth Storage', () => {
       const stateWithLeads: GrowthState = {
         ...mockState,
         influencerLeads: [
-          { id: '1', name: 'Nano', handle: '@nano', platform: 'tiktok', followers: 5000, tier: 'nano', category: 'test', status: 'researched', createdAt: new Date().toISOString() },
-          { id: '2', name: 'Micro', handle: '@micro', platform: 'tiktok', followers: 50000, tier: 'micro', category: 'test', status: 'researched', createdAt: new Date().toISOString() },
+          {
+            id: '1',
+            name: 'Nano',
+            handle: '@nano',
+            platform: 'tiktok',
+            followers: 5000,
+            tier: 'nano',
+            category: 'test',
+            status: 'researched',
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: '2',
+            name: 'Micro',
+            handle: '@micro',
+            platform: 'tiktok',
+            followers: 50000,
+            tier: 'micro',
+            category: 'test',
+            status: 'researched',
+            createdAt: new Date().toISOString(),
+          },
         ],
       };
       (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(stateWithLeads));
@@ -234,16 +286,24 @@ describe('Growth Storage', () => {
       const stateWithLeads: GrowthState = {
         ...mockState,
         influencerLeads: [
-          { id: '1', name: 'Test', handle: '@test', platform: 'tiktok', followers: 5000, tier: 'nano', category: 'test', status: 'researched', createdAt: new Date().toISOString() },
+          {
+            id: '1',
+            name: 'Test',
+            handle: '@test',
+            platform: 'tiktok',
+            followers: 5000,
+            tier: 'nano',
+            category: 'test',
+            status: 'researched',
+            createdAt: new Date().toISOString(),
+          },
         ],
       };
       (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(stateWithLeads));
 
       await updateInfluencerStatus('1', 'contacted');
 
-      const writtenData = JSON.parse(
-        (fs.writeFile as ReturnType<typeof vi.fn>).mock.calls[0][1]
-      );
+      const writtenData = JSON.parse((fs.writeFile as ReturnType<typeof vi.fn>).mock.calls[0][1]);
       expect(writtenData.influencerLeads[0].status).toBe('contacted');
     });
   });
@@ -265,11 +325,27 @@ describe('Growth Storage', () => {
       const stateWithArticles: GrowthState = {
         ...mockState,
         seoArticles: [
-          { id: '1', title: 'Draft', slug: 'draft', targetKeyword: 'test', status: 'drafted', createdAt: new Date().toISOString() },
-          { id: '2', title: 'Published', slug: 'published', targetKeyword: 'test', status: 'published', createdAt: new Date().toISOString() },
+          {
+            id: '1',
+            title: 'Draft',
+            slug: 'draft',
+            targetKeyword: 'test',
+            status: 'drafted',
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: '2',
+            title: 'Published',
+            slug: 'published',
+            targetKeyword: 'test',
+            status: 'published',
+            createdAt: new Date().toISOString(),
+          },
         ],
       };
-      (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(stateWithArticles));
+      (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(
+        JSON.stringify(stateWithArticles)
+      );
 
       const published = await getSEOArticles({ status: 'published' });
 
@@ -299,8 +375,22 @@ describe('Growth Storage', () => {
       const stateWithTasks: GrowthState = {
         ...mockState,
         scheduledTasks: [
-          { id: '1', type: 'generate_content', data: {}, status: 'pending', scheduledFor: pastDate, createdAt: now.toISOString() },
-          { id: '2', type: 'post_content', data: {}, status: 'pending', scheduledFor: futureDate, createdAt: now.toISOString() },
+          {
+            id: '1',
+            type: 'generate_content',
+            data: {},
+            status: 'pending',
+            scheduledFor: pastDate,
+            createdAt: now.toISOString(),
+          },
+          {
+            id: '2',
+            type: 'post_content',
+            data: {},
+            status: 'pending',
+            scheduledFor: futureDate,
+            createdAt: now.toISOString(),
+          },
         ],
       };
       (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(stateWithTasks));
@@ -316,16 +406,21 @@ describe('Growth Storage', () => {
       const stateWithTasks: GrowthState = {
         ...mockState,
         scheduledTasks: [
-          { id: '1', type: 'generate_content', data: {}, status: 'pending', scheduledFor: new Date().toISOString(), createdAt: new Date().toISOString() },
+          {
+            id: '1',
+            type: 'generate_content',
+            data: {},
+            status: 'pending',
+            scheduledFor: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+          },
         ],
       };
       (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(stateWithTasks));
 
       await updateTaskStatus('1', 'completed', 'Done');
 
-      const writtenData = JSON.parse(
-        (fs.writeFile as ReturnType<typeof vi.fn>).mock.calls[0][1]
-      );
+      const writtenData = JSON.parse((fs.writeFile as ReturnType<typeof vi.fn>).mock.calls[0][1]);
       expect(writtenData.scheduledTasks[0].status).toBe('completed');
       expect(writtenData.scheduledTasks[0].result).toBe('Done');
     });
@@ -347,11 +442,27 @@ describe('Growth Storage', () => {
       const stateWithCampaigns: GrowthState = {
         ...mockState,
         campaigns: [
-          { id: '1', name: 'TikTok', channel: 'tiktok', status: 'active', startDate: new Date().toISOString(), goals: [] },
-          { id: '2', name: 'SEO', channel: 'seo', status: 'active', startDate: new Date().toISOString(), goals: [] },
+          {
+            id: '1',
+            name: 'TikTok',
+            channel: 'tiktok',
+            status: 'active',
+            startDate: new Date().toISOString(),
+            goals: [],
+          },
+          {
+            id: '2',
+            name: 'SEO',
+            channel: 'seo',
+            status: 'active',
+            startDate: new Date().toISOString(),
+            goals: [],
+          },
         ],
       };
-      (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(stateWithCampaigns));
+      (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(
+        JSON.stringify(stateWithCampaigns)
+      );
 
       const campaigns = await getCampaigns();
 
@@ -365,16 +476,47 @@ describe('Growth Storage', () => {
       const stateWithData: GrowthState = {
         ...mockState,
         contentQueue: [
-          { id: '1', platform: 'tiktok', type: 'video_script', content: 'Test', status: 'posted', createdAt: now.toISOString() },
+          {
+            id: '1',
+            platform: 'tiktok',
+            type: 'video_script',
+            content: 'Test',
+            status: 'posted',
+            createdAt: now.toISOString(),
+          },
         ],
         influencerLeads: [
-          { id: '1', name: 'Test', handle: '@test', platform: 'tiktok', followers: 5000, tier: 'nano', category: 'test', status: 'live', createdAt: now.toISOString() },
+          {
+            id: '1',
+            name: 'Test',
+            handle: '@test',
+            platform: 'tiktok',
+            followers: 5000,
+            tier: 'nano',
+            category: 'test',
+            status: 'live',
+            createdAt: now.toISOString(),
+          },
         ],
         seoArticles: [
-          { id: '1', title: 'Test', slug: 'test', targetKeyword: 'test', status: 'published', createdAt: now.toISOString() },
+          {
+            id: '1',
+            title: 'Test',
+            slug: 'test',
+            targetKeyword: 'test',
+            status: 'published',
+            createdAt: now.toISOString(),
+          },
         ],
         campaigns: [
-          { id: '1', name: 'Test', channel: 'tiktok', status: 'active', startDate: now.toISOString(), goals: [] },
+          {
+            id: '1',
+            name: 'Test',
+            channel: 'tiktok',
+            status: 'active',
+            startDate: now.toISOString(),
+            goals: [],
+          },
         ],
       };
       (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(stateWithData));

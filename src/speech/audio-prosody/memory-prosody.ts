@@ -69,18 +69,46 @@ export interface MemoryProsodyInput {
 // ============================================================================
 
 const POSITIVE_KEYWORDS = [
-  'happy', 'excited', 'grateful', 'proud', 'love', 'wonderful',
-  'amazing', 'great', 'fantastic', 'beautiful', 'blessed', 'thankful',
+  'happy',
+  'excited',
+  'grateful',
+  'proud',
+  'love',
+  'wonderful',
+  'amazing',
+  'great',
+  'fantastic',
+  'beautiful',
+  'blessed',
+  'thankful',
 ];
 
 const NEGATIVE_KEYWORDS = [
-  'sad', 'angry', 'frustrated', 'worried', 'anxious', 'scared',
-  'hurt', 'disappointed', 'upset', 'stressed', 'overwhelmed', 'afraid',
+  'sad',
+  'angry',
+  'frustrated',
+  'worried',
+  'anxious',
+  'scared',
+  'hurt',
+  'disappointed',
+  'upset',
+  'stressed',
+  'overwhelmed',
+  'afraid',
 ];
 
 const HIGH_INTENSITY_KEYWORDS = [
-  'really', 'so', 'very', 'extremely', 'incredibly', 'absolutely',
-  'completely', 'totally', 'deeply', 'profoundly',
+  'really',
+  'so',
+  'very',
+  'extremely',
+  'incredibly',
+  'absolutely',
+  'completely',
+  'totally',
+  'deeply',
+  'profoundly',
 ];
 
 // ============================================================================
@@ -219,7 +247,8 @@ function analyzeProsodyFeatures(prosody: ProsodyFeatures): {
   // Check for voice strain
   const jitterHigh = (prosody.jitter || 0) > THRESHOLDS.jitter;
   const shimmerHigh = (prosody.shimmer || 0) > THRESHOLDS.shimmer;
-  const strainedQuality = prosody.voiceQuality === 'strained' || prosody.voiceQuality === 'trembling';
+  const strainedQuality =
+    prosody.voiceQuality === 'strained' || prosody.voiceQuality === 'trembling';
   const strain = (jitterHigh && shimmerHigh) || strainedQuality;
 
   if (strain) {
@@ -341,14 +370,10 @@ function calculateAuthenticity(prosody: ProsodyFeatures, transcript: string): nu
 
   // Voice indicators
   const voiceExcited =
-    normalizedEnergy > 0.6 ||
-    (prosody.speechRate || 0) > 150 ||
-    (prosody.pitchVariance || 0) > 40;
+    normalizedEnergy > 0.6 || (prosody.speechRate || 0) > 150 || (prosody.pitchVariance || 0) > 40;
 
   const voiceSubdued =
-    normalizedEnergy < 0.4 ||
-    (prosody.speechRate || 0) < 120 ||
-    prosody.voiceQuality === 'breathy';
+    normalizedEnergy < 0.4 || (prosody.speechRate || 0) < 120 || prosody.voiceQuality === 'breathy';
 
   // Text indicators
   const textPositive = textAnalysis.valence > 0.2;
@@ -470,9 +495,7 @@ export function adaptSSMLForMemoryRecall(
 /**
  * Analyze multiple turns for overall emotional trajectory
  */
-export function analyzeEmotionalTrajectory(
-  turns: MemoryProsodyInput[]
-): {
+export function analyzeEmotionalTrajectory(turns: MemoryProsodyInput[]): {
   overall: MemoryProsodyResult;
   trend: 'improving' | 'declining' | 'stable';
   peakTurn?: number;

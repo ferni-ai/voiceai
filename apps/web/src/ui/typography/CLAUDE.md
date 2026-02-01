@@ -169,15 +169,15 @@ if (prefersReducedMotion) {
 
 ---
 
-## Files to Create
+## Directory Structure
 
 ```
 typography/
-├── CLAUDE.md           # This file
-├── breathing-text.ts   # Breathing animation system
-├── mood-weight.ts      # Mood-to-typography mapping
-├── persona-voice-type.ts  # Persona typography profiles
-└── index.ts            # Exports
+├── CLAUDE.md              # This file
+├── index.ts               # Exports
+├── breathing-text.ts      # Breathing animation system
+├── mood-weight.ts         # Mood-to-typography mapping
+└── persona-voice-type.ts  # Persona typography profiles
 ```
 
 ---

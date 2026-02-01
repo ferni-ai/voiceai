@@ -336,7 +336,7 @@ export function speakToSession(
   }
 
   const startTime = Date.now();
-  
+
   log.debug(
     {
       originalText: truncateForLog(text, 50),
@@ -348,7 +348,8 @@ export function speakToSession(
   );
 
   // 🔊 E2E TRACING: Log TTS pipeline timing
-  const debugTTS = process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
+  const debugTTS =
+    process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
   if (debugTTS) {
     process.stderr.write(`\n🔊 [TTS PIPELINE] ${new Date().toISOString()}\n`);
     process.stderr.write(`  📝 Input: "${truncateForLog(text, 100)}"\n`);
@@ -362,7 +363,7 @@ export function speakToSession(
   session.say(cleanText, {
     allowInterruptions: options.allowInterruptions ?? true,
   });
-  
+
   if (debugTTS) {
     process.stderr.write(`  ⏱️ session.say() called: ${Date.now() - sayStart}ms\n`);
     process.stderr.write(`  ⏱️ Total TTS Gateway: ${Date.now() - startTime}ms\n`);
@@ -417,9 +418,7 @@ export function createStreamingPipeline(
       },
     });
 
-    return textStream
-      .pipeThrough(bufferTransform)
-      .pipeThrough(parseTransform);
+    return textStream.pipeThrough(bufferTransform).pipeThrough(parseTransform);
   };
 }
 

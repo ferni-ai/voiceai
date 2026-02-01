@@ -159,29 +159,29 @@ const FOLLOW_UP_SCHEDULE: FollowUpPrompt[] = [
     stage: 'immediate',
     daysAfterEvent: 1,
     questions: [
-      "How did it go overall?",
-      "What was the highlight?",
+      'How did it go overall?',
+      'What was the highlight?',
       "Any immediate regrets or things you'd change?",
-      "Who made the event special?",
+      'Who made the event special?',
     ],
   },
   {
     stage: 'one_week',
     daysAfterEvent: 7,
     questions: [
-      "Now that the dust has settled, how do you feel about the event?",
-      "What feedback have you gotten from guests?",
-      "Looking at the final numbers, any budget surprises?",
-      "If you could go back, what one thing would you change?",
+      'Now that the dust has settled, how do you feel about the event?',
+      'What feedback have you gotten from guests?',
+      'Looking at the final numbers, any budget surprises?',
+      'If you could go back, what one thing would you change?',
     ],
   },
   {
     stage: 'one_month',
     daysAfterEvent: 30,
     questions: [
-      "Looking back with fresh eyes, what stands out?",
-      "What would you tell someone planning a similar event?",
-      "Any traditions you want to continue from this?",
+      'Looking back with fresh eyes, what stands out?',
+      'What would you tell someone planning a similar event?',
+      'Any traditions you want to continue from this?',
       "What's your key takeaway?",
     ],
   },
@@ -198,7 +198,12 @@ async function loadLearningProfile(userId: string): Promise<PostEventLearningPro
   if (!db) return null;
 
   try {
-    const doc = await db.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile').get();
+    const doc = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection(COLLECTION)
+      .doc('profile')
+      .get();
     if (doc.exists) {
       return doc.data() as PostEventLearningProfile;
     }
@@ -209,7 +214,10 @@ async function loadLearningProfile(userId: string): Promise<PostEventLearningPro
   }
 }
 
-async function saveLearningProfile(userId: string, profile: PostEventLearningProfile): Promise<void> {
+async function saveLearningProfile(
+  userId: string,
+  profile: PostEventLearningProfile
+): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -270,14 +278,16 @@ export async function scheduleEventFollowUps(
 /**
  * Get follow-ups that are due
  */
-export async function getDueFollowUps(userId: string): Promise<Array<{
-  eventId: string;
-  eventName: string;
-  eventDate: string;
-  eventType: string;
-  stage: 'immediate' | 'one_week' | 'one_month';
-  questions: string[];
-}>> {
+export async function getDueFollowUps(userId: string): Promise<
+  Array<{
+    eventId: string;
+    eventName: string;
+    eventDate: string;
+    eventType: string;
+    stage: 'immediate' | 'one_week' | 'one_month';
+    questions: string[];
+  }>
+> {
   const profile = await loadLearningProfile(userId);
   if (!profile) return [];
 
@@ -322,11 +332,11 @@ export async function recordLearning(
 
   // Find or create learning record
   let existingIdx = profile.learnings.findIndex((l) => l.id === eventId);
-  
+
   if (existingIdx < 0) {
     // Get event info from pending
     const pending = profile.pendingFollowUps.find((p) => p.eventId === eventId);
-    
+
     const newLearning: EventLearning = {
       id: eventId,
       eventName: learning.eventName || pending?.eventName || 'Unknown Event',
@@ -374,7 +384,10 @@ export async function recordLearning(
     existing.whatToChange = [...existing.whatToChange, ...learning.whatToChange];
   }
   if (learning.unexpectedChallenges) {
-    existing.unexpectedChallenges = [...existing.unexpectedChallenges, ...learning.unexpectedChallenges];
+    existing.unexpectedChallenges = [
+      ...existing.unexpectedChallenges,
+      ...learning.unexpectedChallenges,
+    ];
   }
   if (learning.budgetLearnings) {
     existing.budgetLearnings = { ...existing.budgetLearnings, ...learning.budgetLearnings };
@@ -409,7 +422,7 @@ export async function recordLearning(
       const daysAfter = FOLLOW_UP_SCHEDULE.find((f) => f.stage === nextStage)?.daysAfterEvent || 7;
       const eventDateObj = new Date(profile.pendingFollowUps[pendingIdx].eventDate);
       const nextDue = new Date(eventDateObj.getTime() + daysAfter * 24 * 60 * 60 * 1000);
-      
+
       profile.pendingFollowUps[pendingIdx].nextFollowUp = {
         stage: nextStage,
         dueDate: nextDue.toISOString(),
@@ -519,7 +532,8 @@ export async function getLearningSummary(
     };
   }
 
-  const avgSatisfaction = relevantLearnings.reduce((sum, l) => sum + l.overallSatisfaction, 0) / relevantLearnings.length;
+  const avgSatisfaction =
+    relevantLearnings.reduce((sum, l) => sum + l.overallSatisfaction, 0) / relevantLearnings.length;
 
   // Aggregate what worked
   const workedCounts: Record<string, number> = {};
@@ -546,20 +560,27 @@ export async function getLearningSummary(
     .map(([item]) => item);
 
   // Budget trends
-  const budgetData = relevantLearnings
-    .filter((l) => l.budgetLearnings.plannedTotal > 0 && l.budgetLearnings.actualTotal > 0);
-  
+  const budgetData = relevantLearnings.filter(
+    (l) => l.budgetLearnings.plannedTotal > 0 && l.budgetLearnings.actualTotal > 0
+  );
+
   let budgetTrends = 'No budget data yet';
   if (budgetData.length > 0) {
-    const avgOverrun = budgetData.reduce((sum, l) => {
-      return sum + ((l.budgetLearnings.actualTotal - l.budgetLearnings.plannedTotal) / l.budgetLearnings.plannedTotal);
-    }, 0) / budgetData.length;
+    const avgOverrun =
+      budgetData.reduce((sum, l) => {
+        return (
+          sum +
+          (l.budgetLearnings.actualTotal - l.budgetLearnings.plannedTotal) /
+            l.budgetLearnings.plannedTotal
+        );
+      }, 0) / budgetData.length;
 
-    budgetTrends = avgOverrun > 0.1 
-      ? `You typically go ${Math.round(avgOverrun * 100)}% over budget`
-      : avgOverrun < -0.1
-        ? `You typically come in ${Math.round(Math.abs(avgOverrun) * 100)}% under budget`
-        : 'You typically stay close to budget';
+    budgetTrends =
+      avgOverrun > 0.1
+        ? `You typically go ${Math.round(avgOverrun * 100)}% over budget`
+        : avgOverrun < -0.1
+          ? `You typically come in ${Math.round(Math.abs(avgOverrun) * 100)}% under budget`
+          : 'You typically stay close to budget';
   }
 
   return {
@@ -585,7 +606,7 @@ export async function buildPostEventLearningContext(
   if (dueFollowUps.length > 0) {
     lines.push('[POST-EVENT FOLLOW-UP DUE - Better Than Human]');
     lines.push('You remember to follow up when humans forget:\n');
-    
+
     for (const followUp of dueFollowUps.slice(0, 2)) {
       lines.push(`📝 "${followUp.eventName}" - ${followUp.stage} follow-up`);
       lines.push(`   Questions to explore:`);
@@ -645,17 +666,25 @@ function createDefaultProfile(userId: string): PostEventLearningProfile {
   };
 }
 
-function getNextStage(current: 'immediate' | 'one_week' | 'one_month'): 'immediate' | 'one_week' | 'one_month' | null {
+function getNextStage(
+  current: 'immediate' | 'one_week' | 'one_month'
+): 'immediate' | 'one_week' | 'one_month' | null {
   switch (current) {
-    case 'immediate': return 'one_week';
-    case 'one_week': return 'one_month';
-    case 'one_month': return null;
+    case 'immediate':
+      return 'one_week';
+    case 'one_week':
+      return 'one_month';
+    case 'one_month':
+      return null;
   }
 }
 
-async function distillWisdom(profile: PostEventLearningProfile, learning: EventLearning): Promise<void> {
+async function distillWisdom(
+  profile: PostEventLearningProfile,
+  learning: EventLearning
+): Promise<void> {
   // Distill patterns from learnings into accumulated wisdom
-  
+
   // Add "what worked" items with high importance to wisdom
   for (const worked of learning.whatWorked.filter((w) => w.importance === 'major')) {
     const existingWisdom = profile.accumulatedWisdom.find(

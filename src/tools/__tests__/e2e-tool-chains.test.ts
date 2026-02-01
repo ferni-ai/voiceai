@@ -1034,8 +1034,8 @@ describe('E2E Better Than Human Mastery Tools', () => {
     const milestoneModule = await import('../domains/milestone-mastery/index.js');
     milestoneMasteryTools = await milestoneModule.getToolDefinitions();
 
-    const habitModule = await import('../domains/habit-persistence/index.js');
-    habitPersistenceTools = await habitModule.getToolDefinitions();
+    const habitModule = await import('../domains/habits/persistence.js');
+    habitPersistenceTools = habitModule.habitPersistenceTools;
 
     const timelessModule = await import('../domains/timeless-perspective/index.js');
     timelessPerspectiveTools = await timelessModule.getToolDefinitions();

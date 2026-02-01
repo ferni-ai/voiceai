@@ -91,15 +91,24 @@ export const HANDOFF_TRIGGERS: HandoffTrigger[] = [
     description: 'User expressing financial worries or investment questions',
     targetPersona: 'peter-john',
     patterns: [
-      { type: 'keyword', value: ['money', 'budget', 'invest', 'savings', 'debt', 'expense'], weight: 0.3 },
-      { type: 'keyword', value: ['portfolio', 'stocks', 'market', 'retirement', '401k'], weight: 0.5 },
+      {
+        type: 'keyword',
+        value: ['money', 'budget', 'invest', 'savings', 'debt', 'expense'],
+        weight: 0.3,
+      },
+      {
+        type: 'keyword',
+        value: ['portfolio', 'stocks', 'market', 'retirement', '401k'],
+        weight: 0.5,
+      },
       { type: 'topic', value: 'finance', weight: 0.4 },
       { type: 'emotion', value: 'anxiety', weight: 0.2 },
       { type: 'intent', value: 'advice_seeking', weight: 0.3 },
     ],
     confidenceThreshold: 0.6,
     urgency: 'medium',
-    briefingTemplate: 'User is discussing financial matters. Key concerns: {concerns}. Recent context: {context}',
+    briefingTemplate:
+      'User is discussing financial matters. Key concerns: {concerns}. Recent context: {context}',
     enabled: true,
   },
   {
@@ -108,13 +117,18 @@ export const HANDOFF_TRIGGERS: HandoffTrigger[] = [
     description: 'User worried about market conditions',
     targetPersona: 'peter-john',
     patterns: [
-      { type: 'keyword', value: ['crash', 'recession', 'downturn', 'losing money', 'bear market'], weight: 0.6 },
+      {
+        type: 'keyword',
+        value: ['crash', 'recession', 'downturn', 'losing money', 'bear market'],
+        weight: 0.6,
+      },
       { type: 'emotion', value: 'fear', weight: 0.4 },
       { type: 'topic', value: 'market', weight: 0.3 },
     ],
     confidenceThreshold: 0.5,
     urgency: 'high',
-    briefingTemplate: 'User expressing market anxiety. Need calm, data-driven reassurance. Context: {context}',
+    briefingTemplate:
+      'User expressing market anxiety. Need calm, data-driven reassurance. Context: {context}',
     enabled: true,
   },
 
@@ -125,14 +139,23 @@ export const HANDOFF_TRIGGERS: HandoffTrigger[] = [
     description: 'User wants to build or change habits',
     targetPersona: 'maya',
     patterns: [
-      { type: 'keyword', value: ['habit', 'routine', 'consistent', 'daily', 'morning', 'evening'], weight: 0.4 },
-      { type: 'keyword', value: ['discipline', 'willpower', 'motivation', 'stick to'], weight: 0.3 },
+      {
+        type: 'keyword',
+        value: ['habit', 'routine', 'consistent', 'daily', 'morning', 'evening'],
+        weight: 0.4,
+      },
+      {
+        type: 'keyword',
+        value: ['discipline', 'willpower', 'motivation', 'stick to'],
+        weight: 0.3,
+      },
       { type: 'intent', value: 'goal_setting', weight: 0.4 },
       { type: 'topic', value: 'self_improvement', weight: 0.3 },
     ],
     confidenceThreshold: 0.5,
     urgency: 'low',
-    briefingTemplate: 'User interested in habit building. Focus areas: {areas}. Current challenges: {challenges}',
+    briefingTemplate:
+      'User interested in habit building. Focus areas: {areas}. Current challenges: {challenges}',
     enabled: true,
   },
   {
@@ -141,13 +164,18 @@ export const HANDOFF_TRIGGERS: HandoffTrigger[] = [
     description: 'User at risk of breaking important streak',
     targetPersona: 'maya',
     patterns: [
-      { type: 'keyword', value: ['broke my streak', 'missed', 'failed', 'gave up', 'can\'t do this'], weight: 0.6 },
+      {
+        type: 'keyword',
+        value: ['broke my streak', 'missed', 'failed', 'gave up', "can't do this"],
+        weight: 0.6,
+      },
       { type: 'emotion', value: 'disappointment', weight: 0.3 },
       { type: 'emotion', value: 'frustration', weight: 0.3 },
     ],
     confidenceThreshold: 0.5,
     urgency: 'high',
-    briefingTemplate: 'User experiencing habit setback. Need compassionate reframing. Streak info: {streak}',
+    briefingTemplate:
+      'User experiencing habit setback. Need compassionate reframing. Streak info: {streak}',
     enabled: true,
   },
   {
@@ -156,13 +184,18 @@ export const HANDOFF_TRIGGERS: HandoffTrigger[] = [
     description: 'User showing signs of burnout',
     targetPersona: 'maya',
     patterns: [
-      { type: 'keyword', value: ['exhausted', 'burnout', 'overwhelmed', 'can\'t keep up', 'too much'], weight: 0.5 },
+      {
+        type: 'keyword',
+        value: ['exhausted', 'burnout', 'overwhelmed', "can't keep up", 'too much'],
+        weight: 0.5,
+      },
       { type: 'keyword', value: ['no energy', 'drained', 'running on empty'], weight: 0.4 },
       { type: 'emotion', value: 'exhaustion', weight: 0.4 },
     ],
     confidenceThreshold: 0.5,
     urgency: 'high',
-    briefingTemplate: 'User showing burnout signals. Prioritize rest and boundaries. Signs: {signs}',
+    briefingTemplate:
+      'User showing burnout signals. Prioritize rest and boundaries. Signs: {signs}',
     enabled: true,
   },
 
@@ -173,14 +206,23 @@ export const HANDOFF_TRIGGERS: HandoffTrigger[] = [
     description: 'User preparing for hard conversation',
     targetPersona: 'alex',
     patterns: [
-      { type: 'keyword', value: ['talk to', 'tell them', 'confront', 'bring up', 'discuss with'], weight: 0.3 },
-      { type: 'keyword', value: ['difficult conversation', 'hard to say', 'don\'t know how to'], weight: 0.5 },
+      {
+        type: 'keyword',
+        value: ['talk to', 'tell them', 'confront', 'bring up', 'discuss with'],
+        weight: 0.3,
+      },
+      {
+        type: 'keyword',
+        value: ['difficult conversation', 'hard to say', "don't know how to"],
+        weight: 0.5,
+      },
       { type: 'topic', value: 'communication', weight: 0.3 },
       { type: 'emotion', value: 'nervous', weight: 0.2 },
     ],
     confidenceThreshold: 0.5,
     urgency: 'medium',
-    briefingTemplate: 'User preparing for difficult conversation. Target: {target}. Key points to cover: {points}',
+    briefingTemplate:
+      'User preparing for difficult conversation. Target: {target}. Key points to cover: {points}',
     enabled: true,
   },
   {
@@ -204,14 +246,19 @@ export const HANDOFF_TRIGGERS: HandoffTrigger[] = [
     description: 'User dealing with interpersonal conflict',
     targetPersona: 'alex',
     patterns: [
-      { type: 'keyword', value: ['argument', 'fight', 'conflict', 'disagreement', 'tension'], weight: 0.5 },
+      {
+        type: 'keyword',
+        value: ['argument', 'fight', 'conflict', 'disagreement', 'tension'],
+        weight: 0.5,
+      },
       { type: 'keyword', value: ['not speaking', 'angry at', 'upset with'], weight: 0.4 },
       { type: 'emotion', value: 'anger', weight: 0.2 },
       { type: 'emotion', value: 'hurt', weight: 0.2 },
     ],
     confidenceThreshold: 0.5,
     urgency: 'medium',
-    briefingTemplate: 'User in conflict situation. Parties involved: {parties}. Core issue: {issue}',
+    briefingTemplate:
+      'User in conflict situation. Parties involved: {parties}. Core issue: {issue}',
     enabled: true,
   },
 
@@ -222,13 +269,22 @@ export const HANDOFF_TRIGGERS: HandoffTrigger[] = [
     description: 'User planning significant event',
     targetPersona: 'jordan',
     patterns: [
-      { type: 'keyword', value: ['planning', 'event', 'party', 'celebration', 'organize'], weight: 0.4 },
-      { type: 'keyword', value: ['wedding', 'birthday', 'anniversary', 'reunion', 'graduation'], weight: 0.5 },
+      {
+        type: 'keyword',
+        value: ['planning', 'event', 'party', 'celebration', 'organize'],
+        weight: 0.4,
+      },
+      {
+        type: 'keyword',
+        value: ['wedding', 'birthday', 'anniversary', 'reunion', 'graduation'],
+        weight: 0.5,
+      },
       { type: 'topic', value: 'planning', weight: 0.3 },
     ],
     confidenceThreshold: 0.5,
     urgency: 'low',
-    briefingTemplate: 'User planning event. Type: {eventType}. Date: {date}. Key priorities: {priorities}',
+    briefingTemplate:
+      'User planning event. Type: {eventType}. Date: {date}. Key priorities: {priorities}',
     enabled: true,
   },
   {
@@ -237,8 +293,16 @@ export const HANDOFF_TRIGGERS: HandoffTrigger[] = [
     description: 'User wants to set or review goals',
     targetPersona: 'jordan',
     patterns: [
-      { type: 'keyword', value: ['goal', 'target', 'resolution', 'want to achieve', 'dream of'], weight: 0.4 },
-      { type: 'keyword', value: ['this year', 'next month', 'by the end of', 'plan to'], weight: 0.3 },
+      {
+        type: 'keyword',
+        value: ['goal', 'target', 'resolution', 'want to achieve', 'dream of'],
+        weight: 0.4,
+      },
+      {
+        type: 'keyword',
+        value: ['this year', 'next month', 'by the end of', 'plan to'],
+        weight: 0.3,
+      },
       { type: 'intent', value: 'goal_setting', weight: 0.5 },
     ],
     confidenceThreshold: 0.5,
@@ -252,13 +316,22 @@ export const HANDOFF_TRIGGERS: HandoffTrigger[] = [
     description: 'User going through major life change',
     targetPersona: 'jordan',
     patterns: [
-      { type: 'keyword', value: ['moving', 'new job', 'getting married', 'having a baby', 'retiring'], weight: 0.5 },
-      { type: 'keyword', value: ['big change', 'new chapter', 'next phase', 'turning point'], weight: 0.4 },
+      {
+        type: 'keyword',
+        value: ['moving', 'new job', 'getting married', 'having a baby', 'retiring'],
+        weight: 0.5,
+      },
+      {
+        type: 'keyword',
+        value: ['big change', 'new chapter', 'next phase', 'turning point'],
+        weight: 0.4,
+      },
       { type: 'topic', value: 'life_transition', weight: 0.4 },
     ],
     confidenceThreshold: 0.5,
     urgency: 'medium',
-    briefingTemplate: 'User in life transition. Type: {transitionType}. Concerns: {concerns}. Support needed: {support}',
+    briefingTemplate:
+      'User in life transition. Type: {transitionType}. Concerns: {concerns}. Support needed: {support}',
     enabled: true,
   },
 
@@ -269,14 +342,19 @@ export const HANDOFF_TRIGGERS: HandoffTrigger[] = [
     description: 'User asking deep life questions',
     targetPersona: 'nayan',
     patterns: [
-      { type: 'keyword', value: ['meaning', 'purpose', 'why am I', 'what\'s the point', 'existence'], weight: 0.5 },
+      {
+        type: 'keyword',
+        value: ['meaning', 'purpose', 'why am I', "what's the point", 'existence'],
+        weight: 0.5,
+      },
       { type: 'keyword', value: ['life', 'death', 'legacy', 'matter', 'difference'], weight: 0.3 },
       { type: 'topic', value: 'philosophy', weight: 0.4 },
       { type: 'emotion', value: 'contemplative', weight: 0.3 },
     ],
     confidenceThreshold: 0.5,
     urgency: 'low',
-    briefingTemplate: 'User in reflective state. Questions arising: {questions}. Emotional tone: {tone}',
+    briefingTemplate:
+      'User in reflective state. Questions arising: {questions}. Emotional tone: {tone}',
     enabled: true,
   },
   {
@@ -285,14 +363,19 @@ export const HANDOFF_TRIGGERS: HandoffTrigger[] = [
     description: 'User dealing with loss',
     targetPersona: 'nayan',
     patterns: [
-      { type: 'keyword', value: ['loss', 'died', 'passed away', 'grief', 'mourning', 'miss them'], weight: 0.6 },
-      { type: 'keyword', value: ['funeral', 'memorial', 'gone', 'can\'t believe'], weight: 0.4 },
+      {
+        type: 'keyword',
+        value: ['loss', 'died', 'passed away', 'grief', 'mourning', 'miss them'],
+        weight: 0.6,
+      },
+      { type: 'keyword', value: ['funeral', 'memorial', 'gone', "can't believe"], weight: 0.4 },
       { type: 'emotion', value: 'grief', weight: 0.5 },
       { type: 'emotion', value: 'sadness', weight: 0.3 },
     ],
     confidenceThreshold: 0.4,
     urgency: 'immediate',
-    briefingTemplate: 'User processing grief. Loss: {loss}. Stage indicators: {stage}. Approach: gentle presence',
+    briefingTemplate:
+      'User processing grief. Loss: {loss}. Stage indicators: {stage}. Approach: gentle presence',
     enabled: true,
   },
   {
@@ -301,13 +384,22 @@ export const HANDOFF_TRIGGERS: HandoffTrigger[] = [
     description: 'User exploring spirituality',
     targetPersona: 'nayan',
     patterns: [
-      { type: 'keyword', value: ['spiritual', 'faith', 'believe', 'god', 'universe', 'soul'], weight: 0.4 },
-      { type: 'keyword', value: ['meditation', 'prayer', 'practice', 'connection', 'transcend'], weight: 0.3 },
+      {
+        type: 'keyword',
+        value: ['spiritual', 'faith', 'believe', 'god', 'universe', 'soul'],
+        weight: 0.4,
+      },
+      {
+        type: 'keyword',
+        value: ['meditation', 'prayer', 'practice', 'connection', 'transcend'],
+        weight: 0.3,
+      },
       { type: 'topic', value: 'spirituality', weight: 0.5 },
     ],
     confidenceThreshold: 0.5,
     urgency: 'low',
-    briefingTemplate: 'User on spiritual exploration. Background: {background}. Current questions: {questions}',
+    briefingTemplate:
+      'User on spiritual exploration. Background: {background}. Current questions: {questions}',
     enabled: true,
   },
 ];
@@ -382,7 +474,9 @@ function evaluateTrigger(
     const isMatch = evaluatePattern(pattern, context);
     if (isMatch) {
       matchedWeight += pattern.weight;
-      matchedPatterns.push(`${pattern.type}:${Array.isArray(pattern.value) ? pattern.value.join(',') : pattern.value}`);
+      matchedPatterns.push(
+        `${pattern.type}:${Array.isArray(pattern.value) ? pattern.value.join(',') : pattern.value}`
+      );
     }
   }
 
@@ -640,10 +734,7 @@ function determineTone(context: ConversationContext): string {
 
 function extractParties(transcript: string): string {
   // Very simple extraction
-  const patterns = [
-    /between (?:me and |myself and )?([^.]+)/i,
-    /with (?:my )?([a-z]+)/i,
-  ];
+  const patterns = [/between (?:me and |myself and )?([^.]+)/i, /with (?:my )?([a-z]+)/i];
 
   for (const pattern of patterns) {
     const match = transcript.match(pattern);
@@ -654,11 +745,7 @@ function extractParties(transcript: string): string {
 }
 
 function extractCoreIssue(transcript: string): string {
-  const issuePatterns = [
-    /about ([^.]+)/i,
-    /because ([^.]+)/i,
-    /issue is ([^.]+)/i,
-  ];
+  const issuePatterns = [/about ([^.]+)/i, /because ([^.]+)/i, /issue is ([^.]+)/i];
 
   for (const pattern of issuePatterns) {
     const match = transcript.match(pattern);
@@ -669,7 +756,15 @@ function extractCoreIssue(transcript: string): string {
 }
 
 function extractEventType(transcript: string): string {
-  const events = ['wedding', 'birthday', 'anniversary', 'graduation', 'party', 'reunion', 'celebration'];
+  const events = [
+    'wedding',
+    'birthday',
+    'anniversary',
+    'graduation',
+    'party',
+    'reunion',
+    'celebration',
+  ];
   const lower = transcript.toLowerCase();
 
   for (const event of events) {

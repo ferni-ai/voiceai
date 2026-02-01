@@ -216,17 +216,14 @@ export async function postToDiscordBot(
       contentLength: post.content.length,
     });
 
-    const response = await fetch(
-      `${DISCORD_API_BASE}/channels/${credentials.channelId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bot ${credentials.botToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+    const response = await fetch(`${DISCORD_API_BASE}/channels/${credentials.channelId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bot ${credentials.botToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();

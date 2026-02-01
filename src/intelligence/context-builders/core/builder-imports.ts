@@ -21,7 +21,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   crisis: async () => import('../safety/crisis.js'),
   'wellbeing-context': async () => import('../safety/wellbeing-context.js'),
   'principal-alignment': async () => import('../safety/principal-alignment.js'),
-  'honesty-guardrail': async () => import('../safety/honesty-guardrail.js'),
+  // 'honesty-guardrail' removed - not in BUILDER_MANIFEST (orphaned)
 
   // ============================================================================
   // EMOTIONAL (in emotional/)
@@ -32,13 +32,14 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'somatic-context': async () => import('../emotional/somatic-context.js'),
   'emotional-range-modes': async () => import('../emotional/emotional-range-modes.js'),
   'human-listening': async () => import('../emotional/human-listening.js'),
-  'energy-mirroring': async () => import('../emotional/energy-mirroring.js'),
-  'energy-awareness': async () => import('../emotional/energy-awareness.js'),
   'energy-matcher': async () => import('../emotional/energy-matcher.js'), // Deep Human: JSON-based energy matching
   'laughter-contagion': async () => import('../emotional/laughter-contagion.js'), // Deep Human: Natural laughter joining
+  // 'energy-mirroring' removed - consolidated into unified-humanizing
+  // 'energy-awareness' removed - consolidated into unified-humanizing
   // Ferni 100% Wiring - Emotional (January 2026)
   'affirmation-context': async () => import('../emotional/affirmation-context.js'),
   'breath-context': async () => import('../emotional/breath-context.js'),
+  'emotional-intelligence-context': async () => import('../emotional/emotional-intelligence-context.js'),
 
   // ============================================================================
   // VOICE (in emotional/)
@@ -53,11 +54,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // MEMORY (in memory/)
   // ============================================================================
   'superhuman-session-priming': async () => import('../superhuman/superhuman-session-priming.js'),
-  memory: async () => import('../memory/memory.js'),
-  'advanced-memory': async () => import('../memory/advanced-memory.js'),
-  'proactive-memory': async () => import('../memory/proactive-memory.js'),
+  // 'memory', 'advanced-memory', 'proactive-memory', 'human-memory' removed - consolidated into unified-memory-orchestrator
   'persona-memory': async () => import('../personas/persona-memory.js'),
-  'human-memory': async () => import('../memory/human-memory.js'),
   'conversation-recap': async () => import('../session/conversation-recap.js'),
   'cross-session-reflection': async () => import('../session/cross-session-reflection.js'),
   'cross-session-threading': async () => import('../session/cross-session-threading.js'),
@@ -66,7 +64,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'thinking-of-you': async () => import('../memory/thinking-of-you.js'),
   'memory-enhancement': async () => import('../memory/memory-enhancement.js'),
   'better-than-human-memory': async () => import('../memory/better-than-human-memory.js'),
-  'unified-knowledge': async () => import('../memory/unified-knowledge-context.js'),
+  // 'unified-knowledge' removed - not in BUILDER_MANIFEST (orphaned)
   'generated-insights': async () => import('../superhuman/generated-insights.js'),
   rag: async () => import('../memory/rag.js'),
 
@@ -94,8 +92,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'spontaneous-vulnerability': async () => import('../personas/spontaneous-vulnerability.js'),
   'physical-presence': async () => import('../personas/physical-presence.js'),
   'lovable-presence': async () => import('../personas/lovable-presence.js'),
-  'mortality-perspective': async () => import('../personas/mortality-perspective.js'),
-  'dynamic-backstory': async () => import('../personas/backstory-context.js'),
+  // 'mortality-perspective' removed - not in BUILDER_MANIFEST (orphaned)
+  // 'dynamic-backstory' removed - not in BUILDER_MANIFEST (orphaned)
   'deep-human-orchestrator': async () => import('../personas/deep-human-orchestrator.js'), // Deep Human: Better Than Human bonding
   'secret-mode-detector': async () => import('../personas/secret-mode-detector.js'), // Deep Human: Contextual personality modes
   // Ferni 100% Wiring - Character Voice (January 2026)
@@ -104,11 +102,13 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'humor-context': async () => import('../personas/humor-context.js'),
   'pet-peeve-context': async () => import('../personas/pet-peeve-context.js'),
   'coaching-mode-context': async () => import('../personas/coaching-mode-context.js'),
+  'outreach-voice-context': async () => import('../personas/outreach-voice-context.js'),
+  'team-coordination-context': async () => import('../personas/team-coordination-context.js'),
 
   // ============================================================================
   // INTELLIGENCE (in intelligence/) - "Better Than Human" capabilities
   // ============================================================================
-  'personality-v2': async () => import('../personality-v2.js'), // SUPERHUMAN personality intelligence
+  'personality-context': async () => import('../personality-context.js'), // SUPERHUMAN personality intelligence
   'better-than-human-direct': async () => import('../superhuman/better-than-human-direct.js'),
   'conversational-superpowers': async () => import('../superhuman/conversational-superpowers.js'),
   'alive-awareness': async () => import('../awareness/alive-awareness.js'),
@@ -120,7 +120,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'deep-understanding': async () => import('../intelligence/deep-understanding.js'),
   'life-context-synthesis': async () => import('../intelligence/life-context-synthesis.js'),
   'unified-intelligence': async () => import('../intelligence/unified-intelligence-context.js'),
-  'sec-intelligence': async () => import('../intelligence/sec-intelligence.js'),
+  // 'sec-intelligence' removed - not in BUILDER_MANIFEST (orphaned)
   'prediction-surfacing': async () => import('../intelligence/prediction-intelligence.js'),
   'semantic-intent-guidance': async () => import('../intelligence/semantic-intent-guidance.js'),
   // Ferni 100% Wiring - Intelligence (January 2026)
@@ -147,8 +147,15 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'superhuman-insights': async () => import('../superhuman/superhuman-insights.js'),
   'semantic-intelligence-integration': async () =>
     import('../superhuman/semantic-intelligence-integration.js'),
-  'superhuman-integration': async () => import('../superhuman/superhuman-integration.js'),
+  // 'superhuman-integration' removed - not in BUILDER_MANIFEST (orphaned)
   'memory-lane': async () => import('../superhuman/memory-lane-context.js'),
+  // Phase 2 Wiring (January 2026) - New superhuman context builders
+  'observation-patterns': async () => import('../superhuman/observation-patterns-context.js'),
+  'unified-knowledge': async () => import('../superhuman/unified-knowledge-context.js'),
+  'relationship-health': async () => import('../superhuman/relationship-health-context.js'),
+  'user-corrections': async () => import('../superhuman/user-corrections-context.js'),
+  'commitment-calendar': async () => import('../superhuman/commitment-calendar-context.js'),
+  'relational-memory': async () => import('../superhuman/relational-memory-context.js'),
 
   // ============================================================================
   // ENGAGEMENT (in engagement/)
@@ -160,8 +167,11 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   music: async () => import('../engagement/music.js'),
   'music-emotion-offers': async () => import('../engagement/music-emotion-offers.js'),
   'daily-rituals': async () => import('../engagement/daily-rituals.js'),
-  'referral-prompt': async () => import('../engagement/referral-prompt.js'),
+  // 'referral-prompt' removed - not in BUILDER_MANIFEST (orphaned)
   'ceo-coaching-context': async () => import('../engagement/ceo-coaching-context.js'),
+  // WIRED (Jan 2026): New persona-shared content builders
+  'relationship-building-context': async () => import('../engagement/relationship-building-context.js'),
+  'shared-content': async () => import('../engagement/shared-content.js'),
 
   // ============================================================================
   // TEAM (in team/)
@@ -187,7 +197,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   personal: async () => import('../session/personal-context.js'),
   'meta-conversation': async () => import('../session/meta-conversation.js'),
   tasks: async () => import('../session/tasks-context.js'),
-  'thread-context': async () => import('../session/thread-context.js'),
+  // 'thread-context' removed - not in BUILDER_MANIFEST (orphaned)
 
   // ============================================================================
   // AWARENESS (in awareness/)
@@ -209,7 +219,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'revelation-awareness': async () => import('../awareness/revelation-awareness.js'),
   // E2E Integration: Captured data, emotional trajectory, session gap, and tool failure
   'captured-data-awareness': async () => import('../awareness/captured-data-awareness.js'),
-  'emotional-trajectory-awareness': async () => import('../awareness/emotional-trajectory-awareness.js'),
+  'emotional-trajectory-awareness': async () =>
+    import('../awareness/emotional-trajectory-awareness.js'),
   'session-gap-awareness': async () => import('../awareness/session-gap-awareness.js'),
   'tool-failure-awareness': async () => import('../awareness/tool-failure-awareness.js'),
   // Routine awareness: "What I Do For You" automated routines
@@ -224,6 +235,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // ============================================================================
   'backchannel-context': async () => import('../conversational/backchannel-context.js'),
   'goodbye-context': async () => import('../conversational/goodbye-context.js'),
+  'silence-context': async () => import('../conversational/silence-context.js'),
 
   // ============================================================================
   // EXTERNAL (in external/)
@@ -238,7 +250,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'proactive-session-context': async () => import('../external/proactive-session-context.js'),
   'family-messages-context': async () => import('../external/family-messages-context.js'),
   'family-awareness-context': async () => import('../external/family-awareness-context.js'),
-  'pending-call-results': async () => import('../external/pending-call-results.js'),
+  // 'pending-call-results' removed - not in BUILDER_MANIFEST (orphaned)
 
   // ============================================================================
   // RELATIONSHIP (in relationship/)
@@ -249,7 +261,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'callback-opportunities': async () => import('../relationship/callback-opportunities.js'),
   'deep-relationship': async () => import('../relationship/deep-relationship.js'),
   'social-relationships': async () => import('../relationship/social-relationships.js'),
-  'social-graph-context': async () => import('../relationship/social-graph-context.js'),
+  // 'social-graph-context' removed - not in BUILDER_MANIFEST (orphaned)
   // Relationship Arc (in relationship/arc/)
   'first-meeting-magic': async () => import('../relationship/arc/first-meeting-magic.js'),
   'acquaintance-deepening': async () => import('../relationship/arc/acquaintance-deepening.js'),
@@ -261,11 +273,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // ============================================================================
   'dynamic-speech-guidance': async () => import('../humanization/dynamic-speech-guidance.js'),
   'unified-humanizing': async () => import('../humanization/unified-humanizing.js'),
-  humanizing: async () => import('../humanization/humanizing.js'),
-  'deep-humanization': async () => import('../humanization/deep-humanization.js'),
-  'conversation-humanizing': async () => import('../humanization/conversation-humanizing.js'),
-  'natural-uncertainty': async () => import('../humanization/natural-uncertainty.js'),
-  'response-length': async () => import('../humanization/response-length.js'),
+  // 'humanizing', 'deep-humanization', 'conversation-humanizing', 'natural-uncertainty', 'response-length' removed
+  // These are consolidated into unified-humanizing
   'tool-humanization': async () => import('../humanization/tool-humanization.js'),
   'conversational-imperfections': async () =>
     import('../humanization/conversational-imperfections.js'),
@@ -276,6 +285,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // ============================================================================
   'community-learning': async () => import('../learning/community-learning.js'),
   'wisdom-synthesis': async () => import('../learning/wisdom-synthesis.js'),
+  'cross-persona-learning': async () => import('../learning/cross-persona-learning.js'), // WIRED (Jan 2026)
 
   // ============================================================================
   // PREDICTIVE (in proactive/)

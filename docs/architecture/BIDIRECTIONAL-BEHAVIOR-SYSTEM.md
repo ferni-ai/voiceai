@@ -23,7 +23,7 @@ All components have been implemented and tested end-to-end:
 
 | Integration | File | Status |
 |-------------|------|--------|
-| AliveOrchestrator → Behavior | `src/services/alive-orchestrator.ts` | ✅ Complete |
+| AliveOrchestrator → Behavior | `src/services/alive-orchestrator.ts` (removed) | ✅ Complete (consolidated) |
 | Advanced Humanization Loader | `src/personas/bundles/advanced-humanization-loader.ts` | ✅ Complete |
 | Shared Persona Personality | `src/personas/shared/persona-turn-personality.ts` | ✅ Complete |
 | E2E Test Suite | `src/tests/behavior-system-e2e.test.ts` | ✅ Complete |

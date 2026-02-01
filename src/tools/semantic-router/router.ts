@@ -366,7 +366,9 @@ export class SemanticRouter {
   ): Promise<SemanticRouterResult> {
     // Check if coalescing should be used
     // Only coalesce when there's no conversation history (first turn) to avoid context conflicts
-    const shouldCoalesce = ENABLE_ROUTER_COALESCING && (!context?.conversationHistory || context.conversationHistory.length === 0);
+    const shouldCoalesce =
+      ENABLE_ROUTER_COALESCING &&
+      (!context?.conversationHistory || context.conversationHistory.length === 0);
 
     if (shouldCoalesce) {
       const coalesceKey = getRoutingCoalesceKey(inputText, context?.personaId);

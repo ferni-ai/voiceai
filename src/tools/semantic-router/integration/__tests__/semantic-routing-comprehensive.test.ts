@@ -29,11 +29,7 @@ vi.mock('../../../../utils/safe-logger.js', () => ({
 }));
 
 // Import after mocks
-import {
-  initializeSemanticRouter,
-  resetSemanticRouter,
-  isSemanticRouterInitialized,
-} from '../init.js';
+import { initializeSemanticRouter, resetSemanticRouter } from '../init.js';
 import {
   startSemanticRouting,
   applyRoutingResult,
@@ -43,7 +39,6 @@ import {
   resetRoutingOverride,
 } from '../turn-processor-integration.js';
 import { isSemanticRoutingEnabled } from '../transcript-integration.js';
-import { getToolRegistry } from '../../registry.js';
 import type { RoutingContext } from '../turn-processor-integration.js';
 
 describe('Semantic Router Comprehensive E2E', () => {
@@ -571,16 +566,55 @@ describe('Semantic Router Performance', () => {
     vi.clearAllMocks();
   });
 
-  // TODO: This test is flaky due to system load variations - latency can spike to 300ms+
-  // In production, actual latency is monitored via performance-metrics service
-  it.skip('should route within acceptable latency (<100ms for simple queries)', async () => {
-    const start = performance.now();
-    await startSemanticRouting('play music', baseContext);
-    const elapsed = performance.now() - start;
+  /**
+   * Latency benchmark test with proper warmup and percentile thresholds.
+   * Targets from Phase 2 plan: P50 < 30ms, P95 < 100ms, P99 < 200ms
+   */
+  it('should route within acceptable latency thresholds', async () => {
+    // Warmup phase - JIT compilation and cache priming
+    const warmupQueries = ['play music', 'pause', 'skip'];
+    for (const query of warmupQueries) {
+      await startSemanticRouting(query, baseContext);
+    }
 
-    // Simple pattern match should be fast
-    expect(elapsed).toBeLessThan(100);
-  });
+    // Benchmark phase - measure actual latencies
+    const benchmarkQueries = [
+      'play music',
+      'talk to Maya',
+      'pause',
+      'skip',
+      'what is the weather',
+      'set a reminder',
+      'play some jazz',
+      'help with habits',
+      'check my calendar',
+      'transfer to Peter',
+    ];
+
+    const latencies: number[] = [];
+    for (const query of benchmarkQueries) {
+      const start = performance.now();
+      await startSemanticRouting(query, baseContext);
+      latencies.push(performance.now() - start);
+    }
+
+    // Sort for percentile calculation
+    latencies.sort((a, b) => a - b);
+
+    const p50 = latencies[Math.floor(latencies.length * 0.5)];
+    const p95 = latencies[Math.floor(latencies.length * 0.95)];
+    const p99 = latencies[Math.floor(latencies.length * 0.99)] || latencies[latencies.length - 1];
+
+    // Log for debugging CI failures
+    // eslint-disable-next-line no-console
+    console.log(`Latency: P50=${p50.toFixed(1)}ms, P95=${p95.toFixed(1)}ms, P99=${p99.toFixed(1)}ms`);
+
+    // Relaxed thresholds for CI (actual prod targets: 30/100/200)
+    // CI environments have variable load, so we use 2x multiplier
+    expect(p50).toBeLessThan(60); // Target: 30ms
+    expect(p95).toBeLessThan(200); // Target: 100ms
+    expect(p99).toBeLessThan(400); // Target: 200ms
+  }, 30000); // 30s timeout for warmup + benchmark
 
   it('should handle concurrent routing requests', async () => {
     const queries = ['play music', 'talk to Maya', 'pause', 'skip', 'I need help with habits'];

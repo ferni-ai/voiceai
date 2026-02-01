@@ -2,11 +2,11 @@
   "$schema": "../tool.schema.json",
   "domain": "wisdom",
   "persona": "nayan",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "tools": [
     {
       "name": "reflectOn",
-      "description": "Guide reflection on a topic from a wisdom perspective. Nayan offers philosophical depth and helps find meaning.",
+      "description": "Guide reflection on a topic from a wisdom perspective. Nayan offers philosophical depth and helps find meaning.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks for reflection, philosophical perspective, or wants to think deeply about a topic.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -23,15 +23,24 @@
         "required": ["topic"]
       },
       "examples": [
-        { "userSays": "Help me reflect on my purpose", "output": "{\"fn\":\"reflectOn\",\"args\":{\"topic\":\"purpose\"}}" },
-        { "userSays": "I'm struggling with change", "output": "{\"fn\":\"reflectOn\",\"args\":{\"topic\":\"change and impermanence\"}}" },
-        { "userSays": "What's the stoic take on failure?", "output": "{\"fn\":\"reflectOn\",\"args\":{\"topic\":\"failure\",\"tradition\":\"stoic\"}}" }
+        {
+          "userSays": "Help me reflect on my purpose",
+          "output": "{\"fn\":\"reflectOn\",\"args\":{\"topic\":\"purpose\"}}"
+        },
+        {
+          "userSays": "I'm struggling with change",
+          "output": "{\"fn\":\"reflectOn\",\"args\":{\"topic\":\"change and impermanence\"}}"
+        },
+        {
+          "userSays": "What's the stoic take on failure?",
+          "output": "{\"fn\":\"reflectOn\",\"args\":{\"topic\":\"failure\",\"tradition\":\"stoic\"}}"
+        }
       ],
       "tags": ["wisdom", "philosophy", "reflection"]
     },
     {
       "name": "findMeaning",
-      "description": "Help find meaning in a situation or experience. Nayan reframes challenges as growth opportunities.",
+      "description": "Help find meaning in a situation or experience. Nayan reframes challenges as growth opportunities.\n\n**Invocation Condition:** Invoke this tool *only when* the user is struggling to understand a difficult situation and asks 'why' or seeks meaning in an experience.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -43,15 +52,24 @@
         "required": ["situation"]
       },
       "examples": [
-        { "userSays": "Why did this happen to me?", "output": "{\"fn\":\"findMeaning\",\"args\":{\"situation\":\"[user's situation]\"}}" },
-        { "userSays": "Help me understand this setback", "output": "{\"fn\":\"findMeaning\",\"args\":{\"situation\":\"setback\"}}" },
-        { "userSays": "What's the lesson in this?", "output": "{\"fn\":\"findMeaning\",\"args\":{\"situation\":\"[context]\"}}" }
+        {
+          "userSays": "Why did this happen to me?",
+          "output": "{\"fn\":\"findMeaning\",\"args\":{\"situation\":\"[user's situation]\"}}"
+        },
+        {
+          "userSays": "Help me understand this setback",
+          "output": "{\"fn\":\"findMeaning\",\"args\":{\"situation\":\"setback\"}}"
+        },
+        {
+          "userSays": "What's the lesson in this?",
+          "output": "{\"fn\":\"findMeaning\",\"args\":{\"situation\":\"[context]\"}}"
+        }
       ],
       "tags": ["wisdom", "meaning", "growth"]
     },
     {
       "name": "guidedMeditation",
-      "description": "Lead a brief guided meditation or mindfulness exercise.",
+      "description": "Lead a brief guided meditation or mindfulness exercise.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks for a meditation, breathing exercise, or mindfulness practice.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -73,15 +91,24 @@
         "required": []
       },
       "examples": [
-        { "userSays": "Guide me through a meditation", "output": "{\"fn\":\"guidedMeditation\",\"args\":{\"type\":\"breathing\",\"duration\":\"5min\"}}" },
-        { "userSays": "Quick breathing exercise", "output": "{\"fn\":\"guidedMeditation\",\"args\":{\"type\":\"breathing\",\"duration\":\"1min\"}}" },
-        { "userSays": "Lead a gratitude meditation", "output": "{\"fn\":\"guidedMeditation\",\"args\":{\"type\":\"gratitude\",\"duration\":\"5min\"}}" }
+        {
+          "userSays": "Guide me through a meditation",
+          "output": "{\"fn\":\"guidedMeditation\",\"args\":{\"type\":\"breathing\",\"duration\":\"5min\"}}"
+        },
+        {
+          "userSays": "Quick breathing exercise",
+          "output": "{\"fn\":\"guidedMeditation\",\"args\":{\"type\":\"breathing\",\"duration\":\"1min\"}}"
+        },
+        {
+          "userSays": "Lead a gratitude meditation",
+          "output": "{\"fn\":\"guidedMeditation\",\"args\":{\"type\":\"gratitude\",\"duration\":\"5min\"}}"
+        }
       ],
       "tags": ["meditation", "mindfulness", "wellness"]
     },
     {
       "name": "exploreValues",
-      "description": "Help explore and clarify personal values.",
+      "description": "Help explore and clarify personal values.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks about their values, what matters to them, or wants to explore what they prioritize in life.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -93,15 +120,24 @@
         "required": []
       },
       "examples": [
-        { "userSays": "What do I really value?", "output": "{\"fn\":\"exploreValues\",\"args\":{}}" },
-        { "userSays": "Help me figure out what matters in my career", "output": "{\"fn\":\"exploreValues\",\"args\":{\"context\":\"career\"}}" },
-        { "userSays": "I'm not sure what I want in life", "output": "{\"fn\":\"exploreValues\",\"args\":{\"context\":\"life direction\"}}" }
+        {
+          "userSays": "What do I really value?",
+          "output": "{\"fn\":\"exploreValues\",\"args\":{}}"
+        },
+        {
+          "userSays": "Help me figure out what matters in my career",
+          "output": "{\"fn\":\"exploreValues\",\"args\":{\"context\":\"career\"}}"
+        },
+        {
+          "userSays": "I'm not sure what I want in life",
+          "output": "{\"fn\":\"exploreValues\",\"args\":{\"context\":\"life direction\"}}"
+        }
       ],
       "tags": ["values", "philosophy", "self-discovery"]
     },
     {
       "name": "shareWisdom",
-      "description": "Share relevant wisdom, quotes, or philosophical insights on a topic.",
+      "description": "Share relevant wisdom, quotes, or philosophical insights on a topic.\n\n**Invocation Condition:** Invoke this tool *only when* the user explicitly asks for wisdom, quotes, or philosophical insights on a specific topic.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -117,9 +153,18 @@
         "required": ["topic"]
       },
       "examples": [
-        { "userSays": "Share some wisdom about patience", "output": "{\"fn\":\"shareWisdom\",\"args\":{\"topic\":\"patience\"}}" },
-        { "userSays": "What did the Stoics say about adversity?", "output": "{\"fn\":\"shareWisdom\",\"args\":{\"topic\":\"adversity\",\"source\":\"stoic\"}}" },
-        { "userSays": "Give me a quote about courage", "output": "{\"fn\":\"shareWisdom\",\"args\":{\"topic\":\"courage\"}}" }
+        {
+          "userSays": "Share some wisdom about patience",
+          "output": "{\"fn\":\"shareWisdom\",\"args\":{\"topic\":\"patience\"}}"
+        },
+        {
+          "userSays": "What did the Stoics say about adversity?",
+          "output": "{\"fn\":\"shareWisdom\",\"args\":{\"topic\":\"adversity\",\"source\":\"stoic\"}}"
+        },
+        {
+          "userSays": "Give me a quote about courage",
+          "output": "{\"fn\":\"shareWisdom\",\"args\":{\"topic\":\"courage\"}}"
+        }
       ],
       "tags": ["wisdom", "quotes", "philosophy"]
     }

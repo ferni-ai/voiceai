@@ -118,7 +118,7 @@ export const managePrioritiesDef: ToolDefinition = {
             const all = await getPriorities(userId);
 
             if (all.length === 0) {
-              return '**No active priorities.** What\'s most important right now?';
+              return "**No active priorities.** What's most important right now?";
             }
 
             let response = `**Priority Stack** (${all.length} items)\n\n`;
@@ -150,7 +150,7 @@ export const managePrioritiesDef: ToolDefinition = {
             return response;
           }
 
-          return 'I didn\'t understand that action.';
+          return "I didn't understand that action.";
         } catch (error) {
           log.error({ error: String(error), userId }, 'Failed to manage priorities');
           return 'I had trouble with that. Let me try again.';
@@ -193,7 +193,7 @@ export const trackBlockerDef: ToolDefinition = {
         try {
           if (action === 'add') {
             if (!text) {
-              return 'What\'s blocking you?';
+              return "What's blocking you?";
             }
 
             await addBlocker(userId, text);
@@ -253,7 +253,7 @@ export const trackBlockerDef: ToolDefinition = {
             return response;
           }
 
-          return 'I didn\'t understand that action.';
+          return "I didn't understand that action.";
         } catch (error) {
           log.error({ error: String(error), userId }, 'Failed to track blocker');
           return 'I had trouble with that. Let me try again.';
@@ -315,7 +315,7 @@ export const trackDecisionDef: ToolDefinition = {
             if (!decisionId) {
               const all = await getPendingDecisions(userId);
               if (all.length === 0) {
-                return 'No pending decisions. What\'s on your mind?';
+                return "No pending decisions. What's on your mind?";
               }
 
               let response = `**Which decision did you make?**\n\n`;
@@ -338,7 +338,7 @@ export const trackDecisionDef: ToolDefinition = {
             const all = await getPendingDecisions(userId);
 
             if (all.length === 0) {
-              return '**No pending decisions.** Clarity on what\'s decided!';
+              return "**No pending decisions.** Clarity on what's decided!";
             }
 
             let response = `**Pending Decisions** (${all.length})\n\n`;
@@ -352,7 +352,7 @@ export const trackDecisionDef: ToolDefinition = {
             return response;
           }
 
-          return 'I didn\'t understand that action.';
+          return "I didn't understand that action.";
         } catch (error) {
           log.error({ error: String(error), userId }, 'Failed to track decision');
           return 'I had trouble with that. Let me try again.';
@@ -380,10 +380,7 @@ export const captureIdeaDef: ToolDefinition = {
         'Add optional tags to organize them for later review.',
       parameters: z.object({
         text: z.string().describe('The idea to capture'),
-        tags: z
-          .array(z.string())
-          .optional()
-          .describe('Optional tags to categorize the idea'),
+        tags: z.array(z.string()).optional().describe('Optional tags to categorize the idea'),
       }),
       execute: async ({ text, tags = [] }) => {
         const userId = ctx.userId;
@@ -405,7 +402,8 @@ export const captureIdeaDef: ToolDefinition = {
 
           response += `\n**Recent Ideas** (${recentIdeas.length})\n`;
           recentIdeas.slice(0, 3).forEach((idea) => {
-            const truncated = idea.text.length > 50 ? idea.text.substring(0, 50) + '...' : idea.text;
+            const truncated =
+              idea.text.length > 50 ? idea.text.substring(0, 50) + '...' : idea.text;
             response += `- ${truncated}\n`;
           });
 

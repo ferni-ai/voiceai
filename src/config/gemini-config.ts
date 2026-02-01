@@ -79,9 +79,9 @@ export const GEMINI_LANGUAGE = process.env.GEMINI_LANGUAGE || 'en-US';
 /**
  * Model for fast extraction tasks (entity, fact, relationship extraction)
  * Optimized for: Speed, structured output, low cost
- * Default: gemini-1.5-flash (fast, cheap, good at structured extraction)
+ * Default: gemini-2.5-flash (fast, stable, good reasoning)
  */
-export const EXTRACTION_MODEL = process.env.LLM_EXTRACTION_MODEL || 'gemini-1.5-flash';
+export const EXTRACTION_MODEL = process.env.LLM_EXTRACTION_MODEL || 'gemini-2.5-flash';
 
 /**
  * Model for embedding generation

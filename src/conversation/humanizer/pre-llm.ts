@@ -10,17 +10,13 @@
  */
 
 import { getActiveListeningEngine, type BackchannelContext } from '../active-listening.js';
-import { getConversationalMemory } from '../conversational-memory.js';
+import { getConversationalMemory } from '../conversational-memory/index.js';
 import { getEmotionalArcTracker } from '../emotional-arc.js';
-import { getQuestionPatternEngine, type QuestionContext } from '../question-patterns.js';
+import { getQuestionPatternEngine, type QuestionContext } from '../question-patterns/index.js';
 import { getResponseDynamicsEngine } from '../response-dynamics.js';
 import type { SessionIntelligenceInsight } from '../session-intelligence.js';
 
-import type {
-  ContextGuidance,
-  HumanizationContext,
-  PreResponseActions,
-} from './types.js';
+import type { ContextGuidance, HumanizationContext, PreResponseActions } from './types.js';
 
 import { createDeterministicTrigger } from './utils.js';
 
@@ -87,10 +83,7 @@ export class PreLlmProcessor {
     };
 
     // Only backchannel during longer user turns
-    if (
-      context.userMessage.length > 100 &&
-      shouldTrigger(context.turnNumber, 'backchannel', 0.3)
-    ) {
+    if (context.userMessage.length > 100 && shouldTrigger(context.turnNumber, 'backchannel', 0.3)) {
       const backchannel = this.listening.getBackchannel(this.personaId, backchannelContext);
       if (backchannel) {
         actions.backchannel = {

@@ -17,7 +17,7 @@ import {
   resetQuestionPatternEngine,
   type QuestionPatternEngine,
   type QuestionContext,
-} from '../conversation/question-patterns.js';
+} from '../conversation/question-patterns/index.js';
 
 // ============================================================================
 // TESTS

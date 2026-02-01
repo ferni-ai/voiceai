@@ -502,7 +502,7 @@ const visualMemoryTools: ToolDefinition[] = [
 ];
 
 export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'memory', // Part of memory domain
+  'visual-memory',
   visualMemoryTools
 );
 

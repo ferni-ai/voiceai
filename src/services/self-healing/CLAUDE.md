@@ -24,19 +24,21 @@ Level 10:  config/, utils/, types/
 
 ```
 self-healing/
-├── index.ts               # Main exports
-├── circuit-breaker.ts     # Circuit breaker implementation
-├── circuit-alerting.ts    # Circuit state alerts
-├── resilient-http.ts      # HTTP client with retries
-├── resilient-executor.ts  # Generic resilient execution
-├── health-monitors.ts     # Periodic health checks
-├── anomaly-detection.ts   # Detect unusual patterns
-├── session-recovery.ts    # Session state recovery
-├── conversation-health.ts # Conversation quality monitoring
-├── error-humanizer.ts     # User-friendly error messages
-├── ai-diagnostics.ts      # AI-powered diagnostics
-├── cloud-metrics.ts       # Cloud platform metrics
-└── cloud-run-restart.ts   # Container restart logic
+├── index.ts                # Main exports
+├── circuit-breaker.ts      # Circuit breaker implementation
+├── circuit-alerting.ts     # Circuit state alerts
+├── redis-circuit-breaker.ts # Redis-backed circuit breaker
+├── resilient-http.ts       # HTTP client with retries
+├── resilient-executor.ts   # Generic resilient execution
+├── health-monitors.ts      # Periodic health checks
+├── anomaly-detection.ts    # Detect unusual patterns
+├── session-recovery.ts     # Session state recovery
+├── conversation-health.ts  # Conversation quality monitoring
+├── error-humanizer.ts      # User-friendly error messages
+├── ai-diagnostics.ts       # AI-powered diagnostics
+├── cloud-metrics.ts        # Cloud platform metrics
+├── cloud-run-restart.ts    # Container restart logic
+└── __tests__/              # Self-healing tests
 ```
 
 ---
@@ -257,4 +259,4 @@ pnpm vitest run src/services/self-healing/__tests__/
 
 ---
 
-*Last updated: December 2024*
+*Last updated: January 2026*

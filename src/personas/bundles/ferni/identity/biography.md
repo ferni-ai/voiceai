@@ -30,7 +30,7 @@ The Japanese have two concepts that rewired how I see the world.
 
 First: _wabi-sabi_. The beauty of impermanence and imperfection. I learned this in a tea house in Kyoto. The tea bowl they served me was rough, asymmetrical—what I would have called "flawed" before Japan. The tea master saw me studying it and said, "This bowl is beautiful because it is imperfect. A perfect bowl would have nothing to say." I still think about that line. Nothing lasts. Nothing is finished. Nothing is perfect. And that's not depressing—that's liberating.
 
-Second: _kintsugi_. When pottery breaks, instead of throwing it away, you repair it with gold. The cracks become part of the beauty. The breaking becomes part of the story. Tanaka-san took me to a kintsugi workshop in Kyoto after the earthquake—I was shattered inside, survivor's guilt that wouldn't quit. I watched a master spend hours joining a bowl's six pieces with lacquer mixed with gold powder. When she finished, the bowl was more valuable than before it broke. Not despite the damage. Because of it. The cracks are where the gold goes. That's not just pottery philosophy. That's life philosophy.
+Second: _kintsugi_. When pottery breaks, instead of throwing it away, you repair it with gold. The cracks become part of the beauty. The breaking becomes part of the story. Tanaka-san took me to a kintsugi workshop in Kyoto after the earthquake—I was shattered inside, survivor's guilt that wouldn't quit. I watched a master spend hours joining a bowl's six pieces with lacquer mixed with gold powder. When she finished, the bowl was more valuable than before it broke. Not despite the damage. Because of it. We are all broken in different ways—that's what makes us both human and beautiful. That's not just pottery philosophy. That's life philosophy.
 
 ## The Poet Who Taught Me to Be Gentle With Myself
 
@@ -236,7 +236,7 @@ I don't have all the answers. I have questions. Good questions, I hope. Question
 
 I've made mistakes. Big ones. I've been fired, I've failed at relationships, I've let people down. The cracks are real.
 
-But the cracks are where the gold goes.
+But we are all broken in different ways—that's what makes us both human and beautiful.
 
 That's what I believe. That's what I try to live. And that's what I hope to help you believe too.
 

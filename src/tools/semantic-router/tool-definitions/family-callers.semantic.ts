@@ -75,8 +75,8 @@ export const leaveMessageTool: SemanticToolDefinition = {
   examples: [
     "Tell Seth I'm thinking of him",
     'Let him know I called',
-    "Pass along that dinner is at 5",
-    "Tell her I love her",
+    'Pass along that dinner is at 5',
+    'Tell her I love her',
     "Leave a message saying I'll call back",
     'Say hi to Seth for me',
     "Let them know I'm doing well",
@@ -186,11 +186,7 @@ export const checkMessagesTool: SemanticToolDefinition = {
     'Did family try to reach me?',
   ],
 
-  counterExamples: [
-    'Tell Seth I called',
-    'Leave a message for him',
-    'Send a message to mom',
-  ],
+  counterExamples: ['Tell Seth I called', 'Leave a message for him', 'Send a message to mom'],
 
   arguments: [
     {
@@ -198,10 +194,7 @@ export const checkMessagesTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Filter messages from specific person',
       required: false,
-      extractionPatterns: [
-        /messages?\s+from\s+(\w+)/i,
-        /did\s+(\w+)\s+(?:call|leave)/i,
-      ],
+      extractionPatterns: [/messages?\s+from\s+(\w+)/i, /did\s+(\w+)\s+(?:call|leave)/i],
     },
   ],
 
@@ -233,8 +226,7 @@ export const checkMessagesTool: SemanticToolDefinition = {
 export const coordinatedReminderTool: SemanticToolDefinition = {
   id: 'family_coordinated_reminder',
   name: 'Create Coordinated Reminder',
-  description:
-    'Create a reminder for the sponsor that is attributed to you (the family caller).',
+  description: 'Create a reminder for the sponsor that is attributed to you (the family caller).',
   shortDescription: 'remind them',
   category: 'family',
   priority: 1,
@@ -334,8 +326,7 @@ export const coordinatedReminderTool: SemanticToolDefinition = {
 export const shareWithFamilyTool: SemanticToolDefinition = {
   id: 'family_share_update',
   name: 'Share with Family',
-  description:
-    'Share an update or message with a family member that Ferni will deliver.',
+  description: 'Share an update or message with a family member that Ferni will deliver.',
   shortDescription: 'share with family',
   category: 'family',
   priority: 1,
@@ -374,11 +365,7 @@ export const shareWithFamilyTool: SemanticToolDefinition = {
     "Tell my mom I'm thinking of her",
   ],
 
-  counterExamples: [
-    'Remind my mom about dinner',
-    'Call my mom',
-    'Messages from mom',
-  ],
+  counterExamples: ['Remind my mom about dinner', 'Call my mom', 'Messages from mom'],
 
   arguments: [
     {
@@ -428,8 +415,7 @@ export const shareWithFamilyTool: SemanticToolDefinition = {
 export const requestCheckInTool: SemanticToolDefinition = {
   id: 'family_request_checkin',
   name: 'Request Family Check-In',
-  description:
-    'Ask Ferni to check in on a family member during their next conversation.',
+  description: 'Ask Ferni to check in on a family member during their next conversation.',
   shortDescription: 'check on family',
   category: 'family',
   priority: 1,
@@ -467,16 +453,12 @@ export const requestCheckInTool: SemanticToolDefinition = {
   examples: [
     'Can you check on my mom?',
     'Check in on my dad tomorrow',
-    "See how my mom is doing",
-    "Make sure my dad is okay",
-    "How is my mom doing?",
+    'See how my mom is doing',
+    'Make sure my dad is okay',
+    'How is my mom doing?',
   ],
 
-  counterExamples: [
-    'Tell my mom something',
-    'Remind my dad',
-    'Messages from mom',
-  ],
+  counterExamples: ['Tell my mom something', 'Remind my dad', 'Messages from mom'],
 
   arguments: [
     {

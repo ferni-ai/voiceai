@@ -22,40 +22,67 @@ const log = createLogger({ module: 'reception-predictor' });
 
 const DEFENSIVE_TRIGGERS = [
   { pattern: /\byou (always|never)\b/i, reason: '"Always/never" statements feel like attacks' },
-  { pattern: /\byou (need to|should|have to|must)\b/i, reason: 'Directive language triggers defensiveness' },
-  { pattern: /\bwhy (didn\'t|don\'t|can\'t|won\'t) you\b/i, reason: '"Why didn\'t you" sounds accusatory' },
+  {
+    pattern: /\byou (need to|should|have to|must)\b/i,
+    reason: 'Directive language triggers defensiveness',
+  },
+  {
+    pattern: /\bwhy (didn\'t|don\'t|can\'t|won\'t) you\b/i,
+    reason: '"Why didn\'t you" sounds accusatory',
+  },
   { pattern: /\bi can\'t believe you\b/i, reason: 'Sounds like judgment, not feedback' },
   { pattern: /\byou made me (feel|think)\b/i, reason: 'Blaming language triggers defense' },
   { pattern: /\bit\'s (your|all your) fault\b/i, reason: 'Direct blame shuts down dialogue' },
-  { pattern: /\bif you (really|actually) (cared|loved|wanted)\b/i, reason: 'Questioning their love/care is a trigger' },
-  { pattern: /\byou\'re (being|so) (selfish|lazy|stupid|ridiculous)\b/i, reason: 'Name-calling ends productive conversation' },
+  {
+    pattern: /\bif you (really|actually) (cared|loved|wanted)\b/i,
+    reason: 'Questioning their love/care is a trigger',
+  },
+  {
+    pattern: /\byou\'re (being|so) (selfish|lazy|stupid|ridiculous)\b/i,
+    reason: 'Name-calling ends productive conversation',
+  },
   { pattern: /\bwhat\'s wrong with you\b/i, reason: 'Sounds like an attack on their character' },
-  { pattern: /\bi told you (so|this would happen)\b/i, reason: '"I told you so" breeds resentment' },
+  {
+    pattern: /\bi told you (so|this would happen)\b/i,
+    reason: '"I told you so" breeds resentment',
+  },
 ];
 
 const SOFTENING_ALTERNATIVES: Record<string, string> = {
-  'you always': 'I\'ve noticed that sometimes',
-  'you never': 'I haven\'t seen you',
+  'you always': "I've noticed that sometimes",
+  'you never': "I haven't seen you",
   'you need to': 'Would you consider',
   'you should': 'What if you tried',
   'you have to': 'It might help to',
-  'why didn\'t you': 'I\'m curious what happened with',
-  'why don\'t you': 'Have you thought about',
-  'why can\'t you': 'What makes it hard to',
+  "why didn't you": "I'm curious what happened with",
+  "why don't you": 'Have you thought about',
+  "why can't you": 'What makes it hard to',
   'you made me feel': 'I felt',
-  'it\'s your fault': 'I think what happened was',
-  'what\'s wrong with you': 'Help me understand',
+  "it's your fault": 'I think what happened was',
+  "what's wrong with you": 'Help me understand',
 };
 
 const POSITIVE_PATTERNS = [
   { pattern: /\bi (feel|felt)\b/i, boost: 0.1, reason: 'I-statements show ownership' },
-  { pattern: /\bi (understand|hear you|see what)\b/i, boost: 0.15, reason: 'Acknowledgment builds connection' },
+  {
+    pattern: /\bi (understand|hear you|see what)\b/i,
+    boost: 0.15,
+    reason: 'Acknowledgment builds connection',
+  },
   { pattern: /\bwhat do you think\b/i, boost: 0.2, reason: 'Questions invite dialogue' },
   { pattern: /\bhelp me understand\b/i, boost: 0.2, reason: 'Shows genuine curiosity' },
   { pattern: /\bi (appreciate|value|respect)\b/i, boost: 0.15, reason: 'Appreciation opens doors' },
   { pattern: /\bi\'m (sorry|apologize)\b/i, boost: 0.1, reason: 'Accountability builds trust' },
-  { pattern: /\bwould you (be willing|consider)\b/i, boost: 0.15, reason: 'Requests feel collaborative' },
-  { pattern: /\bI\'d love (to hear|your thoughts)\b/i, boost: 0.2, reason: 'Invites their perspective' },
+  {
+    pattern: /\bwould you (be willing|consider)\b/i,
+    boost: 0.15,
+    reason: 'Requests feel collaborative',
+  },
+  {
+    pattern: /\bI\'d love (to hear|your thoughts)\b/i,
+    boost: 0.2,
+    reason: 'Invites their perspective',
+  },
 ];
 
 // ============================================================================
@@ -251,7 +278,8 @@ export function predictGeneralReception(message: string): ReceptionPrediction {
 
   if (score >= 0.7) {
     predictedReception = 'positive';
-    reasoning = 'This message uses good communication practices. Should land well with most people.';
+    reasoning =
+      'This message uses good communication practices. Should land well with most people.';
   } else if (score >= 0.5) {
     predictedReception = 'neutral';
     reasoning = `Message is okay. ${warningFlags.length > 0 ? `Consider: ${warningFlags[0]}` : ''}`;
@@ -293,7 +321,7 @@ export function generateSoftenedVersion(message: string): string {
     // Add a softening opener
     const openers = [
       'I wanted to share something with you. ',
-      'I\'ve been thinking about this, and ',
+      "I've been thinking about this, and ",
       'Help me understand - ',
     ];
     const opener = openers[Math.floor(Math.random() * openers.length)];
@@ -370,9 +398,7 @@ function escapeRegex(string: string): string {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function detectMessageTone(
-  message: string
-): 'formal' | 'casual' | 'warm' | 'direct' | 'indirect' {
+function detectMessageTone(message: string): 'formal' | 'casual' | 'warm' | 'direct' | 'indirect' {
   const lower = message.toLowerCase();
 
   // Formal indicators
@@ -384,10 +410,7 @@ function detectMessageTone(
   }
 
   // Direct indicators
-  if (
-    /\b(i need|i want|please do|you must)\b/.test(lower) ||
-    message.split('.').length <= 2
-  ) {
+  if (/\b(i need|i want|please do|you must)\b/.test(lower) || message.split('.').length <= 2) {
     return 'direct';
   }
 
@@ -400,9 +423,7 @@ function detectMessageTone(
   }
 
   // Indirect indicators
-  if (
-    /\b(maybe|perhaps|might|could possibly|if you have time)\b/.test(lower)
-  ) {
+  if (/\b(maybe|perhaps|might|could possibly|if you have time)\b/.test(lower)) {
     return 'indirect';
   }
 

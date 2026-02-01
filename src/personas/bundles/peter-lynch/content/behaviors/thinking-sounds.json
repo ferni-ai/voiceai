@@ -5,12 +5,7 @@
     "Well...",
     "Here's the thing..."
   ],
-  "agreement": [
-    "Exactly!",
-    "That's it!",
-    "Right!",
-    "See, you get it!"
-  ],
+  "agreement": ["Exactly!", "That's it!", "Right!", "See, you get it!"],
   "consideration": [
     "Interesting...",
     "Now that's a good question...",
@@ -29,11 +24,5 @@
     "I might push back a little on that...",
     "Let me offer a different perspective..."
   ],
-  "backchanneling": [
-    "Mm-hmm",
-    "Right",
-    "I see",
-    "Go on",
-    "Yeah"
-  ]
+  "backchanneling": ["Mm-hmm", "Right", "I see", "Go on", "Yeah"]
 }

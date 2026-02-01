@@ -13,7 +13,7 @@
  * Superhuman features (anticipation, vulnerability tracking, pattern detection)
  * are being migrated to the Clean Architecture v2 system in src/personality/v2/.
  * This file continues to handle expression composition and resonance learning.
- * The v2 system runs in parallel via the personality-v2 context builder.
+ * The v2 system runs in parallel via the personality-context builder.
  *
  * Usage:
  *   const personality = await processTurnPersonality(input);

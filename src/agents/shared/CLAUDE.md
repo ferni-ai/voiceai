@@ -106,31 +106,88 @@ const sanitizer = createToolCallSanitizer({
 
 ---
 
-## Key Files
+## Key Files (52 .ts files total)
 
-| File                        | Purpose                       |
-| --------------------------- | ----------------------------- |
-| `constants.ts`              | Shared constants              |
-| `context-helpers.ts`        | Context building utilities    |
-| `conversation-priming.ts`   | Initial conversation setup    |
-| `crash-analytics.ts`        | Crash tracking and reporting  |
-| `disconnect-diagnostics.ts` | Disconnect analysis           |
-| `e2e-diagnostics.ts`        | End-to-end tracing            |
-| `e2e-latency-tracker.ts`    | Latency measurement           |
-| `function-call-format.ts`   | JSON function call types      |
-| `generate-reply-gateway.ts` | Reply generation              |
-| `greeting-audio-cache.ts`   | Pre-cached greetings          |
-| `helpers.ts`                | General utilities             |
-| `json-function-executor.ts` | JSON tool execution           |
-| `lazy-loader.ts`            | Lazy module loading           |
-| `livekit-keepalive.ts`      | Connection keep-alive         |
-| `room-event-handlers.ts`    | LiveKit room events           |
-| `safe-generate-reply.ts`    | Error-safe reply generation   |
-| `session-metrics.ts`        | Session telemetry             |
-| `shutdown-handler.ts`       | Graceful shutdown             |
-| `startup-health.ts`         | Startup validation            |
-| `warm-greeting.ts`          | Pre-warmed greeting audio     |
-| `worker-readiness.ts`       | Worker initialization signals |
+### Session & Health
+
+| File                          | Purpose                             |
+| ----------------------------- | ----------------------------------- |
+| `health-server.ts`            | Health and readiness endpoints      |
+| `session-setup.ts`            | Voice agent session initialization  |
+| `session-metrics.ts`          | Session telemetry                   |
+| `session-closing-tracker.ts`  | Track session close reasons         |
+| `session-health-monitor.ts`   | Monitor session health in real-time |
+| `startup-health.ts`           | Startup validation                  |
+| `shutdown-handler.ts`         | Graceful shutdown                   |
+| `worker-readiness.ts`         | Worker initialization signals       |
+
+### LLM & Reply Generation
+
+| File                          | Purpose                             |
+| ----------------------------- | ----------------------------------- |
+| `generate-reply-gateway.ts`   | Reply generation gateway            |
+| `safe-generate-reply.ts`      | Error-safe reply generation         |
+| `response-orchestrator.ts`    | Multi-step response orchestration   |
+| `tts-wrapper.ts`              | TTS with SSML + caching             |
+| `conversational-audio-cache.ts` | Conversational audio caching      |
+| `warm-greeting.ts`            | Pre-warmed greeting audio           |
+| `greeting-audio-cache.ts`     | Pre-cached greetings                |
+
+### Tool Execution
+
+| File                          | Purpose                             |
+| ----------------------------- | ----------------------------------- |
+| `function-call-format.ts`     | JSON function call types            |
+| `json-function-executor.ts`   | JSON tool execution                 |
+| `function-call-telemetry.ts`  | Tool call telemetry tracking        |
+| `parallel-tool-executor.ts`   | Parallel tool execution             |
+| `tool-updater.ts`             | Dynamic tool list updates           |
+| `turn-tool-optimizer.ts`      | Per-turn tool selection optimization|
+| `gemini-fc-config.ts`         | Gemini function calling configuration|
+
+### Diagnostics & Monitoring
+
+| File                          | Purpose                             |
+| ----------------------------- | ----------------------------------- |
+| `crash-analytics.ts`          | Crash tracking and reporting        |
+| `disconnect-diagnostics.ts`   | Disconnect analysis                 |
+| `e2e-diagnostics.ts`          | End-to-end tracing                  |
+| `e2e-latency-tracker.ts`      | Latency measurement                 |
+| `openai-health-monitor.ts`    | OpenAI API health monitoring        |
+
+### Connection & LiveKit
+
+| File                          | Purpose                             |
+| ----------------------------- | ----------------------------------- |
+| `room-event-handlers.ts`      | LiveKit room events                 |
+| `livekit-keepalive.ts`        | Connection keep-alive               |
+| `resource-server.ts`          | Resource server for agent assets    |
+| `vad-preloader.ts`            | Voice Activity Detection preloading |
+| `vad-worker.ts`               | VAD worker process                  |
+
+### Context & Conversation
+
+| File                          | Purpose                             |
+| ----------------------------- | ----------------------------------- |
+| `constants.ts`                | Shared constants                    |
+| `context-helpers.ts`          | Context building utilities          |
+| `conversation-priming.ts`     | Initial conversation setup          |
+| `helpers.ts`                  | General utilities                   |
+| `lazy-loader.ts`              | Lazy module loading                 |
+| `cameo-handler.ts`            | Cameo appearance handler            |
+
+### Additional Utilities
+
+| File                          | Purpose                             |
+| ----------------------------- | ----------------------------------- |
+| `action-approval-handler.ts`  | User approval for actions           |
+| `action-history.ts`           | Action execution history            |
+| `adaptive-endpointing-integration.ts` | Adaptive speech endpoint integration |
+| `cache-reader.ts`             | Cache reading utilities             |
+| `lightweight-resilience.ts`   | Lightweight resilience patterns     |
+| `native-json-parser.ts`       | Native JSON parsing for tool calls  |
+| `types.ts`                    | Shared type definitions             |
+| `domain-tool-ids.generated.ts`| Generated tool ID mappings          |
 
 ---
 

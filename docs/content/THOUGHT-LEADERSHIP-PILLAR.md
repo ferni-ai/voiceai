@@ -328,7 +328,7 @@ Every social post should ultimately ladder up to the Insight-to-Action Gap frame
 
 > "七転び八起き — Fall down seven times, stand up eight."
 
-> "Your cracks are where the gold goes." (Kintsugi philosophy)
+> "We are all broken in different ways—that's what makes us both human and beautiful." (Kintsugi philosophy)
 
 > "Nothing lasts. Nothing is finished. Nothing is perfect." (Wabi-sabi)
 

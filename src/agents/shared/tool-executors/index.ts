@@ -30,6 +30,9 @@ import { reflectionGamesExecutor } from './reflection-games-executor.js';
 import { researchExecutor } from './research-executor.js';
 import { schedulingExecutor } from './scheduling-executor.js';
 import { telephonyExecutor } from './telephony-executor.js';
+// Missing executors (January 2026 audit fix)
+import { communicationExecutor } from './communication-executor.js';
+import { settingsExecutor } from './settings-executor.js';
 // FTIS V3 domain executors (January 2026)
 import ceoExecutor from './ceo-executor.js';
 import { dynamicDomainExecutor } from './dynamic-domain-executor.js';
@@ -37,6 +40,8 @@ import entertainmentExecutor from './entertainment-executor.js';
 import financeExecutor from './finance-executor.js';
 import healthExecutor from './health-executor.js';
 import travelExecutor from './travel-executor.js';
+// OpenClaw multi-channel messaging (January 2026)
+import { openclawExecutor } from './openclaw-executor.js';
 
 const log = createLogger({ module: 'ToolExecutors' });
 
@@ -62,12 +67,17 @@ const DOMAIN_EXECUTORS: DomainExecutor[] = [
   reflectionGamesExecutor,
   researchExecutor,
   handoffExecutor,
+  // Missing executors (January 2026 audit fix)
+  communicationExecutor,
+  settingsExecutor,
   // FTIS V3 domain executors (January 2026)
   healthExecutor,
   financeExecutor,
   entertainmentExecutor,
   ceoExecutor,
   travelExecutor,
+  // OpenClaw multi-channel messaging (January 2026)
+  openclawExecutor,
 ];
 
 /**
@@ -184,6 +194,9 @@ export { reflectionGamesExecutor } from './reflection-games-executor.js';
 export { researchExecutor } from './research-executor.js';
 export { schedulingExecutor } from './scheduling-executor.js';
 export { telephonyExecutor } from './telephony-executor.js';
+// Missing executors (January 2026 audit fix)
+export { communicationExecutor } from './communication-executor.js';
+export { settingsExecutor } from './settings-executor.js';
 // FTIS V3 domain executors (January 2026)
 export { default as ceoExecutor } from './ceo-executor.js';
 export {
@@ -196,3 +209,5 @@ export { default as entertainmentExecutor } from './entertainment-executor.js';
 export { default as financeExecutor } from './finance-executor.js';
 export { default as healthExecutor } from './health-executor.js';
 export { default as travelExecutor } from './travel-executor.js';
+// OpenClaw multi-channel messaging (January 2026)
+export { openclawExecutor } from './openclaw-executor.js';

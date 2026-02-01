@@ -22,27 +22,169 @@ const log = createLogger({ module: 'Tokenizer' });
  * Common English stop words to filter out
  */
 const STOP_WORDS = new Set([
-  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
-  'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'or', 'that',
-  'the', 'to', 'was', 'were', 'will', 'with', 'this', 'but', 'they',
-  'have', 'had', 'what', 'when', 'where', 'who', 'which', 'why', 'how',
-  'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other',
-  'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so',
-  'than', 'too', 'very', 'just', 'can', 'should', 'now', 'i', 'me',
-  'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', 'your',
-  'yours', 'yourself', 'yourselves', 'him', 'his', 'himself', 'she',
-  'her', 'hers', 'herself', 'them', 'their', 'theirs', 'themselves',
-  'about', 'into', 'through', 'during', 'before', 'after', 'above',
-  'below', 'between', 'under', 'again', 'further', 'then', 'once',
-  'here', 'there', 'any', 'doing', 'would', 'could', 'been', 'being',
-  'does', 'did', 'having', 'am', "i'm", "you're", "he's", "she's",
-  "it's", "we're", "they're", "i've", "you've", "we've", "they've",
-  "i'd", "you'd", "he'd", "she'd", "we'd", "they'd", "i'll", "you'll",
-  "he'll", "she'll", "we'll", "they'll", "isn't", "aren't", "wasn't",
-  "weren't", "hasn't", "haven't", "hadn't", "doesn't", "don't",
-  "didn't", "won't", "wouldn't", "shan't", "shouldn't", "can't",
-  "cannot", "couldn't", "mustn't", "let's", "that's", "who's",
-  "what's", "here's", "there's", "when's", "where's", "why's", "how's",
+  'a',
+  'an',
+  'and',
+  'are',
+  'as',
+  'at',
+  'be',
+  'by',
+  'for',
+  'from',
+  'has',
+  'he',
+  'in',
+  'is',
+  'it',
+  'its',
+  'of',
+  'on',
+  'or',
+  'that',
+  'the',
+  'to',
+  'was',
+  'were',
+  'will',
+  'with',
+  'this',
+  'but',
+  'they',
+  'have',
+  'had',
+  'what',
+  'when',
+  'where',
+  'who',
+  'which',
+  'why',
+  'how',
+  'all',
+  'each',
+  'every',
+  'both',
+  'few',
+  'more',
+  'most',
+  'other',
+  'some',
+  'such',
+  'no',
+  'nor',
+  'not',
+  'only',
+  'own',
+  'same',
+  'so',
+  'than',
+  'too',
+  'very',
+  'just',
+  'can',
+  'should',
+  'now',
+  'i',
+  'me',
+  'my',
+  'myself',
+  'we',
+  'our',
+  'ours',
+  'ourselves',
+  'you',
+  'your',
+  'yours',
+  'yourself',
+  'yourselves',
+  'him',
+  'his',
+  'himself',
+  'she',
+  'her',
+  'hers',
+  'herself',
+  'them',
+  'their',
+  'theirs',
+  'themselves',
+  'about',
+  'into',
+  'through',
+  'during',
+  'before',
+  'after',
+  'above',
+  'below',
+  'between',
+  'under',
+  'again',
+  'further',
+  'then',
+  'once',
+  'here',
+  'there',
+  'any',
+  'doing',
+  'would',
+  'could',
+  'been',
+  'being',
+  'does',
+  'did',
+  'having',
+  'am',
+  "i'm",
+  "you're",
+  "he's",
+  "she's",
+  "it's",
+  "we're",
+  "they're",
+  "i've",
+  "you've",
+  "we've",
+  "they've",
+  "i'd",
+  "you'd",
+  "he'd",
+  "she'd",
+  "we'd",
+  "they'd",
+  "i'll",
+  "you'll",
+  "he'll",
+  "she'll",
+  "we'll",
+  "they'll",
+  "isn't",
+  "aren't",
+  "wasn't",
+  "weren't",
+  "hasn't",
+  "haven't",
+  "hadn't",
+  "doesn't",
+  "don't",
+  "didn't",
+  "won't",
+  "wouldn't",
+  "shan't",
+  "shouldn't",
+  "can't",
+  'cannot',
+  "couldn't",
+  "mustn't",
+  "let's",
+  "that's",
+  "who's",
+  "what's",
+  "here's",
+  "there's",
+  "when's",
+  "where's",
+  "why's",
+  "how's",
 ]);
 
 // ============================================================================
@@ -154,13 +296,13 @@ export function tokenize(text: string, options: TokenizeOptions = {}): string[] 
 
   // 2. Remove punctuation and special characters, keep apostrophes for contractions
   normalized = normalized
-    .replace(/[^\w\s']/g, ' ')  // Replace non-word chars with space
-    .replace(/[']+/g, '')      // Remove apostrophes
-    .replace(/\s+/g, ' ')       // Collapse whitespace
+    .replace(/[^\w\s']/g, ' ') // Replace non-word chars with space
+    .replace(/[']+/g, '') // Remove apostrophes
+    .replace(/\s+/g, ' ') // Collapse whitespace
     .trim();
 
   // 3. Split into tokens
-  const rawTokens = normalized.split(' ').filter(t => t.length > 0);
+  const rawTokens = normalized.split(' ').filter((t) => t.length > 0);
 
   // 4. Filter and process tokens
   const tokens: string[] = [];
@@ -180,7 +322,7 @@ export function tokenize(text: string, options: TokenizeOptions = {}): string[] 
 
     // Apply stemming
     const finalToken = applyStemming ? stem(token) : token;
-    
+
     // Skip if stemming made it too short
     if (finalToken.length >= minLength) {
       tokens.push(finalToken);
@@ -197,7 +339,7 @@ export function tokenize(text: string, options: TokenizeOptions = {}): string[] 
 
   // 6. Combine results
   const result = [...tokens, ...bigrams];
-  
+
   // Add originals if requested (for boosting exact matches)
   if (keepOriginal) {
     for (const orig of originalTokens) {
@@ -234,8 +376,8 @@ export function tokenizeForQuery(text: string): string[] {
     removeStopWords: true,
     applyStemming: true,
     minLength: 2,
-    includeBigrams: false,  // Don't generate bigrams for queries
-    keepOriginal: true,     // Keep original for exact matching
+    includeBigrams: false, // Don't generate bigrams for queries
+    keepOriginal: true, // Keep original for exact matching
   });
 }
 
@@ -256,53 +398,53 @@ export function calculateTermFrequency(tokens: string[]): Map<string, number> {
  */
 export function tokenizeName(name: string): string[] {
   const tokens: string[] = [];
-  
+
   // Normalize
   const normalized = name.toLowerCase().trim();
   tokens.push(normalized);
-  
+
   // Split into parts
   const parts = normalized.split(/\s+/);
   tokens.push(...parts);
-  
+
   // Add first name only (common reference)
   if (parts.length > 1) {
     tokens.push(parts[0]);
   }
-  
+
   // Add initials
   if (parts.length >= 2) {
-    const initials = parts.map(p => p[0]).join('');
+    const initials = parts.map((p) => p[0]).join('');
     if (initials.length >= 2) {
       tokens.push(initials);
     }
   }
-  
+
   // Add common nicknames for common names
   const nicknameMap: Record<string, string[]> = {
-    'michael': ['mike', 'mikey'],
-    'william': ['will', 'bill', 'billy'],
-    'robert': ['rob', 'bob', 'bobby'],
-    'richard': ['rick', 'dick'],
-    'elizabeth': ['liz', 'beth', 'lizzy'],
-    'jennifer': ['jen', 'jenny'],
-    'katherine': ['kate', 'kathy', 'katie'],
-    'christopher': ['chris'],
-    'matthew': ['matt'],
-    'alexander': ['alex'],
-    'benjamin': ['ben'],
-    'daniel': ['dan', 'danny'],
-    'joseph': ['joe', 'joey'],
-    'nicholas': ['nick', 'nicky'],
-    'anthony': ['tony'],
-    'thomas': ['tom', 'tommy'],
+    michael: ['mike', 'mikey'],
+    william: ['will', 'bill', 'billy'],
+    robert: ['rob', 'bob', 'bobby'],
+    richard: ['rick', 'dick'],
+    elizabeth: ['liz', 'beth', 'lizzy'],
+    jennifer: ['jen', 'jenny'],
+    katherine: ['kate', 'kathy', 'katie'],
+    christopher: ['chris'],
+    matthew: ['matt'],
+    alexander: ['alex'],
+    benjamin: ['ben'],
+    daniel: ['dan', 'danny'],
+    joseph: ['joe', 'joey'],
+    nicholas: ['nick', 'nicky'],
+    anthony: ['tony'],
+    thomas: ['tom', 'tommy'],
   };
-  
+
   const firstName = parts[0];
   if (nicknameMap[firstName]) {
     tokens.push(...nicknameMap[firstName]);
   }
-  
+
   return Array.from(new Set(tokens));
 }
 

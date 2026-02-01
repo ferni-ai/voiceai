@@ -22,6 +22,8 @@ export default defineConfig({
       'node_modules/**',
       '**/node_modules/**',
       'dist/**',
+      // Frontend tests have their own config (apps/web/vitest.config.ts)
+      // Run them with: pnpm test:frontend
       'apps/**',
       'e2e/**',
       'design-system/**',

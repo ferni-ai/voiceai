@@ -189,7 +189,12 @@ export interface CommunicationDebt {
   contactName: string;
 
   // The debt
-  type: 'unreturned_call' | 'unanswered_text' | 'missed_followup' | 'broken_promise' | 'overdue_thanks';
+  type:
+    | 'unreturned_call'
+    | 'unanswered_text'
+    | 'missed_followup'
+    | 'broken_promise'
+    | 'overdue_thanks';
   description: string;
   originalEvent?: string;
 
@@ -242,7 +247,14 @@ export interface UnspokenNeed {
 
   // The underlying need
   underlyingNeed: string;
-  needCategory: 'belonging' | 'autonomy' | 'competence' | 'security' | 'meaning' | 'connection' | 'respect';
+  needCategory:
+    | 'belonging'
+    | 'autonomy'
+    | 'competence'
+    | 'security'
+    | 'meaning'
+    | 'connection'
+    | 'respect';
 
   // Translation
   betterWayToExpress: string;

@@ -93,6 +93,24 @@ const VALIDATIONS: Record<string, ValidationTask> = {
     script: 'apps/cli/src/commands/validate/validate-memory-e2e.ts',
     category: 'feature',
   },
+  'memory-intelligence': {
+    name: 'Memory Intelligence',
+    description: 'Validate Memory Intelligence timing, phrasing, and learning systems',
+    script: 'apps/cli/src/commands/validate/validate-memory-intelligence.ts',
+    category: 'feature',
+  },
+  cortex: {
+    name: 'Associative Cortex',
+    description: 'Validate spreading activation, link detection, and narrative building',
+    script: 'apps/cli/src/commands/validate/validate-associative-cortex.ts',
+    category: 'feature',
+  },
+  lifecycle: {
+    name: 'Memory Lifecycle',
+    description: 'Validate decay calculations, consolidation, and health metrics',
+    script: 'apps/cli/src/commands/validate/validate-memory-lifecycle.ts',
+    category: 'feature',
+  },
 };
 
 // ============================================================================

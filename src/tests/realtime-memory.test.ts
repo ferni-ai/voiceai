@@ -11,21 +11,21 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { buildQuickSummary, type ConversationTurn } from '../services/memory/realtime-memory.js';
 
-// Mock dependencies
-vi.mock('../utils/safe-logger.js', () => ({
-  getLogger: () => ({
+// Mock dependencies - defined inline since vi.mock is hoisted
+vi.mock('../utils/safe-logger.js', () => {
+  const mockLogger = {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
-    child: () => ({
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-    }),
-  }),
-}));
+    child: vi.fn(),
+  };
+  mockLogger.child.mockReturnValue(mockLogger);
+  return {
+    getLogger: () => mockLogger,
+    createLogger: () => mockLogger,
+  };
+});
 
 vi.mock('../config/environment.js', () => ({
   getGCPProjectId: () => 'test-project',

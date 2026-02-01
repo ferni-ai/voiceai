@@ -29,11 +29,13 @@ workers/
 ├── base-worker.ts            # Base class for all workers
 ├── analytics-worker.ts       # Usage analytics processing
 ├── audio-analysis-pool.ts    # Audio processing pool
+├── audio-analysis-worker-thread.ts # Audio worker thread (Node worker_threads)
 ├── embedding-worker.ts       # Vector embedding generation
 ├── outreach-worker.ts        # Proactive outreach delivery
 ├── predictions-worker.ts     # Predictive insights processing
 ├── summarization-worker.ts   # Conversation summarization
 ├── trust-worker.ts           # Trust metric calculations
+├── memory-maintenance-worker.ts # Memory maintenance background worker
 └── __tests__/                # Worker tests
 ```
 
@@ -255,4 +257,4 @@ PUBSUB_EMULATOR_HOST=localhost:8085 pnpm vitest run src/workers/
 
 ---
 
-_Last updated: December 2024_
+*Last updated: January 2026*

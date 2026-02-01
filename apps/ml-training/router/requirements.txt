@@ -1,16 +1,17 @@
 # Ferni Router Model Training Dependencies
-# Python 3.10+
+# Python 3.10+ (Python 3.11+ recommended for Qwen3)
 
-# Core ML
-torch>=2.2.0
-transformers>=4.40.0
-peft>=0.10.0
-datasets>=2.18.0
-accelerate>=0.29.0
+# Core ML - Updated for Qwen3 support
+torch>=2.3.0
+transformers>=4.45.0  # Required for Qwen3 models
+peft>=0.12.0          # Latest LoRA support
+datasets>=2.20.0
+accelerate>=0.32.0
 
 # Model export
 onnx>=1.15.0
-onnxruntime>=1.17.0
+# Use onnxruntime-silicon for Apple M1/M2/M3/M4
+# onnxruntime>=1.17.0  # For x86
 optimum>=1.18.0
 
 # Data processing

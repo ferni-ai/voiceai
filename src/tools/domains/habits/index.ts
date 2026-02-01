@@ -21,14 +21,18 @@ import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 // Import tool creators
 import { createHabitTools } from './habits.js';
 import { createHabitCoachingTools } from '../../habit-coaching.js';
-// NOTE: Using gamification-v2 for proper Firestore persistence
-import { createGamificationToolsV2 } from './gamification-v2.js';
+// NOTE: Using gamification module for proper Firestore persistence
+import { createGamificationToolsV2 } from './gamification.js';
 
 // Also import new unified definitions (will be used in future)
 import { habitToolDefinitions as unifiedHabitTools } from './unified-habits.js';
 
 // Import voice-first habit tools
 import { habitVoiceTools } from './habit-voice-tools.js';
+
+// Merged sub-domains (consolidated from habit-intelligence/ and habit-persistence/)
+import { habitIntelligenceTools } from './intelligence.js';
+import { habitPersistenceTools } from './persistence.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER
@@ -160,6 +164,8 @@ const habitsTools: ToolDefinition[] = [
   ...getCoachingToolDefinitions(),
   ...getGamificationToolDefinitions(),
   ...habitVoiceTools, // Voice-first tools for natural conversation
+  ...habitIntelligenceTools, // Superhuman habit intelligence (merged from habit-intelligence/)
+  ...habitPersistenceTools, // Compassionate coaching + cross-persona (merged from habit-persistence/)
 ];
 
 // ============================================================================
@@ -179,10 +185,14 @@ export { habitVoiceTools } from './habit-voice-tools.js';
 // Re-export legacy tool creators for direct use by persona agents
 export { createHabitTools } from './habits.js';
 export { createHabitCoachingTools } from '../../habit-coaching.js';
-export { createGamificationToolsV2 } from './gamification-v2.js';
+export { createGamificationToolsV2 } from './gamification.js';
 
 // Export unified tools for future use
 export { unifiedHabitTools };
+
+// Re-export merged sub-domain tools
+export { habitIntelligenceTools } from './intelligence.js';
+export { habitPersistenceTools } from './persistence.js';
 
 // Re-export constants from unified
 export {

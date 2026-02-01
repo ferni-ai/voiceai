@@ -75,7 +75,6 @@ export type ToolDomain =
   | 'pattern-mastery' // Pattern recognition, behavioral insights, habit formation
   | 'timeless-perspective' // Wisdom from history, philosophy, and long-term thinking
   | 'workflow-mastery' // Workflow optimization, process improvement, efficiency
-  | 'habit-persistence' // Habit tracking persistence and behavioral insights
   | 'milestone-mastery' // Milestone tracking and achievement recognition
   | 'developer' // Developer tools: CLI commands, file editing, bash
   | 'behavior' // Behavior control: modes, pacing, processing, presence
@@ -142,9 +141,15 @@ export type ToolDomain =
   | 'ceo-coaching' // CEO personal coaching: briefings, wins, energy, priorities, decisions
   // Intelligence Domains
   | 'event-intelligence' // Event intelligence: context-aware event management
-  | 'habit-intelligence' // Habit intelligence: behavioral insights, pattern detection
   | 'pattern-analytics' // Pattern analytics: behavioral patterns, insights
-  | 'wisdom-intelligence'; // Wisdom intelligence: philosophical insights, life wisdom
+  // wisdom-intelligence: merged into wisdom/ domain (Jan 2026)
+  // Previously Unregistered Domains (January 2026 Audit Fix)
+  | 'ambient-mode' // Ambient sounds, background music, environmental audio
+  | 'coaching-support' // Shared coaching utilities across personas (22 tools)
+  | 'human-transfer' // Transfer to human support when needed
+  | 'visual-memory' // Visual memory capture and recall
+  // UI Navigation
+  | 'ui-navigation'; // UI navigation commands for frontend control
 
 /**
  * All available tool domains
@@ -204,7 +209,6 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'timeless-perspective',
   'workflow-mastery',
   'life-thesis',
-  'habit-persistence',
   'milestone-mastery',
   'developer',
   'behavior',
@@ -272,9 +276,15 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'ceo-coaching',
   // Intelligence Domains
   'event-intelligence',
-  'habit-intelligence',
   'pattern-analytics',
-  'wisdom-intelligence',
+  // wisdom-intelligence: merged into wisdom/ domain (Jan 2026)
+  // Previously Unregistered Domains (January 2026 Audit Fix)
+  'ambient-mode',
+  'coaching-support',
+  'human-transfer',
+  'visual-memory',
+  // UI Navigation
+  'ui-navigation',
 ] as const;
 
 // ============================================================================
@@ -351,7 +361,6 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'pattern-mastery': 'information', // Pattern recognition and insights
   'timeless-perspective': 'information', // Wisdom and philosophy
   'workflow-mastery': 'productivity', // Process optimization
-  'habit-persistence': 'lifestyle', // Habit tracking persistence
   'milestone-mastery': 'lifestyle', // Achievement tracking
   developer: 'productivity', // Developer tools for coding and CLI
   behavior: 'core', // Behavior control - core to how Ferni speaks
@@ -418,9 +427,15 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'ceo-coaching': 'productivity', // CEO personal coaching: briefings, wins, priorities, decisions
   // Intelligence Domains
   'event-intelligence': 'productivity', // Event intelligence: context-aware event management
-  'habit-intelligence': 'lifestyle', // Habit intelligence: behavioral insights, pattern detection
   'pattern-analytics': 'information', // Pattern analytics: behavioral patterns, insights
-  'wisdom-intelligence': 'information', // Wisdom intelligence: philosophical insights, life wisdom
+  // wisdom-intelligence: merged into wisdom/ domain (Jan 2026)
+  // Previously Unregistered Domains (January 2026 Audit Fix)
+  'ambient-mode': 'entertainment', // Ambient sounds, background audio
+  'coaching-support': 'lifestyle', // Shared coaching utilities
+  'human-transfer': 'core', // Transfer to human support
+  'visual-memory': 'core', // Visual memory capture
+  // UI Navigation
+  'ui-navigation': 'core', // UI navigation commands for frontend control
 };
 
 // ============================================================================

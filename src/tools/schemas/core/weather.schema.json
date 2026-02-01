@@ -1,21 +1,21 @@
 {
   "$schema": "../tool.schema.json",
   "domain": "weather",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "tools": [
     {
       "name": "getWeather",
-      "description": "Get current weather conditions or forecast. Location is auto-detected via IP - only include location if user specifies a different city.",
+      "description": "Get current weather conditions or forecast. Auto-detects user location.\n\n**TRIGGER WORDS:** 'weather', 'temperature', 'forecast', 'rain', 'umbrella', 'hot', 'cold', 'outside', 'jacket'.\n\n**CRITICAL:** When user asks about weather, CALL THIS FUNCTION FIRST before responding. Do NOT guess the weather — always call getWeather().\n\n**RETURNS:** Object with temperature, conditions, humidity, wind. Use this data in your response.\n\n**LOCATION:** Only include location parameter if user mentions a DIFFERENT city. User's current location is auto-detected.",
       "parameters": {
         "type": "object",
         "properties": {
           "location": {
             "type": "string",
-            "description": "Location for weather. Can be city name, zip code. Only include if user specifies a location different from their current location."
+            "description": "City name or zip code. ONLY include if user asks about a different location (e.g., 'weather in Miami'). Omit for user's current location."
           },
           "type": {
             "type": "string",
-            "description": "Type of weather info to get",
+            "description": "Info type: 'current' (right now), 'forecast' (next few days), 'hourly' (hour by hour)",
             "enum": ["current", "forecast", "hourly"]
           }
         },
@@ -25,9 +25,18 @@
         { "userSays": "Weather", "output": "{\"fn\":\"getWeather\",\"args\":{}}" },
         { "userSays": "Is it raining?", "output": "{\"fn\":\"getWeather\",\"args\":{}}" },
         { "userSays": "What's the weather like?", "output": "{\"fn\":\"getWeather\",\"args\":{}}" },
-        { "userSays": "Weather in Miami", "output": "{\"fn\":\"getWeather\",\"args\":{\"location\":\"Miami\"}}" },
-        { "userSays": "What's the forecast?", "output": "{\"fn\":\"getWeather\",\"args\":{\"type\":\"forecast\"}}" },
-        { "userSays": "Do I need an umbrella today?", "output": "{\"fn\":\"getWeather\",\"args\":{}}" }
+        {
+          "userSays": "Weather in Miami",
+          "output": "{\"fn\":\"getWeather\",\"args\":{\"location\":\"Miami\"}}"
+        },
+        {
+          "userSays": "What's the forecast?",
+          "output": "{\"fn\":\"getWeather\",\"args\":{\"type\":\"forecast\"}}"
+        },
+        {
+          "userSays": "Do I need an umbrella today?",
+          "output": "{\"fn\":\"getWeather\",\"args\":{}}"
+        }
       ],
       "tags": ["weather", "forecast", "information"]
     }

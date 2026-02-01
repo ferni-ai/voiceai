@@ -26,20 +26,23 @@ eq/
 ├── index.ts              # Main exports, initFerniEQ()
 ├── types.ts              # Type definitions
 ├── bridge/               # Backend ↔ Frontend bridge
-│   ├── event-bridge.ts   # Event handling
-│   └── signal-mapper.ts  # Signal translation
+│   ├── index.ts          # Bridge exports
+│   ├── humanization-bridge.ts # Backend signal handlers
+│   └── bth-hint-listener.ts   # BTH hint listener
 ├── capabilities/         # The Five Capabilities
+│   ├── index.ts               # Capabilities exports
 │   ├── micro-expressions.ts   # 40-150ms subliminal
 │   ├── active-listening.ts    # Moment-to-moment presence
 │   ├── breath-sync.ts         # Neural mirroring
 │   ├── concern-detection.ts   # Protective care
 │   └── anticipation.ts        # Predictive empathy
 ├── state/                # EQ state management
-│   ├── eq-state.ts       # Central state
-│   ├── expression-queue.ts # Expression queuing
-│   └── mood-tracker.ts   # Mood tracking
+│   ├── index.ts          # State exports
+│   ├── emotion-machine.ts # Emotion state machine
+│   ├── emotion-groups.ts  # Emotion group definitions
+│   └── emotion-interpolator.ts # Emotion interpolation
 └── utils/                # Utilities
-    └── timing.ts         # Timing utilities
+    └── avatar-soul-loader.ts # Avatar soul lazy loader
 ```
 
 ---

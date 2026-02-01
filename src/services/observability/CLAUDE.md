@@ -24,17 +24,36 @@ Level 10:  config/, utils/, types/
 
 ```
 observability/
-├── index.ts              # Main exports
-├── hub.ts                # Central observability hub
-├── llm-health.ts         # LLM API health metrics
-├── connection-health.ts  # WebRTC/LiveKit connection health
-├── ux-quality.ts         # User experience metrics
-├── memory-health.ts      # Memory/RAG system health
-├── cost-tracking.ts      # API cost tracking
-├── error-recovery.ts     # Error and recovery metrics
-├── persona-health.ts     # Persona performance metrics
-├── resilience-metrics.ts # Workers, queues, circuits
-└── finops.ts             # Financial operations metrics
+├── index.ts               # Main exports
+├── hub.ts                 # Central observability hub
+│
+├── # Core Health Metrics
+├── llm-health.ts          # LLM API health metrics
+├── connection-health.ts   # WebRTC/LiveKit connection health
+├── ux-quality.ts          # User experience metrics
+├── memory-health.ts       # Memory/RAG system health
+├── persona-health.ts      # Persona performance metrics
+│
+├── # Error & Recovery
+├── error-recovery.ts      # Error and recovery metrics
+├── error-tracking.ts      # Granular error tracking
+├── diagnostic-logger.ts   # Structured diagnostic logging
+│
+├── # Cost & Infrastructure
+├── cost-tracking.ts       # API cost tracking
+├── finops.ts              # Financial operations metrics
+├── resilience-metrics.ts  # Workers, queues, circuits
+├── cache-monitoring.ts    # Cache hit/miss metrics
+├── firestore-monitor.ts   # Firestore read/write monitoring
+│
+├── # Routing & Tool Metrics
+├── routing-metrics.ts     # Tool routing metrics (classification, calibration, summaries)
+│
+├── # Superhuman Metrics
+├── superhuman-events.ts   # Superhuman capability events
+├── superhuman-metrics.ts  # Superhuman service metrics
+│
+└── __tests__/             # Observability tests
 ```
 
 ---
@@ -231,4 +250,4 @@ pnpm vitest run src/services/observability/__tests__/
 
 ---
 
-*Last updated: December 2024*
+*Last updated: January 2026*

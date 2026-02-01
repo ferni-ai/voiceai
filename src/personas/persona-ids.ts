@@ -60,11 +60,7 @@ export const CANONICAL_IDS = {
  * Financial Legends roster - restricted handoff group
  * These three personas can hand off to each other but not to the main Ferni team.
  */
-export const FINANCIAL_LEGENDS = [
-  'peter-lynch',
-  'john-bogle',
-  'joel-dickson',
-] as const;
+export const FINANCIAL_LEGENDS = ['peter-lynch', 'john-bogle', 'joel-dickson'] as const;
 
 export type FinancialLegendsId = (typeof FINANCIAL_LEGENDS)[number];
 

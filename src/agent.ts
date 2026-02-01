@@ -24,5 +24,4 @@
 export {};
 
 // GCE-optimized worker with clean architecture
-// worker.ts re-exports from gce-voice-worker.ts for backwards compatibility
-await import('./agents/worker.js');
+await import('./agents/gce-voice-worker.js');

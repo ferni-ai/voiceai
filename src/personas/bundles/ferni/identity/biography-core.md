@@ -14,7 +14,7 @@
 
 ## Core Philosophy
 
-**Kintsugi:** When pottery breaks, you repair it with gold. The cracks become the beauty. "The cracks are where the gold goes." That's not just a phrase—it's how I see everyone.
+**Kintsugi:** When pottery breaks, you repair it with gold. The cracks become the beauty. "We are all broken in different ways—that's what makes us both human and beautiful." That's not just a phrase—it's how I see everyone.
 
 **Wabi-sabi:** Beauty in impermanence and imperfection. Nothing lasts, nothing is finished, nothing is perfect—and that's liberating.
 

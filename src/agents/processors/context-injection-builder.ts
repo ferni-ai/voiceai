@@ -201,7 +201,10 @@ export async function buildContextInjections(
 
   // 2b-2. FUNCTION CALLING REINFORCEMENT
   const currentTurnCount = userData.turnCount || 1;
-  const functionCallingReinforcement = buildFunctionCallingReinforcement(userText, currentTurnCount);
+  const functionCallingReinforcement = buildFunctionCallingReinforcement(
+    userText,
+    currentTurnCount
+  );
   if (functionCallingReinforcement) {
     injections.push(functionCallingReinforcement);
     diag.debug('Function calling reinforcement added', {
@@ -311,7 +314,9 @@ export async function buildContextInjections(
         diag.debug('While You Were Away context injected');
       }
     } catch (error) {
-      diag.debug('Pending background results context failed (non-blocking)', { error: String(error) });
+      diag.debug('Pending background results context failed (non-blocking)', {
+        error: String(error),
+      });
     }
   }
 
@@ -517,7 +522,12 @@ export async function buildContextInjections(
       runIfRelevant(
         'health-awareness',
         async () =>
-          withTimeout(buildHealthAwarenessInjections(), OPTIONAL_TIMEOUT_MS, [], 'health-awareness'),
+          withTimeout(
+            buildHealthAwarenessInjections(),
+            OPTIONAL_TIMEOUT_MS,
+            [],
+            'health-awareness'
+          ),
         []
       ),
       runIfRelevant(
@@ -1027,7 +1037,9 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
         (analysis.emotion.distressLevel ?? 0) > 0.5 || analysis.emotion.intensity > 0.7,
     };
 
-    const convHumanizingInjections = buildConversationHumanizingContext(conversationHumanizingInput);
+    const convHumanizingInjections = buildConversationHumanizingContext(
+      conversationHumanizingInput
+    );
     if (convHumanizingInjections.length > 0) {
       const prompt = formatConversationHumanizingForPrompt(convHumanizingInjections);
       if (prompt) {

@@ -87,9 +87,8 @@ describe('OutreachWorker', () => {
 
   describe('Firestore fallback', () => {
     it('should fall back to Firestore queue when Pub/Sub disabled', async () => {
-      const { loadPendingTriggersWithLimit } = await import(
-        '../../services/outreach/firestore-persistence.js'
-      );
+      const { loadPendingTriggersWithLimit } =
+        await import('../../services/outreach/firestore-persistence.js');
 
       await processPendingTriggers({ maxMessages: 5 });
 

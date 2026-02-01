@@ -144,12 +144,8 @@ describe('Phone Identity Full Flow', () => {
 
   describe('Complete Family Registration Flow', () => {
     it('registers family member from phone call to approval', async () => {
-      const sponsorNotifications = await import(
-        '../../services/identity/sponsor-notifications.js'
-      );
-      const sponsoredIdentity = await import(
-        '../../services/identity/sponsored-identity.js'
-      );
+      const sponsorNotifications = await import('../../services/identity/sponsor-notifications.js');
+      const sponsoredIdentity = await import('../../services/identity/sponsored-identity.js');
 
       // STEP 1: Unknown caller calls, mentions sponsor
       // Agent detects family referral and collects info
@@ -205,12 +201,8 @@ describe('Phone Identity Full Flow', () => {
     });
 
     it('handles sponsor rejecting family member', async () => {
-      const sponsorNotifications = await import(
-        '../../services/identity/sponsor-notifications.js'
-      );
-      const sponsoredIdentity = await import(
-        '../../services/identity/sponsored-identity.js'
-      );
+      const sponsorNotifications = await import('../../services/identity/sponsor-notifications.js');
+      const sponsoredIdentity = await import('../../services/identity/sponsored-identity.js');
 
       // Create pending identity
       const pendingIdentity = await sponsoredIdentity.createSelfRegisteredIdentity(
@@ -220,14 +212,10 @@ describe('Phone Identity Full Flow', () => {
         SPONSOR.name
       );
 
-      await sponsorNotifications.notifyPotentialSponsors(
-        SPONSOR.name,
-        pendingIdentity.id,
-        {
-          name: 'Unknown Person',
-          phone: '+15559999999',
-        }
-      );
+      await sponsorNotifications.notifyPotentialSponsors(SPONSOR.name, pendingIdentity.id, {
+        name: 'Unknown Person',
+        phone: '+15559999999',
+      });
 
       // Sponsor rejects
       const pendingApprovals = sponsorNotifications.getPendingApprovalsForSponsor(SPONSOR.id);
@@ -252,18 +240,11 @@ describe('Phone Identity Full Flow', () => {
     it('detects voice mismatch and registers new family member', async () => {
       mockVoiceSimilarity = 0.2; // Voice doesn't match
 
-      const voiceVerification = await import(
-        '../../services/voice/inbound-voice-verification.js'
-      );
-      const voiceMismatchContext = await import(
-        '../../intelligence/context-builders/external/voice-mismatch-context.js'
-      );
-      const sponsorNotifications = await import(
-        '../../services/identity/sponsor-notifications.js'
-      );
-      const sponsoredIdentity = await import(
-        '../../services/identity/sponsored-identity.js'
-      );
+      const voiceVerification = await import('../../services/voice/inbound-voice-verification.js');
+      const voiceMismatchContext =
+        await import('../../intelligence/context-builders/external/voice-mismatch-context.js');
+      const sponsorNotifications = await import('../../services/identity/sponsor-notifications.js');
+      const sponsoredIdentity = await import('../../services/identity/sponsored-identity.js');
 
       const sessionId = 'mismatch-session';
 
@@ -305,16 +286,12 @@ describe('Phone Identity Full Flow', () => {
         SPONSOR.name
       );
 
-      await sponsorNotifications.notifyPotentialSponsors(
-        SPONSOR.name,
-        pendingIdentity.id,
-        {
-          name: FAMILY_MEMBER.name,
-          phone: FAMILY_MEMBER.phone,
-          relationship: FAMILY_MEMBER.relationship,
-          notes: 'Called from phone associated with ' + SPONSOR.name,
-        }
-      );
+      await sponsorNotifications.notifyPotentialSponsors(SPONSOR.name, pendingIdentity.id, {
+        name: FAMILY_MEMBER.name,
+        phone: FAMILY_MEMBER.phone,
+        relationship: FAMILY_MEMBER.relationship,
+        notes: 'Called from phone associated with ' + SPONSOR.name,
+      });
 
       // Verify sponsor was notified
       const pending = sponsorNotifications.getPendingApprovalsForSponsor(SPONSOR.id);
@@ -330,9 +307,8 @@ describe('Phone Identity Full Flow', () => {
   describe('Phone Caller Links to Web Account', () => {
     it('detects email mention and offers account linking', async () => {
       const fastCapture = await import('../../memory/dynamic/fast-capture.js');
-      const accountLinkingContext = await import(
-        '../../intelligence/context-builders/external/account-linking-context.js'
-      );
+      const accountLinkingContext =
+        await import('../../intelligence/context-builders/external/account-linking-context.js');
 
       const sessionId = 'linking-session';
 
@@ -340,8 +316,8 @@ describe('Phone Identity Full Flow', () => {
       const transcript = `My email is ${SPONSOR.email}, I use the app too`;
       const signals = fastCapture.detectLinkingSignals(transcript);
 
-      expect(signals.some(s => s.type === 'email_mention')).toBe(true);
-      expect(signals.some(s => s.type === 'app_mention')).toBe(true);
+      expect(signals.some((s) => s.type === 'email_mention')).toBe(true);
+      expect(signals.some((s) => s.type === 'app_mention')).toBe(true);
 
       // STEP 2: Set linking context
       accountLinkingContext.setAccountLinkingContext(sessionId, {
@@ -378,9 +354,8 @@ describe('Phone Identity Full Flow', () => {
 
   describe('First-Time Caller Complete Onboarding', () => {
     it('guides unknown caller through full onboarding flow', async () => {
-      const onboardingContext = await import(
-        '../../intelligence/context-builders/external/first-call-onboarding-context.js'
-      );
+      const onboardingContext =
+        await import('../../intelligence/context-builders/external/first-call-onboarding-context.js');
 
       const sessionId = 'onboarding-session';
 
@@ -444,9 +419,8 @@ describe('Phone Identity Full Flow', () => {
 
   describe('Multi-Phone Detection Flow', () => {
     it('detects known user calling from new phone', async () => {
-      const inboundCallContext = await import(
-        '../../intelligence/context-builders/external/inbound-call-context.js'
-      );
+      const inboundCallContext =
+        await import('../../intelligence/context-builders/external/inbound-call-context.js');
 
       const sessionId = 'new-phone-session';
       const newPhone = '+15558887777';

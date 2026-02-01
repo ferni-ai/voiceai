@@ -1,0 +1,706 @@
+{
+  "$schema": "./tool-descriptions.schema.json",
+  "version": 1,
+  "lastUpdated": "2026-01-21",
+  "_comment": "Auto-extracted tool descriptions. Edit these to improve function calling.",
+  "_reference": "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling",
+  "_stats": {
+    "totalTools": 156,
+    "filesScanned": 49
+  },
+  "defaults": {
+    "prefix": "",
+    "suffix": ""
+  },
+  "tools": {
+    "acknowledgeEmotion": {
+      "description": "Acknowledge and validate the user.",
+      "file": "src/tasks/support-tasks.ts",
+      "_original": "Acknowledge and validate the user"
+    },
+    "addFavoriteTeam": {
+      "description": "Add a favorite sports team to a person.",
+      "file": "src/tools/domains/information/relationships/index.ts",
+      "_original": "Add a favorite sports team to a person"
+    },
+    "addHabit": {
+      "description": "Mark a habit as done for today.",
+      "file": "src/tools/domains/habits/unified-habits.ts",
+      "_original": "Mark a habit as done for today"
+    },
+    "addInterest": {
+      "description": "Add an interest to a person.",
+      "file": "src/tools/domains/information/relationships/index.ts",
+      "_original": "Add an interest to a person"
+    },
+    "addPhoneNumber": {
+      "description": "Add a new phone number to the current user profile so they can be recognized from multiple phones. Use when user mentions calling from a different number or wants to add a work/home phone.",
+      "file": "src/tools/domains/conversation/conversation-tools.ts"
+    },
+    "addRelationship": {
+      "description": "Add a new relationship/contact to track. Use this when the user mentions a friend,.",
+      "file": "src/tools/domains/information/relationships/index.ts",
+      "_original": "Add a new relationship/contact to track. Use this when the user mentions a friend,"
+    },
+    "addressFinancialAnxiety": {
+      "description": "Do a holistic check-in on financial wellbeing. Use proactively to understand how they.",
+      "file": "src/tools/domains/wellness/wellness-tools.ts",
+      "_original": "Do a holistic check-in on financial wellbeing. Use proactively to understand how they"
+    },
+    "addToPortfolio": {
+      "description": "Add a stock or fund holding to your tracked portfolio.",
+      "file": "src/tools/domains/research/quant-tools.ts"
+    },
+    "adjustPacing": {
+      "description": "Control your speech rhythm. Adjust speed (slower/normal/faster) and.",
+      "file": "src/tools/domains/behavior/index.ts",
+      "_original": "Control your speech rhythm. Adjust speed (slower/normal/faster) and"
+    },
+    "analyzeNewsMoodImpact": {
+      "description": "Analyze news headlines for emotional impact and determine the best way to.",
+      "file": "src/tools/domains/information/cross-domain/news-mood.ts",
+      "_original": "Analyze news headlines for emotional impact and determine the best way to"
+    },
+    "analyzeSavingsRate": {
+      "description": "Calculate and analyze your savings rate. Shows where you stand, how much you.",
+      "file": "src/tools/domains/research/quant-tools.ts",
+      "_original": "Calculate and analyze your savings rate. Shows where you stand, how much you"
+    },
+    "assessLifeDomains": {
+      "description": "After ${anchorHabit}, I will ${newHabits.join(.",
+      "file": "src/tools/habit-coaching/tools.ts",
+      "_original": "After ${anchorHabit}, I will ${newHabits.join("
+    },
+    "behavioralScore": {
+      "description": "Analyze your financial behavior patterns. Scores emotional control, discipline, and patience. Identifies strengths and areas for improvement.",
+      "file": "src/tools/domains/research/quant-tools.ts"
+    },
+    "calculateFIRE": {
+      "description": "Calculate your Financial Independence number - how much you need to retire early. Shows regular FIRE, Lean FIRE, Fat FIRE, and Coast FIRE numbers.",
+      "file": "src/tools/domains/research/quant-tools.ts"
+    },
+    "callUser": {
+      "description": "The user and deliver a voice message using your persona.",
+      "file": "src/tools/domains/proactive/outreach/agent-to-user.ts",
+      "_original": "Call the user and deliver a voice message using your persona"
+    },
+    "cancelSleepTimer": {
+      "description": "Cancel an active sleep timer. Use when user wants to cancel their music sleep timer.",
+      "file": "src/tools/domains/entertainment/spotify.ts"
+    },
+    "captureIdea": {
+      "description": "Capture an idea. Ideas are fleeting - capture them quickly before they disappear.",
+      "file": "src/tools/domains/ceo-coaching/planning-tools.ts"
+    },
+    "checkCelebrationBalance": {
+      "description": "Check your celebration balance - are you celebrating enough? Focusing too much on others?.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts",
+      "_original": "Check your celebration balance - are you celebrating enough? Focusing too much on others?"
+    },
+    "checkDateConflicts": {
+      "description": "Check if a specific date has any cultural, seasonal, or personal conflicts.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts"
+    },
+    "checkEventFollowUps": {
+      "description": "Check if any post-event follow-ups are due - I follow up at the perfect times to capture learnings.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts"
+    },
+    "checkNewMessages": {
+      "description": "Check for new text messages received today.",
+      "file": "src/tools/domains/simple-utilities/sms-reading-tools.ts"
+    },
+    "checkPlanningReadiness": {
+      "description": "Check if you.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts",
+      "_original": "Check if you"
+    },
+    "compareNutrition": {
+      "description": "Compare nutritional information between two foods. Use when user asks which food is healthier or wants to compare calories/macros.",
+      "file": "src/tools/domains/information/nutrition.ts"
+    },
+    "compoundInterestGame": {
+      "description": "Maya.",
+      "file": "src/tools/domains/engagement/financial-games.ts",
+      "_original": "Maya"
+    },
+    "confirmCallerIdentity": {
+      "description": "Use when voice mismatch detected and caller has confirmed their identity. Updates the session to use the correct user profile.",
+      "file": "src/tools/domains/conversation/conversation-tools.ts"
+    },
+    "controlLight": {
+      "description": "Control Sonos or other smart speakers.",
+      "file": "src/tools/domains/smart-home/smart-home.ts",
+      "_original": "Control Sonos or other smart speakers"
+    },
+    "dailyReflection": {
+      "description": "Conduct a daily reflection. Guided prompts to process what happened today, celebrate wins,.",
+      "file": "src/tools/domains/ceo-coaching/focus-tools.ts",
+      "_original": "Conduct a daily reflection. Guided prompts to process what happened today, celebrate wins,"
+    },
+    "deleteVoiceMemo": {
+      "description": "Delete a voice memo by title.",
+      "file": "src/tools/domains/simple-utilities/voice-memos-tools.ts"
+    },
+    "detectConversationDrift": {
+      "description": "Assess and respond to the user.",
+      "file": "src/tools/awareness.ts",
+      "_original": "Assess and respond to the user"
+    },
+    "expressPresence": {
+      "description": "Show non-verbal presence. Use breath for audible breathing, hum for soft.",
+      "file": "src/tools/domains/behavior/index.ts",
+      "_original": "Show non-verbal presence. Use breath for audible breathing, hum for soft"
+    },
+    "focusSession": {
+      "description": "Manage focus sessions for deep work. Start a session with a specific duration and optional task,.",
+      "file": "src/tools/domains/ceo-coaching/focus-tools.ts",
+      "_original": "Manage focus sessions for deep work. Start a session with a specific duration and optional task,"
+    },
+    "forgetMemory": {
+      "description": "Proactively surface a relevant memory when context connects to something from past conversations. Use this to show continuity and deep understanding.",
+      "file": "src/tools/domains/memory/tools.ts"
+    },
+    "futureSelfLetter": {
+      "description": "Jordan.",
+      "file": "src/tools/domains/engagement/life-planning-games.ts",
+      "_original": "Jordan"
+    },
+    "getAnticipatedTransitions": {
+      "description": "See what life transitions I.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts",
+      "_original": "See what life transitions I"
+    },
+    "getCommuteSuggestions": {
+      "description": "Get personalized suggestions for making commute time productive or enjoyable.",
+      "file": "src/tools/domains/information/cross-domain/traffic-productivity.ts"
+    },
+    "getContactReminders": {
+      "description": "Get reminders about people the user hasn.",
+      "file": "src/tools/domains/information/relationships/index.ts",
+      "_original": "Get reminders about people the user hasn"
+    },
+    "getCryptoOverview": {
+      "description": "Get an overview of top cryptocurrencies including Bitcoin, Ethereum, Solana, and Dogecoin. Use when user asks about the crypto market in general.",
+      "file": "src/tools/domains/finance/market-data.ts"
+    },
+    "getCurrentTime": {
+      "description": "Get the current time. Call this when user asks what time it is.",
+      "file": "src/tests/baseline-tool-test.ts"
+    },
+    "getDailyFinancialBriefing": {
+      "description": "Get your personalized daily financial briefing with market updates, portfolio insights, and action items.",
+      "file": "src/tools/domains/research/quant-tools.ts"
+    },
+    "getEventPatternInsights": {
+      "description": "Remember that two guests have a conflict and should not be seated together at future events.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts"
+    },
+    "getEventWisdom": {
+      "description": "Get wisdom and learnings from past events of the same type - what worked, what to avoid.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts"
+    },
+    "getFinancialNews": {
+      "description": "To get financial news. DO NOT say.",
+      "file": "src/tools/domains/information/news.ts",
+      "_original": "EXECUTE SILENTLY to get financial news. DO NOT say"
+    },
+    "getGiftSuggestions": {
+      "description": "Get gift suggestions for a person based on their interests.",
+      "file": "src/tools/domains/information/relationships/index.ts"
+    },
+    "getGuestListDietary": {
+      "description": "Get a summary of dietary requirements for a list of guests - vegetarians, vegans, allergies, etc.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts"
+    },
+    "getHabitRecommendation": {
+      "description": "Get a personalized recommendation for a specific habit based on current weather.",
+      "file": "src/tools/domains/information/cross-domain/weather-habits.ts",
+      "_original": "Get a personalized recommendation for a specific habit based on current weather"
+    },
+    "getHabitStats": {
+      "description": "Show which habits still need to be done today.",
+      "file": "src/tools/domains/habits/unified-habits.ts",
+      "_original": "Show which habits still need to be done today"
+    },
+    "getMorningBriefing": {
+      "description": "Get a personalized morning briefing. Includes current priorities, recent wins, active blockers,.",
+      "file": "src/tools/domains/ceo-coaching/briefing-tools.ts",
+      "_original": "Get a personalized morning briefing. Includes current priorities, recent wins, active blockers,"
+    },
+    "getMovieInfo": {
+      "description": "Get information about a specific movie including rating, runtime, genres, and description. Use when user asks about a movie.",
+      "file": "src/tools/domains/entertainment/movies.ts"
+    },
+    "getMovieShowtimes": {
+      "description": "Get showtime information for a movie in a specific location. Use when user asks for showtimes or when a movie is playing.",
+      "file": "src/tools/domains/entertainment/movies.ts"
+    },
+    "getMoviesNowPlaying": {
+      "description": "Get a list of movies currently playing in theaters. Use when user asks what movies are out, in theaters, or playing now.",
+      "file": "src/tools/domains/entertainment/movies.ts"
+    },
+    "getNutritionInfo": {
+      "description": "Get nutritional information for a food including calories, protein, carbs, and fat. Use when user asks about nutrition, calories, or macros of a food.",
+      "file": "src/tools/domains/information/nutrition.ts"
+    },
+    "getPositiveNewsOnly": {
+      "description": "Filter news to show only positive, uplifting stories.",
+      "file": "src/tools/domains/information/cross-domain/news-mood.ts"
+    },
+    "getRelationshipInfo": {
+      "description": "Get information about a specific relationship/contact.",
+      "file": "src/tools/domains/information/relationships/index.ts"
+    },
+    "getRelationshipInsights": {
+      "description": "Get all relationship insights - birthdays, contact reminders, team updates.",
+      "file": "src/tools/domains/information/relationships/index.ts"
+    },
+    "getRelationshipSummary": {
+      "description": "Update an existing memory with new information when the user corrects or adds to what you remember.",
+      "file": "src/tools/domains/memory/tools.ts",
+      "_original": "Update an existing memory with new information when the user corrects or adds to what you remember"
+    },
+    "getStockQuote": {
+      "description": "Get cryptocurrency price and 24-hour change. Use for Bitcoin (BTC), Ethereum (ETH), Solana (SOL), Dogecoin (DOGE), and other popular cryptocurrencies.",
+      "file": "src/tools/domains/finance/market-data.ts"
+    },
+    "getTendencyAdvice": {
+      "description": "Show life domains for organizing habits.",
+      "file": "src/tools/domains/habits/unified-habits.ts",
+      "_original": "Show life domains for organizing habits"
+    },
+    "getTheses": {
+      "description": "Get all saved theses for a domain. Use to understand someone.",
+      "file": "src/tools/domains/life-thesis/thesis-tools.ts",
+      "_original": "Get all saved theses for a domain. Use to understand someone"
+    },
+    "getThisDayInHistory": {
+      "description": "Get interesting financial history for today—market crashes, milestones, Jack.",
+      "file": "src/tools/domains/wisdom/wisdom.ts",
+      "_original": "Get interesting financial history for today—market crashes, milestones, Jack"
+    },
+    "getTrafficProductivityInsights": {
+      "description": "Analyze traffic situation and generate insights about how to use commute time productively.",
+      "file": "src/tools/domains/information/cross-domain/traffic-productivity.ts"
+    },
+    "getUpcomingBirthdays": {
+      "description": "Get upcoming birthdays from tracked relationships.",
+      "file": "src/tools/domains/information/relationships/index.ts"
+    },
+    "getUpcomingGiftOccasions": {
+      "description": "See upcoming occasions where you might want to give gifts - birthdays, anniversaries, holidays.",
+      "file": "src/tools/domains/life-planning/gift-registry.ts"
+    },
+    "getUpcomingMilestones": {
+      "description": "See what milestones are coming up that are worth celebrating - anniversaries, streaks, life events.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts"
+    },
+    "getUpcomingMovies": {
+      "description": "Get a list of upcoming movies coming to theaters soon. Use when user asks about upcoming releases or what movies are coming out.",
+      "file": "src/tools/domains/entertainment/movies.ts"
+    },
+    "getWeather": {
+      "description": "Get sunrise and sunset times for a location. Use when user asks about sunrise, sunset, daylight hours, golden hour, or when the sun rises/sets.",
+      "file": "src/tools/domains/information/weather.ts"
+    },
+    "getWeatherHabitInsights": {
+      "description": "Analyze weather and environmental conditions to suggest habit adjustments.",
+      "file": "src/tools/domains/information/cross-domain/weather-habits.ts"
+    },
+    "getWisdomQuote": {
+      "description": "Get Jack.",
+      "file": "src/tools/domains/wisdom/wisdom.ts",
+      "_original": "Get Jack"
+    },
+    "holdSpace": {
+      "description": "Create intentional meaningful silence. Use brief (3s) for short pauses,.",
+      "file": "src/tools/domains/behavior/index.ts",
+      "_original": "Create intentional meaningful silence. Use brief (3s) for short pauses,"
+    },
+    "implementationIntention": {
+      "description": "Create.",
+      "file": "src/tools/domains/habits/habit-voice-tools.ts",
+      "_original": "Create"
+    },
+    "inboxZeroChallenge": {
+      "description": "Alex.",
+      "file": "src/tools/domains/engagement/productivity-games.ts",
+      "_original": "Alex"
+    },
+    "inviteFriendByCall": {
+      "description": "Invite someone to Ferni by having Ferni call them personally. Use this when the user mentions a friend, family member, or colleague who might enjoy having someone to talk to. Ask for their name and phone number first. This creates a warm, personal introduction that feels like a friend recommending a friend.",
+      "file": "src/tools/domains/referral/voice-referral.ts"
+    },
+    "linkPhoneToAccount": {
+      "description": "Link the current phone caller to an existing web/app account after user confirmation. This merges their conversation history and memories.",
+      "file": "src/tools/domains/conversation/conversation-tools.ts"
+    },
+    "listRelationships": {
+      "description": "List all tracked relationships/contacts.",
+      "file": "src/tools/domains/information/relationships/index.ts"
+    },
+    "listSonosRooms": {
+      "description": "List all available Sonos rooms/speakers. Use this when the user asks about their Sonos setup or which rooms are available.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts"
+    },
+    "listVoiceMemos": {
+      "description": "List voice memos. Returns all saved audio notes and reminders.",
+      "file": "src/tools/domains/simple-utilities/voice-memos-tools.ts"
+    },
+    "logGiftReceived": {
+      "description": "Log a gift that you gave to someone. Helps track gift-giving patterns and avoid repeats.",
+      "file": "src/tools/domains/life-planning/gift-registry.ts"
+    },
+    "logGratitude": {
+      "description": "Log something you.",
+      "file": "src/tools/domains/ceo-coaching/tracking-tools.ts",
+      "_original": "Log something you"
+    },
+    "managePriorities": {
+      "description": "Manage your priority stack. Add new priorities, mark them complete, view the current list,.",
+      "file": "src/tools/domains/ceo-coaching/planning-tools.ts",
+      "_original": "Manage your priority stack. Add new priorities, mark them complete, view the current list,"
+    },
+    "markThankYouSent": {
+      "description": "See all gifts exchanged with a specific person - what you gave them and what they gave you.",
+      "file": "src/tools/domains/life-planning/gift-registry.ts"
+    },
+    "microCommitNow": {
+      "description": "Get a 2-minute micro action to do RIGHT NOW. Perfect for building momentum when energy.",
+      "file": "src/tools/domains/habits/habit-voice-tools.ts",
+      "_original": "Get a 2-minute micro action to do RIGHT NOW. Perfect for building momentum when energy"
+    },
+    "morningSkyCheck": {
+      "description": "Reframe failures as gold - Ferni.",
+      "file": "src/tools/domains/engagement/emotional-games.ts",
+      "_original": "Reframe failures as gold - Ferni"
+    },
+    "noteEmotionalState": {
+      "description": "To note emotional state. Execute - DO NOT say.",
+      "file": "src/tools/domains/conversation/conversation-tools.ts",
+      "_original": "CALL silently to note emotional state. Execute without announcing - DO NOT say"
+    },
+    "paradoxOfTheDay": {
+      "description": "Nayan.",
+      "file": "src/tools/domains/engagement/wisdom-games.ts",
+      "_original": "Nayan"
+    },
+    "patternDetective": {
+      "description": "Peter.",
+      "file": "src/tools/domains/engagement/analytics-games.ts",
+      "_original": "Peter"
+    },
+    "pauseSonos": {
+      "description": "Set the default Sonos room for music playback. Future.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts",
+      "_original": "Set the default Sonos room for music playback. Future"
+    },
+    "peerComparison": {
+      "description": "See how you compare to others in your age group. Shows percentiles for savings rate, net worth, debt management, and emergency fund.",
+      "file": "src/tools/domains/research/quant-tools.ts"
+    },
+    "playMusic": {
+      "description": "Set a sleep timer to stop music after a specified duration. Use when user wants music to stop automatically after a certain time (e.g.,.",
+      "file": "src/tools/domains/entertainment/spotify.ts",
+      "_original": "Set a sleep timer to stop music after a specified duration. Use when user wants music to stop automatically after a certain time (e.g.,"
+    },
+    "playSonosMusic": {
+      "description": "Search the user.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts",
+      "_original": "Search the user"
+    },
+    "predictAttendance": {
+      "description": "Predict attendance based on past patterns - who usually shows up, who tends to decline, who cancels last-minute.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts"
+    },
+    "processing": {
+      "description": "Take visible thinking time. Use thinking for general thought,.",
+      "file": "src/tools/domains/behavior/index.ts",
+      "_original": "Take visible thinking time. Use thinking for general thought,"
+    },
+    "quickHabitCheck": {
+      "description": "Quick voice check-in on habit progress. Natural, conversational, under 60 seconds.",
+      "file": "src/tools/domains/habits/habit-voice-tools.ts"
+    },
+    "quickJournal": {
+      "description": "Capture a quick journal entry. Journaling helps process thoughts, track your journey,.",
+      "file": "src/tools/domains/ceo-coaching/tracking-tools.ts",
+      "_original": "Capture a quick journal entry. Journaling helps process thoughts, track your journey,"
+    },
+    "readSMS": {
+      "description": "Read text messages. Returns recent SMS conversations. Can filter by contact name or phone number.",
+      "file": "src/tools/domains/simple-utilities/sms-reading-tools.ts"
+    },
+    "recallConversation": {
+      "description": "Superhuman communication tool: ${toolNames[key] || key}.",
+      "file": "src/tools/domains/communication/superhuman-tools/llm-tools.ts",
+      "_original": "Superhuman communication tool: ${toolNames[key] || key}"
+    },
+    "recallEventMeaning": {
+      "description": "Remember what a past event meant - the emotional significance, key moments, and lessons.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts"
+    },
+    "recallFromMemory": {
+      "description": "Search memory for relevant past conversations based on a topic or theme.",
+      "file": "src/tools/domains/memory/tools-unified.ts",
+      "_original": "Search memory for relevant past conversations based on a topic or theme"
+    },
+    "recallPreviousConversation": {
+      "description": "Save a critically important fact that should be remembered forever.",
+      "file": "src/tools/domains/memory/tools.ts",
+      "_original": "Save a critically important fact that should be remembered forever"
+    },
+    "recallVoiceMemo": {
+      "description": "Recall a voice memo by title or search term. Reads back the memo content.",
+      "file": "src/tools/domains/simple-utilities/voice-memos-tools.ts"
+    },
+    "recordBehavior": {
+      "description": "Record a financial behavior for tracking. Use this when you notice yourself making emotional or impulsive financial decisions.",
+      "file": "src/tools/domains/research/quant-tools.ts"
+    },
+    "recordCelebration": {
+      "description": "Record a celebration to track your celebration balance - are you celebrating enough? Too much?.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts",
+      "_original": "Record a celebration to track your celebration balance - are you celebrating enough? Too much?"
+    },
+    "recordContact": {
+      "description": "Record that the user had contact with someone. Use this when they mention.",
+      "file": "src/tools/domains/information/relationships/index.ts",
+      "_original": "Record that the user had contact with someone. Use this when they mention"
+    },
+    "recordFIREProgress": {
+      "description": "Record your current FIRE progress for tracking over time.",
+      "file": "src/tools/domains/research/quant-tools.ts"
+    },
+    "recordIntroduction": {
+      "description": "Record the user.",
+      "file": "src/tasks/onboarding.ts",
+      "_original": "Record the user"
+    },
+    "recordName": {
+      "description": "Collect email address.",
+      "file": "src/tasks/agent-task.ts",
+      "_original": "Collect email address"
+    },
+    "reflectionPrompts": {
+      "description": "Track and celebrate user streaks.",
+      "file": "src/tools/domains/engagement/team-challenges.ts",
+      "_original": "Track and celebrate user streaks"
+    },
+    "remember": {
+      "description": "Remember something important about the user for future reference.",
+      "file": "src/tests/baseline-tool-test.ts"
+    },
+    "rememberAboutUser": {
+      "description": "Try to recall something from previous conversations with this user.",
+      "file": "src/tools/domains/memory/tools.ts",
+      "_original": "Try to recall something from previous conversations with this user"
+    },
+    "rememberName": {
+      "description": "When user shares their name. Execute - DO NOT say.",
+      "file": "src/tools/domains/conversation/conversation-tools.ts",
+      "_original": "CALL silently when user shares their name. Execute without announcing - DO NOT say"
+    },
+    "remindThesis": {
+      "description": "Recall someone.",
+      "file": "src/tools/domains/life-thesis/thesis-tools.ts",
+      "_original": "Recall someone"
+    },
+    "retirementReadiness": {
+      "description": "Calculate your retirement readiness score. Projects your savings at retirement, estimates years of retirement income, and gives personalized recommendations.",
+      "file": "src/tools/domains/research/quant-tools.ts"
+    },
+    "reviewThesis": {
+      "description": "Update a thesis after a scheduled review or life change. Use when: - Someone reviews their commitments - Something has changed - Someone wants to invalidate a previous thesis.",
+      "file": "src/tools/domains/life-thesis/thesis-tools.ts",
+      "_original": "Update a thesis after a scheduled review or life change. Use when: - Someone reviews their commitments - Something has changed - Someone wants to invalidate a previous thesis"
+    },
+    "riskAnalysis": {
+      "description": "Calculate risk metrics for stocks: Beta (market sensitivity), Sharpe Ratio (risk-adjusted returns), Volatility, Max Drawdown, and Value at Risk (VaR). Essential for understanding risk.",
+      "file": "src/tools/domains/research/quant-tools.ts"
+    },
+    "saveBoundaryThesis": {
+      "description": "Save why someone set a personal boundary. For when they.",
+      "file": "src/tools/domains/life-thesis/thesis-tools.ts",
+      "_original": "Save why someone set a personal boundary. For when they"
+    },
+    "saveCareerThesis": {
+      "description": "Save why someone chose their current career path, role, or company. For when they question their choice. Use when: - Someone takes a new job - Someone commits to a career path - Someone articulates what matters in their work Captures: Values, tradeoffs they.",
+      "file": "src/tools/domains/life-thesis/thesis-tools.ts",
+      "_original": "Save why someone chose their current career path, role, or company. For when they question their choice. Use when: - Someone takes a new job - Someone commits to a career path - Someone articulates what matters in their work Captures: Values, tradeoffs they"
+    },
+    "saveCommitmentThesis": {
+      "description": "Save why someone made a commitment (to themselves or others). For when keeping it is hard. Use when: - Someone makes a promise - Someone commits to a course of action - Someone articulates what they.",
+      "file": "src/tools/domains/life-thesis/thesis-tools.ts",
+      "_original": "Save why someone made a commitment (to themselves or others). For when keeping it is hard. Use when: - Someone makes a promise - Someone commits to a course of action - Someone articulates what they"
+    },
+    "saveContactInfo": {
+      "description": "Save the user.",
+      "file": "src/tools/domains/proactive/outreach/agent-to-user.ts",
+      "_original": "Save the user"
+    },
+    "saveDecisionThesis": {
+      "description": "Save the reasoning behind a major life decision. For when they have second thoughts. Use when: - Someone makes a big decision (move, purchase, ending something) - Someone weighs options carefully - Someone wants to remember their clear-headed reasoning Captures: Alternatives considered, pros/cons, deal-breakers.",
+      "file": "src/tools/domains/life-thesis/thesis-tools.ts"
+    },
+    "saveFinancialProfile": {
+      "description": "Save or update your financial profile. Stores income, expenses, age, retirement goals, and risk tolerance for personalized analysis.",
+      "file": "src/tools/domains/research/quant-tools.ts"
+    },
+    "saveGoalThesis": {
+      "description": "Save why someone set a specific goal. Capture their motivation NOW so it can be recalled when they feel like giving up. Use when: - Someone commits to a meaningful goal - Someone articulates WHY this goal matters - A goal has milestones or measurable targets Captures: The.",
+      "file": "src/tools/domains/life-thesis/thesis-tools.ts",
+      "_original": "Save why someone set a specific goal. Capture their motivation NOW so it can be recalled when they feel like giving up. Use when: - Someone commits to a meaningful goal - Someone articulates WHY this goal matters - A goal has milestones or measurable targets Captures: The"
+    },
+    "saveHabitThesis": {
+      "description": "Save why someone is building a new habit. Capture their motivation NOW so it can be recalled when they want to quit. Use when: - Someone commits to a new daily/weekly habit - Someone explains why a habit matters to them - Someone is starting their habit journey with clear motivation Captures: The.",
+      "file": "src/tools/domains/life-thesis/thesis-tools.ts",
+      "_original": "Save why someone is building a new habit. Capture their motivation NOW so it can be recalled when they want to quit. Use when: - Someone commits to a new daily/weekly habit - Someone explains why a habit matters to them - Someone is starting their habit journey with clear motivation Captures: The"
+    },
+    "saveHealthThesis": {
+      "description": "Save why someone is making a health change. For when they want to quit. Use when: - Starting a fitness journey - Making dietary changes - Working on sleep - Addressing mental health - Quitting a substance Captures: Current state, target state, approach, measurables.",
+      "file": "src/tools/domains/life-thesis/thesis-tools.ts"
+    },
+    "saveRelationshipThesis": {
+      "description": "Save what someone loves about a person and why the relationship matters. For conflict moments. Use when: - Someone reflects deeply on a relationship - Someone commits to working on a relationship - Someone wants to remember the good during hard times Captures: What they love, what.",
+      "file": "src/tools/domains/life-thesis/thesis-tools.ts",
+      "_original": "Save what someone loves about a person and why the relationship matters. For conflict moments. Use when: - Someone reflects deeply on a relationship - Someone commits to working on a relationship - Someone wants to remember the good during hard times Captures: What they love, what"
+    },
+    "saveVoiceMemo": {
+      "description": "Save a voice memo. Used when the user wants to record or save a quick audio note or reminder.",
+      "file": "src/tools/domains/simple-utilities/voice-memos-tools.ts"
+    },
+    "scheduleProactiveReminder": {
+      "description": "Schedule a reminder to text, email, or call the user at a specific time. Use for: follow-ups, accountability check-ins, celebrations, and scheduled reminders.",
+      "file": "src/tools/domains/proactive/outreach/agent-to-user.ts"
+    },
+    "searchMessages": {
+      "description": "Search text messages for specific words or phrases.",
+      "file": "src/tools/domains/simple-utilities/sms-reading-tools.ts"
+    },
+    "searchVoiceMemos": {
+      "description": "Search voice memos for specific words or phrases.",
+      "file": "src/tools/domains/simple-utilities/voice-memos-tools.ts"
+    },
+    "searchWeb": {
+      "description": "Search the web for information. IMPORTANT: If the user.",
+      "file": "src/tools/domains/information/search.ts",
+      "_original": "Search the web for information. IMPORTANT: If the user"
+    },
+    "searchWikipedia": {
+      "description": "Search for recipes and cooking instructions for a dish.",
+      "file": "src/tools/domains/information/search.ts",
+      "_original": "Search for recipes and cooking instructions for a dish"
+    },
+    "sendImmediateOutreach": {
+      "description": "Send an immediate message to the user via SMS, email, or voice call. Use when you need to reach them right now outside of the conversation.",
+      "file": "src/tools/domains/proactive/outreach/agent-to-user.ts"
+    },
+    "sendSupportCall": {
+      "description": "Send a supportive introduction call to someone the user knows who is going through a difficult time. This is a gentle way to let someone know they have support available. Use when the user mentions a friend struggling with something.",
+      "file": "src/tools/domains/referral/voice-referral.ts"
+    },
+    "setAppLanguage": {
+      "description": "Change the app.",
+      "file": "src/tools/domains/simple-utilities/app-settings-tools.ts",
+      "_original": "Change the app"
+    },
+    "shareStory": {
+      "description": "To get a relevant story. Do not say.",
+      "file": "src/tools/domains/conversation/conversation-tools.ts",
+      "_original": "CALL immediately to get a relevant story. Do not say"
+    },
+    "shiftMode": {
+      "description": "Change your presence mode. Use presence for minimal words,.",
+      "file": "src/tools/domains/behavior/index.ts",
+      "_original": "Change your presence mode. Use presence for minimal words,"
+    },
+    "shouldSkipNews": {
+      "description": "Determine if news should be skipped based on user mood and news content.",
+      "file": "src/tools/domains/information/cross-domain/news-mood.ts"
+    },
+    "startEventStory": {
+      "description": "Start capturing the story of an event - not just logistics, but what it MEANT. I remember the emotional journey forever.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts"
+    },
+    "startVoiceEnrollment": {
+      "description": "Start voice enrollment to enable voice recognition for the caller. Only use after user explicitly consents. Their voice will be learned during the conversation.",
+      "file": "src/tools/domains/conversation/conversation-tools.ts"
+    },
+    "suggestCircleBack": {
+      "description": "Suggest circling back to a topic that was mentioned but not fully explored. Use to show you.",
+      "file": "src/tools/awareness.ts",
+      "_original": "Suggest circling back to a topic that was mentioned but not fully explored. Use to show you"
+    },
+    "suggestGiftIdeas": {
+      "description": "Get AI-powered gift suggestions for someone based on their interests, past gifts, and your relationship.",
+      "file": "src/tools/domains/life-planning/gift-registry.ts"
+    },
+    "suggestOptimalTiming": {
+      "description": "Get suggestions for the best time to hold an event - considers seasonal patterns, cultural dates, and your personal rhythms.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts"
+    },
+    "suggestPreMeetingPepTalk": {
+      "description": "Offer a pep talk or confidence boost before an important meeting during commute.",
+      "file": "src/tools/domains/information/cross-domain/traffic-productivity.ts"
+    },
+    "surfaceRelevantMemory": {
+      "description": "Anticipate what the user might need based on context, time, patterns, or upcoming events.",
+      "file": "src/tools/domains/memory/tools-unified.ts"
+    },
+    "teamHuddle": {
+      "description": "Micro-challenges for instant engagement.",
+      "file": "src/tools/domains/engagement/team-challenges.ts",
+      "_original": "Micro-challenges for instant engagement"
+    },
+    "technicalIndicators": {
+      "description": "Calculate technical indicators for any stock: RSI (overbought/oversold), MACD (momentum), moving averages (trend), Bollinger Bands (volatility). Great for timing analysis.",
+      "file": "src/tools/domains/research/quant-tools.ts"
+    },
+    "thinkOutLoud": {
+      "description": "Create a pending sponsored identity for an unknown caller who was referred by a Ferni user. The sponsor will be notified to approve.",
+      "file": "src/tools/domains/conversation/conversation-tools.ts"
+    },
+    "trackBlocker": {
+      "description": "Track blockers that are preventing progress. Naming blockers explicitly makes them easier.",
+      "file": "src/tools/domains/ceo-coaching/planning-tools.ts",
+      "_original": "Track blockers that are preventing progress. Naming blockers explicitly makes them easier"
+    },
+    "trackDecision": {
+      "description": "Track decisions. Capture pending decisions you need to make, and record outcomes when you.",
+      "file": "src/tools/domains/ceo-coaching/planning-tools.ts",
+      "_original": "Track decisions. Capture pending decisions you need to make, and record outcomes when you"
+    },
+    "trackEnergy": {
+      "description": "Log your current energy level from 1 to 10. Tracking energy helps identify patterns -.",
+      "file": "src/tools/domains/ceo-coaching/tracking-tools.ts",
+      "_original": "Log your current energy level from 1 to 10. Tracking energy helps identify patterns -"
+    },
+    "trackImportantDate": {
+      "description": "Track an important date so I can proactively remind you of anniversaries and milestones.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts"
+    },
+    "trackQuietWin": {
+      "description": "Track a quiet win streak like days sober, days exercising, days meditating. I celebrate milestone days with you.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts"
+    },
+    "trackWin": {
+      "description": "Log a win or achievement. Wins can be big or small - shipping a feature, closing a deal,.",
+      "file": "src/tools/domains/ceo-coaching/tracking-tools.ts",
+      "_original": "Log a win or achievement. Wins can be big or small - shipping a feature, closing a deal,"
+    },
+    "updateGuestProfile": {
+      "description": "Update information about a guest - dietary restrictions, accessibility needs, gift preferences, social style. I remember this forever for all future events.",
+      "file": "src/tools/domains/life-planning/superhuman-planning-tools.ts"
+    },
+    "viewPortfolio": {
+      "description": "View your tracked portfolio holdings.",
+      "file": "src/tools/domains/research/quant-tools.ts"
+    },
+    "weeklyReview": {
+      "description": "Conduct a weekly review. Summarizes the week.",
+      "file": "src/tools/domains/ceo-coaching/briefing-tools.ts",
+      "_original": "Conduct a weekly review. Summarizes the week"
+    }
+  }
+}

@@ -30,16 +30,22 @@ api/
 ├── auth-middleware.ts          # Authentication & rate limiting
 ├── helpers.ts                  # Response helpers, CORS, parsing
 ├── error-messages.ts           # Standardized error messages
-├── *-routes.ts                 # Route handlers (54 files)
-├── *-handler.ts                # Complex handlers (8 files)
+├── *-routes.ts                 # Route handlers (110+ files)
 ├── v1/                         # Versioned API routes
 │   ├── admin/                  # Admin-only endpoints
+│   ├── developers/             # Developer platform routes
 │   ├── integrations/           # Third-party integrations
 │   └── public/                 # Public endpoints
-├── voice-auth/                 # Voice authentication
-├── marketplace/                # Marketplace API
-├── monetization/               # Subscription/billing
-├── routes/                     # Additional route modules
+├── v2/                         # V2 API routes
+│   ├── developers/             # Developer platform v2
+│   └── openapi.json            # OpenAPI spec
+├── routes/                     # Additional route modules (38+ files)
+├── voice-auth/                 # Voice authentication (8 files)
+├── marketplace/                # Marketplace API (6 files)
+├── health/                     # Health check routes
+├── custom-agent/               # Custom agent routes
+├── calendar-routes/            # Calendar route submodule
+├── jobs/                       # Background job routes
 └── __tests__/                  # API tests
 ```
 
