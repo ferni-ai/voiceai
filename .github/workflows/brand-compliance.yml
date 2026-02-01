@@ -43,7 +43,7 @@ jobs:
         with:
           script: |
             const { execSync } = require('child_process');
-            
+
             // Run linter and capture output
             let output;
             try {
@@ -51,17 +51,33 @@ jobs:
             } catch (e) {
               output = e.stdout || e.message;
             }
-            
+
+            // Truncate if output is too long (GitHub comment limit is 65536 chars)
+            const MAX_OUTPUT_LENGTH = 50000;
+            let displayOutput = output;
+            let truncatedNote = '';
+            if (output.length > MAX_OUTPUT_LENGTH) {
+              // Count total violations
+              const errorCount = (output.match(/❌/g) || []).length;
+              displayOutput = output.substring(0, MAX_OUTPUT_LENGTH);
+              // Find last complete line
+              const lastNewline = displayOutput.lastIndexOf('\n');
+              if (lastNewline > 0) {
+                displayOutput = displayOutput.substring(0, lastNewline);
+              }
+              truncatedNote = `\n\n... **Output truncated** (${errorCount} total violations)\n\n**Run \`pnpm brand:check\` locally to see all violations.**`;
+            }
+
             const comment = `## 🎨 Brand Compliance Check Failed
-            
+
             The following brand guideline violations were found:
-            
+
             \`\`\`
-            ${output}
-            \`\`\`
-            
+            ${displayOutput}
+            \`\`\`${truncatedNote}
+
             Please fix these issues before merging. See \`brand/FERNI-BRAND-GUIDELINES.md\` for details.
-            
+
             ### Quick Reference
             - Use \`createLogger()\` instead of \`console.log\`
             - Use CSS variables instead of hardcoded colors
@@ -69,7 +85,7 @@ jobs:
             - Use Lucide icons instead of emoji
             - Add HMR cleanup to UI components
             `;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,

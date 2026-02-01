@@ -97,6 +97,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Fix local dependencies for CI
+        run: |
+          # Replace local file: dependencies with npm registry versions
+          # Pin to exact 1.0.35 (not ^1.0.31) to avoid rtc-node version mismatch
+          LIVEKIT_VERSION="1.0.35"
+          sed -i 's|"file:../agents-js/agents"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/google"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/openai"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/silero"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+
       - name: Restore node_modules cache
         uses: actions/cache/restore@v4
         with:
@@ -140,6 +152,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Fix local dependencies for CI
+        run: |
+          LIVEKIT_VERSION="1.0.35"
+          sed -i 's|"file:../agents-js/agents"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/google"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/openai"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/silero"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
 
       - name: Restore node_modules cache
         uses: actions/cache/restore@v4
@@ -186,6 +208,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Fix local dependencies for CI
+        run: |
+          LIVEKIT_VERSION="1.0.35"
+          sed -i 's|"file:../agents-js/agents"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/google"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/openai"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/silero"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
 
       - name: Restore node_modules cache
         uses: actions/cache/restore@v4
@@ -251,6 +283,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Fix local dependencies for CI
+        run: |
+          LIVEKIT_VERSION="1.0.35"
+          sed -i 's|"file:../agents-js/agents"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/google"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/openai"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/silero"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+
       - name: Restore node_modules cache
         uses: actions/cache/restore@v4
         with:
@@ -293,6 +335,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Fix local dependencies for CI
+        run: |
+          LIVEKIT_VERSION="1.0.35"
+          sed -i 's|"file:../agents-js/agents"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/google"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/openai"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/silero"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+
       - name: Restore node_modules cache
         uses: actions/cache/restore@v4
         with:
@@ -304,7 +356,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Build backend
-        run: pnpm build --if-present
+        run: pnpm build:fast  # Uses esbuild - faster and less memory than tsc
 
       - name: Build design-system
         run: pnpm build:design-system
@@ -344,6 +396,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Fix local dependencies for CI
+        run: |
+          LIVEKIT_VERSION="1.0.35"
+          sed -i 's|"file:../agents-js/agents"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/google"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/openai"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/silero"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
 
       - name: Restore node_modules cache
         uses: actions/cache/restore@v4
@@ -390,6 +452,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Fix local dependencies for CI
+        run: |
+          LIVEKIT_VERSION="1.0.35"
+          sed -i 's|"file:../agents-js/agents"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/google"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/openai"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/silero"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+
       - name: Restore node_modules cache
         uses: actions/cache/restore@v4
         with:
@@ -428,6 +500,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Fix local dependencies for CI
+        run: |
+          LIVEKIT_VERSION="1.0.35"
+          sed -i 's|"file:../agents-js/agents"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/google"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/openai"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/silero"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+
       - name: Restore node_modules cache
         uses: actions/cache/restore@v4
         with:
@@ -462,6 +544,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Fix local dependencies for CI
+        run: |
+          LIVEKIT_VERSION="1.0.35"
+          sed -i 's|"file:../agents-js/agents"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/google"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/openai"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/silero"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
 
       - name: Restore node_modules cache
         uses: actions/cache/restore@v4
@@ -502,6 +594,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Fix local dependencies for CI
+        run: |
+          LIVEKIT_VERSION="1.0.35"
+          sed -i 's|"file:../agents-js/agents"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/google"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/openai"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/silero"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
 
       - name: Restore node_modules cache
         uses: actions/cache/restore@v4
@@ -567,6 +669,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Fix local dependencies for CI
+        run: |
+          LIVEKIT_VERSION="1.0.35"
+          sed -i 's|"file:../agents-js/agents"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/google"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/openai"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/silero"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+
       - name: Restore node_modules cache
         uses: actions/cache/restore@v4
         with:
@@ -628,6 +740,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Fix local dependencies for CI
+        run: |
+          LIVEKIT_VERSION="1.0.35"
+          sed -i 's|"file:../agents-js/agents"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/google"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/openai"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
+          sed -i 's|"file:../agents-js/plugins/silero"|"'"$LIVEKIT_VERSION"'"|g' package.json || true
 
       - name: Restore node_modules cache
         uses: actions/cache/restore@v4
