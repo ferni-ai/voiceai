@@ -3,7 +3,7 @@
  *
  * 🎭 AUTO-GENERATED FROM design-system/tokens/expressions.json
  * Do not edit directly - run: pnpm build:expressions
- * Generated: 2026-02-01T17:37:17.344Z
+ * Generated: 2026-02-01T08:18:25.871Z
  *
  * 92 Luxo-style expressions organized into 18 families.
  * CSS transforms only - no pupils, opaque eyes with shape transforms.

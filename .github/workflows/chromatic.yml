@@ -28,7 +28,9 @@ jobs:
 
       # Build React package first (needed for React stories)
       - name: Build React package
-        run: pnpm build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
         working-directory: packages/ferni-react
 
       # Run Chromatic
