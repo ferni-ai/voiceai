@@ -127,7 +127,7 @@ jobs:
 
       - name: Post to Slack
         if: env.INPUT_DRY_RUN != 'true' && success()
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: slackapi/slack-github-action@v2.1.1
         with:
           channel-id: 'dev-announcements'
           payload-file-path: '.github/slack-changelog-payload.json'
