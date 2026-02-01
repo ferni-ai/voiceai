@@ -225,6 +225,9 @@ importers:
       fast-check:
         specifier: 4.5.2
         version: 4.5.2
+      glob:
+        specifier: 13.0.0
+        version: 13.0.0
       gray-matter:
         specifier: 4.0.3
         version: 4.0.3
@@ -264,7 +267,7 @@ importers:
         version: link:apps/rust-perf
       ferni-speaker:
         specifier: github:sethdford/ferni-speaker#v0.1.0
-        version: git+https://github.com/sethdford/ferni-speaker.git#99034254a600dc9b2105fbb2dccb1c85c34719ec
+        version: git+https://git@github.com:sethdford/ferni-speaker.git#99034254a600dc9b2105fbb2dccb1c85c34719ec
       node-pty:
         specifier: 1.0.0
         version: 1.0.0
@@ -1619,6 +1622,7 @@ packages:
   '@google-cloud/spanner@8.4.0':
     resolution: {integrity: sha512-F7/JfNebtHR2By5knbCB7nL18DexOsnUKHtE+a24M+ZlkGaJkIVk5L4AczO/SsJuWoQP5WJSc7krpfaoPre/lg==}
     engines: {node: '>=18'}
+    deprecated: Version 8.4.0 introduced a regression in UUID type string inference. Please upgrade to v8.5.0 or later for backward compatibility.
 
   '@google-cloud/storage@7.18.0':
     resolution: {integrity: sha512-r3ZwDMiz4nwW6R922Z1pwpePxyRwE5GdevYX63hRmAQUkUQJcBH/79EnQPDv5cOv1mFBgevdNWQfi3tie3dHrQ==}
@@ -1924,37 +1928,37 @@ packages:
   '@livekit/agents-plugin-cartesia@file:../agents-js/plugins/cartesia':
     resolution: {directory: ../agents-js/plugins/cartesia, type: directory}
     peerDependencies:
-      '@livekit/agents': workspace:*
-      '@livekit/rtc-node': 'catalog:'
+      '@livekit/agents': file:/Users/derm/Documents/github/agents-js/agents
+      '@livekit/rtc-node': ^0.13.22
 
   '@livekit/agents-plugin-deepgram@file:../agents-js/plugins/deepgram':
     resolution: {directory: ../agents-js/plugins/deepgram, type: directory}
     peerDependencies:
-      '@livekit/agents': workspace:*
-      '@livekit/rtc-node': 'catalog:'
+      '@livekit/agents': file:/Users/derm/Documents/github/agents-js/agents
+      '@livekit/rtc-node': ^0.13.22
 
   '@livekit/agents-plugin-google@file:../agents-js/plugins/google':
     resolution: {directory: ../agents-js/plugins/google, type: directory}
     peerDependencies:
-      '@livekit/agents': workspace:*
-      '@livekit/rtc-node': 'catalog:'
+      '@livekit/agents': file:/Users/derm/Documents/github/agents-js/agents
+      '@livekit/rtc-node': ^0.13.22
 
   '@livekit/agents-plugin-openai@file:../agents-js/plugins/openai':
     resolution: {directory: ../agents-js/plugins/openai, type: directory}
     peerDependencies:
-      '@livekit/agents': workspace:*
-      '@livekit/rtc-node': 'catalog:'
+      '@livekit/agents': file:/Users/derm/Documents/github/agents-js/agents
+      '@livekit/rtc-node': ^0.13.22
 
   '@livekit/agents-plugin-silero@file:../agents-js/plugins/silero':
     resolution: {directory: ../agents-js/plugins/silero, type: directory}
     peerDependencies:
-      '@livekit/agents': workspace:*
-      '@livekit/rtc-node': 'catalog:'
+      '@livekit/agents': file:/Users/derm/Documents/github/agents-js/agents
+      '@livekit/rtc-node': ^0.13.22
 
   '@livekit/agents@file:../agents-js/agents':
     resolution: {directory: ../agents-js/agents, type: directory}
     peerDependencies:
-      '@livekit/rtc-node': 'catalog:'
+      '@livekit/rtc-node': ^0.13.22
       zod: ^3.25.76 || ^4.1.8
 
   '@livekit/mutex@1.1.1':
@@ -4211,8 +4215,8 @@ packages:
       picomatch:
         optional: true
 
-  ferni-speaker@git+https://github.com/sethdford/ferni-speaker.git#99034254a600dc9b2105fbb2dccb1c85c34719ec:
-    resolution: {commit: 99034254a600dc9b2105fbb2dccb1c85c34719ec, repo: https://github.com/sethdford/ferni-speaker.git, type: git}
+  ferni-speaker@git+https://git@github.com:sethdford/ferni-speaker.git#99034254a600dc9b2105fbb2dccb1c85c34719ec:
+    resolution: {commit: 99034254a600dc9b2105fbb2dccb1c85c34719ec, repo: git@github.com:sethdford/ferni-speaker.git, type: git}
     version: 0.1.0
     engines: {node: '>= 18'}
 
@@ -11230,7 +11234,7 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.3
 
-  ferni-speaker@git+https://github.com/sethdford/ferni-speaker.git#99034254a600dc9b2105fbb2dccb1c85c34719ec:
+  ferni-speaker@git+https://git@github.com:sethdford/ferni-speaker.git#99034254a600dc9b2105fbb2dccb1c85c34719ec:
     optional: true
 
   fetch-blob@3.2.0:
