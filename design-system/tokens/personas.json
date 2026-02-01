@@ -265,7 +265,50 @@
         "signaturePattern": "celebration"
       }
     },
-    
+
+    "joel": {
+      "name": "Joel",
+      "role": "Life Mentor",
+      "archetype": "The Wise Mentor Who Brings Research and Warmth",
+
+      "colors": {
+        "primary": {
+          "value": "#9A0718",
+          "description": "Vanguard burgundy"
+        },
+        "secondary": {
+          "value": "#7A0514",
+          "description": "Deeper burgundy"
+        },
+        "glow": {
+          "value": "rgba(154, 7, 24, 0.28)",
+          "description": "Warm burgundy glow"
+        },
+        "tint": {
+          "value": "rgba(154, 7, 24, 0.06)",
+          "description": "Background tint"
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 1.0,
+        "easingPreference": "gentle",
+        "breathingBase": 5000,
+        "reactionIntensity": 0.9
+      },
+
+      "audio": {
+        "signature": "warm-conversational",
+        "pitchRange": "medium",
+        "paceBase": "measured"
+      },
+
+      "haptics": {
+        "intensityMultiplier": 0.95,
+        "signaturePattern": "wisdom"
+      }
+    },
+
     "nayan": {
       "name": "Nayan",
       "role": "Synthesizer",

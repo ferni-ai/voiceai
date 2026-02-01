@@ -26,7 +26,8 @@ import { fileURLToPath } from 'url';
 // Get script directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const projectRoot = join(__dirname, '..');
+// Calculate project root (5 levels up from apps/cli/src/commands/generate/)
+const projectRoot = join(__dirname, '..', '..', '..', '..', '..');
 
 // Types matching the persona manifest schema
 interface PersonaManifest {
