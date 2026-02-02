@@ -1142,6 +1142,22 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['status', 'restart', 'logs', 'ssh'],
     examples: ['ferni runner status', 'ferni runner restart', 'ferni runner logs --follow'],
   },
+  ci: {
+    name: 'CI',
+    description: 'CI/CD monitoring and management (agent + human views)',
+    icon: '🔄',
+    handler: handleCI,
+    subcommands: ['status', 'graph', 'actions', 'execute', 'dashboard', 'watch'],
+    examples: [
+      'ferni ci status',
+      'ferni ci status --json',
+      'ferni ci graph --format mermaid',
+      'ferni ci actions',
+      'ferni ci execute 1',
+      'ferni ci dashboard',
+      'ferni ci watch --interval 60',
+    ],
+  },
   canary: {
     name: 'Canary',
     description: 'Canary deployment management',
@@ -11163,6 +11179,26 @@ async function handleRunner(args: string[]): Promise<void> {
     // SSH and logs may exit with Ctrl+C, don't treat as error
     if (subcommand !== 'ssh' && subcommand !== 'logs') {
       log.error('Runner operation failed');
+      process.exit(1);
+    }
+  }
+}
+
+async function handleCI(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  // Build arguments for the CI script
+  const scriptArgs = [subcommand, ...args.slice(1)];
+
+  // Run the ci.ts script
+  const cmd = `npx tsx apps/cli/src/commands/ci/ci.ts ${scriptArgs.join(' ')}`;
+
+  try {
+    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+  } catch (error) {
+    // Watch mode may exit with Ctrl+C, don't treat as error
+    if (subcommand !== 'watch' && subcommand !== 'dashboard') {
+      log.error('CI operation failed');
       process.exit(1);
     }
   }
