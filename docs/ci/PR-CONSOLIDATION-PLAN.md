@@ -91,25 +91,47 @@ gh pr close 48 --comment "Superseded by #52 - bundle budget addressed"
 # B) Cherry-pick into a consolidation branch
 ```
 
-### Phase 4: Consolidation Branch (if needed)
+### Phase 4: Consolidation Branch
 
 ```bash
 # Update main after #52 merges
 git checkout main
 git pull origin main
 
-# Create consolidation branch for remaining fixes
+# Create consolidation branch
 git checkout -b fix/ci-consolidation-post-52
 
-# Cherry-pick unique commits from other PRs
-gh pr view 49 --json commits --jq '.commits[].oid' | while read sha; do
-  git cherry-pick $sha || git cherry-pick --abort
-done
+# Cherry-pick unique fixes (in dependency order)
+git cherry-pick 7a2f2b45  # PR #48: performance-budget.yml (bundle size 500→17000)
+git cherry-pick 5f747d50  # PR #49: check-drift.js (CI-safe token drift)
+git cherry-pick 3b694de3  # PR #50: rust-native.yml (agents-js sed rewrite)
+git cherry-pick 25788746  # PR #51: ci-health-gate.yml (circuit breaker workflow)
+
+# NOTE: Cherry-picks may conflict on generated token files.
+# If so, run: pnpm tokens:sync && git add . && git cherry-pick --continue
 
 # Push and create PR
 git push -u origin fix/ci-consolidation-post-52
-gh pr create --title "fix(ci): consolidate remaining CI fixes from #49, #50" \
-  --body "Cherry-picked fixes from closed PRs"
+gh pr create --title "fix(ci): consolidate remaining ci fixes from #48-#51" \
+  --body "$(cat <<'EOF'
+## Summary
+
+Cherry-picked unique fixes from closed PRs into single consolidation:
+
+- **#48**: Calibrate bundle size budget (500→17000 KB)
+- **#49**: Make token drift check CI-safe (skip timestamps, add --strict)
+- **#50**: Add agents-js sed rewrite to rust-native workflow
+- **#51**: Add CI health gate circuit breaker workflow
+
+## Test plan
+- [ ] Performance budget workflow passes
+- [ ] Token drift check passes in CI
+- [ ] Rust native workflow handles agents-js dependency
+- [ ] CI health gate workflow validates correctly
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+EOF
+)"
 ```
 
 ### Phase 5: Merge Dependabot PRs

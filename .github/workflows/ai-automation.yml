@@ -49,6 +49,11 @@ on:
           - flags
           - costs
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 env:
   NODE_VERSION: '20'
   GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}

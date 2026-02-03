@@ -15,6 +15,11 @@ on:
         required: false
         default: 'https://ferni-prod.web.app'
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 env:
   # Default test URL
   TEST_URL: ${{ inputs.url || 'https://ferni-prod.web.app' }}

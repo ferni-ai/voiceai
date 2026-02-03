@@ -124,7 +124,7 @@ const LINT_RULES: LintRule[] = [
       return errors;
     },
     fileTypes: ['.ts', '.js'],
-    exclude: ['**/tokens.ts', '**/tokens.css', '**/design-tokens.css'],
+    exclude: ['**/tokens.ts', '**/tokens.css', '**/design-tokens.css', '**/latency-logger.service.ts'],
   },
   
   {

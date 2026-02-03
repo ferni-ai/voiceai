@@ -267,7 +267,7 @@ importers:
         version: link:apps/rust-perf
       ferni-speaker:
         specifier: github:sethdford/ferni-speaker#v0.1.0
-        version: git+https://git@github.com:sethdford/ferni-speaker.git#99034254a600dc9b2105fbb2dccb1c85c34719ec
+        version: git+https://github.com/sethdford/ferni-speaker.git#99034254a600dc9b2105fbb2dccb1c85c34719ec
       node-pty:
         specifier: 1.0.0
         version: 1.0.0
@@ -4215,8 +4215,8 @@ packages:
       picomatch:
         optional: true
 
-  ferni-speaker@git+https://git@github.com:sethdford/ferni-speaker.git#99034254a600dc9b2105fbb2dccb1c85c34719ec:
-    resolution: {commit: 99034254a600dc9b2105fbb2dccb1c85c34719ec, repo: git@github.com:sethdford/ferni-speaker.git, type: git}
+  ferni-speaker@git+https://github.com/sethdford/ferni-speaker.git#99034254a600dc9b2105fbb2dccb1c85c34719ec:
+    resolution: {commit: 99034254a600dc9b2105fbb2dccb1c85c34719ec, repo: https://github.com/sethdford/ferni-speaker.git, type: git}
     version: 0.1.0
     engines: {node: '>= 18'}
 
@@ -11234,7 +11234,7 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.3
 
-  ferni-speaker@git+https://git@github.com:sethdford/ferni-speaker.git#99034254a600dc9b2105fbb2dccb1c85c34719ec:
+  ferni-speaker@git+https://github.com/sethdford/ferni-speaker.git#99034254a600dc9b2105fbb2dccb1c85c34719ec:
     optional: true
 
   fetch-blob@3.2.0:

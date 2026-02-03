@@ -10,6 +10,11 @@ on:
       - 'package.json'
       - 'package-lock.json'
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 env:
   # Bundle size limits (in KB)
   MAX_BUNDLE_SIZE_KB: 500
