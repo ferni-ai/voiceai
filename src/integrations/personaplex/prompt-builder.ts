@@ -5,8 +5,12 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { MAX_PROMPT_LENGTH, CONVERSATION_STYLE_SUFFIX, getVoicePromptForPersona } from './config.js';
-import type { PromptContext, BuiltPrompt, ToolDescription } from './types.js';
+import {
+  CONVERSATION_STYLE_SUFFIX,
+  getVoicePromptForPersona,
+  MAX_PROMPT_LENGTH,
+} from './config.js';
+import type { BuiltPrompt, PromptContext, ToolDescription } from './types.js';
 
 const log = createLogger({ module: 'PersonaPlexPromptBuilder' });
 
@@ -71,7 +75,7 @@ export async function buildPersonaPlexPrompt(
       { originalLength: textPrompt.length, maxLength: MAX_PROMPT_LENGTH },
       'Prompt exceeds max length, truncating'
     );
-    textPrompt = textPrompt.slice(0, MAX_PROMPT_LENGTH - 3) + '...';
+    textPrompt = `${textPrompt.slice(0, MAX_PROMPT_LENGTH - 3)}...`;
   }
 
   // Get voice prompt
@@ -197,21 +201,21 @@ export function getDefaultToolDescriptions(personaId: string): ToolDescription[]
     'maya-santos': [
       {
         name: 'habit-check',
-        triggerPhrase: "Let me check your habits",
+        triggerPhrase: 'Let me check your habits',
         description: 'Review habit progress',
       },
     ],
     'jordan-taylor': [
       {
         name: 'calendar',
-        triggerPhrase: "Let me check your calendar",
+        triggerPhrase: 'Let me check your calendar',
         description: 'Check calendar events',
       },
     ],
     'peter-john': [
       {
         name: 'research',
-        triggerPhrase: "Let me look that up",
+        triggerPhrase: 'Let me look that up',
         description: 'Search for information',
       },
     ],

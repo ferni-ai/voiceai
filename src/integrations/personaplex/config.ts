@@ -4,9 +4,9 @@
  * Environment-based configuration for PersonaPlex integration.
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
 import { VOICE_IDS } from '../../config/voice-ids.js';
-import type { PersonaPlexConfig, VoiceEmbeddingConfig, PersonaPlexVoice } from './types.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import type { PersonaPlexConfig, PersonaPlexVoice, VoiceEmbeddingConfig } from './types.js';
 
 const log = createLogger({ module: 'PersonaPlexConfig' });
 
@@ -143,8 +143,9 @@ export function getFallbackVoice(personaId: string): PersonaPlexVoice {
 
 /**
  * Maximum text prompt length for PersonaPlex (approximate token limit)
+ * PersonaPlex based on Moshi can handle longer prompts - increased for rich persona context
  */
-export const MAX_PROMPT_LENGTH = 2000;
+export const MAX_PROMPT_LENGTH = 4000;
 
 /**
  * Default conversation style prompt suffix
@@ -196,10 +197,7 @@ export const TOOL_TRIGGER_PATTERNS = {
     description: 'Set a reminder',
   },
   timer: {
-    patterns: [
-      /i('ll| will) (set|start) a timer/i,
-      /starting (a |the )?timer/i,
-    ],
+    patterns: [/i('ll| will) (set|start) a timer/i, /starting (a |the )?timer/i],
     description: 'Set a timer',
   },
 };

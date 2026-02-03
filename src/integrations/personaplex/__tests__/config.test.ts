@@ -2,13 +2,13 @@
  * PersonaPlex Configuration Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  isPersonaPlexEnabled,
+  getFallbackVoice,
   getPersonaPlexConfig,
   getVoiceEmbeddingConfig,
   getVoicePromptForPersona,
-  getFallbackVoice,
+  isPersonaPlexEnabled,
   VOICE_EMBEDDING_CONFIGS,
 } from '../config.js';
 
@@ -93,7 +93,14 @@ describe('PersonaPlex Configuration', () => {
 
   describe('VOICE_EMBEDDING_CONFIGS', () => {
     it('has configuration for all personas', () => {
-      const expectedPersonas = ['ferni', 'maya-santos', 'alex-chen', 'peter-john', 'jordan-taylor', 'nayan-patel'];
+      const expectedPersonas = [
+        'ferni',
+        'maya-santos',
+        'alex-chen',
+        'peter-john',
+        'jordan-taylor',
+        'nayan-patel',
+      ];
 
       const configuredPersonas = VOICE_EMBEDDING_CONFIGS.map((c) => c.personaId);
 

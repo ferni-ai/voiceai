@@ -56,10 +56,24 @@ export interface VoiceEmbeddingConfig {
 }
 
 export type PersonaPlexVoice =
-  | 'NATF0' | 'NATF1' | 'NATF2' | 'NATF3'  // Natural female
-  | 'NATM0' | 'NATM1' | 'NATM2' | 'NATM3'  // Natural male
-  | 'VARF0' | 'VARF1' | 'VARF2' | 'VARF3' | 'VARF4'  // Variety female
-  | 'VARM0' | 'VARM1' | 'VARM2' | 'VARM3' | 'VARM4'; // Variety male
+  | 'NATF0'
+  | 'NATF1'
+  | 'NATF2'
+  | 'NATF3' // Natural female
+  | 'NATM0'
+  | 'NATM1'
+  | 'NATM2'
+  | 'NATM3' // Natural male
+  | 'VARF0'
+  | 'VARF1'
+  | 'VARF2'
+  | 'VARF3'
+  | 'VARF4' // Variety female
+  | 'VARM0'
+  | 'VARM1'
+  | 'VARM2'
+  | 'VARM3'
+  | 'VARM4'; // Variety male
 
 export interface VoiceEmbeddingResult {
   personaId: string;

@@ -8,10 +8,10 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getPersonaPlexConfig } from './config.js';
 import type {
+  PersonaPlexClientEvents,
   PersonaPlexConfig,
   PersonaPlexConnectionOptions,
   PersonaPlexConnectionState,
-  PersonaPlexClientEvents,
 } from './types.js';
 
 const log = createLogger({ module: 'PersonaPlexClient' });
@@ -126,10 +126,7 @@ export class PersonaPlexClient {
   /**
    * Set event handlers
    */
-  on<K extends keyof PersonaPlexClientEvents>(
-    event: K,
-    handler: PersonaPlexClientEvents[K]
-  ): void {
+  on<K extends keyof PersonaPlexClientEvents>(event: K, handler: PersonaPlexClientEvents[K]): void {
     this.events[event] = handler;
   }
 

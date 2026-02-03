@@ -2,10 +2,10 @@
  * PersonaPlex Prompt Builder Tests
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  buildPersonaPlexPrompt,
   buildMemoryContext,
+  buildPersonaPlexPrompt,
   buildSessionContext,
   buildTimeContext,
   getDefaultToolDescriptions,
@@ -122,7 +122,9 @@ describe('PersonaPlex Prompt Builder', () => {
     it('returns string with time of day and day of week', () => {
       const result = buildTimeContext();
 
-      expect(result).toMatch(/It's (morning|afternoon|evening|night|late night) on (Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/);
+      expect(result).toMatch(
+        /It's (morning|afternoon|evening|night|late night) on (Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/
+      );
     });
   });
 
