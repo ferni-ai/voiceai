@@ -24,26 +24,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
-          version: 10
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Fix local dependencies for CI
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - run: pnpm install --no-frozen-lockfile
+          frozen-lockfile: 'false'
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test -- --run --reporter=dot

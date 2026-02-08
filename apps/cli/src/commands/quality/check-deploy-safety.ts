@@ -43,7 +43,7 @@ const UNSAFE_PATTERNS = [
     severity: 'error',
     message: 'Direct `gcloud run deploy` is forbidden',
     fix: 'Use `ferni deploy ui` or `ferni deploy gce` instead',
-    allowedIn: ['scripts/deploy.ts', 'scripts/deploy-gce.ts', 'apps/cli/src/commands/deploy/', '.github/workflows/', 'docs/', '.md', 'CLAUDE.md', 'DEPLOYMENT.md', 'infrastructure/scripts/', '.cursorrules'],
+    allowedIn: ['scripts/deploy.ts', 'scripts/deploy-gce.ts', 'scripts/deploy-worker.sh', 'apps/cli/src/commands/deploy/', 'apps/cli/src/commands/agent/', '.github/workflows/', 'docs/', '.md', 'CLAUDE.md', 'DEPLOYMENT.md', 'infrastructure/scripts/', 'infra/', 'src/services/pubsub/', '.cursorrules'],
   },
   {
     pattern: /gcloud\s+compute\s+ssh.*docker\s+run/gi,

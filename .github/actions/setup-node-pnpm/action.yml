@@ -42,6 +42,9 @@ runs:
         sed -i 's|"file:../agents-js/plugins/google"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
         sed -i 's|"file:../agents-js/plugins/openai"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
         sed -i 's|"file:../agents-js/plugins/silero"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
+        # Also fix pnpm overrides section (same local file: paths)
+        sed -i 's|"@livekit/agents": "file:../agents-js/agents"|"@livekit/agents": "^'"$LIVEKIT_VERSION"'"|g' package.json || true
+        sed -i 's|"@livekit/agents-plugin-google": "file:../agents-js/plugins/google"|"@livekit/agents-plugin-google": "^'"$LIVEKIT_VERSION"'"|g' package.json || true
 
     - name: Install dependencies
       if: inputs.install-deps == 'true'

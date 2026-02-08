@@ -154,6 +154,8 @@ jobs:
           sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"@livekit/agents": "file:../agents-js/agents"|"@livekit/agents": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"@livekit/agents-plugin-google": "file:../agents-js/plugins/google"|"@livekit/agents-plugin-google": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -275,6 +277,8 @@ jobs:
           sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"@livekit/agents": "file:../agents-js/agents"|"@livekit/agents": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"@livekit/agents-plugin-google": "file:../agents-js/plugins/google"|"@livekit/agents-plugin-google": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
 
       - name: Build design-system (required for Docker)
         run: |
@@ -657,6 +661,8 @@ jobs:
           sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"@livekit/agents": "file:../agents-js/agents"|"@livekit/agents": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"@livekit/agents-plugin-google": "file:../agents-js/plugins/google"|"@livekit/agents-plugin-google": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
