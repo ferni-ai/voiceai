@@ -12,7 +12,7 @@
  * 3. Persona Aura - Ambient persona presence
  * 4. Relationship Depth - UI that grows with you
  *
- * Generated: 2026-02-08T22:56:34.247Z
+ * Generated: 2026-02-08T22:58:23.268Z
  */
 
 // =============================================================================
