@@ -431,8 +431,8 @@ We use a **self-hosted GitHub Actions runner** on GCE to reduce CI billing and s
 | Property          | Value                                |
 | ----------------- | ------------------------------------ |
 | **VM Name**       | `github-runner`                      |
-| **IP**            | `34.171.8.182`                       |
-| **Machine Type**  | `e2-medium` (~$25/mo)                |
+| **IP**            | `136.112.254.245`                    |
+| **Machine Type**  | `e2-standard-4` (~$97/mo)            |
 | **Zone**          | `us-central1-a`                      |
 | **Runner Labels** | `self-hosted`, `Linux`, `X64`, `gce` |
 
@@ -1426,8 +1426,8 @@ Ferni has **tools across 118 domains**. The system uses semantic selection to pi
 # Environment variables (see .env.example)
 TOOL_LIMIT=0          # 0 = unlimited, semantic router filters
 USE_META_TOOL=false   # Single executeTool vs 100+ declarations
-USE_FTIS_V5=false     # ML classifier for direct routing
-FTIS_V5_THRESHOLD=85  # Confidence threshold (0-100)
+USE_FTIS=true         # FTIS hierarchical classifier (default: on)
+FTIS_THRESHOLD=70     # Confidence threshold (0-100)
 ```
 
 | Setting              | Value         | Effect                               |
@@ -1435,17 +1435,18 @@ FTIS_V5_THRESHOLD=85  # Confidence threshold (0-100)
 | `TOOL_LIMIT=0`       | 0 (unlimited) | Semantic router filters, no hard cap |
 | `TOOL_LIMIT=40`      | Number        | Cap on tools sent to LLM             |
 | `USE_META_TOOL=true` | boolean       | Single `executeTool` pattern         |
-| `USE_FTIS_V5=true`   | boolean       | ML classifier routes directly        |
+| `USE_FTIS=true`      | boolean       | FTIS hierarchical classifier routes  |
 
 #### How Tool Selection Works
 
 ```
 User: "Help me process grief"
          ↓
-1. unified-tool-orchestrator.ts receives request
+1. tool-orchestrator.ts receives request
          ↓
-2. [If USE_FTIS_V5=true] FTIS V5 classifier runs (~60ms)
-   → If confidence > 0.85: Load predicted tools directly
+2. [If USE_FTIS=true] FTIS hierarchical classifier runs (~50ms)
+   → Stage 1: domain (44 classes) → Stage 2: meta-tool (112 classes)
+   → If combined confidence > threshold: Load domain tools directly
    → Else: Fall through to semantic routing
          ↓
 3. [Parallel] Essential tools + Semantic matching + Contextual tools
@@ -1462,7 +1463,7 @@ User: "Help me process grief"
 | File                                                  | Purpose                                 |
 | ----------------------------------------------------- | --------------------------------------- |
 | `data/model-config.json`                              | Admin config (enabledDomains, maxTools) |
-| `src/tools/orchestrator/unified-tool-orchestrator.ts` | Per-turn tool selection                 |
+| `src/tools/orchestrator/tool-orchestrator.ts` | Per-turn tool selection                 |
 | `src/tools/dynamic-tool-router.ts`                    | Intent → domain mapping                 |
 | `src/tools/semantic-router/`                          | Semantic matching engine                |
 | `src/tools/domains/*/index.ts`                        | Domain tool definitions                 |
@@ -1482,28 +1483,28 @@ Ferni supports multiple tool routing strategies. Set via environment variables:
 | Strategy                      | Env Var                     | Description                                              |
 | ----------------------------- | --------------------------- | -------------------------------------------------------- |
 | **Semantic Router** (default) | None                        | Embedding-based pre-filtering → LLM picks from ~40 tools |
-| **Meta-Tool**                 | `USE_META_TOOL=true`        | Single `executeTool` function, LLM picks from catalog    |
-| **FTIS V5**                   | `USE_FTIS_V5=true`          | ML classifier (98% accuracy) routes directly             |
+| **Meta-Tool**                 | `USE_META_TOOL=true`        | Single `executeTool` function, LLM picks from catalog   |
+| **FTIS**                      | `USE_FTIS=true` (default)   | Hierarchical classifier (domain → meta-tool) routes      |
 | **Native FC**                 | `GEMINI_USE_NATIVE_FC=true` | Gemini's native function calling                         |
 
-#### FTIS V5 Classifier (98% Accuracy)
+#### FTIS Hierarchical Classifier
 
-FTIS V5 uses a trained Qwen3-1.7B model to classify user intent into 860 tool labels:
+FTIS uses a two-stage Qwen3-1.7B ONNX pipeline: Stage 1 classifies domain (44 classes), Stage 2 classifies meta-tool within domain (112 classes). Combined confidence = domain × meta-tool.
 
-| Metric         | Result     |
-| -------------- | ---------- |
-| Top-1 Accuracy | **98.03%** |
-| Top-3 Accuracy | **99.69%** |
-| F1 Score       | **98.04%** |
-| Latency        | ~60-70ms   |
+| Metric              | Result     |
+| ------------------- | ---------- |
+| Stage 1 (domain)     | ~97%+      |
+| Stage 2 (meta-tool)  | ~96%+      |
+| Combined estimate    | ~93%+      |
+| Latency              | ~50ms      |
 
-**Enable:**
+**Enable (default: on):**
 
 ```bash
-USE_FTIS_V5=true pnpm dev
+USE_FTIS=true pnpm dev
 
-# Optional: Adjust confidence threshold (default: 0.85)
-FTIS_V5_THRESHOLD=85
+# Optional: Adjust confidence threshold (default: 0.70)
+FTIS_THRESHOLD=70
 ```
 
 **How it works:**
@@ -1511,11 +1512,11 @@ FTIS_V5_THRESHOLD=85
 ```
 User: "Play some jazz"
          ↓
-1. FTIS V5 ONNX classifier runs (~60ms)
+1. FTIS Stage 1: domain = music_audio
          ↓
-2. Returns: playMusic (confidence: 0.97)
+2. FTIS Stage 2: [music_audio] "Play some jazz" → meta-tool = music.play
          ↓
-3. Confidence > 0.85 threshold → load playMusic tools directly
+3. Combined confidence > threshold → load music_audio domain tools
          ↓
 4. Skip semantic routing, faster response!
 
@@ -1525,9 +1526,10 @@ If confidence < threshold → falls back to semantic router
 **Key Files:**
 | File | Purpose |
 |------|---------|
-| `src/config/tool-config.ts` | `isFtisV5Enabled()`, `getFtisV5Threshold()` |
-| `src/tools/semantic-router/advanced/intelligent/onnx-classifier.ts` | ONNX classifier wrapper |
-| `models/ferni-router-v5-860/` | ONNX model, tokenizer, label map |
+| `src/config/tool-config.ts` | `isFtisEnabled()`, `getFtisThreshold()` |
+| `src/tools/semantic-router/advanced/intelligent/hierarchical-classifier.ts` | Two-stage ONNX classifier |
+| `models/ferni-router-v7-stage1/` | Domain classifier (44 labels) |
+| `models/ferni-router-v7-stage2/` | Meta-tool classifier (112 labels) |
 
 ### LLMCompiler (Parallel Function Calling)
 

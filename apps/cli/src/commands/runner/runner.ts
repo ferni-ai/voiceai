@@ -72,7 +72,7 @@ ${colors.cyan}RUNNER DETAILS${colors.reset}
   Labels:      self-hosted, Linux, X64, gce
 
 ${colors.cyan}COST${colors.reset}
-  ~$25/month (e2-medium) vs per-minute GitHub Actions billing
+  ~$97/month (e2-standard-4) vs per-minute GitHub Actions billing
 `);
 }
 
