@@ -53,23 +53,23 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          cache-dependency-path: frontend-typescript/package-lock.json
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: |
-          cd frontend-typescript
+          cd apps/web
           pnpm install --frozen-lockfile
 
       - name: Build frontend
         run: |
-          cd frontend-typescript
+          cd apps/web
           pnpm build
 
       - name: Upload frontend build
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
-          path: frontend-typescript/dist/
+          path: apps/web/dist/
           retention-days: 1
 
   # ============================================================================
@@ -103,12 +103,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-dist
-          path: frontend-typescript/dist/
+          path: apps/web/dist/
 
       - name: Copy frontend to Electron
         run: |
           rm -rf apps/electron/web/*
-          cp -r frontend-typescript/dist/* apps/electron/web/
+          cp -r apps/web/dist/* apps/electron/web/
 
       - name: Install Electron dependencies
         run: |
@@ -189,12 +189,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-dist
-          path: frontend-typescript/dist/
+          path: apps/web/dist/
 
       - name: Copy frontend to Electron
         run: |
           Remove-Item -Path "apps\electron\web\*" -Recurse -Force -ErrorAction SilentlyContinue
-          Copy-Item -Path "frontend-typescript\dist\*" -Destination "apps\electron\web\" -Recurse
+          Copy-Item -Path "apps/web\dist\*" -Destination "apps\electron\web\" -Recurse
         shell: pwsh
 
       - name: Install Electron dependencies
@@ -260,12 +260,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-dist
-          path: frontend-typescript/dist/
+          path: apps/web/dist/
 
       - name: Copy frontend to Electron
         run: |
           rm -rf apps/electron/web/*
-          cp -r frontend-typescript/dist/* apps/electron/web/
+          cp -r apps/web/dist/* apps/electron/web/
 
       - name: Install Electron dependencies
         run: |

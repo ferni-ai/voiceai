@@ -54,12 +54,12 @@ jobs:
 
       - name: Install frontend dependencies
         run: |
-          cd frontend-typescript
-          pnpm install --frozen-lockfile
+          cd apps/web
+          pnpm install --no-frozen-lockfile
 
       - name: Build frontend
         run: |
-          cd frontend-typescript
+          cd apps/web
           pnpm build
         env:
           NODE_ENV: production
@@ -72,7 +72,7 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
           target: ferni-prod
-          entryPoint: ./frontend-typescript
+          entryPoint: ./apps/web
 
       - name: Deploy to Firebase (johnb-app / app.ferni.ai)
         id: deploy-app
@@ -82,7 +82,7 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
           target: johnb-app
-          entryPoint: ./frontend-typescript
+          entryPoint: ./apps/web
 
       - name: Health check deployed sites
         id: health
@@ -131,7 +131,7 @@ jobs:
           npm install -g firebase-tools
 
           # Rollback to previous version
-          cd frontend-typescript
+          cd apps/web
           firebase hosting:rollback --site ferni-prod --confirm || echo "Rollback ferni-prod failed"
           firebase hosting:rollback --site johnb-app --confirm || echo "Rollback johnb-app failed"
 

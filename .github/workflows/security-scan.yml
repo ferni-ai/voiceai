@@ -12,7 +12,7 @@ on:
       - '**/*.ts'
       - '**/*.js'
       - 'package*.json'
-      - 'frontend-typescript/package*.json'
+      - 'apps/web/package*.json'
   workflow_dispatch:
 
 permissions:

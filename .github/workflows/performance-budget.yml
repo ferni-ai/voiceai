@@ -6,7 +6,7 @@ name: Performance Budget
 on:
   pull_request:
     paths:
-      - 'frontend-typescript/**'
+      - 'apps/web/**'
       - 'package.json'
       - 'package-lock.json'
 
@@ -33,20 +33,20 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci --ignore-scripts
-          cd frontend-typescript && npm ci
+          cd apps/web && npm ci
 
       - name: Build design system
         run: node design-system/build.js
 
       - name: Build frontend
         run: |
-          cd frontend-typescript
+          cd apps/web
           npm run build
 
       - name: Analyze bundle size
         id: bundle
         run: |
-          cd frontend-typescript/dist
+          cd apps/web/dist
 
           # Get total size
           TOTAL_SIZE=$(du -sk . | cut -f1)
