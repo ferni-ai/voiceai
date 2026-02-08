@@ -128,7 +128,7 @@ jobs:
         run: pnpm typecheck
 
       - name: Lint check
-        run: pnpm lint --if-present
+        run: pnpm lint
 
       - name: Tool schema validation
         run: pnpm tools:schemas:validate
