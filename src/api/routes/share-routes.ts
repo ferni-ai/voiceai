@@ -15,32 +15,116 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import sharp from 'sharp';
-import { createLogger } from '../../utils/safe-logger.js';
-import { parseBody, sendJSON, sendError } from '../helpers.js';
+import { getPersonaColor, getPersonaGlowColor } from '../../config/brand-colors.js';
+import type { CardType, ShareableCard } from '../../services/musical-you/types.js';
 import {
-  generateCardSVG,
   createShareableCard,
+  generateCardSVG,
   getCardDimensions,
   type CardData,
 } from '../../services/sharing/card-generator.js';
-import type { CardType, ShareableCard } from '../../services/musical-you/types.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { cleanForFirestore, getFirestoreDb } from '../../utils/firestore-utils.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { parseBody, sendError, sendJSON } from '../helpers.js';
 
 const log = createLogger({ module: 'ShareRoutes' });
 
 // ============================================================================
-// IN-MEMORY STORAGE (Replace with Firestore in production)
+// FIRESTORE-BACKED STORAGE (with in-memory cache for hot reads)
 // ============================================================================
 
-const cardStore = new Map<string, ShareableCard>();
-const cardSVGCache = new Map<string, string>();
-const cardPNGCache = new Map<string, Buffer>();
+const CARDS_COLLECTION = 'shareable_cards';
+
+/** In-memory cache for hot card reads (avoids Firestore roundtrip on every image request) */
+const cardCache = new Map<string, ShareableCard>();
+const svgCache = new Map<string, string>();
+const pngCache = new Map<string, Buffer>();
 
 // Cache TTL for PNG images (1 hour)
 const PNG_CACHE_TTL_MS = 60 * 60 * 1000;
-
-// Track cache timestamps
 const pngCacheTimestamps = new Map<string, number>();
+
+/** Maximum in-memory cache size to prevent unbounded growth */
+const MAX_CACHE_SIZE = 500;
+
+/**
+ * Save a card to Firestore and local cache.
+ */
+async function saveCard(card: ShareableCard): Promise<void> {
+  // Always cache locally for fast reads
+  if (cardCache.size >= MAX_CACHE_SIZE) {
+    // Evict oldest entry
+    const firstKey = cardCache.keys().next().value;
+    if (firstKey) {
+      cardCache.delete(firstKey);
+      svgCache.delete(firstKey);
+      pngCache.delete(firstKey);
+      pngCacheTimestamps.delete(firstKey);
+    }
+  }
+  cardCache.set(card.id, card);
+
+  // Persist to Firestore
+  const db = getFirestoreDb();
+  if (db) {
+    try {
+      await db.collection(CARDS_COLLECTION).doc(card.id).set(cleanForFirestore(card));
+    } catch (err) {
+      log.warn(
+        { error: String(err), cardId: card.id },
+        'Failed to persist card to Firestore, serving from cache'
+      );
+    }
+  }
+}
+
+/**
+ * Load a card from cache or Firestore.
+ */
+async function loadCard(cardId: string): Promise<ShareableCard | null> {
+  // Check local cache first
+  const cached = cardCache.get(cardId);
+  if (cached) return cached;
+
+  // Fall back to Firestore
+  const db = getFirestoreDb();
+  if (db) {
+    try {
+      const doc = await db.collection(CARDS_COLLECTION).doc(cardId).get();
+      if (doc.exists) {
+        const card = doc.data() as ShareableCard;
+        cardCache.set(cardId, card); // Populate cache
+        return card;
+      }
+    } catch (err) {
+      log.warn({ error: String(err), cardId }, 'Failed to load card from Firestore');
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Increment view count in Firestore (fire-and-forget).
+ */
+function incrementViewCount(cardId: string): void {
+  const db = getFirestoreDb();
+  if (db) {
+    void (async () => {
+      try {
+        const { FieldValue } = await import('firebase-admin/firestore');
+        await db
+          .collection(CARDS_COLLECTION)
+          .doc(cardId)
+          .update({
+            viewCount: FieldValue.increment(1),
+          });
+      } catch {
+        // Fire-and-forget: view count is non-critical
+      }
+    })();
+  }
+}
 
 /**
  * Convert SVG to PNG using Sharp
@@ -129,10 +213,10 @@ async function handleGenerateCard(req: IncomingMessage, res: ServerResponse): Pr
 
     // Generate and cache the SVG
     const svg = generateCardSVG(body.type, body.data);
-    cardSVGCache.set(card.id, svg);
+    svgCache.set(card.id, svg);
 
-    // Store the card
-    cardStore.set(card.id, card);
+    // Persist to Firestore + local cache
+    await saveCard(card);
 
     // Update the image URL
     card.imageUrl = `${baseUrl}/api/share/cards/${card.id}/image`;
@@ -163,52 +247,71 @@ async function handleGenerateCard(req: IncomingMessage, res: ServerResponse): Pr
  * GET /api/share/cards/:cardId
  * Get card metadata
  */
-function handleGetCard(req: IncomingMessage, res: ServerResponse, cardId: string): void {
-  const card = cardStore.get(cardId);
+async function handleGetCard(
+  req: IncomingMessage,
+  res: ServerResponse,
+  cardId: string
+): Promise<void> {
+  try {
+    const card = await loadCard(cardId);
 
-  if (!card) {
-    sendError(res, 'Card not found', 404);
-    return;
+    if (!card) {
+      sendError(res, 'Card not found', 404);
+      return;
+    }
+
+    // Increment view count (fire-and-forget)
+    card.viewCount = (card.viewCount || 0) + 1;
+    incrementViewCount(cardId);
+
+    sendJSON(res, {
+      success: true,
+      card: {
+        id: card.id,
+        type: card.type,
+        shareUrl: card.shareUrl,
+        imageUrl: card.imageUrl,
+        createdAt: card.createdAt,
+        viewCount: card.viewCount,
+      },
+    });
+  } catch (error) {
+    log.error({ error: String(error), cardId }, 'Failed to get card');
+    sendError(res, 'Failed to get card', 500);
   }
-
-  // Increment view count
-  card.viewCount++;
-
-  sendJSON(res, {
-    success: true,
-    card: {
-      id: card.id,
-      type: card.type,
-      shareUrl: card.shareUrl,
-      imageUrl: card.imageUrl,
-      createdAt: card.createdAt,
-      viewCount: card.viewCount,
-    },
-  });
 }
 
 /**
  * GET /api/share/cards/:cardId/svg
  * Get card as SVG
  */
-function handleGetCardSVG(req: IncomingMessage, res: ServerResponse, cardId: string): void {
-  const svg = cardSVGCache.get(cardId);
+async function handleGetCardSVG(
+  req: IncomingMessage,
+  res: ServerResponse,
+  cardId: string
+): Promise<void> {
+  try {
+    // Check SVG cache first
+    const cachedSvg = svgCache.get(cardId);
+    if (cachedSvg) {
+      sendSVG(res, cachedSvg);
+      return;
+    }
 
-  if (!svg) {
     // Try to regenerate from stored card
-    const card = cardStore.get(cardId);
+    const card = await loadCard(cardId);
     if (card) {
       const regeneratedSvg = generateCardSVG(card.type, card.data);
-      cardSVGCache.set(cardId, regeneratedSvg);
+      svgCache.set(cardId, regeneratedSvg);
       sendSVG(res, regeneratedSvg);
       return;
     }
 
     sendError(res, 'Card not found', 404);
-    return;
+  } catch (error) {
+    log.error({ error: String(error), cardId }, 'Failed to get card SVG');
+    sendError(res, 'Failed to get card SVG', 500);
   }
-
-  sendSVG(res, svg);
 }
 
 /**
@@ -222,7 +325,7 @@ async function handleGetCardImage(
 ): Promise<void> {
   try {
     // Check PNG cache first (with TTL)
-    const cachedPng = cardPNGCache.get(cardId);
+    const cachedPng = pngCache.get(cardId);
     const cacheTimestamp = pngCacheTimestamps.get(cardId);
 
     if (cachedPng && cacheTimestamp && Date.now() - cacheTimestamp < PNG_CACHE_TTL_MS) {
@@ -231,17 +334,17 @@ async function handleGetCardImage(
     }
 
     // Get the card
-    const card = cardStore.get(cardId);
+    const card = await loadCard(cardId);
     if (!card) {
       sendError(res, 'Card not found', 404);
       return;
     }
 
     // Get or generate SVG
-    let svg = cardSVGCache.get(cardId);
+    let svg = svgCache.get(cardId);
     if (!svg) {
       svg = generateCardSVG(card.type, card.data);
-      cardSVGCache.set(cardId, svg);
+      svgCache.set(cardId, svg);
     }
 
     // Get dimensions for the card type
@@ -250,8 +353,8 @@ async function handleGetCardImage(
     // Convert SVG to PNG
     const pngBuffer = await convertSvgToPng(svg, dimensions);
 
-    // Cache the PNG
-    cardPNGCache.set(cardId, pngBuffer);
+    // Cache the PNG in memory (not persisted - regenerated on demand)
+    pngCache.set(cardId, pngBuffer);
     pngCacheTimestamps.set(cardId, Date.now());
 
     log.debug({ cardId, pngSize: pngBuffer.length }, 'PNG generated from SVG');
@@ -260,9 +363,9 @@ async function handleGetCardImage(
   } catch (error) {
     log.error({ error: String(error), cardId }, 'Failed to generate PNG image');
     // Fallback to SVG if PNG conversion fails
-    const card = cardStore.get(cardId);
+    const card = await loadCard(cardId);
     if (card) {
-      const svg = cardSVGCache.get(cardId) || generateCardSVG(card.type, card.data);
+      const svg = svgCache.get(cardId) || generateCardSVG(card.type, card.data);
       sendSVG(res, svg);
     } else {
       sendError(res, 'Failed to generate image', 500);
@@ -274,8 +377,12 @@ async function handleGetCardImage(
  * GET /share/:cardId (public share page)
  * Returns an HTML page with Open Graph meta tags for social sharing
  */
-function handleSharePage(req: IncomingMessage, res: ServerResponse, cardId: string): void {
-  const card = cardStore.get(cardId);
+async function handleSharePage(
+  req: IncomingMessage,
+  res: ServerResponse,
+  cardId: string
+): Promise<void> {
+  const card = await loadCard(cardId);
 
   if (!card) {
     res.writeHead(404, { 'Content-Type': 'text/html' });
@@ -311,8 +418,9 @@ function handleSharePage(req: IncomingMessage, res: ServerResponse, cardId: stri
   const title = titles[card.type] || 'Musical You | Ferni';
   const description = descriptions[card.type] || 'Check out my music profile on Ferni.';
 
-  // Increment view count
-  card.viewCount++;
+  // Increment view count (fire-and-forget)
+  card.viewCount = (card.viewCount || 0) + 1;
+  incrementViewCount(cardId);
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -371,7 +479,7 @@ function handleSharePage(req: IncomingMessage, res: ServerResponse, cardId: stri
     .cta {
       margin-top: 30px;
       padding: 16px 32px;
-      background: #4a6741;
+      background: ${getPersonaColor('ferni')};
       color: white;
       text-decoration: none;
       border-radius: 50px;
@@ -381,7 +489,7 @@ function handleSharePage(req: IncomingMessage, res: ServerResponse, cardId: stri
     }
     .cta:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(74, 103, 65, 0.3);
+      box-shadow: 0 8px 20px ${getPersonaGlowColor('ferni')};
     }
   </style>
 </head>
@@ -421,14 +529,14 @@ export async function handleShareRoutes(
   // GET /api/share/cards/:cardId
   const cardMetaMatch = pathname.match(/^\/api\/share\/cards\/([^/]+)$/);
   if (cardMetaMatch && method === 'GET') {
-    handleGetCard(req, res, cardMetaMatch[1]);
+    await handleGetCard(req, res, cardMetaMatch[1]);
     return true;
   }
 
   // GET /api/share/cards/:cardId/svg
   const cardSvgMatch = pathname.match(/^\/api\/share\/cards\/([^/]+)\/svg$/);
   if (cardSvgMatch && method === 'GET') {
-    handleGetCardSVG(req, res, cardSvgMatch[1]);
+    await handleGetCardSVG(req, res, cardSvgMatch[1]);
     return true;
   }
 
@@ -442,7 +550,7 @@ export async function handleShareRoutes(
   // GET /share/:cardId (public share page)
   const sharePageMatch = pathname.match(/^\/share\/([^/]+)$/);
   if (sharePageMatch && method === 'GET') {
-    handleSharePage(req, res, sharePageMatch[1]);
+    await handleSharePage(req, res, sharePageMatch[1]);
     return true;
   }
 

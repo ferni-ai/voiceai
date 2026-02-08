@@ -9,6 +9,7 @@
  */
 
 import type { CameoConfig, CameoPersonaId, PersonaCameoConfig } from './types.js';
+import { getPersonaColor, getPersonaGlowColor } from '../../config/brand-colors.js';
 
 // ============================================================================
 // CORE TIMING CONSTANTS
@@ -149,8 +150,8 @@ export const PERSONA_CAMEO_CONFIGS: Record<CameoPersonaId, PersonaCameoConfig> =
     ],
     typicalDuration: 5000,
     isEnergetic: false,
-    color: '#3a6b73', // Peter's teal
-    glowColor: 'rgba(58, 107, 115, 0.5)',
+    color: getPersonaColor('peter-john'),
+    glowColor: getPersonaGlowColor('peter-john'),
   },
 
   'alex-chen': {
@@ -187,8 +188,8 @@ export const PERSONA_CAMEO_CONFIGS: Record<CameoPersonaId, PersonaCameoConfig> =
     ],
     typicalDuration: 4000,
     isEnergetic: false,
-    color: '#5a6b8a', // Alex's slate blue
-    glowColor: 'rgba(90, 107, 138, 0.5)',
+    color: getPersonaColor('alex-chen'),
+    glowColor: getPersonaGlowColor('alex-chen'),
   },
 
   'maya-santos': {
@@ -225,8 +226,8 @@ export const PERSONA_CAMEO_CONFIGS: Record<CameoPersonaId, PersonaCameoConfig> =
     ],
     typicalDuration: 4500,
     isEnergetic: false,
-    color: '#a67a6a', // Maya's terracotta
-    glowColor: 'rgba(166, 122, 106, 0.5)',
+    color: getPersonaColor('maya-santos'),
+    glowColor: getPersonaGlowColor('maya-santos'),
   },
 
   'jordan-taylor': {
@@ -263,8 +264,8 @@ export const PERSONA_CAMEO_CONFIGS: Record<CameoPersonaId, PersonaCameoConfig> =
     ],
     typicalDuration: 5500,
     isEnergetic: true,
-    color: '#c4856a', // Jordan's coral
-    glowColor: 'rgba(196, 133, 106, 0.5)',
+    color: getPersonaColor('jordan-taylor'),
+    glowColor: getPersonaGlowColor('jordan-taylor'),
   },
 
   'nayan-patel': {
@@ -301,8 +302,8 @@ export const PERSONA_CAMEO_CONFIGS: Record<CameoPersonaId, PersonaCameoConfig> =
     ],
     typicalDuration: 6000,
     isEnergetic: false,
-    color: '#b8956a', // Nayan's gold
-    glowColor: 'rgba(184, 149, 106, 0.5)',
+    color: getPersonaColor('nayan-patel'),
+    glowColor: getPersonaGlowColor('nayan-patel'),
   },
 };
 

@@ -1,0 +1,90 @@
+# Critical E2E subset – Director WebSocket, tool routing, handoff, superhuman
+# Part of E2E Better Than Human Master Plan (Phase 7 regression guard)
+# Runs on PR/push when Director, tools, handoff, or superhuman code changes
+
+name: E2E Critical
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/api/director-routes.ts'
+      - 'src/integrations/qwen3-omni/director/**'
+      - 'src/tests/integration/director-websocket-protocol.test.ts'
+      - 'src/tools/orchestrator/**'
+      - 'src/tools/handoff/**'
+      - 'src/handoff/**'
+      - 'src/tests/e2e/tool-routing-e2e.test.ts'
+      - 'src/tests/e2e/handoff-e2e.test.ts'
+      - 'src/tools/__tests__/handoff-fast-path.e2e.test.ts'
+      - 'src/services/superhuman/**'
+      - 'src/tests/superhuman/**'
+      - 'vitest.config.director-ws.ts'
+      - 'docs/plans/E2E-BETTER-THAN-HUMAN-MASTER-PLAN.md'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/api/director-routes.ts'
+      - 'src/integrations/qwen3-omni/director/**'
+      - 'src/tests/integration/director-websocket-protocol.test.ts'
+      - 'src/tools/orchestrator/**'
+      - 'src/tools/handoff/**'
+      - 'src/handoff/**'
+      - 'src/tests/e2e/tool-routing-e2e.test.ts'
+      - 'src/tests/e2e/handoff-e2e.test.ts'
+      - 'src/tools/__tests__/handoff-fast-path.e2e.test.ts'
+      - 'src/services/superhuman/**'
+      - 'src/tests/superhuman/**'
+      - 'vitest.config.director-ws.ts'
+      - 'docs/plans/E2E-BETTER-THAN-HUMAN-MASTER-PLAN.md'
+
+concurrency:
+  group: e2e-critical-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  e2e-critical:
+    name: Director + Tools + Handoff + Superhuman E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Director WebSocket protocol
+        run: pnpm test:director-ws
+
+      - name: Tool routing + handoff E2E
+        run: pnpm vitest run src/tests/e2e/tool-routing-e2e.test.ts src/tests/e2e/handoff-e2e.test.ts src/tools/__tests__/handoff-fast-path.e2e.test.ts --reporter=verbose
+
+      - name: Superhuman services E2E
+        run: pnpm vitest run src/tests/superhuman/superhuman-services-e2e.test.ts --reporter=verbose
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## E2E Critical Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Subset from [E2E Better Than Human Master Plan](docs/plans/E2E-BETTER-THAN-HUMAN-MASTER-PLAN.md):" >> $GITHUB_STEP_SUMMARY
+          echo "- Director WebSocket protocol" >> $GITHUB_STEP_SUMMARY
+          echo "- Tool routing E2E" >> $GITHUB_STEP_SUMMARY
+          echo "- Handoff E2E + fast path" >> $GITHUB_STEP_SUMMARY
+          echo "- Superhuman services E2E" >> $GITHUB_STEP_SUMMARY

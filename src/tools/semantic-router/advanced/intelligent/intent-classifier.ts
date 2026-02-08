@@ -15,12 +15,8 @@
 
 import type { RedisBackedCache } from '../../../../services/data-layer/memory-cache-manager.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
-import { classifyWithOnnxSafe, isOnnxClassifierAvailable } from './onnx-classifier.js';
 
 const log = createLogger({ module: 'intent-classifier' });
-
-/** Minimum confidence from ONNX to trust the result */
-const ONNX_CONFIDENCE_THRESHOLD = 0.5;
 
 // ============================================================================
 // REDIS-BACKED CACHE (Cross-Instance Classification Sharing)
@@ -702,8 +698,8 @@ export class IntentClassifier {
    *
    * Classification order:
    * 1. Cache (L1 memory + L2 Redis)
-   * 2. ONNX ML model (98.0% accuracy, 861 labels, ~50-100ms)
-   * 3. Pattern matching (regex)
+   * 2. Pattern matching (regex)
+   * 3. Learned patterns
    * 4. Keyword matching (fuzzy)
    * 5. Fallback (no match)
    */
@@ -715,28 +711,6 @@ export class IntentClassifier {
     const cached = this.getCached(normalized);
     if (cached) {
       return { ...cached, latencyMs: performance.now() - startTime, source: 'cache' };
-    }
-
-    // Try ONNX ML classification first (highest accuracy)
-    if (isOnnxClassifierAvailable()) {
-      const onnxResult = this.classifyByOnnx(normalized);
-      if (onnxResult && onnxResult.confidence >= ONNX_CONFIDENCE_THRESHOLD) {
-        log.debug(
-          { toolId: onnxResult.toolId, confidence: onnxResult.confidence.toFixed(2) },
-          '🧠 ONNX classification matched'
-        );
-        return this.finalizeResult(
-          {
-            intent: onnxResult.intent,
-            confidence: onnxResult.confidence,
-            slots: onnxResult.intent ? this.extractSlots(normalized, onnxResult.intent) : [],
-            alternatives: [],
-          },
-          normalized,
-          startTime,
-          'ml'
-        );
-      }
     }
 
     // Try pattern matching (fast fallback)
@@ -769,32 +743,6 @@ export class IntentClassifier {
       startTime,
       'fallback'
     );
-  }
-
-  /**
-   * Classify using ONNX ML model
-   */
-  private classifyByOnnx(input: string): {
-    intent: Intent | null;
-    confidence: number;
-    toolId: string | null;
-  } | null {
-    const onnxResult = classifyWithOnnxSafe(input);
-    if (!onnxResult || onnxResult.predictions.length === 0) {
-      return null;
-    }
-
-    // Get top prediction
-    const topPrediction = onnxResult.predictions[0];
-
-    // Find matching intent for the tool
-    const matchingIntent = this.intents.find((i) => i.toolId === topPrediction.toolId);
-
-    return {
-      intent: matchingIntent || null,
-      confidence: topPrediction.confidence,
-      toolId: topPrediction.toolId,
-    };
   }
 
   /**

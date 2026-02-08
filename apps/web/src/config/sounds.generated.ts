@@ -4,7 +4,7 @@
  * Sound file paths generated from design-system/assets/sounds/
  * Regenerate with: npm run build:sounds
  *
- * Generated: 2026-02-01T17:37:16.481Z
+ * Generated: 2026-02-08T13:57:25.746Z
  */
 
 // ============================================================================

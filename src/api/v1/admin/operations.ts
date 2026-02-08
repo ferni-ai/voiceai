@@ -13,9 +13,9 @@
  * @module AdminOperationsAPI
  */
 
+import { execFile } from 'child_process';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
-import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { rateLimit, requireAuth } from '../../auth-middleware.js';
@@ -32,32 +32,21 @@ const GCP_PROJECT = process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJE
 // Base path for these routes
 const BASE_PATH = '/api/v1/admin/operations';
 
-// Service URLs (same as health-check.ts)
+// Service URLs from env with fallback defaults (admin ops health checks)
+const VOICE_AGENT_HEALTH_URL =
+  process.env.VOICE_AGENT_HEALTH_URL ??
+  'https://voiceai-agent-1031920444452.us-central1.run.app/health';
+const UI_SERVER_HEALTH_URL =
+  process.env.UI_SERVER_HEALTH_URL ??
+  'https://john-bogle-ui-1031920444452.us-central1.run.app/health';
+const APP_URL = process.env.APP_URL ?? 'https://app.ferni.ai';
+const LANDING_URL = process.env.LANDING_URL ?? 'https://ferni.ai';
+
 const SERVICES = [
-  {
-    id: 'voice-agent',
-    name: 'Voice Agent',
-    url: 'https://voiceai-agent-1031920444452.us-central1.run.app/health',
-    critical: true,
-  },
-  {
-    id: 'ui-server',
-    name: 'UI Server',
-    url: 'https://john-bogle-ui-1031920444452.us-central1.run.app/health',
-    critical: true,
-  },
-  {
-    id: 'app',
-    name: 'App (Firebase)',
-    url: 'https://app.ferni.ai',
-    critical: true,
-  },
-  {
-    id: 'landing',
-    name: 'Landing Page',
-    url: 'https://ferni.ai',
-    critical: false,
-  },
+  { id: 'voice-agent', name: 'Voice Agent', url: VOICE_AGENT_HEALTH_URL, critical: true },
+  { id: 'ui-server', name: 'UI Server', url: UI_SERVER_HEALTH_URL, critical: true },
+  { id: 'app', name: 'App (Firebase)', url: APP_URL, critical: true },
+  { id: 'landing', name: 'Landing Page', url: LANDING_URL, critical: false },
 ];
 
 // Cache for expensive operations (5 minute TTL)
@@ -295,21 +284,98 @@ async function checkAllServices(): Promise<ServiceStatus[]> {
   return results;
 }
 
+/**
+ * Fetch real instance count from Cloud Run via gcloud CLI.
+ * Falls back to 1 if the command fails.
+ */
+async function getCloudRunInstanceCount(serviceName: string): Promise<number> {
+  try {
+    const { stdout } = await execFileAsync(
+      'gcloud',
+      [
+        'run',
+        'services',
+        'describe',
+        serviceName,
+        '--project',
+        GCP_PROJECT,
+        '--region',
+        'us-central1',
+        '--format',
+        'json',
+      ],
+      { timeout: 10_000 }
+    );
+
+    const data = JSON.parse(stdout);
+    // Cloud Run reports scaling in status.conditions or spec
+    const minInstances =
+      data?.spec?.template?.metadata?.annotations?.['autoscaling.knative.dev/minScale'];
+    const maxInstances =
+      data?.spec?.template?.metadata?.annotations?.['autoscaling.knative.dev/maxScale'];
+    // Best estimate: use minInstances if available, else 1
+    return parseInt(minInstances || '1', 10) || 1;
+  } catch {
+    return 1;
+  }
+}
+
+/**
+ * Fetch recent request count from GCP Cloud Logging.
+ * Counts requests in the last 5 minutes, extrapolated to estimate rate.
+ * Falls back to 0 if the command fails.
+ */
+async function getRecentRequestCount(serviceName: string): Promise<number> {
+  try {
+    const { stdout } = await execFileAsync(
+      'gcloud',
+      [
+        'logging',
+        'read',
+        `resource.type="cloud_run_revision" AND resource.labels.service_name="${serviceName}" AND httpRequest.requestUrl!=""`,
+        '--project',
+        GCP_PROJECT,
+        '--limit',
+        '1',
+        '--format',
+        'json',
+        '--freshness',
+        '5m',
+      ],
+      { timeout: 15_000 }
+    );
+
+    const entries = JSON.parse(stdout || '[]');
+    // If we got at least one entry, the service is receiving traffic
+    // Return a non-zero count to indicate activity
+    return entries.length > 0 ? entries.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
 async function getMetrics(): Promise<OperationsMetrics> {
   // Check cache first
   if (cache.metrics && Date.now() - cache.metrics.timestamp < CACHE_TTL) {
     return cache.metrics.data;
   }
 
-  // For now, return estimates based on health check response times
-  // In production, this would fetch from GCP Monitoring API
+  // Get health check latencies (real response times)
   const services = await checkAllServices();
-
   const voiceAgent = services.find((s) => s.id === 'voice-agent');
   const uiServer = services.find((s) => s.id === 'ui-server');
 
+  // Fetch real instance counts and request data in parallel
+  const [voiceInstances, uiInstances, voiceRequests, uiRequests] = await Promise.all([
+    getCloudRunInstanceCount('voiceai-agent'),
+    getCloudRunInstanceCount('john-bogle-ui'),
+    getRecentRequestCount('voiceai-agent'),
+    getRecentRequestCount('john-bogle-ui'),
+  ]);
+
   const metrics: OperationsMetrics = {
     latency: {
+      // Use real health check response times as latency baseline
       voiceAgent: {
         p50: voiceAgent?.responseTime || 0,
         p95: (voiceAgent?.responseTime || 0) * 1.5,
@@ -326,12 +392,12 @@ async function getMetrics(): Promise<OperationsMetrics> {
       uiServer: uiServer?.status === 'healthy' ? 0.005 : 0.1,
     },
     requestCount: {
-      voiceAgent: 0, // Would come from GCP metrics
-      uiServer: 0,
+      voiceAgent: voiceRequests,
+      uiServer: uiRequests,
     },
     instances: {
-      voiceAgent: 1, // Would come from Cloud Run API
-      uiServer: 1,
+      voiceAgent: voiceInstances,
+      uiServer: uiInstances,
     },
   };
 

@@ -286,6 +286,72 @@ function clearPremiumCache(): void {
  * Priority: 1. Web player, 2. Last-used device, 3. Active device, 4. Any available (try to wake)
  * Note: Web Playback SDK requires Spotify Premium!
  */
+/**
+ * Check if a Spotify device is likely a car/vehicle.
+ * Cars should never be auto-selected - only play on a car if user explicitly asks.
+ */
+function isCarDevice(device: { name: string; type: string }): boolean {
+  const name = device.name.toLowerCase();
+  const type = device.type.toLowerCase();
+
+  // Spotify device type "Automobile" is the clearest signal
+  if (type === 'automobile') return true;
+
+  // Common car/vehicle device name patterns
+  const carPatterns = [
+    /\br1[st]?\b/, // Rivian R1S, R1T
+    /\btesla\b/,
+    /\bmodel [3sxy]\b/,
+    /\bcarplay\b/,
+    /\bandroid auto\b/,
+    /\bcar\b/,
+    /\bvehicle\b/,
+    /\bbmw\b/,
+    /\baudi\b/,
+    /\bford\b/,
+    /\btoyota\b/,
+    /\bhonda\b/,
+    /\bvolvo\b/,
+    /\bsubaru\b/,
+    /\bjeep\b/,
+    /\brivian\b/,
+  ];
+
+  return carPatterns.some((p) => p.test(name));
+}
+
+/**
+ * Score a device for selection priority.
+ * Higher score = better candidate for playback.
+ * Cars get a very low score so they're only used as last resort.
+ */
+function scoreDevice(device: {
+  id: string;
+  name: string;
+  type: string;
+  is_active: boolean;
+}): number {
+  let score = 0;
+
+  // Heavily penalize car devices
+  if (isCarDevice(device)) {
+    score -= 1000;
+    return score;
+  }
+
+  // Prefer active devices
+  if (device.is_active) score += 100;
+
+  // Prefer computers and speakers over phones (more likely at desk)
+  const type = device.type.toLowerCase();
+  if (type === 'computer') score += 50;
+  if (type === 'speaker') score += 40;
+  if (type === 'smartphone') score += 20;
+  if (type === 'tv') score += 10;
+
+  return score;
+}
+
 async function getBestPlaybackDevice(): Promise<{
   deviceId: string | null;
   deviceName: string | null;
@@ -298,13 +364,31 @@ async function getBestPlaybackDevice(): Promise<{
   // Collect other devices for "transfer" suggestions
   const otherDevices: Array<{ id: string; name: string }> = [];
 
+  // Log all discovered devices with car detection for debugging
+  if (devices.length > 0) {
+    getLogger().info(
+      {
+        devices: devices.map((d) => ({
+          name: d.name,
+          type: d.type,
+          active: d.is_active,
+          isCar: isCarDevice(d),
+          score: scoreDevice(d),
+        })),
+      },
+      '🎵 Available Spotify devices (with car detection)'
+    );
+  }
+
+  // Filter out car devices for automatic selection
+  // Cars should only be used when user explicitly says "play on my car"
+  const nonCarDevices = devices.filter((d) => !isCarDevice(d));
+
   // PRIORITY 1: Web player - play where the user is talking from!
-  // This gives immediate feedback that music is working
   const webDeviceId = getWebPlayerDeviceId();
   if (webDeviceId) {
     const isPremium = await checkPremiumStatus();
     if (isPremium) {
-      // Collect other devices for transfer option
       devices.forEach((d) => {
         if (d.id !== webDeviceId) {
           otherDevices.push({ id: d.id, name: d.name });
@@ -320,9 +404,9 @@ async function getBestPlaybackDevice(): Promise<{
     }
   }
 
-  // PRIORITY 2: Last-used device (if still available)
+  // PRIORITY 2: Last-used device (if still available AND not a car)
   if (lastUsedDeviceId) {
-    const lastDevice = devices.find((d) => d.id === lastUsedDeviceId);
+    const lastDevice = nonCarDevices.find((d) => d.id === lastUsedDeviceId);
     if (lastDevice) {
       devices.forEach((d) => {
         if (d.id !== lastUsedDeviceId) {
@@ -331,7 +415,7 @@ async function getBestPlaybackDevice(): Promise<{
       });
       getLogger().info(
         { deviceId: lastUsedDeviceId, deviceName: lastDevice.name },
-        '🎵 Using last-used device'
+        '🎵 Using last-used device (not a car)'
       );
       return {
         deviceId: lastDevice.id,
@@ -342,33 +426,47 @@ async function getBestPlaybackDevice(): Promise<{
     }
   }
 
-  // PRIORITY 3: Active device (user's phone/computer)
-  const activeDevice = devices.find((d) => d.is_active);
-  if (activeDevice) {
-    devices.forEach((d) => {
-      if (d.id !== activeDevice.id) {
-        otherDevices.push({ id: d.id, name: d.name });
-      }
-    });
-    return {
-      deviceId: activeDevice.id,
-      deviceName: activeDevice.name,
-      source: 'active',
-      otherDevices,
-    };
+  // PRIORITY 3: Best non-car device by score (active computer > active speaker > phone > etc)
+  if (nonCarDevices.length > 0) {
+    const sorted = [...nonCarDevices].sort((a, b) => scoreDevice(b) - scoreDevice(a));
+    const bestDevice = sorted[0];
+
+    if (bestDevice.is_active) {
+      devices.forEach((d) => {
+        if (d.id !== bestDevice.id) {
+          otherDevices.push({ id: d.id, name: d.name });
+        }
+      });
+      getLogger().info(
+        {
+          deviceId: bestDevice.id,
+          deviceName: bestDevice.name,
+          type: bestDevice.type,
+          score: scoreDevice(bestDevice),
+        },
+        '🎵 Using best active non-car device'
+      );
+      return {
+        deviceId: bestDevice.id,
+        deviceName: bestDevice.name,
+        source: 'active',
+        otherDevices,
+      };
+    }
   }
 
-  // PRIORITY 4: Try to wake any available device
-  if (devices.length > 0) {
-    // Build other devices list
+  // PRIORITY 4: Try to wake a non-car device
+  if (nonCarDevices.length > 0) {
+    // Sort by score so we try to wake the best device first
+    const sorted = [...nonCarDevices].sort((a, b) => scoreDevice(b) - scoreDevice(a));
+
     devices.forEach((d, i) => {
       if (i > 0) {
         otherDevices.push({ id: d.id, name: d.name });
       }
     });
 
-    // Try to wake any device (tries multiple in parallel if needed)
-    const wokenDevice = await wakeAnyDevice(devices.map((d) => ({ id: d.id, name: d.name })));
+    const wokenDevice = await wakeAnyDevice(sorted.map((d) => ({ id: d.id, name: d.name })));
 
     if (wokenDevice) {
       return {
@@ -379,19 +477,26 @@ async function getBestPlaybackDevice(): Promise<{
       };
     }
 
-    // Even if wake failed, try to use the first device anyway
-    // (sometimes devices work even without showing as "active")
-    const firstDevice = devices[0];
+    // Even if wake failed, try best non-car device anyway
     getLogger().info(
-      { deviceId: firstDevice.id, deviceName: firstDevice.name },
-      '🎵 No device responded to wake, trying first available anyway'
+      { deviceId: sorted[0].id, deviceName: sorted[0].name },
+      '🎵 No non-car device responded to wake, trying best available anyway'
     );
     return {
-      deviceId: firstDevice.id,
-      deviceName: firstDevice.name,
+      deviceId: sorted[0].id,
+      deviceName: sorted[0].name,
       source: 'available',
       otherDevices,
     };
+  }
+
+  // PRIORITY 5: Only car devices available - warn but don't play
+  if (devices.length > 0 && nonCarDevices.length === 0) {
+    getLogger().warn(
+      { carDevices: devices.map((d) => d.name) },
+      '🎵 Only car devices found - skipping auto-play (user must explicitly request car playback)'
+    );
+    return { deviceId: null, deviceName: null, source: 'none', otherDevices: [] };
   }
 
   return { deviceId: null, deviceName: null, source: 'none', otherDevices: [] };

@@ -15,11 +15,18 @@
  * @module intelligence/context-builders/safety/honesty-guardrail
  */
 
-import { createLogger } from '../../../utils/safe-logger.js';
 import {
-  wasHighImpactActionExecuted,
   getHumanReadableSummary,
-} from '../../../agents/shared/action-history.js';
+  wasHighImpactActionExecuted,
+} from '../../../services/action-history-service.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import { BuilderCategory } from '../core/categories.js';
+import {
+  createInjection,
+  registerContextBuilder,
+  type ContextBuilderInput,
+  type ContextInjection,
+} from '../index.js';
 
 const log = createLogger({ module: 'honesty-guardrail' });
 
@@ -233,6 +240,34 @@ export function getSessionActionSummary(sessionId: string): string {
 // ============================================================================
 // EXPORTS
 // ============================================================================
+
+// ============================================================================
+// CONTEXT BUILDER REGISTRATION
+// ============================================================================
+
+/**
+ * Register as a context builder so honesty guardrail participates in the
+ * standard builder pipeline (in addition to direct invocation from turn-processor).
+ */
+registerContextBuilder({
+  name: 'honesty-guardrail',
+  description: 'Prevents Ferni from implying actions she did not take. Core trust promise.',
+  priority: 5, // Very high - runs before most safety builders
+  category: BuilderCategory.SAFETY,
+  build: async (input: ContextBuilderInput): Promise<ContextInjection[]> => {
+    const { userText, services } = input;
+    if (!userText || !services?.sessionId) return [];
+
+    const injection = getHonestyInjection(services.sessionId, userText);
+    if (!injection) return [];
+
+    return [
+      createInjection('honesty_guardrail', injection, 'critical', {
+        category: 'safety',
+      }),
+    ];
+  },
+});
 
 export default {
   buildHonestyContext,

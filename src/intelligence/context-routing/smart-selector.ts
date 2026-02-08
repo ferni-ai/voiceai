@@ -35,7 +35,7 @@ import {
   filterInjections,
   detectConversationMode,
   type FilterOptions,
-} from '../../agents/processors/injection-filter.js';
+} from '../utils/injection-filter.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SmartSelector' });

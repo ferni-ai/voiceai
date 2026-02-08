@@ -16,12 +16,12 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { createLogger } from '../utils/safe-logger.js';
-import { handleCorsPreflightIfNeeded, sendJSON, sendError, getUserId } from './helpers.js';
-import { requireAuth, rateLimit } from './auth-middleware.js';
 import { getActionTracker } from '../services/action-tracker/tracker.js';
+import type { ActionType, FerniAction } from '../services/action-tracker/types.js';
 import { loadUserCommitments, type Commitment } from '../services/superhuman/commitment-keeper.js';
-import type { FerniAction, ActionType } from '../services/action-tracker/types.js';
+import { createLogger } from '../utils/safe-logger.js';
+import { rateLimit, requireAuth } from './auth-middleware.js';
+import { handleCorsPreflightIfNeeded, sendError, sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'story-routes' });
 
@@ -192,13 +192,45 @@ function generateNarrative(action: FerniAction): string {
 /**
  * Convert a FerniAction to a CareMoment
  */
+/**
+ * Extract the persona ID from action metadata.
+ * Falls back to 'ferni' if no persona info is available.
+ */
+function extractPersonaFromAction(action: FerniAction): string {
+  // Check metadata for explicit persona or agentId
+  if (action.metadata) {
+    const personaId =
+      action.metadata.personaId || action.metadata.persona || action.metadata.agentId;
+    if (typeof personaId === 'string' && personaId.length > 0) {
+      return personaId;
+    }
+  }
+
+  // Check execution toolId for persona hints (e.g., tools prefixed with persona domains)
+  if (action.execution?.toolId) {
+    const toolId = action.execution.toolId.toLowerCase();
+    if (toolId.includes('habit') || toolId.includes('routine') || toolId.includes('maya'))
+      return 'maya';
+    if (toolId.includes('calendar') || toolId.includes('email') || toolId.includes('alex'))
+      return 'alex';
+    if (toolId.includes('research') || toolId.includes('stock') || toolId.includes('peter'))
+      return 'peter';
+    if (toolId.includes('milestone') || toolId.includes('event') || toolId.includes('jordan'))
+      return 'jordan';
+    if (toolId.includes('wisdom') || toolId.includes('quote') || toolId.includes('nayan'))
+      return 'nayan';
+  }
+
+  return 'ferni';
+}
+
 function actionToCareMoment(action: FerniAction): CareMoment {
   return {
     id: action.id,
     type: actionTypeToCareMomentType(action.type),
     narrative: generateNarrative(action),
     timestamp: action.createdAt.toISOString(),
-    persona: 'ferni', // TODO: Extract from action metadata if available
+    persona: extractPersonaFromAction(action),
     target: action.request.target,
     success: action.status === 'completed',
     details: action.execution?.resultSummary,

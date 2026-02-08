@@ -169,6 +169,11 @@
       ]
     },
     {
+      "collectionGroup": "conversations",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [{ "fieldPath": "turnCount", "order": "ASCENDING" }]
+    },
+    {
       "collectionGroup": "outreach_feedback",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -278,6 +283,16 @@
           }
         }
       ]
+    },
+    {
+      "collectionGroup": "promoted_entities",
+      "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "importance", "order": "DESCENDING" }]
+    },
+    {
+      "collectionGroup": "topic_patterns",
+      "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "promotedAt", "order": "DESCENDING" }]
     }
   ],
   "fieldOverrides": []

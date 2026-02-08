@@ -109,7 +109,7 @@ src/services/data-layer/
 ├── cache-reader.ts               # Read-through cache utilities
 │
 ├── # Persistence & WAL
-├── realtime-persistence.ts       # Real-time data persistence
+│ (realtime persistence lives in services/realtime-persistence.ts)
 ├── write-ahead-log.ts            # Write-ahead log for durability
 ├── firestore-wal-integration.ts  # WAL ↔ Firestore integration
 ├── firestore-pagination.ts       # Paginated Firestore queries

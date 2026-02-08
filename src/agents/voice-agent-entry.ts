@@ -95,6 +95,13 @@ import { logPipelineStage, type StageType } from './shared/dev-telemetry.js';
 // Tool Gateway (2026 architecture) - Centralized tool loading with tiered prefetching
 import { getToolGateway } from '../tools/gateway/index.js';
 
+// Director Mode (Qwen3-Omni ensemble + real-time direction)
+import type { AudioRouter } from '../integrations/qwen3-omni/director/audio-router.js';
+import {
+  createDirectorModeSession,
+  isDirectorModeRequested,
+} from './voice-agent/director-mode-setup.js';
+
 // ============================================================================
 // FEATURE FLAGS
 // ============================================================================
@@ -123,7 +130,12 @@ const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 const MULTI_AGENT_MODE = process.env.MULTI_AGENT_MODE !== 'false';
 
 // Model provider abstraction - centralizes all model-specific behavior
-import { getModelProvider, isUsingOpenAI } from './model-provider/index.js';
+import {
+  getModelProvider,
+  isQwen3OmniCandleBackend,
+  isUsingOpenAI,
+  isUsingQwen3Omni,
+} from './model-provider/index.js';
 
 // Get provider early for module-level logging
 const modelProvider = getModelProvider();
@@ -1317,27 +1329,42 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       `[voice-agent-entry] ⚡ Parallel module loads complete in ${Date.now() - parallelLoadStart}ms\n`
     );
 
-    // Create TTS with localized voice using PersonaAwareTTS (with voice switching support)
-    const tts = voiceManager.createPersonaAwareTTS(sessionPersona.name, {
-      ...voiceConfig,
-      voiceId: effectiveVoiceId,
-      accent: userAccent || 'american',
-      isLocalizedVoice,
-    });
+    // Create TTS: Qwen3-TTS when USE_QWEN3_OMNI, else PersonaAwareTTS (Cartesia)
+    let tts;
+    if (isUsingQwen3Omni()) {
+      const { Qwen3TTSAdapter } =
+        await import('../integrations/qwen3-omni/adapters/livekit-tts-adapter.js');
+      tts = new Qwen3TTSAdapter({
+        serverUrl: process.env.QWEN3_TTS_URL || 'http://localhost:8001',
+        personaId: sessionPersona.id,
+        language: 'English',
+      });
+    } else {
+      tts = voiceManager.createPersonaAwareTTS(sessionPersona.name, {
+        ...voiceConfig,
+        voiceId: effectiveVoiceId,
+        accent: userAccent || 'american',
+        isLocalizedVoice,
+      });
+    }
 
     // Initialize voice manager and register TTS for mid-session accent changes
     const sessionVoiceManager = voiceManager.getSessionVoiceManager(sessionId);
     sessionVoiceManager.initialize();
 
     // Fire-and-forget TTS registration (non-blocking)
-    void (async () => {
-      try {
-        const { registerSessionTTS } = await import('../api/session-accent-routes.js');
-        registerSessionTTS(sessionId, tts, sessionPersona.id, userAccent || 'american');
-      } catch {
-        // Non-critical - accent changes just won't work mid-session
-      }
-    })();
+    // Only register PersonaAwareTTS — Qwen3TTSAdapter doesn't support mid-session accent switching
+    if (!isUsingQwen3Omni()) {
+      void (async () => {
+        try {
+          const { registerSessionTTS } = await import('../api/session-accent-routes.js');
+          // tts is PersonaAwareTTS in this branch; registerSessionTTS expects it
+          registerSessionTTS(sessionId, tts as never, sessionPersona.id, userAccent || 'american');
+        } catch {
+          // Non-critical - accent changes just won't work mid-session
+        }
+      })();
+    }
 
     // Get voice deps for session creation
     const { voice, google, genai } = getVoiceDeps();
@@ -1468,17 +1495,11 @@ If someone asks what day it is, what time it is, or what the date is, you know t
         );
         if (musicToolsMissing.length > 0) {
           try {
-            const { getToolDefinitions } = await import(
-              '../tools/domains/entertainment/index.js'
-            );
-            const { EnvironmentServiceRegistry } = await import(
-              '../tools/registry/types.js'
-            );
+            const { getToolDefinitions } = await import('../tools/domains/entertainment/index.js');
+            const { EnvironmentServiceRegistry } = await import('../tools/registry/types.js');
             const entertainmentDefs = await getToolDefinitions();
             for (const toolId of musicToolsMissing) {
-              const toolDef = entertainmentDefs.find(
-                (d: { id: string }) => d.id === toolId
-              );
+              const toolDef = entertainmentDefs.find((d: { id: string }) => d.id === toolId);
               if (toolDef) {
                 // Create tool with minimal context
                 const tool = toolDef.create({
@@ -1596,71 +1617,234 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     // Get centralized model config (toggle via admin UI or model-config.json)
     const geminiConfig = modelConfig.getDefault();
 
-    // =========================================================================
-    // LLM SELECTION: Use ModelProvider abstraction
-    // =========================================================================
-    // The ModelProvider handles all model-specific configuration, eliminating
-    // scattered environment variable checks. See src/agents/model-provider/
-    process.stderr.write(
-      `[voice-agent-entry] ${modelProvider.getLogPrefix()} Creating LLM model via ${modelProvider.displayName}...\n`
-    );
+    // Director Mode: when enabled, use Qwen3-Omni RealtimeModel + DirectorEngine
+    let directorAudioRouter: AudioRouter | undefined;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const llm: any = await modelProvider.createLLMModel({
-      model: geminiConfig.model,
-      instructions: modelBaseInstructions,
-      temperature: geminiConfig.temperature,
-    });
-
-    process.stderr.write(
-      `[voice-agent-entry] ${modelProvider.getLogPrefix()} LLM model created (text → Cartesia TTS)\n`
-    );
-    process.stderr.write(
-      `[voice-agent-entry] 🎭 Instructions: Model=${modelBaseInstructions.length} chars, Agent=${systemPrompt.length} chars\n`
-    );
-
-    // 🔍 DEBUG: Listen for input audio transcription events
-    // This captures what Gemini's internal STT transcribes from the audio
-    // CRITICAL for debugging - shows exactly what Gemini hears before processing
-    const llmWithEvents = llm as {
-      on?: (event: string, handler: (event: unknown) => void) => void;
-    };
-    if (llmWithEvents.on) {
-      llmWithEvents.on('input_audio_transcription_completed', (event: unknown) => {
-        const transcriptionEvent = event as { transcript?: string };
-        process.stderr.write(
-          `\n🎤 [GEMINI STT] Input transcribed: "${transcriptionEvent.transcript || '(empty)'}"\n`
-        );
-        // Log character codes to detect invisible characters or periods
-        if (transcriptionEvent.transcript) {
-          const charCodes = transcriptionEvent.transcript
-            .split('')
-            .map((c: string) => c.charCodeAt(0));
-          process.stderr.write(`🎤 [GEMINI STT] Char codes: [${charCodes.join(', ')}]\n`);
-        }
+    if (isDirectorModeRequested(ctx.room?.metadata)) {
+      process.stderr.write(
+        `[voice-agent-entry] 🎬 Director Mode enabled - creating Qwen3-Omni RealtimeModel + DirectorEngine\n`
+      );
+      // Default full stack when Qwen is on; set USE_QWEN3_OMNI_FULL_STACK=false to disable
+      const useDirectorFullStack =
+        process.env.USE_QWEN3_OMNI === 'true' && process.env.USE_QWEN3_OMNI_FULL_STACK !== 'false';
+      const sendDataMessageForSession = useDirectorFullStack
+        ? async (type: string, payload: Record<string, unknown>) => {
+            try {
+              const { getFrontendPublisher } = await import('./realtime/index.js');
+              const pub = getFrontendPublisher();
+              if (pub?.isConnected()) await pub.sendData(type, payload ?? {});
+            } catch {
+              /* no-op if publisher not ready */
+            }
+          }
+        : undefined;
+      const directorResult = await createDirectorModeSession({
+        sessionId,
+        userId: userId ?? 'anonymous',
+        directorUserId: userId,
+        initialLead:
+          sessionPersona.id as import('../integrations/qwen3-omni/director/types.js').PersonaId,
+        initialCast: [
+          sessionPersona.id as import('../integrations/qwen3-omni/director/types.js').PersonaId,
+        ],
+        initialMood: 'warm',
+        autoDirectorMode: 'autopilot',
+        maxEnsembleSize: 4,
+        useTtsClient: true,
+        sendDataMessage: sendDataMessageForSession,
+        services,
       });
-      process.stderr.write(`[voice-agent-entry] 🔍 Gemini STT transcription logging enabled\n`);
-    }
+      directorAudioRouter = directorResult.audioRouter;
+      session = new voice.AgentSession({
+        turnDetection: 'realtime_llm',
+        vad,
+        llm: directorResult.realtimeModel,
+        tts,
+        userData,
+        voiceOptions: {
+          allowInterruptions: true,
+          minEndpointingDelay: 150,
+          maxEndpointingDelay: 450,
+          minInterruptionWords: 1,
+          minInterruptionDuration: 150,
+          preemptiveGeneration: true,
+        },
+      });
+      process.stderr.write(
+        `[voice-agent-entry] 🎬 Director Mode session created (path=qwen_director${useDirectorFullStack ? '_full_stack' : ''})\n`
+      );
+    } else {
+      // =========================================================================
+      // NON-DIRECTOR: Qwen full stack (session manager) or ModelProvider (Gemini/OpenAI)
+      // =========================================================================
+      const useQwenFullStack =
+        process.env.USE_QWEN3_OMNI === 'true' && process.env.USE_QWEN3_OMNI_FULL_STACK !== 'false';
 
-    session = new voice.AgentSession({
-      // Turn detection: Provider-specific (Gemini uses 'realtime_llm', OpenAI uses undefined + VAD)
-      turnDetection: modelProvider.getSessionTurnDetection(),
-      // VAD: Required for OpenAI (enables allowInterruptions: false), optional for Gemini
-      vad,
-      llm,
-      tts,
-      userData,
-      voiceOptions: {
-        allowInterruptions: true,
-        // UPDATED Jan 2026: Ultra-tight delays for natural conversation
-        // Human turn-taking gaps are 200-400ms - we should match that
-        minEndpointingDelay: 150, // Was 250ms - be snappier
-        maxEndpointingDelay: 450, // Was 800ms - don't wait too long
-        minInterruptionWords: 1,
-        minInterruptionDuration: 150, // Was 200ms - faster interrupt detection
-        preemptiveGeneration: true,
-      },
-    });
+      if (useQwenFullStack) {
+        if (isQwen3OmniCandleBackend()) {
+          try {
+            const { NativeOmniRealtimeModel } = await import(
+              '../integrations/qwen3-omni/adapters/native-omni-adapter.js'
+            );
+            const { NativeOmniEngine, isNativeOmniAvailable } = await import(
+              '../integrations/qwen3-omni/native-engine.js'
+            );
+            if (isNativeOmniAvailable()) {
+              const testMode = process.env.QWEN3_OMNI_TEST_MODE === 'true';
+              const engine = NativeOmniEngine.create({
+                testMode,
+                modelPath: process.env.QWEN3_OMNI_MODEL_PATH,
+                tokenizerPath: process.env.QWEN3_OMNI_TOKENIZER_PATH,
+              });
+              const model = new NativeOmniRealtimeModel({
+                engine,
+                inputSampleRate: 48000,
+                outputSampleRate: 24000,
+                liveKitOutputSampleRate: 48000,
+              });
+              const llm = model;
+              session = new voice.AgentSession({
+                turnDetection: 'realtime_llm',
+                vad,
+                llm,
+                tts,
+                userData,
+                voiceOptions: {
+                  allowInterruptions: true,
+                  minEndpointingDelay: 150,
+                  maxEndpointingDelay: 450,
+                  minInterruptionWords: 1,
+                  minInterruptionDuration: 150,
+                  preemptiveGeneration: true,
+                },
+              });
+              process.stderr.write(
+                `[voice-agent-entry] ✅ Qwen Candle NAPI pipeline (in-process)\n`
+              );
+            }
+          } catch (e) {
+            process.stderr.write(
+              `[voice-agent-entry] ⚠️ Candle backend failed, falling back to HTTP: ${String(e)}\n`
+            );
+          }
+        }
+        if (!session) {
+          process.stderr.write(
+            `[voice-agent-entry] 🚀 Qwen full stack (single-persona SessionManagerRealtimeModel)\n`
+          );
+          const sendDataMessageForQwen = async (
+            type: string,
+            payload: Record<string, unknown>
+          ): Promise<void> => {
+            try {
+              const { getFrontendPublisher } = await import('./realtime/index.js');
+              const pub = getFrontendPublisher();
+              if (pub?.isConnected()) await pub.sendData(type, payload ?? {});
+            } catch {
+              /* no-op if publisher not ready */
+            }
+          };
+          const { SessionManagerRealtimeModel } =
+            await import('../integrations/qwen3-omni/adapters/livekit-session-manager-adapter.js');
+          const { getQwen3OmniConfig } = await import('../integrations/qwen3-omni/config.js');
+          const { createQwen3OmniClient } = await import('../integrations/qwen3-omni/client.js');
+          const { createMockQwen3OmniClient, isQwen3OmniMockEnabled } =
+            await import('../integrations/qwen3-omni/client-mock.js');
+          const omniConfig = getQwen3OmniConfig();
+          const client = isQwen3OmniMockEnabled()
+            ? (createMockQwen3OmniClient() as unknown as import('../integrations/qwen3-omni/client.js').Qwen3OmniClient)
+            : createQwen3OmniClient();
+          const llm = new SessionManagerRealtimeModel({
+            sessionId,
+            userId: userId ?? 'anonymous',
+            personaId: sessionPersona.id,
+            serverUrl: omniConfig.serverUrl,
+            ttsServerUrl: omniConfig.ttsServerUrl ?? omniConfig.serverUrl.replace(':8000', ':8001'),
+            services: services ?? {},
+            sendDataMessage: sendDataMessageForQwen,
+            client,
+          });
+          session = new voice.AgentSession({
+            turnDetection: 'realtime_llm',
+            vad,
+            llm,
+            tts,
+            userData,
+            voiceOptions: {
+              allowInterruptions: true,
+              minEndpointingDelay: 150,
+              maxEndpointingDelay: 450,
+              minInterruptionWords: 1,
+              minInterruptionDuration: 150,
+              preemptiveGeneration: true,
+            },
+          });
+          process.stderr.write(
+            `[voice-agent-entry] ✅ Qwen full stack session created (path=qwen_full_stack, BTH: emotion, personality, quality)\n`
+          );
+        }
+      } else {
+        const pathLabel =
+          process.env.USE_QWEN3_OMNI === 'true'
+            ? 'qwen_realtime'
+            : process.env.USE_OPENAI_REALTIME === 'true'
+              ? 'openai_cartesia'
+              : 'gemini_cartesia';
+        process.stderr.write(
+          `[voice-agent-entry] ${modelProvider.getLogPrefix()} Creating LLM model via ${modelProvider.displayName} (path=${pathLabel})...\n`
+        );
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const llm: any = await modelProvider.createLLMModel({
+          model: geminiConfig.model,
+          instructions: modelBaseInstructions,
+          temperature: geminiConfig.temperature,
+        });
+
+        process.stderr.write(
+          `[voice-agent-entry] ${modelProvider.getLogPrefix()} LLM model created (text → Cartesia TTS)\n`
+        );
+        process.stderr.write(
+          `[voice-agent-entry] 🎭 Instructions: Model=${modelBaseInstructions.length} chars, Agent=${systemPrompt.length} chars\n`
+        );
+
+        // 🔍 DEBUG: Listen for input audio transcription events
+        const llmWithEvents = llm as {
+          on?: (event: string, handler: (event: unknown) => void) => void;
+        };
+        if (llmWithEvents.on) {
+          llmWithEvents.on('input_audio_transcription_completed', (event: unknown) => {
+            const transcriptionEvent = event as { transcript?: string };
+            process.stderr.write(
+              `\n🎤 [GEMINI STT] Input transcribed: "${transcriptionEvent.transcript || '(empty)'}"\n`
+            );
+            if (transcriptionEvent.transcript) {
+              const charCodes = transcriptionEvent.transcript
+                .split('')
+                .map((c: string) => c.charCodeAt(0));
+              process.stderr.write(`🎤 [GEMINI STT] Char codes: [${charCodes.join(', ')}]\n`);
+            }
+          });
+          process.stderr.write(`[voice-agent-entry] 🔍 Gemini STT transcription logging enabled\n`);
+        }
+
+        session = new voice.AgentSession({
+          turnDetection: modelProvider.getSessionTurnDetection(),
+          vad,
+          llm,
+          tts,
+          userData,
+          voiceOptions: {
+            allowInterruptions: true,
+            minEndpointingDelay: 150,
+            maxEndpointingDelay: 450,
+            minInterruptionWords: 1,
+            minInterruptionDuration: 150,
+            preemptiveGeneration: true,
+          },
+        });
+      }
+    }
 
     e2e.resourceLoaded('agent-session', Date.now() - sessionStart);
     process.stderr.write(`[voice-agent-entry] Session created in ${Date.now() - sessionStart}ms\n`);
@@ -2072,42 +2256,46 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     let lastToolCheckAt = Date.now();
     const TOOL_HEALTH_CHECK_INTERVAL = 30_000; // Check every 30 seconds
 
-    const toolHealthCheckInterval = setInterval(() => void (async () => {
-      const agentTools = (agent as unknown as { _tools?: Record<string, unknown> })?._tools;
-      const toolCount = agentTools ? Object.keys(agentTools).length : 0;
-      const turnsSinceLastFC = (userData.turnCount || 0) - nativeFCCallCount;
+    const toolHealthCheckInterval = setInterval(
+      () =>
+        void (async () => {
+          const agentTools = (agent as unknown as { _tools?: Record<string, unknown> })?._tools;
+          const toolCount = agentTools ? Object.keys(agentTools).length : 0;
+          const turnsSinceLastFC = (userData.turnCount || 0) - nativeFCCallCount;
 
-      // Log health status
-      process.stderr.write(
-        `\n🏥 [TOOL HEALTH] Turn ${userData.turnCount || 0} | ` +
-          `Tools: ${toolCount} | FC calls: ${nativeFCCallCount} | ` +
-          `Turns without FC: ${turnsSinceLastFC}\n`
-      );
+          // Log health status
+          process.stderr.write(
+            `\n🏥 [TOOL HEALTH] Turn ${userData.turnCount || 0} | ` +
+              `Tools: ${toolCount} | FC calls: ${nativeFCCallCount} | ` +
+              `Turns without FC: ${turnsSinceLastFC}\n`
+          );
 
-      // If we've had multiple turns without any function calls and tools are registered,
-      // something might be wrong - try re-registering
-      if (turnsSinceLastFC > 3 && toolCount > 0) {
-        process.stderr.write(
-          `⚠️ [TOOL HEALTH] ${turnsSinceLastFC} turns without function calls - ` +
-            `attempting tool re-registration\n`
-        );
-
-        try {
-          const { registerInitialTools, hasNativeToolUpdates } =
-            await import('./shared/tool-updater.js');
-          if (hasNativeToolUpdates()) {
-            const reregistered = await registerInitialTools(agent);
+          // If we've had multiple turns without any function calls and tools are registered,
+          // something might be wrong - try re-registering
+          if (turnsSinceLastFC > 3 && toolCount > 0) {
             process.stderr.write(
-              `🔧 [TOOL HEALTH] Re-registration ${reregistered ? 'succeeded' : 'failed'}\n`
+              `⚠️ [TOOL HEALTH] ${turnsSinceLastFC} turns without function calls - ` +
+                `attempting tool re-registration\n`
             );
-          }
-        } catch (reregErr) {
-          process.stderr.write(`❌ [TOOL HEALTH] Re-registration error: ${reregErr}\n`);
-        }
-      }
 
-      lastToolCheckAt = Date.now();
-    })(), TOOL_HEALTH_CHECK_INTERVAL);
+            try {
+              const { registerInitialTools, hasNativeToolUpdates } =
+                await import('./shared/tool-updater.js');
+              if (hasNativeToolUpdates()) {
+                const reregistered = await registerInitialTools(agent);
+                process.stderr.write(
+                  `🔧 [TOOL HEALTH] Re-registration ${reregistered ? 'succeeded' : 'failed'}\n`
+                );
+              }
+            } catch (reregErr) {
+              process.stderr.write(`❌ [TOOL HEALTH] Re-registration error: ${reregErr}\n`);
+            }
+          }
+
+          lastToolCheckAt = Date.now();
+        })(),
+      TOOL_HEALTH_CHECK_INTERVAL
+    );
 
     cleanupTracker.register('timer', 'tool-health-check', () => {
       clearInterval(toolHealthCheckInterval);
@@ -2311,6 +2499,7 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     // FIX BUG: Pass voiceAgentRef so UI-initiated handoffs can update LLM instructions
     // Without this, clicking a persona in the UI changes the voice but keeps the LLM identity!
     // CRITICAL: Pass tts so the actual Cartesia voice can be changed during handoff!
+    // Director Mode: pass audioRouter so director commands from data channel are routed to DirectorEngine
     const dataChannelResult = setupDataChannelHandler({
       room: ctx.room,
       ctx, // Pass JobContext for coordinator adapter fallback creation
@@ -2323,6 +2512,7 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       tts: session.tts as {
         switchVoice?: (name: string, voiceId: string, accent?: string) => void;
       },
+      ...(directorAudioRouter ? { audioRouter: directorAudioRouter } : {}),
     });
     cleanupHandlers.push(dataChannelResult.cleanup);
     process.stderr.write(`[voice-agent-entry] 📡 Data channel handler set up\n`);

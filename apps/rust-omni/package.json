@@ -1,0 +1,33 @@
+{
+  "name": "ferni-omni",
+  "version": "0.1.0",
+  "description": "Unified Rust Omni stack: STT + Thinker + TTS; full audio→audio (Qwen3-Omni)",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "napi": {
+    "name": "ferni-omni",
+    "triples": {
+      "additional": [
+        "aarch64-apple-darwin",
+        "x86_64-apple-darwin",
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.4"
+  },
+  "engines": {
+    "node": ">= 18"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "*.node"
+  ]
+}

@@ -155,9 +155,29 @@ export async function loadToolDomain(
 /**
  * Internal domain loading implementation (separated for race condition handling)
  */
+// =========================================================================
+// DOMAIN ALIASES (Feb 2026)
+// Redirect deprecated/renamed domain names to their current equivalents.
+// This prevents "No loader registered" errors when stale references exist
+// in build artifacts, dynamic configs, or ONNX label maps.
+// =========================================================================
+const DOMAIN_ALIASES: Record<string, ToolDomain> = {
+  'wisdom-intelligence': 'wisdom', // Merged into wisdom/ domain (Jan 2026)
+};
+
 async function doLoadDomain(domain: ToolDomain, options: { isLazy?: boolean }): Promise<number> {
   const startTime = Date.now();
-  const loader = domainLoaders[domain];
+
+  // Resolve domain aliases before looking up loader
+  const resolvedDomain = DOMAIN_ALIASES[domain as string] || domain;
+  if (resolvedDomain !== domain) {
+    getLogger().info(
+      { from: domain, to: resolvedDomain },
+      '🔄 Domain alias resolved (deprecated name redirected)'
+    );
+  }
+
+  const loader = domainLoaders[resolvedDomain];
   let toolCount = 0;
 
   if (!loader) {

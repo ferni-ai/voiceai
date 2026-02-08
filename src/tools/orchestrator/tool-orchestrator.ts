@@ -33,10 +33,8 @@
  */
 
 import {
-  getFtisV5Threshold,
-  getFtisV7Threshold,
-  isFtisV5Enabled,
-  isFtisV7Enabled,
+  getFtisThreshold,
+  isFtisEnabled,
 } from '../../config/tool-config.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
@@ -56,13 +54,7 @@ import {
 } from '../registry/types.js';
 // Semantic router for tool matching
 import { semanticRouter, type SemanticMatch } from '../semantic-router/compat.js';
-// FTIS V5 ONNX classifier for direct tool routing
-import {
-  classifyWithOnnx,
-  initializeOnnxClassifier,
-  type ClassificationOutput,
-} from '../semantic-router/advanced/intelligent/onnx-classifier.js';
-// FTIS V7 hierarchical classifier (domain → meta-tool two-stage)
+// FTIS hierarchical classifier (domain → meta-tool two-stage)
 import {
   classifyHierarchicalSafe,
   initializeHierarchicalClassifier,
@@ -402,26 +394,15 @@ export class UnifiedToolOrchestrator {
         log.info('🎯 Semantic router initialized');
       }
 
-      // 2b. Initialize FTIS ONNX classifiers (V7 hierarchical or V5 flat)
-      if (isFtisV7Enabled()) {
+      // 2b. Initialize FTIS hierarchical classifier
+      if (isFtisEnabled()) {
         try {
           await initializeHierarchicalClassifier();
-          log.info('🧠 FTIS V7 hierarchical classifier initialized (2-stage domain→meta-tool)');
-        } catch (v7Error) {
-          log.warn(
-            { error: String(v7Error) },
-            'FTIS V7 initialization failed, will try V5 fallback'
-          );
-        }
-      }
-      if (isFtisV5Enabled()) {
-        try {
-          await initializeOnnxClassifier();
-          log.info('🧠 FTIS V5 ONNX classifier initialized (98% top-1 accuracy)');
+          log.info('🧠 FTIS hierarchical classifier initialized (2-stage domain→meta-tool)');
         } catch (ftisError) {
           log.warn(
             { error: String(ftisError) },
-            'FTIS V5 initialization failed, using semantic fallback'
+            'FTIS initialization failed, using semantic fallback'
           );
         }
       }
@@ -771,33 +752,26 @@ export class UnifiedToolOrchestrator {
     };
 
     // =========================================================================
-    // FTIS CLASSIFIER FAST PATH (V7 hierarchical → V5 flat → semantic fallback)
-    // =========================================================================
-    // V7: Two-stage classifier (domain → meta-tool), loads domain tools directly
-    // V5: Flat classifier (860 tools), loads individual predicted tools
-    // Both skip semantic routing when high-confidence match found.
+    // FTIS CLASSIFIER FAST PATH (hierarchical → semantic fallback)
     // =========================================================================
     let ftisTools: Record<string, Tool> = {};
-    let ftisV5Classification: ClassificationOutput | null = null;
-    let ftisV7Classification: HierarchicalClassificationOutput | null = null;
+    let ftisClassification: HierarchicalClassificationOutput | null = null;
 
-    // --- V7 Hierarchical Classifier (preferred when available) ---
-    if (isFtisV7Enabled() && isHierarchicalClassifierAvailable()) {
+    if (isFtisEnabled() && isHierarchicalClassifierAvailable()) {
       try {
-        ftisV7Classification = classifyHierarchicalSafe(request.transcript);
-        const threshold = getFtisV7Threshold();
+        ftisClassification = classifyHierarchicalSafe(request.transcript);
+        const threshold = getFtisThreshold();
 
-        if (ftisV7Classification && ftisV7Classification.predictions.length > 0) {
-          const topPrediction = ftisV7Classification.predictions[0];
+        if (ftisClassification && ftisClassification.predictions.length > 0) {
+          const topPrediction = ftisClassification.predictions[0];
 
           if (topPrediction.combinedConfidence >= threshold) {
-            // High confidence - map V7 domain label to tool registry domains
+            // High confidence - map domain label to tool registry domains
             const toolDomains = mapV7DomainToToolDomains(topPrediction.domain);
 
             if (toolDomains.length > 0) {
               await loadToolDomainsLazy(toolDomains);
 
-              // Get all tools in the mapped domains
               for (const domain of toolDomains) {
                 const domainToolDefs = toolRegistry.query({ domains: [domain] });
                 for (const toolDef of domainToolDefs) {
@@ -813,16 +787,16 @@ export class UnifiedToolOrchestrator {
             log.info(
               {
                 transcript: request.transcript.slice(0, 50),
-                v7Domain: topPrediction.domain,
+                domain: topPrediction.domain,
                 toolDomains: toolDomains.join(','),
                 metaTool: topPrediction.metaTool,
                 domainConfidence: topPrediction.domainConfidence.toFixed(3),
                 metaToolConfidence: topPrediction.metaToolConfidence.toFixed(3),
                 combinedConfidence: topPrediction.combinedConfidence.toFixed(3),
                 toolCount: Object.keys(ftisTools).length,
-                latencyMs: ftisV7Classification.latencyMs,
+                latencyMs: ftisClassification.latencyMs,
               },
-              '🧠 [FTIS V7] High confidence hierarchical classification'
+              '🧠 [FTIS] High confidence hierarchical classification'
             );
           } else {
             log.debug(
@@ -832,55 +806,12 @@ export class UnifiedToolOrchestrator {
                 combinedConfidence: topPrediction.combinedConfidence.toFixed(3),
                 threshold,
               },
-              '🧠 [FTIS V7] Low confidence, falling through to V5/semantic'
-            );
-          }
-        }
-      } catch (v7Error) {
-        log.warn({ error: String(v7Error) }, 'FTIS V7 classification failed, falling through');
-      }
-    }
-
-    // --- V5 Flat Classifier (fallback when V7 didn't produce results) ---
-    if (Object.keys(ftisTools).length === 0 && isFtisV5Enabled()) {
-      try {
-        ftisV5Classification = await classifyWithOnnx(request.transcript);
-        const threshold = getFtisV5Threshold();
-
-        if (ftisV5Classification.predictions.length > 0) {
-          const topPrediction = ftisV5Classification.predictions[0];
-
-          if (topPrediction.confidence >= threshold) {
-            // High confidence - load tools from top predictions
-            const predictedToolIds = ftisV5Classification.predictions
-              .filter((p) => p.confidence >= 0.3) // Include moderate confidence predictions
-              .map((p) => p.toolId);
-
-            ftisTools = await this.getToolsByIds(predictedToolIds, ctx);
-
-            log.info(
-              {
-                transcript: request.transcript.slice(0, 50),
-                topTool: topPrediction.toolId,
-                confidence: topPrediction.confidence.toFixed(3),
-                toolCount: Object.keys(ftisTools).length,
-                latencyMs: ftisV5Classification.latencyMs,
-              },
-              '🧠 [FTIS V5] High confidence classification'
-            );
-          } else {
-            log.debug(
-              {
-                topTool: topPrediction.toolId,
-                confidence: topPrediction.confidence.toFixed(3),
-                threshold,
-              },
-              '🧠 [FTIS V5] Low confidence, using semantic fallback'
+              '🧠 [FTIS] Low confidence, falling through to semantic'
             );
           }
         }
       } catch (ftisError) {
-        log.warn({ error: String(ftisError) }, 'FTIS V5 classification failed, using semantic');
+        log.warn({ error: String(ftisError) }, 'FTIS classification failed, falling through');
       }
     }
 
@@ -911,7 +842,7 @@ export class UnifiedToolOrchestrator {
       semantic: Object.keys(semanticTools).length,
       contextual: Object.keys(contextualTools).length,
       mcp: 0,
-      intelligence: Object.keys(ftisTools).length, // FTIS classifier tools count (V7 or V5)
+      intelligence: Object.keys(ftisTools).length, // FTIS classifier tools count
     };
 
     // =========================================================================
@@ -921,7 +852,7 @@ export class UnifiedToolOrchestrator {
       ...essentialTools,
       ...semanticTools,
       ...contextualTools,
-      ...ftisTools, // FTIS classifier predictions (V7 or V5) - high priority
+      ...ftisTools, // FTIS classifier predictions - high priority
     };
 
     // Apply force include/exclude from request

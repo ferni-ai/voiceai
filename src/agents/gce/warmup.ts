@@ -97,17 +97,40 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
     // 1b. ⚡ PRE-CACHE CONVERSATIONAL AUDIO - Biggest latency win!
     // Generate TTS audio for greetings, handoffs, banter, and backchannels.
     // Target: ALL conversational phrases under 800ms (most under 200ms when cached).
+    //
+    // FIX (Feb 2026): Cap pre-cache at 10s to prevent SLA violations.
+    // If TTS is slow (network issues, Cartesia backlog), we proceed with partial cache.
+    // Uncached phrases will be generated on-demand (slightly higher first-use latency).
+    const AUDIO_PREWARM_TIMEOUT_MS = 10_000; // 10 second budget (within 12s SLA)
     tasks.push(
       (async () => {
         try {
           const audioPrewarmStart = Date.now();
           const { prewarmConversationalAudio } =
             await import('../shared/conversational-audio-cache.js');
-          const cachedCount = await prewarmConversationalAudio();
-          log('✅ Conversational audio pre-cached (greetings, handoffs, banter)', {
-            durationMs: Date.now() - audioPrewarmStart,
-            phrasesCached: cachedCount,
+
+          // Race the prewarm against a timeout to prevent SLA violations
+          const timeoutPromise = new Promise<number>((resolve) => {
+            setTimeout(() => resolve(-1), AUDIO_PREWARM_TIMEOUT_MS);
           });
+
+          const cachedCount = await Promise.race([
+            prewarmConversationalAudio(),
+            timeoutPromise,
+          ]);
+
+          const durationMs = Date.now() - audioPrewarmStart;
+          if (cachedCount === -1) {
+            log('⚠️ Conversational audio pre-cache timed out (non-fatal, will cache on demand)', {
+              durationMs,
+              timeoutMs: AUDIO_PREWARM_TIMEOUT_MS,
+            });
+          } else {
+            log('✅ Conversational audio pre-cached (greetings, handoffs, banter)', {
+              durationMs,
+              phrasesCached: cachedCount,
+            });
+          }
         } catch (e) {
           log('⚠️ Conversational audio pre-cache failed (non-fatal)', { error: String(e) });
         }
@@ -249,31 +272,33 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
-    // 3e. ⚡ ONNX ML Classifier warmup - 98.0% accuracy tool routing (V5-860)
-    // Uses trained Qwen model via ONNX Runtime for fast, accurate tool classification.
-    // This runs BEFORE the semantic router for better accuracy.
+    // 3e. ⚡ FTIS hierarchical classifier warmup (optional; orchestrator inits on first use)
+    // Flat ONNX classifier deprecated; FTIS uses hierarchical-classifier (stage1 + stage2).
     tasks.push(
       (async () => {
         try {
-          const onnxStart = Date.now();
-          const { initializeOnnxClassifier, isOnnxClassifierAvailable, getOnnxToolCount, detectModelVersion } =
-            await import('../../tools/semantic-router/advanced/intelligent/onnx-classifier.js');
-          const modelVersion = detectModelVersion();
-          await initializeOnnxClassifier();
+          const ftisStart = Date.now();
+          const {
+            initializeHierarchicalClassifier,
+            isHierarchicalClassifierAvailable,
+            getV7DomainLabels,
+            getV7MetaToolLabels,
+          } = await import('../../tools/semantic-router/advanced/intelligent/hierarchical-classifier.js');
+          await initializeHierarchicalClassifier();
 
-          if (isOnnxClassifierAvailable()) {
-            log(`🧠 ONNX ML classifier initialized (${modelVersion} model, 861 labels)`, {
-              durationMs: Date.now() - onnxStart,
-              toolsCovered: getOnnxToolCount(),
-              modelVersion,
+          if (isHierarchicalClassifierAvailable()) {
+            const domains = getV7DomainLabels().length;
+            const metaTools = getV7MetaToolLabels().length;
+            log(`🧠 FTIS hierarchical classifier initialized (${domains} domains, ${metaTools} meta-tools)`, {
+              durationMs: Date.now() - ftisStart,
             });
           } else {
-            log('⚠️ ONNX classifier not available - using pattern matching', {
-              durationMs: Date.now() - onnxStart,
+            log('⚠️ FTIS classifier not available - using semantic fallback', {
+              durationMs: Date.now() - ftisStart,
             });
           }
         } catch (e) {
-          log('⚠️ ONNX classifier init failed (falling back to patterns)', { error: String(e) });
+          log('⚠️ FTIS classifier init failed (semantic fallback)', { error: String(e) });
         }
       })()
     );

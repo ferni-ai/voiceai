@@ -173,6 +173,6 @@ brand/.claude/
 *.swiftdeps
 *.swift.o
 
-# PersonaPlex voice embeddings (large binary files)
+# Voice embeddings (large binary files)
 voice-embeddings/samples/
 voice-embeddings/*.pt

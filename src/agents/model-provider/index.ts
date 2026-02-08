@@ -72,6 +72,7 @@ export { hasNativeFunctionCalling, needsJsonWorkaround } from './types.js';
 
 export { OpenAIRealtimeProvider } from './openai-realtime.js';
 export { GeminiLiveProvider } from './gemini-live.js';
+export { Qwen3OmniProvider } from './qwen3-omni.js';
 
 // ============================================================================
 // FACTORY EXPORTS
@@ -82,6 +83,8 @@ export {
   getProviderIdSync,
   isUsingOpenAI,
   isUsingGemini,
+  isUsingQwen3Omni,
+  isQwen3OmniCandleBackend,
   setModelProvider,
   clearModelProvider,
   isTestInjectedProvider,

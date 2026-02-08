@@ -780,17 +780,17 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni ops metrics',
     ],
   },
-  personaplex: {
-    name: 'PersonaPlex',
-    description: 'Manage PersonaPlex GPU server for full-duplex voice AI',
-    icon: '🎙️',
-    handler: handlePersonaplex,
-    subcommands: ['deploy', 'health', 'logs', 'voices', 'status', 'ssh', 'destroy'],
+  qwen3: {
+    name: 'Qwen3-Omni',
+    description: 'Manage Qwen3-Omni self-hosted speech-to-speech AI server',
+    icon: '🧠',
+    handler: handleQwen3Omni,
+    subcommands: ['deploy', 'health', 'logs', 'voices', 'status', 'ssh', 'destroy', 'test'],
     examples: [
-      'ferni personaplex deploy',
-      'ferni personaplex health',
-      'ferni personaplex voices',
-      'ferni personaplex logs',
+      'ferni qwen3 deploy',
+      'ferni qwen3 health',
+      'ferni qwen3 voices',
+      'ferni qwen3 test',
     ],
   },
   waitlist: {
@@ -7399,81 +7399,26 @@ async function handleOps(args: string[]): Promise<void> {
   }
 }
 
+}
+
 // ============================================================================
-// PERSONAPLEX COMMAND
+// QWEN3-OMNI COMMAND
 // ============================================================================
 
-async function handlePersonaplex(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
+async function handleQwen3Omni(args: string[]): Promise<void> {
+  const cliDir = join(PROJECT_ROOT, 'apps/cli/src/commands/qwen3-omni');
 
-  log.header(`🎙️ PersonaPlex GPU Server`);
-
-  const deployScript = join(PROJECT_ROOT, 'infra/personaplex/deploy.sh');
-  const cliDir = join(PROJECT_ROOT, 'apps/cli/src/commands/personaplex');
-
-  if (!subcommand || subcommand === 'help') {
-    console.log(`${colors.bold}PersonaPlex Commands:${colors.reset}\n`);
-    console.log(
-      `  ${colors.cyan}ferni personaplex deploy${colors.reset}   - Deploy GPU instance with PersonaPlex`
-    );
-    console.log(`  ${colors.cyan}ferni personaplex health${colors.reset}   - Check server health`);
-    console.log(
-      `  ${colors.cyan}ferni personaplex logs${colors.reset}     - View server logs (streaming)`
-    );
-    console.log(
-      `  ${colors.cyan}ferni personaplex voices${colors.reset}   - Upload samples & generate embeddings`
-    );
-    console.log(`  ${colors.cyan}ferni personaplex status${colors.reset}   - Show instance status`);
-    console.log(
-      `  ${colors.cyan}ferni personaplex ssh${colors.reset}      - SSH into the instance`
-    );
-    console.log(`  ${colors.cyan}ferni personaplex destroy${colors.reset}  - Tear down instance`);
-    console.log(`\n${colors.dim}Environment:${colors.reset}`);
-    console.log(`  ${colors.dim}HF_TOKEN${colors.reset}   HuggingFace token (required for deploy)`);
-    console.log(`\n${colors.bold}Cost:${colors.reset} ~$0.70/hour for NVIDIA L4 GPU`);
-    return;
-  }
-
-  // Check for CLI handler
   if (existsSync(cliDir + '/index.ts')) {
     try {
-      const { main: personaplexMain } = await import('./commands/personaplex/index.js');
-      await personaplexMain(args);
+      const { main: qwen3Main } = await import('./commands/qwen3-omni/index.js');
+      await qwen3Main(args);
       return;
-    } catch {
-      // Fall through to shell script
+    } catch (err) {
+      log.error(`Failed to load Qwen3-Omni CLI: ${err}`);
     }
   }
 
-  // Use shell script as fallback
-  if (!existsSync(deployScript)) {
-    log.error(`Deploy script not found: ${deployScript}`);
-    return;
-  }
-
-  const scriptArg =
-    {
-      deploy: '',
-      health: '--health',
-      logs: '--logs',
-      voices: '--voices',
-      status: '--health',
-      ssh: '',
-      destroy: '--destroy',
-    }[subcommand] || '';
-
-  if (subcommand === 'ssh') {
-    console.log(`${colors.cyan}Connecting to PersonaPlex instance...${colors.reset}\n`);
-    spawnSync('gcloud', ['compute', 'ssh', 'personaplex-server', '--zone=us-central1-a'], {
-      stdio: 'inherit',
-    });
-    return;
-  }
-
-  spawnSync('bash', [deployScript, scriptArg].filter(Boolean), {
-    stdio: 'inherit',
-    env: { ...process.env },
-  });
+  log.error('Qwen3-Omni CLI not found. Ensure apps/cli/src/commands/qwen3-omni/ exists.');
 }
 
 // ============================================================================
@@ -13268,7 +13213,7 @@ ${colors.bold}Commands:${colors.reset}
       'integrations',
       'secrets',
       'ops',
-      'personaplex',
+      'qwen3',
       'users',
       'data',
       'waitlist',

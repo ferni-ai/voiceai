@@ -49,10 +49,14 @@ mod post_tts;
 mod post_tts_processor;
 mod pre_stt;
 mod sola;
+mod stt;
 mod yin;
 
 // Re-export YIN NAPI functions
 pub use yin::{estimate_pitch_yin, batch_estimate_pitch_yin, NativeYinResult};
+
+// Re-export Whisper STT (after pre-STT pipeline)
+pub use stt::{NativeWhisperStt, WhisperSttConfig, transcribe_whisper};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -415,6 +419,34 @@ pub fn convert_i16_to_f32(samples: Int16Array) -> Float32Array {
         result.push(slice[i] as f32 / 32768.0);
     }
 
+    Float32Array::new(result)
+}
+
+/// Resample Float32 audio from one sample rate to another (linear interpolation).
+///
+/// Used for Qwen3-Omni pipeline: 48kHz → 16kHz (input), 24kHz → 48kHz (output).
+#[napi]
+pub fn resample_f32(samples: Float32Array, from_rate: u32, to_rate: u32) -> Float32Array {
+    let slice = samples.as_ref();
+    if slice.is_empty() || from_rate == 0 || to_rate == 0 {
+        return Float32Array::new(vec![]);
+    }
+    let in_len = slice.len() as u64;
+    let out_len = ((in_len * to_rate as u64) / from_rate as u64) as usize;
+    if out_len == 0 {
+        return Float32Array::new(vec![]);
+    }
+    let ratio = from_rate as f64 / to_rate as f64;
+    let mut result = Vec::with_capacity(out_len);
+    for i in 0..out_len {
+        let src_idx = i as f64 * ratio;
+        let lo = src_idx.floor() as usize;
+        let hi = (src_idx.ceil() as usize).min(slice.len().saturating_sub(1));
+        let t = (src_idx - lo as f64) as f32;
+        let a = slice[lo];
+        let b = if hi < slice.len() { slice[hi] } else { a };
+        result.push(a * (1.0 - t) + b * t);
+    }
     Float32Array::new(result)
 }
 

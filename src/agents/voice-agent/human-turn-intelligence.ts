@@ -17,15 +17,15 @@
  * @module voice-agent/human-turn-intelligence
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
 import {
-  analyzeTurnBoundary,
-  hasDisfluencies,
-  countWordsRust,
-  isTurnAnalysisAvailable,
-  isFluencyAnalysisAvailable,
-  isTokenCountingAvailable,
+    analyzeTurnBoundary,
+    countWordsRust,
+    hasDisfluencies,
+    isFluencyAnalysisAvailable,
+    isTokenCountingAvailable,
+    isTurnAnalysisAvailable,
 } from '../../memory/rust-accelerator.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'HumanTurnIntelligence' });
 
@@ -139,6 +139,10 @@ const ACTION_REQUEST_MARKERS = [
   // Music requests
   /\b(play|put on|start|queue)\s+(some\s+)?(more\s+)?(music|songs?|tunes?)/i,
   /\b(play|put on)\s+.+\s+(music|by\s+)/i,
+  // STT-resilient music detection: catches "place music" (misrecognition of "play music")
+  /\b(place|plase)\s+(some\s+)?(music|songs?|tunes?)/i,
+  // Catch any mention of "music" alongside action-like words
+  /\b(some|morning|evening|good|nice|chill|relaxing)\s+music\b/i,
   // Weather requests
   /\b(check|what('s| is)|how('s| is))\s+(the\s+)?weather/i,
   // Communication requests
@@ -321,6 +325,19 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
   // =========================================================================
 
   let completionConfidence = 0.5; // Start neutral
+
+  // =========================================================================
+  // SHORT UTTERANCE PENALTY (Feb 2026)
+  // Very short utterances (< 3 words or < 15 chars) are almost always incomplete
+  // "Here's" (6 chars, 1 word) should NOT get 0.90 confidence.
+  // Exception: explicit action requests like "stop" or "play jazz"
+  // =========================================================================
+  const isVeryShort = wordCount < 3 || transcript.length < 15;
+  if (isVeryShort && !isActionRequest) {
+    // Penalize proportionally: 1 word = -0.35, 2 words = -0.20
+    const shortPenalty = wordCount <= 1 ? 0.35 : 0.20;
+    completionConfidence -= shortPenalty;
+  }
 
   // Positive signals (user is done)
   if (hasCompletionMarker) completionConfidence += 0.3;

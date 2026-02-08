@@ -45,12 +45,15 @@ export default defineConfig(({ mode }) => {
     // Use global GSAP from CDN instead of bundling npm version
     // This avoids duplicate instances and plugin registration issues
     optimizeDeps: {
-      exclude: ['gsap'],
+      exclude: [
+        'gsap',
+        // Node/agent SDK - not for browser; excluding avoids 504 Outdated Optimize Dep
+        '@livekit/agents',
+      ],
       // Pre-bundle these heavy dependencies on server start (not on first request)
       // This significantly speeds up the first page load
       include: [
         'livekit-client',
-        '@livekit/components-core',
         'firebase/app',
         'firebase/auth',
         'firebase/firestore',
@@ -98,6 +101,16 @@ export default defineConfig(({ mode }) => {
           },
         },
         '/ws/life-context': {
+          target: 'http://localhost:3002',
+          ws: true,
+          changeOrigin: true,
+          configure: (proxy) => {
+            proxy.on('error', () => {
+              // Silently handle proxy errors - WS reconnects automatically
+            });
+          },
+        },
+        '/ws/director': {
           target: 'http://localhost:3002',
           ws: true,
           changeOrigin: true,

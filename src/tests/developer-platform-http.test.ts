@@ -207,7 +207,7 @@ describe('Developer Platform v2 Routes - Availability', () => {
 describe('Webhook Signature Verification', () => {
   it('should generate and verify HMAC-SHA256 signatures', async () => {
     const { signPayload, verifySignature } =
-      await import('../services/developer-webhook-dispatcher.js');
+      await import('../services/integrations/developer-webhook-dispatcher.js');
 
     const secret = 'whsec_test_secret_12345';
     const payload = {
@@ -233,7 +233,7 @@ describe('Webhook Signature Verification', () => {
   });
 
   it('should reject expired signatures', async () => {
-    const { verifySignature } = await import('../services/developer-webhook-dispatcher.js');
+    const { verifySignature } = await import('../services/integrations/developer-webhook-dispatcher.js');
 
     // Create an old signature (10 minutes ago)
     const oldTimestamp = Math.floor(Date.now() / 1000) - 600;

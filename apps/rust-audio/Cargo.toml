@@ -25,6 +25,13 @@ thiserror = "1.0"
 # Global state management
 lazy_static = "1.5"
 
+# Whisper STT (Metal on macOS for 8-40x realtime on Apple Silicon)
+[target.'cfg(target_os = "macos")'.dependencies]
+whisper-rs = { version = "0.15", features = ["metal"] }
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+whisper-rs = "0.15"
+
 [dev-dependencies]
 # Criterion for stable Rust benchmarking
 criterion = { version = "0.5", features = ["html_reports"] }

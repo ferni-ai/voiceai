@@ -13,24 +13,19 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getDJDropPhrase } from '../../../audio/ambient-music.js';
 import {
+  getDJController,
   getMusicPlayer,
   isMusicAvailable,
-  getDJController,
   type MusicTrack,
 } from '../../../audio/index.js';
 import { isMusicEnabled } from '../../../config/environment.js';
 import { getMusicDiscoveryOffer, getQueueTeaser } from '../../../services/dj-service.js';
-import { findTrack, searchByMood, searchItunes } from '../../../services/itunes.js';
 import {
   getSpotifyAccessToken,
   isSpotifyConfigured,
 } from '../../../services/identity/spotify-auth.js';
-import {
-  detectMusicIntent as detectUnifiedIntent,
-  extractRoomFromQuery,
-  mentionsSonos,
-  mentionsSpotify,
-} from '../../../services/music/music-provider.js';
+import { findTrack, searchByMood, searchItunes } from '../../../services/itunes.js';
+import { extractRoomFromQuery, mentionsSonos } from '../../../services/music/music-provider.js';
 import {
   getAirDJMoment,
   getDancingComment,
@@ -44,7 +39,7 @@ import {
   shouldReactToMusic,
 } from '../../../speech/music-reactions.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { getToolDescription, getParameterDescription } from '../../utils/tool-descriptions.js';
+import { getParameterDescription, getToolDescription } from '../../utils/tool-descriptions.js';
 
 // ============================================================================
 // MUSIC SOURCE CONFIGURATION
@@ -93,62 +88,38 @@ export type MusicIntent = 'ambient' | 'listening';
 export function detectMusicIntent(query: string): MusicIntent {
   const q = query.toLowerCase().trim();
 
-  // LISTENING intent signals - user wants a specific full song
+  // LISTENING intent: user explicitly wants a specific full song on Spotify/device
+  // This should ONLY trigger for very explicit requests - everything else plays
+  // in-call via iTunes previews (the seamless conversation experience).
   const listeningPatterns = [
-    /\bthe song\b/, // "play the song..."
-    /\bi want to hear\b/, // "I want to hear..."
-    /\bi want to listen\b/, // "I want to listen to..."
-    /\bon spotify\b/, // "...on Spotify"
+    /\bon spotify\b/, // "play this on Spotify"
+    /\bon my (phone|speaker|sonos|mac|computer|tv)\b/, // "play on my Sonos"
     /\bfull (song|track|version)\b/, // "full song"
-    /\bactually (play|listen|hear)\b/, // "actually play..."
     /\bqueue\b/, // "queue up..."
-    /\bby .+ called\b/, // "by Taylor Swift called..."
-    /^play .+ by .+ $/, // "play [song] by [artist]" (specific)
+    /\btransfer.*(to|music)\b/, // "transfer music to..."
+    /\bplay .{3,30} by .{3,30}$/, // "play [song] by [artist]" (very specific)
   ];
 
-  // AMBIENT intent signals - background music for conversation
-  const ambientPatterns = [
-    /\bsome\b/, // "play some jazz"
-    /\bsomething\b/, // "put on something"
-    /\bwhile we\b/, // "while we talk"
-    /\bbackground\b/, // "background music"
-    /\bambient\b/, // "ambient"
-    /\bmood\b/, // "set the mood"
-    /\bvibes?\b/, // "good vibes"
-    /\brelaxing\b/, // mood-based
-    /\bchill\b/,
-    /\bupbeat\b/,
-    /\bfocus\b/,
-    /\bcalm\b/,
-    /\benergetic\b/,
-    /\bmellow\b/,
-  ];
-
-  // Check for explicit listening intent first
+  // Check for explicit Spotify/device listening intent first
   for (const pattern of listeningPatterns) {
     if (pattern.test(q)) {
-      getLogger().debug({ query, pattern: pattern.source }, '🎵 Detected LISTENING intent');
+      getLogger().debug(
+        { query, pattern: pattern.source },
+        '🎵 Detected LISTENING intent (explicit Spotify/device request)'
+      );
       return 'listening';
     }
   }
 
-  // Check for ambient intent
-  for (const pattern of ambientPatterns) {
-    if (pattern.test(q)) {
-      getLogger().debug({ query, pattern: pattern.source }, '🎵 Detected AMBIENT intent');
-      return 'ambient';
-    }
-  }
-
-  // Default: short/vague queries → ambient, longer specific queries → listening
-  const words = q.split(/\s+/).filter((w) => w.length > 2);
-  if (words.length <= 3) {
-    getLogger().debug({ query, wordCount: words.length }, '🎵 Short query → AMBIENT intent');
-    return 'ambient';
-  }
-
-  getLogger().debug({ query, wordCount: words.length }, '🎵 Specific query → LISTENING intent');
-  return 'listening';
+  // Everything else defaults to AMBIENT (in-call iTunes previews)
+  // This is the seamless experience during a voice conversation:
+  // - "play some jazz" → ambient
+  // - "could you play music?" → ambient
+  // - "play me something chill" → ambient
+  // - "I want to hear music" → ambient (not specific enough for Spotify)
+  // - "play Taylor Swift" → ambient (previews, user can say "on Spotify" if they want full)
+  getLogger().debug({ query }, '🎵 AMBIENT intent (default - in-call iTunes previews)');
+  return 'ambient';
 }
 
 /**

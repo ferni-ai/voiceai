@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { setActionHistoryService } from '../../services/action-history-service.js';
 
 const log = createLogger({ module: 'action-history' });
 
@@ -374,3 +375,12 @@ function generateActionDescription(toolId: string, args: Record<string, unknown>
   // Default
   return `Executed ${toolId}`;
 }
+
+// ============================================================================
+// SERVICE REGISTRATION (for intelligence layer - honesty guardrail)
+// ============================================================================
+
+setActionHistoryService({
+  wasHighImpactActionExecuted,
+  getHumanReadableSummary,
+});

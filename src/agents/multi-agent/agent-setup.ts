@@ -30,7 +30,7 @@ import type { UserData } from '../shared/types.js';
 import { capToolsToLimit, getMaxTools } from '../../config/tool-config.js';
 
 // Model provider abstraction - centralizes all model-specific behavior
-import { getModelProvider, isUsingOpenAI } from '../model-provider/index.js';
+import { getModelProvider, isUsingOpenAI, isUsingQwen3Omni } from '../model-provider/index.js';
 
 // Get the model provider (singleton)
 const modelProvider = getModelProvider();
@@ -134,8 +134,8 @@ export interface AgentSetupResult {
   session: voice.AgentSession<UserData>;
   /** The agent wrapper */
   agent: voice.Agent<UserData>;
-  /** TTS engine */
-  tts: Awaited<ReturnType<typeof createPersonaTTS>>;
+  /** TTS engine (PersonaAwareTTS or Qwen3TTSAdapter depending on provider) */
+  tts: Awaited<ReturnType<typeof createPersonaTTS>> | Awaited<ReturnType<typeof createQwen3TTS>>;
   /** Cleanup function (cleans up all handlers) */
   cleanup: () => Promise<void>;
   /** Function to make agent speak */
@@ -556,9 +556,11 @@ Reference past context when relevant, but don't force it. Let the conversation f
   mark('parallel_start');
   const parallelStart = Date.now();
 
-  // 1. TTS creation promise
+  // 1. TTS creation promise (Qwen3-TTS when USE_QWEN3_OMNI, else Cartesia)
   mark('tts_start');
-  const ttsPromise = createPersonaTTS(persona.id).then((tts) => {
+  const ttsPromise = (
+    isUsingQwen3Omni() ? createQwen3TTS(persona.id) : createPersonaTTS(persona.id)
+  ).then((tts) => {
     mark('tts_done');
     return tts;
   });
@@ -1990,6 +1992,21 @@ async function buildHandoffContext(config: AgentSetupConfig): Promise<string | n
   }
 
   return parts.join('\n');
+}
+
+/**
+ * Create Qwen3-TTS adapter when USE_QWEN3_OMNI is set.
+ * Used by AgentSession for TTS when provider is Qwen3-Omni.
+ */
+async function createQwen3TTS(personaId: string) {
+  const { Qwen3TTSAdapter } =
+    await import('../../integrations/qwen3-omni/adapters/livekit-tts-adapter.js');
+  const serverUrl = process.env.QWEN3_TTS_URL || 'http://localhost:8001';
+  return new Qwen3TTSAdapter({
+    serverUrl,
+    personaId,
+    language: 'English',
+  });
 }
 
 /**

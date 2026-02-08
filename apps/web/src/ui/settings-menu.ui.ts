@@ -15,15 +15,17 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 // Relationship stage service - used for feature unlocking and progress display
 import {
-  relationshipStageService,
   getTranslatedStageName,
+  relationshipStageService,
   UNLOCKABLE_FEATURES,
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
 // Team unlock service - for gating marketplace behind full team unlock
 import { isFullTeamUnlocked } from '../services/team-unlock.service.js';
 // Roadmap service - for "What's Growing" experience
+import { connectionService } from '../services/connection.service.js';
 import { roadmapService } from '../services/roadmap.service.js';
+import { toggleDirectorConsole } from './director-console.ui.js';
 import { showRoadmapPanel } from './roadmap-panel.ui.js';
 
 // Track setTimeout calls for memory leak prevention
@@ -236,8 +238,7 @@ const ICONS = {
   // Contacts & Gifts
   contacts:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M8 6h8"/><path d="M8 10h8"/><path d="M8 14h4"/><circle cx="12" cy="18" r="1"/></svg>',
-  gift:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="8" width="18" height="14" rx="2"/><path d="M12 8V22"/><path d="M3 12h18"/><path d="M12 8a4 4 0 0 0-4-4c-1.7 0-3 1.3-3 3 0 1 .4 1.9 1 2.5"/><path d="M12 8a4 4 0 0 1 4-4c1.7 0 3 1.3 3 3 0 1-.4 1.9-1 2.5"/></svg>',
+  gift: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="8" width="18" height="14" rx="2"/><path d="M12 8V22"/><path d="M3 12h18"/><path d="M12 8a4 4 0 0 0-4-4c-1.7 0-3 1.3-3 3 0 1 .4 1.9 1 2.5"/><path d="M12 8a4 4 0 0 1 4-4c1.7 0 3 1.3 3 3 0 1-.4 1.9-1 2.5"/></svg>',
 
   // Social & Professional
   linkedin:
@@ -263,8 +264,7 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>',
   compass:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>',
-  link:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+  link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
 
   // Legacy aliases (deprecated but kept for compatibility)
   creditCard:
@@ -277,8 +277,7 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>',
 
   // Memory Lane - book icon for shared history
-  book:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>',
+  book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>',
 
   // New icons for restructured menu
   phone:
@@ -287,13 +286,11 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08v0c.82.82 2.13.85 3 .07l2.07-1.9a2.82 2.82 0 0 1 3.79 0l2.96 2.66"/><path d="m18 15-2-2"/><path d="m15 18-2-2"/></svg>',
   insights:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 12h5"/><path d="M17 12h5"/><path d="M12 2v5"/><path d="M12 17v5"/><circle cx="12" cy="12" r="4"/><path d="m4.93 4.93 3.54 3.54"/><path d="m15.54 15.54 3.53 3.53"/><path d="m15.54 8.46 3.53-3.53"/><path d="m4.93 19.07 3.54-3.54"/></svg>',
-  plug:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a6 6 0 0 1-6 6v0a6 6 0 0 1-6-6V8Z"/></svg>',
+  plug: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a6 6 0 0 1-6 6v0a6 6 0 0 1-6-6V8Z"/></svg>',
   settings:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
   gamepad:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg>',
-
 };
 
 // ============================================================================
@@ -350,7 +347,7 @@ const DEFAULT_EXPANDED_SECTIONS = [
   'waysToConnect',
   'yourPeople',
   'connectedLife',
-  'settings'
+  'settings',
 ];
 
 function getPinnedItems(): Set<string> {
@@ -460,6 +457,9 @@ class SettingsMenuUI {
     this.initialize();
     if (!this.panel) return;
 
+    // Re-render so conditional items (e.g. Director Console when useQwen3Omni) reflect current state
+    this.renderContent();
+
     this.panel.classList.add('settings-menu--visible');
     this.isVisible = true;
     this.trigger?.classList.add('settings-trigger--active');
@@ -471,10 +471,10 @@ class SettingsMenuUI {
     this.panel.classList.remove('settings-menu--visible');
     this.isVisible = false;
     this.trigger?.classList.remove('settings-trigger--active');
-    
+
     // Reset language dropdown state when menu closes
     this.languageExpanded = false;
-    
+
     this.callbacks.onClose?.();
   }
 
@@ -502,25 +502,32 @@ class SettingsMenuUI {
 
     // Standard click event
     element.addEventListener('click', (e) => {
-      log.info('Click event fired on element', { elementId, target: (e.target as HTMLElement)?.tagName });
+      log.info('Click event fired on element', {
+        elementId,
+        target: (e.target as HTMLElement)?.tagName,
+      });
       handler(e);
     });
 
     // iOS Safari: touchend as backup (handles taps that don't trigger click)
-    element.addEventListener('touchend', (e: Event) => {
-      const touch = e as TouchEvent;
-      // Only handle single-finger taps
-      if (touch.touches && touch.touches.length > 0) return;
+    element.addEventListener(
+      'touchend',
+      (e: Event) => {
+        const touch = e as TouchEvent;
+        // Only handle single-finger taps
+        if (touch.touches && touch.touches.length > 0) return;
 
-      // Prevent double-firing with click
-      e.preventDefault();
+        // Prevent double-firing with click
+        e.preventDefault();
 
-      if (options?.stopPropagation) {
-        e.stopPropagation();
-      }
+        if (options?.stopPropagation) {
+          e.stopPropagation();
+        }
 
-      handler(e);
-    }, { passive: false });
+        handler(e);
+      },
+      { passive: false }
+    );
   }
 
   private createTrigger(): void {
@@ -839,6 +846,7 @@ class SettingsMenuUI {
             ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript') || 'Show Transcript', transcriptUI.isEnabled())}
             ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects') || 'Sound Effects', !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
+            ${connectionService.getRoomState().useQwen3Omni ? this.renderMenuItem('director-console', ICONS.layers, t('menu.items.directorConsole') || 'Director Console') : ''}
             ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
@@ -860,14 +868,8 @@ class SettingsMenuUI {
     `;
 
     // Bind events - close on backdrop click (iOS Safari compatible)
-    this.addTapListener(
-      this.panel.querySelector('.settings-menu__backdrop'),
-      () => this.hide()
-    );
-    this.addTapListener(
-      this.panel.querySelector('.settings-menu__close'),
-      () => this.hide()
-    );
+    this.addTapListener(this.panel.querySelector('.settings-menu__backdrop'), () => this.hide());
+    this.addTapListener(this.panel.querySelector('.settings-menu__close'), () => this.hide());
 
     // Bind collapsible section toggle events (iOS Safari compatible)
     this.panel.querySelectorAll('.settings-menu__section-header').forEach((header) => {
@@ -880,7 +882,9 @@ class SettingsMenuUI {
     });
 
     // Menu item tap handlers (iOS Safari compatible)
-    log.info('Binding menu item handlers', { itemCount: this.panel.querySelectorAll('.settings-menu__item').length });
+    log.info('Binding menu item handlers', {
+      itemCount: this.panel.querySelectorAll('.settings-menu__item').length,
+    });
     this.panel.querySelectorAll('.settings-menu__item').forEach((btn) => {
       this.addTapListener(btn, (e) => {
         const target = e.target as HTMLElement;
@@ -932,13 +936,17 @@ class SettingsMenuUI {
 
     // Handle unpin button clicks (iOS Safari compatible)
     this.panel.querySelectorAll('.settings-menu__unpin-btn').forEach((btn) => {
-      this.addTapListener(btn, (e) => {
-        e.stopPropagation();
-        const action = (btn as HTMLElement).dataset.unpin;
-        if (action) {
-          this.togglePinned(action);
-        }
-      }, { stopPropagation: true });
+      this.addTapListener(
+        btn,
+        (e) => {
+          e.stopPropagation();
+          const action = (btn as HTMLElement).dataset.unpin;
+          if (action) {
+            this.togglePinned(action);
+          }
+        },
+        { stopPropagation: true }
+      );
     });
 
     // Bind language selector events
@@ -956,34 +964,42 @@ class SettingsMenuUI {
     const toggleBtn = this.panel.querySelector('[data-action="toggle-language"]');
 
     if (toggleBtn) {
-      this.addTapListener(toggleBtn, (e) => {
-        e.stopPropagation();
-        this.languageExpanded = !this.languageExpanded;
-        // Re-render just the language selector
-        const selector = this.panel?.querySelector('.settings-menu__language-selector');
-        if (selector) {
-          selector.outerHTML = this.renderLanguageSelector();
-          // Rebind events for the new elements
-          this.bindLanguageSelectorEvents();
-        }
-      }, { stopPropagation: true });
+      this.addTapListener(
+        toggleBtn,
+        (e) => {
+          e.stopPropagation();
+          this.languageExpanded = !this.languageExpanded;
+          // Re-render just the language selector
+          const selector = this.panel?.querySelector('.settings-menu__language-selector');
+          if (selector) {
+            selector.outerHTML = this.renderLanguageSelector();
+            // Rebind events for the new elements
+            this.bindLanguageSelectorEvents();
+          }
+        },
+        { stopPropagation: true }
+      );
     }
 
     // Handle language selection (only if expanded) - iOS Safari compatible
     if (this.languageExpanded) {
       this.panel.querySelectorAll('[data-action="set-language"]').forEach((btn) => {
-        this.addTapListener(btn, async (e) => {
-          e.stopPropagation();
-          const htmlBtn = btn as HTMLElement;
-          const locale = htmlBtn.dataset.locale as SupportedLocale;
+        this.addTapListener(
+          btn,
+          async (e) => {
+            e.stopPropagation();
+            const htmlBtn = btn as HTMLElement;
+            const locale = htmlBtn.dataset.locale as SupportedLocale;
 
-          if (locale) {
-            await setLocale(locale);
-            this.languageExpanded = false; // Collapse after selection
-            // Re-render the entire menu to reflect language change
-            this.renderContent();
-          }
-        }, { stopPropagation: true });
+            if (locale) {
+              await setLocale(locale);
+              this.languageExpanded = false; // Collapse after selection
+              // Re-render the entire menu to reflect language change
+              this.renderContent();
+            }
+          },
+          { stopPropagation: true }
+        );
       });
     }
   }
@@ -1024,7 +1040,10 @@ class SettingsMenuUI {
       // Core items
       'what-i-do-for-you': { icon: ICONS.care, label: 'What I Do For You' },
       'your-story': { icon: ICONS.heart, label: t('menu.items.yourStory') || 'Your Story' },
-      'your-year': { icon: ICONS.sparkles, label: t('menu.items.yourYear') || 'Your Year with Ferni' },
+      'your-year': {
+        icon: ICONS.sparkles,
+        label: t('menu.items.yourYear') || 'Your Year with Ferni',
+      },
       'future-insights': { icon: ICONS.sparkles, label: t('menu.items.whatIllKnow') },
       analytics: { icon: ICONS.analytics, label: t('menu.items.progressAnalytics') },
       predictions: { icon: ICONS.target, label: t('menu.items.predictionAccuracy') },
@@ -1050,7 +1069,10 @@ class SettingsMenuUI {
       ritual: { icon: ICONS.ritual, label: t('menu.items.createPractice') },
       'wearable-settings': { icon: ICONS.watch, label: t('menu.items.wearables') },
       'linkedin-settings': { icon: ICONS.linkedin, label: t('menu.items.linkedin') },
-      'calendar-settings': { icon: ICONS.calendar, label: t('menu.items.whatsAhead') || "What's Ahead" },
+      'calendar-settings': {
+        icon: ICONS.calendar,
+        label: t('menu.items.whatsAhead') || "What's Ahead",
+      },
       notifications: { icon: ICONS.bell, label: t('menu.items.notifications') },
       theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
       'support-ferni': { icon: ICONS.heart, label: t('menu.items.supportFerniExpanded') },
@@ -1304,6 +1326,9 @@ class SettingsMenuUI {
         break;
       case 'billing':
         this.callbacks.onBillingPortalClick?.();
+        break;
+      case 'director-console':
+        toggleDirectorConsole();
         break;
       case 'household':
       case 'household-members':

@@ -1,11 +1,11 @@
 /**
- * FTIS V2 Direct Executor
+ * FTIS Direct Executor
  *
- * Executes tools directly based on FTIS V2 classification,
+ * Executes tools directly based on FTIS classification,
  * bypassing the LLM for tool selection.
  *
  * Flow:
- * 1. FTIS V2 classifies query → category + toolIds
+ * 1. FTIS classifies query → category + toolIds
  * 2. Argument extractor infers args from query
  * 3. Execute tool directly
  * 4. Return result for LLM to respond to naturally
@@ -18,7 +18,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 const log = createLogger({ module: 'tool-executor' });
 
 /**
- * Classification result from the FTIS V2 tool classifier.
+ * Classification result from the FTIS tool classifier.
  * Defines the expected shape for direct tool execution.
  */
 export interface ClassificationResult {
@@ -105,12 +105,18 @@ export function extractArguments(
     music_search: () => extractMusicSearchArgs(normalizedQuery),
     find_music: () => extractMusicSearchArgs(normalizedQuery),
 
-    // Calendar
+    // Calendar & time
     alarm_set: () => extractAlarmArgs(normalizedQuery),
+    alarm_manage: () => extractAlarmArgs(normalizedQuery),
     timer_set: () => extractTimerArgs(normalizedQuery),
+    timer_manage: () => extractTimerArgs(normalizedQuery),
     reminder_set: () => extractReminderArgs(normalizedQuery),
+    reminder_manage: () => extractReminderArgs(normalizedQuery),
     calendar_create: () => extractCalendarArgs(normalizedQuery),
     calendar_view: () => ({}),
+    calendar_read: () => ({}),
+    calendar_delete: () => ({}),
+    calendar_modify: () => ({}),
 
     // Weather
     weather: () => extractWeatherArgs(normalizedQuery),
@@ -119,15 +125,24 @@ export function extractArguments(
     item_add: () => extractItemAddArgs(normalizedQuery),
     todo_view: () => ({}),
     todo_complete: () => extractTodoCompleteArgs(normalizedQuery),
+    task_create: () => extractItemAddArgs(normalizedQuery),
+    task_read: () => ({}),
+    task_complete: () => extractTodoCompleteArgs(normalizedQuery),
+    routine_manage: () => ({}),
 
     // Habits
     activity_log: () => extractHabitLogArgs(normalizedQuery),
     habit_create: () => extractHabitCreateArgs(normalizedQuery),
     habit_view: () => ({}),
+    habit_manage: () => extractHabitLogArgs(normalizedQuery),
+    habit_coach: () => ({}),
+    habit_stats: () => ({}),
 
     // Communication
     call_make: () => extractCallArgs(normalizedQuery),
+    call_schedule: () => ({}),
     message_send: () => extractMessageArgs(normalizedQuery),
+    message_manage: () => extractMessageArgs(normalizedQuery),
 
     // Handoffs
     handoff_maya: () => ({ reason: extractHandoffReason(normalizedQuery) }),
@@ -136,10 +151,15 @@ export function extractArguments(
     handoff_jordan: () => ({ reason: extractHandoffReason(normalizedQuery) }),
     handoff_nayan: () => ({ reason: extractHandoffReason(normalizedQuery) }),
     handoff_ferni: () => ({ reason: extractHandoffReason(normalizedQuery) }),
+    team_handoff: () => ({
+      reason: extractHandoffReason(normalizedQuery),
+      targetPersona: undefined,
+    }),
 
     // Smart Home
     lights: () => extractLightsArgs(normalizedQuery),
     thermostat: () => extractThermostatArgs(normalizedQuery),
+    home_control: () => extractLightsArgs(normalizedQuery),
 
     // Information
     time: () => ({}),
@@ -171,8 +191,29 @@ export function extractArguments(
 
     // Travel Domain
     travel_plan: () => extractTravelPlanArgs(normalizedQuery),
+    travel_ride: () => extractDirectionsArgs(normalizedQuery),
     flights: () => extractFlightArgs(normalizedQuery),
     directions: () => extractDirectionsArgs(normalizedQuery),
+
+    // Focus & food
+    focus_start: () => ({}),
+    food_plan: () => extractNutritionArgs(normalizedQuery),
+    food_order: () => ({}),
+
+    // Entertainment V7
+    games_play: () => extractGameArgs(normalizedQuery),
+    social_post: () => ({}),
+
+    // Documents, finance, concierge, photos
+    document_manage: () => ({}),
+    finance_manage: () => extractBudgetArgs(normalizedQuery),
+    concierge_manage: () => ({}),
+    memory_photos: () => ({}),
+
+    // Knowledge (weather/news/search)
+    knowledge_search: () => extractWeatherArgs(normalizedQuery),
+    knowledge_news: () => ({ query: normalizedQuery }),
+    knowledge_media: () => ({ query: normalizedQuery }),
 
     // Default
     conversation: () => ({}),
@@ -752,7 +793,7 @@ function extractDirectionsArgs(query: string): Record<string, unknown> {
 // ============================================================================
 
 /**
- * Execute a tool directly based on FTIS V2 classification.
+ * Execute a tool directly based on FTIS classification.
  *
  * This bypasses the LLM for tool selection - we've already classified
  * the intent with 93% accuracy using our ONNX models.
@@ -780,7 +821,7 @@ export async function executeDirectFromClassification(
         ? `${context.userLocation.city}, ${context.userLocation.regionCode}`
         : context.userLocation.city;
       log.debug(
-        { location: args.location, source: 'IP_GEO', trace: 'FTIS_V2_WEATHER_LOCATION' },
+        { location: args.location, source: 'IP_GEO', trace: 'FTIS_WEATHER_LOCATION' },
         `📍 Weather: Using IP-detected location: ${args.location}`
       );
     }
@@ -797,9 +838,9 @@ export async function executeDirectFromClassification(
         rawConfidence: classification.combinedConfidence,
         isOpenIntent: classification.isOpenIntent,
         args,
-        trace: 'FTIS_V2_DIRECT_EXEC',
+        trace: 'FTIS_DIRECT_EXEC',
       },
-      `🎯 FTIS V2 Direct Execution: ${toolId}`
+      `🎯 FTIS Direct Execution: ${toolId}`
     );
 
     // Import and use the domain bridge for execution
@@ -813,7 +854,7 @@ export async function executeDirectFromClassification(
       // Translate semantic ID (spotify_play) to domain ID (playMusic)
       actualToolId = getDomainToolId(toolId) || toolId;
       log.debug(
-        { originalId: toolId, translatedId: actualToolId, trace: 'FTIS_V2_TRANSLATE' },
+        { originalId: toolId, translatedId: actualToolId, trace: 'FTIS_TRANSLATE' },
         `🔄 Translated tool ID: ${toolId} → ${actualToolId}`
       );
     } else if (hasDomainMapping(classification.fineCategory)) {
@@ -823,7 +864,7 @@ export async function executeDirectFromClassification(
         {
           originalId: classification.fineCategory,
           translatedId: actualToolId,
-          trace: 'FTIS_V2_TRANSLATE',
+          trace: 'FTIS_TRANSLATE',
         },
         `🔄 Translated category: ${classification.fineCategory} → ${actualToolId}`
       );
@@ -892,8 +933,8 @@ export async function executeDirectFromClassification(
     };
   } catch (error) {
     log.error(
-      { error: String(error), classification, trace: 'FTIS_V2_EXEC_ERROR' },
-      'FTIS V2 direct execution failed'
+      { error: String(error), classification, trace: 'FTIS_EXEC_ERROR' },
+      'FTIS direct execution failed'
     );
 
     return {

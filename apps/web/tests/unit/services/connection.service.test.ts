@@ -4,8 +4,7 @@
  * Comprehensive unit tests for LiveKit connection management.
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import type { ConnectionCallbacks } from '../../../src/services/connection.service.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ConnectionState } from '../../../src/types/events.js';
 import type { TokenResponse } from '../../../src/types/livekit.js';
 
@@ -59,8 +58,12 @@ const createMockRoom = () => ({
   remoteParticipants: new Map(),
   connect: vi.fn().mockResolvedValue(undefined),
   disconnect: vi.fn().mockResolvedValue(undefined),
-  on: vi.fn(function(this: ReturnType<typeof createMockRoom>) { return this; }),
-  off: vi.fn(function(this: ReturnType<typeof createMockRoom>) { return this; }),
+  on: vi.fn(function (this: ReturnType<typeof createMockRoom>) {
+    return this;
+  }),
+  off: vi.fn(function (this: ReturnType<typeof createMockRoom>) {
+    return this;
+  }),
 });
 
 // Mock window.LiveKit
@@ -242,6 +245,45 @@ describe('ConnectionService', () => {
       expect(result).toBe(true);
       expect(mockFetch).toHaveBeenCalledOnce(); // Only first call
     });
+
+    it('should set useQwen3Omni from token response when true (Phase 1 E2E)', async () => {
+      const mockTokenResponse: TokenResponse = {
+        token: 'test-token',
+        url: 'wss://test.livekit.cloud',
+        room: 'voice-12345',
+        username: 'Test User',
+        useQwen3Omni: true,
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockTokenResponse),
+      });
+
+      await connectionService.connect();
+      mockRoom.state = 'connected';
+
+      expect(connectionService.getRoomState().useQwen3Omni).toBe(true);
+    });
+
+    it('should not set useQwen3Omni when token omits or sets false (Phase 1 E2E)', async () => {
+      const mockTokenResponse: TokenResponse = {
+        token: 'test-token',
+        url: 'wss://test.livekit.cloud',
+        room: 'voice-12345',
+        username: 'Test User',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockTokenResponse),
+      });
+
+      await connectionService.connect();
+      mockRoom.state = 'connected';
+
+      expect(connectionService.getRoomState().useQwen3Omni).toBe(false);
+    });
   });
 
   describe('disconnect()', () => {
@@ -266,6 +308,28 @@ describe('ConnectionService', () => {
 
       expect(mockRoom.disconnect).toHaveBeenCalled();
       expect(connectionService.isConnected()).toBe(false);
+    });
+
+    it('should clear useQwen3Omni on disconnect (Phase 1 E2E)', async () => {
+      const mockTokenResponse: TokenResponse = {
+        token: 'test-token',
+        url: 'wss://test.livekit.cloud',
+        room: 'voice-12345',
+        username: 'Test User',
+        useQwen3Omni: true,
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockTokenResponse),
+      });
+
+      await connectionService.connect();
+      mockRoom.state = 'connected';
+      expect(connectionService.getRoomState().useQwen3Omni).toBe(true);
+
+      await connectionService.disconnect();
+      expect(connectionService.getRoomState().useQwen3Omni).toBe(false);
     });
 
     it('should handle disconnect when not connected', async () => {
@@ -532,9 +596,7 @@ describe('ConnectionService', () => {
         volume: 1.0,
       };
 
-      const handler = mockRoom.on.mock.calls.find(
-        (call) => call[0] === 'trackSubscribed'
-      )?.[1];
+      const handler = mockRoom.on.mock.calls.find((call) => call[0] === 'trackSubscribed')?.[1];
 
       const mockTrack = {
         kind: 'audio',
@@ -567,9 +629,7 @@ describe('ConnectionService', () => {
 
       await connectionService.connect();
 
-      const handler = mockRoom.on.mock.calls.find(
-        (call) => call[0] === 'dataReceived'
-      )?.[1];
+      const handler = mockRoom.on.mock.calls.find((call) => call[0] === 'dataReceived')?.[1];
 
       const message = { type: 'handoff', newAgent: 'peter-john' };
       const encoder = new TextEncoder();
@@ -598,9 +658,7 @@ describe('ConnectionService', () => {
 
       await connectionService.connect();
 
-      const handler = mockRoom.on.mock.calls.find(
-        (call) => call[0] === 'localTrackPublished'
-      )?.[1];
+      const handler = mockRoom.on.mock.calls.find((call) => call[0] === 'localTrackPublished')?.[1];
 
       handler?.({ kind: 'audio', track: {} }, {});
 
@@ -630,6 +688,7 @@ describe('ConnectionService', () => {
         localParticipantId: null,
         remoteParticipantCount: 0,
         hasActiveAudio: false,
+        useQwen3Omni: false,
       });
     });
 

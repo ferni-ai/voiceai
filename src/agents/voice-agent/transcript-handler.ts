@@ -88,16 +88,16 @@ import {
   detectTeamHuddleRequest,
 } from '../../services/engagement/engagement-conversation-triggers.js';
 // Interrupt handler - extracted from this file for maintainability
-import { processInterruptSignals } from './interrupt-handler.js';
 import {
   cleanupStaleCheckIns,
   processDailyCheckIn,
   type DailyCheckInContext,
 } from './daily-checkin-handler.js';
+import { processInterruptSignals } from './interrupt-handler.js';
 // E2E Latency tracking - diagnose OpenAI vs TTS vs our code
 import {
-  startTurn as startLatencyTurn,
   markProcessingStarted,
+  startTurn as startLatencyTurn,
 } from '../shared/e2e-latency-tracker.js';
 
 // Check Rust availability at module load
@@ -113,7 +113,6 @@ import {
 } from '../../intelligence/triggers/index.js';
 // Semantic Router types - used for transcript routing results
 // Tool selection handled by UTO semantic selection + LLM native function calling
-import type { TranscriptRoutingResult } from '../../tools/semantic-router/integration/index.js';
 // Unified Anticipation Pipeline - "Better Than Human" anticipation during speech
 import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
 // Speech Orchestrator integration for micro-reactions
@@ -121,20 +120,19 @@ import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integ
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
 // Session closing tracker to prevent errors during shutdown
-import { isSessionClosing } from '../shared/session-closing-tracker.js';
 // Tool updater for mid-session tool updates (OpenAI Realtime)
-import {
-  updateAgentTools,
-  supportsToolUpdates,
-  isMidSessionToolUpdateSafe,
-} from '../shared/tool-updater.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  isMidSessionToolUpdateSafe,
+  supportsToolUpdates,
+  updateAgentTools,
+} from '../shared/tool-updater.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
 
 // Phase 17: Active Listening Memory Capture - "Better Than Human" real-time entity extraction
 import {
-  processActiveListeningPartial,
   processActiveListeningFinal,
+  processActiveListeningPartial,
 } from './active-listening-handler.js';
 
 // ============================================================================
@@ -387,12 +385,6 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
             activeListeningResult.pendingConfirmation;
         }
       }
-
-      // ===============================================
-      // FTIS V2 EARLY CLASSIFICATION - REMOVED (Jan 2026)
-      // Tool routing now uses LLM native function calling + semantic router.
-      // The semantic router pre-filters relevant tools and the LLM selects the best one.
-      // ===============================================
 
       // ===============================================
       // SESAME-INSPIRED ANTICIPATORY PROSODY
@@ -689,6 +681,40 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           transcript: event.transcript.slice(0, 30),
           timeSinceAgentSpoke,
         });
+
+        // 🐛 BUG FIX (Feb 2026): Aggressively interrupt any pending LLM auto-response
+        // The SDK auto-responds based on VAD (voice activity detection), independent of
+        // this handler. When we detect a garbage transcript (foreign chars, echo, noise),
+        // the LLM may have already started generating a response based on the audio.
+        //
+        // RACE CONDITION FIX (Feb 2026 v2): Single interrupt is often too late.
+        // Gemini's VAD starts generation BEFORE our transcript handler runs, so by the
+        // time we call interrupt(), TTS may have already received and queued audio frames.
+        // We use a double-interrupt strategy with a small delay to catch late-arriving chunks.
+        if (session) {
+          try {
+            session.interrupt();
+            diag.state('🛡️ Interrupted pending LLM response for rejected transcript', {
+              reason: validation.reason,
+            });
+
+            // Second interrupt after a brief delay to catch any TTS chunks that
+            // were in-flight during the first interrupt
+            setTimeout(() => {
+              try {
+                session.interrupt();
+                diag.debug('🛡️ Follow-up interrupt for rejected transcript');
+              } catch {
+                // Non-critical - first interrupt likely handled it
+              }
+            }, 100);
+          } catch (interruptErr) {
+            diag.debug('⚠️ Interrupt failed for rejected transcript', {
+              error: String(interruptErr),
+            });
+          }
+        }
+
         // Don't process this as a user turn - it's noise/echo
         return;
       }
@@ -722,7 +748,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       const cleanedTranscript = validation.cleanedTranscript || event.transcript;
 
       // ===============================================
-      // FTIS V2 EARLY EXECUTION - REMOVED (Jan 2026)
+      // FTIS EARLY EXECUTION - REMOVED (Jan 2026)
       // Tool routing now uses LLM native function calling + semantic router.
       // The LLM naturally decides when to call tools during conversation.
       // ===============================================
@@ -1245,111 +1271,111 @@ async function processFinalTranscript(
   } = ctx;
 
   // ===============================================
-  // 🧠 FTIS V2 ROUTING: Run BEFORE SDK auto-response takes over (Jan 2026 FIX)
-  // 
-  // CRITICAL ARCHITECTURE FIX:
-  // The turn-handler.ts with FTIS V2 routing was NEVER CALLED because the
-  // "Clean Architecture (Jan 2026)" change made "SDK own normal turns".
-  // This means FTIS V2 routing was dead code - music, weather, etc. never worked!
+  // 🧠 FTIS ROUTING: Run BEFORE SDK auto-response takes over (Jan 2026 FIX)
   //
-  // This fix runs FTIS V2 classification on final transcript and interrupts
+  // CRITICAL ARCHITECTURE FIX:
+  // The turn-handler.ts with FTIS routing was NEVER CALLED because the
+  // "Clean Architecture (Jan 2026)" change made "SDK own normal turns".
+  // This means FTIS routing was dead code - music, weather, etc. never worked!
+  //
+  // This fix runs FTIS classification on final transcript and interrupts
   // the SDK's auto-response if we detect a high-confidence tool request.
   // ===============================================
 
   // Check if early classification already handled this turn (prevents double execution)
-  const alreadyHandled = (userData as Record<string, unknown>).ftisV2HandledThisTurn === true;
+  const alreadyHandled = (userData as Record<string, unknown>).ftisHandledThisTurn === true;
   if (alreadyHandled) {
     // Clear the flag for next turn
-    delete (userData as Record<string, unknown>).ftisV2HandledThisTurn;
-    diag.state('🧠 FTIS V2: Skipping - already handled by early classification');
+    delete (userData as Record<string, unknown>).ftisHandledThisTurn;
+    diag.state('🧠 FTIS: Skipping - already handled by early classification');
     // Continue with memory capture, etc. but skip FTIS routing
   }
 
-  // Only run FTIS V2 if not already handled
+  // Only run FTIS if not already handled
   if (!alreadyHandled) {
     try {
-      const { runFTISV2Routing, buildToolResponseInstructions } = await import(
-        '../processors/tool-routing-integration.js'
-      );
-      const { isFTISV2OnlyMode } = await import('../../config/tool-routing-config.js');
+      const { runFTISRouting, buildToolResponseInstructions } =
+        await import('../processors/tool-routing-integration.js');
+      const { isFTISEnabled } = await import('../../config/tool-routing-config.js');
 
-      if (isFTISV2OnlyMode() && userId) {
-      const ftisResult = await runFTISV2Routing(event.transcript, {
-        userId,
-        sessionId,
-        personaId: sessionPersona?.id || 'ferni',
-        userLocation: userData.userLocation as
-          | { city?: string; regionCode?: string; countryCode?: string }
-          | undefined,
-      });
-
-      diag.state('🧠 FTIS V2 routing completed', {
-        attempted: ftisResult.attempted,
-        bypassLLM: ftisResult.bypassLLM,
-        hasToolResult: !!ftisResult.toolResult,
-        classification: ftisResult.classification?.fineCategory,
-        confidence: ftisResult.classification?.confidence?.toFixed(2),
-        latencyMs: ftisResult.processingTimeMs,
-      });
-
-      // If FTIS V2 executed a tool directly, interrupt SDK and speak the result
-      if (ftisResult.bypassLLM && ftisResult.toolResult) {
-        const toolResult = ftisResult.toolResult;
-        diag.state('🎯 FTIS V2: Tool executed - interrupting SDK auto-response', {
-          toolId: toolResult.toolId,
-          hasResponse: !!toolResult.speakableResponse,
+      if (isFTISEnabled() && userId) {
+        const ftisResult = await runFTISRouting(event.transcript, {
+          userId,
+          sessionId,
+          personaId: sessionPersona?.id || 'ferni',
+          userLocation: userData.userLocation as
+            | { city?: string; regionCode?: string; countryCode?: string }
+            | undefined,
         });
 
-        // CRITICAL: Handoffs have their own greeting flow - do NOT generate a response
-        // The handoff executor triggers the persona greeting automatically
-        const isHandoff = toolResult.toolId.toLowerCase().includes('handoff');
-        if (isHandoff) {
-          diag.state('🤝 FTIS V2: Handoff detected - skipping generateReply (handoff has own greeting)');
-          // Don't return - let memory capture still happen
-        } else {
-          // Interrupt SDK's auto-response (only for non-handoffs)
-          if (session) {
-            try {
-              session.interrupt();
-              diag.state('✅ FTIS V2: SDK interrupted for tool response');
-            } catch (interruptErr) {
-              diag.debug('⚠️ FTIS V2: Interrupt failed', { error: String(interruptErr) });
-            }
-          }
+        diag.state('🧠 FTIS routing completed', {
+          attempted: ftisResult.attempted,
+          bypassLLM: ftisResult.bypassLLM,
+          hasToolResult: !!ftisResult.toolResult,
+          classification: ftisResult.classification?.fineCategory,
+          confidence: ftisResult.classification?.confidence?.toFixed(2),
+          latencyMs: ftisResult.processingTimeMs,
+        });
 
-          // Generate natural response about the tool result
-          const { generateReplyBySessionId, TOOL_RESPONSE_TIMEOUT_MS } = await import(
-            '../shared/generate-reply-gateway.js'
-          );
-
-          const instructions = buildToolResponseInstructions({
+        // If FTIS executed a tool directly, interrupt SDK and speak the result
+        if (ftisResult.bypassLLM && ftisResult.toolResult) {
+          const toolResult = ftisResult.toolResult;
+          diag.state('🎯 FTIS: Tool executed - interrupting SDK auto-response', {
             toolId: toolResult.toolId,
-            result: toolResult.output || toolResult.speakableResponse,
-            success: toolResult.success,
-            personaId: sessionPersona?.id || 'ferni',
-            personaDisplayName: sessionPersona?.displayName || 'Ferni',
-            userRequest: event.transcript,
+            hasResponse: !!toolResult.speakableResponse,
           });
 
-          await generateReplyBySessionId(sessionId, {
-            instructions,
-            context: `ftis-tool-${toolResult.toolId}`,
-            priority: 'high',
-            allowInterruptions: true,
-            waitForPlayout: false,
-            fallbackMessage: toolResult.speakableResponse || 'Done!',
-            timeoutMs: TOOL_RESPONSE_TIMEOUT_MS,
-          });
+          // CRITICAL: Handoffs have their own greeting flow - do NOT generate a response
+          // The handoff executor triggers the persona greeting automatically
+          const isHandoff = toolResult.toolId.toLowerCase().includes('handoff');
+          if (isHandoff) {
+            diag.state(
+              '🤝 FTIS: Handoff detected - skipping generateReply (handoff has own greeting)'
+            );
+            // Don't return - let memory capture still happen
+          } else {
+            // Interrupt SDK's auto-response (only for non-handoffs)
+            if (session) {
+              try {
+                session.interrupt();
+                diag.state('✅ FTIS: SDK interrupted for tool response');
+              } catch (interruptErr) {
+                diag.debug('⚠️ FTIS: Interrupt failed', { error: String(interruptErr) });
+              }
+            }
 
-          // Skip the rest of processFinalTranscript since we handled the response
-          // Memory capture will happen on the next turn
-          return;
+            // Generate natural response about the tool result
+            const { generateReplyBySessionId, TOOL_RESPONSE_TIMEOUT_MS } =
+              await import('../shared/generate-reply-gateway.js');
+
+            const instructions = buildToolResponseInstructions({
+              toolId: toolResult.toolId,
+              result: toolResult.output || toolResult.speakableResponse,
+              success: toolResult.success,
+              personaId: sessionPersona?.id || 'ferni',
+              personaDisplayName: sessionPersona?.displayName || 'Ferni',
+              userRequest: event.transcript,
+            });
+
+            await generateReplyBySessionId(sessionId, {
+              instructions,
+              context: `ftis-tool-${toolResult.toolId}`,
+              priority: 'high',
+              allowInterruptions: true,
+              waitForPlayout: false,
+              fallbackMessage: toolResult.speakableResponse || 'Done!',
+              timeoutMs: TOOL_RESPONSE_TIMEOUT_MS,
+            });
+
+            // Skip the rest of processFinalTranscript since we handled the response
+            // Memory capture will happen on the next turn
+            return;
+          }
         }
       }
-    }
     } catch (ftisError) {
-      // FTIS V2 routing is non-critical - let SDK continue with normal response
-      diag.warn('FTIS V2 routing error (falling back to SDK)', { error: String(ftisError) });
+      // FTIS routing is non-critical - let SDK continue with normal response
+      diag.warn('FTIS routing error (falling back to SDK)', { error: String(ftisError) });
     }
   } // End of if (!alreadyHandled)
 

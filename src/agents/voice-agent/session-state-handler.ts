@@ -983,7 +983,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         }
 
         diag.state(
-          '🚨 [EMPTY_RESPONSE_WATCHDOG] No agent response after 5s - triggering recovery',
+          `🚨 [EMPTY_RESPONSE_WATCHDOG] No agent response after ${EMPTY_RESPONSE_WATCHDOG_MS}ms - triggering recovery`,
           {
             lastUserMessage: lastUserMessageForRecovery?.slice(0, 50),
             userFinishedAt: userFinishedSpeakingAt,

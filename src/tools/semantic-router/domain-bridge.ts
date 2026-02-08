@@ -50,7 +50,17 @@ const TOOL_MAPPINGS: Record<string, ToolMapping> = {
     domainToolId: 'setAlarm',
     transformArgs: (args) => ({ time: args.time, label: args.label }),
   },
+  // V7 Stage 2 label for alarm management
+  alarm_manage: {
+    domainToolId: 'setAlarm',
+    transformArgs: (args) => ({ time: args.time, label: args.label }),
+  },
   timer_set: {
+    domainToolId: 'setTimer',
+    transformArgs: (args) => ({ duration: args.duration, label: args.label }),
+  },
+  // V7 Stage 2 label for timer management
+  timer_manage: {
     domainToolId: 'setTimer',
     transformArgs: (args) => ({ duration: args.duration, label: args.label }),
   },
@@ -87,9 +97,135 @@ const TOOL_MAPPINGS: Record<string, ToolMapping> = {
     domainToolId: 'handoffToNayan',
     transformArgs: (args) => ({ reason: args.reason }),
   },
+  // V7 Stage 2 label for team handoffs (generic)
+  team_handoff: {
+    domainToolId: 'handoff',
+    transformArgs: (args) => ({
+      targetPersona: args.targetPersona || args.persona,
+      reason: args.reason || args.topic,
+    }),
+  },
   research_topic: {
     domainToolId: 'deepResearch',
     transformArgs: (args) => ({ topic: args.topic, depth: args.depth }),
+  },
+
+  // ==========================================================================
+  // 🧠 FTIS V7 Stage 2 Labels (additional mappings for hierarchical classifier)
+  // These map the V7 "category.action" labels (normalized to category_action)
+  // to domain tools. Missing labels gracefully fall back to conversation.
+  // ==========================================================================
+  music_control: {
+    domainToolId: 'musicControl',
+    transformArgs: (args) => ({ action: args.action || 'pause' }),
+  },
+  music_info: {
+    domainToolId: 'musicInfo',
+    transformArgs: (args) => ({ query: args.query }),
+  },
+  calendar_read: {
+    domainToolId: 'getCalendarEvents',
+    transformArgs: (args) => args,
+  },
+  calendar_delete: {
+    domainToolId: 'deleteCalendarEvent',
+    transformArgs: (args) => args,
+  },
+  calendar_modify: {
+    domainToolId: 'updateCalendarEvent',
+    transformArgs: (args) => args,
+  },
+  habit_manage: {
+    domainToolId: 'manageHabit',
+    transformArgs: (args) => args,
+  },
+  habit_coach: {
+    domainToolId: 'habitCoaching',
+    transformArgs: (args) => args,
+  },
+  habit_stats: {
+    domainToolId: 'getHabitStats',
+    transformArgs: (args) => args,
+  },
+  task_create: {
+    domainToolId: 'createTask',
+    transformArgs: (args) => args,
+  },
+  task_read: {
+    domainToolId: 'getTasks',
+    transformArgs: (args) => args,
+  },
+  task_complete: {
+    domainToolId: 'completeTask',
+    transformArgs: (args) => args,
+  },
+  reminder_manage: {
+    domainToolId: 'createReminder',
+    transformArgs: (args) => args,
+  },
+  routine_manage: {
+    domainToolId: 'manageRoutine',
+    transformArgs: (args) => args,
+  },
+  call_make: {
+    domainToolId: 'makeCall',
+    transformArgs: (args) => args,
+  },
+  call_schedule: {
+    domainToolId: 'scheduleCall',
+    transformArgs: (args) => args,
+  },
+  travel_plan: {
+    domainToolId: 'planTrip',
+    transformArgs: (args) => args,
+  },
+  travel_ride: {
+    domainToolId: 'getRide',
+    transformArgs: (args) => args,
+  },
+  focus_start: {
+    domainToolId: 'startFocusSession',
+    transformArgs: (args) => args,
+  },
+  food_plan: {
+    domainToolId: 'mealPlan',
+    transformArgs: (args) => args,
+  },
+  food_order: {
+    domainToolId: 'orderFood',
+    transformArgs: (args) => args,
+  },
+  games_play: {
+    domainToolId: 'startGame',
+    transformArgs: (args) => args,
+  },
+  social_post: {
+    domainToolId: 'createSocialPost',
+    transformArgs: (args) => args,
+  },
+  message_manage: {
+    domainToolId: 'manageMessages',
+    transformArgs: (args) => args,
+  },
+  home_control: {
+    domainToolId: 'controlSmartHome',
+    transformArgs: (args) => args,
+  },
+  document_manage: {
+    domainToolId: 'manageDocument',
+    transformArgs: (args) => args,
+  },
+  finance_manage: {
+    domainToolId: 'manageFinance',
+    transformArgs: (args) => args,
+  },
+  concierge_manage: {
+    domainToolId: 'concierge',
+    transformArgs: (args) => args,
+  },
+  memory_photos: {
+    domainToolId: 'browsePhotos',
+    transformArgs: (args) => args,
   },
   research_web: { domainToolId: 'webSearch', transformArgs: (args) => ({ query: args.query }) },
 
@@ -145,6 +281,19 @@ const TOOL_MAPPINGS: Record<string, ToolMapping> = {
   // ==========================================================================
   // 🌤️ WEATHER & INFORMATION (12 tools)
   // ==========================================================================
+  // V7 Stage 2 label for knowledge/search queries (includes weather)
+  knowledge_search: {
+    domainToolId: 'getWeather',
+    transformArgs: (args) => ({ location: args.location || args.city }),
+  },
+  knowledge_news: {
+    domainToolId: 'getNews',
+    transformArgs: (args) => ({ query: args.query }),
+  },
+  knowledge_media: {
+    domainToolId: 'getNews',
+    transformArgs: (args) => ({ query: args.query }),
+  },
   weather_current: {
     domainToolId: 'getWeather',
     transformArgs: (args) => ({ location: args.location || args.city }),
@@ -3107,7 +3256,7 @@ const TOOL_MAPPINGS: Record<string, ToolMapping> = {
     transformArgs: (args) => ({ genre: args.genre }),
   },
   sports_info: { domainToolId: 'getSports', transformArgs: (args) => ({ query: args.query }) },
-  music_info: { domainToolId: 'musicInfo', transformArgs: (args) => ({ query: args.query }) },
+  // music_info already mapped in V7 section above
   trip_suggestions: {
     domainToolId: 'getTripSuggestions',
     transformArgs: (args) => ({ preferences: args.preferences }),

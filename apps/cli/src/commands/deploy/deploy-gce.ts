@@ -98,7 +98,7 @@ const CONFIG = {
   models: {
     gcsBucket: 'ferni-voiceai-models',
     gcsPath: 'ferni-router-v6-860',
-    hostDir: '/opt/voiceai-models/ferni-router-v6-860',
+    hostDir: '/home/sethford/voiceai-models/ferni-router-v6-860',
     containerDir: '/app/models/ferni-router-v6-860',
     requiredFiles: ['model_int8.onnx', 'tokenizer.json', 'label_map.json'],
   },
@@ -176,9 +176,9 @@ function ensureModelsOnHost(): void {
   }
 
   log.substep('Downloading ONNX V6 model from GCS...');
-  ssh(`sudo mkdir -p ${hostDir}`);
-  ssh(`sudo gsutil -m cp ${gcsUri}/* ${hostDir}/`);
-  ssh(`sudo chmod -R 755 ${hostDir}`);
+  ssh(`mkdir -p ${hostDir}`);
+  ssh(`/snap/bin/gsutil -m cp ${gcsUri}/* ${hostDir}/ 2>&1 || /usr/bin/gsutil -m cp ${gcsUri}/* ${hostDir}/`);
+  ssh(`chmod -R 755 ${hostDir}`);
 
   // Verify download
   const verify = ssh(`${checkCmd} && echo "OK" || echo "FAIL"`, { silent: true }).trim();
@@ -557,7 +557,7 @@ function deployToSlot(
 
   // Start the new container (with ONNX model volume mount)
   log.substep(`Starting ${slot} container on port ${port}...`);
-  const modelMount = `-v /opt/voiceai-models:/app/models:ro`;
+  const modelMount = `-v /home/sethford/voiceai-models:/app/models:ro`;
   const dockerCmd = `docker run -d --name ${containerName} --restart unless-stopped -p ${port}:${port} ${modelMount} ${envVars} ${image}`;
   ssh(dockerCmd);
 
@@ -604,7 +604,7 @@ function promoteSlot(slot: 'blue' | 'green', image: string, secrets: Record<stri
   });
 
   // Use "blue" as the production container name for consistency (with ONNX model volume mount)
-  const modelMount = `-v /opt/voiceai-models:/app/models:ro`;
+  const modelMount = `-v /home/sethford/voiceai-models:/app/models:ro`;
   const dockerCmd = `docker run -d --name ${CONFIG.containerName}-blue --restart unless-stopped -p ${CONFIG.bluePort}:${CONFIG.bluePort} ${modelMount} ${envVars} ${image}`;
   ssh(dockerCmd);
 

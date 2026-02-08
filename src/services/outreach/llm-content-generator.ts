@@ -22,6 +22,11 @@ import {
   TEMP_CONTENT,
   MAX_TOKENS_SHORT,
 } from '../../config/gemini-config.js';
+import {
+  BRAND_ACCENT,
+  getPersonaColor,
+  getPersonaGlowColor,
+} from '../../config/brand-colors.js';
 
 const log = createLogger({ module: 'LLMContentGenerator' });
 
@@ -651,17 +656,21 @@ function generateEmailHTML(bodyText: string, ctx: UserContext): string {
   const unsubscribeUrl = `https://app.ferni.ai/preferences?user=${ctx.userId}`;
   const greeting = ctx.name ? ctx.name : 'friend';
 
-  // Get persona color based on context
-  const personaColors: Record<string, { primary: string; glow: string }> = {
-    ferni: { primary: '#4a6741', glow: 'rgba(74, 103, 65, 0.15)' },
-    peter: { primary: '#3a6b73', glow: 'rgba(58, 107, 115, 0.15)' },
-    maya: { primary: '#a67a6a', glow: 'rgba(166, 122, 106, 0.15)' },
-    alex: { primary: '#5a6b8a', glow: 'rgba(90, 107, 138, 0.15)' },
-    jordan: { primary: '#c4856a', glow: 'rgba(196, 133, 106, 0.15)' },
-    nayan: { primary: '#b8956a', glow: 'rgba(184, 149, 106, 0.15)' },
+  // Persona short names → full IDs for brand-colors
+  const personaIdMap: Record<string, string> = {
+    ferni: 'ferni',
+    peter: 'peter-john',
+    maya: 'maya-santos',
+    alex: 'alex-chen',
+    jordan: 'jordan-taylor',
+    nayan: 'nayan-patel',
   };
   const persona = ctx.preferredPersona || 'ferni';
-  const colors = personaColors[persona] || personaColors.ferni;
+  const fullId = personaIdMap[persona] ?? 'ferni';
+  const colors = {
+    primary: getPersonaColor(fullId),
+    glow: getPersonaGlowColor(fullId),
+  };
 
   // Clean body text - remove any SSML that might have leaked through
   const cleanBody = bodyText
@@ -767,7 +776,7 @@ function generateEmailHTML(bodyText: string, ctx: UserContext): string {
           <!-- CTA Button (optional - for engagement) -->
           <tr>
             <td align="center" style="padding: 32px 0;">
-              <a href="https://app.ferni.ai" style="display: inline-block; background-color: #3D5A45; color: #ffffff; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 9999px; transition: background-color 200ms;">
+              <a href="https://app.ferni.ai" style="display: inline-block; background-color: ${BRAND_ACCENT}; color: #ffffff; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 9999px; transition: background-color 200ms;">
                 Open Ferni
               </a>
             </td>

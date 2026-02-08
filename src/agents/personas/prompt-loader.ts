@@ -22,8 +22,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
-// Use centralized FTIS V2 mode check - single source of truth
-import { isFTISV2OnlyMode } from '../processors/tool-routing-integration.js';
+// Use centralized FTIS mode check - single source of truth
+import { isFTISEnabled } from '../processors/tool-routing-integration.js';
 
 const log = createLogger({ module: 'PromptLoader' });
 
@@ -338,20 +338,19 @@ async function loadBetterThanHumanModules(): Promise<string | null> {
  * (they would be spoken as text like "fn:speak args:...").
  */
 async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | null> {
-  // 🎯 FTIS V2 ONLY MODE: Load FTIS V2 instructions instead of JSON function calling
-  // FTIS V2 executes tools directly - LLM just responds to results
-  // Uses isFTISV2OnlyMode() as SINGLE SOURCE OF TRUTH (enabled by default!)
-  if (isFTISV2OnlyMode()) {
+  // 🎯 FTIS MODE: Load FTIS instructions instead of JSON function calling
+  // FTIS executes tools directly - LLM just responds to results
+  if (isFTISEnabled()) {
     log.info(
       { bundleDir },
-      '🎯 FTIS V2 MODE: Loading FTIS V2 instructions (tools execute automatically)'
+      '🎯 FTIS MODE: Loading FTIS instructions (tools execute automatically)'
     );
-    const ftisInstructions = await loadSharedFile('ftis-v2-instructions.md');
+    const ftisInstructions = await loadSharedFile('ftis-instructions.md');
     if (ftisInstructions) {
       return ftisInstructions;
     }
     // Fall through if file not found
-    log.warn({ bundleDir }, '⚠️ FTIS V2 instructions file not found, no tool instructions loaded');
+    log.warn({ bundleDir }, '⚠️ FTIS instructions file not found, no tool instructions loaded');
     return null;
   }
 
@@ -749,12 +748,11 @@ export async function loadModelBaseInstructions(): Promise<string> {
   const provider = getModelProvider();
   const promptConfig = provider.getPromptModules();
 
-  // Check if FTIS V2 mode is active OR provider uses native prompts (no JSON format)
-  // Uses isFTISV2OnlyMode() as SINGLE SOURCE OF TRUTH (enabled by default!)
-  const isFTISV2Mode = isFTISV2OnlyMode();
+  // Check if FTIS mode is active OR provider uses native prompts (no JSON format)
+  const isFTISMode = isFTISEnabled();
   // Also skip JSON instructions when provider uses native FC with native prompts
   const useNativePrompts = !promptConfig.includeFunctionCallingBase;
-  const skipJsonInstructions = isFTISV2Mode || useNativePrompts;
+  const skipJsonInstructions = isFTISMode || useNativePrompts;
 
   try {
     const fs = await import('fs/promises');
@@ -797,12 +795,12 @@ export async function loadModelBaseInstructions(): Promise<string> {
         {
           length: baseContent.length,
           estimatedTokens: Math.round(baseContent.length / 4),
-          isFTISV2Mode,
+          isFTISMode,
           useNativePrompts,
           skipJsonInstructions,
           fileName,
         },
-        `Loaded model-level base instructions${skipJsonInstructions ? ' (no JSON format - FTIS V2 or native prompts)' : ''}`
+        `Loaded model-level base instructions${skipJsonInstructions ? ' (no JSON format - FTIS or native prompts)' : ''}`
       );
     }
 
@@ -833,12 +831,16 @@ Your ENTIRE output becomes audio. Only output what you'd say out loud.`;
     const fallback = skipJsonInstructions
       ? `You are part of Ferni, a voice-first life coaching platform.
 
-Actions happen automatically in the background. You don't call tools or announce actions.
+You have tools available as function declarations. When a user requests an action (play music, check weather, set a reminder, etc.), you MUST call the appropriate function. Do NOT describe or narrate actions in brackets like "[plays music]" — actually call the function.
 
-Just be conversational. When users ask for things like music or weather, respond naturally:
+After calling a function, respond conversationally:
 - "Sure thing!" or "Here we go!" or "Nice choice!"
 
-CRITICAL: Never output technical text like brackets, status messages, or "tool" language. Just chat naturally.
+CRITICAL RULES:
+- NEVER output bracketed stage directions like [Ferni plays music] or [searches for weather]
+- NEVER narrate actions instead of calling functions
+- When the user asks for something you have a tool for, CALL the tool
+- Your text output becomes spoken audio — only output words you'd say out loud
 
 Never claim capabilities you don't have. Be honest.${antiReasoningRules}`
       : `You are part of Ferni, a voice-first life coaching platform.
@@ -869,4 +871,5 @@ export function getModelBaseInstructionsCached(): string | null {
 // RE-EXPORTS FOR COMPATIBILITY
 // ============================================================================
 
-export { PERSONA_BUNDLES, FALLBACK_PROMPTS };
+export { FALLBACK_PROMPTS, PERSONA_BUNDLES };
+

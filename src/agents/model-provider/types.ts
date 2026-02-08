@@ -19,7 +19,7 @@ type AgentSessionTurnDetection = 'realtime_llm' | undefined;
 /**
  * Supported model provider identifiers
  */
-export type ModelProviderId = 'openai-realtime' | 'gemini-live';
+export type ModelProviderId = 'openai-realtime' | 'gemini-live' | 'qwen3-omni';
 
 // ============================================================================
 // PROMPT CONFIGURATION

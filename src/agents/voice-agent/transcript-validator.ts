@@ -121,6 +121,45 @@ const NOISE_PATTERNS = [
 const PUNCTUATION_ONLY_PATTERN = /^[.,!?;:\-–—…'"()[\]{}]+$/;
 
 /**
+ * Common greetings and short phrases that are ALWAYS valid user speech.
+ * These should NEVER be rejected as "too_short" or "noise" even during
+ * echo windows or when agent is speaking.
+ *
+ * Without this whitelist, "Morning" (7 chars, 1 word) gets rejected by
+ * the short-utterance filters, causing the agent to ignore valid greetings.
+ */
+const VALID_SHORT_PHRASES = [
+  /^morning[.!]?$/i,
+  /^good morning[.!]?$/i,
+  /^hey[.!]?$/i,
+  /^hi[.!]?$/i,
+  /^hello[.!]?$/i,
+  /^yo[.!]?$/i,
+  /^sup[.!?]?$/i,
+  /^howdy[.!]?$/i,
+  /^bye[.!]?$/i,
+  /^goodbye[.!]?$/i,
+  /^goodnight[.!]?$/i,
+  /^night[.!]?$/i,
+  /^thanks[.!]?$/i,
+  /^thank you[.!]?$/i,
+  /^yes[.!]?$/i,
+  /^no[.!]?$/i,
+  /^yeah[.!]?$/i,
+  /^nope[.!]?$/i,
+  /^sure[.!]?$/i,
+  /^please[.!]?$/i,
+  /^stop[.!]?$/i,
+  /^help[.!]?$/i,
+  /^wait[.!]?$/i,
+  /^what[.!?]?$/i,
+  /^why[.!?]?$/i,
+  /^how[.!?]?$/i,
+  /^okay[.!]?$/i,
+  /^ok[.!]?$/i,
+];
+
+/**
  * Patterns that indicate likely echo of agent speech - questions the agent would ask
  * These are grammatically broken phrases that occur when echo gets garbled by STT
  */
@@ -253,6 +292,22 @@ export function validateTranscript(
       reason: 'single_char', // Reuse reason - semantically similar
       confidence: 0.95,
       transcript,
+    };
+  }
+
+  // =========================================================================
+  // CHECK 3c: Whitelist common greetings and short valid phrases
+  // These MUST pass regardless of echo window or agent-speaking state.
+  // Without this, "Morning" gets rejected as too_short (7 chars, 1 word).
+  // =========================================================================
+  const isWhitelistedPhrase = VALID_SHORT_PHRASES.some((pattern) => pattern.test(trimmed));
+  if (isWhitelistedPhrase) {
+    log.debug('Transcript whitelisted: common greeting/phrase', { transcript: trimmed });
+    return {
+      isValid: true,
+      confidence: 1.0,
+      transcript,
+      cleanedTranscript: trimmed,
     };
   }
 

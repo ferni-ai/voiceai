@@ -233,15 +233,13 @@ pub async fn synthesize(
     // Encode audio based on format
     let (audio_data, content_type) = encode_audio(&response.audio, &req.output_format, format)?;
 
-    Ok((
-        StatusCode::OK,
-        [
-            (header::CONTENT_TYPE, content_type),
-            ("X-Latency-Ms", latency.to_string().as_str()),
-            ("X-Duration-Ms", response.duration_ms.to_string().as_str()),
-        ],
-        audio_data,
-    ))
+    Ok(Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, content_type)
+        .header("X-Latency-Ms", latency.to_string())
+        .header("X-Duration-Ms", response.duration_ms.to_string())
+        .body(Body::from(audio_data))
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?)
 }
 
 /// Synthesize with streaming response
@@ -338,14 +336,12 @@ pub async fn synthesize_ssml(
 
     let latency = start.elapsed().as_millis() as u64;
 
-    Ok((
-        StatusCode::OK,
-        [
-            (header::CONTENT_TYPE, "audio/pcm"),
-            ("X-Latency-Ms", latency.to_string().as_str()),
-        ],
-        response.audio,
-    ))
+    Ok(Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "audio/pcm")
+        .header("X-Latency-Ms", latency.to_string())
+        .body(Body::from(response.audio))
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?)
 }
 
 // ============================================================================
@@ -411,7 +407,7 @@ pub async fn get_voice(
     };
 
     Ok(Json(VoiceInfo {
-        id: voice_id,
+        id: voice_id.clone(),
         name: name.to_string(),
         language: "en-US".to_string(),
         gender: "neutral".to_string(),
@@ -441,7 +437,7 @@ fn build_superhuman_context(req: Option<&SuperhumanContextRequest>) -> Superhuma
 
     if let Some(r) = req {
         if let Some(hour) = r.user_local_hour {
-            ctx = ctx.with_user_local_hour(hour);
+            ctx = ctx.with_user_local_hour(hour.clamp(0, 23) as u8);
         }
         if let Some(stage) = r.relationship_stage {
             ctx = ctx.with_relationship_stage(stage);
@@ -467,8 +463,8 @@ fn build_superhuman_context(req: Option<&SuperhumanContextRequest>) -> Superhuma
         if let Some(entities) = &r.remembered_entities {
             for e in entities {
                 ctx = ctx.with_remembered_entity(
-                    &e.name,
-                    &e.entity_type,
+                    e.name.clone(),
+                    e.entity_type.clone(),
                     e.familiarity,
                     e.emotional_valence,
                 );
@@ -501,7 +497,10 @@ fn apply_transforms(
 
     let transforms: Vec<String> = stats.applied.iter().map(|(n, _)| n.clone()).collect();
 
-    Ok((doc.to_string(), transforms))
+    // Serialize document back to SSML (plain text wrapped for now; full XML serializer in core later)
+    let ssml_string = format!("<speak>{}</speak>", doc.plain_text());
+
+    Ok((ssml_string, transforms))
 }
 
 fn encode_audio(

@@ -21,7 +21,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   crisis: async () => import('../safety/crisis.js'),
   'wellbeing-context': async () => import('../safety/wellbeing-context.js'),
   'principal-alignment': async () => import('../safety/principal-alignment.js'),
-  // 'honesty-guardrail' removed - not in BUILDER_MANIFEST (orphaned)
+  'honesty-guardrail': async () => import('../safety/honesty-guardrail.js'),
 
   // ============================================================================
   // EMOTIONAL (in emotional/)
@@ -39,7 +39,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // Ferni 100% Wiring - Emotional (January 2026)
   'affirmation-context': async () => import('../emotional/affirmation-context.js'),
   'breath-context': async () => import('../emotional/breath-context.js'),
-  'emotional-intelligence-context': async () => import('../emotional/emotional-intelligence-context.js'),
+  'emotional-intelligence-context': async () =>
+    import('../emotional/emotional-intelligence-context.js'),
 
   // ============================================================================
   // VOICE (in emotional/)
@@ -170,7 +171,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // 'referral-prompt' removed - not in BUILDER_MANIFEST (orphaned)
   'ceo-coaching-context': async () => import('../engagement/ceo-coaching-context.js'),
   // WIRED (Jan 2026): New persona-shared content builders
-  'relationship-building-context': async () => import('../engagement/relationship-building-context.js'),
+  'relationship-building-context': async () =>
+    import('../engagement/relationship-building-context.js'),
   'shared-content': async () => import('../engagement/shared-content.js'),
 
   // ============================================================================

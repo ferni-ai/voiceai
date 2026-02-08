@@ -69,12 +69,12 @@ import {
   type TurnRouterResult,
 } from '../../tools/semantic-router/integration/index.js';
 
-// 🧠 FTIS V2: ONNX-based tool classification with direct execution
+// 🧠 FTIS: ONNX-based tool classification with direct execution
 import {
-  buildFTISV2ToolHint,
+  buildFTISToolHint,
   convertToSemanticRoutingResult,
-  isFTISV2OnlyMode,
-  runFTISV2Routing,
+  isFTISEnabled,
+  runFTISRouting,
 } from './tool-routing-integration.js';
 
 // Context inspection for debugging
@@ -2219,19 +2219,18 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // This saves ~30-50ms by not waiting for each operation sequentially
   // ============================================================================
 
-  // 🧠 FTIS V2 ONLY MODE: Use ONNX classification for ALL tool routing
-  // When enabled, FTIS V2 handles everything - no semantic router, no JSON workaround
-  // Uses isFTISV2OnlyMode() as SINGLE SOURCE OF TRUTH (enabled by default!)
-  const isFTISV2Mode = isFTISV2OnlyMode();
+  // 🧠 FTIS MODE: Use ONNX classification for ALL tool routing
+  // When enabled, FTIS handles everything - no semantic router, no JSON workaround
+  const isFTISMode = isFTISEnabled();
 
   // 🎯 SEMANTIC ROUTING: Start tool routing in parallel (primary tool calling method)
   // This runs alongside other processing and can bypass LLM entirely for high-confidence tool requests.
   // Falls back to JSON function calling (legacy workaround) for LLM-routed tools.
   let semanticRoutingPromise: Promise<TurnRouterResult> | null = null;
-  let ftisV2RoutingPromise: ReturnType<typeof runFTISV2Routing> | null = null;
+  let ftisRoutingPromise: ReturnType<typeof runFTISRouting> | null = null;
 
-  if (isFTISV2Mode) {
-    // FTIS V2 Mode: Use ONNX classification exclusively
+  if (isFTISMode) {
+    // FTIS Mode: Use ONNX classification exclusively
     const userId = services.userId || 'unknown';
     const userLocationData = ctx.userData?.location as
       | { city?: string; regionCode?: string; countryCode?: string }
@@ -2243,14 +2242,14 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     // TODO: Track agent messages across turns - currently services doesn't expose this easily
     const lastAgentMessage = undefined; // Future: get from services.lastAgentResponse or similar
 
-    ftisV2RoutingPromise = runFTISV2Routing(userText, {
+    ftisRoutingPromise = runFTISRouting(userText, {
       userId,
       sessionId: services.sessionId || '',
       personaId: ctx.persona.id,
       userLocation: userLocationData,
       lastAgentMessage,
     });
-    diag.debug('🧠 FTIS V2 routing started', { mode: 'ftis_v2_only' });
+    diag.debug('🧠 FTIS routing started', { mode: 'ftis' });
   } else if (isRoutingEnabled()) {
     // Build conversation history from recent transcripts (if available)
     const conversationHistory = (userData.recentTranscripts || []).map((text) => ({
@@ -2281,18 +2280,18 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   }
 
   // ============================================================================
-  // 🧠 FTIS V2 DIRECT EXECUTION: Handle ONNX classification results
-  // When FTIS V2 mode is enabled, this handles ALL tool routing
+  // 🧠 FTIS DIRECT EXECUTION: Handle ONNX classification results
+  // When FTIS is enabled, this handles ALL tool routing
   // ============================================================================
   // P1-#8: Store FTIS hint for injection when falling back to LLM
   let ftisClassificationHint: string | null = null;
 
-  if (ftisV2RoutingPromise) {
-    const ftisResult = await ftisV2RoutingPromise;
+  if (ftisRoutingPromise) {
+    const ftisResult = await ftisRoutingPromise;
 
-    // Check if FTIS V2 executed a tool directly
+    // Check if FTIS executed a tool directly
     if (ftisResult.bypassLLM && ftisResult.toolResult) {
-      diag.state('🧠 FTIS V2: Direct tool execution complete', {
+      diag.state('🧠 FTIS: Direct tool execution complete', {
         tool: ftisResult.toolResult.toolId,
         confidence: ftisResult.classification?.confidence,
         latencyMs: ftisResult.processingTimeMs,
@@ -2305,7 +2304,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       const ftisSemanticRouting = convertToSemanticRoutingResult(ftisResult);
       // bypassLLM stays TRUE - we don't want normal LLM context flow
 
-      diag.debug('🎯 FTIS V2: Will use generateReply for natural response', {
+      diag.debug('🎯 FTIS: Will use generateReply for natural response', {
         tool: ftisResult.toolResult.toolId,
         result:
           ftisResult.toolResult.output?.slice(0, 100) ||
@@ -2330,7 +2329,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
           length: {
             min: 1,
             max: 3,
-            guidance: 'Keep response brief - FTIS V2 tool already executed',
+            guidance: 'Keep response brief - FTIS tool already executed',
           },
         },
         identity: {
@@ -2355,8 +2354,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     // Medium confidence: Add classification as a hint for context (no direct execution)
     // P1-#8: Actually create the hint injection so LLM knows what FTIS detected
     if (ftisResult.classification && ftisResult.classification.confidence >= 0.5) {
-      ftisClassificationHint = buildFTISV2ToolHint(ftisResult.classification);
-      diag.debug('🧠 FTIS V2: Classification added as context hint', {
+      ftisClassificationHint = buildFTISToolHint(ftisResult.classification);
+      diag.debug('🧠 FTIS: Classification added as context hint', {
         category: ftisResult.classification.fineCategory,
         confidence: ftisResult.classification.confidence,
         hintCreated: !!ftisClassificationHint,
@@ -2644,7 +2643,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       content: ftisClassificationHint,
       priority: 70, // High priority - helps LLM route correctly
     });
-    diag.debug('🧠 FTIS V2: Injected classification hint for LLM', {
+    diag.debug('🧠 FTIS: Injected classification hint for LLM', {
       hintLength: ftisClassificationHint.length,
     });
   }

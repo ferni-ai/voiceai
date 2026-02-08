@@ -48,6 +48,11 @@ import {
 // TYPES
 // ============================================================================
 
+/** AudioRouter for Director Mode (routes director commands when set) */
+export interface DirectorAudioRouter {
+  handleDataChannelMessage(msg: unknown, identity: string): boolean;
+}
+
 export interface DataChannelContext {
   /** LiveKit room instance */
   room: Room;
@@ -71,6 +76,8 @@ export interface DataChannelContext {
   tts?: {
     switchVoice?: (name: string, voiceId: string, accent?: string) => void;
   };
+  /** Director Mode: routes director commands from data channel to DirectorEngine */
+  audioRouter?: DirectorAudioRouter;
 }
 
 export interface DataChannelResult {
@@ -196,6 +203,25 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
       // 🎯 ACTION RESPONSE: Handle approve/reject from UI action confirmation cards
       if (message.type === 'action_response') {
         await handleActionResponse(message, ctx);
+      }
+
+      // 🎬 DIRECTOR MODE: Handle director commands via data channel
+      if (
+        message.type === 'director_mode_enabled' ||
+        message.type === 'director_mode_disabled' ||
+        message.type === 'director_command'
+      ) {
+        const audioRouter = ctx.audioRouter;
+        if (audioRouter && typeof audioRouter.handleDataChannelMessage === 'function') {
+          const identity = participant?.identity ?? ctx.userId ?? 'unknown';
+          audioRouter.handleDataChannelMessage(message, identity);
+          diag.info('[DataChannel] Director command forwarded to AudioRouter', {
+            type: message.type,
+            identity,
+          });
+        } else {
+          diag.warn('[DataChannel] Director command received but no AudioRouter registered');
+        }
       }
     } catch {
       // Not JSON or not a valid request - this is expected for non-data-channel uses

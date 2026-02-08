@@ -33,7 +33,7 @@ import {
 } from '../../generate-reply-gateway.js';
 // FTIS V2 mode check - when enabled, tools execute via FTIS V2, not JSON workaround
 import { recordFTISV2JsonBypass } from '../../../../services/observability/routing-metrics.js';
-import { isFTISV2OnlyMode } from '../../../processors/tool-routing-integration.js';
+import { isFTISEnabled } from '../../../processors/tool-routing-integration.js';
 // Injection tracking for BTH Communication System feedback loop
 import { analyzeResponseAlignment } from '../../../../intelligence/feedback/injection-tracker.js';
 // BTH Visible Vulnerability: Detect when Ferni shows authentic uncertainty in responses
@@ -324,7 +324,7 @@ export function createSanitizerWithMusicFallback(
   // When FTIS V2 is active, tools execute directly via FTIS V2 classification,
   // not via JSON output interception. The LLM should not output JSON at all.
   // ==========================================================================
-  if (isFTISV2OnlyMode()) {
+  if (isFTISEnabled()) {
     // Record metrics for observability
     recordFTISV2JsonBypass();
 

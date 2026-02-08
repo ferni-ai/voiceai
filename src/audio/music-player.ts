@@ -602,64 +602,6 @@ export class CallMusicPlayer {
     this.sessionHistory = [];
   }
 
-  // ============================================================================
-  // 🎤 MID-SONG MOMENTS ("Wait for it...")
-  // ============================================================================
-
-  /**
-   * Schedule a "Wait for it..." moment during playback
-   * Only triggers 10% of the time to keep it rare and special
-   *
-   * @deprecated This functionality is now handled by DJTimingEngine.
-   * The music-handler.ts uses timingEngine.scheduleTrackMoments() instead.
-   * This method is kept for backward compatibility but will be removed in a future version.
-   *
-   * HUMANIZATION: Reduced from 30% to 10% - constant DJ commentary
-   * interrupts the music experience. Less is more.
-   */
-  private scheduleMidSongMoment(track: MusicTrack): void {
-    // Clear any existing timer
-    if (this.midSongMomentTimer) {
-      clearTimeout(this.midSongMomentTimer);
-      this.midSongMomentTimer = null;
-    }
-
-    // Only do this for non-ambient music and 10% of the time (reduced from 30%)
-    // Most people want to enjoy music, not hear constant DJ chatter
-    if (this.state.isAmbientMode || Math.random() > 0.1) {
-      return;
-    }
-
-    // Don't do mid-song moments for very short tracks
-    // Use ?? instead of || so duration of 0 doesn't falsely default to 30s
-    const duration = track.duration ?? 30000;
-    if (duration < 20000) {
-      return;
-    }
-
-    // Schedule at 55-70% through the track (the exciting part!)
-    const momentPercent = 0.55 + Math.random() * 0.15;
-    const momentTime = duration * momentPercent;
-
-    this.midSongMomentTimer = setTimeout(() => {
-      // Only fire if still playing the same track
-      if (this.state.isPlaying && this.state.currentTrack?.name === track.name) {
-        // Pick moment type - mostly "buildup" with occasional "highlight"
-        const momentType = Math.random() < 0.7 ? 'buildup' : 'highlight';
-
-        log.info({ track: track.name, momentType }, '🎤 Mid-song moment triggered!');
-
-        // Emit to all listeners via EventEmitter
-        this.events.emit('midSongMoment', track, momentType);
-      }
-    }, momentTime);
-
-    log.debug(
-      { track: track.name, momentTime: Math.round(momentTime / 1000) },
-      '🎤 Mid-song moment scheduled'
-    );
-  }
-
   /**
    * Notify listeners of state change
    *
@@ -757,22 +699,63 @@ export class CallMusicPlayer {
       // Mark any pending track end as handled before starting new track
       this.trackEndHandled = true;
 
-      // Stop any current playback (but PRESERVE the queue - this is an internal transition)
-      log.info(
-        { track: track.name, wasExplicitlyStoppedBefore: this.state.wasExplicitlyStopped },
-        '🎵 [PLAY-TRACE] Step 1: About to call internal stop(preserveQueue=true) to clear current playback'
-      );
-      this.stop(true); // 🐛 FIX: Pass preserveQueue=true to keep queue intact during track transitions
+      // =========================================================================
+      // CRITICAL FIX (Feb 2026): Conditional stop to prevent mixer closure
+      //
+      // When a track ends naturally (waitForPlayout resolves), the LiveKit
+      // BackgroundAudioPlayer's internal AudioMixer may be closing. Calling
+      // stop() on a done handle triggers mixer cleanup, which prevents the
+      // NEXT queued track from playing ("Cannot add stream after mixer closed").
+      //
+      // Fix: Only call stop() if the handle is still actively playing.
+      // If the handle is already done, just clear our state without touching
+      // the backgroundPlayer, keeping the mixer alive for the next track.
+      // =========================================================================
+      const handleDone = this.currentPlayHandle ? this.currentPlayHandle.done() : true;
 
-      // Note: Since we passed preserveQueue=true, wasExplicitlyStopped is NOT set
-      // So we don't need to reset it. But let's ensure it's false for safety.
-      log.info(
-        {
-          track: track.name,
-          wasExplicitlyStoppedAfterInternalStop: this.state.wasExplicitlyStopped,
-        },
-        '🎵 [PLAY-TRACE] Step 2: Internal stop complete (queue preserved)'
-      );
+      if (this.currentPlayHandle && !handleDone) {
+        // Handle is still active - stop it before starting new track
+        log.info(
+          { track: track.name, wasExplicitlyStoppedBefore: this.state.wasExplicitlyStopped },
+          '🎵 [PLAY-TRACE] Step 1: Stopping active playback before starting new track'
+        );
+        this.stop(true); // preserveQueue=true for internal transitions
+        log.info(
+          { track: track.name },
+          '🎵 [PLAY-TRACE] Step 2: Active playback stopped (queue preserved)'
+        );
+      } else {
+        // Handle is done (natural track end) or doesn't exist
+        // Clear our state WITHOUT calling stop() to avoid mixer closure
+        log.info(
+          {
+            track: track.name,
+            previousTrack: this.state.currentTrack?.name,
+            handleDone,
+            hasHandle: !!this.currentPlayHandle,
+          },
+          '🎵 [PLAY-TRACE] Step 1: Previous track handle already done - clearing state without stop() to preserve mixer'
+        );
+        // Clear our tracking state only
+        this.currentPlayHandle = null;
+        this.state.isPlaying = false;
+        this.state.currentTrack = null;
+        this.state.isAmbientMode = false;
+        this.currentAudioPath = null;
+        // Clear timers
+        if (this.midSongMomentTimer) {
+          clearTimeout(this.midSongMomentTimer);
+          this.midSongMomentTimer = null;
+        }
+        if (this.trackEndBackupTimer) {
+          clearTimeout(this.trackEndBackupTimer);
+          this.trackEndBackupTimer = null;
+        }
+        log.info(
+          { track: track.name },
+          '🎵 [PLAY-TRACE] Step 2: State cleared (mixer preserved for next track)'
+        );
+      }
       this.state.wasExplicitlyStopped = false;
       this.state.explicitStopTime = null;
 
@@ -867,41 +850,97 @@ export class CallMusicPlayer {
         return false;
       }
 
+      // 🎧 MIXER-FIX (PROACTIVE): Recreate BackgroundAudioPlayer before each new track
+      // LiveKit's BackgroundAudioPlayer closes its internal AudioMixer after playback
+      // completes. Rather than catching the error, proactively recreate the player
+      // when we know the previous track has ended (handle is done or null).
+      if (this.room?.isConnected) {
+        const prevHandleDone = this.currentPlayHandle ? this.currentPlayHandle.done() : true;
+        if (prevHandleDone) {
+          log.info(
+            { track: track.name, hadPreviousHandle: !!this.currentPlayHandle },
+            '🎧 [MIXER-FIX] Previous track done - recreating BackgroundAudioPlayer for fresh mixer'
+          );
+          try {
+            this.backgroundPlayer = new BackgroundAudioPlayer();
+            await this.backgroundPlayer.start({
+              room: this.room,
+              agentSession: this.agentSession ?? undefined,
+            });
+          } catch (recreateError) {
+            log.error(
+              { error: String(recreateError), track: track.name },
+              '🎧 [MIXER-FIX] Failed to recreate BackgroundAudioPlayer'
+            );
+            this.cleanupTempFile(audioPath);
+            this.state.isPlaying = false;
+            this.state.currentTrack = null;
+            return false;
+          }
+        }
+      }
+
       // 🚨 CRASH-FIX: Wrap backgroundPlayer.play() in try-catch
       // Room can disconnect between our check above and this call
+      // Also handles "mixer closed" error by recreating the BackgroundAudioPlayer
       try {
         this.currentPlayHandle = this.backgroundPlayer.play(
           { source: audioPath, volume },
           false // Don't loop previews
         );
-
-        // 🚨 RACE-FIX: The play() call returns immediately but starts an async Task
-        // that can fail if the mixer closes. We need to catch that async error.
-        // Add a microtask to check if the play started successfully.
-        if (this.currentPlayHandle) {
-          // Attach error handler to catch "mixer closed" errors
-          // This runs when the internal async task fails
-          void Promise.resolve().then(() => {
-            if (this.isDisposed) {
-              // If we're disposed, don't log - this is expected
-              return;
-            }
-          });
-        }
       } catch (playError) {
-        log.error(
-          {
-            error: String(playError),
-            track: track.name,
-            sessionId: this.sessionId,
-            roomIsConnected: this.room?.isConnected,
-          },
-          '🚨 [CRASH-FIX] backgroundPlayer.play() threw - room likely disconnected mid-operation'
-        );
-        this.cleanupTempFile(audioPath);
-        this.state.isPlaying = false;
-        this.state.currentTrack = null;
-        return false;
+        const errorMsg = String(playError);
+
+        // 🎧 MIXER-FIX: If mixer closed (track ended naturally), recreate the player and retry
+        // LiveKit's BackgroundAudioPlayer closes its internal AudioMixer after playback ends.
+        // For continuous music (DJ queue), we need to recreate the player for the next track.
+        if (errorMsg.includes('mixer') && errorMsg.includes('closed') && this.room?.isConnected) {
+          log.info(
+            { track: track.name, error: errorMsg },
+            '🎧 [MIXER-FIX] Mixer closed after previous track - recreating BackgroundAudioPlayer'
+          );
+
+          try {
+            this.backgroundPlayer = new BackgroundAudioPlayer();
+            await this.backgroundPlayer.start({
+              room: this.room,
+              agentSession: this.agentSession ?? undefined,
+            });
+
+            // Retry play with fresh player
+            this.currentPlayHandle = this.backgroundPlayer.play(
+              { source: audioPath, volume },
+              false
+            );
+            log.info(
+              { track: track.name },
+              '🎧 [MIXER-FIX] ✅ Recreated player and started playback successfully'
+            );
+          } catch (retryError) {
+            log.error(
+              { error: String(retryError), track: track.name },
+              '🎧 [MIXER-FIX] ❌ Failed even after recreating player'
+            );
+            this.cleanupTempFile(audioPath);
+            this.state.isPlaying = false;
+            this.state.currentTrack = null;
+            return false;
+          }
+        } else {
+          log.error(
+            {
+              error: errorMsg,
+              track: track.name,
+              sessionId: this.sessionId,
+              roomIsConnected: this.room?.isConnected,
+            },
+            '🚨 [CRASH-FIX] backgroundPlayer.play() threw - room likely disconnected mid-operation'
+          );
+          this.cleanupTempFile(audioPath);
+          this.state.isPlaying = false;
+          this.state.currentTrack = null;
+          return false;
+        }
       }
 
       if (DEBUG_MUSIC) log.debug('BackgroundAudioPlayer.play() called successfully');
@@ -917,9 +956,6 @@ export class CallMusicPlayer {
       if (!isAmbient) {
         this.addToSessionHistory(track, true); // wasRequested = true for explicit plays
       }
-
-      // 🎤 Schedule a "Wait for it..." moment (30% chance, makes DJ feel alive!)
-      this.scheduleMidSongMoment(track);
 
       // 🎧 DJ-STYLE FADE OUT: Notify frontend to fade 5 seconds before track ends
       // This makes the ending feel human and intentional, not abrupt
@@ -1235,24 +1271,58 @@ export class CallMusicPlayer {
     }
 
     // 🚨 CRASH-FIX: Wrap backgroundPlayer.play() in try-catch
-    // If room disconnected between our check above and this call, it could throw
+    // Also handles "mixer closed" error by recreating the BackgroundAudioPlayer
     try {
       this.currentPlayHandle = this.backgroundPlayer.play({ source: audioPath, volume }, false);
     } catch (playError) {
-      log.error(
-        {
-          error: String(playError),
-          track: track.name,
-          sessionId: this.sessionId,
-          roomIsConnected: this.room?.isConnected,
-        },
-        '🚨 [CRASH-FIX] backgroundPlayer.play() threw during crossfade - room likely disconnected'
-      );
-      this.cleanupTempFile(audioPath);
-      this.state.isPlaying = false;
-      this.state.currentTrack = null;
-      this.events.emit('stateChange', 'stopped', track, isAmbient);
-      return { success: false, previousTrack };
+      const errorMsg = String(playError);
+
+      // 🎧 MIXER-FIX: If mixer closed, recreate the player and retry
+      if (errorMsg.includes('mixer') && errorMsg.includes('closed') && this.room?.isConnected) {
+        log.info(
+          { track: track.name, error: errorMsg },
+          '🎧 [MIXER-FIX] Mixer closed during crossfade - recreating BackgroundAudioPlayer'
+        );
+
+        try {
+          this.backgroundPlayer = new BackgroundAudioPlayer();
+          await this.backgroundPlayer.start({
+            room: this.room,
+            agentSession: this.agentSession ?? undefined,
+          });
+
+          this.currentPlayHandle = this.backgroundPlayer.play({ source: audioPath, volume }, false);
+          log.info(
+            { track: track.name },
+            '🎧 [MIXER-FIX] ✅ Crossfade: recreated player and started playback'
+          );
+        } catch (retryError) {
+          log.error(
+            { error: String(retryError), track: track.name },
+            '🎧 [MIXER-FIX] ❌ Crossfade failed even after recreating player'
+          );
+          this.cleanupTempFile(audioPath);
+          this.state.isPlaying = false;
+          this.state.currentTrack = null;
+          this.events.emit('stateChange', 'stopped', track, isAmbient);
+          return { success: false, previousTrack };
+        }
+      } else {
+        log.error(
+          {
+            error: errorMsg,
+            track: track.name,
+            sessionId: this.sessionId,
+            roomIsConnected: this.room?.isConnected,
+          },
+          '🚨 [CRASH-FIX] backgroundPlayer.play() threw during crossfade - room likely disconnected'
+        );
+        this.cleanupTempFile(audioPath);
+        this.state.isPlaying = false;
+        this.state.currentTrack = null;
+        this.events.emit('stateChange', 'stopped', track, isAmbient);
+        return { success: false, previousTrack };
+      }
     }
 
     // Clean up the previous track's temp file
@@ -1272,9 +1342,6 @@ export class CallMusicPlayer {
     if (!isAmbient) {
       this.addToSessionHistory(track, true);
     }
-
-    // 🎤 Schedule mid-song moment for new track
-    this.scheduleMidSongMoment(track);
 
     // Set up the fade-out timer for this new track
     // 🐛 FIX: Use ACTUAL duration from ffprobe, not hardcoded 30s
@@ -1730,33 +1797,13 @@ export class CallMusicPlayer {
   }
 
   /**
-   * Fallback simulation mode (for when BackgroundAudioPlayer isn't available)
-   *
-   * ⚠️ RETURNS FALSE - Audio will NOT be heard!
-   * The agent should NOT announce that music is playing.
-   */
-  private simulatePlayback(track: MusicTrack): boolean {
-    log.error(
-      {
-        track: track.name,
-        artist: track.artist,
-        isInitialized: this.state.isInitialized,
-        hasBackgroundPlayer: !!this.backgroundPlayer,
-      },
-      '🚨 MUSIC PLAYBACK FAILED - Player not initialized! Audio will NOT be heard.'
-    );
-
-    // DO NOT set state.isPlaying = true - no audio is actually playing!
-    // DO NOT return true - the agent should not announce music is playing!
-
-    return false;
-  }
-
-  /**
    * Called when current track ends
    *
    * 🎧 CRITICAL: This method MUST notify 'stopped' state when no more tracks in queue.
    * The frontend relies on this to hide the Now Playing UI.
+   *
+   * Uses a while loop to skip tracks without previewUrl (avoids stack overflow when
+   * many queued tracks have no preview).
    */
   private onTrackEnded(): void {
     // 🎤 Clear mid-song moment timer
@@ -1765,9 +1812,14 @@ export class CallMusicPlayer {
       this.midSongMomentTimer = null;
     }
 
-    if (this.state.queue.length > 0) {
-      // Play next in queue
+    // Iteratively skip tracks that have no previewUrl, then play first valid one or notify stopped
+    while (this.state.queue.length > 0) {
       const nextTrack = this.state.queue.shift()!;
+      if (!nextTrack.previewUrl) {
+        log.warn({ track: nextTrack.name }, '🎧 Queue track has no previewUrl - skipping');
+        continue;
+      }
+
       log.info(
         {
           nextTrack: nextTrack.name,
@@ -1776,37 +1828,33 @@ export class CallMusicPlayer {
         '🎧 Track ended - playing next in queue'
       );
 
-      if (nextTrack.previewUrl) {
-        // 🐛 FIX: Reset trackEndHandled so the new track's backup timer can work
-        this.trackEndHandled = false;
-        // 🐛 FIX: Clear backup timer from previous track (playFromUrl will set a new one)
-        if (this.trackEndBackupTimer) {
-          clearTimeout(this.trackEndBackupTimer);
-          this.trackEndBackupTimer = null;
-        }
-        // 🐛 FIX BUG-003: Add error handling to void promise
-        // If playback fails, try the next track in queue or notify stopped
-        this.playFromUrl(nextTrack.previewUrl, nextTrack)
-          .then((success) => {
-            if (!success) {
-              log.warn({ track: nextTrack.name }, '🎧 Queue track failed to play - trying next');
-              this.onTrackEnded();
-            }
-          })
-          .catch((err) => {
-            log.error(
-              { track: nextTrack.name, error: String(err) },
-              '🎧 Queue playback error - trying next'
-            );
-            this.onTrackEnded();
-          });
-      } else {
-        // 🐛 FIX: Track has no previewUrl - skip to next or notify stopped
-        log.warn({ track: nextTrack.name }, '🎧 Queue track has no previewUrl - skipping');
-        // Recursively try the next track in queue
-        this.onTrackEnded();
+      // 🐛 FIX: Reset trackEndHandled so the new track's backup timer can work
+      this.trackEndHandled = false;
+      // 🐛 FIX: Clear backup timer from previous track (playFromUrl will set a new one)
+      if (this.trackEndBackupTimer) {
+        clearTimeout(this.trackEndBackupTimer);
+        this.trackEndBackupTimer = null;
       }
-    } else {
+      // If playback fails, onTrackEnded() will be called again to try next (bounded by queue size)
+      this.playFromUrl(nextTrack.previewUrl, nextTrack)
+        .then((success) => {
+          if (!success) {
+            log.warn({ track: nextTrack.name }, '🎧 Queue track failed to play - trying next');
+            this.onTrackEnded();
+          }
+        })
+        .catch((err) => {
+          log.error(
+            { track: nextTrack.name, error: String(err) },
+            '🎧 Queue playback error - trying next'
+          );
+          this.onTrackEnded();
+        });
+      return;
+    }
+
+    // Queue empty - notify stopped
+    {
       // 🎧 FIX: Save track info BEFORE clearing for proper notification
       // This ensures DJ Booth and frontend receive the track that just ended
       const endedTrack = this.state.currentTrack;
@@ -1945,13 +1993,13 @@ export class CallMusicPlayer {
     this.state.isPlaying = false;
     this.state.currentTrack = null;
     this.state.isAmbientMode = false;
-    
+
     // 🐛 FIX: Only clear the queue on explicit user stop, NOT on internal track transitions
     // When preserveQueue=true, we're just stopping current playback to start a new track
     if (!preserveQueue) {
       this.state.queue = [];
     }
-    
+
     this.currentPlayHandle = null;
     this.currentAudioPath = null;
 
@@ -2221,7 +2269,9 @@ export class CallMusicPlayer {
     // 🚨 RACE-FIX: Small delay to let in-flight async operations see isDisposed flag
     // and abort before we close the mixer. Without this, BackgroundAudioPlayer's
     // internal async Task can try to add to the mixer after we close it.
-    await new Promise<void>((resolve) => { setTimeout(resolve, 100); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 100);
+    });
 
     // Close background player (handle room already closed gracefully)
     if (this.backgroundPlayer) {

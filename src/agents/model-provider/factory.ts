@@ -11,6 +11,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import type { ModelProvider, ModelProviderId } from './types.js';
 import { OpenAIRealtimeProvider } from './openai-realtime.js';
 import { GeminiLiveProvider } from './gemini-live.js';
+import { Qwen3OmniProvider } from './qwen3-omni.js';
 
 const log = createLogger({ module: 'ModelProviderFactory' });
 
@@ -54,8 +55,19 @@ let isTestInjection = false;
 export function getModelProvider(): ModelProvider {
   if (!cachedProvider) {
     const useOpenAI = process.env.USE_OPENAI_REALTIME === 'true';
+    const useQwen3Omni = process.env.USE_QWEN3_OMNI === 'true';
 
-    if (useOpenAI) {
+    if (useQwen3Omni) {
+      cachedProvider = new Qwen3OmniProvider();
+      const backend = isQwen3OmniCandleBackend() ? 'candle (in-process)' : 'HTTP';
+      log.info(
+        { providerId: cachedProvider.id, backend },
+        `${cachedProvider.getLogPrefix()} Model provider initialized: ${cachedProvider.displayName} (${backend})`
+      );
+      if (isQwen3OmniCandleBackend()) {
+        log.info('Using Candle NAPI pipeline (in-process)');
+      }
+    } else if (useOpenAI) {
       cachedProvider = new OpenAIRealtimeProvider();
       log.info(
         { providerId: cachedProvider.id },
@@ -82,6 +94,7 @@ export function getProviderIdSync(): ModelProviderId {
   if (cachedProvider) {
     return cachedProvider.id;
   }
+  if (process.env.USE_QWEN3_OMNI === 'true') return 'qwen3-omni';
   return process.env.USE_OPENAI_REALTIME === 'true' ? 'openai-realtime' : 'gemini-live';
 }
 
@@ -173,9 +186,29 @@ export function createProvider(id: ModelProviderId): ModelProvider {
       return new OpenAIRealtimeProvider();
     case 'gemini-live':
       return new GeminiLiveProvider();
+    case 'qwen3-omni':
+      return new Qwen3OmniProvider();
     default:
       throw new Error(`Unknown provider ID: ${id}`);
   }
+}
+
+/**
+ * Check if using Qwen3-Omni without creating the provider.
+ */
+export function isUsingQwen3Omni(): boolean {
+  return getProviderIdSync() === 'qwen3-omni';
+}
+
+/**
+ * When USE_QWEN3_OMNI=true and QWEN3_OMNI_BACKEND=candle, use in-process Candle NAPI
+ * (NativeOmniRealtimeModel). Otherwise use HTTP-based adapters.
+ */
+export function isQwen3OmniCandleBackend(): boolean {
+  return (
+    process.env.USE_QWEN3_OMNI === 'true' &&
+    process.env.QWEN3_OMNI_BACKEND === 'candle'
+  );
 }
 
 // ============================================================================
@@ -184,3 +217,4 @@ export function createProvider(id: ModelProviderId): ModelProvider {
 
 export { OpenAIRealtimeProvider } from './openai-realtime.js';
 export { GeminiLiveProvider } from './gemini-live.js';
+export { Qwen3OmniProvider } from './qwen3-omni.js';

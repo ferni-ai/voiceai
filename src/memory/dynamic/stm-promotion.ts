@@ -12,20 +12,20 @@
  * @module memory/dynamic/stm-promotion
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { emitInfraEvent } from '../../utils/infra-events.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { extractHumanSignals } from '../human-signal-extractor.js';
+import { persistHumanSignals } from '../human-signal-persistence.js';
 import {
-  getSTMBuffer,
+  cleanupSession,
+  getEmotionalTrajectory,
   getFrequentEntities,
   getRecentTopics,
-  getEmotionalTrajectory,
-  cleanupSession,
-  type TurnMemory,
+  getSTMBuffer,
   type EntityFrequency,
+  type TurnMemory,
 } from './stm-buffer.js';
-import { extractHumanSignals, mergeSignalsIntoMemory } from '../human-signal-extractor.js';
-import { persistHumanSignals } from '../human-signal-persistence.js';
 
 const log = createLogger({ module: 'STMPromotion' });
 
@@ -526,6 +526,56 @@ export async function onSessionEnd(sessionId: string, userId: string): Promise<v
     // Non-critical - don't fail the session end
   }
 
+  // 🤝 Cross-persona memory: Bridge promoted entities into shared memory API
+  // This allows all personas to see entities captured by ANY persona
+  try {
+    const { storeMemory, PERSONA_MEMORY_INTERESTS } =
+      await import('../cross-persona/shared-memory-api.js');
+    const buffer = getSTMBuffer(sessionId, userId);
+    const personaId = (buffer?.turns[0]?.personaId || 'ferni') as
+      | 'ferni'
+      | 'peter'
+      | 'maya'
+      | 'jordan'
+      | 'alex'
+      | 'nayan';
+
+    // Store promoted entities as shared memories
+    const frequentEntities = getFrequentEntities(sessionId, 10);
+    let sharedCount = 0;
+    for (const entity of frequentEntities) {
+      if (entity.mentionCount < 2) continue; // Only share frequently mentioned entities
+      const category = entity.type === 'person' ? ('entity' as const) : ('fact' as const);
+      // Determine which personas this is relevant to
+      const relevantPersonas = Object.entries(PERSONA_MEMORY_INTERESTS)
+        .filter(([, interests]) => interests.includes(category))
+        .map(([id]) => id) as (typeof personaId)[];
+
+      await storeMemory({
+        userId,
+        content: `${entity.name} (${entity.type}): mentioned ${entity.mentionCount}x. ${entity.contexts.slice(0, 2).join('; ')}`,
+        category,
+        capturedBy: personaId,
+        emotionalWeight: Math.min(entity.mentionCount / 10, 1),
+        confidence: 0.8,
+        relevantToPersonas: relevantPersonas,
+      });
+      sharedCount++;
+    }
+
+    if (sharedCount > 0) {
+      log.info(
+        { sessionId, userId, sharedCount, personaId },
+        '🤝 [CROSS-PERSONA] Bridged promoted entities to shared memory'
+      );
+    }
+  } catch (crossPersonaErr) {
+    log.warn(
+      { sessionId, userId, error: String(crossPersonaErr) },
+      'Cross-persona memory bridge failed (non-critical)'
+    );
+  }
+
   log.info(
     {
       sessionId,
@@ -535,7 +585,7 @@ export async function onSessionEnd(sessionId: string, userId: string): Promise<v
       topicPatternPromoted: result.topicPatternPromoted,
       sessionCleaned: result.sessionCleaned,
     },
-    '🧠 [MEMORY-AUDIT] onSessionEnd COMPLETE'
+    '🧠 [MEMORY] onSessionEnd COMPLETE'
   );
 }
 
@@ -544,9 +594,9 @@ export async function onSessionEnd(sessionId: string, userId: string): Promise<v
 // ============================================================================
 
 export type {
+  PromotedEmotionalArc,
+  PromotedEntity,
+  PromotedTopicPattern,
   PromotionConfig,
   PromotionResult,
-  PromotedEntity,
-  PromotedEmotionalArc,
-  PromotedTopicPattern,
 };

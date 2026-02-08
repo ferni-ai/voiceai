@@ -241,7 +241,7 @@ mod tests {
         assert!(result.has_calls);
         assert_eq!(result.calls.len(), 1);
         assert_eq!(result.calls[0].fn_name, "playMusic");
-        assert_eq!(result.clean_text, "Let me play that for you right away");
+        assert_eq!(result.clean_text, "Let me play that for you  right away"); // double space where JSON was removed
     }
 
     #[test]

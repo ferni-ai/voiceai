@@ -31,13 +31,13 @@ import {
   normalizeMusicMessage,
 } from '../types/events.js';
 
+import { setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { delightService } from '../services/delight.service.js';
-import { t, setLocale, SUPPORTED_LOCALES, type SupportedLocale } from '../i18n/index.js';
 // 🌱 Smart Vote Prompts - Track user mentions for feature recommendations
-import { smartPromptTracker } from '../services/roadmap.service.js';
 import { engagementService, handoffService, moodService } from '../services/index.js';
+import { smartPromptTracker } from '../services/roadmap.service.js';
 import { setWrappingUp } from '../state/app.state.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
@@ -52,8 +52,8 @@ import { createLogger } from '../utils/logger.js';
 // 🎬 Ferni Expressions - Character-level avatar expressions
 import { ferniExpressions, type EmotionalExpression } from '../ui/ferni-expressions.ui.js';
 // 🎭 Luxo Expressions - 100+ expression system from design tokens
-import * as luxoExpressions from '../ui/luxo-expressions.ui.js';
 import type { ExpressionId } from '../config/expressions.generated.js';
+import * as luxoExpressions from '../ui/luxo-expressions.ui.js';
 // 🎚️ Music Audio Controller - Real-time ducking
 import { getMusicAudioController } from '../services/music-audio.controller.js';
 // Connection service - for music track expectation
@@ -87,18 +87,15 @@ import { addMemberToRoster, type TeamMemberId } from '../services/roster-prefere
 // 🌟 Winter Solstice - Cinematic holiday experience
 import { winterSolsticeMoment, type SolsticeContext } from '../ui/winter-solstice.ui.js';
 // 📔 Journal Capture - Auto-capture meaningful moments
-import { 
-  isCaptureEnabled, 
-  mightContainMoment, 
-  queueMoment,
+import {
   estimateMomentType,
+  isCaptureEnabled,
+  mightContainMoment,
+  queueMoment,
   type CapturedMoment,
 } from '../services/journal-capture.service.js';
 // 🧠 Semantic Router Observability - Dev panel stats
-import {
-  routingStatsUI,
-  type SemanticRoutingData,
-} from '../ui/routing-stats.ui.js';
+import { routingStatsUI, type SemanticRoutingData } from '../ui/routing-stats.ui.js';
 // 🎯 Action Confirmation - AGI-like autonomous actions
 import { actionConfirmation, type PendingAction } from '../ui/action-confirmation.ui.js';
 // 🌟 Transcendent Animation Systems - "Better Than Human" signature moments
@@ -405,6 +402,18 @@ export function handleDataMessage(message: DataMessage): void {
       // 😄 BETTER THAN HUMAN: User laughed → Avatar smiles/laughs along!
       // This makes Ferni feel like a friend who shares in your joy
       handleLaughterDetected(message as LaughterDetectedEvent);
+      break;
+
+    case 'qualityMetrics':
+      // 🚀 BETTER THAN HUMAN (Qwen path): Conversation quality from session manager
+      // Drives subtle avatar response so BTH feels visible when using Qwen full stack
+      handleQualityMetrics(message as QualityMetricsEvent);
+      break;
+
+    case 'personalitySignals':
+      // 🚀 BETTER THAN HUMAN (Qwen path): Personality context from session manager
+      // Drives avatar presence so BTH personality/vulnerability is visible on Qwen path
+      handlePersonalitySignals(message as PersonalitySignalsEvent);
       break;
 
     case 'semantic_routing':
@@ -950,11 +959,32 @@ interface HumanizationSignalEvent extends DataMessage {
 }
 
 /**
+ * Quality metrics event from Qwen session manager (Better Than Human path)
+ */
+interface QualityMetricsEvent extends DataMessage {
+  type: 'qualityMetrics';
+  qualityMetrics?: {
+    averageDepth?: number;
+    engagementTrend?: number;
+    emotionalRange?: number;
+    turnsSinceDeepMoment?: number;
+  };
+}
+
+/**
+ * Personality signals event from Qwen session manager (Better Than Human path)
+ */
+interface PersonalitySignalsEvent extends DataMessage {
+  type: 'personalitySignals';
+  personalityContext?: unknown;
+}
+
+/**
  * Handle humanization signals from the backend emotion dispatcher
- * 
+ *
  * CRITICAL: This is the main bridge between backend emotion analysis and frontend EQ!
  * Without this, all the backend's emotional intelligence has no way to affect the avatar.
- * 
+ *
  * Signals handled:
  * - concern_detected: User is distressed → protective mode
  * - voice_state_detected: Voice-text mismatch → extra care
@@ -1103,16 +1133,16 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
     disengagement: 'reflection',
     emotional_trajectory: 'anticipation',
     // 🧠 BTH signal → emotion mappings (using valid EmotionCategory values)
-    emotional_bond_deepen: 'tenderness',        // Bond deepening = warm tenderness
-    protective_instinct: 'concern',              // Already valid
-    spontaneous_delight: 'celebration',          // Already valid
-    inside_joke_callback: 'joy',                 // Inside jokes bring joy
-    superhuman_observation: 'reflection',        // Observation = reflective state
-    visible_vulnerability: 'vulnerability',      // Direct mapping
-    temporal_insight: 'reflection',              // Looking back = reflection
-    meta_relationship_moment: 'tenderness',      // Relationship moments = tenderness
-    somatic_presence: 'calm',                    // Grounding/somatic = calm
-    anticipatory_presence: 'anticipation',       // Direct mapping
+    emotional_bond_deepen: 'tenderness', // Bond deepening = warm tenderness
+    protective_instinct: 'concern', // Already valid
+    spontaneous_delight: 'celebration', // Already valid
+    inside_joke_callback: 'joy', // Inside jokes bring joy
+    superhuman_observation: 'reflection', // Observation = reflective state
+    visible_vulnerability: 'vulnerability', // Direct mapping
+    temporal_insight: 'reflection', // Looking back = reflection
+    meta_relationship_moment: 'tenderness', // Relationship moments = tenderness
+    somatic_presence: 'calm', // Grounding/somatic = calm
+    anticipatory_presence: 'anticipation', // Direct mapping
   };
 
   const mappedEmotion = emotionMap[signalType];
@@ -1180,8 +1210,11 @@ function handleAnticipationSignal(event: AnticipationSignalEvent): void {
   // Trigger anticipation through the Ferni EQ system
   // Map emotion trajectory to tone - default to 'flat' if trajectory is not provided
   const toneFromTrajectory: 'rising' | 'falling' | 'flat' =
-    emotionTrajectory === 'rising' ? 'rising' :
-    emotionTrajectory === 'falling' ? 'falling' : 'flat';
+    emotionTrajectory === 'rising'
+      ? 'rising'
+      : emotionTrajectory === 'falling'
+        ? 'falling'
+        : 'flat';
 
   ferni.anticipateEmotion({
     transcript: '', // No transcript needed - we have direct emotion prediction
@@ -1282,9 +1315,8 @@ interface SpeechStateEvent extends DataMessage {
 function handleSpeechState(event: SpeechStateEvent): void {
   // The event might come with type as the inner type directly
   const eventType = (event as unknown as { type: string }).type;
-  const innerType = eventType === 'speech_state'
-    ? event.innerType
-    : eventType as SpeechStateEvent['innerType'];
+  const innerType =
+    eventType === 'speech_state' ? event.innerType : (eventType as SpeechStateEvent['innerType']);
 
   log.debug('🎭 Speech state event received', {
     innerType,
@@ -1358,13 +1390,13 @@ interface LaughterDetectedEvent extends DataMessage {
 
 /**
  * Handle laughter detection from backend
- * 
+ *
  * BETTER THAN HUMAN: When the user laughs, Ferni's avatar laughs along!
  * This is one of the most powerful ways to build connection - shared joy.
- * 
+ *
  * Response varies by laugh type:
  * - Hearty laugh → Full delighted expression, maybe join in
- * - Chuckle/giggle → Warm smile, pleased expression  
+ * - Chuckle/giggle → Warm smile, pleased expression
  * - Nervous laugh → Gentle warmth, supportive presence
  * - Polite laugh → Subtle smile, acknowledgment
  */
@@ -1437,6 +1469,64 @@ function handleLaughterDetected(event: LaughterDetectedEvent): void {
     setTimeout(() => {
       playMicroExpression('recognition');
     }, 200);
+  }
+}
+
+// ============================================================================
+// QUALITY METRICS HANDLER - Qwen session manager BTH path
+// ============================================================================
+
+/**
+ * Handle quality metrics from Qwen session manager.
+ * Drives subtle avatar response so BTH quality tracking is visible on Qwen full stack.
+ */
+function handleQualityMetrics(event: QualityMetricsEvent): void {
+  const metrics = event.qualityMetrics;
+  if (!metrics) return;
+
+  log.debug('BTH (Qwen): quality metrics', {
+    averageDepth: metrics.averageDepth,
+    engagementTrend: metrics.engagementTrend,
+    emotionalRange: metrics.emotionalRange,
+  });
+
+  const { playMicroExpression } = ferni;
+  const engagement = metrics.engagementTrend ?? 0;
+  const depth = metrics.averageDepth ?? 0;
+
+  if (engagement > 0.5 || depth > 0.5) {
+    playMicroExpression('recognition');
+  } else if (engagement > 0.3) {
+    playMicroExpression('warmth_pulse');
+  }
+}
+
+// ============================================================================
+// PERSONALITY SIGNALS HANDLER - Qwen session manager BTH path
+// ============================================================================
+
+/**
+ * Handle personality signals from Qwen session manager.
+ * Drives avatar presence so BTH personality/vulnerability is visible on Qwen path.
+ */
+function handlePersonalitySignals(event: PersonalitySignalsEvent): void {
+  const context = event.personalityContext;
+  if (context == null) return;
+
+  log.debug('BTH (Qwen): personality signals received');
+
+  const { playMicroExpression } = ferni;
+  const payload = context as Record<string, unknown>;
+  const signalType = payload?.signalType as string | undefined;
+
+  if (signalType && typeof signalType === 'string') {
+    const bthSignal: BetterThanHumanSignal = {
+      signalType: signalType as BetterThanHumanSignalType,
+      intensity: (payload.intensity as number) ?? 0.7,
+    };
+    handleBetterThanHumanSignal(bthSignal);
+  } else {
+    playMicroExpression('warmth_pulse');
   }
 }
 
@@ -1869,7 +1959,9 @@ export function handleMood(event: MoodEvent): void {
  * Type guard for proactive outreach messages.
  * These are "thinking of you" moments from the backend trust systems.
  */
-function isProactiveOutreachMessage(message: DataMessage): message is DataMessage & { data: ProactiveOutreachData } {
+function isProactiveOutreachMessage(
+  message: DataMessage
+): message is DataMessage & { data: ProactiveOutreachData } {
   return (
     message.type === 'proactive_outreach' &&
     typeof message.data === 'object' &&
@@ -1880,14 +1972,17 @@ function isProactiveOutreachMessage(message: DataMessage): message is DataMessag
 /**
  * Handle proactive outreach events from the backend.
  * Shows a notification that Ferni was thinking about them.
- * 
+ *
  * "Better than Human" - The most meaningful check-ins aren't triggered by actions,
  * they're the random "I was thinking about you" moments that show someone genuinely cares.
  */
 function handleProactiveOutreach(message: DataMessage & { data: ProactiveOutreachData }): void {
   const outreach = message.data;
-  
-  log.info({ type: outreach.type, personaId: outreach.personaId }, '💭 BETTER THAN HUMAN: Proactive outreach received');
+
+  log.info(
+    { type: outreach.type, personaId: outreach.personaId },
+    '💭 BETTER THAN HUMAN: Proactive outreach received'
+  );
 
   // =========================================================================
   // BETTER THAN HUMAN: Enhanced EQ response to proactive outreach
@@ -1902,15 +1997,15 @@ function handleProactiveOutreach(message: DataMessage & { data: ProactiveOutreac
 
   // Trigger MULTIPLE expressions for maximum warmth perception
   const { playMicroExpression } = ferni;
-  
+
   // First: Quick recognition micro-expression (subliminal)
   playMicroExpression('recognition');
-  
+
   // Then: Warm expression held longer
   setTimeout(() => {
     ferniExpressions.setExpression('warm', 400, 2000);
   }, 100);
-  
+
   // Type-specific expressions based on outreach type
   // Types: 'thinking_of_you' | 'growth_reflection' | 'celebration' | 'life_event' | 'random_warmth'
   if (outreach.type === 'life_event') {
@@ -1919,7 +2014,7 @@ function handleProactiveOutreach(message: DataMessage & { data: ProactiveOutreac
       playMicroExpression('concern_flash');
       ferniExpressions.setExpression('holdingSpace', 500, 2500);
     }, 300);
-    
+
     // 🤲 Sidekick: Check if this is a birthday or anniversary reminder
     const contextLower = (outreach.context || '').toLowerCase();
     const messageLower = (outreach.message || '').toLowerCase();
@@ -1941,9 +2036,11 @@ function handleProactiveOutreach(message: DataMessage & { data: ProactiveOutreac
   }
 
   // Dispatch event for other systems
-  document.dispatchEvent(new CustomEvent('ferni:data-message', {
-    detail: message
-  }));
+  document.dispatchEvent(
+    new CustomEvent('ferni:data-message', {
+      detail: message,
+    })
+  );
 }
 
 /**
@@ -1985,9 +2082,11 @@ export function handleMusic(event: MusicEvent): void {
   }
 
   // 🤲 Sidekick: Dispatch music state event for avatar sidekick
-  document.dispatchEvent(new CustomEvent('ferni:music-state', {
-    detail: { state: event.state, isAmbient: event.isAmbient, trackName: event.trackName }
-  }));
+  document.dispatchEvent(
+    new CustomEvent('ferni:music-state', {
+      detail: { state: event.state, isAmbient: event.isAmbient, trackName: event.trackName },
+    })
+  );
 
   // =========================================================================
   // STEP 3: Handle avatar feedback and expressions (side effects)
@@ -2536,7 +2635,11 @@ function handleOnBehalfCallComplete(event: OnBehalfCallCompleteEvent): void {
     ferniExpressions.setExpression('curious', 400, 2000);
 
     // Show retry option
-    messageUI.show(`📞 Couldn't reach ${event.contactName}. Want me to try again later?`, 'warning', 5000);
+    messageUI.show(
+      `📞 Couldn't reach ${event.contactName}. Want me to try again later?`,
+      'warning',
+      5000
+    );
   } else if (event.status === 'failed') {
     // Call failed - apologetic
     playMicroExpression('concern_flash');
@@ -2580,7 +2683,17 @@ function handleOnBehalfCallComplete(event: OnBehalfCallCompleteEvent): void {
 interface BackgroundResultCompleteEvent extends DataMessage {
   type: 'background_result_complete';
   resultId: string;
-  resultType: 'on_behalf_call' | 'research_complete' | 'reservation_made' | 'follow_up_sent' | 'reminder_triggered' | 'commitment_check' | 'calendar_update' | 'contact_updated' | 'email_sent' | 'task_completed';
+  resultType:
+    | 'on_behalf_call'
+    | 'research_complete'
+    | 'reservation_made'
+    | 'follow_up_sent'
+    | 'reminder_triggered'
+    | 'commitment_check'
+    | 'calendar_update'
+    | 'contact_updated'
+    | 'email_sent'
+    | 'task_completed';
   summary: string;
   status: 'success' | 'partial_success' | 'failed' | 'requires_action' | 'pending';
   priority: 'urgent' | 'high' | 'normal' | 'low';

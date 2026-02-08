@@ -18,15 +18,13 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import { runBackground } from '../utils/background-task.js';
+import { MAX_RETRIES, RETRY_DELAY_MS } from '../config/resilience-config.js';
 
 const log = createLogger({ module: 'RealtimePersistence' });
 
 // ============================================================================
-// RETRY LOGIC
+// RETRY LOGIC (uses centralized resilience-config)
 // ============================================================================
-
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 1000; // 1 second between retries
 
 /**
  * Execute a function with retry logic for transient failures

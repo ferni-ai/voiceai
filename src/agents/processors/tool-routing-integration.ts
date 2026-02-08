@@ -1,41 +1,48 @@
 /**
- * Tool Routing Integration
+ * FTIS Tool Routing Integration
  *
- * Integrates the intelligent routing system (FTIS) with the voice agent pipeline.
- * Uses the intent classifier for fast tool detection and the tool executor for
- * direct execution when confidence is high enough.
+ * Integrates the Ferni Tool Intelligence System (FTIS) with the voice agent pipeline.
  *
  * Architecture:
- * 1. Intent Classifier: Pattern + keyword matching (<5ms)
- * 2. Direct Execution: Tool execution with argument extraction
- * 3. LLM Fallback: For low-confidence or conversation-like queries
+ *   1. Two-stage hierarchical ONNX classifier (~50ms):
+ *      Stage 1: User query → domain (44 domains)
+ *      Stage 2: "[domain] query" → meta-tool (112 tools)
+ *   2. High confidence (≥0.85) → direct tool execution, bypass LLM
+ *   3. Low confidence → Gemini handles as conversation
  *
  * @module agents/processors/tool-routing-integration
  */
 
-import { isFTISV2OnlyMode as getConfigFTISMode } from '../../config/tool-routing-config.js';
+import { isFTISEnabled as getConfigFTISEnabled } from '../../config/tool-routing-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { SemanticRoutingResult } from './types.js';
 
-const log = createLogger({ module: 'tool-routing-integration' });
+const log = createLogger({ module: 'ftis-routing' });
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
 /**
- * Check if FTIS V2 only mode is enabled.
+ * Check if FTIS is enabled.
  * Delegates to the centralized config for single source of truth.
  */
+export function isFTISEnabled(): boolean {
+  return getConfigFTISEnabled();
+}
+
+/**
+ * @deprecated Use isFTISEnabled() instead. Kept for backward compatibility.
+ */
 export function isFTISV2OnlyMode(): boolean {
-  return getConfigFTISMode();
+  return getConfigFTISEnabled();
 }
 
 // ============================================================================
-// TYPES (preserved for compatibility)
+// TYPES
 // ============================================================================
 
-export interface FTISV2RoutingContext {
+export interface FTISRoutingContext {
   userId: string;
   sessionId: string;
   personaId: string;
@@ -47,7 +54,10 @@ export interface FTISV2RoutingContext {
   lastAgentMessage?: string;
 }
 
-export interface FTISV2RoutingResult {
+/** @deprecated Use FTISRoutingContext instead. */
+export type FTISV2RoutingContext = FTISRoutingContext;
+
+export interface FTISRoutingResult {
   attempted: boolean;
   bypassLLM: boolean;
   toolResult?: {
@@ -67,29 +77,32 @@ export interface FTISV2RoutingResult {
   error?: string;
 }
 
+/** @deprecated Use FTISRoutingResult instead. */
+export type FTISV2RoutingResult = FTISRoutingResult;
+
 // ============================================================================
-// FTIS V2 ROUTING IMPLEMENTATION
+// FTIS ROUTING IMPLEMENTATION
 // ============================================================================
 
 /**
- * Run FTIS V2 routing on user input.
+ * Run FTIS routing on user input.
  *
- * Uses the intelligent intent classifier for fast tool detection,
+ * Uses the two-stage hierarchical ONNX classifier for fast tool detection,
  * then executes tools directly when confidence is high enough.
  *
  * @param userText - The user's transcript
  * @param context - Routing context with user/session info
  * @returns Routing result with classification and optional tool result
  */
-export async function runFTISV2Routing(
+export async function runFTISRouting(
   userText: string,
-  context: FTISV2RoutingContext
-): Promise<FTISV2RoutingResult> {
+  context: FTISRoutingContext
+): Promise<FTISRoutingResult> {
   const startTime = Date.now();
 
   // Skip if FTIS is disabled
-  if (!isFTISV2OnlyMode()) {
-    log.debug('FTIS V2 routing disabled - using LLM native function calling');
+  if (!isFTISEnabled()) {
+    log.debug('FTIS disabled - using LLM native function calling');
     return {
       attempted: false,
       bypassLLM: false,
@@ -98,40 +111,76 @@ export async function runFTISV2Routing(
   }
 
   try {
-    // 1. Run intent classification
-    const { getIntentClassifier } =
-      await import('../../tools/semantic-router/advanced/intelligent/intent-classifier.js');
-    const classifier = getIntentClassifier();
-    const classification = await classifier.classify(userText);
+    // =========================================================================
+    // FTIS HIERARCHICAL CLASSIFICATION (Feb 2026)
+    //
+    // Uses the V7 two-stage ONNX model:
+    //   Stage 1: userQuery → domain (e.g., "music_audio", "calendar")
+    //   Stage 2: "[domain] userQuery" → meta-tool (e.g., "music_play", "alarm_set")
+    //   Combined confidence = domain_confidence * meta_tool_confidence
+    //
+    // This replaces the deprecated flat IntentClassifier (V5/V6).
+    // =========================================================================
+    const {
+      classifyHierarchicalSafe,
+      isHierarchicalClassifierAvailable,
+      initializeHierarchicalClassifier,
+    } = await import('../../tools/semantic-router/advanced/intelligent/hierarchical-classifier.js');
 
+    // Ensure classifier is initialized (lazy init on first call)
+    if (!isHierarchicalClassifierAvailable()) {
+      await initializeHierarchicalClassifier();
+    }
+
+    const v7Result = classifyHierarchicalSafe(userText);
     const classificationLatency = Date.now() - startTime;
 
-    log.debug(
-      {
-        intent: classification.intent?.id,
-        confidence: classification.confidence.toFixed(2),
-        toolId: classification.toolId,
-        source: classification.source,
-        latencyMs: classificationLatency,
-      },
-      '🧠 FTIS V2: Intent classified'
-    );
-
-    // 2. Check if this is a conversation intent (no tool)
-    if (
-      !classification.toolId ||
-      classification.intent?.id === 'conversation.chat' ||
-      classification.confidence < 0.5
-    ) {
+    // If V7 classifier unavailable or returned null, fall back to conversation
+    if (!v7Result || v7Result.predictions.length === 0) {
+      log.debug(
+        { latencyMs: classificationLatency, available: isHierarchicalClassifierAvailable() },
+        '🧠 FTIS: No classification result - treating as conversation'
+      );
       return {
         attempted: true,
         bypassLLM: false,
         classification: {
-          superCategory: classification.intent?.category || 'conversation',
-          fineCategory: classification.intent?.action || 'chat',
-          confidence: classification.confidence,
-          usedFallback: false,
+          superCategory: 'conversation',
+          fineCategory: 'chat',
+          confidence: 0,
+          usedFallback: true,
           latencyMs: classificationLatency,
+        },
+        processingTimeMs: Date.now() - startTime,
+      };
+    }
+
+    const topPrediction = v7Result.predictions[0];
+
+    log.debug(
+      {
+        domain: topPrediction.domain,
+        domainConfidence: topPrediction.domainConfidence.toFixed(3),
+        metaTool: topPrediction.metaTool,
+        metaToolConfidence: topPrediction.metaToolConfidence.toFixed(3),
+        combinedConfidence: topPrediction.combinedConfidence.toFixed(3),
+        latencyMs: v7Result.latencyMs,
+        source: v7Result.source,
+      },
+      '🧠 FTIS: Hierarchical classification complete'
+    );
+
+    // 2. Check if this is a no-tool / conversation intent
+    if (topPrediction.domain === '__no_tool__' || topPrediction.combinedConfidence < 0.3) {
+      return {
+        attempted: true,
+        bypassLLM: false,
+        classification: {
+          superCategory: topPrediction.domain,
+          fineCategory: topPrediction.metaTool,
+          confidence: topPrediction.combinedConfidence,
+          usedFallback: false,
+          latencyMs: v7Result.latencyMs,
         },
         processingTimeMs: Date.now() - startTime,
       };
@@ -141,27 +190,35 @@ export async function runFTISV2Routing(
     const { DIRECT_EXECUTION_THRESHOLD, executeDirectFromClassification } =
       await import('../../tools/intelligence/tool-executor.js');
 
-    // Convert intent classifier result to tool executor format
+    // Normalize V7 label format: "music.play" → "music_play"
+    // V7 Stage 2 uses dot notation (music.play, alarm.set)
+    // Domain bridge expects underscore notation (music_play, alarm_set)
+    const normalizedMetaTool = topPrediction.metaTool.replace(/\./g, '_');
+
+    // Convert V7 hierarchical result to tool executor format
     const executorClassification = {
-      fineCategory: classification.intent?.action || classification.toolId || 'unknown',
-      toolIds: classification.toolId ? [classification.toolId] : [],
-      combinedConfidence: classification.confidence,
-      effectiveConfidence: classification.confidence,
-      isOpenIntent: !classification.toolId,
+      fineCategory: normalizedMetaTool,
+      toolIds: [normalizedMetaTool],
+      combinedConfidence: topPrediction.combinedConfidence,
+      effectiveConfidence: topPrediction.combinedConfidence,
+      isOpenIntent: false,
     };
 
-    // Check if confidence is high enough for direct execution
-    if (classification.confidence >= DIRECT_EXECUTION_THRESHOLD) {
+    // High confidence → execute directly
+    if (topPrediction.combinedConfidence >= DIRECT_EXECUTION_THRESHOLD) {
       log.info(
         {
-          toolId: classification.toolId,
-          confidence: classification.confidence.toFixed(2),
+          domain: topPrediction.domain,
+          metaTool: topPrediction.metaTool,
+          normalizedMetaTool,
+          combinedConfidence: topPrediction.combinedConfidence.toFixed(3),
           threshold: DIRECT_EXECUTION_THRESHOLD,
+          stage1Ms: v7Result.stage1LatencyMs,
+          stage2Ms: v7Result.stage2LatencyMs,
         },
-        '🎯 FTIS V2: High confidence - executing directly'
+        '🎯 FTIS: High confidence - executing directly'
       );
 
-      // Execute the tool directly
       const execResult = await executeDirectFromClassification(executorClassification, userText, {
         userId: context.userId,
         sessionId: context.sessionId,
@@ -181,11 +238,11 @@ export async function runFTISV2Routing(
             }
           : undefined,
         classification: {
-          superCategory: classification.intent?.category || 'unknown',
-          fineCategory: classification.intent?.action || classification.toolId || 'unknown',
-          confidence: classification.confidence,
+          superCategory: topPrediction.domain,
+          fineCategory: normalizedMetaTool,
+          confidence: topPrediction.combinedConfidence,
           usedFallback: false,
-          latencyMs: classificationLatency,
+          latencyMs: v7Result.latencyMs,
         },
         processingTimeMs: Date.now() - startTime,
         error: execResult.success ? undefined : execResult.error,
@@ -195,27 +252,29 @@ export async function runFTISV2Routing(
     // 4. Medium confidence - return classification as hint for LLM
     log.debug(
       {
-        toolId: classification.toolId,
-        confidence: classification.confidence.toFixed(2),
+        domain: topPrediction.domain,
+        metaTool: topPrediction.metaTool,
+        normalizedMetaTool,
+        combinedConfidence: topPrediction.combinedConfidence.toFixed(3),
         threshold: DIRECT_EXECUTION_THRESHOLD,
       },
-      '🧠 FTIS V2: Medium confidence - providing hint to LLM'
+      '🧠 FTIS: Medium confidence - providing hint to LLM'
     );
 
     return {
       attempted: true,
       bypassLLM: false,
       classification: {
-        superCategory: classification.intent?.category || 'unknown',
-        fineCategory: classification.intent?.action || classification.toolId || 'unknown',
-        confidence: classification.confidence,
+        superCategory: topPrediction.domain,
+        fineCategory: normalizedMetaTool,
+        confidence: topPrediction.combinedConfidence,
         usedFallback: false,
-        latencyMs: classificationLatency,
+        latencyMs: v7Result.latencyMs,
       },
       processingTimeMs: Date.now() - startTime,
     };
   } catch (error) {
-    log.warn({ error: String(error) }, 'FTIS V2 routing failed - falling back to LLM');
+    log.warn({ error: String(error) }, 'FTIS routing failed - falling back to LLM');
     return {
       attempted: true,
       bypassLLM: false,
@@ -226,13 +285,13 @@ export async function runFTISV2Routing(
 }
 
 /**
- * Convert FTIS V2 routing result to SemanticRoutingResult.
+ * Convert FTIS routing result to SemanticRoutingResult.
  *
  * Maps FTIS result fields to the SemanticRoutingResult format
  * used by the rest of the pipeline.
  */
 export function convertToSemanticRoutingResult(
-  ftisResult: FTISV2RoutingResult
+  ftisResult: FTISRoutingResult
 ): SemanticRoutingResult {
   // Not attempted or failed
   if (!ftisResult.attempted || ftisResult.error) {
@@ -305,8 +364,8 @@ export function convertToSemanticRoutingResult(
  * This helps the LLM understand what the classification detected,
  * even when confidence isn't high enough for direct execution.
  */
-export function buildFTISV2ToolHint(
-  classification: FTISV2RoutingResult['classification']
+export function buildFTISToolHint(
+  classification: FTISRoutingResult['classification']
 ): string | null {
   if (!classification || classification.confidence < 0.5) {
     return null;
@@ -326,10 +385,13 @@ export function buildFTISV2ToolHint(
   return parts.join('\n');
 }
 
+/** @deprecated Use buildFTISToolHint instead. */
+export const buildFTISV2ToolHint = buildFTISToolHint;
+
 /**
  * Build tool response guidance (still useful for formatting responses).
  */
-export function buildFTISV2ToolResponseGuidance(params: {
+export function buildFTISToolResponseGuidance(params: {
   toolId: string;
   result: string;
   success: boolean;
@@ -376,10 +438,13 @@ export function buildFTISV2ToolResponseGuidance(params: {
   return parts.join('\n');
 }
 
+/** @deprecated Use buildFTISToolResponseGuidance instead. */
+export const buildFTISV2ToolResponseGuidance = buildFTISToolResponseGuidance;
+
 /**
- * Get instructions for FTIS V2 mode (returns simplified instructions).
+ * Get FTIS instructions for the LLM (simplified, tool-free).
  */
-export async function getFTISV2Instructions(): Promise<string> {
+export async function getFTISInstructions(): Promise<string> {
   return `# Automatic Tool Execution
 
 Tools execute automatically based on what the user says.
@@ -390,6 +455,11 @@ When you see [TOOL_RESULT: ...], respond naturally to what happened.
 
 Never output JSON. Never try to call tools. Just be conversational.`;
 }
+
+/**
+ * @deprecated Use runFTISRouting() instead. Kept for backward compatibility.
+ */
+export const runFTISV2Routing = runFTISRouting;
 
 /**
  * Build tool response instructions for generateReply.

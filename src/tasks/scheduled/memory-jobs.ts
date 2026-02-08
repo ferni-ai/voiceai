@@ -25,23 +25,19 @@ import {
   type MetricAlert,
   type PruneResult,
 } from '../../memory/index.js';
-import {
-  findDuplicatesLSH,
-  type DuplicatePair,
-  type LSHConfig,
-} from '../../memory/lsh-deduplication.js';
+import { findDuplicatesLSH } from '../../memory/lsh-deduplication.js';
 import {
   findDuplicatesLsh as findDuplicatesLshRust,
-  isRustAvailable,
   getRustInfo,
+  isRustAvailable,
 } from '../../memory/rust-accelerator.js';
+import {
+  GROUP_TRANSCRIPT_RETENTION_DAYS,
+  SUMMARY_RETENTION_DAYS,
+  TRANSCRIPT_RETENTION_DAYS,
+} from '../../services/session-manager/constants.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
-import {
-  TRANSCRIPT_RETENTION_DAYS,
-  SUMMARY_RETENTION_DAYS,
-  GROUP_TRANSCRIPT_RETENTION_DAYS,
-} from '../../services/session-manager/constants.js';
 
 const log = getLogger();
 
@@ -76,32 +72,108 @@ async function getActiveUserIds(limit = 500): Promise<string[]> {
 
 /**
  * Get memories for a user from Firestore
- * Returns MemoryItem-like objects for processing
  *
- * Note: This is a simplified implementation. In production, you'd want to
- * fetch from a dedicated memory store that matches the MemoryItem interface.
+ * Reads from ALL dynamic memory collections (not just preferences):
+ * - dynamic_entities: LLM-extracted entities from conversations
+ * - dynamic_facts: LLM-extracted facts about entities
+ * - promoted_entities: Frequently mentioned entities from STM promotion
+ * - preferences: User preferences from profile
  */
 async function getUserMemories(userId: string): Promise<MemoryItem[]> {
   try {
-    const store = getFirestoreStore();
-    const profile = await store.getProfile(userId);
+    const { getFirestore } = await import('firebase-admin/firestore');
+    const db = getFirestore();
+    const memories: MemoryItem[] = [];
 
-    if (!profile) {
-      return [];
+    const userRef = db.collection('bogle_users').doc(userId);
+
+    // 1. Dynamic entities (from deep extraction)
+    const entitiesSnap = await userRef
+      .collection('dynamic_entities')
+      .orderBy('importance', 'desc')
+      .limit(200)
+      .get();
+
+    for (const doc of entitiesSnap.docs) {
+      const data = doc.data();
+      const extractedAt = data.extractedAt ? new Date(data.extractedAt) : new Date();
+      const memoryType = data.type === 'person' ? ('person' as const) : ('event' as const);
+      memories.push({
+        id: `entity_${doc.id}`,
+        content: `Entity: ${data.name} (${data.type || 'unknown'}) - ${JSON.stringify(data.attributes || {})}`,
+        type: memoryType,
+        timestamp: extractedAt,
+        emotionalWeight: data.importance || 0.5,
+        relevanceDecay: 0.3,
+        baseImportance: data.importance || 0.5,
+        source: {
+          collection: 'dynamic_entities',
+          documentId: doc.id,
+        },
+      });
     }
 
-    // Convert profile data to MemoryItem format
-    const memories: MemoryItem[] = [];
-    const now = new Date();
+    // 2. Dynamic facts (from deep extraction)
+    const factsSnap = await userRef
+      .collection('dynamic_facts')
+      .orderBy('confidence', 'desc')
+      .limit(300)
+      .get();
 
-    // Add preferences as memories
-    if (profile.preferences) {
+    for (const doc of factsSnap.docs) {
+      const data = doc.data();
+      const extractedAt = data.extractedAt ? new Date(data.extractedAt) : new Date();
+      memories.push({
+        id: `fact_${doc.id}`,
+        content: `Fact about ${data.entityName}: ${data.key} = ${data.value}`,
+        type: 'moment',
+        timestamp: extractedAt,
+        emotionalWeight: data.confidence || 0.5,
+        relevanceDecay: 0.4,
+        baseImportance: data.confidence || 0.5,
+        source: {
+          collection: 'dynamic_facts',
+          documentId: doc.id,
+        },
+      });
+    }
+
+    // 3. Promoted entities (from STM promotion at session end)
+    const promotedSnap = await userRef
+      .collection('promoted_entities')
+      .orderBy('importance', 'desc')
+      .limit(100)
+      .get();
+
+    for (const doc of promotedSnap.docs) {
+      const data = doc.data();
+      const promotedAt = data.promotedAt ? new Date(data.promotedAt) : new Date();
+      const promotedType = data.type === 'person' ? ('person' as const) : ('event' as const);
+      memories.push({
+        id: `promoted_${doc.id}`,
+        content: `Promoted entity: ${data.name} (${data.type || 'person'}) mentioned ${data.mentionCount || 1}x - ${data.lastContext || ''}`,
+        type: promotedType,
+        timestamp: promotedAt,
+        emotionalWeight: data.importance || 0.6,
+        relevanceDecay: 0.2,
+        baseImportance: data.importance || 0.6,
+        source: {
+          collection: 'promoted_entities',
+          documentId: doc.id,
+        },
+      });
+    }
+
+    // 4. Preferences from profile (backward-compatible)
+    const store = getFirestoreStore();
+    const profile = await store.getProfile(userId);
+    if (profile?.preferences) {
       for (const [key, value] of Object.entries(profile.preferences)) {
         memories.push({
           id: `pref_${key}`,
           content: `Preference: ${key} = ${JSON.stringify(value)}`,
           type: 'preference',
-          timestamp: now,
+          timestamp: new Date(),
           emotionalWeight: 0.2,
           relevanceDecay: 0.3,
           baseImportance: 0.4,
@@ -112,6 +184,18 @@ async function getUserMemories(userId: string): Promise<MemoryItem[]> {
         });
       }
     }
+
+    log.info(
+      {
+        userId,
+        total: memories.length,
+        entities: entitiesSnap.size,
+        facts: factsSnap.size,
+        promoted: promotedSnap.size,
+        preferences: profile?.preferences ? Object.keys(profile.preferences).length : 0,
+      },
+      '🧠 [MEMORY-JOBS] Loaded user memories from all collections'
+    );
 
     return memories;
   } catch (error) {

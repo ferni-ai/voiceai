@@ -169,6 +169,7 @@ import { handleMarketingRoutes } from '../../api/marketing-routes.js';
 import { handleLinkedInRoutes } from '../../api/linkedin-routes.js';
 import { handleSitesRoutes } from '../../api/sites-routes.js';
 import { handleSeedsRoutes } from '../../api/seeds-routes.js';
+import { handleCEORoutes } from '../../api/ceo/index.js';
 import { handleCalendarWebhookRoutes } from '../../api/calendar-webhook-routes.js';
 import { handlePracticeCalendarRoutes } from '../../api/routes/practice-calendar.js';
 import { handlePracticeViewRoutes } from '../../api/routes/practice-view.js';
@@ -215,6 +216,8 @@ import {
   initUserEventsWebSocket,
   shutdownUserEventsWebSocket,
 } from '../../services/user-events-websocket.js';
+// WebSocket for Director Mode (Qwen3-Omni ensemble control)
+import { initDirectorWebSocket, shutdownDirectorWebSocket } from '../../api/director-routes.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
 // SECURITY: Uses new modular version with Firebase auth (no x-user-id)
 import { handleCustomAgentRoutes } from '../../api/custom-agent/index.js';
@@ -1361,6 +1364,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // CEO routes (goals, brain, briefing, habits, wins, etc.)
+    if (pathname.startsWith('/api/ceo')) {
+      const handled = await handleCEORoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
     // Subscription routes
     if (isSubscriptionRoute(pathname)) {
       try {
@@ -1513,6 +1522,14 @@ log.info('Life Context WebSocket server initialized on /ws/life-context');
 initUserEventsWebSocket(server);
 log.info('User Events WebSocket server initialized on /ws/user-events');
 
+// Initialize WebSocket server for Director Mode (Qwen3-Omni ensemble control)
+const directorAuthorizedIds = (process.env.DIRECTOR_AUTHORIZED_IDS ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+initDirectorWebSocket(server, { authorizedDirectorIds: directorAuthorizedIds });
+log.info('Director WebSocket server initialized on /ws/director');
+
 // Register DDoS alerting to Slack
 registerDDoSAlertCallback(async (details) => {
   await notifyDDoSAlert(details);
@@ -1610,6 +1627,7 @@ async function gracefulShutdown(): Promise<void> {
   shutdownInsightsWebSocket();
   shutdownLifeContextWebSocket();
   shutdownUserEventsWebSocket();
+  shutdownDirectorWebSocket();
 
   // Stop proactive scheduler
   stopProactiveScheduler();

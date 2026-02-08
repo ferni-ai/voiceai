@@ -24,6 +24,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
+import { getPersonaColor } from '../config/brand-colors.js';
 import { rateLimit, requireAuth, type AuthContext } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendJSON, sendError } from './helpers.js';
 
@@ -542,11 +543,17 @@ async function fetchYourWorld(userId: string): Promise<YourWorld> {
       typeCounts[person.type] = (typeCounts[person.type] || 0) + 1;
     }
 
+    const categoryPersonaMap: Record<string, string> = {
+      family: 'maya-santos',
+      friend: 'ferni',
+      colleague: 'alex-chen',
+      mentor: 'nayan-patel',
+    };
     const categories = [
-      { type: 'family', count: typeCounts.family || 0, color: '#a67a6a' },
-      { type: 'friend', count: typeCounts.friend || 0, color: '#4a6741' },
-      { type: 'colleague', count: typeCounts.colleague || 0, color: '#5a6b8a' },
-      { type: 'mentor', count: typeCounts.mentor || 0, color: '#b8956a' },
+      { type: 'family', count: typeCounts.family || 0, color: getPersonaColor(categoryPersonaMap.family) },
+      { type: 'friend', count: typeCounts.friend || 0, color: getPersonaColor(categoryPersonaMap.friend) },
+      { type: 'colleague', count: typeCounts.colleague || 0, color: getPersonaColor(categoryPersonaMap.colleague) },
+      { type: 'mentor', count: typeCounts.mentor || 0, color: getPersonaColor(categoryPersonaMap.mentor) },
     ].filter((c) => c.count > 0);
 
     const needsAttention = opportunities.length;

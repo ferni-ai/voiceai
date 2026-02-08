@@ -13,50 +13,49 @@
  */
 
 import type { Room } from '@livekit/rtc-node';
-import { createLogger } from '../../utils/safe-logger.js';
+import { isMusicEnabled } from '../../config/environment.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import type { SessionServices } from '../../services/index.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
-import { isMusicEnabled } from '../../config/environment.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 // New DJ Architecture
 import { getDJController, resetDJController, type DJEvent } from '../../audio/dj-controller.js';
-import { getDJTimingEngine, resetDJTimingEngine } from '../../audio/dj-timing-engine.js';
 import {
   shouldSpeakIntro,
   shouldSpeakOutro,
   type DecisionContext,
 } from '../../audio/dj-decision-engine.js';
 import {
-  getOutroPhrase,
-  getDropPhrase,
-  getMomentPhrase,
   getCheckInPhrase,
+  getDropPhrase,
   getInterjection,
+  getMomentPhrase,
+  getOutroPhrase,
   prewarmInterjectionCache,
   type TrackSpeechContext,
 } from '../../audio/dj-speech-engine.js';
+import { getDJTimingEngine, resetDJTimingEngine } from '../../audio/dj-timing-engine.js';
 import {
   getMusicPlayer,
   initializeMusicPlayer,
-  isMusicAvailable,
-  type MusicTrack,
   type MusicState,
+  type MusicTrack,
 } from '../../audio/music-player.js';
 
 // Music learning and analytics
-import { ensureMusicLearningLoaded } from '../../audio/music-learning-persistence.js';
-import { startAnalyticsPersistence } from '../../audio/music-transition-analytics.js';
 import {
-  registerMusicFeedbackRecorder,
   clearMusicFeedbackRecorder,
+  registerMusicFeedbackRecorder,
 } from '../../audio/music-feedback-manager.js';
+import { ensureMusicLearningLoaded } from '../../audio/music-learning-persistence.js';
 import {
-  startMusicContext,
-  endMusicContext,
   clearMusicContext,
+  endMusicContext,
+  startMusicContext,
 } from '../../audio/music-session-context.js';
+import { startAnalyticsPersistence } from '../../audio/music-transition-analytics.js';
 
 // Frontend communication
 import { getFrontendPublisher } from '../realtime/frontend-publisher.js';
@@ -288,6 +287,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     // 🎧 FIX: Skip outro speech if there are more tracks in queue
     // This prevents speech overlap when transitioning between queued tracks.
     // The outro is only meaningful for the final track in a sequence.
+    if (!musicPlayer.isInitialized()) return;
     const playerState = musicPlayer.getState();
     if (playerState.queue.length > 0) {
       log.debug(
@@ -346,6 +346,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     // 🎧 DJ CONTINUATION: Auto-queue more music when queue empties
     // Real DJs don't stop and ask permission - they keep the vibe going!
     // ==========================================================================
+    if (!musicPlayer.isInitialized()) return;
     const playerState = musicPlayer.getState();
     const wasExplicit = playerState.wasExplicitlyStopped;
     const queueEmpty = playerState.queue.length === 0;
@@ -353,18 +354,17 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     if (!wasExplicit && queueEmpty && !event.wasAmbient && event.track) {
       // Wait a beat for natural pacing
       setTimeout(async () => {
-        // Double-check we haven't started new music or user stopped it
+        // Double-check player still valid and we haven't started new music or user stopped it
+        if (!musicPlayer.isInitialized()) return;
         if (!musicPlayer.isPlaying() && !musicPlayer.wasExplicitlyStopped()) {
           try {
             // Import music tools dynamically to avoid circular deps
             const { playViaItunes } = await import('../../tools/domains/entertainment/music.js');
-            
+
             // Build a query based on what was playing (same artist or similar vibe)
             const lastTrack = event.track;
-            const searchQuery = lastTrack?.artist 
-              ? `more ${lastTrack.artist}` 
-              : 'upbeat music';
-            
+            const searchQuery = lastTrack?.artist ? `more ${lastTrack.artist}` : 'upbeat music';
+
             log.info(
               { lastTrack: lastTrack?.name, searchQuery },
               '🎧 DJ auto-continuing with more music in same vibe'
@@ -372,16 +372,17 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
 
             // Play more music - DJ style continuation phrase built into playViaItunes
             const result = await playViaItunes(searchQuery, sessionPersona.id);
-            
+
             // Only speak if music started successfully
             if (!result.includes("couldn't") && !result.includes('trouble')) {
               const continuationPhrases = [
-                "Keeping it going...",
-                "More vibes coming...",
+                'Keeping it going...',
+                'More vibes coming...',
                 "Let's keep this rolling...",
-                "", // Sometimes just let the music speak
+                '', // Sometimes just let the music speak
               ];
-              const phrase = continuationPhrases[Math.floor(Math.random() * continuationPhrases.length)];
+              const phrase =
+                continuationPhrases[Math.floor(Math.random() * continuationPhrases.length)];
               if (phrase) {
                 coordinatedSay(sessionId, phrase);
               }
@@ -620,4 +621,4 @@ export function notifyUserSpeakingEnd(): void {
 }
 
 // Backward compatibility exports
-export { getMusicPlayer, type MusicTrack, type MusicState } from '../../audio/music-player.js';
+export { getMusicPlayer, type MusicState, type MusicTrack } from '../../audio/music-player.js';

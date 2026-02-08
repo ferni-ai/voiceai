@@ -272,18 +272,22 @@ async function updateToolsNativeFC(
       // =====================================================================
       // Uses capToolsToLimit() from tool-config.ts with TOOL_LIMIT env var.
       // Default: 0 (unlimited) - semantic router handles filtering.
-      // For Gemini without meta-tool: falls back to 18 if unlimited.
+      //
+      // FEB 2026 FIX: Removed the Gemini fallback cap of 18. The essential
+      // tools list alone has ~42 entries, so a cap of 18 was meaningless
+      // (capToolsToLimit prioritizes essentials, so all 42 survived anyway).
+      // The semantic router already pre-filters to relevant tools per turn,
+      // so a hard cap here is unnecessary and confusing.
       // =====================================================================
       const configLimit = getMaxTools();
-      const effectiveLimit = configLimit > 0 ? configLimit : isGemini ? 18 : 0;
 
-      if (effectiveLimit > 0) {
-        allTools = capToolsToLimit(allTools, effectiveLimit);
+      if (configLimit > 0) {
+        allTools = capToolsToLimit(allTools, configLimit);
         const newToolCount = Object.keys(allTools).length;
 
         if (newToolCount !== toolCount) {
           process.stderr.write(
-            `   ⚠️ [TOOL LIMIT] Capped: ${toolCount} → ${newToolCount} (limit: ${effectiveLimit})\n`
+            `   ⚠️ [TOOL LIMIT] Capped: ${toolCount} → ${newToolCount} (limit: ${configLimit})\n`
           );
           toolCount = newToolCount;
         }

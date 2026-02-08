@@ -144,6 +144,8 @@ export interface CreateActionOptions {
   sessionId?: string;
   commitmentId?: string;
   userMessage?: string;
+  /** Which persona initiated this action (for "Your Story" attribution) */
+  personaId?: string;
 }
 
 /**

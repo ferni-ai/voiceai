@@ -35,8 +35,7 @@ steps:
       - '--dockerfile=docker/Dockerfile.agent'
       - '--destination=gcr.io/$PROJECT_ID/voiceai-agent:${_IMAGE_TAG}'
       - '--destination=gcr.io/$PROJECT_ID/voiceai-agent:latest'
-      - '--cache=true'
-      - '--cache-ttl=168h'
+      - '--cache=false'  # TEMPORARILY DISABLED: Force rebuild for Ubuntu 24.04 base
       - '--snapshot-mode=redo'
       - '--use-new-run'
       - '--push-retry=3'
@@ -46,5 +45,5 @@ options:
   machineType: 'E2_HIGHCPU_8'
   logging: CLOUD_LOGGING_ONLY
 
-timeout: '1200s' # 20 minutes
+timeout: '2400s' # 40 minutes (no-cache Ubuntu build needs extra time)
 

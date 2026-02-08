@@ -8,9 +8,9 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { AccessToken, AgentDispatchClient } from 'livekit-server-sdk';
 import { rateLimit } from '../../../api/auth-middleware.js';
-import * as demoSessions from '../services/demo-sessions.js';
 import { prewarmContent, type ContentType } from '../../../services/llm-dynamic-content.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import * as demoSessions from '../services/demo-sessions.js';
 
 // Import shared rate limiting from token server module (single source of truth)
 import {
@@ -430,6 +430,7 @@ export async function handleTokenRoutes(
           city: demoGeoData.city,
           regionCode: demoGeoData.regionCode,
           countryCode: demoGeoData.countryCode,
+          useQwen3Omni: process.env.USE_QWEN3_OMNI === 'true',
         })
       );
     } catch (error) {
@@ -823,6 +824,8 @@ export async function handleTokenRoutes(
           // IP-detected location for weather, local content
           city: geoData.city,
           regionCode: geoData.regionCode,
+          // Qwen Omni: frontend uses this to show Director Console in menu only when Qwen is active
+          useQwen3Omni: process.env.USE_QWEN3_OMNI === 'true',
         })
       );
     } catch (error) {

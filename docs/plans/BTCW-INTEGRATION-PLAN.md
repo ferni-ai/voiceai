@@ -16,7 +16,7 @@
 - ✅ BTCW TTS provider created: `src/speech/tts-gateway/providers/btcw.ts`
 - ✅ Provider factory updated with `USE_BTCW_TTS` feature flag
 - ✅ Architecture documented (this file + `VOICE-SYSTEMS-UNIFIED-STRATEGY.md`)
-- ✅ PersonaPlex comparison completed (BTCW wins for Ferni's use case)
+- ✅ Voice system comparison completed (BTCW wins for Ferni's use case)
 
 ### On Hold (Pending Prioritization)
 
@@ -49,23 +49,22 @@ This plan integrates BTCW with the Ferni voice agent, replacing Cartesia TTS.
 
 ---
 
-## Why BTCW Over PersonaPlex?
+## Why BTCW?
 
-| Capability                 | BTCW                                   | PersonaPlex        |
-| -------------------------- | -------------------------------------- | ------------------ |
-| **Circadian adaptation**   | ✅ Voice changes by time of day        | ❌ None            |
-| **Relationship evolution** | ✅ Voice deepens with trust            | ❌ None            |
-| **Meaningful silence**     | ✅ Knows when NOT to speak             | ❌ Always responds |
-| **SSML control**           | ✅ Full W3C 1.1 + Cartesia             | ❌ None            |
-| **Memory prosody**         | ✅ Reverence for past moments          | ❌ None            |
-| **Backchannels**           | ✅ "mm-hmm", "yeah"                    | ⚠️ Uncontrolled    |
-| **Emotional anticipation** | ✅ Primes emotion BEFORE content       | ❌ None            |
-| **Breath sync**            | ✅ Parasympathetic coupling            | ❌ None            |
-| **Responsive escalation**  | ✅ MORE present as distress increases  | ❌ None            |
-| **Vocal fatigue**          | ✅ Realistic strain showing dedication | ❌ None            |
-| **Full duplex**            | ❌ Separate STT/LLM/TTS                | ✅ Native          |
+BTCW provides 12 superhuman voice capabilities that align with the "Better Than Human" brand:
 
-**BTCW wins for Ferni** because the "Better Than Human" brand requires capabilities PersonaPlex can't provide.
+| Capability                 | BTCW                                   |
+| -------------------------- | -------------------------------------- |
+| **Circadian adaptation**   | ✅ Voice changes by time of day        |
+| **Relationship evolution** | ✅ Voice deepens with trust            |
+| **Meaningful silence**     | ✅ Knows when NOT to speak             |
+| **SSML control**           | ✅ Full W3C 1.1 + Cartesia             |
+| **Memory prosody**         | ✅ Reverence for past moments          |
+| **Backchannels**           | ✅ "mm-hmm", "yeah"                    |
+| **Emotional anticipation** | ✅ Primes emotion BEFORE content       |
+| **Breath sync**            | ✅ Parasympathetic coupling            |
+| **Responsive escalation**  | ✅ MORE present as distress increases  |
+| **Vocal fatigue**          | ✅ Realistic strain showing dedication |
 
 ---
 
@@ -720,7 +719,7 @@ export class MimiSemanticVAD {
 }
 ```
 
-### Related: PersonaPlex/Gemini Hybrid
+### Related: Mimi/Gemini Hybrid
 
 We also explored wiring Mimi to Gemini (like LLaMA-Omni2 architecture). This is even more future - would require:
 

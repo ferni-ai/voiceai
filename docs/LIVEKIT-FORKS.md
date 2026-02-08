@@ -15,10 +15,10 @@
 |---------|------|
 | LiveKit Agents Monorepo | [github.com/sethdford/agents-js](https://github.com/sethdford/agents-js) |
 
-**Branch:** `ferni-v1.0.32`
-**Tag:** `@livekit/agents@1.0.32-ferni.1`
+**Branch:** `ferni-v1.0.32` (or your ferni branch; content may be merged from upstream/main)
+**Tag:** e.g. `@livekit/agents@1.0.32-ferni.1` or `@livekit/agents@1.0.39-ferni.1` after syncing
 
-The fork includes all plugins. We reference specific packages via `file:` protocol in package.json.
+The fork includes all plugins. After merging upstream, `agents/package.json` version may be 1.0.39. We reference specific packages via `file:` protocol in package.json.
 
 ## Our Changes
 
@@ -149,7 +149,7 @@ pnpm install  # Picks up changes
 When LiveKit releases updates:
 
 ```bash
-cd livekit-agents-js
+cd ../agents-js
 
 # Add upstream remote (once)
 git remote add upstream https://github.com/livekit/agents-js.git
@@ -157,23 +157,38 @@ git remote add upstream https://github.com/livekit/agents-js.git
 # Fetch upstream changes
 git fetch upstream
 
-# Create branch for new version
-git checkout -b ferni-v1.0.32
-
-# Merge upstream tag
-git merge tags/agents-v1.0.32
+# Merge upstream (e.g. main or a release tag)
+git checkout ferni-v1.0.32   # or your ferni branch
+git merge upstream/main      # or: git merge @livekit/agents@1.0.39
 
 # Resolve conflicts (our changes vs their changes)
-# Re-apply our customizations if needed
+# Re-apply our customizations if needed (see scripts/livekit-fork-changes.md)
 
-# Test
+# Build and test
 pnpm install
+pnpm build
 pnpm test
 
 # Tag and push
-git tag agents-v1.0.32-ferni.1
+git tag @livekit/agents@1.0.39-ferni.1
 git push origin ferni-v1.0.32 --tags
 ```
+
+Then in voiceai: `pnpm install` to pick up the updated file: dependency.
+
+## Upstream Bug Fixes Worth Pulling
+
+If your fork is behind upstream, pull in these fixes (from [livekit/agents-js releases](https://github.com/livekit/agents-js/releases)):
+
+| Version | PR | Fix |
+|--------|----|-----|
+| **1.0.39** | [#997](https://github.com/livekit/agents-js/pull/997) | **VAD stream closed during handover** – Fixes race where `endInput()` was called on an already-closed VAD stream during agent handover → unrecoverable `stt_error`. Added `isStreamClosedError()`. **High value for handoffs.** |
+| 1.0.39 | [#992](https://github.com/livekit/agents-js/pull/992) | Agent state transition fixes and interim transcript interruption support |
+| 1.0.39 | [#1000](https://github.com/livekit/agents-js/pull/1000) | Preserve `thought_signature` across parallel tool calls (Gemini 3+ inference gateway) |
+| 1.0.39 | [#993](https://github.com/livekit/agents-js/pull/993) | Update livekit inference model to match latest |
+| 1.0.39 | (sharp) | Upgraded sharp 0.34.3 → 0.34.5 (libvips conflict, flaky agent, ObjC warnings on macOS) |
+
+**Check your fork version:** `cat ../agents-js/agents/package.json | grep version`. If it shows `1.0.39` and you’ve merged `upstream/main` recently, you already have these. After any sync, re-apply Ferni customizations from `scripts/livekit-fork-changes.md` if they were overwritten.
 
 ## Upstream PR Strategy
 

@@ -1,17 +1,17 @@
 //! FTIS V3 ONNX Router
 //!
 //! Fast tool routing using ONNX Runtime for inference.
-//! Achieves ~20-50ms latency with proper CPU optimization.
-//!
-//! Note: CoreML is disabled due to incompatibility with ONNX external data format.
-//! The model uses a separate .onnx_data file for weights (6.5GB), which CoreML
-//! cannot load correctly. CPU inference with graph optimization provides good
-//! performance (~100-150ms on Apple Silicon).
+//! On macOS: tries Core ML (Apple GPU/Neural Engine) first, falls back to CPU if the
+//! model uses external data format (.onnx_data) which Core ML cannot load.
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use ort::{
-    session::{builder::GraphOptimizationLevel, Session},
+    ep,
+    session::{
+        builder::{GraphOptimizationLevel, SessionBuilder},
+        Session,
+    },
     value::Tensor,
 };
 use std::collections::HashMap;
@@ -48,6 +48,47 @@ pub struct RouterConfig {
 }
 
 // ============================================================================
+// SESSION LOADING (Core ML try / CPU fallback on macOS)
+// ============================================================================
+
+/// Build a configured SessionBuilder (optimization level, thread count).
+fn make_builder(num_threads: u32) -> std::result::Result<SessionBuilder, ort::Error> {
+    let mut b = Session::builder()?
+        .with_optimization_level(GraphOptimizationLevel::Level3)?;
+    let n = if num_threads > 0 {
+        num_threads as usize
+    } else {
+        std::thread::available_parallelism().map(|p| p.get()).unwrap_or(4)
+    };
+    b = b.with_intra_threads(n)?;
+    Ok(b)
+}
+
+/// Load session: on macOS try Core ML first, fall back to CPU if model uses external data.
+fn load_session_with_mac_gpu_fallback(model_path: &str, num_threads: u32) -> Result<Session> {
+    let builder = make_builder(num_threads)
+        .map_err(|e| Error::from_reason(format!("Session builder: {}", e)))?;
+
+    #[cfg(target_os = "macos")]
+    {
+        let coreml = ep::CoreML::default().build();
+        let cpu = ep::CPU::default().build();
+        if let Ok(b) = builder.with_execution_providers([coreml, cpu]) {
+            if let Ok(s) = b.commit_from_file(model_path) {
+                eprintln!("🧠 FTIS ONNX Router using Core ML (Apple GPU/Neural Engine)");
+                return Ok(s);
+            }
+        }
+        eprintln!("🧠 Core ML unavailable or model incompatible (e.g. external data), using CPU");
+    }
+
+    make_builder(num_threads)
+        .map_err(|e| Error::from_reason(format!("Session builder: {}", e)))?
+        .commit_from_file(model_path)
+        .map_err(|e| Error::from_reason(format!("Failed to load model: {}", e)))
+}
+
+// ============================================================================
 // ONNX ROUTER
 // ============================================================================
 
@@ -69,39 +110,19 @@ impl OnnxRouter {
     pub fn new(config: RouterConfig) -> Result<Self> {
         let start = std::time::Instant::now();
 
-        // Determine thread count: use provided value, or auto-detect
+        // Determine thread count: use provided value, or auto-detect (used for CPU fallback)
         let num_threads = config.num_threads.unwrap_or(0);
-
-        // Build session with optimizations for CPU inference
-        // Level3 = most aggressive optimization (constant folding, node fusion, etc.)
-        let mut builder = Session::builder()
-            .map_err(|e| Error::from_reason(format!("Failed to create session builder: {}", e)))?
-            .with_optimization_level(GraphOptimizationLevel::Level3)
-            .map_err(|e| Error::from_reason(format!("Failed to set optimization: {}", e)))?;
-
-        // Configure thread pool for parallel inference
         if num_threads > 0 {
-            builder = builder
-                .with_intra_threads(num_threads as usize)
-                .map_err(|e| Error::from_reason(format!("Failed to set threads: {}", e)))?;
             eprintln!("⚙️  Using {} threads for inference", num_threads);
         } else {
-            // Auto-detect: use number of physical cores for best performance
             let cores = std::thread::available_parallelism()
                 .map(|p| p.get())
                 .unwrap_or(4);
-            builder = builder
-                .with_intra_threads(cores)
-                .map_err(|e| Error::from_reason(format!("Failed to set threads: {}", e)))?;
             eprintln!("⚙️  Auto-detected {} cores for inference", cores);
         }
 
-        // Note: CoreML is disabled because it cannot load models with external data format
-        // (.onnx_data files). CPU inference with graph optimization provides good performance.
-
-        let session = builder
-            .commit_from_file(&config.model_path)
-            .map_err(|e| Error::from_reason(format!("Failed to load model: {}", e)))?;
+        // On macOS: try Core ML (Apple GPU/ANE) first; fall back to CPU if model uses external data
+        let session = load_session_with_mac_gpu_fallback(&config.model_path, num_threads)?;
 
         // Load tokenizer
         let tokenizer = Tokenizer::from_file(&config.tokenizer_path)

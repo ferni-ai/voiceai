@@ -76,15 +76,22 @@ RUN cargo build --release && \
 # ============================================================================
 # Stage 1: Build TypeScript with pnpm + esbuild
 # ============================================================================
-FROM node:${NODE_VERSION}-slim AS builder
+# Use Ubuntu 24.04 (Noble) for GLIBC 2.39 (needed for Rust ONNX bindings)
+# Rust ONNX bindings require GLIBC 2.38+, Ubuntu 24.04 provides 2.39
+FROM ubuntu:24.04 AS builder
 
 # Re-declare ARG after FROM to make it available in this stage
 ARG LIVEKIT_AGENTS_VERSION
 
 WORKDIR /app
 
-# Install git and enable pnpm
-RUN apt-get update && apt-get install -y --no-install-recommends git \
+# Install Node.js 20.x, git, and enable pnpm
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    git \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/* \
     && corepack enable && corepack prepare pnpm@latest --activate
 
@@ -163,15 +170,19 @@ RUN rm -rf dist && pnpm run build:fast && \
 # ============================================================================
 # Stage 2: Production
 # ============================================================================
-FROM node:${NODE_VERSION}-slim AS production
+# Use Ubuntu 24.04 (Noble) for GLIBC 2.39 (needed for Rust ONNX bindings)
+# Rust ONNX bindings require GLIBC 2.38+, Ubuntu 24.04 provides 2.39
+FROM ubuntu:24.04 AS production
 
 WORKDIR /app
 
-# Install system dependencies (including ffmpeg for DJ-style audio fade-out)
+# Install Node.js 20.x and system dependencies (including ffmpeg for DJ-style audio fade-out)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     ffmpeg \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates \
     && corepack enable && corepack prepare pnpm@latest --activate

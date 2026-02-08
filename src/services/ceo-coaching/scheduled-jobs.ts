@@ -13,7 +13,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateWeeklyDigest, renderDigestEmail, renderDigestText } from './weekly-digest.js';
 import { processCEOTriggersBatch } from './proactive-triggers.js';
-import { sendEmail } from '../communication/communication-service.js';
+import { sendEmail } from '../communication-service.js';
 
 const log = createLogger({ module: 'ceo-scheduled-jobs' });
 

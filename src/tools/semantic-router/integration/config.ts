@@ -17,12 +17,11 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { isSemanticRoutingEnabled } from '../config.js';
-// Model provider abstraction - import helpers for backward compatibility
 import {
-  getModelProvider,
+  getProviderIdSync,
   isUsingOpenAI as providerIsUsingOpenAI,
   isUsingGemini as providerIsUsingGemini,
-} from '../../../agents/model-provider/index.js';
+} from '../../../config/model-provider-config.js';
 
 const log = createLogger({ module: 'semantic-router:config' });
 
@@ -795,8 +794,8 @@ export function isUsingOpenAI(): boolean {
  * Get the LLM provider name for logging
  */
 export function getLLMProviderName(): 'gemini' | 'openai' {
-  const provider = getModelProvider();
-  return provider.id === 'openai-realtime' ? 'openai' : 'gemini';
+  const id = getProviderIdSync();
+  return id === 'openai-realtime' ? 'openai' : 'gemini';
 }
 
 /**

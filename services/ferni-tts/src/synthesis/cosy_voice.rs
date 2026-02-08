@@ -30,15 +30,13 @@ impl CosyVoiceClient {
     /// Connect to CosyVoice backend
     pub async fn connect(endpoint: &str) -> Result<Self> {
         let channel = Channel::from_shared(endpoint.to_string())
-            .map_err(|e| Error::Synthesis {
-                backend: "cosy_voice".to_string(),
-                message: format!("Invalid endpoint: {}", e),
+            .map_err(|e| Error::SynthesisFailed {
+                message: format!("cosy_voice: Invalid endpoint: {}", e),
             })?
             .connect()
             .await
-            .map_err(|e| Error::Synthesis {
-                backend: "cosy_voice".to_string(),
-                message: format!("Connection failed: {}", e),
+            .map_err(|e| Error::SynthesisFailed {
+                message: format!("cosy_voice: Connection failed: {}", e),
             })?;
 
         Ok(Self {
@@ -61,15 +59,13 @@ impl CosyVoiceClient {
     async fn ensure_connected(&mut self) -> Result<&Channel> {
         if self.channel.is_none() {
             let channel = Channel::from_shared(self.endpoint.clone())
-                .map_err(|e| Error::Synthesis {
-                    backend: "cosy_voice".to_string(),
-                    message: format!("Invalid endpoint: {}", e),
+                .map_err(|e| Error::SynthesisFailed {
+                    message: format!("cosy_voice: Invalid endpoint: {}", e),
                 })?
                 .connect()
                 .await
-                .map_err(|e| Error::Synthesis {
-                    backend: "cosy_voice".to_string(),
-                    message: format!("Connection failed: {}", e),
+                .map_err(|e| Error::SynthesisFailed {
+                    message: format!("cosy_voice: Connection failed: {}", e),
                 })?;
             self.channel = Some(channel);
             self.connected = true;
@@ -100,21 +96,18 @@ impl CosyVoiceClient {
             .json(&payload)
             .send()
             .await
-            .map_err(|e| Error::Synthesis {
-                backend: "cosy_voice".to_string(),
-                message: format!("HTTP request failed: {}", e),
+            .map_err(|e| Error::SynthesisFailed {
+                message: format!("cosy_voice: HTTP request failed: {}", e),
             })?;
 
         if !response.status().is_success() {
-            return Err(Error::Synthesis {
-                backend: "cosy_voice".to_string(),
-                message: format!("Synthesis failed with status: {}", response.status()),
+            return Err(Error::SynthesisFailed {
+                message: format!("cosy_voice: Synthesis failed with status: {}", response.status()),
             });
         }
 
-        let audio = response.bytes().await.map_err(|e| Error::Synthesis {
-            backend: "cosy_voice".to_string(),
-            message: format!("Failed to read response: {}", e),
+        let audio = response.bytes().await.map_err(|e| Error::SynthesisFailed {
+            message: format!("cosy_voice: Failed to read response: {}", e),
         })?;
 
         let latency = start.elapsed().as_millis() as u64;
@@ -183,9 +176,8 @@ impl SynthesisClient for CosyVoiceClient {
             {
                 Ok(resp) => resp,
                 Err(e) => {
-                    let _ = tx.send(Err(Error::Synthesis {
-                        backend: "cosy_voice".to_string(),
-                        message: format!("Request failed: {}", e),
+                    let _ = tx.send(Err(Error::SynthesisFailed {
+                        message: format!("cosy_voice: Request failed: {}", e),
                     })).await;
                     return;
                 }
@@ -200,10 +192,12 @@ impl SynthesisClient for CosyVoiceClient {
                 match chunk_result {
                     Ok(bytes) => {
                         let is_final = false; // Will be set on last chunk
+                        let audio_bytes: Vec<u8> = bytes.to_vec();
+                        let duration_ms = format.duration_ms(audio_bytes.len());
                         let response = SynthesisResponse {
-                            audio: bytes.to_vec(),
+                            audio: audio_bytes,
                             format,
-                            duration_ms: format.duration_ms(bytes.len()),
+                            duration_ms,
                             is_final,
                             chunk_index,
                             request_id: None,
@@ -219,9 +213,8 @@ impl SynthesisClient for CosyVoiceClient {
                         chunk_index += 1;
                     }
                     Err(e) => {
-                        let _ = tx.send(Err(Error::Synthesis {
-                            backend: "cosy_voice".to_string(),
-                            message: format!("Stream error: {}", e),
+                        let _ = tx.send(Err(Error::SynthesisFailed {
+                            message: format!("cosy_voice: Stream error: {}", e),
                         })).await;
                         return;
                     }

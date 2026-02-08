@@ -97,7 +97,7 @@ const MIN_CAPTURE_INTERVAL_MS = 500; // Don't capture more than 2x per second pe
 
 /**
  * Initialize the knowledge capture service
- * 
+ *
  * MEMORY FIX: Now continues even if entity store isn't ready.
  * Extraction will still run (for logging/metrics), just won't persist to entity store.
  * This ensures we capture knowledge even in degraded mode.
@@ -113,22 +113,26 @@ export async function initializeKnowledgeCapture(): Promise<void> {
 
   try {
     // Check entity store availability (but don't fail if not ready)
-    const { isEntityStoreReady, initializeEntityStore } = await import('../../entity-store/integration.js');
-    
+    const { isEntityStoreReady, initializeEntityStore } =
+      await import('../../entity-store/integration.js');
+
     // Try to initialize entity store
     try {
       await initializeEntityStore();
       entityStoreReady = isEntityStoreReady();
       log.info({ entityStoreReady }, '🧠 [MEMORY-AUDIT] Entity store status checked');
     } catch (entityStoreErr) {
-      log.warn({ error: String(entityStoreErr) }, '🧠 [MEMORY-AUDIT] Entity store init failed (will continue with extraction-only mode)');
+      log.warn(
+        { error: String(entityStoreErr) },
+        '🧠 [MEMORY-AUDIT] Entity store init failed (will continue with extraction-only mode)'
+      );
       entityStoreReady = false;
     }
 
     // IMPORTANT: Mark as initialized even if entity store isn't ready
     // This allows extraction to run (for deep extraction worker)
     isInitialized = true;
-    
+
     log.info(
       { isInitialized, entityStoreReady, captureEnabled },
       '🧠 [MEMORY-AUDIT] Knowledge capture service initialized successfully'
@@ -148,32 +152,38 @@ export async function initializeKnowledgeCapture(): Promise<void> {
  */
 export function setKnowledgeCaptureEnabled(enabled: boolean): void {
   captureEnabled = enabled;
-  log.info({ enabled, isInitialized, entityStoreReady }, '🧠 [MEMORY-AUDIT] Knowledge capture enabled state changed');
+  log.info(
+    { enabled, isInitialized, entityStoreReady },
+    '🧠 [MEMORY-AUDIT] Knowledge capture enabled state changed'
+  );
 }
 
 /**
  * Check if knowledge capture is ready
- * 
+ *
  * MEMORY FIX: Now returns true as long as:
  * - Initialization was attempted (even if it had errors)
  * - Capture is enabled
- * 
+ *
  * Entity store not being ready just means we won't persist, but extraction still runs.
  */
 export function isKnowledgeCaptureReady(): boolean {
   const ready = (isInitialized || initializationAttempted) && captureEnabled;
-  
+
   // Log state periodically for debugging
   if (!ready) {
-    log.debug({
-      isInitialized,
-      initializationAttempted,
-      captureEnabled,
-      entityStoreReady,
-      ready,
-    }, '🧠 [MEMORY-AUDIT] Knowledge capture readiness check returned false');
+    log.debug(
+      {
+        isInitialized,
+        initializationAttempted,
+        captureEnabled,
+        entityStoreReady,
+        ready,
+      },
+      '🧠 [MEMORY-AUDIT] Knowledge capture readiness check returned false'
+    );
   }
-  
+
   return ready;
 }
 
@@ -188,7 +198,7 @@ export function isEntityStorePersistenceReady(): boolean {
  * Capture knowledge from a conversation turn
  *
  * This is the main entry point, called from the turn processor.
- * 
+ *
  * MEMORY FIX: Now runs extraction even if entity store isn't ready.
  * Extraction results are logged and can trigger deep extraction worker.
  * Persistence only happens if entity store is available.
@@ -219,19 +229,22 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
 
   // Skip very short messages
   if (input.transcript.trim().length < 10) {
-    log.debug({ userId: input.userId, length: input.transcript.trim().length }, '🧠 [MEMORY-AUDIT] Skipping capture - message too short');
+    log.debug(
+      { userId: input.userId, length: input.transcript.trim().length },
+      '🧠 [MEMORY-AUDIT] Skipping capture - message too short'
+    );
     return result;
   }
-  
+
   // Log that we're starting capture
   log.info(
-    { 
-      userId: input.userId, 
-      sessionId: input.sessionId, 
+    {
+      userId: input.userId,
+      sessionId: input.sessionId,
       turnNumber: input.turnNumber,
       transcriptLength: input.transcript.length,
       entityStoreReady,
-    }, 
+    },
     '🧠 [MEMORY-AUDIT] Starting knowledge capture for turn'
   );
 
@@ -257,7 +270,7 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
         userId: input.userId,
         entitiesExtracted: entityExtractionResult.entities.length,
         extractionTimeMs: result.metrics.extractionTimeMs,
-        entityNames: entityExtractionResult.entities.map(e => e.name).slice(0, 5),
+        entityNames: entityExtractionResult.entities.map((e) => e.name).slice(0, 5),
       },
       '🧠 [MEMORY-AUDIT] LLM entity extraction complete'
     );
@@ -287,6 +300,7 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
       for (const extracted of entityExtractionResult.entities) {
         try {
           if (extracted.type === 'person') {
+            // Person entities use specialized resolution (fuzzy matching, dedup)
             const resolved = await resolvePerson(input.userId, {
               name: extracted.name,
               relationship: extracted.relationship,
@@ -312,11 +326,64 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
             } else {
               result.entities.updated++;
             }
-            // Note: Mention creation moved to after fact extraction so facts can be included
+          } else {
+            // Non-person entities (place, event, goal, concept, etc.)
+            // Use generic entity creation via entity store
+            const { createEntity: createEntityStorage } =
+              await import('../../entity-store/storage.js');
+            const { createEntity: buildEntity } = await import('../../entity-store/types.js');
+
+            // Map extracted type to valid EntityType, defaulting to 'topic' for unknown
+            const typeMap: Record<string, string> = {
+              place: 'place',
+              event: 'event',
+              goal: 'goal',
+              concept: 'concept',
+              thing: 'topic', // 'thing' maps to 'topic' in entity store
+              organization: 'topic',
+            };
+            const entityType = (typeMap[extracted.type] || 'topic') as
+              | 'place'
+              | 'event'
+              | 'goal'
+              | 'concept'
+              | 'topic';
+            // Build non-person entity with minimal required fields
+            const entityData = buildEntity(input.userId, entityType, extracted.name, {
+              _type: entityType,
+            } as Parameters<typeof buildEntity>[3]);
+
+            // createEntity expects Omit<Entity, 'id'>, embedding is generated lazily
+            const entity = await createEntityStorage(input.userId, {
+              ...entityData,
+              embedding: [], // Empty — will be populated by background indexer
+            } as Omit<Awaited<ReturnType<typeof createEntityStorage>>, 'id'>);
+
+            resolvedEntities.push({
+              extracted,
+              id: entity.id,
+              name: entity.canonicalName,
+              isNew: true,
+            });
+
+            result.entities.resolved.push({
+              id: entity.id,
+              name: entity.canonicalName,
+              isNew: true,
+            });
+
+            result.entities.created++;
+
+            log.debug(
+              { entityType, name: extracted.name, id: entity.id },
+              '🧠 [MEMORY] Created non-person entity'
+            );
           }
-          // TODO: Handle other entity types (place, event, goal, etc.)
         } catch (error) {
-          log.warn({ error: String(error), entityName: extracted.name }, '🧠 [MEMORY-AUDIT] Failed to resolve entity');
+          log.warn(
+            { error: String(error), entityName: extracted.name },
+            '🧠 [MEMORY] Failed to resolve entity'
+          );
         }
       }
     } else {
@@ -325,12 +392,12 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
         {
           userId: input.userId,
           entitiesFound: entityExtractionResult.entities.length,
-          entityNames: entityExtractionResult.entities.map(e => ({ name: e.name, type: e.type })),
+          entityNames: entityExtractionResult.entities.map((e) => ({ name: e.name, type: e.type })),
           reason: 'entity_store_not_ready',
         },
         '🧠 [MEMORY-AUDIT] Extracted entities but cannot persist (entity store not ready)'
       );
-      
+
       // Still emit for deep extraction worker even without persistence
       // The deep extraction worker can persist to its own collections
     }
@@ -340,7 +407,7 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
     if (resolvedEntities.length > 0 && entityStoreReady) {
       // Import storage functions for persistence
       const { createMention, upsertRelationship } = await import('../../entity-store/storage.js');
-      
+
       let extractedFacts: Array<{
         entityId?: string;
         type: string;
@@ -405,7 +472,7 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
           log.warn({ error: String(error), entityId: resolved.id }, 'Failed to create mention');
         }
       }
-      
+
       // 4. Extract relationships between entities
       if (resolvedEntities.length >= 2) {
         try {
@@ -480,12 +547,12 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
     return result;
   } catch (error) {
     log.error(
-      { 
-        error: String(error), 
-        userId: input.userId, 
+      {
+        error: String(error),
+        userId: input.userId,
         sessionId: input.sessionId,
         entityStoreReady,
-      }, 
+      },
       '🧠 [MEMORY-AUDIT] Knowledge capture failed'
     );
     result.metrics.totalTimeMs = Date.now() - startTime;

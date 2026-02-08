@@ -39,6 +39,8 @@ export interface TokenResponse {
   readonly url: string; // Server URL (wss://...)
   readonly room: string; // Room name
   readonly username: string; // Participant name
+  /** When true, backend is using Qwen3-Omni; frontend shows Director Console in menu */
+  readonly useQwen3Omni?: boolean;
 }
 
 /**
@@ -122,6 +124,8 @@ export interface RoomState {
   readonly localParticipantId: string | null;
   readonly remoteParticipantCount: number;
   readonly hasActiveAudio: boolean;
+  /** When true, session was created with Qwen3-Omni backend; show Director Console in menu */
+  readonly useQwen3Omni?: boolean;
 }
 
 /**
@@ -134,5 +138,6 @@ export function createInitialRoomState(): RoomState {
     localParticipantId: null,
     remoteParticipantCount: 0,
     hasActiveAudio: false,
+    useQwen3Omni: undefined,
   };
 }

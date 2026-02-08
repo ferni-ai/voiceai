@@ -502,14 +502,35 @@ export async function handleGetTimeline(
     const { loadMemories } = await import('../../services/memory-lane/index.js');
 
     // Parse query params
-    const limit = parseInt(parsedUrl.searchParams.get('limit') || '50', 10);
+    const limit = Math.min(parseInt(parsedUrl.searchParams.get('limit') || '50', 10), 200);
+    const cursor = parsedUrl.searchParams.get('cursor') || undefined;
     const groupBy = (parsedUrl.searchParams.get('groupBy') || 'month') as 'month' | 'year';
 
-    // Load all memories
-    const memories = await loadMemories(userId, { limit });
+    // Request one extra to detect if there are more pages
+    const fetchLimit = limit + 1;
+
+    // Load memories (with cursor-based pagination via limit)
+    const memories = await loadMemories(userId, { limit: fetchLimit });
+
+    // Apply cursor: skip memories up to and including the cursor ID
+    let paginatedMemories = memories;
+    if (cursor) {
+      const cursorIndex = memories.findIndex((m) => m.id === cursor);
+      if (cursorIndex >= 0) {
+        paginatedMemories = memories.slice(cursorIndex + 1);
+      }
+    }
+
+    // Detect if there are more pages
+    const hasMore = paginatedMemories.length > limit;
+    const pageMemories = paginatedMemories.slice(0, limit);
+
+    // Build next cursor from the last memory in this page
+    const nextCursor =
+      hasMore && pageMemories.length > 0 ? pageMemories[pageMemories.length - 1].id : undefined;
 
     // Group by time period
-    const groups = groupMemoriesByPeriod(memories, groupBy);
+    const groups = groupMemoriesByPeriod(pageMemories, groupBy);
 
     // Transform to response format
     const response = {
@@ -529,8 +550,9 @@ export async function handleGetTimeline(
         })),
         count: g.memories.length,
       })),
-      totalMemories: memories.length,
-      hasMore: false, // TODO: implement pagination
+      totalMemories: pageMemories.length,
+      hasMore,
+      nextCursor,
     };
 
     sendJSONCached(res, response, 60);

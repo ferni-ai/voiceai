@@ -25,6 +25,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { BRAND_ACCENT, BRAND_TEXT_PRIMARY, getPersonaColor } from '../config/brand-colors.js';
 import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 
@@ -691,17 +692,17 @@ async function notifyAdminOfSignup(email: string, source: string, phone?: string
 <html>
 <head>
   <style>
-    body { font-family: -apple-system, system-ui, sans-serif; line-height: 1.6; color: #2C2520; }
+    body { font-family: -apple-system, system-ui, sans-serif; line-height: 1.6; color: ${BRAND_TEXT_PRIMARY}; }
     .container { max-width: 500px; margin: 20px auto; padding: 20px; }
     .card { background: #fff; border: 1px solid #e8e2da; border-radius: 12px; padding: 24px; }
-    h1 { font-size: 20px; color: #4a6741; margin: 0 0 16px; }
+    h1 { font-size: 20px; color: ${getPersonaColor('ferni')}; margin: 0 0 16px; }
     .detail { margin: 8px 0; }
     .label { color: #756a5e; font-size: 13px; }
-    .value { font-weight: 600; color: #2C2520; }
-    .phone-note { display: block; font-size: 12px; color: #4a6741; margin-top: 4px; }
+    .value { font-weight: 600; color: ${BRAND_TEXT_PRIMARY}; }
+    .phone-note { display: block; font-size: 12px; color: ${getPersonaColor('ferni')}; margin-top: 4px; }
     .actions { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e8e2da; }
     .btn { display: inline-block; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; margin-right: 8px; margin-bottom: 8px; }
-    .btn-approve { background: #4a6741; color: #fff !important; }
+    .btn-approve { background: ${getPersonaColor('ferni')}; color: #fff !important; }
     .btn-secondary { background: #5c544a; color: #fff !important; }
     .approve-note { font-size: 12px; color: #756a5e; margin-top: 12px; }
   </style>
@@ -1030,14 +1031,14 @@ async function notifyAdminOfWelcomeCall(
 <html>
 <head>
   <style>
-    body { font-family: -apple-system, system-ui, sans-serif; line-height: 1.6; color: #2C2520; }
+    body { font-family: -apple-system, system-ui, sans-serif; line-height: 1.6; color: ${BRAND_TEXT_PRIMARY}; }
     .container { max-width: 500px; margin: 20px auto; padding: 20px; }
-    .card { background: #f0f8f0; border: 2px solid #4a6741; border-radius: 12px; padding: 24px; }
-    h1 { font-size: 18px; color: #4a6741; margin: 0 0 16px; }
+    .card { background: #f0f8f0; border: 2px solid ${getPersonaColor('ferni')}; border-radius: 12px; padding: 24px; }
+    h1 { font-size: 18px; color: ${getPersonaColor('ferni')}; margin: 0 0 16px; }
     .detail { margin: 8px 0; }
     .label { color: #756a5e; font-size: 13px; }
-    .value { font-weight: 600; color: #2C2520; }
-    .success { color: #4a6741; font-size: 14px; margin-top: 16px; }
+    .value { font-weight: 600; color: ${BRAND_TEXT_PRIMARY}; }
+    .success { color: ${getPersonaColor('ferni')}; font-size: 14px; margin-top: 16px; }
   </style>
 </head>
 <body>
@@ -1099,13 +1100,13 @@ async function notifyAdminOfWelcomeCallFailure(
 <html>
 <head>
   <style>
-    body { font-family: -apple-system, system-ui, sans-serif; line-height: 1.6; color: #2C2520; }
+    body { font-family: -apple-system, system-ui, sans-serif; line-height: 1.6; color: ${BRAND_TEXT_PRIMARY}; }
     .container { max-width: 500px; margin: 20px auto; padding: 20px; }
     .card { background: #fff8f0; border: 2px solid #dc3545; border-radius: 12px; padding: 24px; }
     h1 { font-size: 18px; color: #dc3545; margin: 0 0 16px; }
     .detail { margin: 8px 0; }
     .label { color: #756a5e; font-size: 13px; }
-    .value { font-weight: 600; color: #2C2520; }
+    .value { font-weight: 600; color: ${BRAND_TEXT_PRIMARY}; }
     .error { color: #dc3545; font-size: 13px; margin-top: 12px; padding: 8px; background: #ffeef0; border-radius: 6px; }
     .fallback { margin-top: 16px; padding: 12px; background: #f8f8f8; border-radius: 8px; }
   </style>
@@ -1168,15 +1169,15 @@ async function sendWelcomeEmail(email: string): Promise<void> {
 <html>
 <head>
   <style>
-    body { font-family: -apple-system, system-ui, sans-serif; line-height: 1.8; color: #2C2520; background: #FFFDFB; }
+    body { font-family: -apple-system, system-ui, sans-serif; line-height: 1.8; color: ${BRAND_TEXT_PRIMARY}; background: #FFFDFB; }
     .container { max-width: 500px; margin: 40px auto; padding: 20px; }
     .card { background: #fff; border: 1px solid #e8e2da; border-radius: 16px; padding: 32px; }
-    .avatar { width: 64px; height: 64px; background: linear-gradient(145deg, #4a6741, #3D5A45); border-radius: 50%; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center; }
+    .avatar { width: 64px; height: 64px; background: linear-gradient(145deg, ${getPersonaColor('ferni')}, ${BRAND_ACCENT}); border-radius: 50%; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center; }
     .avatar svg { width: 48px; height: 48px; }
-    h1 { font-size: 24px; color: #2C2520; margin: 0 0 8px; text-align: center; }
+    h1 { font-size: 24px; color: ${BRAND_TEXT_PRIMARY}; margin: 0 0 8px; text-align: center; }
     .subtitle { color: #756a5e; text-align: center; margin-bottom: 24px; }
     p { color: #4a4540; margin: 16px 0; }
-    .cta { display: block; background: #4a6741; color: #fff !important; text-decoration: none; padding: 14px 28px; border-radius: 10px; font-size: 16px; font-weight: 600; text-align: center; margin: 24px 0; }
+    .cta { display: block; background: ${getPersonaColor('ferni')}; color: #fff !important; text-decoration: none; padding: 14px 28px; border-radius: 10px; font-size: 16px; font-weight: 600; text-align: center; margin: 24px 0; }
     .footer { font-size: 13px; color: #9a9590; text-align: center; margin-top: 24px; }
   </style>
 </head>
@@ -1384,31 +1385,31 @@ async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
 <html>
 <head>
   <style>
-    body { font-family: -apple-system, system-ui, sans-serif; line-height: 1.8; color: #2C2520; background: #F5F1E8; }
+    body { font-family: -apple-system, system-ui, sans-serif; line-height: 1.8; color: ${BRAND_TEXT_PRIMARY}; background: #F5F1E8; }
     .container { max-width: 560px; margin: 40px auto; padding: 20px; }
     .card { background: #ffffff; border-radius: 16px; padding: 48px; box-shadow: 0 4px 24px rgba(74, 103, 65, 0.08); }
     .logo { text-align: center; margin-bottom: 32px; }
     .logo svg { width: 64px; height: 64px; }
-    h1 { font-size: 28px; color: #2C2520; margin: 0 0 8px; text-align: center; font-weight: 600; }
+    h1 { font-size: 28px; color: ${BRAND_TEXT_PRIMARY}; margin: 0 0 8px; text-align: center; font-weight: 600; }
     .subtitle { color: #6B5C4D; text-align: center; margin-bottom: 32px; font-size: 16px; }
     p { color: #4a4540; margin: 16px 0; }
     .what-to-expect { background: rgba(74, 103, 65, 0.05); border-radius: 12px; padding: 24px; margin: 24px 0; }
-    .what-to-expect h3 { color: #4a6741; margin: 0 0 12px; font-size: 16px; font-weight: 600; }
+    .what-to-expect h3 { color: ${getPersonaColor('ferni')}; margin: 0 0 12px; font-size: 16px; font-weight: 600; }
     .what-to-expect ul { margin: 0; padding-left: 20px; color: #4a4540; }
     .what-to-expect li { margin: 8px 0; }
-    .cta { display: block; background: #3D5A45; color: #fff !important; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-size: 16px; font-weight: 500; text-align: center; margin: 24px 0; }
-    .cta:hover { background: #4a6741; }
+    .cta { display: block; background: ${BRAND_ACCENT}; color: #fff !important; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-size: 16px; font-weight: 500; text-align: center; margin: 24px 0; }
+    .cta:hover { background: ${getPersonaColor('ferni')}; }
     .featured { background: #fff; border: 1px solid #E5DFD6; border-radius: 12px; padding: 20px; margin: 24px 0; }
     .featured-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9A8B7A; margin-bottom: 8px; }
-    .featured-title { font-size: 18px; font-weight: 600; color: #2C2520; margin: 0 0 8px; }
-    .featured-title a { color: #2C2520; text-decoration: none; }
-    .featured-title a:hover { color: #4a6741; }
+    .featured-title { font-size: 18px; font-weight: 600; color: ${BRAND_TEXT_PRIMARY}; margin: 0 0 8px; }
+    .featured-title a { color: ${BRAND_TEXT_PRIMARY}; text-decoration: none; }
+    .featured-title a:hover { color: ${getPersonaColor('ferni')}; }
     .featured-excerpt { color: #6B5C4D; font-size: 14px; margin: 0; }
     .signoff { margin-top: 24px; }
-    .signoff-name { font-weight: 500; color: #2C2520; }
+    .signoff-name { font-weight: 500; color: ${BRAND_TEXT_PRIMARY}; }
     .signoff-role { font-size: 13px; color: #9A8B7A; }
     .footer { font-size: 13px; color: #9A8B7A; text-align: center; margin-top: 24px; border-top: 1px solid #E5DFD6; padding-top: 24px; }
-    .footer a { color: #4a6741; text-decoration: none; }
+    .footer a { color: ${getPersonaColor('ferni')}; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -1416,7 +1417,7 @@ async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
     <div class="card">
       <div class="logo">
         <svg viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+          <circle cx="50" cy="50" r="45" fill="${getPersonaColor('ferni')}"/>
           <ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/>
           <circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/>
           <ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/>
@@ -1524,7 +1525,7 @@ function generateApprovalResultPage(
   subMessage?: string
 ): string {
   const icon = success
-    ? `<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#4a6741" stroke-width="2">
+    ? `<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="${getPersonaColor('ferni')}" stroke-width="2">
         <circle cx="12" cy="12" r="10"/>
         <polyline points="8 12 11 15 16 9"/>
       </svg>`
@@ -1545,7 +1546,7 @@ function generateApprovalResultPage(
     body {
       font-family: -apple-system, system-ui, sans-serif;
       background: #FFFDFB;
-      color: #2C2520;
+      color: ${BRAND_TEXT_PRIMARY};
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1566,13 +1567,13 @@ function generateApprovalResultPage(
     h1 {
       font-size: 24px;
       margin: 0 0 12px;
-      color: ${success ? '#4a6741' : '#dc3545'};
+      color: ${success ? getPersonaColor('ferni') : '#dc3545'};
     }
     p { color: #756a5e; margin: 8px 0; }
     .sub { font-size: 14px; }
     .btn {
       display: inline-block;
-      background: #4a6741;
+      background: ${getPersonaColor('ferni')};
       color: #fff;
       text-decoration: none;
       padding: 12px 24px;

@@ -1,43 +1,43 @@
-//! # Ferni TTS - Superhuman Text-to-Speech
+//! # Ferni TTS - Superhuman Text-to-Speech (HTTP Service)
 //!
-//! A high-performance TTS service with:
-//! - Full W3C SSML spec support
-//! - Sub-50ms first-byte latency
-//! - "Better than Human" prosody transformations
-//!
-//! ## Architecture
-//!
-//! ```text
-//! Text Input → SSML Parser → Superhuman Transforms → Synthesis Backend → Audio Pipeline → Stream
-//! ```
-//!
-//! ## Superhuman Capabilities
-//!
-//! 1. **Circadian Tempo** - Slower at night, energetic in morning
-//! 2. **Memory Prosody** - Emphasize remembered entities ("Your *sister* Sarah")
-//! 3. **Emotional Anticipation** - Express emotion before content lands
-//! 4. **Meaningful Silence** - Strategic pauses for impact
-//! 5. **Relationship Prosody** - Warmer tone with closer relationships
-//! 6. **Energy Matching** - Match user's detected energy level
-//! 7. **Backchannels** - Natural "hmm", "uh-huh" timing
-//! 8. **Breath Patterns** - Natural breathing rhythm
+//! Thin HTTP wrapper around ferni-tts-core. Core provides SSML, superhuman transforms,
+//! synthesis trait + mock. This crate adds REST API, CosyVoice backend, and streaming.
 
-pub mod ssml;
-pub mod superhuman;
-pub mod audio;
+pub use ferni_tts_core::{config, ssml, superhuman, audio, error};
 pub mod synthesis;
-pub mod api;
-pub mod config;
-pub mod error;
 
+pub mod api;
+
+// Re-export for backward compatibility
 pub use config::Config;
 pub use error::{Error, Result};
 
-/// Re-export key types for convenience
+/// Service-level error wrapper so we can impl IntoResponse (orphan rule)
+pub struct ServiceError(pub error::Error);
+
+impl From<error::Error> for ServiceError {
+    fn from(e: error::Error) -> Self {
+        ServiceError(e)
+    }
+}
+
+impl axum::response::IntoResponse for ServiceError {
+    fn into_response(self) -> axum::response::Response {
+        use axum::http::StatusCode;
+        use axum::Json;
+
+        let status = StatusCode::from_u16(self.0.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+        let body = serde_json::json!({
+            "error": {
+                "code": self.0.status_code(),
+                "message": self.0.to_string(),
+                "retryable": self.0.is_retryable(),
+            }
+        });
+        (status, Json(body)).into_response()
+    }
+}
+
 pub mod prelude {
-    pub use crate::ssml::{SsmlDocument, SsmlElement, Prosody, Voice};
-    pub use crate::superhuman::{SuperhumanContext, Transform, TransformPipeline};
-    pub use crate::audio::{AudioChunk, AudioFormat, AudioPipeline};
-    pub use crate::synthesis::{SynthesisRequest, SynthesisResponse};
-    pub use crate::error::{Error, Result};
+    pub use ferni_tts_core::prelude::*;
 }

@@ -126,6 +126,9 @@ class ConnectionService {
   private pendingTrackCleanupInterval: ReturnType<typeof setInterval> | null = null;
   private readonly PENDING_TRACK_TTL_MS = 5000; // 5 seconds to match with data message
 
+  /** From token response: when true, backend is Qwen3-Omni; show Director Console in menu */
+  private useQwen3Omni = false;
+
   /**
    * Register callbacks for connection events.
    */
@@ -394,6 +397,8 @@ class ConnectionService {
         );
       }
 
+      this.useQwen3Omni = tokenResponse.useQwen3Omni === true;
+
       // Create and configure room using global LiveKit (iOS compatible)
       const LiveKit = getLiveKit();
       this.room = new LiveKit.Room({
@@ -431,13 +436,18 @@ class ConnectionService {
 
       // 📊 Initialize disconnect diagnostics session
       try {
-        const { startSession, trackPeerConnection } = await import('./disconnect-diagnostics.service.js');
+        const { startSession, trackPeerConnection } =
+          await import('./disconnect-diagnostics.service.js');
         const sessionId = tokenResponse.room || `session-${Date.now()}`;
         startSession(sessionId, tokenResponse.room || 'unknown', tokenResponse.username);
-        
+
         // Track the RTCPeerConnection for WebRTC diagnostics
         // LiveKit's Room internally uses RTCPeerConnection - try to access it
-        const pc = (this.room as unknown as { engine?: { pcManager?: { publisher?: { pc?: RTCPeerConnection } } } }).engine?.pcManager?.publisher?.pc;
+        const pc = (
+          this.room as unknown as {
+            engine?: { pcManager?: { publisher?: { pc?: RTCPeerConnection } } };
+          }
+        ).engine?.pcManager?.publisher?.pc;
         if (pc) {
           trackPeerConnection(pc);
           log.debug('📊 Tracking RTCPeerConnection for diagnostics');
@@ -448,15 +458,18 @@ class ConnectionService {
 
       // Initialize Spotify Web Playback SDK now that user has interacted
       // This must happen after user interaction (browser autoplay policy)
-      spotifyService.initialize().then((success) => {
-        if (success) {
-          log.info('🎵 Spotify Web Playback initialized');
-        } else {
-          log.debug('Spotify not available (not linked or not Premium)');
-        }
-      }).catch((err) => {
-        log.warn('Spotify init failed:', err);
-      });
+      spotifyService
+        .initialize()
+        .then((success) => {
+          if (success) {
+            log.info('🎵 Spotify Web Playback initialized');
+          } else {
+            log.debug('Spotify not available (not linked or not Premium)');
+          }
+        })
+        .catch((err) => {
+          log.warn('Spotify init failed:', err);
+        });
 
       return true;
     } catch (error) {
@@ -493,6 +506,7 @@ class ConnectionService {
       // Disconnect
       await this.room.disconnect();
       this.room = null;
+      this.useQwen3Omni = false;
 
       this.updateState('disconnected');
     } catch (error) {
@@ -513,6 +527,7 @@ class ConnectionService {
         localParticipantId: null,
         remoteParticipantCount: 0,
         hasActiveAudio: false,
+        useQwen3Omni: this.useQwen3Omni,
       };
     }
 
@@ -522,6 +537,7 @@ class ConnectionService {
       localParticipantId: this.room.localParticipant?.identity ?? null,
       remoteParticipantCount: this.room.remoteParticipants.size,
       hasActiveAudio: this.hasActiveAudioTrack(),
+      useQwen3Omni: this.useQwen3Omni,
     };
   }
 
@@ -660,7 +676,10 @@ class ConnectionService {
       log.info('🔄 Room reconnected - re-enabling microphone');
       try {
         // Check if mic should be enabled (user hasn't muted)
-        const isMuted = (window as unknown as { appState?: { get?: (key: string) => unknown } }).appState?.get?.('isMuted') ?? false;
+        const isMuted =
+          (window as unknown as { appState?: { get?: (key: string) => unknown } }).appState?.get?.(
+            'isMuted'
+          ) ?? false;
         if (!isMuted && this.room?.localParticipant) {
           await this.room.localParticipant.setMicrophoneEnabled(true);
           log.info('🎤 Microphone re-enabled after reconnection');
@@ -804,7 +823,7 @@ class ConnectionService {
 
         // 🎚️ CRITICAL FIX: For music tracks, we need Web Audio attached BEFORE playing!
         // If we play first and attach Web Audio later, the audio bypasses our GainNode.
-        // 
+        //
         // For MUSIC tracks: Trigger attachment, wait briefly for Web Audio setup, then play
         // For VOICE tracks: Play immediately (ducking triggers from this callback)
         if (isMusicTrack) {
@@ -812,19 +831,23 @@ class ConnectionService {
           // This ensures the audio flows through our GainNode from the start
           const musicCallback = this.callbacks.onMusicTrack;
           if (musicCallback) {
-            log.info('🎚️ Music track detected - starting Web Audio attachment BEFORE playback', { trackKey });
-            
+            log.info('🎚️ Music track detected - starting Web Audio attachment BEFORE playback', {
+              trackKey,
+            });
+
             // Call the callback which will start async attachment
             // The callback's async work will complete in parallel with our timeout
             musicCallback(audioEl, trackKey);
-            
+
             // Give Web Audio time to:
             // 1. Initialize AudioContext if needed (may require user gesture)
-            // 2. Create MediaElementSource 
+            // 2. Create MediaElementSource
             // 3. Connect the audio chain
             // 200ms should be enough for Web Audio initialization
             setTimeout(() => {
-              log.info('🎚️ Starting music playback (Web Audio attachment should be complete)', { trackKey });
+              log.info('🎚️ Starting music playback (Web Audio attachment should be complete)', {
+                trackKey,
+              });
               void playAudio();
             }, 200);
           } else {
@@ -889,7 +912,7 @@ class ConnectionService {
     // ⚠️ This fires when mic is taken away by iOS audio interruption, reconnect, etc.
     const onLocalTrackUnpublished = (publication: { kind: string }, _participant: unknown) => {
       if (publication.kind === 'audio') {
-        log.warn('⚠️ Local audio track unpublished (mic dropped)', { 
+        log.warn('⚠️ Local audio track unpublished (mic dropped)', {
           roomState: this.room?.state,
           visibilityState: document.visibilityState,
         });
@@ -967,7 +990,8 @@ class ConnectionService {
 
       // 📊 Capture comprehensive disconnect diagnostics
       try {
-        const { captureDisconnectDiagnostic, endSession } = await import('./disconnect-diagnostics.service.js');
+        const { captureDisconnectDiagnostic, endSession } =
+          await import('./disconnect-diagnostics.service.js');
         await captureDisconnectDiagnostic(disconnectReason, wasGraceful, this.room?.state);
         endSession();
       } catch (err) {
@@ -998,15 +1022,21 @@ class ConnectionService {
       if (document.visibilityState === 'visible' && this.room?.state === 'connected') {
         log.debug('📱 App became visible - checking microphone state');
         try {
-          const isMuted = (window as unknown as { appState?: { get?: (key: string) => unknown } }).appState?.get?.('isMuted') ?? false;
+          const isMuted =
+            (
+              window as unknown as { appState?: { get?: (key: string) => unknown } }
+            ).appState?.get?.('isMuted') ?? false;
           if (!isMuted && this.room?.localParticipant) {
             // Small delay to let audio context resume
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
+            await new Promise((resolve) => setTimeout(resolve, 100));
+
             // Check if mic is already publishing
-            const audioTracks = this.room.localParticipant.getTrackPublications()
-              .filter((pub: { kind?: string; track?: unknown }) => pub.kind === 'audio' && pub.track);
-            
+            const audioTracks = this.room.localParticipant
+              .getTrackPublications()
+              .filter(
+                (pub: { kind?: string; track?: unknown }) => pub.kind === 'audio' && pub.track
+              );
+
             if (audioTracks.length === 0) {
               log.info('📱 No audio track found - re-enabling microphone');
               await this.room.localParticipant.setMicrophoneEnabled(true);
@@ -1027,15 +1057,18 @@ class ConnectionService {
     // This fires when app comes back from background, after phone calls, etc.
     const onAppState = async (event: Event) => {
       const { isActive } = (event as CustomEvent<{ isActive: boolean }>).detail;
-      
+
       if (isActive && this.room?.state === 'connected') {
         log.info('📱 Native app became active - restoring microphone');
         try {
-          const isMuted = (window as unknown as { appState?: { get?: (key: string) => unknown } }).appState?.get?.('isMuted') ?? false;
+          const isMuted =
+            (
+              window as unknown as { appState?: { get?: (key: string) => unknown } }
+            ).appState?.get?.('isMuted') ?? false;
           if (!isMuted && this.room?.localParticipant) {
             // Longer delay for native - iOS audio session needs time to restore
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
+            await new Promise((resolve) => setTimeout(resolve, 300));
+
             // Re-enable microphone
             await this.room.localParticipant.setMicrophoneEnabled(true);
             log.info('🎤 Microphone restored after native app state change');

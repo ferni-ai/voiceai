@@ -11,15 +11,15 @@
  *
  * Extracted from jack-bogle.ts lines 1494-1508
  */
+import { semanticSearch } from '../../../memory/semantic-rag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import {
-  registerContextBuilder,
-  createStandardInjection,
   createHintInjection,
+  createStandardInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import { semanticSearch } from '../../../memory/semantic-rag.js';
 
 // ============================================================================
 // RAG CONTEXT BUILDER
@@ -31,11 +31,17 @@ async function buildRagContext(input: ContextBuilderInput): Promise<ContextInjec
   const { userText, analysis, userData } = input;
   const injections: ContextInjection[] = [];
   const turnCount = userData.turnCount || 0;
-  // Only perform RAG lookup periodically to avoid latency
-  // Skip on first turn (greeting) and do every 2-3 turns
-  if (turnCount === 0 || turnCount % 2 !== 0) {
+
+  // Skip only the first turn (greeting — no meaningful content to search)
+  // Run on ALL subsequent turns for consistent "Better than Human" memory recall.
+  // Use a lighter topK on even turns to manage latency.
+  if (turnCount === 0) {
     return injections;
   }
+
+  const isLightTurn = turnCount % 2 !== 0;
+  const topK = isLightTurn ? 2 : 3;
+
   try {
     // Build query from user message and detected topics
     const topics = analysis.topics.detected;
@@ -44,7 +50,7 @@ async function buildRagContext(input: ContextBuilderInput): Promise<ContextInjec
     // PERSONA KNOWLEDGE LOOKUP
     // -----------------------------------------------
     const knowledgeResults = await semanticSearch(query, {
-      topK: 3,
+      topK,
       minScore: 0.7,
     });
     if (knowledgeResults.length > 0) {

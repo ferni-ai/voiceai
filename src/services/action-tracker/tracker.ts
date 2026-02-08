@@ -10,24 +10,20 @@
  * @module services/action-tracker/tracker
  */
 
+import { clearNamedInterval, hasInterval, registerInterval } from '../../utils/interval-manager.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
-import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
+import { cleanForFirestore, getFirestoreDb } from '../superhuman/firestore-utils.js';
 // Two-way integration: Close commitments when actions complete
 import { onActionCompleted as notifyCommitmentKeeperOfAction } from '../superhuman/commitment-keeper.js';
 import type {
-  FerniAction,
-  ActionType,
-  ActionStatus,
-  ActionEvent,
-  ActionRequest,
-  ActionExecution,
-  CreateActionOptions,
-  StartExecutionOptions,
-  CompleteExecutionOptions,
-  ActionFilter,
-  ActionStats,
   ActionChangeEvent,
+  ActionFilter,
+  ActionRequest,
+  ActionStats,
+  CompleteExecutionOptions,
+  CreateActionOptions,
+  FerniAction,
+  StartExecutionOptions,
 } from './types.js';
 
 const log = createLogger({ module: 'action-tracker' });
@@ -141,6 +137,7 @@ export class ActionTracker {
       events: [{ type: 'requested', timestamp: now }],
       createdAt: now,
       updatedAt: now,
+      ...(options.personaId ? { metadata: { personaId: options.personaId } } : {}),
     };
 
     // Cache locally

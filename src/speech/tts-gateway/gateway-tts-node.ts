@@ -28,11 +28,9 @@ import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import {
   stripInstructionBlocks,
   containsInstructionBlocks,
-} from '../../agents/shared/sanitizer/detectors/leakage-detector.js';
-import {
   stripGuidanceBlocks,
   containsGuidanceBlocks,
-} from '../../agents/shared/sanitizer/index.js';
+} from '../../utils/text-sanitization.js';
 
 // FIX (Jan 2026): Create require for ESM compatibility
 // ESM doesn't have global require, so we create one for dynamic imports

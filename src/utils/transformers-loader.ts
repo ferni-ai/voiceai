@@ -24,13 +24,13 @@
  * @see https://onnxruntime.ai/docs/performance/tune-performance/threading.html
  */
 
-import { createLogger } from './safe-logger.js';
 import {
   getOnnxGuard,
   getTransformersGuard,
-  type NativeBindingStats,
   type CrashDiagnostics,
+  type NativeBindingStats,
 } from './native-binding-guard.js';
+import { createLogger } from './safe-logger.js';
 
 const log = createLogger({ module: 'transformers-loader' });
 
@@ -505,12 +505,16 @@ export async function createInferenceSession(
 
       // Create session options object
       // Note: graphOptimizationLevel must be a STRING in onnxruntime-node
-      // Do NOT specify executionProviders - let ONNX auto-detect (v1.20.1 defaults to CPU)
       const ortSessionOptions: Record<string, unknown> = {
         intraOpNumThreads: sessionOptions.intraOpNumThreads || 1,
         interOpNumThreads: sessionOptions.interOpNumThreads || 1,
         graphOptimizationLevel: sessionOptions.graphOptimizationLevel || 'all',
       };
+
+      // On macOS (darwin), use Core ML EP when available for Apple GPU/Neural Engine (opt-out via ONNX_USE_COREML=false)
+      if (process.platform === 'darwin' && process.env.ONNX_USE_COREML !== 'false') {
+        ortSessionOptions.executionProviders = ['CoreML', 'CPUExecutionProvider'];
+      }
 
       log.debug(
         {
@@ -518,6 +522,7 @@ export async function createInferenceSession(
           intraThreads: ortSessionOptions.intraOpNumThreads,
           interThreads: ortSessionOptions.interOpNumThreads,
           optimizationLevel: sessionOptions.graphOptimizationLevel,
+          executionProviders: ortSessionOptions.executionProviders,
         },
         'Creating ONNX session'
       );

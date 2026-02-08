@@ -4,6 +4,25 @@
 
 This document provides a comprehensive reference for all CLI commands, their implementation status, and integration points.
 
+## Command Summary
+
+| Category | Commands | Status |
+|----------|----------|--------|
+| **Development & Build** | 25+ | ✅ Complete |
+| **Deployment & Infrastructure** | 20+ | ✅ Complete |
+| **Experiments & A/B Testing** | 10+ | 🧬 New |
+| **Agent & Persona Management** | 15+ | ✅ Complete |
+| **Operations & Observability** | 15+ | ✅ Complete |
+| **Data & User Management** | 35+ | ✅ Complete |
+| **Platform Monitoring** | 30+ | ✅ Complete |
+| **Tools & Validation** | 15+ | ✅ Complete |
+| **CEO Features** | 80+ | ⚠️ Partial |
+| **C-Suite Features** | 30+ | 🔴 Planned |
+| **Release & Git** | 6 | ✅ Complete |
+| **Design System** | 5 | ✅ Complete |
+| **Developer Blog** | 4 | ✅ Complete |
+| **TOTAL** | **290+ commands** | **~60% Complete** |
+
 ---
 
 ## Quick Start
@@ -225,34 +244,268 @@ DELETE /api/experiments/:id        - Delete experiment
 
 ---
 
-## 6. Executive Suite (CEO Features)
+## 6. Data & User Management
+
+### User Management
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni users list` | ✅ | List all users |
+| `ferni users show <id>` | ✅ | Show user details |
+| `ferni users dump <id>` | ✅ | Export user data |
+| `ferni users cleanup` | ✅ | Cleanup inactive users |
+| `ferni users grant <id> <role>` | ✅ | Grant user permissions |
+
+### Data Analysis
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni data profiles` | ✅ | Analyze user profiles |
+| `ferni data behaviors` | ✅ | Analyze user behaviors |
+| `ferni data tools` | ✅ | Tool usage analytics |
+| `ferni data contacts` | ✅ | Contact analytics |
+
+### Waitlist Management
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni waitlist list` | ✅ | List waitlist entries |
+| `ferni waitlist approve <email>` | ✅ | Approve a user |
+| `ferni waitlist stats` | ✅ | Waitlist statistics |
+| `ferni waitlist export` | ✅ | Export waitlist |
+
+### Database Operations
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni db status` | ✅ | Check database status |
+| `ferni db backup` | ✅ | Create database backup |
+| `ferni db migrate` | ✅ | Run migrations |
+| `ferni db query "<sql>"` | ✅ | Execute SQL query |
+
+### Environment & Secrets
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni env list` | ✅ | List environment variables |
+| `ferni env diff` | ✅ | Compare environments |
+| `ferni env check` | ✅ | Validate required vars |
+| `ferni env sync` | ✅ | Sync from Secret Manager |
+| `ferni secrets list` | ✅ | List all secrets |
+| `ferni secrets check` | ✅ | Validate secrets |
+| `ferni secrets rotate <name>` | ✅ | Rotate a secret |
+| `ferni secrets sync` | ✅ | Sync to Secret Manager |
+| `ferni secrets audit` | ✅ | Audit secret access |
+
+### Dependencies & Setup
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni deps audit` | ✅ | Audit dependencies |
+| `ferni deps outdated` | ✅ | Check outdated deps |
+| `ferni deps update` | ✅ | Update dependencies |
+| `ferni deps cleanup` | ✅ | Remove unused deps |
+| `ferni setup local` | ✅ | Setup local environment |
+| `ferni setup icons` | ✅ | Generate icons |
+| `ferni setup firestore` | ✅ | Setup Firestore emulator |
+| `ferni setup secrets` | ✅ | Setup secrets locally |
+| `ferni migrate status` | ✅ | Migration status |
+| `ferni migrate run` | ✅ | Run pending migrations |
+| `ferni migrate rollback` | ✅ | Rollback last migration |
+| `ferni migrate create <name>` | ✅ | Create new migration |
+
+---
+
+## 7. Platform Monitoring & Metrics
+
+### Platform Metrics
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni metrics live` | ✅ | Live metrics dashboard |
+| `ferni metrics latency` | ✅ | Latency metrics |
+| `ferni metrics errors` | ✅ | Error rates |
+| `ferni metrics throughput` | ✅ | Request throughput |
+
+### Session Analytics
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni sessions active` | ✅ | Active sessions |
+| `ferni sessions history` | ✅ | Session history |
+| `ferni sessions stats` | ✅ | Session statistics |
+| `ferni sessions users` | ✅ | Users by session |
+
+### Traffic Management
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni traffic status` | ✅ | Traffic distribution |
+| `ferni traffic canary <pct>` | ✅ | Canary deployment |
+| `ferni traffic split` | ✅ | A/B traffic split |
+| `ferni traffic rollout` | ✅ | Gradual rollout |
+
+### Alerts & On-Call
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni alerts list` | ✅ | List all alerts |
+| `ferni alerts active` | ✅ | Active alerts only |
+| `ferni alerts silence <id>` | ✅ | Silence an alert |
+| `ferni alerts acknowledge <id>` | ✅ | Acknowledge alert |
+| `ferni oncall who` | ✅ | Who's on call? |
+| `ferni oncall schedule` | ✅ | On-call schedule |
+| `ferni oncall handoff` | ✅ | Handoff to next |
+| `ferni oncall escalate` | ✅ | Escalate incident |
+
+### Voice Agent Testing
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni calls test` | ✅ | Test voice call |
+| `ferni calls status` | ✅ | Call status |
+| `ferni calls family` | ✅ | Test with family |
+| `ferni calls invite <phone>` | ✅ | Invite to test |
+
+### Runtime Diagnostics
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni runtime status` | ✅ | Container status |
+| `ferni runtime memory` | ✅ | Memory usage |
+| `ferni runtime sessions` | ✅ | Active sessions |
+| `ferni runtime health` | ✅ | Health checks |
+
+---
+
+## 8. Tools & Validation
+
+### Tool Management
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni tools list` | ✅ | List all tools |
+| `ferni tools show <id>` | ✅ | Show tool details |
+| `ferni tools validate` | ✅ | Validate tool configs |
+| `ferni tools stats` | ✅ | Tool usage statistics |
+| `ferni tools test <id>` | ✅ | Test a tool |
+
+### Validation Commands
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni validate voices` | ✅ | Validate voice configs |
+| `ferni validate humanization` | ✅ | Validate humanization |
+| `ferni validate integrations` | ✅ | Validate integrations |
+
+### Architecture Audits
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni audit quality` | ✅ | Code quality audit |
+| `ferni audit architecture` | ✅ | Architecture audit |
+| `ferni audit bth` | ✅ | Better Than Human audit |
+| `ferni audit tools` | ✅ | Tool architecture audit |
+
+---
+
+## 9. Executive Suite (CEO Features)
 
 ### Personal Productivity
 
 | Command | Status | Description |
 |---------|--------|-------------|
 | `ferni goals` | ⚠️ | Track your goals |
+| `ferni goals list` | ⚠️ | List all goals |
 | `ferni goals add "..."` | ⚠️ | Add a goal |
+| `ferni goals complete <id>` | ⚠️ | Mark goal complete |
+| `ferni goals progress` | ⚠️ | View progress |
 | `ferni brain` | ⚠️ | What Ferni knows about you |
+| `ferni brain show` | ⚠️ | Show all memories |
+| `ferni brain summary` | ⚠️ | Memory summary |
+| `ferni brain delete <id>` | ⚠️ | Delete a memory |
 | `ferni remember "..."` | ⚠️ | Add a note for Ferni |
 | `ferni briefing` | ⚠️ | Morning briefing |
-| `ferni focus start 90` | ⚠️ | Start focus session |
+| `ferni briefing today` | ⚠️ | Today's briefing |
+| `ferni briefing tomorrow` | ⚠️ | Tomorrow's briefing |
+| `ferni briefing week` | ⚠️ | Week ahead |
+| `ferni focus start <mins>` | ⚠️ | Start focus session |
+| `ferni focus stop` | ⚠️ | Stop focus session |
+| `ferni focus status` | ⚠️ | Current focus status |
+| `ferni focus history` | ⚠️ | Focus history |
 | `ferni reflect` | ⚠️ | End-of-day reflection |
+| `ferni reflect today` | ⚠️ | Today's reflection |
+| `ferni reflect prompts` | ⚠️ | Reflection prompts |
+| `ferni reflect history` | ⚠️ | Past reflections |
 | `ferni weekly` | ⚠️ | Weekly review |
+| `ferni weekly review` | ⚠️ | This week's review |
+| `ferni weekly plan` | ⚠️ | Plan next week |
+| `ferni weekly last` | ⚠️ | Last week's review |
 
 ### Tracking & Logging
 
 | Command | Status | Description |
 |---------|--------|-------------|
 | `ferni wins "..."` | ⚠️ | Log an achievement |
+| `ferni wins add "..."` | ⚠️ | Add a win |
+| `ferni wins list` | ⚠️ | List all wins |
+| `ferni wins today` | ⚠️ | Today's wins |
+| `ferni wins week` | ⚠️ | This week's wins |
+| `ferni wins celebrate` | ⚠️ | Celebrate wins |
+| `ferni habits add <habit>` | ⚠️ | Add a habit |
+| `ferni habits list` | ⚠️ | List all habits |
 | `ferni habits check <habit>` | ⚠️ | Mark habit done |
-| `ferni energy <1-10>` | ⚠️ | Log energy level |
+| `ferni habits streak <habit>` | ⚠️ | Show streak |
+| `ferni habits delete <habit>` | ⚠️ | Delete a habit |
+| `ferni energy log <1-10>` | ⚠️ | Log energy level |
+| `ferni energy today` | ⚠️ | Today's energy |
+| `ferni energy week` | ⚠️ | Week's energy |
+| `ferni energy history` | ⚠️ | Energy history |
 | `ferni journal "..."` | ⚠️ | Quick journal entry |
+| `ferni journal add "..."` | ⚠️ | Add entry |
+| `ferni journal list` | ⚠️ | List entries |
+| `ferni journal today` | ⚠️ | Today's entries |
+| `ferni journal week` | ⚠️ | Week's entries |
 | `ferni gratitude "..."` | ⚠️ | Log gratitude |
+| `ferni gratitude add "..."` | ⚠️ | Add gratitude |
+| `ferni gratitude list` | ⚠️ | List all |
+| `ferni gratitude today` | ⚠️ | Today's gratitude |
+| `ferni gratitude week` | ⚠️ | Week's gratitude |
 | `ferni decisions add "..."` | ⚠️ | Track a decision |
+| `ferni decisions list` | ⚠️ | List decisions |
+| `ferni decisions pending` | ⚠️ | Pending decisions |
+| `ferni decisions outcome <id>` | ⚠️ | Log outcome |
 | `ferni priorities` | ⚠️ | View priorities |
+| `ferni priorities list` | ⚠️ | List all |
+| `ferni priorities add "..."` | ⚠️ | Add priority |
+| `ferni priorities reorder` | ⚠️ | Reorder priorities |
+| `ferni priorities complete <id>` | ⚠️ | Mark complete |
+| `ferni priorities clear` | ⚠️ | Clear all |
 | `ferni blockers add "..."` | ⚠️ | Track a blocker |
+| `ferni blockers list` | ⚠️ | List blockers |
+| `ferni blockers resolve <id>` | ⚠️ | Resolve blocker |
+| `ferni blockers active` | ⚠️ | Active blockers |
 | `ferni ideas "..."` | ⚠️ | Capture an idea |
+| `ferni ideas add "..."` | ⚠️ | Add idea |
+| `ferni ideas list` | ⚠️ | List ideas |
+| `ferni ideas tag <id> <tag>` | ⚠️ | Tag an idea |
+| `ferni ideas random` | ⚠️ | Random idea |
+
+### Team & Meetings
+
+| Command | Status | Description |
+|---------|--------|-------------|
+| `ferni roster` | ⚠️ | Leadership team info |
+| `ferni roster show` | ⚠️ | Show all |
+| `ferni roster maya` | ⚠️ | Maya's profile |
+| `ferni roster alex` | ⚠️ | Alex's profile |
+| `ferni roster jordan` | ⚠️ | Jordan's profile |
+| `ferni roster peter` | ⚠️ | Peter's profile |
+| `ferni meetings add "..."` | ⚠️ | Add meeting notes |
+| `ferni meetings list` | ⚠️ | List meetings |
+| `ferni meetings today` | ⚠️ | Today's meetings |
+| `ferni meetings week` | ⚠️ | Week's meetings |
+| `ferni meetings search <q>` | ⚠️ | Search meetings |
 
 ### AI Coaching
 
@@ -266,7 +519,7 @@ DELETE /api/experiments/:id        - Delete experiment
 
 ---
 
-## 7. C-Suite Commands (Planned)
+## 10. C-Suite Commands (Planned)
 
 ### CTO - Technical Leadership
 
@@ -323,7 +576,7 @@ DELETE /api/experiments/:id        - Delete experiment
 
 ---
 
-## 8. Release & Git Workflow
+## 11. Release & Git Workflow
 
 | Command | Status | Description |
 |---------|--------|-------------|
@@ -336,7 +589,7 @@ DELETE /api/experiments/:id        - Delete experiment
 
 ---
 
-## 9. Design System & Tokens
+## 12. Design System & Tokens
 
 | Command | Status | Description |
 |---------|--------|-------------|
@@ -348,7 +601,7 @@ DELETE /api/experiments/:id        - Delete experiment
 
 ---
 
-## 10. Developer Blog
+## 13. Developer Blog
 
 | Command | Status | Description |
 |---------|--------|-------------|
@@ -458,4 +711,22 @@ pnpm lint:fix
 
 ---
 
-*Last updated: January 2026*
+## Quick Navigation
+
+- [Development & Build](#1-development--build)
+- [Deployment & Infrastructure](#2-deployment--infrastructure)
+- [Experiments & A/B Testing](#3-experiments--ab-testing-)
+- [Agent & Persona Management](#4-agent--persona-management)
+- [Operations & Observability](#5-operations--observability)
+- [Data & User Management](#6-data--user-management)
+- [Platform Monitoring & Metrics](#7-platform-monitoring--metrics)
+- [Tools & Validation](#8-tools--validation)
+- [CEO Features](#9-executive-suite-ceo-features)
+- [C-Suite Commands](#10-c-suite-commands-planned)
+- [Release & Git](#11-release--git-workflow)
+- [Design System](#12-design-system--tokens)
+- [Developer Blog](#13-developer-blog)
+
+---
+
+*Last updated: February 2026*

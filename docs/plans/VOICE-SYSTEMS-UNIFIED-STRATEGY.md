@@ -1,6 +1,8 @@
-# Voice Systems Unified Strategy: BTCW + PersonaPlex
+# Voice Systems Unified Strategy: BTCW
 
-> **Goal**: Understand when to use BTCW (CosyVoice) vs PersonaPlex, and how they can work together for the ultimate "Better Than Human" voice experience.
+> **Note**: PersonaPlex integration has been removed (Feb 2026). This doc is retained for historical context on the BTCW architecture decisions. The Qwen3-Omni integration (`src/integrations/qwen3-omni/`) replaced PersonaPlex as the speech-to-speech option.
+
+> **Goal**: Understand the BTCW (CosyVoice) TTS architecture for the "Better Than Human" voice experience.
 
 **Status**: 🟡 Planning Complete - Implementation On Hold
 **Last Updated**: January 2026

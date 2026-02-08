@@ -13,34 +13,34 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 // Session types
-import type { GlobalServices, SessionServices } from '../types.js';
-import type { HumanizingStateUpdate } from '../humanizing-state.js';
 import type { ConversationTurn } from '../../memory/index.js';
+import type { HumanizingStateUpdate } from '../humanizing-state.js';
+import type { GlobalServices, SessionServices } from '../types.js';
 
 // Summarization module
 import {
+  createFallbackSummary,
   generateSummary,
   indexSummaryForRetrieval,
-  createFallbackSummary,
   type ConversationSummary,
 } from './summarization.js';
 
 // State persistence module
-import { persistAllState, applyHumanizingState } from './state-persistence.js';
+import { applyHumanizingState, persistAllState } from './state-persistence.js';
 
 // Cleanup module
 import {
+  analyzeForOutreach,
+  captureGrowthSnapshot,
   cleanupCoreComponents,
   cleanupIntelligenceEnginesAll,
-  captureGrowthSnapshot,
   clearLifeDataCache,
   finalizeRealtimeMemory,
   flushTrustPersistence,
   indexUserMemories,
-  analyzeForOutreach,
-  updateVoiceSketch,
   persistSocialGraphOnEnd,
   promoteSTMToFirestore,
+  updateVoiceSketch,
 } from './session-end-cleanup.js';
 
 // Intelligence imports
@@ -164,14 +164,78 @@ export async function handleEndSession(options: EndSessionOptions): Promise<void
     await captureGrowthSnapshot(validatedUserId, services);
   }
 
+  // 📊 SESSION STATE: Persist session behavioral signals (topics, emotions, entity mentions)
+  // These signals enable topic continuity and emotional trajectory tracking across sessions.
+  // Uses the STM buffer which captures rich per-turn data during the conversation.
+  if (validatedUserId) {
+    try {
+      const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
+      const { getSTMBuffer, getFrequentEntities, getRecentTopics, getEmotionalTrajectory } =
+        await import('../../memory/dynamic/stm-buffer.js');
+      const db = getFirestoreDb();
+      if (db) {
+        const buffer = getSTMBuffer(sessionId, validatedUserId);
+        const sessionSignals: Record<string, unknown> = {
+          sessionId,
+          personaId: personaId || 'ferni',
+          endedAt: new Date().toISOString(),
+          turnCount: buffer.turns.length,
+          durationMs: Date.now() - sessionStartTime,
+        };
+
+        // Topics discussed (for continuity across sessions)
+        const topics = getRecentTopics(sessionId);
+        if (topics.length > 0) {
+          sessionSignals.topics = topics.slice(0, 10);
+        }
+
+        // Frequently mentioned entities (for context priming)
+        const entities = getFrequentEntities(sessionId, 10);
+        if (entities.length > 0) {
+          sessionSignals.frequentEntities = entities.map((e) => ({
+            name: e.name,
+            type: e.type,
+            mentionCount: e.mentionCount,
+          }));
+        }
+
+        // Emotional trajectory (for pattern detection across sessions)
+        const trajectory = getEmotionalTrajectory(sessionId);
+        if (trajectory.length > 0) {
+          const lastEmotions = trajectory[trajectory.length - 1];
+          if (lastEmotions && lastEmotions.length > 0) {
+            sessionSignals.endingEmotion = {
+              primary: lastEmotions[0].emotion,
+              intensity: lastEmotions[0].intensity,
+            };
+          }
+        }
+
+        await db
+          .collection('bogle_users')
+          .doc(validatedUserId)
+          .collection('session_signals')
+          .doc(sessionId)
+          .set(sessionSignals);
+
+        log.debug(
+          { sessionId, userId: validatedUserId, turnCount: buffer.turns.length },
+          '📊 Session behavioral signals persisted'
+        );
+      }
+    } catch (signalErr) {
+      log.warn(
+        { sessionId, error: String(signalErr) },
+        'Failed to persist session signals (non-critical)'
+      );
+    }
+  }
+
   // 🧠 DYNAMIC MEMORY: Promote STM to Firestore at session end
   if (validatedUserId) {
     await promoteSTMToFirestore(sessionId, validatedUserId);
   } else {
-    log.warn(
-      { sessionId, userId },
-      '🧠 [MEMORY-AUDIT] SKIPPING STM promotion - no validatedUserId'
-    );
+    log.warn({ sessionId, userId }, '🧠 [MEMORY] SKIPPING STM promotion - no validatedUserId');
   }
 
   // Remove from active sessions

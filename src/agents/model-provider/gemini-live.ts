@@ -46,7 +46,7 @@ interface GeminiFunctionDeclaration {
 }
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { isFTISV2OnlyMode } from '../processors/tool-routing-integration.js';
+import { isFTISEnabled } from '../processors/tool-routing-integration.js';
 import {
   getGeminiFCConfig,
   isJsonFallbackEnabled,
@@ -83,8 +83,8 @@ const GEMINI_TOKEN_LIMIT = 30000;
  * 3. Use configured mode from gemini-fc-config
  */
 function getGeminiFCMode(): GeminiFCMode {
-  // FTIS V2 mode disables all Gemini native tool knowledge
-  if (isFTISV2OnlyMode()) {
+  // FTIS mode disables all Gemini native tool knowledge
+  if (isFTISEnabled()) {
     return 'NONE';
   }
 
@@ -98,11 +98,11 @@ function getGeminiFCMode(): GeminiFCMode {
 }
 
 /**
- * Check if FTIS-only mode is enabled.
+ * Check if FTIS is enabled.
  * When true, Gemini has NO tool knowledge - FTIS handles everything.
  */
 function isFTISOnlyMode(): boolean {
-  return isFTISV2OnlyMode();
+  return isFTISEnabled();
 }
 
 /**
@@ -158,7 +158,7 @@ When you hear an actionable request, CALL THE FUNCTION IMMEDIATELY — before sp
 
 | User Says | DO THIS FIRST |
 |-----------|---------------|
-| "play music", "put on some jazz" | → playMusic({query:"..."}) |
+| "play music", "put on some jazz", "some music" | → playMusic({query:"..."}) |
 | "weather", "temperature" | → getWeather() |
 | "reminder", "remind me" | → setReminder({...}) |
 | "timer", "alarm" | → quickTimer({...}) or quickAlarm({...}) |
@@ -167,7 +167,12 @@ When you hear an actionable request, CALL THE FUNCTION IMMEDIATELY — before sp
 | "remember this", "save" | → rememberAboutUser({...}) |
 
 WRONG: "Let me play that for you" (then no function call)
-RIGHT: [call playMusic first] then say "Here we go!"
+WRONG: "What kind of music are you in the mood for?" (don't ask — just pick something)
+RIGHT: call playMusic({query:"morning jazz"}) then say "Here we go!"
+
+## MUSIC RULE (NEVER ASK, JUST PLAY)
+
+When the user mentions music in ANY way — "play some music", "put on something", "some tunes", "morning music" — you MUST call playMusic() immediately. NEVER ask what kind. Pick something appropriate based on context (time of day, mood, conversation topic). If they want something specific, they'll tell you.
 
 ## VOICE OUTPUT RULES
 
@@ -175,6 +180,7 @@ RIGHT: [call playMusic first] then say "Here we go!"
 2. After a function returns, announce the result naturally: "It's 72 and sunny" / "Here's some jazz"
 3. Keep sentences short. Use reactions: "Oh!" "Hmm." "Got it."
 4. Never output brackets, JSON, or function names — function calls are API events, not text
+5. NEVER generate text that narrates actions like "[plays music]" or "[searches weather]" — CALL the function instead
 
 ## YOUR TEAM (handoff available)
 

@@ -2538,15 +2538,18 @@ function buildLLMSilenceInstructionsInternal(
   // - "I remember they were saying..."
   // These were all being spoken aloud by Gemini!
 
-  // CRITICAL FIX (Jan 2026 v3): Strip ALL meta-instruction patterns from responseGuidance.
-  // Patterns like "(under 10 words)", "warm but not pushy", "Be curious not concerned"
-  // are meant to guide the LLM's style but Gemini echoes them as speech!
+  // CRITICAL FIX (Feb 2026 v4): DO NOT pass any instruction text to generateReply.
+  // In Gemini Live, generateReply(instructions) sends instructions as a MODEL ROLE turn,
+  // meaning the model treats them as its own prior output and ECHOES them verbatim.
   //
-  // The cleanest approach: Send ONLY "Speaking now:" and let the LLM use its general
-  // training + system prompt for tone. The responseType guides fallback selection.
-  //
-  // Previous attempts kept responseGuidance which still had meta-instructions leaking.
-  const instructions = 'Speaking now:';
+  // History of failed attempts:
+  //   v1: Full context hints + inner thoughts → Gemini echoed all of them
+  //   v2: Stripped to minimal responseGuidance → Still echoed meta-instructions
+  //   v3: Stripped to "Speaking now:" → Gemini literally said "Speaking now" aloud!
+  //   v4 (current): Pass empty string. Let system prompt + conversation history guide
+  //       the response. The silence context is already in the system instructions.
+  //       Fallback selection is handled by getSmartFallbackWithRecency() below.
+  const instructions = '';
 
   // Generate smart fallback instead of random static selection
   const smartFallback = getSmartFallbackWithRecency(context, invitesReply);

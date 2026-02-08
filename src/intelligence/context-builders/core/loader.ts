@@ -123,7 +123,12 @@ function shouldLoadCategory(category: BuilderCategory): boolean {
  */
 export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   // SAFETY - Runs first, can override everything
-  [BuilderCategory.SAFETY]: ['crisis', 'wellbeing-context', 'principal-alignment'],
+  [BuilderCategory.SAFETY]: [
+    'crisis',
+    'wellbeing-context',
+    'principal-alignment',
+    'honesty-guardrail',
+  ],
 
   // EMOTIONAL - Core emotion handling
   // NOTE: emotional.behavioral.ts in behavioral/builders/ provides safer signal-based

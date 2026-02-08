@@ -9,6 +9,11 @@
  */
 
 import type { ContextType, PersonaId, PersonaVoice } from './types.js';
+import {
+  getPersonaColor,
+  getPersonaGlowColor,
+  getPersonaSecondaryColor,
+} from '../../config/brand-colors.js';
 
 // ============================================================================
 // PERSONA VOICE DEFINITIONS
@@ -117,9 +122,9 @@ export const PERSONA_VOICES: Record<PersonaId, PersonaVoice> = {
     ],
 
     colors: {
-      primary: '#4a6741',
-      secondary: '#3d5a35',
-      glow: 'rgba(74, 103, 65, 0.3)',
+      primary: getPersonaColor('ferni'),
+      secondary: getPersonaSecondaryColor('ferni'),
+      glow: getPersonaGlowColor('ferni'),
     },
   },
 
@@ -279,9 +284,9 @@ export const PERSONA_VOICES: Record<PersonaId, PersonaVoice> = {
     antiPatterns: ['Obviously...', 'Everyone knows...', "It's simple...", 'Just do...'],
 
     colors: {
-      primary: '#3a6b73',
-      secondary: '#2d5359',
-      glow: 'rgba(58, 107, 115, 0.3)',
+      primary: getPersonaColor('peter-john'),
+      secondary: getPersonaSecondaryColor('peter-john'),
+      glow: getPersonaGlowColor('peter-john'),
     },
   },
 
@@ -356,9 +361,9 @@ export const PERSONA_VOICES: Record<PersonaId, PersonaVoice> = {
     ],
 
     colors: {
-      primary: '#5a6b8a',
-      secondary: '#4a5a73',
-      glow: 'rgba(90, 107, 138, 0.3)',
+      primary: getPersonaColor('alex-chen'),
+      secondary: getPersonaSecondaryColor('alex-chen'),
+      glow: getPersonaGlowColor('alex-chen'),
     },
   },
 
@@ -435,9 +440,9 @@ export const PERSONA_VOICES: Record<PersonaId, PersonaVoice> = {
     ],
 
     colors: {
-      primary: '#a67a6a',
-      secondary: '#8a635a',
-      glow: 'rgba(166, 122, 106, 0.3)',
+      primary: getPersonaColor('maya-santos'),
+      secondary: getPersonaSecondaryColor('maya-santos'),
+      glow: getPersonaGlowColor('maya-santos'),
     },
   },
 
@@ -517,9 +522,9 @@ export const PERSONA_VOICES: Record<PersonaId, PersonaVoice> = {
     ],
 
     colors: {
-      primary: '#c4856a',
-      secondary: '#a86d55',
-      glow: 'rgba(196, 133, 106, 0.3)',
+      primary: getPersonaColor('jordan-taylor'),
+      secondary: getPersonaSecondaryColor('jordan-taylor'),
+      glow: getPersonaGlowColor('jordan-taylor'),
     },
   },
 
@@ -601,9 +606,9 @@ export const PERSONA_VOICES: Record<PersonaId, PersonaVoice> = {
     ],
 
     colors: {
-      primary: '#b8956a',
-      secondary: '#9a7a52',
-      glow: 'rgba(184, 149, 106, 0.3)',
+      primary: getPersonaColor('nayan-patel'),
+      secondary: getPersonaSecondaryColor('nayan-patel'),
+      glow: getPersonaGlowColor('nayan-patel'),
     },
   },
 

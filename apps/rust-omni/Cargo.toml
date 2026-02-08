@@ -1,0 +1,35 @@
+[package]
+name = "ferni-omni"
+version = "0.1.0"
+edition = "2021"
+description = "Unified Rust Omni stack: STT (Whisper) + Thinker (Candle MoE) + TTS (ferni-tts-core)"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# STT: Whisper via rust-audio
+ferni-audio = { path = "../rust-audio" }
+
+# Thinker: Candle MoE via rust-perf
+ferni-perf = { path = "../rust-perf" }
+
+# TTS: Core synthesis (no HTTP)
+ferni-tts-core = { path = "../../crates/ferni-tts-core" }
+
+# NAPI for Node.js bindings
+napi = { version = "2", features = ["napi9"] }
+napi-derive = "2"
+
+# Async runtime for TTS (core uses async synthesis)
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
+
+[build-dependencies]
+napi-build = "2.3.1"
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+panic = "abort"

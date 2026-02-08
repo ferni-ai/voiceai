@@ -13,11 +13,16 @@
  * @module intelligence/context-builders/memory/dynamic-memory-context
  */
 
+import {
+  buildSTMContext,
+  getFrequentEntities,
+  getRecentTopics,
+} from '../../../memory/dynamic/stm-buffer.js';
 import { getFirestoreDb, toSafeDate } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { BuilderCategory } from '../core/categories.js';
-import { createStandardInjection, createHintInjection, registerContextBuilder } from '../index.js';
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../core/types.js';
+import { createHintInjection, createStandardInjection, registerContextBuilder } from '../index.js';
 
 const log = createLogger({ module: 'context:dynamic-memory' });
 
@@ -117,8 +122,100 @@ interface HumanMemoryProfile {
 }
 
 // ============================================================================
+// PROMOTED ENTITY / TOPIC PATTERN TYPES (from STM promotion)
+// ============================================================================
+
+interface PromotedEntity {
+  id: string;
+  name: string;
+  type: string;
+  mentionCount: number;
+  importance: number;
+  lastContext: string;
+  promotedAt: Date;
+}
+
+interface TopicPattern {
+  id: string;
+  sessionId: string;
+  topics: string[];
+  transitions: string[];
+  dominantTopic: string;
+  promotedAt: Date;
+}
+
+// ============================================================================
 // RETRIEVAL FUNCTIONS
 // ============================================================================
+
+/**
+ * Retrieve promoted entities (from STM promotion at session end)
+ * These are frequently mentioned entities that were important enough to persist.
+ */
+async function getPromotedEntities(userId: string): Promise<PromotedEntity[]> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return [];
+
+    const snapshot = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('promoted_entities')
+      .orderBy('importance', 'desc')
+      .limit(15)
+      .get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name,
+        type: data.type || 'person',
+        mentionCount: data.mentionCount || 1,
+        importance: data.importance || 0.5,
+        lastContext: data.lastContext || '',
+        promotedAt: toSafeDate(data.promotedAt),
+      };
+    });
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to retrieve promoted entities');
+    return [];
+  }
+}
+
+/**
+ * Retrieve recent topic patterns (from STM promotion at session end)
+ * Shows conversation themes across sessions.
+ */
+async function getRecentTopicPatterns(userId: string): Promise<TopicPattern[]> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return [];
+
+    const snapshot = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('topic_patterns')
+      .orderBy('promotedAt', 'desc')
+      .limit(5)
+      .get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        sessionId: data.sessionId || '',
+        topics: data.topics || [],
+        transitions: data.transitions || [],
+        dominantTopic: data.dominantTopic || 'general',
+        promotedAt: toSafeDate(data.promotedAt),
+      };
+    });
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to retrieve topic patterns');
+    return [];
+  }
+}
 
 /**
  * Retrieve recent dynamic entities for a user
@@ -266,13 +363,13 @@ async function getHumanSignals(userId: string): Promise<HumanMemoryProfile | nul
       .doc('profile');
 
     const doc = await profileRef.get();
-    
+
     if (!doc.exists) {
       return null;
     }
 
     const data = doc.data()!;
-    
+
     // Map each signal array, ensuring proper date conversion
     const mapSignals = (arr: unknown[]): HumanSignal[] => {
       if (!Array.isArray(arr)) return [];
@@ -399,7 +496,7 @@ function formatHumanSignalsContext(signals: HumanMemoryProfile | null): string {
 
   // Important dates (upcoming or significant)
   if (signals.importantDates.length > 0) {
-    lines.push('## Important Dates They\'ve Shared');
+    lines.push("## Important Dates They've Shared");
     for (const date of signals.importantDates.slice(0, 5)) {
       const context = date.context ? ` (${date.context})` : '';
       lines.push(`📅 ${date.value}${context}`);
@@ -485,7 +582,7 @@ function formatHumanSignalsContext(signals: HumanMemoryProfile | null): string {
 
 /**
  * Build dynamic memory context for LLM injection
- * 
+ *
  * MEMORY FIX (Jan 2026): Now includes human signals from LLM extraction
  * - Dreams, fears, values, important dates
  * - Growth markers, challenges, comfort patterns
@@ -500,18 +597,62 @@ async function buildDynamicMemoryContext(input: ContextBuilderInput): Promise<Co
     return [];
   }
 
-  try {
-    // Retrieve dynamic memories AND human signals in parallel (Jan 2026)
-    const [entities, relationships, humanSignals] = await Promise.all([
-      getRecentEntities(userId),
-      getRelationships(userId),
-      getHumanSignals(userId),
-    ]);
+  const sessionId = services?.sessionId;
 
-    // Skip if no data at all
-    if (entities.length === 0 && relationships.length === 0 && !humanSignals) {
-      log.debug({ userId }, 'No dynamic memory data available');
-      return [];
+  try {
+    // =========================================================================
+    // L1: STM Buffer (current session — O(1) access, always available)
+    // =========================================================================
+    if (sessionId) {
+      const stmContext = buildSTMContext(sessionId);
+      if (stmContext) {
+        injections.push(
+          createStandardInjection('stm_current_session', stmContext, {
+            category: 'memory',
+            confidence: 0.95, // High confidence — this is the current session
+          })
+        );
+
+        // Also surface frequently mentioned entities from THIS session
+        const stmEntities = getFrequentEntities(sessionId, 5);
+        const stmTopics = getRecentTopics(sessionId);
+        log.debug(
+          {
+            sessionId,
+            stmEntities: stmEntities.length,
+            stmTopics: stmTopics.length,
+          },
+          '🧠 [MEMORY] L1 STM context injected for current session'
+        );
+      }
+    }
+
+    // =========================================================================
+    // L2: Firestore (persisted memories from past sessions)
+    // =========================================================================
+
+    // Retrieve dynamic memories, promoted entities, topic patterns,
+    // and human signals in parallel
+    const [entities, relationships, humanSignals, promotedEntities, topicPatterns] =
+      await Promise.all([
+        getRecentEntities(userId),
+        getRelationships(userId),
+        getHumanSignals(userId),
+        getPromotedEntities(userId),
+        getRecentTopicPatterns(userId),
+      ]);
+
+    // Skip Firestore injection if no L2 data (L1 may still have content)
+    const hasL2Data =
+      entities.length > 0 ||
+      relationships.length > 0 ||
+      humanSignals !== null ||
+      promotedEntities.length > 0 ||
+      topicPatterns.length > 0;
+
+    if (!hasL2Data) {
+      log.debug({ userId }, 'No L2 dynamic memory data available');
+      return injections; // Return L1 injections (if any)
     }
 
     // Get facts for retrieved entities
@@ -523,10 +664,42 @@ async function buildDynamicMemoryContext(input: ContextBuilderInput): Promise<Co
     const relationshipContext = formatRelationshipContext(relationships);
     const humanSignalsContext = formatHumanSignalsContext(humanSignals);
 
+    // Format promoted entities (frequently mentioned across sessions)
+    let promotedContext = '';
+    if (promotedEntities.length > 0) {
+      const lines = ['## Frequently Mentioned (Across Sessions)'];
+      for (const pe of promotedEntities.slice(0, 8)) {
+        const label = pe.type === 'person' ? '👤' : '📌';
+        lines.push(
+          `${label} **${pe.name}** — mentioned ${pe.mentionCount}x${pe.lastContext ? ` (${pe.lastContext})` : ''}`
+        );
+      }
+      promotedContext = lines.join('\n');
+    }
+
+    // Format topic patterns (recurring themes)
+    let topicContext = '';
+    if (topicPatterns.length > 0) {
+      const allTopics = new Set<string>();
+      for (const tp of topicPatterns) {
+        for (const topic of tp.topics.slice(0, 5)) {
+          allTopics.add(topic);
+        }
+      }
+      if (allTopics.size > 0) {
+        topicContext = `## Recurring Themes\n${Array.from(allTopics)
+          .slice(0, 8)
+          .map((t) => `🔄 ${t}`)
+          .join('\n')}`;
+      }
+    }
+
     // Combine into single injection
     const sections: string[] = [];
     if (entityContext) sections.push(entityContext);
+    if (promotedContext) sections.push(promotedContext);
     if (relationshipContext) sections.push(relationshipContext);
+    if (topicContext) sections.push(topicContext);
     if (humanSignalsContext) sections.push(humanSignalsContext);
 
     if (sections.length > 0) {
@@ -547,12 +720,13 @@ async function buildDynamicMemoryContext(input: ContextBuilderInput): Promise<Co
       log.info(
         {
           userId,
+          hasSTM: !!sessionId && !!buildSTMContext(sessionId || ''),
           entityCount: entities.length,
           factCount: facts.length,
           relationshipCount: relationships.length,
           humanSignalCount: signalCount,
         },
-        '🧠 [MEMORY-AUDIT] Injected dynamic memory context (includes human signals)'
+        '🧠 [MEMORY] L1+L2 memory context injected'
       );
     }
 
@@ -588,20 +762,41 @@ async function buildDynamicMemoryContext(input: ContextBuilderInput): Promise<Co
       const relevantHints: string[] = [];
 
       // Check for dream/goal related keywords
-      if (lowerText.includes('dream') || lowerText.includes('goal') || lowerText.includes('want to')) {
-        const dreamHint = humanSignals.dreams.slice(0, 2).map(d => `✨ ${d.value}`).join('\n');
+      if (
+        lowerText.includes('dream') ||
+        lowerText.includes('goal') ||
+        lowerText.includes('want to')
+      ) {
+        const dreamHint = humanSignals.dreams
+          .slice(0, 2)
+          .map((d) => `✨ ${d.value}`)
+          .join('\n');
         if (dreamHint) relevantHints.push(`Their dreams:\n${dreamHint}`);
       }
 
       // Check for worry/fear related keywords
-      if (lowerText.includes('worried') || lowerText.includes('afraid') || lowerText.includes('anxious')) {
-        const fearHint = humanSignals.fears.slice(0, 2).map(f => `🔒 ${f.value}`).join('\n');
+      if (
+        lowerText.includes('worried') ||
+        lowerText.includes('afraid') ||
+        lowerText.includes('anxious')
+      ) {
+        const fearHint = humanSignals.fears
+          .slice(0, 2)
+          .map((f) => `🔒 ${f.value}`)
+          .join('\n');
         if (fearHint) relevantHints.push(`Known worries:\n${fearHint}`);
       }
 
       // Check for progress/growth keywords
-      if (lowerText.includes('progress') || lowerText.includes('better') || lowerText.includes('growth')) {
-        const growthHint = humanSignals.growthMarkers.slice(0, 2).map(g => `🌱 ${g.value}`).join('\n');
+      if (
+        lowerText.includes('progress') ||
+        lowerText.includes('better') ||
+        lowerText.includes('growth')
+      ) {
+        const growthHint = humanSignals.growthMarkers
+          .slice(0, 2)
+          .map((g) => `🌱 ${g.value}`)
+          .join('\n');
         if (growthHint) relevantHints.push(`Recent growth:\n${growthHint}`);
       }
 

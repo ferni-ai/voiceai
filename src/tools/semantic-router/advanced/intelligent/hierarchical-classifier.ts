@@ -1,5 +1,5 @@
 /**
- * V7 Hierarchical Classifier
+ * FTIS Hierarchical Classifier
  *
  * Two-stage ONNX classifier for domain + meta-tool routing.
  * Stage 1: Classifies user query → domain (e.g., "music", "habits", "wisdom")
@@ -7,13 +7,11 @@
  *
  * Combined confidence = stage1_confidence * stage2_confidence
  *
- * Falls back to V5 flat classifier when V7 models aren't available.
- *
  * @module semantic-router/advanced/intelligent/hierarchical-classifier
  */
 
-import { createLogger } from '../../../../utils/safe-logger.js';
 import path from 'path';
+import { createLogger } from '../../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'hierarchical-classifier' });
 
@@ -69,7 +67,10 @@ export interface HierarchicalClassificationOutput {
 // ============================================================================
 
 type OnnxRouterType = {
-  predict(query: string): { predictions: Array<{ toolId: string; confidence: number }>; latencyMs: number };
+  predict(query: string): {
+    predictions: Array<{ toolId: string; confidence: number }>;
+    latencyMs: number;
+  };
   getNumTools(): number;
   getLabels(): string[];
   warmup(): number;
@@ -102,7 +103,7 @@ function getDefaultConfig(): HierarchicalClassifierConfig {
 // ============================================================================
 
 /**
- * Initialize the V7 hierarchical classifier.
+ * Initialize the FTIS hierarchical classifier.
  * Loads both Stage 1 (domain) and Stage 2 (meta-tool) ONNX models.
  */
 export async function initializeHierarchicalClassifier(
@@ -175,11 +176,11 @@ async function doInitialize(config: Partial<HierarchicalClassifierConfig>): Prom
         warmup2Ms: warmup2Ms.toFixed(1),
         totalMs,
       },
-      '🧠 V7 Hierarchical classifier initialized (2-stage)'
+      '🧠 FTIS hierarchical classifier initialized (2-stage)'
     );
   } catch (error) {
     initError = error instanceof Error ? error : new Error(String(error));
-    log.warn({ error: String(error) }, 'V7 Hierarchical classifier init failed - V5 fallback available');
+    log.warn({ error: String(error) }, 'FTIS hierarchical classifier init failed');
     throw initError;
   }
 }
@@ -189,14 +190,14 @@ async function doInitialize(config: Partial<HierarchicalClassifierConfig>): Prom
 // ============================================================================
 
 /**
- * Check if the V7 hierarchical classifier is available.
+ * Check if the FTIS hierarchical classifier is available.
  */
 export function isHierarchicalClassifierAvailable(): boolean {
   return stage1Router !== null && stage2Router !== null;
 }
 
 /**
- * Classify user input using the V7 two-stage model.
+ * Classify user input using the FTIS two-stage model.
  *
  * Stage 1: userQuery → domain predictions
  * Stage 2: "[domain] userQuery" → meta-tool predictions within top domain
@@ -205,7 +206,7 @@ export function isHierarchicalClassifierAvailable(): boolean {
  */
 export function classifyHierarchical(userText: string): HierarchicalClassificationOutput {
   if (!stage1Router || !stage2Router) {
-    throw new Error('V7 Hierarchical classifier not initialized');
+    throw new Error('FTIS hierarchical classifier not initialized');
   }
 
   // Stage 1: Domain classification
@@ -253,13 +254,15 @@ export function classifyHierarchical(userText: string): HierarchicalClassificati
 /**
  * Safe version that returns null if classifier is unavailable.
  */
-export function classifyHierarchicalSafe(userText: string): HierarchicalClassificationOutput | null {
+export function classifyHierarchicalSafe(
+  userText: string
+): HierarchicalClassificationOutput | null {
   if (!stage1Router || !stage2Router) return null;
 
   try {
     return classifyHierarchical(userText);
   } catch (error) {
-    log.debug({ error: String(error) }, 'V7 hierarchical classification failed');
+    log.debug({ error: String(error) }, 'FTIS hierarchical classification failed');
     return null;
   }
 }
@@ -281,12 +284,28 @@ export function getV7MetaToolLabels(): string[] {
 }
 
 /**
- * Shutdown the V7 classifier and release resources.
+ * Shutdown the FTIS classifier and release resources.
  */
 export function shutdownHierarchicalClassifier(): void {
   stage1Router = null;
   stage2Router = null;
   initPromise = null;
   initError = null;
-  log.info('V7 Hierarchical classifier shut down');
+  log.info('FTIS classifier shut down');
+}
+
+/**
+ * Detect if FTIS models are available on disk.
+ * Returns 'available' if both stage1 and stage2 models exist, 'none' otherwise.
+ */
+export function detectFTISModels(): 'available' | 'none' {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fs = require('fs');
+  const modelsRoot = path.resolve(process.cwd(), 'models');
+  const stage1 = path.join(modelsRoot, 'ferni-router-v7-stage1', 'model.onnx');
+  const stage2 = path.join(modelsRoot, 'ferni-router-v7-stage2', 'model.onnx');
+  if (fs.existsSync(stage1) && fs.existsSync(stage2)) {
+    return 'available';
+  }
+  return 'none';
 }

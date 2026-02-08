@@ -19,8 +19,8 @@
 
 import { Spanner } from '@google-cloud/spanner';
 import { createLogger } from '../../utils/safe-logger.js';
-import { SPANNER_CONFIG, type GraphEntity, type GraphRelationship } from './schema.js';
 import { isSpannerReady } from './client.js';
+import { SPANNER_CONFIG, type GraphEntity } from './schema.js';
 
 const log = createLogger({ module: 'SpannerGraphExpansion' });
 
@@ -591,16 +591,73 @@ export class RelationalGraphExpander implements GraphExpander {
 
 /**
  * Graph expander using GQL (requires Spanner Enterprise)
- * This is a placeholder for future implementation
+ *
+ * Enterprise detection: Attempts a minimal GQL query at initialization.
+ * If it succeeds, GQL is available. If it fails with UNIMPLEMENTED or
+ * INVALID_ARGUMENT for GRAPH syntax, we know Enterprise is not available.
+ *
+ * This detection runs once and is cached for the process lifetime.
  */
 export class GQLGraphExpander implements GraphExpander {
+  private enterpriseAvailable: boolean | null = null;
+  private readonly spanner = new Spanner({ projectId: SPANNER_CONFIG.projectId });
+
   getType(): 'gql' {
     return 'gql';
   }
 
   isAvailable(): boolean {
-    // TODO: Check if Spanner Enterprise is available
+    // Return cached result if we've already checked
+    if (this.enterpriseAvailable !== null) {
+      return this.enterpriseAvailable;
+    }
+    // Haven't checked yet — assume unavailable.
+    // Call detectEnterprise() to update this.
     return false;
+  }
+
+  /**
+   * Detect Spanner Enterprise by attempting a minimal GQL query.
+   * Call this once at startup; result is cached.
+   */
+  async detectEnterprise(): Promise<boolean> {
+    if (this.enterpriseAvailable !== null) return this.enterpriseAvailable;
+
+    if (!isSpannerReady()) {
+      this.enterpriseAvailable = false;
+      return false;
+    }
+
+    try {
+      const instance = this.spanner.instance(SPANNER_CONFIG.instanceId);
+      const db = instance.database(SPANNER_CONFIG.databaseId);
+      // Minimal GQL query — if GRAPH syntax is supported, Enterprise is available
+      await db.run({
+        sql: 'GRAPH FerniMemory MATCH (n:Entity) RETURN COUNT(*) AS cnt LIMIT 1',
+      });
+      this.enterpriseAvailable = true;
+      log.info('Spanner Enterprise Edition detected — GQL graph queries enabled');
+      return true;
+    } catch (error) {
+      const errStr = String(error);
+      // UNIMPLEMENTED or syntax error on GRAPH → Standard Edition
+      if (
+        errStr.includes('UNIMPLEMENTED') ||
+        errStr.includes('INVALID_ARGUMENT') ||
+        errStr.includes('Syntax error')
+      ) {
+        this.enterpriseAvailable = false;
+        log.info('Spanner Standard Edition detected — using relational graph queries');
+      } else {
+        // Unexpected error — assume unavailable but log for investigation
+        this.enterpriseAvailable = false;
+        log.warn(
+          { error: errStr },
+          'Could not determine Spanner edition — defaulting to relational'
+        );
+      }
+      return false;
+    }
   }
 
   async expand(
@@ -608,8 +665,14 @@ export class GQLGraphExpander implements GraphExpander {
     seedEntityId: string,
     options?: GraphExpansionOptions
   ): Promise<GraphExpansionResult> {
-    // TODO: Implement GQL-based expansion when Enterprise is available
-    throw new Error('GQL expander not yet implemented');
+    if (!this.enterpriseAvailable) {
+      throw new Error('GQL graph expansion requires Spanner Enterprise Edition');
+    }
+
+    // Delegate to relational expander for now — when Enterprise is confirmed,
+    // this can be replaced with native GQL traversal queries
+    const relational = new RelationalGraphExpander();
+    return relational.expand(userId, seedEntityId, options);
   }
 }
 
@@ -618,21 +681,37 @@ export class GQLGraphExpander implements GraphExpander {
 // ============================================================================
 
 let expanderInstance: GraphExpander | null = null;
+let detectionRun = false;
 
 /**
- * Get the appropriate graph expander based on available Spanner features
+ * Initialize graph expander with async Enterprise detection.
+ * Call this once at startup. Safe to call multiple times.
+ */
+export async function initializeGraphExpander(): Promise<GraphExpander> {
+  if (expanderInstance && detectionRun) return expanderInstance;
+
+  const gqlExpander = new GQLGraphExpander();
+  const isEnterprise = await gqlExpander.detectEnterprise();
+  detectionRun = true;
+
+  if (isEnterprise) {
+    expanderInstance = gqlExpander;
+    log.info('Using GQL graph expander (Enterprise)');
+  } else {
+    expanderInstance = new RelationalGraphExpander();
+    log.info('Using relational graph expander (Standard)');
+  }
+  return expanderInstance;
+}
+
+/**
+ * Get the appropriate graph expander based on available Spanner features.
+ * Returns relational expander if detection hasn't run yet (safe default).
  */
 export function getGraphExpander(): GraphExpander {
   if (!expanderInstance) {
-    // Try GQL first (Enterprise), fall back to relational (Standard)
-    const gqlExpander = new GQLGraphExpander();
-    if (gqlExpander.isAvailable()) {
-      expanderInstance = gqlExpander;
-      log.info('Using GQL graph expander (Enterprise)');
-    } else {
-      expanderInstance = new RelationalGraphExpander();
-      log.info('Using relational graph expander (Standard)');
-    }
+    // Default to relational (safe) until async detection completes
+    expanderInstance = new RelationalGraphExpander();
   }
   return expanderInstance;
 }

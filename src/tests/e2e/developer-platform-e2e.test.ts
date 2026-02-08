@@ -120,7 +120,7 @@ describe('Developer Platform E2E', () => {
   describe('Webhook Signature Generation', () => {
     it('should generate valid HMAC signature', async () => {
       const { signPayload, verifySignature } =
-        await import('../../services/developer-webhook-dispatcher.js');
+        await import('../../services/integrations/developer-webhook-dispatcher.js');
 
       const secret = 'test-secret-123';
       const payload = {
@@ -142,7 +142,7 @@ describe('Developer Platform E2E', () => {
     });
 
     it('should reject invalid signature', async () => {
-      const { verifySignature } = await import('../../services/developer-webhook-dispatcher.js');
+      const { verifySignature } = await import('../../services/integrations/developer-webhook-dispatcher.js');
 
       const signature = 't=1704985200,v1=invalid';
       const body = '{}';
@@ -152,7 +152,7 @@ describe('Developer Platform E2E', () => {
     });
 
     it('should reject expired timestamp', async () => {
-      const { verifySignature } = await import('../../services/developer-webhook-dispatcher.js');
+      const { verifySignature } = await import('../../services/integrations/developer-webhook-dispatcher.js');
 
       // Timestamp from 2024 (way too old)
       const oldTimestamp = 1704985200;

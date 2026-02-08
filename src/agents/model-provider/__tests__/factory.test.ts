@@ -6,18 +6,18 @@
  * @module agents/model-provider/__tests__/factory.test
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  getModelProvider,
   clearModelProvider,
-  setModelProvider,
-  isUsingOpenAI,
-  isUsingGemini,
   createProvider,
+  getModelProvider,
   isTestInjectedProvider,
+  isUsingGemini,
+  isUsingOpenAI,
+  setModelProvider,
 } from '../factory.js';
-import { OpenAIRealtimeProvider } from '../openai-realtime.js';
 import { GeminiLiveProvider } from '../gemini-live.js';
+import { OpenAIRealtimeProvider } from '../openai-realtime.js';
 import type { ModelProvider } from '../types.js';
 
 describe('ModelProviderFactory', () => {
@@ -204,7 +204,7 @@ describe('GeminiLiveProvider', () => {
 
   afterEach(() => {
     // Reset FTIS mode env var
-    delete process.env.FTIS_V2_ONLY_MODE;
+    delete process.env.FTIS_ENABLED;
   });
 
   it('should have correct identity', () => {
@@ -212,9 +212,8 @@ describe('GeminiLiveProvider', () => {
     expect(provider.displayName).toBe('Gemini Live API');
   });
 
-  // FTIS V2 is now DEFAULT (Jan 2026)
-  // When FTIS_V2_ONLY_MODE is true (default), Gemini has no tool knowledge
-  describe('FTIS V2 mode (default)', () => {
+  // FTIS is default (Feb 2026). When FTIS_ENABLED is true (default), Gemini has no tool knowledge
+  describe('FTIS mode (default)', () => {
     it('should not have native function calling in FTIS mode', () => {
       // FTIS handles all tool routing - Gemini is pure conversation
       expect(provider.hasNativeFunctionCalling()).toBe(false);
@@ -233,7 +232,7 @@ describe('GeminiLiveProvider', () => {
 
   describe('non-FTIS mode (legacy)', () => {
     beforeEach(() => {
-      process.env.FTIS_V2_ONLY_MODE = 'false';
+      process.env.FTIS_ENABLED = 'false';
       // Recreate provider with new env
       provider = new GeminiLiveProvider();
     });

@@ -124,10 +124,11 @@ const DEFAULT_CONFIG: WatchdogConfig = {
   diskCriticalPercent: parseEnvNumber('WATCHDOG_DISK_CRITICAL_PERCENT', 85),
   diskEmergencyPercent: parseEnvNumber('WATCHDOG_DISK_EMERGENCY_PERCENT', 95),
 
-  // Memory thresholds - higher defaults for local dev where system memory is shared
-  // Set WATCHDOG_MEMORY_WARNING_PERCENT=80 for production, or 90 for local dev
-  memoryWarningPercent: parseEnvNumber('WATCHDOG_MEMORY_WARNING_PERCENT', 85),
-  memoryCriticalPercent: parseEnvNumber('WATCHDOG_MEMORY_CRITICAL_PERCENT', 92),
+  // Memory thresholds - Node.js + ONNX models + TTS cache naturally uses 70-85% memory
+  // Warning at 90% catches real issues without flooding logs during normal operation
+  // Override: WATCHDOG_MEMORY_WARNING_PERCENT=80 for tighter monitoring
+  memoryWarningPercent: parseEnvNumber('WATCHDOG_MEMORY_WARNING_PERCENT', 90),
+  memoryCriticalPercent: parseEnvNumber('WATCHDOG_MEMORY_CRITICAL_PERCENT', 95),
 
   autoCleanupEnabled: true,
   keepImages: 3,

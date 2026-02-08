@@ -21,41 +21,39 @@ import {
   type ReadableStream as NodeReadableStream,
 } from 'node:stream/web';
 
-import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
-import { markTurnCheckpoint } from '../../services/performance/turn-profiler.js';
-import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
-import { finops } from '../../services/observability/finops.js';
 import { GEMINI_MODEL } from '../../config/gemini-config.js';
+import { getVoiceIdForPersona } from '../../config/voice-ids.js';
+import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic-mirroring.js';
+import { finops } from '../../services/observability/finops.js';
+import { markTurnCheckpoint } from '../../services/performance/turn-profiler.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
-import {
-  createStreamingTTSTransform,
-  isStreamingTTSEnabled,
-  getOptimizedStreamingConfig,
-} from './performance/streaming-tts-transform.js';
+import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
+import { getModelProvider } from '../model-provider/index.js';
 import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
 import {
   applyPostTTSEnhancement,
   PostTTSPresets,
   type PostTTSConfig,
 } from './performance/post-tts-transform.js';
-import { getVoiceIdForPersona } from '../../config/voice-ids.js';
-import { getModelProvider } from '../model-provider/index.js';
-import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic-mirroring.js';
+import {
+  createStreamingTTSTransform,
+  getOptimizedStreamingConfig,
+  isStreamingTTSEnabled,
+} from './performance/streaming-tts-transform.js';
+import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
-import { isFTISV2OnlyMode } from '../processors/tool-routing-integration.js';
 import {
   bridgeToFerniContext,
   enrichContextFromFirestore,
   enrichContextWithMemory,
 } from '../../speech/tts/ferni-tts-context-bridge.js';
+import { isFTISEnabled } from '../processors/tool-routing-integration.js';
 
 // TTS Gateway integration
 import {
-  isTTSGatewayEnabled,
-  createStreamingPipeline as createGatewayStreamingPipeline,
-  extractSSMLToConfig,
-  getSSMLProcessor,
   createGatewayTTSNode,
+  getSSMLProcessor,
+  isTTSGatewayEnabled,
 } from '../../speech/tts-gateway/index.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
@@ -472,15 +470,15 @@ export async function wrappedTtsNode(
   // and executes tools directly. The LLM then receives tool results and responds naturally.
   const provider = getModelProvider();
   const skipJsonWorkaround =
-    isFTISV2OnlyMode() || // FTIS V2 handles all tools - no JSON workaround needed
+    isFTISEnabled() || // FTIS handles all tools - no JSON workaround needed
     process.env.DISABLE_JSON_WORKAROUND === 'true' ||
     process.env.SEMANTIC_ROUTING_PRIMARY === 'true' ||
     !provider.needsJsonWorkaround();
 
   let filteredText: NodeReadableStream<string>;
   if (skipJsonWorkaround) {
-    const reason = isFTISV2OnlyMode()
-      ? 'FTIS V2 mode handles all tools'
+    const reason = isFTISEnabled()
+      ? 'FTIS handles all tools'
       : !provider.needsJsonWorkaround()
         ? `${provider.displayName} has native function calling`
         : process.env.SEMANTIC_ROUTING_PRIMARY === 'true'
@@ -575,6 +573,32 @@ export async function wrappedTtsNode(
           (chunk.includes('path') && /\.(go|ts|tsx|js|jsx|py|rs|json|yaml|md)/i.test(chunk)) ||
           // Malformed JSON-like start
           /^\s*\{"?\w/.test(chunk);
+
+        // ========================================================================
+        // META-INSTRUCTION LEAKAGE PATTERNS (Feb 2026)
+        // Catch LLM echoing generateReply() instructions as speech.
+        // In Gemini Live, instructions are sent as MODEL ROLE turns and the
+        // model treats them as its own prior output, echoing them verbatim.
+        // ========================================================================
+        const metaInstructionPatterns = [
+          /^Speaking now:?\s*$/i, // Silence handler cue (the most common leak)
+          /^Speaking now/i, // Partial match at start of chunk
+          /^\s*$/, // Empty/whitespace-only chunks (no value to TTS)
+          /^\[.*\]\s*$/, // Bracketed stage directions: [Ferni plays music], [searches weather]
+          /^\*.*\*\s*$/, // Asterisk stage directions: *plays music*, *searches weather*
+        ];
+        const isMetaInstruction = metaInstructionPatterns.some((pattern) =>
+          pattern.test(chunk.trim())
+        );
+
+        if (isMetaInstruction) {
+          log.warn(
+            { chunk: chunk.slice(0, 50), sessionId },
+            '🚨 [META-LEAK-FILTER] Meta-instruction leaked to TTS - stripping'
+          );
+          // Don't enqueue - strip from TTS stream
+          return;
+        }
 
         if (looksLikeJson || hasKnownArgPattern || hasCursorEditPattern) {
           // Accumulate leaked JSON for analysis
@@ -957,6 +981,12 @@ export async function wrappedTtsNode(
           /NEVER say "Status SUCCESS"/i,
           /Sound natural - like YOU did this/i,
           /Tool:\s+\w+\nResult:/i,
+          /Speaking now:/i, // Silence handler cue leaked to speech
+          /Be curious,? not concerned/i, // Silence handler style instruction
+          /warm but not pushy/i, // Silence handler style instruction
+          /warm but not needy/i, // Silence handler style instruction
+          /under \d+ words/i, // Meta-instruction about response length
+          /Check in gently/i, // Silence handler behavioral instruction
         ];
 
         const looksLikeInstructionLeak = instructionLeakageIndicators.some((pattern) =>

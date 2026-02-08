@@ -54,37 +54,20 @@ export interface ToolConfiguration {
   metaToolCatalogInPrompt: boolean;
 
   /**
-   * Use FTIS V5 classifier for tool routing.
-   * When enabled:
-   * - Qwen3-1.7B ONNX model classifies user intent into tool domains
-   * - 860 tool labels with 98%+ Top-1 accuracy
-   * - Routes directly to tools without LLM function calling
-   * - Falls back to semantic router if classifier confidence < threshold
-   */
-  useFtisV5: boolean;
-
-  /**
-   * Confidence threshold for FTIS V5 direct execution.
-   * Tools are executed directly when confidence exceeds this threshold.
-   * Below threshold, falls back to semantic router + LLM.
-   */
-  ftisV5Threshold: number;
-
-  /**
-   * Use FTIS V7 hierarchical classifier for tool routing.
+   * Use FTIS hierarchical classifier for tool routing.
    * When enabled:
    * - Two-stage ONNX model: Stage 1 classifies domain, Stage 2 classifies meta-tool
    * - Combined confidence = domain_confidence * meta_tool_confidence
    * - Routes by domain first, then filters tools within domain
-   * - Falls back to V5 flat classifier if V7 models unavailable
+   * - Falls back to semantic router if models unavailable
    */
-  useFtisV7: boolean;
+  useFtis: boolean;
 
   /**
-   * Confidence threshold for FTIS V7 combined prediction.
+   * Confidence threshold for FTIS combined prediction.
    * Tools are loaded from the predicted domain when combined confidence exceeds this threshold.
    */
-  ftisV7Threshold: number;
+  ftisThreshold: number;
 
   /**
    * Essential tools that MUST survive any tool cap.
@@ -165,10 +148,8 @@ const DEFAULT_CONFIG: ToolConfiguration = {
   maxTools: 0, // 0 = unlimited, let semantic router filter
   useMetaTool: false, // Default to existing behavior
   metaToolCatalogInPrompt: true, // Include catalog when meta-tool is enabled
-  useFtisV5: false, // Default to existing behavior (semantic router + LLM)
-  ftisV5Threshold: 0.85, // High confidence required for direct execution
-  useFtisV7: false, // Default off until V7 models are trained and validated
-  ftisV7Threshold: 0.70, // Lower than V5 since combined confidence is product of two
+  useFtis: true, // FTIS hierarchical classifier enabled by default
+  ftisThreshold: 0.7, // Combined confidence = domain * meta-tool
   essentialTools: DEFAULT_ESSENTIAL_TOOLS,
 };
 
@@ -213,10 +194,8 @@ export function loadToolConfig(): ToolConfiguration {
       env.META_TOOL_CATALOG_IN_PROMPT,
       DEFAULT_CONFIG.metaToolCatalogInPrompt
     ),
-    useFtisV5: parseBool(env.USE_FTIS_V5, DEFAULT_CONFIG.useFtisV5),
-    ftisV5Threshold: parseNum(env.FTIS_V5_THRESHOLD, DEFAULT_CONFIG.ftisV5Threshold * 100) / 100,
-    useFtisV7: parseBool(env.USE_FTIS_V7, DEFAULT_CONFIG.useFtisV7),
-    ftisV7Threshold: parseNum(env.FTIS_V7_THRESHOLD, DEFAULT_CONFIG.ftisV7Threshold * 100) / 100,
+    useFtis: parseBool(env.FTIS_ENABLED, parseBool(env.USE_FTIS, DEFAULT_CONFIG.useFtis)),
+    ftisThreshold: parseNum(env.FTIS_THRESHOLD, DEFAULT_CONFIG.ftisThreshold * 100) / 100,
     essentialTools: DEFAULT_CONFIG.essentialTools,
   };
 
@@ -226,15 +205,12 @@ export function loadToolConfig(): ToolConfiguration {
       maxTools: cachedConfig.maxTools,
       useMetaTool: cachedConfig.useMetaTool,
       metaToolCatalogInPrompt: cachedConfig.metaToolCatalogInPrompt,
-      useFtisV5: cachedConfig.useFtisV5,
-      ftisV5Threshold: cachedConfig.ftisV5Threshold,
-      useFtisV7: cachedConfig.useFtisV7,
-      ftisV7Threshold: cachedConfig.ftisV7Threshold,
+      useFtis: cachedConfig.useFtis,
+      ftisThreshold: cachedConfig.ftisThreshold,
       essentialToolCount: cachedConfig.essentialTools.length,
     },
     `🔧 Tool config loaded: maxTools=${cachedConfig.maxTools}, ` +
-      `useMetaTool=${cachedConfig.useMetaTool}, useFtisV5=${cachedConfig.useFtisV5}, ` +
-      `useFtisV7=${cachedConfig.useFtisV7}`
+      `useMetaTool=${cachedConfig.useMetaTool}, useFtis=${cachedConfig.useFtis}`
   );
 
   return cachedConfig;
@@ -266,31 +242,17 @@ export function isMetaToolEnabled(): boolean {
 }
 
 /**
- * Check if FTIS V5 classifier is enabled
+ * Check if FTIS hierarchical classifier is enabled
  */
-export function isFtisV5Enabled(): boolean {
-  return getToolConfig().useFtisV5;
+export function isFtisEnabled(): boolean {
+  return getToolConfig().useFtis;
 }
 
 /**
- * Get FTIS V5 confidence threshold
+ * Get FTIS combined confidence threshold
  */
-export function getFtisV5Threshold(): number {
-  return getToolConfig().ftisV5Threshold;
-}
-
-/**
- * Check if FTIS V7 hierarchical classifier is enabled
- */
-export function isFtisV7Enabled(): boolean {
-  return getToolConfig().useFtisV7;
-}
-
-/**
- * Get FTIS V7 combined confidence threshold
- */
-export function getFtisV7Threshold(): number {
-  return getToolConfig().ftisV7Threshold;
+export function getFtisThreshold(): number {
+  return getToolConfig().ftisThreshold;
 }
 
 /**
@@ -394,17 +356,11 @@ export const TOOL_CONFIG = {
   get metaToolCatalogInPrompt() {
     return getToolConfig().metaToolCatalogInPrompt;
   },
-  get useFtisV5() {
-    return getToolConfig().useFtisV5;
+  get useFtis() {
+    return getToolConfig().useFtis;
   },
-  get ftisV5Threshold() {
-    return getToolConfig().ftisV5Threshold;
-  },
-  get useFtisV7() {
-    return getToolConfig().useFtisV7;
-  },
-  get ftisV7Threshold() {
-    return getToolConfig().ftisV7Threshold;
+  get ftisThreshold() {
+    return getToolConfig().ftisThreshold;
   },
   get essentialTools() {
     return getToolConfig().essentialTools;

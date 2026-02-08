@@ -1,18 +1,17 @@
 /**
- * V7 Integration Tests
+ * FTIS Integration Tests
  *
- * Tests the V7 hierarchical classifier integration:
+ * Tests the FTIS hierarchical classifier integration:
  * - V7 domain label → ToolDomain mapping
- * - detectModelVersion() auto-detection
+ * - detectModelVersion() (v7 or none)
  * - Hierarchical classifier (when models present)
- * - Fallback chain: V7 → V5/V6 → semantic
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  mapV7DomainToToolDomains,
   getMappedV7Domains,
   isV7DomainMapped,
+  mapV7DomainToToolDomains,
   V7_DOMAIN_TO_TOOL_DOMAINS,
 } from '../v7-domain-map.js';
 
@@ -93,33 +92,124 @@ describe('V7 Domain Mapping', () => {
   it('should only map to valid ToolDomain values', () => {
     // These are all the ToolDomain values that should be valid targets
     const knownDomains = new Set([
-      'memory', 'calendar', 'communication', 'habits', 'finance', 'research',
-      'productivity', 'life-planning', 'wellness', 'entertainment', 'vibe',
-      'information', 'wisdom', 'handoff', 'telephony', 'voice-enrollment',
-      'grief', 'meaning', 'relationships', 'stories', 'curiosity',
-      'vulnerability', 'dreams', 'play', 'self-compassion', 'presence',
-      'proactive', 'awareness', 'engagement', 'simple-utilities', 'routines',
-      'crisis', 'health', 'career', 'decisions', 'family', 'home', 'learning',
-      'creativity', 'community', 'legal-admin', 'games', 'cameo',
-      'group-conversation', 'second-chances', 'connection',
-      'difficult-conversations', 'life-transitions', 'reflection-games',
-      'quiet-growth', 'pattern-mastery', 'timeless-perspective',
-      'workflow-mastery', 'milestone-mastery', 'developer', 'behavior',
-      'life-thesis', 'marketing', 'referral', 'smart-home', 'webhooks',
-      'books', 'podcasts', 'video', 'boundaries', 'social-skills',
-      'body-relationship', 'anger', 'shame', 'envy', 'resentment',
-      'caregiver', 'divorce', 'new-parent', 'empty-nest', 'infidelity',
-      'health-diagnosis', 'job-loss', 'sobriety', 'sandwich-generation',
-      'blended-family', 'coming-out', 'faith-transition', 'dating',
-      'neurodiversity', 'trauma-support', 'procrastination',
-      'digital-wellness', 'perfectionism', 'intimacy', 'burnout-recovery',
-      'chronic-conditions', 'midlife', 'breakup-recovery', 'scheduling',
-      'concierge', 'travel', 'settings', 'insights',
-      'superhuman-communication', 'local-search', 'developer-custom',
-      'commerce', 'documents', 'email-intelligence', 'meal-planning',
-      'projects', 'social-events', 'transportation', 'vehicle', 'workflows',
-      'ceo-coaching', 'event-intelligence', 'pattern-analytics',
-      'ambient-mode', 'coaching-support', 'human-transfer', 'visual-memory',
+      'memory',
+      'calendar',
+      'communication',
+      'habits',
+      'finance',
+      'research',
+      'productivity',
+      'life-planning',
+      'wellness',
+      'entertainment',
+      'vibe',
+      'information',
+      'wisdom',
+      'handoff',
+      'telephony',
+      'voice-enrollment',
+      'grief',
+      'meaning',
+      'relationships',
+      'stories',
+      'curiosity',
+      'vulnerability',
+      'dreams',
+      'play',
+      'self-compassion',
+      'presence',
+      'proactive',
+      'awareness',
+      'engagement',
+      'simple-utilities',
+      'routines',
+      'crisis',
+      'health',
+      'career',
+      'decisions',
+      'family',
+      'home',
+      'learning',
+      'creativity',
+      'community',
+      'legal-admin',
+      'games',
+      'cameo',
+      'group-conversation',
+      'second-chances',
+      'connection',
+      'difficult-conversations',
+      'life-transitions',
+      'reflection-games',
+      'quiet-growth',
+      'pattern-mastery',
+      'timeless-perspective',
+      'workflow-mastery',
+      'milestone-mastery',
+      'developer',
+      'behavior',
+      'life-thesis',
+      'marketing',
+      'referral',
+      'smart-home',
+      'webhooks',
+      'books',
+      'podcasts',
+      'video',
+      'boundaries',
+      'social-skills',
+      'body-relationship',
+      'anger',
+      'shame',
+      'envy',
+      'resentment',
+      'caregiver',
+      'divorce',
+      'new-parent',
+      'empty-nest',
+      'infidelity',
+      'health-diagnosis',
+      'job-loss',
+      'sobriety',
+      'sandwich-generation',
+      'blended-family',
+      'coming-out',
+      'faith-transition',
+      'dating',
+      'neurodiversity',
+      'trauma-support',
+      'procrastination',
+      'digital-wellness',
+      'perfectionism',
+      'intimacy',
+      'burnout-recovery',
+      'chronic-conditions',
+      'midlife',
+      'breakup-recovery',
+      'scheduling',
+      'concierge',
+      'travel',
+      'settings',
+      'insights',
+      'superhuman-communication',
+      'local-search',
+      'developer-custom',
+      'commerce',
+      'documents',
+      'email-intelligence',
+      'meal-planning',
+      'projects',
+      'social-events',
+      'transportation',
+      'vehicle',
+      'workflows',
+      'ceo-coaching',
+      'event-intelligence',
+      'pattern-analytics',
+      'ambient-mode',
+      'coaching-support',
+      'human-transfer',
+      'visual-memory',
       'ui-navigation',
     ]);
 
@@ -135,41 +225,11 @@ describe('V7 Domain Mapping', () => {
 // detectModelVersion() Tests
 // ============================================================================
 
-describe('detectModelVersion', () => {
-  let originalEnv: string | undefined;
-
-  beforeEach(() => {
-    originalEnv = process.env.ROUTER_MODEL_VERSION;
-    delete process.env.ROUTER_MODEL_VERSION;
-  });
-
-  afterEach(() => {
-    if (originalEnv !== undefined) {
-      process.env.ROUTER_MODEL_VERSION = originalEnv;
-    } else {
-      delete process.env.ROUTER_MODEL_VERSION;
-    }
-  });
-
-  it('should respect ROUTER_MODEL_VERSION override', async () => {
-    const { detectModelVersion } = await import('../onnx-classifier.js');
-
-    process.env.ROUTER_MODEL_VERSION = 'v7';
-    expect(detectModelVersion()).toBe('v7');
-
-    process.env.ROUTER_MODEL_VERSION = 'v6';
-    expect(detectModelVersion()).toBe('v6');
-
-    process.env.ROUTER_MODEL_VERSION = 'v5';
-    expect(detectModelVersion()).toBe('v5');
-  });
-
-  it('should detect based on available model files', async () => {
-    const { detectModelVersion } = await import('../onnx-classifier.js');
-    const version = detectModelVersion();
-
-    // Version should be one of the valid values
-    expect(['v7', 'v6', 'v5', 'none']).toContain(version);
+describe('detectFTISModels', () => {
+  it('should return available or none based on model files', async () => {
+    const { detectFTISModels } = await import('../hierarchical-classifier.js');
+    const status = detectFTISModels();
+    expect(['available', 'none']).toContain(status);
   });
 });
 
@@ -190,18 +250,16 @@ describe('Hierarchical Classifier', () => {
   });
 
   it('should return null safely when not initialized', async () => {
-    const { classifyHierarchicalSafe, shutdownHierarchicalClassifier } = await import(
-      '../hierarchical-classifier.js'
-    );
+    const { classifyHierarchicalSafe, shutdownHierarchicalClassifier } =
+      await import('../hierarchical-classifier.js');
     shutdownHierarchicalClassifier();
     const result = classifyHierarchicalSafe('play some music');
     expect(result).toBeNull();
   });
 
   it('should report unavailable when not initialized', async () => {
-    const { isHierarchicalClassifierAvailable, shutdownHierarchicalClassifier } = await import(
-      '../hierarchical-classifier.js'
-    );
+    const { isHierarchicalClassifierAvailable, shutdownHierarchicalClassifier } =
+      await import('../hierarchical-classifier.js');
     shutdownHierarchicalClassifier();
     expect(isHierarchicalClassifierAvailable()).toBe(false);
   });

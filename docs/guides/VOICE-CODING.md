@@ -31,37 +31,43 @@ You speak → LiveKit → Gemini STT → Claude Code → MCP Tools → Ferni TTS
 
 ## Options
 
-| Flag | Description |
-|------|-------------|
-| `--debug` | Show raw MCP events and transcriptions |
-| `--dir ./path` | Work in a specific directory |
-| `--cloud` | Use production services (skip local auto-start) |
+| Flag           | Description                                     |
+| -------------- | ----------------------------------------------- |
+| `--debug`      | Show raw MCP events and transcriptions          |
+| `--dir ./path` | Work in a specific directory                    |
+| `--cloud`      | Use production services (skip local auto-start) |
 
 ## MCP Tools Available to Claude
 
 When Claude works on your request, it can use these tools to communicate:
 
 ### `mcp__ferni__narrate`
+
 Have Ferni speak something aloud.
+
 ```json
 {
   "text": "I'm about to create a new component",
-  "emotion": "thoughtful"  // neutral, excited, thoughtful, concerned, encouraging
+  "emotion": "thoughtful" // neutral, excited, thoughtful, concerned, encouraging
 }
 ```
 
 ### `mcp__ferni__report_progress`
+
 Update on task progress with optional percentage.
+
 ```json
 {
   "message": "Refactoring the user service",
   "percentage": 50,
-  "status": "in_progress"  // in_progress, completed, blocked, error
+  "status": "in_progress" // in_progress, completed, blocked, error
 }
 ```
 
 ### `mcp__ferni__task_complete`
+
 Mark task done and announce completion.
+
 ```json
 {
   "summary": "Created the dark mode toggle with localStorage persistence",
@@ -70,7 +76,9 @@ Mark task done and announce completion.
 ```
 
 ### `mcp__ferni__request_voice_input`
+
 Ask user a question via Ferni.
+
 ```json
 {
   "question": "Should I use CSS variables or Tailwind for the theme?",
@@ -79,30 +87,31 @@ Ask user a question via Ferni.
 ```
 
 ### `mcp__ferni__get_current_task`
+
 Get the current task from the voice queue.
 
 ## Hooks (Automatic)
 
 Claude Code hooks automatically notify Ferni:
 
-| Hook | When | What Ferni Says |
-|------|------|-----------------|
-| `PostToolUse` | After Edit/Write/Bash | "Finished editing code" |
-| `Stop` | Claude done responding | "I'm ready for your next request" |
-| `SubagentStop` | Background task done | "Finished the background task" |
+| Hook           | When                   | What Ferni Says                   |
+| -------------- | ---------------------- | --------------------------------- |
+| `PostToolUse`  | After Edit/Write/Bash  | "Finished editing code"           |
+| `Stop`         | Claude done responding | "I'm ready for your next request" |
+| `SubagentStop` | Background task done   | "Finished the background task"    |
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `scripts/ferni.ts` | CLI entry point |
-| `scripts/cli/voice-claude.ts` | Voice-to-Claude bridge |
-| `scripts/mcp/ferni-mcp-server.ts` | MCP server with narration tools |
-| `scripts/mcp/hook-notify-ferni.ts` | Hook script for queue updates |
-| `.mcp.json` | MCP server configuration |
-| `.claude/hooks.json` | Claude Code hooks |
-| `.ferni-mcp/narration.json` | Narration queue (runtime) |
-| `.ferni-mcp/state.json` | Task state (runtime) |
+| File                                   | Purpose                         |
+| -------------------------------------- | ------------------------------- |
+| `scripts/ferni.ts`                     | CLI entry point                 |
+| `scripts/cli/voice-claude.ts`          | Voice-to-Claude bridge          |
+| `apps/cli/src/mcp/ferni-mcp-server.ts` | MCP server with narration tools |
+| `scripts/mcp/hook-notify-ferni.ts`     | Hook script for queue updates   |
+| `.mcp.json`                            | MCP server configuration        |
+| `.claude/hooks.json`                   | Claude Code hooks               |
+| `.ferni-mcp/narration.json`            | Narration queue (runtime)       |
+| `.ferni-mcp/state.json`                | Task state (runtime)            |
 
 ## Example Session
 
@@ -130,6 +139,7 @@ You: "Add tests for it"
 ## Troubleshooting
 
 ### Services won't start
+
 ```bash
 # Check what's running
 ferni status
@@ -141,11 +151,13 @@ ferni code --cloud          # Skip auto-start
 ```
 
 ### No voice output
+
 - Check microphone permissions
 - Verify Cartesia API key in `.env`
 - Run `ferni debug voice "test"` to test TTS
 
 ### Claude not using MCP tools
+
 - Verify `.mcp.json` exists in project root
 - Check `--mcp-config` is being passed (see `--debug` output)
 - MCP server must be running (auto-started by `ferni code`)
@@ -153,27 +165,33 @@ ferni code --cloud          # Skip auto-start
 ## How It Works Internally
 
 ### 1. Service Auto-Start
+
 `handleCode()` in `ferni.ts` checks ports 3001/8081 and spawns detached processes if needed.
 
 ### 2. Voice Connection
+
 `voice-claude.ts` connects to LiveKit, publishes microphone, subscribes to transcriptions.
 
 ### 3. Transcription → Claude
+
 When you speak, Ferni transcribes via Gemini Live. Final transcriptions are sent to Claude Code via NDJSON stdin.
 
 ### 4. Claude → MCP → Narration Queue
+
 Claude uses `mcp__ferni__*` tools. The MCP server writes to `.ferni-mcp/narration.json`.
 
 ### 5. Queue → Ferni TTS
+
 `voice-claude.ts` polls the queue every 500ms, sends unprocessed messages to Ferni via LiveKit data channel.
 
 ### 6. Data Channel → TTS
+
 `data-channel-handler.ts` receives `claude_narration` messages, calls `session.generateReply()` to make Ferni speak.
 
 ## Related Commands
 
-| Command | Description |
-|---------|-------------|
-| `ferni voice` | Live voice conversation (no Claude) |
-| `ferni debug voice "text"` | Test voice pipeline |
-| `ferni voices preview` | Preview available voices |
+| Command                    | Description                         |
+| -------------------------- | ----------------------------------- |
+| `ferni voice`              | Live voice conversation (no Claude) |
+| `ferni debug voice "text"` | Test voice pipeline                 |
+| `ferni voices preview`     | Preview available voices            |
