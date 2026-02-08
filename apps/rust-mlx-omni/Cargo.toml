@@ -1,0 +1,47 @@
+[package]
+name = "ferni-mlx-omni"
+version = "0.1.0"
+edition = "2021"
+description = "Qwen3-Omni on Apple MLX (Rust) — full audio-to-audio pipeline: Thinker + Talker + Code2Wav"
+license = "MIT"
+
+[features]
+default = ["metal", "accelerate"]
+metal = ["mlx-rs/metal"]
+accelerate = ["mlx-rs/accelerate"]
+server = ["dep:axum", "dep:tokio", "dep:tower-http"]
+
+[lib]
+crate-type = ["rlib"]
+
+[[bin]]
+name = "mlx-omni-server"
+path = "src/bin/server.rs"
+required-features = ["server"]
+
+[dependencies]
+# MLX Rust bindings (Apple Silicon, Metal GPU, unified memory)
+mlx-rs = { version = "0.25", features = ["safetensors"] }
+
+# Tokenizer (same tokenizer.json as Candle/Python)
+tokenizers = "0.21"
+
+# Config / serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Server (optional, for HTTP endpoints)
+axum = { version = "0.8", optional = true }
+tokio = { version = "1", features = ["full"], optional = true }
+tower-http = { version = "0.6", features = ["cors"], optional = true }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Error handling
+anyhow = "1"
+thiserror = "2"
+
+[dev-dependencies]
+float_eq = "1"
