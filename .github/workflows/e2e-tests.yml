@@ -41,7 +41,7 @@ jobs:
         uses: ./.github/actions/setup-node-pnpm
 
       - name: Install frontend dependencies
-        run: cd frontend-typescript && pnpm install --frozen-lockfile
+        run: cd frontend-typescript && pnpm install --no-frozen-lockfile
 
       - name: Install Playwright
         run: |

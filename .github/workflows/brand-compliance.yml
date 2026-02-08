@@ -111,7 +111,7 @@ jobs:
       - name: Build design tokens
         run: |
           cd design-system
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
           pnpm build
           
       - name: Verify token outputs

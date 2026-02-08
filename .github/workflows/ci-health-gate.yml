@@ -1,0 +1,144 @@
+name: CI Health Gate
+
+# Reusable workflow that checks CI health before running expensive jobs
+# Use this as a prerequisite job to prevent wasted compute when CI is broken
+
+on:
+  workflow_call:
+    inputs:
+      bypass-label:
+        description: 'PR label that bypasses health check'
+        required: false
+        default: 'ci:force-run'
+        type: string
+      failure-threshold:
+        description: 'Number of recent failures before blocking'
+        required: false
+        default: 3
+        type: number
+      lookback-hours:
+        description: 'How far back to check for failures'
+        required: false
+        default: 2
+        type: number
+    outputs:
+      status:
+        description: 'Health check status: healthy, degraded, or blocked'
+        value: ${{ jobs.health-check.outputs.status }}
+      message:
+        description: 'Human-readable status message'
+        value: ${{ jobs.health-check.outputs.message }}
+
+jobs:
+  health-check:
+    name: Check CI Health
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      status: ${{ steps.check.outputs.status }}
+      message: ${{ steps.check.outputs.message }}
+    steps:
+      - name: Check for bypass label
+        id: bypass
+        if: github.event_name == 'pull_request'
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          BYPASS_LABEL: ${{ inputs.bypass-label }}
+        run: |
+          if echo "$LABELS" | grep -q "\"$BYPASS_LABEL\""; then
+            echo "bypassed=true" >> $GITHUB_OUTPUT
+            echo "🔓 Bypass label '$BYPASS_LABEL' found - skipping health check"
+          else
+            echo "bypassed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for bypass commit message
+        id: bypass-commit
+        run: |
+          COMMIT_MSG="${{ github.event.head_commit.message || github.event.pull_request.title || '' }}"
+          if echo "$COMMIT_MSG" | grep -qi "\[ci:force\]"; then
+            echo "bypassed=true" >> $GITHUB_OUTPUT
+            echo "🔓 Bypass flag [ci:force] found in commit message - skipping health check"
+          else
+            echo "bypassed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check recent CI runs
+        id: check
+        if: steps.bypass.outputs.bypassed != 'true' && steps.bypass-commit.outputs.bypassed != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FAILURE_THRESHOLD: ${{ inputs.failure-threshold }}
+          LOOKBACK_HOURS: ${{ inputs.lookback-hours }}
+        run: |
+          echo "🔍 Checking CI health (last ${LOOKBACK_HOURS}h, threshold: ${FAILURE_THRESHOLD} failures)"
+
+          # Calculate cutoff time
+          CUTOFF=$(date -u -d "${LOOKBACK_HOURS} hours ago" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || \
+                   date -u -v-${LOOKBACK_HOURS}H +%Y-%m-%dT%H:%M:%SZ)
+
+          # Get recent CI workflow runs
+          RUNS=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/actions/workflows/ci.yml/runs?status=completed&per_page=10&created=>=${CUTOFF}" \
+            --jq '.workflow_runs | map(select(.conclusion != "cancelled"))' 2>/dev/null || echo '[]')
+
+          # Count failures
+          TOTAL=$(echo "$RUNS" | jq 'length')
+          FAILURES=$(echo "$RUNS" | jq '[.[] | select(.conclusion == "failure")] | length')
+          SUCCESSES=$(echo "$RUNS" | jq '[.[] | select(.conclusion == "success")] | length')
+
+          echo "📊 Recent CI runs: $TOTAL total, $SUCCESSES success, $FAILURES failures"
+
+          # Determine health status
+          if [ "$FAILURES" -ge "$FAILURE_THRESHOLD" ]; then
+            echo "status=blocked" >> $GITHUB_OUTPUT
+            echo "message=CI is unhealthy: $FAILURES failures in last ${LOOKBACK_HOURS}h (threshold: ${FAILURE_THRESHOLD}). Fix CI before running new jobs." >> $GITHUB_OUTPUT
+            echo "❌ CI BLOCKED: Too many recent failures"
+            echo ""
+            echo "Recent failures:"
+            echo "$RUNS" | jq -r '.[] | select(.conclusion == "failure") | "  - \(.created_at): \(.html_url)"'
+            echo ""
+            echo "To bypass, add [ci:force] to your commit message or add the '${{ inputs.bypass-label }}' label to your PR."
+            exit 1
+          elif [ "$FAILURES" -gt 0 ]; then
+            echo "status=degraded" >> $GITHUB_OUTPUT
+            echo "message=CI is degraded: $FAILURES failures in last ${LOOKBACK_HOURS}h. Proceeding with caution." >> $GITHUB_OUTPUT
+            echo "⚠️ CI DEGRADED: $FAILURES failures, but below threshold"
+          else
+            echo "status=healthy" >> $GITHUB_OUTPUT
+            echo "message=CI is healthy: $SUCCESSES successful runs in last ${LOOKBACK_HOURS}h" >> $GITHUB_OUTPUT
+            echo "✅ CI HEALTHY: All recent runs successful"
+          fi
+
+      - name: Set bypass status
+        if: steps.bypass.outputs.bypassed == 'true' || steps.bypass-commit.outputs.bypassed == 'true'
+        run: |
+          echo "status=bypassed" >> $GITHUB_OUTPUT
+          echo "message=Health check bypassed via label or commit message" >> $GITHUB_OUTPUT
+          echo "🔓 Health check bypassed"
+
+      - name: Summary
+        run: |
+          echo "## CI Health Gate" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          STATUS="${{ steps.check.outputs.status }}"
+          MESSAGE="${{ steps.check.outputs.message }}"
+
+          case "$STATUS" in
+            healthy)
+              echo "✅ **Status:** Healthy" >> $GITHUB_STEP_SUMMARY
+              ;;
+            degraded)
+              echo "⚠️ **Status:** Degraded" >> $GITHUB_STEP_SUMMARY
+              ;;
+            blocked)
+              echo "❌ **Status:** Blocked" >> $GITHUB_STEP_SUMMARY
+              ;;
+            bypassed)
+              echo "🔓 **Status:** Bypassed" >> $GITHUB_STEP_SUMMARY
+              ;;
+          esac
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "$MESSAGE" >> $GITHUB_STEP_SUMMARY

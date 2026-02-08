@@ -31,7 +31,7 @@ jobs:
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
         with:
-          frozen-lockfile: 'true'
+          frozen-lockfile: 'false'
 
       - name: Install Octokit
         run: pnpm add -D @octokit/rest

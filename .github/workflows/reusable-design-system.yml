@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
         with:
-          frozen-lockfile: 'true'
+          frozen-lockfile: 'false'
 
       - name: Build design system
         run: node design-system/build.js

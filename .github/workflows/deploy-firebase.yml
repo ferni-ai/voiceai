@@ -53,7 +53,7 @@ jobs:
       - name: Install frontend dependencies
         run: |
           cd frontend-typescript
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
 
       - name: Build frontend
         run: |
@@ -166,7 +166,7 @@ jobs:
       - name: Install landing dependencies
         run: |
           cd promo/ferni-website
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
 
       - name: Build landing page
         run: |

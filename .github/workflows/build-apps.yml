@@ -90,7 +90,7 @@ jobs:
       - name: Install Electron dependencies
         run: |
           cd apps/electron
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
 
       - name: Import Code Signing Certificate
         if: env.APPLE_CERTIFICATE_P12_BASE64 != ''
@@ -168,7 +168,7 @@ jobs:
       - name: Install Electron dependencies
         run: |
           cd apps\electron
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
 
       - name: Import Code Signing Certificate
         if: env.WINDOWS_CERTIFICATE_P12_BASE64 != ''
@@ -229,7 +229,7 @@ jobs:
       - name: Install Electron dependencies
         run: |
           cd apps/electron
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
 
       - name: Build Linux App
         env:

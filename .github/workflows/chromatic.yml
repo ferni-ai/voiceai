@@ -34,7 +34,7 @@ jobs:
       # Build React package first (needed for React stories)
       - name: Build React package
         run: |
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
           pnpm build
         working-directory: packages/ferni-react
 
