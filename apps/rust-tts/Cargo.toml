@@ -1,0 +1,50 @@
+[package]
+name = "rust-tts"
+version = "0.1.0"
+edition = "2021"
+description = "Pure Rust TTS server wrapping qwen_tts crate — OpenAI-compatible API for Ferni personas"
+license = "Proprietary"
+
+[[bin]]
+name = "qwen3-tts-server"
+path = "src/main.rs"
+
+[dependencies]
+# Qwen3-TTS inference (Candle + Metal) — vendored with streaming support
+qwen_tts = { version = "0.1", features = ["metal", "accelerate"] }
+candle-core = "0.9"
+
+# HuggingFace Hub model download
+hf-hub = "0.4"
+
+# HTTP server
+axum = { version = "0.8", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1"
+tower-http = { version = "0.6", features = ["cors"] }
+http-body-util = "0.1"
+futures-util = "0.3"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Error handling
+anyhow = "1"
+
+# Use vendored qwen_tts with streaming support
+[patch.crates-io]
+qwen_tts = { path = "qwen_tts_stream" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

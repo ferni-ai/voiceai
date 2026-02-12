@@ -202,6 +202,110 @@ export class LocalTTSProvider implements ITTSProvider {
     }
   }
 
+  /**
+   * Stream audio generation via chunked HTTP response from local TTS server.
+   *
+   * Collects text from the input stream (Rust server needs full text), then
+   * POSTs to /v1/audio/speech/stream and yields s16le PCM chunks as they
+   * arrive. Only supported for 'openai' API format; falls back to batch
+   * synthesize() for 'custom' API format.
+   */
+  async *synthesizeStream(
+    textStream: AsyncIterable<string>,
+    voiceId: string,
+    prosody?: SSMLProsodyConfig
+  ): AsyncGenerator<ArrayBuffer> {
+    // Collect text from LLM stream — our Rust server needs the full text
+    let text = '';
+    for await (const chunk of textStream) {
+      text += chunk;
+    }
+    text = text.trim();
+
+    if (!text) return;
+
+    // Streaming endpoint only available for openai API format
+    if (this.apiFormat !== 'openai') {
+      const audio = await this.synthesize(text, voiceId, prosody);
+      if (audio.byteLength > 0) yield audio;
+      return;
+    }
+
+    const resolvedVoice = this.resolveVoiceId(voiceId);
+    const url = `${this.serverUrl}/v1/audio/speech/stream`;
+    const controller = new AbortController();
+    // Double the timeout for streaming (audio arrives over time)
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs * 2);
+
+    try {
+      const startMs = Date.now();
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: text,
+          voice: resolvedVoice,
+          model: 'tts-1',
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok || !response.body) {
+        const errText = await response.text().catch(() => '');
+        log.warn(
+          { status: response.status, error: errText.slice(0, 200), url },
+          'Local TTS streaming failed, falling back to batch'
+        );
+        const audio = await this.synthesize(text, voiceId, prosody);
+        if (audio.byteLength > 0) yield audio;
+        return;
+      }
+
+      let firstChunk = true;
+      let totalBytes = 0;
+      const reader = response.body.getReader();
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          if (value && value.byteLength > 0) {
+            if (firstChunk) {
+              const ttfaMs = Date.now() - startMs;
+              log.info(
+                { ttfaMs, chunkBytes: value.byteLength, voice: resolvedVoice },
+                `Local TTS stream TTFA: ${ttfaMs}ms`
+              );
+              firstChunk = false;
+            }
+
+            totalBytes += value.byteLength;
+            // Server sends s16le PCM directly — no conversion needed
+            yield value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+      const totalMs = Date.now() - startMs;
+      log.debug(
+        { totalMs, totalBytes, voice: resolvedVoice, textLen: text.length },
+        `Local TTS stream complete in ${totalMs}ms`
+      );
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        log.warn({ timeoutMs: this.timeoutMs * 2, textLen: text.length }, 'Local TTS stream timeout');
+      } else {
+        log.warn({ error: String(error), url }, 'Local TTS stream error');
+      }
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   // --------------------------------------------------------------------------
   // Request builders
   // --------------------------------------------------------------------------
