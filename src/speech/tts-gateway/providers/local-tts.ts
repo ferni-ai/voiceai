@@ -2,20 +2,23 @@
  * Local TTS Provider
  *
  * ITTSProvider implementation for local TTS servers running on-device.
- * Connects via HTTP to any local TTS server exposing a standard REST API:
+ * Supports two API formats:
  *
- *   POST /synthesize  { text, voice_id, prosody? }  -> PCM audio (16-bit, 24kHz)
- *   GET  /health                                      -> 200 OK
+ *   'custom':  POST /synthesize  { text, voice_id }  -> s16le PCM
+ *   'openai':  POST /v1/audio/speech  { input, voice }  -> WAV or f32le PCM
  *
  * Works with:
- *   - Qwen3-TTS MLX (Apple Silicon, 80-150ms TTFB, voice cloning)
- *   - Kokoro-82M (<80ms TTFB, lightweight)
- *   - Any server implementing the same endpoint contract
+ *   - Qwen3-TTS MLX Python server  (custom API, s16le PCM)
+ *   - Rust MLX Omni server          (openai API, WAV f32)
+ *   - Rust Candle server             (openai API, raw f32le)
+ *   - Kokoro-82M                     (custom API, s16le PCM)
+ *   - Any server implementing either contract
  *
  * Env:
  *   TTS_PROVIDER=local
  *   LOCAL_TTS_URL=http://127.0.0.1:8501  (default)
  *   LOCAL_TTS_VOICE=default               (default voice ID)
+ *   LOCAL_TTS_API=custom|openai           (default: custom)
  *
  * @module speech/tts-gateway/providers/local-tts
  */
@@ -40,6 +43,9 @@ const CHARS_PER_WORD = 5;
 // CONFIG
 // ============================================================================
 
+/** API format: 'custom' = POST /synthesize, 'openai' = POST /v1/audio/speech */
+export type LocalTTSApiFormat = 'custom' | 'openai';
+
 export interface LocalTTSProviderConfig {
   /** HTTP base URL for the local TTS server (default: LOCAL_TTS_URL env or http://127.0.0.1:8501) */
   serverUrl?: string;
@@ -49,6 +55,8 @@ export interface LocalTTSProviderConfig {
   sampleRate?: number;
   /** Request timeout in ms (default: 15000) */
   timeoutMs?: number;
+  /** API format: 'custom' for Python servers, 'openai' for Rust servers (default: LOCAL_TTS_API env or 'custom') */
+  apiFormat?: LocalTTSApiFormat;
 }
 
 // ============================================================================
@@ -96,6 +104,7 @@ export class LocalTTSProvider implements ITTSProvider {
   private readonly defaultVoice: string;
   private readonly sampleRate: number;
   private readonly timeoutMs: number;
+  private readonly apiFormat: LocalTTSApiFormat;
 
   constructor(config: LocalTTSProviderConfig = {}) {
     this.serverUrl = (
@@ -107,19 +116,21 @@ export class LocalTTSProvider implements ITTSProvider {
     this.defaultVoice = config.defaultVoice || process.env.LOCAL_TTS_VOICE || 'default';
     this.sampleRate = config.sampleRate ?? DEFAULT_SAMPLE_RATE;
     this.timeoutMs = config.timeoutMs ?? SYNTHESIZE_TIMEOUT_MS;
+    this.apiFormat = config.apiFormat ||
+      (process.env.LOCAL_TTS_API as LocalTTSApiFormat | undefined) ||
+      'custom';
 
     log.info(
-      { serverUrl: this.serverUrl, defaultVoice: this.defaultVoice, sampleRate: this.sampleRate },
+      { serverUrl: this.serverUrl, defaultVoice: this.defaultVoice, sampleRate: this.sampleRate, apiFormat: this.apiFormat },
       'LocalTTSProvider initialized'
     );
   }
 
   /**
-   * Synthesize text to PCM audio via local HTTP server.
+   * Synthesize text to s16le PCM audio via local HTTP server.
    *
-   * POST /synthesize
-   *   Request:  { text, voice_id, sample_rate, prosody? }
-   *   Response: Binary PCM (16-bit signed, mono, at sample_rate)
+   * custom API:  POST /synthesize         { text, voice_id, sample_rate }
+   * openai API:  POST /v1/audio/speech    { input, voice, model }
    */
   async synthesize(
     text: string,
@@ -131,15 +142,9 @@ export class LocalTTSProvider implements ITTSProvider {
     }
 
     const resolvedVoice = this.resolveVoiceId(voiceId);
-    const url = `${this.serverUrl}/synthesize`;
-
-    const body = JSON.stringify({
-      text: text.trim(),
-      voice_id: resolvedVoice,
-      sample_rate: this.sampleRate,
-      ...(prosody?.emotion ? { emotion: prosody.emotion } : {}),
-      ...(prosody?.speed ? { speed: prosody.speed } : {}),
-    });
+    const { url, body } = this.apiFormat === 'openai'
+      ? this.buildOpenAIRequest(text.trim(), resolvedVoice)
+      : this.buildCustomRequest(text.trim(), resolvedVoice, prosody);
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
@@ -163,7 +168,14 @@ export class LocalTTSProvider implements ITTSProvider {
         return new ArrayBuffer(0);
       }
 
-      const audio = await response.arrayBuffer();
+      const rawAudio = await response.arrayBuffer();
+      const contentType = response.headers.get('content-type') ?? '';
+
+      // OpenAI API returns WAV or raw f32le — convert to s16le
+      const audio = this.apiFormat === 'openai'
+        ? convertResponseToS16le(rawAudio, contentType)
+        : rawAudio;
+
       const latencyMs = Date.now() - startMs;
 
       log.debug(
@@ -172,6 +184,7 @@ export class LocalTTSProvider implements ITTSProvider {
           audioBytes: audio.byteLength,
           voice: resolvedVoice,
           textLen: text.length,
+          apiFormat: this.apiFormat,
         },
         `Local TTS synthesized in ${latencyMs}ms`
       );
@@ -187,6 +200,34 @@ export class LocalTTSProvider implements ITTSProvider {
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  // --------------------------------------------------------------------------
+  // Request builders
+  // --------------------------------------------------------------------------
+
+  private buildCustomRequest(text: string, voice: string, prosody?: SSMLProsodyConfig) {
+    return {
+      url: `${this.serverUrl}/synthesize`,
+      body: JSON.stringify({
+        text,
+        voice_id: voice,
+        sample_rate: this.sampleRate,
+        ...(prosody?.emotion ? { emotion: prosody.emotion } : {}),
+        ...(prosody?.speed ? { speed: prosody.speed } : {}),
+      }),
+    };
+  }
+
+  private buildOpenAIRequest(text: string, voice: string) {
+    return {
+      url: `${this.serverUrl}/v1/audio/speech`,
+      body: JSON.stringify({
+        input: text,
+        voice,
+        model: 'tts-1',
+      }),
+    };
   }
 
   /**
@@ -234,6 +275,109 @@ export class LocalTTSProvider implements ITTSProvider {
     // Pass through as-is (might be a custom local voice ID)
     return voiceId;
   }
+}
+
+// ============================================================================
+// AUDIO FORMAT CONVERSION (OpenAI API responses → s16le PCM)
+// ============================================================================
+
+/**
+ * Convert an OpenAI-style TTS response to s16le PCM.
+ * Auto-detects WAV (from rust-mlx-omni) vs raw f32le (from rust-perf).
+ */
+function convertResponseToS16le(raw: ArrayBuffer, contentType: string): ArrayBuffer {
+  if (raw.byteLength === 0) return raw;
+
+  if (contentType.includes('audio/wav') || isWavBuffer(raw)) {
+    return convertWavToS16le(raw);
+  }
+
+  // Assume raw f32le PCM (4 bytes per sample)
+  return convertF32leToS16le(raw);
+}
+
+/** Check for RIFF/WAVE magic bytes. */
+function isWavBuffer(buf: ArrayBuffer): boolean {
+  if (buf.byteLength < 12) return false;
+  const view = new DataView(buf);
+  // "RIFF" at 0, "WAVE" at 8
+  return (
+    view.getUint32(0, false) === 0x52494646 &&
+    view.getUint32(8, false) === 0x57415645
+  );
+}
+
+/** Convert f32le PCM [-1.0, 1.0] to s16le PCM. */
+export function convertF32leToS16le(f32Buffer: ArrayBuffer): ArrayBuffer {
+  const f32 = new Float32Array(f32Buffer);
+  const s16 = new Int16Array(f32.length);
+  for (let i = 0; i < f32.length; i++) {
+    const clamped = Math.max(-1, Math.min(1, f32[i]));
+    s16[i] = clamped < 0 ? Math.round(clamped * 32768) : Math.round(clamped * 32767);
+  }
+  return s16.buffer;
+}
+
+/**
+ * Extract audio data from a WAV file and convert to s16le PCM.
+ * Handles IEEE float (format 3) and PCM integer (format 1) WAV.
+ */
+export function convertWavToS16le(wavBuffer: ArrayBuffer): ArrayBuffer {
+  if (wavBuffer.byteLength < 44) return wavBuffer;
+
+  const view = new DataView(wavBuffer);
+  let audioFormat = 1; // 1=PCM int, 3=IEEE float
+  let bitsPerSample = 16;
+  let dataOffset = 0;
+  let dataSize = 0;
+
+  // Walk sub-chunks after RIFF header (12 bytes)
+  let offset = 12;
+  while (offset < view.byteLength - 8) {
+    const id = String.fromCharCode(
+      view.getUint8(offset), view.getUint8(offset + 1),
+      view.getUint8(offset + 2), view.getUint8(offset + 3)
+    );
+    const chunkSize = view.getUint32(offset + 4, true);
+
+    if (id === 'fmt ') {
+      audioFormat = view.getUint16(offset + 8, true);
+      bitsPerSample = view.getUint16(offset + 22, true);
+    } else if (id === 'data') {
+      dataOffset = offset + 8;
+      dataSize = Math.min(chunkSize, wavBuffer.byteLength - dataOffset);
+      break;
+    }
+
+    offset += 8 + chunkSize;
+    if (chunkSize % 2 !== 0) offset += 1; // WAV chunks are word-aligned
+  }
+
+  if (dataOffset === 0 || dataSize === 0) return wavBuffer;
+
+  const audioData = wavBuffer.slice(dataOffset, dataOffset + dataSize);
+
+  // IEEE float 32-bit → convert to s16le
+  if (audioFormat === 3 && bitsPerSample === 32) {
+    return convertF32leToS16le(audioData);
+  }
+
+  // Already s16le PCM → return as-is
+  if (audioFormat === 1 && bitsPerSample === 16) {
+    return audioData;
+  }
+
+  // 32-bit integer PCM → downsample to s16
+  if (audioFormat === 1 && bitsPerSample === 32) {
+    const i32 = new Int32Array(audioData);
+    const s16 = new Int16Array(i32.length);
+    for (let i = 0; i < i32.length; i++) {
+      s16[i] = (i32[i] >> 16) & 0xffff;
+    }
+    return s16.buffer;
+  }
+
+  return audioData;
 }
 
 // ============================================================================
