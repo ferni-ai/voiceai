@@ -69,11 +69,14 @@ npx tsx scripts/qwen3-omni/e2e-native-sts-test.ts
 
 ## 2. MLX – When It Exists
 
-**Current state:** There is **no** Qwen3-Omni implementation for MLX yet (no full multimodal + audio port). Only Qwen3 **text** models exist in the MLX ecosystem.
+**Current state:** The **Rust** MLX Qwen3-Omni server in `apps/rust-mlx-omni` provides full E2E (chat, speech, transcriptions). No Python required.
 
-**When an MLX Qwen3-Omni server exists:**
+**To run the MLX Qwen3-Omni server:**
 
-1. Run that server (e.g. `mlx-qwen3-omni-server` or similar) so it exposes **OpenAI-compatible** endpoints:
+1. Run the **Rust** MLX server so it exposes **OpenAI-compatible** endpoints:
+   ```bash
+   cd apps/rust-mlx-omni && cargo run --bin mlx-omni-server --features server -- --model /path/to/model --port 8800
+   ```
    - `POST /v1/chat/completions`
    - `POST /v1/audio/transcriptions` (if you use it for STT)
    - `POST /v1/audio/speech` (if you use it for TTS)
@@ -82,7 +85,7 @@ npx tsx scripts/qwen3-omni/e2e-native-sts-test.ts
 ```bash
 USE_QWEN3_OMNI=true
 QWEN3_OMNI_BACKEND=mlx
-QWEN3_OMNI_URL=http://localhost:10240   # or your MLX server URL
+QWEN3_OMNI_URL=http://localhost:8800   # Rust MLX server (apps/rust-mlx-omni)
 
 pnpm dev
 ```

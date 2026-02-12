@@ -128,6 +128,15 @@ export {
   getCartesiaProvider,
   createCartesiaProvider,
   type CartesiaProviderConfig,
+  KyutaiTTSProvider,
+  getKyutaiProvider,
+  createKyutaiProvider,
+  type KyutaiTTSProviderConfig,
+  LocalTTSProvider,
+  getLocalTTSProvider,
+  createLocalTTSProvider,
+  type LocalTTSProviderConfig,
+  getTTSProvider,
 } from './providers/index.js';
 
 // ============================================================================
@@ -166,7 +175,7 @@ export {
 import type { voice } from '@livekit/agents';
 import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { getTTSGateway, initTTSGateway } from './gateway.js';
-import { getCartesiaProvider } from './providers/index.js';
+import { getTTSProvider } from './providers/index.js';
 import { createTTSCache, getTTSCache } from '../../services/tts/index.js';
 import { parseSSML, getSSMLProcessor } from './ssml/index.js';
 import { createSessionSink } from './sinks/index.js';
@@ -188,7 +197,7 @@ export function initDefaultGateway(): void {
 
   try {
     initTTSGateway({
-      provider: getCartesiaProvider(),
+      provider: getTTSProvider(),
       cache: createTTSCache(),
       enableTracing: true,
     });
