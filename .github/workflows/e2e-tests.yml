@@ -32,21 +32,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
-          version: 10
+          frozen-lockfile: 'false'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: |
-          pnpm install --frozen-lockfile
-          cd apps/web && pnpm install --frozen-lockfile
+      - name: Install dependencies (apps/web)
+        run: cd apps/web && pnpm install --no-frozen-lockfile
 
       - name: Install Playwright
         run: |

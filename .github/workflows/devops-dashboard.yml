@@ -48,7 +48,7 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Install Octokit
-        run: pnpm add -D @octokit/rest
+        run: pnpm add -w -D @octokit/rest
 
       - name: Generate Dashboard
         id: generate

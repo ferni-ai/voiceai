@@ -23,7 +23,7 @@ on:
     - cron: '0 6 * * *'
 
 env:
-  RUST_VERSION: '1.75'
+  RUST_VERSION: '1.84'
   NODE_VERSION: '20'
 
 jobs:

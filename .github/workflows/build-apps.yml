@@ -43,22 +43,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: pnpm-lock.yaml
-
-      - name: Install dependencies
-        run: |
-          cd apps/web
-          pnpm install --frozen-lockfile
+          frozen-lockfile: 'false'
 
       - name: Build frontend
         run: |
@@ -87,17 +75,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: apps/electron/package-lock.json
+          frozen-lockfile: 'false'
 
       - name: Download frontend build
         uses: actions/download-artifact@v4
@@ -113,7 +94,7 @@ jobs:
       - name: Install Electron dependencies
         run: |
           cd apps/electron
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
 
       - name: Import Code Signing Certificate
         if: env.APPLE_CERTIFICATE_P12_BASE64 != ''
@@ -173,17 +154,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: apps/electron/package-lock.json
+          frozen-lockfile: 'false'
 
       - name: Download frontend build
         uses: actions/download-artifact@v4
@@ -200,7 +174,7 @@ jobs:
       - name: Install Electron dependencies
         run: |
           cd apps\electron
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
 
       - name: Import Code Signing Certificate
         if: env.WINDOWS_CERTIFICATE_P12_BASE64 != ''
@@ -244,17 +218,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: apps/electron/package-lock.json
+          frozen-lockfile: 'false'
 
       - name: Download frontend build
         uses: actions/download-artifact@v4
@@ -270,7 +237,7 @@ jobs:
       - name: Install Electron dependencies
         run: |
           cd apps/electron
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
 
       - name: Build Linux App
         env:

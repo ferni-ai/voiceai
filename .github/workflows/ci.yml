@@ -208,6 +208,20 @@ jobs:
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
 
+      - name: Run Kyutai DSM tests (mock server; no MLX)
+        run: |
+          pnpm vitest run \
+            src/speech/providers/__tests__/kyutai-stt.test.ts \
+            src/speech/providers/__tests__/kyutai-stt-adapter.test.ts \
+            src/speech/tts-gateway/providers/__tests__/kyutai-tts.test.ts \
+            src/speech/tts-gateway/providers/__tests__/kyutai-tts-integration.test.ts \
+            src/speech/__tests__/kyutai-health.test.ts \
+            src/speech/tts-gateway/__tests__/gateway-tts-node-kyutai.test.ts \
+            src/tests/e2e/kyutai-dsm-e2e.test.ts \
+            --reporter=verbose
+        env:
+          NODE_ENV: test
+
       - name: Check coverage threshold
         run: |
           # Extract coverage percentage from coverage summary

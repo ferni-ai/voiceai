@@ -28,6 +28,9 @@ latest-logs.txt
 # Local development data (contacts, etc.)
 .ferni/
 
+# Nested repos (not submodules)
+apps/btcw/
+
 # Code Signing (NEVER commit these!)
 *.p12
 *.pfx

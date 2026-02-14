@@ -14,29 +14,21 @@ on:
       - 'apps/web/src/**'
       - 'src/**'
       - 'design-system/**'
+      - 'brand/**'
 
 jobs:
   lint-brand:
     name: Brand Compliance Check
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          frozen-lockfile: 'false'
         
       - name: Run brand compliance linter
         id: brand-lint
@@ -90,29 +82,20 @@ jobs:
   lint-tokens:
     name: Token Validation
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        
+          frozen-lockfile: 'false'
+
       - name: Build design tokens
         run: |
           cd design-system
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
           pnpm build
           
       - name: Verify token outputs
@@ -126,32 +109,23 @@ jobs:
     name: Visual Regression
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        
+          frozen-lockfile: 'false'
+
       - name: Install Playwright
         run: pnpm playwright install --with-deps chromium
-        
+
       - name: Build frontend
         run: |
           cd apps/web
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
           pnpm build
           
       - name: Run visual regression tests
@@ -174,32 +148,23 @@ jobs:
     name: Accessibility Audit
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        
+          frozen-lockfile: 'false'
+
       - name: Install Playwright
         run: pnpm playwright install --with-deps chromium
-        
+
       - name: Build frontend
         run: |
           cd apps/web
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
           pnpm build
           
       - name: Run accessibility tests

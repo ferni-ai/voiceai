@@ -228,7 +228,7 @@ jobs:
         continue-on-error: true
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Verify rust-perf loads
         run: node -e "const p = require('./apps/rust-perf'); console.log('rust-perf exports:', Object.keys(p));"
