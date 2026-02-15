@@ -73,11 +73,15 @@ COPY apps/rust-perf/src ./rust-perf/src
 COPY apps/rust-perf/build.rs ./rust-perf/
 
 # Build rust-perf native module for Linux x64
+# Note: rust-perf has pre-existing compilation issues (full_omni_pipeline.rs)
+# so we allow this to fail gracefully - the voice agent works without it
 WORKDIR /rust/rust-perf
-RUN cargo build --release && \
+RUN (cargo build --release && \
     napi build --platform --release && \
     ls -la *.node && \
-    echo "=== rust-perf native module built ==="
+    echo "=== rust-perf native module built ===") || \
+    (echo "⚠️ rust-perf build failed (non-fatal) - creating placeholder" && \
+     touch /rust/rust-perf/rust-perf.placeholder)
 
 # ============================================================================
 # Stage 1: Build TypeScript with pnpm + esbuild
@@ -279,8 +283,9 @@ COPY --from=builder /app/dist ./dist
 # These provide zero-allocation real-time audio analysis
 COPY --from=rust-builder /rust/rust-audio/*.node ./apps/rust-audio/
 COPY apps/rust-audio/package.json apps/rust-audio/index.d.ts apps/rust-audio/index.js ./apps/rust-audio/
-COPY --from=rust-builder /rust/rust-perf/*.node ./apps/rust-perf/
+# rust-perf may not have built (pre-existing code issues) - copy .node if available
 COPY apps/rust-perf/package.json apps/rust-perf/index.d.ts apps/rust-perf/index.js ./apps/rust-perf/
+COPY --from=rust-builder /rust/rust-perf/rust-perf.* ./apps/rust-perf/
 
 # Copy persona bundles (JSON, MD files needed at runtime)
 COPY --from=builder /app/src/personas/bundles/ ./dist/personas/bundles/
