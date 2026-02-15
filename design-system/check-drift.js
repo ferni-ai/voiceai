@@ -119,7 +119,7 @@ function checkDeprecatedFiles() {
 
 function checkGeneratedFreshness() {
   const stale = [];
-  
+
   // Get newest source file timestamp
   let newestSource = 0;
   for (const file of TOKEN_SOURCES) {
@@ -133,13 +133,17 @@ function checkGeneratedFreshness() {
       // Skip missing files
     }
   }
-  
-  // Check if generated files are older than sources
+
+  // In CI, git checkout sets all file timestamps to roughly the same time.
+  // Use a tolerance of 60 seconds to avoid false positives.
+  const FRESHNESS_TOLERANCE_MS = 60_000;
+
+  // Check if generated files are significantly older than sources
   for (const file of GENERATED_FILES) {
     const fullPath = path.join(PROJECT_ROOT, file);
     try {
       const stats = fs.statSync(fullPath);
-      if (stats.mtimeMs < newestSource) {
+      if (stats.mtimeMs < newestSource - FRESHNESS_TOLERANCE_MS) {
         stale.push({
           file,
           generatedAge: formatAge(Date.now() - stats.mtimeMs),
@@ -150,7 +154,7 @@ function checkGeneratedFreshness() {
       // Skip missing files (already caught by existence check)
     }
   }
-  
+
   return stale;
 }
 

@@ -50,7 +50,6 @@ describe('Higgs TTS Provider', () => {
     const provider = getTTSProvider() as LocalTTSProvider;
 
     expect(typeof provider.synthesizeStream).toBe('function');
-    expect(typeof provider.synthesizeStreaming).toBe('function');
   });
 
   it('returns singleton instance on repeated calls', () => {

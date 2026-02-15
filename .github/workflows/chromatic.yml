@@ -28,9 +28,9 @@ jobs:
         with:
           frozen-lockfile: 'false'
 
-      # Build React package first (needed for React stories)
+      # Install and build React package (needed for React stories)
       - name: Build React package
-        run: pnpm build
+        run: pnpm install --no-frozen-lockfile && pnpm build
         working-directory: packages/ferni-react
 
       # Run Chromatic
