@@ -116,7 +116,7 @@ jobs:
           path: ./dashboard
 
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
         # Fails if GitHub Pages is not enabled for the repository
         continue-on-error: true
 
