@@ -35,11 +35,12 @@ WORKDIR /rust
 # Install build dependencies for napi-rs and Rust crates
 # - pkg-config + libssl-dev: Required for openssl-sys crate
 # - libclang-dev: Required for bindgen (used by rust-audio FFI bindings)
-# - cmake: Required for whisper-rs-sys (builds whisper.cpp)
+# - cmake + git: Required for whisper-rs-sys (builds whisper.cpp via cmake)
 # Note: Metal/Objective-C deps not needed - candle-core metal feature is macOS-only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
+    git \
     pkg-config \
     libssl-dev \
     libclang-dev \
