@@ -69,9 +69,9 @@ jobs:
         with:
           frozen-lockfile: 'false'
 
-      # Build @ferni/react
+      # Build @ferni/react (not in pnpm workspace, use npm for its deps)
       - name: Build React package
-        run: pnpm build
+        run: npm install && npx tsup
         working-directory: packages/ferni-react
 
       - name: Upload React package artifacts
@@ -121,7 +121,7 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Build React package (needed for stories)
-        run: pnpm build
+        run: npm install && npx tsup
         working-directory: packages/ferni-react
 
       - name: Build Storybook

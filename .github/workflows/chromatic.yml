@@ -34,8 +34,9 @@ jobs:
         run: npm install && npx tsup
         working-directory: packages/ferni-react
 
-      # Run Chromatic
+      # Run Chromatic (requires CHROMATIC_PROJECT_TOKEN secret)
       - name: Run Chromatic
+        if: ${{ secrets.CHROMATIC_PROJECT_TOKEN != '' }}
         uses: chromaui/action@v11
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
@@ -47,6 +48,10 @@ jobs:
           exitZeroOnChanges: true
           # Skip builds if no stories changed
           onlyChanged: true
+
+      - name: Skip Chromatic (no token)
+        if: ${{ secrets.CHROMATIC_PROJECT_TOKEN == '' }}
+        run: echo "::warning::Skipping Chromatic - CHROMATIC_PROJECT_TOKEN not configured"
 
       - name: Comment on PR with Chromatic link
         if: github.event_name == 'pull_request'
