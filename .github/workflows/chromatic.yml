@@ -29,8 +29,9 @@ jobs:
           frozen-lockfile: 'false'
 
       # Install and build React package (needed for React stories)
+      # packages/ferni-react is not in pnpm-workspace.yaml, so use npm for its deps
       - name: Build React package
-        run: pnpm install --no-frozen-lockfile && pnpm build
+        run: npm install && npx tsup
         working-directory: packages/ferni-react
 
       # Run Chromatic

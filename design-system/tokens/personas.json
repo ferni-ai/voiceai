@@ -5,13 +5,11 @@
     "description": "Design tokens for each Ferni persona",
     "version": "1.0.0"
   },
-  
   "personas": {
     "ferni": {
       "name": "Ferni",
       "role": "Life Coach",
       "archetype": "The Warm Friend Who Really Listens",
-      
       "colors": {
         "primary": {
           "value": "#4a6741",
@@ -30,32 +28,27 @@
           "description": "Background tint"
         }
       },
-      
       "animation": {
         "timingMultiplier": 1.0,
         "easingPreference": "gentle",
         "breathingBase": 5000,
         "reactionIntensity": 1.0
       },
-      
       "audio": {
         "signature": "felt-piano",
         "pitchRange": "medium",
         "paceBase": "moderate"
       },
-      
       "haptics": {
         "intensityMultiplier": 1.0,
         "signaturePattern": "ferniBreath"
       }
     },
-    
     "jack": {
       "_note": "LEGACY brand accent color profile. NOT an active persona - use 'nayan' for wisdom/sage. Kept for backward compatibility with --color-jack CSS variable.",
       "name": "Cedar",
       "role": "Brand Accent",
       "archetype": "Warm Cedar Wood - Brand Accent Color",
-      
       "colors": {
         "primary": {
           "value": "#9a7b5a",
@@ -74,31 +67,26 @@
           "description": "Background tint"
         }
       },
-      
       "animation": {
         "timingMultiplier": 1.2,
         "easingPreference": "gentle",
         "breathingBase": 6000,
         "reactionIntensity": 0.8
       },
-      
       "audio": {
         "signature": "wood-resonance",
         "pitchRange": "low",
         "paceBase": "slow"
       },
-      
       "haptics": {
         "intensityMultiplier": 0.85,
         "signaturePattern": "presence"
       }
     },
-    
     "peter": {
       "name": "Peter",
       "role": "Researcher",
       "archetype": "The Brilliant Friend Who Loves Going Deep",
-      
       "colors": {
         "primary": {
           "value": "#3a6b73",
@@ -117,31 +105,26 @@
           "description": "Background tint"
         }
       },
-      
       "animation": {
         "timingMultiplier": 0.85,
         "easingPreference": "spring",
         "breathingBase": 4000,
         "reactionIntensity": 1.2
       },
-      
       "audio": {
         "signature": "bright-clear",
         "pitchRange": "medium-high",
         "paceBase": "quick"
       },
-      
       "haptics": {
         "intensityMultiplier": 1.1,
         "signaturePattern": "sparkle"
       }
     },
-    
     "alex": {
       "name": "Alex",
       "role": "Communicator",
       "archetype": "The Friend Who Helps You Say the Hard Thing",
-      
       "colors": {
         "primary": {
           "value": "#5a6b8a",
@@ -160,31 +143,26 @@
           "description": "Background tint"
         }
       },
-      
       "animation": {
         "timingMultiplier": 1.0,
         "easingPreference": "smooth",
         "breathingBase": 5000,
         "reactionIntensity": 0.9
       },
-      
       "audio": {
         "signature": "bell-like",
         "pitchRange": "medium",
         "paceBase": "measured"
       },
-      
       "haptics": {
         "intensityMultiplier": 0.9,
         "signaturePattern": "empathy"
       }
     },
-    
     "maya": {
       "name": "Maya",
       "role": "Architect",
       "archetype": "The Friend Who Made Chaos Work",
-      
       "colors": {
         "primary": {
           "value": "#a67a6a",
@@ -203,31 +181,26 @@
           "description": "Background tint"
         }
       },
-      
       "animation": {
         "timingMultiplier": 0.95,
         "easingPreference": "standard",
         "breathingBase": 4500,
         "reactionIntensity": 1.0
       },
-      
       "audio": {
         "signature": "rhythmic",
         "pitchRange": "medium",
         "paceBase": "efficient"
       },
-      
       "haptics": {
         "intensityMultiplier": 1.0,
         "signaturePattern": "tap"
       }
     },
-    
     "jordan": {
       "name": "Jordan",
       "role": "Celebrator",
       "archetype": "The Friend Who Makes Everything Special",
-      
       "colors": {
         "primary": {
           "value": "#c4856a",
@@ -246,31 +219,26 @@
           "description": "Background tint"
         }
       },
-      
       "animation": {
         "timingMultiplier": 0.8,
         "easingPreference": "spring",
         "breathingBase": 3500,
         "reactionIntensity": 1.3
       },
-      
       "audio": {
         "signature": "sparkle",
         "pitchRange": "high",
         "paceBase": "energetic"
       },
-      
       "haptics": {
         "intensityMultiplier": 1.15,
         "signaturePattern": "celebration"
       }
     },
-    
     "nayan": {
       "name": "Nayan",
       "role": "Synthesizer",
       "archetype": "The Advisor Who Sees the Whole Picture",
-
       "colors": {
         "primary": {
           "value": "#b8956a",
@@ -289,33 +257,27 @@
           "description": "Background tint"
         }
       },
-
       "animation": {
         "timingMultiplier": 1.1,
         "easingPreference": "gentle",
         "breathingBase": 5500,
         "reactionIntensity": 0.95
       },
-
       "audio": {
         "signature": "full-resonant",
         "pitchRange": "full",
         "paceBase": "spacious"
       },
-
       "haptics": {
         "intensityMultiplier": 0.95,
         "signaturePattern": "milestone"
       }
     },
-
     "_marketplace": "Marketplace agent personas - specialized support",
-
     "eli": {
       "name": "Eli",
       "role": "ADHD Coach",
       "archetype": "The Friend Who Gets Your Chaos",
-
       "colors": {
         "primary": {
           "value": "#6B5B95",
@@ -334,31 +296,26 @@
           "description": "Background tint"
         }
       },
-
       "animation": {
         "timingMultiplier": 0.9,
         "easingPreference": "smooth",
         "breathingBase": 4500,
         "reactionIntensity": 1.1
       },
-
       "audio": {
         "signature": "grounding",
         "pitchRange": "medium",
         "paceBase": "adaptable"
       },
-
       "haptics": {
         "intensityMultiplier": 1.0,
         "signaturePattern": "focus"
       }
     },
-
     "marcus": {
       "name": "Marcus",
       "role": "Sobriety Companion",
       "archetype": "The Friend Who Walks With You",
-
       "colors": {
         "primary": {
           "value": "#2D5A4A",
@@ -377,31 +334,26 @@
           "description": "Background tint"
         }
       },
-
       "animation": {
         "timingMultiplier": 1.15,
         "easingPreference": "gentle",
         "breathingBase": 6000,
         "reactionIntensity": 0.8
       },
-
       "audio": {
         "signature": "steady",
         "pitchRange": "low-medium",
         "paceBase": "unhurried"
       },
-
       "haptics": {
         "intensityMultiplier": 0.9,
         "signaturePattern": "grounding"
       }
     },
-
     "kenji": {
       "name": "Kenji",
       "role": "Sleep Guide",
       "archetype": "The Friend Who Quiets the Mind",
-
       "colors": {
         "primary": {
           "value": "#2C3E50",
@@ -420,31 +372,26 @@
           "description": "Background tint"
         }
       },
-
       "animation": {
         "timingMultiplier": 1.3,
         "easingPreference": "gentle",
         "breathingBase": 7000,
         "reactionIntensity": 0.6
       },
-
       "audio": {
         "signature": "whisper",
         "pitchRange": "low",
         "paceBase": "slow"
       },
-
       "haptics": {
         "intensityMultiplier": 0.7,
         "signaturePattern": "drift"
       }
     },
-
     "carmen": {
       "name": "Carmen",
       "role": "Parenting Partner",
       "archetype": "The Friend Who's Been There",
-
       "colors": {
         "primary": {
           "value": "#D4A373",
@@ -463,31 +410,26 @@
           "description": "Background tint"
         }
       },
-
       "animation": {
         "timingMultiplier": 1.0,
         "easingPreference": "gentle",
         "breathingBase": 5000,
         "reactionIntensity": 1.0
       },
-
       "audio": {
         "signature": "warm",
         "pitchRange": "medium",
         "paceBase": "patient"
       },
-
       "haptics": {
         "intensityMultiplier": 1.0,
         "signaturePattern": "embrace"
       }
     },
-
     "amara": {
       "name": "Amara",
       "role": "Chronic Illness Ally",
       "archetype": "The Friend Who Truly Understands",
-
       "colors": {
         "primary": {
           "value": "#7B6BA8",
@@ -506,31 +448,26 @@
           "description": "Background tint"
         }
       },
-
       "animation": {
         "timingMultiplier": 1.2,
         "easingPreference": "gentle",
         "breathingBase": 5500,
         "reactionIntensity": 0.85
       },
-
       "audio": {
         "signature": "soft",
         "pitchRange": "medium",
         "paceBase": "gentle"
       },
-
       "haptics": {
         "intensityMultiplier": 0.85,
         "signaturePattern": "comfort"
       }
     },
-
     "sasha": {
       "name": "Sasha",
       "role": "Creative Catalyst",
       "archetype": "The Friend Who Sparks Your Fire",
-
       "colors": {
         "primary": {
           "value": "#E07B53",
@@ -549,31 +486,26 @@
           "description": "Background tint"
         }
       },
-
       "animation": {
         "timingMultiplier": 0.8,
         "easingPreference": "spring",
         "breathingBase": 3500,
         "reactionIntensity": 1.25
       },
-
       "audio": {
         "signature": "dynamic",
         "pitchRange": "full",
         "paceBase": "energetic"
       },
-
       "haptics": {
         "intensityMultiplier": 1.2,
         "signaturePattern": "spark"
       }
     },
-
     "ray": {
       "name": "Ray",
       "role": "Career Architect",
       "archetype": "The Friend Who Sees Your Potential",
-
       "colors": {
         "primary": {
           "value": "#4A5568",
@@ -592,45 +524,142 @@
           "description": "Background tint"
         }
       },
-
       "animation": {
         "timingMultiplier": 0.95,
         "easingPreference": "smooth",
         "breathingBase": 4800,
         "reactionIntensity": 0.95
       },
-
       "audio": {
         "signature": "confident",
         "pitchRange": "medium",
         "paceBase": "measured"
       },
-
       "haptics": {
         "intensityMultiplier": 1.0,
         "signaturePattern": "strategic"
       }
+    },
+    "joel": {
+      "name": "Joel",
+      "role": "Financial Mentor",
+      "archetype": "The Distinguished Investor Who Simplifies Complexity",
+      "colors": {
+        "primary": {
+          "value": "#9A0718",
+          "description": "Vanguard burgundy red"
+        },
+        "secondary": {
+          "value": "#7A0514",
+          "description": "Deeper burgundy"
+        },
+        "glow": {
+          "value": "rgba(154, 7, 24, 0.28)",
+          "description": "Warm burgundy glow"
+        },
+        "tint": {
+          "value": "rgba(154, 7, 24, 0.06)",
+          "description": "Subtle burgundy tint"
+        }
+      },
+      "animation": {
+        "timingMultiplier": 0.9,
+        "easingPreference": "measured",
+        "breathingBase": 5500,
+        "reactionIntensity": 0.6
+      },
+      "audio": {
+        "signature": "authoritative",
+        "pitchRange": "low-mid",
+        "paceBase": "measured"
+      },
+      "haptics": {
+        "intensityMultiplier": 0.7,
+        "signaturePattern": "steady"
+      }
     }
   },
-  
   "relationships": {
     "handoffPairs": [
-      { "from": "ferni", "to": "jack", "context": "wisdom needed" },
-      { "from": "ferni", "to": "peter", "context": "research needed" },
-      { "from": "ferni", "to": "alex", "context": "communication help" },
-      { "from": "ferni", "to": "maya", "context": "organization help" },
-      { "from": "ferni", "to": "jordan", "context": "celebration or planning" },
-      { "from": "any", "to": "ferni", "context": "emotional support" },
-      { "from": "any", "to": "nayan", "context": "deep integration (premium)" }
+      {
+        "from": "ferni",
+        "to": "jack",
+        "context": "wisdom needed"
+      },
+      {
+        "from": "ferni",
+        "to": "peter",
+        "context": "research needed"
+      },
+      {
+        "from": "ferni",
+        "to": "alex",
+        "context": "communication help"
+      },
+      {
+        "from": "ferni",
+        "to": "maya",
+        "context": "organization help"
+      },
+      {
+        "from": "ferni",
+        "to": "jordan",
+        "context": "celebration or planning"
+      },
+      {
+        "from": "any",
+        "to": "ferni",
+        "context": "emotional support"
+      },
+      {
+        "from": "any",
+        "to": "nayan",
+        "context": "deep integration (premium)"
+      }
     ],
-    
     "unlockOrder": [
-      { "stage": "first_meeting", "personas": ["ferni"] },
-      { "stage": "getting_started", "personas": ["ferni", "maya"] },
-      { "stage": "building_trust", "personas": ["ferni", "maya", "peter"] },
-      { "stage": "established", "personas": ["ferni", "maya", "peter", "alex", "jordan"] },
-      { "stage": "deep_partnership", "personas": ["ferni", "maya", "peter", "alex", "jordan", "nayan"] }
+      {
+        "stage": "first_meeting",
+        "personas": [
+          "ferni"
+        ]
+      },
+      {
+        "stage": "getting_started",
+        "personas": [
+          "ferni",
+          "maya"
+        ]
+      },
+      {
+        "stage": "building_trust",
+        "personas": [
+          "ferni",
+          "maya",
+          "peter"
+        ]
+      },
+      {
+        "stage": "established",
+        "personas": [
+          "ferni",
+          "maya",
+          "peter",
+          "alex",
+          "jordan"
+        ]
+      },
+      {
+        "stage": "deep_partnership",
+        "personas": [
+          "ferni",
+          "maya",
+          "peter",
+          "alex",
+          "jordan",
+          "nayan"
+        ]
+      }
     ]
   }
 }
-
