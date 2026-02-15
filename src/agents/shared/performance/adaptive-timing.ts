@@ -12,7 +12,11 @@
  * @module agents/shared/performance/adaptive-timing
  */
 
+import type { VoiceEmotionResult } from '../../../speech/audio-prosody.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { analyzeEndpoint, type VoiceFeatures } from '../vad-semantic-endpointer.js';
+import { getEmotionAdjustedTiming } from './emotion-adaptive-timing.js';
+import { isOptimizationEnabled } from './latency-feature-flags.js';
 
 const log = createLogger({ module: 'AdaptiveTiming' });
 
@@ -176,21 +180,42 @@ export interface AdaptiveTimeouts {
 }
 
 /**
- * Calculate adaptive timeouts based on session performance
+ * Calculate adaptive timeouts based on session performance.
+ * Optionally adjusts timing based on detected voice emotion.
  */
-export function getAdaptiveTimeouts(sessionId: string): AdaptiveTimeouts {
+export function getAdaptiveTimeouts(
+  sessionId: string,
+  emotion?: VoiceEmotionResult
+): AdaptiveTimeouts {
   const stats = getSessionStats(sessionId);
 
   // Calculate filler timeout based on actual performance
   // Add buffer to average, but never below minimum
   const rawFillerTimeout = stats.avgLatency + FILLER_STRATEGY.FILLER_BUFFER_MS;
-  const fillerTimeoutMs = Math.max(
+  let fillerTimeoutMs = Math.max(
     FILLER_STRATEGY.MIN_LATENCY_FOR_FILLER,
     Math.min(rawFillerTimeout, FILLER_STRATEGY.GUARANTEED_FILLER_LATENCY)
   );
 
   // Hard timeout based on P95 with headroom
-  const hardTimeoutMs = Math.max(LATENCY_TARGETS.HARD_LIMIT, stats.p95Latency * 1.5);
+  let hardTimeoutMs = Math.max(LATENCY_TARGETS.HARD_LIMIT, stats.p95Latency * 1.5);
+
+  // Apply emotion-based timing adjustment
+  if (emotion) {
+    const emotionTiming = getEmotionAdjustedTiming(emotion);
+    fillerTimeoutMs = Math.round(fillerTimeoutMs * emotionTiming.responseDelayMultiplier);
+    hardTimeoutMs = Math.round(hardTimeoutMs * emotionTiming.responseDelayMultiplier);
+
+    log.debug(
+      {
+        sessionId,
+        emotion: emotion.primary,
+        multiplier: emotionTiming.responseDelayMultiplier,
+        adjustedFillerMs: fillerTimeoutMs,
+      },
+      'Emotion adjusted adaptive timeouts'
+    );
+  }
 
   // Determine performance tier
   const isPerformingWell = stats.avgLatency < LATENCY_TARGETS.ACCEPTABLE;
@@ -377,6 +402,67 @@ export function getSessionPerformanceSummary(sessionId: string): {
 }
 
 // ============================================================================
+// DYNAMIC VAD DURATION (Semantic Endpointing)
+// ============================================================================
+
+export { type VoiceFeatures } from '../vad-semantic-endpointer.js';
+
+/**
+ * Compute dynamic VAD silence duration using semantic analysis,
+ * session pace, and emotional state.
+ *
+ * Returns the recommended milliseconds to wait after silence before
+ * committing to "user is done speaking." Clamped to [150, 500].
+ */
+export function computeDynamicVADDuration(
+  sessionId: string,
+  transcript: string,
+  voiceFeatures?: VoiceFeatures,
+  emotionalState?: string
+): number {
+  if (!isOptimizationEnabled('SEMANTIC_VAD')) {
+    return 500; // Default when disabled
+  }
+
+  // 1. Semantic endpoint analysis
+  const analysis = analyzeEndpoint(transcript, voiceFeatures);
+  let vadMs = analysis.recommendedVADMs;
+
+  // 2. Emotional adjustments — be more patient with upset/anxious users
+  if (emotionalState === 'upset' || emotionalState === 'anxious' || emotionalState === 'distressed') {
+    vadMs += 100;
+  } else if (emotionalState === 'excited' || emotionalState === 'happy') {
+    vadMs -= 50;
+  }
+
+  // 3. Session pace factor — fast-paced sessions get tighter timing
+  const stats = sessionStats.get(sessionId);
+  if (stats && stats.turnCount >= 3) {
+    const sessionDurationSec = (Date.now() - stats.startTime) / 1000;
+    const avgTurnDurationSec = sessionDurationSec / stats.turnCount;
+    if (avgTurnDurationSec < 3) {
+      vadMs -= 50; // Fast-paced session
+    }
+  }
+
+  // 4. Clamp to safe range
+  vadMs = Math.max(150, Math.min(500, vadMs));
+
+  log.debug(
+    {
+      sessionId,
+      vadMs,
+      semanticConfidence: analysis.confidence.toFixed(2),
+      signals: analysis.signals,
+      emotionalState,
+    },
+    'Dynamic VAD duration computed'
+  );
+
+  return vadMs;
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -392,4 +478,5 @@ export default {
   completeTurnProfile,
   cleanupSessionTiming,
   getSessionPerformanceSummary,
+  computeDynamicVADDuration,
 };

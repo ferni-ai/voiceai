@@ -46,6 +46,14 @@ import {
   startHealthMonitoring,
   stopHealthMonitoring,
 } from '../shared/openai-health-monitor.js';
+// Kyutai STT: external STT when USE_KYUTAI_STT=true
+import { KyutaiSTT } from '../../speech/providers/kyutai-stt-adapter.js';
+// Pipeline switching — dynamic inference routing based on emotion and context
+import {
+  isPipelineSwitchingEnabled,
+  selectPipeline,
+  type PipelineSwitchContext,
+} from '../shared/performance/pipeline-switcher.js';
 
 // ============================================================================
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
@@ -1088,20 +1096,20 @@ Reference past context when relevant, but don't force it. Let the conversation f
   mark('llm_model_done');
 
   // =========================================================================
-  // VAD CONFIGURATION
+  // VAD CONFIGURATION (Always-On)
   // =========================================================================
-  // For OpenAI: MUST use Silero VAD so allowInterruptions: false works on say()
-  // For Gemini: Optional fallback (USE_LOCAL_VAD=true)
+  // Silero VAD is loaded for ALL LLM backends to enable sub-100ms barge-in.
+  // Without VAD, Gemini mode relies on server-side STT turn detection which
+  // adds 200-300ms before interruption fires. With VAD, the LiveKit SDK
+  // detects speech at the audio level (~30-50ms) and auto-interrupts.
   //
-  // Why? OpenAI's server_vad in RealtimeModel ignores allowInterruptions flag.
-  // By using VAD on AgentSession instead, we control interruption behavior.
+  // DISABLE_VAD=true is an escape hatch to disable if issues arise.
   // See: https://docs.livekit.io/agents/voice-agent/interruptions/
   // =========================================================================
-  const USE_LOCAL_VAD = process.env.USE_LOCAL_VAD === 'true';
-  const needsVadForInterruptions = isUsingOpenAI(); // OpenAI needs VAD to support allowInterruptions: false
+  const DISABLE_VAD = process.env.DISABLE_VAD === 'true';
   let vad: Awaited<ReturnType<typeof import('@livekit/agents-plugin-silero').VAD.load>> | undefined;
 
-  if (needsVadForInterruptions || USE_LOCAL_VAD) {
+  if (!DISABLE_VAD) {
     try {
       const vadLoadStart = Date.now();
       const { VAD } = await import('@livekit/agents-plugin-silero');
@@ -1110,28 +1118,39 @@ Reference past context when relevant, but don't force it. Let the conversation f
         {
           personaId: persona.id,
           loadTimeMs: Date.now() - vadLoadStart,
-          reason: needsVadForInterruptions ? 'openai-interruptions' : 'local-vad-fallback',
+          reason: 'always-on',
         },
-        '🎙️ Silero VAD loaded for turn detection'
+        '🎙️ Silero VAD loaded (always-on)'
       );
     } catch (vadErr) {
       log.warn(
         { error: String(vadErr), personaId: persona.id },
-        '⚠️ VAD load failed - allowInterruptions: false may not work correctly'
+        '⚠️ VAD load failed - barge-in will fall back to transcript-based detection'
       );
-      // Continue without VAD - but allowInterruptions: false won't work for OpenAI
     }
+  } else {
+    log.info({ personaId: persona.id }, '🎙️ VAD disabled by DISABLE_VAD env var');
   }
 
   // Create voice session
   // Turn detection: Provider-specific (Gemini uses 'realtime_llm', OpenAI uses undefined + VAD)
-  // TTS: Both use Cartesia TTS for persona voice
-  // VAD: Required for OpenAI (supports allowInterruptions), optional fallback for Gemini
+  // TTS: Both use Cartesia TTS for persona voice (or Kyutai when TTS_PROVIDER=kyutai)
+  // STT: Kyutai when USE_KYUTAI_STT=true, otherwise LLM internal STT
+  // VAD: Always-on for sub-100ms barge-in (DISABLE_VAD=true to opt out)
   mark('session_create_start');
+
+  const useKyutaiStt = process.env.USE_KYUTAI_STT === 'true';
+  const kyutaiStt = useKyutaiStt
+    ? new KyutaiSTT({
+        sttUrl: process.env.KYUTAI_STT_URL,
+        authId: process.env.KYUTAI_API_KEY,
+      })
+    : undefined;
 
   const session = new voice.AgentSession<UserData>({
     turnDetection: modelProvider.getSessionTurnDetection(),
     vad, // Silero VAD for turn detection (required for OpenAI to support allowInterruptions: false)
+    ...(kyutaiStt && { stt: kyutaiStt }),
     llm: llmModel,
     tts, // Cartesia TTS for both (OpenAI text-only mode outputs text)
     userData,
@@ -1640,17 +1659,36 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
         // Wire transcript events
         const transcriptEventHandler = (event: unknown) => {
+          const evt = event as { transcript?: string; isFinal?: boolean };
+
+          // Pipeline selection (informational — full routing is future work)
+          if (evt.isFinal && isPipelineSwitchingEnabled()) {
+            const switchCtx: PipelineSwitchContext = {
+              emotion: userData.lastEmotionAnalysis?.primary,
+              stressLevel: userData.lastEmotionAnalysis?.distressLevel,
+              wasInterrupted: userData.wasInterrupted,
+              turnCount: userData.turnCount ?? 0,
+              userTranscriptLength: evt.transcript?.length ?? 0,
+              isFirstResponse: (userData.turnCount ?? 0) === 0,
+              isQuestion: evt.transcript?.includes('?'),
+            };
+            const pipelineResult = selectPipeline(switchCtx);
+            diag.entry(
+              `🔀 [${persona.id}] Pipeline: ${pipelineResult.mode} ` +
+                `(${pipelineResult.reason}, confidence=${pipelineResult.confidence})`
+            );
+          }
+
           // 🔍 DEBUG: Log every transcript event when DEBUG_GEMINI_TRANSCRIPTS=true
           // This helps debug what Gemini is transcribing from audio
           if (process.env.DEBUG_GEMINI_TRANSCRIPTS === 'true') {
-            const transcriptEvent = event as { transcript?: string; isFinal?: boolean };
             process.stderr.write(
-              `\n🎤 [TRANSCRIPT] UserInputTranscribed: "${transcriptEvent.transcript || '(empty)'}" ` +
-                `(isFinal: ${transcriptEvent.isFinal}, length: ${(transcriptEvent.transcript || '').length})\n`
+              `\n🎤 [TRANSCRIPT] UserInputTranscribed: "${evt.transcript || '(empty)'}" ` +
+                `(isFinal: ${evt.isFinal}, length: ${(evt.transcript || '').length})\n`
             );
             // Also log character codes for invisible characters
-            if (transcriptEvent.transcript) {
-              const charCodes = transcriptEvent.transcript.split('').map((c) => c.charCodeAt(0));
+            if (evt.transcript) {
+              const charCodes = evt.transcript.split('').map((c) => c.charCodeAt(0));
               process.stderr.write(`🎤 [TRANSCRIPT] Char codes: [${charCodes.join(', ')}]\n`);
             }
           }

@@ -1,22 +1,16 @@
 # Qwen3-Omni E2E Integration Gaps
 
-**Summary:** The Qwen3-Omni **session manager** now has all 8 "Better Than Human" systems (streaming, emotion dispatch, personality v2, live superhuman, cross-persona, post-TTS, quality tracking, retry/circuit breaker). It is **not used in any current e2e path**. Director Mode and the non-director Qwen3 path use **Qwen3OmniRealtimeModel** / **Qwen3OmniClient** directly, so emotion, personality, superhuman, quality, and data-channel signals never reach the frontend in those flows.
+**Summary:** The Qwen3-Omni **session manager** has all 8 "Better Than Human" systems. It **is** used in the **non-director** path when `USE_QWEN3_OMNI=true` and `USE_QWEN3_OMNI_FULL_STACK !== 'false'` (default). The **full pipeline** (Rust `full_omni_pipeline` in `apps/rust-perf`) is the STS backend either via Candle NAPI (in-process) or HTTP to the Rust server.
 
 ---
 
-## Current E2E Paths (No Session Manager)
+## Current E2E Paths
 
 | Path                   | Trigger                                         | What runs                                                                                                                                                               | Session manager? |
 | ---------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | **Director Mode**      | `USE_QWEN3_OMNI_DIRECTOR=true` or room metadata | DirectorEngine + Qwen3OmniRealtimeModel + AudioRouter. AgentSession `llm` = realtime model. User audio → RealtimeSession (pushAudio/commit) → client + TTS → audio out. | **No**           |
-| **Non-director Qwen3** | `USE_QWEN3_OMNI=true`                           | Qwen3OmniProvider → livekit-llm-adapter (Qwen3OmniClient) + livekit-tts-adapter. Same AgentSession pipeline as Gemini/OpenAI but with different LLM/TTS.                | **No**           |
-
-`createQwen3OmniSession()` / `Qwen3OmniSessionManager` is only referenced in:
-
-- `src/integrations/qwen3-omni/session/` and `index.ts`
-- `src/integrations/qwen3-omni/CLAUDE.md` (example)
-
-So **no** voice-agent entry point, API route, or Director flow creates or uses the session manager.
+| **Non-director Qwen full stack** | `USE_QWEN3_OMNI=true` and `USE_QWEN3_OMNI_FULL_STACK !== 'false'` | **SessionManagerRealtimeModel** (wraps Qwen3OmniSessionManager) or **NativeOmniRealtimeModel** (Candle NAPI). Session manager uses Qwen3OmniClient → Rust server (full_omni_pipeline) or mock. Emotion/quality/personality via `sendDataMessage`. | **Yes** (or native Candle pipeline) |
+| **Non-director Qwen (no full stack)** | `USE_QWEN3_OMNI=true` and `USE_QWEN3_OMNI_FULL_STACK=false` | Qwen3OmniProvider → livekit-llm-adapter (Qwen3OmniClient) + livekit-tts-adapter. No session manager. | **No**           |
 
 ---
 
@@ -65,12 +59,12 @@ So the **preferred** way to get e2e is Option A: wire the session manager into D
 
 ## Checklist for “Better Than Human” E2E
 
-- [ ] **Use session manager in at least one path** (Director Mode adapter or new API).
-- [ ] **Pass `sendDataMessage`** into session config when used from the voice agent (data channel).
+- [x] **Use session manager in at least one path** — Non-director path uses SessionManagerRealtimeModel when USE_QWEN3_OMNI_FULL_STACK !== 'false' (voice-agent-entry.ts).
+- [x] **Pass `sendDataMessage`** — sendDataMessageForQwen passed into SessionManagerRealtimeModel; forwards to frontend publisher.
 - [ ] **Frontend** subscribes to emotion/mood/quality/personality events (or already does).
-- [ ] **Post-TTS** is already applied in session manager and in livekit-tts-adapter; no extra e2e work for that.
+- [x] **Post-TTS** is already applied in session manager and in livekit-tts-adapter.
 - [ ] **Integration test or e2e** that runs a turn through the session manager and asserts events + audio.
-- [ ] **Docs** updated (Director Mode, Qwen3-Omni) to describe the chosen integration.
+- [x] **Docs** — This doc updated; .env.example documents USE_QWEN3_OMNI_FULL_STACK.
 
 ---
 

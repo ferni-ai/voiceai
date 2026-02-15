@@ -1,0 +1,26 @@
+# Kyutai TTS with Ferni custom voice (local voice embeddings)
+# Use when models/ferni-voices/ is populated (see models/ferni-voices/README.md).
+# Mount models/ferni-voices to /voices in the TTS container and use this config.
+
+static_dir = "./static/"
+log_dir = "$HOME/tmp/tts-logs"
+instance_name = "tts"
+authorized_ids = ["public_token"]
+
+[modules.tts_py]
+type = "Py"
+path = "/api/tts_streaming"
+text_tokenizer_file = "hf://kyutai/tts-1.6b-en_fr/tokenizer_spm_8k_en_fr_audio.model"
+batch_size = 8
+text_bos_token = 1
+
+[modules.tts_py.py]
+log_folder = "$HOME/tmp/moshi-server-logs"
+# Local Ferni voice embeddings (mount models/ferni-voices to /voices)
+voice_folder = "/voices"
+default_voice = "ferni/ferni-voice.safetensors"
+cfg_coef = 2.0
+cfg_is_no_text = true
+padding_between = 1
+n_q = 24
+padding_bonus = 0

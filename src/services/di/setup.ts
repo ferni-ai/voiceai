@@ -112,12 +112,12 @@ async function registerApplicationServices(): Promise<void> {
   });
 
   container.registerSingleton(Tokens.TTSProvider, async () => {
-    const { getCartesiaProvider } = await import('../../speech/tts-gateway/providers/cartesia.js');
-    return getCartesiaProvider();
+    const { getTTSProvider } = await import('../../speech/tts-gateway/providers/index.js');
+    return getTTSProvider();
   });
 
   container.registerSingleton(Tokens.TTSGateway, async () => {
-    const { initTTSGateway, isTTSGatewayEnabled, createDelegatingTTSCache, getCartesiaProvider } =
+    const { initTTSGateway, isTTSGatewayEnabled, createDelegatingTTSCache, getTTSProvider } =
       await import('../../speech/tts-gateway/index.js');
     if (!isTTSGatewayEnabled()) {
       // Return null if gateway disabled - callers should check isTTSGatewayEnabled()
@@ -152,7 +152,7 @@ async function registerApplicationServices(): Promise<void> {
     };
 
     const cache = createDelegatingTTSCache({}, legacyCacheLookup);
-    const provider = getCartesiaProvider();
+    const provider = getTTSProvider();
 
     return initTTSGateway({
       provider,

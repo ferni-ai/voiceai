@@ -18,8 +18,25 @@ pub struct TextGenerator {
 impl TextGenerator {
     pub fn new(model_dir: &Path, _config: &ThinkerTextConfig) -> anyhow::Result<Self> {
         let tokenizer_path = model_dir.join("tokenizer.json");
+        let tokenizer_path = if tokenizer_path.exists() {
+            tokenizer_path
+        } else if let Ok(env_path) = std::env::var("QWEN3_OMNI_TOKENIZER_PATH") {
+            let p = Path::new(&env_path);
+            let candidate = if p.is_file() {
+                p.to_path_buf()
+            } else {
+                p.join("tokenizer.json")
+            };
+            if candidate.exists() {
+                candidate
+            } else {
+                tokenizer_path
+            }
+        } else {
+            tokenizer_path
+        };
         let tokenizer = Tokenizer::from_file(&tokenizer_path)
-            .map_err(|e| anyhow::anyhow!("Failed to load tokenizer: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to load tokenizer from {:?}: {}", tokenizer_path, e))?;
 
         // Default EOS/BOS for Qwen3
         let eos_token_id = tokenizer

@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT
  *
  * Generated from: tool-tiers.json
- * Generated at: 2026-02-02T02:02:11.033Z
+ * Generated at: 2026-02-13T02:29:46.884Z
  * Generator: scripts/generate-tool-tiers.js
  *
  * This file is imported directly - NO JSON parsing at runtime!

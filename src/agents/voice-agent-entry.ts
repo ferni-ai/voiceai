@@ -67,6 +67,8 @@ import { finops } from '../services/observability/finops.js';
 // handoffEvents is imported dynamically at runtime from '../tools/handoff/index.js'
 // FIX: Import retry counter cleanup for WeakMap session GC
 import { clearRetryCounter } from './shared/sanitizer/index.js';
+// Kyutai STT: external STT when USE_KYUTAI_STT=true
+import { KyutaiSTT } from '../speech/providers/kyutai-stt-adapter.js';
 // Speech coordination for centralized speech management
 import {
   cleanupSpeechCoordination,
@@ -102,9 +104,25 @@ import {
   isDirectorModeRequested,
 } from './voice-agent/director-mode-setup.js';
 
+// Sub-300ms latency optimizations (WS2: Semantic VAD, WS4: TTS cache warming)
+import { computeDynamicVADDuration } from './shared/performance/adaptive-timing.js';
+import { warmSessionCache } from './shared/performance/cache-aware-tts.js';
+// Pipeline switching — dynamic inference routing based on emotion and context
+import {
+  isPipelineSwitchingEnabled,
+  selectPipeline,
+  type PipelineSwitchContext,
+} from './shared/performance/pipeline-switcher.js';
+
 // ============================================================================
 // FEATURE FLAGS
 // ============================================================================
+
+// Pipeline configuration:
+//   USE_OMNI_PIPELINE=true     — Use local Rust/Candle inference (OmniModelProvider)
+//   OMNI_PIPELINE_URL          — Rust server URL (default: http://127.0.0.1:8505)
+//   PIPELINE_SWITCHING=true    — Enable dynamic pipeline selection per turn
+//   DEFAULT_PIPELINE=omni      — Default pipeline when switching disabled
 
 /**
  * Use the new Tool Gateway for tool loading (2026 architecture).
@@ -133,8 +151,8 @@ const MULTI_AGENT_MODE = process.env.MULTI_AGENT_MODE !== 'false';
 import {
   getModelProvider,
   isQwen3OmniCandleBackend,
-  isUsingOpenAI,
   isUsingQwen3Omni,
+  isUsingQwen3TTS,
 } from './model-provider/index.js';
 
 // Get provider early for module-level logging
@@ -1251,36 +1269,38 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     const sessionStart = Date.now();
 
     // =========================================================================
-    // VAD CONFIGURATION
+    // VAD CONFIGURATION (Always-On)
     // =========================================================================
-    // For OpenAI: MUST use Silero VAD so allowInterruptions: false works on say()
-    // For Gemini: Optional fallback (USE_LOCAL_VAD=true)
+    // Silero VAD is loaded for ALL LLM backends to enable sub-100ms barge-in.
+    // Without VAD, Gemini mode relies on server-side STT turn detection which
+    // adds 200-300ms before interruption fires. With VAD, the LiveKit SDK
+    // detects speech at the audio level (~30-50ms) and auto-interrupts.
     //
-    // Why? OpenAI's server_vad in RealtimeModel ignores allowInterruptions flag.
-    // By using VAD on AgentSession instead, we control interruption behavior.
+    // DISABLE_VAD=true is an escape hatch to disable if issues arise.
     // See: https://docs.livekit.io/agents/voice-agent/interruptions/
     // =========================================================================
-    const USE_LOCAL_VAD = process.env.USE_LOCAL_VAD === 'true';
-    const needsVadForInterruptions = isUsingOpenAI(); // OpenAI needs VAD to support allowInterruptions: false
+    const DISABLE_VAD = process.env.DISABLE_VAD === 'true';
     let vad:
       | Awaited<ReturnType<typeof import('@livekit/agents-plugin-silero').VAD.load>>
       | undefined;
 
-    if (needsVadForInterruptions || USE_LOCAL_VAD) {
+    if (!DISABLE_VAD) {
       try {
         const vadLoadStart = Date.now();
         const { silero } = getVoiceDeps();
         vad = await silero.VAD.load();
-        const reason = needsVadForInterruptions ? 'openai-interruptions' : 'local-vad-fallback';
         process.stderr.write(
-          `[voice-agent-entry] 🎙️ Silero VAD loaded for turn detection (${reason}) in ${Date.now() - vadLoadStart}ms\n`
+          `[voice-agent-entry] 🎙️ Silero VAD loaded (always-on) in ${Date.now() - vadLoadStart}ms\n`
         );
       } catch (vadErr) {
         process.stderr.write(
-          `[voice-agent-entry] ⚠️ VAD load failed - allowInterruptions: false may not work correctly: ${vadErr}\n`
+          `[voice-agent-entry] ⚠️ VAD load failed - barge-in will fall back to transcript-based detection: ${vadErr}\n`
         );
-        // Continue without VAD - but allowInterruptions: false won't work for OpenAI
       }
+    } else {
+      process.stderr.write(
+        '[voice-agent-entry] 🎙️ VAD disabled by DISABLE_VAD env var\n'
+      );
     }
 
     // =========================================================================
@@ -1329,9 +1349,10 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       `[voice-agent-entry] ⚡ Parallel module loads complete in ${Date.now() - parallelLoadStart}ms\n`
     );
 
-    // Create TTS: Qwen3-TTS when USE_QWEN3_OMNI, else PersonaAwareTTS (Cartesia)
+    // Create TTS: Qwen3-TTS when full USE_QWEN3_OMNI, else PersonaAwareTTS (Cartesia).
+    // qwen3-thinker-local uses Cartesia TTS (local LLM only, no local TTS).
     let tts;
-    if (isUsingQwen3Omni()) {
+    if (isUsingQwen3TTS()) {
       const { Qwen3TTSAdapter } =
         await import('../integrations/qwen3-omni/adapters/livekit-tts-adapter.js');
       tts = new Qwen3TTSAdapter({
@@ -1354,7 +1375,7 @@ If someone asks what day it is, what time it is, or what the date is, you know t
 
     // Fire-and-forget TTS registration (non-blocking)
     // Only register PersonaAwareTTS — Qwen3TTSAdapter doesn't support mid-session accent switching
-    if (!isUsingQwen3Omni()) {
+    if (!isUsingQwen3TTS()) {
       void (async () => {
         try {
           const { registerSessionTTS } = await import('../api/session-accent-routes.js');
@@ -1368,6 +1389,14 @@ If someone asks what day it is, what time it is, or what the date is, you know t
 
     // Get voice deps for session creation
     const { voice, google, genai } = getVoiceDeps();
+
+    const useKyutaiStt = process.env.USE_KYUTAI_STT === 'true';
+    const kyutaiStt = useKyutaiStt
+      ? new KyutaiSTT({
+          sttUrl: process.env.KYUTAI_STT_URL,
+          authId: process.env.KYUTAI_API_KEY,
+        })
+      : undefined;
 
     // =========================================================================
     // TOOL LOADING: Gateway (2026) or Legacy Orchestrator
@@ -1658,6 +1687,7 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       session = new voice.AgentSession({
         turnDetection: 'realtime_llm',
         vad,
+        ...(kyutaiStt && { stt: kyutaiStt }),
         llm: directorResult.realtimeModel,
         tts,
         userData,
@@ -1703,24 +1733,25 @@ If someone asks what day it is, what time it is, or what the date is, you know t
                 liveKitOutputSampleRate: 48000,
               });
               const llm = model;
-              session = new voice.AgentSession({
-                turnDetection: 'realtime_llm',
-                vad,
-                llm,
-                tts,
-                userData,
-                voiceOptions: {
-                  allowInterruptions: true,
-                  minEndpointingDelay: 150,
-                  maxEndpointingDelay: 450,
-                  minInterruptionWords: 1,
-                  minInterruptionDuration: 150,
-                  preemptiveGeneration: true,
-                },
-              });
-              process.stderr.write(
-                `[voice-agent-entry] ✅ Qwen Candle NAPI pipeline (in-process)\n`
-              );
+          session = new voice.AgentSession({
+            turnDetection: 'realtime_llm',
+            vad,
+            ...(kyutaiStt && { stt: kyutaiStt }),
+            llm,
+            tts,
+            userData,
+            voiceOptions: {
+              allowInterruptions: true,
+              minEndpointingDelay: 150,
+              maxEndpointingDelay: 450,
+              minInterruptionWords: 1,
+              minInterruptionDuration: 150,
+              preemptiveGeneration: true,
+            },
+          });
+          process.stderr.write(
+            `[voice-agent-entry] ✅ Qwen Candle NAPI pipeline (in-process)\n`
+          );
             }
           } catch (e) {
             process.stderr.write(
@@ -1767,6 +1798,7 @@ If someone asks what day it is, what time it is, or what the date is, you know t
           session = new voice.AgentSession({
             turnDetection: 'realtime_llm',
             vad,
+            ...(kyutaiStt && { stt: kyutaiStt }),
             llm,
             tts,
             userData,
@@ -1831,6 +1863,7 @@ If someone asks what day it is, what time it is, or what the date is, you know t
         session = new voice.AgentSession({
           turnDetection: modelProvider.getSessionTurnDetection(),
           vad,
+          ...(kyutaiStt && { stt: kyutaiStt }),
           llm,
           tts,
           userData,
@@ -2121,6 +2154,17 @@ If someone asks what day it is, what time it is, or what the date is, you know t
         `[voice-agent-entry] ⚠️ Speech coordination init failed (non-critical): ${coordErr}\n`
       );
     }
+
+    // =========================================================================
+    // WS4: TTS CACHE WARMING (fire-and-forget)
+    // Pre-synthesize common phrases so first responses are instant
+    // =========================================================================
+    warmSessionCache(sessionPersona.id, userData.emotionalState as string | undefined).catch(
+      (err: unknown) =>
+        process.stderr.write(
+          `[voice-agent-entry] ⚠️ TTS cache warming failed (non-critical): ${err}\n`
+        )
+    );
 
     // DEBUG: Verify tools are registered with the agent
     // NOTE: Cast needed to access internal _tools property (not in public API)
@@ -2419,6 +2463,24 @@ If someone asks what day it is, what time it is, or what the date is, you know t
         // Increment turn count for tracking
         userData.turnCount = (userData.turnCount || 0) + 1;
 
+        // Pipeline selection (informational — full routing is future work)
+        if (isPipelineSwitchingEnabled()) {
+          const switchCtx: PipelineSwitchContext = {
+            emotion: userData.lastEmotionAnalysis?.primary,
+            stressLevel: userData.lastEmotionAnalysis?.distressLevel,
+            wasInterrupted: userData.wasInterrupted,
+            turnCount: userData.turnCount ?? 0,
+            userTranscriptLength: evt.transcript?.length ?? 0,
+            isFirstResponse: (userData.turnCount ?? 0) === 1,
+            isQuestion: evt.transcript?.includes('?'),
+          };
+          const pipelineResult = selectPipeline(switchCtx);
+          process.stderr.write(
+            `🔀 [TURN ${userData.turnCount}] Pipeline: ${pipelineResult.mode} ` +
+              `(${pipelineResult.reason}, confidence=${pipelineResult.confidence})\n`
+          );
+        }
+
         // 🔧 TOOL DIAGNOSTIC: Log turn info with tool-trigger detection
         const transcript = evt.transcript || '';
         const toolTriggers = ['play', 'music', 'weather', 'news', 'what time', 'calendar'];
@@ -2440,6 +2502,15 @@ If someone asks what day it is, what time it is, or what the date is, you know t
             userId,
             sessionId,
           });
+
+          // WS2: Semantic VAD — compute recommended silence duration for this turn
+          const dynamicVAD = computeDynamicVADDuration(
+            sessionId,
+            transcript,
+            undefined,
+            userData.emotionalState as string | undefined
+          );
+          process.stderr.write(`[VAD] semantic=${dynamicVAD}ms for turn ${userData.turnCount}\n`);
         }
       } else if (evt.transcript && evt.transcript.length > 5) {
         process.stderr.write(`[STT] partial: "${evt.transcript}"\n`);

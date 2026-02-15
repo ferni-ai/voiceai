@@ -18,15 +18,41 @@ pub struct ModelConfig {
 }
 
 impl ModelConfig {
-    /// Load from a `config.json` file in the model directory.
+    /// Load from `config.json` (or `thinker_config.json`) in the model directory.
+    /// Accepts both Rust shape (thinker_config: { text_config, audio_config }) and
+    /// Python shape (top-level text_config, audio_config, talker_config, code2wav_config).
     pub fn from_path(path: &Path) -> anyhow::Result<Self> {
         let config_path = if path.is_dir() {
-            path.join("config.json")
+            let config = path.join("config.json");
+            if config.exists() {
+                config
+            } else {
+                path.join("thinker_config.json")
+            }
         } else {
             path.to_path_buf()
         };
         let data = std::fs::read_to_string(&config_path)?;
-        let config: Self = serde_json::from_str(&data)?;
+        let v: serde_json::Value = serde_json::from_str(&data)?;
+        let normalized = if v.get("thinker_config").is_none() && v.get("text_config").is_some() {
+            // Python-shaped: wrap text_config + audio_config into thinker_config
+            let thinker = serde_json::json!({
+                "text_config": v.get("text_config"),
+                "audio_config": v.get("audio_config"),
+            });
+            let mut m = serde_json::Map::new();
+            m.insert("thinker_config".to_string(), thinker);
+            if let Some(t) = v.get("talker_config") {
+                m.insert("talker_config".to_string(), t.clone());
+            }
+            if let Some(c) = v.get("code2wav_config") {
+                m.insert("code2wav_config".to_string(), c.clone());
+            }
+            serde_json::Value::Object(m)
+        } else {
+            v
+        };
+        let config: Self = serde_json::from_value(normalized)?;
         Ok(config)
     }
 

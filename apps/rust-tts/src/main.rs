@@ -18,7 +18,11 @@
 //! ```
 
 mod audio;
+mod audio_processing;
+mod emotion;
+mod styles;
 mod voices;
+mod websocket;
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -40,15 +44,18 @@ use tower_http::cors::CorsLayer;
 use tracing::{error, info, warn};
 
 use candle_core::{DType, Device};
-use qwen_tts::model::{loader::ModelLoader, loader::LoaderConfig, Model};
+use qwen_tts::model::{loader::ModelLoader, loader::LoaderConfig, options::VoiceDesignOptions, Model};
 
-use crate::audio::{encode_wav_s16le, f32_to_s16le};
+use crate::audio::f32_to_s16le;
+use crate::audio_processing::{apply_speed, apply_volume, encode_output, resample, OutputFormat};
+use crate::emotion::{resolve_emotion, resolve_speed, EmotionParams};
+use crate::styles::{compose_description, resolve_register, resolve_style};
 use crate::voices::{get_voice_description, resolve_voice};
 
 // ─── Constants ───────────────────────────────────────────────
 
 const DEFAULT_MODEL_ID: &str = "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign";
-const SAMPLE_RATE: u32 = 24000;
+pub(crate) const SAMPLE_RATE: u32 = 24000;
 
 // ─── CLI ─────────────────────────────────────────────────────
 
@@ -79,14 +86,18 @@ struct Args {
 
 // ─── App State ───────────────────────────────────────────────
 
-struct AppState {
-    model: Mutex<Model>,
-    model_name: String,
+pub(crate) struct AppState {
+    pub(crate) model: Mutex<Model>,
+    pub(crate) model_name: String,
 }
 
 // ─── Request/Response Types ──────────────────────────────────
 
 /// OpenAI-compatible /v1/audio/speech request.
+///
+/// Extends the standard OpenAI schema with optional `emotion` and `speed`
+/// fields. Serde ignores unknown fields, so callers that don't send these
+/// get neutral defaults — full backward compatibility.
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
 struct AudioSpeechRequest {
@@ -95,6 +106,27 @@ struct AudioSpeechRequest {
     voice: String,
     #[serde(default)]
     model: Option<String>,
+    /// Emotion hint for prosody adjustment (e.g. "warm", "excited", "sad").
+    #[serde(default)]
+    emotion: Option<String>,
+    /// Explicit speed override (0.5-2.0, default 1.0).
+    #[serde(default)]
+    speed: Option<f32>,
+    /// Volume gain (0.0-3.0, default 1.0). Values > 1.0 use soft clipping.
+    #[serde(default)]
+    volume: Option<f32>,
+    /// Target sample rate (8000-48000, default 24000).
+    #[serde(default)]
+    sample_rate: Option<u32>,
+    /// Output format: "wav", "pcm-s16le", "pcm-f32le" (default "wav").
+    #[serde(default)]
+    response_format: Option<String>,
+    /// Speaking style hint (e.g. "whisper", "storytelling", "sarcastic").
+    #[serde(default)]
+    style: Option<String>,
+    /// Social register (e.g. "professional", "casual", "intimate").
+    #[serde(default)]
+    register: Option<String>,
 }
 
 fn default_voice() -> String {
@@ -112,6 +144,14 @@ struct SynthesizeRequest {
     sample_rate: u32,
     emotion: Option<String>,
     speed: Option<f32>,
+    /// Volume gain (0.0-3.0, default 1.0).
+    volume: Option<f32>,
+    /// Output format: "wav", "pcm-s16le", "pcm-f32le" (default "pcm-s16le" for custom API).
+    response_format: Option<String>,
+    /// Speaking style hint (e.g. "whisper", "storytelling", "sarcastic").
+    style: Option<String>,
+    /// Social register (e.g. "professional", "casual", "intimate").
+    register: Option<String>,
 }
 
 fn default_sample_rate() -> u32 {
@@ -126,6 +166,7 @@ struct HealthResponse {
     sample_rate: u32,
     backend: String,
     platform: String,
+    websocket_enabled: bool,
 }
 
 // ─── Model Loading ───────────────────────────────────────────
@@ -259,29 +300,46 @@ fn load_model(args: &Args) -> anyhow::Result<(Model, String)> {
 
 // ─── Synthesis Core ──────────────────────────────────────────
 
-/// Run voice design synthesis and return f32 samples.
-fn synthesize_voice_design(
+/// Run voice design synthesis and return f32 samples plus the resolved emotion params.
+pub(crate) fn synthesize_voice_design(
     model: &Model,
     text: &str,
     voice_id: &str,
     emotion: Option<&str>,
-) -> anyhow::Result<(Vec<f32>, u32)> {
+    explicit_speed: Option<f32>,
+    style: Option<&str>,
+    register: Option<&str>,
+) -> anyhow::Result<(Vec<f32>, u32, EmotionParams)> {
     let resolved = resolve_voice(voice_id);
-    let mut description = get_voice_description(&resolved);
-
-    if let Some(emo) = emotion {
-        description = format!("{description}. Tone: {emo}");
-    }
+    let base_description = get_voice_description(&resolved);
+    let emotion_params = resolve_emotion(emotion);
+    let description = compose_description(
+        &base_description,
+        &emotion_params.description_modifier,
+        style,
+        register,
+    );
+    let speed = resolve_speed(emotion_params.speed, explicit_speed);
 
     info!(
         text_len = text.len(),
         voice = %resolved,
+        emotion = %emotion_params.emotion,
+        ?style,
+        ?register,
+        speed,
         "Synthesizing with VoiceDesign"
     );
 
     let start = Instant::now();
 
-    let result = model.generate_voice_design_from_text(text, &description, "english", None)?;
+    // Build VoiceDesignOptions with emotion-derived temperature for expressiveness control.
+    let options = emotion_params.temperature.map(|temp| VoiceDesignOptions {
+        temperature: Some(temp),
+        ..VoiceDesignOptions::default()
+    });
+
+    let result = model.generate_voice_design_from_text(text, &description, "english", options)?;
 
     let sample_rate = result.sample_rate as u32;
     let samples: Vec<f32> = result
@@ -295,10 +353,11 @@ fn synthesize_voice_design(
         samples = samples.len(),
         elapsed_ms,
         voice = %resolved,
+        emotion = %emotion_params.emotion,
         "Synthesis complete"
     );
 
-    Ok((samples, sample_rate))
+    Ok((samples, sample_rate, emotion_params))
 }
 
 // ─── Handlers ────────────────────────────────────────────────
@@ -315,12 +374,14 @@ async fn health(State(state): State<Arc<AppState>>) -> Json<HealthResponse> {
         } else {
             "cpu".to_string()
         },
+        websocket_enabled: true,
     })
 }
 
 /// POST /v1/audio/speech — OpenAI-compatible TTS endpoint.
 ///
 /// Returns WAV audio (s16le PCM). Compatible with LocalTTSProvider `openai` API format.
+/// Prosody metadata is returned via `X-Prosody-*` response headers.
 async fn audio_speech(
     State(state): State<Arc<AppState>>,
     Json(req): Json<AudioSpeechRequest>,
@@ -334,42 +395,94 @@ async fn audio_speech(
     }
 
     let voice = req.voice.clone();
+    let emotion = req.emotion.clone();
+    let speed = req.speed;
+    let volume = req.volume;
+    let target_sample_rate = req.sample_rate;
+    let output_format = req.response_format
+        .as_deref()
+        .map(OutputFormat::from_str_lossy)
+        .unwrap_or(OutputFormat::Wav);
+    let style = req.style.clone();
+    let register = req.register.clone();
+    let style_for_headers = style.clone();
+    let register_for_headers = register.clone();
 
     // Run synchronous inference off the tokio worker thread.
-    let wav_bytes = tokio::task::spawn_blocking(move || {
-        let model = state
-            .model
-            .lock()
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let (output_bytes, emotion_params, actual_speed, actual_volume, final_sr) =
+        tokio::task::spawn_blocking(move || {
+            let model = state
+                .model
+                .lock()
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-        let (samples, sample_rate) =
-            synthesize_voice_design(&model, &text, &voice, None).map_err(|e| {
-                error!(error = %e, "Synthesis failed");
-                (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-            })?;
+            let (mut samples, sample_rate, params) =
+                synthesize_voice_design(
+                    &model, &text, &voice, emotion.as_deref(), speed,
+                    style.as_deref(), register.as_deref(),
+                ).map_err(
+                    |e| {
+                        error!(error = %e, "Synthesis failed");
+                        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+                    },
+                )?;
 
-        Ok::<_, (StatusCode, String)>(encode_wav_s16le(&samples, sample_rate))
-    })
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))??;
+            let final_speed = resolve_speed(params.speed, speed);
 
-    Ok((
-        StatusCode::OK,
-        [
-            (header::CONTENT_TYPE, "audio/wav"),
-            (
-                header::CONTENT_DISPOSITION,
-                "attachment; filename=speech.wav",
-            ),
-        ],
-        wav_bytes,
-    ))
+            // Post-processing: volume
+            let vol = volume.unwrap_or(1.0);
+            if (vol - 1.0).abs() > f32::EPSILON {
+                apply_volume(&mut samples, vol);
+            }
+
+            // Post-processing: speed (time-stretch)
+            if let Some(spd) = speed {
+                if (spd - 1.0).abs() > f32::EPSILON {
+                    samples = apply_speed(&samples, spd);
+                }
+            }
+
+            // Post-processing: resample if target differs from source
+            let final_sr = target_sample_rate.unwrap_or(sample_rate);
+            if final_sr != sample_rate {
+                samples = resample(&samples, sample_rate, final_sr);
+            }
+
+            let encoded = encode_output(&samples, final_sr, output_format);
+            Ok::<_, (StatusCode, String)>((encoded, params, final_speed, vol, final_sr))
+        })
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))??;
+
+    let mut headers = HeaderMap::new();
+    if let Ok(ct) = HeaderValue::from_str(output_format.content_type()) {
+        headers.insert(header::CONTENT_TYPE, ct);
+    }
+    if output_format == OutputFormat::Wav {
+        headers.insert(
+            header::CONTENT_DISPOSITION,
+            HeaderValue::from_static("attachment; filename=speech.wav"),
+        );
+    }
+    append_prosody_headers(&mut headers, &emotion_params, actual_speed);
+    append_style_register_headers(&mut headers, style_for_headers.as_deref(), register_for_headers.as_deref());
+    if (actual_volume - 1.0).abs() > f32::EPSILON {
+        if let Ok(v) = HeaderValue::from_str(&format!("{:.2}", actual_volume)) {
+            headers.insert(HeaderName::from_static("x-prosody-volume"), v);
+        }
+    }
+    if let Ok(v) = HeaderValue::from_str(&final_sr.to_string()) {
+        headers.insert(HeaderName::from_static("x-sample-rate"), v);
+    }
+
+    Ok((StatusCode::OK, headers, output_bytes))
 }
 
 /// POST /v1/audio/speech/stream — Streaming TTS endpoint.
 ///
 /// Returns chunked s16le PCM bytes as they're generated. First chunk arrives in
 /// ~200-350ms (TTFA). Compatible with LocalTTSProvider streaming mode.
+/// Prosody metadata is returned via `X-Prosody-*` response headers.
 async fn audio_speech_stream(
     State(state): State<Arc<AppState>>,
     Json(req): Json<AudioSpeechRequest>,
@@ -383,9 +496,34 @@ async fn audio_speech_stream(
     }
 
     let voice = req.voice.clone();
+    let emotion = req.emotion.clone();
+    let explicit_speed = req.speed;
+    let stream_volume = req.volume.unwrap_or(1.0).clamp(0.0, 3.0);
+    let style = req.style.clone();
+    let register = req.register.clone();
+
+    // Resolve emotion up front so we can set response headers before streaming starts.
+    let emotion_params = resolve_emotion(emotion.as_deref());
+    let actual_speed = resolve_speed(emotion_params.speed, explicit_speed);
+    let description_for_thread = {
+        let resolved = resolve_voice(&voice);
+        let base = get_voice_description(&resolved);
+        compose_description(
+            &base,
+            &emotion_params.description_modifier,
+            style.as_deref(),
+            register.as_deref(),
+        )
+    };
+    let options = emotion_params.temperature.map(|temp| VoiceDesignOptions {
+        temperature: Some(temp),
+        ..VoiceDesignOptions::default()
+    });
 
     // Channel for streaming PCM chunks from the blocking generation thread.
     let (tx, rx) = tokio::sync::mpsc::channel::<Result<Vec<u8>, std::io::Error>>(32);
+
+    let emotion_label = emotion_params.emotion.clone();
 
     // Spawn blocking generation — sends PCM chunks through the channel.
     tokio::task::spawn_blocking(move || {
@@ -401,11 +539,11 @@ async fn audio_speech_stream(
         };
 
         let resolved = resolve_voice(&voice);
-        let description = get_voice_description(&resolved);
 
         info!(
             text_len = text.len(),
             voice = %resolved,
+            emotion = %emotion_label,
             "Streaming synthesis with VoiceDesign"
         );
 
@@ -415,9 +553,9 @@ async fn audio_speech_stream(
 
         let result = model.generate_voice_design_streaming(
             &text,
-            &description,
+            &description_for_thread,
             "english",
-            None,
+            options,
             |samples: &[f32]| {
                 if first_chunk {
                     let ttfa_ms = start.elapsed().as_millis();
@@ -425,7 +563,15 @@ async fn audio_speech_stream(
                     first_chunk = false;
                 }
                 total_samples += samples.len();
-                let pcm_bytes = f32_to_s16le(samples);
+
+                // Apply per-chunk volume if not unity
+                let pcm_bytes = if (stream_volume - 1.0).abs() > f32::EPSILON {
+                    let mut chunk = samples.to_vec();
+                    apply_volume(&mut chunk, stream_volume);
+                    f32_to_s16le(&chunk)
+                } else {
+                    f32_to_s16le(samples)
+                };
                 let _ = tx.blocking_send(Ok(pcm_bytes));
             },
         );
@@ -437,6 +583,7 @@ async fn audio_speech_stream(
                     total_samples,
                     elapsed_ms,
                     voice = %resolved,
+                    emotion = %emotion_label,
                     "Streaming synthesis complete"
                 );
             }
@@ -468,6 +615,13 @@ async fn audio_speech_stream(
         HeaderName::from_static("x-audio-format"),
         HeaderValue::from_static("pcm-s16le"),
     );
+    append_prosody_headers(&mut headers, &emotion_params, actual_speed);
+    append_style_register_headers(&mut headers, style.as_deref(), register.as_deref());
+    if (stream_volume - 1.0).abs() > f32::EPSILON {
+        if let Ok(v) = HeaderValue::from_str(&format!("{:.2}", stream_volume)) {
+            headers.insert(HeaderName::from_static("x-prosody-volume"), v);
+        }
+    }
 
     Ok((StatusCode::OK, headers, body))
 }
@@ -481,9 +635,37 @@ fn pcm_response_headers() -> HeaderMap {
     headers
 }
 
+/// Append prosody metadata headers describing the emotion applied.
+fn append_prosody_headers(headers: &mut HeaderMap, params: &EmotionParams, actual_speed: f32) {
+    if let Ok(v) = HeaderValue::from_str(&params.emotion) {
+        headers.insert(HeaderName::from_static("x-prosody-emotion"), v);
+    }
+    if let Ok(v) = HeaderValue::from_str(&format!("{:.2}", actual_speed)) {
+        headers.insert(HeaderName::from_static("x-prosody-speed"), v);
+    }
+    if let Ok(v) = HeaderValue::from_str(&params.pitch_shift_semitones.to_string()) {
+        headers.insert(HeaderName::from_static("x-prosody-pitch-shift"), v);
+    }
+}
+
+/// Append style and register metadata headers if present.
+fn append_style_register_headers(headers: &mut HeaderMap, style: Option<&str>, register: Option<&str>) {
+    if let Some(s) = style.filter(|s| resolve_style(Some(s)).is_some()) {
+        if let Ok(v) = HeaderValue::from_str(s) {
+            headers.insert(HeaderName::from_static("x-prosody-style"), v);
+        }
+    }
+    if let Some(r) = register.filter(|r| resolve_register(Some(r)).is_some()) {
+        if let Ok(v) = HeaderValue::from_str(r) {
+            headers.insert(HeaderName::from_static("x-prosody-register"), v);
+        }
+    }
+}
+
 /// POST /synthesize — Custom API endpoint.
 ///
 /// Returns raw s16le PCM bytes. Compatible with LocalTTSProvider `custom` API format.
+/// Prosody metadata is returned via `X-Prosody-*` response headers.
 async fn synthesize(
     State(state): State<Arc<AppState>>,
     Json(req): Json<SynthesizeRequest>,
@@ -495,26 +677,88 @@ async fn synthesize(
 
     let voice_id = req.voice_id.clone();
     let emotion = req.emotion.clone();
+    let explicit_speed = req.speed;
+    let volume = req.volume;
+    let target_sample_rate = req.sample_rate;
+    let output_format = req.response_format
+        .as_deref()
+        .map(OutputFormat::from_str_lossy)
+        .unwrap_or(OutputFormat::PcmS16le); // custom API defaults to raw s16le
+    let style = req.style.clone();
+    let register = req.register.clone();
+    let style_for_headers = style.clone();
+    let register_for_headers = register.clone();
 
     // Run synchronous inference off the tokio worker thread.
-    let pcm = tokio::task::spawn_blocking(move || {
-        let model = state
-            .model
-            .lock()
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let (output_bytes, emotion_params, actual_speed, actual_volume, final_sr) =
+        tokio::task::spawn_blocking(move || {
+            let model = state
+                .model
+                .lock()
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-        let (samples, _sample_rate) =
-            synthesize_voice_design(&model, &text, &voice_id, emotion.as_deref()).map_err(|e| {
-                error!(error = %e, "Synthesis failed");
-                (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-            })?;
+            let (mut samples, sample_rate, params) =
+                synthesize_voice_design(
+                    &model, &text, &voice_id, emotion.as_deref(), explicit_speed,
+                    style.as_deref(), register.as_deref(),
+                ).map_err(|e| {
+                        error!(error = %e, "Synthesis failed");
+                        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+                    })?;
 
-        Ok::<_, (StatusCode, String)>(f32_to_s16le(&samples))
-    })
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))??;
+            let final_speed = resolve_speed(params.speed, explicit_speed);
 
-    Ok((StatusCode::OK, pcm_response_headers(), pcm))
+            // Post-processing: volume
+            let vol = volume.unwrap_or(1.0);
+            if (vol - 1.0).abs() > f32::EPSILON {
+                apply_volume(&mut samples, vol);
+            }
+
+            // Post-processing: speed
+            if let Some(spd) = explicit_speed {
+                if (spd - 1.0).abs() > f32::EPSILON {
+                    samples = apply_speed(&samples, spd);
+                }
+            }
+
+            // Post-processing: resample
+            let final_sr = if target_sample_rate != sample_rate {
+                let resampled = resample(&samples, sample_rate, target_sample_rate);
+                samples = resampled;
+                target_sample_rate
+            } else {
+                sample_rate
+            };
+
+            let encoded = encode_output(&samples, final_sr, output_format);
+            Ok::<_, (StatusCode, String)>((encoded, params, final_speed, vol, final_sr))
+        })
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))??;
+
+    let mut headers = HeaderMap::new();
+    if let Ok(ct) = HeaderValue::from_str(output_format.content_type()) {
+        headers.insert(header::CONTENT_TYPE, ct);
+    }
+    if let Ok(v) = HeaderValue::from_str(&final_sr.to_string()) {
+        headers.insert(HeaderName::from_static("x-sample-rate"), v);
+    }
+    if let Ok(v) = HeaderValue::from_str(match output_format {
+        OutputFormat::Wav => "wav",
+        OutputFormat::PcmS16le => "pcm-s16le",
+        OutputFormat::PcmF32le => "pcm-f32le",
+    }) {
+        headers.insert(HeaderName::from_static("x-audio-format"), v);
+    }
+    append_prosody_headers(&mut headers, &emotion_params, actual_speed);
+    append_style_register_headers(&mut headers, style_for_headers.as_deref(), register_for_headers.as_deref());
+    if (actual_volume - 1.0).abs() > f32::EPSILON {
+        if let Ok(v) = HeaderValue::from_str(&format!("{:.2}", actual_volume)) {
+            headers.insert(HeaderName::from_static("x-prosody-volume"), v);
+        }
+    }
+
+    Ok((StatusCode::OK, headers, output_bytes))
 }
 
 // ─── Main ────────────────────────────────────────────────────
@@ -541,6 +785,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/v1/audio/speech", post(audio_speech))
         .route("/v1/audio/speech/stream", post(audio_speech_stream))
         .route("/synthesize", post(synthesize))
+        .route("/ws/v1/audio/speech", get(websocket::ws_handler))
         .layer(CorsLayer::permissive())
         .with_state(state);
 

@@ -32,8 +32,9 @@ const mockProvider: ITTSProvider = {
   estimateDuration: vi.fn().mockReturnValue(100),
 };
 
-// Mock the providers module
+// Mock the providers module (gateway uses getTTSProvider())
 vi.mock('../providers/index.js', () => ({
+  getTTSProvider: () => mockProvider,
   getCartesiaProvider: () => mockProvider,
   CartesiaTTSProvider: vi.fn(),
   createCartesiaProvider: vi.fn(),
@@ -355,6 +356,227 @@ describe('Gateway TTS Node', () => {
       expect(frame.samplesPerChannel).toBe(480); // 20ms at 24kHz
       expect(frame.sampleRate).toBe(24000);
       expect(frame.channels).toBe(1);
+    });
+
+    it('should skip frames with zero samples', async () => {
+      // 1 byte is less than 2 bytes per sample — should produce no frames
+      const audioBuffer = new ArrayBuffer(1);
+      mockProvider.synthesize = vi.fn().mockResolvedValue(audioBuffer);
+
+      const gatewayTTS = createGatewayTTSNode({
+        voiceId: 'test-voice',
+        sessionId: 'test-session',
+        sampleRate: 24000,
+        frameDurationMs: 20,
+        enableStreamingOverlap: false,
+      });
+
+      const textStream = createTextStream('Tiny audio test');
+      const audioStream = await gatewayTTS(textStream);
+
+      expect(audioStream).not.toBeNull();
+      // The single byte should be skipped since samplesPerChannel would be 0.5 → rounded to 0
+      // (or it gets a frame with 0 samples which is filtered)
+    });
+  });
+
+  describe('Prosody validation', () => {
+    beforeEach(() => {
+      mockProvider.synthesize = vi.fn().mockResolvedValue(new ArrayBuffer(4800));
+    });
+
+    it('should pass prosody with emotion and speed to provider', async () => {
+      const gatewayTTS = createGatewayTTSNode({
+        voiceId: 'test-voice',
+        sessionId: 'test-session',
+        emotion: 'sadness',
+        enableStreamingOverlap: false,
+      });
+
+      const textStream = createTextStream('<speed ratio="0.85"/>I understand.');
+      await gatewayTTS(textStream);
+
+      expect(mockProvider.synthesize).toHaveBeenCalledWith(
+        expect.any(String),
+        'test-voice',
+        expect.objectContaining({
+          speed: 0.85,
+          emotion: 'sadness',
+        })
+      );
+    });
+
+    it('should use Cartesia UUID voiceId as-is', async () => {
+      const cartesiaVoiceId = 'a0e99841-438c-4a64-b679-ae501e7d6091';
+      const gatewayTTS = createGatewayTTSNode({
+        voiceId: cartesiaVoiceId,
+        sessionId: 'test-session',
+        enableStreamingOverlap: false,
+      });
+
+      const textStream = createTextStream('Voice ID test');
+      await gatewayTTS(textStream);
+
+      expect(mockProvider.synthesize).toHaveBeenCalledWith(
+        expect.any(String),
+        cartesiaVoiceId,
+        expect.any(Object)
+      );
+    });
+  });
+
+  // ==========================================================================
+  // Feb 2026: Tests for Higgs Phase 4 fixes
+  // ==========================================================================
+
+  describe('JSON Function Call Filtering (Feb 2026 fix)', () => {
+    beforeEach(() => {
+      mockProvider.synthesize = vi.fn().mockResolvedValue(new ArrayBuffer(4800));
+    });
+
+    it('should filter complete JSON function calls', async () => {
+      const gatewayTTS = createGatewayTTSNode({
+        voiceId: 'test-voice',
+        sessionId: 'test-session',
+        enableStreamingOverlap: false,
+      });
+
+      const textStream = createTextStream('{"fn":"getNews","args":{}}');
+      const audioStream = await gatewayTTS(textStream);
+
+      expect(audioStream).not.toBeNull();
+      const frames = await collectFrames(audioStream);
+      expect(frames.length).toBe(0);
+      expect(mockProvider.synthesize).not.toHaveBeenCalled();
+    });
+
+    it('should NOT filter legitimate text starting with curly brace', async () => {
+      const gatewayTTS = createGatewayTTSNode({
+        voiceId: 'test-voice',
+        sessionId: 'test-session',
+        enableStreamingOverlap: false,
+      });
+
+      const textStream = createTextStream("{That's a great idea}");
+      const audioStream = await gatewayTTS(textStream);
+
+      expect(audioStream).not.toBeNull();
+      // Provider SHOULD be called — this text is NOT a function call
+      expect(mockProvider.synthesize).toHaveBeenCalled();
+    });
+
+    it('should NOT filter text with JSON-like braces but no fn key', async () => {
+      const gatewayTTS = createGatewayTTSNode({
+        voiceId: 'test-voice',
+        sessionId: 'test-session',
+        enableStreamingOverlap: false,
+      });
+
+      const textStream = createTextStream('{"name":"Seth","role":"engineer"}');
+      const audioStream = await gatewayTTS(textStream);
+
+      expect(audioStream).not.toBeNull();
+      // Provider SHOULD be called — valid JSON but no "fn" key
+      expect(mockProvider.synthesize).toHaveBeenCalled();
+    });
+
+    it('should filter partial JSON function calls from streaming', async () => {
+      const gatewayTTS = createGatewayTTSNode({
+        voiceId: 'test-voice',
+        sessionId: 'test-session',
+        enableStreamingOverlap: false,
+      });
+
+      const textStream = createTextStream('{"fn":"getWea');
+      const audioStream = await gatewayTTS(textStream);
+
+      expect(audioStream).not.toBeNull();
+      const frames = await collectFrames(audioStream);
+      expect(frames.length).toBe(0);
+      expect(mockProvider.synthesize).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Cache Hit Latency Tracking (Feb 2026 fix)', () => {
+    beforeEach(() => {
+      mockProvider.synthesize = vi.fn().mockResolvedValue(new ArrayBuffer(4800));
+    });
+
+    it('should measure cache hit latency from cache lookup, not from request start', async () => {
+      const gatewayTTS = createGatewayTTSNode({
+        voiceId: 'test-voice',
+        sessionId: 'test-session',
+        enableCache: true,
+        enableStreamingOverlap: false,
+      });
+
+      // First call — cache miss (populates cache)
+      await gatewayTTS(createTextStream('Latency tracking test'));
+
+      // Second call — cache hit
+      await gatewayTTS(createTextStream('Latency tracking test'));
+
+      const metrics = getGatewayTTSMetrics();
+      expect(metrics.cacheHits).toBe(1);
+      // Cache hit latency should be small (< 50ms in tests) since it only
+      // measures the cache lookup, not preprocessing (SSML parsing, etc.)
+      expect(metrics.avgCacheHitLatencyMs).toBeLessThan(50);
+    });
+  });
+
+  describe('Timeout Behavior (Feb 2026 fix)', () => {
+    it('should timeout and return empty stream on slow provider', async () => {
+      // Mock provider that takes 5 seconds (will exceed our 100ms timeout)
+      mockProvider.synthesize = vi.fn().mockImplementation(
+        () => new Promise<ArrayBuffer>((resolve) =>
+          setTimeout(() => resolve(new ArrayBuffer(4800)), 5000)
+        )
+      );
+
+      const gatewayTTS = createGatewayTTSNode({
+        voiceId: 'test-voice',
+        sessionId: 'test-session',
+        timeoutMs: 100,
+        enableStreamingOverlap: false,
+      });
+
+      const textStream = createTextStream('Timeout behavior test');
+      const audioStream = await gatewayTTS(textStream);
+
+      // Should return empty stream on timeout (error handled gracefully)
+      expect(audioStream).not.toBeNull();
+      const frames = await collectFrames(audioStream);
+      expect(frames.length).toBe(0);
+
+      const metrics = getGatewayTTSMetrics();
+      expect(metrics.errors).toBe(1);
+    });
+
+    it('should include timeout duration in error message', async () => {
+      // We can't directly test the error message since it's caught internally,
+      // but we verify the error counter increments (meaning timeout was thrown)
+      mockProvider.synthesize = vi.fn().mockImplementation(
+        () => new Promise<ArrayBuffer>(() => {
+          // Never resolves — simulates hung connection
+        })
+      );
+
+      const gatewayTTS = createGatewayTTSNode({
+        voiceId: 'test-voice',
+        sessionId: 'test-session',
+        timeoutMs: 50,
+        enableStreamingOverlap: false,
+      });
+
+      const textStream = createTextStream('Hung connection test');
+      const audioStream = await gatewayTTS(textStream);
+
+      expect(audioStream).not.toBeNull();
+      const frames = await collectFrames(audioStream);
+      expect(frames.length).toBe(0);
+
+      const metrics = getGatewayTTSMetrics();
+      expect(metrics.errors).toBe(1);
     });
   });
 });

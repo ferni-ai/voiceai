@@ -734,7 +734,13 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         // Determine interrupt type: 'hard' if user said explicit stop words, else 'soft'
         // The transcript handler sets more precise type if available
         userData.interruptType = 'soft';
-        diag.state('🎭 User interrupted agent - will use graceful recovery');
+        // Track interrupt latency (time from agent speech start to user barge-in)
+        const interruptLatencyMs = userData.lastAgentSpeechStartTime
+          ? Date.now() - userData.lastAgentSpeechStartTime
+          : undefined;
+        diag.state('🎭 User interrupted agent - VAD-triggered', {
+          interruptLatencyMs,
+        });
       }
 
       // Record silence if we had an analysis (user broke the silence by self-initiating)
@@ -1207,6 +1213,26 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             confidence: silenceAnalysis.confidence,
             suggestedResponse: silenceAnalysis.suggestedResponse,
           });
+
+          // 🌟 BTH: Dispatch silence_analyzed signal to frontend avatar
+          // This enables the avatar to show appropriate expressions during silence
+          // (e.g., contemplative expression during reflective silence, concern during emotional silence)
+          fireAndForget(async () => {
+            const { getFrontendPublisher } = await import('../realtime/frontend-publisher.js');
+            const publisher = getFrontendPublisher();
+            await publisher.sendData('humanization_signal', {
+              signalType: 'silence_analyzed',
+              silenceType: silenceAnalysis!.type,
+              silenceDurationMs,
+              confidence: silenceAnalysis!.confidence,
+              suggestedBehavior: silenceAnalysis!.suggestedResponse,
+              timestamp: Date.now(),
+            });
+            diag.state('🚀 Dispatched silence_analyzed signal to avatar', {
+              silenceType: silenceAnalysis!.type,
+              durationMs: silenceDurationMs,
+            });
+          }, 'dispatch-silence-analyzed-signal');
 
           // 🌟 Better Than Human: Silence Interpreter - learns comfort thresholds
           try {

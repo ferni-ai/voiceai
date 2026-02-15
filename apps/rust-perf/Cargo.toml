@@ -10,7 +10,7 @@ default = ["napi"]
 # Enable NAPI bindings (cdylib). Disable with --no-default-features to run lib tests without NAPI link errors.
 napi = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
 # Enable HTTP server binary for Candle Qwen3-Omni inference.
-server = ["dep:axum", "dep:tokio", "dep:tower-http", "dep:base64"]
+server = ["dep:axum", "dep:tokio", "dep:tower-http", "dep:base64", "dep:futures-util"]
 
 [lib]
 # cdylib for Node.js NAPI bindings, rlib for Rust tests
@@ -115,6 +115,7 @@ version = "2.4"
 # ============================================================================
 [dependencies.axum]
 version = "0.8"
+features = ["ws"]
 optional = true
 
 [dependencies.tokio]
@@ -129,6 +130,10 @@ optional = true
 
 [dependencies.base64]
 version = "0.22"
+optional = true
+
+[dependencies.futures-util]
+version = "0.3"
 optional = true
 
 [build-dependencies]

@@ -870,6 +870,43 @@ export async function handleHealthRoutes(
     return true;
   }
 
+  // Kyutai DSM sidecar health (STT/TTS when USE_KYUTAI_* or TTS_PROVIDER=kyutai)
+  if (pathname === '/health/kyutai' || pathname === '/api/diagnostics/kyutai') {
+    try {
+      const { checkKyutaiSidecars } = await import('../../../speech/kyutai-health.js');
+      const result = await checkKyutaiSidecars();
+      const sttOk = !result.useKyutaiStt || result.stt.ok;
+      const ttsOk = !result.useKyutaiTts || result.tts.ok;
+      const status = sttOk && ttsOk ? 'healthy' : sttOk && !ttsOk ? 'degraded' : 'unhealthy';
+      res.writeHead(status === 'unhealthy' ? 503 : 200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify(
+          {
+            status,
+            timestamp: new Date().toISOString(),
+            useKyutaiStt: result.useKyutaiStt,
+            useKyutaiTts: result.useKyutaiTts,
+            stt: result.stt,
+            tts: result.tts,
+          },
+          null,
+          2
+        )
+      );
+    } catch (err) {
+      log.error({ error: (err as Error).message }, 'Kyutai health check error');
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          error: (err as Error).message,
+        })
+      );
+    }
+    return true;
+  }
+
   // OpenAI Realtime Prometheus metrics
   if (pathname === '/api/openai/metrics' || pathname === '/health/openai/metrics') {
     try {

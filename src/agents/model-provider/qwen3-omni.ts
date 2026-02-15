@@ -33,8 +33,16 @@ export class Qwen3OmniProvider implements ModelProvider {
   // Identity
   // -------------------------------------------------------------------------
 
-  readonly id: ModelProviderId = 'qwen3-omni';
-  readonly displayName = 'Qwen3-Omni (Self-hosted S2S)';
+  readonly id: ModelProviderId;
+  readonly displayName: string;
+
+  constructor(id: ModelProviderId = 'qwen3-omni') {
+    this.id = id;
+    this.displayName =
+      id === 'qwen3-thinker-local'
+        ? 'Qwen3-Omni Thinker (Local Text-Only)'
+        : 'Qwen3-Omni (Self-hosted S2S)';
+  }
 
   // -------------------------------------------------------------------------
   // Capabilities

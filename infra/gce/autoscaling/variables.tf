@@ -31,9 +31,27 @@ variable "image_tag" {
 }
 
 variable "machine_type" {
-  description = "GCE machine type"
+  description = "GCE machine type (used when use_gpu is false)"
   type        = string
   default     = "n1-standard-2" # 2 vCPU, 7.5 GB RAM
+}
+
+variable "use_gpu" {
+  description = "Use GPU instance (L4) for Kyutai bridge STT/TTS; requires gpu_machine_type and gpu_accelerator_type"
+  type        = bool
+  default     = false
+}
+
+variable "gpu_machine_type" {
+  description = "GCE machine type when use_gpu is true (e.g. g2-standard-4 for 1x L4)"
+  type        = string
+  default     = "g2-standard-4"
+}
+
+variable "gpu_accelerator_type" {
+  description = "GPU accelerator type (e.g. nvidia-l4)"
+  type        = string
+  default     = "nvidia-l4"
 }
 
 variable "min_instances" {

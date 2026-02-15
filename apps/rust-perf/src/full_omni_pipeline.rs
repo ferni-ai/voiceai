@@ -8,8 +8,8 @@ use crate::candle_audio_encoder::Qwen3OmniAudioEncoder;
 use crate::candle_code2wav::Qwen3OmniCode2Wav;
 use crate::candle_mel::MelSpectrogram;
 use crate::candle_talker::Qwen3OmniTalker;
-use crate::candle_thinker::Qwen3OmniThinker;
-use candle_core::{D, Device, DType, Result as CandleResult, Tensor};
+use crate::candle_thinker::{Qwen3OmniThinker, ThinkerKvCache};
+use candle_core::{D, Device, DType, IndexOp, Result as CandleResult, Tensor};
 use candle_nn::VarBuilder;
 use std::sync::mpsc;
 use std::time::Instant;
@@ -24,6 +24,7 @@ pub struct PipelineTimings {
     pub talker_ms: f64,
     pub code2wav_ms: f64,
     pub total_ms: f64,
+    pub ttfb_ms: Option<f64>,
 }
 
 /// A chunk of PCM audio produced by the streaming pipeline.
@@ -178,6 +179,7 @@ impl FullOmniPipeline {
                     talker_ms: 0.0,
                     code2wav_ms: 0.0,
                     total_ms: 0.0,
+                    ttfb_ms: None,
                 },
             ));
         }
@@ -232,7 +234,98 @@ impl FullOmniPipeline {
                 talker_ms,
                 code2wav_ms,
                 total_ms,
+                ttfb_ms: None,
             },
+        ))
+    }
+
+    /// Process audio with KV cache from a previous turn.
+    /// Returns (waveform, timings, new_cache) so the cache can be preserved for the next turn.
+    /// If `previous_cache` is None, starts a fresh conversation (clears internal cache).
+    pub fn process_audio_with_cache(
+        &mut self,
+        samples: &[f32],
+        previous_cache: Option<ThinkerKvCache>,
+    ) -> CandleResult<(Vec<f32>, PipelineTimings, Option<ThinkerKvCache>)> {
+        let total_start = Instant::now();
+
+        if samples.is_empty() {
+            return Ok((
+                Vec::new(),
+                PipelineTimings {
+                    mel_ms: 0.0,
+                    encoder_ms: 0.0,
+                    thinker_ms: 0.0,
+                    talker_ms: 0.0,
+                    code2wav_ms: 0.0,
+                    total_ms: 0.0,
+                    ttfb_ms: None,
+                },
+                previous_cache,
+            ));
+        }
+
+        // Import or clear cache
+        if let Some(cache) = previous_cache {
+            self.thinker.import_kv_cache(cache);
+        } else {
+            self.thinker.clear_kv_cache();
+        }
+
+        // Step 1: Mel spectrogram
+        let t = Instant::now();
+        let mut mel_proc = MelSpectrogram::new();
+        let mel_t = mel_proc.compute(samples, &self.device)?;
+        let mel_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+        // Step 2: Audio Encoder
+        let t = Instant::now();
+        let audio_embeddings = self.encoder.forward(&mel_t, None)?;
+        let encoder_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+        // Step 3: Thinker with internal KV cache
+        let t = Instant::now();
+        let input_ids = Tensor::new(&[0i64], &self.device)?.unsqueeze(0)?;
+        let (_final_hidden, extracted) = self.thinker.forward_with_hidden_states_from_audio_cached(
+            &audio_embeddings,
+            &input_ids,
+            self.accept_hidden_layer,
+        )?;
+        let seq_len = extracted.dim(1)?;
+        let hidden_at_layer = extracted.narrow(1, seq_len - 1, 1)?;
+        let thinker_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+        // Export cache after thinker pass
+        let new_cache = self.thinker.export_kv_cache();
+
+        // Step 4: Talker
+        let t = Instant::now();
+        let talker_out = self.talker.forward(&hidden_at_layer)?;
+        let codec_logits_f32 = talker_out.to_dtype(DType::F32)?;
+        let codec_ids = codec_logits_f32.argmax(D::Minus1)?;
+        let codec_ids_i64 = codec_ids.to_dtype(DType::I64)?;
+        let talker_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+        // Step 5: Code2Wav
+        let t = Instant::now();
+        let waveform = self.code2wav.forward(&codec_ids_i64)?;
+        let out = waveform.flatten_from(0)?.to_vec1::<f32>()?;
+        let code2wav_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+        let total_ms = total_start.elapsed().as_secs_f64() * 1000.0;
+
+        Ok((
+            out,
+            PipelineTimings {
+                mel_ms,
+                encoder_ms,
+                thinker_ms,
+                talker_ms,
+                code2wav_ms,
+                total_ms,
+                ttfb_ms: None,
+            },
+            new_cache,
         ))
     }
 
@@ -257,6 +350,7 @@ impl FullOmniPipeline {
                     talker_ms: 0.0,
                     code2wav_ms: 0.0,
                     total_ms: 0.0,
+                    ttfb_ms: None,
                 },
             ));
         }
@@ -382,7 +476,157 @@ impl FullOmniPipeline {
                 talker_ms,
                 code2wav_ms,
                 total_ms,
+                ttfb_ms: None,
             },
+        ))
+    }
+
+    /// Streaming pipeline with KV cache support for multi-turn conversations.
+    /// Same as `process_audio_streaming` but imports/exports cache for context preservation.
+    pub fn process_audio_streaming_with_cache(
+        &mut self,
+        samples: &[f32],
+        previous_cache: Option<ThinkerKvCache>,
+    ) -> CandleResult<(mpsc::Receiver<AudioChunk>, PipelineTimings, Option<ThinkerKvCache>)> {
+        let (tx, rx) = mpsc::channel();
+
+        if samples.is_empty() {
+            return Ok((
+                rx,
+                PipelineTimings {
+                    mel_ms: 0.0,
+                    encoder_ms: 0.0,
+                    thinker_ms: 0.0,
+                    talker_ms: 0.0,
+                    code2wav_ms: 0.0,
+                    total_ms: 0.0,
+                    ttfb_ms: None,
+                },
+                previous_cache,
+            ));
+        }
+
+        // Import or clear cache
+        if let Some(cache) = previous_cache {
+            self.thinker.import_kv_cache(cache);
+        } else {
+            self.thinker.clear_kv_cache();
+        }
+
+        let total_start = Instant::now();
+
+        // Step 1: Mel
+        let t = Instant::now();
+        let mut mel_proc = MelSpectrogram::new();
+        let mel_t = mel_proc.compute(samples, &self.device)?;
+        let mel_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+        // Step 2: Audio Encoder
+        let t = Instant::now();
+        let audio_embeddings = self.encoder.forward(&mel_t, None)?;
+        let encoder_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+        // Step 3: Thinker with internal KV cache
+        let t = Instant::now();
+        let input_ids = Tensor::new(&[0i64], &self.device)?.unsqueeze(0)?;
+        let (_final_hidden, extracted) = self.thinker.forward_with_hidden_states_from_audio_cached(
+            &audio_embeddings,
+            &input_ids,
+            self.accept_hidden_layer,
+        )?;
+        let seq_len = extracted.dim(1)?;
+        let hidden_at_layer = extracted.narrow(1, seq_len - 1, 1)?;
+        let thinker_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+        // Export cache after thinker pass
+        let new_cache = self.thinker.export_kv_cache();
+
+        // Step 4: Talker → codec token logits
+        let t = Instant::now();
+        let talker_out = self.talker.forward(&hidden_at_layer)?;
+        let codec_logits_f32 = talker_out.to_dtype(DType::F32)?;
+        let codec_ids = codec_logits_f32.argmax(D::Minus1)?;
+        let codec_ids_i64 = codec_ids.to_dtype(DType::I64)?;
+        let talker_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+        // Step 5: Code2Wav streaming — decode frames in small batches and send chunks.
+        let t = Instant::now();
+        let (_, num_frames, _num_q) = codec_ids_i64.dims3()?;
+        let upsample_factor = self.code2wav.config().total_upsample_factor();
+
+        if num_frames <= 1 {
+            let waveform = self.code2wav.forward(&codec_ids_i64)?;
+            let chunk_samples = waveform.flatten_from(0)?.to_vec1::<f32>()?;
+            let _ = tx.send(AudioChunk {
+                samples: chunk_samples,
+                frame_index: 0,
+            });
+        } else {
+            let batch_size = 2usize;
+            let mut frame_idx = 0usize;
+            while frame_idx < num_frames {
+                let count = batch_size.min(num_frames - frame_idx);
+                let (start, count) = if count == 1 && frame_idx > 0 {
+                    (frame_idx - 1, 2)
+                } else if count == 1 {
+                    let frame_ids = codec_ids_i64.narrow(1, 0, 1)?.contiguous()?;
+                    let waveform = self.code2wav.forward(&frame_ids)?;
+                    let chunk_samples = waveform.flatten_from(0)?.to_vec1::<f32>()?;
+                    let _ = tx.send(AudioChunk {
+                        samples: chunk_samples,
+                        frame_index: 0,
+                    });
+                    break;
+                } else {
+                    (frame_idx, count)
+                };
+
+                let batch_ids = codec_ids_i64.narrow(1, start, count)?.contiguous()?;
+                let batch_wav = self.code2wav.forward(&batch_ids)?;
+                let all_samples = batch_wav.flatten_from(0)?.to_vec1::<f32>()?;
+
+                let samples_per_frame = upsample_factor;
+                for i in 0..count {
+                    let actual_frame_idx = start + i;
+                    if actual_frame_idx < frame_idx {
+                        continue;
+                    }
+                    let chunk_start = i * samples_per_frame;
+                    let chunk_end = (chunk_start + samples_per_frame).min(all_samples.len());
+                    if chunk_start >= all_samples.len() {
+                        break;
+                    }
+                    let chunk_samples = all_samples[chunk_start..chunk_end].to_vec();
+                    if tx
+                        .send(AudioChunk {
+                            samples: chunk_samples,
+                            frame_index: actual_frame_idx,
+                        })
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+                frame_idx = start + count;
+            }
+        }
+        let code2wav_ms = t.elapsed().as_secs_f64() * 1000.0;
+        let total_ms = total_start.elapsed().as_secs_f64() * 1000.0;
+
+        drop(tx);
+
+        Ok((
+            rx,
+            PipelineTimings {
+                mel_ms,
+                encoder_ms,
+                thinker_ms,
+                talker_ms,
+                code2wav_ms,
+                total_ms,
+                ttfb_ms: None,
+            },
+            new_cache,
         ))
     }
 
@@ -426,6 +670,7 @@ impl FullOmniPipeline {
                     talker_ms: 0.0,
                     code2wav_ms: 0.0,
                     total_ms: 0.0,
+                    ttfb_ms: None,
                 },
             ));
         }
@@ -510,6 +755,7 @@ impl FullOmniPipeline {
                 talker_ms: 0.0,
                 code2wav_ms: 0.0,
                 total_ms,
+                ttfb_ms: None,
             },
         ))
     }
@@ -538,6 +784,7 @@ impl FullOmniPipeline {
                     talker_ms: 0.0,
                     code2wav_ms: 0.0,
                     total_ms: 0.0,
+                    ttfb_ms: None,
                 },
             ));
         }
@@ -557,6 +804,7 @@ impl FullOmniPipeline {
                     talker_ms: 0.0,
                     code2wav_ms: 0.0,
                     total_ms: 0.0,
+                    ttfb_ms: None,
                 },
             ));
         }
@@ -566,6 +814,7 @@ impl FullOmniPipeline {
             &input_ids,
             None,
             0,
+            None,
             self.accept_hidden_layer,
         )?;
         let seq_len = extracted.dim(1)?;
@@ -597,6 +846,332 @@ impl FullOmniPipeline {
                 talker_ms,
                 code2wav_ms,
                 total_ms,
+                ttfb_ms: None,
+            },
+        ))
+    }
+
+    /// Speculative audio generation: overlap Thinker with Talker+Code2Wav.
+    ///
+    /// Architecture:
+    ///   1. Run Mel + Encoder (same as normal)
+    ///   2. Run Thinker to get ALL hidden states (full sequence at accept_hidden_layer)
+    ///   3. Process Talker+Code2Wav INCREMENTALLY (small batches of hidden states)
+    ///      and send each audio chunk immediately
+    ///
+    /// The key insight: even though we run the full Thinker, we process Talker+Code2Wav
+    /// incrementally and send each chunk as soon as it's ready.
+    /// TTFB = mel + encoder + thinker + ONE talker batch + ONE c2w batch
+    /// instead of TTFB = mel + encoder + thinker + ALL talker + ALL c2w.
+    ///
+    /// For a response with N frames:
+    ///   Normal:      [thinker][---all talker---][---all c2w---] → first audio at end
+    ///   Speculative: [thinker][t1][c1]→chunk1  [t2][c2]→chunk2 ... → first audio much earlier
+    pub fn process_audio_speculative(
+        &self,
+        samples: &[f32],
+    ) -> CandleResult<(mpsc::Receiver<AudioChunk>, PipelineTimings)> {
+        let (tx, rx) = mpsc::channel();
+
+        if samples.is_empty() {
+            return Ok((
+                rx,
+                PipelineTimings {
+                    mel_ms: 0.0,
+                    encoder_ms: 0.0,
+                    thinker_ms: 0.0,
+                    talker_ms: 0.0,
+                    code2wav_ms: 0.0,
+                    total_ms: 0.0,
+                    ttfb_ms: None,
+                },
+            ));
+        }
+
+        let total_start = Instant::now();
+
+        // Step 1: Mel
+        let t = Instant::now();
+        let mut mel_proc = MelSpectrogram::new();
+        let mel_t = mel_proc.compute(samples, &self.device)?;
+        let mel_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+        // Step 2: Audio Encoder
+        let t = Instant::now();
+        let audio_embeddings = self.encoder.forward(&mel_t, None)?;
+        let encoder_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+        // Step 3: Thinker — get ALL hidden states at accept_hidden_layer (not just last position)
+        let t = Instant::now();
+        let input_ids = Tensor::new(&[0i64], &self.device)?.unsqueeze(0)?;
+        let (_logits, extracted) = self.thinker.forward_with_hidden_states_from_audio(
+            &audio_embeddings,
+            &input_ids,
+            None,
+            0,
+            self.accept_hidden_layer,
+        )?;
+        let thinker_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+        // Step 4: Incrementally process each hidden state position through Talker + Code2Wav.
+        // Code2Wav needs >= 2 frames for ConvTranspose1d, so we process in batches of 2.
+        let seq_len = extracted.dim(1)?;
+        let upsample_factor = self.code2wav.config().total_upsample_factor();
+        let mut talker_total_ms = 0.0f64;
+        let mut code2wav_total_ms = 0.0f64;
+        let mut ttfb_ms: Option<f64> = None;
+
+        if seq_len <= 1 {
+            // Single frame: process directly (avoids ConvTranspose1d underflow)
+            let hidden = extracted.narrow(1, seq_len.saturating_sub(1), 1)?;
+
+            let t = Instant::now();
+            let talker_out = self.talker.forward(&hidden)?;
+            let codec_logits_f32 = talker_out.to_dtype(DType::F32)?;
+            let codec_ids = codec_logits_f32.argmax(D::Minus1)?;
+            let codec_ids_i64 = codec_ids.to_dtype(DType::I64)?;
+            talker_total_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+            let t = Instant::now();
+            let waveform = self.code2wav.forward(&codec_ids_i64)?;
+            let chunk_samples = waveform.flatten_from(0)?.to_vec1::<f32>()?;
+            code2wav_total_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+            ttfb_ms = Some(total_start.elapsed().as_secs_f64() * 1000.0);
+            let _ = tx.send(AudioChunk {
+                samples: chunk_samples,
+                frame_index: 0,
+            });
+        } else {
+            let batch_size = 2usize;
+            let mut frame_idx = 0usize;
+            while frame_idx < seq_len {
+                let count = batch_size.min(seq_len - frame_idx);
+                // If only 1 frame remains, extend batch backwards to include previous frame
+                let (start, count) = if count == 1 && frame_idx > 0 {
+                    (frame_idx - 1, 2)
+                } else {
+                    (frame_idx, count)
+                };
+
+                // Talker: process batch of hidden states incrementally
+                let t = Instant::now();
+                let hidden_batch = extracted.narrow(1, start, count)?;
+                let talker_out = self.talker.forward(&hidden_batch)?;
+                let codec_logits_f32 = talker_out.to_dtype(DType::F32)?;
+                let codec_ids = codec_logits_f32.argmax(D::Minus1)?;
+                let codec_ids_i64 = codec_ids.to_dtype(DType::I64)?;
+                talker_total_ms += t.elapsed().as_secs_f64() * 1000.0;
+
+                // Code2Wav: decode batch to waveform
+                let t = Instant::now();
+                let batch_wav = self.code2wav.forward(&codec_ids_i64)?;
+                let all_samples = batch_wav.flatten_from(0)?.to_vec1::<f32>()?;
+                code2wav_total_ms += t.elapsed().as_secs_f64() * 1000.0;
+
+                // Split batch output into per-frame chunks and send immediately
+                let samples_per_frame = upsample_factor;
+                for i in 0..count {
+                    let actual_frame_idx = start + i;
+                    // Skip frames we already sent (when we extended backwards)
+                    if actual_frame_idx < frame_idx {
+                        continue;
+                    }
+                    if ttfb_ms.is_none() {
+                        ttfb_ms = Some(total_start.elapsed().as_secs_f64() * 1000.0);
+                    }
+                    let chunk_start = i * samples_per_frame;
+                    let chunk_end = (chunk_start + samples_per_frame).min(all_samples.len());
+                    if chunk_start >= all_samples.len() {
+                        break;
+                    }
+                    let chunk_samples = all_samples[chunk_start..chunk_end].to_vec();
+                    if tx
+                        .send(AudioChunk {
+                            samples: chunk_samples,
+                            frame_index: actual_frame_idx,
+                        })
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+                frame_idx = start + count;
+            }
+        }
+
+        let total_ms = total_start.elapsed().as_secs_f64() * 1000.0;
+        drop(tx);
+
+        Ok((
+            rx,
+            PipelineTimings {
+                mel_ms,
+                encoder_ms,
+                thinker_ms,
+                talker_ms: talker_total_ms,
+                code2wav_ms: code2wav_total_ms,
+                total_ms,
+                ttfb_ms,
+            },
+        ))
+    }
+
+    /// Speculative speech synthesis: overlap text processing with audio generation.
+    ///
+    /// Same architecture as `process_audio_speculative` but starting from text:
+    ///   1. Tokenize text → Thinker (get ALL hidden states at accept_hidden_layer)
+    ///   2. Process Talker+Code2Wav incrementally per hidden state position
+    ///   3. Stream each audio chunk immediately
+    ///
+    /// TTFB = thinker + ONE talker batch + ONE c2w batch (no mel/encoder for text input).
+    pub fn synthesize_speech_speculative(
+        &self,
+        text: &str,
+        _temperature: f64,
+    ) -> CandleResult<(mpsc::Receiver<AudioChunk>, PipelineTimings)> {
+        let (tx, rx) = mpsc::channel();
+
+        if text.is_empty() {
+            return Ok((
+                rx,
+                PipelineTimings {
+                    mel_ms: 0.0,
+                    encoder_ms: 0.0,
+                    thinker_ms: 0.0,
+                    talker_ms: 0.0,
+                    code2wav_ms: 0.0,
+                    total_ms: 0.0,
+                    ttfb_ms: None,
+                },
+            ));
+        }
+
+        let total_start = Instant::now();
+
+        // Step 1: Tokenize and run Thinker — get ALL hidden states at accept_hidden_layer
+        let t = Instant::now();
+        let encoding = self.tokenizer.encode(text, true)
+            .map_err(|e| candle_core::Error::Msg(format!("Tokenize: {}", e)))?;
+        let ids: Vec<i64> = encoding.get_ids().iter().map(|&x| x as i64).collect();
+        if ids.is_empty() {
+            return Ok((
+                rx,
+                PipelineTimings {
+                    mel_ms: 0.0,
+                    encoder_ms: 0.0,
+                    thinker_ms: 0.0,
+                    talker_ms: 0.0,
+                    code2wav_ms: 0.0,
+                    total_ms: 0.0,
+                    ttfb_ms: None,
+                },
+            ));
+        }
+
+        let input_ids = Tensor::new(ids.as_slice(), &self.device)?.unsqueeze(0)?;
+        let (_logits, extracted) = self.thinker.forward_with_hidden_states(
+            &input_ids,
+            None,
+            0,
+            None,
+            self.accept_hidden_layer,
+        )?;
+        let thinker_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+        // Step 2: Incrementally process each hidden state through Talker + Code2Wav
+        let seq_len = extracted.dim(1)?;
+        let upsample_factor = self.code2wav.config().total_upsample_factor();
+        let mut talker_total_ms = 0.0f64;
+        let mut code2wav_total_ms = 0.0f64;
+        let mut ttfb_ms: Option<f64> = None;
+
+        if seq_len <= 1 {
+            let hidden = extracted.narrow(1, seq_len.saturating_sub(1), 1)?;
+
+            let t = Instant::now();
+            let talker_out = self.talker.forward(&hidden)?;
+            let codec_logits_f32 = talker_out.to_dtype(DType::F32)?;
+            let codec_ids = codec_logits_f32.argmax(D::Minus1)?;
+            let codec_ids_i64 = codec_ids.to_dtype(DType::I64)?;
+            talker_total_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+            let t = Instant::now();
+            let waveform = self.code2wav.forward(&codec_ids_i64)?;
+            let chunk_samples = waveform.flatten_from(0)?.to_vec1::<f32>()?;
+            code2wav_total_ms = t.elapsed().as_secs_f64() * 1000.0;
+
+            ttfb_ms = Some(total_start.elapsed().as_secs_f64() * 1000.0);
+            let _ = tx.send(AudioChunk {
+                samples: chunk_samples,
+                frame_index: 0,
+            });
+        } else {
+            let batch_size = 2usize;
+            let mut frame_idx = 0usize;
+            while frame_idx < seq_len {
+                let count = batch_size.min(seq_len - frame_idx);
+                let (start, count) = if count == 1 && frame_idx > 0 {
+                    (frame_idx - 1, 2)
+                } else {
+                    (frame_idx, count)
+                };
+
+                let t = Instant::now();
+                let hidden_batch = extracted.narrow(1, start, count)?;
+                let talker_out = self.talker.forward(&hidden_batch)?;
+                let codec_logits_f32 = talker_out.to_dtype(DType::F32)?;
+                let codec_ids = codec_logits_f32.argmax(D::Minus1)?;
+                let codec_ids_i64 = codec_ids.to_dtype(DType::I64)?;
+                talker_total_ms += t.elapsed().as_secs_f64() * 1000.0;
+
+                let t = Instant::now();
+                let batch_wav = self.code2wav.forward(&codec_ids_i64)?;
+                let all_samples = batch_wav.flatten_from(0)?.to_vec1::<f32>()?;
+                code2wav_total_ms += t.elapsed().as_secs_f64() * 1000.0;
+
+                let samples_per_frame = upsample_factor;
+                for i in 0..count {
+                    let actual_frame_idx = start + i;
+                    if actual_frame_idx < frame_idx {
+                        continue;
+                    }
+                    if ttfb_ms.is_none() {
+                        ttfb_ms = Some(total_start.elapsed().as_secs_f64() * 1000.0);
+                    }
+                    let chunk_start = i * samples_per_frame;
+                    let chunk_end = (chunk_start + samples_per_frame).min(all_samples.len());
+                    if chunk_start >= all_samples.len() {
+                        break;
+                    }
+                    let chunk_samples = all_samples[chunk_start..chunk_end].to_vec();
+                    if tx
+                        .send(AudioChunk {
+                            samples: chunk_samples,
+                            frame_index: actual_frame_idx,
+                        })
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+                frame_idx = start + count;
+            }
+        }
+
+        let total_ms = total_start.elapsed().as_secs_f64() * 1000.0;
+        drop(tx);
+
+        Ok((
+            rx,
+            PipelineTimings {
+                mel_ms: 0.0,
+                encoder_ms: 0.0,
+                thinker_ms,
+                talker_ms: talker_total_ms,
+                code2wav_ms: code2wav_total_ms,
+                total_ms,
+                ttfb_ms,
             },
         ))
     }

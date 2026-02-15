@@ -94,7 +94,8 @@ export type HumanizationSignalType =
   | 'temporal_insight' // Cross-session comparison ("Last month you...")
   | 'meta_relationship_moment' // Commentary on the relationship itself
   | 'somatic_presence' // Breathing/settling/grounding cues
-  | 'anticipatory_presence'; // Time-of-day awareness (2am check-in, Monday blues)
+  | 'anticipatory_presence' // Time-of-day awareness (2am check-in, Monday blues)
+  | 'silence_analyzed'; // Silence classification sent to avatar for expression matching
 
 /**
  * Humanization signal payload
@@ -117,6 +118,10 @@ export interface HumanizationSignal {
   timeContext?: 'late_night' | 'early_morning' | 'weekend' | 'monday' | 'evening';
   vulnerabilityType?: 'uncertainty' | 'admission' | 'reflection' | 'growth';
   somaticType?: 'breathing' | 'settling' | 'grounding' | 'pause';
+  // Silence analysis payload fields
+  silenceType?: 'processing' | 'emotional' | 'resistant' | 'confused' | 'reflective' | 'contemplative' | 'disconnection' | 'unknown';
+  silenceDurationMs?: number;
+  suggestedBehavior?: string;
 }
 
 /**

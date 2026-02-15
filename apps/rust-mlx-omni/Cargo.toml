@@ -9,7 +9,7 @@ license = "MIT"
 default = ["metal", "accelerate"]
 metal = ["mlx-rs/metal"]
 accelerate = ["mlx-rs/accelerate"]
-server = ["dep:axum", "dep:tokio", "dep:tower-http"]
+server = ["dep:axum", "dep:tokio", "dep:tower-http", "dep:hound"]
 
 [lib]
 crate-type = ["rlib"]
@@ -31,9 +31,10 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 # Server (optional, for HTTP endpoints)
-axum = { version = "0.8", optional = true }
+axum = { version = "0.8", optional = true, features = ["json", "multipart"] }
 tokio = { version = "1", features = ["full"], optional = true }
 tower-http = { version = "0.6", features = ["cors"], optional = true }
+hound = { version = "3", optional = true }
 
 # Logging
 tracing = "0.1"

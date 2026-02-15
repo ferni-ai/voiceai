@@ -71,10 +71,9 @@ Rough scope: **several engineer-months** for a minimal Thinker+Talker port and c
 
 ### A. Build it ourselves (new repo or fork)
 
-- **Option A1 – In this repo (`apps/mlx-qwen3-omni/`):**
-  - Thinker + Talker + encoders + Code2Wav + conversion + server **already implemented** in MLX.
-  - **Status: EXISTS.** See `apps/mlx-qwen3-omni/` and `AUDIT_REPORT.md`. Needs bug fixes (MoE stacking, streaming, token counting) and audio endpoints, but the core is functional.
-  - **Build plan:** See [MLX-QWEN3-OMNI-BUILD-PLAN.md](./MLX-QWEN3-OMNI-BUILD-PLAN.md) for phased fixes and integration.
+- **Option A1 – In this repo (`apps/rust-mlx-omni/`):**
+  - **Status: DONE.** Rust MLX server (no Python). Chat, `/v1/audio/speech`, `/v1/audio/transcriptions`. Run: `cargo run --bin mlx-omni-server --features server -- --model /path --port 8800`.
+  - **Build plan:** See [MLX-QWEN3-OMNI-BUILD-PLAN.md](./MLX-QWEN3-OMNI-BUILD-PLAN.md).
 - **Option A2 – Extend mlx-omni-server:**
   - Add a “Qwen3-Omni” backend that loads an MLX-converted Qwen3-Omni (once we have one). Today mlx-omni-server uses other models; we’d first need the MLX model implementation (e.g. from A1) or a community port.
 

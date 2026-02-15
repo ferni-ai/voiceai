@@ -242,7 +242,7 @@ const WEIGHT_DIRS: Record<InferenceBackend, string[]> = {
   mlx: [
     process.env.MLX_WEIGHT_PATH || '',
     process.env.QWEN3_OMNI_WEIGHT_PATH || '',
-    `${process.env.HOME || '~'}/.cache/mlx-qwen3-omni`,
+    `${process.env.HOME || '~'}/.cache/rust-mlx-omni`,
     `${process.env.HOME || '~'}/.cache/huggingface/hub/models--Qwen--Qwen3-Omni`,
   ],
 };

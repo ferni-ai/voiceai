@@ -793,9 +793,11 @@ export function isUsingOpenAI(): boolean {
 /**
  * Get the LLM provider name for logging
  */
-export function getLLMProviderName(): 'gemini' | 'openai' {
+export function getLLMProviderName(): 'gemini' | 'openai' | 'qwen3' {
   const id = getProviderIdSync();
-  return id === 'openai-realtime' ? 'openai' : 'gemini';
+  if (id === 'openai-realtime') return 'openai';
+  if (id === 'qwen3-omni' || id === 'qwen3-thinker-local') return 'qwen3';
+  return 'gemini';
 }
 
 /**

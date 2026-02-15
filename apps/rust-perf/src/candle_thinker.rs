@@ -11,6 +11,21 @@ use std::sync::{Arc, Mutex};
 use tokenizers::Tokenizer;
 
 // ============================================================================
+// KV CACHE PERSISTENCE
+// ============================================================================
+
+/// Serializable KV cache state for persistence between conversation turns.
+/// Allows exporting/importing the Thinker's internal KV cache so that
+/// conversation context is preserved without re-encoding previous turns.
+#[derive(Clone)]
+pub struct ThinkerKvCache {
+    /// KV tensors per layer: Vec<(key_tensor, value_tensor)>.
+    pub layers: Vec<(Tensor, Tensor)>,
+    /// Number of tokens already processed (sequence position).
+    pub seq_offset: usize,
+}
+
+// ============================================================================
 // CONFIGURATION
 // ============================================================================
 
@@ -252,7 +267,20 @@ impl SparseMoeBlock {
         let num_experts = cfg.num_experts;
         let top_k = cfg.num_experts_per_tok;
         let gate = linear_no_bias(hidden, num_experts, vb.pp("gate"))?;
-        let switch_mlp = crate::candle_moe::SwitchGLU::load(vb.pp("switch_mlp"), hidden, intermediate, num_experts)?;
+        let switch_mlp = match crate::candle_moe::SwitchGLU::load(
+            vb.pp("switch_mlp"),
+            hidden,
+            intermediate,
+            num_experts,
+        ) {
+            Ok(sw) => sw,
+            Err(_) => crate::candle_moe::SwitchGLU::load_from_experts(
+                vb.clone(),
+                hidden,
+                intermediate,
+                num_experts,
+            )?,
+        };
         let (shared_expert, shared_expert_gate) = if cfg.shared_expert_intermediate_size > 0 {
             let se = ThinkerMLP::load(
                 vb.pp("shared_expert"),
@@ -505,6 +533,8 @@ pub struct Qwen3OmniThinker {
     lm_head: Option<Linear>,
     config: ThinkerConfig,
     device: Device,
+    cache: Vec<KvCache>,
+    cache_offset: usize,
 }
 
 impl Qwen3OmniThinker {
@@ -564,11 +594,14 @@ impl Qwen3OmniThinker {
         } else {
             Some(linear_no_bias(config.hidden_size, config.vocab_size, vb_lm.pp("lm_head"))?)
         };
+        let num_layers = config.num_hidden_layers;
         Ok(Self {
             model,
             lm_head,
             config,
             device: device.clone(),
+            cache: (0..num_layers).map(|_| KvCache::new()).collect(),
+            cache_offset: 0,
         })
     }
 
@@ -589,11 +622,14 @@ impl Qwen3OmniThinker {
         } else {
             Some(linear_no_bias(config.hidden_size, config.vocab_size, vb.pp("lm_head"))?)
         };
+        let num_layers = config.num_hidden_layers;
         Ok(Self {
             model,
             lm_head,
             config,
             device: device.clone(),
+            cache: (0..num_layers).map(|_| KvCache::new()).collect(),
+            cache_offset: 0,
         })
     }
 
@@ -671,9 +707,112 @@ impl Qwen3OmniThinker {
         )
     }
 
+    /// Forward pass using the internal KV cache, for multi-turn conversations.
+    /// Audio embeddings are injected as sequence prefix. Returns (final_hidden, extracted at layer).
+    /// Updates internal cache_offset after the pass so subsequent calls append correctly.
+    pub fn forward_with_hidden_states_from_audio_cached(
+        &mut self,
+        audio_embeddings: &Tensor,
+        input_ids: &Tensor,
+        extract_layer: usize,
+    ) -> CandleResult<(Tensor, Tensor)> {
+        let mut hidden_states =
+            self.model.build_audio_token_sequence(audio_embeddings, input_ids)?;
+        let max_len = self.config.max_position_embeddings;
+        let seq_len = hidden_states.dim(1)?;
+        if seq_len > max_len {
+            hidden_states = hidden_states.narrow(1, seq_len - max_len, max_len)?;
+        }
+        let seq_len = hidden_states.dim(1)?;
+
+        // Build causal mask accounting for cached tokens from previous turns.
+        // New tokens can attend to all cached positions + causally to each other.
+        let cache_len = self.cache_offset;
+        let total_len = cache_len + seq_len;
+        let mask = if total_len <= 1 {
+            Tensor::zeros((1, 1, seq_len, total_len), DType::F32, &self.device)?
+        } else {
+            let mut mask_data = vec![0.0f32; seq_len * total_len];
+            for i in 0..seq_len {
+                for j in 0..total_len {
+                    if j > cache_len + i {
+                        mask_data[i * total_len + j] = f32::NEG_INFINITY;
+                    }
+                }
+            }
+            Tensor::from_vec(mask_data, (seq_len, total_len), &self.device)?
+                .to_dtype(DType::F32)?
+                .unsqueeze(0)?
+                .unsqueeze(0)?
+        };
+
+        let cache_offset = self.cache_offset;
+        let result = self.model.forward_with_hidden_states_from_embeddings(
+            &hidden_states,
+            Some(self.cache.as_mut_slice()),
+            cache_offset,
+            Some(&mask),
+            extract_layer,
+        )?;
+        self.cache_offset += seq_len;
+        Ok(result)
+    }
+
     /// Create empty KV caches for all layers
     pub fn make_cache(&self) -> Vec<KvCache> {
         (0..self.config.num_hidden_layers).map(|_| KvCache::new()).collect()
+    }
+
+    /// Export the current internal KV cache state for persistence.
+    /// Returns None if no cache exists (no cached forward pass has been run).
+    pub fn export_kv_cache(&self) -> Option<ThinkerKvCache> {
+        if self.cache_offset == 0 {
+            return None;
+        }
+        let layers: Vec<(Tensor, Tensor)> = self
+            .cache
+            .iter()
+            .filter_map(|c| match (&c.k, &c.v) {
+                (Some(k), Some(v)) => Some((k.clone(), v.clone())),
+                _ => None,
+            })
+            .collect();
+        if layers.is_empty() {
+            return None;
+        }
+        Some(ThinkerKvCache {
+            layers,
+            seq_offset: self.cache_offset,
+        })
+    }
+
+    /// Import a previously exported KV cache, restoring conversation context.
+    /// The next cached forward pass will continue from where the cache left off.
+    pub fn import_kv_cache(&mut self, cache: ThinkerKvCache) {
+        let ThinkerKvCache { layers, seq_offset } = cache;
+        self.cache_offset = seq_offset;
+        for (i, (k, v)) in layers.into_iter().enumerate() {
+            if i < self.cache.len() {
+                self.cache[i].k = Some(k);
+                self.cache[i].v = Some(v);
+                self.cache[i].offset = seq_offset;
+            }
+        }
+    }
+
+    /// Clear the internal KV cache, starting a fresh conversation.
+    pub fn clear_kv_cache(&mut self) {
+        self.cache_offset = 0;
+        for c in &mut self.cache {
+            c.k = None;
+            c.v = None;
+            c.offset = 0;
+        }
+    }
+
+    /// Get the current cache size (number of cached token positions).
+    pub fn cache_size(&self) -> usize {
+        self.cache_offset
     }
 
     /// Generate tokens autoregressively

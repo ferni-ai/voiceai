@@ -32,11 +32,10 @@ import {
   containsGuidanceBlocks,
 } from '../../utils/text-sanitization.js';
 
-// FIX (Jan 2026): Create require for ESM compatibility
 // ESM doesn't have global require, so we create one for dynamic imports
 const require = createRequire(import.meta.url);
 import { getTTSCache } from '../../services/tts/index.js';
-import { getCartesiaProvider } from './providers/index.js';
+import { getTTSProvider } from './providers/index.js';
 import { getSSMLProcessor } from './ssml/index.js';
 import type { SSMLProsodyConfig } from './types.js';
 
@@ -45,52 +44,42 @@ import type { SSMLProsodyConfig } from './types.js';
 // ============================================================================
 
 /**
- * Pattern to detect JSON function calls that should NOT be spoken.
- *
- * These patterns catch:
- * - Complete JSON: `{"fn":"toolName","args":{...}}`
- * - Partial JSON (streaming): `{"fn":"
- * - With backticks: `` `{"fn":"
- *
- * FIX (Jan 2026): Prevents tool call leakage to TTS when LLM outputs
- * another function call instead of speaking naturally.
+ * Regex to detect the `{"fn":` function call prefix (optionally backtick-wrapped).
+ * Prevents tool call leakage to TTS when LLM outputs a function call
+ * instead of speaking naturally. Requires `{"fn":` specifically to avoid
+ * false positives on legitimate text like "{That's interesting}".
  */
-const JSON_FUNCTION_CALL_PATTERNS = [
-  // Complete or partial JSON function call
-  /^\s*`?\s*\{\s*"fn"\s*:/i,
-  // Just the opening of a function call
-  /^\s*`?\s*\{\s*["']fn["']/i,
-  // Backtick-wrapped JSON
-  /^`\s*\{/,
-];
+const JSON_FN_PREFIX = /^\s*`?\s*\{\s*"fn"\s*:/;
 
 /**
  * Check if text is a JSON function call that should not be spoken.
  *
- * This catches both complete and partial JSON function calls.
- * Even partial JSON like `{"fn":"` should NOT be spoken.
+ * Requires the text to match the `{"fn": ...}` pattern specifically.
+ * Partial JSON streaming fragments starting with `{"fn":` are also filtered.
+ * Legitimate text like "{That's interesting}" will NOT be filtered.
  */
 function isJsonFunctionCall(text: string): boolean {
   const trimmed = text.trim();
 
-  // Empty or very short - not a function call
   if (trimmed.length < 5) {
     return false;
   }
 
-  // Check for JSON function call patterns
-  for (const pattern of JSON_FUNCTION_CALL_PATTERNS) {
-    if (pattern.test(trimmed)) {
-      return true;
-    }
+  // Must start with {"fn": (optionally wrapped in backticks)
+  if (!JSON_FN_PREFIX.test(trimmed)) {
+    return false;
   }
 
-  // Additional check: starts with backtick + brace (common LLM output)
-  if (trimmed.startsWith('`{') || trimmed.startsWith('` {')) {
+  // Strip surrounding backticks for JSON parsing
+  const jsonCandidate = trimmed.replace(/^`\s*/, '').replace(/\s*`$/, '');
+
+  try {
+    const parsed = JSON.parse(jsonCandidate) as Record<string, unknown>;
+    return typeof parsed === 'object' && parsed !== null && typeof parsed.fn === 'string';
+  } catch {
+    // Partial JSON starting with {"fn": (streaming) — still filter
     return true;
   }
-
-  return false;
 }
 
 /**
@@ -139,6 +128,12 @@ export interface GatewayTTSNodeConfig {
    * This would give ~200-400ms faster time-to-first-audio.
    */
   enableSpeculativeSynthesis?: boolean;
+
+  /**
+   * Start TTS on first phrase instead of waiting for full response (default: true when STREAMING_TTS_OVERLAP !== 'false').
+   * Target: -100–200ms E2E by sending first sentence to TTS while LLM continues streaming.
+   */
+  enableStreamingOverlap?: boolean;
 }
 
 export interface GatewayTTSMetrics {
@@ -208,15 +203,20 @@ function* splitIntoFrames(
     AudioFrame: typeof import('@livekit/rtc-node').AudioFrame;
   };
 
-  const bytesPerSample = 2; // 16-bit PCM
+  const BYTES_PER_SAMPLE = 2; // s16le: 16-bit PCM = 2 bytes per sample
   const samplesPerFrame = Math.floor((sampleRate * frameDurationMs) / 1000);
-  const bytesPerFrame = samplesPerFrame * bytesPerSample;
+  const bytesPerFrame = samplesPerFrame * BYTES_PER_SAMPLE;
 
   let offset = 0;
   while (offset < buffer.byteLength) {
     const frameSize = Math.min(bytesPerFrame, buffer.byteLength - offset);
     const frameBuffer = buffer.slice(offset, offset + frameSize);
-    const samplesPerChannel = frameSize / bytesPerSample;
+    const samplesPerChannel = frameSize / BYTES_PER_SAMPLE;
+
+    if (samplesPerChannel <= 0) {
+      offset += frameSize;
+      continue;
+    }
 
     const int16Data = new Int16Array(frameBuffer);
     yield new AudioFrame(int16Data, sampleRate, 1, samplesPerChannel);
@@ -279,6 +279,269 @@ function createAudioFrameStream(
 }
 
 // ============================================================================
+// STREAMING OVERLAP: Start TTS on first phrase (target -100–200ms E2E)
+// ============================================================================
+
+// Sentence boundary: match sentence-ending punctuation followed by space or end-of-string.
+// Negative lookbehind avoids splitting on abbreviations (Dr. Mr. Ms. U.S. etc.) and decimals (3.5).
+const SENTENCE_END = /(?<![A-Z][a-z]|[A-Z]|[0-9])([.!?]+)\s|([.!?]+)$/;
+const MIN_FIRST_CHUNK = 20;
+const MIN_CHUNK = 15;
+
+function sanitizeChunkForTTS(
+  chunk: string,
+  ssmlProcessor: ReturnType<typeof getSSMLProcessor>
+): { text: string; prosody: SSMLProsodyConfig } {
+  if (isJsonFunctionCall(chunk)) return { text: '', prosody: {} };
+  let text = chunk;
+  if (containsInstructionBlocks(text)) text = stripInstructionBlocks(text);
+  if (containsGuidanceBlocks(text)) text = stripGuidanceBlocks(text);
+  const ssmlResult = ssmlProcessor.parse(text);
+  return {
+    text: ssmlResult.cleanText.trim(),
+    prosody: { ...ssmlResult.prosody },
+  };
+}
+
+interface StreamingOverlapOptions {
+  textStream: NodeReadableStream<string>;
+  voiceId: string;
+  sessionId?: string;
+  personaId?: string;
+  emotion?: string;
+  sampleRate: number;
+  frameDurationMs: number;
+  enableCache: boolean;
+  timeoutMs: number;
+  cache: ReturnType<typeof getTTSCache> | null;
+  provider: ReturnType<typeof getTTSProvider>;
+  ssmlProcessor: ReturnType<typeof getSSMLProcessor>;
+  startTime: number;
+}
+
+/**
+ * Synthesize with timeout using AbortController for clean cancellation.
+ *
+ * Note: ITTSProvider.synthesize() does not accept an AbortSignal, so the
+ * underlying HTTP/WebSocket request continues after timeout. The result is
+ * discarded. This is a known limitation — to fully cancel, providers would
+ * need to accept `{ signal: AbortSignal }` in their options.
+ */
+async function synthesizeWithTimeout(
+  provider: ReturnType<typeof getTTSProvider>,
+  text: string,
+  voiceId: string,
+  prosody: SSMLProsodyConfig,
+  timeoutMs: number
+): Promise<ArrayBuffer> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await Promise.race([
+      provider.synthesize(text, voiceId, prosody),
+      new Promise<ArrayBuffer>((_, reject) => {
+        controller.signal.addEventListener('abort', () => {
+          reject(new Error(`TTS timeout after ${timeoutMs}ms`));
+        });
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function createStreamingOverlapTTS(
+  opts: StreamingOverlapOptions
+): Promise<NodeReadableStream<AudioFrame> | null> {
+  const {
+    textStream,
+    voiceId,
+    sessionId,
+    personaId,
+    emotion,
+    sampleRate,
+    frameDurationMs,
+    enableCache,
+    timeoutMs,
+    cache,
+    provider,
+    ssmlProcessor,
+    startTime,
+  } = opts;
+
+  // For streaming local TTS (VoiceDesign): accumulate all text first, then
+  // send as a single streaming request. This prevents voice inconsistency
+  // (each request generates a new voice from the description) and eliminates
+  // choppy audio from gaps between separate synthesis calls.
+  const useWholeTextStreaming = !!provider.synthesizeStreaming;
+
+  return new ReadableStream<AudioFrame>({
+    async start(controller) {
+      const reader = textStream.getReader();
+      let buffer = '';
+      let firstChunk = true;
+      let firstAudioEnqueued = false;
+      let closed = false;
+
+      const closeStream = (err?: Error) => {
+        if (!closed) {
+          closed = true;
+          try {
+            if (err) controller.error(err);
+            else controller.close();
+          } catch { /* already closed or errored */ }
+        }
+      };
+
+      try {
+        // ── LOCAL STREAMING PATH: collect all text, stream as one request ──
+        if (useWholeTextStreaming) {
+          // Drain the entire LLM text stream first
+          while (true) {
+            const { done, value } = await reader.read();
+            if (value) buffer += value;
+            if (done) break;
+          }
+
+          const { text: fullText, prosody } = sanitizeChunkForTTS(buffer, ssmlProcessor);
+          const prosodyWithEmotion: SSMLProsodyConfig = {
+            ...prosody,
+            emotion: prosody.emotion || emotion,
+          };
+
+          if (fullText) {
+            try {
+              metrics.gatewaySyntheses++;
+              let totalBytes = 0;
+              for await (const audioChunk of provider.synthesizeStreaming!(
+                fullText, voiceId, prosodyWithEmotion
+              )) {
+                if (audioChunk && audioChunk.byteLength > 0) {
+                  totalBytes += audioChunk.byteLength;
+                  if (!firstAudioEnqueued) {
+                    firstAudioEnqueued = true;
+                    const ttfbMs = Date.now() - startTime;
+                    log.info({ ttfbMs, sessionId }, `🔊 Streaming TTS TTFB: ${ttfbMs}ms`);
+                  }
+                  for (const frame of splitIntoFrames(audioChunk, sampleRate, frameDurationMs)) {
+                    controller.enqueue(frame);
+                  }
+                }
+              }
+              log.info(
+                { totalBytes, textLen: fullText.length, sessionId },
+                `🔊 Whole-text streaming TTS complete`
+              );
+            } catch (err) {
+              log.warn(
+                { err: String(err), sessionId, personaId, textLen: fullText.length },
+                'Whole-text streaming TTS failed'
+              );
+            }
+          }
+        } else {
+        // ── CLOUD TTS PATH: sentence-by-sentence overlap (Cartesia etc) ──
+        while (true) {
+          const { done, value } = await reader.read();
+          if (value) buffer += value;
+
+          const minLen = firstChunk ? MIN_FIRST_CHUNK : MIN_CHUNK;
+          let chunk: string | null = null;
+
+          if (buffer.length >= minLen) {
+            const match = buffer.match(SENTENCE_END);
+            if (match && match.index !== undefined) {
+              const end = match.index + match[0].length;
+              chunk = buffer.slice(0, end);
+              buffer = buffer.slice(end);
+              firstChunk = false;
+            } else if (buffer.length >= 80) {
+              // Word-boundary fallback: find last space before 80, or any space at all
+              const space = buffer.lastIndexOf(' ', 80);
+              const anySpace = space > 0 ? space : buffer.indexOf(' ');
+              const cut = anySpace > 0 ? anySpace + 1 : 80;
+              chunk = buffer.slice(0, cut);
+              buffer = buffer.slice(cut);
+              firstChunk = false;
+            }
+          }
+
+          if (done && buffer.length > 0) {
+            chunk = buffer;
+            buffer = '';
+          } else if (done && !chunk) {
+            break;
+          }
+
+          if (chunk) {
+            const { text, prosody } = sanitizeChunkForTTS(chunk, ssmlProcessor);
+            const prosodyWithEmotion: SSMLProsodyConfig = {
+              ...prosody,
+              emotion: prosody.emotion || emotion,
+            };
+            if (!text) continue;
+
+            // Per-chunk error handling: skip failed chunks instead of killing the stream
+            try {
+              // Batch path: wait for full audio (fast providers like Cartesia)
+              let audio: ArrayBuffer;
+              if (enableCache && cache) {
+                const cached = await cache.get(text, voiceId, prosodyWithEmotion);
+                if (cached) {
+                  metrics.cacheHits++;
+                  audio = cached.audio;
+                } else {
+                  metrics.cacheMisses++;
+                  metrics.gatewaySyntheses++;
+                  audio = await synthesizeWithTimeout(
+                    provider, text, voiceId, prosodyWithEmotion, timeoutMs
+                  );
+                  const sampleCount = audio.byteLength / 2; // s16le = 2 bytes per sample
+                  const durationMs = Math.round((sampleCount / sampleRate) * 1000);
+                  await cache.set(text, voiceId, audio, durationMs, prosodyWithEmotion);
+                }
+              } else {
+                metrics.gatewaySyntheses++;
+                audio = await synthesizeWithTimeout(
+                  provider, text, voiceId, prosodyWithEmotion, timeoutMs
+                );
+              }
+
+              if (audio && audio.byteLength > 0) {
+                if (!firstAudioEnqueued) {
+                  firstAudioEnqueued = true;
+                  const ttfbMs = Date.now() - startTime;
+                  log.debug({ ttfbMs, sessionId }, 'Streaming overlap TTS TTFB');
+                }
+                for (const frame of splitIntoFrames(audio, sampleRate, frameDurationMs)) {
+                  controller.enqueue(frame);
+                }
+              }
+            } catch (chunkErr) {
+              log.warn(
+                { err: String(chunkErr), sessionId, personaId, chunkLen: text.length },
+                'Streaming overlap: chunk synthesis failed, skipping'
+              );
+              // Continue to next chunk instead of aborting the stream
+            }
+          }
+
+          if (done) break;
+        }
+        } // end cloud TTS path
+      } catch (err) {
+        log.warn({ err: String(err), sessionId, personaId }, 'Streaming overlap TTS error');
+        closeStream(err instanceof Error ? err : new Error(String(err)));
+      } finally {
+        try { reader.releaseLock(); } catch { /* already released */ }
+        closeStream();
+      }
+    },
+  }) as NodeReadableStream<AudioFrame>;
+}
+
+// ============================================================================
 // GATEWAY TTS NODE
 // ============================================================================
 
@@ -307,11 +570,12 @@ export function createGatewayTTSNode(
     enableCache = true,
     timeoutMs = 30000,
     enableSpeculativeSynthesis = false,
+    enableStreamingOverlap = process.env.STREAMING_TTS_OVERLAP !== 'false',
   } = config;
 
   // Get gateway components
   const cache = getTTSCache();
-  const provider = getCartesiaProvider();
+  const provider = getTTSProvider();
   const ssmlProcessor = getSSMLProcessor();
 
   return async (
@@ -321,10 +585,29 @@ export function createGatewayTTSNode(
     metrics.totalRequests++;
 
     // =========================================================================
-    // 1. COLLECT TEXT FROM STREAM
+    // STREAMING OVERLAP: Start TTS on first phrase (target -100–200ms E2E)
     // =========================================================================
-    // We need the full text to check cache and synthesize
-    // For streaming TTS, we'd need chunked synthesis (future enhancement)
+    if (enableStreamingOverlap) {
+      return createStreamingOverlapTTS({
+        textStream,
+        voiceId,
+        sessionId,
+        personaId,
+        emotion,
+        sampleRate,
+        frameDurationMs,
+        enableCache,
+        timeoutMs,
+        cache,
+        provider,
+        ssmlProcessor,
+        startTime,
+      });
+    }
+
+    // =========================================================================
+    // 1. COLLECT TEXT FROM STREAM (non-streaming path)
+    // =========================================================================
 
     let fullText = '';
     const reader = textStream.getReader();
@@ -336,7 +619,7 @@ export function createGatewayTTSNode(
         fullText += value;
       }
     } finally {
-      reader.releaseLock();
+      try { reader.releaseLock(); } catch { /* already released */ }
     }
 
     if (!fullText.trim()) {
@@ -375,16 +658,8 @@ export function createGatewayTTSNode(
     }
 
     // =========================================================================
-    // 2.5. FILTER JSON FUNCTION CALLS (FIX Jan 2026)
+    // 2.5. FILTER JSON FUNCTION CALLS
     // =========================================================================
-    // Prevent tool call leakage to TTS. When LLM outputs JSON function calls
-    // like `{"fn":"getNews","args":{}}` instead of speaking naturally,
-    // we MUST NOT send this to TTS or the user hears gibberish.
-    //
-    // This catches:
-    // - Complete JSON: `{"fn":"toolName","args":{}}`
-    // - Partial JSON (streaming): `{"fn":"
-    // - With backticks: `` `{"fn":"
 
     if (isJsonFunctionCall(cleanText)) {
       log.warn(
@@ -402,7 +677,7 @@ export function createGatewayTTSNode(
     }
 
     // =========================================================================
-    // 2.6. STRIP INSTRUCTION BLOCKS (FIX Jan 2026)
+    // 2.6. STRIP INSTRUCTION BLOCKS
     // =========================================================================
     // Final safety net: Strip instruction blocks like [TYPE: presence], [TONE: warm]
     // that Gemini sometimes echoes back from the prompt.
@@ -481,7 +756,10 @@ export function createGatewayTTSNode(
             reject(new Error(`TTS synthesis timed out after ${timeoutMs}ms`));
           }, timeoutMs);
         }),
-      ]);
+      ]).catch((err) => {
+        log.warn({ error: String(err), sessionId }, 'Speculative synthesis failed');
+        return new ArrayBuffer(0);
+      });
 
       log.debug(
         { text: truncateForLog(finalText, 30), sessionId },
@@ -490,10 +768,11 @@ export function createGatewayTTSNode(
     }
 
     if (enableCache && cache) {
+      const cacheCheckStart = Date.now();
       const cached = await cache.get(finalText, voiceId, prosody);
 
       if (cached) {
-        const hitLatency = Date.now() - startTime;
+        const hitLatency = Date.now() - cacheCheckStart;
         metrics.cacheHits++;
         cacheHitLatencies.push(hitLatency);
         if (cacheHitLatencies.length > 100) cacheHitLatencies.shift();
@@ -593,8 +872,9 @@ export function createGatewayTTSNode(
       // =========================================================================
 
       if (enableCache && cache) {
-        // Estimate duration from audio size (16-bit PCM at 24kHz)
-        const durationMs = Math.round((audio.byteLength / 2 / sampleRate) * 1000);
+        // Estimate duration from audio size (s16le = 2 bytes per sample)
+        const sampleCount = audio.byteLength / 2;
+        const durationMs = Math.round((sampleCount / sampleRate) * 1000);
 
         await cache.set(finalText, voiceId, audio, durationMs, prosody);
 

@@ -20,6 +20,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getAllFlagStatuses } from './performance/latency-feature-flags.js';
 
 const log = createLogger({ module: 'E2ELatency' });
 
@@ -47,6 +48,16 @@ export interface LatencyTimeline {
   llmTotal?: number; // llmComplete - llmRequestSent
   ttsLatency?: number; // ttsFirstAudio - llmComplete
   e2eTotal?: number; // audioStarted - userSpeechEnded
+
+  // Optimization metrics (WS1-WS4)
+  speculativeContextBuiltAt?: number; // When speculative context finished (WS1)
+  vadThresholdMs?: number; // VAD endpointing threshold used (WS2)
+  promptTokenCount?: number; // Token count sent to LLM (WS3)
+  promptCompressionRatio?: number; // Compression ratio achieved (WS3)
+  contextBuilderTimings?: Record<string, number>; // Per-builder duration in ms
+
+  // Active latency optimizations (WS1-WS4 flag names that were enabled for this turn)
+  activeOptimizations: string[];
 
   // Diagnostics
   context?: string;
@@ -93,11 +104,18 @@ const THRESHOLDS = {
 export function startTurn(sessionId: string, userTranscript?: string): string {
   const turnId = `turn-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
+  // Capture which latency optimizations are active for this turn
+  const flagStatuses = getAllFlagStatuses();
+  const activeOptimizations = Object.entries(flagStatuses)
+    .filter(([, s]) => s.enabled)
+    .map(([name]) => name);
+
   const timeline: LatencyTimeline = {
     turnId,
     sessionId,
     userTranscript: userTranscript?.slice(0, 100),
     userSpeechEnded: Date.now(),
+    activeOptimizations,
   };
 
   activeTimelines.set(turnId, timeline);
@@ -237,6 +255,68 @@ export function markAudioStarted(sessionIdOrTurnId: string): void {
   completeTurn(timeline);
 }
 
+// ============================================================================
+// OPTIMIZATION TRACKING (WS1-WS4)
+// ============================================================================
+
+/**
+ * Mark when speculative context building completes (WS1).
+ */
+export function markSpeculativeContextBuilt(sessionIdOrTurnId: string): void {
+  const timeline = getTimeline(sessionIdOrTurnId);
+  if (!timeline) return;
+
+  timeline.speculativeContextBuiltAt = Date.now();
+  log.debug({ turnId: timeline.turnId }, '📊 Speculative context built');
+}
+
+/**
+ * Record the VAD endpointing threshold used for this turn (WS2).
+ */
+export function recordVADThreshold(sessionIdOrTurnId: string, ms: number): void {
+  const timeline = getTimeline(sessionIdOrTurnId);
+  if (!timeline) return;
+
+  timeline.vadThresholdMs = ms;
+}
+
+/**
+ * Record prompt metrics after compression (WS3).
+ */
+export function recordPromptMetrics(
+  sessionIdOrTurnId: string,
+  metrics: { tokenCount: number; compressionRatio?: number }
+): void {
+  const timeline = getTimeline(sessionIdOrTurnId);
+  if (!timeline) return;
+
+  timeline.promptTokenCount = metrics.tokenCount;
+  if (metrics.compressionRatio !== undefined) {
+    timeline.promptCompressionRatio = metrics.compressionRatio;
+  }
+}
+
+/**
+ * Record how long an individual context builder took (WS1/WS5).
+ */
+export function recordContextBuilderTiming(
+  sessionIdOrTurnId: string,
+  builderName: string,
+  durationMs: number
+): void {
+  const timeline = getTimeline(sessionIdOrTurnId);
+  if (!timeline) return;
+
+  if (!timeline.contextBuilderTimings) {
+    timeline.contextBuilderTimings = {};
+  }
+  timeline.contextBuilderTimings[builderName] = durationMs;
+}
+
+// ============================================================================
+// ERROR HANDLING
+// ============================================================================
+
 /**
  * Force complete a turn (for timeout or error cases).
  */
@@ -263,8 +343,23 @@ export function getLatencyStats(): {
   slowOpenAIPercent: number;
   slowTTSPercent: number;
   recentTimelines: LatencyTimeline[];
+  optimizations: {
+    avgPromptTokens: number;
+    avgCompressionRatio: number;
+    avgVADThreshold: number;
+    speculativeContextHitRate: number;
+    contextBuilderAvgTimings: Record<string, number>;
+  };
 } {
   const recent = completedTimelines.slice(-20);
+
+  const emptyOptimizations = {
+    avgPromptTokens: 0,
+    avgCompressionRatio: 0,
+    avgVADThreshold: 0,
+    speculativeContextHitRate: 0,
+    contextBuilderAvgTimings: {} as Record<string, number>,
+  };
 
   if (recent.length === 0) {
     return {
@@ -275,6 +370,7 @@ export function getLatencyStats(): {
       slowOpenAIPercent: 0,
       slowTTSPercent: 0,
       recentTimelines: [],
+      optimizations: emptyOptimizations,
     };
   }
 
@@ -288,6 +384,27 @@ export function getLatencyStats(): {
   const slowOpenAI = recent.filter((t) => t.isOpenAISlow).length;
   const slowTTS = recent.filter((t) => t.isTTSSlow).length;
 
+  // Optimization metrics
+  const tokenCounts = recent.filter((t) => t.promptTokenCount).map((t) => t.promptTokenCount!);
+  const compressionRatios = recent.filter((t) => t.promptCompressionRatio).map((t) => t.promptCompressionRatio!);
+  const vadThresholds = recent.filter((t) => t.vadThresholdMs).map((t) => t.vadThresholdMs!);
+  const speculativeHits = recent.filter((t) => t.speculativeContextBuiltAt).length;
+
+  // Aggregate context builder timings across turns
+  const builderTotals: Record<string, { sum: number; count: number }> = {};
+  for (const t of recent) {
+    if (!t.contextBuilderTimings) continue;
+    for (const [name, duration] of Object.entries(t.contextBuilderTimings)) {
+      if (!builderTotals[name]) builderTotals[name] = { sum: 0, count: 0 };
+      builderTotals[name].sum += duration;
+      builderTotals[name].count += 1;
+    }
+  }
+  const contextBuilderAvgTimings: Record<string, number> = {};
+  for (const [name, { sum, count }] of Object.entries(builderTotals)) {
+    contextBuilderAvgTimings[name] = Math.round(sum / count);
+  }
+
   return {
     avgE2E: Math.round(avg(e2es)),
     avgLLMTTFB: Math.round(avg(ttfbs)),
@@ -296,7 +413,23 @@ export function getLatencyStats(): {
     slowOpenAIPercent: Math.round((slowOpenAI / recent.length) * 100),
     slowTTSPercent: Math.round((slowTTS / recent.length) * 100),
     recentTimelines: recent.slice(-5),
+    optimizations: {
+      avgPromptTokens: Math.round(avg(tokenCounts)),
+      avgCompressionRatio: Number(avg(compressionRatios).toFixed(3)),
+      avgVADThreshold: Math.round(avg(vadThresholds)),
+      speculativeContextHitRate: recent.length > 0
+        ? Math.round((speculativeHits / recent.length) * 100)
+        : 0,
+      contextBuilderAvgTimings,
+    },
   };
+}
+
+/**
+ * Get all completed timelines (for detailed dashboard analysis).
+ */
+export function getCompletedTimelines(): readonly LatencyTimeline[] {
+  return completedTimelines;
 }
 
 /**
@@ -385,6 +518,10 @@ export default {
   markLLMComplete,
   markTTSFirstAudio,
   markAudioStarted,
+  markSpeculativeContextBuilt,
+  recordVADThreshold,
+  recordPromptMetrics,
+  recordContextBuilderTiming,
   completeTurnWithError,
   getLatencyStats,
   getCurrentTimeline,

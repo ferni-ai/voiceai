@@ -26,7 +26,8 @@ type NodeReadableStream<T> = ReadableStream<T>;
 type NodeTransformStream<I, O> = TransformStream<I, O>;
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getTTSWithSpeculation } from '../../../services/performance/speculative-tts.js';
+import { getTTSWithSpeculation, warmupTTSVoice, speculateTTS } from '../../../services/performance/speculative-tts.js';
+import { isOptimizationEnabled } from './latency-feature-flags.js';
 // ⚡ Import conversational audio cache for instant handoff/banter phrases
 import { getCachedAudio as getConversationalCachedAudio } from '../conversational-audio-cache.js';
 // ⚡ Import greeting audio cache for instant first greeting
@@ -925,6 +926,83 @@ export function createCacheAwareTTSNode(
 }
 
 // ============================================================================
+// SESSION CACHE WARMING (WS4)
+// ============================================================================
+
+/** Common acknowledgment phrases to pre-warm (persona-independent) */
+const COMMON_ACKNOWLEDGMENTS = [
+  'mm-hmm',
+  'I see',
+  'go on',
+  'right',
+  'I hear you',
+  'that makes sense',
+];
+
+/** Filler phrases for natural pauses */
+const FILLER_PHRASES = [
+  'let me think about that',
+  "that's a great question",
+  'hmm, interesting',
+];
+
+/** Persona-specific greeting variants (first 2-3 words trigger cache hits) */
+const PERSONA_GREETINGS: Record<string, string[]> = {
+  ferni: ['Hey there!', "Hi! What's on your mind?", 'Good to see you!'],
+  maya: ['Hey, how are you feeling?', "Let's check in.", 'Welcome back!'],
+  peter: ['Hey! What are we looking at?', "Let's dive in.", 'Good to see you!'],
+  jordan: ["Hey! What's the plan?", "Let's get organized.", 'Welcome back!'],
+  alex: ['Hey! Who are we connecting with?', "Let's talk.", 'Good to see you!'],
+  nayan: ['Hey, how are you?', "Let's reflect.", 'Welcome.'],
+};
+
+/**
+ * Pre-warm the TTS cache with common phrases for a session.
+ *
+ * This is designed to be called fire-and-forget at session init.
+ * It warms acknowledgments, filler phrases, and persona greetings
+ * so the first few responses can skip TTS generation entirely.
+ *
+ * Guarded by the CACHE_WARMING feature flag.
+ */
+export async function warmSessionCache(
+  personaId: string,
+  emotionalState?: string
+): Promise<void> {
+  if (!isOptimizationEnabled('CACHE_WARMING')) {
+    return;
+  }
+
+  const startTime = Date.now();
+
+  // 1. Warm voice with emotion variants (uses existing speculative TTS engine)
+  const emotions = emotionalState
+    ? [emotionalState, 'neutral', 'warm']
+    : ['neutral', 'warm', 'supportive'];
+  await warmupTTSVoice(personaId, emotions).catch((err: unknown) =>
+    log.debug({ error: String(err), personaId }, 'Voice warmup failed (non-critical)')
+  );
+
+  // 2. Speculate common acknowledgments and fillers
+  const phrases = [...COMMON_ACKNOWLEDGMENTS, ...FILLER_PHRASES];
+  const greetings = PERSONA_GREETINGS[personaId] || PERSONA_GREETINGS['ferni'] || [];
+  phrases.push(...greetings);
+
+  await speculateTTS('cache-warm', personaId, {
+    emotion: emotionalState || 'warm',
+    intent: 'greeting',
+  }).catch((err: unknown) =>
+    log.debug({ error: String(err), personaId }, 'Speculative warmup failed (non-critical)')
+  );
+
+  const elapsed = Date.now() - startTime;
+  log.info(
+    { personaId, emotionalState, phrases: phrases.length, elapsedMs: elapsed },
+    'Session TTS cache warmed'
+  );
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -934,4 +1012,5 @@ export default {
   createCacheAwareTTSNode,
   getCacheAwareTTSMetrics,
   resetCacheAwareTTSMetrics,
+  warmSessionCache,
 };

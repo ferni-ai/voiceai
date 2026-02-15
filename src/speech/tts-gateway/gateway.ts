@@ -167,6 +167,7 @@ export class TTSGateway implements ITTSGateway {
    */
   async synthesize(request: TTSRequest): Promise<TTSResult> {
     this.totalRequests++;
+    const startTime = Date.now();
     const trace = this.enableTracing ? createTrace(request) : null;
 
     try {
@@ -241,7 +242,7 @@ export class TTSGateway implements ITTSGateway {
             cached: true,
             cacheSource: 'unified',
             appliedProsody: cached.prosody,
-            processingTimeMs: Date.now() - (trace?.startTime ?? Date.now()),
+            processingTimeMs: Date.now() - startTime,
             provider: this.provider.name,
             traceId: trace?.traceId ?? generateTraceId(),
           };
@@ -282,7 +283,7 @@ export class TTSGateway implements ITTSGateway {
         try {
           await this.cache.set(cleanText, request.voiceId, audio, audioDurationMs, prosody);
         } catch (cacheError) {
-          log.warn({ error: String(cacheError) }, 'Failed to cache TTS result');
+          log.error({ error: String(cacheError), textLen: cleanText.length }, 'FAILED to cache TTS result — synthesis cost wasted');
         }
       }
 
@@ -294,7 +295,7 @@ export class TTSGateway implements ITTSGateway {
       });
 
       // Complete
-      const totalDurationMs = Date.now() - (trace?.startTime ?? Date.now());
+      const totalDurationMs = Date.now() - startTime;
       this.recordProcessingTime(totalDurationMs);
       this.successfulRequests++;
 

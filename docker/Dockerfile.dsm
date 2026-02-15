@@ -1,0 +1,46 @@
+# ============================================================================
+# Kyutai moshi-server (STT + TTS workers) for GCE sidecars
+# ============================================================================
+# Builds the moshi-server binary from crates.io with CUDA support.
+# Use with docker-compose.dsm.yml: same image, different config for STT and TTS.
+#
+# Build (from repo root):
+#   docker build -f docker/Dockerfile.dsm -t moshi-server:dsm .
+#
+# Or build from Kyutai repo for latest:
+#   git clone https://github.com/kyutai-labs/delayed-streams-modeling.git
+#   cd delayed-streams-modeling && docker build -f path/to/Dockerfile.dsm -t moshi-server:dsm .
+# ============================================================================
+
+# Build stage: Rust + CUDA for compiling moshi-server
+FROM nvidia/cuda:12.1.0-devel-ubuntu24.04 AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV RUSTUP_INIT_SKIP_PATH_CHECK=yes
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Install moshi-server with CUDA support (from crates.io)
+RUN cargo install moshi-server --features cuda --root /usr/local
+
+# Runtime stage: only CUDA runtime + binary
+FROM nvidia/cuda:12.1.0-runtime-ubuntu24.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /usr/local/bin/moshi-server /usr/local/bin/moshi-server
+
+# Default: run as worker (override in compose with config path)
+WORKDIR /config
+EXPOSE 8089 8090
+
+CMD ["moshi-server", "worker", "--config", "/config/kyutai-stt.toml"]

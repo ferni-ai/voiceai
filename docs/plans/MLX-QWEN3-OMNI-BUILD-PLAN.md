@@ -216,8 +216,7 @@ required-features = ["server"]
 
 | Resource | Location |
 |----------|----------|
-| Python MLX (reference for shapes/logic) | `apps/mlx-qwen3-omni/src/mlx_qwen3_omni/` |
-| Python MLX audit | `apps/mlx-qwen3-omni/AUDIT_REPORT.md` |
+| Rust MLX server | `apps/rust-mlx-omni/` (no Python) |
 | Candle implementation (reference for Rust patterns) | `apps/rust-perf/src/candle_*.rs` |
 | `mlx-rs` crate | [github.com/oxideai/mlx-rs](https://github.com/oxideai/mlx-rs) |
 | `mlx-rs` nn modules | `nn::Linear`, `Conv1d`, `Conv2d`, `ConvTranspose1d`, `Embedding`, `RmsNorm`, `LayerNorm` |

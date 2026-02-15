@@ -73,6 +73,13 @@ export { hasNativeFunctionCalling, needsJsonWorkaround } from './types.js';
 export { OpenAIRealtimeProvider } from './openai-realtime.js';
 export { GeminiLiveProvider } from './gemini-live.js';
 export { Qwen3OmniProvider } from './qwen3-omni.js';
+export { LocalPipelineProvider, OllamaLLMAdapter } from './local-pipeline.js';
+export {
+  OmniPipelineProvider,
+  OmniPipelineLLMAdapter,
+  isOmniPipelineEnabled,
+  getOmniPipelineUrl,
+} from './omni-pipeline.js';
 
 // ============================================================================
 // FACTORY EXPORTS
@@ -84,6 +91,9 @@ export {
   isUsingOpenAI,
   isUsingGemini,
   isUsingQwen3Omni,
+  isUsingQwen3TTS,
+  isUsingLocalPipeline,
+  isUsingOmniPipeline,
   isQwen3OmniCandleBackend,
   setModelProvider,
   clearModelProvider,

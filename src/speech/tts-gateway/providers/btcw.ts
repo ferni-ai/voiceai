@@ -1,4 +1,6 @@
 /**
+ * @deprecated BTCW provider — not actively maintained. Set USE_BTCW_TTS=true to enable.
+ *
  * BTCW (Better Than Cartesia Work) TTS Provider
  *
  * Superhuman TTS with 12+ capabilities that no other system offers:

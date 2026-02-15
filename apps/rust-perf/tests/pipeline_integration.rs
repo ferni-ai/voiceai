@@ -216,6 +216,7 @@ fn test_pipeline_timings_struct() {
         talker_ms: 4.0,
         code2wav_ms: 5.0,
         total_ms: 15.0,
+        ttfb_ms: None,
     };
     assert_eq!(timings.total_ms, 15.0);
     // Verify Clone works

@@ -1,89 +1,110 @@
-# Live Voice Test: MLX Qwen3-Omni + Ferni
+# Live Voice Test: Qwen3-Omni (Rust/MLX) E2E + Ferni
 
-Run a live voice test with the MLX Qwen3-Omni server and Ferni voice agent on your Mac.
+Run **full** speech-in → speech-out E2E with the Rust Qwen3-Omni server and Ferni. No Python.
 
-## Prerequisites
+---
 
-- **Mac with Apple Silicon** (M1/M2/M3/M4)
-- **Python 3.10+** with MLX app deps:
-  ```bash
-  cd apps/mlx-qwen3-omni && pip install mlx transformers fastapi uvicorn scipy sse-starlette python-multipart
-  ```
-- **Node/pnpm** for Ferni (token server, UI server, Vite, voice agent)
-- **Optional:** Full converted Qwen3-Omni checkpoint (Thinker + Talker + Code2Wav) for real TTS; otherwise use minimal test model for chat-only
+## Full E2E with Candle (recommended)
 
-## Quick start (minimal model — chat only)
+For **real quality** with the **full** Qwen3-Omni-30B-A3B model (~70 GB), use the **Candle** server and the HuggingFace download. No MLX conversion needed.
 
-Use a tiny Thinker-only model so the MLX server starts without a full checkpoint. Chat works; TTS will return 501 until you add a full model.
+1. **Download:** `./scripts/qwen3-omni/download-model.sh` (one-time)
+2. **Start Candle server:** `OMNI_MODEL_PATH=./models/Qwen3-Omni-30B-A3B-Instruct cargo run --bin qwen3-omni-server --features server --no-default-features -p rust-perf -- --model-path ./models/Qwen3-Omni-30B-A3B-Instruct` (port **8000**)
+3. **Start Ferni:** `USE_QWEN3_OMNI=true QWEN3_OMNI_URL=http://localhost:8000 QWEN3_TTS_URL=http://localhost:8000 pnpm dev` (voice agent terminal)
 
-### 1. Create minimal test model (one-time)
+**Full runbook:** [FULL-E2E-QWEN3-OMNI.md](./FULL-E2E-QWEN3-OMNI.md)
+
+---
+
+## What “minimal” was (avoid it for real use)
+
+**“.test-model” / “minimal”** = a **test-only** tiny checkpoint (64-dim, 2 layers) so the server can start without a real model. Quality is poor; use it only for smoke tests (e.g. “does the server start?”). **For real E2E you want a full Qwen3-Omni checkpoint.**
+
+---
+
+## Full E2E (recommended): use a full checkpoint
+
+For **good quality** speech-in and speech-out, use a **full** Qwen3-Omni checkpoint in MLX format.
+
+### 1. Get a full model
+
+You need a model directory that has:
+
+- **Weights:** `model.safetensors` (or sharded `model-00001-of-0000N.safetensors` + `model.safetensors.index.json` when sharded loading is supported)
+- **Config:** `config.json` or `thinker_config.json` (Rust accepts both shapes)
+- **Tokenizer:** `tokenizer.json` in the model dir, or set `QWEN3_OMNI_TOKENIZER_PATH` to a path that contains it
+
+**Ways to get a full checkpoint:**
+
+- **Pre-converted MLX:** If you have a Qwen3-Omni checkpoint already converted to MLX (single `model.safetensors` + config + tokenizer), point the server at that dir. The server currently supports a **single** `model.safetensors` file; sharded loading (e.g. `model-00001-of-00003.safetensors` + index) is planned.
+- **Convert from HuggingFace:** Official Qwen3-Omni is [Qwen/Qwen3-Omni-30B-A3B-Instruct](https://huggingface.co/Qwen/Qwen3-Omni-30B-A3B-Instruct) (Transformers/vLLM format). Converting that to our MLX format (Thinker + Talker + Code2Wav + audio encoder, key mapping, MoE stacking) requires a conversion step; see `docs/plans/MLX-QWEN3-OMNI-BUILD-PLAN.md` and `MLX-QWEN3-OMNI-FEASIBILITY.md` for options.
+- **Candle / other Rust:** The same config/weight layout expected by the Rust MLX server can be produced by other tooling; use that dir as the model path.
+
+### 2. Tokenizer (if not in model dir)
+
+Either put `tokenizer.json` inside the model dir, or:
 
 ```bash
-cd apps/mlx-qwen3-omni
-PYTHONPATH=src python scripts/create_minimal_test_model.py
-# Writes to .test-model/
+export QWEN3_OMNI_TOKENIZER_PATH=/path/to/dir/containing/tokenizer.json
 ```
 
-### 2. Start the MLX server
+You can download the Qwen tokenizer from HuggingFace (e.g. Qwen2.5 or Qwen3-Omni repo) and point this at that directory.
+
+### 3. Start the Rust MLX server
 
 ```bash
-cd apps/mlx-qwen3-omni
-PYTHONPATH=src python -m mlx_qwen3_omni.server \
-  --model .test-model \
-  --tokenizer Qwen/Qwen2.5-0.5B-Instruct \
-  --port 8800
+cd apps/rust-mlx-omni
+cargo run --bin mlx-omni-server --features server -- --model /path/to/full/model/dir --port 8800
 ```
 
-Leave this running. You should see `Model loaded`, then `Starting server on 127.0.0.1:8800`.
+Leave this running. You should see “Model loaded” and “MLX Omni server listening on http://0.0.0.0:8800”.
 
-### 3. Start Ferni dev stack (4 terminals)
+### 4. Start Ferni (4 terminals)
 
 In **separate** terminals:
 
-| Terminal | Command | Purpose |
-|----------|---------|---------|
-| 1 | `pnpm token-server` | Token server (3001) |
-| 2 | `pnpm ui-server` | UI server (3002) |
-| 3 | `cd apps/web && pnpm dev` | Vite frontend (3004) |
-| 4 | `USE_QWEN3_OMNI=true QWEN3_OMNI_URL=http://localhost:8800 QWEN3_TTS_URL=http://localhost:8800 QWEN3_OMNI_BACKEND=mlx LOG_FULL_RESPONSES=true pnpm dev` | Voice agent (Qwen3-Omni via MLX) |
+| Terminal | Command |
+|----------|---------|
+| 1 | `pnpm token-server` |
+| 2 | `pnpm ui-server` |
+| 3 | `cd apps/web && pnpm dev` |
+| 4 | `USE_QWEN3_OMNI=true QWEN3_OMNI_URL=http://localhost:8800 QWEN3_TTS_URL=http://localhost:8800 QWEN3_OMNI_BACKEND=mlx LOG_FULL_RESPONSES=true pnpm dev` |
 
-### 4. Verify and call
+### 5. Verify and call
 
-1. **Health:** `curl -s http://localhost:8800/health` → `{"status":"ok","model_loaded":true,...}`
-2. **Chat:** Open the app at http://localhost:3004, start a voice room, and talk. With the minimal model you get **text chat** from the Thinker; TTS may fall back to Cartesia or show an error if the stack expects Qwen TTS (501).
+1. **Health:** `curl -s http://localhost:8800/health` → `{"status":"ok", "backend":"mlx-rs", ...}`
+2. **TTS:** `curl -s -X POST http://localhost:8800/v1/audio/speech -H "Content-Type: application/json" -d '{"input":"Hello"}' -o out.wav && file out.wav` → WAV
+3. **App:** Open http://localhost:3004, start a voice room, and talk. You get full E2E: speech-in → Thinker → Talker → Code2Wav → 24 kHz audio.
 
-## Full voice test (Thinker + Talker + Code2Wav)
+---
 
-For real **speech-in → speech-out** you need a full MLX checkpoint that includes Thinker, Talker, and Code2Wav (and optionally the audio encoder for transcription).
+## Optional: test-only “minimal” model
 
-1. **Convert a full checkpoint** (HuggingFace Qwen3-Omni or similar) so that `model.safetensors` contains:
-   - Thinker: `model.*`, `lm_head.*`
-   - Optional: `audio_encoder.*` for `/v1/audio/transcriptions`
-   - Talker: `talker.*`
-   - Code2Wav: `code2wav.*`
+Only if you want to **smoke-test** the server without a full download:
 
-2. **Start the MLX server** with that model dir (no need for `--tokenizer` if the dir has tokenizer files):
+- **Location:** `apps/rust-mlx-omni/.test-model` (tiny 64-dim, 2-layer checkpoint; quality is bad).
+- **Tokenizer:** Add `tokenizer.json` into `.test-model` or set `QWEN3_OMNI_TOKENIZER_PATH`.
+- **Run:** `cargo run --bin mlx-omni-server --features server -- --model .test-model --port 8800`
 
-   ```bash
-   cd apps/mlx-qwen3-omni
-   PYTHONPATH=src python -m mlx_qwen3_omni.server --model /path/to/full_mlx_model --port 8800
-   ```
+Use this to confirm the server and Ferni wiring; for “working perfectly E2E” use a **full** checkpoint as above.
 
-3. **Start Ferni** with the same env as above. Then place a call; you should get Thinker text → Talker → Code2Wav → 24 kHz audio.
+---
 
 ## Environment reference
 
-| Variable | Value for MLX live test |
-|----------|-------------------------|
+| Variable | Value for MLX E2E |
+|----------|-------------------|
 | `USE_QWEN3_OMNI` | `true` |
 | `QWEN3_OMNI_URL` | `http://localhost:8800` |
-| `QWEN3_TTS_URL` | `http://localhost:8800` (same server; MLX serves `/v1/audio/speech`) |
+| `QWEN3_TTS_URL` | `http://localhost:8800` (same server) |
 | `QWEN3_OMNI_BACKEND` | `mlx` |
+| `QWEN3_OMNI_TOKENIZER_PATH` | Optional; dir or path to `tokenizer.json` if not in model dir |
 | `LOG_FULL_RESPONSES` | `true` (optional, for debugging) |
+
+---
 
 ## Troubleshooting
 
-- **503 Model not loaded:** MLX server not ready or wrong `--model` path. Check `curl http://localhost:8800/health`.
-- **501 Talker/Code2Wav not in checkpoint:** Using minimal test model; use a full converted model for TTS.
-- **Connection refused to localhost:8800:** Start the MLX server first and ensure nothing else is using port 8800.
-- **Tokenizer errors:** Pass `--tokenizer Qwen/Qwen2.5-0.5B-Instruct` (or another Qwen HF repo) when your model dir has no tokenizer files.
+- **Failed to load tokenizer:** Add `tokenizer.json` to the model dir or set `QWEN3_OMNI_TOKENIZER_PATH`.
+- **503 / connection refused:** Start the Rust MLX server first; ensure port 8800 is free.
+- **Poor or broken audio:** You are likely using the test-only `.test-model`. Use a **full** Qwen3-Omni checkpoint for real E2E quality.

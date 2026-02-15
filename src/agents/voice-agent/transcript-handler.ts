@@ -619,6 +619,32 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
             // Prefetch is non-critical
           });
       }
+
+      // ===============================================
+      // 🧠 WS1: SPECULATIVE CONTEXT PRE-COMPUTATION
+      // Pre-compute expensive context builders while user speaks.
+      // Results are cached and validated against the final transcript.
+      // Saves ~100-150ms when final transcript is similar to interim.
+      // ===============================================
+      if (event.transcript.split(/\s+/).length >= 5 && userId) {
+        const speculativeUserId = userId;
+        import('../shared/performance/speculative-context-builder.js')
+          .then(({ getSpeculativeContextBuilder }) => {
+            void getSpeculativeContextBuilder()
+              .buildSpeculative(sessionId, event.transcript, {
+                userId: speculativeUserId,
+                sessionId,
+                personaId: sessionPersona.id,
+                services: services as unknown as Record<string, unknown>,
+              })
+              .catch(() => {
+                // Speculative build is non-critical
+              });
+          })
+          .catch(() => {
+            // Import failure is non-critical
+          });
+      }
     }
 
     // ===============================================
@@ -1269,6 +1295,33 @@ async function processFinalTranscript(
     autoOptimizer,
     agent,
   } = ctx;
+
+  // ===============================================
+  // 🧠 WS1: VALIDATE SPECULATIVE CONTEXT
+  // Check if pre-computed context from partial transcript is still valid.
+  // If valid, store on userData for processTurn to use (skip expensive builders).
+  // ===============================================
+  if (userId) {
+    try {
+      const { getSpeculativeContextBuilder } = await import(
+        '../shared/performance/speculative-context-builder.js'
+      );
+      const speculativeResult = getSpeculativeContextBuilder().validateAndMerge(
+        sessionId,
+        event.transcript
+      );
+      if (speculativeResult.valid && speculativeResult.injections) {
+        (userData as Record<string, unknown>).speculativeInjections =
+          speculativeResult.injections;
+        diag.debug('⚡ WS1: Speculative context validated', {
+          injectionCount: speculativeResult.injections.length,
+          sessionId,
+        });
+      }
+    } catch {
+      // Speculative validation is non-critical
+    }
+  }
 
   // ===============================================
   // 🧠 FTIS ROUTING: Run BEFORE SDK auto-response takes over (Jan 2026 FIX)

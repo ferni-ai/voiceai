@@ -11,9 +11,13 @@
  */
 
 /**
- * Supported model provider identifiers (must stay in sync with agents/model-provider/types.js)
+ * Supported model provider identifiers (must stay in sync with agents/model-provider/types.ts)
  */
-export type ModelProviderIdSync = 'openai-realtime' | 'gemini-live' | 'qwen3-omni';
+export type ModelProviderIdSync =
+  | 'openai-realtime'
+  | 'gemini-live'
+  | 'qwen3-omni'
+  | 'qwen3-thinker-local';
 
 /**
  * Get the active provider ID from environment only (no singleton, no agent code).
@@ -21,6 +25,7 @@ export type ModelProviderIdSync = 'openai-realtime' | 'gemini-live' | 'qwen3-omn
  * Use from domain layers when you only need to know which provider is configured.
  */
 export function getProviderIdSync(): ModelProviderIdSync {
+  if (process.env.USE_QWEN3_THINKER_LOCAL === 'true') return 'qwen3-thinker-local';
   if (process.env.USE_QWEN3_OMNI === 'true') return 'qwen3-omni';
   return process.env.USE_OPENAI_REALTIME === 'true' ? 'openai-realtime' : 'gemini-live';
 }
@@ -40,8 +45,25 @@ export function isUsingGemini(): boolean {
 }
 
 /**
- * Check if Qwen3-Omni is configured (env only).
+ * Check if any Qwen3-Omni variant is configured (env only).
+ * Includes both full Qwen3-Omni and thinker-local.
  */
 export function isUsingQwen3Omni(): boolean {
+  const id = getProviderIdSync();
+  return id === 'qwen3-omni' || id === 'qwen3-thinker-local';
+}
+
+/**
+ * Check if Qwen3-TTS should be used (only full Qwen3-Omni, not thinker-local).
+ * thinker-local uses Cartesia TTS; full Qwen3-Omni uses Qwen3-TTS.
+ */
+export function isUsingQwen3TTS(): boolean {
   return getProviderIdSync() === 'qwen3-omni';
 }
+
+/**
+ * Higgs Pipeline Configuration
+ *
+ * HIGGS_PIPELINE_URL — WebSocket URL for the Rust Higgs pipeline server (STT + TTS + biomarkers)
+ */
+export const HIGGS_PIPELINE_URL = process.env.HIGGS_PIPELINE_URL || 'ws://localhost:8600/ws';

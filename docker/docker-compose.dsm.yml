@@ -1,0 +1,69 @@
+# ============================================================================
+# Kyutai DSM sidecars: STT + TTS (moshi-server workers)
+# ============================================================================
+# Run alongside the Ferni voice agent on GCE or locally. The agent connects to
+# STT at ws://localhost:8089/api/asr-streaming and TTS at ws://localhost:8090/api/tts_streaming.
+#
+# Build image (from repo root):
+#   docker build -f docker/Dockerfile.dsm -t moshi-server:dsm .
+#
+# Run sidecars only:
+#   docker compose -f docker/docker-compose.dsm.yml up -d
+#
+# Run with Ferni agent (agent must be started separately with USE_KYUTAI_STT=true, etc.):
+#   docker compose -f docker/docker-compose.dsm.yml up -d
+#   USE_KYUTAI_STT=true KYUTAI_STT_URL=ws://localhost:8089/api/asr-streaming \
+#   TTS_PROVIDER=kyutai KYUTAI_TTS_URL=ws://localhost:8090/api/tts_streaming pnpm dev
+# ============================================================================
+
+version: '3.8'
+
+services:
+  kyutai-stt:
+    image: moshi-server:dsm
+    build:
+      context: .
+      dockerfile: Dockerfile.dsm
+    ports:
+      - "8089:8089"
+    volumes:
+      - ../configs:/config:ro
+    command: ["moshi-server", "worker", "--config", "/config/kyutai-stt.toml"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      # moshi-server may not expose /health; adjust if needed
+      test: ["CMD-SHELL", "true"]
+
+  kyutai-tts:
+    image: moshi-server:dsm
+    build:
+      context: .
+      dockerfile: Dockerfile.dsm
+    ports:
+      - "8090:8090"
+    volumes:
+      - ../configs:/config:ro
+    command: ["moshi-server", "worker", "--config", "/config/kyutai-tts.toml"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+      test: ["CMD-SHELL", "true"]

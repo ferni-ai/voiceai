@@ -102,6 +102,11 @@ const CONFIG = {
     containerDir: '/app/models/ferni-router-v6-860',
     requiredFiles: ['model_int8.onnx', 'tokenizer.json', 'label_map.json'],
   },
+
+  // GPU (Kyutai DSM STT/TTS sidecars). Set GCE_USE_GPU=true for GPU instance.
+  useGpu: process.env.GCE_USE_GPU === 'true',
+  gpuMachineType: process.env.GCE_GPU_MACHINE_TYPE || 'g2-standard-4',
+  gpuAcceleratorType: process.env.GCE_GPU_ACCELERATOR_TYPE || 'nvidia-l4',
 };
 
 // ============================================================================
@@ -763,10 +768,16 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
   const envVarsString = envVarsArray.join(',');
 
   // Step 1: Create new instance template with the new image
-  log.substep(`Creating new instance template: ${templateName}`);
+  const machineType = CONFIG.useGpu ? CONFIG.gpuMachineType : 'e2-standard-4';
+  const acceleratorArg = CONFIG.useGpu
+    ? `--accelerator=count=1,type=${CONFIG.gpuAcceleratorType} `
+    : '';
+
+  log.substep(`Creating new instance template: ${templateName} (machine: ${machineType})`);
   exec(
     `gcloud compute instance-templates create-with-container ${templateName} \
-    --machine-type=e2-standard-4 \
+    --machine-type=${machineType} \
+    ${acceleratorArg}\
     --container-image=${image} \
     --container-restart-policy=always \
     --container-env="${envVarsString}" \

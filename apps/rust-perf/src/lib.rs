@@ -38,8 +38,14 @@ mod candle_audio_encoder;
 mod candle_talker;
 // Qwen3-Omni Code2Wav (codec -> waveform)
 mod candle_code2wav;
-// Full Qwen3-Omni audio-to-audio pipeline
-mod full_omni_pipeline;
+// Full Qwen3-Omni audio-to-audio pipeline (used by qwen3-omni-server binary)
+pub mod full_omni_pipeline;
+// LFM2-Audio Candle port (sub-100ms STS): FastConformer + LFM2 backbone + RQ-Transformer; Mimi reuse
+pub mod lfm2;
+// Voice biomarker extraction (pitch, jitter, shimmer, breathiness, speech rate)
+pub mod voice_biomarkers;
+// Post-TTS audio humanization DSP pipeline (breath injection, prosody, emotion coloring, fillers, texture, pacing)
+pub mod humanization;
 
 // Re-export ONNX router for FTIS V3 (CPU fallback)
 #[cfg(feature = "napi")]
@@ -63,6 +69,8 @@ pub use candle_talker::*;
 pub use candle_code2wav::*;
 // Re-export full Omni pipeline for rust-omni
 pub use full_omni_pipeline::*;
+// Re-export LFM2-Audio port types (stubs until FastConformer/LFM2/RQ-Transformer are implemented)
+pub use lfm2::*;
 
 // NAPI bindings (cosine_similarity, get_library_info, OnnxRouter, CandleRouter, etc.)
 // Only compiled when feature "napi" is enabled so cargo test --no-default-features can run.

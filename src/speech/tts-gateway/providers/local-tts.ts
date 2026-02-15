@@ -34,7 +34,7 @@ const log = createLogger({ module: 'LocalTTSProvider' });
 
 const DEFAULT_URL = 'http://127.0.0.1:8501';
 const DEFAULT_SAMPLE_RATE = 24000;
-const SYNTHESIZE_TIMEOUT_MS = 15_000;
+const SYNTHESIZE_TIMEOUT_MS = Number(process.env.LOCAL_TTS_TIMEOUT_MS) || 60_000;
 const AVAILABILITY_TIMEOUT_MS = 2000;
 const WORDS_PER_MINUTE = 150;
 const CHARS_PER_WORD = 5;
@@ -143,7 +143,7 @@ export class LocalTTSProvider implements ITTSProvider {
 
     const resolvedVoice = this.resolveVoiceId(voiceId);
     const { url, body } = this.apiFormat === 'openai'
-      ? this.buildOpenAIRequest(text.trim(), resolvedVoice)
+      ? this.buildOpenAIRequest(text.trim(), resolvedVoice, prosody)
       : this.buildCustomRequest(text.trim(), resolvedVoice, prosody);
 
     const controller = new AbortController();
@@ -178,6 +178,16 @@ export class LocalTTSProvider implements ITTSProvider {
 
       const latencyMs = Date.now() - startMs;
 
+      // Parse voice dimension headers from Rust server
+      const appliedStyle = response.headers.get('X-Prosody-Style');
+      const appliedRegister = response.headers.get('X-Prosody-Register');
+      if (appliedStyle || appliedRegister) {
+        log.debug(
+          { appliedStyle, appliedRegister },
+          'Rust TTS applied voice dimensions'
+        );
+      }
+
       log.debug(
         {
           latencyMs,
@@ -185,6 +195,10 @@ export class LocalTTSProvider implements ITTSProvider {
           voice: resolvedVoice,
           textLen: text.length,
           apiFormat: this.apiFormat,
+          ...(prosody?.style ? { style: prosody.style } : {}),
+          ...(prosody?.register ? { register: prosody.register } : {}),
+          ...(prosody?.physiologicalState ? { physiologicalState: prosody.physiologicalState } : {}),
+          ...(prosody?.paralinguistic ? { paralinguistic: prosody.paralinguistic } : {}),
         },
         `Local TTS synthesized in ${latencyMs}ms`
       );
@@ -236,6 +250,7 @@ export class LocalTTSProvider implements ITTSProvider {
     const controller = new AbortController();
     // Double the timeout for streaming (audio arrives over time)
     const timer = setTimeout(() => controller.abort(), this.timeoutMs * 2);
+    let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
 
     try {
       const startMs = Date.now();
@@ -247,6 +262,13 @@ export class LocalTTSProvider implements ITTSProvider {
           input: text,
           voice: resolvedVoice,
           model: 'tts-1',
+          ...(prosody?.emotion ? { emotion: prosody.emotion } : {}),
+          ...(prosody?.speed ? { speed: prosody.speed } : {}),
+          ...(prosody?.volume ? { volume: prosody.volume } : {}),
+          ...(prosody?.style ? { style: prosody.style } : {}),
+          ...(prosody?.register ? { register: prosody.register } : {}),
+          ...(prosody?.physiologicalState ? { physiological_state: prosody.physiologicalState } : {}),
+          ...(prosody?.paralinguistic ? { paralinguistic: prosody.paralinguistic } : {}),
         }),
         signal: controller.signal,
       });
@@ -264,30 +286,28 @@ export class LocalTTSProvider implements ITTSProvider {
 
       let firstChunk = true;
       let totalBytes = 0;
-      const reader = response.body.getReader();
+      reader = response.body.getReader();
 
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-          if (value && value.byteLength > 0) {
-            if (firstChunk) {
-              const ttfaMs = Date.now() - startMs;
-              log.info(
-                { ttfaMs, chunkBytes: value.byteLength, voice: resolvedVoice },
-                `Local TTS stream TTFA: ${ttfaMs}ms`
-              );
-              firstChunk = false;
-            }
-
-            totalBytes += value.byteLength;
-            // Server sends s16le PCM directly — no conversion needed
-            yield value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
+        if (value && value.byteLength > 0) {
+          if (firstChunk) {
+            const ttfaMs = Date.now() - startMs;
+            log.info(
+              { ttfaMs, chunkBytes: value.byteLength, voice: resolvedVoice },
+              `Local TTS stream TTFA: ${ttfaMs}ms`
+            );
+            firstChunk = false;
           }
+
+          totalBytes += value.byteLength;
+          // Server sends s16le PCM directly — copy to a clean ArrayBuffer
+          const chunk = new ArrayBuffer(value.byteLength);
+          new Uint8Array(chunk).set(value);
+          yield chunk;
         }
-      } finally {
-        reader.releaseLock();
       }
 
       const totalMs = Date.now() - startMs;
@@ -302,6 +322,114 @@ export class LocalTTSProvider implements ITTSProvider {
         log.warn({ error: String(error), url }, 'Local TTS stream error');
       }
     } finally {
+      if (reader) {
+        try { reader.releaseLock(); } catch { /* already released */ }
+      }
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Stream audio from a complete text string — yields PCM chunks as the model
+   * generates them.  Unlike synthesize() which waits for all audio, this
+   * starts yielding within ~1-2s of the first audio token.
+   *
+   * Only supported for 'openai' API format; falls back to batch for 'custom'.
+   */
+  async *synthesizeStreaming(
+    text: string,
+    voiceId: string,
+    prosody?: SSMLProsodyConfig
+  ): AsyncGenerator<ArrayBuffer> {
+    text = text.trim();
+    if (!text) return;
+
+    // Streaming endpoint only available for openai API format
+    if (this.apiFormat !== 'openai') {
+      const audio = await this.synthesize(text, voiceId, prosody);
+      if (audio.byteLength > 0) yield audio;
+      return;
+    }
+
+    const resolvedVoice = this.resolveVoiceId(voiceId);
+    const url = `${this.serverUrl}/v1/audio/speech/stream`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs * 2);
+    let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+
+    try {
+      const startMs = Date.now();
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: text,
+          voice: resolvedVoice,
+          model: 'tts-1',
+          ...(prosody?.emotion ? { emotion: prosody.emotion } : {}),
+          ...(prosody?.speed ? { speed: prosody.speed } : {}),
+          ...(prosody?.volume ? { volume: prosody.volume } : {}),
+          ...(prosody?.style ? { style: prosody.style } : {}),
+          ...(prosody?.register ? { register: prosody.register } : {}),
+          ...(prosody?.physiologicalState ? { physiological_state: prosody.physiologicalState } : {}),
+          ...(prosody?.paralinguistic ? { paralinguistic: prosody.paralinguistic } : {}),
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok || !response.body) {
+        const errText = await response.text().catch(() => '');
+        log.warn(
+          { status: response.status, error: errText.slice(0, 200), url },
+          'Local TTS synthesizeStreaming failed, falling back to batch'
+        );
+        const audio = await this.synthesize(text, voiceId, prosody);
+        if (audio.byteLength > 0) yield audio;
+        return;
+      }
+
+      let firstChunk = true;
+      let totalBytes = 0;
+      reader = response.body.getReader();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        if (value && value.byteLength > 0) {
+          if (firstChunk) {
+            const ttfaMs = Date.now() - startMs;
+            log.info(
+              { ttfaMs, chunkBytes: value.byteLength, voice: resolvedVoice, textLen: text.length },
+              `🔊 Streaming TTS TTFA: ${ttfaMs}ms`
+            );
+            firstChunk = false;
+          }
+
+          totalBytes += value.byteLength;
+          const chunk = new ArrayBuffer(value.byteLength);
+          new Uint8Array(chunk).set(value);
+          yield chunk;
+        }
+      }
+
+      const totalMs = Date.now() - startMs;
+      log.info(
+        { totalMs, totalBytes, voice: resolvedVoice, textLen: text.length },
+        `✅ Streaming TTS complete: ${totalMs}ms, ${totalBytes} bytes`
+      );
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        log.warn({ timeoutMs: this.timeoutMs * 2, textLen: text.length }, 'Local TTS synthesizeStreaming timeout');
+      } else {
+        log.warn({ error: String(error), url }, 'Local TTS synthesizeStreaming error');
+      }
+      // Fall back to batch synthesis
+      const audio = await this.synthesize(text, voiceId, prosody);
+      if (audio.byteLength > 0) yield audio;
+    } finally {
+      try { reader?.releaseLock(); } catch { /* already released */ }
       clearTimeout(timer);
     }
   }
@@ -323,13 +451,20 @@ export class LocalTTSProvider implements ITTSProvider {
     };
   }
 
-  private buildOpenAIRequest(text: string, voice: string) {
+  private buildOpenAIRequest(text: string, voice: string, prosody?: SSMLProsodyConfig) {
     return {
       url: `${this.serverUrl}/v1/audio/speech`,
       body: JSON.stringify({
         input: text,
         voice,
         model: 'tts-1',
+        ...(prosody?.emotion ? { emotion: prosody.emotion } : {}),
+        ...(prosody?.speed ? { speed: prosody.speed } : {}),
+        ...(prosody?.volume ? { volume: prosody.volume } : {}),
+        ...(prosody?.style ? { style: prosody.style } : {}),
+        ...(prosody?.register ? { register: prosody.register } : {}),
+        ...(prosody?.physiologicalState ? { physiological_state: prosody.physiologicalState } : {}),
+        ...(prosody?.paralinguistic ? { paralinguistic: prosody.paralinguistic } : {}),
       }),
     };
   }
@@ -427,7 +562,10 @@ export function convertF32leToS16le(f32Buffer: ArrayBuffer): ArrayBuffer {
  * Handles IEEE float (format 3) and PCM integer (format 1) WAV.
  */
 export function convertWavToS16le(wavBuffer: ArrayBuffer): ArrayBuffer {
-  if (wavBuffer.byteLength < 44) return wavBuffer;
+  if (wavBuffer.byteLength < 44) {
+    log.warn({ byteLength: wavBuffer.byteLength }, 'WAV buffer too small for parsing');
+    return wavBuffer;
+  }
 
   const view = new DataView(wavBuffer);
   let audioFormat = 1; // 1=PCM int, 3=IEEE float
@@ -457,7 +595,10 @@ export function convertWavToS16le(wavBuffer: ArrayBuffer): ArrayBuffer {
     if (chunkSize % 2 !== 0) offset += 1; // WAV chunks are word-aligned
   }
 
-  if (dataOffset === 0 || dataSize === 0) return wavBuffer;
+  if (dataOffset === 0 || dataSize === 0) {
+    log.warn({ dataOffset, dataSize }, 'WAV: no audio data chunk found');
+    return wavBuffer;
+  }
 
   const audioData = wavBuffer.slice(dataOffset, dataOffset + dataSize);
 

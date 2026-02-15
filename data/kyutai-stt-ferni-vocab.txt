@@ -1,0 +1,23 @@
+# Ferni-specific vocabulary for Kyutai STT (--prompt_text)
+# Use to nudge STT spelling for proper nouns and domain terms.
+# One term or short phrase per line; lines starting with # are ignored.
+
+# Persona names
+Ferni
+Maya
+Peter
+Alex
+Jordan
+Nayan
+Nayan Patel
+
+# Product / app
+Ferni AI
+LiveKit
+
+# Common tool/domain terms (adjust as needed)
+playlist
+Spotify
+calendar
+first taste
+trial

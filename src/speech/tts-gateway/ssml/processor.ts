@@ -68,7 +68,7 @@ const BREAK_TAG_REGEX = /<break\s+time=["']?(\d+)(ms|s)?["']?\s*\/?>/gi;
 /** Match closing prosody tags */
 const PROSODY_CLOSE_REGEX = /<\/(?:speed|volume|emotion|prosody)>/gi;
 
-/** Match any XML-like tag (note: no 'g' flag to avoid stateful issues) */
+/** Match any XML-like tag (no 'g' flag — safe for .test() which is stateful with /g) */
 const ANY_TAG_REGEX = /<[^>]+>/;
 
 /**

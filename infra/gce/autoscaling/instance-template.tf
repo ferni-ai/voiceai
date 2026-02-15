@@ -4,8 +4,17 @@
 
 resource "google_compute_instance_template" "voiceai_agent" {
   name_prefix  = "${var.service_name}-template-"
-  machine_type = var.machine_type
+  machine_type = var.use_gpu ? var.gpu_machine_type : var.machine_type
   region       = var.region
+
+  # GPU accelerator (required for Kyutai bridge STT/TTS on GCE)
+  dynamic "guest_accelerator" {
+    for_each = var.use_gpu ? [1] : []
+    content {
+      type  = var.gpu_accelerator_type
+      count = 1
+    }
+  }
 
   # Enable deletion protection only for production
   lifecycle {
@@ -109,12 +118,26 @@ resource "google_compute_instance_template" "voiceai_agent" {
 
     # Enable monitoring
     google-monitoring-enabled = "true"
+
+    # GPU driver install: COS does NOT include NVIDIA drivers. The cos-gpu-installer
+    # DaemonSet installs them on boot. Required when use_gpu=true.
+    cos-gpu-installer-env = var.use_gpu ? jsonencode({
+      "NVIDIA_DRIVER_VERSION" = "550.127.05"
+    }) : null
+    user-data = var.use_gpu ? <<-EOT
+      #cloud-config
+      runcmd:
+        - cos-extensions install gpu
+        - mount --bind /var/lib/nvidia /var/lib/nvidia
+        - mount -o remount,exec /var/lib/nvidia
+    EOT
+    : null
   }
 
-  # Scheduling options
+  # Scheduling options (TERMINATE required when using GPU)
   scheduling {
     automatic_restart   = true
-    on_host_maintenance = "MIGRATE"
+    on_host_maintenance = var.use_gpu ? "TERMINATE" : "MIGRATE"
     preemptible         = false
   }
 

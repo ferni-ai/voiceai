@@ -18,7 +18,7 @@ candle-core = "0.9"
 hf-hub = "0.4"
 
 # HTTP server
-axum = { version = "0.8", features = ["json"] }
+axum = { version = "0.8", features = ["json", "ws"] }
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
 tower-http = { version = "0.6", features = ["cors"] }

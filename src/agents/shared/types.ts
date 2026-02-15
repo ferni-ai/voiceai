@@ -111,6 +111,25 @@ export interface UserData {
   // Voice humanization - laughter detection
   detectedLaughter?: LaughterDetectionResult;
 
+  // Voice biomarkers - sub-lexical voice features for emotion enrichment
+  /** Real-time voice biomarkers from Rust DSP pipeline */
+  voiceBiomarkers?: {
+    /** Fundamental frequency in Hz */
+    pitch: number;
+    /** RMS energy 0-1 */
+    energy: number;
+    /** Pitch variation - anxiety indicator (0-1) */
+    jitter: number;
+    /** Amplitude variation - suppressed emotion indicator (0-1) */
+    shimmer: number;
+    /** Harmonic-to-noise ratio (0-1, higher = more breathy) */
+    breathiness: number;
+    /** Estimated syllables per second */
+    speechRate: number;
+    /** Currently in a breath pause */
+    isBreathPause: boolean;
+  };
+
   // Voice humanization - live backchanneling (breath pause detection)
   /** Whether user is currently in a breath pause (100-400ms silence mid-speech) */
   isInBreathPause?: boolean;

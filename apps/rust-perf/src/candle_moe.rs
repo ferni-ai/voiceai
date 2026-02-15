@@ -168,6 +168,11 @@ impl SwitchLinear {
         Ok(Self { weight: w })
     }
 
+    /// Build from stacked weight tensor (num_experts, output_dims, input_dims). Used when loading from HF experts.* layout.
+    pub fn from_weight(weight: Tensor) -> CandleResult<Self> {
+        Ok(Self { weight })
+    }
+
     /// Forward: indices (N,) u32 or i64; x (N, in) -> out (N, out).
     pub fn forward(&self, x: &Tensor, indices: &Tensor) -> CandleResult<Tensor> {
         let ids = indices.to_dtype(DType::U32)?;
@@ -200,6 +205,34 @@ impl SwitchGLU {
         let up_proj = SwitchLinear::load(vb.pp("up_proj"), hidden, intermediate, num_experts)?;
         let down_proj =
             SwitchLinear::load(vb.pp("down_proj"), intermediate, hidden, num_experts)?;
+        Ok(Self {
+            gate_proj,
+            up_proj,
+            down_proj,
+        })
+    }
+
+    /// Load from HF layout: mlp.experts.0.gate_proj.weight, mlp.experts.1.gate_proj.weight, ... (one tensor per expert, then stack).
+    pub fn load_from_experts(
+        vb: VarBuilder,
+        hidden: usize,
+        intermediate: usize,
+        num_experts: usize,
+    ) -> CandleResult<Self> {
+        let vb_mlp = vb;
+        let mut gate_list = Vec::with_capacity(num_experts);
+        let mut up_list = Vec::with_capacity(num_experts);
+        let mut down_list = Vec::with_capacity(num_experts);
+        for i in 0..num_experts {
+            let prefix = format!("experts.{}", i);
+            let expert_vb = vb_mlp.pp(prefix.as_str());
+            gate_list.push(expert_vb.get((intermediate, hidden), "gate_proj.weight")?);
+            up_list.push(expert_vb.get((intermediate, hidden), "up_proj.weight")?);
+            down_list.push(expert_vb.get((hidden, intermediate), "down_proj.weight")?);
+        }
+        let gate_proj = SwitchLinear::from_weight(Tensor::cat(&gate_list, 0)?)?;
+        let up_proj = SwitchLinear::from_weight(Tensor::cat(&up_list, 0)?)?;
+        let down_proj = SwitchLinear::from_weight(Tensor::cat(&down_list, 0)?)?;
         Ok(Self {
             gate_proj,
             up_proj,

@@ -28,6 +28,7 @@
 
 import type { llm } from '@livekit/agents';
 import type { ContextUserData } from '../../intelligence/context-builders/index.js';
+import type { UserData } from '../shared/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import {
   publishKeyMoment,
@@ -310,6 +311,50 @@ import {
 
 // NOTE: buildHumanizingContextForTurn moved to humanizing-context-builder.ts
 // NOTE: processBundleRuntime moved to bundle-runtime-processor.ts
+
+// ============================================================================
+// VOICE BIOMARKER ENRICHMENT
+// Combines text-based emotion detection with voice biomarkers from Rust DSP
+// ============================================================================
+
+/**
+ * Enrich text-derived emotion with voice biomarker signals.
+ *
+ * Voice biomarkers (jitter, shimmer, energy) reveal emotions that text analysis
+ * misses — e.g. hidden anxiety behind "I'm fine", or masking sadness behind
+ * upbeat words. When biomarkers contradict text, we trust the voice more.
+ *
+ * @param textEmotion - Emotion detected from text transcript
+ * @param biomarkers - Real-time voice features from Rust DSP pipeline
+ * @returns Enriched emotion with confidence and optional mismatch flag
+ */
+function enrichEmotionWithVoice(
+  textEmotion: { primary: string; intensity: number },
+  biomarkers?: UserData['voiceBiomarkers']
+): { primary: string; intensity: number; confidence: number; mismatch?: string } {
+  if (!biomarkers) return { ...textEmotion, confidence: 0.6 }; // text-only = 60%
+
+  // High jitter + calm text = hidden anxiety
+  // Jitter measures pitch instability — elevated when voice trembles from nervousness
+  if (biomarkers.jitter > 0.5 && textEmotion.primary === 'neutral') {
+    return { primary: 'anxious', intensity: biomarkers.jitter, confidence: 0.85, mismatch: 'voice-text' };
+  }
+
+  // Low energy + positive text = masking sadness
+  // When someone says "I'm great!" but their voice has no energy, they're likely masking
+  if (biomarkers.energy < 0.3 && textEmotion.primary === 'happy') {
+    return { primary: 'sad', intensity: 0.6, confidence: 0.8, mismatch: 'energy-text' };
+  }
+
+  // High shimmer + any text = suppressed emotion
+  // Shimmer measures amplitude variation — elevated when trying to control vocal output
+  if (biomarkers.shimmer > 0.6 && textEmotion.intensity < 0.3) {
+    return { primary: textEmotion.primary, intensity: 0.6, confidence: 0.8, mismatch: 'suppressed' };
+  }
+
+  // Voice confirms text = high confidence
+  return { ...textEmotion, confidence: 0.95 };
+}
 
 // ============================================================================
 // CONTEXT INJECTION BUILDING
@@ -2476,6 +2521,29 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   recordPhaseTiming('parallel_core_analysis', parallelCoreMs);
   if (debugTiming) diag.info(`⏱️ [TIMING] parallel_core_analysis: ${parallelCoreMs}ms`);
 
+  // 4a. Voice biomarker enrichment - combine text emotion with voice features
+  // When Rust DSP pipeline provides biomarkers, use them to detect hidden emotions
+  // (e.g., high jitter + calm text = hidden anxiety, low energy + positive text = masking)
+  const biomarkers = ctx.userData.voiceBiomarkers;
+  if (biomarkers) {
+    const enriched = enrichEmotionWithVoice(
+      { primary: emotionalState.primary, intensity: emotionalState.intensity },
+      biomarkers
+    );
+    emotionalState.primary = enriched.primary;
+    emotionalState.intensity = enriched.intensity;
+    if (enriched.mismatch) {
+      diag.state('🔬 Voice biomarker mismatch detected', {
+        original: emotionalState.primary,
+        enriched: enriched.primary,
+        mismatch: enriched.mismatch,
+        confidence: enriched.confidence,
+      });
+    }
+    // Sync breath pause state for active listening backchannels
+    ctx.userData.isInBreathPause = biomarkers.isBreathPause;
+  }
+
   // 4b. Record mismatch as cross-persona insight (fire-and-forget)
   if (emotionalState.mismatch?.hasMismatch && emotionalState.mismatch.confidence > 0.5) {
     const personaId = ctx.persona.id as
@@ -2589,18 +2657,47 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   const [contextInjectionsResult, advancedHumanizationResult, identityMessageResult, easterEgg] =
     await Promise.all([
       // 9. Build all context injections (HEAVY - 100-200ms)
+      // WS1: Use speculative injections if available (saves ~100-150ms)
       (async () => {
         const injectionsTimer = createTimer();
-        const result = await buildContextInjections(
-          ctx,
-          analysisResult,
-          emotionalState,
-          responseGuidance,
-          identityContext,
-          humanizingResult,
-          bundleRuntimeContext,
-          conversationDynamics
-        );
+        const speculativeInjections = (userData as Record<string, unknown>)
+          .speculativeInjections as ContextInjection[] | undefined;
+
+        let result: ContextInjectionsResult;
+
+        if (speculativeInjections && speculativeInjections.length > 0) {
+          // Speculative cache hit: quick builders + pre-computed expensive results
+          const { buildQuickBuildersOnly } = await import('./context-injection-builder.js');
+          const quickInjections = await buildQuickBuildersOnly(
+            ctx,
+            analysisResult,
+            emotionalState,
+            responseGuidance,
+            identityContext,
+            conversationDynamics
+          );
+          const merged = [...speculativeInjections, ...quickInjections];
+          merged.sort((a, b) => b.priority - a.priority);
+          result = { injections: merged, trustContextSummary: {} as TrustContextSummary };
+
+          delete (userData as Record<string, unknown>).speculativeInjections;
+          diag.info('⚡ WS1: Speculative context used', {
+            speculativeCount: speculativeInjections.length,
+            quickCount: quickInjections.length,
+          });
+        } else {
+          result = await buildContextInjections(
+            ctx,
+            analysisResult,
+            emotionalState,
+            responseGuidance,
+            identityContext,
+            humanizingResult,
+            bundleRuntimeContext,
+            conversationDynamics
+          );
+        }
+
         recordContextInjectionTiming('all_context_injections', injectionsTimer.stop());
         return result;
       })(),

@@ -790,7 +790,10 @@ impl Model {
             max_tokens,
             &sampling_config,
             |codes: &Tensor, _step: usize| {
-                code_buffer.push(codes.clone());
+                // codes shape from generate_streaming: (batch, num_code_groups) = (1, 32)
+                // Squeeze batch dim to (32,) so stack gives (N, 32) → unsqueeze → (1, N, 32)
+                let squeezed = codes.squeeze(0).unwrap_or_else(|_| codes.clone());
+                code_buffer.push(squeezed);
 
                 let should_emit = if total_samples_emitted == 0 {
                     code_buffer.len() >= emit_first_after
@@ -800,20 +803,41 @@ impl Model {
 
                 if should_emit {
                     // Stack codes: Vec<(32,)> → (N, 32) → (1, N, 32) for decoder
-                    if let Ok(stacked) = Tensor::stack(&code_buffer, 0) {
-                        if let Ok(codes_3d) = stacked.unsqueeze(0) {
-                            if let Ok(audio) = tokenizer.decode(&codes_3d) {
-                                if let Ok(samples) = audio
-                                    .flatten_all()
-                                    .and_then(|t| t.to_dtype(candle_core::DType::F32))
-                                    .and_then(|t| t.to_vec1::<f32>())
-                                {
-                                    if samples.len() > total_samples_emitted {
-                                        on_audio(&samples[total_samples_emitted..]);
-                                        total_samples_emitted = samples.len();
+                    match Tensor::stack(&code_buffer, 0)
+                        .and_then(|s| s.unsqueeze(0))
+                    {
+                        Ok(codes_3d) => {
+                            match tokenizer.decode(&codes_3d) {
+                                Ok(audio) => {
+                                    match audio
+                                        .flatten_all()
+                                        .and_then(|t| t.to_dtype(candle_core::DType::F32))
+                                        .and_then(|t| t.to_vec1::<f32>())
+                                    {
+                                        Ok(samples) => {
+                                            if samples.len() > total_samples_emitted {
+                                                on_audio(&samples[total_samples_emitted..]);
+                                                total_samples_emitted = samples.len();
+                                            }
+                                        }
+                                        Err(e) => {
+                                            tracing::warn!("Streaming decode: audio flatten failed: {e}");
+                                        }
                                     }
                                 }
+                                Err(e) => {
+                                    tracing::warn!(
+                                        codes_shape = ?codes_3d.dims(),
+                                        "Streaming decode: tokenizer.decode failed: {e}"
+                                    );
+                                }
                             }
+                        }
+                        Err(e) => {
+                            tracing::warn!(
+                                buffer_len = code_buffer.len(),
+                                "Streaming decode: stack/unsqueeze failed: {e}"
+                            );
                         }
                     }
                 }
@@ -822,19 +846,40 @@ impl Model {
 
         // Final flush: decode all codes and emit any remaining audio
         if !code_buffer.is_empty() {
-            if let Ok(stacked) = Tensor::stack(&code_buffer, 0) {
-                if let Ok(codes_3d) = stacked.unsqueeze(0) {
-                    if let Ok(audio) = tokenizer.decode(&codes_3d) {
-                        if let Ok(samples) = audio
-                            .flatten_all()
-                            .and_then(|t| t.to_dtype(candle_core::DType::F32))
-                            .and_then(|t| t.to_vec1::<f32>())
-                        {
-                            if samples.len() > total_samples_emitted {
-                                on_audio(&samples[total_samples_emitted..]);
+            match Tensor::stack(&code_buffer, 0)
+                .and_then(|s| s.unsqueeze(0))
+            {
+                Ok(codes_3d) => {
+                    match tokenizer.decode(&codes_3d) {
+                        Ok(audio) => {
+                            match audio
+                                .flatten_all()
+                                .and_then(|t| t.to_dtype(candle_core::DType::F32))
+                                .and_then(|t| t.to_vec1::<f32>())
+                            {
+                                Ok(samples) => {
+                                    if samples.len() > total_samples_emitted {
+                                        on_audio(&samples[total_samples_emitted..]);
+                                    }
+                                }
+                                Err(e) => {
+                                    tracing::warn!("Final flush: audio flatten failed: {e}");
+                                }
                             }
                         }
+                        Err(e) => {
+                            tracing::warn!(
+                                codes_shape = ?codes_3d.dims(),
+                                "Final flush: tokenizer.decode failed: {e}"
+                            );
+                        }
                     }
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        buffer_len = code_buffer.len(),
+                        "Final flush: stack/unsqueeze failed: {e}"
+                    );
                 }
             }
         }

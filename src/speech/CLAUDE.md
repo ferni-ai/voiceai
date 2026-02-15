@@ -254,6 +254,39 @@ See `src/ssml/CLAUDE.md` for complete SSML module documentation.
 
 ---
 
+## Higgs Pipeline Provider
+
+Full-stack voice pipeline using the Rust Higgs server for both STT and TTS.
+
+### Enable
+
+```
+TTS_PROVIDER=higgs-pipeline
+HIGGS_PIPELINE_URL=ws://localhost:8600/ws
+```
+
+### Capabilities
+
+- **STT**: Whisper via `sendUserAudio()` + `triggerTranscription()`
+- **TTS**: Higgs Audio V2 with streaming, humanization, KV cache
+- **Biomarkers**: Real-time voice analysis (pitch, energy, jitter, shimmer)
+- **Emotion**: Configurable emotion mapping for TTS
+
+### Key Files
+
+- Rust server: `apps/rust-higgs-pipeline/` (see README.md)
+- TS provider: `src/speech/tts-gateway/providers/higgs-pipeline.ts`
+- Protocol types: Rust `protocol.rs` ↔ TS `higgs-pipeline.ts` types
+
+### Health Check
+
+```bash
+curl http://localhost:8600/health        # Liveness
+curl http://localhost:8600/health/ready   # Readiness (model status)
+```
+
+---
+
 ## Key Concepts
 
 ### 1. Session-Scoped Services

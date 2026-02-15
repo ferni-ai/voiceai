@@ -103,6 +103,10 @@ import {
   buildReferralConversationContext,
 } from '../../intelligence/context-builders/engagement/referral-prompt.js';
 
+// WS3: Prompt compression (sub-300ms latency optimization)
+import { categorizeQuery, compressInjectionContent } from '../shared/prompt-compressor.js';
+import { isOptimizationEnabled } from '../shared/performance/latency-feature-flags.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -1228,8 +1232,182 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
   // Sort by priority (highest first)
   injections.sort((a, b) => b.priority - a.priority);
 
+  // WS3: Prompt compression — reduce token count for simple queries
+  let finalInjections = injections;
+  if (isOptimizationEnabled('PROMPT_COMPRESSION')) {
+    const complexity = categorizeQuery(userText);
+    finalInjections = compressInjectionContent(injections, complexity);
+    if (finalInjections.length !== injections.length) {
+      diag.debug('WS3: Prompt compressed', {
+        complexity,
+        before: injections.length,
+        after: finalInjections.length,
+      });
+    }
+  }
+
   return {
-    injections,
+    injections: finalInjections,
     trustContextSummary,
   };
+}
+
+// ============================================================================
+// QUICK BUILDERS ONLY (for speculative context cache hits)
+// ============================================================================
+
+/**
+ * Build only fast, non-I/O context injections.
+ *
+ * Used when WS1 speculative pre-computation provides the expensive injections
+ * (memory, superhuman, cross-persona). This function runs only the sync/fast
+ * builders: safety, identity, honesty, function calling, response guidance,
+ * emotional guidance, session dynamics, and ambient awareness.
+ *
+ * Skips: behavioral context, tiered builders, predictive intelligence,
+ * team huddle, cross-persona insights, Better Than Human orchestrator,
+ * value capture, task wisdom, referral, and all Tier 2/3 builders.
+ */
+export async function buildQuickBuildersOnly(
+  ctx: TurnContext,
+  analysisResult: TurnAnalysisResult,
+  emotionalState: EmotionalState,
+  responseGuidance: ResponseGuidance,
+  identityContext: IdentityContext,
+  _conversationDynamics: ConversationDynamicsResult
+): Promise<ContextInjection[]> {
+  const { services, userData, persona, userText } = ctx;
+  const { analysis, currentTopic } = analysisResult;
+  const injections: ContextInjection[] = [];
+
+  // Identity reinforcement (sync)
+  if (identityContext.needsReinforcement && identityContext.injection) {
+    injections.push({ category: 'identity', content: identityContext.injection, priority: 100 });
+  }
+
+  // Safety (async but fast pattern-matching, CRITICAL — never skip)
+  const safetyInjections = await buildSafetyInjections({
+    userText,
+    services,
+    userData,
+    persona,
+    analysis,
+    currentTopic,
+    emotionalState,
+  });
+  injections.push(...safetyInjections);
+
+  // Honesty guardrail (sync)
+  const sessionId = services.sessionId || 'unknown';
+  const honestyInjection = getHonestyInjection(sessionId, userText);
+  if (honestyInjection) {
+    injections.push({ category: 'honesty', content: honestyInjection, priority: 99 });
+  }
+
+  // Function calling reinforcement (sync)
+  const fcReinforcement = buildFunctionCallingReinforcement(userText, userData.turnCount || 1);
+  if (fcReinforcement) {
+    injections.push(fcReinforcement);
+  }
+
+  // Response length guidance (sync)
+  injections.push({
+    category: 'response_length',
+    content: responseGuidance.length.guidance,
+    priority: 60,
+  });
+
+  // Topic transition (sync)
+  if (responseGuidance.topicTransition) {
+    injections.push({
+      category: 'topic_transition',
+      content: responseGuidance.topicTransition,
+      priority: 55,
+    });
+  }
+
+  // Pacing guidance (sync)
+  if (responseGuidance.pacing) {
+    injections.push({
+      category: 'pacing',
+      content: `[PACING GUIDANCE]\n${responseGuidance.pacing}`,
+      priority: 50,
+    });
+  }
+
+  // Emotional guidance (sync)
+  if (emotionalState.responseGuidance) {
+    injections.push({
+      category: 'emotional_guidance',
+      content: emotionalState.responseGuidance,
+      priority: 33,
+    });
+  }
+
+  if (emotionalState.transitionPhrase) {
+    injections.push({
+      category: 'emotional_transition',
+      content: `[EMOTIONAL SHIFT DETECTED: Consider acknowledging with something like: "${emotionalState.transitionPhrase}"]`,
+      priority: 32,
+    });
+  }
+
+  // Session dynamics (sync)
+  const sessionDynamicsInjection = buildSessionDynamicsInjection(services.sessionId);
+  if (sessionDynamicsInjection) {
+    injections.push(sessionDynamicsInjection);
+  }
+
+  // Ambient awareness (sync)
+  const ambientInjections = buildAmbientAwarenessInjections(userData);
+  injections.push(...ambientInjections);
+
+  // Response naturalness (sync)
+  const turnCount = userData.turnCount || 0;
+  const enhancements = getResponseEnhancements({
+    personaId: persona.id,
+    turnCount,
+    userEmotion: analysis.emotion.primary,
+    topicWeight: 'medium',
+    isQuestion: userText.includes('?'),
+    isFollowUp: turnCount > 0,
+    isGreeting: turnCount === 0,
+    isPositiveMoment:
+      analysis.emotion.primary === 'joy' || analysis.emotion.primary === 'anticipation',
+  });
+
+  if (enhancements.prefix) {
+    injections.push({
+      category: 'response_prefix',
+      content: `[RESPONSE STYLE]\nStart your response with: "${enhancements.prefix.replace(/<[^>]+>/g, '')}"\nThen continue with your substantive response.\n\nNEVER SAY: "Good question", "Great question", "Well...", "That's a great point" - these are AI cliches. Just respond naturally.`,
+      priority: 15,
+    });
+  }
+
+  // Conversation state (sync)
+  if (userData.conversationState) {
+    const convSummary = userData.conversationState.getSummaryForLLM();
+    if (convSummary) {
+      injections.push({
+        category: 'conversation_state',
+        content: `[CONVERSATION STATE]\n${convSummary}`,
+        priority: 10,
+      });
+    }
+  }
+
+  // Data capture acknowledgment (sync)
+  if (userData.dataCaptureAcknowledgment) {
+    injections.push({
+      category: 'data_capture',
+      content: `[SAVED DATA: ${userData.dataCaptureAcknowledgment} - Acknowledge this naturally in your response, e.g., "Got it, I've saved that."]`,
+      priority: 75,
+    });
+    userData.dataCaptureAcknowledgment = undefined;
+  }
+
+  // Sort by priority (highest first)
+  injections.sort((a, b) => b.priority - a.priority);
+
+  return injections;
 }

@@ -16,7 +16,7 @@
  */
 
 import { WebSocket } from 'ws';
-import type { ITTSProvider, SSMLProsodyConfig } from '../types.js';
+import type { ITTSProviderWithSTT, SSMLProsodyConfig, VoiceBiomarkers, TranscriptResult } from '../types.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'HiggsPipelineProvider' });
@@ -44,27 +44,16 @@ export interface HiggsPipelineConfig {
   reconnectDelayMs?: number;
   /** Connection timeout in ms (default: 5000) */
   connectionTimeoutMs?: number;
+  /** Persona name sent in start_session (default: 'ferni') */
+  persona?: string;
 }
 
-export interface TranscriptResult {
-  text: string;
-  biomarkers?: VoiceBiomarkers;
-  latencyMs: number;
-}
-
-export interface VoiceBiomarkers {
-  pitch_hz: number;
-  energy: number;
-  jitter: number;
-  shimmer: number;
-  breathiness: number;
-  speech_rate: number;
-  is_speech: boolean;
-}
+// Re-export for consumers that import directly from this module
+export type { TranscriptResult, VoiceBiomarkers } from '../types.js';
 
 /** Messages sent to the Rust server */
 type ClientMessage =
-  | { type: 'start_session'; session_id: string; persona: string }
+  | { type: 'start_session'; session_id: string; persona?: string }
   | { type: 'transcribe' }
   | { type: 'synthesize'; text: string; emotion?: string; intensity?: number; request_id?: number }
   | { type: 'synthesize_streaming'; text: string; emotion?: string; intensity?: number; chunk_steps?: number; request_id?: number }
@@ -98,26 +87,35 @@ interface PendingTranscription {
 // PROVIDER
 // ============================================================================
 
-export class HiggsPipelineProvider implements ITTSProvider {
+export class HiggsPipelineProvider implements ITTSProviderWithSTT {
   readonly name = 'higgs-pipeline';
 
   private readonly serverUrl: string;
   readonly reconnectDelayMs: number;
   private readonly connectionTimeoutMs: number;
+  private readonly config: HiggsPipelineConfig;
 
   private ws: WebSocket | null = null;
   private connectionPromise: Promise<void> | null = null;
   private sessionId: string | null = null;
   private requestCounter = 0;
+  private reconnectAttempt = 0;
+
+  private static readonly BASE_DELAY = 1000;       // 1s
+  private static readonly MAX_DELAY = 30000;        // 30s
+  private static readonly MAX_RECONNECT_ATTEMPTS = 10;
 
   private readonly pendingSyntheses = new Map<number, PendingSynthesis>();
   private pendingTranscription: PendingTranscription | null = null;
   private transcriptCallbacks: Array<(result: TranscriptResult) => void> = [];
+  private audioSendLock = false;
+  private audioQueue: Int16Array[] = [];
 
   /** Track which request_id is currently receiving binary audio chunks */
   private activeAudioRequestId: number | null = null;
 
   constructor(config: HiggsPipelineConfig = {}) {
+    this.config = config;
     this.serverUrl =
       config.serverUrl ||
       process.env.HIGGS_PIPELINE_URL ||
@@ -309,16 +307,30 @@ export class HiggsPipelineProvider implements ITTSProvider {
 
   /**
    * Send raw user audio (i16 LE PCM) to the server for STT buffering.
+   * Uses a queue to prevent interleaved writes on the WebSocket.
    */
+  private static readonly MAX_AUDIO_QUEUE_SIZE = 100;
+
   async sendUserAudio(frames: Int16Array): Promise<void> {
     await this.ensureConnected();
 
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      log.warn({}, 'Cannot send audio — WebSocket not open');
-      return;
+    if (this.audioQueue.length >= HiggsPipelineProvider.MAX_AUDIO_QUEUE_SIZE) {
+      this.audioQueue.shift();
+      log.warn({}, 'Audio queue full, dropped oldest frame');
     }
-
-    this.ws.send(Buffer.from(frames.buffer, frames.byteOffset, frames.byteLength));
+    this.audioQueue.push(frames);
+    if (this.audioSendLock) return;
+    this.audioSendLock = true;
+    try {
+      while (this.audioQueue.length > 0) {
+        const f = this.audioQueue.shift()!;
+        if (this.ws?.readyState === WebSocket.OPEN) {
+          this.ws.send(Buffer.from(f.buffer, f.byteOffset, f.byteLength));
+        }
+      }
+    } finally {
+      this.audioSendLock = false;
+    }
   }
 
   /**
@@ -377,7 +389,11 @@ export class HiggsPipelineProvider implements ITTSProvider {
         this.ws!.on('close', onClose);
         setTimeout(() => {
           resolve();
-          this.ws?.close();
+          try {
+            this.ws?.close();
+          } catch {
+            // WebSocket already closing or closed
+          }
         }, 500);
       });
     }
@@ -390,6 +406,14 @@ export class HiggsPipelineProvider implements ITTSProvider {
   // Internal helpers
   // --------------------------------------------------------------------------
 
+  private getReconnectDelay(): number {
+    const delay = Math.min(
+      HiggsPipelineProvider.BASE_DELAY * Math.pow(2, this.reconnectAttempt),
+      HiggsPipelineProvider.MAX_DELAY
+    );
+    return delay + Math.random() * 1000;
+  }
+
   private async ensureConnected(): Promise<void> {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       return;
@@ -400,12 +424,37 @@ export class HiggsPipelineProvider implements ITTSProvider {
       return this.connectionPromise;
     }
 
-    this.connectionPromise = this.connect();
+    this.connectionPromise = this.connectWithRetry();
 
     try {
       await this.connectionPromise;
     } finally {
       this.connectionPromise = null;
+    }
+  }
+
+  private async connectWithRetry(): Promise<void> {
+    while (this.reconnectAttempt < HiggsPipelineProvider.MAX_RECONNECT_ATTEMPTS) {
+      try {
+        await this.connect();
+        this.reconnectAttempt = 0;
+        return;
+      } catch (err) {
+        this.reconnectAttempt++;
+        if (this.reconnectAttempt >= HiggsPipelineProvider.MAX_RECONNECT_ATTEMPTS) {
+          log.error(
+            { attempts: this.reconnectAttempt },
+            'Circuit breaker open: max reconnection attempts exceeded'
+          );
+          throw err;
+        }
+        const delay = this.getReconnectDelay();
+        log.warn(
+          { attempt: this.reconnectAttempt, delayMs: Math.round(delay), error: String(err) },
+          `Reconnecting in ${Math.round(delay)}ms (attempt ${this.reconnectAttempt}/${HiggsPipelineProvider.MAX_RECONNECT_ATTEMPTS})`
+        );
+        await new Promise<void>(r => setTimeout(r, delay));
+      }
     }
   }
 
@@ -428,7 +477,7 @@ export class HiggsPipelineProvider implements ITTSProvider {
         this.sendJson({
           type: 'start_session',
           session_id: this.sessionId,
-          persona: 'ferni',
+          persona: this.config.persona ?? 'ferni',
         });
 
         log.info(
@@ -469,13 +518,21 @@ export class HiggsPipelineProvider implements ITTSProvider {
     }
 
     // Text frame = JSON control message
-    let msg: ServerMessage;
+    let parsed: unknown;
     try {
-      msg = JSON.parse(data as string) as ServerMessage;
+      parsed = JSON.parse(data as string);
     } catch {
       log.warn({ data: String(data).slice(0, 100) }, 'Malformed JSON from server');
       return;
     }
+
+    // Validate parsed object has a known type field
+    if (!parsed || typeof parsed !== 'object' || !('type' in parsed)) {
+      log.warn({ data: String(data).slice(0, 100) }, 'Server message missing "type" field');
+      return;
+    }
+
+    const msg = parsed as ServerMessage;
 
     switch (msg.type) {
       case 'transcript':
@@ -495,7 +552,7 @@ export class HiggsPipelineProvider implements ITTSProvider {
         break;
 
       default:
-        log.debug({ msg }, 'Unknown server message type');
+        log.warn({ type: (parsed as Record<string, unknown>).type }, 'Unknown server message type');
     }
   }
 
@@ -515,12 +572,11 @@ export class HiggsPipelineProvider implements ITTSProvider {
       }
     }
 
-    // If no specific request, try to route to the most recent pending request
-    if (this.pendingSyntheses.size === 1) {
-      const entry = Array.from(this.pendingSyntheses.values())[0];
-      entry.chunks.push(chunk);
-      entry.onChunk?.();
-    }
+    // No matching request — drop to prevent cross-contamination with parallel requests
+    log.warn(
+      { activeRequestId: requestId, pendingCount: this.pendingSyntheses.size },
+      'Audio chunk with no matching request — dropping'
+    );
   }
 
   private handleAudioDone(msg: ServerMessage & { type: 'audio_done' }): void {
@@ -528,18 +584,15 @@ export class HiggsPipelineProvider implements ITTSProvider {
     this.activeAudioRequestId = null;
 
     if (requestId === null || requestId === undefined) {
-      // Try single pending request
-      if (this.pendingSyntheses.size === 1) {
-        const entries = Array.from(this.pendingSyntheses.entries());
-        const [id, pending] = entries[0];
-        this.completeSynthesis(id, pending, msg.duration_ms);
-        return;
-      }
+      log.debug({}, 'audio_done with no request_id — dropping');
       return;
     }
 
     const pending = this.pendingSyntheses.get(requestId);
-    if (!pending) return;
+    if (!pending) {
+      log.warn({ requestId }, 'audio_done for unknown request');
+      return;
+    }
 
     this.completeSynthesis(requestId, pending, msg.duration_ms);
   }
@@ -595,20 +648,27 @@ export class HiggsPipelineProvider implements ITTSProvider {
       'Higgs pipeline server error'
     );
 
-    if (msg.request_id !== undefined) {
-      const pending = this.pendingSyntheses.get(msg.request_id);
+    const errorMessage = `Server error: ${msg.code} — ${msg.message}`;
+    const targetRequestId = msg.request_id ?? this.activeAudioRequestId;
+
+    // Always clear activeAudioRequestId on error to prevent stale routing
+    this.activeAudioRequestId = null;
+
+    if (targetRequestId !== undefined && targetRequestId !== null) {
+      const pending = this.pendingSyntheses.get(targetRequestId);
       if (pending) {
-        this.pendingSyntheses.delete(msg.request_id);
-        pending.reject(new Error(`Server error: ${msg.code} — ${msg.message}`));
+        this.pendingSyntheses.delete(targetRequestId);
+        pending.reject(new Error(errorMessage));
         return;
       }
+      // request_id present but no matching pending — don't fall through to transcription
+      log.warn({ requestId: targetRequestId }, 'Error for unknown request');
+      return;
     }
 
-    // If no request_id, reject the pending transcription
+    // No request_id at all — reject the pending transcription
     if (this.pendingTranscription) {
-      this.pendingTranscription.reject(
-        new Error(`Server error: ${msg.code} — ${msg.message}`)
-      );
+      this.pendingTranscription.reject(new Error(errorMessage));
       this.pendingTranscription = null;
     }
   }
@@ -648,6 +708,7 @@ export class HiggsPipelineProvider implements ITTSProvider {
     this.sessionId = null;
     this.connectionPromise = null;
     this.activeAudioRequestId = null;
+    this.reconnectAttempt = 0;
     this.transcriptCallbacks = [];
   }
 }
@@ -667,7 +728,9 @@ export function getHiggsPipelineProvider(config?: HiggsPipelineConfig): HiggsPip
 
 export function resetHiggsPipelineProvider(): void {
   if (providerInstance) {
-    providerInstance.disconnect().catch(() => {});
+    providerInstance.disconnect().catch((err) => {
+      log.warn({ error: String(err) }, 'Higgs disconnect failed during reset');
+    });
     providerInstance = null;
   }
 }

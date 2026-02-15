@@ -40,6 +40,17 @@ pub fn encode_wav_s16le(samples: &[f32], sample_rate: u32) -> Vec<u8> {
     buf
 }
 
+/// Convert f32 samples to raw f32le bytes (little-endian).
+///
+/// Used for the `pcm-f32le` output format option.
+pub fn f32_to_f32le(samples: &[f32]) -> Vec<u8> {
+    let mut buf = Vec::with_capacity(samples.len() * 4);
+    for &s in samples {
+        buf.extend_from_slice(&s.to_le_bytes());
+    }
+    buf
+}
+
 /// Convert f32 samples [-1.0, 1.0] to raw 16-bit signed PCM bytes (s16le).
 ///
 /// This is the format expected by the `/synthesize` endpoint (custom API).
@@ -181,5 +192,30 @@ mod tests {
         let wav = encode_wav_s16le(&extreme, 24000);
         let pcm = f32_to_s16le(&extreme);
         assert_eq!(&wav[44..], &pcm[..]);
+    }
+
+    // ── f32_to_f32le (raw float PCM) ─────────────────────
+
+    #[test]
+    fn f32le_size_is_4x_samples() {
+        let buf = f32_to_f32le(&[0.0; 10]);
+        assert_eq!(buf.len(), 40);
+    }
+
+    #[test]
+    fn f32le_roundtrip() {
+        let samples = vec![0.5, -0.5, 0.0, 1.0, -1.0];
+        let buf = f32_to_f32le(&samples);
+        for (i, &expected) in samples.iter().enumerate() {
+            let offset = i * 4;
+            let val = f32::from_le_bytes([buf[offset], buf[offset+1], buf[offset+2], buf[offset+3]]);
+            assert!((val - expected).abs() < 1e-6, "sample {i}: {val} != {expected}");
+        }
+    }
+
+    #[test]
+    fn f32le_empty_input() {
+        let buf = f32_to_f32le(&[]);
+        assert!(buf.is_empty());
     }
 }

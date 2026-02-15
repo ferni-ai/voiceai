@@ -44,12 +44,12 @@ impl Default for AudioEncoderConfig {
 }
 
 impl AudioEncoderConfig {
-    /// Flattened mel size after 3x stride-2 convs: (((128+1)/2+1)/2+1)/2 = 16.
+    /// Flattened mel dimension after 3× Conv2d (kernel=3, stride=2, padding=1): out = (in - 1)/2 + 1.
+    /// 128 → 64 → 32 → 16.
     pub fn conv_output_mel_dim(&self) -> usize {
         let mut d = self.num_mel_bins;
         for _ in 0..3 {
-            d = (d + 1) / 2 + 1;
-            d = (d + 1) / 2;
+            d = (d.saturating_sub(1)) / 2 + 1;
         }
         d
     }
@@ -277,15 +277,17 @@ impl Qwen3OmniAudioEncoder {
         };
 
         let vb = unsafe { VarBuilder::from_mmaped_safetensors(&files, DType::F32, device)? };
-        // Support HF key layout (model.thinker.audio_encoder.*) and direct (thinker.audio_encoder.*)
-        let has_hf_prefix = if index_path.exists() {
+        // Support multiple checkpoint layouts: model.thinker.audio_encoder.* (HF legacy),
+        // thinker.audio_encoder.* (direct), thinker.audio_tower.* (HF Qwen3-Omni-30B-A3B).
+        let vb_enc = if index_path.exists() {
             let s = std::fs::read_to_string(&index_path).unwrap_or_default();
-            s.contains("model.thinker.audio_encoder.")
-        } else {
-            false
-        };
-        let vb_enc = if has_hf_prefix {
-            vb.pp("model").pp("thinker").pp("audio_encoder")
+            if s.contains("model.thinker.audio_encoder.") {
+                vb.pp("model").pp("thinker").pp("audio_encoder")
+            } else if s.contains("thinker.audio_tower.") {
+                vb.pp("thinker").pp("audio_tower")
+            } else {
+                vb.pp("thinker").pp("audio_encoder")
+            }
         } else {
             vb.pp("thinker").pp("audio_encoder")
         };
