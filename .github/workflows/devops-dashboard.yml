@@ -117,15 +117,19 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
+        # Fails if GitHub Pages is not enabled for the repository
+        continue-on-error: true
 
       - name: Upload to Pages
         uses: actions/upload-pages-artifact@v3
+        continue-on-error: true
         with:
           path: ./dashboard
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
 
   # Notify on critical alerts
   notify:
