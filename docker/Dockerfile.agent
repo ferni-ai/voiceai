@@ -35,6 +35,7 @@ WORKDIR /rust
 # Install build dependencies for napi-rs and Rust crates
 # - pkg-config + libssl-dev: Required for openssl-sys crate
 # - libclang-dev: Required for bindgen (used by rust-audio FFI bindings)
+# - cmake: Required for whisper-rs-sys (builds whisper.cpp)
 # Note: Metal/Objective-C deps not needed - candle-core metal feature is macOS-only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -42,7 +43,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
     libclang-dev \
+    cmake \
     && rm -rf /var/lib/apt/lists/* \
+    && rustup component add rustfmt \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g @napi-rs/cli
