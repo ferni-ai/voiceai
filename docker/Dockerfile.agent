@@ -34,12 +34,14 @@ WORKDIR /rust
 
 # Install build dependencies for napi-rs and Rust crates
 # - pkg-config + libssl-dev: Required for openssl-sys crate
+# - libclang-dev: Required for bindgen (used by rust-audio FFI bindings)
 # Note: Metal/Objective-C deps not needed - candle-core metal feature is macOS-only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     pkg-config \
     libssl-dev \
+    libclang-dev \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
