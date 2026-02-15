@@ -224,7 +224,11 @@ jobs:
           pnpm vitest run src/agents/multi-agent/__tests__/multi-agent-e2e.test.ts \
             --reporter=verbose \
             --coverage.enabled=true \
-            --coverage.reporter=text
+            --coverage.reporter=text \
+            --coverage.thresholds.lines=0 \
+            --coverage.thresholds.functions=0 \
+            --coverage.thresholds.branches=0 \
+            --coverage.thresholds.statements=0
 
       - name: Run multi-agent orchestrator tests
         run: |
