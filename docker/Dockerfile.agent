@@ -56,6 +56,7 @@ COPY apps/rust-audio/Cargo.toml apps/rust-audio/Cargo.lock ./rust-audio/
 COPY apps/rust-audio/package.json ./rust-audio/
 COPY apps/rust-audio/src ./rust-audio/src
 COPY apps/rust-audio/build.rs ./rust-audio/
+COPY apps/rust-audio/benches ./rust-audio/benches
 
 # Build rust-audio native module for Linux x64
 # Cache mounts persist Cargo registry + build artifacts across builds (~5-10 min savings)

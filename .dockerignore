@@ -180,9 +180,6 @@ apps/ferni-inference/
 apps/btcw/
 apps/mlx-qwen3-omni/
 
-# Rust benchmark files (not needed in production builds)
-apps/rust-audio/benches/
-
 # Python virtual environments
 .venv/
 .venv*/
