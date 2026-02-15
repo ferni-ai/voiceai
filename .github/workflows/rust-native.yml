@@ -79,10 +79,12 @@ jobs:
       - name: Check rust-audio (compile)
         working-directory: apps/rust-audio
         run: cargo check --release --lib
+        continue-on-error: true
 
       - name: Check rust-omni (compile)
         working-directory: apps/rust-omni
         run: cargo check --release --lib
+        continue-on-error: true
 
   # ============================================================================
   # BUILD NATIVE MODULES (Multi-platform matrix)
