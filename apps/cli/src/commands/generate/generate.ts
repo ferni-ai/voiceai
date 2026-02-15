@@ -18,7 +18,7 @@
  */
 
 import { spawn } from 'child_process';
-import { dirname } from 'path';
+import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 // ============================================================================
@@ -26,6 +26,8 @@ import { fileURLToPath } from 'url';
 // ============================================================================
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+// Project root: navigate up from apps/cli/src/commands/generate/ to repo root
+const PROJECT_ROOT = resolve(__dirname, '..', '..', '..', '..', '..');
 
 // ============================================================================
 // COLORS & LOGGING
@@ -66,19 +68,19 @@ const GENERATORS: Record<string, GeneratorTask> = {
     name: 'Frontend Personas',
     description: 'Generate persona TypeScript files for frontend',
     command: 'npx',
-    args: ['tsx', 'scripts/generate-frontend-personas.ts'],
+    args: ['tsx', 'apps/cli/src/commands/generate/generate-frontend-personas.ts'],
   },
   env: {
     name: 'Environment Example',
     description: 'Generate .env.example from codebase analysis',
     command: 'npx',
-    args: ['tsx', 'scripts/generate-env-example.ts'],
+    args: ['tsx', 'apps/cli/src/commands/setup/generate-env-example.ts'],
   },
   vapid: {
     name: 'VAPID Keys',
     description: 'Generate VAPID keys for web push notifications',
     command: 'npx',
-    args: ['tsx', 'scripts/generate-vapid-keys.ts'],
+    args: ['tsx', 'apps/cli/src/commands/generate/generate-vapid-keys.ts'],
   },
   marketing: {
     name: 'Marketing Assets',
@@ -133,7 +135,7 @@ async function runGenerator(key: string, task: GeneratorTask): Promise<Generator
 
   return new Promise((resolve) => {
     const child = spawn(task.command, task.args, {
-      cwd: dirname(__dirname),
+      cwd: PROJECT_ROOT,
       stdio: 'inherit',
       shell: true,
     });

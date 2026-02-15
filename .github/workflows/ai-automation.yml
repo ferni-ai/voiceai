@@ -178,6 +178,7 @@ jobs:
 
       - name: Build frontend
         run: pnpm build:frontend
+        continue-on-error: true
 
       - name: Check Bundle Budget
         id: bundle

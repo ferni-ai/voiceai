@@ -143,6 +143,46 @@ apps/ml-training/
 # Models directory (ONNX models, 3.7GB)
 models/
 
+# Rust compilation artifacts (7.7 GB - rebuilt inside Docker)
+**/target/
+
+# Scripts directory (240 MB) - only 3 files needed, they're COPY'd explicitly
+scripts/
+# These 3 are whitelisted for Dockerfile.agent:
+!scripts/build-tool-manifest.ts
+!scripts/build-tool-embeddings.ts
+!scripts/generate-tool-tiers.js
+
+# Services directory (5.8 GB - not used in Docker builds)
+services/
+
+# Git worktrees (5.4 GB)
+.worktrees/
+
+# Crates directory (722 MB)
+crates/
+
+# Data directory (34 MB - not needed in Docker)
+data/
+
+# Voice embeddings (18 MB)
+voice-embeddings/
+
+# Additional Rust app directories not needed in agent/ui builds
+apps/rust-tts/
+apps/rust-mlx-omni/
+apps/rust-higgs-pipeline/
+apps/rust-higgs-tts/
+apps/rust-orpheus-tts/
+apps/rust-kyutai-bridge/
+apps/rust-omni/
+apps/ferni-inference/
+apps/btcw/
+apps/mlx-qwen3-omni/
+
+# Rust benchmark files (not needed in production builds)
+apps/rust-audio/benches/
+
 # Python virtual environments
 .venv/
 .venv*/
@@ -150,3 +190,6 @@ models/
 **/.venv*/
 *.pyc
 __pycache__/
+
+# Claude config
+.claude/
