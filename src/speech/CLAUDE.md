@@ -52,6 +52,7 @@ const anticipated = orchestrator.anticipate({
 ```
 
 **Benefits:**
+
 - Single API to learn
 - Correct humanization ordering guaranteed
 - Built-in feedback coordination
@@ -106,10 +107,7 @@ persona bundles, following clean architecture principles.
 Combines intent prediction and emotional prosody anticipation for responsive agents:
 
 ```typescript
-import {
-  getAnticipationPipeline,
-  resetAnticipationPipeline,
-} from './anticipation/index.js';
+import { getAnticipationPipeline, resetAnticipationPipeline } from './anticipation/index.js';
 
 // Get pipeline for session
 const pipeline = getAnticipationPipeline(sessionId);
@@ -145,6 +143,7 @@ resetAnticipationPipeline(sessionId);
 ```
 
 This unifies:
+
 - `response-anticipation/` (intent prediction, templates)
 - `sesame-inspired/anticipatory-prosody.ts` (emotional trajectory, micro-reactions)
 
@@ -192,18 +191,18 @@ src/speech/
 
 ### Key Root-Level Files
 
-| Category | Files |
-|----------|-------|
-| **Backchannel** | `backchanneling.ts`, `enhanced-backchanneling.ts`, `live-backchanneling.ts`, `llm-backchannel.ts`, `backchannel-phrase-selector.ts` |
-| **Voice Analysis** | `audio-prosody.ts`, `fft-analyzer.ts`, `breath-detection.ts`, `voice-tremor.ts`, `volume-dynamics.ts`, `energy-dynamics.ts` |
-| **Humanization** | `voice-humanization.ts`, `advanced-humanization.ts`, `response-naturalness.ts`, `consonant-smoothing.ts` |
-| **TTS** | `tts-context.ts`, `tts-bulkhead.ts`, `tts-monitoring.ts`, `cartesia-context-patch.ts`, `cartesia-expressiveness.ts` |
-| **Speech Flow** | `enhanced-turn-prediction.ts`, `prosody-turn-bridge.ts`, `word-timing-rhythm.ts`, `adaptive-ssml.ts` |
-| **Cognitive** | `cognitive-speech.ts`, `cognitive-speech-integration.ts`, `conversational-presence.ts` |
-| **Emotion** | `emotion-matching.ts`, `emotion-profiles.ts`, `emotional-contagion.ts` |
-| **Analysis** | `fluency-analysis.ts`, `filler-analysis.ts`, `multi-signal-laughter.ts` |
-| **Session** | `session-cleanup.ts`, `session-debug.ts`, `session-service.ts`, `speech-context.ts` |
-| **Other** | `human-listening-pipeline.ts`, `persona-voice-loader.ts`, `tool-fillers.ts`, `music-reactions.ts` |
+| Category           | Files                                                                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Backchannel**    | `backchanneling.ts`, `enhanced-backchanneling.ts`, `live-backchanneling.ts`, `llm-backchannel.ts`, `backchannel-phrase-selector.ts` |
+| **Voice Analysis** | `audio-prosody.ts`, `fft-analyzer.ts`, `breath-detection.ts`, `voice-tremor.ts`, `volume-dynamics.ts`, `energy-dynamics.ts`         |
+| **Humanization**   | `voice-humanization.ts`, `advanced-humanization.ts`, `response-naturalness.ts`, `consonant-smoothing.ts`                            |
+| **TTS**            | `tts-context.ts`, `tts-bulkhead.ts`, `tts-monitoring.ts`, `cartesia-context-patch.ts`, `cartesia-expressiveness.ts`                 |
+| **Speech Flow**    | `enhanced-turn-prediction.ts`, `prosody-turn-bridge.ts`, `word-timing-rhythm.ts`, `adaptive-ssml.ts`                                |
+| **Cognitive**      | `cognitive-speech.ts`, `cognitive-speech-integration.ts`, `conversational-presence.ts`                                              |
+| **Emotion**        | `emotion-matching.ts`, `emotion-profiles.ts`, `emotional-contagion.ts`                                                              |
+| **Analysis**       | `fluency-analysis.ts`, `filler-analysis.ts`, `multi-signal-laughter.ts`                                                             |
+| **Session**        | `session-cleanup.ts`, `session-debug.ts`, `session-service.ts`, `speech-context.ts`                                                 |
+| **Other**          | `human-listening-pipeline.ts`, `persona-voice-loader.ts`, `tool-fillers.ts`, `music-reactions.ts`                                   |
 
 ## SSML Architecture
 
@@ -283,6 +282,52 @@ HIGGS_PIPELINE_URL=ws://localhost:8600/ws
 ```bash
 curl http://localhost:8600/health        # Liveness
 curl http://localhost:8600/health/ready   # Readiness (model status)
+```
+
+---
+
+## Higgs MLX Provider (TTS Only)
+
+Self-hosted TTS using Higgs Audio V2 on Apple Silicon with INT4 quantization (~75 tok/s).
+
+### Enable
+
+```
+TTS_PROVIDER=higgs-mlx
+HIGGS_MLX_URL=ws://localhost:8700          # Python server (WebSocket at root)
+HIGGS_MLX_HEALTH_URL=http://localhost:8701/health   # Health on port+1
+
+# For Rust server:
+HIGGS_MLX_URL=ws://localhost:8700/ws       # WebSocket at /ws
+HIGGS_MLX_HEALTH_URL=http://localhost:8700/health   # Health on same port
+```
+
+### Protocol
+
+JSON control messages + binary PCM audio:
+
+| Direction | Message                                | Purpose                 |
+| --------- | -------------------------------------- | ----------------------- |
+| Client →  | `StartSession`                         | Initialize session      |
+| Server →  | `SessionStarted`                       | Session ready           |
+| Client →  | `Synthesize`                           | Non-streaming synthesis |
+| Client →  | `SynthesizeStreaming`                  | Streaming synthesis     |
+| Server →  | `AudioChunk` + binary                  | PCM audio data          |
+| Server →  | `SynthesisComplete` / `StreamComplete` | Synthesis done          |
+| Client →  | `EndSession`                           | Close session           |
+
+### Key Files
+
+- Python server: `apps/mlx-higgs/server.py`
+- Rust server: `apps/rust-higgs-mlx/src/main.rs`
+- TS provider: `src/speech/tts-gateway/providers/higgs-mlx.ts`
+- xCodec export: `scripts/higgs/export_xcodec_standalone.py`
+
+### Health Check
+
+```bash
+curl http://localhost:8701/health    # Python server (port+1)
+curl http://localhost:8700/health    # Rust server (same port)
 ```
 
 ---
@@ -545,14 +590,14 @@ These functions are deprecated and will be removed according to the timeline bel
 
 ### 📅 Deprecation Timeline
 
-| API Category | Status | Migration Guide |
-|--------------|--------|-----------------|
-| **ssml-tagger/** module | ✅ Removed | Migrate to `src/ssml/` |
-| **jack-bogle.ts** | ✅ Removed | Use persona bundles |
-| **Legacy global managers** | ⚠️ Deprecated | Use session-scoped APIs |
-| **remove* naming** | ⚠️ Deprecated | Use `reset*` naming |
-| **ACKNOWLEDGMENT_PREFIXES** | ⚠️ Deprecated | LLM generates naturally |
-| **getThinkingFiller()** | ⚠️ Deprecated | Use `getContextAwareThinkingFiller()` |
+| API Category                | Status        | Migration Guide                       |
+| --------------------------- | ------------- | ------------------------------------- |
+| **ssml-tagger/** module     | ✅ Removed    | Migrate to `src/ssml/`                |
+| **jack-bogle.ts**           | ✅ Removed    | Use persona bundles                   |
+| **Legacy global managers**  | ⚠️ Deprecated | Use session-scoped APIs               |
+| **remove\* naming**         | ⚠️ Deprecated | Use `reset*` naming                   |
+| **ACKNOWLEDGMENT_PREFIXES** | ⚠️ Deprecated | LLM generates naturally               |
+| **getThinkingFiller()**     | ⚠️ Deprecated | Use `getContextAwareThinkingFiller()` |
 
 ---
 
@@ -581,6 +626,7 @@ These functions are deprecated and will be removed in a future version:
 ### Naming Convention Updates (COMPLETED)
 
 The `remove*` naming has been replaced with `reset*`:
+
 - `resetSessionAudioProsodyAnalyzer()`
 - `resetSessionWPMTracker()`
 - `resetSessionBackchannelingSystem()`

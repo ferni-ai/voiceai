@@ -57,11 +57,21 @@ export {
   type VoiceBiomarkers,
 } from './higgs-pipeline.js';
 
+// Higgs MLX (Apple Silicon: INT4 quantized, ~75 tok/s)
+export {
+  HiggsMLXTTSProvider,
+  createHiggsMLXProvider,
+  getHiggsMLXProvider,
+  resetHiggsMLXProvider,
+  type HiggsMLXProviderConfig,
+} from './higgs-mlx.js';
+
 // Factory for selecting TTS provider
 import type { ITTSProvider } from '../types.js';
 import { getBTCWProvider } from './btcw.js';
 import { getCartesiaProvider } from './cartesia.js';
 import { getHiggsPipelineProvider } from './higgs-pipeline.js';
+import { getHiggsMLXProvider } from './higgs-mlx.js';
 import { getKyutaiProvider } from './kyutai-tts.js';
 import { getLocalTTSProvider } from './local-tts.js';
 
@@ -71,6 +81,7 @@ import { getLocalTTSProvider } from './local-tts.js';
  * Environment variable: TTS_PROVIDER
  * Valid values:
  * - 'higgs-pipeline' or 'higgs' — Rust Higgs pipeline (STT + TTS + biomarkers)
+ * - 'higgs-mlx' — Higgs Audio V2 on Apple MLX (INT4, ~75 tok/s, local Mac)
  * - 'local' — Local TTS server (e.g., Qwen3-TTS MLX)
  * - 'kyutai' — Kyutai Moshi TTS
  * - 'cartesia' — Cartesia cloud TTS (default)
@@ -79,6 +90,7 @@ import { getLocalTTSProvider } from './local-tts.js';
  *
  * Related env vars:
  * - HIGGS_PIPELINE_URL — WebSocket URL for Higgs (default: ws://localhost:8600/ws)
+ * - HIGGS_MLX_URL — WebSocket URL for Higgs MLX (default: ws://localhost:8700)
  * - LOCAL_TTS_URL — URL for local TTS server
  * - CARTESIA_API_KEY — API key for Cartesia
  */
@@ -87,6 +99,10 @@ export function getTTSProvider(): ITTSProvider {
 
   if (provider === 'higgs-pipeline' || provider === 'higgs') {
     return getHiggsPipelineProvider();
+  }
+
+  if (provider === 'higgs-mlx') {
+    return getHiggsMLXProvider();
   }
 
   if (provider === 'local') {

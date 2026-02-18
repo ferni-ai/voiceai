@@ -271,7 +271,8 @@ export class Qwen3OmniRealtimeSession extends llm.RealtimeSession {
       ...this.conversationHistory,
     ];
 
-    const leadPersonaId = (this.directorEngine?.leadPersonaId ?? this.config.defaultPersonaId) as PersonaId;
+    const leadPersonaId = (this.directorEngine?.leadPersonaId ??
+      this.config.defaultPersonaId) as PersonaId;
 
     let textStreamController: ReadableStreamDefaultController<string> | null = null;
     let audioStreamController: ReadableStreamDefaultController<AudioFrame> | null = null;
@@ -335,7 +336,6 @@ export class Qwen3OmniRealtimeSession extends llm.RealtimeSession {
       messageStream,
       functionStream,
       userInitiated: true,
-      responseId,
     };
   }
 

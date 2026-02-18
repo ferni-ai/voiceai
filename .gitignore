@@ -179,3 +179,6 @@ brand/.claude/
 # Voice embeddings (large binary files)
 voice-embeddings/samples/
 voice-embeddings/*.pt
+
+# Test audio output artifacts
+test_higgs_output.wav

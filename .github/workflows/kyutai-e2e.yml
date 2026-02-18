@@ -1,0 +1,425 @@
+name: Kyutai DSM E2E Tests
+
+# Run real Kyutai bridge E2E tests using Docker mock mode on the self-hosted
+# runner. Tests include WebSocket protocol, health endpoints, latency, and
+# integration with the Node.js speech providers.
+#
+# Uses the Rust kyutai-bridge in --mock mode (no GPU / no model download)
+# to verify the full protocol stack end-to-end. Real model tests require
+# GPU hardware and are gated behind KYUTAI_E2E_REAL_MODELS=true.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/kyutai-bridge/**'
+      - 'src/speech/**'
+      - 'docker/docker-compose.dsm.yml'
+      - '.github/workflows/kyutai-e2e.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'services/kyutai-bridge/**'
+      - 'src/speech/**'
+      - 'docker/docker-compose.dsm.yml'
+      - '.github/workflows/kyutai-e2e.yml'
+  workflow_dispatch:
+    inputs:
+      real_models:
+        description: 'Run with real Kyutai models (requires GPU)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+concurrency:
+  group: kyutai-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  KYUTAI_BRIDGE_IMAGE: kyutai-bridge:e2e
+
+jobs:
+  # ============================================================================
+  # BUILD KYUTAI BRIDGE (Docker, mock mode)
+  # ============================================================================
+  build-bridge:
+    name: Build Kyutai Bridge
+    runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Kyutai Bridge Docker image
+        run: |
+          docker build \
+            -f services/kyutai-bridge/Dockerfile \
+            -t ${{ env.KYUTAI_BRIDGE_IMAGE }} \
+            .
+
+      - name: Verify bridge starts in mock mode
+        run: |
+          # Start in mock mode (no model download)
+          docker run -d --name kyutai-bridge-test \
+            -p 18089:8089 -p 18090:8090 \
+            ${{ env.KYUTAI_BRIDGE_IMAGE }} \
+            kyutai-bridge --mock --bind-addr 0.0.0.0
+
+          # Wait for startup
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:18089/health > /dev/null 2>&1; then
+              echo "✅ Bridge started in mock mode"
+              break
+            fi
+            echo "Waiting for bridge... ($i/20)"
+            sleep 2
+          done
+
+          # Verify health
+          curl -sf http://localhost:18089/health | jq .
+          curl -sf http://localhost:18089/health/ready | jq .
+          curl -sf http://localhost:18090/health | jq .
+          curl -sf http://localhost:18090/health/ready | jq .
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop kyutai-bridge-test 2>/dev/null || true
+          docker rm kyutai-bridge-test 2>/dev/null || true
+
+  # ============================================================================
+  # PROTOCOL E2E TESTS (Mock mode — no GPU required)
+  # ============================================================================
+  protocol-e2e:
+    name: Protocol E2E (Mock)
+    runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 30
+    needs: build-bridge
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start Kyutai Bridge (mock mode)
+        run: |
+          docker run -d --name kyutai-stt-e2e \
+            -p 8089:8089 \
+            ${{ env.KYUTAI_BRIDGE_IMAGE }} \
+            kyutai-bridge --mock --bind-addr 0.0.0.0 --stt-only
+
+          docker run -d --name kyutai-tts-e2e \
+            -p 8090:8090 \
+            ${{ env.KYUTAI_BRIDGE_IMAGE }} \
+            kyutai-bridge --mock --bind-addr 0.0.0.0
+
+          # Wait for both to be ready
+          for i in $(seq 1 20); do
+            STT_READY=$(curl -sf http://localhost:8089/health/ready 2>/dev/null | jq -r .ready || echo "false")
+            TTS_READY=$(curl -sf http://localhost:8090/health/ready 2>/dev/null | jq -r .ready || echo "false")
+            if [ "$STT_READY" = "true" ] && [ "$TTS_READY" = "true" ]; then
+              echo "✅ Both STT and TTS bridges ready"
+              break
+            fi
+            echo "Waiting... STT=$STT_READY TTS=$TTS_READY ($i/20)"
+            sleep 2
+          done
+
+      - name: Run Kyutai DSM E2E tests (mock server)
+        run: |
+          pnpm vitest run \
+            src/speech/providers/__tests__/kyutai-stt.test.ts \
+            src/speech/providers/__tests__/kyutai-stt-adapter.test.ts \
+            src/speech/tts-gateway/providers/__tests__/kyutai-tts.test.ts \
+            src/speech/tts-gateway/providers/__tests__/kyutai-tts-integration.test.ts \
+            src/speech/__tests__/kyutai-health.test.ts \
+            src/speech/tts-gateway/__tests__/gateway-tts-node-kyutai.test.ts \
+            src/tests/e2e/kyutai-dsm-e2e.test.ts \
+            --reporter=verbose
+        env:
+          NODE_ENV: test
+          USE_KYUTAI_STT: 'true'
+          KYUTAI_STT_URL: 'ws://localhost:8089'
+          KYUTAI_TTS_URL: 'ws://localhost:8090'
+
+      - name: Run Higgs MLX provider tests
+        run: |
+          pnpm vitest run \
+            src/speech/__tests__/higgs-mlx-provider.test.ts \
+            --reporter=verbose
+        env:
+          NODE_ENV: test
+
+      - name: Protocol health check (STT)
+        run: |
+          # Verify STT WebSocket accepts connections and returns mock transcript
+          node -e "
+            const WebSocket = require('ws');
+            const ws = new WebSocket('ws://localhost:8089/api/asr-streaming');
+            ws.on('open', () => {
+              console.log('STT WebSocket connected');
+              // Send some fake PCM data
+              const silence = Buffer.alloc(2560); // 1280 samples * 2 bytes
+              ws.send(silence);
+              setTimeout(() => {
+                ws.send(JSON.stringify({action:'flush'}));
+              }, 500);
+            });
+            ws.on('message', (data) => {
+              const msg = JSON.parse(data.toString());
+              console.log('STT response:', JSON.stringify(msg));
+              if (msg.is_final) {
+                console.log('✅ Got final transcript');
+                ws.close();
+                process.exit(0);
+              }
+            });
+            ws.on('error', (e) => { console.error('STT error:', e); process.exit(1); });
+            setTimeout(() => { console.error('❌ Timeout'); process.exit(1); }, 10000);
+          "
+
+      - name: Protocol health check (TTS)
+        run: |
+          # Verify TTS WebSocket accepts connections and returns mock audio
+          node -e "
+            const WebSocket = require('ws');
+            const ws = new WebSocket('ws://localhost:8090/api/tts_streaming');
+            let gotAudio = false;
+            ws.on('open', () => {
+              console.log('TTS WebSocket connected');
+              ws.send(JSON.stringify({text:'Hello world', voice_id:'ferni'}));
+            });
+            ws.on('message', (data) => {
+              if (Buffer.isBuffer(data)) {
+                gotAudio = true;
+                console.log('Got audio chunk:', data.length, 'bytes');
+              } else {
+                const msg = JSON.parse(data.toString());
+                console.log('TTS response:', JSON.stringify(msg));
+                if (msg.done) {
+                  console.log(gotAudio ? '✅ Got audio + done' : '❌ No audio received');
+                  ws.close();
+                  process.exit(gotAudio ? 0 : 1);
+                }
+              }
+            });
+            ws.on('error', (e) => { console.error('TTS error:', e); process.exit(1); });
+            setTimeout(() => { console.error('❌ Timeout'); process.exit(1); }, 10000);
+          "
+
+      - name: Protocol health check (full-duplex STS)
+        run: |
+          # Verify full-duplex STS WebSocket accepts connections
+          node -e "
+            const WebSocket = require('ws');
+            const ws = new WebSocket('ws://localhost:8089/api/sts-full-duplex');
+            ws.on('open', () => {
+              console.log('STS WebSocket connected');
+            });
+            ws.on('message', (data) => {
+              const msg = JSON.parse(data.toString());
+              console.log('STS handshake:', JSON.stringify(msg));
+              if (msg.mode && msg.mode.includes('sts-full-duplex')) {
+                console.log('✅ Full-duplex STS mode confirmed');
+                // Send some audio and check for response
+                const silence = Buffer.alloc(3840); // 1920 samples * 2 bytes (one Mimi frame)
+                ws.send(silence);
+                setTimeout(() => {
+                  ws.send(JSON.stringify({action:'stop'}));
+                  setTimeout(() => { ws.close(); process.exit(0); }, 500);
+                }, 1000);
+              }
+            });
+            ws.on('error', (e) => { console.error('STS error:', e); process.exit(1); });
+            setTimeout(() => { console.error('❌ Timeout'); process.exit(1); }, 10000);
+          "
+
+      - name: Cleanup containers
+        if: always()
+        run: |
+          docker stop kyutai-stt-e2e kyutai-tts-e2e 2>/dev/null || true
+          docker rm kyutai-stt-e2e kyutai-tts-e2e 2>/dev/null || true
+
+  # ============================================================================
+  # REAL MODEL E2E TESTS (GPU required — manual trigger only)
+  # ============================================================================
+  real-model-e2e:
+    name: Real Model E2E (GPU)
+    runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 60
+    if: github.event.inputs.real_models == 'true'
+    needs: build-bridge
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check GPU availability
+        run: |
+          if ! nvidia-smi > /dev/null 2>&1; then
+            echo "❌ No NVIDIA GPU available. Real model tests require GPU."
+            echo "   Skipping real model E2E tests."
+            exit 1
+          fi
+          nvidia-smi --query-gpu=name,memory.total,memory.free --format=csv
+          echo "✅ GPU available"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start Kyutai Bridge (real models)
+        run: |
+          # Start with real models (requires GPU + model download)
+          docker run -d --name kyutai-real-stt \
+            --gpus all \
+            -p 8089:8089 \
+            -v $HOME/.cache/huggingface:/root/.cache/huggingface \
+            ${{ env.KYUTAI_BRIDGE_IMAGE }} \
+            kyutai-bridge --bind-addr 0.0.0.0 --stt-only
+
+          docker run -d --name kyutai-real-tts \
+            --gpus all \
+            -p 8090:8090 \
+            -v $HOME/.cache/huggingface:/root/.cache/huggingface \
+            ${{ env.KYUTAI_BRIDGE_IMAGE }} \
+            kyutai-bridge --bind-addr 0.0.0.0
+
+          # Wait for model loading (can take 2-5 minutes)
+          echo "Waiting for model loading..."
+          for i in $(seq 1 90); do
+            STT_READY=$(curl -sf http://localhost:8089/health/ready 2>/dev/null | jq -r .ready || echo "false")
+            TTS_READY=$(curl -sf http://localhost:8090/health/ready 2>/dev/null | jq -r .ready || echo "false")
+            if [ "$STT_READY" = "true" ] && [ "$TTS_READY" = "true" ]; then
+              echo "✅ Both bridges ready with real models"
+              break
+            fi
+            if [ $((i % 10)) -eq 0 ]; then
+              echo "Still loading... STT=$STT_READY TTS=$TTS_READY ($i/90)"
+            fi
+            sleep 2
+          done
+
+          # Final check
+          STT_READY=$(curl -sf http://localhost:8089/health/ready | jq -r .ready)
+          TTS_READY=$(curl -sf http://localhost:8090/health/ready | jq -r .ready)
+          if [ "$STT_READY" != "true" ] || [ "$TTS_READY" != "true" ]; then
+            echo "❌ Bridges failed to load real models within timeout"
+            docker logs kyutai-real-stt --tail 50
+            docker logs kyutai-real-tts --tail 50
+            exit 1
+          fi
+
+      - name: Run real model STT test
+        run: |
+          # Generate a short test audio and verify transcription
+          node -e "
+            const WebSocket = require('ws');
+            const ws = new WebSocket('ws://localhost:8089/api/asr-streaming');
+            ws.on('open', () => {
+              console.log('Connected to real STT');
+              // Generate 2s of 440Hz tone as test audio (16kHz, Int16)
+              const sampleRate = 16000;
+              const duration = 2;
+              const samples = sampleRate * duration;
+              const buf = Buffer.alloc(samples * 2);
+              for (let i = 0; i < samples; i++) {
+                const val = Math.sin(2 * Math.PI * 440 * i / sampleRate) * 16000;
+                buf.writeInt16LE(Math.round(val), i * 2);
+              }
+              // Send in chunks
+              const chunkSize = 2560;
+              for (let offset = 0; offset < buf.length; offset += chunkSize) {
+                ws.send(buf.slice(offset, Math.min(offset + chunkSize, buf.length)));
+              }
+              setTimeout(() => ws.send(JSON.stringify({action:'flush'})), 500);
+            });
+            ws.on('message', (data) => {
+              const msg = JSON.parse(data.toString());
+              console.log('STT:', JSON.stringify(msg));
+              if (msg.is_final) {
+                console.log('✅ Real STT transcription received');
+                ws.close();
+                process.exit(0);
+              }
+            });
+            setTimeout(() => { console.error('❌ STT timeout'); process.exit(1); }, 30000);
+          "
+
+      - name: Run real model TTS test
+        run: |
+          # Send text and verify audio generation
+          node -e "
+            const WebSocket = require('ws');
+            const ws = new WebSocket('ws://localhost:8090/api/tts_streaming');
+            let totalAudioBytes = 0;
+            ws.on('open', () => {
+              console.log('Connected to real TTS');
+              ws.send(JSON.stringify({text:'Hello, this is a test of the Kyutai TTS system.', voice_id:'ferni'}));
+            });
+            ws.on('message', (data) => {
+              if (Buffer.isBuffer(data)) {
+                totalAudioBytes += data.length;
+              } else {
+                const msg = JSON.parse(data.toString());
+                console.log('TTS:', JSON.stringify(msg));
+                if (msg.done) {
+                  console.log('Total audio bytes:', totalAudioBytes);
+                  if (totalAudioBytes > 1000) {
+                    console.log('✅ Real TTS generated audio');
+                    ws.close();
+                    process.exit(0);
+                  } else {
+                    console.error('❌ Too little audio generated');
+                    ws.close();
+                    process.exit(1);
+                  }
+                }
+              }
+            });
+            setTimeout(() => { console.error('❌ TTS timeout'); process.exit(1); }, 60000);
+          "
+
+      - name: Latency benchmarks (real models)
+        run: |
+          echo "📊 Real Model Latency Benchmarks"
+          echo "================================="
+          # Run the existing E2E tests with real models
+          pnpm vitest run \
+            src/tests/e2e/kyutai-dsm-e2e.test.ts \
+            --reporter=verbose || true
+        env:
+          NODE_ENV: test
+          USE_KYUTAI_STT: 'true'
+          KYUTAI_STT_URL: 'ws://localhost:8089'
+          KYUTAI_TTS_URL: 'ws://localhost:8090'
+          KYUTAI_E2E_REAL_MODELS: 'true'
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop kyutai-real-stt kyutai-real-tts 2>/dev/null || true
+          docker rm kyutai-real-stt kyutai-real-tts 2>/dev/null || true

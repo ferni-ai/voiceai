@@ -1,0 +1,272 @@
+[
+  {
+    "persona": "ferni",
+    "sentence": "warm_greeting",
+    "ttfb_ms": 657.2127920007915,
+    "total_ms": 2101.9388329987123,
+    "duration_s": 3.28,
+    "speed_x": 1.5604640575199884,
+    "file": "ferni_warm_greeting.wav"
+  },
+  {
+    "persona": "ferni",
+    "sentence": "empathetic",
+    "ttfb_ms": 603.3627920005529,
+    "total_ms": 2573.968374999822,
+    "duration_s": 4.72,
+    "speed_x": 1.833744363700788,
+    "file": "ferni_empathetic.wav"
+  },
+  {
+    "persona": "ferni",
+    "sentence": "enthusiastic",
+    "ttfb_ms": 602.7792499990028,
+    "total_ms": 2067.4500000022817,
+    "duration_s": 3.44,
+    "speed_x": 1.663885462766308,
+    "file": "ferni_enthusiastic.wav"
+  },
+  {
+    "persona": "ferni",
+    "sentence": "reflective",
+    "ttfb_ms": 604.4709159978083,
+    "total_ms": 2786.661375001131,
+    "duration_s": 5.12,
+    "speed_x": 1.8373240630996732,
+    "file": "ferni_reflective.wav"
+  },
+  {
+    "persona": "ferni",
+    "sentence": "practical",
+    "ttfb_ms": 626.3662499986822,
+    "total_ms": 3386.342916001013,
+    "duration_s": 6.64,
+    "speed_x": 1.9608173669078037,
+    "file": "ferni_practical.wav"
+  },
+  {
+    "persona": "maya",
+    "sentence": "warm_greeting",
+    "ttfb_ms": 634.83124999766,
+    "total_ms": 2254.446499999176,
+    "duration_s": 3.84,
+    "speed_x": 1.7033005662371687,
+    "file": "maya_warm_greeting.wav"
+  },
+  {
+    "persona": "maya",
+    "sentence": "empathetic",
+    "ttfb_ms": 624.8394169997482,
+    "total_ms": 2509.130833001109,
+    "duration_s": 4.48,
+    "speed_x": 1.7854788363672467,
+    "file": "maya_empathetic.wav"
+  },
+  {
+    "persona": "maya",
+    "sentence": "enthusiastic",
+    "ttfb_ms": 679.1150829994876,
+    "total_ms": 2586.359332999564,
+    "duration_s": 4.16,
+    "speed_x": 1.6084385285997311,
+    "file": "maya_enthusiastic.wav"
+  },
+  {
+    "persona": "maya",
+    "sentence": "reflective",
+    "ttfb_ms": 638.9726249981322,
+    "total_ms": 3469.9222089984687,
+    "duration_s": 6.48,
+    "speed_x": 1.867477023892803,
+    "file": "maya_reflective.wav"
+  },
+  {
+    "persona": "maya",
+    "sentence": "practical",
+    "ttfb_ms": 644.8144159985532,
+    "total_ms": 3554.7281250001106,
+    "duration_s": 6.72,
+    "speed_x": 1.890439933433669,
+    "file": "maya_practical.wav"
+  },
+  {
+    "persona": "peter-john",
+    "sentence": "warm_greeting",
+    "ttfb_ms": 639.7569589971681,
+    "total_ms": 1961.9824169967615,
+    "duration_s": 2.96,
+    "speed_x": 1.5086781483653255,
+    "file": "peter-john_warm_greeting.wav"
+  },
+  {
+    "persona": "peter-john",
+    "sentence": "empathetic",
+    "ttfb_ms": 641.4515830001619,
+    "total_ms": 2632.8922499997134,
+    "duration_s": 4.48,
+    "speed_x": 1.7015508325494475,
+    "file": "peter-john_empathetic.wav"
+  },
+  {
+    "persona": "peter-john",
+    "sentence": "enthusiastic",
+    "ttfb_ms": 633.6708329981775,
+    "total_ms": 2462.075041999924,
+    "duration_s": 4.16,
+    "speed_x": 1.689631684264532,
+    "file": "peter-john_enthusiastic.wav"
+  },
+  {
+    "persona": "peter-john",
+    "sentence": "reflective",
+    "ttfb_ms": 663.2959999988088,
+    "total_ms": 3020.1006249990314,
+    "duration_s": 5.28,
+    "speed_x": 1.748286118778474,
+    "file": "peter-john_reflective.wav"
+  },
+  {
+    "persona": "peter-john",
+    "sentence": "practical",
+    "ttfb_ms": 633.8009999999485,
+    "total_ms": 3043.7302499994985,
+    "duration_s": 5.36,
+    "speed_x": 1.7609970528764445,
+    "file": "peter-john_practical.wav"
+  },
+  {
+    "persona": "alex",
+    "sentence": "warm_greeting",
+    "ttfb_ms": 632.2892919997685,
+    "total_ms": 2304.686250001396,
+    "duration_s": 3.76,
+    "speed_x": 1.63145851197651,
+    "file": "alex_warm_greeting.wav"
+  },
+  {
+    "persona": "alex",
+    "sentence": "empathetic",
+    "ttfb_ms": 630.5228330020327,
+    "total_ms": 3119.8125000009895,
+    "duration_s": 5.44,
+    "speed_x": 1.743694532924102,
+    "file": "alex_empathetic.wav"
+  },
+  {
+    "persona": "alex",
+    "sentence": "enthusiastic",
+    "ttfb_ms": 645.9557079979277,
+    "total_ms": 2282.7644159988267,
+    "duration_s": 3.68,
+    "speed_x": 1.6120804995069151,
+    "file": "alex_enthusiastic.wav"
+  },
+  {
+    "persona": "alex",
+    "sentence": "reflective",
+    "ttfb_ms": 642.3550420004176,
+    "total_ms": 3082.176709001942,
+    "duration_s": 5.6,
+    "speed_x": 1.8168977734613305,
+    "file": "alex_reflective.wav"
+  },
+  {
+    "persona": "alex",
+    "sentence": "practical",
+    "ttfb_ms": 631.9028329999128,
+    "total_ms": 3581.710500002373,
+    "duration_s": 6.8,
+    "speed_x": 1.8985342338515339,
+    "file": "alex_practical.wav"
+  },
+  {
+    "persona": "jordan",
+    "sentence": "warm_greeting",
+    "ttfb_ms": 628.0892079994373,
+    "total_ms": 2336.8053330013936,
+    "duration_s": 3.84,
+    "speed_x": 1.6432691015249878,
+    "file": "jordan_warm_greeting.wav"
+  },
+  {
+    "persona": "jordan",
+    "sentence": "empathetic",
+    "ttfb_ms": 665.8553749985003,
+    "total_ms": 3296.935292000853,
+    "duration_s": 5.28,
+    "speed_x": 1.601487300284762,
+    "file": "jordan_empathetic.wav"
+  },
+  {
+    "persona": "jordan",
+    "sentence": "enthusiastic",
+    "ttfb_ms": 659.3519579982967,
+    "total_ms": 2824.2555829965568,
+    "duration_s": 4.72,
+    "speed_x": 1.6712368485404723,
+    "file": "jordan_enthusiastic.wav"
+  },
+  {
+    "persona": "jordan",
+    "sentence": "reflective",
+    "ttfb_ms": 646.3926669966895,
+    "total_ms": 3002.2142919988255,
+    "duration_s": 4.96,
+    "speed_x": 1.65211391246083,
+    "file": "jordan_reflective.wav"
+  },
+  {
+    "persona": "jordan",
+    "sentence": "practical",
+    "ttfb_ms": 652.5439999968512,
+    "total_ms": 3629.5080839990987,
+    "duration_s": 6.48,
+    "speed_x": 1.7853659091069294,
+    "file": "jordan_practical.wav"
+  },
+  {
+    "persona": "nayan-patel",
+    "sentence": "warm_greeting",
+    "ttfb_ms": 693.1804579980962,
+    "total_ms": 2314.6014579979237,
+    "duration_s": 3.6,
+    "speed_x": 1.5553433562225076,
+    "file": "nayan-patel_warm_greeting.wav"
+  },
+  {
+    "persona": "nayan-patel",
+    "sentence": "empathetic",
+    "ttfb_ms": 648.9160829987668,
+    "total_ms": 2531.7390420023003,
+    "duration_s": 4.0,
+    "speed_x": 1.579941666040147,
+    "file": "nayan-patel_empathetic.wav"
+  },
+  {
+    "persona": "nayan-patel",
+    "sentence": "enthusiastic",
+    "ttfb_ms": 659.217415999592,
+    "total_ms": 2897.2462080018886,
+    "duration_s": 4.56,
+    "speed_x": 1.5739083504210862,
+    "file": "nayan-patel_enthusiastic.wav"
+  },
+  {
+    "persona": "nayan-patel",
+    "sentence": "reflective",
+    "ttfb_ms": 683.1284159998177,
+    "total_ms": 3330.0014580017887,
+    "duration_s": 5.84,
+    "speed_x": 1.7537529858933962,
+    "file": "nayan-patel_reflective.wav"
+  },
+  {
+    "persona": "nayan-patel",
+    "sentence": "practical",
+    "ttfb_ms": 648.6367090001295,
+    "total_ms": 3544.4924170005834,
+    "duration_s": 6.32,
+    "speed_x": 1.7830479675135273,
+    "file": "nayan-patel_practical.wav"
+  }
+]

@@ -314,7 +314,6 @@ export class SessionManagerRealtimeSession extends llm.RealtimeSession {
       messageStream,
       functionStream,
       userInitiated: true,
-      responseId,
     };
   }
 

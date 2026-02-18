@@ -47,12 +47,7 @@ export class KyutaiSTT extends stt.STT {
   }
 
   stream(options?: { connOptions?: APIConnectOptions }): KyutaiSpeechStream {
-    return new KyutaiSpeechStream(
-      this,
-      KYUTAI_STT_SAMPLE_RATE,
-      this.sttUrl,
-      options?.connOptions
-    );
+    return new KyutaiSpeechStream(this, KYUTAI_STT_SAMPLE_RATE, this.sttUrl, options?.connOptions);
   }
 }
 
@@ -89,7 +84,9 @@ class KyutaiSpeechStream extends stt.SpeechStream {
     const startTime = Date.now() / 1000;
     client.onTranscript((ev) => {
       const event: stt.SpeechEvent = {
-        type: ev.isFinal ? stt.SpeechEventType.FINAL_TRANSCRIPT : stt.SpeechEventType.INTERIM_TRANSCRIPT,
+        type: ev.isFinal
+          ? stt.SpeechEventType.FINAL_TRANSCRIPT
+          : stt.SpeechEventType.INTERIM_TRANSCRIPT,
         alternatives: [
           {
             language: 'en',
@@ -97,11 +94,6 @@ class KyutaiSpeechStream extends stt.SpeechStream {
             startTime,
             endTime: startTime,
             confidence: 1,
-            words: ev.words?.map((w) => ({
-              text: w.word,
-              startTime: w.startMs != null ? w.startMs / 1000 : undefined,
-              endTime: w.endMs != null ? w.endMs / 1000 : undefined,
-            })),
           },
         ],
       };
@@ -117,10 +109,10 @@ class KyutaiSpeechStream extends stt.SpeechStream {
 
     client.onVAD((ev) => {
       const event: stt.SpeechEvent = {
-        type: ev.isSpeaking ? stt.SpeechEventType.START_OF_SPEECH : stt.SpeechEventType.END_OF_SPEECH,
-        alternatives: [
-          { language: 'en', text: '', startTime: 0, endTime: 0, confidence: 0 },
-        ],
+        type: ev.isSpeaking
+          ? stt.SpeechEventType.START_OF_SPEECH
+          : stt.SpeechEventType.END_OF_SPEECH,
+        alternatives: [{ language: 'en', text: '', startTime: 0, endTime: 0, confidence: 0 }],
       };
       try {
         this.queue.put(event);

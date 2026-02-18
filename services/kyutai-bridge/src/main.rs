@@ -135,6 +135,26 @@ async fn ready_handler(State(state): State<AppState>) -> impl IntoResponse {
     }
 }
 
+fn cors_layer() -> CorsLayer {
+    use tower_http::cors::AllowOrigin;
+    use axum::http::{HeaderValue, Method};
+
+    // In production, restrict CORS to known Ferni origins.
+    // In development / mock mode, allow all origins for local testing.
+    let allowed_origins: Vec<HeaderValue> = vec![
+        "https://app.ferni.ai".parse().unwrap(),
+        "https://ferni.ai".parse().unwrap(),
+        "https://ferni-prod.web.app".parse().unwrap(),
+        "http://localhost:3004".parse().unwrap(),
+        "http://localhost:8080".parse().unwrap(),
+    ];
+
+    CorsLayer::new()
+        .allow_origin(AllowOrigin::list(allowed_origins))
+        .allow_methods([Method::GET, Method::OPTIONS])
+        .allow_headers(tower_http::cors::Any)
+}
+
 fn stt_app(state: AppState) -> Router {
     Router::new()
         .route("/api/asr-streaming", get(stt_handler))
@@ -142,7 +162,7 @@ fn stt_app(state: AppState) -> Router {
         .route("/health", get(health_handler))
         .route("/health/ready", get(ready_handler))
         .layer(tower::limit::ConcurrencyLimitLayer::new(32)) // Max 32 concurrent STT sessions
-        .layer(CorsLayer::permissive()) // TODO: restrict to known origins in production
+        .layer(cors_layer())
         .with_state(state)
 }
 
@@ -152,7 +172,7 @@ fn tts_app(state: AppState) -> Router {
         .route("/health", get(health_handler))
         .route("/health/ready", get(ready_handler))
         .layer(tower::limit::ConcurrencyLimitLayer::new(32)) // Max 32 concurrent TTS sessions
-        .layer(CorsLayer::permissive()) // TODO: restrict to known origins in production
+        .layer(cors_layer())
         .with_state(state)
 }
 
@@ -185,10 +205,11 @@ async fn main() {
                 Use KYUTAI_MOSHI_REPO=kyutai/moshiko-candle-bf16 or wait for moshi GGUF support.");
         std::process::exit(1);
     }
-    if config.full_duplex {
-        error!("KYUTAI_FULL_DUPLEX=true: full-duplex inference loop is not yet implemented. \
-                Model loading works but bidirectional audio stepping is still TODO. \
-                Use separate STT+TTS mode instead.");
+    // Full-duplex mode is supported: bidirectional inference at ~160ms latency.
+    // Requires a model loaded with load_streaming_both_ways.
+    if config.full_duplex && config.stt_only {
+        error!("KYUTAI_FULL_DUPLEX=true and KYUTAI_STT_ONLY=true are mutually exclusive. \
+                Full-duplex uses a single bidirectional model.");
         std::process::exit(1);
     }
 

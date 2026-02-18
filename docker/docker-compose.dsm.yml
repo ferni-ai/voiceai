@@ -1,16 +1,21 @@
 # ============================================================================
-# Kyutai DSM sidecars: STT + TTS (moshi-server workers)
+# Kyutai DSM sidecars: STT + TTS
 # ============================================================================
-# Run alongside the Ferni voice agent on GCE or locally. The agent connects to
-# STT at ws://localhost:8089/api/asr-streaming and TTS at ws://localhost:8090/api/tts_streaming.
+# Two profiles:
+#   1. `moshi-server` (default) — upstream Kyutai workers from crates.io
+#   2. `kyutai-bridge` — Ferni's Rust/Candle bridge with real inference
 #
-# Build image (from repo root):
-#   docker build -f docker/Dockerfile.dsm -t moshi-server:dsm .
+# Build images (from repo root):
+#   docker build -f docker/Dockerfile.dsm -t moshi-server:dsm .                     # upstream
+#   docker build -f services/kyutai-bridge/Dockerfile -t kyutai-bridge:latest .      # bridge
 #
 # Run sidecars only:
 #   docker compose -f docker/docker-compose.dsm.yml up -d
 #
-# Run with Ferni agent (agent must be started separately with USE_KYUTAI_STT=true, etc.):
+# Run with bridge instead:
+#   docker compose -f docker/docker-compose.dsm.yml --profile bridge up -d
+#
+# Run with Ferni agent:
 #   docker compose -f docker/docker-compose.dsm.yml up -d
 #   USE_KYUTAI_STT=true KYUTAI_STT_URL=ws://localhost:8089/api/asr-streaming \
 #   TTS_PROVIDER=kyutai KYUTAI_TTS_URL=ws://localhost:8090/api/tts_streaming pnpm dev
@@ -25,10 +30,10 @@ services:
       context: .
       dockerfile: Dockerfile.dsm
     ports:
-      - "8089:8089"
+      - '8089:8089'
     volumes:
       - ../configs:/config:ro
-    command: ["moshi-server", "worker", "--config", "/config/kyutai-stt.toml"]
+    command: ['moshi-server', 'worker', '--config', '/config/kyutai-stt.toml']
     deploy:
       resources:
         reservations:
@@ -39,10 +44,9 @@ services:
     healthcheck:
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
-      # moshi-server may not expose /health; adjust if needed
-      test: ["CMD-SHELL", "true"]
+      retries: 5
+      start_period: 120s
+      test: ['CMD-SHELL', 'curl -sf http://localhost:8089/health/ready || exit 1']
 
   kyutai-tts:
     image: moshi-server:dsm
@@ -50,10 +54,10 @@ services:
       context: .
       dockerfile: Dockerfile.dsm
     ports:
-      - "8090:8090"
+      - '8090:8090'
     volumes:
       - ../configs:/config:ro
-    command: ["moshi-server", "worker", "--config", "/config/kyutai-tts.toml"]
+    command: ['moshi-server', 'worker', '--config', '/config/kyutai-tts.toml']
     deploy:
       resources:
         reservations:
@@ -64,6 +68,6 @@ services:
     healthcheck:
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 90s
-      test: ["CMD-SHELL", "true"]
+      retries: 5
+      start_period: 120s
+      test: ['CMD-SHELL', 'curl -sf http://localhost:8090/health/ready || exit 1']

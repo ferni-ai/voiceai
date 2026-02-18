@@ -1,0 +1,7 @@
+# Voice embeddings are large binary files — store in GCS or as build artifacts
+*.safetensors
+
+# Reference audio files (can be regenerated)
+*/reference/*.wav
+*/reference/*.mp3
+*/reference/*.WAV

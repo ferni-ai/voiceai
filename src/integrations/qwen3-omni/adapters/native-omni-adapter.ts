@@ -22,13 +22,16 @@ const log = createLogger({ module: 'NativeOmniRealtimeModel' });
 const requireFn = createRequire(import.meta.url);
 
 /** Lazy-loaded @ferni/audio resampleF32 (48k→16k, 24k→48k). */
-let rustResample: ((samples: Float32Array, fromRate: number, toRate: number) => Float32Array) | null =
-  null;
+let rustResample:
+  | ((samples: Float32Array, fromRate: number, toRate: number) => Float32Array)
+  | null = null;
 
 function getRustResample(): typeof rustResample {
   if (rustResample !== null) return rustResample;
   try {
-    const mod = requireFn('@ferni/audio') as { resampleF32?: (s: Float32Array, a: number, b: number) => Float32Array };
+    const mod = requireFn('@ferni/audio') as {
+      resampleF32?: (s: Float32Array, a: number, b: number) => Float32Array;
+    };
     if (typeof mod?.resampleF32 === 'function') {
       rustResample = mod.resampleF32;
       return rustResample;
@@ -244,7 +247,6 @@ export class NativeOmniRealtimeSession extends llm.RealtimeSession {
       messageStream,
       functionStream,
       userInitiated: true,
-      responseId,
     };
     this.emit('generation_created', event);
 
@@ -301,12 +303,7 @@ export class NativeOmniRealtimeSession extends llm.RealtimeSession {
       }
 
       const outInt16 = NativeOmniEngine.float32ToInt16(outF32);
-      const frame = new AudioFrame(
-        outInt16,
-        frameSampleRate,
-        1,
-        outInt16.length
-      );
+      const frame = new AudioFrame(outInt16, frameSampleRate, 1, outInt16.length);
       audioCtrl.enqueue(frame);
     } catch (err) {
       log.error({ err: String(err) }, 'Native Omni pipeline failed');

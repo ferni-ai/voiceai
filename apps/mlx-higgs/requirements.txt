@@ -1,0 +1,5 @@
+mlx>=0.30
+numpy>=2.0
+safetensors>=0.4
+onnxruntime>=1.17
+websockets>=13.0

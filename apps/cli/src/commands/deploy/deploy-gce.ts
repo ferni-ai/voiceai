@@ -107,6 +107,19 @@ const CONFIG = {
   useGpu: process.env.GCE_USE_GPU === 'true',
   gpuMachineType: process.env.GCE_GPU_MACHINE_TYPE || 'g2-standard-4',
   gpuAcceleratorType: process.env.GCE_GPU_ACCELERATOR_TYPE || 'nvidia-l4',
+
+  // Kyutai DSM sidecar settings (STT + TTS on GPU)
+  kyutai: {
+    enabled: process.env.KYUTAI_SIDECARS === 'true',
+    sttContainerName: 'kyutai-stt',
+    ttsContainerName: 'kyutai-tts',
+    bridgeImage: 'gcr.io/johnb-2025/kyutai-bridge:latest',
+    sttPort: 8089,
+    ttsPort: 8090,
+    // Health check URLs (HTTP, not WebSocket)
+    sttHealthUrl: 'http://localhost:8089/health/ready',
+    ttsHealthUrl: 'http://localhost:8090/health/ready',
+  },
 };
 
 // ============================================================================
@@ -170,9 +183,7 @@ function ensureModelsOnHost(): void {
   const gcsUri = `gs://${gcsBucket}/${gcsPath}`;
 
   // Check if models already exist on host
-  const checkCmd = requiredFiles
-    .map((f) => `test -f ${hostDir}/${f}`)
-    .join(' && ');
+  const checkCmd = requiredFiles.map((f) => `test -f ${hostDir}/${f}`).join(' && ');
   const existing = ssh(`${checkCmd} && echo "EXISTS" || echo "MISSING"`, { silent: true }).trim();
 
   if (existing === 'EXISTS') {
@@ -182,7 +193,9 @@ function ensureModelsOnHost(): void {
 
   log.substep('Downloading ONNX V6 model from GCS...');
   ssh(`mkdir -p ${hostDir}`);
-  ssh(`/snap/bin/gsutil -m cp ${gcsUri}/* ${hostDir}/ 2>&1 || /usr/bin/gsutil -m cp ${gcsUri}/* ${hostDir}/`);
+  ssh(
+    `/snap/bin/gsutil -m cp ${gcsUri}/* ${hostDir}/ 2>&1 || /usr/bin/gsutil -m cp ${gcsUri}/* ${hostDir}/`
+  );
   ssh(`chmod -R 755 ${hostDir}`);
 
   // Verify download
@@ -455,6 +468,104 @@ async function ensureRedisRunning(): Promise<void> {
 }
 
 // ============================================================================
+// KYUTAI DSM SIDECARS (STT + TTS)
+// ============================================================================
+
+async function ensureKyutaiSidecarsRunning(): Promise<void> {
+  if (!CONFIG.kyutai.enabled) {
+    return;
+  }
+
+  log.step('Ensuring Kyutai DSM Sidecars (STT + TTS)');
+
+  const { sttContainerName, ttsContainerName, bridgeImage, sttPort, ttsPort } = CONFIG.kyutai;
+
+  // Pull latest bridge image
+  log.substep('Pulling Kyutai bridge image...');
+  ssh(`docker pull ${bridgeImage}`);
+
+  for (const [name, port, role] of [
+    [sttContainerName, sttPort, 'stt-only'] as const,
+    [ttsContainerName, ttsPort, 'tts'] as const,
+  ]) {
+    const isRunning = ssh(
+      `docker ps --format '{{.Names}}' | grep -q ${name} && echo 'running' || echo 'not running'`,
+      { silent: true }
+    ).trim();
+
+    if (isRunning === 'running') {
+      log.success(`${name} sidecar already running on port ${port}`);
+      continue;
+    }
+
+    // Remove any stopped container with same name
+    ssh(`docker stop ${name} 2>/dev/null || true`, { silent: true });
+    ssh(`docker rm ${name} 2>/dev/null || true`, { silent: true });
+
+    // Run the Kyutai bridge container
+    // Uses --stt-only for the STT container (saves GPU memory by skipping TTS model)
+    const gpuFlag = CONFIG.useGpu ? '--gpus all' : '';
+    const roleFlag = role === 'stt-only' ? '--stt-only' : '';
+    const sttPortFlag = role === 'stt-only' ? `--stt-port ${port}` : `--tts-port ${port}`;
+
+    log.substep(`Starting ${name} on port ${port}...`);
+    ssh(`docker run -d \
+      --name ${name} \
+      --restart unless-stopped \
+      --memory 8g \
+      ${gpuFlag} \
+      -p ${port}:${port} \
+      ${bridgeImage} \
+      kyutai-bridge ${roleFlag} ${sttPortFlag}`);
+  }
+
+  // Wait for sidecars to become ready (model loading can take 60-120s on GPU)
+  log.substep('Waiting for Kyutai sidecars to load models...');
+  let sttReady = false;
+  let ttsReady = false;
+
+  for (let i = 0; i < 40; i++) {
+    // Check readiness via HTTP health endpoints
+    if (!sttReady) {
+      try {
+        const resp = ssh(`curl -s -o /dev/null -w '%{http_code}' ${CONFIG.kyutai.sttHealthUrl}`, {
+          silent: true,
+        }).trim();
+        if (resp === '200') sttReady = true;
+      } catch {
+        /* not ready */
+      }
+    }
+
+    if (!ttsReady) {
+      try {
+        const resp = ssh(`curl -s -o /dev/null -w '%{http_code}' ${CONFIG.kyutai.ttsHealthUrl}`, {
+          silent: true,
+        }).trim();
+        if (resp === '200') ttsReady = true;
+      } catch {
+        /* not ready */
+      }
+    }
+
+    if (sttReady && ttsReady) break;
+
+    if (i % 10 === 9) {
+      log.substep(
+        `Still waiting... STT: ${sttReady ? 'ready' : 'loading'}, TTS: ${ttsReady ? 'ready' : 'loading'}`
+      );
+    }
+    await sleep(3000);
+  }
+
+  if (sttReady && ttsReady) {
+    log.success('Kyutai DSM sidecars ready (STT + TTS models loaded)');
+  } else {
+    log.warn(`Kyutai sidecars may not be fully ready (STT: ${sttReady}, TTS: ${ttsReady})`);
+  }
+}
+
+// ============================================================================
 // DEPLOYMENT FUNCTIONS
 // ============================================================================
 
@@ -558,6 +669,15 @@ function deployToSlot(
     PUBSUB_ENABLED: 'true',
     // Use Gemini model (defaults configured in gemini-config.ts)
     USE_OPENAI_REALTIME: 'false',
+    // Kyutai DSM sidecars (STT + TTS) — reach via Docker host gateway
+    ...(CONFIG.kyutai.enabled
+      ? {
+          USE_KYUTAI_STT: 'true',
+          KYUTAI_STT_URL: `ws://172.17.0.1:${CONFIG.kyutai.sttPort}/api/asr-streaming`,
+          TTS_PROVIDER: 'kyutai',
+          KYUTAI_TTS_URL: `ws://172.17.0.1:${CONFIG.kyutai.ttsPort}/api/tts_streaming`,
+        }
+      : {}),
   });
 
   // Start the new container (with ONNX model volume mount)
@@ -606,6 +726,15 @@ function promoteSlot(slot: 'blue' | 'green', image: string, secrets: Record<stri
     REDIS_PORT: String(CONFIG.redisPort),
     // Use Gemini model (defaults configured in gemini-config.ts)
     USE_OPENAI_REALTIME: 'false',
+    // Kyutai DSM sidecars (STT + TTS) — reach via Docker host gateway
+    ...(CONFIG.kyutai.enabled
+      ? {
+          USE_KYUTAI_STT: 'true',
+          KYUTAI_STT_URL: `ws://172.17.0.1:${CONFIG.kyutai.sttPort}/api/asr-streaming`,
+          TTS_PROVIDER: 'kyutai',
+          KYUTAI_TTS_URL: `ws://172.17.0.1:${CONFIG.kyutai.ttsPort}/api/tts_streaming`,
+        }
+      : {}),
   });
 
   // Use "blue" as the production container name for consistency (with ONNX model volume mount)
@@ -1172,6 +1301,9 @@ ${colors.bold}${colors.green}╔════════════════
 
   if (isDryRun) {
     log.info('Would ensure Redis sidecar is running');
+    if (CONFIG.kyutai.enabled) {
+      log.info('Would ensure Kyutai DSM sidecars are running (STT + TTS)');
+    }
     log.info('Would ensure ONNX V6 model is on host (download from GCS if missing)');
     log.info(`Would build image using ${useCloudBuild ? 'Cloud Build' : 'local Docker'}`);
     log.info(`Would deploy to ${targetSlot} slot on port ${targetPort}`);
@@ -1185,6 +1317,9 @@ ${colors.bold}${colors.green}╔════════════════
 
   // Ensure Redis sidecar is running
   await ensureRedisRunning();
+
+  // Ensure Kyutai DSM sidecars are running (if enabled)
+  await ensureKyutaiSidecarsRunning();
 
   // Ensure ONNX models are on the host (downloads from GCS if missing)
   ensureModelsOnHost();
