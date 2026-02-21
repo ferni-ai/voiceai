@@ -31,6 +31,23 @@ const joelConfig: AgentPageConfig = {
     initials: 'JD',
     tagline: 'Global Head of Investment Strategy',
     description: 'Meet Joel Dickson - Global Head of Enterprise Advice Methodology at Vanguard. Ask Joel about investment strategy, retirement planning, and financial wisdom.',
+    quote: {
+      text: "The investor's chief problem — and even his worst enemy — is likely to be himself.",
+      context: 'A principle Joel has seen proven across 30 years of working with real investors',
+    },
+    credentials: [
+      { label: 'Experience', value: '30+ Years' },
+      { label: 'Education', value: 'Stanford PhD' },
+      { label: 'Role', value: 'Head of Strategy' },
+    ],
+    conversationStarters: [
+      'How should I think about retirement planning?',
+      "What's your view on index funds vs. active?",
+      'How do I stay disciplined during market drops?',
+      'What would Jack Bogle say about my portfolio?',
+    ],
+    ctaHeadline: 'Have a real conversation',
+    ctaDescription: 'Joel brings 30 years of Vanguard wisdom and a genuine love of helping people think clearly about money and life.',
   },
   brand: {
     primary: '#96151D', // Vanguard Red
@@ -53,12 +70,15 @@ const joelConfig: AgentPageConfig = {
   },
   theme: 'zen',
   deployment: {
-    environment: 'production',
+    environment: process.env.NODE_ENV === 'development' ? 'development' : 'production',
   },
   seo: {
     title: 'Meet Joel Dickson — Vanguard AI Advisor',
     description: 'Meet Joel Dickson - Global Head of Enterprise Advice Methodology at Vanguard',
     twitterCard: 'summary_large_image',
+  },
+  footer: {
+    disclaimer: 'Joel is an AI advisor powered by Ferni. This is a technology demonstration and does not constitute financial advice.',
   },
 };
 
@@ -71,8 +91,8 @@ async function deploy() {
   const result = await generateAgentPage(joelConfig);
   console.log(`   Size: ${Math.round(result.size / 1024)} KB`);
 
-  // Generate site ID
-  const siteId = `meet-joel-${Date.now()}`;
+  // Stable site ID — idempotent deploys overwrite the same document
+  const siteId = 'meet-joel';
   const url = `https://ferni.ai/sites/${siteId}`;
 
   // Check if we can deploy to Firestore

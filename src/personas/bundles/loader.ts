@@ -231,7 +231,7 @@ export async function loadBundle(
   async function loadStoryIndex(): Promise<StoryIndex | null> {
     if (storyIndex) return storyIndex;
 
-    const storiesDir = manifest.content.stories?.directory;
+    const storiesDir = manifest.content?.stories?.directory;
     if (!storiesDir) return null;
 
     const indexPath = join(bundlePath, storiesDir, '_index.json');
@@ -268,7 +268,7 @@ export async function loadBundle(
   async function loadKnowledgeIndex(): Promise<KnowledgeIndex | null> {
     if (knowledgeIndex) return knowledgeIndex;
 
-    const knowledgeDir = manifest.content.knowledge?.directory;
+    const knowledgeDir = manifest.content?.knowledge?.directory;
     if (!knowledgeDir) return null;
 
     const indexPath = join(bundlePath, knowledgeDir, '_index.json');
@@ -299,7 +299,7 @@ export async function loadBundle(
       const ref = index.stories.find((s) => s.id === id);
       if (!ref) return null;
 
-      const storiesDir = manifest.content.stories?.directory;
+      const storiesDir = manifest.content?.stories?.directory;
       if (!storiesDir) return null;
 
       // Default to ${id}.json if file property is missing
@@ -389,7 +389,7 @@ export async function loadBundle(
       const ref = index.topics.find((t) => t.topic.toLowerCase() === topic.toLowerCase());
       if (!ref) return null;
 
-      const knowledgeDir = manifest.content.knowledge?.directory;
+      const knowledgeDir = manifest.content?.knowledge?.directory;
       if (!knowledgeDir) return null;
 
       // Default to ${id}.md if file property is missing
@@ -417,7 +417,7 @@ export async function loadBundle(
     async getBehaviors(): Promise<BundleBehaviors> {
       if (behaviorsCache) return behaviorsCache;
 
-      const behaviorsDir = manifest.content.behaviors?.directory;
+      const behaviorsDir = manifest.content?.behaviors?.directory;
       if (!behaviorsDir) {
         behaviorsCache = {};
         return behaviorsCache;

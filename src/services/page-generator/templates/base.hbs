@@ -305,44 +305,87 @@
       inset: -8px;
       border-radius: 50%;
       border: 2.5px solid var(--persona-primary);
-      opacity: 0.6;
+      opacity: 0.5;
       transition: all 0.3s var(--ease-out-expo);
+      animation: breatheRing 4s ease-in-out infinite;
     }
 
-    #coach.is-connected .avatar-ring {
-      opacity: 0.9;
-      border-color: var(--persona-primary);
-    }
-
-    #coach.is-speaking .avatar-ring {
-      animation: speakingRing 1.2s ease-in-out infinite;
-    }
-
-    @keyframes speakingRing {
-      0%, 100% {
-        transform: scale(1);
-        opacity: 0.6;
-        box-shadow: 0 0 0 transparent;
-      }
-      50% {
-        transform: scale(1.02);
-        opacity: 0.9;
-        box-shadow: 0 0 15px var(--persona-glow);
-      }
-    }
-
-    #coach.is-listening .avatar-ring {
-      animation: listeningRing 2s ease-in-out infinite;
-    }
-
-    @keyframes listeningRing {
+    @keyframes breatheRing {
       0%, 100% {
         transform: scale(1);
         opacity: 0.5;
       }
       50% {
-        transform: scale(1.01);
+        transform: scale(1.02);
         opacity: 0.7;
+      }
+    }
+
+    #coach.is-connected .avatar-ring {
+      opacity: 0.9;
+      border-color: var(--persona-primary);
+      animation: connectedRing 3s ease-in-out infinite;
+    }
+
+    @keyframes connectedRing {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.8;
+        box-shadow: 0 0 0 transparent;
+      }
+      50% {
+        transform: scale(1.02);
+        opacity: 1;
+        box-shadow: 0 0 20px var(--persona-glow);
+      }
+    }
+
+    #coach.is-speaking .avatar-ring {
+      animation: speakingRing 0.8s ease-in-out infinite;
+      border-width: 3px;
+    }
+
+    #coach.is-speaking .avatar {
+      animation: avatarPulse 0.8s ease-in-out infinite;
+    }
+
+    @keyframes speakingRing {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.7;
+        box-shadow: 0 0 8px var(--persona-glow);
+      }
+      50% {
+        transform: scale(1.08);
+        opacity: 1;
+        box-shadow: 0 0 35px var(--persona-glow), 0 0 60px color-mix(in srgb, var(--persona-glow) 30%, transparent);
+      }
+    }
+
+    @keyframes avatarPulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.02);
+      }
+    }
+
+    #coach.is-listening .avatar-ring {
+      animation: listeningRing 2.5s ease-in-out infinite;
+      border-width: 2.5px;
+    }
+
+    @keyframes listeningRing {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.6;
+        box-shadow: 0 0 4px var(--persona-glow);
+      }
+      50% {
+        transform: scale(1.03);
+        opacity: 0.9;
+        box-shadow: 0 0 15px var(--persona-glow);
       }
     }
 
@@ -372,12 +415,14 @@
        WAVEFORM
        ======================================================================== */
     .waveform-container {
-      height: 60px;
+      width: 240px;
+      height: 40px;
       display: flex;
+      flex-direction: row;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      margin: var(--space-md) 0;
+      gap: 3px;
+      margin: var(--space-md) auto;
       opacity: 0;
       transition: opacity 0.3s ease;
     }
@@ -387,11 +432,12 @@
     }
 
     .waveform-bar {
+      flex: 0 0 auto;
       width: 4px;
       height: 4px;
-      background: linear-gradient(180deg, var(--persona-primary) 0%, var(--persona-secondary) 100%);
+      background: var(--persona-primary);
       border-radius: 2px;
-      transition: height 0.05s ease-out;
+      transition: width 0.08s ease-out;
     }
 
     /* ========================================================================
@@ -441,11 +487,9 @@
         0 4px 8px rgba(0, 0, 0, 0.08),
         0 8px 16px rgba(0, 0, 0, 0.06),
         inset 0 1px 0 rgba(255, 255, 255, 0.25);
-      transition: all 0.2s var(--ease-out-expo);
     }
 
     .btn-primary:hover:not(:disabled) {
-      transform: translateY(-1px);
       box-shadow:
         0 2px 4px rgba(0, 0, 0, 0.08),
         0 8px 16px rgba(0, 0, 0, 0.08),
@@ -559,6 +603,190 @@
     .thinking-text {
       font-size: var(--text-sm);
       color: var(--color-text-muted);
+    }
+
+    /* ========================================================================
+       ENTRANCE ANIMATIONS
+       ======================================================================== */
+    @keyframes blurFadeIn {
+      from {
+        opacity: 0;
+        filter: blur(4px);
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        filter: blur(0);
+        transform: translateY(0);
+      }
+    }
+
+    .hero-content > * {
+      opacity: 0;
+      animation: blurFadeIn 0.6s var(--ease-out-expo) forwards;
+    }
+
+    .hero-content > *:nth-child(1) { animation-delay: 0ms; }
+    .hero-content > *:nth-child(2) { animation-delay: 80ms; }
+    .hero-content > *:nth-child(3) { animation-delay: 160ms; }
+    .hero-content > *:nth-child(4) { animation-delay: 240ms; }
+    .hero-content > *:nth-child(5) { animation-delay: 320ms; }
+    .hero-content > *:nth-child(6) { animation-delay: 400ms; }
+    .hero-content > *:nth-child(7) { animation-delay: 480ms; }
+
+    @keyframes sectionFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .section-animate {
+      opacity: 0;
+      animation: sectionFadeIn 0.7s var(--ease-out-expo) forwards;
+    }
+
+    /* ========================================================================
+       GLASS MORPHISM
+       ======================================================================== */
+    .glass {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.06),
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+
+    /* ========================================================================
+       CREDENTIALS
+       ======================================================================== */
+    .credentials-section {
+      padding: var(--space-xl) var(--space-lg);
+    }
+
+    .credentials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: var(--space-md);
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .credential-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.06),
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      text-align: center;
+      transition: transform 0.2s var(--ease-out-expo), box-shadow 0.2s ease;
+    }
+
+    .credential-card:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.08),
+        0 2px 6px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+
+    .credential-label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-xs);
+    }
+
+    .credential-value {
+      font-family: var(--font-display);
+      font-size: var(--text-xl);
+      font-weight: 700;
+      color: var(--persona-primary);
+    }
+
+    /* ========================================================================
+       SECTION DIVIDER
+       ======================================================================== */
+    .section-divider {
+      height: 1px;
+      max-width: 200px;
+      margin: 0 auto;
+      background: linear-gradient(90deg, transparent 0%, var(--color-border-medium) 50%, transparent 100%);
+    }
+
+    /* ========================================================================
+       CONVERSATION STARTERS
+       ======================================================================== */
+    .starters-container {
+      max-width: 600px;
+      margin: var(--space-lg) auto 0;
+    }
+
+    .starters-label {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-sm);
+      text-align: center;
+    }
+
+    .starters-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-sm);
+    }
+
+    .starter-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.6rem 1.2rem;
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--color-border-medium);
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      min-height: 48px;
+    }
+
+    .starter-chip:hover {
+      background: var(--persona-primary);
+      color: #FFFFFF;
+      border-color: var(--persona-primary);
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px var(--persona-glow);
+    }
+
+    /* ========================================================================
+       BUTTON SPRING HOVER
+       ======================================================================== */
+    .btn-primary {
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px) scale(1.02);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(0) scale(0.98);
     }
 
     /* ========================================================================
@@ -821,6 +1049,20 @@
       .quote-text {
         font-size: var(--text-xl);
       }
+
+      .credentials-grid {
+        grid-template-columns: 1fr;
+        max-width: 300px;
+      }
+
+      .starter-chip {
+        font-size: var(--text-xs);
+        padding: 0.5rem 1rem;
+      }
+
+      .cta-headline {
+        font-size: var(--text-2xl);
+      }
     }
 
     /* ========================================================================
@@ -846,7 +1088,10 @@
       {{#if brand.logoUrl}}
       <img src="{{brand.logoUrl}}" alt="Logo" height="30">
       {{else}}
-      <div></div>
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--gradient-orb);color:#fff;font-size:0.7rem;font-weight:700;">{{agent.initials}}</span>
+        <span style="font-weight:600;font-size:var(--text-sm);color:var(--color-text-primary);">{{agent.displayName}}</span>
+      </div>
       {{/if}}
       <span class="header-badge">AI Preview</span>
     </div>
@@ -898,24 +1143,58 @@
       <p class="keyboard-hint">Press <kbd>Space</kbd> to connect</p>
     </section>
 
+    {{#if agent.credentials}}
+    <!-- Credentials Section -->
+    <section class="credentials-section section-animate">
+      <div class="section-divider" style="margin-bottom:var(--space-xl);"></div>
+      <div class="credentials-grid">
+        {{#each agent.credentials}}
+        <div class="credential-card">
+          <div class="credential-label">{{this.label}}</div>
+          <div class="credential-value">{{this.value}}</div>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+    {{/if}}
+
+    {{#if agent.quote}}
     <!-- Quote Section -->
-    <section class="section section-alt">
+    <section class="section section-alt section-animate">
       <div class="section-container">
         <div class="quote">
-          <p class="quote-text">"{{agent.tagline}}"</p>
-          <p class="quote-author">{{agent.name}}</p>
+          <p class="quote-text">"{{agent.quote.text}}"</p>
+          {{#if agent.quote.context}}
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted);margin-bottom:var(--space-sm);">{{agent.quote.context}}</p>
+          {{/if}}
+          <p class="quote-author">— {{agent.name}}</p>
         </div>
       </div>
     </section>
+    {{/if}}
 
     <!-- CTA Section -->
-    <section class="cta">
+    <section class="cta section-animate">
       <div class="section-container">
-        <h2 class="cta-headline">Ready to talk?</h2>
-        <p class="cta-text">{{agent.displayName}} is ready when you are. Start a conversation now.</p>
-        <button class="btn-primary cta-btn" onclick="document.getElementById('connectBtn').click(); window.scrollTo({top: 0, behavior: 'smooth'});">
-          Start conversation
-        </button>
+        <h2 class="cta-headline">{{#if agent.ctaHeadline}}{{agent.ctaHeadline}}{{else}}Ready to talk?{{/if}}</h2>
+        <p class="cta-text">{{#if agent.ctaDescription}}{{agent.ctaDescription}}{{else}}{{agent.displayName}} is ready when you are. Start a conversation now.{{/if}}</p>
+
+        {{#if agent.conversationStarters}}
+        <div class="starters-container">
+          <p class="starters-label">Try asking</p>
+          <div class="starters-grid">
+            {{#each agent.conversationStarters}}
+            <button class="starter-chip" type="button" data-starter="{{this}}">{{this}}</button>
+            {{/each}}
+          </div>
+        </div>
+        {{/if}}
+
+        <div style="margin-top:var(--space-lg);">
+          <button class="btn-primary cta-btn" onclick="document.getElementById('connectBtn').click(); window.scrollTo({top: 0, behavior: 'smooth'});">
+            Start conversation
+          </button>
+        </div>
 
         <div class="trust-badges">
           <div class="trust-badge">
@@ -938,14 +1217,20 @@
     <!-- Footer -->
     <footer class="footer">
       <div class="footer-links">
-        <a href="#" class="footer-link">About</a>
-        <a href="#" class="footer-link">Privacy</a>
-        <a href="#" class="footer-link">Terms</a>
+        {{#if footer.links}}
+        {{#each footer.links}}
+        <a href="{{this.href}}" class="footer-link">{{this.label}}</a>
+        {{/each}}
+        {{else}}
+        <a href="https://ferni.ai" class="footer-link">About Ferni</a>
+        <a href="https://ferni.ai/privacy" class="footer-link">Privacy</a>
+        <a href="https://ferni.ai/terms" class="footer-link">Terms</a>
+        {{/if}}
       </div>
       <p class="footer-disclaimer">
-        This is an AI demonstration. {{agent.name}} is an AI persona powered by Ferni.
+        {{#if footer.disclaimer}}{{footer.disclaimer}}{{else}}This is an AI demonstration. {{agent.name}} is an AI persona powered by Ferni.{{/if}}
       </p>
-      <p class="footer-copyright">Powered by Ferni AI</p>
+      <p class="footer-copyright">&copy; {{currentYear}} Powered by Ferni AI</p>
     </footer>
   </div>
 
@@ -1071,7 +1356,152 @@
       }
 
       function resetWaveform() {
-        bars.forEach(bar => bar.style.height = '4px');
+        bars.forEach(bar => bar.style.width = '4px');
+      }
+
+      // ========================================
+      // AUDIO-REACTIVE WAVEFORM
+      // ========================================
+      let audioContext = null;
+      let analyser = null;
+      let waveformAnimationId = null;
+      let usingFallback = false;
+      let zeroFrameCount = 0;
+
+      function startWaveformAnalysis(audioElement) {
+        try {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          analyser = audioContext.createAnalyser();
+          analyser.fftSize = 64;
+
+          // Chrome requires explicit resume after creation
+          if (audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+              console.log('AudioContext resumed');
+            });
+          }
+
+          // LiveKit tracks use MediaStream via srcObject, not a URL src
+          let source;
+          if (audioElement.srcObject instanceof MediaStream) {
+            console.log('Using MediaStream source for waveform');
+            source = audioContext.createMediaStreamSource(audioElement.srcObject);
+          } else {
+            console.log('Using MediaElement source for waveform');
+            source = audioContext.createMediaElementSource(audioElement);
+            analyser.connect(audioContext.destination);
+          }
+          source.connect(analyser);
+          usingFallback = false;
+          zeroFrameCount = 0;
+          animateWaveform();
+        } catch (e) {
+          console.log('AudioContext unavailable, using fallback waveform:', e.message);
+          usingFallback = true;
+          startFallbackWaveform();
+        }
+      }
+
+      function animateWaveform() {
+        if (currentState === 'disconnected') {
+          resetWaveform();
+          return;
+        }
+
+        if (!analyser) {
+          if (!usingFallback) {
+            usingFallback = true;
+            startFallbackWaveform();
+          }
+          return;
+        }
+
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(data);
+
+        // Detect if we're getting actual audio data
+        const totalEnergy = data.reduce((sum, v) => sum + v, 0);
+
+        if (totalEnergy === 0) {
+          zeroFrameCount++;
+          // After ~2 seconds of zeros (120 frames at 60fps), switch to fallback
+          if (zeroFrameCount > 120 && !usingFallback) {
+            console.log('No audio data detected, switching to fallback waveform');
+            usingFallback = true;
+          }
+        } else {
+          zeroFrameCount = 0;
+          if (usingFallback) {
+            console.log('Audio data detected, switching back to real waveform');
+            usingFallback = false;
+          }
+        }
+
+        if (usingFallback) {
+          // Fallback: animate based on state
+          const isSpeaking = currentState === 'speaking';
+          bars.forEach((bar, i) => {
+            const center = Math.abs(i - Math.floor(BAR_COUNT / 2));
+            const centerWeight = 1 - (center / (BAR_COUNT / 2)) * 0.5;
+            if (isSpeaking) {
+              const target = 6 + Math.random() * 24 * centerWeight;
+              const current = parseFloat(bar.style.width) || 4;
+              bar.style.width = (current + (target - current) * 0.3) + 'px';
+            } else {
+              bar.style.width = (4 + Math.random() * 6 * centerWeight) + 'px';
+            }
+          });
+        } else {
+          // Real audio data
+          bars.forEach((bar, i) => {
+            const value = data[i + 2] || 0;
+            const w = Math.max(4, (value / 255) * 28);
+            bar.style.width = w + 'px';
+          });
+        }
+
+        waveformAnimationId = requestAnimationFrame(animateWaveform);
+      }
+
+      function startFallbackWaveform() {
+        // If animateWaveform loop is already running, it handles fallback internally
+        if (waveformAnimationId) return;
+
+        function fallbackAnimate() {
+          if (currentState === 'disconnected') {
+            resetWaveform();
+            return;
+          }
+          const isSpeaking = currentState === 'speaking';
+          bars.forEach((bar, i) => {
+            const center = Math.abs(i - Math.floor(BAR_COUNT / 2));
+            const centerWeight = 1 - (center / (BAR_COUNT / 2)) * 0.5;
+            if (isSpeaking) {
+              const target = 6 + Math.random() * 24 * centerWeight;
+              const current = parseFloat(bar.style.width) || 4;
+              bar.style.width = (current + (target - current) * 0.3) + 'px';
+            } else {
+              bar.style.width = (4 + Math.random() * 6 * centerWeight) + 'px';
+            }
+          });
+          waveformAnimationId = requestAnimationFrame(fallbackAnimate);
+        }
+        fallbackAnimate();
+      }
+
+      function stopWaveformAnalysis() {
+        if (waveformAnimationId) {
+          cancelAnimationFrame(waveformAnimationId);
+          waveformAnimationId = null;
+        }
+        if (audioContext) {
+          audioContext.close().catch(() => {});
+          audioContext = null;
+          analyser = null;
+        }
+        usingFallback = false;
+        zeroFrameCount = 0;
+        resetWaveform();
       }
 
       function showMessage(text, duration = 3000) {
@@ -1138,10 +1568,18 @@
             updateUI('disconnected');
           });
 
+          let agentAudioAttached = false;
+
           room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
-            if (track.kind === 'audio') {
+            console.log('Track subscribed:', track.kind, 'from', participant.identity);
+            if (track.kind === 'audio' && !participant.isLocal) {
               const audio = track.attach();
               document.body.appendChild(audio);
+              agentAudioAttached = true;
+              // Small delay to let audio start flowing before creating AudioContext
+              setTimeout(() => {
+                startWaveformAnalysis(audio);
+              }, 300);
               updateUI('speaking');
             }
           });
@@ -1149,6 +1587,7 @@
           room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
             if (track.kind === 'audio') {
               track.detach().forEach(el => el.remove());
+              agentAudioAttached = false;
             }
           });
 
@@ -1156,8 +1595,30 @@
             const agentSpeaking = speakers.some(s => !s.isLocal);
             if (agentSpeaking) {
               updateUI('speaking');
-            } else if (isConnected) {
+            } else if (isConnected && currentState !== 'thinking') {
               updateUI('listening');
+            }
+          });
+
+          // Listen for agent state data messages (thinking, speaking, etc.)
+          room.on(LivekitClient.RoomEvent.DataReceived, (payload, participant) => {
+            if (!participant || participant.isLocal) return;
+            try {
+              const decoder = new TextDecoder();
+              const data = JSON.parse(decoder.decode(payload));
+              if (data.type === 'agent_state' || data.type === 'state') {
+                const agentState = data.state || data.value;
+                console.log('Agent state:', agentState);
+                if (agentState === 'thinking' || agentState === 'processing') {
+                  updateUI('thinking');
+                } else if (agentState === 'speaking') {
+                  updateUI('speaking');
+                } else if (agentState === 'listening' || agentState === 'idle') {
+                  updateUI('listening');
+                }
+              }
+            } catch (e) {
+              // Not JSON or not a state message — ignore
             }
           });
 
@@ -1175,6 +1636,7 @@
       }
 
       async function disconnect() {
+        stopWaveformAnalysis();
         if (room) {
           await room.disconnect();
           room = null;
@@ -1212,6 +1674,40 @@
         }
         lastScroll = currentScroll;
       }, { passive: true });
+
+      // ========================================
+      // SCROLL-TRIGGERED SECTION ANIMATIONS
+      // ========================================
+      const animatedSections = document.querySelectorAll('.section-animate');
+      if ('IntersectionObserver' in window) {
+        const sectionObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.style.animationPlayState = 'running';
+              sectionObserver.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.15 });
+
+        animatedSections.forEach(section => {
+          section.style.animationPlayState = 'paused';
+          sectionObserver.observe(section);
+        });
+      } else {
+        animatedSections.forEach(s => s.style.opacity = '1');
+      }
+
+      // ========================================
+      // CONVERSATION STARTER CHIPS
+      // ========================================
+      document.querySelectorAll('.starter-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          if (!isConnected) {
+            connect();
+          }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
 
       console.log('✅ Agent page initialized');
     })();

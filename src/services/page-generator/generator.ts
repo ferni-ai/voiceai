@@ -59,6 +59,11 @@ function getCompiledTemplate(): Handlebars.TemplateDelegate<TemplateContext> {
     return new Handlebars.SafeString(content);
   });
 
+  // Register helper for current year in footer
+  Handlebars.registerHelper('currentYear', () => {
+    return new Date().getFullYear();
+  });
+
   compiledTemplate = Handlebars.compile<TemplateContext>(templateSource);
   return compiledTemplate;
 }
@@ -101,7 +106,8 @@ function getTokenEndpoint(config: AgentPageConfig): string {
 
   switch (env) {
     case 'development':
-      return 'http://localhost:3001/token';
+      // Use relative URL - proxy server forwards /token to token server
+      return '/token';
     case 'production':
       // Use relative URL - works on any host (Cloud Run, ferni.ai, etc.)
       return '/token';
@@ -183,6 +189,7 @@ function buildTemplateContext(config: AgentPageConfig): TemplateContext {
       ogImage: config.seo?.ogImage,
       twitterCard: config.seo?.twitterCard || 'summary_large_image',
     },
+    footer: config.footer,
     favicon,
     personaCss,
     customCss: config.customCss,

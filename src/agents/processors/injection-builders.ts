@@ -16,6 +16,17 @@
  * - Reduces Firestore queries and import latency on every turn
  */
 
+import {
+  EMOTION_THRESHOLDS,
+  DISTRESS_NEGATIVE_SENTIMENT,
+  ENERGY_HIGH_INTENSITY,
+  ENERGY_LOW_INTENSITY,
+  DEEP_MOMENT_DISTRESS,
+  DEEP_MOMENT_INTENSITY,
+  EMOTIONAL_MISMATCH_CONFIDENCE,
+  EMOTION_STRONG_INTENSITY,
+  FILLER_EMOTION_MIN_CONFIDENCE,
+} from '../../config/emotion-thresholds.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { ConversationAnalysis } from '../../services/index.js';
@@ -108,7 +119,7 @@ type PersonaContextBuilder = (
   input: import('../../intelligence/context-builders/index.js').ContextBuilderInput
 ) => Promise<ContextBuilderInjection[]>;
 
-const personaBuilderCache: Map<string, PersonaContextBuilder> = new Map();
+const personaBuilderCache = new Map<string, PersonaContextBuilder>();
 
 async function getPersonaBuilder(personaId: string): Promise<PersonaContextBuilder | null> {
   // Check cache first
@@ -366,18 +377,20 @@ export async function buildScientificCoachingInjections(
         sessionId,
         turnCount: userData.turnCount || 1,
         userEnergy:
-          emotionalState.intensity > 0.7
+          emotionalState.intensity > ENERGY_HIGH_INTENSITY
             ? 'high'
-            : emotionalState.intensity < 0.3
+            : emotionalState.intensity < ENERGY_LOW_INTENSITY
               ? 'low'
               : 'medium',
         topicWeight:
-          emotionalState.distressLevel > 0.5
+          emotionalState.distressLevel > DISTRESS_NEGATIVE_SENTIMENT
             ? 'heavy'
-            : emotionalState.intensity < 0.4
+            : emotionalState.intensity < (EMOTION_THRESHOLDS.baseline.concern + 0.2)
               ? 'light'
               : 'medium',
-        wasDeepMoment: emotionalState.distressLevel > 0.6 || emotionalState.intensity > 0.8,
+        wasDeepMoment:
+          emotionalState.distressLevel > DEEP_MOMENT_DISTRESS ||
+          emotionalState.intensity > DEEP_MOMENT_INTENSITY,
       });
       conversationPhase = mapToLegacyPhase(dynamicsResult.phase);
     } else {
@@ -840,7 +853,7 @@ This is "Better than Human" - remembering when advice wasn't welcome, noticing w
       summary: {
         hasEmotionalMismatch:
           trustContext.unsaidSignals?.some(
-            (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
+            (s) => s.type === 'emotional_mismatch' && s.confidence > EMOTIONAL_MISMATCH_CONFIDENCE
           ) ?? false,
         topicsToAvoid: trustContext.topicsToAvoid ?? [],
         hasGrowthReflection: !!trustContext.growthReflection,
@@ -1075,8 +1088,14 @@ export async function buildHumanLevelInjections(
     }
 
     // Emotional memory
-    if (analysis.emotion.primary !== 'neutral' && (analysis.emotion.intensity || 0.5) > 0.5) {
-      const intensity = (analysis.emotion.intensity || 0.5) >= 0.7 ? 'strong' : 'moderate';
+    if (
+      analysis.emotion.primary !== 'neutral' &&
+      (analysis.emotion.intensity ?? FILLER_EMOTION_MIN_CONFIDENCE) > FILLER_EMOTION_MIN_CONFIDENCE
+    ) {
+      const intensity =
+        (analysis.emotion.intensity ?? FILLER_EMOTION_MIN_CONFIDENCE) >= EMOTION_STRONG_INTENSITY
+          ? 'strong'
+          : 'moderate';
       services.emotionalMemory.recordMoment(
         analysis.emotion.primary as import('../../intelligence/emotion-detector.js').PrimaryEmotion,
         currentTopic || 'general',

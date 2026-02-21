@@ -1,0 +1,43 @@
+{
+  "$schema": "https://voiceai.example.com/schemas/prompt-assembly.v2.json",
+  "_architecture_note": "Joel Dickson prompt assembly. Core identity + directors notes for voice agent. Rich context loads contextually.",
+
+  "prompt_modules": {
+    "core_identity": "identity/system-prompt.md",
+    "function_calling": "identity/function-calling-specialty.md",
+    "directors_notes": "identity/directors-notes.md",
+    "biography_full": "identity/biography.md"
+  },
+
+  "voice_agent_modules": [
+    "core_identity",
+    "directors_notes",
+    "function_calling"
+  ],
+
+  "full_context_modules": [
+    "core_identity",
+    "directors_notes",
+    "function_calling"
+  ],
+
+  "rich_context_modules": [
+    "core_identity",
+    "directors_notes",
+    "function_calling",
+    "biography_full"
+  ],
+
+  "assembly_notes": {
+    "voice_agent": "Core identity (system prompt with speaking style + SSML) + directors notes (anti-AI-speak, humanization) + function calling. ~4500 tokens.",
+    "full_context": "Same as voice agent for Joel — directors notes are critical for voice quality.",
+    "rich_context": "Full context + biography for text-based or complex scenarios."
+  },
+
+  "token_budget": {
+    "voice_agent_max": 5000,
+    "full_context_max": 6000,
+    "rich_context_max": 10000,
+    "dynamic_injection_max": 500
+  }
+}

@@ -110,6 +110,28 @@ export interface AgentPageConfig {
 
     /** Description for meta tags and about section */
     description: string;
+
+    /** Featured quote displayed below the hero */
+    quote?: {
+      text: string;
+      /** Optional context or source for the quote */
+      context?: string;
+    };
+
+    /** Credential cards displayed in a grid (e.g., experience, education) */
+    credentials?: Array<{
+      label: string;
+      value: string;
+    }>;
+
+    /** Conversation starter prompts shown as tappable chips */
+    conversationStarters?: string[];
+
+    /** Custom CTA headline (defaults to "Ready to talk?") */
+    ctaHeadline?: string;
+
+    /** Custom CTA description */
+    ctaDescription?: string;
   };
 
   /** Brand colors, fonts, and logo */
@@ -126,6 +148,14 @@ export interface AgentPageConfig {
 
   /** SEO metadata */
   seo?: SEOConfig;
+
+  /** Footer configuration */
+  footer?: {
+    /** Custom footer links (defaults to ferni.ai URLs) */
+    links?: Array<{ label: string; href: string }>;
+    /** Custom disclaimer text */
+    disclaimer?: string;
+  };
 
   /** Additional custom CSS to inject */
   customCss?: string;
@@ -185,6 +215,10 @@ export interface TemplateContext {
     description: string;
     ogImage?: string;
     twitterCard: string;
+  };
+  footer?: {
+    links?: Array<{ label: string; href: string }>;
+    disclaimer?: string;
   };
   favicon: string; // Data URI
   personaCss: string; // Generated CSS block
