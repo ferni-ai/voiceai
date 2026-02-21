@@ -12,10 +12,9 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 
 // Initialize Firebase Admin if not already done
 if (getApps().length === 0) {
-  // Try to use default credentials
   try {
     initializeApp({
-      projectId: 'ferni-ai',
+      projectId: process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025',
     });
   } catch (e) {
     console.log('⚠️  Firebase Admin SDK not initialized - using dry-run mode');

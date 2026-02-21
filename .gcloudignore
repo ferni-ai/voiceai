@@ -283,9 +283,11 @@ KMS/
 **/.build/
 **/build/intermediates/
 
-# Rust build artifacts
-apps/rust-audio/target/
-apps/rust-perf/target/
+# Rust build artifacts (all target/ dirs)
+**/target/
+
+# Git worktrees
+.worktrees/
 
 # ML Training (large model files)
 apps/ml-training/
