@@ -577,8 +577,8 @@
         display: flex;
         gap: 1rem;
         padding: 1.25rem 1.5rem;
-        background: rgba(74, 103, 65, 0.06);
-        border: 1px solid rgba(74, 103, 65, 0.15);
+        background: color-mix(in srgb, var(--color-ferni) 6%, transparent);
+        border: 1px solid color-mix(in srgb, var(--color-ferni) 15%, transparent);
         border-left: 3px solid var(--ferni-sage);
         border-radius: 0 4px 4px 0;
         max-width: 600px;
@@ -863,13 +863,13 @@
           </g>
 
           <!-- Small gold accents at intersections -->
-          <circle cx="145" cy="55" r="4" fill="#C9A227" filter="url(#softShadow)" />
-          <circle cx="255" cy="55" r="4" fill="#C9A227" filter="url(#softShadow)" />
-          <circle cx="130" cy="200" r="4" fill="#C9A227" filter="url(#softShadow)" />
-          <circle cx="270" cy="200" r="4" fill="#C9A227" filter="url(#softShadow)" />
-          <circle cx="200" cy="248" r="5" fill="#C9A227" filter="url(#softShadow)" />
-          <circle cx="160" cy="235" r="3" fill="#C9A227" />
-          <circle cx="240" cy="235" r="3" fill="#C9A227" />
+          <circle cx="145" cy="55" r="4" fill="var(--kintsugi-gold)" filter="url(#softShadow)" />
+          <circle cx="255" cy="55" r="4" fill="var(--kintsugi-gold)" filter="url(#softShadow)" />
+          <circle cx="130" cy="200" r="4" fill="var(--kintsugi-gold)" filter="url(#softShadow)" />
+          <circle cx="270" cy="200" r="4" fill="var(--kintsugi-gold)" filter="url(#softShadow)" />
+          <circle cx="200" cy="248" r="5" fill="var(--kintsugi-gold)" filter="url(#softShadow)" />
+          <circle cx="160" cy="235" r="3" fill="var(--kintsugi-gold)" />
+          <circle cx="240" cy="235" r="3" fill="var(--kintsugi-gold)" />
         </svg>
       </div>
     </section>
@@ -961,9 +961,9 @@
         <svg viewBox="0 0 48 48">
           <path d="M 8 32 Q 6 24 8 16 Q 12 8 24 6 Q 36 8 40 16 Q 42 24 40 32" />
           <ellipse cx="24" cy="32" rx="16" ry="6" fill="none" />
-          <path d="M 16 20 L 24 32" stroke="#C9A227" stroke-width="2" />
-          <path d="M 32 20 L 24 32" stroke="#C9A227" stroke-width="2" />
-          <circle cx="24" cy="32" r="3" fill="#C9A227" />
+          <path d="M 16 20 L 24 32" stroke="var(--kintsugi-gold)" stroke-width="2" />
+          <path d="M 32 20 L 24 32" stroke="var(--kintsugi-gold)" stroke-width="2" />
+          <circle cx="24" cy="32" r="3" fill="var(--kintsugi-gold)" />
         </svg>
       </div>
       <h2 class="insight-title">What Ferni Holds</h2>

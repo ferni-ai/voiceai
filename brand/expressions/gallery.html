@@ -42,12 +42,12 @@
 
     /* Midnight Theme (Dark) */
     [data-theme="midnight"] {
-      --bg-primary: #1a1918;
-      --bg-elevated: #252423;
+      --bg-primary: var(--color-bg-primary-dark, #1a1918);
+      --bg-elevated: var(--color-bg-elevated-dark, #252423);
       --bg-glass: rgba(255, 255, 255, 0.03);
-      --text-primary: #f5f3f0;
-      --text-secondary: #b8b0a5;
-      --text-muted: #8a8278;
+      --text-primary: var(--color-text-primary-light, #f5f3f0);
+      --text-secondary: var(--color-text-secondary-light, #b8b0a5);
+      --text-muted: var(--color-text-muted-light, #8a8278);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -178,6 +178,7 @@
       border-color: var(--active-color);
       color: var(--text-primary);
       background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(74, 103, 65, 0.05));
+      /* Ferni green with 10-5% opacity - intentional fallback for gradient */
     }
 
     .persona-dot {
@@ -421,6 +422,7 @@
 
     .category-count {
       background: rgba(61, 90, 69, 0.1);
+      /* Ferni accent green with 10% opacity - intentional fallback for category badge */
       color: var(--accent);
       padding: 4px 12px;
       border-radius: 100px;

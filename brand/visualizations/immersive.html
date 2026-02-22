@@ -22,17 +22,15 @@
        THEME SYSTEM - Zen (Light) + Dark
        ============================================ */
       :root {
-        /* Persona Colors (shared) */
-        --ferni: #4a6741;
-        --peter: #3a6b73;
-        --maya: #a67a6a;
-        --jordan: #c4856a;
-        --nayan: #b8956a;
-        --alex: #5a6b8a;
+        /* Persona Colors (from master-tokens.css) */
+        --ferni: var(--color-ferni);
+        --peter: var(--color-peter);
+        --maya: var(--color-maya);
+        --jordan: var(--color-jordan);
+        --nayan: var(--color-nayan);
+        --alex: var(--color-alex);
 
-        /* Typography */
-        --font-display: 'Plus Jakarta Sans', sans-serif;
-        --font-body: 'Inter', sans-serif;
+        /* Typography (narrative is unique to this file) */
         --font-narrative: 'EB Garamond', Georgia, serif;
       }
 
@@ -1780,26 +1778,26 @@
           <div class="mood-day" style="--mood: var(--maya)">1</div>
           <div class="mood-day" style="--mood: var(--ferni)">2</div>
           <div class="mood-day" style="--mood: var(--ferni)">3</div>
-          <div class="mood-day" style="--mood: #6b6560">4</div>
+          <div class="mood-day" style="--mood: var(--color-text-tertiary)">4</div>
           <div class="mood-day" style="--mood: var(--peter)">5</div>
           <div class="mood-day" style="--mood: var(--ferni)">6</div>
           <div class="mood-day" style="--mood: var(--ferni)">7</div>
           <div class="mood-day" style="--mood: var(--ferni)">8</div>
           <div class="mood-day" style="--mood: var(--ferni)">9</div>
           <div class="mood-day" style="--mood: var(--peter)">10</div>
-          <div class="mood-day" style="--mood: #6b6560">11</div>
+          <div class="mood-day" style="--mood: var(--color-text-tertiary)">11</div>
           <div class="mood-day" style="--mood: var(--jordan)">12</div>
           <div class="mood-day" style="--mood: var(--peter)">13</div>
           <div class="mood-day" style="--mood: var(--ferni)">14</div>
           <div class="mood-day" style="--mood: var(--ferni)">15</div>
-          <div class="mood-day" style="--mood: #6b6560">16</div>
+          <div class="mood-day" style="--mood: var(--color-text-tertiary)">16</div>
           <div class="mood-day" style="--mood: var(--peter)">17</div>
           <div class="mood-day" style="--mood: var(--jordan)">18</div>
           <div class="mood-day" style="--mood: var(--maya)">19</div>
           <div class="mood-day" style="--mood: var(--alex)">20</div>
           <div class="mood-day" style="--mood: var(--ferni)">21</div>
           <div class="mood-day" style="--mood: var(--ferni)">22</div>
-          <div class="mood-day" style="--mood: #6b6560">23</div>
+          <div class="mood-day" style="--mood: var(--color-text-tertiary)">23</div>
           <div class="mood-day" style="--mood: var(--ferni)">24</div>
           <div class="mood-day" style="--mood: var(--nayan)">25</div>
           <div class="mood-day" style="--mood: var(--ferni)">26</div>
@@ -2574,14 +2572,15 @@
         }
 
         // Mood color mapping
+        const mutedColor = getComputedStyle(document.documentElement).getPropertyValue('--color-text-tertiary').trim() || '#6B665F';
         const moodColors = {
           calm: 'var(--ferni)',
           joyful: 'var(--jordan)',
           happy: 'var(--jordan)',
           stressed: 'var(--maya)',
           anxious: 'var(--peter)',
-          sad: '#6b6560',
-          neutral: '#6b6560',
+          sad: mutedColor,
+          neutral: mutedColor,
           energetic: 'var(--alex)',
           reflective: 'var(--nayan)',
         };
@@ -2592,7 +2591,7 @@
           dayEl.className = 'mood-day';
           dayEl.textContent = dayData.dayOfMonth;
 
-          dayEl.style.setProperty('--mood', moodColors[dayData.mood] || '#6b6560');
+          dayEl.style.setProperty('--mood', moodColors[dayData.mood] || mutedColor);
 
           if (dayData.dayOfMonth > today.getDate()) {
             dayEl.classList.add('future');

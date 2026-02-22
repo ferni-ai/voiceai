@@ -681,7 +681,7 @@
       position: relative;
       width: 100%;
       height: 24px;
-      background: linear-gradient(90deg, var(--color-accent) 0%, #f5a623 50%, #e74c3c 100%);
+      background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-warning-bright) 50%, var(--color-error-bright) 100%);
       border-radius: var(--radius-full);
       overflow: hidden;
     }
@@ -777,8 +777,8 @@
       font-weight: 500;
     }
     .arc-phase.initiation { background: rgba(61, 90, 69, 0.2); color: var(--color-accent); }
-    .arc-phase.escalation { background: rgba(245, 166, 35, 0.2); color: #f5a623; }
-    .arc-phase.peak { background: rgba(231, 76, 60, 0.2); color: #e74c3c; }
+    .arc-phase.escalation { background: rgba(245, 166, 35, 0.2); color: var(--color-warning-bright); }
+    .arc-phase.peak { background: rgba(231, 76, 60, 0.2); color: var(--color-error-bright); }
     .arc-phase.resolution { background: rgba(61, 90, 69, 0.2); color: var(--color-accent); }
 
     /* Prediction Confidence */
@@ -789,7 +789,7 @@
       border-left: 3px solid transparent;
     }
     .prediction-card.high { border-left-color: var(--color-accent); }
-    .prediction-card.medium { border-left-color: #f5a623; }
+    .prediction-card.medium { border-left-color: var(--color-warning-bright); }
     .prediction-card.low { border-left-color: var(--color-text-muted); }
     .confidence-badge {
       font-size: 0.6rem;
@@ -799,7 +799,7 @@
       text-transform: uppercase;
     }
     .confidence-badge.high { background: var(--color-accent); color: white; }
-    .confidence-badge.medium { background: #f5a623; color: white; }
+    .confidence-badge.medium { background: var(--color-warning-bright); color: white; }
     .confidence-badge.low { background: var(--color-text-muted); color: white; }
 
     /* Relationship Network */
@@ -816,7 +816,7 @@
     .network-node:hover { transform: scale(1.15); }
     .network-node.positive { background: var(--color-accent); }
     .network-node.neutral { background: var(--color-text-muted); }
-    .network-node.tense { background: #f5a623; }
+    .network-node.tense { background: var(--color-warning-bright); }
 
     /* Open Loops Kanban */
     .loops-column {
@@ -897,7 +897,7 @@
       border-color: rgba(61, 90, 69, 0.5);
     }
     .viz-chip.menu-page.active {
-      background: linear-gradient(135deg, var(--color-accent) 0%, #4a6741 100%);
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-ferni) 100%);
       border-color: var(--color-accent);
       color: white;
       box-shadow: 0 4px 12px rgba(61, 90, 69, 0.3);
@@ -1021,9 +1021,9 @@
 
     .full-span { grid-column: span 2; }
     .border-left-accent { border-left: 3px solid var(--color-accent); }
-    .border-left-warning { border-left: 3px solid #b46e3c; }
+    .border-left-warning { border-left: 3px solid var(--color-warning); }
     .text-accent { color: var(--color-accent); }
-    .text-warning { color: #b46e3c; }
+    .text-warning { color: var(--color-warning); }
     .text-center { text-align: center; }
     .font-semibold { font-weight: 600; }
     .italic { font-style: italic; }
@@ -1361,7 +1361,11 @@
       border: {
         subtle: () => getToken('--color-border-subtle') || 'rgba(29, 27, 24, 0.06)',
         default: () => getToken('--color-border-default') || 'rgba(29, 27, 24, 0.12)'
-      }
+      },
+      // Additional semantic colors
+      warning: () => getToken('--color-warning') || '#A67C35',
+      purple: () => getToken('--color-purple') || '#6366F1',
+      pink: () => getToken('--color-pink') || '#EC4899'
     };
 
     // Build watch visualization for Life Seasons
@@ -1627,7 +1631,7 @@
       gapLabel.textContent = 'Biggest gap';
 
       const gapValue = createElement('div');
-      gapValue.style.cssText = 'font-size: 1rem; font-weight: 600; color: #b46e3c;';
+      gapValue.style.cssText = `font-size: 1rem; font-weight: 600; color: ${TOKENS.warning()};`;
       gapValue.textContent = 'Creativity';
 
       const gapPercent = createElement('div');
@@ -1877,17 +1881,17 @@
       nodes.appendChild(you);
 
       const line = createElement('div');
-      line.style.cssText = 'width: 20px; height: 2px; background: #f5a623; border-style: dashed;';
+      line.style.cssText = `width: 20px; height: 2px; background: ${TOKENS.warningBright()}; border-style: dashed;`;
       nodes.appendChild(line);
 
       const other = createElement('div');
-      other.style.cssText = 'width: 16px; height: 16px; border-radius: 50%; background: #f5a623;';
+      other.style.cssText = `width: 16px; height: 16px; border-radius: 50%; background: ${TOKENS.warningBright()};`;
       nodes.appendChild(other);
 
       container.appendChild(nodes);
 
       const name = createElement('div');
-      name.style.cssText = 'text-align: center; font-size: 0.85rem; color: #f5a623; font-weight: 500;';
+      name.style.cssText = `text-align: center; font-size: 0.85rem; color: ${TOKENS.warningBright()}; font-weight: 500;`;
       name.textContent = 'Mike';
       container.appendChild(name);
 
@@ -2003,7 +2007,7 @@
 
       // Top story
       const story = createElement('div');
-      story.style.cssText = 'text-align: center; font-size: 0.7rem; color: #f5a623; margin-top: 6px; padding: 0 6px;';
+      story.style.cssText = `text-align: center; font-size: 0.7rem; color: ${TOKENS.warningBright()}; margin-top: 6px; padding: 0 6px;`;
       story.textContent = 'Career Pivot';
       container.appendChild(story);
     }
@@ -2362,7 +2366,7 @@
 
       // Current season card
       const card1 = createElement('div', 'mobile-card');
-      if (isAndroid) card1.style.borderLeft = '3px solid #3a6b73';
+      if (isAndroid) card1.style.borderLeft = '3px solid ' + TOKENS.persona.peter();
       const ch1 = createElement('div', 'mobile-card-header');
       ch1.appendChild(createElement('span', 'mobile-card-title', 'Current Season'));
       const badge = createElement('span', 'mobile-card-badge', 'Winter');
@@ -2404,7 +2408,7 @@
 
       // Next season preview
       const card3 = createElement('div', 'mobile-card');
-      if (isAndroid) card3.style.borderLeft = '3px solid #f5a623';
+      if (isAndroid) card3.style.borderLeft = '3px solid ' + TOKENS.warningBright();
       const ch3 = createElement('div', 'mobile-card-header');
       ch3.appendChild(createElement('span', 'mobile-card-title', 'Coming Next'));
       const badge3 = createElement('span', 'mobile-card-badge', 'Spring');
@@ -2447,7 +2451,7 @@
 
       // Flow metrics
       const card2 = createElement('div', 'mobile-card');
-      if (isAndroid) card2.style.borderLeft = '3px solid #3a6b73';
+      if (isAndroid) card2.style.borderLeft = '3px solid ' + TOKENS.persona.peter();
       card2.appendChild(createElement('span', 'mobile-card-title', 'Session Flow'));
       const metrics = [
         { label: 'Conversation depth', value: 'Deep', color: TOKENS.accent() },
@@ -2552,7 +2556,7 @@
 
       // Ripple effects list
       const card2 = createElement('div', 'mobile-card');
-      if (isAndroid) card2.style.borderLeft = '3px solid #3a6b73';
+      if (isAndroid) card2.style.borderLeft = '3px solid ' + TOKENS.persona.peter();
       card2.appendChild(createElement('span', 'mobile-card-title', 'Effects observed'));
       const effects = [
         { level: 2, text: 'Less reactive to emails', time: '+2 weeks' },
@@ -2748,14 +2752,14 @@
 
       // Gauge card
       const card1 = createElement('div', 'mobile-card');
-      if (isAndroid) card1.style.borderLeft = '3px solid #f5a623';
+      if (isAndroid) card1.style.borderLeft = '3px solid ' + TOKENS.warningBright();
       const ch1 = createElement('div', 'mobile-card-header');
       ch1.appendChild(createElement('span', 'mobile-card-title', 'Current Status'));
       ch1.appendChild(createElement('span', 'mobile-card-badge', 'Stretched')).style.background = TOKENS.warningBright();
       card1.appendChild(ch1);
 
       const bar = createElement('div', 'mobile-bar');
-      bar.style.background = 'linear-gradient(90deg, var(--color-accent) 0%, #f5a623 50%, #e74c3c 100%)';
+      bar.style.background = `linear-gradient(90deg, var(--color-accent) 0%, ${TOKENS.warningBright()} 50%, ${TOKENS.errorBright()} 100%)`;
       if (isAndroid) bar.style.borderRadius = '0';
       const indicator = createElement('div');
       indicator.style.cssText = 'position: absolute; left: 65%; top: -2px; width: 4px; height: 16px; background: white; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);';
@@ -2766,7 +2770,7 @@
 
       // Drains card
       const card2 = createElement('div', 'mobile-card');
-      if (isAndroid) card2.style.borderLeft = '3px solid #e74c3c';
+      if (isAndroid) card2.style.borderLeft = '3px solid ' + TOKENS.errorBright();
       card2.appendChild(createElement('div', 'mobile-card-header')).appendChild(createElement('span', 'mobile-card-title', 'Top Energy Drain'));
       card2.appendChild(createElement('p', 'mobile-insight', 'Back-to-back meetings (85% impact)'));
       container.appendChild(card2);
@@ -2962,7 +2966,7 @@
 
       // Insight
       const insight = createElement('div', 'mobile-card');
-      if (isAndroid) insight.style.borderLeft = '3px solid #f5a623';
+      if (isAndroid) insight.style.borderLeft = '3px solid ' + TOKENS.warningBright();
       insight.appendChild(createElement('div', 'mobile-card-header')).appendChild(createElement('span', 'mobile-card-title', 'Suggestion'));
       insight.appendChild(createElement('p', 'mobile-insight', "You haven't mentioned Mike positively in 3 weeks. Consider reaching out."));
       container.appendChild(insight);
@@ -4857,7 +4861,7 @@
           item.style.cssText = 'display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--color-border-subtle);';
           item.appendChild(createElement('span', '', d.name));
           const impact = createElement('span');
-          impact.style.cssText = 'color: #e74c3c; font-weight: 500;';
+          impact.style.cssText = `color: ${TOKENS.errorBright()}; font-weight: 500;`;
           impact.textContent = d.impact + '%';
           item.appendChild(impact);
           card3.appendChild(item);
@@ -5574,7 +5578,7 @@
           row.style.cssText = 'display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle);';
           row.appendChild(createElement('span', '', d.source));
           const impact = createElement('span');
-          impact.style.cssText = 'color: #e74c3c; font-weight: 600;';
+          impact.style.cssText = `color: ${TOKENS.errorBright()}; font-weight: 600;`;
           impact.textContent = d.impact;
           row.appendChild(impact);
           card2.appendChild(row);
@@ -5945,7 +5949,7 @@
         layout.appendChild(createElement('div', 'tv-subtitle', 'Needs attention'));
 
         const indicator = createElement('div');
-        indicator.style.cssText = 'width: 60px; height: 60px; border-radius: 50%; background: #f5a623; margin: 20px auto; display: flex; align-items: center; justify-content: center;';
+        indicator.style.cssText = `width: 60px; height: 60px; border-radius: 50%; background: ${TOKENS.warningBright()}; margin: 20px auto; display: flex; align-items: center; justify-content: center;`;
         const icon = createElement('span');
         icon.style.cssText = 'font-size: 1.5rem; color: white;';
         icon.textContent = '!';
@@ -6008,9 +6012,9 @@
         layout.appendChild(quote);
 
         const indicator = createElement('div');
-        indicator.style.cssText = 'width: 50px; height: 50px; border-radius: 50%; border: 3px solid #f5a623; margin: 16px auto; display: flex; align-items: center; justify-content: center;';
+        indicator.style.cssText = `width: 50px; height: 50px; border-radius: 50%; border: 3px solid ${TOKENS.warningBright()}; margin: 16px auto; display: flex; align-items: center; justify-content: center;`;
         const icon = createElement('span');
-        icon.style.cssText = 'font-size: 1.2rem; color: #f5a623;';
+        icon.style.cssText = `font-size: 1.2rem; color: ${TOKENS.warningBright()};`;
         icon.textContent = '?';
         indicator.appendChild(icon);
         layout.appendChild(indicator);
@@ -6180,9 +6184,9 @@
         const nodes = createElement('div');
         nodes.style.cssText = 'display: flex; gap: 30px; justify-content: center; align-items: center; margin: 20px 0;';
         const node1 = createElement('div');
-        node1.style.cssText = 'width: 40px; height: 40px; background: #6366f1; border-radius: 50%;';
+        node1.style.cssText = `width: 40px; height: 40px; background: ${TOKENS.purple()}; border-radius: 50%;`;
         const line = createElement('div');
-        line.style.cssText = `width: 40px; height: 3px; background: linear-gradient(90deg, #6366f1, ${TOKENS.accent()});`;
+        line.style.cssText = `width: 40px; height: 3px; background: linear-gradient(90deg, ${TOKENS.purple()}, ${TOKENS.accent()});`;
         const node2 = createElement('div');
         node2.style.cssText = `width: 40px; height: 40px; background: ${TOKENS.accent()}; border-radius: 50%;`;
         nodes.appendChild(node1);
@@ -6329,7 +6333,7 @@
       } else if (viz === 'timeline') {
         // Current chapter only
         const dot = createElement('div');
-        dot.style.cssText = 'width: 40px; height: 40px; background: #a67a6a; border-radius: 50%;';
+        dot.style.cssText = `width: 40px; height: 40px; background: ${TOKENS.persona.maya()}; border-radius: 50%;`;
         main.appendChild(dot);
         main.appendChild(createElement('div', 'carplay-label', 'Integration'));
         const sub = createElement('div');
@@ -6358,7 +6362,7 @@
       } else if (viz === 'predictions') {
         // Next alert
         const icon = createElement('div');
-        icon.style.cssText = 'width: 50px; height: 50px; background: #f5a623; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.2rem;';
+        icon.style.cssText = `width: 50px; height: 50px; background: ${TOKENS.warningBright()}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.2rem;`;
         icon.textContent = '!';
         main.appendChild(icon);
         main.appendChild(createElement('div', 'carplay-label', 'Energy dip'));
@@ -6369,7 +6373,7 @@
       } else if (viz === 'network') {
         // Priority relationship
         const icon = createElement('div');
-        icon.style.cssText = 'width: 50px; height: 50px; background: #f5a623; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;';
+        icon.style.cssText = `width: 50px; height: 50px; background: ${TOKENS.warningBright()}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;`;
         icon.textContent = 'M';
         main.appendChild(icon);
         main.appendChild(createElement('div', 'carplay-label', 'Call Mom'));
@@ -6405,9 +6409,9 @@
       } else if (viz === 'unsaid') {
         // Key unsaid indicator
         const icon = createElement('div');
-        icon.style.cssText = 'width: 50px; height: 50px; border: 3px solid #f5a623; border-radius: 50%; display: flex; align-items: center; justify-content: center;';
+        icon.style.cssText = `width: 50px; height: 50px; border: 3px solid ${TOKENS.warningBright()}; border-radius: 50%; display: flex; align-items: center; justify-content: center;`;
         const question = createElement('span');
-        question.style.cssText = 'font-size: 1.5rem; color: #f5a623;';
+        question.style.cssText = `font-size: 1.5rem; color: ${TOKENS.warningBright()};`;
         question.textContent = '?';
         icon.appendChild(question);
         main.appendChild(icon);
@@ -6618,13 +6622,13 @@
         smallContent.appendChild(createElement('div', 'widget-footer', 'Resolution'));
       } else if (viz === 'predictions') {
         const val = createElement('div', 'widget-value');
-        val.style.cssText = 'color: #f5a623;';
+        val.style.cssText = `color: ${TOKENS.warningBright()};`;
         val.textContent = 'Thu';
         smallContent.appendChild(val);
         smallContent.appendChild(createElement('div', 'widget-footer', 'Energy dip'));
       } else if (viz === 'network') {
         const val = createElement('div', 'widget-value');
-        val.style.cssText = 'color: #f5a623;';
+        val.style.cssText = `color: ${TOKENS.warningBright()};`;
         val.textContent = '!';
         smallContent.appendChild(val);
         smallContent.appendChild(createElement('div', 'widget-footer', 'Call Mom'));
@@ -6647,7 +6651,7 @@
         smallContent.appendChild(createElement('div', 'widget-footer', 'Deep'));
       } else if (viz === 'unsaid') {
         const val = createElement('div', 'widget-value');
-        val.style.cssText = 'color: #f5a623;';
+        val.style.cssText = `color: ${TOKENS.warningBright()};`;
         val.textContent = '?';
         smallContent.appendChild(val);
         smallContent.appendChild(createElement('div', 'widget-footer', 'Beneath'));
@@ -6827,7 +6831,7 @@
         const row = createElement('div');
         row.style.cssText = 'display: flex; align-items: center; gap: 8px;';
         const icon = createElement('div');
-        icon.style.cssText = 'width: 24px; height: 24px; background: #f5a623; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; font-weight: 600;';
+        icon.style.cssText = `width: 24px; height: 24px; background: ${TOKENS.warningBright()}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; font-weight: 600;`;
         icon.textContent = '!';
         row.appendChild(icon);
         const text = createElement('div');
@@ -6840,7 +6844,7 @@
         const row = createElement('div');
         row.style.cssText = 'display: flex; align-items: center; gap: 8px;';
         const icon = createElement('div');
-        icon.style.cssText = 'width: 28px; height: 28px; background: #f5a623; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;';
+        icon.style.cssText = `width: 28px; height: 28px; background: ${TOKENS.warningBright()}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;`;
         icon.textContent = 'M';
         row.appendChild(icon);
         const text = createElement('div');
@@ -7701,10 +7705,10 @@
       // Central node
       networkViz.innerHTML = `
         <div style="position: absolute; width: 50px; height: 50px; background: var(--color-accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.8rem;">YOU</div>
-        <div style="position: absolute; left: 15%; top: 20%; width: 35px; height: 35px; background: #6366f1; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem;">Sleep</div>
-        <div style="position: absolute; right: 15%; top: 20%; width: 35px; height: 35px; background: #f5a623; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem;">Mood</div>
-        <div style="position: absolute; left: 20%; bottom: 10%; width: 35px; height: 35px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem;">Work</div>
-        <div style="position: absolute; right: 20%; bottom: 10%; width: 35px; height: 35px; background: #ec4899; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.65rem;">Energy</div>
+        <div style="position: absolute; left: 15%; top: 20%; width: 35px; height: 35px; background: var(--color-purple); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem;">Sleep</div>
+        <div style="position: absolute; right: 15%; top: 20%; width: 35px; height: 35px; background: var(--color-warning-bright); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem;">Mood</div>
+        <div style="position: absolute; left: 20%; bottom: 10%; width: 35px; height: 35px; background: var(--color-success-bright); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem;">Work</div>
+        <div style="position: absolute; right: 20%; bottom: 10%; width: 35px; height: 35px; background: var(--color-pink); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.65rem;">Energy</div>
       `;
       networkCard.appendChild(networkViz);
       page.appendChild(networkCard);
@@ -7714,10 +7718,10 @@
       topCard.style.cssText = 'background: var(--color-bg-secondary); border-radius: 16px; padding: 16px; margin-bottom: 16px;';
       topCard.innerHTML = '<div style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 12px;">Strongest Connections</div>';
       [
-        { from: 'Sleep Quality', to: 'Next-Day Mood', strength: 0.87, color: '#6366f1' },
-        { from: 'Morning Routine', to: 'Productivity', strength: 0.75, color: '#10b981' },
+        { from: 'Sleep Quality', to: 'Next-Day Mood', strength: 0.87, color: TOKENS.purple() },
+        { from: 'Morning Routine', to: 'Productivity', strength: 0.75, color: TOKENS.successBright() },
         { from: 'Exercise', to: 'Creativity', strength: 0.72, color: TOKENS.warningBright() },
-        { from: 'Social Time', to: 'Energy Drain', strength: 0.68, color: '#ec4899' },
+        { from: 'Social Time', to: 'Energy Drain', strength: 0.68, color: TOKENS.pink() },
         { from: 'Journaling', to: 'Clarity', strength: 0.65, color: '#8b5cf6' }
       ].forEach(c => {
         const item = createElement('div');
@@ -8027,7 +8031,7 @@
       [
         { value: '78%', label: 'Accuracy', color: 'var(--color-accent)' },
         { value: '3', label: 'Resolved', color: 'var(--color-semantic-success)' },
-        { value: '4', label: 'Streak', color: '#f59e0b' }
+        { value: '4', label: 'Streak', color: TOKENS.warningBright() }
       ].forEach(stat => {
         const card = createElement('div');
         card.style.cssText = `background: var(--color-bg-secondary); border-radius: 16px; padding: ${platform === 'mobile' ? '16px 12px' : '20px'}; text-align: center;`;
@@ -8130,12 +8134,12 @@
       avatarGrid.style.cssText = `display: flex; justify-content: center; gap: ${platform === 'mobile' ? '12px' : '16px'}; flex-wrap: wrap;`;
 
       const teamMembers = [
-        { initials: 'FE', name: 'Ferni', color: '#4a6741' },
-        { initials: 'PJ', name: 'Peter', color: '#5B8DBE' },
-        { initials: 'MS', name: 'Maya', color: '#8B5CF6' },
-        { initials: 'JT', name: 'Jordan', color: '#F59E0B' },
-        { initials: 'AC', name: 'Alex', color: '#EF4444' },
-        { initials: 'NA', name: 'Nayan', color: '#6B7280' }
+        { initials: 'FE', name: 'Ferni', color: TOKENS.persona.ferni() },
+        { initials: 'PJ', name: 'Peter', color: TOKENS.persona.peter() },
+        { initials: 'MS', name: 'Maya', color: TOKENS.persona.maya() },
+        { initials: 'JT', name: 'Jordan', color: TOKENS.persona.jordan() },
+        { initials: 'AC', name: 'Alex', color: TOKENS.persona.alex() },
+        { initials: 'NA', name: 'Nayan', color: TOKENS.persona.nayan() }
       ];
 
       teamMembers.forEach(member => {

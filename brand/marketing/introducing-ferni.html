@@ -14,12 +14,12 @@
         :root {
             /* Legacy aliases */
             --cream: var(--bg-primary);
-            --cream-dark: #E8E2D9;
+            --cream-dark: var(--color-warm-white);
             --ink: var(--text-primary);
             --ink-light: var(--text-secondary);
             --text-inverted: var(--bg-elevated);
-            --ferni-light: #5a7a51;
-            --ferni-dark: #3d5a35;
+            --ferni-light: var(--color-ferni-light);
+            --ferni-dark: var(--color-ferni-dark);
             --accent-warm: #C4A265;
             --bg-warm: #FAF8F3;
             --glass-bg: rgba(255, 253, 251, 0.85);
@@ -105,15 +105,10 @@
             transform-origin: center center;
         }
 
-        /* Eyes with sparkle */
+        /* Eyes - LUXO STYLE: opaque white, no pupils */
         .eye-main {
             transition: transform 0.15s var(--ease-spring);
             transform-origin: center center;
-        }
-
-        .eye-sparkle {
-            fill: white;
-            opacity: 0.9;
         }
 
         /* Lids for expressions */
@@ -416,7 +411,7 @@
            THE SOLUTION SECTION
            ============================================ */
         .solution-section {
-            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-warm) 100%);
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--color-warm-white) 100%);
         }
 
         .solution-content {
@@ -452,7 +447,7 @@
         .phone-screen {
             width: 100%;
             height: 100%;
-            background: linear-gradient(180deg, #EDF2EC 0%, var(--bg-primary) 100%);
+            background: linear-gradient(180deg, var(--color-ferni-light) 0%, var(--bg-primary) 100%);
             border-radius: 32px;
             display: flex;
             flex-direction: column;
@@ -499,7 +494,7 @@
         .feature-icon {
             width: 44px;
             height: 44px;
-            background: rgba(74, 103, 65, 0.1);
+            background: var(--color-ferni-subtle);
             border-radius: var(--radius-lg);
             display: flex;
             align-items: center;
@@ -595,7 +590,7 @@
            BETTER THAN HUMAN SECTION
            ============================================ */
         .superhuman-section {
-            background: linear-gradient(180deg, var(--bg-primary) 0%, #EDF2EC 100%);
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--color-ferni-light) 100%);
             position: relative;
             overflow: hidden;
         }

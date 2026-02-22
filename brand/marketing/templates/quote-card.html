@@ -30,7 +30,7 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      background: #f0f0f0;
+      background: var(--color-bg-secondary, #f0f0f0);
       padding: 40px;
     }
 
@@ -306,13 +306,18 @@
   </div>
 
   <script>
+    // Read design token from CSS custom properties
+    function getToken(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
     const personaData = {
-      ferni: { name: 'Ferni', title: 'The Coordinator', color: '#4a6741' },
-      maya: { name: 'Maya', title: 'Habits Coach', color: '#a67a6a' },
-      peter: { name: 'Peter', title: 'The Quant', color: '#3a6b73' },
-      jordan: { name: 'Jordan', title: 'Life Planner', color: '#c4856a' },
-      alex: { name: 'Alex', title: 'Chief of Staff', color: '#5a6b8a' },
-      nayan: { name: 'Nayan', title: 'The Sage', color: '#b8956a' }
+      ferni: { name: 'Ferni', title: 'The Coordinator', color: getToken('--color-ferni') || '#4a6741' },
+      maya: { name: 'Maya', title: 'Habits Coach', color: getToken('--color-maya') || '#a67a6a' },
+      peter: { name: 'Peter', title: 'The Quant', color: getToken('--color-peter') || '#3a6b73' },
+      jordan: { name: 'Jordan', title: 'Life Planner', color: getToken('--color-jordan') || '#c4856a' },
+      alex: { name: 'Alex', title: 'Chief of Staff', color: getToken('--color-alex') || '#5a6b8a' },
+      nayan: { name: 'Nayan', title: 'The Sage', color: getToken('--color-nayan') || '#b8956a' }
     };
 
     function updateCard() {

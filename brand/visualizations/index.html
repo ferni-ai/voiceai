@@ -5953,6 +5953,15 @@
 
   <script>
     // ============================================
+    // DESIGN TOKEN HELPER
+    // ============================================
+    // Read design token from CSS custom properties
+    // See also: visualization-tokens.js for ES module usage
+    function getToken(varName) {
+      return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    }
+
+    // ============================================
     // ACTIVITY RINGS ANIMATION
     // ============================================
     function animateRings() {
@@ -6297,13 +6306,12 @@
       gradient.setAttribute('y2', '0%');
 
       // Get persona colors from CSS variables
-      var cs = getComputedStyle(document.documentElement);
-      var alexColor = cs.getPropertyValue('--color-alex').trim() || '#5a6b8a';
-      var nayanColor = cs.getPropertyValue('--color-nayan').trim() || '#B8956A';
-      var peterColor = cs.getPropertyValue('--color-peter').trim() || '#3A6B73';
-      var ferniColor = cs.getPropertyValue('--color-ferni').trim() || '#4A6741';
-      var mayaColor = cs.getPropertyValue('--color-maya').trim() || '#A67A6A';
-      var jordanColor = cs.getPropertyValue('--color-jordan').trim() || '#C4856A';
+      var alexColor = getToken('--color-alex') || '#5a6b8a';
+      var nayanColor = getToken('--color-nayan') || '#B8956A';
+      var peterColor = getToken('--color-peter') || '#3A6B73';
+      var ferniColor = getToken('--color-ferni') || '#4A6741';
+      var mayaColor = getToken('--color-maya') || '#A67A6A';
+      var jordanColor = getToken('--color-jordan') || '#C4856A';
 
       var stops = [
         { offset: '0%', color: alexColor, opacity: '0.3' },      // Night (Alex blue)
@@ -6577,11 +6585,10 @@
       setupScrollAnimations();
 
       // Create sparklines with sample data - using persona colors from CSS variables
-      var styles = getComputedStyle(document.documentElement);
-      createSparkline('sparkline1', [720, 745, 760, 780, 795, 810, 825, 832, 840, 847], styles.getPropertyValue('--color-nayan').trim() || '#B8956A');
-      createSparkline('sparkline2', [3200, 3400, 3600, 3900, 4100, 4300, 4500, 4650, 4750, 4850], styles.getPropertyValue('--color-peter').trim() || '#3A6B73');
-      createSparkline('sparkline3', [85, 92, 105, 118, 125, 135, 142, 148, 153, 156], styles.getPropertyValue('--color-ferni').trim() || '#4A6741');
-      createSparkline('sparkline4', [6.2, 6.5, 6.8, 7.1, 7.4, 7.7, 7.9, 8.1, 8.3, 8.4], styles.getPropertyValue('--color-maya').trim() || '#A67A6A');
+      createSparkline('sparkline1', [720, 745, 760, 780, 795, 810, 825, 832, 840, 847], getToken('--color-nayan') || '#B8956A');
+      createSparkline('sparkline2', [3200, 3400, 3600, 3900, 4100, 4300, 4500, 4650, 4750, 4850], getToken('--color-peter') || '#3A6B73');
+      createSparkline('sparkline3', [85, 92, 105, 118, 125, 135, 142, 148, 153, 156], getToken('--color-ferni') || '#4A6741');
+      createSparkline('sparkline4', [6.2, 6.5, 6.8, 7.1, 7.4, 7.7, 7.9, 8.1, 8.3, 8.4], getToken('--color-maya') || '#A67A6A');
 
       // New visualization animations
       initRippleEffect();

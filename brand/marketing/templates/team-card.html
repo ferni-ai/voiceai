@@ -25,7 +25,7 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      background: #f0f0f0;
+      background: var(--color-bg-secondary, #f0f0f0);
       padding: 40px;
       gap: 40px;
       flex-wrap: wrap;
@@ -153,12 +153,12 @@
     }
 
     /* Persona colors */
-    [data-persona="ferni"] { --persona-color: #4a6741; }
-    [data-persona="maya"] { --persona-color: #a67a6a; }
-    [data-persona="peter"] { --persona-color: #3a6b73; }
-    [data-persona="jordan"] { --persona-color: #c4856a; }
-    [data-persona="alex"] { --persona-color: #5a6b8a; }
-    [data-persona="nayan"] { --persona-color: #b8956a; }
+    [data-persona="ferni"] { --persona-color: var(--color-ferni); }
+    [data-persona="maya"] { --persona-color: var(--color-maya); }
+    [data-persona="peter"] { --persona-color: var(--color-peter); }
+    [data-persona="jordan"] { --persona-color: var(--color-jordan); }
+    [data-persona="alex"] { --persona-color: var(--color-alex); }
+    [data-persona="nayan"] { --persona-color: var(--color-nayan); }
 
     /* Controls */
     .controls {
@@ -257,41 +257,46 @@
   </div>
 
   <script>
+    // Read design token from CSS custom properties
+    function getToken(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
     const personaData = {
       ferni: {
         name: 'Ferni',
         role: 'The Coordinator',
-        color: '#4a6741',
+        color: getToken('--color-ferni') || '#4a6741',
         description: 'Your primary companion. Listens deeply, connects the dots, knows when to bring in specialists.'
       },
       maya: {
         name: 'Maya',
         role: 'Habits Coach',
-        color: '#a67a6a',
+        color: getToken('--color-maya') || '#a67a6a',
         description: 'Gentle accountability without shame. Celebrates your progress, never judges your setbacks.'
       },
       peter: {
         name: 'Peter',
         role: 'The Quant',
-        color: '#3a6b73',
+        color: getToken('--color-peter') || '#3a6b73',
         description: 'Deep research on any topic. Financial guidance, market analysis, data-driven decisions.'
       },
       jordan: {
         name: 'Jordan',
         role: 'Life Planner',
-        color: '#c4856a',
+        color: getToken('--color-jordan') || '#c4856a',
         description: 'Big dreams, concrete plans. Helps you turn "someday" into "this month" with realistic milestones.'
       },
       alex: {
         name: 'Alex',
         role: 'Chief of Staff',
-        color: '#5a6b8a',
+        color: getToken('--color-alex') || '#5a6b8a',
         description: 'Email strategy, calendar optimization, communication coaching. Your productivity partner.'
       },
       nayan: {
         name: 'Nayan',
         role: 'The Sage',
-        color: '#b8956a',
+        color: getToken('--color-nayan') || '#b8956a',
         description: 'Life\'s deeper questions. Purpose, meaning, values. Wisdom from a place of genuine care.'
       }
     };

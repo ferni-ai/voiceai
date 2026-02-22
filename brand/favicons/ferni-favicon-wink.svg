@@ -21,7 +21,6 @@
   <path d="M8.5,15 Q11,13 13.5,15" 
         fill="none" stroke="url(#eyeFill)" stroke-width="2.5" stroke-linecap="round"/>
 
-  <!-- Right eye - open -->
+  <!-- Right eye - LUXO STYLE: opaque white, no pupils -->
   <ellipse cx="21" cy="15" rx="2.5" ry="3.2" fill="url(#eyeFill)"/>
-  <circle cx="20" cy="13.5" r="0.6" fill="white" opacity="0.9"/>
 </svg>
