@@ -14,6 +14,7 @@
  * Environment: USE_QWEN3_OMNI=true
  */
 
+import { QWEN3_OMNI_URL } from '../../config/api-urls.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   LLMModelConfig,
@@ -125,7 +126,7 @@ Be present, warm, and genuinely supportive.
    * via Qwen3TTSAdapter when USE_QWEN3_OMNI is set.
    */
   async createLLMModel(config: LLMModelConfig): Promise<unknown> {
-    const serverUrl = process.env.QWEN3_OMNI_URL || 'http://localhost:8000';
+    const serverUrl = QWEN3_OMNI_URL;
 
     log.info(
       {

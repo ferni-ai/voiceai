@@ -19,6 +19,7 @@
 
 /* eslint-disable no-await-in-loop -- Sequential processing required for worker thread management */
 
+import { existsSync } from 'node:fs';
 import { Worker, isMainThread } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -27,6 +28,16 @@ import { createLogger } from '../utils/safe-logger.js';
 // Get the directory of this module for worker file resolution
 const currentFile = fileURLToPath(import.meta.url);
 const currentDir = dirname(currentFile);
+
+/** Resolve worker script path: .ts when running from source (tsx), .js when built */
+function getWorkerPath(): { path: string; execArgv: string[] } {
+  const workerTs = join(currentDir, 'audio-analysis-worker-thread.ts');
+  const workerJs = join(currentDir, 'audio-analysis-worker-thread.js');
+  if (existsSync(workerTs)) {
+    return { path: workerTs, execArgv: ['--import', 'tsx'] };
+  }
+  return { path: workerJs, execArgv: [] };
+}
 
 const log = createLogger({ module: 'AudioAnalysisPool' });
 
@@ -141,9 +152,10 @@ class AudioAnalysisWorkerPool {
    * This prevents code injection vulnerabilities.
    */
   private createWorker(): Worker {
-    // Load worker from separate file (secure - no eval)
-    const workerPath = join(currentDir, 'audio-analysis-worker-thread.js');
-    const worker = new Worker(workerPath);
+    // Load worker from separate file (secure - no eval).
+    // In dev we run from source (.ts) with tsx; in production we use built .js.
+    const { path: workerPath, execArgv } = getWorkerPath();
+    const worker = new Worker(workerPath, { execArgv });
 
     worker.on('message', (result: AudioAnalysisResult | { jobId: string; error: string }) => {
       const active = this.activeJobs.get(result.jobId);

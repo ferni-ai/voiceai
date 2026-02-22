@@ -52,7 +52,6 @@ import { isFTISEnabled } from '../processors/tool-routing-integration.js';
 // TTS Gateway integration
 import {
   createGatewayTTSNode,
-  getSSMLProcessor,
   isTTSGatewayEnabled,
 } from '../../speech/tts-gateway/index.js';
 
@@ -373,8 +372,6 @@ export interface TtsWrapperOptions {
   enableStreamingOptimization?: boolean;
   /** Is this the first turn? (enables more aggressive optimization) */
   isFirstTurn?: boolean;
-  /** Enable cache-aware TTS that checks speculative cache before Cartesia (default: true) */
-  enableCacheAwareTTS?: boolean;
   /** Enable "Better Than Human" post-TTS audio enhancement (default: true) */
   enablePostTTSEnhancement?: boolean;
   /** Post-TTS enhancement config (uses betterThanHuman preset by default) */
@@ -432,7 +429,6 @@ export async function wrappedTtsNode(
     onInterruptRecoveryApplied,
     enableStreamingOptimization = isStreamingTTSEnabled(),
     isFirstTurn = false,
-    enableCacheAwareTTS = process.env.CACHE_AWARE_TTS_ENABLED !== 'false',
     enablePostTTSEnhancement = process.env.POST_TTS_ENHANCEMENT_ENABLED !== 'false',
     postTTSConfig,
   } = options;
@@ -1229,8 +1225,8 @@ export async function wrappedTtsNode(
 
     // Use gateway for full TTS synthesis
     audioStream = await gatewayTTS(trackedTextStream);
-  } else if (enableCacheAwareTTS) {
-    // LEGACY PATH: Use cache-aware TTS that checks speculative cache before Cartesia
+  } else {
+    // Use cache-aware TTS that checks speculative cache before Cartesia
     // BUG FIX: Convert personaId to actual Cartesia voice UUID
     // Previously passed personaId directly, causing cache misses and wrong voice lookups
     const actualVoiceId = getVoiceIdForPersona(personaId);
@@ -1247,32 +1243,6 @@ export async function wrappedTtsNode(
     );
 
     audioStream = await cacheAwareTTS(agent, trackedTextStream, modelSettings);
-  } else {
-    // Fallback to default TTS implementation
-    // 🚀 CONSOLIDATED: Use gateway's SSMLProcessor (single source of truth)
-    // This prevents SSML tags from being spoken literally by Cartesia
-    const processor = getSSMLProcessor();
-    const bufferTransform = processor.createBufferTransform();
-
-    const stripTransform = new NodeTransformStream<string, string>({
-      transform(chunk, controller) {
-        const result = processor.parse(chunk);
-        if (result.cleanText.trim()) {
-          controller.enqueue(result.cleanText);
-        }
-      },
-    });
-
-    const ssmlStrippedStream = trackedTextStream
-      .pipeThrough(bufferTransform)
-      .pipeThrough(stripTransform);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    audioStream = await (voice.Agent.default as any).ttsNode(
-      agent,
-      ssmlStrippedStream,
-      modelSettings
-    );
   }
 
   // =========================================================================

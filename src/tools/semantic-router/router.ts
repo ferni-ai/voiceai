@@ -242,12 +242,6 @@ export function resetSemanticRoutingMetrics(): void {
 // ============================================================================
 
 /**
- * Feature flag to enable/disable routing coalescing.
- * Can be disabled for debugging or if issues arise.
- */
-const ENABLE_ROUTER_COALESCING = process.env.ENABLE_ROUTER_COALESCING !== 'false';
-
-/**
  * Request coalescer for semantic routing.
  * Coalesces identical routing requests to prevent duplicate work when
  * multiple concurrent requests have the same input text and persona.
@@ -364,11 +358,8 @@ export class SemanticRouter {
       recentTools?: string[];
     }
   ): Promise<SemanticRouterResult> {
-    // Check if coalescing should be used
     // Only coalesce when there's no conversation history (first turn) to avoid context conflicts
-    const shouldCoalesce =
-      ENABLE_ROUTER_COALESCING &&
-      (!context?.conversationHistory || context.conversationHistory.length === 0);
+    const shouldCoalesce = !context?.conversationHistory || context.conversationHistory.length === 0;
 
     if (shouldCoalesce) {
       const coalesceKey = getRoutingCoalesceKey(inputText, context?.personaId);
@@ -777,8 +768,8 @@ export function getRouterCoalescerStats(): {
 
 /**
  * Check if router coalescing is enabled.
- * Useful for debugging and observability dashboards.
+ * Always true - coalescing is always on for semantic routing.
  */
 export function isRouterCoalescingEnabled(): boolean {
-  return ENABLE_ROUTER_COALESCING;
+  return true;
 }

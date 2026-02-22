@@ -15,8 +15,10 @@
  * - Twilio 8kHz detection and bandwidth extension metrics
  * - Debugging and monitoring
  *
- * For STT-LLM-TTS pipeline models, the stt_node could be overridden to use this
- * processor directly on the audio stream.
+ * When Pre-STT is enabled via feature flag (preSTTAudioProcessing), the voice agent
+ * uses PreSTTFrameProcessor as session inputOptions.noiseCancellation so enhanced
+ * audio is fed to STT (see pre-stt-frame-processor.ts and voice-agent-entry.ts).
+ * Twilio path uses Pre-STT in twilio-stream-bridge (enhanced audio → LiveKit).
  *
  * @module agents/integrations/pre-stt-audio-integration
  */
@@ -159,8 +161,9 @@ export async function initializePreSTTIntegration(
           isTelephonyDetected = true;
         }
 
-        // Process through Pre-STT (parallel analysis - we don't use the output for STT)
-        // The isSpeech flag helps noise estimation - use true during active speech
+        // Process through Pre-STT (parallel analysis - we don't use the output for STT).
+        // Enhanced audio (AGC + noise suppression) could be fed to STT in a pipeline
+        // where we control the STT input; currently realtime models get raw audio from LiveKit.
         const isSpeech = detectSpeechActivity(int16Data);
         processor.processFrameI16(int16Data, isSpeech);
 

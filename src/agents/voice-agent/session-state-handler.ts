@@ -39,13 +39,34 @@ import type { ConversationManager } from '../../services/conversation-manager.js
 import { diag } from '../../services/diagnostic-logger.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
-import { getLiveBackchannelingService } from '../../speech/live-backchanneling/index.js';
+import {
+  getLiveBackchannelingService,
+  MICRO_REACTION_COOLDOWN_MS,
+} from '../../speech/live-backchanneling/index.js';
 import { generateBackchannelInstructions } from '../../speech/llm-backchannel.js';
 import {
   trackBackchannelEvent,
   trackResponseLatency,
   validateTurnPrediction,
 } from '../integrations/speech-metrics-integration.js';
+import {
+  EMPTY_RESPONSE_WATCHDOG_MS,
+  BACKCHANNEL_MIN_INTERVAL_MS,
+  BACKCHANNEL_TRIGGER_MS,
+  LIVE_BACKCHANNEL_MIN_INTERVAL_MS,
+  MIN_SPEECH_FOR_LIVE_BACKCHANNEL_MS,
+  MIN_SPEECH_DURATION_MS,
+  BACKCHANNEL_TIMEOUT_MS,
+  BREATH_PAUSE_CHECK_MS,
+  BREATH_PAUSE_MAX_WAIT_MS,
+  BACKCHANNEL_REACTION_WINDOW_MS,
+  SILENCE_FOR_BACKCHANNEL_MS,
+  SILENCE_HANDLER_MIN_MS,
+  DEFAULT_UTTERANCE_DURATION_MS,
+  SILENCE_CHECK_INTERVAL_MS,
+  FEEDBACK_PROMPT_DELAY_MS,
+  EARLY_ACK_CLEANUP_MS,
+} from '../../config/timeouts.js';
 import { IDLE_TIMEOUT, SILENCE_THRESHOLDS } from '../shared/constants.js';
 import {
   clearPendingLowPriorityResponse,
@@ -71,6 +92,14 @@ import { processSilenceWithInterpreter } from '../integrations/better-than-human
 import { feedbackTriggerEngine } from '../feedback/index.js';
 // Handoff state tracking - prevents operations during/after handoffs
 import { shouldSkipGenerateReply } from '../../handoff/unified-state.js';
+import {
+  recordExperience,
+  computeReward,
+  type DynamicsState,
+  type DynamicsAction,
+} from '../shared/performance/dynamics-learner.js';
+// 5D: Continuous prosody stream for rolling window updates
+import { getContinuousProsodyStream } from '../../intelligence/context-builders/continuous-prosody.js';
 
 // ============================================================================
 // TYPES
@@ -194,8 +223,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // This fixes the issue where user says "play music" and gets no response
   let emptyResponseWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
   let lastUserMessageForRecovery: string | null = null;
-  // REDUCED Jan 2026: 5s → 3s - 5 seconds of no response feels like the system is broken
-  const EMPTY_RESPONSE_WATCHDOG_MS = 3000; // 3 seconds - if no agent speech by then, trigger recovery
+  // See config/timeouts.ts EMPTY_RESPONSE_WATCHDOG_MS
 
   // Idle timeout tracking - auto-disconnect after extended silence
   let idleTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
@@ -203,11 +231,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   let hasWarnedAboutIdle = false;
   let isDisconnectingDueToIdle = false;
 
-  // Backchannel timing constants - HUMANIZATION FIX (Dec 2025)
-  // Real humans backchannel about once per 10-15 seconds, not every 4s!
-  // Using longer intervals to prevent robotic over-backchanneling
-  const BACKCHANNEL_MIN_INTERVAL_MS = 12000; // 12s between backchannels (was 4s - too robotic!)
-  const BACKCHANNEL_TRIGGER_MS = 4000; // 4s pause before triggering (was 3s - too quick!)
+  // Backchannel timing - see config/timeouts.ts
 
   // ============================================================
   // IDLE TIMEOUT HELPER - Auto-disconnect after extended silence
@@ -304,6 +328,12 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     isDisconnectingDueToIdle = false;
   };
 
+  // 5D: Start continuous prosody stream for rolling window updates
+  const prosodyStream = getContinuousProsodyStream();
+  prosodyStream.start((_snapshot) => {
+    // Prosody snapshots are collected; context injection happens in turn-handler
+  });
+
   // Silence context for meaningful silence responses
   const silenceContext: SilenceContext = {
     silenceDurationSeconds: 0,
@@ -326,10 +356,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     ? getLiveBackchannelingService(sessionId)
     : null;
   let lastLiveBackchannelAt = 0;
-  // HUMANIZATION FIX (Dec 2025): Live backchannels were too frequent - felt robotic
-  // Increased interval and minimum speech time for more natural feel
-  const LIVE_BACKCHANNEL_MIN_INTERVAL_MS = 15000; // 15s between live backchannels (was 4s!)
-  const MIN_SPEECH_FOR_LIVE_BACKCHANNEL_MS = 5000; // User must speak 5s+ (was 2s)
+  let lastMicroReactionAt = 0;
+  // Live backchannel timing - see config/timeouts.ts
 
   // NOISE FILTER (Jan 2026): Filter out very short "speech" events (clicks, pops, noise)
   // "Hi" takes ~150-200ms to say, noise/clicks are usually < 100ms
@@ -338,7 +366,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // ⚠️ DEBUGGING: Set DISABLE_NOISE_FILTER=true to disable (helps debug what Gemini hears)
   // The filter was incorrectly triggering and blocking valid responses (Jan 2026 bug)
   const NOISE_FILTER_DISABLED = process.env.DISABLE_NOISE_FILTER === 'true';
-  const MIN_SPEECH_DURATION_MS = NOISE_FILTER_DISABLED ? 0 : 150;
+  const minSpeechDurationMs = NOISE_FILTER_DISABLED ? 0 : MIN_SPEECH_DURATION_MS;
 
   if (NOISE_FILTER_DISABLED) {
     diag.state('⚠️ NOISE FILTER DISABLED via DISABLE_NOISE_FILTER=true');
@@ -361,8 +389,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   };
 
   const attemptBackchannel = async () => {
-    // Don't backchannel if agent is speaking
-    if (conversationManager.isAgentSpeaking()) return;
+    // In full-duplex mode (Higgs mixer), backchannels can overlay agent speech.
+    // In standard mode, skip if agent is speaking.
+    const higgsDuplex = userData.higgsFullDuplex ?? false;
+    if (conversationManager.isAgentSpeaking() && !higgsDuplex) return;
 
     // ECHO PREVENTION: Don't backchannel immediately after agent stopped speaking
     // Agent's audio gets picked up by mic, VAD thinks user is speaking, agent interrupts itself,
@@ -433,7 +463,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           waitForPlayout: false, // Don't wait - backchannels are non-blocking
           context: 'backchannel',
           sessionId,
-          timeoutMs: 3000, // Short timeout - backchannels should be quick or skipped
+          timeoutMs: BACKCHANNEL_TIMEOUT_MS,
           bypassCircuitBreaker: true, // Don't let backchannel failures affect real requests
           priority: 'low', // Low priority - failures don't affect circuit breaker
         }).catch(() => {
@@ -453,6 +483,42 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           userEmotion: silenceContext.recentEmotionalTone === 'heavy' ? 'worried' : 'neutral',
           mode: 'llm',
         });
+
+        // RL: Record backchannel experience for dynamics model training
+        fireAndForget(async () => {
+          const hb = userData.higgsBiomarkers;
+          const ve = userData.voiceEmotion;
+          const state: DynamicsState = {
+            audioFeatures: {
+              energyMean: (typeof ve?.arousal === 'number' ? ve.arousal : 0.5) as number,
+              energySlope: 0,
+              pitchMean: (typeof hb?.pitch_hz === 'number' ? hb.pitch_hz : 200) as number,
+              pitchSlope: 0,
+              pauseDurationMs: (userData.currentSilenceDurationMs ?? 0) as number,
+              speakingRate: (typeof hb?.speech_rate === 'number' ? hb.speech_rate : 3.0) as number,
+            },
+            partialTranscript: userData.lastUserMessage ?? '',
+            context: {
+              turnNumber: userData.turnCount ?? 0,
+              topicCategory: 'general',
+              emotionPrimary: userData.voiceEmotion?.primary ?? 'neutral',
+              sessionDurationMs:
+                Date.now() - (userData.services?.sessionStartTime ?? Date.now()),
+            },
+          };
+          const action: DynamicsAction = {
+            type: 'backchannel',
+            delayMs: 0,
+            phrase: 'auto',
+          };
+          const reward = computeReward({
+            userContinuedSpeaking: true,
+            positiveBiomarkers: (userData.voiceEmotion?.confidence ?? 0) > 0.5,
+            userInterrupted: false,
+            engagementScore: 0.7,
+          });
+          recordExperience(sessionId, state, action, reward);
+        }, 'dynamics-learner-backchannel');
 
         // PROMINENT LOG: Show backchannel timing for debugging
         diag.state('🎯 [BACKCHANNEL] FIRED', {
@@ -639,7 +705,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       // Notify speech coordinator for adaptive timing learning
       coordinator.onSpeechEnded(
         userData.wasInterrupted ?? false,
-        utteranceDuration ?? 1000 // Default to 1s if unknown
+        utteranceDuration ?? DEFAULT_UTTERANCE_DURATION_MS
       );
 
       conversationManager.handleAgentFinishedSpeaking(0);
@@ -679,7 +745,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           );
         }
         feedbackPromptTimer = null;
-      }, 1000);
+      }, FEEDBACK_PROMPT_DELAY_MS);
 
       // DJ CONTROLLER: Notify agent stopped speaking - triggers automatic unduck
       notifyAgentSpeakingEnd();
@@ -766,7 +832,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       validateTurnPrediction(sessionId, 'user_continued');
 
       // Check if user responded to our backchannel (within 10 seconds)
-      if (pendingBackchannelReaction && Date.now() - lastBackchannelAt < 10000) {
+      if (pendingBackchannelReaction && Date.now() - lastBackchannelAt < BACKCHANNEL_REACTION_WINDOW_MS) {
         activeListening.recordBackchannelReaction(true);
         pendingBackchannelReaction = false;
       }
@@ -863,9 +929,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             return;
           }
           void attemptLiveBackchannel();
-        }, 200); // Check every 200ms for breath pauses
+        }, BREATH_PAUSE_CHECK_MS);
 
-        // Failsafe: Clear interval after 30s max to prevent memory leaks
+        // Failsafe: Clear interval after max wait to prevent memory leaks
         const originalUserSpeakingStart = userData.userSpeakingStartTime;
         liveBackchannelFailsafeTimer = setTimeout(() => {
           if (
@@ -876,7 +942,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             liveBackchannelInterval = null;
           }
           liveBackchannelFailsafeTimer = null;
-        }, 30000);
+        }, BREATH_PAUSE_MAX_WAIT_MS);
       }
     }
 
@@ -904,10 +970,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
       // 🚫 NOISE FILTER: Reject very short "speech" (clicks, pops, mic noise)
       // "Hi" takes ~150-200ms, so anything shorter is almost certainly noise
-      if (speechDurationMs > 0 && speechDurationMs < MIN_SPEECH_DURATION_MS) {
+      if (speechDurationMs > 0 && speechDurationMs < minSpeechDurationMs) {
         diag.state('🚫 [NOISE FILTER] Rejecting short speech (likely click/noise)', {
           durationMs: speechDurationMs,
-          thresholdMs: MIN_SPEECH_DURATION_MS,
+          thresholdMs: minSpeechDurationMs,
         });
 
         // 🛑 CRITICAL FIX (Jan 2026): Interrupt SDK auto-response for noise
@@ -1149,7 +1215,6 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       };
       session.on(voice.AgentSessionEventTypes.AgentStateChanged, earlyAckAgentStateHandler);
 
-      // Clean up after 10 seconds regardless (prevents memory leaks)
       earlyAckCleanupTimer = setTimeout(() => {
         cleanupEarlyAck();
         if (earlyAckAgentStateHandler) {
@@ -1157,7 +1222,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           earlyAckAgentStateHandler = null;
         }
         earlyAckCleanupTimer = null;
-      }, 10000);
+      }, EARLY_ACK_CLEANUP_MS);
 
       // GAME UNDUCK: Restore music volume after user finishes speaking
       fireAndForget(async () => {
@@ -1181,7 +1246,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       startIdleTimeout();
 
       // Track negative backchannel reaction if user went silent after our backchannel
-      if (pendingBackchannelReaction && Date.now() - lastBackchannelAt > 5000) {
+      if (pendingBackchannelReaction && Date.now() - lastBackchannelAt > SILENCE_FOR_BACKCHANNEL_MS) {
         activeListening.recordBackchannelReaction(false);
         pendingBackchannelReaction = false;
       }
@@ -1192,8 +1257,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       // ----------------------------------------------------------------
       let silenceAnalysis: SilenceAnalysis | null = null;
       const { userId } = userData;
-      if (userId && silenceDurationMs >= 1500) {
-        // Only analyze meaningful silences (>1.5s)
+      if (userId && silenceDurationMs >= SILENCE_HANDLER_MIN_MS) {
+        // Only analyze meaningful silences
         try {
           silenceAnalysis = analyzeSilence(
             silenceDurationMs,
@@ -1561,6 +1626,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       emptyResponseWatchdogTimer = null;
     }
     lastUserMessageForRecovery = null;
+
+    // 5D: Stop continuous prosody stream
+    prosodyStream.stop();
 
     // 🔧 BTH FIX: Remove early-ack agent state handler to prevent listener leak
     if (earlyAckAgentStateHandler) {

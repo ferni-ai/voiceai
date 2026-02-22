@@ -153,8 +153,8 @@ export async function runMultiAgentMode(
     unregisterSession,
   } = config;
 
-  // Check if multi-agent mode is enabled
-  const MULTI_AGENT_MODE = process.env.MULTI_AGENT_MODE === 'true';
+  // Check if multi-agent mode is enabled (default: true, set MULTI_AGENT_MODE=false to disable)
+  const MULTI_AGENT_MODE = process.env.MULTI_AGENT_MODE !== 'false';
   if (!MULTI_AGENT_MODE) {
     return { activated: false };
   }

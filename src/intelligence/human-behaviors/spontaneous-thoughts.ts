@@ -7,6 +7,8 @@
  * @module intelligence/human-behaviors/spontaneous-thoughts
  */
 
+import { isCoach } from '../../personas/persona-ids.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -94,7 +96,7 @@ const FALLBACK_THOUGHTS: Record<string, SpontaneousThought[]> = {
 function getTimeBasedThought(personaId?: string): SpontaneousThought | null {
   const hour = new Date().getHours();
 
-  if (personaId === 'ferni') {
+  if (personaId && isCoach(personaId)) {
     return {
       thought:
         hour < 12

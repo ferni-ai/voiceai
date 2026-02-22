@@ -17,6 +17,7 @@ import {
   PERSONA_RITUALS,
   RITUAL_PROMPTS,
 } from '../../../services/daily-rituals.js';
+import { isCoach } from '../../../personas/persona-ids.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   BuilderCategory,
@@ -173,7 +174,7 @@ STREAK CELEBRATION (${currentStreak} days!):
       }
 
       // Add persona-specific guidance
-      if (personaId === 'ferni') {
+      if (isCoach(personaId)) {
         content += `
 
 FERNI'S SKY CHECK:

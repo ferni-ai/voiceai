@@ -1089,7 +1089,7 @@ function injectStyles(): void {
 // ============================================================================
 
 export function dispose(): void {
-  clearAllTimeouts();
+  _clearAllTimeouts();
   clearAllSidekicks();
   removeEventListeners();
   

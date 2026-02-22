@@ -18,6 +18,7 @@
  * ```
  */
 
+import { isCoach } from '../../personas/persona-ids.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
@@ -334,7 +335,7 @@ export function getThoughtSignatureProtocol(personaId?: string): string {
   let protocol = THOUGHT_SIGNATURE_PROTOCOL;
 
   // Persona-specific additions could go here
-  if (personaId === 'ferni') {
+  if (personaId && isCoach(personaId)) {
     protocol += `
 ### Ferni-Specific Guidelines:
 - Use memory tools proactively to remember important details

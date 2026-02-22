@@ -6,6 +6,8 @@
  * @module @ferni/speech/voice-biomarkers
  */
 
+export { mapProsodyToVoiceFeatures } from './prosody-mapper.js';
+
 export type {
   BiomarkerType,
   DetectedBiomarker,

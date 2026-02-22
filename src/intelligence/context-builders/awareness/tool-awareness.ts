@@ -15,6 +15,7 @@
  * @module intelligence/context-builders/tool-capabilities
  */
 
+import { isCoach } from '../../../personas/persona-ids.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { BuilderCategory } from '../core/categories.js';
 import {
@@ -192,7 +193,7 @@ function buildCapabilitiesSection(availableTools: Set<string>, personaId: string
   }
 
   // Add team capabilities for coordinators (like Ferni)
-  const isCoordinator = personaId === 'ferni' || availableTools.has('handoffToMaya');
+  const isCoordinator = isCoach(personaId) || availableTools.has('handoffToMaya');
   if (isCoordinator) {
     lines.push("### 👥 TEAM HANDOFFS (call immediately, don't speak first):");
     for (const cap of TEAM_CAPABILITIES) {
@@ -252,8 +253,8 @@ export const toolCapabilitiesBuilder: ContextBuilder = {
     availableTools.add('rememberAboutMe');
     availableTools.add('whatDoYouKnowAboutMe');
 
-    // Ferni and coordinators have team handoffs and cameos
-    if (personaId === 'ferni') {
+    // Coordinator persona has team handoffs and cameos
+    if (isCoach(personaId)) {
       availableTools.add('handoffToMaya');
       availableTools.add('handoffToAlex');
       availableTools.add('handoffToPeter');

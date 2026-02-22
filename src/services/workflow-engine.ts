@@ -566,8 +566,8 @@ async function executeLLMPrompt(node: WorkflowNode, context: ExecutionContext): 
 
   log.info({ promptLength: prompt.length }, 'Executing LLM prompt');
 
-  // In production, this would call the LLM
-  // For now, return a placeholder
+  // LLM step is not wired to a real model (e.g. Gemini). Wire via getExtractionModel() / GoogleGenerativeAI
+  // or mark workflow as unsupported for LLM nodes. See docs/audits/SRC-ISSUES-AUDIT.md.
   const result = `LLM response placeholder for prompt: ${prompt.slice(0, 100)}...`;
 
   // Store in output variable if specified

@@ -77,8 +77,8 @@ export class Switch {
 
   private render(): void {
     const { label, description, size, disabled, persona } = this.options;
-    const sizeConfig = SIZE_CONFIG[size || 'md'];
-    const color = PERSONA_COLORS[persona || 'ferni'];
+    const sizeConfig = SIZE_CONFIG[size ?? 'md'];
+    const color = PERSONA_COLORS[persona ?? 'ferni'] ?? '#4a6741';
 
     this.container.innerHTML = '';
 
@@ -196,8 +196,8 @@ export class Switch {
 
   private updateVisual(): void {
     const { size, persona } = this.options;
-    const sizeConfig = SIZE_CONFIG[size || 'md'];
-    const color = PERSONA_COLORS[persona || 'ferni'];
+    const sizeConfig = SIZE_CONFIG[size ?? 'md'];
+    const color = PERSONA_COLORS[persona ?? 'ferni'] ?? '#4a6741';
 
     this.track.style.background = this.isChecked ? color : 'var(--color-background-subtle, #E8E4DC)';
     this.thumb.style.left = `${this.isChecked ? sizeConfig.translate : 2}px`;

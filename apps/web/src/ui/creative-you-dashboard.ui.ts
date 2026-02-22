@@ -317,7 +317,52 @@ export class CreativeYouDashboard {
       }
     } catch (error) {
       log.error('Failed to load Creative You data:', error);
+      this.showLoadError();
     }
+  }
+
+  private showLoadError(): void {
+    const body = this.container?.querySelector('.creative-dashboard-body');
+    if (!body) return;
+    body.innerHTML = `
+      <div class="creative-dashboard-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
+        Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
+      </div>
+    `;
+    body.querySelector('button')?.addEventListener('click', () => {
+      this.resetBodyToLoading();
+      void this.loadData();
+    });
+  }
+
+  private resetBodyToLoading(): void {
+    const body = this.container?.querySelector('.creative-dashboard-body');
+    if (!body) return;
+    body.innerHTML = `
+      <section class="dashboard-section daily-picks">
+        <h3>${ICONS.lightbulb} ${t('creativeYou.todaysPicks')}</h3>
+        <div class="picks-grid">
+          <div class="pick-card video-pick" data-loading="true">
+            <div class="pick-loading">${t('creativeYou.loadingPicks')}</div>
+          </div>
+          <div class="pick-card podcast-pick" data-loading="true">
+            <div class="pick-loading">${t('creativeYou.loadingPicks')}</div>
+          </div>
+        </div>
+      </section>
+      <section class="dashboard-section creative-dna-section">
+        <h3>${ICONS.brain} ${t('creativeYou.yourDNA')}</h3>
+        <div class="dna-card" data-loading="true">
+          <div class="pick-loading">${t('creativeYou.loadingProfile')}</div>
+        </div>
+      </section>
+      <section class="dashboard-section learning-tracks-section">
+        <h3>${ICONS.book} ${t('creativeYou.learningTracks')}</h3>
+        <div class="tracks-list" data-loading="true">
+          <div class="pick-loading">${t('creativeYou.loadingTracks')}</div>
+        </div>
+      </section>
+    `;
   }
 
   /**

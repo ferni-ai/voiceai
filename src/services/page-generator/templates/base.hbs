@@ -415,29 +415,42 @@
        WAVEFORM
        ======================================================================== */
     .waveform-container {
-      width: 240px;
-      height: 40px;
+      width: 200px;
+      height: 48px;
       display: flex;
-      flex-direction: row;
       align-items: center;
       justify-content: center;
-      gap: 3px;
       margin: var(--space-md) auto;
       opacity: 0;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.4s ease;
     }
 
     .waveform-container.is-active {
       opacity: 1;
     }
 
+    .waveform-bars {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      height: 100%;
+    }
+
     .waveform-bar {
       flex: 0 0 auto;
-      width: 4px;
-      height: 4px;
+      width: 3px;
+      min-height: 3px;
+      height: 3px;
       background: var(--persona-primary);
-      border-radius: 2px;
-      transition: width 0.08s ease-out;
+      border-radius: 1.5px;
+      transition: height 0.06s ease-out;
+      opacity: 0.7;
+    }
+
+    .waveform-container.is-speaking .waveform-bar {
+      opacity: 1;
     }
 
     /* ========================================================================
@@ -1326,17 +1339,20 @@
           case 'speaking':
             coach.classList.add('is-speaking');
             coach.classList.remove('is-listening');
+            waveformContainer.classList.add('is-speaking');
             thinkingFloat.classList.remove('is-visible');
             break;
 
           case 'listening':
             coach.classList.add('is-listening');
             coach.classList.remove('is-speaking');
+            waveformContainer.classList.remove('is-speaking');
             thinkingFloat.classList.remove('is-visible');
             break;
 
           case 'thinking':
             coach.classList.remove('is-speaking', 'is-listening');
+            waveformContainer.classList.remove('is-speaking');
             thinkingFloat.classList.add('is-visible');
             break;
 
@@ -1348,7 +1364,7 @@
             connectBtn.disabled = false;
             connectBtn.textContent = 'Start conversation';
             disconnectBtn.style.display = 'none';
-            waveformContainer.classList.remove('is-active');
+            waveformContainer.classList.remove('is-active', 'is-speaking');
             thinkingFloat.classList.remove('is-visible');
             resetWaveform();
             break;
@@ -1356,7 +1372,8 @@
       }
 
       function resetWaveform() {
-        bars.forEach(bar => bar.style.width = '4px');
+        bars.forEach(bar => bar.style.height = '3px');
+        waveformContainer.classList.remove('is-speaking');
       }
 
       // ========================================
@@ -1438,25 +1455,27 @@
         }
 
         if (usingFallback) {
-          // Fallback: animate based on state
+          // Fallback: animate based on state (center-weighted, bars grow from middle)
           const isSpeaking = currentState === 'speaking';
           bars.forEach((bar, i) => {
             const center = Math.abs(i - Math.floor(BAR_COUNT / 2));
-            const centerWeight = 1 - (center / (BAR_COUNT / 2)) * 0.5;
+            const centerWeight = 1 - (center / (BAR_COUNT / 2)) * 0.6;
             if (isSpeaking) {
-              const target = 6 + Math.random() * 24 * centerWeight;
-              const current = parseFloat(bar.style.width) || 4;
-              bar.style.width = (current + (target - current) * 0.3) + 'px';
+              const target = 8 + Math.random() * 32 * centerWeight;
+              const current = parseFloat(bar.style.height) || 3;
+              bar.style.height = (current + (target - current) * 0.25) + 'px';
             } else {
-              bar.style.width = (4 + Math.random() * 6 * centerWeight) + 'px';
+              bar.style.height = (3 + Math.random() * 5 * centerWeight) + 'px';
             }
           });
         } else {
-          // Real audio data
+          // Real audio data — center-weighted distribution
           bars.forEach((bar, i) => {
+            const center = Math.abs(i - Math.floor(BAR_COUNT / 2));
+            const centerWeight = 1 - (center / (BAR_COUNT / 2)) * 0.3;
             const value = data[i + 2] || 0;
-            const w = Math.max(4, (value / 255) * 28);
-            bar.style.width = w + 'px';
+            const h = Math.max(3, (value / 255) * 36 * centerWeight);
+            bar.style.height = h + 'px';
           });
         }
 
@@ -1475,13 +1494,13 @@
           const isSpeaking = currentState === 'speaking';
           bars.forEach((bar, i) => {
             const center = Math.abs(i - Math.floor(BAR_COUNT / 2));
-            const centerWeight = 1 - (center / (BAR_COUNT / 2)) * 0.5;
+            const centerWeight = 1 - (center / (BAR_COUNT / 2)) * 0.6;
             if (isSpeaking) {
-              const target = 6 + Math.random() * 24 * centerWeight;
-              const current = parseFloat(bar.style.width) || 4;
-              bar.style.width = (current + (target - current) * 0.3) + 'px';
+              const target = 8 + Math.random() * 32 * centerWeight;
+              const current = parseFloat(bar.style.height) || 3;
+              bar.style.height = (current + (target - current) * 0.25) + 'px';
             } else {
-              bar.style.width = (4 + Math.random() * 6 * centerWeight) + 'px';
+              bar.style.height = (3 + Math.random() * 5 * centerWeight) + 'px';
             }
           });
           waveformAnimationId = requestAnimationFrame(fallbackAnimate);

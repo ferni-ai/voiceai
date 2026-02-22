@@ -337,6 +337,15 @@ export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promis
     intensity: 0.8,
   }));
 
+  const team = manifest.team as { coordinator?: boolean } | undefined;
+  const handoff = manifest.handoff as { is_coordinator?: boolean } | undefined;
+  const isCoordinator = team?.coordinator ?? handoff?.is_coordinator ?? false;
+  const caps = manifest.capabilities as Record<string, boolean> | undefined;
+  const capabilities =
+    caps && typeof caps === 'object'
+      ? (Object.keys(caps).filter((k) => Boolean(caps[k])) as string[])
+      : undefined;
+
   return {
     id: manifest.identity.id,
     name: manifest.identity.name,
@@ -351,6 +360,9 @@ export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promis
     catchphrases: extractCatchphrases(behaviors.catchphrases),
     petPeeves,
     systemPrompt,
+    isCoordinator,
+    capabilities,
+    domainExpertise: role.domains?.length ? role.domains : undefined,
   };
 }
 

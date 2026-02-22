@@ -39,12 +39,6 @@ const log = getLogger();
 // ============================================================================
 
 /**
- * Feature flag to enable/disable vector search coalescing.
- * Can be disabled for debugging or if issues arise.
- */
-const ENABLE_VECTOR_COALESCING = process.env.ENABLE_VECTOR_COALESCING !== 'false';
-
-/**
  * Request coalescer for vector search queries.
  * Coalesces identical search queries to prevent duplicate work when
  * multiple concurrent requests have the same query and options.
@@ -109,10 +103,10 @@ export function getVectorSearchCoalescerStats(): {
 
 /**
  * Check if vector search coalescing is enabled.
- * Useful for debugging and observability dashboards.
+ * Always true - coalescing is always on for vector search.
  */
 export function isVectorCoalescingEnabled(): boolean {
-  return ENABLE_VECTOR_COALESCING;
+  return true;
 }
 
 // ============================================================================
@@ -439,12 +433,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
     await this.ensureInitialized();
 
     // Use coalescer to prevent duplicate concurrent searches for the same query
-    if (ENABLE_VECTOR_COALESCING) {
-      const coalesceKey = getVectorSearchCoalesceKey(query, options);
-      return vectorSearchCoalescer.execute(coalesceKey, () => this.doSearch(query, options));
-    }
-
-    return this.doSearch(query, options);
+    const coalesceKey = getVectorSearchCoalesceKey(query, options);
+    return vectorSearchCoalescer.execute(coalesceKey, () => this.doSearch(query, options));
   }
 
   /**

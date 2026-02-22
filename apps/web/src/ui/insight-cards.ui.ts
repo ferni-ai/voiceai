@@ -153,7 +153,7 @@ const INSIGHT_STYLES = `
 
   .ferni-insight-card__description {
     font-size: 14px;
-    color: var(--color-text-muted, #888888);
+    color: var(--color-text-muted, #e8e2da);
     margin-top: auto;
     line-height: 1.4;
   }
@@ -611,7 +611,7 @@ export function createProgressRing(
 
     const label = document.createElement('div');
     label.className = 'ferni-progress-ring__text';
-    label.style.color = 'var(--color-text-primary, #ffffff)';
+    label.style.color = 'var(--color-text-primary, #faf6f0)';
 
     if (animated) {
       animateCountUp(label, 0, progress * 100, 1000, (n) => `${Math.round(n)}%`);
@@ -685,7 +685,7 @@ export function createBarChart(
       const label = document.createElement('div');
       label.className = 'ferni-bar-chart__label';
       label.textContent = item.label;
-      label.style.color = 'var(--color-text-muted, #888888)';
+      label.style.color = 'var(--color-text-muted, #e8e2da)';
       barContainer.appendChild(label);
     }
 
@@ -828,7 +828,13 @@ export function createMetricDisplay(
   valueEl.className = `ferni-insight-card__value ferni-insight-card__value--${size}`;
 
   if (sentiment) {
-    valueEl.style.color = DATA_COLORS[sentiment].primary;
+    const colorMap: Record<DataSentiment, string> = {
+      positive: 'var(--color-semantic-success, #4A7C59)',
+      negative: 'var(--color-semantic-error, #9B6B6B)',
+      neutral: 'var(--color-text-muted, #8B7355)',
+      highlight: 'var(--color-ferni, #4a6741)',
+    };
+    valueEl.style.color = colorMap[sentiment];
   }
 
   if (typeof value === 'number' && animated) {

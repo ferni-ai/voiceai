@@ -206,7 +206,9 @@ class PredictiveInsightsUI {
   private createCard(insight: InsightCard): HTMLElement {
     const card = document.createElement('div');
     card.className = `insight-card priority-${insight.priority}`;
-    card.setAttribute('role', 'alert');
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-expanded', 'false');
     card.setAttribute('data-insight-id', insight.id);
 
     const icon = INSIGHT_ICONS[insight.type] || INSIGHT_ICONS.energy_prediction;
@@ -270,9 +272,18 @@ class PredictiveInsightsUI {
       });
     }
 
-    // Click to expand/interact
-    card.addEventListener('click', () => {
+    // Click and keyboard to expand/interact
+    const toggleExpand = () => {
       card.classList.toggle('expanded');
+      card.setAttribute('aria-expanded', String(card.classList.contains('expanded')));
+    };
+    card.addEventListener('click', toggleExpand);
+    card.addEventListener('keydown', (e: Event) => {
+      const ke = e as KeyboardEvent;
+      if (ke.key === 'Enter' || ke.key === ' ') {
+        ke.preventDefault();
+        toggleExpand();
+      }
     });
 
     return card;

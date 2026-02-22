@@ -37,7 +37,15 @@ export type {
 // CONSTANTS
 // ============================================================================
 
-export { BREATH_PAUSE_CONFIG, CONFIG, SOFT_BACKCHANNELS } from './constants.js';
+export {
+  BREATH_PAUSE_CONFIG,
+  CONFIG,
+  EXTENDED_PAUSE_MAX_MS,
+  EXTENDED_PAUSE_MIN_MS,
+  MICRO_REACTION_COOLDOWN_MS,
+  MICRO_REACTION_PHRASES,
+  SOFT_BACKCHANNELS,
+} from './constants.js';
 
 // ============================================================================
 // SERVICES

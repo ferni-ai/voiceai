@@ -36,6 +36,7 @@ import {
   SUMMARY_RETENTION_DAYS,
   TRANSCRIPT_RETENTION_DAYS,
 } from '../../services/session-manager/constants.js';
+import { runFirestoreQuery } from '../../utils/firestore-query.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
 
@@ -862,11 +863,13 @@ export class TranscriptCleanupJob extends ScheduledJob<
       );
 
       // 1. Clean up old conversations from bogle_users/{userId}/conversations
-      const conversationsSnapshot = await db
-        .collectionGroup('conversations')
-        .where('startedAt', '<', transcriptCutoff.toISOString())
-        .limit(config.maxDeletesPerRun)
-        .get();
+      const conversationsSnapshot = await runFirestoreQuery(
+        db
+          .collectionGroup('conversations')
+          .where('startedAt', '<', transcriptCutoff.toISOString())
+          .limit(config.maxDeletesPerRun),
+        { context: 'TranscriptCleanupJob conversations' }
+      );
 
       for (const doc of conversationsSnapshot.docs) {
         ctx.counters.processed++;
@@ -896,11 +899,13 @@ export class TranscriptCleanupJob extends ScheduledJob<
       }
 
       // 2. Clean up old group sessions
-      const groupSessionsSnapshot = await db
-        .collectionGroup('group_sessions')
-        .where('startedAt', '<', groupCutoff.toISOString())
-        .limit(config.maxDeletesPerRun)
-        .get();
+      const groupSessionsSnapshot = await runFirestoreQuery(
+        db
+          .collectionGroup('group_sessions')
+          .where('startedAt', '<', groupCutoff.toISOString())
+          .limit(config.maxDeletesPerRun),
+        { context: 'TranscriptCleanupJob group_sessions' }
+      );
 
       for (const doc of groupSessionsSnapshot.docs) {
         ctx.counters.processed++;
@@ -934,11 +939,13 @@ export class TranscriptCleanupJob extends ScheduledJob<
       }
 
       // 3. Clean up old conversation summaries from bogle_users/{userId}/conversation_summaries
-      const summariesSnapshot = await db
-        .collectionGroup('conversation_summaries')
-        .where('createdAt', '<', summaryCutoff.toISOString())
-        .limit(config.maxDeletesPerRun)
-        .get();
+      const summariesSnapshot = await runFirestoreQuery(
+        db
+          .collectionGroup('conversation_summaries')
+          .where('createdAt', '<', summaryCutoff.toISOString())
+          .limit(config.maxDeletesPerRun),
+        { context: 'TranscriptCleanupJob conversation_summaries' }
+      );
 
       for (const doc of summariesSnapshot.docs) {
         ctx.counters.processed++;

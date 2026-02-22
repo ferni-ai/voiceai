@@ -11,6 +11,7 @@
  * @module conversation/active-listening
  */
 
+import { isCoach } from '../../personas/persona-ids.js';
 import {
   generateContent,
   getContentWithFallback,
@@ -320,7 +321,7 @@ export class ActiveListeningEngine {
       silenceBackchannels.push(...SAD_SILENCE_BACKCHANNELS);
     }
 
-    if (personaId === 'ferni') {
+    if (isCoach(personaId)) {
       silenceBackchannels.push(FERNI_SILENCE_BACKCHANNEL);
     }
     if (personaId === 'nayan-patel') {

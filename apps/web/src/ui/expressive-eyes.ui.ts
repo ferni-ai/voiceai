@@ -545,7 +545,7 @@ export function exitGameMode(): void {
  * Dispose of expressive eyes resources.
  */
 export function dispose(): void {
-  clearAllTimeouts();
+  _clearAllTimeouts();
   state.coachElement = null;
   state.avatarEyesElement = null;
   state.currentEmotion = 'neutral';

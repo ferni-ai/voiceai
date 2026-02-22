@@ -186,6 +186,10 @@ interface UserDataWithTrial {
   isFirstConversation?: boolean;
   // Phase 5: Anticipatory trigger profile for session-end save
   triggerProfile?: import('../../intelligence/triggers/index.js').UserTriggerProfile;
+  // H2.2 BTH: Conversation plan for goal-directed sessions
+  _conversationPlan?: import('../../intelligence/conversation-planner.js').ConversationPlan;
+  // H2.3 BTH: Unified user model for cross-persona personalization
+  _unifiedUserModel?: import('../../intelligence/unified-user-model.js').UnifiedUserModel;
 }
 
 /**
@@ -543,6 +547,60 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
         diag.warn('BTH v4 cleanup failed (non-fatal)', {
           error: String(bthErr),
         });
+      }
+    })(),
+
+    // 🧠 Conversation Planner: Persist goals, topics, follow-ups (H2.2 BTH)
+    userData?._conversationPlan && userId
+      ? (async () => {
+          try {
+            const { persistPlan } = await import('../../intelligence/conversation-planner.js');
+            await persistPlan(userData._conversationPlan!);
+            diag.session('🧠 Conversation plan persisted', {
+              goals: userData._conversationPlan!.goals.length,
+              topics: userData._conversationPlan!.topicsCovered.length,
+            });
+          } catch (err) {
+            diag.warn('Conversation plan persist failed (non-fatal)', { error: String(err) });
+          }
+        })()
+      : Promise.resolve(),
+
+    // 📊 Unified User Model: Persist learned preferences (H2.3 BTH)
+    userData?._unifiedUserModel && userId
+      ? (async () => {
+          try {
+            const { saveUserModel } = await import('../../intelligence/unified-user-model.js');
+            await saveUserModel(userData._unifiedUserModel!);
+            diag.session('📊 Unified user model persisted', { userId });
+          } catch (err) {
+            diag.warn('Unified user model persist failed (non-fatal)', { error: String(err) });
+          }
+        })()
+      : Promise.resolve(),
+
+    // 🎭 Rich Emotion: Cleanup session trajectory data (H2.5 BTH)
+    (async () => {
+      try {
+        const { cleanupRichEmotionSession } = await import('../../intelligence/rich-emotion-model.js');
+        cleanupRichEmotionSession(sessionId);
+        diag.session('🎭 Rich emotion session cleaned up');
+      } catch {
+        // Non-fatal
+      }
+    })(),
+
+    // 🧪 Context Outcome Tracker: Flush pending data (H2.4 BTH)
+    (async () => {
+      try {
+        const { getContextOutcomeTracker } = await import('../../intelligence/context-outcome-tracker.js');
+        const tracker = getContextOutcomeTracker();
+        const flushed = await tracker.flush();
+        if (flushed > 0) {
+          diag.session('🧪 Context outcome data flushed', { records: flushed });
+        }
+      } catch {
+        // Non-fatal
       }
     })(),
 

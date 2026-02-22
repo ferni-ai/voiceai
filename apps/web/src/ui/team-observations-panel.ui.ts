@@ -130,6 +130,7 @@ let isLoading = false;
 let cachedData: TeamObservationsData | null = null;
 let cacheTime = 0;
 const CACHE_TTL_MS = 60000; // 1 minute
+let escapeHandlerRef: ((e: KeyboardEvent) => void) | null = null;
 
 // ============================================================================
 // API
@@ -872,11 +873,12 @@ function createPanel(): void {
     if (e.target === panelElement) hide();
   });
 
-  document.addEventListener('keydown', (e) => {
+  escapeHandlerRef = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && panelElement?.classList.contains('team-obs-panel--visible')) {
       hide();
     }
-  });
+  };
+  document.addEventListener('keydown', escapeHandlerRef);
 
   document.body.appendChild(panelElement);
 }
@@ -895,6 +897,16 @@ function updateContent(): void {
 export async function show(): Promise<void> {
   createPanel();
   if (!panelElement) return;
+
+  // Re-add keydown listener (removed when hidden)
+  if (!escapeHandlerRef) {
+    escapeHandlerRef = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && panelElement?.classList.contains('team-obs-panel--visible')) {
+        hide();
+      }
+    };
+    document.addEventListener('keydown', escapeHandlerRef);
+  }
 
   // Show with loading state
   isLoading = true;
@@ -929,6 +941,10 @@ export async function show(): Promise<void> {
 }
 
 export function hide(): void {
+  if (escapeHandlerRef) {
+    document.removeEventListener('keydown', escapeHandlerRef);
+    escapeHandlerRef = null;
+  }
   panelElement?.classList.remove('team-obs-panel--visible');
 }
 

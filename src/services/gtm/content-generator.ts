@@ -23,14 +23,13 @@ import type {
 } from './types.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { v4 as uuidv4 } from 'uuid';
+import { CONTENT_GENERATION_MODEL } from '../../config/gemini-config.js';
 
 const log = createLogger({ module: 'content-generator' });
 
 // ============================================================================
 // LLM CONFIGURATION
 // ============================================================================
-
-const GEMINI_MODEL = 'gemini-2.0-flash';
 
 function getGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -354,7 +353,7 @@ export async function generateContent(brief: ContentBrief): Promise<GeneratedCon
 
   const genAI = getGeminiClient();
   const model = genAI.getGenerativeModel({
-    model: GEMINI_MODEL,
+    model: CONTENT_GENERATION_MODEL,
     systemInstruction: BRAND_VOICE_SYSTEM,
   });
 
@@ -495,7 +494,7 @@ export async function improveContent(
 
   const genAI = getGeminiClient();
   const model = genAI.getGenerativeModel({
-    model: GEMINI_MODEL,
+    model: CONTENT_GENERATION_MODEL,
     systemInstruction: BRAND_VOICE_SYSTEM,
   });
 

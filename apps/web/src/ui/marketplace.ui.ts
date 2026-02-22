@@ -717,6 +717,13 @@ async function renderCreationsTab(): Promise<void> {
   // Attach listeners for agent cards
   grid.querySelectorAll('.custom-agent-card').forEach(card => {
     card.addEventListener('click', (e) => { void handleCustomAgentCardClick(e); });
+    card.addEventListener('keydown', (e: Event) => {
+      const ke = e as KeyboardEvent;
+      if (ke.key === 'Enter' || ke.key === ' ') {
+        ke.preventDefault();
+        (card as HTMLElement).click();
+      }
+    });
   });
 
   grid.querySelectorAll('[data-action="delete-agent"]').forEach(btn => {

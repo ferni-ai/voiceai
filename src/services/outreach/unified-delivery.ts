@@ -12,6 +12,7 @@
  * @module UnifiedDelivery
  */
 
+import { getDisplayName } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type { GeneratedContent, OutreachType } from './llm-content-generator.js';
@@ -433,7 +434,7 @@ async function deliverPush(
     const messaging = admin.messaging();
     const message = {
       notification: {
-        title: `From ${content.personaId === 'ferni' ? 'Ferni' : content.personaId}`,
+        title: `From ${getDisplayName(content.personaId)}`,
         body: content.text.slice(0, 200),
       },
       data: {

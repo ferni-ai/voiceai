@@ -65,6 +65,18 @@ export interface PersonaConfig {
 
   /** The full system prompt for LLM context */
   systemPrompt: string;
+
+  /**
+   * Whether this persona is the team coordinator (e.g. Ferni).
+   * Prefer this over checking id === 'ferni'.
+   */
+  isCoordinator?: boolean;
+
+  /** Capability flags (e.g. handoff, team_coordination). From manifest. */
+  capabilities?: string[];
+
+  /** Domain expertise (e.g. life-coaching, habits). From manifest role.domains. */
+  domainExpertise?: string[];
 }
 
 // ============================================================================

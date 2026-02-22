@@ -105,6 +105,7 @@ export interface SpeechRequest {
 export enum CoordinatorState {
   IDLE = 'idle',
   SPEAKING = 'speaking',
+  SPEAKING_AND_LISTENING = 'speaking_and_listening',
   AWAITING_PLAYOUT = 'awaiting_playout',
   COOLDOWN = 'cooldown', // Brief pause after speaking
 }

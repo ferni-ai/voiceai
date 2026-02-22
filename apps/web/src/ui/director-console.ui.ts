@@ -106,11 +106,20 @@ export class DirectorConsole {
   private userId: string;
   private transcriptLog: Array<{ role: string; text: string; time: number }> = [];
 
+  private reconnectAttempts = 0;
+  private readonly MAX_RECONNECT_ATTEMPTS = 5;
+  private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+
   constructor(config: { sessionId: string; userId: string }) {
     this.sessionId = config.sessionId;
     this.userId = config.userId;
 
     this.cleanupOrphanedElements();
+  }
+
+  /** Expose sessionId for instance comparison (avoids private property cast) */
+  getSessionId(): string {
+    return this.sessionId;
   }
 
   // ===========================================================================
@@ -130,8 +139,15 @@ export class DirectorConsole {
   close(): void {
     if (!this.isOpen) return;
 
-    this.ws?.close();
-    this.ws = null;
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    if (this.ws) {
+      this.ws.onclose = null;
+      this.ws.close();
+      this.ws = null;
+    }
 
     if (this.container) {
       this.container.animate(
@@ -202,7 +218,25 @@ export class DirectorConsole {
 
     this.ws.onclose = () => {
       log.info('Director WebSocket disconnected');
+      this.ws = null;
+      this.scheduleReconnect();
     };
+
+    this.ws.onopen = () => {
+      this.reconnectAttempts = 0;
+    };
+  }
+
+  private scheduleReconnect(): void {
+    if (!this.isOpen) return;
+    if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
+      log.warn('Max reconnect attempts reached for director console');
+      return;
+    }
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+    this.reconnectAttempts++;
+    log.debug({ attempt: this.reconnectAttempts, delay }, 'Scheduling director console reconnect');
+    this.reconnectTimeout = setTimeout(() => this.connectWebSocket(), delay);
   }
 
   private sendCommand(command: Record<string, unknown>): void {
@@ -298,9 +332,9 @@ export class DirectorConsole {
               <select id="dc-pace-select"></select>
             </div>
             <div class="dc-control-row">
-              <button id="dc-hold-btn" class="dc-btn">Hold</button>
-              <button id="dc-release-btn" class="dc-btn">Release</button>
-              <button id="dc-cut-btn" class="dc-btn dc-btn-danger">Cut</button>
+              <button id="dc-hold-btn" class="dc-btn" aria-label="Hold scene">Hold</button>
+              <button id="dc-release-btn" class="dc-btn" aria-label="Release scene">Release</button>
+              <button id="dc-cut-btn" class="dc-btn dc-btn-danger" aria-label="Cut to silence">Cut</button>
             </div>
           </div>
         </div>
@@ -310,7 +344,7 @@ export class DirectorConsole {
           <div class="dc-whisper-box">
             <select id="dc-whisper-target"></select>
             <input type="text" id="dc-whisper-input" placeholder="Private instruction...">
-            <button id="dc-whisper-send" class="dc-btn">Send</button>
+            <button id="dc-whisper-send" class="dc-btn" aria-label="Send whisper">Send</button>
           </div>
         </div>
 
@@ -388,9 +422,9 @@ export class DirectorConsole {
       })
       .join('');
 
-    // Add click handlers for persona chips
+    // Add click and keyboard handlers for persona chips
     grid.querySelectorAll('.dc-persona-chip').forEach((chip) => {
-      chip.addEventListener('click', () => {
+      const handleActivate = () => {
         const personaId = (chip as HTMLElement).dataset.persona;
         if (!personaId) return;
 
@@ -401,6 +435,14 @@ export class DirectorConsole {
           this.sendCommand({ type: 'BRING_ON', personaId, entrance: 'chime-in' });
         } else if (!isLead) {
           this.sendCommand({ type: 'SET_LEAD', personaId, transition: 'smooth' });
+        }
+      };
+      chip.addEventListener('click', handleActivate);
+      chip.addEventListener('keydown', (e: Event) => {
+        const ke = e as KeyboardEvent;
+        if (ke.key === 'Enter' || ke.key === ' ') {
+          ke.preventDefault();
+          handleActivate();
         }
       });
     });
@@ -637,7 +679,7 @@ export class DirectorConsole {
         background: none;
         border: none;
         cursor: pointer;
-        color: var(--color-text-muted, #999);
+        color: var(--color-text-muted, #999999);
         padding: var(--space-1, 4px);
         border-radius: var(--radius-sm, 4px);
       }
@@ -661,7 +703,7 @@ export class DirectorConsole {
         font-size: 10px;
         font-weight: 600;
         letter-spacing: 0.08em;
-        color: var(--color-text-muted, #999);
+        color: var(--color-text-muted, #999999);
       }
 
       .dc-cast-grid {
@@ -696,7 +738,7 @@ export class DirectorConsole {
 
       .dc-persona-chip.dc-inactive {
         background: var(--color-background-subtle, #f5f0eb);
-        color: var(--color-text-muted, #999);
+        color: var(--color-text-muted, #999999);
       }
 
       .dc-persona-chip:hover {
@@ -716,7 +758,7 @@ export class DirectorConsole {
 
       .dc-control-row label {
         font-size: 12px;
-        color: var(--color-text-secondary, #666);
+        color: var(--color-text-secondary, #666666);
         min-width: 60px;
       }
 
@@ -737,8 +779,8 @@ export class DirectorConsole {
       }
       .dc-btn:hover { background: var(--color-background-subtle, #f5f0eb); }
 
-      .dc-btn-danger { color: #c44; border-color: #c44; }
-      .dc-btn-danger:hover { background: #fee; }
+      .dc-btn-danger { color: var(--color-error, #cc4444); border-color: var(--color-error, #cc4444); }
+      .dc-btn-danger:hover { background: var(--color-error-bg, #ffeeee); }
 
       .dc-btn-small { padding: 2px 8px; font-size: 11px; }
 
@@ -777,7 +819,7 @@ export class DirectorConsole {
 
       .dc-transcript-entry { margin-bottom: 2px; }
       .dc-transcript-name { font-weight: 600; font-size: 11px; }
-      .dc-transcript-text { color: var(--color-text-secondary, #666); }
+      .dc-transcript-text { color: var(--color-text-secondary, #666666); }
 
       .dc-empty { font-size: 12px; color: var(--color-text-muted); font-style: italic; }
 
@@ -811,8 +853,7 @@ export function getDirectorConsole(config?: {
 
   if (
     config &&
-    (!_instance ||
-      config.sessionId !== (_instance as DirectorConsole & { sessionId: string }).sessionId)
+    (!_instance || config.sessionId !== _instance.getSessionId())
   ) {
     _instance = new DirectorConsole(config);
   }

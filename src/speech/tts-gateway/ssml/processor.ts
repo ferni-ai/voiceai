@@ -23,22 +23,50 @@ const log = createLogger({ module: 'SSMLProcessor' });
 // CONSTANTS
 // ============================================================================
 
-/** Valid Cartesia emotions */
+/** Valid Cartesia Sonic-3 emotions (43+ supported) */
 const VALID_EMOTIONS = [
-  'neutral',
-  'happiness',
-  'sadness',
-  'anger',
-  'fear',
-  'surprise',
-  'disgust',
-  'curiosity',
-  'positivity',
-  'negativity',
+  // Primary (best results)
+  'neutral', 'angry', 'excited', 'content', 'sad', 'scared',
+  // Positive high-energy
+  'happy', 'enthusiastic', 'elated', 'euphoric', 'triumphant', 'amazed', 'surprised',
+  // Positive social
+  'flirtatious', 'joking/comedic', 'curious', 'grateful', 'affectionate', 'sympathetic', 'proud', 'confident',
+  // Calm/content
+  'peaceful', 'serene', 'calm',
+  // Thoughtful
+  'contemplative', 'nostalgic', 'wistful', 'mysterious', 'anticipation',
+  // Negative
+  'mad', 'outraged', 'frustrated', 'agitated', 'disgusted', 'contempt', 'envious', 'sarcastic', 'ironic',
+  // Sad spectrum
+  'dejected', 'melancholic', 'disappointed', 'hurt', 'guilty', 'rejected',
+  // Low energy
+  'bored', 'tired', 'resigned',
+  // Uncertain/vulnerable
+  'hesitant', 'insecure', 'confused', 'apologetic', 'anxious',
+  // Fear spectrum
+  'panicked', 'alarmed', 'threatened',
+  // Neutral/professional
+  'distant', 'skeptical', 'determined',
+  // Legacy aliases (map to Cartesia equivalents)
+  'happiness', 'sadness', 'anger', 'fear', 'surprise', 'disgust', 'curiosity', 'positivity', 'negativity',
 ] as const;
 
 /** Maximum buffer size to prevent memory issues */
 const MAX_BUFFER_SIZE = 4096;
+
+/**
+ * Bracket expressions that map to Cartesia's native [laughter] tag.
+ * LLMs often output variations; we normalize them all.
+ */
+const LAUGHTER_BRACKET_REGEX =
+  /\[(laughs?|chuckles?|chuckling|warm laugh|big laugh|laughing|laughter)\]/gi;
+
+/**
+ * Non-TTS bracket expressions that should be stripped entirely.
+ * These are stage directions / emotes that can't be synthesized.
+ */
+const STRIP_BRACKET_REGEX =
+  /\[(excited|leans in|leans forward|pauses?|sighs?|smiles?|nods?|grins?|winks?|thinks?|gestures?|whispers?|shrugs?|clears throat|beats?|softly|warmly|gently|laughs at self)[^\]]*\]/gi;
 
 /** Speed range (Cartesia limits) */
 const SPEED_MIN = 0.6;
@@ -247,6 +275,18 @@ export class SSMLProcessor implements ISSMLProcessor {
       hadSSML = true;
       return '';
     });
+
+    // =========================================================================
+    // BRACKET EXPRESSION HANDLING
+    // Convert laughter variants to Cartesia-native [laughter] tag.
+    // Strip non-TTS stage directions like [excited], [leans in], etc.
+    // =========================================================================
+
+    // Convert laughter bracket expressions → Cartesia-native [laughter]
+    cleanText = cleanText.replace(LAUGHTER_BRACKET_REGEX, '[laughter]');
+
+    // Strip non-synthesizable bracket expressions entirely
+    cleanText = cleanText.replace(STRIP_BRACKET_REGEX, '');
 
     // =========================================================================
     // CRITICAL: Strip JSON function call blocks

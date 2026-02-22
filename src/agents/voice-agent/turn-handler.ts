@@ -67,12 +67,31 @@ import {
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // "AGI-like" action approval detection (voice confirmation for autonomous actions)
 import { handleActionApprovalIntent } from '../shared/action-approval-handler.js';
+// Centralized emotion thresholds (BTH refactor)
+import {
+  STRESS_NEEDS_SPACE,
+  DISTRESS_NEGATIVE_SENTIMENT,
+  DISTRESS_VULNERABILITY_CHECK,
+  DISTRESS_VALENCE_NEGATIVE,
+  FILLER_EMOTION_MIN_CONFIDENCE,
+  DELIGHT_MIN_CONFIDENCE,
+  ANTICIPATORY_DISTRESS_BOOST,
+  SOMATIC_STEADY_PRESENCE_THRESHOLD,
+  MICRO_EXPRESSION_INTENSITIES,
+  DEFAULT_EXPRESSION_INTENSITY,
+} from '../../config/emotion-thresholds.js';
 // "Better Than Human" concern detection with voice prosody
 import {
   getConcernDetectionEngine,
   type ProsodySignals,
 } from '../../conversation/concern-detection.js';
 import type { ProsodyFeatures } from '../../speech/audio-prosody/types.js';
+import { getVoiceBiomarkerPipeline } from '../../speech/voice-biomarkers/index.js';
+import { mapProsodyToVoiceFeatures } from '../../speech/voice-biomarkers/prosody-mapper.js';
+// 5C: Audio-native context for LLM (our pipeline, better than Gemini Live — we keep our TTS)
+import { buildAudioNativeContextForLLM } from '../../intelligence/context-builders/audio-native-context.js';
+import { summarizeAudioEmbedding, type AudioEmbeddingResult } from '../integrations/audio-embedding-integration.js';
+import { getContinuousProsodyStream } from '../../intelligence/context-builders/continuous-prosody.js';
 // Adaptive timing for "Better than Human" response latency
 import {
   completeTurnProfile,
@@ -81,6 +100,13 @@ import {
   shouldInjectFiller,
   startTurnProfile,
 } from '../shared/performance/adaptive-timing.js';
+// Emotion-aware filler timing and phrases
+import {
+  getEmotionAdjustedTiming,
+  getEmotionFillerPhrases,
+} from '../shared/performance/emotion-adaptive-timing.js';
+// Tool execution state for context-aware fillers
+import { getSanitizerIntegration } from '../../speech/coordination/sanitizer-integration.js';
 // Unified Naturalness Engine - combines stress, patterns, ambient, rapport
 import {
   getNaturalnessEngine,
@@ -665,22 +691,85 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     }
 
     // ================================================================
-    // DEAD AIR FIX: Adaptive filler injection
-    // Uses session-specific timing instead of static 4s timeout
+    // DEAD AIR FIX: Adaptive filler injection with context awareness
+    // Uses session-specific timing, emotion awareness, tool/memory context
     // ================================================================
     let spokeFiller = false;
     let fillerCheckInterval: ReturnType<typeof setInterval> | null = null;
 
-    // Check periodically if we should inject a filler (more responsive than fixed timeout)
+    // Track memory retrieval in progress for context-aware fillers
+    const memorySearchRef = { pending: true };
+
+    // Build emotion-adjusted timing for filler delay (distressed/sad = longer delay, user needs space)
+    // Use userData.voiceEmotion when available (has stressLevel); fallback to ctx.voiceEmotion
+    const fullVoiceEmotion = (userData as UserData).voiceEmotion;
+    const voiceEmotionForTiming =
+      fullVoiceEmotion || ctx.voiceEmotion
+        ? ({
+            primary:
+              fullVoiceEmotion?.primary ?? ctx.voiceEmotion?.primary ?? 'neutral',
+            confidence:
+              fullVoiceEmotion?.confidence ?? ctx.voiceEmotion?.confidence ?? 0.5,
+            stressLevel: fullVoiceEmotion?.stressLevel ?? 0,
+          } as import('../../speech/audio-prosody/types.js').VoiceEmotionResult)
+        : undefined;
+    const emotionTiming = getEmotionAdjustedTiming(voiceEmotionForTiming);
+    const isUserNeedingSpace =
+      (voiceEmotionForTiming?.stressLevel ?? 0) > STRESS_NEEDS_SPACE ||
+      ['sad', 'anxious'].includes(voiceEmotionForTiming?.primary ?? '');
+    const emotionMinElapsedMs = isUserNeedingSpace ? Math.max(700, emotionTiming.maxSilenceMs) : 0;
+
+    // Check periodically if we should inject a filler (every 200ms)
     fillerCheckInterval = setInterval(() => {
       const elapsed = Date.now() - turnStartTime;
-      if (!spokeFiller && currentSession && shouldInjectFiller(services.sessionId, elapsed)) {
+
+      // Emotion-adjusted delay: when user needs space, wait longer before filler
+      const passesEmotionDelay =
+        !isUserNeedingSpace || elapsed >= emotionMinElapsedMs;
+      const baseShouldInject = shouldInjectFiller(services.sessionId, elapsed);
+
+      if (
+        !spokeFiller &&
+        currentSession &&
+        baseShouldInject &&
+        passesEmotionDelay
+      ) {
         spokeFiller = true;
         recordFillerInjection(services.sessionId);
 
+        // Build context for filler selection
+        const sanitizerState = getSanitizerIntegration(services.sessionId);
+        const activeToolNames = sanitizerState?.activeTools
+          ? Array.from(sanitizerState.activeTools.keys())
+          : [];
+        const firstActiveTool = activeToolNames[0];
+
+        const isHeavyTopic =
+          (voiceEmotionForTiming?.stressLevel ?? 0) > STRESS_NEEDS_SPACE ||
+          (userData.lastEmotionAnalysis?.distressLevel ?? 0) > DISTRESS_NEGATIVE_SENTIMENT;
+
+        // Get emotion filler phrases when emotion is strong (avoids speech→agents import)
+        const emotionFillerPhrases =
+          voiceEmotionForTiming &&
+          (voiceEmotionForTiming.confidence ?? 0) > FILLER_EMOTION_MIN_CONFIDENCE &&
+          (voiceEmotionForTiming.stressLevel ?? 0) > FILLER_EMOTION_MIN_CONFIDENCE
+            ? getEmotionFillerPhrases(voiceEmotionForTiming.primary)
+            : undefined;
+
         const filler = getContextAwareThinkingFiller(persona.id, {
           forDeadAirPrevention: true,
+          isToolExecuting: activeToolNames.length > 0,
+          toolName: firstActiveTool,
+          isMemorySearch: memorySearchRef.pending,
+          isHeavyTopic,
+          emotionPrimary: voiceEmotionForTiming?.primary,
+          emotionIntensity: voiceEmotionForTiming?.confidence,
+          emotionFillerPhrases:
+            emotionFillerPhrases && emotionFillerPhrases.length > 0
+              ? emotionFillerPhrases
+              : undefined,
         });
+
         currentSession.say(filler, { allowInterruptions: true });
         diag.filler('Spoke adaptive thinking filler', {
           personaId: persona.id,
@@ -688,6 +777,11 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           elapsedMs: elapsed,
           adaptiveTimeoutMs: adaptiveTimeouts.fillerTimeoutMs,
           strategy: adaptiveTimeouts.strategy,
+          context: {
+            isToolExecuting: activeToolNames.length > 0,
+            isMemorySearch: memorySearchRef.pending,
+            isHeavyTopic,
+          },
         });
 
         // Stop checking after filler
@@ -745,6 +839,11 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           return null;
         })
       : Promise.resolve(null);
+
+    // Clear memory search flag when retrieval completes (for context-aware fillers)
+    memoryRetrievalPromise.finally(() => {
+      memorySearchRef.pending = false;
+    });
 
     // Process the turn with adaptive hard timeout
     const result = await Promise.race([
@@ -894,11 +993,11 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       // Uses context-aware detection to filter out sarcasm and third-person references
       // ================================================================
       const delightResult = detectUserDelightWithContext(userText, {
-        sentiment: result.emotional.distressLevel > 0.5 ? 'negative' : 'positive',
+        sentiment: result.emotional.distressLevel > DISTRESS_NEGATIVE_SENTIMENT ? 'negative' : 'positive',
         intensity: result.emotional.intensity,
       });
 
-      if (delightResult.detected && delightResult.confidence > 0.7) {
+      if (delightResult.detected && delightResult.confidence > DELIGHT_MIN_CONFIDENCE) {
         fireAndForget(async () => {
           await dispatchSpontaneousDelight(sendDataMessage, {
             trigger: delightResult.trigger || 'user_achievement',
@@ -968,7 +1067,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
         );
       const askingAdvice =
         /what (should|would) (i|you)|advice|recommend|suggest|think i should/i.test(userText);
-      if (isPhilosophical || (askingAdvice && result.emotional?.distressLevel > 0.3)) {
+      if (isPhilosophical || (askingAdvice && result.emotional?.distressLevel > DISTRESS_VULNERABILITY_CHECK)) {
         fireAndForget(async () => {
           await dispatchVisibleVulnerability(sendDataMessage, {
             vulnerabilityType: isPhilosophical ? 'uncertainty' : 'admission',
@@ -989,7 +1088,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       fireAndForget(async () => {
         const topics = result.analysis?.analysis?.topics?.detected || [];
         const distressLevel = result.emotional?.distressLevel ?? 0;
-        const valence = distressLevel > 0.5 ? -0.5 : 0.2;
+        const valence = distressLevel > DISTRESS_VALENCE_NEGATIVE ? -0.5 : 0.2;
 
         recordEmotionalMomentum(
           services.sessionId,
@@ -1024,7 +1123,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       fireAndForget(async () => {
         const topics = result.analysis?.analysis?.topics?.detected || [];
         const distressLevel = result.emotional?.distressLevel ?? 0;
-        const valence = distressLevel > 0.5 ? -0.5 : 0.2;
+        const valence = distressLevel > DISTRESS_VALENCE_NEGATIVE ? -0.5 : 0.2;
 
         if (topics.length > 0) {
           const patternConnector = getPatternConnector();
@@ -1103,7 +1202,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
         const effectiveLevel =
           anticipatedDistress &&
           (concernState.level === 'none' || concernState.level === 'mild') &&
-          boostedScore > 0.3
+          boostedScore > ANTICIPATORY_DISTRESS_BOOST
             ? 'moderate'
             : concernState.level;
 
@@ -1149,7 +1248,7 @@ Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
             voiceEmotion: prosodySignalsList[0],
             intensity: boostedScore,
           });
-          void dispatchMicroExpression('protective', sendDataMessage, 0.8);
+          void dispatchMicroExpression('protective', sendDataMessage, MICRO_EXPRESSION_INTENSITIES.protective);
 
           // ================================================================
           // 🧘 BTH: SOMATIC PRESENCE - Physical grounding when needed
@@ -1157,7 +1256,7 @@ Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
           // offer embodied presence ("let's take a breath together")
           // ================================================================
           const somaticTimeContext = getTimeContext();
-          if (somaticTimeContext === 'late_night' || boostedScore > 0.6) {
+          if (somaticTimeContext === 'late_night' || boostedScore > SOMATIC_STEADY_PRESENCE_THRESHOLD) {
             void dispatchSomaticPresence(sendDataMessage, {
               somaticType: somaticTimeContext === 'late_night' ? 'breathing' : 'grounding',
               intensity: boostedScore,
@@ -1510,35 +1609,60 @@ You are their lifeline right now. Be fully present.`,
     // 🎤 BTH v4: VOICE BIOMARKER PIPELINE
     // Analyze voice features to detect stress, fatigue, anxiety, etc.
     // Enables proactive interventions like breathing exercises.
+    // Uses userData.voiceBiomarkers (from audio-processor) when available,
+    // else runs pipeline via mapProsodyToVoiceFeatures for Cartesia path.
     // ================================================================
     const voiceEmotionData = voiceEmotion as { prosody?: ProsodyFeatures } | undefined;
-    if (voiceEmotionData?.prosody) {
+    const userVoiceBiomarkers = (userData as UserData).voiceBiomarkers;
+    if (userVoiceBiomarkers || voiceEmotionData?.prosody) {
       fireAndForget(async () => {
         try {
-          const prosodyData = voiceEmotionData.prosody!;
-          const biomarkerResult = await analyzeVoiceAndIntervene({
-            speakingRate: prosodyData.speechRate,
-            pitchMean: prosodyData.pitchMean,
-            pitchVariance: prosodyData.pitchVariance,
-            energy: prosodyData.energyMean,
-            jitter: prosodyData.jitter,
-          });
+          let biomarkerResult: Awaited<ReturnType<typeof analyzeVoiceAndIntervene>>;
+          if (userVoiceBiomarkers) {
+            // Use pre-computed biomarkers from audio-processor (Cartesia path)
+            const pipeline = getVoiceBiomarkerPipeline();
+            const intervention = pipeline.getIntervention(userVoiceBiomarkers);
+            biomarkerResult = {
+              state: {
+                primaryState: userVoiceBiomarkers.primary,
+                stressLevel: userVoiceBiomarkers.stressLevel,
+                energyLevel: userVoiceBiomarkers.energyLevel,
+                biomarkers: userVoiceBiomarkers.biomarkers,
+              },
+              intervention,
+              contextInjection: pipeline.buildContextInjection(userVoiceBiomarkers),
+            };
+          } else {
+            // Fallback: run pipeline (e.g. Higgs path, or race where audio-processor hasn't finished)
+            const voiceFeatures = mapProsodyToVoiceFeatures(voiceEmotionData!.prosody!);
+            biomarkerResult = voiceFeatures
+              ? await analyzeVoiceAndIntervene(voiceFeatures)
+              : null;
+          }
 
           if (biomarkerResult) {
-            // Log state for observability
+            const { state } = biomarkerResult;
+            const stressLevel = state.stressLevel;
+            const fatigueLevel = state.biomarkers?.find((b) => b.type === 'fatigue')?.confidence ?? 0;
+            const anxietyLevel = state.biomarkers?.find((b) => b.type === 'anxiety')?.confidence ?? 0;
+
+            diag.info(
+              `🧬 Voice biomarkers extracted: stress=${stressLevel.toFixed(2)}, fatigue=${fatigueLevel.toFixed(2)}, anxiety=${anxietyLevel.toFixed(2)}`
+            );
+
             diag.state('🎤 BTH v4: Voice biomarkers analyzed', {
-              primaryState: biomarkerResult.state.primaryState,
-              stressLevel: biomarkerResult.state.stressLevel,
-              energyLevel: biomarkerResult.state.energyLevel,
+              primaryState: state.primaryState,
+              stressLevel: state.stressLevel,
+              energyLevel: state.energyLevel,
               interventionType: biomarkerResult.intervention.type,
             });
 
             // Send to frontend for avatar/UI adjustments
             await sendDataMessage('voice_biomarkers', {
-              state: biomarkerResult.state.primaryState,
-              stressLevel: biomarkerResult.state.stressLevel,
-              energyLevel: biomarkerResult.state.energyLevel,
-              biomarkers: biomarkerResult.state.biomarkers,
+              state: state.primaryState,
+              stressLevel: state.stressLevel,
+              energyLevel: state.energyLevel,
+              biomarkers: state.biomarkers,
             });
 
             // If intervention is recommended, inject context
@@ -1561,6 +1685,28 @@ You are their lifeline right now. Be fully present.`,
           });
         }
       }, 'bth-v4-voice-biomarkers');
+    }
+
+    // ================================================================
+    // 5C: AUDIO-NATIVE CONTEXT FOR LLM (our pipeline, better than Gemini Live)
+    // Inject structured [AUDIO ANALYSIS] so the LLM "hears" the user via our STT + prosody
+    // + biomarkers. We do NOT send raw audio to Gemini; we keep our own TTS (e.g. Higgs).
+    // ================================================================
+    const ud = userData as UserData;
+    const audioNativeBlock = buildAudioNativeContextForLLM({
+      higgsBiomarkers: ud.higgsBiomarkers ?? null,
+      voiceEmotion: ud.voiceEmotion ?? ctx.voiceEmotion ?? null,
+      voiceBiomarkers: ud.voiceBiomarkers ?? null,
+      audioEmbeddingSummary: ud.audioEmbedding
+        ? summarizeAudioEmbedding(ud.audioEmbedding as AudioEmbeddingResult)
+        : null,
+    });
+    if (audioNativeBlock) {
+      result.context.injections.push({
+        category: 'audio_native',
+        content: audioNativeBlock,
+        priority: 78, // High: just below critical safety, so LLM gets voice context
+      });
     }
 
     // ================================================================
@@ -2524,6 +2670,7 @@ IMPORTANT:
       // ================================================================
       if (services.userId) {
         const captureUserId = services.userId; // Capture for closure
+        const voiceEmotionForCapture = (userData as UserData).voiceEmotion;
         // 🧠 MEMORY AUDIT: Log that we're starting memory capture
         diag.info('🧠 [MEMORY-AUDIT] turn-handler triggering memory capture', {
           userId: captureUserId,
@@ -2538,14 +2685,56 @@ IMPORTANT:
             sessionId: services.sessionId,
             turnNumber,
             transcript: userText,
-            voiceEmotion: result.analysis.analysis.emotion?.primary,
+            voiceEmotion: result.analysis.analysis.emotion?.primary ?? voiceEmotionForCapture?.primary,
             personaId: persona.id, // For multi-persona data attribution
           });
+
+          // Map voice emotion to STM-compatible shape (for emotional trajectory)
+          const voiceEmotionSnapshot =
+            voiceEmotionForCapture &&
+            typeof voiceEmotionForCapture.primary === 'string'
+              ? {
+                  primary: voiceEmotionForCapture.primary,
+                  confidence: voiceEmotionForCapture.confidence ?? 0.5,
+                  stressLevel: voiceEmotionForCapture.stressLevel ?? 0.3,
+                  valence: voiceEmotionForCapture.valence ?? 0,
+                  arousal: voiceEmotionForCapture.arousal ?? 0.5,
+                }
+              : undefined;
 
           // 🧠 CRITICAL: Record to STM buffer for session context
           // This enables wasEntityMentioned(), buildSTMContext(), and session-end promotion
           const { recordTurn } = await import('../../memory/dynamic/index.js');
-          recordTurn(services.sessionId, captureUserId, captureResult, userText, turnNumber);
+          recordTurn(
+            services.sessionId,
+            captureUserId,
+            captureResult,
+            userText,
+            turnNumber,
+            persona.id,
+            voiceEmotionSnapshot
+          );
+
+          // 🎤 Per-session voice memory: collect snapshot for "you sound different today"
+          if (voiceEmotionSnapshot && voiceEmotionForCapture?.prosody) {
+            try {
+              const {
+                recordVoiceSnapshot,
+                toVoiceSnapshot,
+              } = await import('../../memory/voice-session-store.js');
+              const snapshot = toVoiceSnapshot(
+                {
+                  primary: voiceEmotionForCapture.primary,
+                  stressLevel: voiceEmotionForCapture.stressLevel,
+                  prosody: voiceEmotionForCapture.prosody,
+                },
+                turnNumber
+              );
+              recordVoiceSnapshot(services.sessionId, captureUserId, snapshot);
+            } catch {
+              // Non-critical - voice memory is enhancement only
+            }
+          }
 
           // 🧠 MEMORY AUDIT: Log capture results (upgraded to info level)
           diag.info('🧠 [MEMORY-AUDIT] turn-handler memory capture DONE', {

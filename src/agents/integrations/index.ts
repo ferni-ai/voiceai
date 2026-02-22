@@ -97,6 +97,13 @@ export {
   type LiveBackchannelIntegration,
 } from './live-backchanneling-integration.js';
 
+// Audio Embedding Integration (5B: Higgs pipeline → LLM context)
+export {
+  handleAudioEmbedding,
+  summarizeAudioEmbedding,
+  type AudioEmbeddingResult,
+} from './audio-embedding-integration.js';
+
 // Voice-Memory Integration (Phase 11: Better Than Human)
 export {
   recordVoiceContext,

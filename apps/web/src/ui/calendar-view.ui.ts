@@ -170,6 +170,12 @@ export interface DayOverview {
   freeTimeMinutes: number;
   isOverloaded: boolean;
   hasBackToBack: boolean;
+  /** Tasks for this day */
+  tasks?: unknown[];
+  /** Reminders for this day */
+  reminders?: unknown[];
+  /** Habits for this day */
+  habits?: unknown[];
 }
 
 export interface WeekOverview {

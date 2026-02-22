@@ -25,6 +25,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
+import { isCoach } from '../../../personas/persona-ids.js';
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
@@ -986,7 +987,7 @@ function buildDomainFluencyContext(
 ): string {
   const sections: string[] = [];
   const personaFluencies = getPersonaDomainFluencies(personaId);
-  const isFerni = personaId === 'ferni' || !personaId;
+  const isFerni = isCoach(personaId) || !personaId;
   const userId = input.services?.userId;
 
   // Helper to get the (possibly A/B tested) expression for a domain

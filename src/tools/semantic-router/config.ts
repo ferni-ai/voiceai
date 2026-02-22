@@ -63,7 +63,7 @@ export function getDefaultConfig(): SemanticRouterConfig {
     embeddingModel:
       (process.env.SEMANTIC_ROUTING_EMBEDDING_MODEL as 'local' | 'openai' | 'voyage' | 'cohere') ||
       'local',
-    cacheEmbeddings: process.env.SEMANTIC_ROUTING_CACHE !== 'false',
+    cacheEmbeddings: true,
     debug: process.env.SEMANTIC_ROUTING_DEBUG === 'true',
   };
 }
@@ -131,19 +131,10 @@ export function isSemanticRoutingEnabled(): boolean {
 /**
  * Check if we should fall back to JSON workaround on semantic router failure.
  *
- * When true (default): Failed/uncertain semantic routing → JSON function calling
- * When false: Failed semantic routing → Conversation mode only
- *
- * In hybrid mode, this is always true (JSON handles uncertain cases).
+ * Always true - JSON fallback is always enabled for uncertain cases.
  */
 export function isJsonFallbackEnabled(): boolean {
-  // In hybrid mode, JSON fallback is always enabled
-  if (isHybridModeEnabled()) {
-    return true;
-  }
-
-  // Otherwise check explicit flag (default to true)
-  return process.env.SEMANTIC_ROUTING_JSON_FALLBACK !== 'false';
+  return true;
 }
 
 /**

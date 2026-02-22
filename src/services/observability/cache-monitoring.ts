@@ -20,7 +20,7 @@ import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/i
 import {
   getContentCacheStats,
   pruneExpiredContent,
-} from '../persona-service/persona-content-loader.js';
+} from '../persona-content-loader.js';
 import {
   getContextOutputCacheStats,
   getRegistryStats,

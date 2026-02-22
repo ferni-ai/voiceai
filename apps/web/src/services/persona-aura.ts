@@ -206,7 +206,7 @@ function injectStyles(): void {
       );
       opacity: 0.3;
       pointer-events: none;
-      z-index: 9999;
+      z-index: var(--z-base, 1);
       transition: background ${DURATION.SLOW}ms ${EASING.STANDARD};
     }
     

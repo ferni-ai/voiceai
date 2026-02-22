@@ -20,4 +20,5 @@ export {
   clearFerniExpression,
   triggerExpression,
   getAvailableExpressions,
+  cancelAllAvatarAnimations,
 } from './avatar-animations.js';

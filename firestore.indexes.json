@@ -169,11 +169,6 @@
       ]
     },
     {
-      "collectionGroup": "conversations",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [{ "fieldPath": "turnCount", "order": "ASCENDING" }]
-    },
-    {
       "collectionGroup": "outreach_feedback",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -283,17 +278,36 @@
           }
         }
       ]
-    },
-    {
-      "collectionGroup": "promoted_entities",
-      "queryScope": "COLLECTION",
-      "fields": [{ "fieldPath": "importance", "order": "DESCENDING" }]
-    },
-    {
-      "collectionGroup": "topic_patterns",
-      "queryScope": "COLLECTION",
-      "fields": [{ "fieldPath": "promotedAt", "order": "DESCENDING" }]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "scheduled_actions",
+      "fieldPath": "status",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
+      "collectionGroup": "conversations",
+      "fieldPath": "startedAt",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
+      "collectionGroup": "group_sessions",
+      "fieldPath": "startedAt",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
+      "collectionGroup": "conversation_summaries",
+      "fieldPath": "createdAt",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    }
+  ]
 }

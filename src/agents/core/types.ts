@@ -349,7 +349,7 @@ export interface SessionServices {
   getDynamicContext?: () => unknown;
   getEnhancedPromptContext?: () => string;
   getSpeechContext?: (text?: string, userEmotion?: string) => unknown;
-  tagWithSsml?: (text: string) => string;
+  tagWithSsml?: (text: string, options?: { voiceEmotion?: unknown }) => string;
 }
 
 export interface UserProfile {

@@ -16,7 +16,6 @@
  */
 
 import { voice } from '@livekit/agents';
-import { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
 // Speech coordination for fallback TTS
 import { coordinatedSay } from '../../speech/coordination/index.js';
@@ -36,127 +35,203 @@ import {
 } from './openai-health-monitor.js';
 // Response Orchestrator - coordinate with SDK state tracking
 import { onGenerationStarted, onGenerationComplete } from './response-orchestrator.js';
+// Higgs full loop: when transcript is provided and TTS is Higgs pipeline
+import { getHiggsPipelineProvider } from '../../speech/tts-gateway/providers/higgs-pipeline.js';
+// Convert raw PCM to AudioFrames for session.output.audio.captureFrame()
+import { splitCachedAudioIntoFrames } from './greeting-audio-cache.js';
+import {
+  resolveSpeculativeExecution,
+  cancelSpeculativeExecution,
+} from './performance/speculative-llm.js';
+import {
+  DEBOUNCE_MS_NORMAL,
+  DEBOUNCE_MS_LOW,
+  RECONNECT_DELAY_MS,
+  RECONNECT_TIMEOUT_MS,
+  GRACEFUL_EXIT_TTS_WAIT_MS,
+  DISCONNECT_DELAY_MS,
+  GATEWAY_BASE_TIMEOUT_MS,
+  GATEWAY_MIN_TIMEOUT_MS,
+  GATEWAY_MAX_TIMEOUT_MS,
+  GATEWAY_TTFB_BUFFER_MS,
+  ACTIVE_RESPONSE_COOLDOWN_MS,
+  WAIT_FOR_READY_MS,
+  INTERRUPT_GRACE_PERIOD_MS,
+  PREWARM_TIMEOUT_MS,
+  CIRCUIT_BREAKER_RESET_MS,
+  TOOL_RESPONSE_TIMEOUT_MS,
+  QUICK_ACK_DELAY_MS,
+} from '../../config/timeouts.js';
+import { extractLLMErrorDetails } from './gateway/error-analysis.js';
+import {
+  getSessionState,
+  getAdaptiveTimeout,
+  recordTTFB,
+  startQuickAckTimer,
+  getSessionLatencyStats,
+  isSessionReady,
+  markSessionReady,
+  markSessionNotReady,
+  waitForSessionReady,
+  isSessionActive,
+  resetSessionState,
+  getGatewayStats,
+  hasActiveResponsePending,
+  clearPendingLowPriorityResponse,
+  cleanupSessionStateInternal,
+  cancelledSessions,
+  getSessionStatesMap,
+} from './gateway/session-state.js';
+import {
+  sessionObjects,
+  registerSessionForReconnection,
+  unregisterSessionForReconnection,
+  generateReplyBySessionId,
+  handleGeminiDeath,
+  triggerGracefulExit,
+  setReconnectionCallbacks,
+} from './gateway/reconnection.js';
+
+export { TOOL_RESPONSE_TIMEOUT_MS };
 
 const log = getLogger();
+
+// ============================================================================
+// HIGGS FULL LOOP: Raw audio playback (for generate_reply → play to session)
+// ============================================================================
+// When TTS is Higgs pipeline and generate_reply is available, we can call
+// Higgs generateReply(transcript) and get reply audio. To play it we need
+// a handler that can push raw PCM to the session's track. Register via
+// registerRawAudioPlayHandler(sessionId, handler). If no handler is
+// registered, we fall back to session.generateReply().
+
+const rawAudioPlayHandlers = new Map<
+  string,
+  (buffer: ArrayBuffer, sampleRate?: number) => Promise<boolean>
+>();
+
+/**
+ * Register a handler to play raw PCM audio for a session (e.g. from Higgs generate_reply).
+ * When generateReply() is called with options.transcript and Higgs full loop is available,
+ * the gateway will call Higgs generateReply(transcript), then invoke this handler with
+ * the reply audio buffer and sample rate. Handler should return true if audio was played, false otherwise.
+ * Used to wire Higgs full loop when the agent has access to the session's audio track.
+ */
+export function registerRawAudioPlayHandler(
+  sessionId: string,
+  handler: (buffer: ArrayBuffer, sampleRate?: number) => Promise<boolean>
+): void {
+  rawAudioPlayHandlers.set(sessionId, handler);
+}
+
+/**
+ * Unregister raw audio play handler for a session (e.g. on session end).
+ */
+export function unregisterRawAudioPlayHandler(sessionId: string): void {
+  rawAudioPlayHandlers.delete(sessionId);
+}
+
+/** Higgs reply audio sample rate (must match Higgs AudioStart). */
+const HIGGS_REPLY_SAMPLE_RATE = 24000;
+
+/** Frame duration in ms for streaming (20ms matches typical TTS chunking). */
+const HIGGS_REPLY_FRAME_MS = 20;
+
+/**
+ * Register the Higgs full-loop raw-audio handler for a session.
+ * Call this when TTS_PROVIDER=higgs-pipeline and the session is registered.
+ * The handler pushes PCM from Higgs generateReply into the session's audio output.
+ */
+/** Max attempts to wait for output.audio when it is not yet set (e.g. right after session start). */
+const HIGGS_RAW_AUDIO_WAIT_ATTEMPTS = 3;
+/** Delay in ms between attempts. */
+const HIGGS_RAW_AUDIO_WAIT_MS = 50;
+
+export function registerHiggsRawAudioPlayHandler(sessionId: string): void {
+  const handler = async (
+    buffer: ArrayBuffer,
+    sampleRate?: number
+  ): Promise<boolean> => {
+    const rate = sampleRate ?? HIGGS_REPLY_SAMPLE_RATE;
+    let session = sessionObjects.get(sessionId);
+    let audio = session?.output?.audio;
+    for (let attempt = 0; attempt < HIGGS_RAW_AUDIO_WAIT_ATTEMPTS && !audio; attempt++) {
+      if (attempt > 0) {
+        await new Promise((r) => setTimeout(r, HIGGS_RAW_AUDIO_WAIT_MS));
+      }
+      session = sessionObjects.get(sessionId);
+      audio = session?.output?.audio;
+    }
+    if (!audio || typeof audio.captureFrame !== 'function') {
+      log.debug(
+        { sessionId, hasSession: !!session, hasAudio: !!audio },
+        'Higgs full loop: no session or output.audio yet, skipping raw play'
+      );
+      return false;
+    }
+    try {
+      for (const frame of splitCachedAudioIntoFrames(
+        buffer,
+        rate,
+        HIGGS_REPLY_FRAME_MS
+      )) {
+        await audio.captureFrame(frame);
+      }
+      if (typeof audio.flush === 'function') {
+        audio.flush();
+      }
+      return true;
+    } catch (err) {
+      log.warn(
+        { sessionId, error: String(err) },
+        'Higgs full loop: captureFrame failed'
+      );
+      return false;
+    }
+  };
+  registerRawAudioPlayHandler(sessionId, handler);
+}
+
+// Wire reconnection callbacks for Higgs raw-audio (avoids circular imports)
+setReconnectionCallbacks({
+  onSessionRegistered: (id) => {
+    if (process.env.TTS_PROVIDER?.toLowerCase() === 'higgs-pipeline') {
+      registerHiggsRawAudioPlayHandler(id);
+    }
+  },
+  onSessionUnregistered: unregisterRawAudioPlayHandler,
+});
+
+async function playRawAudioToSession(
+  sessionId: string,
+  buffer: ArrayBuffer,
+  sampleRate?: number
+): Promise<boolean> {
+  const handler = rawAudioPlayHandlers.get(sessionId);
+  if (!handler) {
+    return false;
+  }
+  try {
+    return await handler(buffer, sampleRate);
+  } catch (err) {
+    log.warn(
+      { sessionId, error: String(err) },
+      'Higgs full loop: raw audio play handler failed'
+    );
+    return false;
+  }
+}
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-export interface GatewayOptions {
-  instructions: string;
-  allowInterruptions?: boolean;
-  context?: string;
-  priority?: 'high' | 'normal' | 'low';
-  /** If true, wait for audio playout. If false, returns after LLM response received */
-  waitForPlayout?: boolean;
-  /** Fallback message if generateReply fails */
-  fallbackMessage?: string;
-  /** Timeout in ms (default: 4000 - reduced for human-like latency) */
-  timeoutMs?: number;
-}
-
-export interface GatewayResult {
-  success: boolean;
-  usedFallback: boolean;
-  error?: string;
-  sessionNotReady?: boolean;
-  queuePosition?: number;
-  latencyMs?: number;
-  /** True if the call was skipped (session not ready, low priority) */
-  skipped?: boolean;
-  /** True if the call was debounced (too rapid) */
-  debounced?: boolean;
-  /** True if call succeeded but LLM returned empty/no-speech response (Jan 2026 fix) */
-  noSpeechProduced?: boolean;
-}
+import type { GatewayOptions, GatewayResult } from './gateway/types.js';
+export type { GatewayOptions, GatewayResult };
 
 /** Type alias for external consumers */
 export type GenerateReplyOptions = GatewayOptions;
 export type GenerateReplyResult = GatewayResult;
-
-interface SessionState {
-  isReady: boolean;
-  readyAt?: number;
-  lastSuccessAt?: number;
-  lastCallAt?: number;
-  consecutiveFailures: number;
-  circuitBreakerOpenedAt?: number; // Track when circuit breaker opened for half-open recovery
-  pendingCallCount: number;
-  /**
-   * Track if there's an active low-priority response (e.g., backchannel).
-   * Used to prevent "conversation_already_has_active_response" errors from OpenAI.
-   * When a new normal/high priority request comes in, we interrupt the low-priority one first.
-   */
-  hasActiveLowPriorityResponse: boolean;
-  /** Timestamp when low-priority response started (for cleanup) */
-  lowPriorityResponseStartedAt?: number;
-  /** Session reference for interrupting active responses */
-  activeSession?: voice.AgentSession;
-
-  // =========================================================================
-  // FIX: Track ALL active responses to prevent "conversation_already_has_active_response"
-  // =========================================================================
-  /** True if ANY response is currently in progress (any priority) */
-  hasActiveResponse: boolean;
-  /** Timestamp when active response started */
-  activeResponseStartedAt?: number;
-  /** Context of the active response (for debugging) */
-  activeResponseContext?: string;
-  /** Timestamp when user last interrupted (for grace period) */
-  userInterruptedAt?: number;
-
-  // =========================================================================
-  // FIX (Jan 2026): Cooldown after "active_response" errors
-  // Prevents hammering OpenAI with response.create when one is already active
-  // =========================================================================
-  /** Timestamp when last active_response error was received */
-  lastActiveResponseErrorAt?: number;
-  /** Count of active_response errors in current burst */
-  activeResponseErrorCount: number;
-
-  // =========================================================================
-  // FIX (Jan 2026): Silence response deduplication
-  // Prevents multiple silence responses from queueing up when Gemini is slow
-  // =========================================================================
-  /** True if a silence response is currently pending */
-  pendingSilenceResponse: boolean;
-  /** Timestamp when silence response started */
-  pendingSilenceResponseAt?: number;
-
-  // =========================================================================
-  // BETTER THAN HUMAN: Latency tracking for adaptive timeouts
-  // =========================================================================
-  /** Recent TTFB values (last 10) for adaptive timeout calculation */
-  recentTTFBs: number[];
-  /** Average TTFB for this session (rolling) */
-  avgTTFB?: number;
-  /** Whether quick acknowledgment was sent for current turn */
-  quickAckSent: boolean;
-  /** Timestamp when current request started (for quick ack timing) */
-  currentRequestStartedAt?: number;
-
-  // Statistics
-  stats: {
-    totalCalls: number;
-    successfulCalls: number;
-    failedCalls: number;
-    debouncedCalls: number;
-    skippedCalls: number;
-  };
-}
-
-/**
- * Minimum time between generateReply calls to prevent overwhelming the API
- * UPDATED Jan 2026: Priority-based debouncing for human-like response times
- * - Normal/high priority: 300ms (was 500ms) - faster for real user messages
- * - Low priority (backchannels): 500ms - keep longer to prevent "mm-hmm" spam
- */
-const DEBOUNCE_MS_NORMAL = 300;
-const DEBOUNCE_MS_LOW = 500;
-
-/** Time after which circuit breaker enters "half-open" state to allow recovery */
-const CIRCUIT_BREAKER_RESET_MS = 10_000;
 
 /**
  * After this many consecutive failures, trigger graceful exit instead of leaving user in silence.
@@ -164,800 +239,35 @@ const CIRCUIT_BREAKER_RESET_MS = 10_000;
  */
 const GRACEFUL_EXIT_THRESHOLD = 3;
 
-// ============================================================================
-// ERROR ANALYSIS HELPERS
-// ============================================================================
-
-interface LLMErrorDetails {
-  errorType:
-    | 'timeout'
-    | 'rate_limit'
-    | 'auth'
-    | 'connection'
-    | 'api'
-    | 'session_draining'
-    | 'active_response'
-    | 'audio_buffer'
-    | 'websocket_stale'
-    | 'unknown';
-  errorCode?: number | string;
-  isRetryable: boolean;
-  isLLMDead: boolean;
-  httpStatus?: number;
-  rawErrorName?: string;
-  /** Provider that generated the error (openai or gemini) */
-  provider?: 'openai' | 'gemini' | 'unknown';
-}
-
-// LLMErrorDetails replaces the old GeminiErrorDetails type
-// Now supports both OpenAI and Gemini with provider-specific error detection
-
-/**
- * Extract detailed error information from LLM API errors (OpenAI or Gemini).
- *
- * This helps diagnose WHY the LLM failed:
- * - 429 = Rate limit (temporary)
- * - 401/403 = Auth issue (permanent)
- * - ETIMEDOUT = Connection timeout
- * - "generation_created" timeout = LLM session dead
- * - "conversation_already_has_active_response" = OpenAI race condition
- * - "input_audio_buffer" = OpenAI audio buffer error
- */
-function extractLLMErrorDetails(error: unknown): LLMErrorDetails {
-  const details: LLMErrorDetails = {
-    errorType: 'unknown',
-    isRetryable: true,
-    isLLMDead: false,
-    provider: 'unknown',
-  };
-
-  if (!error) return details;
-
-  const errorStr = String(error);
-  const errorObj = error as Record<string, unknown>;
-
-  // Check for Error instance properties
-  if (error instanceof Error) {
-    details.rawErrorName = error.name;
-
-    // Extract error code if present
-    if ('code' in error) {
-      details.errorCode = (error as { code: unknown }).code as string | number;
-    }
-    if ('status' in error) {
-      details.httpStatus = (error as { status: unknown }).status as number;
-    }
-    if ('statusCode' in error) {
-      details.httpStatus = (error as { statusCode: unknown }).statusCode as number;
-    }
-  }
-
-  // =========================================================================
-  // OPENAI-SPECIFIC ERRORS (check first - more specific patterns)
-  // =========================================================================
-
-  // OpenAI: "conversation_already_has_active_response" - race condition
-  // This happens when we try to generate while another response is in progress
-  if (errorStr.includes('conversation_already_has_active_response')) {
-    details.errorType = 'active_response';
-    details.provider = 'openai';
-    details.isRetryable = true; // Retry after interrupt + delay
-    details.isLLMDead = false;
-    return details;
-  }
-
-  // OpenAI: Audio buffer errors
-  if (
-    errorStr.includes('input_audio_buffer') ||
-    errorStr.includes('audio_buffer_append') ||
-    errorStr.includes('invalid_audio')
-  ) {
-    details.errorType = 'audio_buffer';
-    details.provider = 'openai';
-    details.isRetryable = true;
-    details.isLLMDead = false;
-    return details;
-  }
-
-  // OpenAI: WebSocket connection stale/closed
-  if (
-    errorStr.includes('WebSocket is not open') ||
-    errorStr.includes('WebSocket connection') ||
-    errorStr.includes('connection closed unexpectedly')
-  ) {
-    details.errorType = 'websocket_stale';
-    details.provider = 'openai';
-    details.isRetryable = false; // Need full reconnection
-    details.isLLMDead = true;
-    return details;
-  }
-
-  // OpenAI-specific rate limit format
-  if (errorStr.includes('rate_limit_exceeded') || errorStr.includes('RateLimitError')) {
-    details.errorType = 'rate_limit';
-    details.provider = 'openai';
-    details.errorCode = 429;
-    details.isRetryable = true;
-    details.isLLMDead = false;
-    return details;
-  }
-
-  // =========================================================================
-  // LIVEKIT SDK / SESSION ERRORS
-  // =========================================================================
-
-  // FIX: Detect "circular wait" error from LiveKit SDK
-  // This occurs when trying to call waitForPlayout() after a handoff tool has completed
-  if (
-    errorStr.includes('waitForPlayout') &&
-    (errorStr.includes('circular wait') || errorStr.includes('from inside the function tool'))
-  ) {
-    details.errorType = 'session_draining';
-    details.isRetryable = false;
-    details.isLLMDead = false;
-    return details;
-  }
-
-  // FIX: Detect "AgentSession is not running" error from LiveKit SDK
-  if (errorStr.includes('AgentSession is not running')) {
-    details.errorType = 'session_draining';
-    details.isRetryable = false;
-    details.isLLMDead = false;
-    return details;
-  }
-
-  // =========================================================================
-  // GENERIC LLM ERRORS (both OpenAI and Gemini)
-  // =========================================================================
-
-  if (errorStr.includes('Gateway timeout') || errorStr.includes('Safe timeout')) {
-    details.errorType = 'timeout';
-    details.isLLMDead = true;
-  } else if (errorStr.includes('generation_created') || errorStr.includes('timed out waiting')) {
-    details.errorType = 'timeout';
-    details.isLLMDead = true;
-    details.provider = 'gemini'; // This is a Gemini-specific message
-  } else if (
-    errorStr.includes('429') ||
-    errorStr.includes('rate limit') ||
-    errorStr.includes('RESOURCE_EXHAUSTED')
-  ) {
-    details.errorType = 'rate_limit';
-    details.errorCode = 429;
-    details.isRetryable = true;
-  } else if (
-    errorStr.includes('401') ||
-    errorStr.includes('403') ||
-    errorStr.includes('UNAUTHENTICATED') ||
-    errorStr.includes('PERMISSION_DENIED')
-  ) {
-    details.errorType = 'auth';
-    details.isRetryable = false;
-  } else if (
-    errorStr.includes('ETIMEDOUT') ||
-    errorStr.includes('ECONNRESET') ||
-    errorStr.includes('ENOTFOUND') ||
-    errorStr.includes('WebSocket')
-  ) {
-    details.errorType = 'connection';
-    details.isLLMDead = true;
-  } else if (
-    errorStr.includes('500') ||
-    errorStr.includes('503') ||
-    errorStr.includes('INTERNAL')
-  ) {
-    details.errorType = 'api';
-    details.isRetryable = true;
-  }
-
-  // Check nested error objects (some APIs wrap errors)
-  if (errorObj.response && typeof errorObj.response === 'object') {
-    const response = errorObj.response as Record<string, unknown>;
-    if (response.status) {
-      details.httpStatus = response.status as number;
-    }
-    if (response.data && typeof response.data === 'object') {
-      const data = response.data as Record<string, unknown>;
-      if (data.error && typeof data.error === 'object') {
-        const innerError = data.error as Record<string, unknown>;
-        if (innerError.code) details.errorCode = innerError.code as string | number;
-      }
-    }
-  }
-
-  return details;
-}
-
-// extractLLMErrorDetails replaces the old extractGeminiErrorDetails function
-// The new function handles both OpenAI and Gemini errors with provider detection
-
-// ============================================================================
-// GEMINI RECONNECTION LOGIC
-// ============================================================================
-
-/** Track active sessions for reconnection attempts */
-const sessionObjects = new Map<string, voice.AgentSession>();
-
-/** Track reconnection attempts to prevent loops */
-const reconnectionAttempts = new Map<string, { count: number; lastAttempt: number }>();
-const MAX_RECONNECTION_ATTEMPTS = 2;
-const RECONNECTION_COOLDOWN_MS = 30_000; // 30s between reconnection attempts
-
-/**
- * Register a session object for potential reconnection.
- * Call this when creating a new session.
- */
-export function registerSessionForReconnection(
-  sessionId: string,
-  session: voice.AgentSession
-): void {
-  sessionObjects.set(sessionId, session);
-}
-
-/**
- * Unregister a session (on cleanup).
- */
-export function unregisterSessionForReconnection(sessionId: string): void {
-  sessionObjects.delete(sessionId);
-  reconnectionAttempts.delete(sessionId);
-}
-
-/**
- * Generate a reply using only sessionId (looks up session from registry).
- *
- * This is a convenience function that matches the `coordinatedSay(sessionId, ...)` pattern.
- * Use this when you only have sessionId available (e.g., in turn-handler).
- *
- * @param sessionId - The session ID to generate reply for
- * @param options - Gateway options (instructions, fallback, etc.)
- * @returns GatewayResult with success/failure info
- *
- * @example
- * ```ts
- * // Instead of needing the full session:
- * await generateReplyBySessionId(sessionId, {
- *   instructions: 'Tool executed: playMusic. Acknowledge briefly.',
- *   context: 'ftis-tool-response',
- *   fallbackMessage: 'Done!',
- * });
- * ```
- */
-export async function generateReplyBySessionId(
-  sessionId: string,
-  options: GatewayOptions
-): Promise<GatewayResult> {
-  const session = sessionObjects.get(sessionId);
-
-  if (!session) {
-    log.warn(
-      { sessionId, context: options.context },
-      '⚠️ [GATEWAY] generateReplyBySessionId: Session not found in registry'
-    );
-
-    // Fall back to speaking directly via coordinatedSay if fallback provided
-    if (options.fallbackMessage) {
-      try {
-        coordinatedSay(sessionId, options.fallbackMessage, { allowInterruptions: true });
-        return {
-          success: false,
-          usedFallback: true,
-          error: 'Session not in registry',
-        };
-      } catch {
-        // Ignore coordinatedSay errors
-      }
-    }
-
-    return {
-      success: false,
-      usedFallback: false,
-      error: 'Session not found in registry',
-    };
-  }
-
-  return generateReply(session, sessionId, options);
-}
-
-/**
- * Handle Gemini death by attempting reconnection.
- *
- * CRITICAL FIX: This is called when isLLMDead is detected.
- * Instead of just waiting for circuit breaker, we actively try to reconnect.
- */
-async function handleGeminiDeath(sessionId: string): Promise<boolean> {
-  const attempts = reconnectionAttempts.get(sessionId) || { count: 0, lastAttempt: 0 };
-  const now = Date.now();
-
-  // Check cooldown and attempt limit
-  if (attempts.count >= MAX_RECONNECTION_ATTEMPTS) {
-    log.warn(
-      { sessionId, attempts: attempts.count },
-      '💀 [GATEWAY] Max reconnection attempts reached - giving up'
-    );
-    return false;
-  }
-
-  if (now - attempts.lastAttempt < RECONNECTION_COOLDOWN_MS && attempts.count > 0) {
-    log.debug(
-      { sessionId, cooldownRemainingMs: RECONNECTION_COOLDOWN_MS - (now - attempts.lastAttempt) },
-      '💀 [GATEWAY] Reconnection on cooldown'
-    );
-    return false;
-  }
-
-  // Update attempt tracking
-  reconnectionAttempts.set(sessionId, { count: attempts.count + 1, lastAttempt: now });
-
-  log.warn(
-    { sessionId, attempt: attempts.count + 1 },
-    '💀 [GATEWAY] Gemini dead - attempting reconnection...'
-  );
-
-  const session = sessionObjects.get(sessionId);
-  if (!session) {
-    log.error({ sessionId }, '💀 [GATEWAY] No session object for reconnection');
-    return false;
-  }
-
-  try {
-    // Notify user we're reconnecting (use TTS fallback since Gemini is dead)
-    // Note: coordinatedSay is fire-and-forget (returns void)
-    coordinatedSay(sessionId, 'One moment...', { allowInterruptions: false });
-
-    // Brief delay to let TTS start
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // Try a minimal generateReply to re-establish the connection
-    // This often works because the SDK will reconnect the WebSocket
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Reconnection timeout')), 8000);
-    });
-
-    const reconnectPromise = (async () => {
-      const handle = session.generateReply({
-        instructions: ' ', // Minimal instruction
-        allowInterruptions: true,
-      });
-      await handle.waitForPlayout();
-    })();
-
-    await Promise.race([reconnectPromise, timeoutPromise]);
-
-    // SUCCESS! Reset failure counters
-    const state = sessionStates.get(sessionId);
-    if (state) {
-      state.consecutiveFailures = 0;
-      state.circuitBreakerOpenedAt = undefined;
-      state.isReady = true;
-    }
-
-    log.info({ sessionId }, '✅ [GATEWAY] Gemini reconnection successful!');
-
-    // Notify user we're back
-    coordinatedSay(sessionId, "I'm back! What were you saying?", { allowInterruptions: true });
-
-    return true;
-  } catch (err) {
-    log.error(
-      { sessionId, error: String(err), attempt: attempts.count + 1 },
-      '💀 [GATEWAY] Gemini reconnection failed'
-    );
-    return false;
-  }
-}
-
-/**
- * Trigger a graceful exit when LLM is completely unresponsive.
- *
- * CRITICAL FIX: Now attempts reconnection FIRST before giving up.
- * Only disconnects if reconnection also fails.
- */
-async function triggerGracefulExit(sessionId: string): Promise<void> {
-  // FIRST: Try to reconnect Gemini
-  const reconnected = await handleGeminiDeath(sessionId);
-  if (reconnected) {
-    log.info({ sessionId }, '🔄 [GATEWAY] Reconnected during graceful exit - continuing session');
-    return; // Don't exit!
-  }
-
-  // Reconnection failed - proceed with graceful exit
-  // Warm, human goodbye messages (not "I'm experiencing technical difficulties")
-  const goodbyeMessages = [
-    'Oh, looks like I need to step away for a moment. Talk to you soon!',
-    'Hey, I think I need to take a quick break. Catch you in a bit!',
-    "Hmm, something's up on my end. Let me reconnect - talk soon!",
-    'I should probably step away for a sec. Be right back!',
-  ];
-
-  const goodbye = goodbyeMessages[Math.floor(Math.random() * goodbyeMessages.length)];
-
-  log.warn({ sessionId, goodbye: goodbye.slice(0, 50) }, '👋 [GATEWAY] Speaking graceful exit');
-
-  try {
-    // Say goodbye using coordinatedSay (doesn't require generateReply)
-    await coordinatedSay(sessionId, goodbye, { allowInterruptions: false });
-
-    // Wait a moment for TTS to complete
-    await new Promise((resolve) => setTimeout(resolve, 2500));
-
-    // Signal frontend to disconnect
-    const { sendFrontendSignal } = await import('../../services/frontend-signal.js');
-    await sendFrontendSignal('conversation_end', {
-      reason: 'graceful_exit_failures',
-      disconnectDelay: 500, // Short delay since TTS already played
-      timestamp: Date.now(),
-    });
-
-    log.info({ sessionId }, '👋 [GATEWAY] Graceful exit complete - frontend notified');
-  } catch (err) {
-    log.error(
-      { error: String(err), sessionId },
-      '👋 [GATEWAY] Graceful exit failed - user may be stuck'
-    );
-  }
-}
-
-// ============================================================================
-// SESSION STATE TRACKING
-// ============================================================================
-
-const sessionStates = new Map<string, SessionState>();
-const readinessEmitter = new EventEmitter();
-
-// Increase max listeners to handle concurrent sessions
-// Each session adds one listener during prewarm/wait, removed on ready or timeout
-// Default is 10 which can cause warnings during high concurrency
-readinessEmitter.setMaxListeners(100);
-
-// Track active sessions to detect orphaned operations
-const activeSessions = new Set<string>();
-const cancelledSessions = new Set<string>();
-
-function getSessionState(sessionId: string): SessionState {
-  let state = sessionStates.get(sessionId);
-  if (!state) {
-    state = {
-      isReady: false,
-      consecutiveFailures: 0,
-      pendingCallCount: 0,
-      hasActiveLowPriorityResponse: false,
-      hasActiveResponse: false,
-      activeResponseErrorCount: 0,
-      pendingSilenceResponse: false,
-      recentTTFBs: [],
-      quickAckSent: false,
-      stats: {
-        totalCalls: 0,
-        successfulCalls: 0,
-        failedCalls: 0,
-        debouncedCalls: 0,
-        skippedCalls: 0,
-      },
-    };
-    sessionStates.set(sessionId, state);
-  }
-  return state;
-}
-
-// ============================================================================
-// BETTER THAN HUMAN: Adaptive Timeout & Quick Acknowledgment
-// ============================================================================
-
-/** Base timeout - used when we have no latency data yet */
-const BASE_TIMEOUT_MS = 4000;
-/** Minimum timeout - never go below this */
-const MIN_TIMEOUT_MS = 2500;
-/** Maximum timeout - never exceed this */
-const MAX_TIMEOUT_MS = 8000;
-/**
- * Timeout for tool response calls - needs more time because Gemini must:
- * 1. Parse the tool result
- * 2. Generate a contextually appropriate response
- * 3. Start streaming speech
- * Tool calls are fundamentally different from normal conversational turns.
- */
-export const TOOL_RESPONSE_TIMEOUT_MS = 10000;
-/** Time before sending quick acknowledgment (ms) */
-const QUICK_ACK_DELAY_MS = 1200;
-/** Number of recent TTFBs to track for averaging */
-const TTFB_HISTORY_SIZE = 10;
-
-/**
- * Quick acknowledgment phrases for when LLM is slow.
- * These are human-like filler phrases that buy time.
- */
-const QUICK_ACK_PHRASES = [
-  'Mm-hmm...',
-  'Let me think...',
-  'One moment...',
-  'Hmm...',
-  "Let's see...",
-];
-
-/**
- * Calculate adaptive timeout based on session's latency history.
- * Uses rolling average of recent TTFBs plus a buffer.
- */
-function getAdaptiveTimeout(state: SessionState): number {
-  if (state.recentTTFBs.length < 3) {
-    // Not enough data - use base timeout
-    return BASE_TIMEOUT_MS;
-  }
-
-  const avgTTFB = state.avgTTFB || BASE_TIMEOUT_MS / 2;
-
-  // Timeout = 2x average TTFB + 500ms buffer (for TTS + processing)
-  const adaptive = avgTTFB * 2 + 500;
-
-  // Clamp to min/max range
-  return Math.max(MIN_TIMEOUT_MS, Math.min(MAX_TIMEOUT_MS, adaptive));
-}
-
-/**
- * Record a TTFB measurement and update rolling average.
- */
-function recordTTFB(state: SessionState, ttfb: number): void {
-  state.recentTTFBs.push(ttfb);
-
-  // Keep only the most recent measurements
-  while (state.recentTTFBs.length > TTFB_HISTORY_SIZE) {
-    state.recentTTFBs.shift();
-  }
-
-  // Update rolling average
-  if (state.recentTTFBs.length > 0) {
-    state.avgTTFB = state.recentTTFBs.reduce((a, b) => a + b, 0) / state.recentTTFBs.length;
-  }
-}
-
-/**
- * Start the quick acknowledgment timer.
- * If LLM doesn't respond in QUICK_ACK_DELAY_MS, send a filler phrase.
- */
-function startQuickAckTimer(sessionId: string, state: SessionState): ReturnType<typeof setTimeout> {
-  state.currentRequestStartedAt = Date.now();
-  state.quickAckSent = false;
-
-  return setTimeout(() => {
-    // Only send if we haven't gotten a response yet and haven't sent one already
-    if (!state.quickAckSent && state.currentRequestStartedAt) {
-      const elapsed = Date.now() - state.currentRequestStartedAt;
-      if (elapsed >= QUICK_ACK_DELAY_MS) {
-        state.quickAckSent = true;
-
-        // Pick a random acknowledgment phrase
-        const phrase = QUICK_ACK_PHRASES[Math.floor(Math.random() * QUICK_ACK_PHRASES.length)];
-
-        log.debug(
-          { sessionId, elapsed, phrase },
-          '⏳ [GATEWAY] LLM slow - sending quick acknowledgment'
-        );
-
-        // Fire-and-forget TTS (don't await)
-        coordinatedSay(sessionId, phrase, { allowInterruptions: true });
-      }
-    }
-  }, QUICK_ACK_DELAY_MS);
-}
-
-/**
- * Get latency statistics for a session (for observability).
- */
-export function getSessionLatencyStats(sessionId: string): {
-  avgTTFB: number | undefined;
-  recentTTFBs: number[];
-  adaptiveTimeout: number;
-} {
-  const state = sessionStates.get(sessionId);
-  if (!state) {
-    return {
-      avgTTFB: undefined,
-      recentTTFBs: [],
-      adaptiveTimeout: BASE_TIMEOUT_MS,
-    };
-  }
-
-  return {
-    avgTTFB: state.avgTTFB,
-    recentTTFBs: [...state.recentTTFBs],
-    adaptiveTimeout: getAdaptiveTimeout(state),
-  };
-}
-
-/**
- * Check if session is ready to accept generateReply calls.
- */
-export function isSessionReady(sessionId: string): boolean {
-  const state = sessionStates.get(sessionId);
-  return state?.isReady ?? false;
-}
-
-/**
- * Reset session state completely (for testing or cleanup).
- */
-export function resetSessionState(sessionId: string): void {
-  sessionStates.delete(sessionId);
-  readinessEmitter.removeAllListeners(`ready:${sessionId}`);
-  log.debug({ sessionId }, '🧹 [GATEWAY] Session state reset');
-}
-
-/**
- * Get gateway statistics for a session.
- */
-export function getGatewayStats(sessionId: string): SessionState['stats'] {
-  const state = sessionStates.get(sessionId);
-  return (
-    state?.stats ?? {
-      totalCalls: 0,
-      successfulCalls: 0,
-      failedCalls: 0,
-      debouncedCalls: 0,
-      skippedCalls: 0,
-    }
-  );
-}
-
-/**
- * Check if there's an active response being generated/played for this session.
- *
- * CRITICAL FIX: This helps prevent duplicate responses when:
- * 1. generateReply is called
- * 2. Response is streaming (TTS generating)
- * 3. BUT LiveKit's AgentStateChanged event hasn't fired yet
- * 4. So conversationManager.isAgentSpeaking() returns false
- * 5. Proactive response system fires ANOTHER generateReply
- *
- * Use this + isAgentSpeaking() to accurately detect if agent is responding.
- */
-export function hasActiveResponsePending(sessionId: string): boolean {
-  const state = sessionStates.get(sessionId);
-  return state?.hasActiveResponse ?? false;
-}
-
-/**
- * Clear any pending response flags and mark user interruption for a session.
- * Call this when user starts speaking to ensure we can immediately respond after.
- * This is called from session-state-handler when user starts speaking.
- *
- * FIX: Now tracks user interruption time for grace period handling in generateReply.
- */
-export function clearPendingLowPriorityResponse(sessionId: string): void {
-  const state = sessionStates.get(sessionId);
-  if (!state) return;
-
-  const hadActiveResponse = state.hasActiveResponse || state.hasActiveLowPriorityResponse;
-
-  if (hadActiveResponse) {
-    log.debug(
-      {
-        sessionId,
-        hadLowPriority: state.hasActiveLowPriorityResponse,
-        hadActive: state.hasActiveResponse,
-        activeContext: state.activeResponseContext,
-        timeSinceStart: state.activeResponseStartedAt
-          ? Date.now() - state.activeResponseStartedAt
-          : state.lowPriorityResponseStartedAt
-            ? Date.now() - state.lowPriorityResponseStartedAt
-            : 0,
-      },
-      '🧹 [GATEWAY] User speaking - clearing response flags and marking interruption'
-    );
-
-    // Clear all response flags
-    state.hasActiveLowPriorityResponse = false;
-    state.lowPriorityResponseStartedAt = undefined;
-    state.hasActiveResponse = false;
-    state.activeResponseStartedAt = undefined;
-    state.activeResponseContext = undefined;
-
-    // Mark user interruption time for grace period handling
-    // This prevents new responses from being created too quickly after interruption
-    state.userInterruptedAt = Date.now();
-
-    // Also interrupt the session to cancel any active response
-    if (state.activeSession) {
-      try {
-        state.activeSession.interrupt();
-      } catch {
-        // Ignore interrupt errors - session might already be done
-      }
-    }
-  }
-}
-
-/**
- * Mark a session as ready to accept generateReply calls.
- * Call this after successful prewarm or first successful generateReply.
- */
-export function markSessionReady(sessionId: string): void {
-  // SAFETY: Don't mark cancelled sessions as ready (prevents orphaned prewarm issues)
-  if (cancelledSessions.has(sessionId)) {
-    log.warn({ sessionId }, '⚠️ [GATEWAY] Ignoring markSessionReady for cancelled session');
-    return;
-  }
-
-  const state = getSessionState(sessionId);
-  state.isReady = true;
-  state.readyAt = Date.now();
-  state.consecutiveFailures = 0;
-
-  // Track as active
-  activeSessions.add(sessionId);
-
-  log.info({ sessionId }, '✅ [GATEWAY] Session marked as READY');
-  readinessEmitter.emit(`ready:${sessionId}`);
-}
-
-/**
- * Check if a session is still active (not cancelled).
- * @param sessionId - The session ID to check
- * @returns true if the session is active, false if cancelled
- */
-export function isSessionActive(sessionId: string): boolean {
-  return !cancelledSessions.has(sessionId);
-}
-
-/**
- * Mark a session as not ready (e.g., after connection failure).
- */
-export function markSessionNotReady(sessionId: string, reason: string): void {
-  const state = getSessionState(sessionId);
-  state.isReady = false;
-
-  log.warn({ sessionId, reason }, '⚠️ [GATEWAY] Session marked as NOT READY');
-}
-
-/**
- * Wait for session to become ready, with timeout.
- */
-export async function waitForSessionReady(sessionId: string, timeoutMs = 20000): Promise<boolean> {
-  const state = getSessionState(sessionId);
-
-  if (state.isReady) {
-    return true;
-  }
-
-  return new Promise((resolve) => {
-    const timeout = setTimeout(() => {
-      readinessEmitter.removeListener(`ready:${sessionId}`, onReady);
-      log.warn({ sessionId, timeoutMs }, '⏱️ [GATEWAY] Timed out waiting for session ready');
-      resolve(false);
-    }, timeoutMs);
-
-    const onReady = () => {
-      clearTimeout(timeout);
-      resolve(true);
-    };
-
-    readinessEmitter.once(`ready:${sessionId}`, onReady);
-  });
-}
+// Re-exports from gateway modules for backward compatibility
+export {
+  registerSessionForReconnection,
+  unregisterSessionForReconnection,
+  generateReplyBySessionId,
+};
+export {
+  getSessionLatencyStats,
+  isSessionReady,
+  markSessionReady,
+  markSessionNotReady,
+  waitForSessionReady,
+  isSessionActive,
+  resetSessionState,
+  getGatewayStats,
+  hasActiveResponsePending,
+  clearPendingLowPriorityResponse,
+};
 
 /**
  * Clean up session state when session ends.
- * IMPORTANT: This marks the session as cancelled to prevent orphaned prewarm operations.
+ * Composes internal cleanup with reconnection unregister and speculative execution cancel.
  */
 export function cleanupSessionState(sessionId: string): void {
-  // Mark as cancelled BEFORE deleting state
-  // This prevents orphaned prewarns from marking dead sessions as ready
-  cancelledSessions.add(sessionId);
-  activeSessions.delete(sessionId);
-
-  sessionStates.delete(sessionId);
-  readinessEmitter.removeAllListeners(`ready:${sessionId}`);
-
-  // Clean up reconnection tracking
+  cleanupSessionStateInternal(sessionId);
   unregisterSessionForReconnection(sessionId);
-
-  log.debug({ sessionId }, '🧹 [GATEWAY] Session state cleaned up and marked cancelled');
-
-  // Clean up cancelled sessions set after a delay (prevent memory leak)
-  // Reduced from 60s to 30s - prewarm timeout is 3s, so 30s is more than enough
-  // to catch any late completions while not holding memory unnecessarily
-  setTimeout(() => {
-    cancelledSessions.delete(sessionId);
-  }, 30000);
+  cancelSpeculativeExecution(sessionId);
 }
+
 
 // ============================================================================
 // MAIN: Generate Reply Gateway
@@ -1025,7 +335,7 @@ export async function generateReply(
   // After receiving "conversation_already_has_active_response" errors,
   // enforce a cooldown to prevent hammering OpenAI with 17+ rapid requests.
   // -------------------------------------------------------------------------
-  const ACTIVE_RESPONSE_COOLDOWN_MS = 500; // 500ms cooldown after error
+  // Cooldown after active_response error - see config/timeouts.js
   const timeSinceActiveResponseError = state.lastActiveResponseErrorAt
     ? Date.now() - state.lastActiveResponseErrorAt
     : Infinity;
@@ -1074,7 +384,7 @@ export async function generateReply(
 
     // For high priority (e.g., user spoke), wait briefly for readiness
     if (priority === 'high') {
-      const ready = await waitForSessionReady(sessionId, 5000);
+      const ready = await waitForSessionReady(sessionId, WAIT_FOR_READY_MS);
       if (!ready) {
         log.warn({ sessionId, context }, '❌ [GATEWAY] Session not ready after wait');
         if (fallbackMessage) {
@@ -1261,10 +571,8 @@ export async function generateReply(
     // FIX (Jan 2026): INCREASED from 300ms to 400ms to let OpenAI fully clear its state
     // Per OpenAI docs, response.cancel triggers response.done with status 'cancelled'
     // Must wait for that full cycle before creating new response
-    const interruptGracePeriodMs = 400;
-
-    if (timeSinceInterrupt < interruptGracePeriodMs) {
-      const remainingMs = interruptGracePeriodMs - timeSinceInterrupt;
+    if (timeSinceInterrupt < INTERRUPT_GRACE_PERIOD_MS) {
+      const remainingMs = INTERRUPT_GRACE_PERIOD_MS - timeSinceInterrupt;
       log.debug(
         { sessionId, context, timeSinceInterrupt, remainingMs },
         '⏳ [GATEWAY] User just interrupted - waiting for grace period'
@@ -1295,7 +603,7 @@ export async function generateReply(
       // FIX (Jan 2026): INCREASED from 300ms to 400ms to let OpenAI fully process the interrupt
       // OpenAI Realtime needs significant time to clear active response state
       // Per OpenAI docs, must wait for response.done with status 'cancelled'
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      await new Promise((resolve) => setTimeout(resolve, INTERRUPT_GRACE_PERIOD_MS));
     } catch (interruptErr) {
       log.debug(
         { error: String(interruptErr) },
@@ -1331,6 +639,176 @@ export async function generateReply(
   if (isSilenceContext) {
     state.pendingSilenceResponse = true;
     state.pendingSilenceResponseAt = Date.now();
+  }
+
+  // -------------------------------------------------------------------------
+  // HIGGS FULL LOOP: When transcript is provided and TTS is Higgs pipeline,
+  // call Higgs generateReply(transcript) and play reply audio if a handler
+  // is registered; otherwise fall back to session.generateReply().
+  // -------------------------------------------------------------------------
+  const useHiggsFullLoop =
+    options.transcript &&
+    process.env.TTS_PROVIDER?.toLowerCase() === 'higgs-pipeline';
+
+  if (useHiggsFullLoop) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const higgs = getHiggsPipelineProvider() as any;
+      if (typeof higgs.isGenerateReplyAvailable === 'function' && await higgs.isGenerateReplyAvailable()) {
+        // HYBRID PATH: Higgs has LLM but not TTS — use Ollama for text, Cartesia for speech
+        const ttsAvailable = typeof higgs.isTtsAvailable === 'function' ? await higgs.isTtsAvailable() : false;
+        if (!ttsAvailable) {
+          const { ollamaGenerate } = await import('./ollama-client.js');
+          const prompt = [
+            options.context || '',
+            '\n\nUser said: ',
+            options.transcript!.trim(),
+            '\n\nReply:',
+          ].join('');
+          let replyText = await ollamaGenerate(prompt);
+
+          // Tool-call handling (same as Higgs full loop)
+          const { looksLikeJsonFunctionCall } = await import('./sanitizer/detectors/leakage-detector.js');
+          if (looksLikeJsonFunctionCall(replyText)) {
+            const { parseJsonFunctionCall, executeJsonFunction } = await import('./json-function-executor.js');
+            const toolCall = parseJsonFunctionCall(replyText);
+            if (toolCall) {
+              log.info(
+                { sessionId, context, fn: toolCall.fn },
+                'Owned stack hybrid: LLM emitted tool call, executing and re-calling'
+              );
+              const toolResult = await executeJsonFunction(toolCall, {
+                userId: undefined,
+                sessionId,
+                personaId: 'ferni',
+              });
+              const resultStr = typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
+              const followUpContext = [
+                options.context || '',
+                `\nTool "${toolCall.fn}" was called with ${JSON.stringify(toolCall.args)}. Result: ${resultStr}`,
+                '\nNow reply to the user naturally using this information. Do not output JSON.',
+              ].join('');
+              const followUpPrompt = [followUpContext, '\n\nUser said: ', options.transcript!.trim(), '\n\nReply:'].join('');
+              replyText = await ollamaGenerate(followUpPrompt);
+            }
+          }
+
+          const trimmed = replyText.trim();
+          if (trimmed) {
+            coordinatedSay(sessionId, trimmed, { allowInterruptions: true });
+            recordSuccessfulRequest(sessionId, Date.now() - startTime);
+            state.pendingCallCount--;
+            state.hasActiveResponse = false;
+            state.activeResponseStartedAt = undefined;
+            state.activeResponseContext = undefined;
+            if (isSilenceContext) {
+              state.pendingSilenceResponse = false;
+              state.pendingSilenceResponseAt = undefined;
+            }
+            onGenerationComplete(sessionId);
+            const latencyMs = Date.now() - startTime;
+            markLLMFirstToken(sessionId);
+            markLLMComplete(sessionId);
+            markAudioStarted(sessionId);
+            log.info(
+              { sessionId, context, latencyMs },
+              'Owned stack hybrid: Ollama reply spoken via Cartesia'
+            );
+            return { success: true, usedFallback: false, latencyMs };
+          }
+        }
+
+        const { buffer, sampleRate, text: replyText } = await higgs.generateReply(options.transcript!, {
+          context: options.context,
+        });
+
+        // OWNED STACK TOOL CALLING: If the LLM reply contains a JSON tool call,
+        // execute it and re-call generateReply with the tool result instead of playing audio.
+        if (replyText) {
+          const { looksLikeJsonFunctionCall } = await import('./sanitizer/detectors/leakage-detector.js');
+          if (looksLikeJsonFunctionCall(replyText)) {
+            const { parseJsonFunctionCall, executeJsonFunction } = await import('./json-function-executor.js');
+            const toolCall = parseJsonFunctionCall(replyText);
+            if (toolCall) {
+              log.info(
+                { sessionId, context, fn: toolCall.fn },
+                'Owned stack: LLM emitted tool call, executing and re-calling'
+              );
+              const toolResult = await executeJsonFunction(toolCall, {
+                userId: undefined,
+                sessionId,
+                personaId: 'ferni',
+              });
+              const resultStr = typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
+              // Re-call with tool result so the LLM can form a natural reply
+              state.pendingCallCount--;
+              state.hasActiveResponse = false;
+              state.activeResponseStartedAt = undefined;
+              state.activeResponseContext = undefined;
+              const followUpContext = [
+                options.context || '',
+                `\nTool "${toolCall.fn}" was called with ${JSON.stringify(toolCall.args)}. Result: ${resultStr}`,
+                '\nNow reply to the user naturally using this information. Do not output JSON.',
+              ].join('');
+              const { buffer: followUpBuffer, sampleRate: followUpRate } = await higgs.generateReply(
+                options.transcript!,
+                { context: followUpContext }
+              );
+              if (followUpBuffer.byteLength > 0) {
+                const played = await playRawAudioToSession(sessionId, followUpBuffer, followUpRate);
+                if (played) {
+                  recordSuccessfulRequest(sessionId, Date.now() - startTime);
+                  onGenerationComplete(sessionId);
+                  const latencyMs = Date.now() - startTime;
+                  markLLMFirstToken(sessionId);
+                  markLLMComplete(sessionId);
+                  markAudioStarted(sessionId);
+                  log.info(
+                    { sessionId, context, latencyMs, toolFn: toolCall.fn },
+                    'Owned stack: tool call executed, follow-up reply played'
+                  );
+                  return { success: true, usedFallback: false, latencyMs };
+                }
+              }
+            }
+          }
+        }
+
+        if (buffer.byteLength > 0) {
+          const played = await playRawAudioToSession(sessionId, buffer, sampleRate);
+          if (played) {
+            recordSuccessfulRequest(sessionId, Date.now() - startTime);
+            state.pendingCallCount--;
+            state.hasActiveResponse = false;
+            state.activeResponseStartedAt = undefined;
+            state.activeResponseContext = undefined;
+            if (isSilenceContext) {
+              state.pendingSilenceResponse = false;
+              state.pendingSilenceResponseAt = undefined;
+            }
+            onGenerationComplete(sessionId);
+            const latencyMs = Date.now() - startTime;
+            markLLMFirstToken(sessionId);
+            markLLMComplete(sessionId);
+            markAudioStarted(sessionId);
+            log.debug(
+              { sessionId, context, latencyMs, audioBytes: buffer.byteLength, sampleRate },
+              'Higgs full loop: reply played via raw audio'
+            );
+            return {
+              success: true,
+              usedFallback: false,
+              latencyMs,
+            };
+          }
+        }
+      }
+    } catch (higgsErr) {
+      log.warn(
+        { sessionId, context, error: String(higgsErr) },
+        'Higgs full loop failed, falling back to session.generateReply()'
+      );
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -1798,7 +1276,7 @@ export async function generateReply(
       // 3. Next generateReply call (which will interrupt first)
       const capturedSessionId = sessionId;
       setTimeout(() => {
-        const currentState = sessionStates.get(capturedSessionId);
+        const currentState = getSessionStatesMap().get(capturedSessionId);
         if (currentState && currentState.activeResponseContext === context) {
           currentState.hasActiveResponse = false;
           currentState.activeResponseStartedAt = undefined;
@@ -1886,9 +1364,6 @@ export async function prewarmSession(
   );
   process.stderr.write(`⚠️ [PREWARM DEBUG] Any audio picked up now will trigger Gemini response\n`);
 
-  // FIX (Jan 2026): Increased timeout from 3s to 5s - connection can take a while on cold start
-  // Also properly interrupt the handle on timeout to prevent WritableStream errors
-  const PREWARM_TIMEOUT_MS = 5000;
   let prewarmHandle: ReturnType<typeof session.generateReply> | null = null;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 

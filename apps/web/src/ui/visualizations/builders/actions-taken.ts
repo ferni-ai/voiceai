@@ -212,8 +212,12 @@ function buildWatch(
   );
 
   return {
+    element: container,
+    type: 'actions-taken',
+    device: 'watch',
+    ariaLabel: `${data.totalActions} actions taken on your behalf`,
     cleanup: () => {},
-    update: (newData: ActionsTakenData) => buildWatch(container, newData),
+    update: (newData: unknown) => buildWatch(container, newData as ActionsTakenData),
   };
 }
 
@@ -378,8 +382,12 @@ function buildMobile(
   );
 
   return {
+    element: container,
+    type: 'actions-taken',
+    device: 'mobile',
+    ariaLabel: `${data.totalActions} actions taken: ${data.summary.callsMade} calls, ${data.summary.messagesSent} messages, ${data.summary.commitmentsFulfilled} commitments kept`,
     cleanup: () => {},
-    update: (newData: ActionsTakenData) => buildMobile(container, newData),
+    update: (newData: unknown) => buildMobile(container, newData as ActionsTakenData),
   };
 }
 
@@ -634,8 +642,12 @@ function buildTablet(
   );
 
   return {
+    element: container,
+    type: 'actions-taken',
+    device: context.type,
+    ariaLabel: `${data.totalActions} actions taken on your behalf: ${data.summary.callsMade} calls, ${data.summary.messagesSent} messages, ${data.summary.remindersKept} reminders, ${data.summary.commitmentsFulfilled} commitments kept`,
     cleanup: () => {},
-    update: (newData: ActionsTakenData) => buildTablet(container, newData, context),
+    update: (newData: unknown) => buildTablet(container, newData as ActionsTakenData, context),
   };
 }
 

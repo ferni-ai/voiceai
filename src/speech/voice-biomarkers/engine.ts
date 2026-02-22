@@ -6,6 +6,13 @@
  * @module @ferni/speech/voice-biomarkers/engine
  */
 
+import {
+  BIOMARKER_MIN_CONFIDENCE,
+  BIOMARKER_STRESS_SLOW_PACING,
+  BIOMARKER_INTERVENTION_HIGH_STRESS,
+  BIOMARKER_INTERVENTION_MODERATE,
+  BIOMARKER_STRESS_MODERATE,
+} from '../../config/emotion-thresholds.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   IVoiceBiomarkerPipeline,
@@ -98,7 +105,7 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
 
     // Detect stress
     const stressConfidence = this.detectStress(features);
-    if (stressConfidence > 0.5) {
+    if (stressConfidence > BIOMARKER_MIN_CONFIDENCE) {
       biomarkers.push({
         type: 'stress',
         confidence: stressConfidence,
@@ -110,7 +117,7 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
 
     // Detect fatigue
     const fatigueConfidence = this.detectFatigue(features);
-    if (fatigueConfidence > 0.5) {
+    if (fatigueConfidence > BIOMARKER_MIN_CONFIDENCE) {
       biomarkers.push({
         type: 'fatigue',
         confidence: fatigueConfidence,
@@ -122,7 +129,7 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
 
     // Detect anxiety
     const anxietyConfidence = this.detectAnxiety(features);
-    if (anxietyConfidence > 0.5) {
+    if (anxietyConfidence > BIOMARKER_MIN_CONFIDENCE) {
       biomarkers.push({
         type: 'anxiety',
         confidence: anxietyConfidence,
@@ -134,7 +141,7 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
 
     // Detect sadness
     const sadnessConfidence = this.detectSadness(features);
-    if (sadnessConfidence > 0.5) {
+    if (sadnessConfidence > BIOMARKER_MIN_CONFIDENCE) {
       biomarkers.push({
         type: 'sadness',
         confidence: sadnessConfidence,
@@ -146,7 +153,7 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
 
     // Detect excitement (positive)
     const excitementConfidence = this.detectExcitement(features);
-    if (excitementConfidence > 0.5) {
+    if (excitementConfidence > BIOMARKER_MIN_CONFIDENCE) {
       biomarkers.push({
         type: 'excitement',
         confidence: excitementConfidence,
@@ -158,7 +165,7 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
 
     // Detect calm
     const calmConfidence = this.detectCalm(features);
-    if (calmConfidence > 0.5) {
+    if (calmConfidence > BIOMARKER_MIN_CONFIDENCE) {
       biomarkers.push({
         type: 'calm',
         confidence: calmConfidence,
@@ -177,7 +184,7 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
 
     // Determine recommended pacing
     let recommendedPacing: 'slower' | 'normal' | 'matched' = 'normal';
-    if (stressLevel > 0.7 || biomarkers.some((b) => b.type === 'anxiety')) {
+    if (stressLevel > BIOMARKER_STRESS_SLOW_PACING || biomarkers.some((b) => b.type === 'anxiety')) {
       recommendedPacing = 'slower';
     } else if (biomarkers.some((b) => b.type === 'excitement')) {
       recommendedPacing = 'matched';
@@ -208,8 +215,8 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
   getIntervention(state: VoiceState): VoiceIntervention {
     // High stress or anxiety → breathing/grounding
     if (
-      state.stressLevel > 0.7 ||
-      state.biomarkers.some((b) => b.type === 'anxiety' && b.confidence > 0.7)
+      state.stressLevel > BIOMARKER_STRESS_SLOW_PACING ||
+      state.biomarkers.some((b) => b.type === 'anxiety' && b.confidence > BIOMARKER_INTERVENTION_HIGH_STRESS)
     ) {
       return {
         type: 'breathing-exercise',
@@ -221,7 +228,7 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
     }
 
     // Fatigue → energy support
-    if (state.biomarkers.some((b) => b.type === 'fatigue' && b.confidence > 0.6)) {
+    if (state.biomarkers.some((b) => b.type === 'fatigue' && b.confidence > BIOMARKER_INTERVENTION_MODERATE)) {
       return {
         type: 'energy-boost',
         reason: 'Fatigue detected in voice',
@@ -232,7 +239,7 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
     }
 
     // Sadness → gentle check-in
-    if (state.biomarkers.some((b) => b.type === 'sadness' && b.confidence > 0.6)) {
+    if (state.biomarkers.some((b) => b.type === 'sadness' && b.confidence > BIOMARKER_INTERVENTION_MODERATE)) {
       return {
         type: 'gentle-check-in',
         reason: 'Sadness detected',
@@ -243,7 +250,7 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
     }
 
     // Excitement → celebration
-    if (state.biomarkers.some((b) => b.type === 'excitement' && b.confidence > 0.6)) {
+    if (state.biomarkers.some((b) => b.type === 'excitement' && b.confidence > BIOMARKER_INTERVENTION_MODERATE)) {
       return {
         type: 'celebration',
         reason: 'Excitement/positive energy detected',
@@ -254,7 +261,7 @@ export class VoiceBiomarkerPipeline implements IVoiceBiomarkerPipeline {
     }
 
     // Moderate stress → slow pace
-    if (state.stressLevel > 0.5) {
+    if (state.stressLevel > BIOMARKER_STRESS_MODERATE) {
       return {
         type: 'slow-pace',
         reason: 'Moderate stress detected',

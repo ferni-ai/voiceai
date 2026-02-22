@@ -17,6 +17,12 @@ import { execFile } from 'child_process';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { promisify } from 'util';
+import {
+  APP_URL,
+  LANDING_URL,
+  UI_SERVER_HEALTH_URL,
+  VOICE_AGENT_HEALTH_URL,
+} from '../../../config/api-urls.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { rateLimit, requireAuth } from '../../auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendError, sendJSON } from '../../helpers.js';
@@ -31,16 +37,6 @@ const GCP_PROJECT = process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJE
 
 // Base path for these routes
 const BASE_PATH = '/api/v1/admin/operations';
-
-// Service URLs from env with fallback defaults (admin ops health checks)
-const VOICE_AGENT_HEALTH_URL =
-  process.env.VOICE_AGENT_HEALTH_URL ??
-  'https://voiceai-agent-1031920444452.us-central1.run.app/health';
-const UI_SERVER_HEALTH_URL =
-  process.env.UI_SERVER_HEALTH_URL ??
-  'https://john-bogle-ui-1031920444452.us-central1.run.app/health';
-const APP_URL = process.env.APP_URL ?? 'https://app.ferni.ai';
-const LANDING_URL = process.env.LANDING_URL ?? 'https://ferni.ai';
 
 const SERVICES = [
   { id: 'voice-agent', name: 'Voice Agent', url: VOICE_AGENT_HEALTH_URL, critical: true },

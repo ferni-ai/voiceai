@@ -23,8 +23,10 @@ import {
   getFrequentEntities,
   getRecentTopics,
   getSTMBuffer,
+  getVoiceEmotionTrajectory,
   type EntityFrequency,
   type TurnMemory,
+  type VoiceEmotionSnapshot,
 } from './stm-buffer.js';
 
 const log = createLogger({ module: 'STMPromotion' });
@@ -91,8 +93,12 @@ interface PromotedEmotionalArc {
     turnNumber: number;
     dominantEmotion: string;
     intensity: string;
+    /** Voice-derived emotion when available */
+    voiceEmotion?: VoiceEmotionSnapshot;
   }>;
   overallShift: 'positive' | 'negative' | 'neutral' | 'volatile';
+  /** Voice-based emotional shift across the session */
+  voiceTrajectory?: 'positive' | 'negative' | 'neutral' | 'volatile';
   promotedAt: string;
 }
 
@@ -197,6 +203,49 @@ function calculateOverallEmotionalShift(
   if (shifts >= 3) return 'volatile';
 
   // Check overall trend
+  const total = positiveCount + negativeCount;
+  if (total === 0) return 'neutral';
+  if (positiveCount > negativeCount * 1.5) return 'positive';
+  if (negativeCount > positiveCount * 1.5) return 'negative';
+  return 'neutral';
+}
+
+/**
+ * Compute voice-based emotional shift from valence/arousal trajectory.
+ */
+function calculateVoiceTrajectoryShift(
+  voiceTrajectory: Array<VoiceEmotionSnapshot & { turnNumber: number }>
+): 'positive' | 'negative' | 'neutral' | 'volatile' {
+  if (voiceTrajectory.length < 2) return 'neutral';
+
+  let positiveCount = 0;
+  let negativeCount = 0;
+  let shifts = 0;
+  let lastValence: 'positive' | 'negative' | 'neutral' = 'neutral';
+
+  for (const snap of voiceTrajectory) {
+    let currentValence: 'positive' | 'negative' | 'neutral' = 'neutral';
+    if (snap.valence > 0.2) {
+      positiveCount++;
+      currentValence = 'positive';
+    } else if (snap.valence < -0.2) {
+      negativeCount++;
+      currentValence = 'negative';
+    }
+
+    if (
+      lastValence !== 'neutral' &&
+      currentValence !== 'neutral' &&
+      lastValence !== currentValence
+    ) {
+      shifts++;
+    }
+    if (currentValence !== 'neutral') {
+      lastValence = currentValence;
+    }
+  }
+
+  if (shifts >= 3) return 'volatile';
   const total = positiveCount + negativeCount;
   if (total === 0) return 'neutral';
   if (positiveCount > negativeCount * 1.5) return 'positive';
@@ -373,18 +422,37 @@ async function doPromoteSessionToFirestore(
     }
     result.entitiesPromoted = entitiesToPromote.length;
 
-    // 2. Promote emotional trajectory
+    // 2. Promote emotional trajectory (text + voice)
     if (activeConfig.promoteEmotionalTrajectory) {
       const trajectory = getEmotionalTrajectory(sessionId);
+      const voiceTrajectory = getVoiceEmotionTrajectory(sessionId);
       if (trajectory.length >= 3) {
+        const voiceByTurn = new Map(voiceTrajectory.map((v) => [v.turnNumber, v]));
         const emotionalArc: PromotedEmotionalArc = {
           sessionId,
-          trajectory: trajectory.map((emotions, i) => ({
-            turnNumber: i + 1,
-            dominantEmotion: emotions[0]?.emotion || 'neutral',
-            intensity: emotions[0]?.intensity || 'low',
-          })),
+          trajectory: trajectory.map((emotions, i) => {
+            const turnNum = i + 1;
+            const voice = voiceByTurn.get(turnNum);
+            return {
+              turnNumber: turnNum,
+              dominantEmotion: emotions[0]?.emotion || 'neutral',
+              intensity: emotions[0]?.intensity || 'low',
+              ...(voice && {
+                voiceEmotion: {
+                  primary: voice.primary,
+                  confidence: voice.confidence,
+                  stressLevel: voice.stressLevel,
+                  valence: voice.valence,
+                  arousal: voice.arousal,
+                },
+              }),
+            };
+          }),
           overallShift: calculateOverallEmotionalShift(trajectory),
+          voiceTrajectory:
+            voiceTrajectory.length >= 2
+              ? calculateVoiceTrajectoryShift(voiceTrajectory)
+              : undefined,
           promotedAt: timestamp,
         };
 
@@ -574,6 +642,16 @@ export async function onSessionEnd(sessionId: string, userId: string): Promise<v
       { sessionId, userId, error: String(crossPersonaErr) },
       'Cross-persona memory bridge failed (non-critical)'
     );
+  }
+
+  // 🎤 Per-session voice memory: persist to voice_sessions (fire-and-forget)
+  try {
+    const { persistVoiceSession } = await import('../voice-session-store.js');
+    void persistVoiceSession(sessionId, userId).catch((err) => {
+      log.debug({ sessionId, userId, error: String(err) }, 'Voice session persist failed (non-critical)');
+    });
+  } catch {
+    // Voice session store not critical
   }
 
   log.info(

@@ -277,8 +277,8 @@ class CalendarSelectionUI {
     const displayName = calendar.nickname || calendar.name;
     
     // Owner badge for shared calendars
-    const ownerBadge = calendar.owner 
-      ? `<span class="calendar-selection__owner-badge" title="Shared by ${this.escapeHtml(calendar.owner)}">${this.escapeHtml(calendar.owner.split('@')[0])}</span>` 
+    const ownerBadge = calendar.owner
+      ? `<span class="calendar-selection__owner-badge" title="Shared by ${this.escapeHtml(calendar.owner)}">${this.escapeHtml((calendar.owner ?? '').split('@')[0] ?? '')}</span>`
       : '';
     
     // Provider badge

@@ -10,6 +10,8 @@
  * This creates the feeling that the persona exists in physical space and time.
  */
 
+import { isCoach } from '../personas/persona-ids.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -161,7 +163,7 @@ export function getPhysicalStateComment(sessionId: string, personaId: string): s
   const lastType = session.physicalState.lastPhysicalType;
 
   // VARIED physical state comments for Ferni - avoid repeating the same type
-  if (personaId === 'ferni') {
+  if (isCoach(personaId)) {
     // Weather awareness (Wyoming habit) - only if we haven't mentioned it recently
     if (!session.physicalState.weatherMentioned && lastType !== 'weather' && Math.random() < 0.25) {
       session.physicalState.weatherMentioned = true;
@@ -218,7 +220,7 @@ export function getPhysicalStateComment(sessionId: string, personaId: string): s
   const timeSinceStretch = now - session.physicalState.lastStretchTime;
   if (timeSinceStretch > 25 * 60 * 1000) {
     // 25 minutes
-    if (personaId === 'ferni') {
+    if (isCoach(personaId)) {
       comments.push(
         '<break time="200ms"/>Sitting too long. My back knows it. <break time="150ms"/>Where were we?'
       );
@@ -241,7 +243,7 @@ export function getPhysicalStateComment(sessionId: string, personaId: string): s
   }
 
   // Notebook mention (Ferni-specific)
-  if (personaId === 'ferni' && !session.physicalState.notebookMentioned && session.turnCount > 8) {
+  if (isCoach(personaId) && !session.physicalState.notebookMentioned && session.turnCount > 8) {
     if (Math.random() < 0.2) {
       session.physicalState.notebookMentioned = true;
       comments.push('<break time="200ms"/>Just making a note. <break time="150ms"/>Go on.');
@@ -281,7 +283,7 @@ export function getMetacognitiveComment(sessionId: string, personaId: string): s
 
   // Advice overload awareness
   if (meta.adviceGivenCount > 5 && meta.questionsAskedCount < 3) {
-    if (personaId === 'ferni') {
+    if (isCoach(personaId)) {
       comments.push(
         'I notice I\'ve been giving a lot of advice. <break time="250ms"/>Let me ask instead: what do YOU think you should do?'
       );
@@ -298,7 +300,7 @@ export function getMetacognitiveComment(sessionId: string, personaId: string): s
 
   // Too many questions awareness
   if (meta.questionsAskedCount > 6 && meta.adviceGivenCount < 2) {
-    if (personaId === 'ferni') {
+    if (isCoach(personaId)) {
       comments.push(
         'I\'ve been asking a lot of questions. <break time="200ms"/>Let me actually share something useful.'
       );
@@ -321,7 +323,7 @@ export function getMetacognitiveComment(sessionId: string, personaId: string): s
 
   // Heavy emotional support
   if (meta.emotionalSupportMoments > 3) {
-    if (personaId === 'ferni') {
+    if (isCoach(personaId)) {
       comments.push(
         'This has been a heavy conversation. <break time="300ms"/>How are YOU feeling right now? <break time="200ms"/>Honestly.'
       );

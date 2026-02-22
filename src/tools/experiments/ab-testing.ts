@@ -134,10 +134,17 @@ export class ABTestingManager {
    * Create a new experiment
    */
   createExperiment(experiment: Omit<Experiment, 'isActive'>): void {
-    // Validate traffic percentages sum to 100
+    // Normalize traffic percentages to sum to 100 (resilient to bad data from API/Firestore)
     const totalTraffic = experiment.variants.reduce((sum, v) => sum + v.trafficPercent, 0);
     if (Math.abs(totalTraffic - 100) > 0.01) {
-      throw new Error(`Traffic percentages must sum to 100, got ${totalTraffic}`);
+      log.warn(
+        { experimentId: experiment.id, totalTraffic, variantCount: experiment.variants.length },
+        'Traffic percentages did not sum to 100; normalizing to equal split'
+      );
+      const perVariant = 100 / experiment.variants.length;
+      experiment.variants.forEach((v) => {
+        v.trafficPercent = perVariant;
+      });
     }
 
     // Ensure exactly one control

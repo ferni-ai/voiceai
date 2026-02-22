@@ -147,6 +147,26 @@ import {
   tagInjectionsForTracking,
 } from '../../intelligence/feedback/injection-tracker.js';
 
+// Rich emotion model (Phase 2 BTH - multi-dimensional, sarcasm/suppression aware)
+import { analyzeRichEmotion } from '../../intelligence/rich-emotion-model.js';
+
+// Conversation planner + Unified user model (Phase 2 BTH - goal-directed sessions)
+import {
+  createPlan,
+  detectImplicitGoals,
+  recordTopicCovered,
+  loadPreviousFollowUps,
+  type ConversationPlan,
+} from '../../intelligence/conversation-planner.js';
+import {
+  loadUserModel,
+  updateFromConversation,
+  type ConversationSignals,
+} from '../../intelligence/unified-user-model.js';
+
+// Context outcome tracking (Phase 2 BTH - correlate injections with engagement)
+import { getContextOutcomeTracker, type TurnOutcome } from '../../intelligence/context-outcome-tracker.js';
+
 // Smart context routing (Phase 2 BTH Communication Overhaul)
 import {
   selectInjections as smartSelectInjections,
@@ -330,7 +350,7 @@ import {
  */
 function enrichEmotionWithVoice(
   textEmotion: { primary: string; intensity: number },
-  biomarkers?: UserData['voiceBiomarkers']
+  biomarkers?: UserData['rustDspBiomarkers']
 ): { primary: string; intensity: number; confidence: number; mismatch?: string } {
   if (!biomarkers) return { ...textEmotion, confidence: 0.6 }; // text-only = 60%
 
@@ -1874,6 +1894,85 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   recordPhaseTiming('conversation_state', stateTimer.stop());
 
   // ============================================================================
+  // 🧠 CONVERSATION PLANNER: Detect goals and track topics (H2.2)
+  // "Better than Human" - purpose-driven sessions, not just reactive chat
+  // ============================================================================
+  try {
+    if (!userData._conversationPlan && services.userId) {
+      const plan = createPlan(services.sessionId, services.userId);
+      const followUpsResult = await loadPreviousFollowUps(services.userId);
+      if (followUpsResult.ok && followUpsResult.value.length > 0) {
+        plan.followUps.push(...followUpsResult.value);
+      }
+      userData._conversationPlan = plan;
+    }
+    if (userData._conversationPlan) {
+      detectImplicitGoals(userText, userData._conversationPlan);
+      if (analysisResult.currentTopic) {
+        recordTopicCovered(userData._conversationPlan, analysisResult.currentTopic);
+      }
+    }
+  } catch {
+    // Non-blocking — conversation planner is additive
+  }
+
+  // ============================================================================
+  // 📊 UNIFIED USER MODEL: Update engagement signals (H2.3)
+  // "Better than Human" - learn the whole person, not just one dimension
+  // ============================================================================
+  try {
+    if (services.userId && !userData._unifiedUserModel) {
+      userData._unifiedUserModel = await loadUserModel(services.userId);
+    }
+    if (userData._unifiedUserModel) {
+      const signals: ConversationSignals = {};
+      if (analysisResult.analysis.emotion) {
+        signals.emotionalProfile = {
+          baselineValence: analysisResult.analysis.emotion.intensity || 0.5,
+        };
+      }
+      if (analysisResult.currentTopic) {
+        signals.interests = [{ topic: analysisResult.currentTopic, engagementLevel: 0.6 }];
+      }
+      if (ctx.persona?.id) {
+        signals.personaAffinity = { personaId: ctx.persona.id };
+      }
+      userData._unifiedUserModel = updateFromConversation(userData._unifiedUserModel, signals);
+    }
+  } catch {
+    // Non-blocking — user model is additive
+  }
+
+  // ============================================================================
+  // 📊 CONTEXT OUTCOME TRACKING: Record outcomes for previous turn (H2.4)
+  // "Better than Human" - learn which context injections actually help
+  // ============================================================================
+  try {
+    const prevTurn = (userData.turnCount || 1) - 1;
+    if (prevTurn > 0 && services.sessionId) {
+      const tracker = getContextOutcomeTracker();
+      const recentTranscripts = userData.recentTranscripts || [];
+      const avgLen =
+        recentTranscripts.length > 1
+          ? recentTranscripts.slice(0, -1).reduce((s, t) => s + t.length, 0) / (recentTranscripts.length - 1)
+          : 100;
+      const outcome: TurnOutcome = {
+        userContinued: true,
+        responseEngagement: userText.length > avgLen * 1.3 ? 'high' : userText.length > avgLen * 0.7 ? 'medium' : 'low',
+        sentimentDelta: (analysisResult.analysis.emotion?.intensity || 0.5) - 0.5,
+        wasTopicShift: analysisResult.currentTopic !== userData.lastTopic,
+        positiveFeedback: /thank|great|helpful|awesome|love|perfect|exactly/i.test(userText),
+        negativeFeedback: /wrong|bad|not helpful|stop|annoying|don't/i.test(userText),
+        responseLatencyMs: 0,
+        wasInterrupted: false,
+      };
+      tracker.recordOutcome(services.sessionId, prevTurn, outcome);
+    }
+  } catch {
+    // Non-blocking — outcome tracking should never break turn processing
+  }
+
+  // ============================================================================
   // 📊 RESONANCE RESPONSE: Check if user is responding to "Does that track?"
   // This captures voice-native feedback for superhuman capability effectiveness
   // ============================================================================
@@ -2524,11 +2623,11 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // 4a. Voice biomarker enrichment - combine text emotion with voice features
   // When Rust DSP pipeline provides biomarkers, use them to detect hidden emotions
   // (e.g., high jitter + calm text = hidden anxiety, low energy + positive text = masking)
-  const biomarkers = ctx.userData.voiceBiomarkers;
-  if (biomarkers) {
+  const dspBiomarkers = ctx.userData.rustDspBiomarkers;
+  if (dspBiomarkers) {
     const enriched = enrichEmotionWithVoice(
       { primary: emotionalState.primary, intensity: emotionalState.intensity },
-      biomarkers
+      dspBiomarkers
     );
     emotionalState.primary = enriched.primary;
     emotionalState.intensity = enriched.intensity;
@@ -2541,7 +2640,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       });
     }
     // Sync breath pause state for active listening backchannels
-    ctx.userData.isInBreathPause = biomarkers.isBreathPause;
+    ctx.userData.isInBreathPause = dspBiomarkers.isBreathPause;
   }
 
   // 4b. Record mismatch as cross-persona insight (fire-and-forget)
@@ -2812,6 +2911,32 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       intensity: analysis.emotion.intensity || 0.5,
       distressLevel: analysis.emotion.distressLevel,
     };
+
+    // Rich emotion analysis: fuse text + voice signals for sarcasm, suppression, momentum
+    try {
+      userData.richEmotion = analyzeRichEmotion({
+        text: userText,
+        textEmotion: {
+          primary: analysis.emotion.primary,
+          intensity: analysis.emotion.intensity || 0.5,
+          secondaryEmotions: analysis.emotion.secondary ? [analysis.emotion.secondary] : undefined,
+          confidence: analysis.emotion.confidence,
+        },
+        voiceEmotion: userData.voiceEmotion
+          ? {
+              primary: userData.voiceEmotion.primary || 'neutral',
+              confidence: userData.voiceEmotion.confidence || 0,
+              valence: userData.voiceEmotion.valence,
+              arousal: userData.voiceEmotion.arousal,
+              dominance: userData.voiceEmotion.dominance,
+              stressLevel: userData.voiceEmotion.stressLevel,
+            }
+          : undefined,
+        sessionId: services.sessionId,
+      });
+    } catch {
+      // Non-blocking — rich emotion is additive, not critical
+    }
 
     updateUserContextForHandoff({
       lastUserMessage: userText,

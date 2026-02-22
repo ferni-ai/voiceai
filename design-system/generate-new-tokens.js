@@ -132,7 +132,7 @@ export function getRandomPhrase(
   if (!contextData) return '';
   
   if (Array.isArray(contextData)) {
-    return contextData[Math.floor(Math.random() * contextData.length)];
+    return (contextData[Math.floor(Math.random() * contextData.length)] ?? '') as string;
   }
   
   if (typeof contextData === 'string') {
@@ -183,11 +183,11 @@ export function getTimeAwareGreeting(): string {
     timeContext = 'lateNight';
   }
   
-  const timeGreetings = contentTemplates.greetings.timeAware;
-  const greetings = timeGreetings[timeContext as keyof typeof timeGreetings];
+  const timeGreetings = contentTemplates.greetings.timeAware as unknown as Record<string, string[]>;
+  const greetings = timeGreetings[timeContext];
   
-  if (greetings && greetings.length > 0) {
-    return greetings[Math.floor(Math.random() * greetings.length)];
+  if (greetings && Array.isArray(greetings) && greetings.length > 0) {
+    return greetings[Math.floor(Math.random() * greetings.length)] ?? '';
   }
   
   return getRandomPhrase('greetings', 'casual');
@@ -200,12 +200,12 @@ export function getPersonaIntro(
   personaId: string,
   context: 'first' | 'returning' | 'handoffFrom' = 'first'
 ): string {
-  const intros = contentTemplates.personaIntroductions;
-  const persona = intros[personaId as keyof typeof intros];
+  const intros = contentTemplates.personaIntroductions as unknown as Record<string, Record<string, string>>;
+  const persona = intros[personaId];
   
-  if (!persona) return '';
+  if (!persona || typeof persona !== 'object') return '';
   
-  return persona[context] || persona.first || '';
+  return (persona[context] ?? persona.first ?? '') as string;
 }
 
 /**
@@ -311,10 +311,11 @@ export function getPersonaPhrase(
   const voice = getPersonaVoice(personaId);
   if (!voice) return '';
   
-  const phrases = voice[category];
+  const voiceRecord = voice as unknown as Record<string, readonly string[]>;
+  const phrases = voiceRecord[category];
   if (!phrases || phrases.length === 0) return '';
   
-  return phrases[Math.floor(Math.random() * phrases.length)];
+  return phrases[Math.floor(Math.random() * phrases.length)] ?? '';
 }
 
 /**
@@ -388,23 +389,28 @@ function generateSequenceUtils() {
 
 import { motionSequences } from './sequences.js';
 
-type SequenceId = keyof typeof motionSequences.sequences;
-type Sequence = typeof motionSequences.sequences[SequenceId];
-type SequenceStep = Sequence['steps'][number];
+type SequenceId = Exclude<keyof typeof motionSequences.sequences, '_documentation'>;
+interface SequenceWithSteps {
+  steps: Array<{ delay: number; [k: string]: unknown }>;
+  totalDuration?: number;
+  interruptible?: boolean;
+  emotion?: string;
+}
 
 /**
  * Get a sequence by ID
  */
-export function getSequence(sequenceId: string): Sequence | undefined {
-  return motionSequences.sequences[sequenceId as SequenceId];
+export function getSequence(sequenceId: string): SequenceWithSteps | undefined {
+  const seq = motionSequences.sequences[sequenceId as SequenceId];
+  return seq && 'steps' in seq ? (seq as unknown as SequenceWithSteps) : undefined;
 }
 
 /**
  * Get sequence steps sorted by delay
  */
-export function getSequenceSteps(sequenceId: string): SequenceStep[] {
+export function getSequenceSteps(sequenceId: string): Array<{ delay: number; [k: string]: unknown }> {
   const sequence = getSequence(sequenceId);
-  if (!sequence) return [];
+  if (!sequence || !sequence.steps) return [];
   
   return [...sequence.steps].sort((a, b) => a.delay - b.delay);
 }
@@ -430,10 +436,12 @@ export function isSequenceInterruptible(sequenceId: string): boolean {
  */
 export function getSequencePriority(sequenceId: string): 'critical' | 'high' | 'normal' | 'low' {
   const { priorities } = motionSequences.orchestration;
+  const levels = priorities?.levels as unknown as { critical: string[]; high: string[]; normal: string[] };
+  if (!levels) return 'low';
   
-  if (priorities.levels.critical.includes(sequenceId)) return 'critical';
-  if (priorities.levels.high.includes(sequenceId)) return 'high';
-  if (priorities.levels.normal.includes(sequenceId)) return 'normal';
+  if (levels.critical?.includes(sequenceId)) return 'critical';
+  if (levels.high?.includes(sequenceId)) return 'high';
+  if (levels.normal?.includes(sequenceId)) return 'normal';
   return 'low';
 }
 
@@ -456,14 +464,16 @@ export function getAnimation(animationName: string) {
  * Get all sequence IDs
  */
 export function getAllSequenceIds(): SequenceId[] {
-  return Object.keys(motionSequences.sequences) as SequenceId[];
+  return (Object.keys(motionSequences.sequences) as string[]).filter(
+    (k) => k !== '_documentation'
+  ) as SequenceId[];
 }
 
 /**
  * Get sequences by emotion
  */
 export function getSequencesByEmotion(emotion: string): SequenceId[] {
-  return getAllSequenceIds().filter(id => {
+  return getAllSequenceIds().filter((id) => {
     const sequence = getSequence(id);
     return sequence?.emotion === emotion;
   });
@@ -504,7 +514,7 @@ function generateResponsiveUtils() {
 
 import { responsiveTokens } from './responsive.js';
 
-type Breakpoint = keyof typeof responsiveTokens.breakpoints;
+type Breakpoint = Exclude<keyof typeof responsiveTokens.breakpoints, '_documentation'>;
 
 /**
  * Get breakpoint configuration
@@ -517,7 +527,8 @@ export function getBreakpoint(breakpoint: Breakpoint) {
  * Get media query for breakpoint
  */
 export function getMediaQuery(breakpoint: Breakpoint): string {
-  return responsiveTokens.breakpoints[breakpoint].mediaQuery;
+  const bp = responsiveTokens.breakpoints[breakpoint];
+  return bp && 'mediaQuery' in bp ? String(bp.mediaQuery) : '';
 }
 
 /**
@@ -536,37 +547,41 @@ export function getCurrentBreakpoint(width: number): Breakpoint {
  * Get typography scale for breakpoint
  */
 export function getTypographyScale(
-  level: keyof typeof responsiveTokens.typography.scale,
+  level: Exclude<keyof typeof responsiveTokens.typography.scale, '_documentation'>,
   breakpoint: Breakpoint
 ) {
-  return responsiveTokens.typography.scale[level][breakpoint];
+  const scale = responsiveTokens.typography.scale[level] as Record<string, unknown>;
+  return scale?.[breakpoint];
 }
 
 /**
  * Get fluid typography clamp value
  */
-export function getFluidTypography(level: keyof typeof responsiveTokens.typography.fluidTypography): string {
-  return responsiveTokens.typography.fluidTypography[level];
+export function getFluidTypography(level: Exclude<keyof typeof responsiveTokens.typography.fluidTypography, '_documentation'>): string {
+  const fluid = responsiveTokens.typography.fluidTypography[level];
+  return typeof fluid === 'string' ? fluid : '';
 }
 
 /**
  * Get component behavior for breakpoint
  */
-export function getComponentBehavior<T extends keyof typeof responsiveTokens.components>(
+export function getComponentBehavior<T extends Exclude<keyof typeof responsiveTokens.components, '_documentation'>>(
   component: T,
   breakpoint: Breakpoint
 ) {
-  return responsiveTokens.components[component][breakpoint];
+  const comp = responsiveTokens.components[component] as Record<string, unknown>;
+  return comp?.[breakpoint];
 }
 
 /**
  * Get touch target size for breakpoint
  */
 export function getTouchTarget(
-  type: keyof typeof responsiveTokens.touchTargets,
+  type: Exclude<keyof typeof responsiveTokens.touchTargets, '_documentation'>,
   breakpoint: Breakpoint
 ): number {
-  return responsiveTokens.touchTargets[type][breakpoint];
+  const ctx = responsiveTokens.touchTargets[type] as Record<string, unknown>;
+  return (ctx?.[breakpoint] as number) ?? 44;
 }
 
 /**

@@ -259,7 +259,7 @@ function renderWhileYouWereAway(results: BackgroundResult[]): string {
     const statusClass = result.status === 'success' ? 'success' : result.status === 'failed' ? 'failed' : 'pending';
 
     return `
-      <div class="ferni-hub-card ferni-hub-result-card ${statusClass}" data-result-id="${result.id}">
+      <div class="ferni-hub-card ferni-hub-result-card ${statusClass}" data-result-id="${result.id}" role="button" tabindex="0">
         <div class="ferni-hub-card-icon" style="background: ${persona.color}20; color: ${persona.color}">
           ${icon}
         </div>
@@ -299,7 +299,7 @@ function renderOpenThreads(threads: OpenThread[]): string {
     const timeAgo = formatTimeAgo(thread.updatedAt);
 
     return `
-      <div class="ferni-hub-card ferni-hub-thread-card" data-thread-id="${thread.id}" data-persona="${thread.personaId}">
+      <div class="ferni-hub-card ferni-hub-thread-card" data-thread-id="${thread.id}" data-persona="${thread.personaId}" role="button" tabindex="0">
         <div class="ferni-hub-card-avatar" style="background: ${persona.color}">
           ${persona.icon}
         </div>
@@ -544,7 +544,7 @@ function addStyles(): void {
     .ferni-hub-overlay {
       position: fixed;
       inset: 0;
-      z-index: 9999;
+      z-index: var(--z-modal, 9999);
       display: flex;
       align-items: center;
       justify-content: center;

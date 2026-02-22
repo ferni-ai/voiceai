@@ -35,7 +35,7 @@ export interface HandoffPersona {
 export function toHandoffPersona(
   persona: import('../../../personas/types.js').PersonaConfig
 ): HandoffPersona {
-  const isCoach = persona.id === 'ferni';
+  const isCoach = persona.isCoordinator ?? (persona.id === 'ferni');
   return {
     id: persona.id,
     name: persona.name,

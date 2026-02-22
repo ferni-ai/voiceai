@@ -25,7 +25,9 @@ export type ModelProviderId =
   | 'qwen3-omni'
   | 'qwen3-thinker-local'
   | 'local-pipeline'
-  | 'omni-pipeline';
+  | 'omni-pipeline'
+  | 'chipchat'
+  | 'gemma3n';
 
 // ============================================================================
 // PROMPT CONFIGURATION

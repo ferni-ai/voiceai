@@ -882,6 +882,8 @@ function createIntegrationCard(options: {
   const card = createElement('div', {
     className: `smart-home-settings__card${options.connected ? ' smart-home-settings__card--connected' : ''}`,
   });
+  card.setAttribute('role', 'button');
+  card.setAttribute('tabindex', '0');
 
   const header = createElement('div', { className: 'smart-home-settings__card-header' });
 
@@ -933,11 +935,19 @@ function createIntegrationCard(options: {
     card.appendChild(details);
   }
 
-  card.addEventListener('click', () => {
+  const handleCardActivate = () => {
     if (options.connected) {
       showDisconnectConfirm(options.id, options.name);
     } else {
       startSetupFlow(options.id as 'ecobee' | 'hue' | 'lifx' | 'sonos' | 'homekit');
+    }
+  };
+  card.addEventListener('click', handleCardActivate);
+  card.addEventListener('keydown', (e: Event) => {
+    const ke = e as KeyboardEvent;
+    if (ke.key === 'Enter' || ke.key === ' ') {
+      ke.preventDefault();
+      handleCardActivate();
     }
   });
 

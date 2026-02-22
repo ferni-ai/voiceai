@@ -576,6 +576,9 @@ export function getRetrievalCacheStats(): { size: number; maxSize: number; ttlMs
 // RE-EXPORTS
 // ============================================================================
 
+// Memory interfaces (for consumers that need RetrievedMemory type)
+export type { RetrievedMemory } from '../interfaces/index.js';
+
 // Advanced retrieval functions
 export {
   retrieveMemories,

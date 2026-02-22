@@ -231,7 +231,7 @@ class YourStoryUI {
   }
 
   destroy(): void {
-    clearAllTimeouts();
+    _clearAllTimeouts();
     this.hide();
     this.panel?.remove();
     this.styleElement?.remove();
@@ -561,6 +561,7 @@ class YourStoryUI {
 
       if (!response.ok) {
         log.warn({ status: response.status }, 'Failed to fetch actions');
+        this.showActionsError();
         return;
       }
 
@@ -583,7 +584,18 @@ class YourStoryUI {
       this.renderActionsSection();
     } catch (error) {
       log.warn({ error: String(error) }, 'Error fetching actions data');
+      this.showActionsError();
     }
+  }
+
+  private showActionsError(): void {
+    const container = this.panel?.querySelector('#viz-actions-taken');
+    if (!container) return;
+    container.innerHTML = `<div class="error-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>`;
+    container.querySelector('button')?.addEventListener('click', () => {
+      container.innerHTML = '<div class="loading-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Loading...</div>';
+      void this.fetchActionsData();
+    });
   }
 
   /**

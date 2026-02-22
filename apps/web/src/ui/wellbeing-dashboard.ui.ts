@@ -1219,6 +1219,7 @@ let data: DashboardData | null = null;
 let dataCacheTime = 0;
 const DATA_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minute cache
 let isLoading = false;
+let loadError = false;
 
 /** Check if cached data is still valid */
 function isCacheValid(): boolean {
@@ -1507,7 +1508,7 @@ async function fetchDashboardData(): Promise<DashboardData | null> {
     return transformApiResponse(dashboardData, trendsData);
   } catch (error) {
     log.warn('Failed to fetch wellbeing data:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -1696,6 +1697,7 @@ function renderEmptyState(): string {
 }
 
 async function loadData(): Promise<void> {
+  loadError = false;
   // If we have valid cached data, render immediately without loading state
   if (isCacheValid()) {
     renderContent();
@@ -1706,9 +1708,13 @@ async function loadData(): Promise<void> {
   isLoading = true;
   renderContent();
 
-  data = await fetchDashboardData();
-  dataCacheTime = Date.now();
-
+  try {
+    data = await fetchDashboardData();
+    dataCacheTime = Date.now();
+  } catch {
+    loadError = true;
+    data = null;
+  }
   isLoading = false;
   renderContent();
   renderFooter();
@@ -1724,6 +1730,18 @@ function renderContent(): void {
         <div class="wellbeing-spinner"></div>
       </div>
     `;
+    return;
+  }
+
+  if (loadError) {
+    content.innerHTML = `
+      <div class="wellbeing-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
+        Couldn't load data. <button type="button" class="wellbeing-btn" style="margin-top: var(--space-4); color: var(--color-ferni);">Try again?</button>
+      </div>
+    `;
+    content.querySelector('button')?.addEventListener('click', () => {
+      void loadData();
+    });
     return;
   }
 

@@ -19,6 +19,7 @@
  * @module concern-detection-pipeline
  */
 
+import { getConcernLevelFromDistress } from '../config/emotion-thresholds.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { getVoiceTremorDetector, type VoiceTremorResult } from './voice-tremor.js';
 import type { VoiceEmotionResult, ProsodyFeatures } from './audio-prosody/types.js';
@@ -177,11 +178,7 @@ function analyzeVoice(
 }
 
 function determineConcernLevel(distressLevel: number): ConcernLevel {
-  if (distressLevel >= 0.9) return 'crisis';
-  if (distressLevel >= 0.7) return 'elevated';
-  if (distressLevel >= 0.5) return 'moderate';
-  if (distressLevel >= 0.3) return 'mild';
-  return 'none';
+  return getConcernLevelFromDistress(distressLevel);
 }
 
 function generateApproach(level: ConcernLevel, type: string): string {

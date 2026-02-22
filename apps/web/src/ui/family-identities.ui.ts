@@ -1302,7 +1302,7 @@ export function hide(): void {
   if (!modal) return;
 
   modal.classList.remove('visible');
-  clearAllTimeouts();
+  _clearAllTimeouts();
 
   trackedTimeout(() => {
     modal?.removeEventListener('click', handleClick);

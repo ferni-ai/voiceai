@@ -278,7 +278,7 @@ export function checkBrandCompliance(text: string): ComplianceResult {
   for (const word of allForbidden) {
     const regex = new RegExp(`\\b${word}\\b`, 'gi');
     if (regex.test(text)) {
-      const replacement = brandRules.replacements[word.toLowerCase()];
+      const replacement = brandRules.replacements[word.toLowerCase() ?? ''];
       violations.push({
         rule: 'forbidden-word',
         message: `Forbidden word found: "${word}"`,
@@ -360,7 +360,7 @@ export function getContentTemplate(
 export function getRandomPhrase(category: keyof typeof contentTemplates, context: string): string {
   const phrases = getContentTemplate(category, context);
   if (phrases.length === 0) return '';
-  return phrases[Math.floor(Math.random() * phrases.length)];
+  return phrases[Math.floor(Math.random() * phrases.length)] ?? '';
 }
 
 /**
@@ -395,7 +395,7 @@ export function checkContrastRatio(
     const [rs, gs, bs] = [r, g, b].map((c) => {
       const s = c / 255;
       return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-    });
+    }) as [number, number, number];
 
     return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
   };

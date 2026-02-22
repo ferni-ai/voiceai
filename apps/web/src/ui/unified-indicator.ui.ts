@@ -963,7 +963,7 @@ export function disposeUnifiedIndicator(): void {
   // Clean up animations and timeouts
   pulseAnimation?.cancel();
   if (milestoneTimeout) clearTimeout(milestoneTimeout);
-  clearAllTimeouts();
+  _clearAllTimeouts();
 
   // Remove elements
   indicator?.remove();

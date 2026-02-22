@@ -902,6 +902,38 @@ function handleBreathSync(event: BreathSyncEvent): void {
   );
 }
 
+/**
+ * Handle voice biomarkers - stress, fatigue, anxiety from turn-handler
+ * Dispatches for EQ system concern detection and avatar adaptation
+ */
+function handleVoiceBiomarkers(message: DataMessage): void {
+  document.dispatchEvent(new CustomEvent('ferni:voice-biomarkers', { detail: message }));
+}
+
+/**
+ * Handle emotional intervention - high-stakes emotional moment
+ * Dispatches for EQ system concern mode
+ */
+function handleEmotionalIntervention(message: DataMessage): void {
+  document.dispatchEvent(new CustomEvent('ferni:emotional-intervention', { detail: message }));
+}
+
+/**
+ * Handle crisis detection signal
+ * Dispatches for gentle UI state and protective presence
+ */
+function handleCrisisDetected(message: DataMessage): void {
+  document.dispatchEvent(new CustomEvent('ferni:crisis-detected', { detail: message }));
+}
+
+/**
+ * Handle naturalness adjustments - pacing adjustments from backend
+ * Affects avatar animation timing
+ */
+function handleNaturalnessAdjustments(message: DataMessage): void {
+  document.dispatchEvent(new CustomEvent('ferni:naturalness-adjustments', { detail: message }));
+}
+
 // ============================================================================
 // HUMANIZATION SIGNAL HANDLER - "Better Than Human" Emotion Bridge (CRITICAL!)
 // ============================================================================

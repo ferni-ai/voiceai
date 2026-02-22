@@ -91,7 +91,9 @@ async function loadPendingActions(): Promise<number> {
   if (!db) return 0;
 
   try {
-    // Query all pending actions across all users
+    // Query all pending actions across all users.
+    // If you get FAILED_PRECONDITION: in Firebase Console → Firestore → Indexes → Single field,
+    // enable indexing for collection group "scheduled_actions" on field "status".
     const snapshot = await db
       .collectionGroup('scheduled_actions')
       .where('status', '==', 'pending')
@@ -122,7 +124,16 @@ async function loadPendingActions(): Promise<number> {
     log.info({ loaded }, '📅 Loaded pending scheduled actions from Firestore');
     return loaded;
   } catch (error) {
-    log.error({ error: String(error) }, 'Failed to load pending actions');
+    const errStr = String(error);
+    // Firestore collection group queries require a composite index. Missing index → FAILED_PRECONDITION (code 9).
+    if (errStr.includes('FAILED_PRECONDITION') || errStr.includes('index')) {
+      log.warn(
+        { hint: 'Create a Firestore composite index for collectionGroup scheduled_actions + status' },
+        'Pending scheduled actions: Firestore index missing (non-fatal, running with in-memory only)'
+      );
+    } else {
+      log.error({ error: errStr }, 'Failed to load pending actions');
+    }
     return 0;
   }
 }

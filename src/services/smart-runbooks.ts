@@ -12,7 +12,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import type { GoogleGenerativeAI } from '@google/generative-ai';
-import { TEMP_EXTRACTION } from '../config/gemini-config.js';
+import { GEMINI_MODEL, TEMP_EXTRACTION } from '../config/gemini-config.js';
 
 const log = createLogger({ module: 'SmartRunbooks' });
 
@@ -196,8 +196,8 @@ async function initializeGemini(): Promise<void> {
   genAI = client as GoogleGenerativeAI;
 }
 
-// Cache the model name
-let cachedModelName = 'gemini-2.0-flash-exp';
+// Cache the model name (from config)
+let cachedModelName = GEMINI_MODEL;
 
 function findMatchingPattern(incident: IncidentContext): IncidentPattern | undefined {
   const searchText = `${incident.title} ${incident.description}`.toLowerCase();

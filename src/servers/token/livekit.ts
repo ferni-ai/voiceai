@@ -55,7 +55,7 @@ function getRoomService(): RoomServiceClient {
  * Get or create AgentDispatchClient
  */
 function getAgentDispatch(): AgentDispatchClient | null {
-  if (agentDispatch === undefined) {
+  if (agentDispatch === null) {
     try {
       agentDispatch = new AgentDispatchClient(LIVEKIT_HOST, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
     } catch {

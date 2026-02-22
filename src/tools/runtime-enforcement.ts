@@ -11,6 +11,7 @@
  * filtered out). This module provides observability and a safety net.
  */
 
+import { isCoach } from '../personas/persona-ids.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
@@ -374,7 +375,7 @@ export function validateToolCall(
   }
 
   // Ferni (coordinator) can use any tool to demonstrate/explain
-  if (personaId === 'ferni') {
+  if (isCoach(personaId)) {
     if (currentConfig.logAllCalls) {
       log.debug(
         { personaId, toolName, expectedOwner, sessionId },

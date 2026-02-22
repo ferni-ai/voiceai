@@ -54,6 +54,7 @@ export {
   getEntityMentionInfo,
   isTopicContinuing,
   getEmotionalTrajectory,
+  getVoiceEmotionTrajectory,
   buildSTMContext,
   cleanupSession,
   cleanupExpiredSessions,
@@ -63,6 +64,7 @@ export {
   getSTMStats,
   configureSTMBuffer,
   type TurnMemory,
+  type VoiceEmotionSnapshot,
   type EntityFrequency,
   type SessionSTM,
 } from './stm-buffer.js';

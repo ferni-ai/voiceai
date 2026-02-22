@@ -64,6 +64,12 @@ export interface ExtendedSpeechContext extends SpeechContext {
 
   /** Current detected emotion for the response */
   currentEmotion?: string;
+
+  /** User's prosody features from audio analysis (for next-turn SSML adaptation) */
+  prosodyFeatures?: import('../audio-prosody/types.js').ProsodyFeatures;
+
+  /** User's voice emotion result including prosody (for next-turn SSML adaptation) */
+  voiceEmotion?: import('../audio-prosody/types.js').VoiceEmotionResult;
 }
 
 // ============================================================================

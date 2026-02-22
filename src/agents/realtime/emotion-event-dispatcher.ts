@@ -16,8 +16,52 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getBetterThanHumanTelemetry } from '../../services/analytics/better-than-human-telemetry.js';
+import { logBTHSignal } from '../../services/analytics/bth-signal-logger.js';
+import {
+  getConcernLevelFromDistress,
+  CONCERN_MIN_DISTRESS,
+  EMOTION_TO_CONCERN_TYPE,
+  MISMATCH_MIN_CONFIDENCE,
+  TRAJECTORY_IMPROVING_HIGH,
+  TRAJECTORY_DECLINING_CONCERN,
+  EXCITEMENT_HIGH_INTENSITY,
+  CONCERN_EMOTION_INTENSITIES,
+  EMOTION_THRESHOLDS,
+  DEFAULT_EXPRESSION_INTENSITY,
+  MICRO_EXPRESSION_INTENSITIES,
+  STRESS_NEEDS_SPACE,
+} from '../../config/emotion-thresholds.js';
 
 const log = createLogger({ module: 'EmotionEventDispatcher' });
+
+// ============================================================================
+// BTH SIGNAL LOGGING WRAPPER
+// ============================================================================
+
+/**
+ * Wraps sendDataMessage to also log BTH signals to Firestore (fire-and-forget).
+ * Returns a new sendDataMessage that transparently logs all humanization_signal events.
+ */
+function withBTHLogging(
+  sendDataMessage: SendDataMessageFn,
+  telemetryContext?: BTHTelemetryContext
+): SendDataMessageFn {
+  if (!telemetryContext?.userId) return sendDataMessage;
+
+  return async (type: string, payload: Record<string, unknown>) => {
+    await sendDataMessage(type, payload);
+
+    if (type === 'humanization_signal' && payload.signalType) {
+      logBTHSignal({
+        userId: telemetryContext.userId,
+        sessionId: telemetryContext.sessionId ?? 'unknown',
+        personaId: telemetryContext.personaId ?? 'unknown',
+        signalType: String(payload.signalType),
+        payload,
+      });
+    }
+  };
+}
 
 // ============================================================================
 // TELEMETRY CONTEXT
@@ -130,43 +174,16 @@ export interface HumanizationSignal {
 export type SendDataMessageFn = (type: string, payload: Record<string, unknown>) => Promise<void>;
 
 // ============================================================================
-// CONCERN LEVEL DETECTION
+// CONCERN LEVEL DETECTION (delegates to config/emotion-thresholds)
 // ============================================================================
 
 /**
- * Map distress level to concern level
- */
-function getConcernLevel(
-  distressLevel: number
-): 'none' | 'mild' | 'moderate' | 'elevated' | 'crisis' {
-  if (distressLevel >= 0.9) return 'crisis';
-  if (distressLevel >= 0.7) return 'elevated';
-  if (distressLevel >= 0.5) return 'moderate';
-  if (distressLevel >= 0.3) return 'mild';
-  return 'none';
-}
-
-/**
- * Get concern type from emotional state
+ * Get concern type from emotional state (uses EMOTION_TO_CONCERN_TYPE)
  */
 function getConcernType(emotionalState: EmotionalStateWithMismatch): string | undefined {
   const { primary, distressLevel } = emotionalState;
-
-  if (distressLevel < 0.3) return undefined;
-
-  // Map emotions to concern types
-  const concernMap: Record<string, string> = {
-    sad: 'sadness',
-    anxious: 'anxiety',
-    stressed: 'stress',
-    overwhelmed: 'overwhelm',
-    frustrated: 'frustration',
-    angry: 'anger',
-    fearful: 'fear',
-    lonely: 'loneliness',
-  };
-
-  return concernMap[primary] || 'distress';
+  if (distressLevel < CONCERN_MIN_DISTRESS) return undefined;
+  return EMOTION_TO_CONCERN_TYPE[primary] || 'distress';
 }
 
 // ============================================================================
@@ -184,16 +201,23 @@ function getConcernType(emotionalState: EmotionalStateWithMismatch): string | un
  */
 export async function dispatchEmotionEvents(
   options: EmotionDispatchOptions,
-  sendDataMessage: SendDataMessageFn
+  rawSendDataMessage: SendDataMessageFn
 ): Promise<void> {
   const { emotionalState, userId, personaId } = options;
   const { distressLevel, trajectory, mismatch, primary, intensity } = emotionalState;
+
+  // Wrap with BTH Firestore logging
+  const sendDataMessage = withBTHLogging(rawSendDataMessage, {
+    userId: userId ?? '',
+    personaId: personaId ?? '',
+    sessionId: options.sessionId,
+  });
 
   try {
     // ========================================================================
     // 1. CONCERN DETECTION - "Better Than Human" distress awareness
     // ========================================================================
-    const concernLevel = getConcernLevel(distressLevel);
+    const concernLevel = getConcernLevelFromDistress(distressLevel);
 
     if (concernLevel !== 'none') {
       const concernType = getConcernType(emotionalState);
@@ -215,7 +239,7 @@ export async function dispatchEmotionEvents(
     // ========================================================================
     // 2. VOICE-TEXT MISMATCH - "Protective Instinct" detection
     // ========================================================================
-    if (mismatch?.hasMismatch && mismatch.confidence > 0.5) {
+    if (mismatch?.hasMismatch && mismatch.confidence > MISMATCH_MIN_CONFIDENCE) {
       // Frontend expects this as part of concern detection
       // The mismatch triggers protective_instinct mode
       await sendDataMessage('humanization_signal', {
@@ -241,7 +265,7 @@ export async function dispatchEmotionEvents(
     // - improving → de_escalating (things are calming down)
     // - declining → escalating (emotional intensity rising)
     // - volatile → volatile (high variability)
-    if (trajectory === 'improving' && intensity > 0.6) {
+    if (trajectory === 'improving' && intensity > TRAJECTORY_IMPROVING_HIGH) {
       // User's mood is lifting - support the calming
       await sendDataMessage('humanization_signal', {
         signalType: 'emotional_trajectory',
@@ -251,7 +275,7 @@ export async function dispatchEmotionEvents(
       });
 
       log.debug({ userId, trajectory }, '🚀 Dispatched positive trajectory signal');
-    } else if (trajectory === 'declining' && intensity > 0.5) {
+    } else if (trajectory === 'declining' && intensity > TRAJECTORY_DECLINING_CONCERN) {
       // User's mood is declining - increase empathy mode
       await sendDataMessage('humanization_signal', {
         signalType: 'emotional_trajectory',
@@ -277,7 +301,7 @@ export async function dispatchEmotionEvents(
     // ========================================================================
     // 4. HIGH ENGAGEMENT DETECTION - User is really into conversation
     // ========================================================================
-    if (primary === 'excited' && intensity > 0.7) {
+    if (primary === 'excited' && intensity > EXCITEMENT_HIGH_INTENSITY) {
       await sendDataMessage('humanization_signal', {
         signalType: 'high_engagement',
         intensity,
@@ -321,29 +345,17 @@ function mapEmotionToSignal(
     return { signalType: 'concern_detected', intensity: 1.0 };
   }
 
-  // Map negative emotions to concern detection
-  const concernEmotions: Record<string, number> = {
-    stressed: 0.6,
-    anxious: 0.7,
-    overwhelmed: 0.8,
-    sad: 0.6,
-    grieving: 0.7,
-    scared: 0.7,
-    ashamed: 0.5,
-    exhausted: 0.6,
-  };
-
-  if (emotionType && concernEmotions[emotionType]) {
+  if (emotionType && CONCERN_EMOTION_INTENSITIES[emotionType] !== undefined) {
     return {
       signalType: 'concern_detected',
-      intensity: concernEmotions[emotionType],
+      intensity: CONCERN_EMOTION_INTENSITIES[emotionType],
     };
   }
 
   // Map positive emotions to high engagement
   const positiveEmotions = ['happy', 'excited', 'loving', 'anticipating', 'curious'];
   if (emotionType && positiveEmotions.includes(emotionType)) {
-    return { signalType: 'high_engagement', intensity: 0.7 };
+    return { signalType: 'high_engagement', intensity: DEFAULT_EXPRESSION_INTENSITY };
   }
 
   return null;
@@ -386,7 +398,7 @@ function mapRelationshipToSignal(
  */
 export async function dispatchHolisticEvents(
   options: HolisticDispatchOptions,
-  sendDataMessage: SendDataMessageFn
+  rawSendDataMessage: SendDataMessageFn
 ): Promise<void> {
   const { holisticContext, userId, personaId } = options;
   const {
@@ -398,6 +410,13 @@ export async function dispatchHolisticEvents(
     relationshipSentiment,
     isCompoundIntent,
   } = holisticContext;
+
+  // Wrap with BTH Firestore logging
+  const sendDataMessage = withBTHLogging(rawSendDataMessage, {
+    userId: userId ?? '',
+    personaId: personaId ?? '',
+    sessionId: options.sessionId,
+  });
 
   try {
     // ========================================================================
@@ -426,9 +445,9 @@ export async function dispatchHolisticEvents(
     const emotionSignal = mapEmotionToSignal(emotionType, sentiment);
     if (emotionSignal) {
       const concernLevel =
-        emotionSignal.intensity >= 0.7
+        emotionSignal.intensity >= EMOTION_THRESHOLDS.elevated.distress
           ? 'elevated'
-          : emotionSignal.intensity >= 0.5
+          : emotionSignal.intensity >= EMOTION_THRESHOLDS.moderate.distress
             ? 'moderate'
             : 'mild';
 
@@ -682,7 +701,14 @@ export async function dispatchExpressionUpdate(
   options: ExpressionDispatchOptions,
   sendDataMessage: SendDataMessageFn
 ): Promise<void> {
-  const { expression, emotion, intensity = 0.7, duration = 300, hold = 0, concernLevel } = options;
+  const {
+    expression,
+    emotion,
+    intensity = DEFAULT_EXPRESSION_INTENSITY,
+    duration = 300,
+    hold = 0,
+    concernLevel,
+  } = options;
 
   // Determine expression to use
   let expressionToUse: LuxoExpressionId;
@@ -740,8 +766,8 @@ export async function dispatchEmotionWithExpression(
   const { primary, intensity, distressLevel } = emotionalState;
 
   // If distressed, use concern-based expression
-  if (distressLevel > 0.3) {
-    const concernLevel = getConcernLevel(distressLevel);
+  if (distressLevel > CONCERN_MIN_DISTRESS) {
+    const concernLevel = getConcernLevelFromDistress(distressLevel);
     await dispatchExpressionUpdate(
       { concernLevel, intensity: distressLevel, duration: 400 },
       sendDataMessage
@@ -800,7 +826,7 @@ export type MicroExpressionType =
 export async function dispatchMicroExpression(
   expressionType: MicroExpressionType,
   sendDataMessage: SendDataMessageFn,
-  intensity = 0.7,
+  intensity = DEFAULT_EXPRESSION_INTENSITY,
   telemetryCtx?: BTHTelemetryContext
 ): Promise<void> {
   try {
@@ -839,7 +865,7 @@ export async function dispatchEmotionalBondDeepen(
   try {
     await sendDataMessage('humanization_signal', {
       signalType: 'emotional_bond_deepen',
-      intensity: context.intensity ?? 0.7,
+      intensity: context.intensity ?? DEFAULT_EXPRESSION_INTENSITY,
       relationshipContext: context.relationshipContext,
       timestamp: Date.now(),
     });
@@ -934,13 +960,13 @@ export async function dispatchInsideJokeCallback(
   try {
     await sendDataMessage('humanization_signal', {
       signalType: 'inside_joke_callback',
-      intensity: context.intensity ?? 0.75,
+      intensity: context.intensity ?? MICRO_EXPRESSION_INTENSITIES.warmthPulse,
       memoryReference: context.memoryReference,
       timestamp: Date.now(),
     });
 
     // Also trigger insider micro-expression
-    await dispatchMicroExpression('insider', sendDataMessage, context.intensity ?? 0.75);
+    await dispatchMicroExpression('insider', sendDataMessage, context.intensity ?? MICRO_EXPRESSION_INTENSITIES.insider);
 
     // Track for analytics
     if (telemetryCtx) {
@@ -981,14 +1007,14 @@ export async function dispatchSuperhumanObservation(
   try {
     await sendDataMessage('humanization_signal', {
       signalType: 'superhuman_observation',
-      intensity: context.intensity ?? 0.9,
+      intensity: context.intensity ?? MICRO_EXPRESSION_INTENSITIES.noticing,
       observationType: context.observationType,
       observationContent: context.observationContent,
       timestamp: Date.now(),
     });
 
     // Also trigger noticing micro-expression
-    await dispatchMicroExpression('noticing', sendDataMessage, context.intensity ?? 0.9);
+    await dispatchMicroExpression('noticing', sendDataMessage, context.intensity ?? MICRO_EXPRESSION_INTENSITIES.noticing);
 
     // Track for analytics
     if (telemetryCtx) {
@@ -1026,7 +1052,7 @@ export async function dispatchVisibleVulnerability(
   try {
     await sendDataMessage('humanization_signal', {
       signalType: 'visible_vulnerability',
-      intensity: context.intensity ?? 0.6,
+      intensity: context.intensity ?? MICRO_EXPRESSION_INTENSITIES.steadyPresence,
       vulnerabilityType: context.vulnerabilityType,
       timestamp: Date.now(),
     });
@@ -1087,13 +1113,13 @@ export async function dispatchMetaRelationshipMoment(
   try {
     await sendDataMessage('humanization_signal', {
       signalType: 'meta_relationship_moment',
-      intensity: context.intensity ?? 0.75,
+      intensity: context.intensity ?? MICRO_EXPRESSION_INTENSITIES.warmthPulse,
       relationshipContext: context.relationshipContext,
       timestamp: Date.now(),
     });
 
     // Also trigger warmth_pulse micro-expression
-    await dispatchMicroExpression('warmth_pulse', sendDataMessage, context.intensity ?? 0.75);
+    await dispatchMicroExpression('warmth_pulse', sendDataMessage, context.intensity ?? MICRO_EXPRESSION_INTENSITIES.insider);
 
     log.debug(
       { relationshipContext: context.relationshipContext },
@@ -1117,13 +1143,13 @@ export async function dispatchSomaticPresence(
   try {
     await sendDataMessage('humanization_signal', {
       signalType: 'somatic_presence',
-      intensity: context.intensity ?? 0.6,
+      intensity: context.intensity ?? MICRO_EXPRESSION_INTENSITIES.steadyPresence,
       somaticType: context.somaticType,
       timestamp: Date.now(),
     });
 
     // Also trigger steady_presence micro-expression
-    await dispatchMicroExpression('steady_presence', sendDataMessage, context.intensity ?? 0.6);
+    await dispatchMicroExpression('steady_presence', sendDataMessage, context.intensity ?? MICRO_EXPRESSION_INTENSITIES.steadyPresence);
 
     log.debug({ somaticType: context.somaticType }, '🧘 BTH: Somatic presence signal dispatched');
   } catch (error) {
@@ -1148,7 +1174,7 @@ export async function dispatchAnticipatoryPresence(
   try {
     await sendDataMessage('humanization_signal', {
       signalType: 'anticipatory_presence',
-      intensity: context.intensity ?? 0.7,
+      intensity: context.intensity ?? DEFAULT_EXPRESSION_INTENSITY,
       timeContext: context.timeContext,
       timestamp: Date.now(),
     });
@@ -1293,7 +1319,10 @@ export function detectUserDelightWithContext(
   }
 
   // Check for negative emotional context from turn analysis
-  if (emotionalContext?.sentiment === 'negative' && (emotionalContext.intensity ?? 0) > 0.6) {
+  if (
+    emotionalContext?.sentiment === 'negative' &&
+    (emotionalContext.intensity ?? 0) > STRESS_NEEDS_SPACE
+  ) {
     return {
       detected: false,
       confidence: 0,

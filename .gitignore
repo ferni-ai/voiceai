@@ -31,6 +31,9 @@ latest-logs.txt
 # Nested repos (not submodules)
 apps/btcw/
 
+# Higgs Audio (Python clone for xCodec ONNX export; use higgs-audio/.venv for export)
+higgs-audio/
+
 # Code Signing (NEVER commit these!)
 *.p12
 *.pfx

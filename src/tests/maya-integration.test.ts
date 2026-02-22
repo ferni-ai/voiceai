@@ -37,8 +37,8 @@ vi.mock('@livekit/agents', () => ({
 // GAMIFICATION TESTS
 // ============================================================================
 
-// TODO: Skipped - imports from '../tools/gamification.js' which has been moved/deleted
-describe.skip('Maya Gamification System', () => {
+// tools/gamification.ts is a re-export shim from domains/habits/gamification.ts
+describe('Maya Gamification System', () => {
   describe('Badge Definitions', () => {
     it('should have all badge categories covered', async () => {
       const { BADGE_DEFINITIONS } = await import('../tools/gamification.js');
@@ -322,8 +322,7 @@ describe('Maya Tool Integration', () => {
     expect(typeof module.createHabitCoachingTools).toBe('function');
   });
 
-  // TODO: Skipped - gamification.js has been moved/deleted
-  it.skip('should import gamification tools', async () => {
+  it('should import gamification tools', async () => {
     const module = await import('../tools/gamification.js');
     expect(module.createGamificationTools).toBeDefined();
     expect(module.BADGE_DEFINITIONS).toBeDefined();

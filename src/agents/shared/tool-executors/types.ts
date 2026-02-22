@@ -11,6 +11,12 @@ export interface ToolExecutionContext {
   userId?: string;
   sessionId?: string;
   personaId?: string;
+  /** User's IP-detected location (for weather, local content) */
+  userLocation?: {
+    city?: string;
+    regionCode?: string;
+    countryCode?: string;
+  };
   /** Callback when a tool starts executing */
   onToolStart?: (fn: string, args: Record<string, unknown>) => void;
   /** Callback when a tool finishes */

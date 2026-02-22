@@ -37,6 +37,9 @@ const log = createLogger({ module: 'CartesiaTTSProvider' });
 /** Bytes API endpoint */
 const BYTES_ENDPOINT = '/tts/bytes';
 
+/** SSE streaming endpoint */
+const SSE_ENDPOINT = '/tts/sse';
+
 /** Default audio format for Cartesia */
 const DEFAULT_OUTPUT_FORMAT = {
   container: 'raw',
@@ -228,6 +231,124 @@ export class CartesiaTTSProvider implements ITTSProvider {
   }
 
   /**
+   * Streaming synthesis via Cartesia SSE endpoint.
+   *
+   * Sends a single phrase and yields PCM audio chunks as they arrive.
+   * Used by the gateway's phrase-streaming loop (same pattern as Higgs).
+   *
+   * @param text - Clean text to synthesize
+   * @param voiceId - Voice identifier
+   * @param prosody - Optional prosody configuration
+   * @yields ArrayBuffer PCM chunks as they stream from Cartesia
+   */
+  async *synthesizeStreaming(
+    text: string,
+    voiceId: string,
+    prosody?: SSMLProsodyConfig
+  ): AsyncGenerator<ArrayBuffer> {
+    if (!this.apiKey || !text.trim()) {
+      return;
+    }
+
+    const resolvedVoiceId = this.resolveVoiceId(voiceId);
+    const requestBody = this.buildRequestBody(text, resolvedVoiceId, prosody);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const response = await fetch(`${this.apiUrl}${SSE_ENDPOINT}`, {
+        method: 'POST',
+        headers: {
+          'X-API-Key': this.apiKey,
+          'Cartesia-Version': this.apiVersion,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        log.warn(
+          { status: response.status, error: errorText.slice(0, 200) },
+          'Cartesia SSE API error'
+        );
+        if (this.throwOnError) {
+          throw new Error(`Cartesia SSE error: ${response.status} - ${errorText.slice(0, 200)}`);
+        }
+        return;
+      }
+
+      if (!response.body) {
+        log.warn({}, 'Cartesia SSE response has no body');
+        return;
+      }
+
+      // Parse SSE stream: events are newline-delimited JSON lines
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          // Keep incomplete last line in buffer
+          buffer = lines.pop() ?? '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith(':')) continue;
+
+            // SSE data lines
+            if (trimmed.startsWith('data:')) {
+              const jsonStr = trimmed.slice(5).trim();
+              if (!jsonStr || jsonStr === '[DONE]') continue;
+
+              try {
+                const event = JSON.parse(jsonStr) as Record<string, unknown>;
+
+                // Cartesia SSE sends audio data as base64 in the 'data' field
+                if (event.data && typeof event.data === 'string') {
+                  const binaryStr = atob(event.data);
+                  const bytes = new Uint8Array(binaryStr.length);
+                  for (let i = 0; i < binaryStr.length; i++) {
+                    bytes[i] = binaryStr.charCodeAt(i);
+                  }
+                  if (bytes.byteLength > 0) {
+                    yield bytes.buffer as ArrayBuffer;
+                  }
+                }
+              } catch {
+                // Skip malformed JSON lines
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+      log.debug({ textLen: text.length }, 'Cartesia SSE stream complete');
+    } catch (error) {
+      clearTimeout(timeoutId);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('aborted')) {
+        log.warn({ text: text.slice(0, 50) }, 'Cartesia SSE request timed out');
+      } else {
+        log.error({ error: errorMessage }, 'Cartesia SSE streaming failed');
+      }
+      if (this.throwOnError) throw error;
+    }
+  }
+
+  /**
    * Check if provider is available
    */
   async isAvailable(): Promise<boolean> {
@@ -236,9 +357,9 @@ export class CartesiaTTSProvider implements ITTSProvider {
     }
 
     try {
-      // Simple health check - try to get voices list
+      const { CARTESIA_SSE_ABORT_MS } = await import('../../../config/timeouts.js');
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), CARTESIA_SSE_ABORT_MS);
 
       try {
         const response = await fetch(`${this.apiUrl}/voices`, {
@@ -322,31 +443,25 @@ export class CartesiaTTSProvider implements ITTSProvider {
     };
 
     // Apply prosody configuration if provided
-    // Note: Cartesia's bytes API supports speed via generation config
     if (prosody) {
+      const genConfig: Record<string, unknown> =
+        (body.generation_config as Record<string, unknown>) || {};
+
       if (prosody.speed !== undefined && prosody.speed !== 1.0) {
-        // Cartesia uses speed in generation_config
-        body.generation_config = {
-          ...((body.generation_config as Record<string, unknown>) || {}),
-          speed: prosody.speed,
-        };
+        genConfig.speed = prosody.speed;
       }
 
-      // Emotion is handled via voice embedding, not API parameter
-      // We log it for debugging but can't directly apply it in bytes API
+      // Sonic-3 supports emotion via generation_config.emotion (56+ emotions, string value)
       if (prosody.emotion) {
+        genConfig.emotion = prosody.emotion;
         log.debug(
           { emotion: prosody.emotion, intensity: prosody.emotionIntensity },
-          'Emotion specified in prosody (requires voice embedding adjustment)'
+          'Applying emotion to Cartesia generation config'
         );
       }
 
-      // Volume would be applied post-processing, not in API
-      if (prosody.volume !== undefined && prosody.volume !== 1.0) {
-        log.debug(
-          { volume: prosody.volume },
-          'Volume specified in prosody (requires post-processing)'
-        );
+      if (Object.keys(genConfig).length > 0) {
+        body.generation_config = genConfig;
       }
     }
 

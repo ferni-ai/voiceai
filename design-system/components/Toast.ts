@@ -204,6 +204,7 @@ class ToastManager {
     if (index === -1) return;
 
     const instance = this.queue[index];
+    if (!instance) return;
 
     // Clear timeout
     if (instance.timeout) {

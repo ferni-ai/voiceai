@@ -463,7 +463,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
           const { initializeFastJoin } = await import('./fast-join.js');
           await initializeFastJoin({
             poolSize: 5, // PERFORMANCE: Increased from 2 to 5 for better concurrency
-            enablePooling: process.env.ENABLE_SESSION_POOLING !== 'false',
+            enablePooling: true,
           });
           log('✅ Fast-join session pool warmed', { durationMs: Date.now() - fastJoinStart });
         } catch (e) {

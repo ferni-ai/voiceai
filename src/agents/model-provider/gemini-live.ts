@@ -45,6 +45,7 @@ interface GeminiFunctionDeclaration {
   };
 }
 
+import { REALTIME_MODEL } from '../../config/gemini-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isFTISEnabled } from '../processors/tool-routing-integration.js';
 import {
@@ -104,23 +105,6 @@ function getGeminiFCMode(): GeminiFCMode {
 function isFTISOnlyMode(): boolean {
   return isFTISEnabled();
 }
-
-/**
- * Default Gemini model for Live API with TEXT modality + external TTS.
- *
- * Supported models for TEXT modality (from Google docs):
- * - gemini-2.0-flash-live-preview-04-09 (current, retiring March 2026)
- * - gemini-live-2.5-flash-preview (TEXT modality supported, future upgrade)
- * - gemini-live-2.5-flash (private GA, requires access request)
- *
- * NOT supported:
- * - gemini-2.0-flash-exp (deprecated, not supported by Live API)
- * - gemini-live-2.5-flash-native-audio (AUDIO modality only, no TEXT output)
- *
- * WORKING MODEL (January 2026):
- * - gemini-2.0-flash-live-preview-04-09 (supports TEXT modality on Vertex AI)
- */
-const DEFAULT_GEMINI_MODEL = 'gemini-2.0-flash-live-preview-04-09';
 
 // ============================================================================
 // NATIVE FUNCTION CALLING INSTRUCTIONS
@@ -393,10 +377,13 @@ export class GeminiLiveProvider implements ModelProvider {
     const gcpLocation = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
 
     const modelOptions: Record<string, unknown> = {
-      model: config.model || DEFAULT_GEMINI_MODEL,
+      model: config.model || REALTIME_MODEL,
       modalities: [TEXT_MODALITY],
       temperature,
       instructions: config.instructions,
+      // Lock language to English to prevent Gemini from misidentifying input language
+      // and responding in Korean/Chinese/etc. Flows to speechConfig.languageCode.
+      language: 'en-US',
       // Enable input audio transcription for FTIS V2 and debugging
       // CRITICAL: Must be empty object {} - the AudioTranscriptionConfig interface
       // is empty and adding invalid fields like languageCode breaks transcription!

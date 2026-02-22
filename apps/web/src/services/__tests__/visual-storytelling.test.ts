@@ -344,6 +344,8 @@ describe('Visual Storytelling API Integration', () => {
 
   it('should fetch visual storytelling data on init', async () => {
     const mockData = {
+      ok: true,
+      status: 200,
       data: {
         sleepPattern: { wakeTime: 7, sleepTime: 23, isNightOwl: false, isEarlyBird: false },
         relationship: { stage: 'building-trust', stageIndex: 2, progressPercent: 60, daysTogether: 30, conversationCount: 15, currentStreak: 5, longestStreak: 10, warmthConfig: {} },
@@ -366,8 +368,10 @@ describe('Visual Storytelling API Integration', () => {
   });
 
   it('should update sleep pattern via API', async () => {
-    vi.mocked(apiPut).mockResolvedValue({ success: true });
+    vi.mocked(apiPut).mockResolvedValue({ ok: true, status: 200 });
     vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      status: 200,
       data: {
         sleepPattern: null,
         relationship: { stage: 'first-meeting', stageIndex: 0, progressPercent: 0, daysTogether: 1, conversationCount: 1, currentStreak: 1, longestStreak: 1, warmthConfig: {} },
@@ -398,8 +402,10 @@ describe('Visual Storytelling API Integration', () => {
   });
 
   it('should celebrate milestone via API', async () => {
-    vi.mocked(apiPost).mockResolvedValue({ success: true });
+    vi.mocked(apiPost).mockResolvedValue({ ok: true, status: 200 });
     vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      status: 200,
       data: {
         sleepPattern: null,
         relationship: { stage: 'building-trust', stageIndex: 2, progressPercent: 60, daysTogether: 30, conversationCount: 15, currentStreak: 5, longestStreak: 10, warmthConfig: {} },
@@ -424,6 +430,8 @@ describe('Visual Storytelling API Integration', () => {
 
   it('should return teaser eligibility correctly', async () => {
     vi.mocked(apiGet).mockResolvedValue({
+      ok: true,
+      status: 200,
       data: {
         sleepPattern: null,
         relationship: { stage: 'getting-started', stageIndex: 1, progressPercent: 50, daysTogether: 5, conversationCount: 5, currentStreak: 3, longestStreak: 3, warmthConfig: {} },

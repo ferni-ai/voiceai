@@ -5,6 +5,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Mock BTH signal logger to prevent Firestore side effects during unit tests
+vi.mock('../../../services/analytics/bth-signal-logger.js', () => ({
+  logBTHSignal: vi.fn(),
+}));
 import {
   // Dispatchers
   dispatchMicroExpression,

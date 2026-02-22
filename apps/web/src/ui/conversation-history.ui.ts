@@ -97,6 +97,12 @@ class ConversationHistoryUI {
   private styleElement: HTMLStyleElement | null = null;
   private isVisible = false;
 
+  private escapeHandler = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && this.isVisible) {
+      this.hide();
+    }
+  };
+
   /**
    * Initialize the panel
    */
@@ -133,6 +139,66 @@ class ConversationHistoryUI {
     if (!prefersReducedMotion()) {
       this.animateSessionsIn();
     }
+  }
+
+  /**
+   * Show loading state
+   */
+  showLoading(): void {
+    this.initialize();
+    if (!this.panel) return;
+    this.panel.innerHTML = `
+      <div class="history__backdrop"></div>
+      <div class="history__card">
+        <header class="history__header">
+          <h2 class="history__title">Your Journey</h2>
+          <button class="history__close" aria-label="${t('accessibility.closeHistory')}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </header>
+        <div class="history__loading" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Loading...</div>
+      </div>
+    `;
+    this.panel.querySelector('.history__close')?.addEventListener('click', () => this.hide());
+    this.panel.querySelector('.history__backdrop')?.addEventListener('click', () => this.hide());
+    this.panel.classList.add('history--visible');
+    this.panel.setAttribute('aria-hidden', 'false');
+    this.isVisible = true;
+  }
+
+  /**
+   * Show error state with retry
+   */
+  showError(onRetry?: () => void): void {
+    this.initialize();
+    if (!this.panel) return;
+    this.panel.innerHTML = `
+      <div class="history__backdrop"></div>
+      <div class="history__card">
+        <header class="history__header">
+          <h2 class="history__title">Your Journey</h2>
+          <button class="history__close" aria-label="${t('accessibility.closeHistory')}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </header>
+        <div class="history__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>
+      </div>
+    `;
+    this.panel.querySelector('.history__close')?.addEventListener('click', () => this.hide());
+    this.panel.querySelector('.history__backdrop')?.addEventListener('click', () => this.hide());
+    const retryBtn = this.panel.querySelector('.history__error button');
+    if (retryBtn && onRetry) {
+      retryBtn.addEventListener('click', onRetry);
+    }
+    this.panel.classList.add('history--visible');
+    this.panel.setAttribute('aria-hidden', 'false');
+    this.isVisible = true;
   }
 
   /**
@@ -183,11 +249,7 @@ class ConversationHistoryUI {
     });
     
     // Close on escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.isVisible) {
-        this.hide();
-      }
-    });
+    document.addEventListener('keydown', this.escapeHandler);
   }
 
   private renderContent(data: ConversationHistoryData): void {
@@ -835,6 +897,7 @@ class ConversationHistoryUI {
    * Cleanup
    */
   destroy(): void {
+    document.removeEventListener('keydown', this.escapeHandler);
     this.hide();
     this.panel?.remove();
     this.styleElement?.remove();

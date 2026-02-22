@@ -500,7 +500,7 @@ function sendReactionToBackend(reaction: FeedbackReaction): void {
 // ============================================================================
 
 export function dispose(): void {
-  clearAllTimeouts();
+  _clearAllTimeouts();
 
   if (autoHideTimer) {
     clearTimeout(autoHideTimer);

@@ -5,7 +5,12 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { BREATH_PAUSE_CONFIG, CONFIG } from './constants.js';
+import {
+  BREATH_PAUSE_CONFIG,
+  CONFIG,
+  EXTENDED_PAUSE_MAX_MS,
+  EXTENDED_PAUSE_MIN_MS,
+} from './constants.js';
 import type { AudioFrameData } from './types.js';
 
 // ============================================================================
@@ -251,6 +256,22 @@ export class BreathPauseDetector {
 
     // Breath pauses are typically 100-400ms
     return pauseDuration >= 100 && pauseDuration <= CONFIG.BREATH_PAUSE_MAX;
+  }
+
+  /**
+   * Check if currently in an extended pause (800-1500ms)
+   * A human coach would react to these with subtle verbal micro-reactions.
+   */
+  isExtendedPause(): boolean {
+    if (!this.inPause || !this.pauseStartTime) return false;
+
+    if (this.speechStartTime) {
+      const speakingTime = this.pauseStartTime - this.speechStartTime;
+      if (speakingTime < BREATH_PAUSE_CONFIG.MIN_SPEAKING_TIME) return false;
+    }
+
+    const pauseDuration = Date.now() - this.pauseStartTime;
+    return pauseDuration >= EXTENDED_PAUSE_MIN_MS && pauseDuration <= EXTENDED_PAUSE_MAX_MS;
   }
 
   /**

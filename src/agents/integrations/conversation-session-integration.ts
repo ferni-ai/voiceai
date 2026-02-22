@@ -32,6 +32,7 @@
  * @module @ferni/agents/integrations/conversation-session
  */
 
+import { isCoach } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   createConversationSession,
@@ -129,7 +130,7 @@ export async function initConversationSession(
 
     // Prewarm LLM expression cache (non-blocking)
     // This loads persisted expressions AND generates new ones for common themes
-    if (config.personaId === 'ferni') {
+    if (isCoach(config.personaId)) {
       // Ferni has the full "Better Than Human" personality system
       try {
         const { prewarmPersonalitySession } =

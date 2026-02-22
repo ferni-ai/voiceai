@@ -737,7 +737,7 @@ class MomentsManager {
    * Clean up all resources.
    */
   destroy(): void {
-    clearAllTimeouts();
+    _clearAllTimeouts();
     this.dismissAll();
     this.container?.remove();
     this.container = null;

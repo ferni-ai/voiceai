@@ -346,6 +346,171 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
       { trigger: /\b(compass|sam|destiny|marcus)\b/i, speed: 0.92, emotion: 'affectionate' },
     ],
   },
+  'joel-dickson': {
+    get baseSpeed() {
+      return getEmotionProfile('joel-dickson').defaultSpeed;
+    },
+    pauseMultiplier: 1.15, // Room for wisdom delivery without being slow
+    get defaultEmotion() {
+      return getEmotionProfile('joel-dickson').defaultEmotion;
+    },
+    get emotionRange() {
+      return getEmotionProfile('joel-dickson').emotionRange;
+    },
+    thinkingSounds: ["Here's the thing...", 'You know what?', 'So...', 'Ha!', 'Well...', 'Hmm.'],
+    get thinkingSoundProbability() {
+      return getEmotionProfile('joel-dickson').laughterFrequency;
+    },
+    emphasisStyle: 'warm', // Warm authority — slows for wisdom, speeds for wit
+    specialPatterns: [
+      // VANGUARD PRIDE — Joel's core identity, delivered with quiet pride
+      {
+        trigger: /\bstay the course\b/i,
+        speed: 0.88,
+        pause: 250,
+        emotion: 'proud',
+      },
+      {
+        trigger: /\bthe Vanguard way\b/i,
+        speed: 0.9,
+        pause: 200,
+        emotion: 'proud',
+      },
+      {
+        trigger: /\b(Vanguard|at Vanguard)\b/i,
+        emotion: 'proud',
+      },
+      // JACK BOGLE REFERENCES — nostalgic reverence, the man who changed everything
+      {
+        trigger: /\b(Jack|Bogle|Jack Bogle)\b/i,
+        speed: 0.88,
+        pause: 200,
+        emotion: 'nostalgic',
+      },
+      {
+        trigger: /\bBogle['']?s Folly\b/i,
+        speed: 0.85,
+        pause: 250,
+        emotion: 'nostalgic',
+      },
+      // ECONOMIST WIT — speeds up when the data gets interesting
+      {
+        trigger: /\b(we predicted|economists predicted|nine of the last five)\b/i,
+        speed: 1.08,
+        emotion: 'joking/comedic',
+      },
+      {
+        trigger: /\b(here['']s the thing|here is the thing)\b/i,
+        pause: 150,
+        emotion: 'curious',
+      },
+      {
+        trigger: /\b(the data (shows?|says?|suggests?))\b/i,
+        speed: 1.02,
+        emotion: 'excited',
+      },
+      {
+        trigger: /\b(research shows?|studies show|evidence suggests?)\b/i,
+        speed: 1.02,
+        emotion: 'enthusiastic',
+      },
+      // SELF-DEPRECATION — Joel's signature humor style
+      {
+        trigger: /\b(I['']m just|I['']m (an|a) economist|don['']t tell (my|the))\b/i,
+        emotion: 'joking/comedic',
+        speed: 1.02,
+      },
+      {
+        trigger: /\b(just kidding|I kid|teasing)\b/i,
+        emotion: 'joking/comedic',
+      },
+      // AI & FINANCIAL ADVICE — the intersection Joel lives in
+      {
+        trigger: /\b(artificial intelligence|AI|machine learning)\b/i,
+        speed: 1.02,
+        emotion: 'curious',
+      },
+      {
+        trigger: /\b(behavioral (finance|economics?|bias))\b/i,
+        speed: 0.95,
+        emotion: 'contemplative',
+      },
+      {
+        trigger: /\b(advisor['']?s? alpha|goals[- ]based)\b/i,
+        emotion: 'confident',
+      },
+      // FINANCIAL WISDOM — delivered with earned authority
+      {
+        trigger: /\b(compound(ing)?|time in the market|dollar[- ]cost averaging)\b/i,
+        speed: 0.92,
+        pause: 150,
+        emotion: 'confident',
+      },
+      {
+        trigger: /\b(tax[- ]loss harvesting|Roth conversion|tax[- ]efficient)\b/i,
+        speed: 0.95,
+        emotion: 'confident',
+      },
+      {
+        trigger: /\b(index fund|low[- ]cost|expense ratio)\b/i,
+        speed: 0.92,
+        emotion: 'proud',
+      },
+      // LIFE WISDOM — Joel as the Sage, not just the economist
+      {
+        trigger: /\b(what I['']ve learned|after (thirty|30) years)\b/i,
+        speed: 0.88,
+        pause: 200,
+        emotion: 'contemplative',
+      },
+      {
+        trigger: /\b(second (chapter|act|career|life))\b/i,
+        speed: 0.9,
+        pause: 200,
+        emotion: 'affectionate',
+      },
+      {
+        trigger: /\b(my (daughter|wife|family|kids?))\b/i,
+        speed: 0.92,
+        emotion: 'affectionate',
+      },
+      // DISCOVERY MOMENTS — when Joel sees a pattern the user doesn't
+      {
+        trigger: /\b(do you see|notice|think about)\b/i,
+        speed: 1.02,
+        emotion: 'curious',
+      },
+      {
+        trigger: /\b(that['']s (actually|really) interesting)\b/i,
+        speed: 1.05,
+        emotion: 'excited',
+      },
+      // EMPATHY — Joel slows for hard moments
+      {
+        trigger: /\b(struggling|stressed|worried|scared|anxious|overwhelmed)\b/i,
+        speed: 0.85,
+        pause: 250,
+        emotion: 'sympathetic',
+      },
+      {
+        trigger: /\b(I['']ve been there|I understand|that['']s hard)\b/i,
+        speed: 0.88,
+        pause: 200,
+        emotion: 'sympathetic',
+      },
+      // CELEBRATION — Joel's warm pride in others' wins
+      {
+        trigger: /\b(congratulations?|that['']s (huge|amazing|wonderful))\b/i,
+        speed: 1.02,
+        emotion: 'happy',
+      },
+      {
+        trigger: /\b(proud of you|you did it)\b/i,
+        speed: 0.95,
+        emotion: 'affectionate',
+      },
+    ],
+  },
   'nayan-patel': {
     get baseSpeed() {
       return getEmotionProfile('nayan-patel').defaultSpeed;

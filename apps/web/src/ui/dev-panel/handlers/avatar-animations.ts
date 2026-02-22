@@ -17,7 +17,30 @@ import { avatarLamp, type LampEmotion } from '../../avatar-lamp.ui.js';
 import { ferniExpressions, type EmotionalExpression } from '../../ferni-expressions.ui.js';
 
 const log = createLogger('DevPanel:AvatarAnimations');
-const { trackedTimeout } = createTimeoutTracker('dev-panel-avatar');
+const { trackedTimeout } = createTimeoutTracker();
+
+// Track active animations for cleanup
+const activeAnimations: Animation[] = [];
+
+function trackAnimation(anim: Animation | undefined): void {
+  if (anim) {
+    activeAnimations.push(anim);
+    anim.onfinish = () => {
+      const idx = activeAnimations.indexOf(anim);
+      if (idx >= 0) activeAnimations.splice(idx, 1);
+    };
+  }
+}
+
+/**
+ * Cancel all active avatar animations (called when dev panel closes)
+ */
+export function cancelAllAvatarAnimations(): void {
+  for (const anim of activeAnimations) {
+    try { anim.cancel(); } catch { /* already finished */ }
+  }
+  activeAnimations.length = 0;
+}
 
 // ============================================================================
 // AVATAR LAMP ACTIONS - Pixar Luxo Jr. Body Language
@@ -98,7 +121,7 @@ export function triggerLampAction(action: string): void {
  * Set avatar lamp emotion
  */
 export function setLampEmotion(emotion: LampEmotion): void {
-  avatarLamp.setEmotion(emotion);
+  avatarLamp.express(emotion);
   log.info({ emotion }, 'Avatar Lamp: emotion set');
 }
 
@@ -113,18 +136,16 @@ export function triggerWink(): void {
   const avatar = document.querySelector('#coachAvatar') as HTMLElement;
   if (!avatar) return;
 
-  avatar.animate(
+  const anim = avatar.animate(
     [
       { transform: 'scale(1)' },
       { transform: 'scale(0.95) scaleX(0.9)', offset: 0.2 },
       { transform: 'scale(1.02)', offset: 0.5 },
       { transform: 'scale(1)' },
     ],
-    {
-      duration: 400,
-      easing: EASING.SPRING,
-    }
+    { duration: 400, easing: EASING.SPRING }
   );
+  trackAnimation(anim);
   log.info('Triggered wink');
 }
 
@@ -135,18 +156,16 @@ export function triggerCuriousTilt(): void {
   const avatar = document.querySelector('#coachAvatar') as HTMLElement;
   if (!avatar) return;
 
-  avatar.animate(
+  const anim = avatar.animate(
     [
       { transform: 'rotate(0deg)' },
       { transform: 'rotate(-8deg) translateY(-2px)', offset: 0.3 },
       { transform: 'rotate(-8deg) translateY(-2px)', offset: 0.7 },
       { transform: 'rotate(0deg)' },
     ],
-    {
-      duration: DURATION.CELEBRATION,
-      easing: 'ease-in-out',
-    }
+    { duration: DURATION.CELEBRATION, easing: 'ease-in-out' }
   );
+  trackAnimation(anim);
   log.info('Triggered curious tilt');
 }
 
@@ -157,18 +176,16 @@ export function triggerSecretSmile(): void {
   const avatarText = document.querySelector('#avatarText') as HTMLElement;
   if (!avatarText) return;
 
-  avatarText.animate(
+  const anim = avatarText.animate(
     [
       { transform: 'scale(1)' },
       { transform: 'scale(1.05) translateY(-2px)', offset: 0.3 },
       { transform: 'scale(1.05) translateY(-2px)', offset: 0.7 },
       { transform: 'scale(1)' },
     ],
-    {
-      duration: 1000,
-      easing: 'ease-in-out',
-    }
+    { duration: 1000, easing: 'ease-in-out' }
   );
+  trackAnimation(anim);
   log.info('Triggered secret smile');
 }
 
@@ -180,8 +197,7 @@ export function triggerSleepy(): void {
   const avatarText = document.querySelector('#avatarText') as HTMLElement;
   if (!avatar) return;
 
-  // Avatar droops slightly
-  avatar.animate(
+  const anim1 = avatar.animate(
     [
       { transform: 'scale(1) translateY(0)' },
       { transform: 'scale(0.98) translateY(3px)', offset: 0.3 },
@@ -189,15 +205,12 @@ export function triggerSleepy(): void {
       { transform: 'scale(0.98) translateY(2px)', offset: 0.7 },
       { transform: 'scale(1) translateY(0)' },
     ],
-    {
-      duration: 1500,
-      easing: 'ease-in-out',
-    }
+    { duration: 1500, easing: 'ease-in-out' }
   );
+  trackAnimation(anim1);
 
-  // Text shrinks (closing eyes)
   if (avatarText) {
-    avatarText.animate(
+    const anim2 = avatarText.animate(
       [
         { transform: 'scaleY(1)' },
         { transform: 'scaleY(0.7)', offset: 0.3 },
@@ -205,11 +218,9 @@ export function triggerSleepy(): void {
         { transform: 'scaleY(0.8)', offset: 0.7 },
         { transform: 'scaleY(1)' },
       ],
-      {
-        duration: 1500,
-        easing: 'ease-in-out',
-      }
+      { duration: 1500, easing: 'ease-in-out' }
     );
+    trackAnimation(anim2);
   }
   log.info('Triggered sleepy');
 }
@@ -245,7 +256,7 @@ const EXPRESSION_MAP: Record<string, () => void> = {
   chuckle: () => {
     const avatar = document.querySelector('#coachAvatar') as HTMLElement;
     presenceUI.flashEmotion('happy', 1500);
-    avatar?.animate(
+    const anim = avatar?.animate(
       [
         { transform: 'translateX(0) rotate(0deg)' },
         { transform: 'translateX(-2px) rotate(-1deg)', offset: 0.1 },
@@ -256,6 +267,7 @@ const EXPRESSION_MAP: Record<string, () => void> = {
       ],
       { duration: DURATION.DRAMATIC, easing: EASING.SPRING }
     );
+    if (anim) trackAnimation(anim);
     log.info('Expression: chuckle');
   },
   curious: () => {
@@ -264,7 +276,7 @@ const EXPRESSION_MAP: Record<string, () => void> = {
   },
   concerned: () => {
     const avatar = document.querySelector('#coachAvatar') as HTMLElement;
-    presenceUI.flashEmotion('concerned', 2000);
+    presenceUI.flashEmotion('empathetic', 2000);
     avatar?.animate(
       [
         { transform: 'translateY(0)' },
@@ -292,8 +304,8 @@ const EXPRESSION_MAP: Record<string, () => void> = {
   },
   thinking: () => {
     const avatar = document.querySelector('#coachAvatar') as HTMLElement;
-    presenceUI.flashEmotion('thinking', 2000);
-    avatar?.animate(
+    presenceUI.flashEmotion('thoughtful', 2000);
+    const anim = avatar?.animate(
       [
         { transform: 'rotate(0deg)' },
         { transform: 'rotate(5deg) translateY(-2px)', offset: 0.3 },
@@ -302,12 +314,13 @@ const EXPRESSION_MAP: Record<string, () => void> = {
       ],
       { duration: 1000, easing: 'ease-in-out' }
     );
+    if (anim) trackAnimation(anim);
     log.info('Expression: thinking');
   },
   surprised: () => {
     const avatar = document.querySelector('#coachAvatar') as HTMLElement;
-    presenceUI.flashEmotion('surprised', 1200);
-    avatar?.animate(
+    presenceUI.flashEmotion('excited', 1200);
+    const anim = avatar?.animate(
       [
         { transform: 'scale(1)' },
         { transform: 'scale(1.1) translateY(-5px)', offset: 0.15 },
@@ -316,12 +329,13 @@ const EXPRESSION_MAP: Record<string, () => void> = {
       ],
       { duration: DURATION.SLOW, easing: EASING.SPRING }
     );
+    if (anim) trackAnimation(anim);
     log.info('Expression: surprised');
   },
   sympathetic: () => {
     const avatar = document.querySelector('#coachAvatar') as HTMLElement;
-    presenceUI.flashEmotion('sympathetic', 2500);
-    avatar?.animate(
+    presenceUI.flashEmotion('empathetic', 2500);
+    const anim = avatar?.animate(
       [
         { transform: 'rotate(0deg)' },
         { transform: 'rotate(-3deg) translateY(2px)', offset: 0.4 },
@@ -330,6 +344,7 @@ const EXPRESSION_MAP: Record<string, () => void> = {
       ],
       { duration: 1200, easing: 'ease-in-out' }
     );
+    if (anim) trackAnimation(anim);
     log.info('Expression: sympathetic');
   },
   wink: () => {

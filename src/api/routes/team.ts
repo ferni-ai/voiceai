@@ -11,6 +11,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { isCoach } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { requireUserId, sendJSON, sendJSONCached } from '../helpers.js';
 import type { AnyRecord } from './types.js';
@@ -451,8 +452,8 @@ function generateDataDrivenComment(
   insights: UserEngagementInsights,
   _topic: string
 ): string | null {
-  // Ferni - General life coaching insights
-  if (personaId === 'ferni') {
+  // Coordinator - General life coaching insights
+  if (isCoach(personaId)) {
     if (insights.daysSinceFirstConversation > 30 && insights.totalConversations > 10) {
       return "I've been watching your journey. The person I'm talking to now has grown since we started.";
     }
@@ -574,7 +575,7 @@ function getStaticPersonaComment(personaId: string, topic: string): string {
   let commentPool: string[] = [];
 
   // Use type-safe property access with Record
-  if (personaId === 'ferni') {
+  if (isCoach(personaId)) {
     commentPool = personaScripts['progress'] || [];
   } else if (personaId === 'maya-santos') {
     if (topicLower.includes('habit') || topicLower.includes('routine')) {

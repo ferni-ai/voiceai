@@ -18,6 +18,8 @@ import {
   getFrequentEntities,
   getRecentTopics,
 } from '../../../memory/dynamic/stm-buffer.js';
+import type { RetrievedMemory } from '../../../memory/interfaces/index.js';
+import { semanticSearch } from '../../../memory/retrieval/index.js';
 import { getFirestoreDb, toSafeDate } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { BuilderCategory } from '../core/categories.js';
@@ -577,16 +579,88 @@ function formatHumanSignalsContext(signals: HumanMemoryProfile | null): string {
 }
 
 // ============================================================================
+// SEMANTIC MEMORY RETRIEVAL (BTH Architecture - Feb 2026)
+// ============================================================================
+
+/**
+ * Retrieve semantically relevant memories using embedding search.
+ *
+ * Unlike time-based retrieval (getRecentEntities), this finds memories
+ * by MEANING — e.g., when a user says "I'm worried about money", this
+ * surfaces past conversations about finances, budgeting fears, etc.
+ *
+ * This is the "Better Than Human" upgrade: no human friend can recall
+ * every relevant conversation by semantic similarity.
+ */
+async function getSemanticMemories(
+  userId: string,
+  query: string,
+  topK = 5
+): Promise<RetrievedMemory[]> {
+  if (!query || query.trim().length < 3) return [];
+
+  try {
+    const memories = await semanticSearch(userId, query, topK);
+    log.debug(
+      {
+        userId,
+        query: query.slice(0, 50),
+        resultsCount: memories.length,
+      },
+      '🔍 Semantic memory search completed'
+    );
+    return memories;
+  } catch (error) {
+    // Non-fatal — semantic search is an enhancement, not critical path
+    log.debug(
+      { error: String(error), userId },
+      'Semantic memory search unavailable (falling back to time-based)'
+    );
+    return [];
+  }
+}
+
+/**
+ * Format semantically retrieved memories into context for LLM injection.
+ */
+function formatSemanticMemories(memories: RetrievedMemory[]): string {
+  if (memories.length === 0) return '';
+
+  const lines: string[] = ['## Relevant Memories (Semantic Match)'];
+
+  for (const mem of memories) {
+    const matchScore = mem.score ? ` (${Math.round(mem.score * 100)}% match)` : '';
+    const typeLabel =
+      mem.item.type === 'person'
+        ? '👤'
+        : mem.item.type === 'moment'
+          ? '💬'
+          : mem.item.type === 'commitment'
+            ? '🤝'
+            : mem.item.type === 'preference'
+              ? '💡'
+              : '🧠';
+
+    const content = mem.item.content;
+    if (content) {
+      lines.push(`${typeLabel} ${content.slice(0, 150)}${matchScore}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+// ============================================================================
 // CONTEXT BUILDER
 // ============================================================================
 
 /**
  * Build dynamic memory context for LLM injection
  *
- * MEMORY FIX (Jan 2026): Now includes human signals from LLM extraction
- * - Dreams, fears, values, important dates
- * - Growth markers, challenges, comfort patterns
- * - Important people
+ * Three retrieval strategies:
+ * 1. L1: STM (in-memory, current session) — O(1), always available
+ * 2. L2 time-based: Firestore entities/facts — recent by timestamp
+ * 3. L2 semantic: Embedding search — relevant by meaning (BTH Feb 2026)
  */
 async function buildDynamicMemoryContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const { userText, services, userData, persona, analysis } = input;
@@ -628,7 +702,32 @@ async function buildDynamicMemoryContext(input: ContextBuilderInput): Promise<Co
     }
 
     // =========================================================================
-    // L2: Firestore (persisted memories from past sessions)
+    // L2a: Semantic Memory Retrieval (embedding search — BTH Feb 2026)
+    // Finds memories by MEANING, not just recency.
+    // =========================================================================
+    const semanticMemories = await getSemanticMemories(userId, userText, 5);
+    if (semanticMemories.length > 0) {
+      const semanticContext = formatSemanticMemories(semanticMemories);
+      if (semanticContext) {
+        injections.push(
+          createHintInjection('semantic_memory_matches', semanticContext, {
+            category: 'memory',
+            confidence: 0.88,
+          })
+        );
+        log.debug(
+          {
+            userId,
+            matchCount: semanticMemories.length,
+            topScore: semanticMemories[0]?.score?.toFixed(2),
+          },
+          '🔍 [MEMORY] Semantic memories injected'
+        );
+      }
+    }
+
+    // =========================================================================
+    // L2b: Firestore (persisted memories from past sessions — time-based)
     // =========================================================================
 
     // Retrieve dynamic memories, promoted entities, topic patterns,
@@ -756,17 +855,16 @@ async function buildDynamicMemoryContext(input: ContextBuilderInput): Promise<Co
       );
     }
 
-    // Add hints for relevant human signals based on user message (Jan 2026)
+    // Add hints for relevant human signals based on user message
+    // BTH Feb 2026: Use semantic signals + lightweight keyword matching
+    // (semantic search above handles the heavy lifting; keywords catch obvious signals)
     if (humanSignals) {
       const lowerText = userText.toLowerCase();
       const relevantHints: string[] = [];
 
-      // Check for dream/goal related keywords
-      if (
-        lowerText.includes('dream') ||
-        lowerText.includes('goal') ||
-        lowerText.includes('want to')
-      ) {
+      // Surface dreams/goals if semantically or lexically relevant
+      const dreamKeywords = ['dream', 'goal', 'want to', 'aspire', 'hope', 'wish', 'plan'];
+      if (dreamKeywords.some((kw) => lowerText.includes(kw))) {
         const dreamHint = humanSignals.dreams
           .slice(0, 2)
           .map((d) => `✨ ${d.value}`)
@@ -774,12 +872,9 @@ async function buildDynamicMemoryContext(input: ContextBuilderInput): Promise<Co
         if (dreamHint) relevantHints.push(`Their dreams:\n${dreamHint}`);
       }
 
-      // Check for worry/fear related keywords
-      if (
-        lowerText.includes('worried') ||
-        lowerText.includes('afraid') ||
-        lowerText.includes('anxious')
-      ) {
+      // Surface fears/worries
+      const fearKeywords = ['worried', 'afraid', 'anxious', 'scared', 'nervous', 'concern', 'stress'];
+      if (fearKeywords.some((kw) => lowerText.includes(kw))) {
         const fearHint = humanSignals.fears
           .slice(0, 2)
           .map((f) => `🔒 ${f.value}`)
@@ -787,17 +882,34 @@ async function buildDynamicMemoryContext(input: ContextBuilderInput): Promise<Co
         if (fearHint) relevantHints.push(`Known worries:\n${fearHint}`);
       }
 
-      // Check for progress/growth keywords
-      if (
-        lowerText.includes('progress') ||
-        lowerText.includes('better') ||
-        lowerText.includes('growth')
-      ) {
+      // Surface growth/progress
+      const growthKeywords = ['progress', 'better', 'growth', 'improve', 'proud', 'achievement'];
+      if (growthKeywords.some((kw) => lowerText.includes(kw))) {
         const growthHint = humanSignals.growthMarkers
           .slice(0, 2)
           .map((g) => `🌱 ${g.value}`)
           .join('\n');
         if (growthHint) relevantHints.push(`Recent growth:\n${growthHint}`);
+      }
+
+      // Surface challenges when struggle is detected
+      const challengeKeywords = ['struggle', 'hard', 'difficult', 'tough', 'challenge', 'stuck'];
+      if (challengeKeywords.some((kw) => lowerText.includes(kw))) {
+        const challengeHint = humanSignals.challenges
+          .slice(0, 2)
+          .map((c) => `⚡ ${c.value}`)
+          .join('\n');
+        if (challengeHint) relevantHints.push(`Known challenges:\n${challengeHint}`);
+      }
+
+      // Surface comfort patterns when user needs support
+      const comfortKeywords = ['help', 'comfort', 'calm', 'relax', 'cope', 'soothe'];
+      if (comfortKeywords.some((kw) => lowerText.includes(kw))) {
+        const comfortHint = humanSignals.comfortPatterns
+          .slice(0, 2)
+          .map((c) => `🌊 ${c.value}`)
+          .join('\n');
+        if (comfortHint) relevantHints.push(`What helps them:\n${comfortHint}`);
       }
 
       if (relevantHints.length > 0) {

@@ -24,6 +24,11 @@
 
 import 'dotenv/config';
 
+import {
+  GCE_WORKER_STARTUP_DELAY_MS,
+  GCE_WORKER_READINESS_DELAY_MS,
+} from '../config/timeouts.js';
+
 // ============================================================================
 // GLOBAL ERROR HANDLERS (Must be first - prevents process crashes)
 // ============================================================================
@@ -265,7 +270,12 @@ initLiveKitConnection(
 async function main(): Promise<void> {
   // Phase 3: Warmup resources
   log('Phase 3: Warming resources');
-  await warmupResources(log);
+  const warmupResult = await warmupResources(log);
+  if (warmupResult.durationMs > 15000) {
+    log('⚠️ Warmup verification: warmup took >15s - check for broken or slow modules', {
+      durationMs: warmupResult.durationMs,
+    });
+  }
 
   // Phase 4: Connect to LiveKit
   log('Phase 4: Connecting to LiveKit');
@@ -362,7 +372,7 @@ const shutdown = async (signal: string): Promise<void> => {
   const shutdownStart = Date.now();
   while (getJobMetrics().activeJobs > 0 && Date.now() - shutdownStart < 30000) {
     await new Promise<void>((resolve) => {
-      setTimeout(resolve, 1000);
+      setTimeout(resolve, GCE_WORKER_STARTUP_DELAY_MS);
     });
     log('Waiting for active jobs...', { activeJobs: getJobMetrics().activeJobs });
   }
@@ -374,9 +384,8 @@ const shutdown = async (signal: string): Promise<void> => {
     failedJobs: metrics.failedJobs,
   });
 
-  // 6. Give native modules time to cleanup
   await new Promise<void>((resolve) => {
-    setTimeout(resolve, 100);
+    setTimeout(resolve, GCE_WORKER_READINESS_DELAY_MS);
   });
 
   // 7. Exit cleanly

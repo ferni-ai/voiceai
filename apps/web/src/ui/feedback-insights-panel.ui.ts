@@ -82,6 +82,8 @@ let container: HTMLElement | null = null;
 let isOpen = false;
 let insights: FeedbackInsights | null = null;
 let stats: FeedbackStats | null = null;
+let loadError = false;
+let currentUserId: string | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -338,6 +340,19 @@ function renderContent(): void {
   const content = container.querySelector('.feedback-insights-panel__content');
   if (!content) return;
 
+  if (loadError) {
+    content.innerHTML = `
+      <div class="feedback-insights-panel__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, rgba(44, 37, 32, 0.5));">
+        Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
+      </div>
+    `;
+    content.querySelector('button')?.addEventListener('click', () => {
+      loadError = false;
+      if (currentUserId) void fetchInsights(currentUserId);
+    });
+    return;
+  }
+
   if (!insights && !stats) {
     content.innerHTML = `
       <div class="feedback-insights-panel__empty">
@@ -503,7 +518,8 @@ async function fetchInsights(userId: string): Promise<void> {
     renderContent();
   } catch (error) {
     log.warn({ error }, 'Failed to fetch insights');
-    renderContent(); // Will show empty state
+    loadError = true;
+    renderContent();
   }
 }
 
@@ -518,6 +534,7 @@ export async function openFeedbackInsightsPanel(userId: string): Promise<void> {
   if (isOpen) return;
 
   log.info({ userId }, 'Opening feedback insights panel');
+  currentUserId = userId;
 
   // Create elements
   const overlay = createOverlay();
@@ -564,6 +581,7 @@ export function close(): void {
     isOpen = false;
     insights = null;
     stats = null;
+    currentUserId = null;
   }, DURATION.SLOW);
 }
 

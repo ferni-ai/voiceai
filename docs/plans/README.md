@@ -49,6 +49,8 @@ Active implementation plans and roadmaps for Ferni AI.
 | [BETTER-THAN-HUMAN-API-PLAN.md](./BETTER-THAN-HUMAN-API-PLAN.md)                       | BTH API design        |
 | [BETTER-THAN-HUMAN-SEED-ECONOMY-PLAN.md](./BETTER-THAN-HUMAN-SEED-ECONOMY-PLAN.md)     | Seed economy          |
 | [CALENDAR-BETTER-THAN-HUMAN-PLAN.md](./CALENDAR-BETTER-THAN-HUMAN-PLAN.md)             | Calendar BTH features |
+| [HIGGS-BETTER-THAN-ALL-PLAN.md](./HIGGS-BETTER-THAN-ALL-PLAN.md)                       | Higgs better than ChipChat, Kyutai, Gemini Live, OpenAI Realtime |
+| [OWN-THE-STACK-PLAN.md](./OWN-THE-STACK-PLAN.md)                                       | No Gemini, no OpenAI; own STT + LLM + TTS; build our own model |
 
 ### Personas & Communications
 

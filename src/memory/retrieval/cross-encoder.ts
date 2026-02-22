@@ -226,8 +226,8 @@ Relevance score (0-100):`;
 
 /**
  * Local cross-encoder using ONNX Runtime.
- * Faster than API calls, no network dependency.
- * Requires model files to be downloaded.
+ * Not implemented: score/scoreBatch throw. Use GeminiCrossEncoder (getReranker() default)
+ * or HeuristicCrossEncoder when no API key. See docs/audits/SRC-ISSUES-AUDIT.md.
  */
 export class LocalCrossEncoder implements CrossEncoderProvider {
   private session: unknown = null;
@@ -245,16 +245,9 @@ export class LocalCrossEncoder implements CrossEncoderProvider {
   }
 
   async initialize(): Promise<void> {
-    // Lazy load ONNX runtime
-    try {
-      // This would require @xenova/transformers or similar
-      // For now, we'll fall back to Gemini
-      log.info('Local cross-encoder not implemented, use GeminiCrossEncoder');
-      throw new Error('Local ONNX cross-encoder not implemented');
-    } catch (error) {
-      log.debug({ error: String(error) }, 'Local cross-encoder unavailable');
-      throw error;
-    }
+    // Local ONNX path not implemented. getReranker() uses GeminiCrossEncoder or HeuristicCrossEncoder.
+    log.info('Local cross-encoder not implemented, use GeminiCrossEncoder (getReranker default)');
+    throw new Error('Local ONNX cross-encoder not implemented');
   }
 
   isLoaded(): boolean {

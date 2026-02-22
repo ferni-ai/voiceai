@@ -47,7 +47,7 @@ export function renderCustomAgentCard(agent: CustomAgent): string {
   const agentGlow = getPersonaGlow(agent.id);
 
   return `
-    <div class="custom-agent-card" data-agent-id="${agent.id}" style="
+    <div class="custom-agent-card" data-agent-id="${agent.id}" role="button" tabindex="0" style="
       --persona-primary: var(--color-accent-primary);
       --persona-secondary: var(--color-accent-secondary);
       --persona-glow: ${agentGlow || 'var(--color-accent-glow)'};

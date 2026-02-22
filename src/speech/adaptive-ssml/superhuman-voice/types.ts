@@ -57,6 +57,13 @@ export interface SuperhumanVoiceContext {
 
   /** Turn count in session */
   turnCount?: number;
+
+  // === Audio Prosody (from user audio analysis) ===
+  /** Raw prosody features from audio analysis */
+  prosodyFeatures?: import('../../audio-prosody/types.js').ProsodyFeatures;
+
+  /** Full voice emotion result (includes prosody + emotion classification) */
+  voiceEmotion?: import('../../audio-prosody/types.js').VoiceEmotionResult;
 }
 
 export interface SuperhumanVoiceResult {

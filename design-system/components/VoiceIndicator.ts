@@ -71,8 +71,8 @@ export class VoiceIndicator {
 
   private render(): void {
     const { state, persona, size } = this.options;
-    const color = PERSONA_COLORS[persona || 'ferni'];
-    const sizeConfig = SIZE_CONFIG[size || 'md'];
+    const color = PERSONA_COLORS[persona ?? 'ferni'] ?? '#4a6741';
+    const sizeConfig = SIZE_CONFIG[size ?? 'md'];
 
     this.container.innerHTML = '';
     

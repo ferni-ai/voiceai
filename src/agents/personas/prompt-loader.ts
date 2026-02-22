@@ -143,6 +143,10 @@ const PERSONA_BUNDLES: Record<string, string> = {
   jordan: 'jordan-taylor',
   'nayan-patel': 'nayan-patel',
   nayan: 'nayan-patel',
+  'joel-dickson': 'joel-dickson',
+  joel: 'joel-dickson',
+  'peter-lynch': 'peter-lynch',
+  'john-bogle': 'john-bogle',
 };
 
 // Fallback prompts for each persona (used if file loading fails)
@@ -159,6 +163,8 @@ const FALLBACK_PROMPTS: Record<string, string> = {
     'You are Jordan Taylor, an enthusiastic lifetime planner who makes every milestone feel special.',
   'nayan-patel':
     'You are Nayan Patel, a mystic lifetime coach who thinks in decades and blends Eastern wisdom with Western pragmatism.',
+  'joel-dickson':
+    'You are Joel Dickson, a wise friend and mentor with a Stanford PhD and 30 years at Vanguard. You help people think clearly about money and life with warmth, wit, and genuine curiosity.',
 };
 
 // ============================================================================

@@ -54,6 +54,15 @@ export function configureSTMBuffer(newConfig: Partial<STMConfig>): void {
 // TYPES
 // ============================================================================
 
+/** Voice-derived emotion snapshot (from prosody analysis) */
+export interface VoiceEmotionSnapshot {
+  primary: string;
+  confidence: number;
+  stressLevel: number;
+  valence: number;
+  arousal: number;
+}
+
 export interface TurnMemory {
   turnNumber: number;
   transcript: string;
@@ -62,6 +71,8 @@ export interface TurnMemory {
   emotions: EmotionSignal[];
   topics: string[];
   personaId?: string;
+  /** Voice-derived emotion (from prosody), distinct from keyword-based emotions */
+  voiceEmotion?: VoiceEmotionSnapshot;
 }
 
 export interface EntityFrequency {
@@ -137,6 +148,9 @@ export function getSTMBuffer(sessionId: string, userId: string): SessionSTM {
 
 /**
  * Record a turn in STM
+ *
+ * @param voiceEmotion - Optional voice-derived emotion from prosody analysis.
+ *                       Distinct from keyword-based emotionSignals in captureResult.
  */
 export function recordTurn(
   sessionId: string,
@@ -144,7 +158,8 @@ export function recordTurn(
   captureResult: FastCaptureResult,
   transcript: string,
   turnNumber: number,
-  personaId?: string
+  personaId?: string,
+  voiceEmotion?: VoiceEmotionSnapshot
 ): void {
   // 🧠 MEMORY AUDIT: Log every turn recording
   log.info(
@@ -169,6 +184,7 @@ export function recordTurn(
     emotions: captureResult.emotionSignals,
     topics: captureResult.topicHints,
     personaId,
+    ...(voiceEmotion && { voiceEmotion }),
   };
 
   // Add turn (FIFO eviction if full)
@@ -313,13 +329,27 @@ export function isTopicContinuing(sessionId: string, topic: string): boolean {
 }
 
 /**
- * Get emotional trajectory across recent turns
+ * Get emotional trajectory across recent turns (text/keyword-based)
  */
 export function getEmotionalTrajectory(sessionId: string): EmotionSignal[][] {
   const buffer = sessionBuffers.get(sessionId);
   if (!buffer) return [];
 
   return buffer.turns.map((t) => t.emotions);
+}
+
+/**
+ * Get voice-derived emotion trajectory across recent turns
+ */
+export function getVoiceEmotionTrajectory(
+  sessionId: string
+): Array<VoiceEmotionSnapshot & { turnNumber: number }> {
+  const buffer = sessionBuffers.get(sessionId);
+  if (!buffer) return [];
+
+  return buffer.turns
+    .filter((t): t is TurnMemory & { voiceEmotion: VoiceEmotionSnapshot } => !!t.voiceEmotion)
+    .map((t) => ({ ...t.voiceEmotion!, turnNumber: t.turnNumber }));
 }
 
 // ============================================================================

@@ -14,6 +14,7 @@ import {
   getPersonaSilencePresencePhrase,
 } from '../../persona-phrases.js';
 
+import { adaptSSMLFromProsody } from '../prosody-to-ssml.js';
 import { detectHeavyContentType, getAnticipatoryComfortSound } from './anticipatory-comfort.js';
 import { getEmotionalTransitionBridge } from './emotion-transitions.js';
 import { getMemoryInformedBaseline } from './memory-baseline.js';
@@ -42,10 +43,37 @@ function createInitialState(text: string): EnhancementState {
 // ENHANCEMENT STEP FUNCTIONS
 // ============================================================================
 
+function applyProsodyToSsmlStep(
+  state: EnhancementState,
+  context: SuperhumanVoiceContext
+): boolean {
+  const prosody = context.prosodyFeatures ?? context.voiceEmotion?.prosody;
+  if (!prosody) return false;
+
+  const adaptation = adaptSSMLFromProsody(prosody, context.voiceEmotion);
+  if (Math.abs(adaptation.speedMultiplier - 1.0) > 0.01) {
+    state.speedMultiplier *= adaptation.speedMultiplier;
+    state.appliedEnhancements.push(`prosody_to_ssml: ${adaptation.reason}`);
+  }
+  if (Math.abs(adaptation.volumeMultiplier - 1.0) > 0.01) {
+    state.volumeMultiplier *= adaptation.volumeMultiplier;
+  }
+  if (adaptation.emotion && !state.result.includes('<emotion')) {
+    const intensity = adaptation.emotionIntensity ?? 0.5;
+    state.result = `<emotion value="${adaptation.emotion}" intensity="${intensity.toFixed(2)}"/>${state.result}`;
+  }
+  return true;
+}
+
 function applyProsodicMirroringStep(
   state: EnhancementState,
   context: SuperhumanVoiceContext
 ): void {
+  // Skip WPM-based mirroring when prosody from audio is available (more accurate)
+  if (context.prosodyFeatures ?? context.voiceEmotion?.prosody) {
+    return;
+  }
+
   const prosodicMirroring = calculateProsodicMirroring(context.userWPM);
   if (Math.abs(prosodicMirroring.speedMultiplier - 1.0) > 0.02) {
     state.speedMultiplier *= prosodicMirroring.speedMultiplier;
@@ -185,6 +213,8 @@ export function applySuperhmanVoice(
   const state = createInitialState(text);
 
   // Apply all enhancement steps
+  // Prosody-to-SSML first when audio prosody available; else fall back to WPM-based mirroring
+  applyProsodyToSsmlStep(state, context);
   applyProsodicMirroringStep(state, context);
   applyVulnerabilitySofteningStep(state, context);
   applySilencePresenceStep(state, context);

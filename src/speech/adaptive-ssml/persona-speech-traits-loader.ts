@@ -151,6 +151,14 @@ async function loadPersonaTraits(personaId: string): Promise<PersonaSpeechTraitC
         };
         break;
       }
+      case 'joel-dickson': {
+        const module = await import('../../personas/bundles/joel-dickson/speech-traits.js');
+        config = {
+          baseSpeed: module.JOEL_DICKSON_SPEECH_CONFIG.baseSpeed,
+          apply: module.applyJoelDicksonSpeechTraits,
+        };
+        break;
+      }
       default:
         // Unknown persona - no custom traits
         return null;
@@ -447,6 +455,7 @@ export function hasCustomSpeechTraits(personaId: string): boolean {
     'alex-chen',
     'jordan-taylor',
     'nayan-patel',
+    'joel-dickson',
   ];
   return withTraits.includes(personaId);
 }
@@ -455,7 +464,7 @@ export function hasCustomSpeechTraits(personaId: string): boolean {
  * Get list of personas with custom speech traits.
  */
 export function getPersonasWithSpeechTraits(): string[] {
-  return ['ferni', 'peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
+  return ['ferni', 'peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel', 'joel-dickson'];
 }
 
 /**

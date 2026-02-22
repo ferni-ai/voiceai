@@ -14,6 +14,7 @@ import type { BundleRuntimeState, UserBundleState } from '../../personas/bundles
 import type { ConversationStateManager } from '../../services/conversation-state.js';
 import type { SessionServices } from '../../services/index.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
+import type { VoiceState } from '../../speech/voice-biomarkers/index.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
 import type { LaughterDetectionResult } from '../../speech/voice-humanization.js';
 
@@ -106,14 +107,22 @@ export interface UserData {
 
   // Voice emotion tracking
   voiceEmotion?: VoiceEmotionResult;
+  /** Voice biomarker state (stress, fatigue, anxiety, etc.) — from Cartesia path prosody */
+  voiceBiomarkers?: VoiceState;
+  /** Raw Higgs voice biomarkers (pitch, jitter, shimmer, etc.) — from Higgs STT path */
+  higgsBiomarkers?: import('../../speech/tts-gateway/providers/higgs-pipeline.js').VoiceBiomarkers;
+  /** Whether Higgs full-duplex mode is active (backchannels can overlay agent speech) */
+  higgsFullDuplex?: boolean;
   emotionModulation?: VoiceEmotionModulation;
+  /** Audio embedding result for LLM context (e.g. from audio-embedding-integration) */
+  audioEmbedding?: unknown;
 
   // Voice humanization - laughter detection
   detectedLaughter?: LaughterDetectionResult;
 
   // Voice biomarkers - sub-lexical voice features for emotion enrichment
-  /** Real-time voice biomarkers from Rust DSP pipeline */
-  voiceBiomarkers?: {
+  /** Real-time raw voice biomarkers from Rust DSP pipeline */
+  rustDspBiomarkers?: {
     /** Fundamental frequency in Hz */
     pitch: number;
     /** RMS energy 0-1 */
@@ -227,6 +236,15 @@ export interface UserData {
     trend: 'improving' | 'declining' | 'stable';
     needsAttention: boolean;
   };
+
+  /** Rich emotion state (multi-dimensional, sarcasm/suppression-aware) */
+  richEmotion?: import('../../intelligence/rich-emotion-model.js').RichEmotionState;
+
+  /** Conversation plan for goal-directed sessions (H2.2 BTH) */
+  _conversationPlan?: import('../../intelligence/conversation-planner.js').ConversationPlan;
+
+  /** Unified user model for cross-persona personalization (H2.3 BTH) */
+  _unifiedUserModel?: import('../../intelligence/unified-user-model.js').UnifiedUserModel;
 
   // ============================================================
   // HUMANIZING STATE

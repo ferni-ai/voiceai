@@ -53,7 +53,11 @@ export { ACKNOWLEDGMENT_PREFIXES, getAcknowledgmentPrefix } from './acknowledgme
 // THINKING FILLERS
 // ============================================================================
 
-export { getThinkingFiller, getContextAwareThinkingFiller } from './thinking-fillers.js';
+export {
+  getThinkingFiller,
+  getContextAwareThinkingFiller,
+  type FillerContext,
+} from './thinking-fillers.js';
 
 // ============================================================================
 // CATCHPHRASES

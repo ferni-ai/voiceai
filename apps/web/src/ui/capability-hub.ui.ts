@@ -26,6 +26,8 @@ import { ANALYTICS_ICONS, EMOTION_ICONS, GROWTH_ICONS, QUIZ_ICONS } from './icon
 const log = createLogger('CapabilityHubUI');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
+let escapeHandlerRef: ((e: KeyboardEvent) => void) | null = null;
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -398,13 +400,16 @@ function attachEventListeners(): void {
   const backdrop = container.querySelector('.capability-modal__backdrop');
   backdrop?.addEventListener('click', closeCapabilityDetails);
 
-  // Escape key
-  const escapeHandler = (e: KeyboardEvent) => {
+  // Escape key (remove previous to avoid duplicates on re-render)
+  if (escapeHandlerRef) {
+    document.removeEventListener('keydown', escapeHandlerRef);
+  }
+  escapeHandlerRef = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && state.activeCapability) {
       closeCapabilityDetails();
     }
   };
-  document.addEventListener('keydown', escapeHandler);
+  document.addEventListener('keydown', escapeHandlerRef);
 }
 
 // ============================================================================
@@ -437,6 +442,10 @@ export function refreshCapabilityHub(): void {
  * Cleanup the capability hub
  */
 export function destroyCapabilityHub(): void {
+  if (escapeHandlerRef) {
+    document.removeEventListener('keydown', escapeHandlerRef);
+    escapeHandlerRef = null;
+  }
   _clearAllTimeouts();
   container = null;
 }

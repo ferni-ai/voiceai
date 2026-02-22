@@ -62,7 +62,18 @@ export type HumanizationSignalType =
   // Conversation repair & subtext signals
   | 'repair_needed' // Conversation needs repair
   | 'aftercare_needed' // Post-emotional-moment care
-  | 'subtext_detected'; // Hidden meaning detected
+  | 'subtext_detected' // Hidden meaning detected
+  // BTH superhuman signals (delegated to EQ bridge)
+  | 'emotional_bond_deepen'
+  | 'protective_instinct'
+  | 'spontaneous_delight'
+  | 'inside_joke_callback'
+  | 'superhuman_observation'
+  | 'visible_vulnerability'
+  | 'temporal_insight'
+  | 'meta_relationship_moment'
+  | 'somatic_presence'
+  | 'anticipatory_presence';
 
 /**
  * Humanization signal event from backend
@@ -244,6 +255,31 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
     case 'emotional_trajectory':
       handleEmotionalTrajectory(event.emotionalTrajectory, intensity);
       break;
+
+    default: {
+      // Delegate BTH superhuman signals to the EQ bridge
+      const bthSignalTypes = new Set([
+        'emotional_bond_deepen',
+        'protective_instinct',
+        'spontaneous_delight',
+        'inside_joke_callback',
+        'superhuman_observation',
+        'visible_vulnerability',
+        'temporal_insight',
+        'meta_relationship_moment',
+        'somatic_presence',
+        'anticipatory_presence',
+      ]);
+      if (bthSignalTypes.has(signalType)) {
+        document.dispatchEvent(
+          new CustomEvent('ferni:bth-signal', {
+            detail: { ...event, intensity: event.intensity ?? 0.7 },
+          })
+        );
+        log.debug('BTH signal delegated to EQ bridge:', signalType);
+      }
+      break;
+    }
   }
 }
 

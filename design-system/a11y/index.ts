@@ -62,7 +62,7 @@ export function getLuminance(hex: string): number {
     return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
   });
 
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0);
 }
 
 /**
@@ -180,8 +180,8 @@ export function trapFocus(container: HTMLElement): () => void {
   const focusableElements = getFocusableElements(container);
   if (focusableElements.length === 0) return () => {};
 
-  const firstElement = focusableElements[0].element;
-  const lastElement = focusableElements[focusableElements.length - 1].element;
+  const firstElement = focusableElements[0]!.element;
+  const lastElement = focusableElements[focusableElements.length - 1]!.element;
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key !== 'Tab') return;
@@ -487,7 +487,7 @@ export function runA11yAudit(container: HTMLElement = document.body): A11yAuditR
   const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
   let lastLevel = 0;
   headings.forEach((heading) => {
-    const level = parseInt(heading.tagName[1]);
+    const level = parseInt(heading.tagName[1] ?? '0');
     if (level > lastLevel + 1 && lastLevel !== 0) {
       issues.push({
         type: 'warning',
@@ -512,7 +512,7 @@ export function runA11yAudit(container: HTMLElement = document.body): A11yAuditR
       const bgHex = rgbStringToHex(bgColor);
       
       if (fgHex && bgHex) {
-        const result = checkContrast(fgHex, bgHex);
+        const result = checkContrast(fgHex ?? '#000000', bgHex ?? '#000000');
         if (!result.passes.normalText) {
           issues.push({
             type: 'warning',
@@ -545,9 +545,9 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
     ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
+        r: parseInt(result[1] ?? '0', 16),
+        g: parseInt(result[2] ?? '0', 16),
+        b: parseInt(result[3] ?? '0', 16),
       }
     : null;
 }
@@ -559,5 +559,9 @@ function rgbToHex(r: number, g: number, b: number): string {
 function rgbStringToHex(rgb: string): string | null {
   const match = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
   if (!match) return null;
-  return rgbToHex(parseInt(match[1]), parseInt(match[2]), parseInt(match[3]));
+  return rgbToHex(
+    parseInt(match[1] ?? '0'),
+    parseInt(match[2] ?? '0'),
+    parseInt(match[3] ?? '0')
+  );
 }

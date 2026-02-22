@@ -739,7 +739,7 @@ export function setActionConfirmationCallbacks(cbs: ActionConfirmationCallbacks)
  * Cleanup all confirmations
  */
 export function cleanupActionConfirmations(): void {
-  clearAllTimeouts();
+  _clearAllTimeouts();
   countdownIntervals.forEach((interval) => clearInterval(interval));
   countdownIntervals.clear();
   pendingActions = [];

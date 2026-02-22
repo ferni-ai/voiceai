@@ -98,6 +98,9 @@ const WARMTH_BY_STAGE: Record<RelationshipStage, WarmthConfig> = {
 
 let currentStage: RelationshipStage | null = null;
 let isInitialized = false;
+
+/** Active warmth transition animations for cancel on dispose */
+const activeTransitionAnimations: Animation[] = [];
 let stageChangeUnsubscribe: (() => void) | null = null;
 
 // ============================================================================
@@ -229,7 +232,7 @@ function playWarmthTransition(previousStage: RelationshipStage, newStage: Relati
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: 9999;
+    z-index: var(--z-modal, 9999);
     opacity: 0;
   `;
   
@@ -253,8 +256,8 @@ function playWarmthTransition(previousStage: RelationshipStage, newStage: Relati
   
   overlay.appendChild(glow);
   document.body.appendChild(overlay);
-  
-  // Animate
+
+  // Store animations for cleanup on dispose
   const overlayAnimation = overlay.animate(
     [
       { opacity: 0 },
@@ -264,16 +267,22 @@ function playWarmthTransition(previousStage: RelationshipStage, newStage: Relati
     ],
     { duration: DURATION.CELEBRATION, easing: EASING.GENTLE }
   );
-  
-  glow.animate(
+
+  const glowAnimation = glow.animate(
     [
       { transform: 'translate(-50%, -50%) scale(0)' },
       { transform: 'translate(-50%, -50%) scale(1)' },
     ],
     { duration: DURATION.CELEBRATION, easing: EASING.EXPO_OUT }
   );
-  
+
+  activeTransitionAnimations.push(overlayAnimation, glowAnimation);
+
   overlayAnimation.onfinish = () => {
+    const oi = activeTransitionAnimations.indexOf(overlayAnimation);
+    if (oi >= 0) activeTransitionAnimations.splice(oi, 1);
+    const gi = activeTransitionAnimations.indexOf(glowAnimation);
+    if (gi >= 0) activeTransitionAnimations.splice(gi, 1);
     overlay.remove();
   };
   
@@ -315,6 +324,15 @@ export function initWarmthManager(): void {
  * Dispose warmth manager
  */
 export function disposeWarmthManager(): void {
+  for (const anim of activeTransitionAnimations) {
+    const target = anim.effect instanceof KeyframeEffect ? anim.effect.target : null;
+    anim.cancel();
+    if (target && target instanceof HTMLElement) {
+      target.remove();
+    }
+  }
+  activeTransitionAnimations.length = 0;
+
   if (stageChangeUnsubscribe) {
     stageChangeUnsubscribe();
     stageChangeUnsubscribe = null;
@@ -388,12 +406,12 @@ export function getAdjustedAnimationConfig(baseDuration: number): {
 } {
   const config = getCurrentWarmthConfig();
   if (!config) {
-    return { duration: baseDuration, easing: EASING.STANDARD };
+    return { duration: baseDuration, easing: EASING.STANDARD as string };
   }
   
   // Choose easing based on relationship depth
   // Deeper relationships get gentler, more organic easing
-  let easing = EASING.STANDARD;
+  let easing: string = EASING.STANDARD;
   if (config.animationMultiplier <= 0.9) {
     easing = EASING.GENTLE;
   } else if (config.animationMultiplier <= 0.95) {
@@ -402,7 +420,7 @@ export function getAdjustedAnimationConfig(baseDuration: number): {
   
   return {
     duration: getAdjustedDuration(baseDuration),
-    easing,
+    easing: easing as string,
   };
 }
 

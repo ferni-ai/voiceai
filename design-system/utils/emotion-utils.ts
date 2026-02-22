@@ -184,9 +184,9 @@ function hexToHSL(hex: string): { h: number; s: number; l: number } {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return { h: 0, s: 0, l: 0 };
 
-  let r = parseInt(result[1], 16) / 255;
-  let g = parseInt(result[2], 16) / 255;
-  let b = parseInt(result[3], 16) / 255;
+  let r = parseInt(result[1] ?? '0', 16) / 255;
+  let g = parseInt(result[2] ?? '0', 16) / 255;
+  let b = parseInt(result[3] ?? '0', 16) / 255;
 
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);

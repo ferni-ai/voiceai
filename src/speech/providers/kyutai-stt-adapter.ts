@@ -9,6 +9,7 @@
 
 import type { AudioFrame } from '@livekit/rtc-node';
 import { stt, type APIConnectOptions } from '@livekit/agents';
+import { KYUTAI_STT_URL } from '../../config/api-urls.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { KyutaiSTTClient } from './kyutai-stt.js';
 
@@ -37,8 +38,7 @@ export class KyutaiSTT extends stt.STT {
       streaming: true,
       interimResults: true,
     });
-    const envUrl = process.env.KYUTAI_STT_URL;
-    this.sttUrl = config.sttUrl || envUrl || 'ws://localhost:8089/api/asr-streaming';
+    this.sttUrl = config.sttUrl || KYUTAI_STT_URL;
     this.authId = config.authId || process.env.KYUTAI_API_KEY || 'public_token';
   }
 

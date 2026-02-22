@@ -146,6 +146,13 @@ export const OPENAI_REALTIME_MODEL = process.env.LLM_OPENAI_REALTIME_MODEL || 'g
  */
 export const OPENAI_QUALITY_MODEL = process.env.LLM_OPENAI_QUALITY_MODEL || 'gpt-4o';
 
+/**
+ * Anthropic Claude model (for tool selection, planning, fallback)
+ * Default: claude-3-haiku-20240307 (fast, cost-effective)
+ */
+export const ANTHROPIC_MODEL =
+  process.env.LLM_ANTHROPIC_MODEL || 'claude-3-haiku-20240307';
+
 // ============================================================================
 // TIMEOUT CONFIGURATION (from .env)
 // ============================================================================

@@ -83,7 +83,7 @@ export function initProactiveMessages(): void {
     position: fixed;
     bottom: var(--space-20, 80px);
     right: var(--space-6, 24px);
-    z-index: 999;
+    z-index: var(--z-toast, 999);
     opacity: 0;
     visibility: hidden;
     transition: opacity var(--duration-normal, 200ms) var(--ease-standard, ease-out),
@@ -138,7 +138,7 @@ export function initProactiveMessages(): void {
       position: fixed;
       bottom: var(--space-20, 80px);
       right: var(--space-6, 24px);
-      z-index: 1000;
+      z-index: var(--z-toast, 1000);
       max-width: 380px;
       width: calc(100vw - 48px);
       opacity: 0;

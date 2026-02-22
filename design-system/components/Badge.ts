@@ -110,7 +110,7 @@ export class Badge {
     // Get colors (handle persona variant)
     let colors = VARIANT_COLORS[variant || 'default'];
     if (variant === 'persona' && persona) {
-      const personaColor = PERSONA_COLORS[persona];
+      const personaColor = PERSONA_COLORS[persona] ?? '#4a6741';
       colors = {
         bg: `${personaColor}15`,
         text: personaColor,

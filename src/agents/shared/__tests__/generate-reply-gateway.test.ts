@@ -38,6 +38,11 @@ vi.mock('../../../speech/coordination/index.js', () => ({
   coordinatedSay: (...args: unknown[]) => mockCoordinatedSay(...args),
 }));
 
+// Mock Higgs pipeline provider (for Higgs full-loop raw-audio tests)
+vi.mock('../../../speech/tts-gateway/providers/higgs-pipeline.js', () => ({
+  getHiggsPipelineProvider: vi.fn(),
+}));
+
 // ============================================================================
 // IMPORT AFTER MOCKS
 // ============================================================================
@@ -49,9 +54,11 @@ import {
   markSessionReady,
   resetSessionState,
   getGatewayStats,
+  registerSessionForReconnection,
   type GenerateReplyOptions,
   type GenerateReplyResult,
 } from '../generate-reply-gateway.js';
+import { getHiggsPipelineProvider } from '../../../speech/tts-gateway/providers/higgs-pipeline.js';
 
 // ============================================================================
 // MOCK SESSION FACTORY
@@ -556,5 +563,63 @@ describe('Gateway Integration Scenarios', () => {
 
     const stats = getGatewayStats(testSessionId);
     expect(stats.debouncedCalls).toBe(4);
+  });
+
+  // ==========================================================================
+  // HIGGS FULL LOOP: raw-audio play handler
+  // ==========================================================================
+
+  describe('Higgs full loop (raw-audio path)', () => {
+    const originalTtsProvider = process.env.TTS_PROVIDER;
+
+    afterEach(() => {
+      process.env.TTS_PROVIDER = originalTtsProvider;
+      vi.mocked(getHiggsPipelineProvider).mockReset();
+    });
+
+    it('plays Higgs reply audio via raw-audio handler and calls captureFrame', async () => {
+      process.env.TTS_PROVIDER = 'higgs-pipeline';
+
+      const captureFrame = vi.fn().mockResolvedValue(undefined);
+      const flush = vi.fn();
+
+      const sessionWithAudio = {
+        ...createMockSession(),
+        output: {
+          audio: {
+            captureFrame,
+            flush,
+          },
+        },
+      };
+
+      registerSessionForReconnection(testSessionId, sessionWithAudio as any);
+
+      vi.mocked(getHiggsPipelineProvider).mockReturnValue({
+        isGenerateReplyAvailable: vi.fn().mockResolvedValue(true),
+        generateReply: vi.fn().mockResolvedValue({
+          buffer: new ArrayBuffer(320),
+          sampleRate: 24000,
+        }),
+      } as any);
+
+      markSessionReady(testSessionId);
+
+      const result = await generateReply(
+        sessionWithAudio as any,
+        testSessionId,
+        {
+          instructions: 'Say hi',
+          context: 'test',
+          transcript: 'User said hello',
+        }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.usedFallback).toBe(false);
+      expect(captureFrame).toHaveBeenCalled();
+      expect(captureFrame.mock.calls.length).toBeGreaterThanOrEqual(1);
+      expect(flush).toHaveBeenCalled();
+    });
   });
 });

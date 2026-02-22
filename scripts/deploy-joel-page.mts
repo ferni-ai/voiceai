@@ -90,7 +90,10 @@ async function deploy() {
   const result = await generateAgentPage(joelConfig);
   console.log(`   Size: ${Math.round(result.size / 1024)} KB`);
 
-  // Stable site ID — idempotent deploys overwrite the same document
+  // The subdomain-based doc is what Cloud Run's serveStaticSite() resolves first.
+  // The original deploy created doc 'site_1767458603826_o2t4b8' with subdomain: 'meet-joel'.
+  // We MUST update that doc, not create a new one with a different ID.
+  const subdomainDocId = 'site_1767458603826_o2t4b8';
   const siteId = 'meet-joel';
   const url = `https://ferni.ai/sites/${siteId}`;
 
@@ -104,12 +107,12 @@ async function deploy() {
       agentId: 'joel-dickson',
       agentName: 'Joel Dickson',
       url,
+      subdomain: siteId,
       tier: 'premium',
       status: 'active',
       files: {
         'index.html': result.html,
       },
-      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       analytics: {
         views: 0,
@@ -117,6 +120,9 @@ async function deploy() {
       },
     };
 
+    // Update the subdomain-resolved doc (what Cloud Run actually serves)
+    await db.collection('deployed-sites').doc(subdomainDocId).set(siteData);
+    // Also keep the direct-ID doc in sync for backward compatibility
     await db.collection('deployed-sites').doc(siteId).set(siteData);
     deployed = true;
     console.log('\n✅ Deployed to Firestore!');

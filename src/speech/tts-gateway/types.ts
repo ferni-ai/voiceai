@@ -595,3 +595,6 @@ export interface ILogger {
 export interface Disposable {
   dispose(): void | Promise<void>;
 }
+
+// VoiceBiomarkers is defined above in this file (line ~146).
+// higgs-pipeline.ts re-exports it FROM here, so no circular re-export needed.

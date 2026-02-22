@@ -154,6 +154,21 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
       getLogger().warn({ error }, 'Outcome tracker init skipped (non-critical)');
     }
 
+    // Initialize context injection outcome tracker (H2.4 BTH - A/B test injections)
+    try {
+      const { initializeContextOutcomeTracker } = await import('../intelligence/context-outcome-tracker.js');
+      const { getFirestoreDb } = await import('./superhuman/firestore-utils.js');
+      const db = getFirestoreDb();
+      if (db) {
+        await initializeContextOutcomeTracker(db);
+        getLogger().info('🧪 Context injection outcome tracker initialized');
+      } else {
+        getLogger().debug('Context outcome tracker skipped (no Firestore)');
+      }
+    } catch (error) {
+      getLogger().warn({ error }, 'Context outcome tracker init skipped (non-critical)');
+    }
+
     globalServices = {
       store,
       vectorStore,

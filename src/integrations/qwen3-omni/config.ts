@@ -45,7 +45,7 @@ export function getQwen3OmniConfig(): Qwen3OmniConfig {
     debug: process.env.QWEN3_OMNI_DEBUG === 'true',
     connectionTimeoutMs: parseInt(process.env.QWEN3_OMNI_TIMEOUT_MS || '30000', 10),
     sampleRate: parseInt(process.env.QWEN3_OMNI_SAMPLE_RATE || '24000', 10),
-    enableFunctionCalling: process.env.QWEN3_OMNI_FUNCTION_CALLING !== 'false',
+    enableFunctionCalling: true,
     maxTokens: parseInt(process.env.QWEN3_OMNI_MAX_TOKENS || '4096', 10),
     temperature: parseFloat(process.env.QWEN3_OMNI_TEMPERATURE || '0.7'),
     topP: parseFloat(process.env.QWEN3_OMNI_TOP_P || '0.9'),

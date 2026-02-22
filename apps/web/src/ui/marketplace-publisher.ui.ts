@@ -98,6 +98,7 @@ interface PortalState {
   profile: PublisherProfile | null;
   items: PublisherItem[];
   loading: boolean;
+  loadError: boolean;
   activeTab: 'items' | 'analytics' | 'submit';
   selectedItem: PublisherItem | null;
 }
@@ -152,6 +153,7 @@ const state: PortalState = {
   profile: null,
   items: [],
   loading: false,
+  loadError: false,
   activeTab: 'items',
   selectedItem: null,
 };
@@ -277,6 +279,7 @@ async function loadPublisherData(): Promise<void> {
     log.debug('Publisher data loaded:', { items: state.items.length });
   } catch (error) {
     log.warn('Failed to load publisher data:', error);
+    state.loadError = true;
     toast.error("Couldn't load your data. Try again?");
   }
 }
@@ -358,6 +361,22 @@ function createPortalContainer(): HTMLElement {
 function renderPortal(): void {
   if (!container) return;
 
+  const content = container.querySelector('.publisher-content');
+  if (!content) return;
+
+  if (state.loadError) {
+    content.innerHTML = `
+      <div class="publisher-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
+        Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
+      </div>
+    `;
+    content.querySelector('button')?.addEventListener('click', () => {
+      state.loadError = false;
+      void loadPublisherData().then(() => renderPortal());
+    });
+    return;
+  }
+
   // Update tab states
   container.querySelectorAll('.publisher-tab').forEach((tab) => {
     const tabName = (tab as HTMLElement).dataset.tab;
@@ -367,9 +386,6 @@ function renderPortal(): void {
   });
 
   // Render content based on active tab
-  const content = container.querySelector('.publisher-content');
-  if (!content) return;
-
   switch (state.activeTab) {
     case 'items':
       renderItemsList(content);

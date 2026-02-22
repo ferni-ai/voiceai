@@ -397,10 +397,11 @@ export function resetStreamingTTSMetrics(): void {
 // ============================================================================
 
 /**
- * Check if streaming TTS optimization is enabled
+ * Check if streaming TTS optimization is enabled.
+ * Always true - streaming TTS is always on.
  */
 export function isStreamingTTSEnabled(): boolean {
-  return process.env.STREAMING_TTS_ENABLED !== 'false';
+  return true;
 }
 
 /**

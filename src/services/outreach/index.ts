@@ -35,6 +35,7 @@
  * ```
  */
 
+import { getDisplayName } from '../../personas/persona-ids.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 // Import sub-modules
@@ -638,7 +639,7 @@ async function handleOutreachDelivery(decision: OutreachDecision): Promise<void>
             userId,
             outreachId,
             personaId,
-            title: subject || `Message from ${personaId === 'ferni' ? 'Ferni' : personaId}`,
+            title: subject || `Message from ${getDisplayName(personaId)}`,
             body: finalMessage,
             clickAction: 'https://app.ferni.ai',
             priority: decision.trigger.priority === 'urgent' ? 'high' : 'normal',

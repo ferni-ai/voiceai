@@ -245,17 +245,8 @@ describe('StreamingTTSTransform', () => {
   });
 
   describe('isStreamingTTSEnabled', () => {
-    it('should return true by default', () => {
+    it('should always return true (streaming TTS always on)', () => {
       expect(isStreamingTTSEnabled()).toBe(true);
-    });
-
-    it('should return false when env var is "false"', () => {
-      const originalEnv = process.env.STREAMING_TTS_ENABLED;
-      process.env.STREAMING_TTS_ENABLED = 'false';
-
-      expect(isStreamingTTSEnabled()).toBe(false);
-
-      process.env.STREAMING_TTS_ENABLED = originalEnv;
     });
   });
 

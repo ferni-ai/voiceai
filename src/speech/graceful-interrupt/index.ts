@@ -429,12 +429,11 @@ export function getRecoverySsml(sessionId: string, options: RecoveryOptions): Re
   const prefixes = RECOVERY_PREFIXES[options.interruptType];
   const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
 
-  // Maybe add verbal acknowledgment (sparingly)
+  // Maybe add verbal acknowledgment (probabilistic: 60% soft, 80% hard)
+  const prob = options.interruptType === 'hard' ? 0.8 : 0.6;
   const acks = INTERRUPT_ACKNOWLEDGMENTS[options.interruptType];
   const acknowledgment =
-    Math.random() < 0.2 // Only 20% of the time
-      ? acks[Math.floor(Math.random() * acks.length)]
-      : '';
+    Math.random() < prob ? acks[Math.floor(Math.random() * acks.length)] : '';
 
   // Extract speed/volume from the prefix for caller to use
   const speedMatch = prefix.match(/speed ratio="([\d.]+)"/);
@@ -535,6 +534,36 @@ export function wrapWithInterruptAwareness(
 }
 
 // =============================================================================
+// AUDIO FADE INTERRUPT (Higgs pipeline)
+// =============================================================================
+
+/**
+ * Audio-level fade interrupt for Higgs pipeline.
+ *
+ * Instead of SSML-based trailing (which only works with Cartesia),
+ * this sends a fade_interrupt command to the Rust pipeline for
+ * a smooth 80ms audio fade-out at the PCM level.
+ *
+ * @param provider - HiggsPipelineProvider instance (or any object with fadeInterrupt method)
+ * @param fadeMs - Fade duration in ms (default: 80)
+ */
+export async function audioFadeInterrupt(
+  provider: { fadeInterrupt: (fadeMs: number) => Promise<void> } | null,
+  fadeMs = 80
+): Promise<boolean> {
+  if (!provider) return false;
+
+  try {
+    await provider.fadeInterrupt(fadeMs);
+    log.debug({ fadeMs }, 'Audio fade interrupt sent to Higgs pipeline');
+    return true;
+  } catch (err) {
+    log.warn({ error: String(err) }, 'Audio fade interrupt failed, falling back to SSML');
+    return false;
+  }
+}
+
+// =============================================================================
 // RE-EXPORT SPEECH WRAPPER
 // =============================================================================
 
@@ -562,6 +591,7 @@ export default {
   getTrailingSsml,
   getRecoverySsml,
   endRecovery,
+  audioFadeInterrupt,
 
   // Main integration
   wrapWithInterruptAwareness,

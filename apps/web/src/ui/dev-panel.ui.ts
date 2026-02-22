@@ -74,7 +74,7 @@ import { winterSolsticeMoment } from './winter-solstice.ui.js';
 
 // Ambient experience managers (circadian, warmth, persona aura)
 import { circadianManager, type CircadianPeriod } from '../services/circadian-manager.js';
-import { warmthManager, type RelationshipStage } from '../services/warmth-manager.js';
+import { warmthManager } from '../services/warmth-manager.js';
 
 // Ferni Moments - Character expressions
 import { ferniMoments, type MomentType } from './ferni-moments.ui.js';
@@ -108,6 +108,7 @@ import {
 } from '../narrative/index.js';
 
 // Dev Panel Modules (extracted for maintainability)
+import { cancelAllAvatarAnimations } from './dev-panel/handlers/index.js';
 import { handleOutreachAction as handleOutreachActionImpl } from './dev-panel/handlers/outreach.js';
 import { ICONS } from './dev-panel/icons.js';
 import { toast } from './whisper.ui.js';
@@ -337,6 +338,7 @@ export function showPanel(): void {
 export function hidePanel(): void {
   if (!panel) return;
 
+  cancelAllAvatarAnimations();
   panel.classList.remove('dev-panel--visible');
   trackedTimeout(() => {
     panel?.remove();
@@ -1365,7 +1367,7 @@ function createPanel(): HTMLElement {
             <button aria-label="New Team Member" class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="team" title="Meet new team member">
               ${ICONS.handshake} New Team Member
             </button>
-            <button aria-label="Winter Solstice" class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="winter-solstice" title="Winter Solstice - Full cinematic experience" style="background: linear-gradient(135deg, #0d1b2a, #2c3e50); border: 1px solid #4a6741;">
+            <button aria-label="Winter Solstice" class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="winter-solstice" title="Winter Solstice - Full cinematic experience" style="background: var(--gradient-surface, linear-gradient(135deg, #0d1b2a, #2c3e50)); border: 1px solid var(--color-ferni, #4a6741);">
               ${ICONS.sunset} Winter Solstice
             </button>
           </div>

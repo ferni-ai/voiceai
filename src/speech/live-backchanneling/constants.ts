@@ -126,3 +126,27 @@ export const BREATH_PAUSE_CONFIG = {
   /** History size for pause duration tracking */
   PAUSE_HISTORY_SIZE: 20,
 } as const;
+
+// ============================================================================
+// EXTENDED PAUSE & MICRO-REACTION CONFIG
+// ============================================================================
+
+/** Extended pauses (800-1500ms) — moments for subtle verbal acknowledgments */
+export const EXTENDED_PAUSE_MIN_MS = 800;
+export const EXTENDED_PAUSE_MAX_MS = 1500;
+
+/** Don't react too often — minimum ms between micro-reactions */
+export const MICRO_REACTION_COOLDOWN_MS = 8000;
+
+/**
+ * Softer than regular backchannels — for extended pauses during user speech.
+ * Keys match SOFT_BACKCHANNELS persona IDs.
+ */
+export const MICRO_REACTION_PHRASES: Record<string, string[]> = {
+  ferni: ['Mm', 'Hmm', 'Mm-hmm'],
+  'peter-john': ['Mm', 'Hmm', 'I see'],
+  'maya-santos': ['Mm', 'Hmm', 'Mhm'],
+  'alex-chen': ['Mm', 'Hmm', 'Right'],
+  'jordan-taylor': ['Mm', 'Hmm', 'Okay'],
+  'nayan-patel': ['Mm', 'Hmm', 'Ah'],
+};

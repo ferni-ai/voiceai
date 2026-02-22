@@ -174,7 +174,7 @@ class CelebrationManager {
 
   private showConfetti(count: number, duration: number, personaId: string): void {
     this.ensureContainer();
-    const colors = PERSONA_COLORS[personaId] || PERSONA_COLORS.default;
+    const colors: string[] = PERSONA_COLORS[personaId] ?? PERSONA_COLORS['default'] ?? [];
 
     // Create particles
     for (let i = 0; i < count; i++) {

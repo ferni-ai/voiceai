@@ -51,6 +51,8 @@ import {
   initializePreSTTIntegration,
   type PreSTTIntegrationResult,
 } from '../integrations/pre-stt-audio-integration.js';
+import { getVoiceBiomarkerPipeline } from '../../speech/voice-biomarkers/index.js';
+import { mapProsodyToVoiceFeatures } from '../../speech/voice-biomarkers/prosody-mapper.js';
 import { trackEmotionDetection } from '../integrations/speech-metrics-integration.js';
 import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 import type { UserData } from '../shared/types.js';
@@ -420,6 +422,41 @@ export async function processAudioStream(
     const voiceEmotion = prosodyAnalyzer?.analyze() ?? null;
     if (voiceEmotion && userData) {
       userData.voiceEmotion = voiceEmotion;
+
+      // 🎤 Per-session voice memory: collect snapshot when prosody is available
+      if (userId) {
+        try {
+          const { recordVoiceSnapshot, toVoiceSnapshot } = await import(
+            '../../memory/voice-session-store.js'
+          );
+          const turnIndex = (userData as { turnCount?: number }).turnCount ?? 0;
+          const snapshot = toVoiceSnapshot(
+            {
+              primary: voiceEmotion.primary,
+              stressLevel: voiceEmotion.stressLevel,
+              prosody: voiceEmotion.prosody,
+            },
+            turnIndex
+          );
+          recordVoiceSnapshot(sessionId, userId, snapshot);
+        } catch {
+          // Non-critical - voice memory is enhancement only
+        }
+      }
+
+      // 🧬 Voice biomarkers (Cartesia path): Map prosody → biomarker pipeline for stress, fatigue, anxiety
+      if (voiceEmotion.prosody) {
+        try {
+          const voiceFeatures = mapProsodyToVoiceFeatures(voiceEmotion.prosody);
+          if (voiceFeatures) {
+            const pipeline = getVoiceBiomarkerPipeline();
+            const biomarkerState = await pipeline.analyze(voiceFeatures);
+            userData.voiceBiomarkers = biomarkerState;
+          }
+        } catch (biomarkerError) {
+          logger.debug({ error: String(biomarkerError) }, 'Voice biomarker analysis skipped (non-critical)');
+        }
+      }
 
       // Process emotion results
       await processVoiceEmotion(voiceEmotion, {

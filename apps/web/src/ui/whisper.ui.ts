@@ -501,7 +501,7 @@ export const whisper = {
 // ============================================================================
 
 export function disposeWhisper(): void {
-  clearAllTimeouts();
+  _clearAllTimeouts();
   dismissAll();
   
   if (whisperContainer) {

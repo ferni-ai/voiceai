@@ -20,6 +20,7 @@
  * @module agents/shared/conversation-priming
  */
 
+import { isCoach } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ConversationPriming' });
@@ -201,8 +202,8 @@ export function getPrimingTurns(config: ConversationPrimingConfig): PrimingTurn[
 
     log.debug('🎯 PRIMING: Added weather tool priming turns (direct, polite, capability)');
 
-    // Handoff priming based on persona
-    if (config.personaId === 'ferni') {
+    // Handoff priming based on persona (coordinator only)
+    if (isCoach(config.personaId)) {
       // Handoff priming - DIRECT
       turns.push({
         role: 'user',

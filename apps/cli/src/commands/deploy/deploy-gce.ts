@@ -319,6 +319,9 @@ function getSecrets(): Record<string, string> {
     'use-vertex-ai',
     // LiveKit Gemini plugin uses different env var for Vertex AI
     'google-genai-use-vertexai',
+    // Gemini & Vertex AI API keys (required for Gemini Live bidiGenerateContent)
+    'gemini-api-key',
+    'vertex-ai-api-key',
   ];
 
   const secrets: Record<string, string> = {};
@@ -667,8 +670,18 @@ function deployToSlot(
     REDIS_PORT: String(CONFIG.redisPort),
     // Enable Pub/Sub for background task offloading
     PUBSUB_ENABLED: 'true',
-    // Use Gemini model (defaults configured in gemini-config.ts)
+    // Use Gemini Live model (not OpenAI Realtime)
     USE_OPENAI_REALTIME: 'false',
+    // Gemini model config — match local .env settings
+    GEMINI_MODEL: 'gemini-2.0-flash-live-preview-04-09',
+    CARTESIA_MODEL: 'sonic-3-latest',
+    // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
+    GOOGLE_GENAI_USE_VERTEXAI: 'true',
+    USE_VERTEX_AI: 'true',
+    // Agent name for LiveKit worker registration
+    AGENT_NAME: 'voice-agent',
+    // Post-TTS audio enhancements disabled on GCE (causes static artifacts)
+    POST_TTS_ENHANCEMENT_ENABLED: 'false',
     // Kyutai DSM sidecars (STT + TTS) — reach via Docker host gateway
     ...(CONFIG.kyutai.enabled
       ? {
@@ -724,8 +737,18 @@ function promoteSlot(slot: 'blue' | 'green', image: string, secrets: Record<stri
     GCS_VOICE_BUCKET: 'ferni-voice-audio-3235',
     REDIS_HOST: '172.17.0.1',
     REDIS_PORT: String(CONFIG.redisPort),
-    // Use Gemini model (defaults configured in gemini-config.ts)
+    // Use Gemini Live model (not OpenAI Realtime)
     USE_OPENAI_REALTIME: 'false',
+    // Gemini model config — match local .env settings
+    GEMINI_MODEL: 'gemini-2.0-flash-live-preview-04-09',
+    CARTESIA_MODEL: 'sonic-3-latest',
+    // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
+    GOOGLE_GENAI_USE_VERTEXAI: 'true',
+    USE_VERTEX_AI: 'true',
+    // Agent name for LiveKit worker registration
+    AGENT_NAME: 'voice-agent',
+    // Post-TTS audio enhancements disabled on GCE (causes static artifacts)
+    POST_TTS_ENHANCEMENT_ENABLED: 'false',
     // Kyutai DSM sidecars (STT + TTS) — reach via Docker host gateway
     ...(CONFIG.kyutai.enabled
       ? {
@@ -891,6 +914,13 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
   envVarsArray.push('REDIS_URL=redis://10.237.188.163:6379'); // Redis internal IP
   envVarsArray.push('PUBSUB_ENABLED=true');
   envVarsArray.push('PORT=8080');
+  // Gemini model config — match local .env settings
+  envVarsArray.push('USE_OPENAI_REALTIME=false');
+  envVarsArray.push('GEMINI_MODEL=gemini-2.0-flash-live-preview-04-09');
+  envVarsArray.push('CARTESIA_MODEL=sonic-3-latest');
+  envVarsArray.push('GOOGLE_GENAI_USE_VERTEXAI=false');
+  envVarsArray.push('USE_VERTEX_AI=false');
+  envVarsArray.push('AGENT_NAME=voice-agent');
   // Disable post-TTS audio enhancement (causing issues in production)
   envVarsArray.push('POST_TTS_ENHANCEMENT_ENABLED=false');
 

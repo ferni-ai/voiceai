@@ -47,7 +47,8 @@ const log = createLogger('PanelMethods');
  */
 export async function showConversationHistory(): Promise<void> {
   void trackScreen('journal');
-  // Try to fetch real data from API
+  getConversationHistoryUI().showLoading();
+
   try {
     const response = await fetch('/api/conversations');
     if (response.ok) {
@@ -112,14 +113,8 @@ export async function showConversationHistory(): Promise<void> {
     return;
   }
 
-  // Show empty state
-  getConversationHistoryUI().show({
-    sessions: [],
-    totalSessions: 0,
-    totalMinutes: 0,
-    favoritePersona: undefined,
-    insightCount: 0,
-  });
+  // Show error state with retry when fetch fails and demo data is disabled
+  getConversationHistoryUI().showError(() => void showConversationHistory());
 }
 
 // ============================================================================
@@ -246,14 +241,13 @@ export async function deleteMemory(memoryId: string): Promise<void> {
  */
 export async function showCognitiveInsights(): Promise<void> {
   void trackScreen('cognitive-insights');
-  // Set up callbacks for user actions
   getCognitiveInsightsUI().setCallbacks({
     onDeleteMemory: async (memoryId: string) => {
       await deleteMemory(memoryId);
     },
   });
+  getCognitiveInsightsUI().showLoading();
 
-  // Try to fetch real data from API
   try {
     const response = await fetch('/api/cognitive/memories');
     if (response.ok) {
@@ -278,13 +272,8 @@ export async function showCognitiveInsights(): Promise<void> {
     return;
   }
 
-  // Show empty state
-  getCognitiveInsightsUI().show({
-    memories: [],
-    patterns: [],
-    totalInteractions: 0,
-    knowledgeScore: 0,
-  });
+  // Show error state with retry when fetch fails and demo data is disabled
+  getCognitiveInsightsUI().showError(() => void showCognitiveInsights());
 }
 
 /**

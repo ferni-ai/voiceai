@@ -82,10 +82,20 @@ export { emitBthUIHint, type BthHintType, type BthHintDetail };
 
 let avatarContainer: HTMLElement | null = null;
 
+/** Track somatic presence animations for cancel on cleanup */
+const somaticAnimations: Animation[] = [];
+
 /**
- * Set the avatar container element
+ * Set the avatar container element.
+ * When set to null, cancels any active somatic animations.
  */
 export function setAvatarContainer(container: HTMLElement | null): void {
+  if (container === null) {
+    for (const anim of somaticAnimations) {
+      anim.cancel();
+    }
+    somaticAnimations.length = 0;
+  }
   avatarContainer = container;
 }
 
@@ -259,10 +269,10 @@ async function handleVisibleVulnerabilitySignal(signal: BetterThanHumanSignal): 
 
   if (soul) {
     soul.setPupilDilation('NEUTRAL', 'slow');
-    soul.setGlowBleed(0.12 + intensity * 0.08, config.glow);
+    soul.setGlowBleed(0.12 + intensity * 0.08, config?.glow ?? 'rgba(154, 123, 90, 0.4)');
   }
 
-  ferniExpressions.setExpression(config.expression as Parameters<typeof ferniExpressions.setExpression>[0], 500);
+  ferniExpressions.setExpression((config?.expression ?? 'contemplative') as Parameters<typeof ferniExpressions.setExpression>[0], 500);
 
   // Emit hint to show Ferni's authentic uncertainty
   emitBthUIHint('vulnerability', vulnerabilityType, { intensity });
@@ -357,7 +367,7 @@ async function handleSomaticPresenceSignal(signal: BetterThanHumanSignal): Promi
     case 'settling':
       // Settling into presence - gentle downward motion
       if (avatarContainer) {
-        avatarContainer.animate(
+        const anim = avatarContainer.animate(
           [
             { transform: 'translateY(0)' },
             { transform: 'translateY(2px)' },
@@ -368,6 +378,11 @@ async function handleSomaticPresenceSignal(signal: BetterThanHumanSignal): Promi
             easing: EASING.GENTLE,
           }
         );
+        somaticAnimations.push(anim);
+        anim.onfinish = () => {
+          const i = somaticAnimations.indexOf(anim);
+          if (i >= 0) somaticAnimations.splice(i, 1);
+        };
       }
       if (soul) {
         soul.setGlowBleed(0.15, 'rgba(154, 123, 90, 0.4)');
@@ -378,7 +393,7 @@ async function handleSomaticPresenceSignal(signal: BetterThanHumanSignal): Promi
     case 'grounding':
       // Deep grounding - stable, weighted presence
       if (avatarContainer) {
-        avatarContainer.animate(
+        const anim = avatarContainer.animate(
           [
             { transform: 'translateY(0)' },
             { transform: 'translateY(3px)' },
@@ -389,6 +404,11 @@ async function handleSomaticPresenceSignal(signal: BetterThanHumanSignal): Promi
             easing: EASING.GENTLE,
           }
         );
+        somaticAnimations.push(anim);
+        anim.onfinish = () => {
+          const i = somaticAnimations.indexOf(anim);
+          if (i >= 0) somaticAnimations.splice(i, 1);
+        };
       }
       if (soul) {
         soul.setPupilDilation('CONNECTED', 'slow');
@@ -455,11 +475,11 @@ async function handleAnticipatoryPresenceSignal(signal: BetterThanHumanSignal): 
 
   if (soul) {
     soul.setPupilDilation('INTERESTED', 'slow');
-    soul.setGlowBleed(0.2 + intensity * 0.1, config.glow);
+    soul.setGlowBleed(0.2 + intensity * 0.1, config?.glow ?? 'rgba(196, 162, 101, 0.45)');
   }
 
-  ferniExpressions.setExpression(config.expression as Parameters<typeof ferniExpressions.setExpression>[0], 400);
-  playMicroExpression(config.microExpression as Parameters<typeof playMicroExpression>[0]);
+  ferniExpressions.setExpression((config?.expression ?? 'present') as Parameters<typeof ferniExpressions.setExpression>[0], 400);
+  playMicroExpression((config?.microExpression ?? 'recognition') as Parameters<typeof playMicroExpression>[0]);
 
   // Emit hint showing time awareness
   emitBthUIHint('anticipatory', timeContext, { intensity });
@@ -570,6 +590,15 @@ export function initBetterThanHumanSignalHandlers(): void {
 
   // Also listen via custom event channel (for WebSocket messages)
   document.addEventListener('ferni:humanization-signal', ((event: CustomEvent) => {
+    const signal = event.detail as BetterThanHumanSignal;
+    if (signal && signal.signalType) {
+      handleBetterThanHumanSignal(signal);
+    }
+  }) as EventListener);
+
+  // Listen for BTH signals delegated from humanization-bridge.service.ts
+  // (10 superhuman signal types: emotional_bond_deepen, protective_instinct, etc.)
+  document.addEventListener('ferni:bth-signal', ((event: CustomEvent) => {
     const signal = event.detail as BetterThanHumanSignal;
     if (signal && signal.signalType) {
       handleBetterThanHumanSignal(signal);

@@ -74,7 +74,8 @@ export type VisualizationType =
   // Superhuman capability visualizations (Phase 1)
   | 'energy-wave'
   | 'social-battery'
-  | 'celebration-wheel';
+  | 'celebration-wheel'
+  | 'actions-taken';
 
 // ============================================================================
 // DATA TYPES - Shared across platforms
@@ -284,7 +285,7 @@ export interface EnergyRingsData {
  * Contains both the rendered element and metadata.
  */
 export interface VisualizationResult {
-  /** The rendered DOM element */
+  /** The rendered DOM element (may be the container for builders that mutate in place) */
   element: HTMLElement;
   /** Visualization type */
   type: VisualizationType;
@@ -292,6 +293,8 @@ export interface VisualizationResult {
   device: DeviceType;
   /** Cleanup function to remove event listeners */
   cleanup?: () => void;
+  /** Update function for dynamic data refresh (optional) */
+  update?: (data: unknown) => void;
   /** Accessibility label */
   ariaLabel: string;
 }

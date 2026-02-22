@@ -12,6 +12,7 @@
  * dispensing advice, they're FEELING the conversation with you.
  */
 
+import { isCoach } from '../personas/persona-ids.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
@@ -286,7 +287,7 @@ export function getMoodExpression(
  */
 function getMoodExpressions(personaId: string, mood: MoodType, energy: number): string[] {
   // Ferni-specific expressions
-  if (personaId === 'ferni') {
+  if (isCoach(personaId)) {
     switch (mood) {
       case 'tender':
         return [

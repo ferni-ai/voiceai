@@ -26,6 +26,7 @@ import { modelConfig } from '../../services/model-config.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from '../shared/types.js';
+import { getRealtimeModel } from '../../config/gemini-config.js';
 // Centralized tool configuration (Jan 2026)
 import { capToolsToLimit, getMaxTools } from '../../config/tool-config.js';
 
@@ -1069,8 +1070,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // - gemini-2.0-flash-live-preview-04-09 (WORKING on Vertex AI Live API)
   // - gemini-2.0-flash-exp (NOT supported by Live API)
   //
-  // Use GEMINI_MODEL env var or gemini-live.ts DEFAULT_GEMINI_MODEL
-  const VOICE_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash-live-preview-04-09';
+  const VOICE_MODEL = getRealtimeModel();
 
   log.info(
     { personaId: persona.id, providerId: modelProvider.id, model: VOICE_MODEL },

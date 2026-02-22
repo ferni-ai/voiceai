@@ -424,6 +424,7 @@ export function createBreathAnimation(
   pattern: keyof typeof BREATH_PATTERNS = 'natural'
 ): () => void {
   const cycle = BREATH_PATTERNS[pattern];
+  if (!cycle) return () => {};
   const totalDuration = cycle.inhale + cycle.hold + cycle.exhale + cycle.pause;
 
   const keyframes: Keyframe[] = [

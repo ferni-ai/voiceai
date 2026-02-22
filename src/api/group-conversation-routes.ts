@@ -9,6 +9,7 @@
  */
 
 import { Router, type Request, type Response } from 'express';
+import { isCoach } from '../personas/persona-ids.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
@@ -124,7 +125,7 @@ router.post('/roundtable/start', async (req: Request, res: Response) => {
         id: `agent_${personaId}`,
         name: getPersonaName(personaId),
         type: 'agent' as const,
-        role: personaId === 'ferni' ? 'moderator' : 'expert',
+        role: isCoach(personaId) ? 'moderator' : 'expert',
         joinedAt: new Date().toISOString(),
       })),
       startedAt: new Date().toISOString(),

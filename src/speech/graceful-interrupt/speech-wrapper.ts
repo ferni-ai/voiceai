@@ -12,7 +12,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { addCushioning, getRecoverySsml, endRecovery, getInterruptState } from './index.js';
+import { addCushioning, endRecovery, getInterruptState } from './index.js';
 
 const log = createLogger({ module: 'InterruptSpeechWrapper' });
 
@@ -41,6 +41,57 @@ export interface WrappedSpeech {
   /** Whether cushioning was applied */
   cushioningApplied: boolean;
 }
+
+// =============================================================================
+// BARGE-IN ACKNOWLEDGMENTS - Verbal Phrases Per Persona
+// =============================================================================
+
+/**
+ * Short verbal acknowledgments when the user interrupts. Spoken quickly and softly
+ * before the recovery opening. Keeps it natural—1–4 words max, persona-appropriate.
+ *
+ * - soft: User just started talking (no explicit stop words)
+ * - hard: User said "wait", "hold on", etc.
+ */
+const BARGE_IN_ACKNOWLEDGMENTS: Record<string, { soft: string[]; hard: string[] }> = {
+  ferni: {
+    soft: ['Oh—', 'Yeah?', 'Mm?', 'Go ahead.', 'Sorry—'],
+    hard: ['Oh, go ahead.', 'Sorry, what were you saying?', 'Yeah, go on.'],
+  },
+  'peter-john': {
+    soft: ['Oh—', 'Yes?', 'Mm?', 'Go ahead.'],
+    hard: ['Oh, of course. Go ahead.', 'Sorry, please continue.'],
+  },
+  'maya-santos': {
+    soft: ['Oh—', 'Yeah?', 'Mm?', 'Go on.'],
+    hard: ['Oh, go ahead!', 'Sorry about that.', 'Yeah, tell me.'],
+  },
+  'alex-chen': {
+    soft: ['Oh—', 'Yeah?', 'Right—', 'Go ahead.'],
+    hard: ['Oh, go ahead.', 'Sorry, continue.'],
+  },
+  'jordan-taylor': {
+    soft: ['Oh—', 'Yeah?', 'Mm?', 'Go ahead!'],
+    hard: ['Oh, my bad! Go ahead.', 'Sorry, what were you saying?'],
+  },
+  'nayan-patel': {
+    soft: ['Ah—', 'Yes?', 'Mm?', 'Please, go on.'],
+    hard: ['Ah, please continue.', 'I apologize, go ahead.'],
+  },
+  'joel-dickson': {
+    soft: ['Oh—', 'Yes?', 'Mm?', 'Go ahead.'],
+    hard: ['Oh, of course. Go ahead.', 'Sorry, please continue.'],
+  },
+};
+
+/** Probability of verbal acknowledgment: soft interrupt (~60%), hard interrupt (~80%) */
+const ACKNOWLEDGMENT_PROBABILITY = { soft: 0.6, hard: 0.8 };
+
+/**
+ * SSML to speak acknowledgment quickly and softly.
+ * Quick speed (1.15x) + soft volume (0.72) so it doesn't compete with the main response.
+ */
+const ACKNOWLEDGMENT_SSML_WRAP = '<speed ratio="1.15"/><volume ratio="0.72"/>';
 
 // =============================================================================
 // RECOVERY SSML - Persona-Specific
@@ -150,6 +201,25 @@ function getPersonaRecoveryOpening(personaId: string, interruptType: 'hard' | 's
   return options[Math.floor(Math.random() * options.length)];
 }
 
+/**
+ * Get optional verbal barge-in acknowledgment.
+ * Uses probability based on interrupt type; returns SSML-wrapped phrase or empty string.
+ */
+function getBargeInAcknowledgment(
+  personaId: string,
+  interruptType: 'hard' | 'soft'
+): string {
+  const prob = ACKNOWLEDGMENT_PROBABILITY[interruptType];
+  if (Math.random() >= prob) {
+    return '';
+  }
+  const personaAcks = BARGE_IN_ACKNOWLEDGMENTS[personaId] || BARGE_IN_ACKNOWLEDGMENTS.ferni;
+  const pool = personaAcks[interruptType];
+  const phrase = pool[Math.floor(Math.random() * pool.length)];
+  if (!phrase) return '';
+  return `${ACKNOWLEDGMENT_SSML_WRAP}${phrase}<break time="120ms"/>`;
+}
+
 // =============================================================================
 // MAIN WRAPPER FUNCTION
 // =============================================================================
@@ -198,14 +268,16 @@ export function wrapSpeechWithInterruptAwareness(
   if (wasInterrupted) {
     const type = interruptType || 'soft';
     const recoveryOpening = getPersonaRecoveryOpening(personaId, type);
+    const verbalAck = getBargeInAcknowledgment(personaId, type);
 
-    result = recoveryOpening + result;
+    result = verbalAck + recoveryOpening + result;
     recoveryApplied = true;
 
     log.debug(
       {
         personaId,
         interruptType: type,
+        hasVerbalAck: !!verbalAck,
         textPreview: text.slice(0, 40),
       },
       '🎭 Applied interrupt recovery softening'
@@ -275,17 +347,19 @@ export function createInterruptAwareTransform(
       // Apply recovery opening to the very first chunk
       if (isFirstChunk && wasInterrupted) {
         const type = interruptType || 'soft';
+        const verbalAck = getBargeInAcknowledgment(personaId, type);
         const recoveryOpening = getPersonaRecoveryOpening(personaId, type);
 
         log.debug(
           {
             personaId,
             interruptType: type,
+            hasVerbalAck: !!verbalAck,
           },
           '🎭 Applied streaming recovery opening'
         );
 
-        controller.enqueue(recoveryOpening);
+        controller.enqueue(verbalAck + recoveryOpening);
         isFirstChunk = false;
       } else {
         isFirstChunk = false;

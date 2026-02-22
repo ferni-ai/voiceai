@@ -150,6 +150,7 @@ const state: TeamInsightsPanelState = {
 let panelElement: HTMLElement | null = null;
 let isInitialized = false;
 let pollInterval: ReturnType<typeof setInterval> | null = null;
+let escapeHandlerRef: ((e: KeyboardEvent) => void) | null = null;
 
 // ============================================================================
 // WEBSOCKET CLIENT
@@ -1569,12 +1570,13 @@ export function initTeamInsightsUI(): void {
   panelElement = createPanel();
   document.body.appendChild(panelElement);
 
-  // Keyboard handler
-  document.addEventListener('keydown', (e) => {
+  // Keyboard handler (stored for cleanup)
+  escapeHandlerRef = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && state.isOpen) {
       closePanel();
     }
-  });
+  };
+  document.addEventListener('keydown', escapeHandlerRef);
 
   // Try WebSocket first for real-time updates, fall back to polling
   // Note: WebSocket only works in development (via Vite proxy)
@@ -1596,6 +1598,12 @@ export function disposeTeamInsightsUI(): void {
 
   // Stop polling
   stopPolling();
+
+  // Remove keydown listener
+  if (escapeHandlerRef) {
+    document.removeEventListener('keydown', escapeHandlerRef);
+    escapeHandlerRef = null;
+  }
 
   // Clear any pending timeouts
   _clearAllTimeouts();

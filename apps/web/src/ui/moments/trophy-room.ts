@@ -672,7 +672,7 @@ class TrophyRoom {
   // ==========================================================================
 
   destroy(): void {
-    clearAllTimeouts();
+    _clearAllTimeouts();
     document.removeEventListener('keydown', this.handleKeydown);
     this.element?.remove();
     this.detailModal?.remove();

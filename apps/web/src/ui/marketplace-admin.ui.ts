@@ -77,6 +77,7 @@ interface AdminState {
     pendingReviews: number;
   };
   loading: boolean;
+  loadError: boolean;
   activeTab: 'queue' | 'reviews' | 'stats';
   selectedItem: QueueItem | null;
 }
@@ -114,6 +115,7 @@ const state: AdminState = {
     pendingReviews: 0,
   },
   loading: false,
+  loadError: false,
   activeTab: 'queue',
   selectedItem: null,
 };
@@ -213,6 +215,7 @@ async function loadData(): Promise<void> {
     });
   } catch (error) {
     log.error('Failed to load admin data:', error);
+    state.loadError = true;
     toast.error("Couldn't load the queue. Try refreshing?");
   }
 }
@@ -292,6 +295,19 @@ function renderPanel(): void {
 
   const content = container.querySelector('.admin-content');
   if (!content) return;
+
+  if (state.loadError) {
+    content.innerHTML = `
+      <div class="admin-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
+        Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
+      </div>
+    `;
+    content.querySelector('button')?.addEventListener('click', () => {
+      state.loadError = false;
+      void loadData().then(() => renderPanel());
+    });
+    return;
+  }
 
   switch (state.activeTab) {
     case 'queue':

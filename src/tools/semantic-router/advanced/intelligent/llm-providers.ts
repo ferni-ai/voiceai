@@ -15,10 +15,12 @@
  */
 
 import {
+  ANTHROPIC_MODEL,
   GEMINI_MAX_OUTPUT_TOKENS,
   GEMINI_MODEL,
   GEMINI_TEMPERATURE_LOW,
   LLM_TIMEOUT_MS,
+  OPENAI_FALLBACK_MODEL,
 } from '../../../../config/gemini-config.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { GoalPlannerLLMProvider, ToolDefinition as PlannerTool } from './goal-planner.js';
@@ -343,7 +345,7 @@ const OPENAI_SYSTEM_PROMPT = `You are a precise tool selection and planning assi
 export function createOpenAIProvider(config: LLMProviderConfig): UnifiedLLMProvider {
   const {
     apiKey,
-    model = 'gpt-4o-mini',
+    model = OPENAI_FALLBACK_MODEL,
     temperature = GEMINI_TEMPERATURE_LOW, // Use same temp default for consistency
     maxTokens = GEMINI_MAX_OUTPUT_TOKENS,
     timeoutMs = LLM_TIMEOUT_MS,
@@ -511,7 +513,7 @@ ${toolsText}`;
 export function createClaudeProvider(config: LLMProviderConfig): UnifiedLLMProvider {
   const {
     apiKey,
-    model = 'claude-3-haiku-20240307',
+    model = ANTHROPIC_MODEL,
     temperature = GEMINI_TEMPERATURE_LOW, // Use same temp default for consistency
     maxTokens = GEMINI_MAX_OUTPUT_TOKENS,
     timeoutMs = LLM_TIMEOUT_MS,

@@ -83,6 +83,10 @@ interface Milestone {
   // Progress tracking (for multi-step milestones)
   progress?: number;
   target?: number;
+  /** Emoji/icon for the milestone type */
+  emoji?: string;
+  /** Persona who celebrated with the user */
+  personaId?: string;
 }
 
 interface MilestoneProgress {
