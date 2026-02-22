@@ -36,8 +36,8 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // ============================================================================
 
 const BAR_COUNT = 9; // More bars for smoother curves
-const MIN_BAR_HEIGHT = 3;
-const MAX_BAR_HEIGHT = 34; // Fits within 36px container with room for shadows
+const MIN_BAR_HEIGHT = 6;
+const MAX_BAR_HEIGHT = 48; // Fits within 56px container with room for shadows
 
 // ============================================================================
 // EMOTION SHAPES - Bar height multipliers to form expressions

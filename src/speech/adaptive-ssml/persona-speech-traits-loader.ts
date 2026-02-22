@@ -204,6 +204,7 @@ export async function preloadAllTraits(): Promise<void> {
     'alex-chen',
     'jordan-taylor',
     'nayan-patel',
+    'joel-dickson',
   ];
 
   // Preload both layers in parallel

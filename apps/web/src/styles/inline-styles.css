@@ -103,6 +103,7 @@ body {
   --color-maya-text: var(--color-maya, #a67a6a);
   --color-jordan-text: var(--color-jordan, #c4856a);
   --color-nayan-text: var(--color-nayan, #b8956a);
+  --color-joel-text: var(--color-joel, #9A0718);
 
   /* Marketplace persona text colors */
   --color-eli-text: var(--color-eli, #6B5B95);
@@ -204,7 +205,7 @@ body {
   --waveform-height-lg: 48px; /* Desktop */
   --waveform-height-md: 44px; /* Tablet */
   --waveform-height-sm: 40px; /* Mobile */
-  --waveform-height-xs: 36px; /* Small */
+  --waveform-height-xs: 48px; /* Small */
   --waveform-bar-width: 4px;
   --waveform-bar-gap: 4px;
 
@@ -532,6 +533,14 @@ body {
   --persona-bg-tint: rgba(184, 149, 106, 0.08);
 }
 
+/* Joel Dickson - Vanguard Burgundy (distinguished, trustworthy, financial wisdom) */
+[data-persona='joel-dickson'] {
+  --persona-primary: #9A0718;
+  --persona-secondary: #7A0514;
+  --persona-glow: rgba(154, 7, 24, 0.28);
+  --persona-bg-tint: rgba(154, 7, 24, 0.06);
+}
+
 /* Alex - Soft Indigo (clear communication, flow) */
 [data-persona='alex-chen'] {
   --persona-primary: #5a6b8a;
@@ -792,6 +801,11 @@ body {
   --member-color: var(--color-nayan, #b8956a);
 }
 
+[data-theme='zen'] .team-member[data-persona-id='joel-dickson']:hover,
+[data-theme='zen'] .team-member[data-persona-id='joel-dickson'].active {
+  --member-color: var(--color-joel, #9A0718);
+}
+
 [data-theme='zen'] .team-member[data-persona-id='alex-chen']:hover,
 [data-theme='zen'] .team-member[data-persona-id='alex-chen'].active {
   --member-color: var(--color-alex, #5a6b8a);
@@ -896,6 +910,15 @@ body {
     145deg,
     var(--color-nayan, #b8956a) 0%,
     var(--color-nayan-secondary, #9a7a52) 100%
+  );
+}
+
+/* Joel Dickson - Vanguard Burgundy (distinguished, trustworthy) */
+[data-theme='zen'][data-persona='joel-dickson'] .btn-primary {
+  background: linear-gradient(
+    145deg,
+    var(--color-joel, #9A0718) 0%,
+    var(--color-joel-secondary, #7A0514) 100%
   );
 }
 
@@ -3661,6 +3684,9 @@ body {
 [data-persona='nayan-patel'] #coach.is-thinking #avatarRing {
   animation-duration: 2.5s; /* Wise, measured - contemplative pace */
 }
+[data-persona='joel-dickson'] #coach.is-thinking #avatarRing {
+  animation-duration: 2.2s; /* Distinguished, measured - financial mentor deliberation */
+}
 [data-persona='peter-john'] #coach.is-thinking #avatarRing {
   animation-duration: 1.5s; /* Energetic - research enthusiasm */
 }
@@ -5134,13 +5160,13 @@ body {
   align-items: flex-end;
   justify-content: center;
   gap: 4px;
-  height: 36px;
+  height: 56px;
 }
 
 /* Individual bar */
 .waveform-bar {
   width: 4px;
-  min-height: 3px;
+  min-height: 6px;
   background: var(--waveform-color);
   border-radius: 100px;
   transition: background 0.3s ease;
@@ -5985,6 +6011,16 @@ body {
   ) !important;
 }
 
+/* Joel Dickson - Vanguard Burgundy (financial wisdom) */
+[data-persona='joel-dickson'] .btn-primary {
+  background: linear-gradient(
+    145deg,
+    var(--color-joel-secondary, #7A0514) 0%,
+    var(--color-joel, #9A0718) 50%,
+    #ba2738 100%
+  ) !important;
+}
+
 /* Alex Chen - Slate Blue */
 [data-persona='alex-chen'] .btn-primary {
   background: linear-gradient(
@@ -6722,6 +6758,9 @@ body {
 .team-member[data-persona-id='nayan-patel'] {
   --member-color: #b8956a;
 } /* Golden amber - wisdom */
+.team-member[data-persona-id='joel-dickson'] {
+  --member-color: #9A0718;
+} /* Vanguard burgundy - financial wisdom */
 .team-member[data-persona-id='peter-john'] {
   --member-color: #3a6b73;
 } /* Ocean teal - research */
@@ -13293,6 +13332,7 @@ body.ambient-aurora {
   --color-maya-text: #e0b8a8;   /* 5.2:1 contrast */
   --color-jordan-text: #f0c0a0; /* 5.5:1 contrast */
   --color-nayan-text: #e8d0a8;  /* 5.8:1 contrast */
+  --color-joel-text: #f0a8a8;   /* Warm burgundy text on dark */
 
   /* Marketplace persona text colors */
   --color-eli-text: #b8a8d8;    /* Light purple */

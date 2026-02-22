@@ -83,7 +83,7 @@ let config: Required<FastJoinConfig> = {
   // PERFORMANCE: Increased from 2 to 5 for better cold-start handling
   // Each warm session reduces join latency by ~200ms
   poolSize: 5,
-  personas: ['ferni', 'maya-santos', 'peter-john', 'alex-chen', 'jordan-taylor', 'nayan-patel'],
+  personas: ['ferni', 'maya-santos', 'peter-john', 'alex-chen', 'jordan-taylor', 'nayan-patel', 'joel-dickson'],
   sessionMaxAgeMs: 5 * 60 * 1000, // 5 minutes
   enablePooling: true,
 };

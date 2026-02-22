@@ -30,7 +30,7 @@ const CARTESIA_API_VERSION = '2024-06-10';
 const PRIMARY_PERSONAS = ['ferni', 'maya-santos'] as const;
 
 /** Secondary personas (pre-warm if time allows) */
-const SECONDARY_PERSONAS = ['peter-john', 'alex-chen', 'jordan-taylor', 'nayan-patel'] as const;
+const SECONDARY_PERSONAS = ['peter-john', 'alex-chen', 'jordan-taylor', 'nayan-patel', 'joel-dickson'] as const;
 
 /** Context variations to pre-warm (time periods) */
 const CONTEXT_VARIATIONS: GreetingContext[] = [

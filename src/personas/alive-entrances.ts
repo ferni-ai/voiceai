@@ -659,6 +659,12 @@ function getPersonaGroundedFollowUp(personaId: string): string {
       '<break time="300ms"/>What\'s weighing on you?',
       '<break time="300ms"/>Tell me what\'s happening.',
     ],
+    'joel-dickson': [
+      '<break time="250ms"/>What\'s on your mind?',
+      '<break time="250ms"/>What are we looking at today?',
+      '<break time="250ms"/>What\'s the question?',
+      '<break time="250ms"/>Walk me through it.',
+    ],
   };
 
   // Use cognitive profile question starters if available

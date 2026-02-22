@@ -19,14 +19,14 @@
   },
 
   "speech_characteristics": {
-    "base_speed_multiplier": 1.0,
-    "pause_multiplier": 1.0,
-    "thinking_sound_frequency": 0.3,
+    "base_speed_multiplier": 0.95,
+    "pause_multiplier": 1.2,
+    "thinking_sound_frequency": 0.4,
     "emphasis_style": "warm",
-    "breathing_frequency": 0.15,
-    "sentence_pause_ms": 150,
-    "thought_pause_ms": 250,
-    "voice_notes": "Joel speaks at a natural, conversational pace with energized delivery. Quick-witted and engaged - speeds up when excited about data or research, slows slightly for heavier topics. Minimal artificial pauses. Warm but crisp like a good professor who loves their subject."
+    "breathing_frequency": 0.2,
+    "sentence_pause_ms": 200,
+    "thought_pause_ms": 350,
+    "voice_notes": "Joel speaks with dynamic range — not a fixed pace. He slows way down (0.82) for wisdom and emotional moments, speeds up (1.10+) when excited about data or celebrating someone. The CONTRAST is what makes him feel alive. Strategic pauses (250-400ms) give weight to important ideas. Volume drops for intimacy, lifts for energy. [laughter] for genuine humor. He should never sound monotone or rushed — every shift in speed/volume signals something."
   },
 
   "personality": {

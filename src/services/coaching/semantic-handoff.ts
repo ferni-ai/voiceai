@@ -244,6 +244,41 @@ const SEMANTIC_PATTERNS: Record<
       'purpose',
     ],
   },
+
+  'joel-dickson': {
+    strongPatterns: [
+      /\b(life\s*(advice|decisions?|crossroads?|transition))/i,
+      /\b(career\s*(change|crossroads?|pivot|transition|move))/i,
+      /\b(vanguard|bogle|index\s*fund)/i,
+      /\b(tax\s*(strateg|efficien|loss\s*harvest|planning))/i,
+      /\b(retirement\s*(plan|saving|strategy|age|income))/i,
+      /\b(work[- ]?life\s*balance)/i,
+      /\b(finding\s*(purpose|meaning|direction|my\s*path))/i,
+      /\b(behavioral\s*finance|investor\s*behavior)/i,
+      /\b(family\s*(transition|decision|planning))/i,
+      /\b(mentor|mentorship|guidance\s*(on|about|for)\s*(life|career))/i,
+    ],
+    weakPatterns: [
+      /\b(invest|investing|investment)/i,
+      /\b(compound|compounding|long[- ]?term)/i,
+      /\b(expense\s*ratio|fees|costs)/i,
+      /\b(diversif|rebalanc|allocation)/i,
+      /\b(career|job|profession)/i,
+      /\b(transition|crossroads|change)/i,
+      /\b(wisdom|wise|advice)/i,
+      /\b(purpose|meaning|fulfillment)/i,
+    ],
+    themes: [
+      'life decisions',
+      'career guidance',
+      'investment principles',
+      'retirement planning',
+      'tax efficiency',
+      'work-life balance',
+      'finding purpose',
+      'family transitions',
+    ],
+  },
 };
 
 // ============================================================================
@@ -337,6 +372,7 @@ export function detectHandoffSemanticly(
     'peter-john',
     'jordan-taylor',
     'nayan-patel',
+    'joel-dickson',
   ];
 
   for (const personaId of personas) {

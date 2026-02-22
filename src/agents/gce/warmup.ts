@@ -146,7 +146,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
           await warmCommonCaches();
 
           // Also warm the specific persona bundles (PARALLEL for performance)
-          const personas = ['ferni', 'maya-santos', 'peter-john', 'alex-chen', 'jordan-taylor'];
+          const personas = ['ferni', 'maya-santos', 'peter-john', 'alex-chen', 'jordan-taylor', 'nayan-patel', 'joel-dickson'];
           const { loadBundle } = await import('../../personas/bundles/loader.js');
 
           const results = await Promise.allSettled(

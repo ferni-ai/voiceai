@@ -28,7 +28,8 @@ export type PersonaId =
   | 'alex-chen'
   | 'peter-john'
   | 'jordan-taylor'
-  | 'nayan-patel';
+  | 'nayan-patel'
+  | 'joel-dickson';
 
 export interface HandoffCandidate {
   personaId: PersonaId;
@@ -215,6 +216,38 @@ export const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
       "When you need perspective on life's big questions, Nayan is who you want.",
     ],
     description: 'Sage and wisdom keeper - where inner peace meets long-term thinking (premium)',
+  },
+  'joel-dickson': {
+    id: 'joel-dickson',
+    name: 'Joel',
+    specializations: [
+      'investing',
+      'financial planning',
+      'retirement',
+      'portfolio management',
+      'wealth building',
+      'tax strategy',
+    ],
+    keywords: [
+      'invest',
+      'portfolio',
+      'retirement',
+      'money',
+      'savings',
+      'stocks',
+      'bonds',
+      'index fund',
+      'financial',
+      'wealth',
+      '401k',
+      'IRA',
+    ],
+    warmIntros: [
+      "Joel is our financial mentor. He's brilliant with investment strategy.",
+      'For financial planning, Joel brings decades of wisdom. Want to meet him?',
+      "Joel lives and breathes smart investing. He'd love to help you think this through.",
+    ],
+    description: 'Financial mentor and investment strategist',
   },
 };
 

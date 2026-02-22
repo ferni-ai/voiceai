@@ -1408,6 +1408,7 @@ export function prewarmGreetingsForAllPersonas(): void {
     'alex-chen',
     'jordan-taylor',
     'nayan-patel',
+    'joel-dickson',
   ];
 
   for (const personaId of personas) {

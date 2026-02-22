@@ -461,7 +461,7 @@ export async function buildScientificCoachingInjections(
 /** Persona mapping for coaching module - uses canonical IDs */
 const COACHING_PERSONA_MAP: Record<
   string,
-  'ferni' | 'maya-santos' | 'alex-chen' | 'peter-john' | 'jordan-taylor' | 'nayan-patel'
+  'ferni' | 'maya-santos' | 'alex-chen' | 'peter-john' | 'jordan-taylor' | 'nayan-patel' | 'joel-dickson'
 > = {
   ferni: 'ferni',
   'maya-santos': 'maya-santos',
@@ -469,12 +469,14 @@ const COACHING_PERSONA_MAP: Record<
   'peter-john': 'peter-john',
   'jordan-taylor': 'jordan-taylor',
   'nayan-patel': 'nayan-patel',
+  'joel-dickson': 'joel-dickson',
   // Legacy aliases
   maya: 'maya-santos',
   alex: 'alex-chen',
   peter: 'peter-john',
   jordan: 'jordan-taylor',
   nayan: 'nayan-patel',
+  joel: 'joel-dickson',
 };
 
 /**
