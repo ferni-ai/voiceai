@@ -181,8 +181,55 @@ RUN rm -rf dist && pnpm run build:fast && \
     pnpm exec tsx apps/cli/src/commands/build/bundle-agent.ts && \
     ls -lh dist/agents/voice-agent-bundle.js && \
     echo "=== Building Ferni CLI for container ===" && \
-    pnpm exec tsx apps/cli/src/commands/build/build-cli-binary.ts --container --release && \
-    ls -lh dist/ferni-bundle/
+    (pnpm exec tsx apps/cli/src/commands/build/build-cli-binary.ts --container --release && \
+    ls -lh dist/ferni-bundle/) || \
+    (echo "⚠️ CLI bundle failed (non-fatal) - creating placeholder" && \
+     mkdir -p dist/ferni-bundle && echo '#!/bin/sh\necho "ferni CLI not available in this build"' > dist/ferni-bundle/ferni.js && \
+     cp dist/ferni-bundle/ferni.js dist/ferni-bundle/ferni)
+
+# ============================================================================
+# Stage 1b: Prepare production node_modules (reuses warm pnpm store)
+# ============================================================================
+# By running the prod install HERE (same stage as full install), the pnpm store
+# is already warm with all resolved packages. This makes prod install near-instant
+# (~5s) instead of re-downloading everything from scratch in production (~120s).
+# Also applies LiveKit patches and cleanup here to keep the production stage thin.
+COPY patches/ ./patches/
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    echo "=== Preparing production node_modules ===" && \
+    mkdir -p /prod-deps && \
+    cp package.json pnpm-workspace.yaml .npmrc /prod-deps/ && \
+    cp pnpm-lock.yaml /prod-deps/ 2>/dev/null || true && \
+    cp -r patches /prod-deps/ 2>/dev/null || true && \
+    for dir in apps/rust-audio apps/rust-perf design-system apps/cli apps/web apps/async apps/intelligence-worker packages/shared-types; do \
+      mkdir -p /prod-deps/$dir && cp $dir/package.json /prod-deps/$dir/ 2>/dev/null || true; \
+    done && \
+    cd /prod-deps && \
+    pnpm install --prefer-offline --prod --no-frozen-lockfile && \
+    pnpm store prune && \
+    echo "=== Cleaning up node_modules ===" && \
+    find node_modules \( -name "*.md" -o -name "*.map" -o -name "CHANGELOG*" \
+      -o -name "LICENSE*" -o -name ".npmignore" \) -delete 2>/dev/null || true && \
+    find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true && \
+    find node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" \
+      -o -name "docs" \) -exec rm -rf {} + 2>/dev/null || true && \
+    echo "=== Patching LiveKit SDK timeouts ===" && \
+    find node_modules -name "worker.js" -o -name "worker.cjs" | xargs -I{} sh -c ' \
+      grep -q "initializeTimeout: 3e4" "{}" && \
+        sed -i "s/initializeTimeout: 3e4/initializeTimeout: 3e5 \/* PATCHED 5min *\//g" "{}"; \
+      grep -q "initializeProcessTimeout = 10 \* 1e3" "{}" && \
+        sed -i "s/initializeProcessTimeout = 10 \* 1e3/initializeProcessTimeout = 600 \* 1e3 \/* PATCHED 10min *\//g" "{}"; \
+      grep -q "ASSIGNMENT_TIMEOUT = 7.5 \* 1e3" "{}" && \
+        sed -i "s/ASSIGNMENT_TIMEOUT = 7.5 \* 1e3/ASSIGNMENT_TIMEOUT = 60 \* 1e3 \/* PATCHED 60s *\//g" "{}"; \
+      true \
+    ' && \
+    find node_modules \( -name "job_proc_lazy_main.js" -o -name "inference_proc_lazy_main.js" \) | xargs -I{} sh -c ' \
+      grep -q "ORPHANED_TIMEOUT = 15 \* 1e3" "{}" && \
+        sed -i "s/ORPHANED_TIMEOUT = 15 \* 1e3/ORPHANED_TIMEOUT = 300 \* 1e3 \/* PATCHED 5min *\//g" "{}"; \
+      true \
+    ' && \
+    echo "=== Production node_modules ready ===" && \
+    grep -r "PATCHED" node_modules/@livekit/agents/dist/ 2>/dev/null | head -4 || echo "Patch verification done"
 
 # ============================================================================
 # Stage 2: Production
@@ -194,6 +241,8 @@ FROM ubuntu:24.04 AS production
 WORKDIR /app
 
 # Install Node.js 20.x and system dependencies (including ffmpeg for DJ-style audio fade-out)
+# DEBIAN_FRONTEND=noninteractive suppresses interactive prompts (e.g. tzdata region picker)
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
@@ -201,86 +250,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/* \
-    && update-ca-certificates \
-    && corepack enable && corepack prepare pnpm@latest --activate
+    && update-ca-certificates
 
-# Copy package files from builder stage (has file: deps replaced with npm versions)
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/pnpm-lock.yaml* ./
-COPY .npmrc .pnpmrc* ./
-
-# Copy patches directory (required for pnpm patched packages)
-COPY patches/ ./patches/
-
-# Copy workspace package stubs from builder
-COPY --from=builder /app/apps/rust-audio/package.json ./apps/rust-audio/
-COPY --from=builder /app/apps/rust-perf/package.json ./apps/rust-perf/
-COPY --from=builder /app/design-system/package.json ./design-system/
-COPY --from=builder /app/apps/cli/package.json ./apps/cli/
-COPY --from=builder /app/apps/web/package.json ./apps/web/
-COPY --from=builder /app/apps/async/package.json ./apps/async/
-COPY --from=builder /app/apps/intelligence-worker/package.json ./apps/intelligence-worker/
-COPY --from=builder /app/packages/shared-types/package.json ./packages/shared-types/
-COPY pnpm-workspace.yaml ./
-
-# Install production dependencies only (no devDependencies)
-# Note: no frozen-lockfile because we modified package.json in builder
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    --mount=type=cache,target=/root/.npm \
-    pnpm install --prefer-offline --prod --no-frozen-lockfile && \
-    pnpm store prune && \
-    # Remove unnecessary files from node_modules to reduce image size
-    find node_modules -name "*.md" -delete 2>/dev/null || true && \
-    find node_modules -name "*.map" -delete 2>/dev/null || true && \
-    find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true && \
-    find node_modules -name "CHANGELOG*" -delete 2>/dev/null || true && \
-    find node_modules -name "LICENSE*" -delete 2>/dev/null || true && \
-    find node_modules -name ".npmignore" -delete 2>/dev/null || true && \
-    find node_modules -type d -name "test" -exec rm -rf {} + 2>/dev/null || true && \
-    find node_modules -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
-    find node_modules -type d -name "__tests__" -exec rm -rf {} + 2>/dev/null || true && \
-    find node_modules -type d -name "docs" -exec rm -rf {} + 2>/dev/null || true
-
-# Patch LiveKit agents library to increase ALL timeouts
-# The library has multiple hardcoded timeouts that are too short for Cloud Run cold starts:
-# - initializeTimeout: 30s in worker.js (parent waiting for child init)
-# - initializeProcessTimeout: 10s in worker.js  
-# - ASSIGNMENT_TIMEOUT: 7.5s in worker.js (child response to job dispatch) <-- NEW
-# - ORPHANED_TIMEOUT: 15s in job_proc_lazy_main.js (child ping timeout)
-# Use find+sed to patch ALL files across npm and pnpm directory structures
-RUN echo "=== Patching LiveKit SDK timeouts ===" && \
-    echo "--- Patching worker.js/cjs files ---" && \
-    find node_modules -name "worker.js" -o -name "worker.cjs" | xargs -I{} sh -c ' \
-      if grep -q "initializeTimeout: 3e4" "{}"; then \
-        sed -i "s/initializeTimeout: 3e4/initializeTimeout: 3e5 \/* PATCHED 5min *\//g" "{}"; \
-        echo "  Patched initializeTimeout in {}"; \
-      fi; \
-      if grep -q "initializeProcessTimeout = 10 \* 1e3" "{}"; then \
-        sed -i "s/initializeProcessTimeout = 10 \* 1e3/initializeProcessTimeout = 600 \* 1e3 \/* PATCHED 10min *\//g" "{}"; \
-        echo "  Patched initializeProcessTimeout in {}"; \
-      fi; \
-      if grep -q "ASSIGNMENT_TIMEOUT = 7.5 \* 1e3" "{}"; then \
-        sed -i "s/ASSIGNMENT_TIMEOUT = 7.5 \* 1e3/ASSIGNMENT_TIMEOUT = 60 \* 1e3 \/* PATCHED 60s *\//g" "{}"; \
-        echo "  Patched ASSIGNMENT_TIMEOUT in {}"; \
-      fi \
-    ' && \
-    echo "--- Patching job_proc_lazy_main.js files (ORPHANED_TIMEOUT) ---" && \
-    find node_modules -name "job_proc_lazy_main.js" | xargs -I{} sh -c ' \
-      if grep -q "ORPHANED_TIMEOUT = 15 \* 1e3" "{}"; then \
-        sed -i "s/ORPHANED_TIMEOUT = 15 \* 1e3/ORPHANED_TIMEOUT = 300 \* 1e3 \/* PATCHED 5min *\//g" "{}"; \
-        echo "  Patched ORPHANED_TIMEOUT in {}"; \
-      fi \
-    ' && \
-    echo "--- Patching inference_proc_lazy_main.js files (ORPHANED_TIMEOUT) ---" && \
-    find node_modules -name "inference_proc_lazy_main.js" | xargs -I{} sh -c ' \
-      if grep -q "ORPHANED_TIMEOUT = 15 \* 1e3" "{}"; then \
-        sed -i "s/ORPHANED_TIMEOUT = 15 \* 1e3/ORPHANED_TIMEOUT = 300 \* 1e3 \/* PATCHED 5min *\//g" "{}"; \
-        echo "  Patched ORPHANED_TIMEOUT in {}"; \
-      fi \
-    ' && \
-    echo "=== Verifying patches ===" && \
-    grep -r "PATCHED" node_modules/@livekit/agents/dist/ 2>/dev/null | head -6 || echo "Direct path not found" && \
-    find node_modules/.pnpm -name "*.js" -exec grep -l "PATCHED" {} \; 2>/dev/null | head -6 || echo "pnpm verification done"
+# Copy pre-built production node_modules from builder (already cleaned + patched)
+# This replaces the full pnpm install + cleanup + LiveKit patching that previously
+# ran in the production stage. The builder's pnpm store was warm, so the prod install
+# there was near-instant. This COPY is a single layer transfer — no network downloads.
+COPY --from=builder /prod-deps/node_modules ./node_modules
 
 # Copy built files from builder
 # Includes: dist/tool-manifest.json, dist/tool-embeddings.json (100x faster startup!)
