@@ -32,7 +32,7 @@ const CONFIG = {
   // Use the COMPILED JS file from dist/ as entry point
   // This is AFTER build:fast runs, so all .ts files have been compiled to .js
   // Using source .ts files would fail because imports use .js extensions
-  entry: join(PROJECT_ROOT, 'dist/agents/voice-agent-entry.js'),
+  entry: join(PROJECT_ROOT, 'dist/agents/voice-agent-entry/index.js'),
   outfile: join(PROJECT_ROOT, 'dist/agents/voice-agent-bundle.js'),
   target: 'es2022' as const,
   format: 'esm' as const,
