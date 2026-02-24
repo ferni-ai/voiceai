@@ -38,8 +38,8 @@ export type LogFn = (msg: string, data?: Record<string, unknown>) => void;
  * - Speculative embeddings
  * - Performance optimization modules
  *
- * NOTE: VAD (Silero) is NO LONGER preloaded - Gemini Realtime has built-in turn detection!
- * This saves 200-400ms on worker startup.
+ * NOTE: VAD (Silero) is now pre-warmed at worker level and cached across sessions.
+ * This saves ~764ms per session at the cost of ~400ms extra worker startup.
  */
 export async function warmupResources(log: LogFn): Promise<WarmupResult> {
   const warmupStart = Date.now();
@@ -77,9 +77,48 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
 
     const tasks: Array<Promise<void>> = [];
 
-    // ⚡ REMOVED: VAD preloading - Gemini Realtime handles turn detection
-    // Silero VAD was adding 200-400ms to warmup for no benefit
-    // If VAD is needed for specific features, load lazily on demand
+    // ⚡ PRE-WARM VAD: Cache Silero VAD at worker level (saves ~764ms per session)
+    // Although Gemini has built-in turn detection, VAD is still loaded per-session
+    // in session-creator.ts for barge-in support. Caching it here avoids the repeated cost.
+    if (process.env.DISABLE_VAD !== 'true') {
+      tasks.push(
+        (async () => {
+          try {
+            const vadStart = Date.now();
+            const { prewarmVAD } = await import('../voice-agent-entry/session-creator.js');
+            const silero = await import('@livekit/agents-plugin-silero');
+            await prewarmVAD(silero);
+            log('✅ Silero VAD pre-warmed (saves ~764ms per session)', {
+              durationMs: Date.now() - vadStart,
+            });
+          } catch (e) {
+            log('⚠️ VAD pre-warm failed (will load per-session)', { error: String(e) });
+          }
+        })()
+      );
+    }
+
+    // ⚡ PRE-WARM SESSION-CREATOR MODULES: Import hot-path modules ahead of time
+    // These dynamic imports in session-creator.ts add ~200ms per session otherwise
+    tasks.push(
+      (async () => {
+        try {
+          const moduleStart = Date.now();
+          await Promise.all([
+            import('../../speech/voice-manager.js'),
+            import('../../tools/orchestrator/voice-agent-integration.js'),
+            import('../personas/ferni-agent.js'),
+            import('../../tools/utils/function-calling-config.js'),
+            import('../../config/cartesia-config.js'),
+          ]);
+          log('✅ Session-creator modules pre-loaded', {
+            durationMs: Date.now() - moduleStart,
+          });
+        } catch (e) {
+          log('⚠️ Session-creator module pre-load failed (non-fatal)', { error: String(e) });
+        }
+      })()
+    );
 
     // 1. Pre-warm TTS (just import the module)
     tasks.push(

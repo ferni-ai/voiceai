@@ -13,7 +13,7 @@ import { Room, RoomEvent, TrackKind } from '@livekit/rtc-node';
 import { EventEmitter } from 'node:events';
 
 import { InProcessInferenceExecutor } from '../core/inference-executor.js';
-import { runFullVoiceAgentEntry } from '../voice-agent-entry.js';
+import { runFullVoiceAgentEntry } from '../voice-agent-entry/index.js';
 
 // ============================================================================
 // TYPES
@@ -103,11 +103,61 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
 
   // === CONNECTION STABILITY MONITORING ===
 
+  // Maximum session duration failsafe (2 hours) - prevents zombie sessions
+  const MAX_SESSION_DURATION_MS = 2 * 60 * 60 * 1000;
+  const sessionTimeout = setTimeout(() => {
+    if (!shutdown) {
+      log('⏰ Max session duration reached, forcing cleanup', {
+        jobId,
+        maxDurationMs: MAX_SESSION_DURATION_MS,
+      });
+      closeEvent.emit('close', false);
+    }
+  }, MAX_SESSION_DURATION_MS);
+  sessionTimeout.unref();
+
   // Track disconnection
   room.on(RoomEvent.Disconnected, () => {
     if (!shutdown) {
       log('Room disconnected', { jobId, reconnectCount });
+      clearTimeout(sessionTimeout);
       closeEvent.emit('close', false);
+    }
+  });
+
+  // Detect when all remote participants leave — prevents zombie sessions
+  // When the user disconnects, Room.Disconnected does NOT fire (the agent is still connected).
+  // We give a 10s grace period for reconnects before closing the session.
+  let emptyRoomTimer: ReturnType<typeof setTimeout> | null = null;
+  const EMPTY_ROOM_GRACE_MS = 10_000;
+
+  room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+    const remaining = room.remoteParticipants?.size ?? 0;
+    log('👋 Participant left', {
+      jobId,
+      participant: participant?.identity,
+      remainingParticipants: remaining,
+    });
+
+    if (remaining === 0 && !shutdown) {
+      log('🕐 Room empty, starting grace period', { jobId, graceMs: EMPTY_ROOM_GRACE_MS });
+      emptyRoomTimer = setTimeout(() => {
+        const currentRemaining = room.remoteParticipants?.size ?? 0;
+        if (currentRemaining === 0 && !shutdown) {
+          log('🚪 Room still empty after grace period, closing session', { jobId });
+          clearTimeout(sessionTimeout);
+          closeEvent.emit('close', true, 'all_participants_left');
+        }
+      }, EMPTY_ROOM_GRACE_MS);
+    }
+  });
+
+  // Cancel empty room timer if someone rejoins
+  room.on(RoomEvent.ParticipantConnected, () => {
+    if (emptyRoomTimer) {
+      log('👤 Participant rejoined, cancelling empty room timer', { jobId });
+      clearTimeout(emptyRoomTimer);
+      emptyRoomTimer = null;
     }
   });
 
@@ -244,6 +294,8 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     });
     throw error;
   } finally {
+    clearTimeout(sessionTimeout);
+    if (emptyRoomTimer) clearTimeout(emptyRoomTimer);
     try {
       if (ctx.room.isConnected) {
         await ctx.room.disconnect();
