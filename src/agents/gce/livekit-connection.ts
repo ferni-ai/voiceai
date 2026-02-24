@@ -16,7 +16,7 @@ import {
   WorkerStatus,
   type Job,
 } from '@livekit/protocol';
-import { AccessToken } from 'livekit-server-sdk';
+import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { WebSocket } from 'ws';
 
 import {
@@ -404,6 +404,59 @@ function removeWebSocketHandlers(): void {
     ws.off('close', currentHandlers.onClose);
     ws.off('error', currentHandlers.onError);
     currentHandlers = null;
+  }
+}
+
+/**
+ * Remove stale agent participants from previous worker runs.
+ *
+ * When a worker is killed with SIGKILL (or crashes), its LiveKit WebSocket
+ * dies but the server-side participant registration may persist briefly.
+ * If a new worker starts before LiveKit detects the stale connection,
+ * the zombie worker steals job assignments from the new one.
+ *
+ * This uses the LiveKit Server SDK to find and remove any participants
+ * matching our agent name pattern from all active rooms.
+ */
+export async function cleanupStaleWorkers(): Promise<void> {
+  const livekitHttpUrl = _config.url.replace('wss://', 'https://').replace('ws://', 'http://');
+  const roomService = new RoomServiceClient(livekitHttpUrl, _config.apiKey, _config.apiSecret);
+
+  try {
+    const rooms = await roomService.listRooms();
+
+    for (const room of rooms) {
+      if (!room.name) continue;
+
+      const participants = await roomService.listParticipants(room.name);
+
+      for (const participant of participants) {
+        const identity = participant.identity || '';
+        const isOurAgent =
+          identity.startsWith(`${_config.agentName}-`) && identity !== `${_config.agentName}-${process.pid}`;
+
+        if (isOurAgent) {
+          _log('Removing stale agent participant from previous run', {
+            room: room.name,
+            identity,
+            currentPid: process.pid,
+          });
+
+          try {
+            await roomService.removeParticipant(room.name, identity);
+            _log('Stale participant removed', { room: room.name, identity });
+          } catch (removeErr) {
+            _log('Could not remove stale participant (may have already left)', {
+              room: room.name,
+              identity,
+              error: String(removeErr),
+            });
+          }
+        }
+      }
+    }
+  } catch (error) {
+    _log('Stale worker cleanup failed (non-blocking)', { error: String(error) });
   }
 }
 

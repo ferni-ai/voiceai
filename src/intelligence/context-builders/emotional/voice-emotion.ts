@@ -103,7 +103,7 @@ async function buildVoiceEmotionContext(input: ContextBuilderInput): Promise<Con
   if (voiceGuidance.length > 0) {
     // High-priority voice signals
     const priorityGuidance = voiceGuidance.filter(
-      (g) => g.includes('tremor') || g.includes('emotionally affected')
+      (g: string) => g.includes('tremor') || g.includes('emotionally affected')
     );
 
     if (priorityGuidance.length > 0) {
@@ -117,7 +117,7 @@ async function buildVoiceEmotionContext(input: ContextBuilderInput): Promise<Con
 
     // Standard voice signals
     const standardGuidance = voiceGuidance.filter(
-      (g) => !g.includes('tremor') && !g.includes('emotionally affected')
+      (g: string) => !g.includes('tremor') && !g.includes('emotionally affected')
     );
 
     if (standardGuidance.length > 0) {

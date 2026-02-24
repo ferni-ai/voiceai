@@ -3238,7 +3238,7 @@ const DEV_PORTS = {
   token: 3001,
   ui: 3002,
   frontend: 3004,
-  agent: 8081,
+  agent: 8080,
   storybook: 6006,
 };
 
@@ -3312,13 +3312,49 @@ async function handleDev(args: string[]): Promise<void> {
   if (subcommand === 'stop') {
     console.log(`${colors.bold}Stopping development servers...${colors.reset}\n`);
 
+    const pidsByService: Record<string, string> = {};
+
+    // Phase 1: Send SIGTERM to all running services (graceful shutdown)
     for (const [name, port] of Object.entries(DEV_PORTS)) {
       const pids = execCommand(`lsof -i :${port} -t 2>/dev/null`);
       if (pids.trim()) {
-        const spinner = new Spinner(`Stopping ${name} (port ${port})...`);
+        pidsByService[name] = pids.trim();
+        const spinner = new Spinner(`Sending SIGTERM to ${name} (port ${port})...`);
         spinner.start();
-        execCommand(`lsof -i :${port} -t | xargs kill -9 2>/dev/null`);
+        execCommand(`lsof -i :${port} -t | xargs kill 2>/dev/null`);
         spinner.stop(true);
+      }
+    }
+
+    // Phase 2: Wait up to 5s for graceful shutdown (LiveKit disconnect, etc.)
+    if (Object.keys(pidsByService).length > 0) {
+      const spinner = new Spinner('Waiting for graceful shutdown (up to 5s)...');
+      spinner.start();
+
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline) {
+        let allDead = true;
+        for (const [, port] of Object.entries(DEV_PORTS)) {
+          const remaining = execCommand(`lsof -i :${port} -t 2>/dev/null`);
+          if (remaining.trim()) {
+            allDead = false;
+            break;
+          }
+        }
+        if (allDead) break;
+        execCommand('sleep 0.5');
+      }
+      spinner.stop(true);
+
+      // Phase 3: Force-kill anything still running
+      for (const [name, port] of Object.entries(DEV_PORTS)) {
+        const remaining = execCommand(`lsof -i :${port} -t 2>/dev/null`);
+        if (remaining.trim()) {
+          const spinner2 = new Spinner(`Force-killing ${name} (port ${port})...`);
+          spinner2.start();
+          execCommand(`lsof -i :${port} -t | xargs kill -9 2>/dev/null`);
+          spinner2.stop(true);
+        }
       }
     }
 

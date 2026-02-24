@@ -27,6 +27,7 @@ export {
 // LiveKit connection
 export {
   connectToLiveKit,
+  cleanupStaleWorkers,
   initLiveKitConnection,
   closeConnection,
   prepareForShutdown,

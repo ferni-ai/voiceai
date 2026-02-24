@@ -46,6 +46,85 @@ import { getFrontendPublisher } from '../../../realtime/frontend-publisher.js';
 const log = createLogger({ module: 'sanitizer-stream' });
 
 // ============================================================================
+// JSON EXTRACTION HELPERS
+// ============================================================================
+
+/**
+ * Extract a complete JSON object starting from `startIndex` by counting braces.
+ * Handles arbitrarily nested JSON (unlike regex which breaks on nested braces).
+ * Returns the substring if balanced braces are found, or null if incomplete.
+ */
+function extractBalancedJson(text: string, startIndex: number): string | null {
+  if (text[startIndex] !== '{') return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = startIndex; i < text.length; i++) {
+    const ch = text[i];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (ch === '\\' && inString) {
+      escaped = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) continue;
+
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        return text.slice(startIndex, i + 1);
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Find and extract a `{"fn":...,"args":...}` JSON function call from text.
+ * Supports arbitrarily nested args (e.g., executeTool wrapping playMusic).
+ * Returns { fullMatch, fnName, argsObj } or null.
+ */
+function extractJsonFunctionCall(
+  text: string
+): { fullMatch: string; fnName: string; argsObj: Record<string, unknown> } | null {
+  // Look for `{"fn"` or `{ "fn"` in the text
+  const fnIndex = text.search(/\{\s*"fn"\s*:/);
+  if (fnIndex < 0) return null;
+
+  const jsonStr = extractBalancedJson(text, fnIndex);
+  if (!jsonStr) return null;
+
+  try {
+    const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+    if (typeof parsed.fn === 'string' && parsed.args && typeof parsed.args === 'object') {
+      return {
+        fullMatch: jsonStr,
+        fnName: parsed.fn,
+        argsObj: parsed.args as Record<string, unknown>,
+      };
+    }
+  } catch {
+    // Malformed JSON
+  }
+
+  return null;
+}
+
+// ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
 
@@ -360,9 +439,20 @@ export function createSanitizerWithMusicFallback(
   // This tracks what the LLM actually said (excluding JSON function calls)
   let cleanResponseText = '';
 
+  // FIX (Feb 2026): Track the FULL untruncated response for flush-time JSON rescue.
+  // The main `buffer` gets truncated to 200 chars for memory efficiency, but that means
+  // flush() can't see the complete JSON if chunks were passed through without accumulating.
+  // This keeps the full raw output so flush() can detect JSON that was entirely missed.
+  let fullResponseBuffer = '';
+
   const transformer = new TransformStream<string, string>({
     async transform(chunk, controller) {
       buffer += chunk;
+      // Cap at 2KB -- more than enough for any JSON function call (~100-200 chars)
+      // but prevents unbounded growth on long conversational responses
+      if (fullResponseBuffer.length < 2048) {
+        fullResponseBuffer += chunk;
+      }
 
       // =========================================================================
       // 🔧 JSON FUNCTION CALL EXECUTION (CRITICAL - must happen FIRST!)
@@ -382,11 +472,16 @@ export function createSanitizerWithMusicFallback(
       // =========================================================================
 
       // Detect if we're starting to see a JSON block (must buffer until complete)
-      // This catches: ```json, ```\n{, {"fn", etc.
+      // This catches: ```json, ```\n{, {"fn", lone "{" at start (streamed JSON), etc.
+      // FIX (Feb 2026): Added lone-brace detection. When Gemini streams a bare JSON
+      // function call, the first chunk can be just "{" (2 chars). Without catching this,
+      // the "{" gets enqueued to TTS and the rest of the JSON arrives too late.
       const jsonStartSignals = [
         /```(?:json)?[\s\n]*\{?[\s\n]*"?fn/i, // Markdown code fence with JSON
         /```(?:json)?[\s\n]*$/, // Just opened code fence
-        /\{\s*"fn"\s*:/, // Bare JSON start
+        /\{\s*"fn"\s*:/, // Bare JSON start with "fn" key visible
+        /^\s*\{\s*$/, // Lone opening brace (JSON streamed in small chunks)
+        /[^\\]\{\s*$/, // Text ending with opening brace (prefix + JSON start)
       ];
 
       if (!potentialJsonAccumulating) {
@@ -398,7 +493,15 @@ export function createSanitizerWithMusicFallback(
           // Find where the JSON might start
           const codeBlockStart = buffer.indexOf('```');
           const bareJsonStart = buffer.indexOf('{"fn"');
-          const jsonStartIndex = codeBlockStart >= 0 ? codeBlockStart : bareJsonStart;
+          // FIX (Feb 2026): Also detect lone brace as JSON start when {"fn" hasn't arrived yet
+          const loneBraceStart =
+            bareJsonStart < 0 ? buffer.search(/\{\s*$/) : -1;
+          const jsonStartIndex =
+            codeBlockStart >= 0
+              ? codeBlockStart
+              : bareJsonStart >= 0
+                ? bareJsonStart
+                : loneBraceStart;
 
           // Enqueue any text BEFORE the potential JSON start
           // FIX (Jan 2026): Only enqueue the REMAINING prefix text that hasn't been enqueued yet
@@ -450,31 +553,19 @@ export function createSanitizerWithMusicFallback(
       }
 
       // Check if buffer CONTAINS a complete JSON function call
-      // Pattern: ```json\n{...}\n``` OR just {...} with "fn" and "args"
-      const jsonBlockMatch = buffer.match(
-        /```(?:json)?\s*(\{[^`]*"fn"\s*:\s*"[^"]+"\s*[^`]*\})\s*```/s
-      );
-      const bareJsonMatch =
-        !jsonBlockMatch &&
-        buffer.match(/(\{[^{}]*"fn"\s*:\s*"[^"]+"\s*,\s*"args"\s*:\s*\{[^{}]*\}[^{}]*\})/);
-      const jsonMatch = jsonBlockMatch || bareJsonMatch;
+      // Uses brace-counting extraction to support arbitrarily nested args
+      // (e.g., {"fn":"executeTool","args":{"toolName":"playMusic","args":{"query":"jazz"}}})
+      const extractedCall = extractJsonFunctionCall(buffer);
 
-      if (!jsonFunctionExecuted && jsonMatch) {
-        const fullMatch = jsonMatch[0];
-        const jsonContent = jsonMatch[1];
+      if (!jsonFunctionExecuted && extractedCall) {
+        const { fullMatch, fnName, argsObj: args } = extractedCall;
 
         // JSON found and complete - we already enqueued prefix, now execute
         potentialJsonAccumulating = false;
         pendingChunks = [];
 
-        // Try to extract fn and args from the JSON content
-        const fnArgsMatch = jsonContent.match(/"fn"\s*:\s*"([^"]+)".*?"args"\s*:\s*(\{[^{}]*\})/s);
-        if (fnArgsMatch && toolContext) {
-          const fnName = fnArgsMatch[1];
-          const argsStr = fnArgsMatch[2];
-
+        if (toolContext) {
           try {
-            const args = JSON.parse(argsStr);
 
             // 🚫 DEDUPLICATION: Check if tool was already executed by semantic router
             // This prevents double execution when semantic router and LLM both try to call the same tool
@@ -710,43 +801,182 @@ export function createSanitizerWithMusicFallback(
       }
     },
 
-    flush(controller) {
-      // If we have pending chunks when stream ends, analyze before releasing
-      // This handles the case where JSON detection never completed (e.g., Gemini timeout mid-response)
-      if (pendingChunks.length > 0) {
+    async flush(controller) {
+      // =======================================================================
+      // FIX (Feb 2026): When the stream ends with pending chunks, first check
+      // if the FULL buffer contains a complete JSON function call that the
+      // chunk-by-chunk detection missed (e.g., `{` arrived as its own chunk
+      // before `"fn":` arrived, so `potentialJsonAccumulating` started late).
+      // Also check the combined pending content for a standalone JSON call.
+      // =======================================================================
+      if (!jsonFunctionExecuted) {
         const combinedPending = pendingChunks.join('');
+        const hasPendingChunks = pendingChunks.length > 0;
 
-        // Check if pending content looks like incomplete JSON (should NOT be spoken)
-        // Patterns: starts with { or ```, contains "fn":, ends mid-JSON
-        const looksLikeIncompleteJson =
-          combinedPending.includes('"fn"') ||
-          combinedPending.includes('```json') ||
-          (combinedPending.includes('{') && !combinedPending.includes('}')) ||
-          combinedPending.match(/^\s*\{/) ||
-          combinedPending.match(/```\s*$/);
+        // Try to find a complete JSON function call in multiple sources:
+        // 1. The full untruncated response (catches JSON that streamed through without accumulating)
+        // 2. The current buffer (may be truncated but worth checking)
+        // 3. Combined pending chunks (when accumulating was active but JSON wasn't matched)
+        const sourcesToCheck = [fullResponseBuffer, buffer, combinedPending].filter(
+          (s) => s.length > 0
+        );
+        let executedFromFlush = false;
 
-        if (looksLikeIncompleteJson) {
-          // DROP incomplete JSON - don't speak it!
-          // This happens when Gemini connection dies mid-function-call output
-          log.warn(
-            {
-              sessionId,
-              pendingCount: pendingChunks.length,
-              preview: combinedPending.slice(0, 100),
-            },
-            '🚫 Stream ended with incomplete JSON function call - DROPPING (not sending to TTS)'
-          );
-          // Don't enqueue anything - let the fallback message handle the response
-        } else {
-          // Not JSON - release the pending chunks
-          log.warn(
-            { sessionId, pendingCount: pendingChunks.length },
-            '⚠️ Stream ended with pending chunks - releasing to TTS'
-          );
-          for (const pendingChunk of pendingChunks) {
-            controller.enqueue(pendingChunk);
-            // BTH Feedback Loop: Track released pending chunks as clean response
-            cleanResponseText += pendingChunk;
+        for (const source of sourcesToCheck) {
+          if (executedFromFlush) break;
+
+          const extractedFlushCall = extractJsonFunctionCall(source);
+
+          if (extractedFlushCall && toolContext) {
+            const { fullMatch, fnName, argsObj: args } = extractedFlushCall;
+
+              try {
+                const toolId = `${fnName}:${JSON.stringify(args)}`;
+
+                if (sessionId && wasToolExecutedBySemanticRouter(sessionId, toolId)) {
+                  log.info(
+                    { fn: fnName, sessionId, trace: 'E2E_FLUSH_DEDUP_SKIP' },
+                    `🚫 E2E TRACE [FLUSH DEDUP] Skipping ${fnName} - already executed`
+                  );
+                  executedFromFlush = true;
+                  break;
+                }
+
+                jsonFunctionExecuted = true;
+                executedFromFlush = true;
+
+                log.info(
+                  { fn: fnName, args, sessionId, trace: 'E2E_FLUSH_JSON_INTERCEPT' },
+                  `🔧 E2E TRACE [FLUSH JSON RESCUE] Executing late-detected: ${fnName}(${JSON.stringify(args).slice(0, 50)}...)`
+                );
+
+                if (sessionId) {
+                  markToolExecutedBySemanticRouter(sessionId, toolId);
+                }
+
+                const { executeJsonFunction } = await import('../../json-function-executor.js');
+                const result = await executeJsonFunction(
+                  { fn: fnName, args, raw: fullMatch },
+                  { ...toolContext, sessionId }
+                );
+
+                const resultStr =
+                  typeof result.result === 'string'
+                    ? result.result
+                    : JSON.stringify(result.result);
+
+                if (result.success) {
+                  log.info(
+                    { fn: fnName, result: resultStr?.slice(0, 100), trace: 'E2E_FLUSH_JSON_SUCCESS' },
+                    `✅ E2E TRACE [FLUSH JSON SUCCESS] ${fnName} completed`
+                  );
+
+                  if (result.speakDirectly && resultStr) {
+                    session?.say?.(resultStr, { allowInterruptions: true });
+                  } else if (session && sessionId && sessionId !== 'unknown') {
+                    const instructions = buildToolResponseGuidance({
+                      fnName,
+                      result: resultStr || 'Success',
+                      success: true,
+                      options,
+                    });
+
+                    gatewayGenerateReply(session as voice.AgentSession, sessionId, {
+                      instructions,
+                      context: `json-tool-flush-${fnName}`,
+                      priority: 'high',
+                      allowInterruptions: true,
+                      waitForPlayout: false,
+                      fallbackMessage: resultStr || 'Done!',
+                      timeoutMs: TOOL_RESPONSE_TIMEOUT_MS,
+                    }).catch((gatewayError) => {
+                      log.warn(
+                        { error: String(gatewayError), fn: fnName, trace: 'E2E_FLUSH_GATEWAY_FALLBACK' },
+                        'Flush gateway generateReply failed, using direct say fallback'
+                      );
+                      session?.say?.(resultStr || 'Done!', { allowInterruptions: true });
+                    });
+                  } else if (resultStr) {
+                    session?.say?.(resultStr, { allowInterruptions: true });
+                  }
+                } else {
+                  log.error(
+                    { fn: fnName, error: result.error, trace: 'E2E_FLUSH_JSON_FAILED' },
+                    `❌ E2E TRACE [FLUSH JSON FAILED] ${fnName}: ${result.error}`
+                  );
+
+                  if (session && sessionId && sessionId !== 'unknown') {
+                    const instructions = buildToolResponseGuidance({
+                      fnName,
+                      result: '',
+                      success: false,
+                      error: result.error,
+                      options,
+                    });
+
+                    gatewayGenerateReply(session as voice.AgentSession, sessionId, {
+                      instructions,
+                      context: `json-tool-flush-${fnName}-failed`,
+                      priority: 'high',
+                      allowInterruptions: true,
+                      waitForPlayout: false,
+                      fallbackMessage: "Hmm, that didn't quite work. Want me to try something else?",
+                      timeoutMs: TOOL_RESPONSE_TIMEOUT_MS,
+                    }).catch((gatewayError) => {
+                      log.warn(
+                        { error: String(gatewayError), fn: fnName },
+                        'Flush gateway generateReply failed for error case'
+                      );
+                      session?.say?.(
+                        "Hmm, that didn't quite work. Want me to try something else?",
+                        { allowInterruptions: true }
+                      );
+                    });
+                  } else {
+                    session?.say?.(
+                      "Hmm, that didn't quite work. Want me to try something else?",
+                      { allowInterruptions: true }
+                    );
+                  }
+                }
+              } catch (parseError) {
+                log.warn(
+                  { error: String(parseError), source: source.slice(0, 100) },
+                  'Failed to parse JSON function call in flush'
+                );
+              }
+          }
+        }
+
+        // If we didn't execute a tool, handle pending chunks with original logic
+        if (!executedFromFlush && hasPendingChunks) {
+          const allPendingText = fullResponseBuffer || combinedPending;
+          const looksLikeIncompleteJson =
+            allPendingText.includes('"fn"') ||
+            allPendingText.includes('executeTool') ||
+            combinedPending.includes('```json') ||
+            (combinedPending.includes('{') && !combinedPending.includes('}')) ||
+            combinedPending.match(/^\s*\{/) ||
+            combinedPending.match(/```\s*$/);
+
+          if (looksLikeIncompleteJson) {
+            log.warn(
+              {
+                sessionId,
+                pendingCount: pendingChunks.length,
+                preview: combinedPending.slice(0, 100),
+              },
+              '🚫 Stream ended with incomplete JSON function call - DROPPING (not sending to TTS)'
+            );
+          } else {
+            log.warn(
+              { sessionId, pendingCount: pendingChunks.length },
+              '⚠️ Stream ended with pending chunks - releasing to TTS'
+            );
+            for (const pendingChunk of pendingChunks) {
+              controller.enqueue(pendingChunk);
+              cleanResponseText += pendingChunk;
+            }
           }
         }
       }
@@ -818,6 +1048,7 @@ export function createSanitizerWithMusicFallback(
 
       // Reset state for next response
       buffer = '';
+      fullResponseBuffer = '';
       musicFallbackTriggered = false;
       jsonFunctionExecuted = false;
       potentialJsonAccumulating = false;

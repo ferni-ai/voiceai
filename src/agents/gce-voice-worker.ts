@@ -174,6 +174,7 @@ import {
   getJobMetrics,
   initLiveKitConnection,
   connectToLiveKit,
+  cleanupStaleWorkers,
   closeConnection,
   prepareForShutdown,
   stopPingKeepalive,
@@ -277,8 +278,9 @@ async function main(): Promise<void> {
     });
   }
 
-  // Phase 4: Connect to LiveKit
-  log('Phase 4: Connecting to LiveKit');
+  // Phase 4: Clean up stale workers from previous crashes, then connect
+  log('Phase 4: Cleaning up stale workers and connecting to LiveKit');
+  await cleanupStaleWorkers();
   await connectToLiveKit();
 
   // Signal that prewarm is complete and worker is ready

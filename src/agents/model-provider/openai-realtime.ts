@@ -197,8 +197,9 @@ export class OpenAIRealtimeProvider implements ModelProvider {
 
     // Note: OpenAI Realtime SDK doesn't accept 'instructions' in RealtimeModel constructor.
     // Instructions are set via the LiveKit Agent system prompt instead.
-    // IMPORTANT: Always use OpenAI's realtime model - ignore config.model which may be set to Gemini
-    const openaiModel = config.model?.startsWith('gpt-') ? config.model : 'gpt-realtime';
+    // Model selection: env var > config > default
+    const envModel = process.env.OPENAI_REALTIME_MODEL;
+    const openaiModel = envModel || (config.model?.startsWith('gpt-') ? config.model : 'gpt-realtime-1.5');
     const model = new openai.realtime.RealtimeModel({
       model: openaiModel,
       modalities: ['text'], // Text-only mode - Cartesia TTS handles persona voice

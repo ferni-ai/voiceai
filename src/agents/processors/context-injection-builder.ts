@@ -217,111 +217,103 @@ export async function buildContextInjections(
     });
   }
 
-  // 2c. PREDICTIVE INTELLIGENCE
-  if (services.userId) {
-    try {
-      const predictiveContext = await getPredictiveIntelligenceContext(services.userId, {
-        currentEmotion: analysis.emotion.primary,
-        currentTopic,
-      });
-      if (predictiveContext) {
-        injections.push({
-          category: 'predictive',
-          content: predictiveContext,
-          priority: 80,
-        });
-      }
-    } catch (error) {
-      diag.debug('Predictive intelligence context failed (non-blocking)', { error: String(error) });
+  // 2c–2g. PREDICTIVE + FIRST-TURN CONTEXT (all run in PARALLEL)
+  // Previously these ran sequentially, adding 300-600ms on first turn.
+  // Now they all fire at once with individual timeouts.
+  const FIRST_TURN_TIMEOUT_MS = 150;
+  const isFirstTurn = (userData.turnCount || 0) === 0;
+  const userId = services.userId;
+
+  const firstTurnResults = await Promise.allSettled([
+    // 2c. PREDICTIVE INTELLIGENCE (every turn)
+    userId
+      ? getPredictiveIntelligenceContext(userId, {
+          currentEmotion: analysis.emotion.primary,
+          currentTopic,
+        }).catch(() => null)
+      : Promise.resolve(null),
+
+    // 2d. TEAM HUDDLE (first turn only)
+    userId && isFirstTurn
+      ? Promise.race([
+          import('../../services/cross-persona/team-huddle.js').then(async ({ generateTeamHuddle, formatTeamHuddleForLLM }) => {
+            const huddle = await generateTeamHuddle(userId);
+            if (huddle.observations.length > 0) {
+              return { category: 'team_huddle' as const, content: formatTeamHuddleForLLM(huddle), priority: 78 };
+            }
+            return null;
+          }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), FIRST_TURN_TIMEOUT_MS)),
+        ]).catch(() => null)
+      : Promise.resolve(null),
+
+    // 2e. OUTREACH BRIDGE (first turn only)
+    userId && isFirstTurn
+      ? Promise.race([
+          import('../../services/outreach/conversation-context-bridge.js').then(async ({ buildOutreachBridgeInjection }) => {
+            const bridgeInjection = await buildOutreachBridgeInjection(userId);
+            if (bridgeInjection) {
+              return { category: 'outreach_bridge' as const, content: bridgeInjection.content, priority: bridgeInjection.priority };
+            }
+            return null;
+          }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), FIRST_TURN_TIMEOUT_MS)),
+        ]).catch(() => null)
+      : Promise.resolve(null),
+
+    // 2f. CROSS-CHANNEL CONTEXT (first turn only)
+    userId && isFirstTurn
+      ? Promise.race([
+          import('../../services/session-context/session-summary.js').then(async ({ getActiveUserContext, formatContextForVoiceCall }) => {
+            const activeContext = await getActiveUserContext(userId);
+            if (activeContext) {
+              const crossChannelContext = formatContextForVoiceCall(activeContext);
+              if (crossChannelContext && crossChannelContext.length > 50) {
+                return { category: 'cross_channel' as const, content: crossChannelContext, priority: 75 };
+              }
+            }
+            return null;
+          }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), FIRST_TURN_TIMEOUT_MS)),
+        ]).catch(() => null)
+      : Promise.resolve(null),
+
+    // 2g. WHILE YOU WERE AWAY (first turn only)
+    userId && isFirstTurn
+      ? Promise.race([
+          import('../../intelligence/context-builders/external/pending-call-results.js').then(async ({ buildAllPendingResultsContext }) => {
+            const pendingResultsContext = await buildAllPendingResultsContext(userId);
+            if (pendingResultsContext) {
+              return { category: 'pending_background_results' as const, content: pendingResultsContext, priority: 90 };
+            }
+            return null;
+          }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), FIRST_TURN_TIMEOUT_MS)),
+        ]).catch(() => null)
+      : Promise.resolve(null),
+  ]);
+
+  // Process parallel results: [predictive, teamHuddle, outreach, crossChannel, pendingResults]
+  const [predictiveResult, ...firstTurnOnlyResults] = firstTurnResults;
+
+  if (predictiveResult.status === 'fulfilled' && predictiveResult.value) {
+    injections.push({
+      category: 'predictive',
+      content: predictiveResult.value,
+      priority: 80,
+    });
+  }
+
+  for (const result of firstTurnOnlyResults) {
+    if (result.status === 'fulfilled' && result.value) {
+      injections.push(result.value as ContextInjection);
     }
   }
 
-  // 2d. TEAM HUDDLE (first turn only)
-  if (services.userId && (userData.turnCount || 0) === 0) {
-    try {
-      const { generateTeamHuddle, formatTeamHuddleForLLM } =
-        await import('../../services/cross-persona/team-huddle.js');
-      const huddle = await generateTeamHuddle(services.userId);
-      if (huddle.observations.length > 0) {
-        const huddleContext = formatTeamHuddleForLLM(huddle);
-        injections.push({
-          category: 'team_huddle',
-          content: huddleContext,
-          priority: 78,
-        });
-        diag.debug('Team Huddle context injected', {
-          observations: huddle.observations.length,
-          connections: huddle.connections.length,
-        });
-      }
-    } catch (error) {
-      diag.debug('Team Huddle context failed (non-blocking)', { error: String(error) });
-    }
-  }
-
-  // 2e. OUTREACH BRIDGE (first turn only)
-  if (services.userId && (userData.turnCount || 0) === 0) {
-    try {
-      const { buildOutreachBridgeInjection } =
-        await import('../../services/outreach/conversation-context-bridge.js');
-      const bridgeInjection = await buildOutreachBridgeInjection(services.userId);
-      if (bridgeInjection) {
-        injections.push({
-          category: 'outreach_bridge',
-          content: bridgeInjection.content,
-          priority: bridgeInjection.priority,
-        });
-        diag.debug('Outreach bridge context injected');
-      }
-    } catch (error) {
-      diag.debug('Outreach bridge context failed (non-blocking)', { error: String(error) });
-    }
-  }
-
-  // 2f. CROSS-CHANNEL CONTEXT (first turn only)
-  if (services.userId && (userData.turnCount || 0) === 0) {
-    try {
-      const { getActiveUserContext, formatContextForVoiceCall } =
-        await import('../../services/session-context/session-summary.js');
-      const activeContext = await getActiveUserContext(services.userId);
-      if (activeContext) {
-        const crossChannelContext = formatContextForVoiceCall(activeContext);
-        if (crossChannelContext && crossChannelContext.length > 50) {
-          injections.push({
-            category: 'cross_channel',
-            content: crossChannelContext,
-            priority: 75,
-          });
-          diag.debug('Cross-channel context injected', {
-            lastInteraction: activeContext.lastInteractionType,
-            pendingTopics: activeContext.pendingTopics.length,
-          });
-        }
-      }
-    } catch (error) {
-      diag.debug('Cross-channel context failed (non-blocking)', { error: String(error) });
-    }
-  }
-
-  // 2g. WHILE YOU WERE AWAY (first turn only)
-  if (services.userId && (userData.turnCount || 0) === 0) {
-    try {
-      const { buildAllPendingResultsContext } =
-        await import('../../intelligence/context-builders/external/pending-call-results.js');
-      const pendingResultsContext = await buildAllPendingResultsContext(services.userId);
-      if (pendingResultsContext) {
-        injections.push({
-          category: 'pending_background_results',
-          content: pendingResultsContext,
-          priority: 90,
-        });
-        diag.debug('While You Were Away context injected');
-      }
-    } catch (error) {
-      diag.debug('Pending background results context failed (non-blocking)', {
-        error: String(error),
-      });
-    }
+  if (isFirstTurn) {
+    const settled = firstTurnOnlyResults.filter((r) => r.status === 'fulfilled' && r.value).length;
+    const timedOut = firstTurnOnlyResults.filter((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value)).length;
+    diag.debug('First-turn parallel context complete', { settled, timedOut });
   }
 
   // ============================================================================
@@ -384,10 +376,25 @@ export async function buildContextInjections(
   };
 
   // ============================================================================
-  // TIER 1: CRITICAL BUILDERS (no timeout)
+  // TIER 1: CRITICAL BUILDERS (with safety timeout)
   // ============================================================================
+  const TIER1_TIMEOUT_MS = 120;
+  const behavioralFallback: Awaited<ReturnType<typeof buildIntegratedContext>> = {
+    behavioralDirective: '',
+    awarenessFacts: '',
+    toolGuidance: '',
+    compactDirective: '',
+    highEmotionMode: false,
+    metrics: { mode: 'behavioral', behavioralBuildersRun: 0, totalDurationMs: 0 },
+  };
+
   const [behavioralResult, humanTransferInjection, crisisHistoryInjection] = await Promise.all([
-    buildIntegratedContext(contextInput),
+    withTimeout(
+      buildIntegratedContext(contextInput),
+      TIER1_TIMEOUT_MS,
+      behavioralFallback,
+      'buildIntegratedContext'
+    ),
     buildHumanTransferInjections(userText, services.userId),
     buildCrisisHistoryInjection(services.userId || 'unknown'),
   ]);
