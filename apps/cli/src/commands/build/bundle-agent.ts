@@ -170,7 +170,7 @@ ${colors.cyan}╚═════════════════════
         setup(build) {
           // Match any relative import that can't be resolved in dist/
           build.onResolve({ filter: /.*/ }, (args) => {
-            if (args.resolveDir.includes('/dist/') && args.path.startsWith('.')) {
+            if ((args.resolveDir.includes('/dist/') || args.resolveDir.endsWith('/dist')) && args.path.startsWith('.')) {
               const resolved = join(args.resolveDir, args.path);
               const extensions = ['', '.js', '.mjs', '/index.js'];
               const found = extensions.some(ext => existsSync(resolved + ext));
