@@ -1,4 +1,11 @@
 /**
+ * Collective learning scheduler - re-export from collective module.
+ *
  * @deprecated Import from './collective/scheduler.js' instead
  */
-export * from './collective/scheduler.js';
+export {
+  startCollectiveLearningScheduler,
+  stopCollectiveLearningScheduler,
+  forceRunAllJobs,
+  getSchedulerStatus,
+} from './collective/scheduler.js';

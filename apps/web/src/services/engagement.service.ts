@@ -310,6 +310,7 @@ class EngagementService {
     }
 
     // Try REST API with proper auth headers
+    // TODO: Backend GET /api/predictions not implemented yet. Falls through to fallback.
     try {
       const result = await apiGet<{
         predictions?: Array<Record<string, unknown>>;

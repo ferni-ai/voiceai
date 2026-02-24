@@ -21,19 +21,27 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // CORE MODULE STRUCTURE TESTS
 // ============================================================================
 
+/** Read all .ts files in the voice-agent-entry directory and concatenate for pattern checks */
+async function readAllEntryFiles(): Promise<string> {
+  const fs = await import('fs/promises');
+  const entryDir = path.resolve(__dirname, '../voice-agent-entry');
+  const files = await fs.readdir(entryDir);
+  const tsFiles = files.filter((f: string) => f.endsWith('.ts'));
+  const contents = await Promise.all(
+    tsFiles.map((f: string) => fs.readFile(path.resolve(entryDir, f), 'utf-8'))
+  );
+  return contents.join('\n');
+}
+
 describe('Voice Agent Entry - Module Structure', () => {
   it('should export runFullVoiceAgentEntry function', async () => {
-    const fs = await import('fs/promises');
-    const entryPath = path.resolve(__dirname, '../voice-agent-entry.ts');
-    const content = await fs.readFile(entryPath, 'utf-8');
+    const content = await readAllEntryFiles();
 
     expect(content).toContain('export async function runFullVoiceAgentEntry');
   });
 
   it('should have all handler imports', async () => {
-    const fs = await import('fs/promises');
-    const entryPath = path.resolve(__dirname, '../voice-agent-entry.ts');
-    const content = await fs.readFile(entryPath, 'utf-8');
+    const content = await readAllEntryFiles();
 
     // Check that all handlers are imported
     const requiredImports = [
@@ -57,9 +65,7 @@ describe('Voice Agent Entry - Module Structure', () => {
   });
 
   it('should use FerniAgent which builds its own tools', async () => {
-    const fs = await import('fs/promises');
-    const entryPath = path.resolve(__dirname, '../voice-agent-entry.ts');
-    const content = await fs.readFile(entryPath, 'utf-8');
+    const content = await readAllEntryFiles();
 
     // Check that FerniAgent is imported and used for persona agents
     expect(content).toContain('FerniAgent');
@@ -68,9 +74,7 @@ describe('Voice Agent Entry - Module Structure', () => {
   });
 
   it('should have frontend publisher integration', async () => {
-    const fs = await import('fs/promises');
-    const entryPath = path.resolve(__dirname, '../voice-agent-entry.ts');
-    const content = await fs.readFile(entryPath, 'utf-8');
+    const content = await readAllEntryFiles();
 
     expect(content).toContain('initializeFrontendPublisher');
     expect(content).toContain('getFrontendPublisher');
@@ -78,18 +82,14 @@ describe('Voice Agent Entry - Module Structure', () => {
   });
 
   it('should have cleanup handler integration', async () => {
-    const fs = await import('fs/promises');
-    const entryPath = path.resolve(__dirname, '../voice-agent-entry.ts');
-    const content = await fs.readFile(entryPath, 'utf-8');
+    const content = await readAllEntryFiles();
 
     expect(content).toContain('handleSessionCleanup');
     expect(content).toContain('cleanupHandlers');
   });
 
   it('should have e2e diagnostics integration', async () => {
-    const fs = await import('fs/promises');
-    const entryPath = path.resolve(__dirname, '../voice-agent-entry.ts');
-    const content = await fs.readFile(entryPath, 'utf-8');
+    const content = await readAllEntryFiles();
 
     expect(content).toContain('e2e-diagnostics');
     expect(content).toContain('e2e.resourceLoading');
@@ -99,9 +99,7 @@ describe('Voice Agent Entry - Module Structure', () => {
   });
 
   it('should have resilience utilities', async () => {
-    const fs = await import('fs/promises');
-    const entryPath = path.resolve(__dirname, '../voice-agent-entry.ts');
-    const content = await fs.readFile(entryPath, 'utf-8');
+    const content = await readAllEntryFiles();
 
     expect(content).toContain('withResilience');
     expect(content).toContain('humanizeError');
@@ -273,9 +271,7 @@ describe('Voice Agent Entry - Helper Functions', () => {
 
 describe('Voice Agent Entry - Integration Checklist', () => {
   it('should document all integrated features', async () => {
-    const fs = await import('fs/promises');
-    const entryPath = path.resolve(__dirname, '../voice-agent-entry.ts');
-    const content = await fs.readFile(entryPath, 'utf-8');
+    const content = await readAllEntryFiles();
 
     // List of all integrations we've added
     const integrations = [

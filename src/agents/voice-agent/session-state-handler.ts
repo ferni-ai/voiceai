@@ -22,12 +22,12 @@ import {
 } from './music-handler.js';
 // Tool execution tracking - prevents dead air check-in during active tool calls
 import { getSessionFlags } from '../../config/voice-humanization-flags.js';
-import { getActiveListeningEngine } from '../../conversation/active-listening.js';
+import { getActiveListeningEngine } from '../../conversation/active-listening/index.js';
 import {
   analyzeSilence,
   recordSilence,
   type SilenceAnalysis,
-} from '../../intelligence/silence-intelligence.js';
+} from '../../intelligence/deep-understanding/silence.js';
 import {
   getLLMSilenceInstructions,
   playAmbientMusicDuringSilence,

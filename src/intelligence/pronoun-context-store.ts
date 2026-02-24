@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { createManagedInterval, type ManagedInterval } from '../utils/managed-interval.js';
 import { updatePronounContext, type DetectedEntity } from './entity-detector.js';
 
 const log = createLogger({ module: 'PronounContextStore' });
@@ -128,4 +129,13 @@ export function cleanupExpiredPronounSessions(): number {
 }
 
 // Run cleanup every 5 minutes
-setInterval(cleanupExpiredPronounSessions, 5 * 60 * 1000);
+const pronounCleanupInterval: ManagedInterval = createManagedInterval(
+  cleanupExpiredPronounSessions,
+  5 * 60 * 1000,
+  { unref: true, label: 'pronoun-context-cleanup' }
+);
+
+/** Clean up the pronoun context cleanup interval (for graceful shutdown) */
+export function disposePronounContextCleanup(): void {
+  pronounCleanupInterval.dispose();
+}

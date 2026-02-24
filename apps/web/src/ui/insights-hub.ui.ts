@@ -404,6 +404,7 @@ class InsightsHubUI {
   }
 
   private async loadAnalyticsData(): Promise<void> {
+    // TODO: Backend GET /api/analytics/user not implemented yet. Falls through gracefully.
     const result = await apiGet<AnalyticsData>('/api/analytics/user');
     if (result.ok && result.data) {
       this.dataCache.analytics = result.data;

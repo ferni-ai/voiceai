@@ -7,7 +7,7 @@
  */
 
 import { seededPick } from '../utils/random-generator.js';
-import type { EmotionResult } from '../../intelligence/emotion-detector.js';
+import type { EmotionResult } from '../../intelligence/detectors/emotion.js';
 import { humanizationSignalEmitter } from '../../services/humanization/humanization-signal-emitter.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import { createLogger } from '../../utils/safe-logger.js';

@@ -32,12 +32,15 @@ export interface LinkedInStatus {
 
 // ============================================================================
 // API CALLS
+// TODO: Backend /api/linkedin/* routes exist but are NOT mounted on the server.
+// All functions below return graceful fallbacks. Re-enable when routes are mounted.
 // ============================================================================
 
 /**
  * Get LinkedIn connection status
  */
 export async function getLinkedInStatus(): Promise<LinkedInStatus | null> {
+  // TODO: Backend /api/linkedin/status route not mounted. Re-enable when available.
   try {
     const response = await fetch('/api/linkedin/status', {
       credentials: 'include',
@@ -57,6 +60,7 @@ export async function getLinkedInStatus(): Promise<LinkedInStatus | null> {
  * Disconnect LinkedIn
  */
 export async function disconnectLinkedIn(): Promise<boolean> {
+  // TODO: Backend /api/linkedin/disconnect route not mounted. Re-enable when available.
   try {
     const response = await fetch('/api/linkedin/disconnect', {
       method: 'POST',
@@ -80,6 +84,7 @@ export async function disconnectLinkedIn(): Promise<boolean> {
  * Force sync LinkedIn data
  */
 export async function syncLinkedIn(): Promise<boolean> {
+  // TODO: Backend /api/linkedin/sync route not mounted. Re-enable when available.
   try {
     const response = await fetch('/api/linkedin/sync', {
       method: 'POST',

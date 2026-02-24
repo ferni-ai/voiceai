@@ -227,8 +227,8 @@ export function validateQueryParams<T>(parsedUrl: URL, schema: ZodSchema<T>): Va
 /**
  * Get user ID from request with proper validation.
  *
- * SECURITY: Prioritizes Firebase auth (x-firebase-uid) over deprecated x-user-id.
- * Checks in order: Firebase UID, query params, legacy header, dev mode.
+ * SECURITY: Uses Firebase auth (x-firebase-uid) as primary identity.
+ * Checks in order: Firebase UID, query params, dev mode.
  *
  * @param req - Incoming HTTP request
  * @param parsedUrl - Parsed URL with searchParams
@@ -242,11 +242,6 @@ export function getUserId(req: IncomingMessage, parsedUrl: URL): string | null {
   // Query params (for backwards compatibility)
   const fromQuery = parsedUrl.searchParams.get('userId');
   if (fromQuery) return fromQuery;
-
-  // Legacy header (deprecated - will be removed in future version)
-  // TODO: Remove x-user-id support after migration period
-  const fromLegacyHeader = req.headers['x-user-id'];
-  if (typeof fromLegacyHeader === 'string' && fromLegacyHeader) return fromLegacyHeader;
 
   // Dev mode bypass - allows testing without authentication
   // SECURITY: Only works in development environment

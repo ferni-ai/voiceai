@@ -64,13 +64,16 @@ const WORKER_STARTUP_TIMEOUT_MS = 30_000;
 
 /**
  * Create a timeout promise that rejects after the specified duration.
+ * Returns the timer ID alongside the promise so it can be cleared.
  */
-async function createTimeout(ms: number, operation: string): Promise<never> {
-  return new Promise((_, reject) => {
-    setTimeout(() => {
+function createTimeout(ms: number, operation: string): { promise: Promise<never>; timerId: ReturnType<typeof setTimeout> } {
+  let timerId: ReturnType<typeof setTimeout>;
+  const promise = new Promise<never>((_, reject) => {
+    timerId = setTimeout(() => {
       reject(new Error(`${operation} timeout after ${ms}ms`));
     }, ms);
   });
+  return { promise, timerId: timerId! };
 }
 
 /**
@@ -98,16 +101,21 @@ export async function startAllWorkers(timeoutMs = WORKER_STARTUP_TIMEOUT_MS): Pr
 
   try {
     // Start all event-based workers in parallel WITH TIMEOUT
-    await Promise.race([
-      Promise.all([
-        startTrustWorker(),
-        startAnalyticsWorker(),
-        startEmbeddingWorker(),
-        startSummarizationWorker(),
-        startPredictionsWorker(),
-      ]),
-      createTimeout(timeoutMs, 'Worker startup'),
-    ]);
+    const timeout = createTimeout(timeoutMs, 'Worker startup');
+    try {
+      await Promise.race([
+        Promise.all([
+          startTrustWorker(),
+          startAnalyticsWorker(),
+          startEmbeddingWorker(),
+          startSummarizationWorker(),
+          startPredictionsWorker(),
+        ]),
+        timeout.promise,
+      ]);
+    } finally {
+      clearTimeout(timeout.timerId);
+    }
 
     // Initialize audio analysis worker pool (uses worker_threads)
     // This is non-critical, wrapped in try/catch

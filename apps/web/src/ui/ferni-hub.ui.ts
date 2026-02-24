@@ -130,6 +130,7 @@ async function fetchHubData(): Promise<HubData> {
     const resultsData = resultsResponse.ok && resultsResponse.data ? resultsResponse.data : { results: [] };
 
     // Fetch open threads (conversation threads API)
+    // TODO: Backend GET /api/conversations/threads not implemented yet. Falls through gracefully.
     const threadsResponse = await apiGet<{ threads?: unknown[] }>(`/api/conversations/threads?userId=${userId}&status=open&limit=5`);
     const threadsData = threadsResponse.ok && threadsResponse.data ? threadsResponse.data : { threads: [] };
 

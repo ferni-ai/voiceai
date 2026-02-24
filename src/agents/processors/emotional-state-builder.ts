@@ -10,7 +10,7 @@ import {
   buildMismatchGuidance,
   detectMismatch,
   type MismatchResult,
-} from '../../intelligence/voice-text-mismatch.js';
+} from '../../intelligence/detectors/voice-mismatch.js';
 import { getEmotionGuidance } from '../../speech/emotion-matching.js';
 import type { EmotionalState, TurnAnalysisResult, TurnContext } from './types.js';
 

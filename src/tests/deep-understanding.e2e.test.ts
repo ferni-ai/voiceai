@@ -21,7 +21,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Intelligence systems
-import { analyzeSilence, resetSilenceIntelligence } from '../intelligence/silence-intelligence.js';
+import { analyzeSilence, resetSilenceIntelligence } from '../intelligence/deep-understanding/silence.js';
 import {
   predictUserState,
   recordConversationObservation,
@@ -47,7 +47,7 @@ import {
   resetRepairIntelligence,
 } from '../intelligence/repair-intelligence.js';
 import { analyzeHope, resetHopeTrajectory } from '../intelligence/hope-trajectory.js';
-import { analyzeChapter, resetLifeChapterAwareness } from '../intelligence/life-chapter.js';
+import { analyzeChapter, resetLifeChapterAwareness } from '../intelligence/deep-understanding/life-chapter.js';
 
 // Context builder
 import {

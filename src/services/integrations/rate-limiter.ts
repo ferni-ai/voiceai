@@ -10,6 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { createManagedInterval, type ManagedInterval } from '../../utils/managed-interval.js';
 import type { RateLimitState, RateLimitResult, RateLimitConfig } from './types.js';
 import { INTEGRATIONS } from './integration-hub.js';
 
@@ -22,10 +23,22 @@ const log = createLogger({ module: 'rate-limiter' });
 export class RateLimiter {
   private states: Map<string, RateLimitState> = new Map();
   private requestTimestamps: Map<string, number[]> = new Map();
+  private cleanupInterval: ManagedInterval;
 
   constructor() {
     // Clean up old timestamps periodically
-    setInterval(() => this.cleanup(), 60000);
+    this.cleanupInterval = createManagedInterval(
+      () => this.cleanup(),
+      60000,
+      { unref: true, label: 'rate-limiter-cleanup' }
+    );
+  }
+
+  /**
+   * Dispose the rate limiter and its cleanup interval
+   */
+  dispose(): void {
+    this.cleanupInterval.dispose();
   }
 
   // ==========================================================================

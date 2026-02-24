@@ -30,7 +30,7 @@ import {
   generateQuestion,
   type GeneratedQuestion,
   type QuestionContext,
-} from '../intelligence/dynamic-questions.js';
+} from '../intelligence/coaching/dynamic-questions.js';
 // Coaching-level questions - memory-grounded, pattern-surfacing, anticipatory
 import { getCoachingQuestion } from '../intelligence/coaching-questions.js';
 import { getLogger } from '../utils/safe-logger.js';

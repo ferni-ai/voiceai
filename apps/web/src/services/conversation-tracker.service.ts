@@ -200,6 +200,7 @@ class ConversationTrackerService {
       topicsDiscussed: session.topicsDiscussed,
     };
 
+    // TODO: Backend POST /api/conversations not implemented yet. Falls back to local storage.
     try {
       const response = await apiPost('/api/conversations', { session: sessionData });
 

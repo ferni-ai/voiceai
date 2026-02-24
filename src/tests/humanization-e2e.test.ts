@@ -22,7 +22,7 @@ import {
 import {
   getActiveListeningEngine,
   resetActiveListeningEngine,
-} from '../conversation/active-listening.js';
+} from '../conversation/active-listening/index.js';
 import { getHumanizingConfig } from '../conversation/humanizing-config.js';
 
 // ============================================================================

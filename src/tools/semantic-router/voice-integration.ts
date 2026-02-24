@@ -892,7 +892,7 @@ export async function routeVoiceInput(
 
       // 🔧 FIX: Use domain bridge to execute real tools (not just semantic routing metadata)
       // The domain bridge maps semantic tool IDs (weather_current) to real domain tools (getWeather)
-      const { hasDomainMapping, executeDomainTool } = await import('./domain-bridge.js');
+      const { hasDomainMapping, executeDomainTool } = await import('./domain-bridge/index.js');
 
       let toolResult;
       if (hasDomainMapping(action.toolId)) {

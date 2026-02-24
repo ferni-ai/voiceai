@@ -41,7 +41,7 @@ import {
   buildAdvancedHumanizationInjections,
   cleanupAdvancedHumanizationSession,
   initAdvancedHumanizationSession,
-} from '../agents/processors/injection-builders.js';
+} from '../agents/processors/injection-builders/index.js';
 
 // ============================================================================
 // INTEGRATION MODULE TESTS

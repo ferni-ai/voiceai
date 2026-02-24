@@ -23,7 +23,7 @@ import { initializeSemanticRouter } from '../../../tools/semantic-router/integra
 import {
   executeDomainTool,
   hasDomainMapping,
-} from '../../../tools/semantic-router/domain-bridge.js';
+} from '../../../tools/semantic-router/domain-bridge/index.js';
 import type { ServiceRegistry } from '../../../tools/registry/types.js';
 
 const log = createLogger({ module: 'SyntheticTestRoutes' });
@@ -341,7 +341,7 @@ async function handleDirectExecute(
 async function handleListTools(_req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     // Import domain bridge to get tool mappings
-    const { getAllMappings } = await import('../../../tools/semantic-router/domain-bridge.js');
+    const { getAllMappings } = await import('../../../tools/semantic-router/domain-bridge/index.js');
 
     const mappings = getAllMappings();
     const tools = Object.entries(mappings).map(([id, mapping]) => ({

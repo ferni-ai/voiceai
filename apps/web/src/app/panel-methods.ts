@@ -22,7 +22,8 @@ import {
   type YourStoryData,
 } from '../ui/visualizations/index.js';
 import { getYourStoryUI } from '../ui/your-story-dashboard.ui.js';
-import { getApiHeadersAsync } from '../utils/api.js';
+// TODO: Re-enable when /api/huddles/start backend is implemented
+// import { getApiHeadersAsync } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
 // 🧠 Better Than Human: Track screen view for Voice ↔ App Sync
@@ -49,16 +50,18 @@ export async function showConversationHistory(): Promise<void> {
   void trackScreen('journal');
   getConversationHistoryUI().showLoading();
 
-  try {
-    const response = await fetch('/api/conversations');
-    if (response.ok) {
-      const data = await response.json();
-      getConversationHistoryUI().show(data);
-      return;
-    }
-  } catch (err) {
-    log.debug('API fetch failed, checking for demo mode');
-  }
+  // TODO: Backend GET /api/conversations not implemented yet.
+  // When the handler exists, uncomment the fetch below.
+  // try {
+  //   const response = await fetch('/api/conversations');
+  //   if (response.ok) {
+  //     const data = await response.json();
+  //     getConversationHistoryUI().show(data);
+  //     return;
+  //   }
+  // } catch (err) {
+  //   log.debug('API fetch failed, checking for demo mode');
+  // }
 
   // Fall back to demo data if enabled
   if (isDemoDataEnabled()) {
@@ -130,23 +133,22 @@ export async function showAnalyticsDashboard(): Promise<void> {
   // Show loading state immediately
   getAnalyticsDashboardUI().showLoading();
 
-  // Try to fetch real data from API
-  try {
-    const userId = localStorage.getItem('ferni_user_id');
-    const url = userId
-      ? `/api/analytics/user?userId=${encodeURIComponent(userId)}`
-      : '/api/analytics/user';
-
-    const response = await fetch(url);
-    if (response.ok) {
-      const data = await response.json();
-      getAnalyticsDashboardUI().show(data);
-      return;
-    }
-    log.debug('API returned non-OK status:', response.status);
-  } catch (err) {
-    log.debug('API fetch failed, checking for demo mode');
-  }
+  // TODO: Backend GET /api/analytics/user not implemented yet.
+  // When the handler exists, uncomment the fetch below.
+  // try {
+  //   const userId = localStorage.getItem('ferni_user_id');
+  //   const url = userId
+  //     ? `/api/analytics/user?userId=${encodeURIComponent(userId)}`
+  //     : '/api/analytics/user';
+  //   const response = await fetch(url);
+  //   if (response.ok) {
+  //     const data = await response.json();
+  //     getAnalyticsDashboardUI().show(data);
+  //     return;
+  //   }
+  // } catch (err) {
+  //   log.debug('API fetch failed, checking for demo mode');
+  // }
 
   // Fall back to demo data if enabled
   if (isDemoDataEnabled()) {
@@ -217,22 +219,9 @@ export async function showAnalyticsDashboard(): Promise<void> {
  * Delete a memory from "What I've Learned" and refresh the UI.
  */
 export async function deleteMemory(memoryId: string): Promise<void> {
-  try {
-    const response = await fetch(`/api/cognitive/memories/${encodeURIComponent(memoryId)}`, {
-      method: 'DELETE',
-    });
-
-    if (response.ok) {
-      log.info({ memoryId }, 'Memory deleted successfully');
-      // Refresh the cognitive insights panel with updated data
-      await showCognitiveInsights();
-    } else {
-      const error = await response.json();
-      log.warn({ memoryId, error }, 'Failed to delete memory');
-    }
-  } catch (err) {
-    log.error({ err, memoryId }, 'Error deleting memory');
-  }
+  // TODO: Backend DELETE /api/cognitive/memories/:id not implemented yet.
+  // Re-enable when handler exists.
+  log.debug({ memoryId }, 'deleteMemory: backend not implemented yet');
 }
 
 /**
@@ -248,22 +237,23 @@ export async function showCognitiveInsights(): Promise<void> {
   });
   getCognitiveInsightsUI().showLoading();
 
-  try {
-    const response = await fetch('/api/cognitive/memories');
-    if (response.ok) {
-      const data = await response.json();
-      // API now returns data in correct UI format
-      getCognitiveInsightsUI().show({
-        memories: data.memories || [],
-        patterns: data.patterns || [],
-        totalInteractions: data.totalInteractions || 0,
-        knowledgeScore: data.knowledgeScore || 0,
-      });
-      return;
-    }
-  } catch (err) {
-    log.debug('API fetch failed, checking for demo mode');
-  }
+  // TODO: Backend GET /api/cognitive/memories not implemented yet.
+  // When the handler exists, uncomment the fetch below.
+  // try {
+  //   const response = await fetch('/api/cognitive/memories');
+  //   if (response.ok) {
+  //     const data = await response.json();
+  //     getCognitiveInsightsUI().show({
+  //       memories: data.memories || [],
+  //       patterns: data.patterns || [],
+  //       totalInteractions: data.totalInteractions || 0,
+  //       knowledgeScore: data.knowledgeScore || 0,
+  //     });
+  //     return;
+  //   }
+  // } catch (err) {
+  //   log.debug('API fetch failed, checking for demo mode');
+  // }
 
   // Fall back to demo data if enabled
   if (isDemoDataEnabled()) {
@@ -481,33 +471,29 @@ function getDemoCognitiveData() {
  */
 export async function showPredictionTracker(): Promise<void> {
   void trackScreen('predictions');
-  // Try to fetch real data from API
-  try {
-    const response = await fetch('/api/predictions');
-    if (response.ok) {
-      const data = await response.json();
-      // Transform API data to UI format
-      const predictions = data.predictions || [];
-      const completed = predictions.filter((p: { accuracy?: number }) => p.accuracy !== undefined);
-      const totalCorrect = completed.reduce(
-        (sum: number, p: { accuracy: number }) => sum + (p.accuracy >= 70 ? 1 : 0),
-        0
-      );
-
-      getPredictionTrackerUI().show({
-        overallAccuracy: data.stats?.averageAccuracy || 0,
-        totalPredictions: data.stats?.totalPredictions || predictions.length,
-        correctPredictions: totalCorrect,
-        byCategory: [],
-        recentTrend: completed.slice(0, 7).map((p: { accuracy: number }) => p.accuracy),
-        bestStreak: 0,
-        currentStreak: 0,
-      });
-      return;
-    }
-  } catch (err) {
-    log.debug('API fetch failed, checking for demo mode');
-  }
+  // TODO: Backend GET /api/predictions not implemented yet.
+  // When the handler exists, uncomment the fetch below.
+  // try {
+  //   const response = await fetch('/api/predictions');
+  //   if (response.ok) {
+  //     const data = await response.json();
+  //     const predictions = data.predictions || [];
+  //     const completed = predictions.filter((p) => p.accuracy !== undefined);
+  //     const totalCorrect = completed.reduce((sum, p) => sum + (p.accuracy >= 70 ? 1 : 0), 0);
+  //     getPredictionTrackerUI().show({
+  //       overallAccuracy: data.stats?.averageAccuracy || 0,
+  //       totalPredictions: data.stats?.totalPredictions || predictions.length,
+  //       correctPredictions: totalCorrect,
+  //       byCategory: [],
+  //       recentTrend: completed.slice(0, 7).map((p) => p.accuracy),
+  //       bestStreak: 0,
+  //       currentStreak: 0,
+  //     });
+  //     return;
+  //   }
+  // } catch (err) {
+  //   log.debug('API fetch failed, checking for demo mode');
+  // }
 
   // Fall back to demo data if enabled
   if (isDemoDataEnabled()) {
@@ -671,33 +657,32 @@ export async function showDataExport(): Promise<void> {
  * Show team huddle panel.
  * Starts a new huddle via API, or shows demo data in development.
  */
-export async function showTeamHuddle(topic?: string): Promise<void> {
+export async function showTeamHuddle(_topic?: string): Promise<void> {
   void trackScreen('team');
 
-  // Try to start a new huddle via API with proper Firebase auth
-  try {
-    const authHeaders = await getApiHeadersAsync(true);
-    const response = await fetch('/api/huddles/start', {
-      method: 'POST',
-      headers: authHeaders,
-      body: JSON.stringify({
-        topic: topic || 'Weekly check-in on your progress',
-        type: 'weekly',
-      }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success && data.huddle) {
-        // API now returns TeamHuddleData-compatible format
-        showTeamHuddleUI(data.huddle);
-        log.debug('Team huddle started via API');
-        return;
-      }
-    }
-  } catch (err) {
-    log.debug('API fetch failed, checking for demo mode');
-  }
+  // TODO: Backend POST /api/huddles/start not implemented yet.
+  // When the handler exists, uncomment the fetch below.
+  // try {
+  //   const authHeaders = await getApiHeadersAsync(true);
+  //   const response = await fetch('/api/huddles/start', {
+  //     method: 'POST',
+  //     headers: authHeaders,
+  //     body: JSON.stringify({
+  //       topic: topic || 'Weekly check-in on your progress',
+  //       type: 'weekly',
+  //     }),
+  //   });
+  //   if (response.ok) {
+  //     const data = await response.json();
+  //     if (data.success && data.huddle) {
+  //       showTeamHuddleUI(data.huddle);
+  //       log.debug('Team huddle started via API');
+  //       return;
+  //     }
+  //   }
+  // } catch (err) {
+  //   log.debug('API fetch failed, checking for demo mode');
+  // }
 
   // Fall back to demo data if enabled
   if (isDemoDataEnabled()) {
@@ -812,44 +797,18 @@ async function aggregateStoryData(
 /**
  * Fetch analytics stats for the story header.
  */
-async function fetchAnalyticsStats(userId: string): Promise<YourStoryData['analytics']> {
-  try {
-    const response = await fetch(`/api/analytics/user?userId=${encodeURIComponent(userId)}`);
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        daysTogether: data.totalDays || 0,
-        conversations: data.totalSessions || 0,
-        streak: data.currentLongestStreak || 0,
-      };
-    }
-  } catch (err) {
-    log.debug({ err }, 'Failed to fetch analytics stats');
-  }
-
-  // Return zeros if API fails
+async function fetchAnalyticsStats(_userId: string): Promise<YourStoryData['analytics']> {
+  // TODO: Backend GET /api/analytics/user not implemented yet.
+  // Re-enable fetch when handler exists.
   return { daysTogether: 0, conversations: 0, streak: 0 };
 }
 
 /**
  * Fetch relationship stage for the story header.
  */
-async function fetchRelationshipStage(userId: string): Promise<YourStoryData['stage']> {
-  try {
-    const response = await fetch(`/api/journey/stage?userId=${encodeURIComponent(userId)}`);
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        name: data.stageName || 'Getting Started',
-        progress: data.progress || 0,
-        tagline: data.tagline || 'Just beginning our journey',
-      };
-    }
-  } catch (err) {
-    log.debug({ err }, 'Failed to fetch relationship stage');
-  }
-
-  // Return defaults if API fails
+async function fetchRelationshipStage(_userId: string): Promise<YourStoryData['stage']> {
+  // TODO: Backend GET /api/journey/stage not implemented yet.
+  // Re-enable fetch when handler exists.
   return {
     name: 'Getting Started',
     progress: 0,

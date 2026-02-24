@@ -5,7 +5,7 @@
  * Each processor is focused, testable, and composable.
  */
 
-export * from './turn-processor.js';
+export * from './turn-processor/index.js';
 export type * from './types.js';
 
 // Trigger effectiveness learning (Phase 4)

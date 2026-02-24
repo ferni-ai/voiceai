@@ -1,5 +1,10 @@
 # Cloud Scheduler Jobs for LLM Dynamic Content Cache
 #
+# ALL jobs removed — no API handlers implemented (audit 2026-02-23):
+# - llm-content-prewarm (target: /api/llm-content/prewarm — no handler)
+# - llm-content-metrics-reset (target: /api/llm-content/reset — no handler)
+# Re-add when handlers are implemented.
+#
 # Keeps the LLM-generated content cache warm for faster response times.
 # The cache stores dynamically generated content like:
 # - Thinking phrases ("Let me think about that...")
@@ -11,109 +16,4 @@
 #
 # Deploy with gcloud commands below or via Terraform.
 
-jobs:
-  # LLM Content Pre-warm - runs every 6 hours
-  # Keeps cache warm for all personas and common content types
-  # Budget-friendly: 4 runs/day × 54 items = 216 LLM calls/day
-  - name: llm-content-prewarm
-    description: Pre-warm LLM content cache every 6 hours
-    schedule: "0 */6 * * *"  # Every 6 hours (midnight, 6am, noon, 6pm)
-    timeZone: America/Los_Angeles
-    httpTarget:
-      uri: https://app.ferni.ai/api/llm-content/prewarm
-      httpMethod: POST
-      headers:
-        Content-Type: application/json
-        X-CloudScheduler: "true"
-    retryConfig:
-      retryCount: 1
-      minBackoffDuration: 30s
-      maxBackoffDuration: 60s
-
-  # LLM Content Metrics Reset - runs daily at midnight PT
-  # Resets daily metrics for fresh tracking
-  - name: llm-content-metrics-reset
-    description: Daily reset of LLM content metrics
-    schedule: "0 0 * * *"  # Midnight every day
-    timeZone: America/Los_Angeles
-    httpTarget:
-      uri: https://app.ferni.ai/api/llm-content/reset
-      httpMethod: POST
-      headers:
-        Content-Type: application/json
-        X-CloudScheduler: "true"
-    retryConfig:
-      retryCount: 1
-      minBackoffDuration: 30s
-      maxBackoffDuration: 60s
-
-# ============================================================================
-# MANUAL DEPLOYMENT COMMANDS
-# ============================================================================
-#
-# Create all LLM content jobs:
-#
-# gcloud scheduler jobs create http llm-content-prewarm \
-#   --location=us-central1 \
-#   --schedule="*/5 * * * *" \
-#   --uri="https://app.ferni.ai/api/llm-content/prewarm" \
-#   --http-method=POST \
-#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
-#   --time-zone="America/Los_Angeles" \
-#   --description="Keep LLM content cache warm for fast responses"
-#
-# gcloud scheduler jobs create http llm-content-metrics-reset \
-#   --location=us-central1 \
-#   --schedule="0 0 * * *" \
-#   --uri="https://app.ferni.ai/api/llm-content/reset" \
-#   --http-method=POST \
-#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
-#   --time-zone="America/Los_Angeles" \
-#   --description="Daily reset of LLM content metrics"
-#
-# ============================================================================
-# UPDATE EXISTING JOBS
-# ============================================================================
-#
-# If the job already exists, use update instead of create:
-#
-# gcloud scheduler jobs update http llm-content-prewarm \
-#   --location=us-central1 \
-#   --schedule="*/5 * * * *" \
-#   --uri="https://app.ferni.ai/api/llm-content/prewarm"
-#
-# ============================================================================
-# TESTING COMMANDS
-# ============================================================================
-#
-# Test pre-warming manually:
-# curl -X POST https://app.ferni.ai/api/llm-content/prewarm \
-#   -H "Content-Type: application/json"
-#
-# Check current metrics:
-# curl https://app.ferni.ai/api/llm-content/metrics | jq
-#
-# Get quick summary:
-# curl https://app.ferni.ai/api/llm-content/summary
-#
-# Check cache stats:
-# curl https://app.ferni.ai/api/llm-content/stats | jq
-#
-# List all scheduler jobs:
-# gcloud scheduler jobs list --location=us-central1 | grep llm-content
-#
-# ============================================================================
-# MONITORING
-# ============================================================================
-#
-# Expected metrics after pre-warming:
-# - cacheHitRate: Should be >50% after cache is warm
-# - avgLatencyMs: Should be <100ms for cache hits
-# - templateFallbackRate: Should be <30% with warm cache
-#
-# If cache hit rate is low:
-# 1. Check if scheduler job is running: gcloud scheduler jobs describe llm-content-prewarm
-# 2. Check logs: gcloud logging read "resource.type=cloud_scheduler_job AND resource.labels.job_id=llm-content-prewarm"
-# 3. Manually trigger: curl -X POST https://app.ferni.ai/api/llm-content/prewarm
-
-
+jobs: []

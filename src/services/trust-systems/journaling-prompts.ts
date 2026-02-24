@@ -30,7 +30,7 @@ import {
   generateQuestion,
   type QuestionContext,
   type QuestionType,
-} from '../../intelligence/dynamic-questions.js';
+} from '../../intelligence/coaching/dynamic-questions.js';
 
 const log = createLogger({ module: 'JournalingPrompts' });
 

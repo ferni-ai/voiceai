@@ -12,7 +12,7 @@ import {
   transformArguments,
   getAllMappings,
   registerMapping,
-} from '../../domain-bridge.js';
+} from '../../domain-bridge/index.js';
 
 describe('Domain Bridge', () => {
   // ============================================================================

@@ -845,7 +845,7 @@ export async function executeDirectFromClassification(
 
     // Import and use the domain bridge for execution
     const { hasDomainMapping, getDomainToolId } =
-      await import('../semantic-router/domain-bridge.js');
+      await import('../semantic-router/domain-bridge/index.js');
 
     // Translate semantic tool ID to domain tool ID
     // CRITICAL FIX (Jan 2026): We must ALWAYS translate the tool ID, not just check if mapping exists

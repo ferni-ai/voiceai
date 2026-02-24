@@ -1241,7 +1241,7 @@
     styles.textContent = `
       /* ═══════════════════════════════════════════════════════════════════════════
          LIVE CHAT WIDGET
-         Uses CSS variables from design-tokens.css for brand compliance
+         Uses CSS variables from _tokens.css for brand compliance
          ═══════════════════════════════════════════════════════════════════════════ */
       
       #ferni-live-chat {

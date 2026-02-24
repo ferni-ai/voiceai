@@ -18,8 +18,8 @@ import {
   calculateCompoundGrowth,
   calculateFeeImpact,
 } from '../tools/domains/finance/calculators.js';
-import { getEmotionDetector } from '../intelligence/emotion-detector.js';
-import { getStateMachine } from '../intelligence/conversation-state.js';
+import { getEmotionDetector } from '../intelligence/detectors/emotion.js';
+import { getStateMachine } from '../intelligence/state/conversation.js';
 
 describe('Integration Tests: Tools → Memory → Services', () => {
   // Initialize services ONCE for all tests (expensive operation)

@@ -16,7 +16,7 @@ import {
   getActiveListeningEngine,
   resetActiveListeningEngine,
   type ActiveListeningEngine,
-} from '../conversation/active-listening.js';
+} from '../conversation/active-listening/index.js';
 
 // ============================================================================
 // TESTS

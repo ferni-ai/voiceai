@@ -13,7 +13,7 @@ import { describe, it, expect, vi } from 'vitest';
 import type { TurnProcessorResult } from '../types.js';
 
 // Import only the pure functions that don't require complex mocking
-import { injectTurnContext, getCelebrationEvents } from '../turn-processor.js';
+import { injectTurnContext, getCelebrationEvents } from '../turn-processor/index.js';
 
 describe('Turn Processor Utility Functions', () => {
   describe('injectTurnContext', () => {

@@ -119,6 +119,8 @@ FROM ubuntu:24.04 AS production
 WORKDIR /app
 
 # Install Node.js 20.x and system dependencies (including ffmpeg for DJ-style audio fade-out)
+# DEBIAN_FRONTEND=noninteractive suppresses interactive prompts (e.g. tzdata region picker)
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \

@@ -288,7 +288,15 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
           },
         },
       });
-      safeSend(response.toBinary(), 'availability-response');
+      const responseBinary = response.toBinary();
+      const sent = safeSend(responseBinary, 'availability-response');
+      _log('Availability response sent', {
+        jobId: job.id,
+        sent,
+        binaryLength: responseBinary.length,
+        wsState: ws?.readyState,
+        responseJson: JSON.stringify(response.toJson()),
+      });
       break;
     }
 

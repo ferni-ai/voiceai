@@ -36,7 +36,7 @@ import {
   recordRoutingError,
 } from './metrics.js';
 import { isSemanticRoutingEnabled as isRoutingEnabledFromConfig } from '../config.js';
-import { hasDomainMapping, executeDomainTool } from '../domain-bridge.js';
+import { hasDomainMapping, executeDomainTool } from '../domain-bridge/index.js';
 // Better Than Human integration
 import {
   routeVoiceInput,

@@ -780,7 +780,7 @@ async function recordResponse(
 ): Promise<void> {
   // Record for repair detection
   try {
-    const { recordAdviceGivenToSession } = await import('../processors/injection-builders.js');
+    const { recordAdviceGivenToSession } = await import('../processors/injection-builders/index.js');
     const { recordAgentResponse } =
       await import('../../conversation/advanced-humanization-integration.js');
 

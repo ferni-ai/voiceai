@@ -9,6 +9,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { setCorsHeaders } from '../servers/shared/cors.js';
 
 const log = createLogger({ module: 'CrashReportAPI' });
 
@@ -478,10 +479,8 @@ export async function handleCrashReportRoutes(
 
   // Handle disconnect diagnostics
   if (url.startsWith('/api/disconnect-diagnostic')) {
-    // CORS headers for frontend
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    // CORS headers (uses validated origin, not wildcard)
+    setCorsHeaders(req, res, { methods: ['GET', 'POST', 'OPTIONS'] });
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
@@ -506,10 +505,8 @@ export async function handleCrashReportRoutes(
     return false;
   }
 
-  // CORS headers for frontend
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // CORS headers (uses validated origin, not wildcard)
+  setCorsHeaders(req, res, { methods: ['GET', 'POST', 'OPTIONS'] });
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);

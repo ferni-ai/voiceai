@@ -87,7 +87,7 @@ export {
   type RecentContext,
   type RelationshipContext,
   type CapacityContext,
-} from './context-assembler.js';
+} from './core/context-assembler.js';
 
 // ============================================================================
 // CROSS-DOMAIN CORRELATOR (Level 4) - "Connects dots humans miss"
@@ -240,7 +240,7 @@ export {
   type VoiceEmotionAnalysis,
   type VoiceEmotionGuidance,
   type VoiceEmotionInput,
-} from './voice-emotion-orchestrator.js';
+} from './core/voice-emotion-orchestrator.js';
 
 // ============================================================================
 // CORE INTELLIGENCE
@@ -254,7 +254,7 @@ export {
   type EmotionResult,
   type PrimaryEmotion,
   type Valence,
-} from './emotion-detector.js';
+} from './detectors/emotion.js';
 
 // Intent Classification
 export {
@@ -283,7 +283,7 @@ export {
   type ConversationPhase,
   type ConversationState,
   type PhaseGuidance,
-} from './conversation-state.js';
+} from './state/conversation.js';
 
 // Human-Like Behaviors
 export {
@@ -357,7 +357,7 @@ export {
   type LearnedConversationPatterns,
   type OpeningStyle,
   type TimeOfDay,
-} from './conversation-pattern-analyzer.js';
+} from './tracking/conversation-patterns.js';
 
 // Proactive Insight Engine - Generate suggestions
 export {
@@ -379,7 +379,7 @@ export {
   type FinancialSnapshot,
   type JourneyMilestone,
   type ProgressTrend,
-} from './financial-journey-tracker.js';
+} from './tracking/financial-journey.js';
 
 // Cross-Session Threader - Continue topics across sessions
 export {
@@ -422,7 +422,7 @@ export {
   type PhraseEffectiveness,
   type ResponseStrategySignal,
   type StoryResonance,
-} from './community-insights.js';
+} from './collective/community-insights.js';
 
 // Agent Evolution - Self-improvement from learnings
 export {
@@ -488,7 +488,7 @@ export {
   getSuggestedFollowUps,
   type CoachingMemory,
   type CoachingMemoryContext,
-} from './coaching-memory-loader.js';
+} from './coaching/memory-loader.js';
 
 // ============================================================================
 // CONTEXT BUILDERS - Modular conversation intelligence injection
@@ -588,8 +588,8 @@ import {
   getStateMachine,
   resetStateMachine,
   type ConversationState,
-} from './conversation-state.js';
-import { getEmotionDetector, type EmotionResult } from './emotion-detector.js';
+} from './state/conversation.js';
+import { getEmotionDetector, type EmotionResult } from './detectors/emotion.js';
 import { getIntentClassifier, type IntentResult } from './intent-classifier.js';
 import { getTopicTracker, type TopicExtractionResult } from './topic-tracker.js';
 
@@ -669,7 +669,7 @@ function buildContextForPrompt(
   intent: IntentResult,
   topics: TopicExtractionResult,
   state: ConversationState,
-  guidance: import('./conversation-state.js').PhaseGuidance
+  guidance: import('./state/conversation.js').PhaseGuidance
 ): string {
   const sections: string[] = [];
 
@@ -834,7 +834,7 @@ export {
   type SilencePattern,
   type SilenceResponse,
   type SilenceType,
-} from './silence-intelligence.js';
+} from './deep-understanding/silence.js';
 
 // Life Rhythm Prediction - Anticipating support needs
 export {
@@ -990,7 +990,7 @@ export {
   type ChapterType,
   type LifeChapter,
   type TransitionPhase,
-} from './life-chapter.js';
+} from './deep-understanding/life-chapter.js';
 
 // Deep Understanding Persistence
 export {
@@ -1003,7 +1003,7 @@ export {
   onSessionStart as onDeepUnderstandingSessionStart,
   saveDeepUnderstandingProfiles,
   type DeepUnderstandingBundle,
-} from './deep-understanding-persistence.js';
+} from './deep-understanding/persistence.js';
 
 // ============================================================================
 // COLLECTIVE LEARNING INTEGRATION
@@ -1025,7 +1025,7 @@ export {
   type ResponseSignalData,
   type StoryUsageSignal,
   type UserReactionSignal,
-} from './collective-learning-integration.js';
+} from './collective/integration.js';
 
 // ============================================================================
 // COLLECTIVE LEARNING SCHEDULER
@@ -1036,7 +1036,7 @@ export {
   getSchedulerStatus as getCollectiveLearningSchedulerStatus,
   startCollectiveLearningScheduler,
   stopCollectiveLearningScheduler,
-} from './collective-learning-scheduler.js';
+} from './collective/scheduler.js';
 
 // ============================================================================
 // SUPERHUMAN MEMORY - "Better than Human" proactive memory intelligence

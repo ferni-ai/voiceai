@@ -247,9 +247,13 @@ function buildContainerBundle(isRelease: boolean): void {
   const shimUrl = 'file:///ferni-container/apps/cli/src/index.ts';
 
   log.step('Bundling with esbuild...');
+  // Banner provides a CJS require() shim for Node.js built-ins (fs, path, etc.)
+  // that CJS dependencies (e.g. dotenv) need when bundled into ESM format
+  const banner = `import { createRequire } from "module"; const require = createRequire(import.meta.url);`;
   run(
     `npx esbuild "${entryPoint}" --bundle --platform=node --target=node20 ` +
       `--outfile="${outfile}" --format=esm ${minify} ` +
+      `--banner:js='${banner}' ` +
       `--external:@livekit/* --external:@sentry/* --external:pg-native ` +
       `--external:@google/* --external:onnxruntime-node --external:@xenova/transformers --external:sharp ` +
       `--define:import.meta.url='"${shimUrl}"'`,

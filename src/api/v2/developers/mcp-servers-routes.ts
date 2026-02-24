@@ -898,8 +898,37 @@ async function testStdioMCPConnection(
         ...secrets,
       };
 
-      // Parse command and args
-      const [cmd, ...defaultArgs] = server.command!.split(' ');
+      // Validate command against allowlist to prevent command injection
+      const ALLOWED_MCP_COMMANDS = [
+        'npx', 'node', 'python', 'python3', 'uvx', 'deno',
+        'mcp-server', 'mcp-proxy',
+      ];
+      const SHELL_METACHARACTERS = /[;|&$`\\!><(){}\[\]'"]/;
+
+      const rawCommand = server.command!;
+      if (SHELL_METACHARACTERS.test(rawCommand)) {
+        resolve({
+          success: false,
+          connected: false,
+          error: 'Command contains invalid characters',
+          latencyMs: Date.now() - startTime,
+        });
+        clearTimeout(processTimeout);
+        return;
+      }
+
+      const [cmd, ...defaultArgs] = rawCommand.split(' ');
+      if (!ALLOWED_MCP_COMMANDS.includes(cmd)) {
+        resolve({
+          success: false,
+          connected: false,
+          error: `Command not allowed: ${cmd}. Allowed: ${ALLOWED_MCP_COMMANDS.join(', ')}`,
+          latencyMs: Date.now() - startTime,
+        });
+        clearTimeout(processTimeout);
+        return;
+      }
+
       const args = [...defaultArgs, ...(server.args || [])];
 
       const child = spawn(cmd, args, {

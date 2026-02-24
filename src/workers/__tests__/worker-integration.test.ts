@@ -136,7 +136,7 @@ import {
   startPredictionsWorker,
 } from '../predictions-worker.js';
 import { saveTrustProfiles, periodicSync } from '../../services/trust-systems/persistence.js';
-import { getCommunityInsights } from '../../intelligence/community-insights.js';
+import { getCommunityInsights } from '../../intelligence/collective/community-insights.js';
 
 // ============================================================================
 // TESTS

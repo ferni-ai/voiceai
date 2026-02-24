@@ -132,7 +132,7 @@ export class SpeculativeContextBuilder {
         // 2. Cross-persona insights (Firestore lookup)
         (async () => {
           const { buildCrossPersonaInsightsInjection } = await import(
-            '../../processors/injection-builders.js'
+            '../../processors/injection-builders/index.js'
           );
           const injection = await buildCrossPersonaInsightsInjection(
             ctx.services as unknown as Parameters<typeof buildCrossPersonaInsightsInjection>[0],

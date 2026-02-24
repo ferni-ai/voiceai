@@ -303,7 +303,7 @@ export async function handleTokenRoutes(
     const personaId = parsedUrl.searchParams.get('persona_id') || 'ferni';
 
     // Branded persona pages bypass demo rate limits (they have their own dedicated experience)
-    const BRANDED_PERSONAS = ['joel-dickson'];
+    const BRANDED_PERSONAS = ['joel-dickson', 'john-bogle'];
     const isBrandedPersona = BRANDED_PERSONAS.includes(personaId);
 
     // Check rate limits using shared module (skip for branded personas)

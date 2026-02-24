@@ -164,6 +164,7 @@ const VALID_TRANSITIONS: Record<DJState, Set<DJState>> = {
 export class DJController extends EventEmitter {
   private _state: DJControllerState;
   private config: DJControllerConfig | null = null;
+  private _pendingTransitionTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     super();
@@ -202,6 +203,10 @@ export class DJController extends EventEmitter {
    */
   reset(): void {
     const oldState = this._state.state;
+    if (this._pendingTransitionTimer) {
+      clearTimeout(this._pendingTransitionTimer);
+      this._pendingTransitionTimer = null;
+    }
     this._state = this.getInitialState();
 
     if (oldState !== 'idle') {
@@ -398,7 +403,11 @@ export class DJController extends EventEmitter {
     log.info({ track: track?.name, explicit, prevState }, 'Music stopped');
 
     // Transition to idle after a short delay
-    setTimeout(() => {
+    if (this._pendingTransitionTimer) {
+      clearTimeout(this._pendingTransitionTimer);
+    }
+    this._pendingTransitionTimer = setTimeout(() => {
+      this._pendingTransitionTimer = null;
       if (this._state.state === 'stopped') {
         this.transitionTo('idle');
       }
@@ -513,6 +522,10 @@ export class DJController extends EventEmitter {
   }
 
   private handleCleanup(): void {
+    if (this._pendingTransitionTimer) {
+      clearTimeout(this._pendingTransitionTimer);
+      this._pendingTransitionTimer = null;
+    }
     this.reset();
     log.info('DJ Controller cleaned up');
   }

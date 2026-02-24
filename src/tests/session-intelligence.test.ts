@@ -25,7 +25,7 @@ import {
   ProactiveMemoryEngine,
   clearProactiveMemoryEngine,
   getProactiveMemoryEngine,
-} from '../conversation/proactive-memory.js';
+} from '../conversation/proactive-memory/index.js';
 import {
   SessionIntelligenceOrchestrator,
   clearSessionIntelligence,

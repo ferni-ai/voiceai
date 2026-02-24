@@ -10,7 +10,7 @@
  * @module @ferni/superhuman-outreach-integration
  */
 
-import { getProactiveMemoryEngine } from '../../conversation/proactive-memory.js';
+import { getProactiveMemoryEngine } from '../../conversation/proactive-memory/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { addCommitment, addLifeEvent, getUserContext, needsSupport } from './context-aggregator.js';
 import { getOutreachDecisionEngine, type OutreachTrigger } from './decision-engine.js';

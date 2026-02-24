@@ -9,6 +9,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { createManagedInterval, type ManagedInterval } from '../../utils/managed-interval.js';
 import { randomBytes } from 'crypto';
 import type { OAuthConfig, OAuthTokens, OAuthState } from './types.js';
 import {
@@ -100,10 +101,22 @@ export class OAuthManager {
   private pendingStates: Map<string, OAuthState> = new Map();
   private readonly stateExpiryMs = 10 * 60 * 1000; // 10 minutes
   private readonly tokenRefreshBufferMs = 5 * 60 * 1000; // 5 minutes before expiry
+  private cleanupInterval: ManagedInterval;
 
   constructor() {
     // Clean up expired states periodically
-    setInterval(() => this.cleanupExpiredStates(), 60000);
+    this.cleanupInterval = createManagedInterval(
+      () => this.cleanupExpiredStates(),
+      60000,
+      { unref: true, label: 'oauth-state-cleanup' }
+    );
+  }
+
+  /**
+   * Dispose the OAuth manager and its cleanup interval
+   */
+  dispose(): void {
+    this.cleanupInterval.dispose();
   }
 
   // ==========================================================================

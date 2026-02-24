@@ -369,7 +369,7 @@ async function executeToolForResult(
   context: RoutingContext
 ): Promise<{ success: boolean; naturalResponse: string; error?: string }> {
   try {
-    const { hasDomainMapping, executeDomainTool } = await import('../domain-bridge.js');
+    const { hasDomainMapping, executeDomainTool } = await import('../domain-bridge/index.js');
 
     if (hasDomainMapping(toolId)) {
       const execContext = {

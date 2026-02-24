@@ -39,7 +39,7 @@
     "build:check": "npm run build && npm run bundle:check",
     "quality:check": "node scripts/quality-check.js",
     "precommit": "lint-staged",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "dependencies": {
     "@capacitor/core": "^7.4.4",

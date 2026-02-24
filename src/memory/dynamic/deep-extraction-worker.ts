@@ -176,11 +176,14 @@ Return refined extraction with any additions.`;
  * Standalone worker that processes LLM extraction jobs from the async event queue.
  * Does not extend LocalWorker to avoid Pub/Sub dependency.
  */
+const MAX_QUEUE_SIZE = 1000;
+
 export class DeepExtractionWorker {
   private log = createLogger({ module: 'DeepExtractionWorker' });
   private jobQueue: DeepExtractionJob[] = [];
   private isProcessing = false;
   private running = false;
+  private eventListenerCleanup: (() => void) | null = null;
   private extractionStats = {
     totalJobs: 0,
     completedJobs: 0,
@@ -215,12 +218,16 @@ export class DeepExtractionWorker {
    */
   stop(): void {
     this.running = false;
+    if (this.eventListenerCleanup) {
+      this.eventListenerCleanup();
+      this.eventListenerCleanup = null;
+    }
     this.log.info('🧠 [MEMORY-AUDIT] Deep extraction worker stopped');
   }
 
   private setupEventListener(): void {
     // Listen for deep extraction events via DI wrapper (avoids layer violation)
-    const registered = safeOnEvent('memory:deep-extraction', (job: unknown) => {
+    const listener = (job: unknown) => {
       this.log.info(
         { jobId: (job as DeepExtractionJob)?.jobId, userId: (job as DeepExtractionJob)?.userId },
         '🧠 [MEMORY-AUDIT] Received deep extraction job'
@@ -230,7 +237,24 @@ export class DeepExtractionWorker {
       } else {
         this.log.warn('🧠 [MEMORY-AUDIT] Received job but worker not running');
       }
-    });
+    };
+    const registered = safeOnEvent('memory:deep-extraction', listener);
+
+    if (registered) {
+      // Store cleanup function to remove the listener on stop()
+      this.eventListenerCleanup = () => {
+        try {
+          // safeOnEvent wraps EventEmitter - attempt to remove the listener
+          const { getAsyncEvents } = require('./async-events-config.js');
+          const emitter = getAsyncEvents?.();
+          if (emitter?.removeListener) {
+            emitter.removeListener('memory:deep-extraction', listener);
+          }
+        } catch {
+          // Best-effort cleanup
+        }
+      };
+    }
 
     if (!registered) {
       this.log.warn(
@@ -262,6 +286,15 @@ export class DeepExtractionWorker {
   }
 
   private enqueue(job: DeepExtractionJob): void {
+    // Enforce queue size limit to prevent unbounded memory growth
+    if (this.jobQueue.length >= MAX_QUEUE_SIZE) {
+      const dropped = this.jobQueue.shift();
+      this.log.warn(
+        { droppedJobId: dropped?.jobId, queueSize: MAX_QUEUE_SIZE },
+        '🧠 [MEMORY-AUDIT] Job queue full, dropping oldest job'
+      );
+    }
+
     // Priority queue: high priority jobs go first
     if (job.priority === 'high') {
       this.jobQueue.unshift(job);

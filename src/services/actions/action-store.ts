@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { createManagedInterval, type ManagedInterval } from '../../utils/managed-interval.js';
 import type { Action, ActionPayload, ActionStatus, ActionAuditEntry } from './action-types.js';
 
 const log = createLogger({ module: 'action-store' });
@@ -21,10 +22,22 @@ export class ActionStore {
   private userActions: Map<string, Set<string>> = new Map();
   private auditLog: ActionAuditEntry[] = [];
   private readonly maxAuditEntries = 10000;
+  private cleanupInterval: ManagedInterval;
 
   constructor() {
     // Clean up expired actions periodically
-    setInterval(() => this.cleanupExpired(), 60000);
+    this.cleanupInterval = createManagedInterval(
+      () => this.cleanupExpired(),
+      60000,
+      { unref: true, label: 'action-store-cleanup' }
+    );
+  }
+
+  /**
+   * Dispose the action store and its cleanup interval
+   */
+  dispose(): void {
+    this.cleanupInterval.dispose();
   }
 
   // ==========================================================================

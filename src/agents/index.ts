@@ -253,7 +253,7 @@ export {
 // See: voice-agent-entry.ts for session lifecycle
 
 // Export the main entry function
-export { runFullVoiceAgentEntry } from './voice-agent-entry.js';
+export { runFullVoiceAgentEntry } from './voice-agent-entry/index.js';
 
 // ============================================================================
 // DJ INTEGRATION (NEW ARCHITECTURE)

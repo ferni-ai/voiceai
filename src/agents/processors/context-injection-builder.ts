@@ -55,7 +55,7 @@ import {
   type AdvancedHumanizationInjectionResult,
   type ConversationDynamicsResult as InjectionDynamicsResult,
   type SemanticIntelligenceInjectionResult,
-} from './injection-builders.js';
+} from './injection-builders/index.js';
 
 // Live superhuman injections
 import { buildLiveSuperhumanInjections } from './live-superhuman-injections.js';

@@ -69,13 +69,11 @@ export async function handleVoiceAuthRoutes(
     return false;
   }
 
-  // Handle CORS preflight
+  // Handle CORS preflight (uses validated origin, not wildcard)
+  const { setCorsHeaders } = await import('../../servers/shared/cors.js');
+  setCorsHeaders(req, res, { methods: ['GET', 'POST', 'DELETE', 'OPTIONS'] });
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-ID',
-    });
+    res.writeHead(204);
     res.end();
     return true;
   }

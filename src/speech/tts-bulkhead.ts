@@ -18,6 +18,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { createManagedInterval, type ManagedInterval } from '../utils/managed-interval.js';
 import type { ResilienceMetricsService } from '../services/observability/resilience-metrics.js';
 
 const log = createLogger({ module: 'TTS-Bulkhead' });
@@ -132,6 +133,7 @@ export class TTSBulkhead {
   private executionTimes: number[] = [];
   private queueTimes: number[] = [];
   private metricsService: ResilienceMetricsService | null = null;
+  private cleanupInterval: ManagedInterval;
 
   // Aggregate stats
   private stats = {
@@ -152,7 +154,18 @@ export class TTSBulkhead {
     );
 
     // Clean up stale sessions periodically
-    setInterval(() => this.cleanupStaleSessions(), 60_000);
+    this.cleanupInterval = createManagedInterval(
+      () => this.cleanupStaleSessions(),
+      60_000,
+      { unref: true, label: 'tts-bulkhead-cleanup' }
+    );
+  }
+
+  /**
+   * Dispose the bulkhead and its cleanup interval
+   */
+  dispose(): void {
+    this.cleanupInterval.dispose();
   }
 
   /**

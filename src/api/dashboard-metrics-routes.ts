@@ -104,11 +104,9 @@ function formatUptime(startTimestamp: number): string {
 }
 
 function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
+  // CORS headers are set by handleCorsPreflightIfNeeded() in the main handler
   res.writeHead(status, {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   });
   res.end(JSON.stringify(data));
 }

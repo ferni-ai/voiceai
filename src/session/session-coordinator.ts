@@ -475,7 +475,33 @@ export class SessionCoordinator {
 // FACTORY
 // ============================================================================
 
+const MAX_COORDINATORS = 500;
+const COORDINATOR_MAX_AGE_MS = 2 * 60 * 60 * 1000; // 2 hours
+const COORDINATOR_SWEEP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
 const coordinators = new Map<string, SessionCoordinator>();
+const coordinatorCreatedAt = new Map<string, number>();
+
+// Periodic sweep to remove stale coordinators
+const sweepInterval = setInterval(() => {
+  const now = Date.now();
+  let swept = 0;
+  for (const [key, createdAt] of coordinatorCreatedAt.entries()) {
+    if (now - createdAt > COORDINATOR_MAX_AGE_MS) {
+      const coordinator = coordinators.get(key);
+      if (coordinator) {
+        coordinator.endSession();
+      }
+      coordinators.delete(key);
+      coordinatorCreatedAt.delete(key);
+      swept++;
+    }
+  }
+  if (swept > 0) {
+    log.info({ swept, remaining: coordinators.size }, 'Swept stale session coordinators');
+  }
+}, COORDINATOR_SWEEP_INTERVAL_MS);
+sweepInterval.unref();
 
 /**
  * Get or create a session coordinator
@@ -484,7 +510,26 @@ export function getSessionCoordinator(config: SessionCoordinatorConfig): Session
   const key = config.sessionId;
 
   if (!coordinators.has(key)) {
+    // Enforce size limit
+    if (coordinators.size >= MAX_COORDINATORS) {
+      // Remove oldest coordinator
+      const oldestKey = coordinatorCreatedAt.keys().next().value;
+      if (oldestKey) {
+        const oldest = coordinators.get(oldestKey);
+        if (oldest) {
+          oldest.endSession();
+        }
+        coordinators.delete(oldestKey);
+        coordinatorCreatedAt.delete(oldestKey);
+        log.warn(
+          { evictedSession: oldestKey, maxSize: MAX_COORDINATORS },
+          'Coordinator map full, evicting oldest'
+        );
+      }
+    }
+
     coordinators.set(key, new SessionCoordinator(config));
+    coordinatorCreatedAt.set(key, Date.now());
   }
 
   return coordinators.get(key)!;
@@ -498,6 +543,7 @@ export function removeSessionCoordinator(sessionId: string): void {
   if (coordinator) {
     coordinator.endSession();
     coordinators.delete(sessionId);
+    coordinatorCreatedAt.delete(sessionId);
   }
 }
 
@@ -509,6 +555,7 @@ export function clearAllSessionCoordinators(): void {
     coordinator.endSession();
   });
   coordinators.clear();
+  coordinatorCreatedAt.clear();
 }
 
 export default {

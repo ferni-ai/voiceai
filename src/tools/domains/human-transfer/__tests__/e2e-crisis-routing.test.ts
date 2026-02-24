@@ -359,7 +359,7 @@ describe('Integration: buildHumanTransferInjections', () => {
   it('should be callable from injection-builders', async () => {
     // Import the injection builder
     const { buildHumanTransferInjections } =
-      await import('../../../../agents/processors/injection-builders.js');
+      await import('../../../../agents/processors/injection-builders/index.js');
 
     // Test with a crisis statement
     const crisisInjection = await buildHumanTransferInjections("I don't want to be here anymore");
@@ -375,7 +375,7 @@ describe('Integration: buildHumanTransferInjections', () => {
 
   it('should return null for normal statements', async () => {
     const { buildHumanTransferInjections } =
-      await import('../../../../agents/processors/injection-builders.js');
+      await import('../../../../agents/processors/injection-builders/index.js');
 
     const normalInjection = await buildHumanTransferInjections('I had a great day today!');
 

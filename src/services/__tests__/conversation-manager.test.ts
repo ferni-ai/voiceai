@@ -93,7 +93,7 @@ vi.mock('../../utils/safe-logger.js', () => ({
   }),
 }));
 
-import type { EmotionResult } from '../../intelligence/emotion-detector.js';
+import type { EmotionResult } from '../../intelligence/detectors/emotion.js';
 import {
   getConversationManager,
   getSessionConversationManager,

@@ -14,17 +14,17 @@
    - Consistent with Ferni brand identity
    - Apple-level polish and attention to detail
 
-   Color Palette (Dark Mode):
-   - Background: var(--color-text-primary) (warm dark brown)
-   - Elevated: var(--color-bg-dark-elevated) (slightly lighter)
-   - Surface: var(--color-bg-dark-surface) (card surfaces)
-   - Deep: var(--color-bg-dark) (for dramatic sections)
+   Color Palette (Dark Mode — Cedar Night from _tokens.css):
+   - Background: #584840 (warm dark brown)
+   - Elevated: #60504a (slightly lighter)
+   - Surface: #70605a (card surfaces)
+   - Deep: #1f1a16 (for dramatic sections)
 
-   Text Colors (all WCAG AA compliant on var(--color-text-primary)):
-   - Primary: var(--color-text-inverse) (12.1:1 contrast)
-   - Secondary: var(--color-bg-secondary) (9.8:1 contrast)
-   - Muted: var(--color-text-muted) (7.5:1 contrast)
-   - Dimmed: var(--color-text-dimmed) (5.9:1 contrast)
+   Text Colors (all WCAG AA+ on #584840):
+   - Primary: #faf6f0 (12.1:1 contrast)
+   - Secondary: #f0ebe4 (9.8:1 contrast)
+   - Muted: #e8e2da (7.5:1 contrast)
+   - Dimmed: #e0d8ce (5.9:1 contrast)
 
    ======================================================= */
 
@@ -34,36 +34,35 @@
    ======================================================= */
 
 [data-theme="dark"] {
-  /* ===== Surface Colors ===== */
-  --color-background: var(--color-text-primary);
-  --color-background-elevated: var(--color-bg-dark-elevated);
-  --color-background-surface: var(--color-bg-dark-surface);
-  --color-background-deep: var(--color-bg-dark);
+  /* ===== Surface Colors (semantic aliases) ===== */
+  /* Core vars (--color-bg-primary, etc.) are set by _tokens.css dark overrides.
+     These are SUPPLEMENTARY aliases used by components. ALL HARDCODED. */
+  --color-background: #584840;
+  --color-background-elevated: #60504a;
+  --color-background-surface: #70605a;
+  --color-background-deep: #1f1a16;
 
-  /* ===== Legacy Variable Aliases (from story-brand.css) ===== */
-  --color-bg-primary: var(--color-text-primary);
-  --color-bg-secondary: var(--color-bg-dark-elevated);
-  --color-paper-cream: var(--color-text-primary);
-  --color-sand: var(--color-bg-dark-elevated);
-  --color-background-subtle: var(--color-bg-dark-elevated);
+  /* ===== Legacy Variable Aliases (story-brand.css compat) ===== */
+  --color-paper-cream: #584840;
+  --color-sand: #60504a;
+  --color-background-subtle: #60504a;
 
-  /* ===== Text Colors - WCAG AA Compliant ===== */
-  --color-text-primary: var(--color-text-inverse);
-  --color-text-secondary: var(--color-bg-secondary);
-  --color-text-muted: var(--color-text-muted);
-  --color-text-dimmed: var(--color-text-dimmed);
+  /* ===== Additional Text Colors for Components ===== */
+  --color-text-secondary-light: #f0ebe4;
 
-  /* ===== Accent Colors - Uses Ferni textOnDark for contrast ===== */
-  --color-accent: var(--color-ferni-text, var(--color-success-light));
-  --color-accent-hover: var(--color-ferni-light);
-  --color-accent-light: rgba(165, 201, 154, 0.2);
-  --color-highlight: var(--color-highlight);
-  --color-highlight-glow: rgba(212, 178, 117, 0.3);
+  /* ===== Cinematic Variables (used by two-am, hero-premium sections) ===== */
+  --cinematic-black-rich: #1a1512;
+  --color-ferni-cinematic-dark: #2c2520;
+  --color-ferni-cinematic-deep: #1a1512;
+  --color-ferni-cinematic-text: #faf6f0;
+  --color-ferni-cinematic-text-secondary: #f0ebe4;
+  --color-ferni-cinematic-text-muted: #e8e2da;
+  --color-ferni-cinematic-surface: #3c342f;
 
-  /* ===== Border Colors ===== */
-  --color-border-subtle: rgba(255, 255, 255, 0.08);
-  --color-border-medium: rgba(255, 255, 255, 0.15);
-  --color-border-strong: rgba(255, 255, 255, 0.25);
+  /* ===== Dark-Specific Aliases ===== */
+  --color-dark-text-muted: #e8e2da;
+  --color-dark-text-secondary: #f0ebe4;
+  --color-dark-bg: #584840;
 
   /* ===== Shadow System - Deeper for dark mode ===== */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
@@ -72,39 +71,40 @@
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
   --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
 
-  /* ===== Ferni Glow ===== */
-  --shadow-glow-ferni: 0 8px 32px rgba(90, 122, 82, 0.25);
-  --shadow-glow-highlight: 0 8px 32px rgba(212, 178, 117, 0.2);
+  /* ===== Ferni Glow - Brighter for dark backgrounds ===== */
+  --shadow-glow-ferni: 0 8px 32px rgba(157, 192, 130, 0.3);
+  --shadow-glow-highlight: 0 8px 32px rgba(212, 178, 117, 0.25);
 
-  /* ===== Glass Effect ===== */
-  --glass-bg: rgba(44, 37, 32, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  /* ===== Glass Effect - Lighter glass for visibility ===== */
+  --glass-bg: rgba(60, 52, 47, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-inset-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-/* Base body styles for manual toggle - explicit colors */
+/* Base body styles for manual toggle */
 [data-theme="dark"] body,
 [data-theme="dark"] {
-  background: var(--color-cedar-dark);
-  color: var(--color-bg-primary);
+  background: #584840;
+  color: #faf6f0;
 }
 
-/* Default headings for manual toggle - explicit light colors */
+/* Default headings for manual toggle */
 [data-theme="dark"] h1,
 [data-theme="dark"] h2,
 [data-theme="dark"] h3,
 [data-theme="dark"] h4,
 [data-theme="dark"] h5,
 [data-theme="dark"] h6 {
-  color: var(--color-bg-primary) !important;
+  color: #faf6f0;
 }
 
 /* Default links for manual toggle */
 [data-theme="dark"] a {
-  color: var(--color-accent-gold);
+  color: #d4a84a;
 }
 
 [data-theme="dark"] a:hover {
-  color: var(--color-accent-gold-hover);
+  color: #e0bc6a;
 }
 
 /* =======================================================
@@ -113,72 +113,110 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* ===== Surface Colors ===== */
-    --color-background: var(--color-text-primary);
-    --color-background-elevated: var(--color-bg-dark-elevated);
-    --color-background-surface: var(--color-bg-dark-surface);
-    --color-background-deep: var(--color-bg-dark);
-    
-    /* ===== Legacy Variable Aliases (from story-brand.css) ===== */
-    --color-bg-primary: var(--color-text-primary);
-    --color-bg-secondary: var(--color-bg-dark-elevated);
-    --color-paper-cream: var(--color-text-primary);
-    --color-sand: var(--color-bg-dark-elevated);
-    --color-background-subtle: var(--color-bg-dark-elevated);
-    
-    /* ===== Text Colors - WCAG AA Compliant ===== */
-    --color-text-primary: var(--color-text-inverse);
-    --color-text-secondary: var(--color-bg-secondary);
-    --color-text-muted: var(--color-text-muted);
-    --color-text-dimmed: var(--color-text-dimmed);
-    
-    /* ===== Accent Colors - Uses Ferni textOnDark for contrast ===== */
-    --color-accent: var(--color-ferni-text, var(--color-success-light));
-    --color-accent-hover: var(--color-ferni-light);
-    --color-accent-light: rgba(165, 201, 154, 0.2);
-    --color-highlight: var(--color-highlight);
-    --color-highlight-glow: rgba(212, 178, 117, 0.3);
-    
-    /* ===== Border Colors ===== */
-    --color-border-subtle: rgba(255, 255, 255, 0.08);
-    --color-border-medium: rgba(255, 255, 255, 0.15);
-    --color-border-strong: rgba(255, 255, 255, 0.25);
-    
-    /* ===== Shadow System - Deeper for dark mode ===== */
+    /* ===== Surface Colors (semantic aliases) ===== */
+    /* Core vars are set by _tokens.css. These are SUPPLEMENTARY. ALL HARDCODED. */
+    --color-background: #584840;
+    --color-background-elevated: #60504a;
+    --color-background-surface: #70605a;
+    --color-background-deep: #1f1a16;
+
+    /* ===== Legacy Variable Aliases (story-brand.css compat) ===== */
+    --color-paper-cream: #584840;
+    --color-sand: #60504a;
+    --color-background-subtle: #60504a;
+
+    /* ===== Additional Text Colors for Components ===== */
+    --color-text-secondary-light: #f0ebe4;
+
+    /* ===== Cinematic Variables ===== */
+    --cinematic-black-rich: #1a1512;
+    --color-ferni-cinematic-dark: #2c2520;
+    --color-ferni-cinematic-deep: #1a1512;
+    --color-ferni-cinematic-text: #faf6f0;
+    --color-ferni-cinematic-text-secondary: #f0ebe4;
+    --color-ferni-cinematic-text-muted: #e8e2da;
+    --color-ferni-cinematic-surface: #3c342f;
+
+    /* ===== Dark-Specific Aliases ===== */
+    --color-dark-text-muted: #e8e2da;
+    --color-dark-text-secondary: #f0ebe4;
+    --color-dark-bg: #584840;
+
+    /* ===== Shadow System ===== */
     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
     --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
-    
-    /* ===== Ferni Glow ===== */
-    --shadow-glow-ferni: 0 8px 32px rgba(90, 122, 82, 0.25);
-    --shadow-glow-highlight: 0 8px 32px rgba(212, 178, 117, 0.2);
-    
+
+    /* ===== Ferni Glow - Brighter for dark backgrounds ===== */
+    --shadow-glow-ferni: 0 8px 32px rgba(157, 192, 130, 0.3);
+    --shadow-glow-highlight: 0 8px 32px rgba(212, 178, 117, 0.25);
+
     /* ===== Glass Effect ===== */
-    --glass-bg: rgba(44, 37, 32, 0.8);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-bg: rgba(60, 52, 47, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --glass-inset-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
-  
-  /* ===== Body Base - explicit colors ===== */
+
+  /* ===== Body Base ===== */
   body {
-    background: var(--color-cedar-dark);
-    color: var(--color-bg-primary);
+    background: #584840;
+    color: #faf6f0;
   }
-  
-  /* ===== Default Headings - explicit light colors ===== */
+
+  /* ===== Default Headings ===== */
   h1, h2, h3, h4, h5, h6 {
-    color: var(--color-bg-primary) !important;
+    color: #faf6f0;
   }
 
   /* ===== Default Links ===== */
   a {
-    color: var(--color-accent-gold);
+    color: #d4a84a;
   }
 
   a:hover {
-    color: var(--color-accent-gold-hover);
+    color: #e0bc6a;
   }
+}
+
+/* =======================================================
+   PHASE 1B: TYPOGRAPHY ADAPTATION
+   Light-on-dark text appears thinner due to subpixel rendering.
+   Compensate with heavier weights and slightly looser spacing.
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  body {
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+}
+
+[data-theme="dark"] body {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 /* =======================================================
@@ -202,20 +240,20 @@
   .nav__logo-text,
   .nav-logo,
   .logo-text {
-    color: var(--color-bg-primary) !important;
+    color: #faf6f0;
   }
 
   /* Navigation links - explicit light colors */
   .nav__link,
   .nav-link {
-    color: var(--color-text-secondary-light) !important;
+    color: #f0ebe4;
   }
 
   .nav__link:hover,
   .nav__link.is-active,
   .nav-link:hover,
   .nav-link.is-active {
-    color: var(--color-bg-primary) !important;
+    color: #faf6f0;
   }
 
   .nav__cta {
@@ -230,11 +268,11 @@
 
   /* Nav phone link */
   .nav-phone {
-    color: var(--color-text-secondary-light) !important;
+    color: #f0ebe4;
   }
 
   .nav-phone:hover {
-    color: var(--color-bg-primary) !important;
+    color: #faf6f0;
   }
 
   /* Mobile menu button hamburger lines */
@@ -252,18 +290,18 @@
   }
 
   .mobile-menu__close {
-    color: var(--color-text-secondary-light);
+    color: #f0ebe4;
   }
 
   .mobile-menu__nav a,
   .mobile-link {
-    color: var(--color-text-secondary-light) !important;
+    color: #f0ebe4;
     border-bottom-color: rgba(215, 185, 145, 0.12);
   }
 
   .mobile-menu__nav a:hover,
   .mobile-link:hover {
-    color: var(--color-bg-primary) !important;
+    color: #faf6f0;
     background: var(--color-cedar);
   }
 }
@@ -291,9 +329,10 @@
   }
   
   .hero__bg-orb {
-    opacity: 0.25;
+    opacity: 0.5;
+    filter: saturate(1.2);
   }
-  
+
   /* Ferni Avatar */
   .hero-ferni__glow {
     background: radial-gradient(
@@ -323,7 +362,7 @@
   }
 
   .hero__headline {
-    color: var(--color-bg-primary) !important;
+    color: #faf6f0;
   }
 
   .hero__headline-accent {
@@ -331,7 +370,7 @@
   }
 
   .hero__subhead {
-    color: var(--color-text-secondary-light);
+    color: #f0ebe4;
   }
 
   .hero__phone {
@@ -370,11 +409,11 @@
   }
 
   .section__title {
-    color: var(--color-bg-primary) !important;
+    color: #faf6f0;
   }
 
   .section__subtitle {
-    color: var(--color-text-secondary-light);
+    color: #f0ebe4;
   }
 
   /* Alternate section styling */
@@ -1100,7 +1139,7 @@
     color: var(--color-text-muted);
   }
   
-  /* Persona Avatar Colors - Use textOnDark tokens from design-tokens.css */
+  /* Persona Avatar Colors - Use textOnDark tokens from _tokens.css */
   .persona-avatar--ferni .persona-avatar__orb {
     background: var(--color-ferni-text);
   }
@@ -1215,7 +1254,7 @@
     color: var(--color-text-secondary);
   }
   
-  /* Avatars - Use textOnDark tokens from design-tokens.css */
+  /* Avatars - Use textOnDark tokens from _tokens.css */
   .journey__avatar {
     border-color: var(--color-border-medium);
   }
@@ -1703,13 +1742,13 @@
 
   .mobile-cta .btn--secondary {
     background: var(--color-background-elevated);
-    color: var(--color-text-secondary-light);
+    color: #f0ebe4;
     border-color: var(--color-border-medium);
   }
 
   .mobile-cta .btn--secondary:hover {
     background: var(--color-background-surface);
-    color: var(--color-bg-primary);
+    color: #faf6f0;
   }
 }
 
@@ -1725,7 +1764,7 @@
   }
 
   .cookie-banner p {
-    color: var(--color-text-secondary-light);
+    color: #f0ebe4;
   }
 
   .cookie-banner a {
@@ -1733,13 +1772,13 @@
   }
 
   .cookie-banner .btn--ghost {
-    color: var(--color-text-secondary-light);
+    color: #f0ebe4;
     border-color: var(--color-border-medium);
   }
 
   .cookie-banner .btn--ghost:hover {
     background: var(--color-background-surface);
-    color: var(--color-bg-primary);
+    color: #faf6f0;
   }
 }
 
@@ -1748,37 +1787,160 @@
    ======================================================= */
 
 @media (prefers-color-scheme: dark) {
+  /* Primary button — gold accent with glow */
   .btn--primary {
-    background: var(--color-accent);
-    color: white;
+    background: #d4a84a;
+    color: #1f1a16;
+    font-weight: 600;
   }
 
   .btn--primary:hover {
-    background: var(--color-accent-hover);
-    box-shadow: var(--shadow-glow-ferni);
+    background: #e0bc6a;
+    box-shadow: 0 8px 32px rgba(212, 168, 74, 0.35);
   }
 
+  /* Secondary button — subtle surface with visible border */
   .btn--secondary {
-    background: var(--color-background-elevated);
-    color: var(--color-text-secondary-light);
-    border-color: var(--color-border-medium);
+    background: #60504a;
+    color: #f0ebe4;
+    border: 1px solid rgba(215, 185, 145, 0.2);
   }
 
   .btn--secondary:hover {
-    background: var(--color-background-surface);
-    color: var(--color-bg-primary);
+    background: #70605a;
+    color: #faf6f0;
+    border-color: rgba(215, 185, 145, 0.35);
   }
-  
+
+  /* Ghost button — transparent with border */
   .btn--ghost {
     background: transparent;
-    color: var(--color-text-secondary-light);
-    border-color: var(--color-border-medium);
+    color: #f0ebe4;
+    border: 1px solid rgba(215, 185, 145, 0.2);
   }
 
   .btn--ghost:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: var(--color-bg-primary);
+    color: #faf6f0;
+    border-color: rgba(215, 185, 145, 0.35);
   }
+
+  /* Phone CTA button — sage green accent */
+  .btn--phone,
+  .hero__cta--phone {
+    background: linear-gradient(135deg, #3D5A45, #4a6741);
+    color: #faf6f0;
+    font-weight: 600;
+  }
+
+  .btn--phone:hover,
+  .hero__cta--phone:hover {
+    background: linear-gradient(135deg, #4a6741, #5a7a52);
+    box-shadow: 0 8px 32px rgba(157, 192, 130, 0.3);
+  }
+
+  /* Form inputs — dark surface with visible borders */
+  input,
+  textarea,
+  select {
+    background: #60504a;
+    color: #faf6f0;
+    border: 1px solid rgba(215, 185, 145, 0.15);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #e8e2da;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: #9dc082;
+    box-shadow: 0 0 0 3px rgba(157, 192, 130, 0.15);
+  }
+
+  /* Demo input in hero section */
+  .hero__demo-input,
+  .demo-input {
+    background: #60504a;
+    color: #faf6f0;
+    border-color: rgba(215, 185, 145, 0.15);
+  }
+
+  .hero__demo-input::placeholder,
+  .demo-input::placeholder {
+    color: #e8e2da;
+  }
+}
+
+/* Button & form data-theme overrides */
+[data-theme="dark"] .btn--primary {
+  background: #d4a84a;
+  color: #1f1a16;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .btn--primary:hover {
+  background: #e0bc6a;
+  box-shadow: 0 8px 32px rgba(212, 168, 74, 0.35);
+}
+
+[data-theme="dark"] .btn--secondary {
+  background: #60504a;
+  color: #f0ebe4;
+  border: 1px solid rgba(215, 185, 145, 0.2);
+}
+
+[data-theme="dark"] .btn--secondary:hover {
+  background: #70605a;
+  color: #faf6f0;
+  border-color: rgba(215, 185, 145, 0.35);
+}
+
+[data-theme="dark"] .btn--ghost {
+  background: transparent;
+  color: #f0ebe4;
+  border: 1px solid rgba(215, 185, 145, 0.2);
+}
+
+[data-theme="dark"] .btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #faf6f0;
+  border-color: rgba(215, 185, 145, 0.35);
+}
+
+[data-theme="dark"] .btn--phone,
+[data-theme="dark"] .hero__cta--phone {
+  background: linear-gradient(135deg, #3D5A45, #4a6741);
+  color: #faf6f0;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .btn--phone:hover,
+[data-theme="dark"] .hero__cta--phone:hover {
+  background: linear-gradient(135deg, #4a6741, #5a7a52);
+  box-shadow: 0 8px 32px rgba(157, 192, 130, 0.3);
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background: #60504a;
+  color: #faf6f0;
+  border: 1px solid rgba(215, 185, 145, 0.15);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #e8e2da;
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+  border-color: #9dc082;
+  box-shadow: 0 0 0 3px rgba(157, 192, 130, 0.15);
 }
 
 /* =======================================================
@@ -1786,40 +1948,57 @@
    ======================================================= */
 
 @media (prefers-color-scheme: dark) {
-  /* Focus ring - visible on dark backgrounds */
+  /* Focus ring — bright sage green visible on dark backgrounds */
   *:focus-visible {
-    outline: 2px solid var(--color-highlight);
-    outline-offset: 2px;
+    outline: 2px solid #9dc082;
+    outline-offset: 4px;
+    box-shadow: 0 0 0 3px rgba(157, 192, 130, 0.15);
   }
-  
-  /* Button focus */
+
+  /* Button focus — sage green with glow halo */
   .btn:focus-visible {
-    outline: 2px solid var(--color-highlight);
-    outline-offset: 2px;
-    box-shadow: 0 0 0 4px var(--color-highlight-glow);
+    outline: 2px solid #9dc082;
+    outline-offset: 4px;
+    box-shadow: 0 0 0 4px rgba(157, 192, 130, 0.2);
   }
-  
+
   /* Link focus */
   a:focus-visible {
-    outline: 2px solid var(--color-highlight);
-    outline-offset: 2px;
+    outline: 2px solid #9dc082;
+    outline-offset: 4px;
   }
-  
-  /* Input focus */
+
+  /* Input focus — sage green ring */
   input:focus-visible,
-  textarea:focus-visible {
-    outline: 2px solid var(--color-accent);
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid #9dc082;
     outline-offset: 0;
-    border-color: var(--color-accent);
+    border-color: #9dc082;
+    box-shadow: 0 0 0 3px rgba(157, 192, 130, 0.15);
   }
-  
+
   /* Card focus */
   .card:focus-visible,
   .team-card:focus-visible,
   .faq-item:focus-visible {
-    outline: 2px solid var(--color-highlight);
-    outline-offset: 2px;
+    outline: 2px solid #9dc082;
+    outline-offset: 4px;
+    box-shadow: 0 0 0 3px rgba(157, 192, 130, 0.15);
   }
+}
+
+/* Focus states data-theme override */
+[data-theme="dark"] *:focus-visible {
+  outline: 2px solid #9dc082;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 3px rgba(157, 192, 130, 0.15);
+}
+
+[data-theme="dark"] .btn:focus-visible {
+  outline: 2px solid #9dc082;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 4px rgba(157, 192, 130, 0.2);
 }
 
 /* =======================================================
@@ -1828,12 +2007,12 @@
 
 @media (prefers-color-scheme: dark) and (prefers-contrast: more) {
   :root {
-    --color-text-primary: var(--color-text-inverse);
-    --color-text-secondary: var(--color-text-inverse);
-    --color-text-muted: var(--color-text-secondary);
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #ffffff;
+    --color-text-muted: #f0ebe4;
     --color-border-subtle: rgba(255, 255, 255, 0.3);
     --color-border-medium: rgba(255, 255, 255, 0.5);
-    --color-accent: var(--color-ferni);
+    --color-accent: #4a6741;
   }
 }
 
@@ -1892,20 +2071,20 @@
 [data-theme="dark"] .nav__logo-text,
 [data-theme="dark"] .nav-logo,
 [data-theme="dark"] .logo-text {
-  color: var(--color-bg-primary) !important;
+  color: #faf6f0;
 }
 
 /* Navigation links - explicit light colors */
 [data-theme="dark"] .nav__link,
 [data-theme="dark"] .nav-link {
-  color: var(--color-text-secondary-light) !important;
+  color: #f0ebe4;
 }
 
 [data-theme="dark"] .nav__link:hover,
 [data-theme="dark"] .nav__link.is-active,
 [data-theme="dark"] .nav-link:hover,
 [data-theme="dark"] .nav-link.is-active {
-  color: var(--color-bg-primary) !important;
+  color: #faf6f0;
 }
 
 [data-theme="dark"] .nav__cta {
@@ -1920,11 +2099,11 @@
 
 /* Nav phone link */
 [data-theme="dark"] .nav-phone {
-  color: var(--color-text-secondary-light) !important;
+  color: #f0ebe4;
 }
 
 [data-theme="dark"] .nav-phone:hover {
-  color: var(--color-bg-primary) !important;
+  color: #faf6f0;
 }
 
 /* Mobile menu button hamburger lines */
@@ -1941,18 +2120,18 @@
 }
 
 [data-theme="dark"] .mobile-menu__close {
-  color: var(--color-text-secondary-light);
+  color: #f0ebe4;
 }
 
 [data-theme="dark"] .mobile-menu__nav a,
 [data-theme="dark"] .mobile-link {
-  color: var(--color-text-secondary-light) !important;
+  color: #f0ebe4;
   border-bottom-color: rgba(215, 185, 145, 0.12);
 }
 
 [data-theme="dark"] .mobile-menu__nav a:hover,
 [data-theme="dark"] .mobile-link:hover {
-  color: var(--color-bg-primary) !important;
+  color: #faf6f0;
   background: var(--color-cedar);
 }
 
@@ -1974,7 +2153,8 @@
 }
 
 [data-theme="dark"] .hero__bg-orb {
-  opacity: 0.25;
+  opacity: 0.5;
+  filter: saturate(1.2);
 }
 
 [data-theme="dark"] .hero__tagline {
@@ -1982,7 +2162,7 @@
 }
 
 [data-theme="dark"] .hero__headline {
-  color: var(--color-bg-primary) !important;
+  color: #faf6f0;
 }
 
 [data-theme="dark"] .hero__headline-accent {
@@ -1990,7 +2170,7 @@
 }
 
 [data-theme="dark"] .hero__subhead {
-  color: var(--color-text-secondary-light);
+  color: #f0ebe4;
 }
 
 [data-theme="dark"] .hero__badge {
@@ -2092,11 +2272,11 @@
 }
 
 [data-theme="dark"] .section__title {
-  color: var(--color-bg-primary) !important;
+  color: #faf6f0;
 }
 
 [data-theme="dark"] .section__subtitle {
-  color: var(--color-text-secondary-light);
+  color: #f0ebe4;
 }
 
 [data-theme="dark"] .section--alt {
@@ -2211,24 +2391,24 @@
 
 [data-theme="dark"] .btn--secondary {
   background: var(--color-background-elevated);
-  color: var(--color-text-secondary-light);
+  color: #f0ebe4;
   border-color: var(--color-border-medium);
 }
 
 [data-theme="dark"] .btn--secondary:hover {
   background: var(--color-background-surface);
-  color: var(--color-bg-primary);
+  color: #faf6f0;
 }
 
 [data-theme="dark"] .btn--ghost {
   background: transparent;
-  color: var(--color-text-secondary-light);
+  color: #f0ebe4;
   border-color: var(--color-border-medium);
 }
 
 [data-theme="dark"] .btn--ghost:hover {
   background: rgba(255, 255, 255, 0.05);
-  color: var(--color-bg-primary);
+  color: #faf6f0;
 }
 
 /* ----- Two-AM Section ----- */
@@ -2551,11 +2731,11 @@
 /* =======================================================
    COMPREHENSIVE BODY TEXT & CARD DARK MODE FIXES
    Ensures all text elements have proper contrast
-   Uses correct tokens from _tokens.css:
-   - --color-text-primary: var(--color-bg-primary) (light cream for main text)
-   - --color-text-secondary: var(--color-text-secondary-light) (for body text)
-   - --color-text-muted: var(--color-text-muted) (for captions/labels)
-   - --color-accent: var(--color-accent-gold) (golden accent)
+   Uses tokens from _tokens.css midnight theme:
+   - --color-text-primary: #faf6f0 (light cream for main text)
+   - --color-text-secondary: #f0ebe4 (for body text)
+   - --color-text-muted: #e8e2da (for captions/labels)
+   - --color-accent: #d4a84a (golden accent)
    ======================================================= */
 
 /* ----- Base Card Component ----- */
@@ -3095,4 +3275,85 @@
 [data-theme="dark"] .hint,
 [data-theme="dark"] .helper-text {
   color: var(--color-text-muted);
+}
+
+/* =======================================================
+   PHASE 31: DARK MODE POLISH & ANIMATION ENHANCEMENTS
+   Glow effects, glass morphism, gradient text, breathing
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  /* Glass morphism — lighter glass for visibility on dark backgrounds */
+  .glass,
+  .glass-card,
+  [class*="glass-"] {
+    background: rgba(60, 52, 47, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow:
+      var(--shadow-md),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  /* Gradient text — saturated for dark mode */
+  .gradient-text,
+  .text-gradient {
+    background: linear-gradient(135deg, #9dc082, #d4a84a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Breathing animation — add shadow so it's visible on dark bg */
+  .breathing,
+  [class*="breathing-"] {
+    box-shadow: 0 0 20px rgba(157, 192, 130, 0.15);
+  }
+
+  /* Testimonial quote marks — boost opacity for visibility */
+  .testimonial__quote::before,
+  .testimonial__quote::after {
+    opacity: 0.3;
+  }
+
+  /* Team card hover glow */
+  .team-card:hover {
+    box-shadow:
+      var(--shadow-lg),
+      0 0 40px rgba(157, 192, 130, 0.1);
+  }
+}
+
+/* Phase 31 data-theme overrides */
+[data-theme="dark"] .glass,
+[data-theme="dark"] .glass-card,
+[data-theme="dark"] [class*="glass-"] {
+  background: rgba(60, 52, 47, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    var(--shadow-md),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .gradient-text,
+[data-theme="dark"] .text-gradient {
+  background: linear-gradient(135deg, #9dc082, #d4a84a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme="dark"] .breathing,
+[data-theme="dark"] [class*="breathing-"] {
+  box-shadow: 0 0 20px rgba(157, 192, 130, 0.15);
+}
+
+[data-theme="dark"] .testimonial__quote::before,
+[data-theme="dark"] .testimonial__quote::after {
+  opacity: 0.3;
+}
+
+[data-theme="dark"] .team-card:hover {
+  box-shadow:
+    var(--shadow-lg),
+    0 0 40px rgba(157, 192, 130, 0.1);
 }

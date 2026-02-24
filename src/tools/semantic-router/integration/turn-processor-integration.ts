@@ -41,7 +41,7 @@ import {
   shouldBlockInput,
   recordDefenseStats,
 } from '../defense/index.js';
-import { hasDomainMapping, executeDomainTool } from '../domain-bridge.js';
+import { hasDomainMapping, executeDomainTool } from '../domain-bridge/index.js';
 
 // SOTA Integration - 4 "Better Than Human" learning systems
 import {

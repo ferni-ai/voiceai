@@ -98,7 +98,7 @@ import { clearHealthMonitor } from '../shared/session-health-monitor.js';
 import { clearSession as clearTelemetrySession } from '../shared/function-call-telemetry.js';
 
 // Injection builders cache cleanup (Jan 2026 optimization)
-import { clearNonVolatileInjectionCache } from '../processors/injection-builders.js';
+import { clearNonVolatileInjectionCache } from '../processors/injection-builders/index.js';
 
 // Timing-aware injection cleanup (Phase 3 BTH Communication Overhaul)
 import { clearTimingState } from '../../intelligence/context-builders/awareness/system-state-awareness.js';

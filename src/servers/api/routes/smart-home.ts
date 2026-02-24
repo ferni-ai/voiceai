@@ -14,6 +14,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getFirestore } from 'firebase-admin/firestore';
 import { verifyFirebaseToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { createManagedInterval, type ManagedInterval } from '../../../utils/managed-interval.js';
 
 const log = createLogger({ module: 'smart-home-routes' });
 
@@ -355,14 +356,23 @@ const pendingOAuthStates = new Map<string, { userId: string; createdAt: number }
 const OAUTH_STATE_TTL = 10 * 60 * 1000; // 10 minutes
 
 // Clean up old OAuth states periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [state, data] of pendingOAuthStates) {
-    if (now - data.createdAt > OAUTH_STATE_TTL) {
-      pendingOAuthStates.delete(state);
+const oauthStateCleanupInterval: ManagedInterval = createManagedInterval(
+  () => {
+    const now = Date.now();
+    for (const [state, data] of pendingOAuthStates) {
+      if (now - data.createdAt > OAUTH_STATE_TTL) {
+        pendingOAuthStates.delete(state);
+      }
     }
-  }
-}, 60000); // Every minute
+  },
+  60000,
+  { unref: true, label: 'smart-home-oauth-cleanup' }
+);
+
+/** Clean up the OAuth state interval (for graceful shutdown) */
+export function cleanupSmartHomeIntervals(): void {
+  oauthStateCleanupInterval.dispose();
+}
 
 /**
  * Refresh Sonos access token using refresh token

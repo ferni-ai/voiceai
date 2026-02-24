@@ -497,6 +497,7 @@ export function startSyncService(): void {
       log.error({ error: String(err) }, 'Scheduled sync cycle failed');
     });
   }, config.syncIntervalMs);
+  syncInterval.unref();
 }
 
 /**
@@ -639,9 +640,22 @@ export function shouldSyncImmediately(memory: {
  * Queue a memory for priority sync (not immediate, but faster than 6h)
  * These get synced on next batch or within 30 minutes
  */
+const MAX_PRIORITY_QUEUE_SIZE = 5000;
 const prioritySyncQueue: Map<string, Date> = new Map();
 
 export function queueForPrioritySync(memoryId: string): void {
+  // Evict oldest entries when queue is full
+  if (prioritySyncQueue.size >= MAX_PRIORITY_QUEUE_SIZE) {
+    const oldestKey = prioritySyncQueue.keys().next().value;
+    if (oldestKey) {
+      prioritySyncQueue.delete(oldestKey);
+      log.warn(
+        { evictedId: oldestKey, queueSize: MAX_PRIORITY_QUEUE_SIZE },
+        'Priority sync queue full, evicting oldest entry'
+      );
+    }
+  }
+
   prioritySyncQueue.set(memoryId, new Date());
   log.debug({ memoryId, queueSize: prioritySyncQueue.size }, 'Queued for priority sync');
 }

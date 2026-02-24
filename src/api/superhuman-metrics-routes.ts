@@ -15,9 +15,9 @@ const log = createLogger({ module: 'SuperhumanMetricsRoutes' });
  * Extract user ID from request headers or query params
  */
 function extractUserIdFromRequest(req: IncomingMessage, parsedUrl?: URL): string | undefined {
-  // Check header first
-  const headerUserId = req.headers['x-user-id'] as string | undefined;
-  if (headerUserId) return headerUserId;
+  // SECURITY: Use Firebase auth only
+  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
+  if (firebaseUid) return firebaseUid;
 
   // Check query params
   if (parsedUrl) {

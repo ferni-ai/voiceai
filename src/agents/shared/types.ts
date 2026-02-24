@@ -9,7 +9,7 @@ import type {
   MoodState,
   PersonaMood,
 } from '../../intelligence/context-builders/personas/persona-mood.js';
-import type { SilenceAnalysis } from '../../intelligence/silence-intelligence.js';
+import type { SilenceAnalysis } from '../../intelligence/deep-understanding/silence.js';
 import type { BundleRuntimeState, UserBundleState } from '../../personas/bundles/index.js';
 import type { ConversationStateManager } from '../../services/conversation-state.js';
 import type { SessionServices } from '../../services/index.js';

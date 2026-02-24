@@ -50,18 +50,15 @@ interface ConversationCostResponse {
 
 /**
  * Extract user ID from request headers or query params.
- * SECURITY: Prioritizes Firebase auth (x-firebase-uid) over deprecated x-user-id.
+ * SECURITY: Uses Firebase auth (x-firebase-uid) as primary identity.
  */
 function extractUserId(req: IncomingMessage, query: URLSearchParams): string | null {
-  // SECURITY: Prioritize Firebase auth
+  // SECURITY: Use Firebase auth only
   const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
   if (firebaseUid) return firebaseUid;
 
-  // Legacy header (deprecated)
-  const headerUserId = req.headers['x-user-id'] as string | undefined;
   const queryUserId = query.get('userId') || query.get('user_id');
-
-  return headerUserId || queryUserId || null;
+  return queryUserId || null;
 }
 
 /**

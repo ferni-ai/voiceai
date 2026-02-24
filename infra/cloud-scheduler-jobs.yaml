@@ -3,6 +3,14 @@
 # These jobs replace in-process setInterval calls that run in the voice agent.
 # Moving them to Cloud Scheduler improves reliability and prevents memory leaks.
 #
+# Removed jobs with no API handler (audit 2026-02-23):
+# - daily-admin-report (target: /api/jobs/daily-admin-report — no handler)
+# - community-insights-aggregation (target: /api/jobs/aggregate-community-insights — no handler)
+# - persona-metrics-rollup (target: /api/jobs/rollup-persona-metrics — no handler)
+# - semantic-router-learning (target: /api/jobs/semantic-router-learning — no handler)
+# - trust-profile-sync (target: /api/jobs/sync-trust-profiles — no handler)
+# Re-add when handlers are implemented.
+#
 # To apply:
 #   gcloud scheduler jobs create http <job-name> \
 #     --schedule="<schedule>" \
@@ -124,48 +132,6 @@ data:
         maxBackoffDuration: "300s"
 
     # ==========================================================================
-    # COLLECTIVE LEARNING JOBS
-    # ==========================================================================
-    
-    - name: community-insights-aggregation
-      description: "Aggregate community insights for collective learning"
-      schedule: "0 3 * * *"  # 3 AM daily
-      timezone: "America/Los_Angeles"
-      uri: "https://ui-server-xxxxx.run.app/api/jobs/aggregate-community-insights"
-      httpMethod: POST
-      retryConfig:
-        retryCount: 2
-        
-    - name: persona-metrics-rollup
-      description: "Roll up persona quality metrics"
-      schedule: "0 4 * * *"  # 4 AM daily
-      timezone: "America/Los_Angeles"
-      uri: "https://ui-server-xxxxx.run.app/api/jobs/rollup-persona-metrics"
-      httpMethod: POST
-
-    # P2 UTO Fix (January 2026): Semantic router learning feedback loop
-    - name: semantic-router-learning
-      description: "Update semantic router calibration from feedback, consolidate patterns"
-      schedule: "0 5 * * *"  # 5 AM daily (after persona metrics)
-      timezone: "America/Los_Angeles"
-      uri: "https://ui-server-xxxxx.run.app/api/jobs/semantic-router-learning"
-      httpMethod: POST
-      retryConfig:
-        retryCount: 2
-        minBackoffDuration: "60s"
-
-    # ==========================================================================
-    # TRUST SYSTEM JOBS
-    # ==========================================================================
-    
-    - name: trust-profile-sync
-      description: "Sync trust profiles from signals"
-      schedule: "0 */6 * * *"  # Every 6 hours
-      timezone: "America/Los_Angeles"
-      uri: "https://ui-server-xxxxx.run.app/api/jobs/sync-trust-profiles"
-      httpMethod: POST
-      
-    # ==========================================================================
     # HEALTH & MONITORING JOBS
     # ==========================================================================
     
@@ -183,21 +149,6 @@ data:
       timezone: "America/Los_Angeles"
       uri: "https://async-worker-xxxxx.run.app/health"
       httpMethod: GET
-
-    # ==========================================================================
-    # ADMIN REPORTING JOBS
-    # ==========================================================================
-
-    - name: daily-admin-report
-      description: "Send daily visitor and caller report to admin"
-      schedule: "0 8 * * *"  # 8 AM PT daily
-      timezone: "America/Los_Angeles"
-      uri: "https://john-bogle-ui-bmopaivmsq-uc.a.run.app/api/jobs/daily-admin-report"
-      httpMethod: POST
-      retryConfig:
-        retryCount: 2
-        minBackoffDuration: "60s"
-        maxBackoffDuration: "300s"
 
 ---
 # Terraform configuration for creating these jobs

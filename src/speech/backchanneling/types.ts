@@ -9,7 +9,7 @@
  * @module backchanneling/types
  */
 
-import type { EmotionResult } from '../../intelligence/emotion-detector.js';
+import type { EmotionResult } from '../../intelligence/detectors/emotion.js';
 import type { BackchannelCategory, BackchannelEmotionType } from '../persona-phrases.js';
 
 // ============================================================================

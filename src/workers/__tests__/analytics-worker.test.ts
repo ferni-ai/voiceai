@@ -35,7 +35,7 @@ import { AnalyticsWorker } from '../analytics-worker.js';
 import {
   getCommunityInsights,
   saveCommunityInsightsToFirestore,
-} from '../../intelligence/community-insights.js';
+} from '../../intelligence/collective/community-insights.js';
 import {
   getAgentEvolution,
   saveAgentEvolutionToFirestore,

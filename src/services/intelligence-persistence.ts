@@ -58,7 +58,7 @@ import {
   removeConversationPatternAnalyzer,
   type ConversationSession,
   type LearnedConversationPatterns,
-} from '../intelligence/conversation-pattern-analyzer.js';
+} from '../intelligence/tracking/conversation-patterns.js';
 
 import {
   getCrossSessionThreader,

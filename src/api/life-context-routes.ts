@@ -10,6 +10,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { setCorsHeaders } from '../servers/shared/cors.js';
 
 const log = createLogger({ module: 'LifeContextRoutes' });
 
@@ -185,25 +186,18 @@ export async function handleLifeContextRoutes(
     return false;
   }
 
-  // Handle CORS preflight
+  // Handle CORS (uses validated origin, not wildcard)
+  setCorsHeaders(req, res, { methods: ['GET', 'POST', 'OPTIONS'] });
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Id',
-    });
+    res.writeHead(204);
     res.end();
     return true;
   }
 
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-
   // Get userId from query or header
-  // SECURITY: Prioritize Firebase auth (x-firebase-uid) over deprecated x-user-id
   const url = new URL(req.url || '', `http://${req.headers.host}`);
   const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
-  const userId = firebaseUid || getParam(url, 'userId') || (req.headers['x-user-id'] as string);
+  const userId = firebaseUid || getParam(url, 'userId');
 
   if (!userId) {
     sendError(res, 'userId is required', 400);

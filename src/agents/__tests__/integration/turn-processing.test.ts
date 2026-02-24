@@ -32,7 +32,7 @@ const mockLLM = createMockLLMClient();
 setupAllMocks({ llmClient: mockLLM });
 
 // Now import the modules under test
-import { getCelebrationEvents, injectTurnContext } from '../../processors/turn-processor.js';
+import { getCelebrationEvents, injectTurnContext } from '../../processors/turn-processor/index.js';
 import type { TurnProcessorResult } from '../../processors/types.js';
 
 // ============================================================================

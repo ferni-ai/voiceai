@@ -18,7 +18,7 @@ import { diag } from '../../services/diagnostic-logger.js';
 import {
   buildAdvancedHumanizationInjections,
   type AdvancedHumanizationInjectionResult,
-} from './injection-builders.js';
+} from './injection-builders/index.js';
 import type { EmotionalState, TurnAnalysisResult, TurnContext } from './types.js';
 
 // ============================================================================
