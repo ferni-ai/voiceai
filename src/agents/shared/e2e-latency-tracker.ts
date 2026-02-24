@@ -22,7 +22,11 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getAllFlagStatuses } from './performance/latency-feature-flags.js';
 
-const log = createLogger({ module: 'E2ELatency' });
+// Lazy logger getter — avoids caching a fallback logger before initializeLogger() runs,
+// which can cause console.log → Pino → console.log infinite recursion (stack overflow).
+function getLog() {
+  return createLogger({ module: 'E2ELatency' });
+}
 
 // ============================================================================
 // TYPES
@@ -121,7 +125,7 @@ export function startTurn(sessionId: string, userTranscript?: string): string {
   activeTimelines.set(turnId, timeline);
   sessionTurnMap.set(sessionId, turnId);
 
-  log.debug({ turnId, sessionId, transcript: userTranscript?.slice(0, 50) }, '📊 Turn started');
+  getLog().debug({ turnId, sessionId, transcript: userTranscript?.slice(0, 50) }, '📊 Turn started');
 
   return turnId;
 }
@@ -150,7 +154,7 @@ export function markLLMRequestSent(sessionIdOrTurnId: string, context?: string):
   timeline.llmRequestSent = Date.now();
   timeline.context = context;
 
-  log.debug(
+  getLog().debug(
     {
       turnId: timeline.turnId,
       context,
@@ -178,17 +182,17 @@ export function markLLMFirstToken(sessionIdOrTurnId: string): void {
 
     // Log prominently if OpenAI is slow
     if (timeline.llmTTFB > THRESHOLDS.OPENAI_TTFB_CRITICAL) {
-      log.warn(
+      getLog().warn(
         { turnId: timeline.turnId, llmTTFB: timeline.llmTTFB, context: timeline.context },
         '🐌 CRITICAL: OpenAI TTFB > 5s - OpenAI is very slow!'
       );
     } else if (timeline.isOpenAISlow) {
-      log.warn(
+      getLog().warn(
         { turnId: timeline.turnId, llmTTFB: timeline.llmTTFB, context: timeline.context },
         '⚠️ OpenAI TTFB > 2s - OpenAI is slow'
       );
     } else {
-      log.debug(
+      getLog().debug(
         { turnId: timeline.turnId, llmTTFB: timeline.llmTTFB },
         '📊 LLM first token received'
       );
@@ -224,7 +228,7 @@ export function markTTSFirstAudio(sessionIdOrTurnId: string): void {
     timeline.isTTSSlow = timeline.ttsLatency > THRESHOLDS.TTS_SLOW;
 
     if (timeline.isTTSSlow) {
-      log.warn(
+      getLog().warn(
         { turnId: timeline.turnId, ttsLatency: timeline.ttsLatency },
         '⚠️ TTS latency > 500ms - Cartesia is slow'
       );
@@ -267,7 +271,7 @@ export function markSpeculativeContextBuilt(sessionIdOrTurnId: string): void {
   if (!timeline) return;
 
   timeline.speculativeContextBuiltAt = Date.now();
-  log.debug({ turnId: timeline.turnId }, '📊 Speculative context built');
+  getLog().debug({ turnId: timeline.turnId }, '📊 Speculative context built');
 }
 
 /**
@@ -489,11 +493,11 @@ function completeTurn(timeline: LatencyTimeline): void {
   };
 
   if (timeline.e2eTotal && timeline.e2eTotal > THRESHOLDS.E2E_CRITICAL) {
-    log.error(summary, '🚨 CRITICAL E2E LATENCY > 6s');
+    getLog().error(summary, '🚨 CRITICAL E2E LATENCY > 6s');
   } else if (timeline.e2eTotal && timeline.e2eTotal > THRESHOLDS.E2E_SLOW) {
-    log.warn(summary, '⚠️ Slow E2E latency > 3s');
+    getLog().warn(summary, '⚠️ Slow E2E latency > 3s');
   } else {
-    log.info(summary, '📊 Turn complete');
+    getLog().info(summary, '📊 Turn complete');
   }
 }
 

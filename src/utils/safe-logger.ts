@@ -100,6 +100,11 @@ function processBindings(bindings: Record<string, unknown>): Record<string, unkn
 /**
  * Create a fallback logger that uses console methods
  */
+// Re-entry guard: prevents infinite recursion if console methods are hooked by Pino pretty-printing.
+// When Pino intercepts console.debug/info/warn/error, calling them from the fallback logger
+// can trigger console → Pino → fallback → console → ... stack overflow.
+let isLoggingFallback = false;
+
 function createFallbackLogger(bindings?: Record<string, unknown>): FallbackLogger {
   const prefix = bindings ? `[${Object.values(bindings).join(':')}] ` : '';
 
@@ -111,11 +116,23 @@ function createFallbackLogger(bindings?: Record<string, unknown>): FallbackLogge
     return args;
   };
 
+  const safeFallback =
+    (method: 'debug' | 'info' | 'warn' | 'error') =>
+    (...args: unknown[]) => {
+      if (isLoggingFallback) return; // Break recursion
+      isLoggingFallback = true;
+      try {
+        console[method](prefix, ...processFirstArg(args));
+      } finally {
+        isLoggingFallback = false;
+      }
+    };
+
   return {
-    debug: (...args: unknown[]) => console.debug(prefix, ...processFirstArg(args)),
-    info: (...args: unknown[]) => console.info(prefix, ...processFirstArg(args)),
-    warn: (...args: unknown[]) => console.warn(prefix, ...processFirstArg(args)),
-    error: (...args: unknown[]) => console.error(prefix, ...processFirstArg(args)),
+    debug: safeFallback('debug'),
+    info: safeFallback('info'),
+    warn: safeFallback('warn'),
+    error: safeFallback('error'),
     child: (childBindings: Record<string, unknown>) =>
       createFallbackLogger({ ...bindings, ...childBindings }),
   };

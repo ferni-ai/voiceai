@@ -70,6 +70,27 @@ export function getActiveJobs(): number {
   return activeJobs;
 }
 
+// Callback invoked on job lifecycle changes (start, complete, fail).
+// Used by livekit-connection to send immediate UpdateJobStatus + UpdateWorkerStatus to LiveKit.
+let onJobLifecycle: ((jobId: string, event: 'started' | 'completed' | 'failed') => void) | null = null;
+
+/**
+ * Register a callback that fires on job lifecycle events.
+ */
+export function setOnJobLifecycle(cb: (jobId: string, event: 'started' | 'completed' | 'failed') => void): void {
+  onJobLifecycle = cb;
+}
+
+// Track active job IDs for migrateJob after reconnect
+const activeJobIds = new Set<string>();
+
+/**
+ * Get IDs of all currently active jobs (for migrateJob after reconnect).
+ */
+export function getActiveJobIds(): string[] {
+  return Array.from(activeJobIds);
+}
+
 // ============================================================================
 // JOB EXECUTION
 // ============================================================================
@@ -86,6 +107,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
 
   activeJobs++;
   totalJobs++;
+  activeJobIds.add(jobId);
 
   log('Starting job', {
     jobId,
@@ -93,6 +115,9 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     activeJobs,
     totalJobs,
   });
+
+  // Notify LiveKit immediately that this job is running (UpdateJobStatus JS_RUNNING)
+  try { onJobLifecycle?.(jobId, 'started'); } catch { /* non-critical */ }
 
   const room = new Room();
   const closeEvent = new EventEmitter();
@@ -279,6 +304,8 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
 
     completedJobs++;
     activeJobs--;
+    activeJobIds.delete(jobId);
+    try { onJobLifecycle?.(jobId, 'completed'); } catch { /* non-critical */ }
     log('Job completed', {
       jobId,
       durationMs: Date.now() - startTime,
@@ -287,6 +314,8 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
   } catch (error) {
     failedJobs++;
     activeJobs--;
+    activeJobIds.delete(jobId);
+    try { onJobLifecycle?.(jobId, 'failed'); } catch { /* non-critical */ }
     log('Job failed', {
       jobId,
       durationMs: Date.now() - startTime,

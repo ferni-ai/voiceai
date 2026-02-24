@@ -9,6 +9,7 @@
  */
 
 import {
+  JobStatus,
   JobType,
   ParticipantPermission,
   ServerMessage,
@@ -16,6 +17,7 @@ import {
   WorkerStatus,
   type Job,
 } from '@livekit/protocol';
+import os from 'node:os';
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { WebSocket } from 'ws';
 
@@ -24,7 +26,7 @@ import {
   markLivekitDisconnected,
   signalWorkerAcceptingJobs,
 } from '../shared/worker-readiness.js';
-import { runJobInProcess, getActiveJobs, setWorkerId, type JobInfo } from './job-executor.js';
+import { runJobInProcess, getActiveJobs, getActiveJobIds, setWorkerId, setOnJobLifecycle, type JobInfo } from './job-executor.js';
 
 // ============================================================================
 // TYPES
@@ -96,6 +98,21 @@ let currentHandlers: WebSocketHandlers | null = null;
 // Module-level config and log (set during init)
 let _config: LiveKitConfig;
 let _log: LogFn;
+
+// ============================================================================
+// CPU LOAD (matches official LiveKit SDK: os.getloadavg / os.cpu_count)
+// ============================================================================
+
+/**
+ * Get normalized CPU load (0.0 - 1.0).
+ * Matches the Python SDK: os.getloadavg()[0] / os.cpu_count()
+ */
+function getCpuLoad(): number {
+  const loadAvg = os.loadavg()[0]; // 1-minute load average
+  const cpuCount = os.cpus().length;
+  if (cpuCount === 0) return 0;
+  return Math.min(loadAvg / cpuCount, 1.0);
+}
 
 // ============================================================================
 // WEBSOCKET HELPERS
@@ -219,13 +236,63 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       const statusMsg = new WorkerMessage({
         message: {
           case: 'updateWorker',
-          value: { load: 0, status: WorkerStatus.WS_AVAILABLE },
+          value: { load: 0, status: WorkerStatus.WS_AVAILABLE, jobCount: getActiveJobs() },
         },
       });
       safeSend(statusMsg.toBinary(), 'worker-status-available');
 
       signalWorkerAcceptingJobs();
       _log('Worker ready to accept jobs');
+
+      // migrateJob: report any active jobs from before reconnect (matches Python SDK behavior)
+      const activeIds = getActiveJobIds();
+      if (activeIds.length > 0) {
+        const migrateMsg = new WorkerMessage({
+          message: {
+            case: 'migrateJob',
+            value: { jobIds: activeIds },
+          },
+        });
+        safeSend(migrateMsg.toBinary(), 'migrate-jobs');
+        _log('Migrated active jobs after reconnect', { jobIds: activeIds });
+      }
+
+      // Job lifecycle callback: send UpdateJobStatus + UpdateWorkerStatus on every event
+      setOnJobLifecycle((jobId, event) => {
+        if (ws?.readyState !== WebSocket.OPEN) return;
+
+        // Map lifecycle event to LiveKit JobStatus
+        const statusMap: Record<string, JobStatus> = {
+          started: JobStatus.JS_RUNNING,
+          completed: JobStatus.JS_SUCCESS,
+          failed: JobStatus.JS_FAILED,
+        };
+        const jobStatus = statusMap[event];
+
+        // Send UpdateJobStatus (matches Python SDK: _update_job_status)
+        if (jobStatus !== undefined) {
+          const jobStatusMsg = new WorkerMessage({
+            message: {
+              case: 'updateJob',
+              value: { jobId, status: jobStatus },
+            },
+          });
+          safeSend(jobStatusMsg.toBinary(), `job-status-${event}`);
+        }
+
+        // Send UpdateWorkerStatus with current load + jobCount
+        const jobs = getActiveJobs();
+        const load = getCpuLoad();
+        const workerStatus = jobs >= 3 ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
+        const updateMsg = new WorkerMessage({
+          message: {
+            case: 'updateWorker',
+            value: { load, status: workerStatus, jobCount: jobs },
+          },
+        });
+        safeSend(updateMsg.toBinary(), `worker-status-after-${event}`);
+        _log(`Job lifecycle: ${event}`, { jobId, activeJobs: jobs, load, status: workerStatus });
+      });
 
       startPendingJobsCleanup();
 
@@ -234,21 +301,21 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
         clearInterval(statusUpdateInterval);
       }
 
-      // Periodic status updates - NOW stored for cleanup
+      // Periodic status updates — 2.5s interval matches official LiveKit SDK
       statusUpdateInterval = setInterval(() => {
         if (ws?.readyState === WebSocket.OPEN) {
-          const activeJobs = getActiveJobs();
-          const currentLoad = activeJobs > 0 ? 0.5 : 0;
-          const status = activeJobs >= 3 ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
+          const jobs = getActiveJobs();
+          const load = getCpuLoad();
+          const status = jobs >= 3 ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
           const updateMsg = new WorkerMessage({
             message: {
               case: 'updateWorker',
-              value: { load: currentLoad, status },
+              value: { load, status, jobCount: jobs },
             },
           });
           ws.send(updateMsg.toBinary());
         }
-      }, 10000);
+      }, 2500);
 
       // FIX: Unref to prevent blocking process exit if closeConnection() isn't called
       statusUpdateInterval.unref();
@@ -264,9 +331,26 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       _log('Job availability request', {
         jobId: job.id,
         roomName,
+        activeJobs: getActiveJobs(),
         instanceId: `${_config.agentName}-${process.pid}`,
         hostname: process.env.HOSTNAME || 'local',
       });
+
+      // Load-aware: reject if at max capacity to prevent wasted dispatch cycles
+      if (getActiveJobs() >= 3) {
+        const rejectResponse = new WorkerMessage({
+          message: {
+            case: 'availability',
+            value: {
+              jobId: job.id,
+              available: false,
+            },
+          },
+        });
+        safeSend(rejectResponse.toBinary(), 'availability-reject-full');
+        _log('Rejected availability — at max capacity', { jobId: job.id, activeJobs: getActiveJobs() });
+        return;
+      }
 
       const acceptArgs = {
         name: _config.agentName,
