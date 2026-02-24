@@ -163,25 +163,22 @@ ${colors.cyan}╚═════════════════════
       // Handle JSON imports (for seed-data.json etc.)
       loader: { '.json': 'json' },
 
-      // Ignore missing modules that were deleted but still have stale imports.
-      // These are all lazy-loaded via await import() and guarded at runtime.
+      // Mark missing modules as external so esbuild skips them.
+      // These are deleted source files with stale imports; they're either
+      // lazy-loaded (await import) or behind feature-flag guards at runtime.
       plugins: [{
-        name: 'ignore-missing-modules',
+        name: 'skip-missing-modules',
         setup(build) {
-          // Match any relative import that can't be resolved in dist/
           build.onResolve({ filter: /.*/ }, (args) => {
             if ((args.resolveDir.includes('/dist/') || args.resolveDir.endsWith('/dist')) && args.path.startsWith('.')) {
               const resolved = join(args.resolveDir, args.path);
               const extensions = ['', '.js', '.mjs', '/index.js'];
               const found = extensions.some(ext => existsSync(resolved + ext));
               if (!found) {
-                return { path: args.path, namespace: 'missing-module' };
+                return { path: args.path, external: true };
               }
             }
             return undefined;
-          });
-          build.onLoad({ filter: /.*/, namespace: 'missing-module' }, () => {
-            return { contents: 'export default {};', loader: 'js' };
           });
         },
       }],
