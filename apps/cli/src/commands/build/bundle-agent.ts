@@ -168,18 +168,13 @@ ${colors.cyan}╚═════════════════════
       plugins: [{
         name: 'ignore-missing-modules',
         setup(build) {
-          // Match any import that esbuild can't resolve
+          // Match any relative import that can't be resolved in dist/
           build.onResolve({ filter: /.*/ }, (args) => {
-            // Only handle unresolvable relative imports in dist/
             if (args.resolveDir.includes('/dist/') && args.path.startsWith('.')) {
-              const { join: pjoin } = require('path');
-              const { existsSync: pexists } = require('fs');
-              const resolved = pjoin(args.resolveDir, args.path);
-              // Check common extensions
+              const resolved = join(args.resolveDir, args.path);
               const extensions = ['', '.js', '.mjs', '/index.js'];
-              const found = extensions.some(ext => pexists(resolved + ext));
+              const found = extensions.some(ext => existsSync(resolved + ext));
               if (!found) {
-                // Return empty module for missing files
                 return { path: args.path, namespace: 'missing-module' };
               }
             }
