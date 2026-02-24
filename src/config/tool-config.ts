@@ -148,7 +148,7 @@ const DEFAULT_CONFIG: ToolConfiguration = {
   maxTools: 0, // 0 = unlimited, let semantic router filter
   useMetaTool: false, // Default to existing behavior
   metaToolCatalogInPrompt: true, // Include catalog when meta-tool is enabled
-  useFtis: true, // FTIS hierarchical classifier enabled by default
+  useFtis: false, // FTIS disabled - ONNX classifier adds ~17s latency (use semantic router instead)
   ftisThreshold: 0.7, // Combined confidence = domain * meta-tool
   essentialTools: DEFAULT_ESSENTIAL_TOOLS,
 };

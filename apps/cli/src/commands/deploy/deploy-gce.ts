@@ -682,6 +682,9 @@ function deployToSlot(
     AGENT_NAME: 'voice-agent',
     // Post-TTS audio enhancements disabled on GCE (causes static artifacts)
     POST_TTS_ENHANCEMENT_ENABLED: 'false',
+    // FTIS ONNX classifier disabled — adds ~17s latency, use semantic router instead
+    FTIS_ENABLED: 'false',
+    USE_FTIS: 'false',
     // Kyutai DSM sidecars (STT + TTS) — reach via Docker host gateway
     ...(CONFIG.kyutai.enabled
       ? {
@@ -749,6 +752,9 @@ function promoteSlot(slot: 'blue' | 'green', image: string, secrets: Record<stri
     AGENT_NAME: 'voice-agent',
     // Post-TTS audio enhancements disabled on GCE (causes static artifacts)
     POST_TTS_ENHANCEMENT_ENABLED: 'false',
+    // FTIS ONNX classifier disabled — adds ~17s latency, use semantic router instead
+    FTIS_ENABLED: 'false',
+    USE_FTIS: 'false',
     // Kyutai DSM sidecars (STT + TTS) — reach via Docker host gateway
     ...(CONFIG.kyutai.enabled
       ? {
@@ -923,6 +929,9 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
   envVarsArray.push('AGENT_NAME=voice-agent');
   // Disable post-TTS audio enhancement (causing issues in production)
   envVarsArray.push('POST_TTS_ENHANCEMENT_ENABLED=false');
+  // FTIS ONNX classifier disabled — adds ~17s latency, use semantic router instead
+  envVarsArray.push('FTIS_ENABLED=false');
+  envVarsArray.push('USE_FTIS=false');
 
   const envVarsString = envVarsArray.join(',');
 
