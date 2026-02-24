@@ -52,6 +52,9 @@ let lastPongTime = Date.now();
 /** Flag to prevent reconnect during shutdown */
 let isShuttingDown = false;
 
+/** Guard against double-reconnect (keepalive + onClose both call scheduleReconnect) */
+let reconnectScheduled = false;
+
 const PING_INTERVAL_MS = 15_000;
 const PONG_TIMEOUT_MS = 30_000;
 
@@ -373,6 +376,16 @@ function scheduleReconnect(): void {
     return;
   }
 
+  // RACE CONDITION FIX: Prevent double-reconnect from keepalive + onClose firing together.
+  // Without this guard, ws.terminate() triggers onClose which calls scheduleReconnect(),
+  // AND the keepalive also calls scheduleReconnect(), creating TWO WebSocket connections
+  // and TWO worker registrations on LiveKit — causing dispatch failures.
+  if (reconnectScheduled) {
+    _log('Reconnect already scheduled, skipping duplicate');
+    return;
+  }
+  reconnectScheduled = true;
+
   if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
     _log('Max reconnect attempts reached, exiting');
     process.exit(1);
@@ -383,6 +396,7 @@ function scheduleReconnect(): void {
 
   _log('Scheduling reconnect', { attempt: reconnectAttempts, delayMs: delay });
   setTimeout(() => {
+    reconnectScheduled = false;
     // Double-check shutdown flag before actually reconnecting
     if (isShuttingDown) {
       _log('Aborting scheduled reconnect - shutdown in progress');
@@ -464,7 +478,15 @@ export async function cleanupStaleWorkers(): Promise<void> {
  * Connect to LiveKit server via WebSocket.
  */
 export async function connectToLiveKit(): Promise<void> {
-  // RACE CONDITION FIX: Remove old handlers before creating new connection
+  // RACE CONDITION FIX: Close old WebSocket AND remove handlers before creating new connection.
+  // Just removing handlers leaves the old WebSocket open → orphaned connection → duplicate worker.
+  if (ws) {
+    try {
+      ws.terminate();
+    } catch {
+      // ignore — may already be closed
+    }
+  }
   removeWebSocketHandlers();
 
   const token = new AccessToken(_config.apiKey, _config.apiSecret);
