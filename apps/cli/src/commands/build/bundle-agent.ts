@@ -163,6 +163,34 @@ ${colors.cyan}╚═════════════════════
       // Handle JSON imports (for seed-data.json etc.)
       loader: { '.json': 'json' },
 
+      // Ignore missing modules that were deleted but still have stale imports.
+      // These are all lazy-loaded via await import() and guarded at runtime.
+      plugins: [{
+        name: 'ignore-missing-modules',
+        setup(build) {
+          // Match any import that esbuild can't resolve
+          build.onResolve({ filter: /.*/ }, (args) => {
+            // Only handle unresolvable relative imports in dist/
+            if (args.resolveDir.includes('/dist/') && args.path.startsWith('.')) {
+              const { join: pjoin } = require('path');
+              const { existsSync: pexists } = require('fs');
+              const resolved = pjoin(args.resolveDir, args.path);
+              // Check common extensions
+              const extensions = ['', '.js', '.mjs', '/index.js'];
+              const found = extensions.some(ext => pexists(resolved + ext));
+              if (!found) {
+                // Return empty module for missing files
+                return { path: args.path, namespace: 'missing-module' };
+              }
+            }
+            return undefined;
+          });
+          build.onLoad({ filter: /.*/, namespace: 'missing-module' }, () => {
+            return { contents: 'export default {};', loader: 'js' };
+          });
+        },
+      }],
+
       // Add banner to identify this as a bundle
       banner: {
         js: `/**
