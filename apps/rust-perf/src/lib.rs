@@ -24,24 +24,35 @@ mod token_counter;
 mod turn_analyzer;
 
 // Candle GPU router (Metal acceleration for Apple Silicon)
-#[cfg(feature = "napi")]
+// Requires both candle_models (for candle-nn) AND napi (for NAPI bindings).
+// Without dual gate, `cargo run --features server --no-default-features` fails
+// because candle_router.rs has ungated `use napi::*` imports.
+#[cfg(all(feature = "candle_models", feature = "napi"))]
 mod candle_router;
-// Shared MoE building blocks (Thinker + Talker)
+
+// ============================================================================
+// Candle ML model modules (behind "candle_models" feature flag)
+// These add ~10K lines of Qwen3-Omni + LFM2 model code and pull in
+// candle-nn, candle-transformers, safetensors, half dependencies.
+// Disabled in Docker/GCE builds to reduce compile time and binary size.
+// ============================================================================
+#[cfg(feature = "candle_models")]
 mod candle_moe;
-// Qwen3-Omni Thinker (MoE, Metal, generation)
+#[cfg(feature = "candle_models")]
 mod candle_thinker;
-// Mel spectrogram for Qwen3-Omni Audio Encoder (AuT)
+#[cfg(feature = "candle_models")]
 mod candle_mel;
-// Qwen3-Omni Audio Encoder (AuT)
+#[cfg(feature = "candle_models")]
 mod candle_audio_encoder;
-// Qwen3-Omni Talker (text decoder + code predictor)
+#[cfg(feature = "candle_models")]
 mod candle_talker;
-// Qwen3-Omni Code2Wav (codec -> waveform)
+#[cfg(feature = "candle_models")]
 mod candle_code2wav;
-// Full Qwen3-Omni audio-to-audio pipeline (used by qwen3-omni-server binary)
+#[cfg(feature = "candle_models")]
 pub mod full_omni_pipeline;
-// LFM2-Audio Candle port (sub-100ms STS): FastConformer + LFM2 backbone + RQ-Transformer; Mimi reuse
+#[cfg(feature = "candle_models")]
 pub mod lfm2;
+
 // Voice biomarker extraction (pitch, jitter, shimmer, breathiness, speech rate)
 pub mod voice_biomarkers;
 // Post-TTS audio humanization DSP pipeline (breath injection, prosody, emotion coloring, fillers, texture, pacing)
@@ -52,24 +63,25 @@ pub mod humanization;
 pub use onnx_router::*;
 
 // Re-export Candle router for GPU-accelerated FTIS V3
-#[cfg(feature = "napi")]
+#[cfg(all(feature = "candle_models", feature = "napi"))]
 pub use candle_router::*;
 
-// Re-export shared MoE types (used by Thinker/Talker)
+// Re-export Candle model types (only when candle_models feature enabled)
+#[cfg(feature = "candle_models")]
 pub use candle_moe::*;
-// Re-export Candle Thinker for Qwen3-Omni generation
+#[cfg(feature = "candle_models")]
 pub use candle_thinker::*;
-// Re-export mel spectrogram for AuT pipeline
+#[cfg(feature = "candle_models")]
 pub use candle_mel::*;
-// Re-export Audio Encoder for full Omni pipeline
+#[cfg(feature = "candle_models")]
 pub use candle_audio_encoder::*;
-// Re-export Talker for full Omni pipeline
+#[cfg(feature = "candle_models")]
 pub use candle_talker::*;
-// Re-export Code2Wav for full Omni pipeline
+#[cfg(feature = "candle_models")]
 pub use candle_code2wav::*;
-// Re-export full Omni pipeline for rust-omni
+#[cfg(feature = "candle_models")]
 pub use full_omni_pipeline::*;
-// Re-export LFM2-Audio port types (stubs until FastConformer/LFM2/RQ-Transformer are implemented)
+#[cfg(feature = "candle_models")]
 pub use lfm2::*;
 
 // NAPI bindings (cosine_similarity, get_library_info, OnnxRouter, CandleRouter, etc.)

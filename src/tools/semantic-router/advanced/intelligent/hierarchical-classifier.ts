@@ -94,7 +94,7 @@ function getDefaultConfig(): HierarchicalClassifierConfig {
     maxLength: 128,
     threshold: 0.1,
     topK: 5,
-    numThreads: 0,
+    numThreads: parseInt(process.env.ORT_NUM_THREADS || '0', 10),
   };
 }
 

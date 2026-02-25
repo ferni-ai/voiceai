@@ -685,6 +685,11 @@ function deployToSlot(
     // FTIS ONNX classifier disabled — adds ~17s latency, use semantic router instead
     FTIS_ENABLED: 'false',
     USE_FTIS: 'false',
+    // Unlock all team members for handoffs (bypass relationship-stage gating)
+    BYPASS_TEAM_UNLOCKS: 'all',
+    // Rust thread pool limits for 4-vCPU e2-standard-4 (prevents over-subscription)
+    RAYON_NUM_THREADS: '2',
+    ORT_NUM_THREADS: '2',
     // Kyutai DSM sidecars (STT + TTS) — reach via Docker host gateway
     ...(CONFIG.kyutai.enabled
       ? {
@@ -740,6 +745,8 @@ function promoteSlot(slot: 'blue' | 'green', image: string, secrets: Record<stri
     GCS_VOICE_BUCKET: 'ferni-voice-audio-3235',
     REDIS_HOST: '172.17.0.1',
     REDIS_PORT: String(CONFIG.redisPort),
+    // Enable Pub/Sub for background task offloading
+    PUBSUB_ENABLED: 'true',
     // Use Gemini Live model (not OpenAI Realtime)
     USE_OPENAI_REALTIME: 'false',
     // Gemini model config — match local .env settings
@@ -755,6 +762,11 @@ function promoteSlot(slot: 'blue' | 'green', image: string, secrets: Record<stri
     // FTIS ONNX classifier disabled — adds ~17s latency, use semantic router instead
     FTIS_ENABLED: 'false',
     USE_FTIS: 'false',
+    // Unlock all team members for handoffs (bypass relationship-stage gating)
+    BYPASS_TEAM_UNLOCKS: 'all',
+    // Rust thread pool limits for 4-vCPU e2-standard-4 (prevents over-subscription)
+    RAYON_NUM_THREADS: '2',
+    ORT_NUM_THREADS: '2',
     // Kyutai DSM sidecars (STT + TTS) — reach via Docker host gateway
     ...(CONFIG.kyutai.enabled
       ? {
@@ -917,6 +929,8 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
   envVarsArray.push(`GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}`);
   envVarsArray.push(`FIREBASE_PROJECT_ID=${CONFIG.projectId}`);
   envVarsArray.push('GCS_BUCKET_NAME=ferni-voice-audio-3235');
+  // GCS bucket specifically for voice calls (Cartesia TTS → Twilio playback)
+  envVarsArray.push('GCS_VOICE_BUCKET=ferni-voice-audio-3235');
   envVarsArray.push('REDIS_URL=redis://10.237.188.163:6379'); // Redis internal IP
   envVarsArray.push('PUBSUB_ENABLED=true');
   envVarsArray.push('PORT=8080');
@@ -924,14 +938,27 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
   envVarsArray.push('USE_OPENAI_REALTIME=false');
   envVarsArray.push('GEMINI_MODEL=gemini-2.0-flash-live-preview-04-09');
   envVarsArray.push('CARTESIA_MODEL=sonic-3-latest');
-  envVarsArray.push('GOOGLE_GENAI_USE_VERTEXAI=false');
-  envVarsArray.push('USE_VERTEX_AI=false');
+  // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
+  envVarsArray.push('GOOGLE_GENAI_USE_VERTEXAI=true');
+  envVarsArray.push('USE_VERTEX_AI=true');
   envVarsArray.push('AGENT_NAME=voice-agent');
   // Disable post-TTS audio enhancement (causing issues in production)
   envVarsArray.push('POST_TTS_ENHANCEMENT_ENABLED=false');
   // FTIS ONNX classifier disabled — adds ~17s latency, use semantic router instead
   envVarsArray.push('FTIS_ENABLED=false');
   envVarsArray.push('USE_FTIS=false');
+  // Unlock all team members for handoffs (bypass relationship-stage gating)
+  envVarsArray.push('BYPASS_TEAM_UNLOCKS=all');
+  // Rust thread pool limits for 4-vCPU e2-standard-4 (prevents over-subscription)
+  envVarsArray.push('RAYON_NUM_THREADS=2');
+  envVarsArray.push('ORT_NUM_THREADS=2');
+  // Kyutai DSM sidecars (STT + TTS)
+  if (CONFIG.kyutai?.enabled) {
+    envVarsArray.push('USE_KYUTAI_STT=true');
+    envVarsArray.push(`KYUTAI_STT_URL=ws://172.17.0.1:${CONFIG.kyutai.sttPort}/api/asr-streaming`);
+    envVarsArray.push('TTS_PROVIDER=kyutai');
+    envVarsArray.push(`KYUTAI_TTS_URL=ws://172.17.0.1:${CONFIG.kyutai.ttsPort}/api/tts_streaming`);
+  }
 
   const envVarsString = envVarsArray.join(',');
 

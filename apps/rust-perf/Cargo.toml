@@ -9,8 +9,12 @@ license = "MIT"
 default = ["napi"]
 # Enable NAPI bindings (cdylib). Disable with --no-default-features to run lib tests without NAPI link errors.
 napi = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
+# Enable Candle ML model modules (Qwen3-Omni, LFM2, etc.) — ~10K lines of model code.
+# Disabled in Docker/GCE builds to reduce compile time and binary size.
+# Enable for local dev (Apple Silicon Metal) or the qwen3-omni-server binary.
+candle_models = ["dep:candle-core", "dep:candle-nn", "dep:candle-transformers", "dep:safetensors", "dep:half"]
 # Enable HTTP server binary for Candle Qwen3-Omni inference.
-server = ["dep:axum", "dep:tokio", "dep:tower-http", "dep:base64", "dep:futures-util"]
+server = ["candle_models", "dep:axum", "dep:tokio", "dep:tower-http", "dep:base64", "dep:futures-util"]
 
 [lib]
 # cdylib for Node.js NAPI bindings, rlib for Rust tests
@@ -75,10 +79,6 @@ lru = "0.12"
 # Generic array for FFT
 num-complex = "0.4"
 
-# ONNX Runtime for FTIS V3 inference
-# coreml: On macOS, use Core ML EP (Apple GPU/Neural Engine) with CPU fallback if model uses external data
-ort = { version = "2.0.0-rc.11", features = ["coreml"] }
-
 # HuggingFace tokenizers for ONNX inference
 tokenizers = { version = "0.21", features = ["onig"] }
 
@@ -86,29 +86,35 @@ tokenizers = { version = "0.21", features = ["onig"] }
 ndarray = "0.17"
 
 # ============================================================================
-# Candle ML Framework for ML inference
+# Platform-specific dependencies
 # ============================================================================
-# Metal backend only on macOS (Apple Silicon GPU acceleration)
-# Linux uses CPU inference as fallback
 
-# Candle core - Metal feature only on macOS/iOS targets
+# ONNX Runtime: CoreML EP on macOS (Apple GPU/Neural Engine), CPU-only on Linux
+# Candle core: Metal backend on macOS (Apple Silicon GPU), CPU on Linux
 [target.'cfg(target_os = "macos")'.dependencies]
-candle-core = { version = "0.8", features = ["metal"] }
+ort = { version = "2.0.0-rc.11", features = ["coreml"] }
+candle-core = { version = "0.8", features = ["metal"], optional = true }
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
-candle-core = { version = "0.8" }
+ort = { version = "2.0.0-rc.11" }
+candle-core = { version = "0.8", optional = true }
 
+# Candle ML framework (optional: only for candle_models feature — Qwen3-Omni, LFM2, etc.)
 [dependencies.candle-nn]
 version = "0.8"
+optional = true
 
 [dependencies.candle-transformers]
 version = "0.8"
+optional = true
 
 [dependencies.safetensors]
 version = "0.5"
+optional = true
 
 [dependencies.half]
 version = "2.4"
+optional = true
 
 # ============================================================================
 # HTTP server for Candle inference (axum + tokio)
