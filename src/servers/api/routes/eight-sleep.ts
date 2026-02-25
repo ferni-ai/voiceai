@@ -35,6 +35,7 @@ import {
   getRecentBiometrics,
 } from '../../../services/identity/eight-sleep-api.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { API_ERRORS } from '../../../api/error-messages.js';
 
 const log = createLogger({ module: 'eight-sleep-routes' });
 
@@ -105,7 +106,7 @@ export async function handleEightSleepRoutes(
 
   // Check if Eight Sleep is configured at app level
   if (!isApiConfigured() && !pathname.endsWith('/configured')) {
-    sendError(res, 503, 'Eight Sleep integration is not configured');
+    sendError(res, 503, API_ERRORS.INTEGRATION_NOT_CONFIGURED('Eight Sleep'));
     return true;
   }
 
@@ -136,14 +137,14 @@ export async function handleEightSleepRoutes(
     }
 
     if (!code || !state) {
-      sendError(res, 400, 'Missing code or state parameter');
+      sendError(res, 400, API_ERRORS.OAUTH_MISSING_PARAMS);
       return true;
     }
 
     // Validate state and get user
     const userId = validateOAuthState(state);
     if (!userId) {
-      sendError(res, 400, 'Invalid or expired state. Please try again.');
+      sendError(res, 400, API_ERRORS.OAUTH_INVALID_STATE);
       return true;
     }
 
@@ -169,7 +170,7 @@ export async function handleEightSleepRoutes(
   // Require authentication for all other routes
   const userId = getUserId(req);
   if (!userId) {
-    sendError(res, 401, 'Authentication required');
+    sendError(res, 401, API_ERRORS.AUTH_REQUIRED);
     return true;
   }
 
@@ -182,7 +183,7 @@ export async function handleEightSleepRoutes(
     const result = getAuthorizationUrl(userId);
 
     if (!result.success || !result.data) {
-      sendError(res, 500, result.error || 'Failed to generate auth URL');
+      sendError(res, 500, result.error || API_ERRORS.OAUTH_AUTH_URL_FAILED);
       return true;
     }
 
@@ -239,7 +240,7 @@ export async function handleEightSleepRoutes(
     const result = await getSleepSummary(userId, date);
 
     if (!result.success || !result.data) {
-      sendError(res, 404, result.error || 'No sleep data found');
+      sendError(res, 404, result.error || API_ERRORS.INTEGRATION_NO_SLEEP_DATA);
       return true;
     }
 
@@ -254,7 +255,7 @@ export async function handleEightSleepRoutes(
     const result = await getTemperatureState(userId);
 
     if (!result.success || !result.data) {
-      sendError(res, 500, result.error || 'Failed to get temperature');
+      sendError(res, 500, result.error || API_ERRORS.EIGHT_SLEEP_TEMP_FAILED);
       return true;
     }
 
@@ -273,21 +274,21 @@ export async function handleEightSleepRoutes(
         typeof body.durationMinutes === 'number' ? body.durationMinutes : undefined;
 
       if (level === undefined) {
-        sendError(res, 400, 'Missing level parameter');
+        sendError(res, 400, API_ERRORS.EIGHT_SLEEP_MISSING_LEVEL);
         return true;
       }
 
       const result = await setTemperature(userId, { level, durationMinutes });
 
       if (!result.success) {
-        sendError(res, 500, result.error || 'Failed to set temperature');
+        sendError(res, 500, result.error || API_ERRORS.EIGHT_SLEEP_SET_TEMP_FAILED);
         return true;
       }
 
       sendJson(res, 200, { success: true });
       return true;
     } catch {
-      sendError(res, 400, 'Invalid request body');
+      sendError(res, 400, API_ERRORS.INVALID_REQUEST);
       return true;
     }
   }
@@ -303,14 +304,14 @@ export async function handleEightSleepRoutes(
       const result = await turnOn(userId, level);
 
       if (!result.success) {
-        sendError(res, 500, result.error || 'Failed to turn on');
+        sendError(res, 500, result.error || API_ERRORS.EIGHT_SLEEP_TURN_ON_FAILED);
         return true;
       }
 
       sendJson(res, 200, { success: true });
       return true;
     } catch {
-      sendError(res, 400, 'Invalid request body');
+      sendError(res, 400, API_ERRORS.INVALID_REQUEST);
       return true;
     }
   }
@@ -322,7 +323,7 @@ export async function handleEightSleepRoutes(
     const result = await turnOff(userId);
 
     if (!result.success) {
-      sendError(res, 500, result.error || 'Failed to turn off');
+      sendError(res, 500, result.error || API_ERRORS.EIGHT_SLEEP_TURN_OFF_FAILED);
       return true;
     }
 

@@ -12,6 +12,8 @@
  * @module errors
  */
 
+import { ERROR_DEFAULTS } from '../api/error-messages.js';
+
 // ============================================================================
 // BASE ERROR CLASS
 // ============================================================================
@@ -60,7 +62,7 @@ export class FerniError extends Error {
     this.name = this.constructor.name;
     this.code = code;
     this.context = options.context;
-    this.userMessage = options.userMessage ?? 'Something went wrong. Please try again.';
+    this.userMessage = options.userMessage ?? ERROR_DEFAULTS.GENERIC;
     this.shouldLog = options.shouldLog ?? true;
     this.severity = options.severity ?? 'medium';
     this.retryable = options.retryable ?? false;
@@ -137,7 +139,7 @@ export class ToolError extends FerniError {
         ...options.context,
       },
       cause: options.cause,
-      userMessage: "I couldn't complete that action. Let me try something else.",
+      userMessage: ERROR_DEFAULTS.TOOL_FAILED,
       severity: 'medium',
       retryable: true,
     });
@@ -164,7 +166,7 @@ export class ValidationError extends FerniError {
         expected: options.expected,
         ...options.context,
       },
-      userMessage: 'Please check your input and try again.',
+      userMessage: ERROR_DEFAULTS.VALIDATION,
       severity: 'low',
       shouldLog: false,
     });
@@ -185,7 +187,7 @@ export class AuthenticationError extends FerniError {
   ) {
     super(message, code, {
       context: { userId: options.userId, ...options.context },
-      userMessage: 'Please sign in to continue.',
+      userMessage: ERROR_DEFAULTS.AUTH_REQUIRED,
       severity: 'medium',
     });
   }
@@ -211,7 +213,7 @@ export class AuthorizationError extends FerniError {
         resource: options.resource,
         ...options.context,
       },
-      userMessage: "You don't have permission to do that.",
+      userMessage: ERROR_DEFAULTS.UNAUTHORIZED,
       severity: 'medium',
     });
   }
@@ -266,7 +268,7 @@ export class RateLimitError extends FerniError {
         retryAfterMs,
         ...options.context,
       },
-      userMessage: 'Please slow down a bit. Try again in a moment.',
+      userMessage: ERROR_DEFAULTS.RATE_LIMIT,
       severity: 'low',
       retryable: true,
     });
@@ -307,7 +309,7 @@ export class ConfigurationError extends FerniError {
   ) {
     super(message, 'CONFIGURATION_ERROR', {
       context: { configKey: options.configKey, ...options.context },
-      userMessage: 'The system is misconfigured. Please contact support.',
+      userMessage: ERROR_DEFAULTS.CONFIGURATION,
       severity: 'critical',
     });
   }
@@ -329,7 +331,7 @@ export class TimeoutError extends FerniError {
   ) {
     super(`Operation '${operation}' timed out after ${timeoutMs}ms`, 'TIMEOUT', {
       context: { operation, timeoutMs, ...options.context },
-      userMessage: 'That took too long. Please try again.',
+      userMessage: ERROR_DEFAULTS.TIMEOUT,
       severity: 'medium',
       retryable: true,
     });
@@ -359,7 +361,7 @@ export class HandoffError extends FerniError {
         ...options.context,
       },
       cause: options.cause,
-      userMessage: "I'm having trouble connecting you with my colleague. Let me help you instead.",
+      userMessage: ERROR_DEFAULTS.HANDOFF,
       severity: 'medium',
       retryable: true,
     });
@@ -402,7 +404,7 @@ export function getUserMessage(error: unknown): string {
   if (isFerniError(error)) {
     return error.userMessage;
   }
-  return 'Something went wrong. Please try again.';
+  return ERROR_DEFAULTS.GENERIC;
 }
 
 /**

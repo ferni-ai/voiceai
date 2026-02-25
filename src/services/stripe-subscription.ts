@@ -537,7 +537,7 @@ export async function recordConversation(
   const profile = await store.getProfile(userId);
 
   if (!profile) {
-    log.warn({ userId }, 'Cannot record conversation - profile not found');
+    log.debug({ userId }, 'Cannot record conversation - profile not found (new/anonymous user)');
     return {
       tier: 'free',
       usage: createFreshUsage(),
@@ -658,7 +658,7 @@ export async function canStartConversation(userId: string): Promise<{
     allowed: false,
     reason: 'Monthly conversation limit reached',
     upgradePrompt: getLimitMessage('atLimit', {
-      reset_date: nextMonth.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
+      reset_date: nextMonth.toLocaleDateString(undefined, { month: 'long', day: 'numeric' }),
     }),
   };
 }

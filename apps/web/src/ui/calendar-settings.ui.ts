@@ -187,7 +187,7 @@ class CalendarSettingsUI {
     this.panel = document.createElement('div');
     this.panel.className = 'calendar-settings';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Calendar Settings');
+    this.panel.setAttribute('aria-label', t('calendarSettings.title', 'Calendar Settings'));
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'calendar-settings__wrapper';
@@ -346,7 +346,7 @@ class CalendarSettingsUI {
               ${ICONS.refresh}
               <span>Sync</span>
             </button>
-            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-google" title="Choose calendars">
+            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-google" title="${t('forms.chooseCalendars', 'Choose calendars')}">
               ${ICONS.settings}
             </button>
             <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect">
@@ -394,7 +394,7 @@ class CalendarSettingsUI {
               ${ICONS.refresh}
               <span>Sync</span>
             </button>
-            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-apple" title="Choose calendars">
+            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-apple" title="${t('forms.chooseCalendars', 'Choose calendars')}">
               ${ICONS.settings}
             </button>
             <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-apple">
@@ -442,7 +442,7 @@ class CalendarSettingsUI {
               ${ICONS.refresh}
               <span>Sync</span>
             </button>
-            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-outlook" title="Choose calendars">
+            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-outlook" title="${t('forms.chooseCalendars', 'Choose calendars')}">
               ${ICONS.settings}
             </button>
             <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-outlook">
@@ -823,7 +823,7 @@ class CalendarSettingsUI {
                 type="email"
                 id="apple-id"
                 name="appleId"
-                placeholder="yourname@icloud.com"
+                placeholder="${t('forms.appleIdPlaceholder', 'yourname@icloud.com')}"
                 required
                 autocomplete="email"
               />
@@ -834,7 +834,7 @@ class CalendarSettingsUI {
                 type="password"
                 id="apple-password"
                 name="appPassword"
-                placeholder="xxxx-xxxx-xxxx-xxxx"
+                placeholder="${t('forms.appPasswordPlaceholder', 'xxxx-xxxx-xxxx-xxxx')}"
                 required
                 autocomplete="off"
               />

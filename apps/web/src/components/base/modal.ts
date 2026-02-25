@@ -7,6 +7,7 @@
  * @module @ferni/components/base/modal
  */
 
+import { t } from '../../i18n/index.js';
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { BaseComponent, type ComponentOptions } from './component.js';
 import { createLogger } from '../../utils/logger.js';
@@ -130,7 +131,7 @@ export class Modal extends BaseComponent {
             <h2 id="modal-title" class="ferni-modal__title">${title}</h2>
             ${tagline ? `<p class="ferni-modal__tagline">${tagline}</p>` : ''}
             ${showCloseButton ? `
-              <button class="ferni-modal__close" aria-label="Close">
+              <button class="ferni-modal__close" aria-label="${t('panels.close', 'Close')}">
                 ${CLOSE_ICON}
               </button>
             ` : ''}
@@ -396,7 +397,7 @@ export function injectModalStyles(): void {
     .ferni-modal__close {
       position: absolute;
       top: var(--space-4, 16px);
-      right: var(--space-4, 16px);
+      inset-inline-end: var(--space-4, 16px);
       width: 32px;
       height: 32px;
       display: flex;

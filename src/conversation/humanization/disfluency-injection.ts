@@ -42,7 +42,8 @@ export type DisfluencyType =
   | 'discourse_marker' // "so", "well", "you know"
   | 'lengthening' // "thiiiink", "maaaybe"
   | 'false_start' // "I—I think", "that—that's"
-  | 'repetition'; // "that's, that's interesting"
+  | 'repetition' // "that's, that's interesting"
+  | 'self_correction'; // "I mean—actually"
 
 export interface DisfluencyConfig {
   /** Base probability */
@@ -154,6 +155,18 @@ const DISFLUENCY_PATTERNS: Record<
     placement: 'before_key_point',
     contexts: ['emphasis', 'emotional'],
   },
+
+  self_correction: {
+    patterns: ['I mean—actually', 'Well—no, what I meant is', 'Sorry—let me rephrase'],
+    ssmlPatterns: [
+      'I mean—<break time="100ms"/>actually,',
+      'Well—<break time="80ms"/>no, what I meant is,',
+      'Sorry—<break time="120ms"/>let me rephrase,',
+    ],
+    probability: 0.08,
+    placement: 'opening',
+    contexts: ['complex_question', 'explaining', 'important_point'],
+  },
 };
 
 // ============================================================================
@@ -209,6 +222,13 @@ const PERSONA_DISFLUENCY_PREFERENCES: Record<
     filledPauseStyle: ['Um', 'Uh'],
     discourseMarkers: ['So', 'Okay', 'I mean'],
     probabilityMultiplier: 1.1,
+  },
+
+  'joel-dickson': {
+    preferredTypes: ['discourse_marker', 'filled_pause', 'false_start', 'self_correction'],
+    filledPauseStyle: ['Hmm', 'So', 'Well', 'Uh'],
+    discourseMarkers: ['Look', 'Here\'s the thing', 'You know', 'So', 'Actually', 'I mean', 'Okay'],
+    probabilityMultiplier: 1.3, // Joel thinks aloud — warm, professorial, catches himself going into the weeds
   },
 };
 

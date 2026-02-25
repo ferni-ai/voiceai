@@ -695,7 +695,7 @@ function render(): void {
       <!-- Quick Summary -->
       <div class="lm-section">
         <label class="lm-label">Quick note (optional)</label>
-        <textarea class="lm-textarea" id="lm-summary" placeholder="What did you talk about? How did it go?">${escapeHtml(state.summary)}</textarea>
+        <textarea class="lm-textarea" id="lm-summary" placeholder="${t('forms.conversationSummary', 'What did you talk about? How did it go?')}">${escapeHtml(state.summary)}</textarea>
       </div>
       
       <!-- Advanced Options Toggle -->
@@ -724,13 +724,13 @@ function render(): void {
           <!-- Duration -->
           <div style="margin-bottom: var(--space-4, 1rem);">
             <label class="lm-label">Duration (minutes)</label>
-            <input type="number" class="lm-input" id="lm-duration" placeholder="e.g., 30" value="${state.duration}" />
+            <input type="number" class="lm-input" id="lm-duration" placeholder="${t('forms.durationPlaceholder', 'e.g., 30')}" value="${state.duration}" />
           </div>
           
           <!-- Topics -->
           <div>
             <label class="lm-label">Topics discussed (comma-separated)</label>
-            <input type="text" class="lm-input" id="lm-topics" placeholder="e.g., work, family, travel plans" value="${state.topics}" />
+            <input type="text" class="lm-input" id="lm-topics" placeholder="${t('forms.topicsPlaceholder', 'e.g., work, family, travel plans')}" value="${state.topics}" />
           </div>
         </div>
       </div>

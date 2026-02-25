@@ -31,6 +31,7 @@ import {
   getOuraStatus,
 } from '../../../services/identity/oura-api.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { API_ERRORS } from '../../../api/error-messages.js';
 
 const log = createLogger({ module: 'oura-routes' });
 
@@ -84,7 +85,7 @@ export async function handleOuraRoutes(
 
   // Check if Oura is configured at app level
   if (!isApiConfigured() && !pathname.endsWith('/configured')) {
-    sendError(res, 503, 'Oura integration is not configured');
+    sendError(res, 503, API_ERRORS.INTEGRATION_NOT_CONFIGURED('Oura'));
     return true;
   }
 
@@ -112,14 +113,14 @@ export async function handleOuraRoutes(
     }
 
     if (!code || !state) {
-      sendError(res, 400, 'Missing code or state parameter');
+      sendError(res, 400, API_ERRORS.OAUTH_MISSING_PARAMS);
       return true;
     }
 
     // Validate state and get user
     const userId = validateOAuthState(state);
     if (!userId) {
-      sendError(res, 400, 'Invalid or expired state. Please try again.');
+      sendError(res, 400, API_ERRORS.OAUTH_INVALID_STATE);
       return true;
     }
 
@@ -144,7 +145,7 @@ export async function handleOuraRoutes(
   // Require authentication for all other routes
   const userId = getUserId(req);
   if (!userId) {
-    sendError(res, 401, 'Authentication required');
+    sendError(res, 401, API_ERRORS.AUTH_REQUIRED);
     return true;
   }
 
@@ -157,7 +158,7 @@ export async function handleOuraRoutes(
     const result = getAuthorizationUrl(userId);
 
     if (!result.success || !result.data) {
-      sendError(res, 500, result.error || 'Failed to generate auth URL');
+      sendError(res, 500, result.error || API_ERRORS.OAUTH_AUTH_URL_FAILED);
       return true;
     }
 
@@ -211,7 +212,7 @@ export async function handleOuraRoutes(
     const result = await getSleepSummary(userId, date);
 
     if (!result.success || !result.data) {
-      sendError(res, 404, result.error || 'No sleep data found');
+      sendError(res, 404, result.error || API_ERRORS.INTEGRATION_NO_SLEEP_DATA);
       return true;
     }
 
@@ -228,7 +229,7 @@ export async function handleOuraRoutes(
     const result = await getReadinessSummary(userId, date);
 
     if (!result.success || !result.data) {
-      sendError(res, 404, result.error || 'No readiness data found');
+      sendError(res, 404, result.error || API_ERRORS.INTEGRATION_NO_READINESS_DATA);
       return true;
     }
 
@@ -245,7 +246,7 @@ export async function handleOuraRoutes(
     const result = await getActivitySummary(userId, date);
 
     if (!result.success || !result.data) {
-      sendError(res, 404, result.error || 'No activity data found');
+      sendError(res, 404, result.error || API_ERRORS.INTEGRATION_NO_ACTIVITY_DATA);
       return true;
     }
 

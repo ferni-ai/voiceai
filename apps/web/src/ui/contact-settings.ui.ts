@@ -45,10 +45,12 @@ function generateTimeOptions(selectedValue: string): string {
  * Format hour for display (12-hour with AM/PM)
  */
 function formatHour(hour: number): string {
-  if (hour === 0) return '12:00 AM';
-  if (hour === 12) return '12:00 PM';
-  if (hour < 12) return `${hour}:00 AM`;
-  return `${hour - 12}:00 PM`;
+  const am = t('contactSettings.time.am', 'AM');
+  const pm = t('contactSettings.time.pm', 'PM');
+  if (hour === 0) return `12:00 ${am}`;
+  if (hour === 12) return `12:00 ${pm}`;
+  if (hour < 12) return `${hour}:00 ${am}`;
+  return `${hour - 12}:00 ${pm}`;
 }
 
 /**
@@ -57,7 +59,7 @@ function formatHour(hour: number): string {
 function formatTimezone(timezone: string): string {
   try {
     // Get abbreviated timezone name
-    const formatter = new Intl.DateTimeFormat('en-US', {
+    const formatter = new Intl.DateTimeFormat(undefined, {
       timeZone: timezone,
       timeZoneName: 'short',
     });

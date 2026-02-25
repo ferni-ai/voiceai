@@ -594,6 +594,7 @@ export interface SubscriptionData {
  */
 export function createDefaultSubscription(): SubscriptionData {
   const now = new Date();
+  // Internal storage format YYYY-MM — not user-facing, safe to use local date components
   const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   return {
@@ -619,6 +620,7 @@ export function createDefaultSubscription(): SubscriptionData {
  * Get current month period string
  */
 export function getCurrentPeriod(): string {
+  // Internal storage format YYYY-MM — not user-facing, safe to use local date components
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }

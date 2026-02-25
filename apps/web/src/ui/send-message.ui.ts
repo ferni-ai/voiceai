@@ -531,7 +531,7 @@ function renderTextView(): string {
   return `
     <div class="sm-section">
       <label class="sm-label">Message</label>
-      <textarea class="sm-textarea" id="sm-message" placeholder="What would you like to say?">${escapeHtml(state.message)}</textarea>
+      <textarea class="sm-textarea" id="sm-message" placeholder="${t('forms.messagePlaceholder', 'What would you like to say?')}">${escapeHtml(state.message)}</textarea>
       <div class="sm-char-count ${charClass}">${charCount}/${maxLength}</div>
     </div>
   `;
@@ -541,11 +541,11 @@ function renderEmailView(): string {
   return `
     <div class="sm-section">
       <label class="sm-label">Subject</label>
-      <input type="text" class="sm-input" id="sm-subject" placeholder="Subject line" value="${escapeHtml(state.subject)}" />
+      <input type="text" class="sm-input" id="sm-subject" placeholder="${t('forms.subjectLinePlaceholder', 'Subject line')}" value="${escapeHtml(state.subject)}" />
     </div>
     <div class="sm-section">
       <label class="sm-label">Message</label>
-      <textarea class="sm-textarea" id="sm-message" placeholder="What would you like to say?">${escapeHtml(state.message)}</textarea>
+      <textarea class="sm-textarea" id="sm-message" placeholder="${t('forms.messagePlaceholder', 'What would you like to say?')}">${escapeHtml(state.message)}</textarea>
     </div>
   `;
 }

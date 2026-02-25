@@ -69,56 +69,56 @@ interface TeamMemberInfo {
 const TEAM_INFO: TeamMemberInfo[] = [
   {
     id: 'ferni',
-    displayName: 'Ferni',
-    role: 'Your Life Coach',
-    description: "Your guide through life's journey. Always here, always listening.",
-    unlockHint: 'Always available',
-    unlockedMessage: 'Start every conversation here',
+    displayName: t('teamIntro.members.ferni.name', 'Ferni'),
+    role: t('teamIntro.members.ferni.role', 'Your Life Coach'),
+    description: t('teamIntro.members.ferni.description', "Your guide through life's journey. Always here, always listening."),
+    unlockHint: t('teamIntro.members.ferni.unlockHint', 'Always available'),
+    unlockedMessage: t('teamIntro.members.ferni.unlockedMessage', 'Start every conversation here'),
     initials: 'FE',
   },
   {
     id: 'maya-santos',
-    displayName: 'Maya Santos',
-    role: 'Habits & Routines',
-    description: 'Helps you build lasting habits and create routines that stick.',
-    unlockHint: 'Have 2 conversations with Ferni',
-    unlockedMessage: 'Ready to help you build better habits',
+    displayName: t('teamIntro.members.maya.name', 'Maya Santos'),
+    role: t('teamIntro.members.maya.role', 'Habits & Routines'),
+    description: t('teamIntro.members.maya.description', 'Helps you build lasting habits and create routines that stick.'),
+    unlockHint: t('teamIntro.members.maya.unlockHint', 'Have 2 conversations with Ferni'),
+    unlockedMessage: t('teamIntro.members.maya.unlockedMessage', 'Ready to help you build better habits'),
     initials: 'MS',
   },
   {
     id: 'peter-john',
-    displayName: 'Peter John',
-    role: 'Research & Strategy',
-    description: 'Deep dives into topics, helps you make informed decisions.',
-    unlockHint: 'Build trust over 7 conversations',
-    unlockedMessage: 'Here to research anything you need',
+    displayName: t('teamIntro.members.peter.name', 'Peter John'),
+    role: t('teamIntro.members.peter.role', 'Research & Strategy'),
+    description: t('teamIntro.members.peter.description', 'Deep dives into topics, helps you make informed decisions.'),
+    unlockHint: t('teamIntro.members.peter.unlockHint', 'Build trust over 7 conversations'),
+    unlockedMessage: t('teamIntro.members.peter.unlockedMessage', 'Here to research anything you need'),
     initials: 'PJ',
   },
   {
     id: 'alex-chen',
-    displayName: 'Alex Chen',
-    role: 'Communication',
-    description: 'Crafts messages, helps with difficult conversations.',
-    unlockHint: 'Reach "Established" relationship',
-    unlockedMessage: 'Ready to help you communicate better',
+    displayName: t('teamIntro.members.alex.name', 'Alex Chen'),
+    role: t('teamIntro.members.alex.role', 'Communication'),
+    description: t('teamIntro.members.alex.description', 'Crafts messages, helps with difficult conversations.'),
+    unlockHint: t('teamIntro.members.alex.unlockHint', 'Reach "Established" relationship'),
+    unlockedMessage: t('teamIntro.members.alex.unlockedMessage', 'Ready to help you communicate better'),
     initials: 'AC',
   },
   {
     id: 'jordan-taylor',
-    displayName: 'Jordan Taylor',
-    role: 'Event Planning',
-    description: 'Plans gatherings, coordinates details, makes moments special.',
-    unlockHint: 'Reach "Established" relationship',
-    unlockedMessage: "Let's plan something memorable",
+    displayName: t('teamIntro.members.jordan.name', 'Jordan Taylor'),
+    role: t('teamIntro.members.jordan.role', 'Event Planning'),
+    description: t('teamIntro.members.jordan.description', 'Plans gatherings, coordinates details, makes moments special.'),
+    unlockHint: t('teamIntro.members.jordan.unlockHint', 'Reach "Established" relationship'),
+    unlockedMessage: t('teamIntro.members.jordan.unlockedMessage', "Let's plan something memorable"),
     initials: 'JT',
   },
   {
     id: 'nayan-patel',
-    displayName: 'Nayan',
-    role: 'Premium Partner',
-    description: 'Advanced support for your most complex challenges.',
-    unlockHint: 'Available with Partner subscription',
-    unlockedMessage: 'Your premium partner for growth',
+    displayName: t('teamIntro.members.nayan.name', 'Nayan'),
+    role: t('teamIntro.members.nayan.role', 'Premium Partner'),
+    description: t('teamIntro.members.nayan.description', 'Advanced support for your most complex challenges.'),
+    unlockHint: t('teamIntro.members.nayan.unlockHint', 'Available with Partner subscription'),
+    unlockedMessage: t('teamIntro.members.nayan.unlockedMessage', 'Your premium partner for growth'),
     initials: 'NA',
   },
 ];
@@ -135,8 +135,8 @@ class TeamIntroModal extends Modal {
   constructor() {
     const config: ModalConfig = {
       id: 'team-intro',
-      eyebrow: 'YOUR JOURNEY',
-      title: 'Meet Your Team',
+      eyebrow: t('teamIntro.eyebrow', 'YOUR JOURNEY'),
+      title: t('teamIntro.title', 'Meet Your Team'),
       onClose: () => {
         log.debug('Team intro closed');
       },
@@ -157,13 +157,13 @@ class TeamIntroModal extends Modal {
 
     return `
       <p class="team-intro__subtitle">
-        As we get to know each other, you'll unlock specialists who can help with specific areas of your life.
+        ${t('teamIntro.subtitle', "As we get to know each other, you'll unlock specialists who can help with specific areas of your life.")}
       </p>
       
       <div class="team-intro__progress">
         <div class="team-intro__progress-label">
           <span>${getProgressMessage(metrics.totalConversations)}</span>
-          <span class="team-intro__progress-count">${getUnlockedCount()} of 6 unlocked</span>
+          <span class="team-intro__progress-count">${t('teamIntro.progressCount', { count: getUnlockedCount() }, '{count} of 6 unlocked')}</span>
         </div>
         <div class="team-intro__progress-bar">
           <div class="team-intro__progress-fill" style="width: ${getProgressPercent()}%"></div>
@@ -205,7 +205,7 @@ class TeamIntroModal extends Modal {
     rosterPreferences.addMember(memberId);
 
     // Animate button
-    button.innerHTML = `${ICONS.check} Added!`;
+    button.innerHTML = `${ICONS.check} ${t('teamIntro.added', 'Added!')}`;
     button.classList.add('team-member-card__action--added');
     button.setAttribute('disabled', 'true');
 
@@ -269,17 +269,17 @@ function createMemberCard(member: TeamMemberInfo): string {
             ${
               isFerni
                 ? `
-              <span class="team-member-card__always">${ICONS.heart} Always here for you</span>
+              <span class="team-member-card__always">${ICONS.heart} ${t('teamIntro.alwaysHere', 'Always here for you')}</span>
             `
                 : `
               ${
                 isInRoster
                   ? `
-                <span class="team-member-card__added">${ICONS.check} In your roster</span>
+                <span class="team-member-card__added">${ICONS.check} ${t('teamIntro.inRoster', 'In your roster')}</span>
               `
                   : `
                 <button aria-label="${t('accessibility.add')}" class="team-member-card__action" data-member="${member.id}">
-                  ${ICONS.plus} Add to Roster
+                  ${ICONS.plus} ${t('teamIntro.addToRoster', 'Add to Roster')}
                 </button>
               `
               }
@@ -303,25 +303,25 @@ function getProgressPercent(): number {
 }
 
 function getProgressMessage(conversations: number): string {
-  if (conversations === 0) return "Let's start your journey";
-  if (conversations < 3) return "We're just getting started";
-  if (conversations < 7) return 'Building something special';
-  if (conversations < 15) return 'Growing together';
-  return 'Deep partnership';
+  if (conversations === 0) return t('teamIntro.progress.start', "Let's start your journey");
+  if (conversations < 3) return t('teamIntro.progress.beginning', "We're just getting started");
+  if (conversations < 7) return t('teamIntro.progress.building', 'Building something special');
+  if (conversations < 15) return t('teamIntro.progress.growing', 'Growing together');
+  return t('teamIntro.progress.deep', 'Deep partnership');
 }
 
 function getFooterMessage(): string {
   const unlocked = getUnlockedCount();
   if (unlocked <= 1) {
-    return 'Keep talking to Ferni. Your team grows as your relationship deepens.';
+    return t('teamIntro.footer.early', 'Keep talking to Ferni. Your team grows as your relationship deepens.');
   }
   if (unlocked < 4) {
-    return "You're on your way! More team members unlock as we continue our journey.";
+    return t('teamIntro.footer.onTheWay', "You're on your way! More team members unlock as we continue our journey.");
   }
   if (unlocked < 6) {
-    return "Your team is growing. Just a few more milestones to unlock everyone.";
+    return t('teamIntro.footer.growing', "Your team is growing. Just a few more milestones to unlock everyone.");
   }
-  return "You've unlocked the full team! Everyone's here to support you.";
+  return t('teamIntro.footer.complete', "You've unlocked the full team! Everyone's here to support you.");
 }
 
 // ============================================================================

@@ -30,7 +30,7 @@ import { apiGet } from '../utils/api.js';
 // ============================================================================
 
 function formatTime(hour: number, minute: number): string {
-  const period = hour >= 12 ? 'PM' : 'AM';
+  const period = hour >= 12 ? t('rituals.time.pm', 'PM') : t('rituals.time.am', 'AM');
   const displayHour = hour % 12 || 12;
   const displayMinute = String(minute).padStart(2, '0');
   return `${displayHour}:${displayMinute} ${period}`;
@@ -86,47 +86,47 @@ export interface RitualBuilderUICallbacks {
 // ============================================================================
 
 const BUILDER_COPY = {
-  title: 'Create Custom Practice',
-  templateIntro: 'Choose a starting point or build from scratch',
-  customizeTitle: 'Make it yours',
-  calendarTitle: 'Add to Calendar',
-  previewTitle: 'Looking good',
+  title: t('rituals.title', 'Create Custom Practice'),
+  templateIntro: t('rituals.templateIntro', 'Choose a starting point or build from scratch'),
+  customizeTitle: t('rituals.customizeTitle', 'Make it yours'),
+  calendarTitle: t('rituals.calendarTitle', 'Add to Calendar'),
+  previewTitle: t('rituals.previewTitle', 'Looking good'),
   fieldLabels: {
-    name: 'Give it a name',
-    description: 'What will you do?',
-    duration: 'How long?',
-    frequency: 'How often?',
-    time: 'Best time',
-    scheduleInCalendar: 'Add to your calendar',
-    specificTime: 'Specific time',
-    reminders: 'Remind me',
+    name: t('rituals.fields.name', 'Give it a name'),
+    description: t('rituals.fields.description', 'What will you do?'),
+    duration: t('rituals.fields.duration', 'How long?'),
+    frequency: t('rituals.fields.frequency', 'How often?'),
+    time: t('rituals.fields.time', 'Best time'),
+    scheduleInCalendar: t('rituals.fields.scheduleInCalendar', 'Add to your calendar'),
+    specificTime: t('rituals.fields.specificTime', 'Specific time'),
+    reminders: t('rituals.fields.reminders', 'Remind me'),
   },
   placeholders: {
-    name: 'My Morning Practice',
-    description: "A brief description of what you'll do...",
+    name: t('rituals.placeholders.name', 'My Morning Practice'),
+    description: t('rituals.placeholders.description', "A brief description of what you'll do..."),
   },
   buttons: {
-    preview: 'Preview',
-    edit: 'Adjust',
-    save: 'Create Practice',
-    close: 'Close',
-    back: 'Go back',
-    suggestTimes: 'Find best time',
-    skipCalendar: 'Skip calendar',
+    preview: t('rituals.buttons.preview', 'Preview'),
+    edit: t('rituals.buttons.edit', 'Adjust'),
+    save: t('rituals.buttons.save', 'Create Practice'),
+    close: t('rituals.buttons.close', 'Close'),
+    back: t('rituals.buttons.back', 'Go back'),
+    suggestTimes: t('rituals.buttons.suggestTimes', 'Find best time'),
+    skipCalendar: t('rituals.buttons.skipCalendar', 'Skip calendar'),
   },
   calendar: {
-    enabled: "I'll add this to your calendar with reminders",
-    disabled: 'No calendar events',
-    loadingSuggestions: 'Finding the best times...',
-    noSuggestions: 'No suggestions found',
-    suggestion: 'Your calendar shows this time is usually free',
+    enabled: t('rituals.calendar.enabled', "I'll add this to your calendar with reminders"),
+    disabled: t('rituals.calendar.disabled', 'No calendar events'),
+    loadingSuggestions: t('rituals.calendar.loadingSuggestions', 'Finding the best times...'),
+    noSuggestions: t('rituals.calendar.noSuggestions', 'No suggestions found'),
+    suggestion: t('rituals.calendar.suggestion', 'Your calendar shows this time is usually free'),
   },
   validation: {
-    nameRequired: 'Every practice needs a name',
+    nameRequired: t('rituals.validation.nameRequired', 'Every practice needs a name'),
   },
   confirmation: {
-    created: "Your practice is ready. You've got this.",
-    withCalendar: "Your practice is scheduled. I'll remind you!",
+    created: t('rituals.confirmation.created', "Your practice is ready. You've got this."),
+    withCalendar: t('rituals.confirmation.withCalendar', "Your practice is scheduled. I'll remind you!"),
   },
 };
 
@@ -155,87 +155,87 @@ interface RitualTemplate {
 
 const RITUAL_TEMPLATES: RitualTemplate[] = [
   {
-    name: 'Morning Check-in',
-    humanName: 'Morning moment',
+    name: t('rituals.templates.morningCheckin.name', 'Morning Check-in'),
+    humanName: t('rituals.templates.morningCheckin.humanName', 'Morning moment'),
     icon: 'sunny',
     defaults: {
       duration: '2 min',
       frequency: 'daily',
       preferredTime: 'morning',
-      description: 'Start the day with intention',
+      description: t('rituals.templates.morningCheckin.description', 'Start the day with intention'),
     },
-    scienceNote: 'Morning intentions improve focus by 31% (Harvard Business Review)',
+    scienceNote: t('rituals.templates.morningCheckin.scienceNote', 'Morning intentions improve focus by 31% (Harvard Business Review)'),
     keystonePotential: 85,
     habitLoop: {
-      cue: 'After your feet hit the floor',
-      routine: 'Pause, breathe, set one intention',
-      reward: 'Feeling of clarity and control',
+      cue: t('rituals.templates.morningCheckin.cue', 'After your feet hit the floor'),
+      routine: t('rituals.templates.morningCheckin.routine', 'Pause, breathe, set one intention'),
+      reward: t('rituals.templates.morningCheckin.reward', 'Feeling of clarity and control'),
     },
-    stacksWellWith: ['Gratitude pause', 'Movement'],
-    tinyVersion: 'Just pause and take one conscious breath',
-    outcomePreview: 'In 30 days: More focused mornings, clearer priorities',
-    mayaGuidance: 'This is a keystone habit—it tends to make other good choices easier.',
+    stacksWellWith: [t('rituals.templates.morningCheckin.stacksWith1', 'Gratitude pause'), t('rituals.templates.morningCheckin.stacksWith2', 'Movement')],
+    tinyVersion: t('rituals.templates.morningCheckin.tinyVersion', 'Just pause and take one conscious breath'),
+    outcomePreview: t('rituals.templates.morningCheckin.outcomePreview', 'In 30 days: More focused mornings, clearer priorities'),
+    mayaGuidance: t('rituals.templates.morningCheckin.mayaGuidance', 'This is a keystone habit—it tends to make other good choices easier.'),
   },
   {
-    name: 'Gratitude Moment',
-    humanName: 'Gratitude pause',
+    name: t('rituals.templates.gratitudeMoment.name', 'Gratitude Moment'),
+    humanName: t('rituals.templates.gratitudeMoment.humanName', 'Gratitude pause'),
     icon: 'heart',
     defaults: {
       duration: '1 min',
       frequency: 'daily',
       preferredTime: 'evening',
-      description: 'Name three things you appreciate',
+      description: t('rituals.templates.gratitudeMoment.description', 'Name three things you appreciate'),
     },
-    scienceNote: 'Gratitude practices increase happiness by 25% (UC Berkeley)',
+    scienceNote: t('rituals.templates.gratitudeMoment.scienceNote', 'Gratitude practices increase happiness by 25% (UC Berkeley)'),
     keystonePotential: 70,
     habitLoop: {
-      cue: 'When you put your phone on the charger at night',
-      routine: 'Name three things—big or small—that were good today',
-      reward: 'Warm feeling of appreciation',
+      cue: t('rituals.templates.gratitudeMoment.cue', 'When you put your phone on the charger at night'),
+      routine: t('rituals.templates.gratitudeMoment.routine', 'Name three things—big or small—that were good today'),
+      reward: t('rituals.templates.gratitudeMoment.reward', 'Warm feeling of appreciation'),
     },
-    stacksWellWith: ['Evening wind-down', 'Journaling'],
-    tinyVersion: 'Notice just one good thing from today',
-    outcomePreview: 'In 30 days: Better sleep, more positive outlook',
-    mayaGuidance: 'Evening gratitude helps your brain process the day. Even on hard days, there\'s always one thing.',
+    stacksWellWith: [t('rituals.templates.gratitudeMoment.stacksWith1', 'Evening wind-down'), t('rituals.templates.gratitudeMoment.stacksWith2', 'Journaling')],
+    tinyVersion: t('rituals.templates.gratitudeMoment.tinyVersion', 'Notice just one good thing from today'),
+    outcomePreview: t('rituals.templates.gratitudeMoment.outcomePreview', 'In 30 days: Better sleep, more positive outlook'),
+    mayaGuidance: t('rituals.templates.gratitudeMoment.mayaGuidance', 'Evening gratitude helps your brain process the day. Even on hard days, there\'s always one thing.'),
   },
   {
-    name: 'Weekly Review',
-    humanName: 'Weekly reflection',
+    name: t('rituals.templates.weeklyReview.name', 'Weekly Review'),
+    humanName: t('rituals.templates.weeklyReview.humanName', 'Weekly reflection'),
     icon: 'calendar',
     defaults: {
       duration: '10 min',
       frequency: 'weekly',
       preferredTime: 'morning',
-      description: 'Reflect on wins and learnings',
+      description: t('rituals.templates.weeklyReview.description', 'Reflect on wins and learnings'),
     },
-    scienceNote: 'Weekly reflection improves goal achievement by 42% (Dominican University)',
+    scienceNote: t('rituals.templates.weeklyReview.scienceNote', 'Weekly reflection improves goal achievement by 42% (Dominican University)'),
     keystonePotential: 75,
     habitLoop: {
-      cue: 'Sunday morning with coffee/tea',
-      routine: 'Review wins, note learnings, set intentions for the week',
-      reward: 'Sense of progress and direction',
+      cue: t('rituals.templates.weeklyReview.cue', 'Sunday morning with coffee/tea'),
+      routine: t('rituals.templates.weeklyReview.routine', 'Review wins, note learnings, set intentions for the week'),
+      reward: t('rituals.templates.weeklyReview.reward', 'Sense of progress and direction'),
     },
-    stacksWellWith: ['Calendar review', 'Planning session'],
-    tinyVersion: 'Write down just one win from the week',
-    outcomePreview: 'In 3 months: Clear sense of progress, better decisions',
-    mayaGuidance: 'This is where the magic happens—seeing patterns over time that daily life hides.',
+    stacksWellWith: [t('rituals.templates.weeklyReview.stacksWith1', 'Calendar review'), t('rituals.templates.weeklyReview.stacksWith2', 'Planning session')],
+    tinyVersion: t('rituals.templates.weeklyReview.tinyVersion', 'Write down just one win from the week'),
+    outcomePreview: t('rituals.templates.weeklyReview.outcomePreview', 'In 3 months: Clear sense of progress, better decisions'),
+    mayaGuidance: t('rituals.templates.weeklyReview.mayaGuidance', 'This is where the magic happens—seeing patterns over time that daily life hides.'),
   },
   {
-    name: 'Custom',
-    humanName: 'Start fresh',
+    name: t('rituals.templates.custom.name', 'Custom'),
+    humanName: t('rituals.templates.custom.humanName', 'Start fresh'),
     icon: 'plus',
     defaults: {},
-    scienceNote: 'Custom practices built around your life are 3x more likely to stick',
+    scienceNote: t('rituals.templates.custom.scienceNote', 'Custom practices built around your life are 3x more likely to stick'),
     keystonePotential: 50,
     habitLoop: {
-      cue: 'You choose the trigger',
-      routine: 'You design the practice',
-      reward: 'You define what success feels like',
+      cue: t('rituals.templates.custom.cue', 'You choose the trigger'),
+      routine: t('rituals.templates.custom.routine', 'You design the practice'),
+      reward: t('rituals.templates.custom.reward', 'You define what success feels like'),
     },
     stacksWellWith: [],
-    tinyVersion: 'Start with the smallest possible version',
-    outcomePreview: 'A practice that\'s uniquely yours',
-    mayaGuidance: 'Let\'s build something that fits your life perfectly. I\'ll help you make it stick.',
+    tinyVersion: t('rituals.templates.custom.tinyVersion', 'Start with the smallest possible version'),
+    outcomePreview: t('rituals.templates.custom.outcomePreview', "A practice that's uniquely yours"),
+    mayaGuidance: t('rituals.templates.custom.mayaGuidance', "Let's build something that fits your life perfectly. I'll help you make it stick."),
   },
 ];
 
@@ -398,24 +398,24 @@ class RitualBuilderUI {
 
     // Build rich template cards with behavioral science context
     const templatesHtml = RITUAL_TEMPLATES.map(
-      (t, i) => `
-      <button class="ritual-builder__template-card" data-index="${i}" aria-label="Choose ${t.humanName}">
+      (tmpl, i) => `
+      <button class="ritual-builder__template-card" data-index="${i}" aria-label="${t('rituals.aria.chooseTemplate', { name: tmpl.humanName }, 'Choose {name}')}">
         <div class="ritual-builder__template-header">
-          <span class="ritual-builder__template-icon">${ICONS[t.icon]}</span>
+          <span class="ritual-builder__template-icon">${ICONS[tmpl.icon]}</span>
           <div class="ritual-builder__template-title-row">
-            <span class="ritual-builder__template-name">${escapeHtml(t.humanName)}</span>
-            ${t.keystonePotential >= 75 ? `
-              <span class="ritual-builder__keystone-badge" title="Keystone habit - tends to cascade into other positive changes">
+            <span class="ritual-builder__template-name">${escapeHtml(tmpl.humanName)}</span>
+            ${tmpl.keystonePotential >= 75 ? `
+              <span class="ritual-builder__keystone-badge" title="${t('rituals.keystoneTooltip', 'Keystone habit - tends to cascade into other positive changes')}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                 </svg>
-                Keystone
+                ${t('rituals.keystone', 'Keystone')}
               </span>
             ` : ''}
           </div>
         </div>
-        <p class="ritual-builder__template-desc">${escapeHtml(t.defaults.description || t.outcomePreview)}</p>
-        
+        <p class="ritual-builder__template-desc">${escapeHtml(tmpl.defaults.description || tmpl.outcomePreview)}</p>
+
         <!-- Behavioral Science Context -->
         <div class="ritual-builder__template-science">
           <span class="ritual-builder__science-icon">
@@ -423,19 +423,19 @@ class RitualBuilderUI {
               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
             </svg>
           </span>
-          <span class="ritual-builder__science-text">${escapeHtml(t.scienceNote)}</span>
+          <span class="ritual-builder__science-text">${escapeHtml(tmpl.scienceNote)}</span>
         </div>
-        
+
         <!-- Tiny Version Hint -->
         <div class="ritual-builder__tiny-hint">
-          <span class="ritual-builder__tiny-label">Start tiny:</span>
-          <span class="ritual-builder__tiny-text">${escapeHtml(t.tinyVersion)}</span>
+          <span class="ritual-builder__tiny-label">${t('rituals.startTiny', 'Start tiny:')}</span>
+          <span class="ritual-builder__tiny-text">${escapeHtml(tmpl.tinyVersion)}</span>
         </div>
-        
-        ${t.defaults?.duration ? `
+
+        ${tmpl.defaults?.duration ? `
           <div class="ritual-builder__template-meta">
             ${ICONS.clock}
-            <span>${t.defaults.duration || '2 min'}</span>
+            <span>${tmpl.defaults.duration || '2 min'}</span>
           </div>
         ` : ''}
       </button>
@@ -457,8 +457,8 @@ class RitualBuilderUI {
         </div>
         <div class="ritual-builder__maya-message">
           <p class="ritual-builder__maya-text">
-            The best practice is one you'll actually do. Start smaller than you think—
-            <em>tiny habits compound into transformation</em>.
+            ${t('rituals.mayaIntro', "The best practice is one you'll actually do. Start smaller than you think—")}
+            <em>${t('rituals.mayaIntroEmphasis', 'tiny habits compound into transformation')}</em>.
           </p>
         </div>
       </div>
@@ -471,7 +471,7 @@ class RitualBuilderUI {
       <div class="ritual-builder__bth-footer">
         <span class="ritual-builder__bth-icon">✨</span>
         <span class="ritual-builder__bth-text">
-          I'll learn your patterns and find the perfect time for your practice.
+          ${t('rituals.bthFooter', "I'll learn your patterns and find the perfect time for your practice.")}
         </span>
       </div>
     `;
@@ -524,10 +524,10 @@ class RitualBuilderUI {
 
     const durationOptions = ['30 sec', '1 min', '2 min', '5 min', '10 min', '15 min'];
     const frequencyOptions: [string, string][] = [
-      ['daily', 'Every day'],
-      ['weekday', 'Weekdays'],
-      ['weekend', 'Weekends'],
-      ['weekly', 'Weekly'],
+      ['daily', t('rituals.frequency.daily', 'Every day')],
+      ['weekday', t('rituals.frequency.weekday', 'Weekdays')],
+      ['weekend', t('rituals.frequency.weekend', 'Weekends')],
+      ['weekly', t('rituals.frequency.weekly', 'Weekly')],
     ];
     const timeOptions = ['morning', 'afternoon', 'evening', 'anytime'];
 
@@ -593,13 +593,13 @@ class RitualBuilderUI {
           <div class="ritual-builder__time-options">
             ${timeOptions
               .map(
-                (t) => `
-              <button 
-                class="ritual-builder__time-btn ${this.ritual.preferredTime === t ? 'ritual-builder__time-btn--active' : ''}" 
-                data-time="${t}"
+                (opt) => `
+              <button
+                class="ritual-builder__time-btn ${this.ritual.preferredTime === opt ? 'ritual-builder__time-btn--active' : ''}"
+                data-time="${opt}"
                 type="button"
               >
-                ${t.charAt(0).toUpperCase() + t.slice(1)}
+                ${opt.charAt(0).toUpperCase() + opt.slice(1)}
               </button>
             `
               )
@@ -672,10 +672,10 @@ class RitualBuilderUI {
     if (!this.wrapper) return;
 
     const reminderOptions = [
-      { value: 5, label: '5 min before' },
-      { value: 15, label: '15 min before' },
-      { value: 30, label: '30 min before' },
-      { value: 60, label: '1 hour before' },
+      { value: 5, label: t('rituals.reminders.5min', '5 min before') },
+      { value: 15, label: t('rituals.reminders.15min', '15 min before') },
+      { value: 30, label: t('rituals.reminders.30min', '30 min before') },
+      { value: 60, label: t('rituals.reminders.1hour', '1 hour before') },
     ];
 
     this.wrapper.innerHTML = `
@@ -883,7 +883,7 @@ class RitualBuilderUI {
             minute: minutes ?? 0,
             dayOfWeek: '',
             confidence: 0.8,
-            reasoning: 'Suggested time',
+            reasoning: t('rituals.calendar.suggestedTime', 'Suggested time'),
             freeMinutes: 60,
           };
         });
@@ -901,10 +901,10 @@ class RitualBuilderUI {
     if (!this.wrapper) return;
 
     const frequencyLabel = {
-      daily: 'Every day',
-      weekday: 'Weekdays',
-      weekend: 'Weekends',
-      weekly: 'Weekly',
+      daily: t('rituals.frequency.daily', 'Every day'),
+      weekday: t('rituals.frequency.weekday', 'Weekdays'),
+      weekend: t('rituals.frequency.weekend', 'Weekends'),
+      weekly: t('rituals.frequency.weekly', 'Weekly'),
     }[this.ritual.frequency];
 
     const timeLabel =
@@ -918,7 +918,7 @@ class RitualBuilderUI {
       ? `<div class="ritual-builder__preview-calendar">
           <span class="ritual-builder__preview-calendar-badge">
             ${ICONS.calendar}
-            On your calendar
+            ${t('rituals.preview.onCalendar', 'On your calendar')}
           </span>
           ${this.ritual.specificTime 
             ? `<span class="ritual-builder__preview-calendar-time">
@@ -927,7 +927,7 @@ class RitualBuilderUI {
             : ''}
           ${this.ritual.reminderMinutes?.length 
             ? `<span class="ritual-builder__preview-calendar-reminder">
-                Reminder ${this.ritual.reminderMinutes.includes(5) ? '5 min' : this.ritual.reminderMinutes[0] + ' min'} before
+                ${t('rituals.preview.reminderBefore', { minutes: this.ritual.reminderMinutes.includes(5) ? '5' : String(this.ritual.reminderMinutes[0]) }, 'Reminder {minutes} min before')}
               </span>` 
             : ''}
         </div>`
@@ -940,21 +940,21 @@ class RitualBuilderUI {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
             <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/>
           </svg>
-          Your habit loop
+          ${t('rituals.preview.habitLoop', 'Your habit loop')}
         </h4>
         <div class="ritual-builder__loop-steps">
           <div class="ritual-builder__loop-step">
-            <span class="ritual-builder__loop-badge ritual-builder__loop-badge--cue">Cue</span>
+            <span class="ritual-builder__loop-badge ritual-builder__loop-badge--cue">${t('rituals.preview.cue', 'Cue')}</span>
             <span class="ritual-builder__loop-text">${escapeHtml(template.habitLoop.cue)}</span>
           </div>
           <div class="ritual-builder__loop-arrow">→</div>
           <div class="ritual-builder__loop-step">
-            <span class="ritual-builder__loop-badge ritual-builder__loop-badge--routine">Routine</span>
+            <span class="ritual-builder__loop-badge ritual-builder__loop-badge--routine">${t('rituals.preview.routine', 'Routine')}</span>
             <span class="ritual-builder__loop-text">${escapeHtml(template.habitLoop.routine)}</span>
           </div>
           <div class="ritual-builder__loop-arrow">→</div>
           <div class="ritual-builder__loop-step">
-            <span class="ritual-builder__loop-badge ritual-builder__loop-badge--reward">Reward</span>
+            <span class="ritual-builder__loop-badge ritual-builder__loop-badge--reward">${t('rituals.preview.reward', 'Reward')}</span>
             <span class="ritual-builder__loop-text">${escapeHtml(template.habitLoop.reward)}</span>
           </div>
         </div>
@@ -970,7 +970,7 @@ class RitualBuilderUI {
           </svg>
         </div>
         <div class="ritual-builder__outcome-content">
-          <span class="ritual-builder__outcome-label">What to expect</span>
+          <span class="ritual-builder__outcome-label">${t('rituals.preview.whatToExpect', 'What to expect')}</span>
           <span class="ritual-builder__outcome-text">${escapeHtml(template.outcomePreview)}</span>
         </div>
       </div>
@@ -1005,11 +1005,11 @@ class RitualBuilderUI {
                 <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="12" height="12">
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                 </svg>
-                Keystone
+                ${t('rituals.keystone', 'Keystone')}
               </span>
             ` : ''}
           </div>
-          <p class="ritual-builder__preview-desc">${escapeHtml(this.ritual.description) || 'No description yet'}</p>
+          <p class="ritual-builder__preview-desc">${escapeHtml(this.ritual.description) || t('rituals.preview.noDescription', 'No description yet')}</p>
           <div class="ritual-builder__preview-meta">
             <span class="ritual-builder__preview-tag">
               ${ICONS.clock}

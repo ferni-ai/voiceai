@@ -194,14 +194,18 @@ function saveState(): void {
 // DATE HELPERS
 // ============================================================================
 
+function formatLocalDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 function getToday(): string {
-  return new Date().toISOString().split('T')[0] ?? '';
+  return formatLocalDate(new Date());
 }
 
 function isYesterday(dateStr: string): boolean {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  return dateStr === (yesterday.toISOString().split('T')[0] ?? '');
+  return dateStr === formatLocalDate(yesterday);
 }
 
 function isSameDay(date1: string | null, date2: string): boolean {

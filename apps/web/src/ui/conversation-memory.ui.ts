@@ -79,7 +79,7 @@ const DEMO_CONVERSATIONS: Conversation[] = [
   {
     id: 'demo_001',
     startedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    summary: 'We talked about your morning routine and waking up earlier',
+    summary: t('conversationMemory.demo.summary1', 'We talked about your morning routine and waking up earlier'),
     topics: ['morning routine', 'sleep', 'habits'],
     turnCount: 12,
     voiceVerified: true,
@@ -87,7 +87,7 @@ const DEMO_CONVERSATIONS: Conversation[] = [
   {
     id: 'demo_002',
     startedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    summary: 'You mentioned wanting to build a consistent exercise habit',
+    summary: t('conversationMemory.demo.summary2', 'You mentioned wanting to build a consistent exercise habit'),
     topics: ['exercise', 'fitness', 'motivation'],
     turnCount: 8,
     voiceVerified: true,
@@ -95,7 +95,7 @@ const DEMO_CONVERSATIONS: Conversation[] = [
   {
     id: 'demo_003',
     startedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    summary: 'We explored your goals for the new year',
+    summary: t('conversationMemory.demo.summary3', 'We explored your goals for the new year'),
     topics: ['goals', 'career', 'growth'],
     turnCount: 15,
     voiceVerified: false,
@@ -103,7 +103,7 @@ const DEMO_CONVERSATIONS: Conversation[] = [
   {
     id: 'demo_004',
     startedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-    summary: 'You shared about a difficult conversation with a friend',
+    summary: t('conversationMemory.demo.summary4', 'You shared about a difficult conversation with a friend'),
     topics: ['relationships', 'communication'],
     turnCount: 18,
     voiceVerified: true,
@@ -111,7 +111,7 @@ const DEMO_CONVERSATIONS: Conversation[] = [
   {
     id: 'demo_005',
     startedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    summary: 'Talked about feeling overwhelmed and finding balance',
+    summary: t('conversationMemory.demo.summary5', 'Talked about feeling overwhelmed and finding balance'),
     topics: ['stress', 'work-life balance', 'self-care'],
     turnCount: 20,
     voiceVerified: true,
@@ -125,11 +125,11 @@ const DEMO_MEMORY: ConversationMemory = {
   firstConversation: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
   topics: ['morning routine', 'exercise', 'goals', 'relationships', 'stress'],
   rememberedDetails: [
-    'You want to wake up at 6:30am',
-    'Exercise is important to you but hard to maintain',
-    "You're working toward a promotion at work",
-    'Your friend Sarah is someone you value deeply',
-    'Weekends are your recharge time',
+    t('conversationMemory.demo.detail1', 'You want to wake up at 6:30am'),
+    t('conversationMemory.demo.detail2', 'Exercise is important to you but hard to maintain'),
+    t('conversationMemory.demo.detail3', "You're working toward a promotion at work"),
+    t('conversationMemory.demo.detail4', 'Your friend Sarah is someone you value deeply'),
+    t('conversationMemory.demo.detail5', 'Weekends are your recharge time'),
   ],
 };
 
@@ -137,7 +137,7 @@ const DEMO_CONTEXT: ConversationContext = {
   recentTopics: ['morning routine', 'exercise', 'goals'],
   unfinishedThreads: ['Your morning routine experiment'],
   rememberedDetails: DEMO_MEMORY.rememberedDetails || [],
-  suggestedFollowUps: ['How is the early wake-up going?', 'Did you try the exercise habit?'],
+  suggestedFollowUps: [t('conversationMemory.demo.followUp1', 'How is the early wake-up going?'), t('conversationMemory.demo.followUp2', 'Did you try the exercise habit?')],
 };
 
 /**
@@ -1177,7 +1177,7 @@ function renderStats(): void {
   const durationText = memory.totalDuration ? formatDuration(memory.totalDuration) : '—';
 
   const firstConvDate = memory.firstConversation
-    ? new Date(memory.firstConversation).toLocaleDateString('en-US', {
+    ? new Date(memory.firstConversation).toLocaleDateString(undefined, {
         month: 'short',
         year: 'numeric',
       })
@@ -1187,7 +1187,7 @@ function renderStats(): void {
   const demoBanner = isDemoMode ? `
     <div class="memory-demo-banner" role="status">
       <span class="memory-demo-banner__icon">${ICONS.brain}</span>
-      <span class="memory-demo-banner__text">Demo mode - showing example data</span>
+      <span class="memory-demo-banner__text">${t('conversationMemory.demoBanner', 'Demo mode - showing example data')}</span>
     </div>
   ` : '';
 
@@ -1318,12 +1318,12 @@ function renderConversations(container: HTMLElement): void {
 
 function renderConversationItem(conv: Conversation, isLast: boolean): string {
   const date = new Date(conv.startedAt);
-  const dateStr = date.toLocaleDateString('en-US', {
+  const dateStr = date.toLocaleDateString(undefined, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
   });
-  const timeStr = date.toLocaleTimeString('en-US', {
+  const timeStr = date.toLocaleTimeString(undefined, {
     hour: 'numeric',
     minute: '2-digit',
   });
@@ -1335,15 +1335,15 @@ function renderConversationItem(conv: Conversation, isLast: boolean): string {
         ${!isLast ? '<div class="memory-conversation__line"></div>' : ''}
       </div>
       <div class="memory-conversation__content">
-        <div class="memory-conversation__date">${dateStr} at ${timeStr}</div>
-        <div class="memory-conversation__summary">${conv.summary || 'Conversation'}</div>
+        <div class="memory-conversation__date">${dateStr} ${t('conversationMemory.atTime', 'at')} ${timeStr}</div>
+        <div class="memory-conversation__summary">${conv.summary || t('conversationMemory.conversationFallback', 'Conversation')}</div>
         ${
           conv.topics.length > 0
             ? `
           <div class="memory-conversation__topics">
             ${conv.topics
               .slice(0, 3)
-              .map((t) => `<span class="memory-topic-tag">${t}</span>`)
+              .map((topic) => `<span class="memory-topic-tag">${topic}</span>`)
               .join('')}
             ${conv.topics.length > 3 ? `<span class="memory-topic-tag">+${conv.topics.length - 3}</span>` : ''}
           </div>

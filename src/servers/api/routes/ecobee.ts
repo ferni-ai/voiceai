@@ -30,6 +30,7 @@ import {
   setHvacMode,
 } from '../../../services/identity/ecobee-api.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { API_ERRORS } from '../../../api/error-messages.js';
 
 const log = createLogger({ module: 'ecobee-routes' });
 
@@ -94,7 +95,7 @@ export async function handleEcobeeRoutes(
 
   // Check if Ecobee is configured at app level
   if (!isApiConfigured() && !pathname.endsWith('/configured')) {
-    sendError(res, 503, 'Ecobee integration is not configured');
+    sendError(res, 503, API_ERRORS.INTEGRATION_NOT_CONFIGURED('Ecobee'));
     return true;
   }
 
@@ -109,7 +110,7 @@ export async function handleEcobeeRoutes(
   // Require authentication for all other routes
   const userId = getUserId(req);
   if (!userId) {
-    sendError(res, 401, 'Authentication required');
+    sendError(res, 401, API_ERRORS.AUTH_REQUIRED);
     return true;
   }
 
@@ -122,7 +123,7 @@ export async function handleEcobeeRoutes(
     const result = await requestPin(userId);
 
     if (!result.success || !result.data) {
-      sendError(res, 500, result.error || 'Failed to start Ecobee link');
+      sendError(res, 500, result.error || API_ERRORS.ECOBEE_LINK_FAILED);
       return true;
     }
 
@@ -163,7 +164,7 @@ export async function handleEcobeeRoutes(
     const result = await checkAuthorization(userId);
 
     if (!result.success) {
-      sendError(res, 500, result.error || 'Failed to check authorization');
+      sendError(res, 500, result.error || API_ERRORS.ECOBEE_AUTH_CHECK_FAILED);
       return true;
     }
 
@@ -233,12 +234,12 @@ export async function handleEcobeeRoutes(
       }
       body = JSON.parse(Buffer.concat(chunks).toString()) as typeof body;
     } catch {
-      sendError(res, 400, 'Invalid JSON body');
+      sendError(res, 400, API_ERRORS.INVALID_JSON_BODY);
       return true;
     }
 
     if (body.heat === undefined && body.cool === undefined) {
-      sendError(res, 400, 'heat or cool temperature required');
+      sendError(res, 400, API_ERRORS.ECOBEE_TEMP_PARAMS_REQUIRED);
       return true;
     }
 
@@ -249,7 +250,7 @@ export async function handleEcobeeRoutes(
     });
 
     if (!result.success) {
-      sendError(res, 500, result.error || 'Failed to set temperature');
+      sendError(res, 500, result.error || API_ERRORS.ECOBEE_SET_TEMP_FAILED);
       return true;
     }
 
@@ -269,12 +270,12 @@ export async function handleEcobeeRoutes(
       }
       body = JSON.parse(Buffer.concat(chunks).toString()) as typeof body;
     } catch {
-      sendError(res, 400, 'Invalid JSON body');
+      sendError(res, 400, API_ERRORS.INVALID_JSON_BODY);
       return true;
     }
 
     if (!body.climate || !['home', 'away', 'sleep'].includes(body.climate)) {
-      sendError(res, 400, 'climate must be home, away, or sleep');
+      sendError(res, 400, API_ERRORS.ECOBEE_INVALID_CLIMATE);
       return true;
     }
 
@@ -284,7 +285,7 @@ export async function handleEcobeeRoutes(
     });
 
     if (!result.success) {
-      sendError(res, 500, result.error || 'Failed to set climate mode');
+      sendError(res, 500, result.error || API_ERRORS.ECOBEE_SET_CLIMATE_FAILED);
       return true;
     }
 
@@ -299,7 +300,7 @@ export async function handleEcobeeRoutes(
     const result = await resumeSchedule(userId);
 
     if (!result.success) {
-      sendError(res, 500, result.error || 'Failed to resume schedule');
+      sendError(res, 500, result.error || API_ERRORS.ECOBEE_RESUME_FAILED);
       return true;
     }
 
@@ -319,19 +320,19 @@ export async function handleEcobeeRoutes(
       }
       body = JSON.parse(Buffer.concat(chunks).toString()) as typeof body;
     } catch {
-      sendError(res, 400, 'Invalid JSON body');
+      sendError(res, 400, API_ERRORS.INVALID_JSON_BODY);
       return true;
     }
 
     if (!body.mode || !['heat', 'cool', 'auto', 'off'].includes(body.mode)) {
-      sendError(res, 400, 'mode must be heat, cool, auto, or off');
+      sendError(res, 400, API_ERRORS.ECOBEE_INVALID_HVAC_MODE);
       return true;
     }
 
     const result = await setHvacMode(userId, body.mode as 'heat' | 'cool' | 'auto' | 'off');
 
     if (!result.success) {
-      sendError(res, 500, result.error || 'Failed to set HVAC mode');
+      sendError(res, 500, result.error || API_ERRORS.ECOBEE_SET_HVAC_FAILED);
       return true;
     }
 

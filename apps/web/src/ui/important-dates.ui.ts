@@ -608,7 +608,7 @@ function renderForm(): string {
         <div class="id-form-row">
           <div class="id-form-field">
             <label class="id-form-label">Label</label>
-            <input type="text" class="id-form-input" id="id-form-label" placeholder="e.g., First date, Graduation" value="${escapeHtml(state.formLabel)}" />
+            <input type="text" class="id-form-input" id="id-form-label" placeholder="${t('forms.dateLabelPlaceholder', 'e.g., First date, Graduation')}" value="${escapeHtml(state.formLabel)}" />
           </div>
         </div>
       ` : ''}

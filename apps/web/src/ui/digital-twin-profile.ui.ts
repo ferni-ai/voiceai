@@ -425,11 +425,11 @@ function renderBackgroundSection(): string {
             .map(
               (chapter, i) => `
             <div class="chapter-card" data-index="${i}">
-              <input type="text" class="chapter-title" placeholder="Chapter title (e.g., 'College Years')" 
+              <input type="text" class="chapter-title" placeholder="${t('digitalTwin.chapterTitlePlaceholder', "Chapter title (e.g., 'College Years')")}"
                      value="${chapter.title}" data-field="title">
-              <input type="text" class="chapter-years" placeholder="Years (e.g., '2015-2019')" 
+              <input type="text" class="chapter-years" placeholder="${t('digitalTwin.chapterYearsPlaceholder', "Years (e.g., '2015-2019')")}"
                      value="${chapter.years}" data-field="years">
-              <textarea class="chapter-desc" placeholder="What defined this chapter?" 
+              <textarea class="chapter-desc" placeholder="${t('digitalTwin.chapterDescPlaceholder', 'What defined this chapter?')}"
                         data-field="description">${chapter.description}</textarea>
               <button aria-label="${t('accessibility.remove')}" class="chapter-remove" data-action="remove-chapter" data-index="${i}">Remove</button>
             </div>
@@ -455,8 +455,8 @@ function renderBackgroundSection(): string {
             .map(
               (rel, i) => `
             <div class="relationship-row" data-index="${i}">
-              <input type="text" placeholder="Name" value="${rel.name}" data-field="name">
-              <input type="text" placeholder="Relationship" value="${rel.relationship}" data-field="relationship">
+              <input type="text" placeholder="${t('digitalTwin.namePlaceholder', 'Name')}" value="${rel.name}" data-field="name">
+              <input type="text" placeholder="${t('digitalTwin.relationshipPlaceholder', 'Relationship')}" value="${rel.relationship}" data-field="relationship">
               <button aria-label="${t('accessibility.close')}" class="remove-btn" data-action="remove-relationship" data-index="${i}">×</button>
             </div>
           `
@@ -476,7 +476,7 @@ function renderBackgroundSection(): string {
         <label class="form-label">Formative Experiences</label>
         <p class="form-hint">What experiences shaped who you are today?</p>
         <textarea class="form-textarea" id="formative-experiences" 
-                  placeholder="e.g., 'Moving to a new country at 12', 'Starting my own business', 'Becoming a parent'..."
+                  placeholder="${t('digitalTwin.formativeExperiencesPlaceholder', "e.g., 'Moving to a new country at 12', 'Starting my own business', 'Becoming a parent'...")}"
         >${profile.formativeExperiences.join('\n')}</textarea>
         <span class="form-hint">Enter each experience on a new line</span>
       </div>
@@ -501,9 +501,9 @@ function renderMannerismsSection(): string {
             .map(
               (phrase, i) => `
             <div class="phrase-row" data-index="${i}">
-              <input type="text" class="phrase-text" placeholder="The phrase" 
+              <input type="text" class="phrase-text" placeholder="${t('digitalTwin.phrasePlaceholder', 'The phrase')}"
                      value="${phrase.phrase}" data-field="phrase">
-              <input type="text" class="phrase-context" placeholder="When do you say this?" 
+              <input type="text" class="phrase-context" placeholder="${t('digitalTwin.phraseContextPlaceholder', 'When do you say this?')}"
                      value="${phrase.context}" data-field="context">
               <button aria-label="${t('accessibility.close')}" class="remove-btn" data-action="remove-phrase" data-index="${i}">×</button>
             </div>
@@ -524,13 +524,13 @@ function renderMannerismsSection(): string {
         <div class="form-group form-group--half">
           <label class="form-label">How do you greet people?</label>
           <input type="text" class="form-input" id="greeting-style" 
-                 placeholder="e.g., 'Hey!', 'What's up?', 'Good to see you!'"
+                 placeholder="${t('digitalTwin.greetingPlaceholder', "e.g., 'Hey!', 'What's up?', 'Good to see you!'")}"
                  value="${profile.greetingStyle}">
         </div>
         <div class="form-group form-group--half">
           <label class="form-label">How do you say goodbye?</label>
           <input type="text" class="form-input" id="farewell-style" 
-                 placeholder="e.g., 'Later!', 'Take care', 'Catch you soon'"
+                 placeholder="${t('digitalTwin.farewellPlaceholder', "e.g., 'Later!', 'Take care', 'Catch you soon'")}"
                  value="${profile.farewellStyle}">
         </div>
       </div>
@@ -540,22 +540,22 @@ function renderMannerismsSection(): string {
         <div class="emotion-grid">
           <div class="emotion-input">
             <span class="emotion-label">😊 When happy:</span>
-            <input type="text" id="expr-happy" placeholder="e.g., 'Awesome!', 'That's amazing!'"
+            <input type="text" id="expr-happy" placeholder="${t('digitalTwin.exprHappyPlaceholder', "e.g., 'Awesome!', 'That's amazing!'")}"
                    value="${profile.expressionsWhenHappy.join(', ')}">
           </div>
           <div class="emotion-input">
             <span class="emotion-label">😢 When sad:</span>
-            <input type="text" id="expr-sad" placeholder="e.g., 'That's rough', 'I feel that'"
+            <input type="text" id="expr-sad" placeholder="${t('digitalTwin.exprSadPlaceholder', "e.g., 'That's rough', 'I feel that'")}"
                    value="${profile.expressionsWhenSad.join(', ')}">
           </div>
           <div class="emotion-input">
             <span class="emotion-label">🎉 When excited:</span>
-            <input type="text" id="expr-excited" placeholder="e.g., 'No way!', 'Let's go!'"
+            <input type="text" id="expr-excited" placeholder="${t('digitalTwin.exprExcitedPlaceholder', "e.g., 'No way!', 'Let's go!'")}"
                    value="${profile.expressionsWhenExcited.join(', ')}">
           </div>
           <div class="emotion-input">
             <span class="emotion-label">😤 When frustrated:</span>
-            <input type="text" id="expr-frustrated" placeholder="e.g., 'Ugh', 'Come on...'"
+            <input type="text" id="expr-frustrated" placeholder="${t('digitalTwin.exprFrustratedPlaceholder', "e.g., 'Ugh', 'Come on...'")}"
                    value="${profile.expressionsWhenFrustrated.join(', ')}">
           </div>
         </div>
@@ -674,7 +674,7 @@ function renderValuesSection(): string {
           ${renderValueChips()}
         </div>
         <div class="custom-value-input">
-          <input type="text" id="custom-value" placeholder="Add a custom value...">
+          <input type="text" id="custom-value" placeholder="${t('digitalTwin.customValuePlaceholder', 'Add a custom value...')}">
           <button aria-label="${t('accessibility.add')}" class="add-btn add-btn--small" data-action="add-custom-value">Add</button>
         </div>
       </div>
@@ -683,7 +683,7 @@ function renderValuesSection(): string {
         <label class="form-label">Your Life Philosophy</label>
         <p class="form-hint">In a sentence or two, what's your philosophy on life?</p>
         <textarea class="form-textarea" id="life-philosophy" 
-                  placeholder="e.g., 'Life's too short to not pursue what makes you happy', 'Always be learning and growing'..."
+                  placeholder="${t('digitalTwin.lifePhilosophyPlaceholder', "e.g., 'Life's too short to not pursue what makes you happy', 'Always be learning and growing'...")}"
         >${profile.lifePhilosophy}</textarea>
       </div>
 
@@ -691,7 +691,7 @@ function renderValuesSection(): string {
         <label class="form-label">What Matters Most</label>
         <p class="form-hint">What are the things you care deeply about?</p>
         <textarea class="form-textarea" id="what-matters" 
-                  placeholder="e.g., 'Family time', 'Personal growth', 'Making a difference'..."
+                  placeholder="${t('digitalTwin.whatMattersPlaceholder', "e.g., 'Family time', 'Personal growth', 'Making a difference'...")}"
         >${profile.whatMatters.join('\n')}</textarea>
         <span class="form-hint">Enter each item on a new line</span>
       </div>
@@ -743,7 +743,7 @@ function renderInterestsSection(): string {
         <label class="form-label">Passions</label>
         <p class="form-hint">What lights you up? What could you talk about for hours?</p>
         <textarea class="form-textarea" id="passions" 
-                  placeholder="e.g., 'Photography', 'Cooking for friends', 'Technology', 'Music'..."
+                  placeholder="${t('digitalTwin.passionsPlaceholder', "e.g., 'Photography', 'Cooking for friends', 'Technology', 'Music'...")}"
         >${profile.passions.join('\n')}</textarea>
       </div>
 
@@ -751,7 +751,7 @@ function renderInterestsSection(): string {
         <label class="form-label">Hobbies</label>
         <p class="form-hint">What do you do in your free time?</p>
         <textarea class="form-textarea" id="hobbies" 
-                  placeholder="e.g., 'Hiking', 'Reading', 'Gaming', 'Gardening'..."
+                  placeholder="${t('digitalTwin.hobbiesPlaceholder', "e.g., 'Hiking', 'Reading', 'Gaming', 'Gardening'...")}"
         >${profile.hobbies.join('\n')}</textarea>
       </div>
 
@@ -759,7 +759,7 @@ function renderInterestsSection(): string {
         <label class="form-label">Favorite Topics</label>
         <p class="form-hint">What subjects do you enjoy discussing?</p>
         <textarea class="form-textarea" id="favorite-topics" 
-                  placeholder="e.g., 'Philosophy', 'Current events', 'Sports', 'Movies'..."
+                  placeholder="${t('digitalTwin.favoriteTopicsPlaceholder', "e.g., 'Philosophy', 'Current events', 'Sports', 'Movies'...")}"
         >${profile.favoriteTopics.join('\n')}</textarea>
       </div>
 
@@ -767,7 +767,7 @@ function renderInterestsSection(): string {
         <label class="form-label">Topics to Avoid</label>
         <p class="form-hint">Are there any topics you'd rather not discuss?</p>
         <textarea class="form-textarea" id="avoid-topics" 
-                  placeholder="e.g., 'Politics', 'Work stress'..."
+                  placeholder="${t('digitalTwin.avoidTopicsPlaceholder', "e.g., 'Politics', 'Work stress'...")}"
         >${profile.thingsToAvoid.join('\n')}</textarea>
       </div>
     </div>

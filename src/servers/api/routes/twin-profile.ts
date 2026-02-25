@@ -17,6 +17,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { API_ERRORS } from '../../../api/error-messages.js';
 
 const log = createLogger({ module: 'TwinProfileRoutes' });
 
@@ -252,7 +253,7 @@ export async function handleTwinProfileRoutes(
   if (method === 'GET' && pathname === '/api/twin/profile') {
     const userId = getUserId(req);
     if (!userId) {
-      sendError(res, 401, 'Unauthorized');
+      sendError(res, 401, API_ERRORS.AUTH_REQUIRED);
       return true;
     }
 
@@ -265,7 +266,7 @@ export async function handleTwinProfileRoutes(
       sendJson(res, 200, { profile, exists: true });
     } catch (error) {
       log.error({ error }, 'Failed to get profile');
-      sendError(res, 500, 'Failed to get profile');
+      sendError(res, 500, API_ERRORS.TWIN_PROFILE_FETCH_FAILED);
     }
     return true;
   }
@@ -276,13 +277,13 @@ export async function handleTwinProfileRoutes(
   if (method === 'POST' && pathname === '/api/twin/profile') {
     const userId = getUserId(req);
     if (!userId) {
-      sendError(res, 401, 'Unauthorized');
+      sendError(res, 401, API_ERRORS.AUTH_REQUIRED);
       return true;
     }
 
     const body = await parseBody<{ profile: TwinProfile }>(req);
     if (!body?.profile) {
-      sendError(res, 400, 'Invalid profile data');
+      sendError(res, 400, API_ERRORS.TWIN_INVALID_PROFILE_DATA);
       return true;
     }
 
@@ -293,7 +294,7 @@ export async function handleTwinProfileRoutes(
       sendJson(res, 200, { success: true, profile: savedProfile });
     } catch (error) {
       log.error({ error }, 'Failed to save profile');
-      sendError(res, 500, 'Failed to save profile');
+      sendError(res, 500, API_ERRORS.TWIN_PROFILE_SAVE_FAILED);
     }
     return true;
   }
@@ -313,19 +314,19 @@ export async function handleTwinProfileRoutes(
     ];
 
     if (!validSections.includes(section)) {
-      sendError(res, 400, `Invalid section: ${section}`);
+      sendError(res, 400, API_ERRORS.INVALID_REQUEST);
       return true;
     }
 
     const userId = getUserId(req);
     if (!userId) {
-      sendError(res, 401, 'Unauthorized');
+      sendError(res, 401, API_ERRORS.AUTH_REQUIRED);
       return true;
     }
 
     const body = await parseBody<Record<string, unknown>>(req);
     if (!body) {
-      sendError(res, 400, 'Invalid section data');
+      sendError(res, 400, API_ERRORS.TWIN_INVALID_SECTION_DATA);
       return true;
     }
 
@@ -384,7 +385,7 @@ export async function handleTwinProfileRoutes(
       sendJson(res, 200, { success: true, profile });
     } catch (error) {
       log.error({ error }, 'Failed to update section');
-      sendError(res, 500, 'Failed to update section');
+      sendError(res, 500, API_ERRORS.TWIN_PROFILE_SECTION_FAILED);
     }
     return true;
   }
@@ -395,7 +396,7 @@ export async function handleTwinProfileRoutes(
   if (method === 'DELETE' && pathname === '/api/twin/profile') {
     const userId = getUserId(req);
     if (!userId) {
-      sendError(res, 401, 'Unauthorized');
+      sendError(res, 401, API_ERRORS.AUTH_REQUIRED);
       return true;
     }
 
@@ -405,7 +406,7 @@ export async function handleTwinProfileRoutes(
       sendJson(res, 200, { success: true });
     } catch (error) {
       log.error({ error }, 'Failed to delete profile');
-      sendError(res, 500, 'Failed to delete profile');
+      sendError(res, 500, API_ERRORS.TWIN_PROFILE_DELETE_FAILED);
     }
     return true;
   }
@@ -416,7 +417,7 @@ export async function handleTwinProfileRoutes(
   if (method === 'POST' && pathname === '/api/twin/analyze') {
     const userId = getUserId(req);
     if (!userId) {
-      sendError(res, 401, 'Unauthorized');
+      sendError(res, 401, API_ERRORS.AUTH_REQUIRED);
       return true;
     }
 
@@ -477,7 +478,7 @@ export async function handleTwinProfileRoutes(
       });
     } catch (error) {
       log.error({ error }, 'Failed to analyze profile');
-      sendError(res, 500, 'Failed to analyze profile');
+      sendError(res, 500, API_ERRORS.TWIN_PROFILE_ANALYZE_FAILED);
     }
     return true;
   }

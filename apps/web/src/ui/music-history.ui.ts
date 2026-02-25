@@ -16,6 +16,7 @@
  * @module ui/music-history
  */
 
+import { t } from '../i18n/index.js';
 import { nowPlayingUI } from './now-playing.ui.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -298,7 +299,7 @@ function createDrawer(): void {
   drawer.className = 'music-history';
   drawer.setAttribute('role', 'dialog');
   drawer.setAttribute('aria-modal', 'true');
-  drawer.setAttribute('aria-label', 'Music history');
+  drawer.setAttribute('aria-label', t('musicHistory.title', 'Music history'));
 
   // Header
   const header = document.createElement('div');
@@ -311,7 +312,7 @@ function createDrawer(): void {
   const closeBtn = document.createElement('button');
   closeBtn.className = 'music-history__close';
   closeBtn.setAttribute('type', 'button');
-  closeBtn.setAttribute('aria-label', 'Close history');
+  closeBtn.setAttribute('aria-label', t('musicHistory.closeHistory', 'Close history'));
   // Safe: hardcoded SVG icon
   closeBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   closeBtn.addEventListener('click', close);
@@ -417,7 +418,7 @@ function renderTrack(track: HistoryTrack): string {
   // Spotify link button (only if we have a URL)
   // spotifyUrl comes from our backend (trusted Spotify API response)
   const linkButton = track.spotifyUrl
-    ? `<a href="${track.spotifyUrl}" target="_blank" rel="noopener noreferrer" class="music-history__link" aria-label="Open in Spotify" title="Open full track in Spotify">
+    ? `<a href="${track.spotifyUrl}" target="_blank" rel="noopener noreferrer" class="music-history__link" aria-label="${t('musicHistory.openInSpotify', 'Open in Spotify')}" title="${t('musicHistory.openFullTrack', 'Open full track in Spotify')}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
         </svg>
@@ -426,7 +427,7 @@ function renderTrack(track: HistoryTrack): string {
 
   // Improved placeholder artwork with music note icon
   const artwork = hasArtwork
-    ? `<img class="music-history__artwork" src="${track.artworkUrl}" alt="Album artwork" loading="lazy" />`
+    ? `<img class="music-history__artwork" src="${track.artworkUrl}" alt="${t('musicHistory.albumArtwork', 'Album artwork')}" loading="lazy" />`
     : `<div class="music-history__artwork music-history__artwork--placeholder">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 18V5l12-2v13"/>

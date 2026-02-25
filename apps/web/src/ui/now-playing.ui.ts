@@ -380,7 +380,7 @@ class NowPlayingUI {
       .now-playing {
         position: fixed;
         bottom: 140px;
-        right: var(--space-4);
+        inset-inline-end: var(--space-4);
         z-index: var(--z-tooltip);
         
         display: none;
@@ -559,7 +559,7 @@ class NowPlayingUI {
 
       .now-playing__time-current {
         min-width: 28px;
-        text-align: right;
+        text-align: end;
       }
 
       .now-playing__time-separator {
@@ -645,8 +645,7 @@ class NowPlayingUI {
       .now-playing__progress {
         position: absolute;
         bottom: 0;
-        left: 0;
-        right: 0;
+        inset-inline: 0;
         height: 2px;
         background: var(--color-border);
         border-radius: 0 0 var(--radius-full) var(--radius-full);
@@ -798,8 +797,8 @@ class NowPlayingUI {
 
       .now-playing__volume-slider {
         position: absolute;
-        right: 100%;
-        margin-right: var(--space-1);
+        inset-inline-end: 100%;
+        margin-inline-end: var(--space-1);
         width: 0;
         height: 4px;
         opacity: 0;
@@ -955,7 +954,7 @@ class NowPlayingUI {
         content: '✨';
         position: absolute;
         top: -8px;
-        right: -4px;
+        inset-inline-end: -4px;
         font-size: 14px;
         animation: sparkle 2s ease-in-out infinite;
         pointer-events: none;
@@ -977,7 +976,7 @@ class NowPlayingUI {
         display: none;
         position: absolute;
         top: -6px;
-        right: -6px;
+        inset-inline-end: -6px;
         width: 20px;
         height: 20px;
         padding: 0;
@@ -1058,7 +1057,7 @@ class NowPlayingUI {
         content: attr(data-ambient-hint);
         position: absolute;
         top: 100%;
-        right: 0;
+        inset-inline-end: 0;
         margin-top: var(--space-2);
         padding: var(--space-1) var(--space-2);
         background: var(--color-background-elevated);
@@ -1095,8 +1094,8 @@ class NowPlayingUI {
         .now-playing {
           top: auto;
           bottom: 160px;
-          right: var(--space-3);
-          left: auto;
+          inset-inline-end: var(--space-3);
+          inset-inline-start: auto;
           max-width: min(200px, 100%);
         }
         
@@ -1124,14 +1123,14 @@ class NowPlayingUI {
     this.container.className = 'now-playing';
     this.container.setAttribute('role', 'status');
     this.container.setAttribute('aria-live', 'polite');
-    this.container.setAttribute('aria-label', 'Now playing');
+    this.container.setAttribute('aria-label', t('nowPlaying.nowPlaying', 'Now playing'));
 
     this.container.innerHTML = `
       <button class="now-playing__dismiss" aria-label="${t('accessibility.dismiss')}" title="${t('accessibility.dismiss')}">
         ${ICONS.close}
       </button>
       <div class="now-playing__album-art" aria-hidden="true">
-        <img class="now-playing__album-art-img" src="" alt="Album art" />
+        <img class="now-playing__album-art-img" src="" alt="${t('nowPlaying.albumArt', 'Album art')}" />
         <div class="now-playing__album-art-fallback">
           ${ICONS.music}
         </div>
@@ -1139,13 +1138,13 @@ class NowPlayingUI {
       <div class="now-playing__icon now-playing__icon--music">
         ${ICONS.music}
       </div>
-      <div class="now-playing__icon now-playing__icon--pause" role="button" tabindex="0" aria-label="${t('accessibility.pause')}" title="Pause music">
+      <div class="now-playing__icon now-playing__icon--pause" role="button" tabindex="0" aria-label="${t('accessibility.pause')}" title="${t('nowPlaying.pauseMusic', 'Pause music')}">
         ${ICONS.pause}
       </div>
-      <div class="now-playing__icon now-playing__icon--play" role="button" tabindex="0" aria-label="${t('accessibility.play')}" title="Resume playback">
+      <div class="now-playing__icon now-playing__icon--play" role="button" tabindex="0" aria-label="${t('accessibility.play')}" title="${t('nowPlaying.resumePlayback', 'Resume playback')}">
         ${ICONS.play}
       </div>
-      <div class="now-playing__info" tabindex="0" role="button" aria-label="Track info">
+      <div class="now-playing__info" tabindex="0" role="button" aria-label="${t('nowPlaying.trackInfo', 'Track info')}">
         <p class="now-playing__track">Loading...</p>
         <p class="now-playing__artist"></p>
         <div class="now-playing__time">
@@ -1159,19 +1158,19 @@ class NowPlayingUI {
         </div>
       </div>
       <div class="now-playing__controls">
-        <button class="now-playing__btn now-playing__btn--favorite" aria-label="Add to favorites" title="Add to favorites">
+        <button class="now-playing__btn now-playing__btn--favorite" aria-label="${t('nowPlaying.addToFavorites', 'Add to favorites')}" title="${t('nowPlaying.addToFavorites', 'Add to favorites')}">
           ${ICONS.heartOutline}
         </button>
-        <button class="now-playing__btn now-playing__btn--skip" aria-label="Skip track" title="Skip to next track">
+        <button class="now-playing__btn now-playing__btn--skip" aria-label="${t('nowPlaying.skipTrack', 'Skip track')}" title="${t('nowPlaying.skipToNextTrack', 'Skip to next track')}">
           ${ICONS.skipForward}
         </button>
         <div class="now-playing__volume-control">
-          <button class="now-playing__btn now-playing__btn--volume" aria-label="Volume" title="Adjust volume">
+          <button class="now-playing__btn now-playing__btn--volume" aria-label="${t('nowPlaying.volume', 'Volume')}" title="${t('nowPlaying.adjustVolume', 'Adjust volume')}">
             ${ICONS.volume}
           </button>
-          <input type="range" class="now-playing__volume-slider" min="0" max="100" value="70" aria-label="Volume slider" />
+          <input type="range" class="now-playing__volume-slider" min="0" max="100" value="70" aria-label="${t('nowPlaying.volumeSlider', 'Volume slider')}" />
         </div>
-        <button class="now-playing__btn now-playing__btn--history" aria-label="Recently played" title="View recently played">
+        <button class="now-playing__btn now-playing__btn--history" aria-label="${t('nowPlaying.recentlyPlayed', 'Recently played')}" title="${t('nowPlaying.viewRecentlyPlayed', 'View recently played')}">
           ${ICONS.history}
         </button>
       </div>
@@ -1271,8 +1270,8 @@ class NowPlayingUI {
       if (this._callbacks.onFavorite && this.currentTrack) {
         this._callbacks.onFavorite(this.currentTrack);
       }
-      favoriteBtn.setAttribute('aria-label', isFavorite ? 'Remove from favorites' : 'Add to favorites');
-      favoriteBtn.setAttribute('title', isFavorite ? 'Remove from favorites' : 'Add to favorites');
+      favoriteBtn.setAttribute('aria-label', isFavorite ? t('nowPlaying.removeFromFavorites', 'Remove from favorites') : t('nowPlaying.addToFavorites', 'Add to favorites'));
+      favoriteBtn.setAttribute('title', isFavorite ? t('nowPlaying.removeFromFavorites', 'Remove from favorites') : t('nowPlaying.addToFavorites', 'Add to favorites'));
     });
 
     // Volume slider

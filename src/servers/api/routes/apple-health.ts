@@ -30,6 +30,7 @@ import {
 } from '../../../services/identity/apple-health-sync.js';
 import type { AppleHealthSyncPayload } from '../../../services/identity/apple-health-types.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { API_ERRORS } from '../../../api/error-messages.js';
 
 const log = createLogger({ module: 'apple-health-routes' });
 
@@ -124,20 +125,20 @@ export async function handleAppleHealthRoutes(
     const userId = getUserId(req);
 
     if (!userId || !syncToken) {
-      sendError(res, 401, 'Sync token and user ID required');
+      sendError(res, 401, API_ERRORS.HEALTH_SYNC_CREDENTIALS_REQUIRED);
       return true;
     }
 
     // Validate sync token
     const validation = await validateSyncToken(userId, syncToken);
     if (!validation.valid) {
-      sendError(res, 401, 'Invalid sync token');
+      sendError(res, 401, API_ERRORS.HEALTH_INVALID_SYNC_TOKEN);
       return true;
     }
 
     const payload = await parseBody<AppleHealthSyncPayload>(req);
     if (!payload) {
-      sendError(res, 400, 'Invalid sync payload');
+      sendError(res, 400, API_ERRORS.INVALID_SYNC_PAYLOAD);
       return true;
     }
 
@@ -145,7 +146,7 @@ export async function handleAppleHealthRoutes(
 
     if (!result.success) {
       log.error({ error: result.error, userId }, 'Apple Health sync failed');
-      sendError(res, 500, result.error || 'Sync failed');
+      sendError(res, 500, result.error || API_ERRORS.HEALTH_SYNC_FAILED);
       return true;
     }
 
@@ -157,7 +158,7 @@ export async function handleAppleHealthRoutes(
   // All other routes require standard user authentication
   const userId = getUserId(req);
   if (!userId) {
-    sendError(res, 401, 'Authentication required');
+    sendError(res, 401, API_ERRORS.AUTH_REQUIRED);
     return true;
   }
 
@@ -169,14 +170,14 @@ export async function handleAppleHealthRoutes(
 
     const body = await parseBody<{ deviceId: string; deviceName: string }>(req);
     if (!body?.deviceId || !body?.deviceName) {
-      sendError(res, 400, 'Device ID and name required');
+      sendError(res, 400, API_ERRORS.HEALTH_DEVICE_INFO_REQUIRED);
       return true;
     }
 
     const result = await generateSyncToken(userId, body.deviceId, body.deviceName);
 
     if (!result.success || !result.data) {
-      sendError(res, 500, result.error || 'Failed to generate sync token');
+      sendError(res, 500, result.error || API_ERRORS.HEALTH_TOKEN_GENERATE_FAILED);
       return true;
     }
 
@@ -204,7 +205,7 @@ export async function handleAppleHealthRoutes(
     const result = await getDailySummary(userId, date);
 
     if (!result.success || !result.data) {
-      sendError(res, 404, result.error || 'No data found');
+      sendError(res, 404, result.error || API_ERRORS.HEALTH_NO_DATA);
       return true;
     }
 
@@ -222,7 +223,7 @@ export async function handleAppleHealthRoutes(
     const result = await getRecentSummaries(userId, days);
 
     if (!result.success) {
-      sendError(res, 500, result.error || 'Failed to get history');
+      sendError(res, 500, result.error || API_ERRORS.HEALTH_HISTORY_FAILED);
       return true;
     }
 

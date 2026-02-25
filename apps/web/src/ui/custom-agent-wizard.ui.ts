@@ -378,7 +378,7 @@ function renderInfoStep(): string {
             type="text" 
             id="agent-name" 
             class="form-input" 
-            placeholder="What should we call them?"
+            placeholder="${t('agentWizard.namePlaceholder', 'What should we call them?')}"
             value="${draft.name || ''}"
             maxlength="50"
             required
@@ -392,7 +392,7 @@ function renderInfoStep(): string {
             type="text" 
             id="agent-display-name" 
             class="form-input" 
-            placeholder="e.g., 'Grandma Rose' or 'Dr. Marcus'"
+            placeholder="${t('agentWizard.displayNamePlaceholder', "e.g., 'Grandma Rose' or 'Dr. Marcus'")}"
             value="${draft.displayName || ''}"
             maxlength="100"
           />
@@ -404,7 +404,7 @@ function renderInfoStep(): string {
           <textarea 
             id="agent-description" 
             class="form-input form-textarea" 
-            placeholder="Who are they? What makes them special?"
+            placeholder="${t('agentWizard.descriptionPlaceholder', 'Who are they? What makes them special?')}"
             maxlength="500"
             rows="4"
             required
@@ -603,7 +603,7 @@ function renderVoiceLibraryUI(voices: ReturnType<typeof getVoiceLibrary>): strin
                 ${voice.tags.map((tag) => `<span class="voice-tag">${tag}</span>`).join('')}
               </div>
             </div>
-            <button class="voice-preview-btn" data-preview="${voice.previewUrl}" aria-label="Preview ${voice.name}'s voice">
+            <button class="voice-preview-btn" data-preview="${voice.previewUrl}" aria-label="${t('agentWizard.previewVoice', `Preview ${voice.name}'s voice`, { name: voice.name })}">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>

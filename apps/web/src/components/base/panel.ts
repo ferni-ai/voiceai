@@ -7,6 +7,7 @@
  * @module @ferni/components/base/panel
  */
 
+import { t } from '../../i18n/index.js';
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { BaseComponent, type ComponentOptions } from './component.js';
 import { createLogger } from '../../utils/logger.js';
@@ -107,12 +108,12 @@ export class Panel extends BaseComponent {
         <div class="ferni-panel__container" style="width: ${width}">
           <header class="ferni-panel__header">
             ${showBackButton ? `
-              <button class="ferni-panel__back" aria-label="Go back">
+              <button class="ferni-panel__back" aria-label="${t('panels.goBack', 'Go back')}">
                 ${BACK_ICON}
               </button>
             ` : ''}
             <h2 class="ferni-panel__title">${title}</h2>
-            <button class="ferni-panel__close" aria-label="Close">
+            <button class="ferni-panel__close" aria-label="${t('panels.close', 'Close')}">
               ${CLOSE_ICON}
             </button>
           </header>
@@ -383,7 +384,7 @@ export function injectPanelStyles(): void {
     }
 
     .ferni-panel__close {
-      margin-left: auto;
+      margin-inline-start: auto;
     }
 
     .ferni-panel__content {

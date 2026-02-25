@@ -76,10 +76,10 @@ const BREATHING_PATTERNS: Record<BreathingPattern, BreathingConfig> = {
 };
 
 const PHASE_INSTRUCTIONS: Record<BreathingPhase, string> = {
-  inhale: 'Breathe in...',
-  hold: 'Hold...',
-  exhale: 'Breathe out...',
-  pause: 'Rest...',
+  inhale: t('breathing.phases.inhale', 'Breathe in...'),
+  hold: t('breathing.phases.hold', 'Hold...'),
+  exhale: t('breathing.phases.exhale', 'Breathe out...'),
+  pause: t('breathing.phases.pause', 'Rest...'),
 };
 
 const PHASE_COLORS: Record<BreathingPhase, string> = {
@@ -390,7 +390,7 @@ export class BreathingGuide {
     // Timer
     this.timer = document.createElement('div');
     this.timer.className = 'ferni-breathing-timer';
-    this.timer.setAttribute('aria-label', 'Seconds remaining');
+    this.timer.setAttribute('aria-label', t('breathing.secondsRemaining', 'Seconds remaining'));
     if (this.options.showTimer) {
       this.timer.textContent = '0';
       this.container.appendChild(this.timer);
@@ -409,14 +409,14 @@ export class BreathingGuide {
     const startBtn = document.createElement('button');
     startBtn.className = 'ferni-breathing-controls__button ferni-breathing-controls__button--primary';
     startBtn.textContent = t('common.start');
-    startBtn.setAttribute('aria-label', 'Start breathing exercise');
+    startBtn.setAttribute('aria-label', t('breathing.startExercise', 'Start breathing exercise'));
     startBtn.addEventListener('click', () => this.toggle());
     controls.appendChild(startBtn);
 
     const patternBtn = document.createElement('button');
     patternBtn.className = 'ferni-breathing-controls__button ferni-breathing-controls__button--secondary';
     patternBtn.textContent = t('breathing.pattern');
-    patternBtn.setAttribute('aria-label', 'Change breathing pattern');
+    patternBtn.setAttribute('aria-label', t('breathing.changePattern', 'Change breathing pattern'));
     patternBtn.addEventListener('click', () => this.cyclePattern());
     controls.appendChild(patternBtn);
 
@@ -428,9 +428,9 @@ export class BreathingGuide {
 
   private updateInfoDisplay(): void {
     clearElement(this.info);
-    this.info.appendChild(createInfoItem(`In: ${this.config.inhaleDuration / 1000}s`));
-    this.info.appendChild(createInfoItem(`Hold: ${this.config.holdDuration / 1000}s`));
-    this.info.appendChild(createInfoItem(`Out: ${this.config.exhaleDuration / 1000}s`));
+    this.info.appendChild(createInfoItem(`${t('breathing.in', 'In')}: ${this.config.inhaleDuration / 1000}s`));
+    this.info.appendChild(createInfoItem(`${t('breathing.hold', 'Hold')}: ${this.config.holdDuration / 1000}s`));
+    this.info.appendChild(createInfoItem(`${t('breathing.out', 'Out')}: ${this.config.exhaleDuration / 1000}s`));
   }
 
   private setupHaptics(): void {
@@ -498,7 +498,7 @@ export class BreathingGuide {
 
     // Reset UI
     this.updateOrbScale(1);
-    this.updateInstruction('Tap to begin');
+    this.updateInstruction(t('breathing.tapToBegin', 'Tap to begin'));
 
     log.info('Breathing stopped', { cycleCount: this.cycleCount });
   }

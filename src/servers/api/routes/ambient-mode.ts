@@ -16,6 +16,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { API_ERRORS } from '../../../api/error-messages.js';
 import {
   ambientMode,
   type AmbientSyncRequest,
@@ -99,7 +100,7 @@ export async function handleAmbientModeRoutes(
   // All routes require user authentication
   const userId = getUserId(req);
   if (!userId) {
-    sendError(res, 401, 'Authentication required');
+    sendError(res, 401, API_ERRORS.AUTH_REQUIRED);
     return true;
   }
 
@@ -110,7 +111,7 @@ export async function handleAmbientModeRoutes(
     const body = await parseBody<AmbientSyncRequest>(req);
 
     if (!body) {
-      sendError(res, 400, 'Invalid sync payload');
+      sendError(res, 400, API_ERRORS.INVALID_SYNC_PAYLOAD);
       return true;
     }
 
@@ -118,7 +119,7 @@ export async function handleAmbientModeRoutes(
       // Check if ambient mode is enabled
       const isEnabled = await ambientMode.isEnabled(userId);
       if (!isEnabled) {
-        sendError(res, 403, 'Ambient mode is not enabled. Enable it in settings.');
+        sendError(res, 403, API_ERRORS.AMBIENT_NOT_ENABLED);
         return true;
       }
 
@@ -132,7 +133,7 @@ export async function handleAmbientModeRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Ambient sync failed');
-      sendError(res, 500, 'Sync failed');
+      sendError(res, 500, API_ERRORS.AMBIENT_SYNC_FAILED);
       return true;
     }
   }
@@ -147,7 +148,7 @@ export async function handleAmbientModeRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Get ambient state failed');
-      sendError(res, 500, 'Failed to get ambient state');
+      sendError(res, 500, API_ERRORS.AMBIENT_STATE_FAILED);
       return true;
     }
   }
@@ -162,7 +163,7 @@ export async function handleAmbientModeRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Get ambient context failed');
-      sendError(res, 500, 'Failed to get ambient context');
+      sendError(res, 500, API_ERRORS.AMBIENT_CONTEXT_FAILED);
       return true;
     }
   }
@@ -177,7 +178,7 @@ export async function handleAmbientModeRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Get ambient preferences failed');
-      sendError(res, 500, 'Failed to get preferences');
+      sendError(res, 500, API_ERRORS.AMBIENT_PREFERENCES_FAILED);
       return true;
     }
   }
@@ -189,7 +190,7 @@ export async function handleAmbientModeRoutes(
     const body = await parseBody<Partial<AmbientPreferences>>(req);
 
     if (!body) {
-      sendError(res, 400, 'Invalid request body');
+      sendError(res, 400, API_ERRORS.INVALID_REQUEST);
       return true;
     }
 
@@ -200,7 +201,7 @@ export async function handleAmbientModeRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Update ambient preferences failed');
-      sendError(res, 500, 'Failed to update preferences');
+      sendError(res, 500, API_ERRORS.AMBIENT_UPDATE_PREFERENCES_FAILED);
       return true;
     }
   }
@@ -215,7 +216,7 @@ export async function handleAmbientModeRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Enable ambient mode failed');
-      sendError(res, 500, 'Failed to enable ambient mode');
+      sendError(res, 500, API_ERRORS.AMBIENT_ENABLE_FAILED);
       return true;
     }
   }
@@ -230,7 +231,7 @@ export async function handleAmbientModeRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Disable ambient mode failed');
-      sendError(res, 500, 'Failed to disable ambient mode');
+      sendError(res, 500, API_ERRORS.AMBIENT_DISABLE_FAILED);
       return true;
     }
   }
@@ -242,14 +243,14 @@ export async function handleAmbientModeRoutes(
     const body = await parseBody<{ startTime: string; endTime: string }>(req);
 
     if (!body?.startTime || !body?.endTime) {
-      sendError(res, 400, 'startTime and endTime required (HH:MM format)');
+      sendError(res, 400, API_ERRORS.AMBIENT_QUIET_HOURS_TIME_REQUIRED);
       return true;
     }
 
     // Validate time format
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
     if (!timeRegex.test(body.startTime) || !timeRegex.test(body.endTime)) {
-      sendError(res, 400, 'Invalid time format. Use HH:MM (24-hour)');
+      sendError(res, 400, API_ERRORS.AMBIENT_QUIET_HOURS_INVALID_FORMAT);
       return true;
     }
 
@@ -262,7 +263,7 @@ export async function handleAmbientModeRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Set quiet hours failed');
-      sendError(res, 500, 'Failed to set quiet hours');
+      sendError(res, 500, API_ERRORS.AMBIENT_QUIET_HOURS_FAILED);
       return true;
     }
   }
@@ -284,7 +285,7 @@ export async function handleAmbientModeRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Evaluate nudge failed');
-      sendError(res, 500, 'Failed to evaluate nudge');
+      sendError(res, 500, API_ERRORS.AMBIENT_NUDGE_EVAL_FAILED);
       return true;
     }
   }

@@ -162,19 +162,19 @@ function renderModalContent(): void {
 
       <div class="gift-seeds-header">
         <span class="gift-seeds-icon">${ICONS.gift}</span>
-        <h2 class="gift-seeds-title">Share Some Love</h2>
-        <p class="gift-seeds-subtitle">Seeds grow when shared. Love multiplies.</p>
+        <h2 class="gift-seeds-title">${t('giftSeeds.title', 'Share Some Love')}</h2>
+        <p class="gift-seeds-subtitle">${t('giftSeeds.subtitle', 'Seeds grow when shared. Love multiplies.')}</p>
       </div>
 
       <!-- Recipient Input -->
       <div class="gift-seeds-field">
-        <label class="gift-seeds-label">Send to</label>
+        <label class="gift-seeds-label">${t('giftSeeds.sendTo', 'Send to')}</label>
         <div class="gift-seeds-input-wrap">
           <span class="gift-seeds-input-icon">${ICONS.search}</span>
           <input 
             type="text" 
             class="gift-seeds-input" 
-            placeholder="Enter friend's email or username"
+            placeholder="${t('giftSeeds.recipientPlaceholder', "Enter friend's email or username")}"
             value="${recipientName}"
             data-field="recipient"
           />
@@ -183,7 +183,7 @@ function renderModalContent(): void {
 
       <!-- Amount Selection -->
       <div class="gift-seeds-field">
-        <label class="gift-seeds-label">Amount</label>
+        <label class="gift-seeds-label">${t('giftSeeds.amount', 'Amount')}</label>
         <div class="gift-seeds-tiers">
           ${GIFT_TIERS.map(tier => `
             <button aria-label="${t('accessibility.goForward')}" 
@@ -200,16 +200,16 @@ function renderModalContent(): void {
         </div>
         <p class="gift-seeds-multiplier">
           ${ICONS.heart}
-          <span>You send ${selectedAmount}, they get ${selectedTier.receive} seeds</span>
+          <span>${t('giftSeeds.multiplier', { sent: selectedAmount, received: selectedTier.receive }, 'You send {sent}, they get {received} seeds')}</span>
         </p>
       </div>
 
       <!-- Message Input -->
       <div class="gift-seeds-field">
-        <label class="gift-seeds-label">Add a note (optional)</label>
+        <label class="gift-seeds-label">${t('giftSeeds.noteLabel', 'Add a note (optional)')}</label>
         <textarea 
           class="gift-seeds-textarea" 
-          placeholder="Thinking of you 💚"
+          placeholder="${t('giftSeeds.notePlaceholder', 'Thinking of you 💚')}"
           maxlength="100"
           data-field="message"
         >${message}</textarea>
@@ -221,12 +221,12 @@ function renderModalContent(): void {
         ${!canAfford || !recipientId ? 'disabled' : ''}
       >
         <span class="gift-seeds-send-icon">${ICONS.seed}</span>
-        <span>Send Gift</span>
+        <span>${t('giftSeeds.sendGift', 'Send Gift')}</span>
       </button>
 
       <!-- Balance -->
       <p class="gift-seeds-balance">
-        Your balance: <strong>${balance.toLocaleString()}</strong> seeds
+        ${t('giftSeeds.balance', { count: balance.toLocaleString() }, 'Your balance: {count} seeds')}
       </p>
     </div>
   `;
@@ -304,7 +304,7 @@ async function handleSendGift(): Promise<void> {
     if (result.success) {
       const tier = GIFT_TIERS.find(t => t.amount === selectedAmount);
       soundUI.play('celebrate');
-      toast.success(`Sent ${selectedAmount} seeds! They'll get ${tier?.receive || selectedAmount}`);
+      toast.success(t('giftSeeds.sentSuccess', { sent: selectedAmount, received: tier?.receive || selectedAmount }, "Sent {sent} seeds! They'll get {received}"));
       
       // Dispatch event for balance update
       document.dispatchEvent(new CustomEvent('ferni:seeds-spent', {
@@ -313,7 +313,7 @@ async function handleSendGift(): Promise<void> {
 
       closeGiftSeeds();
     } else {
-      toast.error(result.error || "Couldn't send gift. Try again?");
+      toast.error(result.error || t('giftSeeds.sendError', "Couldn't send gift. Try again?"));
     }
   } catch (error) {
     log.error({ error }, 'Failed to send gift');

@@ -89,11 +89,11 @@ function updateVoiceIdDisplay(): void {
     valueEl.textContent = '✓';
     valueEl.classList.remove('journey-stat__value--loading');
     valueEl.classList.add('journey-stat__value--enrolled');
-    voiceIdStat.setAttribute('title', 'Voice ID enrolled - Ferni recognizes your voice');
+    voiceIdStat.setAttribute('title', t('voiceId.enrolledTitle', 'Voice ID enrolled - Ferni recognizes your voice'));
   } else {
     valueEl.textContent = '—';
     valueEl.classList.remove('journey-stat__value--loading', 'journey-stat__value--enrolled');
-    voiceIdStat.setAttribute('title', 'Voice ID not enrolled - Enroll to let Ferni recognize your voice');
+    voiceIdStat.setAttribute('title', t('voiceId.notEnrolledTitle', 'Voice ID not enrolled - Enroll to let Ferni recognize your voice'));
   }
 }
 
@@ -369,7 +369,7 @@ function createModal(): void {
   journeyModal = document.createElement('div');
   journeyModal.className = 'journey-modal';
   journeyModal.setAttribute('role', 'dialog');
-  journeyModal.setAttribute('aria-label', 'Your Journey with Ferni');
+  journeyModal.setAttribute('aria-label', t('journey.yourJourney', 'Your Journey with Ferni'));
 
   journeyModal.innerHTML = `
     <div class="journey-backdrop"></div>
@@ -965,7 +965,7 @@ function renderJourneyMap(currentStage: string, progressPercent: number): string
   
   return `
     <section class="journey-map-section">
-      <div class="journey-map" role="navigation" aria-label="Your relationship journey">
+      <div class="journey-map" role="navigation" aria-label="${t('journey.relationshipJourney', 'Your relationship journey')}">
         <div class="journey-map__path">
           ${STAGE_ORDER.map((stage, index) => {
             const isPast = index < currentIndex;
@@ -982,7 +982,7 @@ function renderJourneyMap(currentStage: string, progressPercent: number): string
                   <div class="journey-map__connector-fill" style="--fill-progress: ${connectorFill}%"></div>
                 </div>
               ` : ''}
-              <div class="journey-map__stage ${stateClass}" role="listitem" tabindex="0" aria-label="${STAGE_LABELS[stage]}${isCurrent ? ' - current stage' : ''}">
+              <div class="journey-map__stage ${stateClass}" role="listitem" tabindex="0" aria-label="${STAGE_LABELS[stage]}${isCurrent ? ` - ${t('journey.currentStage', 'current stage')}` : ''}">
                 <div class="journey-map__node">
                   ${isCurrent ? '<div class="journey-map__pulse"></div>' : ''}
                   <div class="journey-map__node-inner"></div>
@@ -1075,7 +1075,7 @@ function renderMilestoneCard(milestone: ReturnType<typeof getMilestones>[0], col
            style="--milestone-color: ${color}; --rotate: ${rotation}deg"
            tabindex="0"
            role="button"
-           aria-label="Mystery milestone - keep exploring to discover">
+           aria-label="${t('journey.mysteryMilestone', 'Mystery milestone - keep exploring to discover')}">
         <div class="journey-polaroid__image journey-polaroid__image--mystery">
           <span class="journey-polaroid__mystery-icon">?</span>
         </div>

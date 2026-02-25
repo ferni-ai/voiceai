@@ -976,6 +976,10 @@
     "buttons": {
       "saving": "Saving...",
       "save": "Save"
+    },
+    "time": {
+      "am": "AM",
+      "pm": "PM"
     }
   },
   "accessibility": {
@@ -2381,7 +2385,23 @@
   },
   "breathing": {
     "tapToBegin": "Tap to begin",
-    "pattern": "Pattern"
+    "pattern": "Pattern",
+    "phases": {
+      "inhale": "Breathe in slowly through your nose",
+      "hold": "Hold gently — you're doing great",
+      "exhale": "Release slowly through your mouth",
+      "rest": "Rest naturally before the next breath"
+    },
+    "aria": {
+      "secondsRemaining": "Seconds remaining",
+      "startExercise": "Start breathing exercise",
+      "changePattern": "Change breathing pattern"
+    },
+    "info": {
+      "in": "In:",
+      "hold": "Hold:",
+      "out": "Out:"
+    }
   },
   "calendar": {
     "saving": "Saving...",
@@ -2393,7 +2413,25 @@
     "clickToSignIn": "Click below to sign in with Google",
     "authenticating": "Authenticating with Google...",
     "authenticationSuccessful": "Authentication successful!",
-    "authenticationFailed": "Authentication failed"
+    "authenticationFailed": "Authentication failed",
+    "rememberMe": "Remember me",
+    "rememberMeSubmit": "Remember me",
+    "eyebrow": "OUR RELATIONSHIP",
+    "modalTitle": "Let me remember you",
+    "tagline": "I'll never forget our conversations, your preferences, or the things that matter to you.",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithApple": "Continue with Apple",
+    "orUseEmail": "or use email",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "privacyNote": "Your data stays private. Always.",
+    "loading": "Just a moment...",
+    "welcomeBack": "Welcome back! I remember everything.",
+    "somethingWentWrong": "Something went wrong",
+    "accountFallback": "Account",
+    "rememberAs": "I'll remember you as",
+    "forgetDevice": "Forget this device",
+    "forgetDeviceSuccess": "Device forgotten. Your data is safe."
   },
   "visualizations": {
     "lifeSeasons": "Your Life Seasons",
@@ -2495,6 +2533,368 @@
       "oldestOpen": "Oldest Open",
       "totalOpen": "Total Open",
       "openFor": "Open for"
+    }
+  },
+  "nowPlaying": {
+    "nowPlaying": "Now playing",
+    "pauseMusic": "Pause music",
+    "resumePlayback": "Resume playback",
+    "trackInfo": "Track info",
+    "addToFavorites": "Add to favorites",
+    "removeFromFavorites": "Remove from favorites",
+    "skipTrack": "Skip track",
+    "skipToNextTrack": "Skip to next track",
+    "volume": "Volume",
+    "adjustVolume": "Adjust volume",
+    "volumeSlider": "Volume slider",
+    "recentlyPlayed": "Recently played",
+    "viewRecentlyPlayed": "View recently played",
+    "albumArt": "Album art"
+  },
+  "musicHistory": {
+    "title": "Music history",
+    "recentlyPlayed": "Recently Played",
+    "closeHistory": "Close history",
+    "openInSpotify": "Open in Spotify",
+    "openFullTrack": "Open full track in Spotify",
+    "albumArtwork": "Album artwork"
+  },
+  "journey": {
+    "yourJourney": "Your Journey with Ferni",
+    "relationshipJourney": "Your relationship journey",
+    "currentStage": "current stage",
+    "mysteryMilestone": "Mystery milestone - keep exploring to discover"
+  },
+  "agentWizard": {
+    "namePlaceholder": "What should we call them?",
+    "displayNamePlaceholder": "e.g., 'Grandma Rose' or 'Dr. Marcus'",
+    "descriptionPlaceholder": "Who are they? What makes them special?",
+    "previewVoice": "Preview {name}'s voice"
+  },
+  "digitalTwin": {
+    "chapterTitlePlaceholder": "Chapter title (e.g., 'College Years')",
+    "chapterYearsPlaceholder": "Years (e.g., '2015-2019')",
+    "chapterDescPlaceholder": "What defined this chapter?",
+    "namePlaceholder": "Name",
+    "relationshipPlaceholder": "Relationship",
+    "formativeExperiencesPlaceholder": "e.g., 'Moving to a new country at 12', 'Starting my own business', 'Becoming a parent'...",
+    "phrasePlaceholder": "The phrase",
+    "phraseContextPlaceholder": "When do you say this?",
+    "greetingPlaceholder": "e.g., 'Hey!', 'What's up?', 'Good to see you!'",
+    "farewellPlaceholder": "e.g., 'Later!', 'Take care', 'Catch you soon'",
+    "exprHappyPlaceholder": "e.g., 'Awesome!', 'That's amazing!'",
+    "exprSadPlaceholder": "e.g., 'That's rough', 'I feel that'",
+    "exprExcitedPlaceholder": "e.g., 'No way!', 'Let's go!'",
+    "exprFrustratedPlaceholder": "e.g., 'Ugh', 'Come on...'",
+    "customValuePlaceholder": "Add a custom value...",
+    "lifePhilosophyPlaceholder": "e.g., 'Life's too short to not pursue what makes you happy', 'Always be learning and growing'...",
+    "whatMattersPlaceholder": "e.g., 'Family time', 'Personal growth', 'Making a difference'...",
+    "passionsPlaceholder": "e.g., 'Photography', 'Cooking for friends', 'Technology', 'Music'...",
+    "hobbiesPlaceholder": "e.g., 'Hiking', 'Reading', 'Gaming', 'Gardening'...",
+    "favoriteTopicsPlaceholder": "e.g., 'Philosophy', 'Current events', 'Sports', 'Movies'...",
+    "avoidTopicsPlaceholder": "e.g., 'Politics', 'Work stress'..."
+  },
+  "forms": {
+    "familyMemberName": "e.g., Mom",
+    "familyPhone": "+1 555 123 4567",
+    "familyPreferredName": "e.g., Barbara (optional)",
+    "familyNotes": "Any helpful context (optional)",
+    "optionalField": "(optional)",
+    "removeFromFamily": "Remove from family",
+    "voiceEnrolled": "Voice enrolled",
+    "dateLabelPlaceholder": "e.g., First date, Graduation",
+    "conversationSummary": "What did you talk about? How did it go?",
+    "durationPlaceholder": "e.g., 30",
+    "topicsPlaceholder": "e.g., work, family, travel plans",
+    "messagePlaceholder": "What would you like to say?",
+    "subjectLinePlaceholder": "Subject line",
+    "appleIdPlaceholder": "yourname@icloud.com",
+    "appPasswordPlaceholder": "xxxx-xxxx-xxxx-xxxx",
+    "chooseCalendars": "Choose calendars"
+  },
+  "calendarSettings": {
+    "title": "Calendar Settings"
+  },
+  "familyIdentities": {
+    "closeModal": "Close"
+  },
+  "panels": {
+    "goBack": "Go back",
+    "close": "Close"
+  },
+  "voiceId": {
+    "enrolledTitle": "Voice ID enrolled - Ferni recognizes your voice",
+    "notEnrolledTitle": "Voice ID not enrolled - Enroll to let Ferni recognize your voice"
+  },
+  "languageSwitcher": {
+    "label": "Language",
+    "current": "Current language: {language}",
+    "changeLanguage": "Change language",
+    "selectLanguage": "Select a language"
+  },
+  "giftSeeds": {
+    "title": "Share Some Love",
+    "subtitle": "Send seeds to someone who could use a little encouragement",
+    "sendToLabel": "Send to",
+    "sendToPlaceholder": "Choose a friend",
+    "amountLabel": "Amount",
+    "multiplier": "{sent}/{received} sent/received",
+    "noteLabel": "Add a note",
+    "notePlaceholder": "A little encouragement goes a long way...",
+    "sendButton": "Send Gift",
+    "balance": "Your balance: {amount} seeds",
+    "successToast": "Sent {amount} seeds!",
+    "errorToast": "Couldn't send seeds. Try again?"
+  },
+  "teamIntro": {
+    "eyebrow": "YOUR JOURNEY",
+    "title": "Meet Your Team",
+    "subtitle": "Each member of your team brings unique expertise. As you grow, they'll join your journey.",
+    "progressCount": "{count} on your team",
+    "addedButton": "Added!",
+    "alwaysHere": "Always here for you",
+    "inRoster": "In your roster",
+    "addToRoster": "Add to Roster",
+    "members": {
+      "ferni": {
+        "displayName": "Ferni",
+        "role": "Your Personal AI Companion",
+        "description": "I'm here for whatever you need — from daily check-ins to deep conversations.",
+        "unlockHint": "Always by your side",
+        "unlockedMessage": "We've been through a lot together."
+      },
+      "maya": {
+        "displayName": "Maya",
+        "role": "Habit & Wellness Coach",
+        "description": "I help you build habits that stick and find balance in your daily life.",
+        "unlockHint": "Complete your first weekly check-in",
+        "unlockedMessage": "Ready to build something amazing together."
+      },
+      "peter": {
+        "displayName": "Peter",
+        "role": "Research & Knowledge Guide",
+        "description": "I dive deep into topics that matter to you, bringing clarity to complex questions.",
+        "unlockHint": "Ask Ferni a deep question",
+        "unlockedMessage": "I've been researching some things you'll love."
+      },
+      "jordan": {
+        "displayName": "Jordan",
+        "role": "Life Planning & Milestones",
+        "description": "I help you celebrate wins, plan ahead, and keep your goals on track.",
+        "unlockHint": "Set your first goal with Ferni",
+        "unlockedMessage": "Let's map out your next chapter."
+      },
+      "alex": {
+        "displayName": "Alex",
+        "role": "Communication & Relationships",
+        "description": "I help you navigate conversations, strengthen relationships, and express yourself better.",
+        "unlockHint": "Share a relationship story with Ferni",
+        "unlockedMessage": "I noticed some patterns worth exploring."
+      },
+      "nayan": {
+        "displayName": "Nayan",
+        "role": "Wisdom & Reflection",
+        "description": "I offer perspective from life experience, helping you see the bigger picture.",
+        "unlockHint": "Have 10 conversations with your team",
+        "unlockedMessage": "There's wisdom in your journey. Let me share what I see."
+      }
+    },
+    "progress": {
+      "start": "Your journey begins...",
+      "growing": "Your team is growing!",
+      "strong": "A strong team by your side",
+      "almost": "Almost everyone is here",
+      "complete": "Your full team awaits"
+    },
+    "footer": {
+      "free": "Start with Ferni, unlock the team as you grow",
+      "basic": "Your team is growing with you",
+      "premium": "Your full team is here for you",
+      "default": "Everyone grows at their own pace"
+    }
+  },
+  "referral": {
+    "share": {
+      "title": "Ferni — Your AI Life Companion",
+      "message": "I've been using Ferni and it's genuinely changed how I approach my day. Join me! {url}",
+      "shortMessage": "Join me on Ferni! {url}",
+      "emailSubject": "You should try Ferni",
+      "emailBody": "Hey! I've been using Ferni — it's an AI companion that actually feels human. Thought you'd love it. {url}"
+    },
+    "modal": {
+      "title": "Share the Growth",
+      "subtitle": "When friends join, everyone grows",
+      "bonusAmount": "{seeds} bonus seeds",
+      "bonusWhen": "when they join!",
+      "quote": "The best things in life are better shared",
+      "linkLabel": "Your link:"
+    },
+    "buttons": {
+      "share": "Share",
+      "copyLink": "Copy Link",
+      "email": "Email",
+      "text": "Text"
+    },
+    "gardenStats": {
+      "title": "Your referral garden",
+      "friendsGrowing": "{count} friends growing",
+      "seedsEarned": "{seeds} seeds earned",
+      "emptyState": "Plant your first seed"
+    },
+    "errorClipboard": "Couldn't copy. Try again?"
+  },
+  "conversationMemory": {
+    "demoBanner": "Demo mode - showing example data",
+    "atTime": "at",
+    "conversationFallback": "Conversation",
+    "demo": {
+      "summary1": "We talked about your morning routine and waking up earlier",
+      "summary2": "You mentioned wanting to build a consistent exercise habit",
+      "summary3": "We explored your goals for the new year",
+      "summary4": "You shared about a difficult conversation with a friend",
+      "summary5": "Talked about feeling overwhelmed and finding balance",
+      "detail1": "You want to wake up at 6:30am",
+      "detail2": "Exercise is important to you but hard to maintain",
+      "detail3": "You're working toward a promotion at work",
+      "detail4": "Your friend Sarah is someone you value deeply",
+      "detail5": "Weekends are your recharge time",
+      "followUp1": "How is the early wake-up going?",
+      "followUp2": "Did you try the exercise habit?"
+    }
+  },
+  "rituals": {
+    "title": "Create Custom Practice",
+    "templateIntro": "Choose a starting point or build from scratch",
+    "customizeTitle": "Make it yours",
+    "calendarTitle": "Add to Calendar",
+    "previewTitle": "Looking good",
+    "keystone": "Keystone",
+    "keystoneTooltip": "Keystone habit - tends to cascade into other positive changes",
+    "startTiny": "Start tiny:",
+    "mayaIntro": "The best practice is one you'll actually do. Start smaller than you think—",
+    "mayaIntroEmphasis": "tiny habits compound into transformation",
+    "bthFooter": "I'll learn your patterns and find the perfect time for your practice.",
+    "fields": {
+      "name": "Give it a name",
+      "description": "What will you do?",
+      "duration": "How long?",
+      "frequency": "How often?",
+      "time": "Best time",
+      "scheduleInCalendar": "Add to your calendar",
+      "specificTime": "Specific time",
+      "reminders": "Remind me"
+    },
+    "placeholders": {
+      "name": "My Morning Practice",
+      "description": "A brief description of what you'll do..."
+    },
+    "buttons": {
+      "preview": "Preview",
+      "edit": "Adjust",
+      "save": "Create Practice",
+      "close": "Close",
+      "back": "Go back",
+      "suggestTimes": "Find best time",
+      "skipCalendar": "Skip calendar"
+    },
+    "calendar": {
+      "enabled": "I'll add this to your calendar with reminders",
+      "disabled": "No calendar events",
+      "loadingSuggestions": "Finding the best times...",
+      "noSuggestions": "No suggestions found",
+      "suggestion": "Your calendar shows this time is usually free",
+      "suggestedTime": "Suggested time"
+    },
+    "validation": {
+      "nameRequired": "Every practice needs a name"
+    },
+    "confirmation": {
+      "created": "Your practice is ready. You've got this.",
+      "withCalendar": "Your practice is scheduled. I'll remind you!"
+    },
+    "frequency": {
+      "daily": "Every day",
+      "weekday": "Weekdays",
+      "weekend": "Weekends",
+      "weekly": "Weekly"
+    },
+    "reminders": {
+      "5min": "5 min before",
+      "15min": "15 min before",
+      "30min": "30 min before",
+      "1hour": "1 hour before"
+    },
+    "time": {
+      "am": "AM",
+      "pm": "PM"
+    },
+    "preview": {
+      "onCalendar": "On your calendar",
+      "reminderBefore": "Reminder {minutes} min before",
+      "habitLoop": "Your habit loop",
+      "cue": "Cue",
+      "routine": "Routine",
+      "reward": "Reward",
+      "whatToExpect": "What to expect",
+      "noDescription": "No description yet"
+    },
+    "aria": {
+      "chooseTemplate": "Choose {name}"
+    },
+    "templates": {
+      "morningCheckin": {
+        "name": "Morning Check-in",
+        "humanName": "Morning moment",
+        "description": "Start the day with intention",
+        "scienceNote": "Morning intentions improve focus by 31% (Harvard Business Review)",
+        "cue": "After your feet hit the floor",
+        "routine": "Pause, breathe, set one intention",
+        "reward": "Feeling of clarity and control",
+        "stacksWith1": "Gratitude pause",
+        "stacksWith2": "Movement",
+        "tinyVersion": "Just pause and take one conscious breath",
+        "outcomePreview": "In 30 days: More focused mornings, clearer priorities",
+        "mayaGuidance": "This is a keystone habit—it tends to make other good choices easier."
+      },
+      "gratitudeMoment": {
+        "name": "Gratitude Moment",
+        "humanName": "Gratitude pause",
+        "description": "Name three things you appreciate",
+        "scienceNote": "Gratitude practices increase happiness by 25% (UC Berkeley)",
+        "cue": "When you put your phone on the charger at night",
+        "routine": "Name three things—big or small—that were good today",
+        "reward": "Warm feeling of appreciation",
+        "stacksWith1": "Evening wind-down",
+        "stacksWith2": "Journaling",
+        "tinyVersion": "Notice just one good thing from today",
+        "outcomePreview": "In 30 days: Better sleep, more positive outlook",
+        "mayaGuidance": "Evening gratitude helps your brain process the day. Even on hard days, there's always one thing."
+      },
+      "weeklyReview": {
+        "name": "Weekly Review",
+        "humanName": "Weekly reflection",
+        "description": "Reflect on wins and learnings",
+        "scienceNote": "Weekly reflection improves goal achievement by 42% (Dominican University)",
+        "cue": "Sunday morning with coffee/tea",
+        "routine": "Review wins, note learnings, set intentions for the week",
+        "reward": "Sense of progress and direction",
+        "stacksWith1": "Calendar review",
+        "stacksWith2": "Planning session",
+        "tinyVersion": "Write down just one win from the week",
+        "outcomePreview": "In 3 months: Clear sense of progress, better decisions",
+        "mayaGuidance": "This is where the magic happens—seeing patterns over time that daily life hides."
+      },
+      "custom": {
+        "name": "Custom",
+        "humanName": "Start fresh",
+        "scienceNote": "Custom practices built around your life are 3x more likely to stick",
+        "cue": "You choose the trigger",
+        "routine": "You design the practice",
+        "reward": "You define what success feels like",
+        "tinyVersion": "Start with the smallest possible version",
+        "outcomePreview": "A practice that's uniquely yours",
+        "mayaGuidance": "Let's build something that fits your life perfectly. I'll help you make it stick."
+      }
     }
   }
 }

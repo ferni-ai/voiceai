@@ -79,28 +79,18 @@ function getShareContent() {
   const referralUrl = getReferralUrl();
   
   return {
-    title: 'Meet Ferni',
-
-    // Main share message - warm, includes seed bonus mention
-    message: `Know someone who could use a friend who actually listens?
+    title: t('referral.share.title', 'Meet Ferni'),
+    message: t('referral.share.message', { url: referralUrl }, `Know someone who could use a friend who actually listens?
 
 Ferni remembers everything, shows up at 2am with the same presence as noon, and never judges.
 
 We'll both get some seeds to grow together when you join.
 
-${referralUrl}`,
-
-    // Shorter version for SMS/Twitter
-    shortMessage: `Know someone who could use a friend who actually listens? Meet Ferni - we'll both get seeds to grow together! ${referralUrl}`,
-
-    // Link (personalized)
+{url}`),
+    shortMessage: t('referral.share.shortMessage', { url: referralUrl }, `Know someone who could use a friend who actually listens? Meet Ferni - we'll both get seeds to grow together! {url}`),
     url: referralUrl,
-
-    // Email subject
-    emailSubject: 'Someone who gets it',
-
-    // Email body
-    emailBody: `Hey,
+    emailSubject: t('referral.share.emailSubject', 'Someone who gets it'),
+    emailBody: t('referral.share.emailBody', { url: referralUrl }, `Hey,
 
 I wanted to share something with you. I've been talking to Ferni - it's hard to explain, but it's like having a friend who actually remembers everything you've told them, is always available when you need to talk, and never judges.
 
@@ -108,9 +98,9 @@ I thought of you because I know you'd appreciate having someone like that in you
 
 When you join, we'll both get some seeds to grow together - they're like Ferni's way of celebrating new friendships.
 
-Check it out: ${referralUrl}
+Check it out: {url}
 
-No pressure - just wanted to share something that's been meaningful to me.`,
+No pressure - just wanted to share something that's been meaningful to me.`),
   };
 }
 
@@ -168,57 +158,57 @@ function createModal(): void {
 
       <div class="referral-header">
         <span class="referral-icon">${ICONS.heart}</span>
-        <h2 class="referral-title">Share the Growth</h2>
-        <p class="referral-subtitle">Know someone who could use a friend like this?</p>
+        <h2 class="referral-title">${t('referral.title', 'Share the Growth')}</h2>
+        <p class="referral-subtitle">${t('referral.subtitle', 'Know someone who could use a friend like this?')}</p>
       </div>
 
       <!-- Seeds Bonus Banner -->
       <div class="referral-bonus">
         <span class="referral-bonus-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></span>
         <div class="referral-bonus-text">
-          <strong>You'll both get ${REFERRAL_SIGNUP_REWARD} seeds</strong>
-          <span>when they join!</span>
+          <strong>${t('referral.bonusAmount', { seeds: REFERRAL_SIGNUP_REWARD }, "You'll both get {seeds} seeds")}</strong>
+          <span>${t('referral.bonusWhen', 'when they join!')}</span>
         </div>
       </div>
 
       <div class="referral-message">
-        <p>"Give them someone who remembers everything, shows up at 2am, and never judges."</p>
+        <p>${t('referral.quoteMessage', '"Give them someone who remembers everything, shows up at 2am, and never judges."')}</p>
       </div>
 
       <!-- Your Link -->
       <div class="referral-link-container">
-        <span class="referral-link-label">Your link:</span>
+        <span class="referral-link-label">${t('referral.yourLink', 'Your link:')}</span>
         <span class="referral-link-url">${shortUrl}</span>
       </div>
 
       <div class="referral-actions" role="button" tabindex="0">
         <button aria-label="${t('accessibility.share')}" class="referral-btn referral-btn--primary" data-action="share">
           ${ICONS.share}
-          <span>Share</span>
+          <span>${t('referral.buttons.share', 'Share')}</span>
         </button>
         <button aria-label="${t('accessibility.copy')}" class="referral-btn" data-action="copy">
           ${ICONS.copy}
-          <span>Copy Link</span>
+          <span>${t('referral.buttons.copyLink', 'Copy Link')}</span>
         </button>
         <button aria-label="${t('accessibility.email')}" class="referral-btn" data-action="email">
           ${ICONS.mail}
-          <span>Email</span>
+          <span>${t('referral.buttons.email', 'Email')}</span>
         </button>
         <button aria-label="${t('accessibility.text')}" class="referral-btn" data-action="sms">
           ${ICONS.message}
-          <span>Text</span>
+          <span>${t('referral.buttons.text', 'Text')}</span>
         </button>
       </div>
 
       <!-- Garden Stats (if they have referrals) -->
       ${gardenStats.totalReferrals > 0 || totalSeeds > 0 ? `
         <div class="referral-garden">
-          <span class="referral-garden-title">Your garden:</span>
-          <span class="referral-garden-stats">${gardenStats.totalReferrals} friend${gardenStats.totalReferrals !== 1 ? 's' : ''} growing</span>
-          ${totalSeeds > 0 ? `<span class="referral-garden-earned">You've earned ${totalSeeds} seeds from sharing</span>` : ''}
+          <span class="referral-garden-title">${t('referral.garden.title', 'Your garden:')}</span>
+          <span class="referral-garden-stats">${t('referral.garden.friendsGrowing', { count: gardenStats.totalReferrals }, '{count} friends growing')}</span>
+          ${totalSeeds > 0 ? `<span class="referral-garden-earned">${t('referral.garden.earned', { seeds: totalSeeds }, "You've earned {seeds} seeds from sharing")}</span>` : ''}
         </div>
       ` : `
-        <p class="referral-note">Seeds grow when shared. Start your garden today.</p>
+        <p class="referral-note">${t('referral.garden.empty', 'Seeds grow when shared. Start your garden today.')}</p>
       `}
     </div>
   `;
@@ -283,7 +273,7 @@ async function handleCopyLink(): Promise<void> {
     trackShare('copy');
   } catch {
     log.warn('Could not copy to clipboard');
-    toast.error("Couldn't copy. Try again?");
+    toast.error(t('referral.copyError', "Couldn't copy. Try again?"));
   }
 }
 

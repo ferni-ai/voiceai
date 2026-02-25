@@ -4924,7 +4924,7 @@ body {
   width: var(--heart-size) !important;
   height: var(--heart-size) !important;
   bottom: var(--heart-offset) !important;
-  right: var(--heart-offset) !important;
+  inset-inline-end: var(--heart-offset) !important;
 }
 
 .connection-heart__icon svg {
@@ -5343,7 +5343,7 @@ body {
 .emotion-particles canvas {
   position: absolute !important;
   top: 0;
-  left: 0;
+  inset-inline-start: 0;
   width: 100% !important;
   height: 100% !important;
 }
@@ -5708,8 +5708,7 @@ body {
   content: '';
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
+  inset-inline: 0;
   height: 50%;
   border-radius: 28px 28px 100% 100%;
   background: linear-gradient(
@@ -5842,7 +5841,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-left: 28px; /* Space for spinner */
+  padding-inline-start: 28px; /* Space for spinner */
   font-weight: 500;
   letter-spacing: 0.01em;
   animation: connectTextFade 0.3s ease-out forwards;
@@ -5863,7 +5862,7 @@ body {
 .btn-connecting::before {
   content: '';
   position: absolute;
-  left: 24px;
+  inset-inline-start: 24px;
   top: 50%;
   width: 14px;
   height: 14px;
@@ -6290,7 +6289,7 @@ body {
   content: '';
   width: 16px;
   height: 16px;
-  margin-left: var(--space-sm);
+  margin-inline-start: var(--space-sm);
   border: 2px solid transparent;
   border-top-color: currentColor;
   border-radius: var(--radius-full);
@@ -6469,10 +6468,7 @@ body {
 #teamRoster.roster-loading::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -6521,7 +6517,7 @@ body {
   font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--color-text-dimmed);
-  margin-right: 6px;
+  margin-inline-end: 6px;
   letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
 }
@@ -6935,10 +6931,7 @@ body {
 .team-member--locked .team-avatar--locked::before {
   content: '';
   position: absolute;
-  top: -20%;
-  left: -20%;
-  right: -20%;
-  bottom: -20%;
+  inset: -20%;
   background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3) 0%, transparent 50%);
   opacity: 0;
   transition: opacity 0.4s ease;
@@ -6960,7 +6953,7 @@ body {
 .team-mystery-indicator {
   position: absolute;
   bottom: -2px;
-  right: -2px;
+  inset-inline-end: -2px;
   width: 18px;
   height: 18px;
   background: linear-gradient(135deg, var(--color-text-muted, #9a8a7a) 0%, var(--color-text-secondary, #70605a) 100%);
@@ -7012,7 +7005,7 @@ body {
 .team-lock-indicator {
   position: absolute;
   bottom: -2px;
-  right: -2px;
+  inset-inline-end: -2px;
   width: 16px;
   height: 16px;
   background: var(--color-background-elevated, rgba(44, 37, 32, 0.95));
@@ -7103,7 +7096,7 @@ body {
   font-size: 8px;
   position: absolute;
   top: -3px;
-  right: -3px;
+  inset-inline-end: -3px;
   color: var(--persona-primary, #4a6741);
   animation: almostHereSparkle 1s ease-in-out infinite;
 }
@@ -7207,11 +7200,11 @@ body {
   border-style: solid !important;
 }
 
-/* Add badge - positioned at bottom-right of avatar */
+/* Add badge - positioned at bottom-end of avatar */
 .team-add-badge {
   position: absolute;
   bottom: -2px;
-  right: -2px;
+  inset-inline-end: -2px;
   width: 18px;
   height: 18px;
   background: var(--persona-primary, #4a6741);
@@ -7486,7 +7479,7 @@ body {
   content: '';
   position: absolute;
   bottom: 0;
-  left: 0;
+  inset-inline-start: 0;
   width: 0;
   height: 1px;
   background: var(--color-text-muted);
@@ -8281,7 +8274,7 @@ body {
     width: 24px;
     height: 24px;
     bottom: 6px;
-    right: 6px;
+    inset-inline-end: 6px;
     border-width: 3px;
   }
 
@@ -8402,7 +8395,7 @@ body {
     width: 44px !important;
     height: 44px !important;
     bottom: -6px !important;
-    right: -6px !important;
+    inset-inline-end: -6px !important;
   }
 
   .connection-heart__icon svg {
@@ -8579,7 +8572,7 @@ body {
     width: 44px !important;
     height: 44px !important;
     bottom: -6px !important;
-    right: -6px !important;
+    inset-inline-end: -6px !important;
   }
 
   .connection-heart__icon svg {
@@ -8686,7 +8679,7 @@ body {
     width: 48px !important;
     height: 48px !important;
     bottom: -7px !important;
-    right: -7px !important;
+    inset-inline-end: -7px !important;
   }
 
   .connection-heart__icon svg {
@@ -8802,7 +8795,7 @@ body {
     width: 38px !important;
     height: 38px !important;
     bottom: -5px !important;
-    right: -5px !important;
+    inset-inline-end: -5px !important;
   }
 
   .connection-heart__icon svg {
@@ -8925,7 +8918,7 @@ body {
     width: 32px !important;
     height: 32px !important;
     bottom: -4px !important;
-    right: -4px !important;
+    inset-inline-end: -4px !important;
   }
 
   .connection-heart__icon svg {
@@ -9077,7 +9070,7 @@ body {
   }
 
   .coach-info {
-    text-align: left;
+    text-align: start;
   }
 
   #personaName {
@@ -9195,7 +9188,7 @@ body {
   }
 
   .coach-info {
-    text-align: left;
+    text-align: start;
   }
 
   #personaName {
@@ -9305,7 +9298,7 @@ body {
   }
 
   .coach-info {
-    text-align: left;
+    text-align: start;
   }
 
   #personaName {
@@ -9395,7 +9388,7 @@ body {
 .thinking-dots {
   display: inline-flex;
   gap: 4px;
-  margin-left: var(--space-sm);
+  margin-inline-start: var(--space-sm);
 }
 
 .thinking-dot {
@@ -9701,7 +9694,7 @@ body {
   content: '▊';
   animation: cursorBlink 0.8s step-end infinite;
   color: var(--persona-primary);
-  margin-left: 2px;
+  margin-inline-start: 2px;
 }
 
 @keyframes cursorBlink {
@@ -9720,7 +9713,7 @@ body {
 .connection-quality {
   position: fixed;
   top: var(--space-md);
-  right: var(--space-md);
+  inset-inline-end: var(--space-md);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -9877,8 +9870,7 @@ body {
 .swipe-indicator {
   position: fixed;
   top: 50%;
-  left: 0;
-  right: 0;
+  inset-inline: 0;
   transform: translateY(-50%);
   display: flex;
   justify-content: space-between;
@@ -9959,7 +9951,7 @@ body {
 .stats-close {
   position: absolute;
   top: var(--space-md);
-  right: var(--space-md);
+  inset-inline-end: var(--space-md);
   width: 32px;
   height: 32px;
   display: flex;
@@ -10932,8 +10924,7 @@ body {
 .welcome-banner {
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  inset-inline: 0;
   padding: var(--space-md) var(--space-lg);
   background: linear-gradient(135deg, var(--persona-primary), var(--persona-secondary));
   color: white;
@@ -11470,7 +11461,7 @@ body.ambient-aurora {
 .connection-quality {
   position: fixed;
   top: var(--space-md);
-  right: var(--space-md);
+  inset-inline-end: var(--space-md);
   display: flex;
   align-items: center;
   gap: var(--space-xs);
@@ -11549,7 +11540,7 @@ body.ambient-aurora {
 @media (max-width: clamp(336px, 90vw, 480px)) {
   .connection-quality {
     top: var(--space-sm);
-    right: var(--space-sm);
+    inset-inline-end: var(--space-sm);
     padding: 4px 8px;
     font-size: 10px;
   }
@@ -12374,7 +12365,7 @@ body.ambient-aurora {
   }
 
   .coach-info {
-    text-align: left;
+    text-align: start;
   }
 
   .main {
@@ -12565,7 +12556,7 @@ body.ambient-aurora {
   }
 
   .coach-info {
-    text-align: left;
+    text-align: start;
   }
 
   .avatar-container {
@@ -12916,7 +12907,7 @@ body.ambient-aurora {
   .theme-toggle {
     position: fixed !important;
     bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px)) !important;
-    right: var(--space-md) !important;
+    inset-inline-end: var(--space-md) !important;
     top: auto !important;
     z-index: var(--z-floating, 20) !important;
   }

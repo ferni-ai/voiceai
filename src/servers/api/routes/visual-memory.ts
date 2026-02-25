@@ -15,6 +15,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { API_ERRORS } from '../../../api/error-messages.js';
 import {
   visualMemory,
   type VisualUploadRequest,
@@ -98,7 +99,7 @@ export async function handleVisualMemoryRoutes(
   // All routes require user authentication
   const userId = getUserId(req);
   if (!userId) {
-    sendError(res, 401, 'Authentication required');
+    sendError(res, 401, API_ERRORS.AUTH_REQUIRED);
     return true;
   }
 
@@ -117,7 +118,7 @@ export async function handleVisualMemoryRoutes(
     }>(req);
 
     if (!body?.imageData || !body?.mimeType) {
-      sendError(res, 400, 'imageData and mimeType required');
+      sendError(res, 400, API_ERRORS.VISUAL_UPLOAD_FIELDS_REQUIRED);
       return true;
     }
 
@@ -125,7 +126,7 @@ export async function handleVisualMemoryRoutes(
       // Check if visual memory is enabled
       const isEnabled = await visualMemory.isEnabled(userId);
       if (!isEnabled) {
-        sendError(res, 403, 'Visual memory is not enabled. Enable it in settings.');
+        sendError(res, 403, API_ERRORS.VISUAL_NOT_ENABLED);
         return true;
       }
 
@@ -139,7 +140,7 @@ export async function handleVisualMemoryRoutes(
       });
 
       if (!result.success) {
-        sendError(res, 500, result.error || 'Upload failed');
+        sendError(res, 500, result.error || API_ERRORS.VISUAL_UPLOAD_FAILED);
         return true;
       }
 
@@ -152,7 +153,7 @@ export async function handleVisualMemoryRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Visual memory upload failed');
-      sendError(res, 500, 'Upload failed');
+      sendError(res, 500, API_ERRORS.VISUAL_UPLOAD_FAILED);
       return true;
     }
   }
@@ -166,7 +167,7 @@ export async function handleVisualMemoryRoutes(
     const limit = parseInt(url.searchParams.get('limit') || '10', 10);
 
     if (!query) {
-      sendError(res, 400, 'Query parameter required');
+      sendError(res, 400, API_ERRORS.VISUAL_SEARCH_QUERY_REQUIRED);
       return true;
     }
 
@@ -181,7 +182,7 @@ export async function handleVisualMemoryRoutes(
       return true;
     } catch (error) {
       log.error({ userId, query, error: String(error) }, 'Visual memory search failed');
-      sendError(res, 500, 'Search failed');
+      sendError(res, 500, API_ERRORS.VISUAL_SEARCH_FAILED);
       return true;
     }
   }
@@ -199,7 +200,7 @@ export async function handleVisualMemoryRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Get recent visual memories failed');
-      sendError(res, 500, 'Failed to get recent memories');
+      sendError(res, 500, API_ERRORS.VISUAL_RECENT_FAILED);
       return true;
     }
   }
@@ -214,7 +215,7 @@ export async function handleVisualMemoryRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Get visual memory preferences failed');
-      sendError(res, 500, 'Failed to get preferences');
+      sendError(res, 500, API_ERRORS.VISUAL_PREFERENCES_FAILED);
       return true;
     }
   }
@@ -226,7 +227,7 @@ export async function handleVisualMemoryRoutes(
     const body = await parseBody<Partial<VisualMemoryPreferences>>(req);
 
     if (!body) {
-      sendError(res, 400, 'Invalid request body');
+      sendError(res, 400, API_ERRORS.INVALID_REQUEST);
       return true;
     }
 
@@ -237,7 +238,7 @@ export async function handleVisualMemoryRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Update visual memory preferences failed');
-      sendError(res, 500, 'Failed to update preferences');
+      sendError(res, 500, API_ERRORS.VISUAL_UPDATE_PREFERENCES_FAILED);
       return true;
     }
   }
@@ -252,7 +253,7 @@ export async function handleVisualMemoryRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Enable visual memory failed');
-      sendError(res, 500, 'Failed to enable visual memory');
+      sendError(res, 500, API_ERRORS.VISUAL_ENABLE_FAILED);
       return true;
     }
   }
@@ -267,7 +268,7 @@ export async function handleVisualMemoryRoutes(
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Disable visual memory failed');
-      sendError(res, 500, 'Failed to disable visual memory');
+      sendError(res, 500, API_ERRORS.VISUAL_DISABLE_FAILED);
       return true;
     }
   }
@@ -283,7 +284,7 @@ export async function handleVisualMemoryRoutes(
       const memory = await visualMemory.get(userId, memoryId);
 
       if (!memory) {
-        sendError(res, 404, 'Visual memory not found');
+        sendError(res, 404, API_ERRORS.VISUAL_NOT_FOUND);
         return true;
       }
 
@@ -291,7 +292,7 @@ export async function handleVisualMemoryRoutes(
       return true;
     } catch (error) {
       log.error({ userId, memoryId, error: String(error) }, 'Get visual memory failed');
-      sendError(res, 500, 'Failed to get visual memory');
+      sendError(res, 500, API_ERRORS.VISUAL_FETCH_FAILED);
       return true;
     }
   }
@@ -309,7 +310,7 @@ export async function handleVisualMemoryRoutes(
       return true;
     } catch (error) {
       log.error({ userId, memoryId, error: String(error) }, 'Delete visual memory failed');
-      sendError(res, 500, 'Failed to delete visual memory');
+      sendError(res, 500, API_ERRORS.VISUAL_DELETE_FAILED);
       return true;
     }
   }

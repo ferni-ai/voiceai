@@ -832,7 +832,7 @@ function renderIdentityItem(identity: SponsoredIdentity): string {
         <div class="family-item__badges">
           ${
             identity.voiceEnrolled
-              ? `<span class="family-item__badge family-item__badge--voice" title="Voice enrolled">
+              ? `<span class="family-item__badge family-item__badge--voice" title="${t('forms.voiceEnrolled', 'Voice enrolled')}">
                   ${ICONS.mic}
                 </span>`
               : ''
@@ -918,12 +918,12 @@ function renderAddForm(): string {
     <div class="family-form">
       <div class="family-form__group">
         <label class="family-form__label">Name *</label>
-        <input type="text" class="family-form__input" id="family-name" placeholder="e.g., Mom" required>
+        <input type="text" class="family-form__input" id="family-name" placeholder="${t('forms.familyMemberName', 'e.g., Mom')}" required>
       </div>
       
       <div class="family-form__group">
         <label class="family-form__label">Phone Number *</label>
-        <input type="tel" class="family-form__input" id="family-phone" placeholder="+1 555 123 4567" required>
+        <input type="tel" class="family-form__input" id="family-phone" placeholder="${t('forms.familyPhone', '+1 555 123 4567')}" required>
       </div>
       
       <div class="family-form__group">
@@ -935,12 +935,12 @@ function renderAddForm(): string {
       
       <div class="family-form__group">
         <label class="family-form__label">What should Ferni call them?</label>
-        <input type="text" class="family-form__input" id="family-preferred" placeholder="e.g., Barbara (optional)">
+        <input type="text" class="family-form__input" id="family-preferred" placeholder="${t('forms.familyPreferredName', 'e.g., Barbara (optional)')}">
       </div>
       
       <div class="family-form__group">
         <label class="family-form__label">Notes for Ferni</label>
-        <textarea class="family-form__textarea" id="family-notes" placeholder="Any helpful context (optional)"></textarea>
+        <textarea class="family-form__textarea" id="family-notes" placeholder="${t('forms.familyNotes', 'Any helpful context (optional)')}"></textarea>
       </div>
     </div>
     
@@ -979,17 +979,17 @@ function renderEditForm(): string {
       
       <div class="family-form__group">
         <label class="family-form__label">What should Ferni call them?</label>
-        <input type="text" class="family-form__input" id="family-preferred" value="${identity.preferredName || ''}" placeholder="(optional)">
+        <input type="text" class="family-form__input" id="family-preferred" value="${identity.preferredName || ''}" placeholder="${t('forms.optionalField', '(optional)')}">
       </div>
       
       <div class="family-form__group">
         <label class="family-form__label">Notes for Ferni</label>
-        <textarea class="family-form__textarea" id="family-notes" placeholder="(optional)">${identity.notes || ''}</textarea>
+        <textarea class="family-form__textarea" id="family-notes" placeholder="${t('forms.optionalField', '(optional)')}">${identity.notes || ''}</textarea>
       </div>
     </div>
     
     <div class="family-actions">
-      <button class="family-btn family-btn--danger family-btn--icon" data-action="delete" title="Remove from family">
+      <button class="family-btn family-btn--danger family-btn--icon" data-action="delete" title="${t('forms.removeFromFamily', 'Remove from family')}">
         ${ICONS.trash}
       </button>
       <div style="display: flex; gap: var(--space-2, 8px);">
@@ -1274,7 +1274,7 @@ export async function show(options: FamilyIdentitiesCallbacks = {}): Promise<voi
         <span class="family-modal__eyebrow">Family</span>
         <h2 class="family-modal__title" id="family-modal-title">Your Ferni Family</h2>
         <p class="family-modal__subtitle">People who can call Ferni by phone</p>
-        <button class="family-modal__close" aria-label="Close">
+        <button class="family-modal__close" aria-label="${t('accessibility.close', 'Close')}">
           ${ICONS.close}
         </button>
       </div>
