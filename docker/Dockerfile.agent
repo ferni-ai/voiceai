@@ -263,16 +263,13 @@ COPY --from=builder /app/dist ./dist
 
 # Copy Rust native modules (SIMD-accelerated audio processing)
 # These provide zero-allocation real-time audio analysis
-# NAPI bindings (index.js/index.d.ts) come from rust-builder to match the compiled binary
-COPY apps/rust-audio/package.json ./apps/rust-audio/
-COPY --from=rust-builder /rust/rust-audio/index.js /rust/rust-audio/index.d.ts ./apps/rust-audio/
+# .node binaries from rust-builder (compiled for Linux x64)
+# index.js/index.d.ts from repo (NAPI platform loader + types — safe even if they list
+# exports like CandleRouter that aren't in the binary; undefined, not crash)
+COPY apps/rust-audio/package.json apps/rust-audio/index.js apps/rust-audio/index.d.ts ./apps/rust-audio/
 COPY --from=rust-builder /rust/rust-audio/*.node ./apps/rust-audio/
 # rust-perf native module (SIMD embeddings, LSH dedup, etc.)
-# IMPORTANT: index.js and index.d.ts MUST come from rust-builder (not repo) so the
-# NAPI bindings match the compiled binary. The repo versions are generated on macOS
-# with candle_models enabled, but Docker builds without it — stale bindings = crashes.
-COPY apps/rust-perf/package.json ./apps/rust-perf/
-COPY --from=rust-builder /rust/rust-perf/index.js /rust/rust-perf/index.d.ts ./apps/rust-perf/
+COPY apps/rust-perf/package.json apps/rust-perf/index.js apps/rust-perf/index.d.ts ./apps/rust-perf/
 COPY --from=rust-builder /rust/rust-perf/*.node ./apps/rust-perf/
 
 # Copy persona bundles (JSON, MD files needed at runtime)
