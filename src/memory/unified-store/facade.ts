@@ -40,15 +40,6 @@ import {
   SpannerAdapter,
 } from './adapters/index.js';
 
-// Associative Cortex for human-like memory associations
-import {
-  getAssociativeCortex,
-  type AssociativeCortex,
-  type NarrativeArc,
-  type ActivationNode,
-  type DiscoveredConnection,
-} from '../associative-cortex/index.js';
-
 // Link Manager for persisted graph operations
 import { getLinkManager, type LinkManager } from './graph/index.js';
 
@@ -77,7 +68,6 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
   private redisAdapter: RedisAdapter;
   private memoryAdapter: MemoryAdapter;
   private spannerAdapter: SpannerAdapter;
-  private cortex: AssociativeCortex;
   private linkManager: LinkManager;
   private consolidationManager: ConsolidationManager;
   private decayManager: DecayManager;
@@ -111,9 +101,6 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
       enableWrites: this.config.features?.useSpannerGraph ?? true,
       enableGraphQueries: this.config.features?.useGraphExpansion ?? true,
     });
-
-    // Initialize Associative Cortex for human-like memory associations
-    this.cortex = getAssociativeCortex();
 
     // Initialize Link Manager for persisted graph operations
     this.linkManager = getLinkManager();
@@ -254,27 +241,6 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
 
     await Promise.all(storePromises);
 
-    // Auto-link with existing memories using Associative Cortex
-    // This creates human-like memory associations
-    if (this.config.features?.useGraphExpansion !== false) {
-      try {
-        // Get recent memories for this user to check for links
-        const existingMemories = await this.firestoreAdapter.getByUser(input.userId, { limit: 50 });
-        if (existingMemories.length > 0) {
-          const links = await this.cortex.autoLink(memory, existingMemories);
-          if (links.length > 0) {
-            log.debug(
-              { memoryId, linksCreated: links.length },
-              'Auto-linked memory with associative cortex'
-            );
-          }
-        }
-      } catch (error) {
-        // Non-fatal - memory is stored, just without auto-linking
-        log.debug({ error: String(error) }, 'Auto-linking failed (non-critical)');
-      }
-    }
-
     // Real-time Spanner sync for high-importance memories
     // This enables graph queries without waiting for the 6-hour batch sync
     if (this.config.features?.useSpannerGraph) {
@@ -393,72 +359,6 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
 
     // Apply contextual boosting
     let boostedResults = this.applyContextualBoosting(allResults, query);
-
-    // Apply associative retrieval using spreading activation
-    // This adds human-like "it reminds me of..." connections
-    if (this.config.features?.useGraphExpansion !== false && allResults.length > 0) {
-      try {
-        const associativeStart = Date.now();
-        // Get top results to use as activation seeds
-        const seedMemories = allResults
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 3)
-          .map((r) => r.memory);
-
-        // Run spreading activation using seed IDs
-        const seedIds = seedMemories.map((m) => m.id);
-        const activation = await this.cortex.spreadActivation(seedIds, {
-          maxIterations: 2,
-          minActivation: 0.3,
-          decayFactor: 0.7,
-        });
-
-        // Get associated IDs from ranked results
-        const associatedIds = new Set<string>();
-        for (const node of activation.ranked) {
-          if (!seenIds.has(node.memoryId) && node.activation > 0.4) {
-            associatedIds.add(node.memoryId);
-          }
-        }
-
-        // Fetch and add associated memories
-        if (associatedIds.size > 0) {
-          const associatedIdList = Array.from(associatedIds).slice(0, 5);
-          const associatedMemories: StoredMemory[] = [];
-          
-          // Fetch each memory individually (getByIds may not exist)
-          for (const id of associatedIdList) {
-            const mem = await this.firestoreAdapter.get(query.userId, id);
-            if (mem) associatedMemories.push(mem);
-          }
-
-          for (const memory of associatedMemories) {
-            if (!seenIds.has(memory.id)) {
-              seenIds.add(memory.id);
-              const nodeActivation = activation.nodes.get(memory.id)?.activation || 0.5;
-              boostedResults.push({
-                memory,
-                score: 0.65 * nodeActivation, // Lower score for associative results
-                scoreBreakdown: {
-                  semantic: 0.3,
-                  temporal: 0.2,
-                  emotional: 0.15,
-                  contextual: 0,
-                  associative: nodeActivation, // Mark as associative
-                },
-                reason: 'Associatively related via spreading activation',
-                triggerType: 'semantic',
-              });
-            }
-          }
-        }
-
-        (debug as Record<string, unknown>).associativeTimeMs = Date.now() - associativeStart;
-        (debug as Record<string, unknown>).associativeResultsAdded = associatedIds.size;
-      } catch (error) {
-        log.debug({ error: String(error) }, 'Associative retrieval failed (non-critical)');
-      }
-    }
 
     // Sort by final score
     boostedResults.sort((a, b) => b.score - a.score);
@@ -591,79 +491,6 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // ASSOCIATIVE OPERATIONS (via Associative Cortex)
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  /**
-   * Build a narrative arc from the user's memories
-   * This provides a "life story" view of the user's journey
-   */
-  async buildNarrative(userId: string, options?: {
-    focusTopic?: string;
-    timeRange?: { start: Date; end: Date };
-    maxMoments?: number;
-  }): Promise<NarrativeArc | null> {
-    await this.ensureInitialized();
-
-    // Build narrative using cortex (it fetches memories internally)
-    return this.cortex.buildNarrative(
-      userId,
-      options?.focusTopic || 'life journey',
-      options?.timeRange
-    );
-  }
-
-  /**
-   * Find connections from a source memory
-   * Returns discovered connections showing how memories relate
-   */
-  async findConnections(
-    userId: string,
-    sourceMemoryId: string,
-    options?: { maxConnections?: number }
-  ): Promise<DiscoveredConnection[]> {
-    await this.ensureInitialized();
-
-    // Use cortex to find connections from this memory
-    return this.cortex.findConnections(sourceMemoryId, {
-      maxConnections: options?.maxConnections || 10,
-    });
-  }
-
-  /**
-   * Get associatively related memories via spreading activation
-   */
-  async getAssociatedMemories(
-    userId: string,
-    seedMemoryId: string,
-    options?: { maxResults?: number; minActivation?: number }
-  ): Promise<Array<{ memory: StoredMemory; activation: number }>> {
-    await this.ensureInitialized();
-
-    const minActivation = options?.minActivation || 0.3;
-    const activation = await this.cortex.spreadActivation([seedMemoryId], {
-      maxIterations: 3,
-      minActivation,
-    });
-
-    // Filter and sort ranked results
-    const relevantNodes = activation.ranked
-      .filter((n: ActivationNode) => n.activation >= minActivation && n.memoryId !== seedMemoryId)
-      .slice(0, options?.maxResults || 10);
-
-    // Fetch memories for each node
-    const results: Array<{ memory: StoredMemory; activation: number }> = [];
-    for (const node of relevantNodes) {
-      const memory = await this.firestoreAdapter.get(userId, node.memoryId);
-      if (memory) {
-        results.push({ memory, activation: node.activation });
-      }
-    }
-    
-    return results;
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // GRAPH OPERATIONS (Links)
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -672,48 +499,6 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
 
     // Get persisted links from LinkManager (Firestore)
     const persistedLinks = await this.linkManager.getLinks(userId, memoryId, type);
-
-    // Optionally augment with cortex-discovered connections (spreading activation)
-    // This provides both explicit links and associatively-discovered relationships
-    if (this.config.features?.useGraphExpansion !== false) {
-      try {
-        const activation = await this.cortex.spreadActivation([memoryId], {
-          maxIterations: 1,
-          minActivation: 0.3,
-        });
-
-        // Find cortex-discovered links not already in persisted links
-        const persistedTargetIds = new Set(persistedLinks.map((l) => l.targetId));
-        for (const node of activation.ranked) {
-          if (
-            node.memoryId !== memoryId &&
-            !persistedTargetIds.has(node.memoryId) &&
-            node.activationPath.length > 0
-          ) {
-            const path = node.activationPath[0];
-            // Add as a discovered (non-persisted) link
-            persistedLinks.push({
-              id: `cortex-${memoryId}-${node.memoryId}`,
-              sourceId: memoryId,
-              targetId: node.memoryId,
-              type: path.linkType,
-              weight: path.linkWeight * 0.8, // Slightly lower weight for discovered links
-              bidirectional: false,
-              createdAt: node.activatedAt,
-              lastReinforced: node.activatedAt,
-              reinforcementCount: 1,
-              metadata: {
-                detectedBy: 'auto' as const,
-                confidence: node.activation,
-              },
-            });
-          }
-        }
-      } catch (error) {
-        // Non-fatal - still return persisted links
-        log.debug({ error: String(error), memoryId }, 'Cortex link discovery failed (non-critical)');
-      }
-    }
 
     return persistedLinks;
   }

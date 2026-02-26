@@ -590,13 +590,13 @@ export {
   getIndexStats,
   type MemoryItem,
   type RetrievalConfig,
-} from '../advanced-retrieval.js';
+} from './advanced-retrieval.js';
 
 // Semantic RAG
-export { semanticSearch as semanticRagSearch } from '../semantic-rag.js';
+export { semanticSearch as semanticRagSearch } from './semantic-rag.js';
 
 // Memory explanations
-export { getRetrievalExplainer } from '../retrieval-explanations.js';
+export { getRetrievalExplainer } from './retrieval-explanations.js';
 
 // Natural reference generation
 export { getNaturalReferenceGenerator } from '../natural-reference-generator.js';

@@ -2715,26 +2715,7 @@ IMPORTANT:
             voiceEmotionSnapshot
           );
 
-          // 🎤 Per-session voice memory: collect snapshot for "you sound different today"
-          if (voiceEmotionSnapshot && voiceEmotionForCapture?.prosody) {
-            try {
-              const {
-                recordVoiceSnapshot,
-                toVoiceSnapshot,
-              } = await import('../../memory/voice-session-store.js');
-              const snapshot = toVoiceSnapshot(
-                {
-                  primary: voiceEmotionForCapture.primary,
-                  stressLevel: voiceEmotionForCapture.stressLevel,
-                  prosody: voiceEmotionForCapture.prosody,
-                },
-                turnNumber
-              );
-              recordVoiceSnapshot(services.sessionId, captureUserId, snapshot);
-            } catch {
-              // Non-critical - voice memory is enhancement only
-            }
-          }
+          // voice-session-store removed during DDD cleanup
 
           // 🧠 MEMORY AUDIT: Log capture results (upgraded to info level)
           diag.info('🧠 [MEMORY-AUDIT] turn-handler memory capture DONE', {

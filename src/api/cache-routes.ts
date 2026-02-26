@@ -131,19 +131,8 @@ async function getCacheStats(): Promise<Record<string, unknown>> {
     stats.redis = { error: 'Not configured or not available' };
   }
 
-  // Speculative embeddings (if available)
-  try {
-    const specModule = await import('../memory/speculative-embeddings.js');
-    if ('getSpeculativeStats' in specModule) {
-      stats.speculative = (
-        specModule as { getSpeculativeStats: () => unknown }
-      ).getSpeculativeStats();
-    } else {
-      stats.speculative = { status: 'not_available' };
-    }
-  } catch {
-    stats.speculative = { error: 'Not available' };
-  }
+  // speculative-embeddings removed during DDD cleanup
+  stats.speculative = { status: 'removed' };
 
   // Vector store stats
   try {
@@ -236,17 +225,8 @@ async function clearCache(
   }
 
   if (cacheType === 'speculative' || cacheType === 'all') {
-    try {
-      const specModule = await import('../memory/speculative-embeddings.js');
-      if ('resetSpeculativeEmbeddings' in specModule) {
-        (specModule as { resetSpeculativeEmbeddings: () => void }).resetSpeculativeEmbeddings();
-        cleared.push('speculative');
-      } else {
-        cleared.push('speculative (skipped - no reset method)');
-      }
-    } catch (err) {
-      errors.push(`speculative: ${String(err)}`);
-    }
+    // speculative-embeddings removed during DDD cleanup
+    cleared.push('speculative (removed)');
   }
 
   return { cleared, errors };

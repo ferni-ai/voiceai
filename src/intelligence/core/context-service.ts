@@ -166,30 +166,10 @@ const memoryBlockBuilder: BlockBuilder = {
   priority: 1,
   cacheable: true,
   ttlMs: 60000, // 1 minute
-  build: async (request: ContextRequest): Promise<string> => {
-    try {
-      const { quickMemoryRecall } = await import('../../memory/parallel-memory-search.js');
-      const memories = await quickMemoryRecall(
-        request.userId,
-        request.analysis?.topics?.[0],
-        request.analysis?.emotion
-      );
-
-      if (memories.length === 0) {
-        return '';
-      }
-
-      const memoryText = memories
-        .slice(0, 5)
-        .map((m) => `- ${m.content}`)
-        .join('\n');
-
-      return `# What You Remember About Them
-${memoryText}`;
-    } catch (error) {
-      log.debug({ error: String(error) }, 'Failed to build memory block');
-      return '';
-    }
+  build: async (_request: ContextRequest): Promise<string> => {
+    // parallel-memory-search removed during DDD cleanup
+    // Memory retrieval is now handled via retrieval/ bounded context
+    return '';
   },
 };
 

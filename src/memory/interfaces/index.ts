@@ -601,28 +601,3 @@ export interface NaturalReferenceGenerator {
   }): ReferenceStyle['style'];
 }
 
-// ============================================================================
-// MEMORY CONTAINER (DI)
-// ============================================================================
-
-export interface MemoryContainer {
-  vectorStore: VectorStoreContract;
-  decay: MemoryDecayService;
-  explainer: RetrievalExplainer;
-  signalExtractor: HumanSignalExtractor;
-  emotionalMemory: EmotionalMemoryService;
-  sessionPrimer: SessionPrimer;
-  associativeMemory: AssociativeMemoryService;
-  communicationPreferences: CommunicationPreferencesService;
-  patternDetector: BehavioralPatternDetector;
-  emotionalThreading: EmotionalThreadingService;
-  referenceGenerator: NaturalReferenceGenerator;
-  orchestrator: MemoryOrchestrator;
-}
-
-export interface MemoryContainerConfig {
-  userId: string;
-  personaId?: string;
-  usePersistentStore?: boolean;
-  decayConfig?: Partial<DecayConfig>;
-}

@@ -29,14 +29,18 @@ vi.mock('../semantic-memory-cache.js', () => ({
   storeInSemanticCache: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
+vi.mock('../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-}));
+  };
+  return {
+    createLogger: () => mockLogger,
+    getLogger: () => mockLogger,
+  };
+});
 
 describe('Predictive Cache Warming', () => {
   beforeEach(() => {

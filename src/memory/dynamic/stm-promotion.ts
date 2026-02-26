@@ -644,15 +644,7 @@ export async function onSessionEnd(sessionId: string, userId: string): Promise<v
     );
   }
 
-  // 🎤 Per-session voice memory: persist to voice_sessions (fire-and-forget)
-  try {
-    const { persistVoiceSession } = await import('../voice-session-store.js');
-    void persistVoiceSession(sessionId, userId).catch((err) => {
-      log.debug({ sessionId, userId, error: String(err) }, 'Voice session persist failed (non-critical)');
-    });
-  } catch {
-    // Voice session store not critical
-  }
+  // voice-session-store was removed during DDD cleanup (non-critical feature)
 
   log.info(
     {

@@ -210,17 +210,18 @@ export class EmbeddingWorker extends LocalWorker {
     let apiCalls = 0;
 
     try {
-      const { embedWithCache, getCachedEmbedding } =
-        await import('../memory/speculative-embeddings.js');
+      const { embedCached, getEmbeddingCache } =
+        await import('../memory/embedding-cache.js');
+      const cache = getEmbeddingCache();
 
       const embeddings: number[][] = [];
 
       // Check cache first
       const uncached: string[] = [];
       for (const text of job.texts) {
-        const cached = getCachedEmbedding(text);
-        if (cached) {
-          embeddings.push(cached);
+        const cachedResult = await cache.get(text);
+        if (cachedResult.ok) {
+          embeddings.push(cachedResult.value);
           cacheHits++;
         } else {
           uncached.push(text);
@@ -233,7 +234,10 @@ export class EmbeddingWorker extends LocalWorker {
         for (let i = 0; i < uncached.length; i += this.batchSize) {
           const batch = uncached.slice(i, i + this.batchSize);
           const batchEmbeddings = await Promise.all(
-            batch.map(async (text) => embedWithCache(text))
+            batch.map(async (text) => {
+              const result = await embedCached(text);
+              return result.ok ? result.value : [];
+            })
           );
           embeddings.push(...batchEmbeddings);
           apiCalls++;

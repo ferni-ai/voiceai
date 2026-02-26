@@ -414,9 +414,6 @@ export {
   type StorageMetrics,
 } from './memory-metrics.js';
 
-// Tiered Memory Storage - REMOVED (Phase 2.3 optimization deprecated)
-// Previously exported from ./tiered-memory-storage.js - file has been removed
-
 // ============================================================================
 // UNIFIED EMOTIONAL MEMORY (coordinates user emotions + bonding)
 // ============================================================================
@@ -474,9 +471,6 @@ export type {
   VectorDocument as IVectorDocument,
   VectorSearchOptions as IVectorSearchOptions,
   VectorSearchResult as IVectorSearchResult,
-  // Container
-  MemoryContainer,
-  MemoryContainerConfig,
   MemoryOrchestrator,
   NaturalReferenceGenerator,
   // Orchestrator

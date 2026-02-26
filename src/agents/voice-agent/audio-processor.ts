@@ -423,26 +423,7 @@ export async function processAudioStream(
     if (voiceEmotion && userData) {
       userData.voiceEmotion = voiceEmotion;
 
-      // 🎤 Per-session voice memory: collect snapshot when prosody is available
-      if (userId) {
-        try {
-          const { recordVoiceSnapshot, toVoiceSnapshot } = await import(
-            '../../memory/voice-session-store.js'
-          );
-          const turnIndex = (userData as { turnCount?: number }).turnCount ?? 0;
-          const snapshot = toVoiceSnapshot(
-            {
-              primary: voiceEmotion.primary,
-              stressLevel: voiceEmotion.stressLevel,
-              prosody: voiceEmotion.prosody,
-            },
-            turnIndex
-          );
-          recordVoiceSnapshot(sessionId, userId, snapshot);
-        } catch {
-          // Non-critical - voice memory is enhancement only
-        }
-      }
+      // voice-session-store removed during DDD cleanup
 
       // 🧬 Voice biomarkers (Cartesia path): Map prosody → biomarker pipeline for stress, fatigue, anxiety
       if (voiceEmotion.prosody) {

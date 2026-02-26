@@ -160,20 +160,9 @@ export async function initializePerformanceOptimizations(
   }
 
   // 4. Initialize speculative embeddings
+  // speculative-embeddings removed during DDD cleanup
   if (enableParallelMemory) {
-    initTasks.push(
-      (async () => {
-        try {
-          const { initializeSpeculativeEmbeddings } =
-            await import('../../../memory/speculative-embeddings.js');
-          await initializeSpeculativeEmbeddings();
-          metrics.parallelMemoryEnabled = true;
-          log.info('Speculative embeddings initialized');
-        } catch (error) {
-          log.debug({ error: String(error) }, 'Speculative embeddings skipped');
-        }
-      })()
-    );
+    metrics.parallelMemoryEnabled = false;
   }
 
   // Wait for all initialization
@@ -290,14 +279,9 @@ export async function processOptimizedTurn(input: {
           timings.memoryMs = 0;
           return [];
         }
-        const { quickMemoryRecall } = await import('../../../memory/parallel-memory-search.js');
-        const memories = await quickMemoryRecall(
-          input.userId,
-          undefined, // topic will come from analysis
-          input.voiceEmotion?.emotion
-        );
-        timings.memoryMs = Date.now() - memStart;
-        return memories.map((m) => ({ content: m.content, relevance: m.relevance }));
+        // parallel-memory-search removed during DDD cleanup
+        timings.memoryMs = 0;
+        return [] as Array<{ content: string; relevance: number }>;
       } catch (error) {
         timings.memoryMs = Date.now() - memStart;
         log.debug({ error: String(error) }, 'Memory search failed');
@@ -466,13 +450,8 @@ export async function getPerformanceSummary(): Promise<Record<string, unknown>> 
     /* ignore */
   }
 
-  try {
-    const { getParallelMemorySearchMetrics } =
-      await import('../../../memory/parallel-memory-search.js');
-    summary.parallelMemory = getParallelMemorySearchMetrics();
-  } catch {
-    /* ignore */
-  }
+  // parallel-memory-search removed during DDD cleanup
+  summary.parallelMemory = null;
 
   try {
     const { getSpeculativeTTSMetrics } =

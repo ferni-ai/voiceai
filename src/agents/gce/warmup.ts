@@ -397,19 +397,8 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
 
     // 8. Initialize speculative embeddings
     tasks.push(
-      (async () => {
-        try {
-          const embeddingStart = Date.now();
-          const { initializeSpeculativeEmbeddings } =
-            await import('../../memory/speculative-embeddings.js');
-          await initializeSpeculativeEmbeddings();
-          log('✅ Speculative embeddings initialized', {
-            durationMs: Date.now() - embeddingStart,
-          });
-        } catch (e) {
-          log('⚠️ Speculative embeddings init failed (non-fatal)', { error: String(e) });
-        }
-      })()
+      // speculative-embeddings removed during DDD cleanup
+      Promise.resolve()
     );
 
     // 9. Pre-warm scaling systems
@@ -422,7 +411,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
             import('../../services/pubsub/pubsub-client.js'),
             import('../../intelligence/batched-llm-analysis.js'),
             import('../../intelligence/context-service.js'),
-            import('../../memory/parallel-memory-search.js'),
+            // parallel-memory-search removed during DDD cleanup
           ]);
           log('✅ Performance optimization modules pre-loaded', {
             durationMs: Date.now() - perfStart,
