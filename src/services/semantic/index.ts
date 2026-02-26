@@ -1,9 +1,11 @@
 /**
- * Semantic Service
+ * Semantic Service (Re-export Shim)
  *
- * Embedding matching and semantic search.
+ * This module has been consolidated into services/memory/semantic/.
+ * This shim preserves backward compatibility for existing importers.
  *
  * @module services/semantic
+ * @deprecated Import from '../memory/semantic/index.js' instead
  */
 
-export * from './embedding-matcher.js';
+export * from '../memory/semantic/embedding-matcher.js';

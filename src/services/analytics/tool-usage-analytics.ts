@@ -539,10 +539,25 @@ class ToolUsageAnalyticsService {
 }
 
 // ============================================================================
-// SINGLETON EXPORT
+// LAZY SINGLETON EXPORT
 // ============================================================================
 
-export const toolUsageAnalytics = new ToolUsageAnalyticsService();
+let _instance: ToolUsageAnalyticsService | null = null;
+
+/** Get the ToolUsageAnalytics singleton (lazy-initialized on first access) */
+export function getToolUsageAnalytics(): ToolUsageAnalyticsService {
+  if (!_instance) {
+    _instance = new ToolUsageAnalyticsService();
+  }
+  return _instance;
+}
+
+/** @deprecated Use getToolUsageAnalytics() instead. Kept for backward compatibility. */
+export const toolUsageAnalytics = new Proxy({} as ToolUsageAnalyticsService, {
+  get(_target, prop) {
+    return (getToolUsageAnalytics() as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
 
 /**
  * Quick helper to record a tool call (for use in tool executors)

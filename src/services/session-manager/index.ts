@@ -1,11 +1,9 @@
 /**
- * Session Manager Service
+ * Session Manager - Re-export Shim
  *
- * Core session lifecycle management for voice agent sessions.
- *
- * @module services/session-manager
+ * @deprecated Import from '../session/index.js' instead.
+ * This barrel exists for backward compatibility during the DDD migration.
  */
-
 export * from './access.js';
 export * from './cleanup.js';
 export * from './constants.js';

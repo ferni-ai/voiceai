@@ -22,7 +22,7 @@ import {
   getUnifiedMemoryService,
   type EnhancedRecallResult,
   type SimpleRecallContext,
-} from './unified-service.js';
+} from './memory-service.js';
 
 const log = createLogger({ module: 'ProactiveMemorySurfacing' });
 

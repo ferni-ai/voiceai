@@ -16,30 +16,31 @@ import { clearNamedInterval, registerInterval } from '../../utils/interval-manag
 import { getLogger } from '../../utils/safe-logger.js';
 import type { AgentId } from '../agent-bus.js';
 import {
-  deleteTrigger,
-  loadHistory,
   loadOutreachProfile,
   loadPendingTriggers,
   saveOutreachProfile,
-  saveToHistory,
   saveTrigger,
-  updateTriggerStatus,
 } from './firestore-persistence.js';
 import {
   generateOutreach,
   selectPersonaForOutreach,
-  type GeneratedOutreach,
   type OutreachChannel,
   type OutreachContext,
   type OutreachTone,
-  type RelationshipStage,
 } from './persona-voice-generator.js';
 import {
-  getTimingRecommendation,
-  type TimeSlot,
-  type DayOfWeek,
-} from '../contacts/optimal-timing.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
+  evaluateTiming as evaluateTimingWindow,
+  getNextDay,
+  getNextWeek,
+} from './scheduling/send-window-optimizer.js';
+import {
+  recordDecision as recordDecisionToHistory,
+  getOutreachHistory as getHistoryFromMetrics,
+  loadOutreachHistoryFromFirestore as loadHistoryFromFirestore,
+  getAnalytics as getAnalyticsFromMetrics,
+  pruneHistory as pruneHistoryFromMetrics,
+  clearHistory as clearHistoryFromMetrics,
+} from './analytics/engagement-metrics.js';
 import {
   getPendingCheckIns,
   recordCheckInSent,
@@ -113,66 +114,11 @@ const DEFAULT_CONFIG: DecisionEngineConfig = {
 };
 
 // ============================================================================
-// ML TIMING HELPERS (Thompson Sampling integration)
-// ============================================================================
-
-/** Convert hour number to TimeSlot for ML timing */
-function hourToTimeSlot(hour: number): TimeSlot {
-  if (hour >= 5 && hour < 11) return 'morning';
-  if (hour >= 11 && hour < 14) return 'midday';
-  if (hour >= 14 && hour < 17) return 'afternoon';
-  if (hour >= 17 && hour < 21) return 'evening';
-  return 'night';
-}
-
-/** Convert day number (0=Sunday) to DayOfWeek for ML timing */
-function dayNumberToName(day: number): DayOfWeek {
-  const days: DayOfWeek[] = [
-    'sunday',
-    'monday',
-    'tuesday',
-    'wednesday',
-    'thursday',
-    'friday',
-    'saturday',
-  ];
-  return days[day] || 'monday';
-}
-
-/** Convert DayOfWeek back to day number */
-function dayNameToNumber(day: DayOfWeek): number {
-  const map: Record<DayOfWeek, number> = {
-    sunday: 0,
-    monday: 1,
-    tuesday: 2,
-    wednesday: 3,
-    thursday: 4,
-    friday: 5,
-    saturday: 6,
-  };
-  return map[day];
-}
-
-/** Get representative hour for a TimeSlot */
-function timeSlotToHour(slot: TimeSlot): number {
-  const map: Record<TimeSlot, number> = {
-    early_morning: 7,
-    morning: 9,
-    midday: 12,
-    afternoon: 15,
-    evening: 18,
-    night: 21,
-  };
-  return map[slot];
-}
-
-// ============================================================================
 // STORAGE
 // ============================================================================
 
 const userStateStore = new Map<string, UserOutreachState>();
 const pendingTriggers = new Map<string, OutreachTrigger[]>();
-const outreachHistory = new Map<string, OutreachDecision[]>();
 
 // ============================================================================
 // OUTREACH DECISION ENGINE
@@ -615,11 +561,11 @@ class OutreachDecisionEngine extends EventEmitter {
 
     // Decision 2: Rate limit check
     if (state.counters.outreachToday >= state.preferences.maxPerDay) {
-      return this.createDecision(trigger, 'defer', 'Daily limit reached', this.getNextDay(now));
+      return this.createDecision(trigger, 'defer', 'Daily limit reached', getNextDay(now));
     }
 
     if (state.counters.outreachThisWeek >= state.preferences.maxPerWeek) {
-      return this.createDecision(trigger, 'defer', 'Weekly limit reached', this.getNextWeek(now));
+      return this.createDecision(trigger, 'defer', 'Weekly limit reached', getNextWeek(now));
     }
 
     // Decision 3: Check for GROUP OUTREACH triggers
@@ -636,8 +582,8 @@ class OutreachDecisionEngine extends EventEmitter {
       };
     }
 
-    // Decision 4: Is this a good time?
-    const timingDecision = await this.evaluateTiming(state, trigger, now);
+    // Decision 4: Is this a good time? (delegated to send-window-optimizer)
+    const timingDecision = await evaluateTimingWindow(state, trigger, now);
     if (timingDecision.defer) {
       return this.createDecision(
         trigger,
@@ -731,216 +677,7 @@ class OutreachDecisionEngine extends EventEmitter {
   }
 
   private recordDecision(userId: string, decision: OutreachDecision): void {
-    const history = outreachHistory.get(userId) || [];
-    history.push(decision);
-
-    // Keep last 100 decisions per user
-    if (history.length > 100) {
-      history.shift();
-    }
-
-    outreachHistory.set(userId, history);
-
-    // Persist to Firestore
-    saveToHistory(userId, decision).catch((err) => {
-      log.debug({ err, userId }, 'Failed to persist decision to history (non-fatal)');
-    });
-
-    // Remove processed trigger from Firestore
-    if (decision.decision === 'send' || decision.decision === 'skip') {
-      deleteTrigger(decision.trigger.id).catch((err) => {
-        log.debug({ err, triggerId: decision.trigger.id }, 'Failed to delete trigger (non-fatal)');
-      });
-    } else if (decision.decision === 'defer') {
-      updateTriggerStatus(decision.trigger.id, 'pending', decision.deferUntil).catch((err) => {
-        log.debug({ err, triggerId: decision.trigger.id }, 'Failed to update trigger (non-fatal)');
-      });
-    }
-  }
-
-  // ============================================================================
-  // TIMING EVALUATION
-  // ============================================================================
-
-  private async evaluateTiming(
-    state: UserOutreachState,
-    trigger: OutreachTrigger,
-    now: Date
-  ): Promise<{ defer: boolean; reason?: string; deferUntil?: Date }> {
-    const hour = now.getHours();
-    const day = now.getDay();
-
-    // Check quiet hours
-    const quietStart = parseInt(state.preferences.quietHoursStart.split(':')[0]);
-    const quietEnd = parseInt(state.preferences.quietHoursEnd.split(':')[0]);
-
-    const inQuietHours =
-      (quietStart > quietEnd && (hour >= quietStart || hour < quietEnd)) ||
-      (quietStart <= quietEnd && hour >= quietStart && hour < quietEnd);
-
-    if (inQuietHours && trigger.priority !== 'urgent') {
-      const deferUntil = new Date(now);
-      deferUntil.setHours(quietEnd, 0, 0, 0);
-      if (hour >= quietStart) {
-        deferUntil.setDate(deferUntil.getDate() + 1);
-      }
-      return { defer: true, reason: 'Quiet hours', deferUntil };
-    }
-
-    // Check timing patterns (unless urgent/high priority)
-    if (trigger.priority !== 'urgent' && trigger.priority !== 'high') {
-      // Try ML timing first (Thompson Sampling)
-      try {
-        const mlRecommendation = await getTimingRecommendation(state.userId, 'self', 'user');
-
-        // Use ML if we have enough data (not in 'learning' phase)
-        if (mlRecommendation.confidenceLevel !== 'learning') {
-          // Check if current time slot matches ML recommendation
-          const currentSlot = hourToTimeSlot(hour);
-          const currentDayName = dayNumberToName(day);
-
-          const isRecommendedNow =
-            mlRecommendation.recommendedTimeSlot === currentSlot &&
-            mlRecommendation.recommendedDay === currentDayName;
-
-          if (!isRecommendedNow) {
-            // ML says this isn't a good time - defer to recommended time
-            log.debug(
-              {
-                userId: state.userId,
-                currentSlot,
-                currentDay: currentDayName,
-                confidence: mlRecommendation.confidenceLevel,
-              },
-              '📊 ML timing: deferring to better time'
-            );
-            return {
-              defer: true,
-              reason: 'ML timing - not optimal time',
-              deferUntil: mlRecommendation.suggestedSendTime,
-            };
-          }
-
-          // ML says now is a good time
-          log.debug(
-            { userId: state.userId, currentSlot, currentDay: currentDayName },
-            '📊 ML timing: current time is optimal'
-          );
-          return { defer: false };
-        }
-      } catch (mlError) {
-        log.debug(
-          { error: String(mlError), userId: state.userId },
-          'ML timing check failed, using static patterns'
-        );
-      }
-
-      // Fallback to static patterns
-      const isPreferredHour = state.patterns.preferredHours.includes(hour);
-      const isPreferredDay = state.patterns.preferredDays.includes(day);
-
-      if (!isPreferredHour || !isPreferredDay) {
-        // Find next optimal time
-        const deferUntil = await this.findNextOptimalTime(state, now);
-        return { defer: true, reason: 'Not optimal time', deferUntil };
-      }
-    }
-
-    return { defer: false };
-  }
-
-  private async findNextOptimalTime(state: UserOutreachState, now: Date): Promise<Date> {
-    const result = new Date(now);
-    const currentHour = now.getHours();
-    const currentDay = now.getDay();
-
-    // Try ML timing first (Thompson Sampling) - uses 'self' contactId for user-level timing
-    try {
-      const mlRecommendation = await getTimingRecommendation(state.userId, 'self', 'user');
-
-      // Use ML if we have enough data (not in 'learning' phase)
-      if (mlRecommendation.confidenceLevel !== 'learning') {
-        // The recommendation already includes the best send time
-        // Just use it directly if it's in the future
-        if (mlRecommendation.suggestedSendTime > now) {
-          log.debug(
-            {
-              userId: state.userId,
-              day: mlRecommendation.recommendedDay,
-              slot: mlRecommendation.recommendedTimeSlot,
-              confidence: mlRecommendation.confidenceLevel,
-            },
-            '📊 ML timing: using learned optimal time'
-          );
-          return mlRecommendation.suggestedSendTime;
-        }
-
-        // If suggested time is in the past, calculate next occurrence
-        const mlDay = dayNameToNumber(mlRecommendation.recommendedDay);
-        const mlHour = timeSlotToHour(mlRecommendation.recommendedTimeSlot);
-
-        // Calculate days until recommended day (at least 1 day since today's time has passed)
-        let daysUntil = (mlDay - currentDay + 7) % 7;
-        if (daysUntil === 0) {
-          daysUntil = 7; // Same day, defer to next week
-        }
-
-        result.setDate(result.getDate() + daysUntil);
-        result.setHours(mlHour, 0, 0, 0);
-        log.debug(
-          {
-            userId: state.userId,
-            day: mlRecommendation.recommendedDay,
-            slot: mlRecommendation.recommendedTimeSlot,
-            confidence: mlRecommendation.confidenceLevel,
-          },
-          '📊 ML timing: using learned optimal time (next occurrence)'
-        );
-        return result;
-      }
-    } catch (mlError) {
-      log.debug(
-        { error: String(mlError), userId: state.userId },
-        'ML timing unavailable, using static patterns'
-      );
-    }
-
-    // Fallback to static patterns if ML confidence is low or unavailable
-    // Try to find a good hour today
-    const nextGoodHourToday = state.patterns.preferredHours.find((h) => h > currentHour);
-    if (nextGoodHourToday !== undefined && state.patterns.preferredDays.includes(currentDay)) {
-      result.setHours(nextGoodHourToday, 0, 0, 0);
-      return result;
-    }
-
-    // Find next good day
-    for (let daysAhead = 1; daysAhead <= 7; daysAhead++) {
-      const futureDay = (currentDay + daysAhead) % 7;
-      if (state.patterns.preferredDays.includes(futureDay)) {
-        result.setDate(result.getDate() + daysAhead);
-        result.setHours(state.patterns.preferredHours[0] || 9, 0, 0, 0);
-        return result;
-      }
-    }
-
-    // Fallback: tomorrow at first preferred hour
-    result.setDate(result.getDate() + 1);
-    result.setHours(state.patterns.preferredHours[0] || 9, 0, 0, 0);
-    return result;
-  }
-
-  private getNextDay(now: Date): Date {
-    const result = new Date(now);
-    result.setDate(result.getDate() + 1);
-    result.setHours(9, 0, 0, 0);
-    return result;
-  }
-
-  private getNextWeek(now: Date): Date {
-    const result = new Date(now);
-    result.setDate(result.getDate() + 7);
-    result.setHours(9, 0, 0, 0);
-    return result;
+    recordDecisionToHistory(userId, decision);
   }
 
   // ============================================================================
@@ -1242,65 +979,19 @@ class OutreachDecisionEngine extends EventEmitter {
   }
 
   // ============================================================================
-  // HISTORY & ANALYTICS
+  // HISTORY & ANALYTICS (delegated to analytics/engagement-metrics.ts)
   // ============================================================================
 
-  /**
-   * Get outreach history for a user (sync - uses cache)
-   */
   getOutreachHistory(userId: string, limit = 20): OutreachDecision[] {
-    const history = outreachHistory.get(userId) || [];
-    return history.slice(-limit);
+    return getHistoryFromMetrics(userId, limit);
   }
 
-  /**
-   * Load outreach history from Firestore (async)
-   */
   async loadOutreachHistoryFromFirestore(userId: string, limit = 50): Promise<OutreachDecision[]> {
-    const history = await loadHistory(userId, limit);
-    if (history.length > 0) {
-      outreachHistory.set(userId, history);
-    }
-    return history;
+    return loadHistoryFromFirestore(userId, limit);
   }
 
-  /**
-   * Get analytics for outreach effectiveness
-   */
-  getAnalytics(userId: string): {
-    totalSent: number;
-    totalSkipped: number;
-    totalDeferred: number;
-    byChannel: Record<OutreachChannel, number>;
-    byTrigger: Record<string, number>;
-  } {
-    const history = outreachHistory.get(userId) || [];
-
-    const analytics = {
-      totalSent: 0,
-      totalSkipped: 0,
-      totalDeferred: 0,
-      byChannel: {} as Record<OutreachChannel, number>,
-      byTrigger: {} as Record<string, number>,
-    };
-
-    for (const decision of history) {
-      if (decision.decision === 'send') {
-        analytics.totalSent++;
-        if (decision.channel) {
-          analytics.byChannel[decision.channel] = (analytics.byChannel[decision.channel] || 0) + 1;
-        }
-      } else if (decision.decision === 'skip') {
-        analytics.totalSkipped++;
-      } else if (decision.decision === 'defer') {
-        analytics.totalDeferred++;
-      }
-
-      const triggerType = decision.trigger.type;
-      analytics.byTrigger[triggerType] = (analytics.byTrigger[triggerType] || 0) + 1;
-    }
-
-    return analytics;
+  getAnalytics(userId: string) {
+    return getAnalyticsFromMetrics(userId);
   }
 
   // ============================================================================
@@ -1313,7 +1004,7 @@ class OutreachDecisionEngine extends EventEmitter {
   clearUserData(userId: string): void {
     userStateStore.delete(userId);
     pendingTriggers.delete(userId);
-    outreachHistory.delete(userId);
+    clearHistoryFromMetrics(userId);
 
     // Also clear from Firestore
     import('./firestore-persistence.js')
@@ -1361,16 +1052,8 @@ class OutreachDecisionEngine extends EventEmitter {
     return Array.from(userStateStore.keys());
   }
 
-  /**
-   * Prune history older than a cutoff date
-   */
   pruneHistory(userId: string, cutoffDate: Date): number {
-    const history = outreachHistory.get(userId) || [];
-    const cutoffTime = cutoffDate.getTime();
-    const filtered = history.filter((d) => new Date(d.decidedAt).getTime() > cutoffTime);
-    const pruned = history.length - filtered.length;
-    outreachHistory.set(userId, filtered);
-    return pruned;
+    return pruneHistoryFromMetrics(userId, cutoffDate);
   }
 
   /**

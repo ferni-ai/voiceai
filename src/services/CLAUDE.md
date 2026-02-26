@@ -26,24 +26,55 @@ Level 10:  config/, utils/, types/
 
 ```
 services/
+├── core/                 # DDD adapters, shared interfaces (NEW Feb 2026)
+│   └── adapters.ts       # Typed adapter interfaces for cross-layer DI
+│
+├── # ── Consolidated Bounded Contexts (DDD Refactor Feb 2026) ──
+├── session/              # Session lifecycle (20+ modules, consolidated from root)
+├── memory/               # Memory orchestration, persistence, knowledge graph
+│   ├── persistence/      # Firestore/Spanner persistence policies
+│   ├── knowledge-graph/  # Entity relationship graph
+│   └── semantic/         # Semantic store and embedding matching
+├── trust/                # Trust framework, intent detection, tone analysis
+├── identity/             # Identity linking, OAuth, contacts
+│   └── contacts/         # Contact management (consolidated from root)
 ├── superhuman/           # 70+ "Better than Human" capabilities (see README.md)
-├── trust-systems/        # 47 trust-building services
-├── trust-and-identity/   # Voice identity, 2FA, verification
+│   └── validation/       # Capability benchmarks and test cases
 ├── outreach/             # Proactive messaging and delivery
+│   ├── delivery/         # Channel implementations (SMS, push, email)
+│   ├── scheduling/       # Send window optimization
+│   ├── engagement/       # Personalization, voice generation
+│   └── analytics/        # Engagement metrics
+│
+├── # ── Existing Domains ──
+├── trust-systems/        # 47 trust-building services (→ shims point to trust/)
+├── trust-and-identity/   # Voice identity, 2FA, verification
 ├── calendar/             # Calendar integration and awareness
-├── contacts/             # Contact management and relationships
+├── contacts/             # Contact management (→ shims point to identity/contacts/)
 ├── coaching/             # Life coaching frameworks
 ├── self-healing/         # Error recovery, circuit breakers, resilience
-├── data-layer/           # Domain stores, semantic memory, intelligent loading
-├── session-manager/      # Session lifecycle (22 modules)
+├── data-layer/           # Domain stores (→ some shims point to memory/)
+├── session-manager/      # Legacy (→ shims point to session/)
 ├── observability/        # Health metrics, alerting, cost tracking (20 files)
 ├── cache/                # Caching layer
 ├── brand/                # Brand consistency
 ├── di/                   # Dependency injection container
-├── identity/             # Identity linking, OAuth
 ├── voice/                # Voice services
-└── [200+ individual service files]
+└── [99 root-level service files + 14 re-export shims]
 ```
+
+### DDD Migration Status (Feb 2026)
+
+| Domain | Status | Old Location → New Location |
+|--------|--------|---------------------------|
+| Session | ✅ Consolidated | `session-manager.ts` + `session-manager/` → `session/` |
+| Memory | ✅ Consolidated | `unified-memory-service.ts` + `data-layer/` → `memory/` |
+| Trust | ✅ Split & moved | `trust-systems/reading-between-lines.ts` → `trust/` (3 files) |
+| Identity/Contacts | ✅ Consolidated | `contacts.ts` + `contacts/` → `identity/contacts/` |
+| Superhuman | ✅ Organized | `superhuman/index.ts` extracted → `superhuman-service.ts` |
+| Outreach | ✅ Reorganized | Added `scheduling/`, `engagement/`, `analytics/` subdirs |
+
+**Re-export shims** at old paths ensure backward compatibility. Import from new paths for new code.
 
 ---
 
@@ -63,9 +94,12 @@ See `superhuman/README.md` for detailed documentation.
 
 | Service | File | Purpose |
 |---------|------|---------|
+| Trust Framework | `trust/trust-framework.ts` | Core trust model |
+| Reading Between Lines | `trust/reading-between-lines.ts` | Detect unsaid signals |
+| Intent Detector | `trust/intent-detector.ts` | Intent/emotion detection |
+| Tone Analyzer | `trust/tone-analyzer.ts` | Tone/deflection analysis |
 | Identity Orchestrator | `trust-and-identity/identity-orchestrator.ts` | Voice identity flow |
-| Human-First 2FA | `trust-and-identity/human-first-2fa.ts` | Natural verification |
-| Verification Store | `trust-and-identity/verification-store.ts` | Token storage |
+| Contact Management | `identity/contacts/contacts-management.ts` | Contact CRUD |
 
 ### Outreach & Notifications
 
@@ -80,9 +114,18 @@ See `superhuman/README.md` for detailed documentation.
 
 | Service | File | Purpose |
 |---------|------|---------|
-| Session Manager | `session-manager.ts` | Session lifecycle |
+| Session Manager | `session/session-manager.ts` | Session lifecycle (consolidated) |
+| Session Warmup | `session/session-warmup.ts` | Pre-session cache warming |
+| Pre-Session Briefing | `session/pre-session-briefing.ts` | Context briefing |
 | DI Container | `di-container.ts` | Dependency injection |
-| Service Context | `service-context.ts` | Request context |
+
+### Memory & Data
+
+| Service | File | Purpose |
+|---------|------|---------|
+| Memory Service | `memory/memory-service.ts` | Memory orchestrator |
+| Entity Policies | `memory/persistence/entity-policies.ts` | Persistence policies |
+| Knowledge Graph | `memory/knowledge-graph/engine.ts` | Entity relationship graph |
 
 ### Calendar & Scheduling
 
@@ -253,16 +296,30 @@ pnpm vitest src/services/
 
 ## Key Subdirectory Documentation
 
+### DDD Consolidated Domains (Feb 2026)
+- `session/` - Session lifecycle (20+ modules consolidated from root)
+- `memory/` - Memory orchestration, persistence policies, knowledge graph
+- `trust/` - Trust framework, intent detection, tone analysis (split from reading-between-lines)
+- `identity/contacts/` - Contact management (consolidated from root + contacts/)
+- `superhuman/validation/` - Capability benchmarks (split from 2068-line god file)
+- `outreach/scheduling/`, `outreach/engagement/`, `outreach/analytics/` - Outreach subdomain organization
+- `core/adapters.ts` - Typed adapter interfaces for cross-layer DI
+
+### Existing Domains
 - `superhuman/README.md` - 70+ "Better than Human" capabilities
 - `superhuman/CLAUDE.md` - Superhuman service patterns
-- `trust-systems/CLAUDE.md` - 47 trust-building services
+- `trust-systems/CLAUDE.md` - 47 trust-building services (→ shims to trust/)
 - `data-layer/CLAUDE.md` - Domain stores, semantic memory, WAL
-- `session-manager/CLAUDE.md` - Session lifecycle (22 modules)
+- `session-manager/CLAUDE.md` - Session lifecycle (→ shims to session/)
 - `calendar/CLAUDE.md` - Calendar integration and providers
 - `observability/CLAUDE.md` - Health metrics and alerting
 - `self-healing/CLAUDE.md` - Circuit breakers and resilience
-- `outreach/README.md` - Outreach and delivery system
+- `outreach/CLAUDE.md` - Outreach and delivery system
+
+### Architecture Enforcement
+- `scripts/lint/architecture-boundaries.ts` - L60→L100 violation checker, file size auditor, duplicate filename finder
+- `scripts/create-reexport-shim.ts` - CLI tool for creating backward-compatible re-export shims
 
 ---
 
-*Last updated: January 2026*
+*Last updated: February 2026*

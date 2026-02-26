@@ -1,8 +1,78 @@
 /**
  * Memory Services
  *
- * Services related to memory management, persistence, and retrieval.
+ * Bounded context for all memory-related services:
+ * - Memory service orchestrator (unified entry point)
+ * - Persistence policies (entity indexing)
+ * - Semantic matching (embedding-based intent detection)
+ * - Knowledge graph (relational memory)
+ * - Legacy memory modules (cognitive, realtime, voice)
+ *
+ * @module services/memory
  */
+
+// ============================================================================
+// NEW CONSOLIDATED MODULES
+// ============================================================================
+
+// Memory service orchestrator
+export {
+  UnifiedMemoryService,
+  getUnifiedMemoryService,
+  resetUnifiedMemoryService,
+  getPendingSurfacingEventIds,
+  getMostRecentPendingSurfacingEvent,
+  recordMemoryReaction,
+  getMemory,
+  saveMemoryDirect,
+} from './memory-service.js';
+
+// Memory service types
+export type {
+  TimingDecision,
+  PhrasingSuggestion,
+  MemoryFeedback,
+  AssociatedMemory,
+  EnhancedRecallResult,
+  ToolSearchOptions,
+  SimpleRecallContext,
+  MemoryWriteInput,
+} from './memory-service-types.js';
+
+// Persistence policies
+export {
+  getIndexingPolicy,
+  setIndexingPolicy,
+  getEntityPolicy,
+  shouldIndex,
+  buildIndexContent,
+  getAllPolicies,
+  getPoliciesByDomain,
+} from './persistence/indexing-policy.js';
+export { DEFAULT_INDEXING_POLICY } from './persistence/entity-policies.js';
+
+// Knowledge graph
+export {
+  RelationalMemoryEngine,
+  getRelationalMemory,
+  createRelationalMemory,
+  resetRelationalMemory,
+  clearUserData,
+} from './knowledge-graph/index.js';
+export type {
+  InsideJoke,
+  ConversationRitual,
+  CommunicationPreference,
+  TrustMilestone,
+  RelationalMemory,
+  RelationshipStats,
+  IRelationalMemory,
+} from './knowledge-graph/index.js';
+export { RelationalMemoryToken } from './knowledge-graph/index.js';
+
+// ============================================================================
+// LEGACY MODULES (backward compatibility)
+// ============================================================================
 
 // Stubs for backward compatibility (removed in Jan 2026 cleanup)
 export * from './cognitive-memory.js';

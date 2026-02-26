@@ -23,7 +23,7 @@ export {
   cleanupStaleSessionTracking,
 } from './production-telemetry.js';
 
-// Capability Benchmarking
+// Capability Benchmarking (canonical location: superhuman/validation/)
 export {
   COMMITMENT_TEST_CASES,
   CRISIS_TEST_CASES,
@@ -33,6 +33,13 @@ export {
   runFullBenchmark,
   formatBenchmarkReport,
 } from './capability-benchmark.js';
+
+// Re-export from superhuman validation (new canonical split)
+export {
+  COMMITMENT_TEST_CASES as SuperhumanCommitmentTests,
+  CRISIS_TEST_CASES as SuperhumanCrisisTests,
+  READING_BETWEEN_LINES_CASES as SuperhumanRBLTests,
+} from '../superhuman/validation/index.js';
 
 // Blind Evaluation (Human vs Ferni A/B Testing)
 export {

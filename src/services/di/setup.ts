@@ -368,7 +368,7 @@ async function registerMemoryServices(): Promise<void> {
 
   // Unified Memory - consolidated memory access
   container.registerSingleton(Tokens.UnifiedMemory, async () => {
-    const { getUnifiedMemoryService } = await import('../memory/unified-service.js');
+    const { getUnifiedMemoryService } = await import('../memory/memory-service.js');
     return getUnifiedMemoryService();
   });
 

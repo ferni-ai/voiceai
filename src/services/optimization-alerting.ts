@@ -540,9 +540,24 @@ class OptimizationAlertingService {
 }
 
 // ============================================================================
-// SINGLETON
+// LAZY SINGLETON
 // ============================================================================
 
-export const alertingService = new OptimizationAlertingService();
+let _instance: OptimizationAlertingService | null = null;
+
+/** Get the OptimizationAlertingService singleton (lazy-initialized on first access) */
+export function getAlertingService(): OptimizationAlertingService {
+  if (!_instance) {
+    _instance = new OptimizationAlertingService();
+  }
+  return _instance;
+}
+
+/** @deprecated Use getAlertingService() instead. Kept for backward compatibility. */
+export const alertingService = new Proxy({} as OptimizationAlertingService, {
+  get(_target, prop) {
+    return (getAlertingService() as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
 
 export default alertingService;

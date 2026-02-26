@@ -346,6 +346,13 @@ export default [
       }],
 
       // ========================================================================
+      // 🏗️ SERVICES LAYER BOUNDARIES (DDD Refactor)
+      // Services (L60) must not import from Application layer (L100)
+      // ========================================================================
+      // NOTE: Domain layer imports (L70) are allowed via ALLOWED_EXCEPTIONS
+      // in the architecture validator. Use adapter interfaces for new code.
+
+      // ========================================================================
       // 🚀 PERFORMANCE PATTERNS (from PERFORMANCE-AUDIT-DEC-2024.md)
       // ========================================================================
 
@@ -487,6 +494,29 @@ export default [
     ],
     rules: {
       // These will be warnings for now, can be upgraded to errors after cleanup
+    },
+  },
+
+  // ============================================================================
+  // SERVICES LAYER - ARCHITECTURE BOUNDARIES (DDD Refactor)
+  // Services (L60) must not import from Application layer (L100)
+  // ============================================================================
+  {
+    files: ['src/services/**/*.ts'],
+    ignores: ['src/services/**/*.test.ts', 'src/services/**/*.spec.ts', 'src/services/**/__tests__/**'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          {
+            group: ['../agents/*', '../agents/**'],
+            message: '🏗️ Services (L60) cannot import from agents/ (L100). Use dependency injection or adapter interfaces from core/adapters.ts.',
+          },
+          {
+            group: ['../api/*', '../api/**'],
+            message: '🏗️ Services (L60) cannot import from api/ (L100). Use dependency injection or adapter interfaces from core/adapters.ts.',
+          },
+        ],
+      }],
     },
   },
 ];

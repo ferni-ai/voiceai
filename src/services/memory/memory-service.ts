@@ -19,13 +19,17 @@
  * 5. Graph-based associative recall
  * 6. Unified telemetry
  *
- * @module services/unified-memory-service
+ * NOTE: This file exceeds 500 lines because it is a single-responsibility
+ * orchestrator wrapping 8+ memory subsystems. The types and internal engines
+ * have been extracted to memory-service-types.ts and memory-service-engines.ts.
+ * Further splitting would require a major refactor of the class hierarchy.
+ *
+ * @module services/memory/memory-service
  */
 
 import {
   getMemoryOrchestrator,
   type MemoryOrchestrator,
-  type OrchestratedMemory,
   type RecallContext,
 } from '../../memory/index.js';
 import {
@@ -54,331 +58,33 @@ import {
 } from '../../memory/memory-graph.js';
 import { getProtectionEngine } from '../../memory/protection-engine.js';
 import { ragLookup, semanticSearch } from '../../memory/semantic-rag.js';
-// Spreading activation for associative memory recall
 import { getSpreadingActivation } from '../../memory/spreading-activation.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
+import { TimingEngine, PhrasingEngine, FeedbackCollector } from './memory-service-engines.js';
+import type {
+  TimingDecision,
+  AssociatedMemory,
+  EnhancedRecallResult,
+  ToolSearchOptions,
+  SimpleRecallContext,
+  MemoryWriteInput,
+} from './memory-service-types.js';
+
+// Re-export all types for consumers
+export type {
+  TimingDecision,
+  PhrasingSuggestion,
+  MemoryFeedback,
+  AssociatedMemory,
+  EnhancedRecallResult,
+  ToolSearchOptions,
+  SimpleRecallContext,
+  MemoryWriteInput,
+  RecallContext,
+} from './memory-service-types.js';
+
 const log = createLogger({ module: 'unified-memory-service' });
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-/**
- * Timing decision for memory surfacing
- */
-export interface TimingDecision {
-  shouldSurface: boolean;
-  reason: 'emotional_state' | 'conversation_flow' | 'low_confidence' | 'cooldown' | 'always';
-  confidence: number;
-  delay?: 'immediate' | 'next_pause' | 'session_end';
-}
-
-/**
- * Phrasing suggestion for natural memory integration
- */
-export interface PhrasingSuggestion {
-  style: 'callback' | 'anticipatory' | 'natural_weave' | 'direct';
-  template?: string;
-  personaVoice: boolean;
-}
-
-/**
- * Feedback for learning what works
- */
-export interface MemoryFeedback {
-  memoryId: string;
-  userId: string;
-  action: 'surfaced' | 'ignored' | 'dismissed' | 'engaged';
-  context: {
-    emotionalState?: string;
-    conversationPhase?: string;
-    personaId?: string;
-  };
-  timestamp: Date;
-}
-
-/**
- * Associated memory from spreading activation
- */
-export interface AssociatedMemory {
-  memoryId: string;
-  content: string;
-  activation: number; // 0-1, strength of association
-  distance: number; // Hops from primary memory
-  reason: string; // Why this was activated
-  linkTypes: string[]; // Types of links traversed
-}
-
-/**
- * Enhanced recall result with timing, phrasing, and associative memories
- */
-export interface EnhancedRecallResult extends OrchestratedMemory {
-  timing: TimingDecision;
-  phrasing: PhrasingSuggestion;
-  /** Associated memories from spreading activation (Better Than Human) */
-  associatedMemories: AssociatedMemory[];
-}
-
-/**
- * Simple search options for tools
- */
-export interface ToolSearchOptions {
-  query: string;
-  userId?: string;
-  limit?: number;
-  minScore?: number;
-}
-
-/**
- * Simplified RecallContext for service API
- * This is a convenience wrapper - internally converts to full RecallContext from memory module
- */
-export interface SimpleRecallContext {
-  userId: string;
-  currentInput: string;
-  currentEmotion?: string;
-  currentTopic?: string;
-  turnNumber?: number;
-  sessionId?: string;
-  personaId?: string;
-  conversationTurn?: number;
-}
-
-// Re-export RecallContext type for convenience
-export type { RecallContext } from '../../memory/index.js';
-
-/**
- * Simple memory write for tools
- */
-export interface MemoryWriteInput {
-  userId: string;
-  content: string;
-  type: 'fact' | 'preference' | 'event' | 'emotion' | 'commitment' | 'milestone';
-  importance: 'low' | 'medium' | 'high' | 'critical';
-  metadata?: Record<string, unknown>;
-}
-
-// ============================================================================
-// TIMING ENGINE (MVP)
-// ============================================================================
-
-/**
- * MVP Timing Engine - decides IF and WHEN to surface memories
- *
- * This is the genuinely new component our audit identified as missing.
- * It prevents awkward, mechanical memory surfacing.
- */
-class TimingEngine {
-  private surfacingHistory = new Map<string, Date[]>(); // userId -> timestamps
-  private cooldownMs = 60_000; // 1 minute between surfaces
-  private maxSurfacesPerSession = 3;
-
-  /**
-   * Decide if now is a good time to surface this memory
-   */
-  decide(
-    userId: string,
-    context: {
-      emotionalState?: string;
-      conversationPhase?: 'opening' | 'exploring' | 'deep' | 'closing';
-      turnCount: number;
-      memoryStrength: number;
-    }
-  ): TimingDecision {
-    const { emotionalState, conversationPhase, turnCount, memoryStrength } = context;
-
-    // Check cooldown
-    const history = this.surfacingHistory.get(userId) || [];
-    const recentSurfaces = history.filter((t) => Date.now() - t.getTime() < this.cooldownMs);
-
-    if (recentSurfaces.length >= this.maxSurfacesPerSession) {
-      return {
-        shouldSurface: false,
-        reason: 'cooldown',
-        confidence: 0.9,
-        delay: 'session_end',
-      };
-    }
-
-    // Don't surface on very first turns (let conversation breathe)
-    if (turnCount < 2) {
-      return {
-        shouldSurface: false,
-        reason: 'conversation_flow',
-        confidence: 0.8,
-        delay: 'next_pause',
-      };
-    }
-
-    // High emotional states: be more careful
-    const sensitiveEmotions = ['sad', 'anxious', 'angry', 'overwhelmed', 'grief'];
-    if (emotionalState && sensitiveEmotions.includes(emotionalState.toLowerCase())) {
-      // Only surface very relevant, strong memories
-      if (memoryStrength < 0.8) {
-        return {
-          shouldSurface: false,
-          reason: 'emotional_state',
-          confidence: 0.7,
-          delay: 'next_pause',
-        };
-      }
-    }
-
-    // During deep conversation: surface strong memories only
-    if (conversationPhase === 'deep' && memoryStrength < 0.6) {
-      return {
-        shouldSurface: false,
-        reason: 'conversation_flow',
-        confidence: 0.6,
-        delay: 'next_pause',
-      };
-    }
-
-    // During closing: good time for callbacks
-    if (conversationPhase === 'closing') {
-      return {
-        shouldSurface: true,
-        reason: 'conversation_flow',
-        confidence: 0.8,
-        delay: 'immediate',
-      };
-    }
-
-    // Low confidence memories: skip
-    if (memoryStrength < 0.4) {
-      return {
-        shouldSurface: false,
-        reason: 'low_confidence',
-        confidence: 0.9,
-      };
-    }
-
-    // Default: surface it
-    return {
-      shouldSurface: true,
-      reason: 'always',
-      confidence: memoryStrength,
-      delay: 'immediate',
-    };
-  }
-
-  /**
-   * Record that we surfaced a memory
-   */
-  recordSurfacing(userId: string): void {
-    const history = this.surfacingHistory.get(userId) || [];
-    history.push(new Date());
-    this.surfacingHistory.set(userId, history);
-  }
-
-  /**
-   * Reset for new session
-   */
-  resetSession(userId: string): void {
-    this.surfacingHistory.delete(userId);
-  }
-}
-
-// ============================================================================
-// PHRASING ENGINE
-// ============================================================================
-
-/**
- * Suggests how to phrase memory references naturally
- */
-class PhrasingEngine {
-  suggest(
-    context: {
-      connectionType?: string;
-      emotionalState?: string;
-      personaId?: string;
-    },
-    memory: { content: string; suggestedReference?: string }
-  ): PhrasingSuggestion {
-    const { connectionType, emotionalState, personaId } = context;
-
-    // Use existing suggested reference if available
-    if (memory.suggestedReference) {
-      return {
-        style: 'natural_weave',
-        template: memory.suggestedReference,
-        personaVoice: true,
-      };
-    }
-
-    // Emotional echoes: gentle callbacks
-    if (connectionType === 'emotional_echo') {
-      return {
-        style: 'callback',
-        template: `That reminds me of when you mentioned...`,
-        personaVoice: true,
-      };
-    }
-
-    // Commitments: anticipatory
-    if (connectionType === 'commitment') {
-      return {
-        style: 'anticipatory',
-        template: `I remember you wanted to...`,
-        personaVoice: true,
-      };
-    }
-
-    // Default: natural weave
-    return {
-      style: 'natural_weave',
-      personaVoice: true,
-    };
-  }
-}
-
-// ============================================================================
-// FEEDBACK COLLECTOR
-// ============================================================================
-
-/**
- * Collects feedback on memory surfacing for learning
- */
-class FeedbackCollector {
-  private feedback: MemoryFeedback[] = [];
-  private maxStoredFeedback = 1000;
-
-  record(feedback: MemoryFeedback): void {
-    this.feedback.push(feedback);
-
-    // Prune old feedback
-    if (this.feedback.length > this.maxStoredFeedback) {
-      this.feedback = this.feedback.slice(-this.maxStoredFeedback);
-    }
-
-    log.debug(
-      { userId: feedback.userId, action: feedback.action, memoryId: feedback.memoryId },
-      'Memory feedback recorded'
-    );
-  }
-
-  /**
-   * Get feedback stats for a user
-   */
-  getStats(userId: string): {
-    total: number;
-    engaged: number;
-    dismissed: number;
-    engagementRate: number;
-  } {
-    const userFeedback = this.feedback.filter((f) => f.userId === userId);
-    const engaged = userFeedback.filter((f) => f.action === 'engaged').length;
-    const dismissed = userFeedback.filter((f) => f.action === 'dismissed').length;
-
-    return {
-      total: userFeedback.length,
-      engaged,
-      dismissed,
-      engagementRate: userFeedback.length > 0 ? engaged / userFeedback.length : 0,
-    };
-  }
-}
 
 // ============================================================================
 // UNIFIED MEMORY SERVICE
@@ -508,8 +214,6 @@ export class UnifiedMemoryService {
       }
 
       // SPREADING ACTIVATION: Get associated memories from graph traversal
-      // This enables "Better Than Human" associative recall - thinking of one memory
-      // naturally brings related memories to mind through the connection graph
       const associatedMemories = await this.safeGetAssociatedMemories(
         context.userId,
         memory.primaryMemories.slice(0, 3) // Top 3 primary memories as seeds
@@ -599,27 +303,20 @@ export class UnifiedMemoryService {
 
   /**
    * Get associated memories via spreading activation from primary memories
-   * This is "Better Than Human" - we can objectively traverse the memory graph
-   * to find connections the user might not consciously recall
    */
   private async getAssociatedMemoriesFromPrimary(
     userId: string,
     primaryMemories: Array<{ item: { id: string; content: string } }>
   ): Promise<AssociatedMemory[]> {
     const spreadingEngine = getSpreadingActivation();
-
-    // Get source memory IDs
     const sourceIds = primaryMemories.map((m) => m.item.id);
-
-    // Spread activation from all primary memories
     const activationResults = await spreadingEngine.spreadFromMultiple(userId, sourceIds);
 
     // Get all user memories once to avoid repeated queries
     const allMemories = await getUserMemories(userId);
     const memoryMap = new Map(allMemories.map((m) => [m.id, m]));
 
-    // Convert to AssociatedMemory format
-    // Limit to top 5 most strongly activated memories
+    // Convert to AssociatedMemory format (top 5)
     const associated: AssociatedMemory[] = [];
     for (const result of activationResults.slice(0, 5)) {
       const memory = memoryMap.get(result.memoryId);
@@ -630,7 +327,7 @@ export class UnifiedMemoryService {
           activation: result.activation,
           distance: result.distance,
           reason: result.reason,
-          linkTypes: result.pathTypes as string[], // LinkType[] is compatible with string[]
+          linkTypes: result.pathTypes as string[],
         });
       }
     }
@@ -640,13 +337,10 @@ export class UnifiedMemoryService {
 
   /**
    * Simplified recall for proactive surfacing and context builders
-   * This accepts a SimpleRecallContext (without requiring full UserProfile)
    */
   async simpleRecall(context: SimpleRecallContext): Promise<EnhancedRecallResult> {
-    // Build a minimal RecallContext for the orchestrator
     const fullContext: RecallContext = {
       userId: context.userId,
-      // Minimal profile - orchestrator will fetch if needed
       profile: {
         id: context.userId,
         name: '',
@@ -670,14 +364,12 @@ export class UnifiedMemoryService {
 
   /**
    * Simple semantic search - used by memory tools
-   * This replaces direct calls to searchKnowledge
    */
   async search(options: ToolSearchOptions): Promise<string | null> {
     const { query, userId, limit = 3, minScore = 0.4 } = options;
 
     try {
       if (userId) {
-        // User-scoped search
         const results = await semanticSearch(query, {
           topK: limit,
           sources: ['conversation', 'memory'],
@@ -690,7 +382,6 @@ export class UnifiedMemoryService {
         const snippets = results.map((r) => r.content.slice(0, 200)).join(' | ');
         return snippets;
       } else {
-        // General knowledge search
         return ragLookup(query);
       }
     } catch (error) {
@@ -701,7 +392,6 @@ export class UnifiedMemoryService {
 
   /**
    * Simple memory write - used by memory tools
-   * Now saves to persistent storage and auto-creates graph links!
    */
   async write(
     input: MemoryWriteInput
@@ -711,7 +401,6 @@ export class UnifiedMemoryService {
     try {
       const memoryId = `mem_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-      // Map importance to strength
       const strengthMap: Record<string, number> = {
         low: 0.3,
         medium: 0.5,
@@ -719,7 +408,6 @@ export class UnifiedMemoryService {
         critical: 0.9,
       };
 
-      // Map type to MemoryItem type
       const typeMap: Record<
         string,
         'summary' | 'moment' | 'topic' | 'commitment' | 'preference' | 'person' | 'event'
@@ -732,7 +420,6 @@ export class UnifiedMemoryService {
         milestone: 'event',
       };
 
-      // Create memory item
       const memoryItem = {
         id: memoryId,
         type: typeMap[type] ?? 'topic',
@@ -745,11 +432,9 @@ export class UnifiedMemoryService {
         source: { collection: 'memories', documentId: memoryId },
       };
 
-      // Save to persistent storage
       const saved = await saveMemory(userId, memoryItem, strengthMap[importance] ?? 0.5);
 
       if (!saved) {
-        // Fall back to orchestrator if storage fails
         await this.orchestrator.recordInteraction({
           userId,
           turns: [
@@ -771,7 +456,7 @@ export class UnifiedMemoryService {
         linksCreated = links.length;
       }
 
-      // Auto-protect important memories (P0 Integration)
+      // Auto-protect important memories
       let isProtected = false;
       try {
         const protectionEngine = getProtectionEngine();
@@ -803,19 +488,13 @@ export class UnifiedMemoryService {
   // FEEDBACK API - For Learning
   // ==========================================================================
 
-  /**
-   * Record feedback on memory surfacing
-   */
-  recordFeedback(feedback: Omit<MemoryFeedback, 'timestamp'>): void {
+  recordFeedback(feedback: Omit<import('./memory-service-types.js').MemoryFeedback, 'timestamp'>): void {
     this.feedbackCollector.record({
       ...feedback,
       timestamp: new Date(),
     });
   }
 
-  /**
-   * Get engagement stats for a user
-   */
   getEngagementStats(userId: string) {
     return this.feedbackCollector.getStats(userId);
   }
@@ -824,17 +503,11 @@ export class UnifiedMemoryService {
   // SESSION API - For Lifecycle
   // ==========================================================================
 
-  /**
-   * Reset session state (call at session end)
-   */
   resetSession(userId: string): void {
     this.timingEngine.resetSession(userId);
     log.debug({ userId }, 'Session state reset');
   }
 
-  /**
-   * Get memory health stats
-   */
   async getHealth(userId: string) {
     return this.orchestrator.getMemoryHealth(userId);
   }
@@ -843,10 +516,6 @@ export class UnifiedMemoryService {
   // LEARNING API - Tracks What Works
   // ==========================================================================
 
-  /**
-   * Record user's reaction to a surfaced memory
-   * Call this when the user responds after we've surfaced a memory
-   */
   async recordLearning(
     userId: string,
     memoryId: string,
@@ -863,7 +532,6 @@ export class UnifiedMemoryService {
       return;
     }
 
-    // Infer reaction from user response
     const reaction = this.learningEngine.inferReaction(
       userResponse,
       context.changedTopic ?? false,
@@ -871,10 +539,8 @@ export class UnifiedMemoryService {
       context.expressedDiscomfort ?? false
     );
 
-    // Record reaction
     await this.learningEngine.recordReaction(eventId, reaction);
 
-    // If positive, reinforce the memory
     if (reaction === 'engaged' || reaction === 'grateful') {
       await this.learningEngine.reinforceMemory(
         userId,
@@ -883,10 +549,8 @@ export class UnifiedMemoryService {
       );
     }
 
-    // Clean up pending event
     this.pendingSurfacingEvents.delete(memoryId);
 
-    // Also record in feedback collector for backwards compatibility
     this.feedbackCollector.record({
       memoryId,
       userId,
@@ -903,17 +567,10 @@ export class UnifiedMemoryService {
     log.debug({ userId, memoryId, reaction }, 'Recorded learning');
   }
 
-  /**
-   * Get learned thresholds for a user
-   * Use this when deciding whether to surface memories proactively
-   */
   async getLearnings(userId: string) {
     return this.learningEngine.getLearningsSummary(userId);
   }
 
-  /**
-   * Score a potential memory surfacing based on user learnings
-   */
   async scoreMemorySurfacing(
     userId: string,
     memoryContent: string,
@@ -928,7 +585,6 @@ export class UnifiedMemoryService {
     recommendation: 'surface' | 'skip' | 'defer';
     factors: Record<string, number>;
   }> {
-    // Map input type to valid MemoryItem types
     const typeMap: Record<
       string,
       'summary' | 'moment' | 'topic' | 'commitment' | 'preference' | 'person' | 'event'
@@ -942,7 +598,6 @@ export class UnifiedMemoryService {
       person: 'person',
     };
 
-    // Create a mock memory item for scoring
     const mockMemory = {
       id: 'temp',
       type: typeMap[memoryType] ?? 'topic',
@@ -959,31 +614,19 @@ export class UnifiedMemoryService {
   }
 
   // ==========================================================================
-  // CONSOLIDATION API - Combine Related Memories
+  // CONSOLIDATION API
   // ==========================================================================
 
-  /**
-   * Run memory consolidation for a user
-   * This combines related memories into richer, consolidated representations
-   * Should be run periodically (e.g., end of session, nightly)
-   */
   async consolidateMemories(userId: string): Promise<ConsolidationResult> {
     const startTime = Date.now();
 
     try {
-      // Get user's memories from storage
       const memories = await getUserMemories(userId);
 
       if (memories.length === 0) {
-        return {
-          consolidated: [],
-          memoriesProcessed: 0,
-          groupsFound: 0,
-          durationMs: Date.now() - startTime,
-        };
+        return { consolidated: [], memoriesProcessed: 0, groupsFound: 0, durationMs: Date.now() - startTime };
       }
 
-      // Run consolidation
       const result = await this.consolidator.runConsolidationPass(memories);
 
       log.info(
@@ -994,38 +637,26 @@ export class UnifiedMemoryService {
       return result;
     } catch (error) {
       log.error({ error: String(error), userId }, 'Consolidation failed');
-      return {
-        consolidated: [],
-        memoriesProcessed: 0,
-        groupsFound: 0,
-        durationMs: Date.now() - startTime,
-      };
+      return { consolidated: [], memoriesProcessed: 0, groupsFound: 0, durationMs: Date.now() - startTime };
     }
   }
 
   // ==========================================================================
-  // DECAY API - Graceful Forgetting
+  // DECAY API
   // ==========================================================================
 
-  /**
-   * Apply decay to a user's memories
-   * This updates strength scores based on time and emotional weight
-   * Should be run periodically (e.g., nightly)
-   */
   async applyDecay(userId: string): Promise<{
     memoriesDecayed: number;
     memoriesArchived: number;
     memoriesProtected: number;
   }> {
     try {
-      // Get memories
       const memories = await getUserMemories(userId);
 
       if (memories.length === 0) {
         return { memoriesDecayed: 0, memoriesArchived: 0, memoriesProtected: 0 };
       }
 
-      // Apply decay calculations
       const decayingMemories = memories.map((m) => this.decayManager.initializeDecay(m));
       const pruneResult = this.decayManager.pruneWeakMemories(decayingMemories);
 
@@ -1049,21 +680,13 @@ export class UnifiedMemoryService {
     }
   }
 
-  /**
-   * Reinforce a memory (user mentioned it again)
-   * This boosts the memory's strength and prevents decay
-   * Now persists to storage!
-   */
   async reinforceMemory(
     userId: string,
     memoryId: string,
     boostFactor = 1.5
   ): Promise<{ previousStrength: number; newStrength: number }> {
     try {
-      // Reinforce in storage
       const result = await reinforceMemoryInStorage(userId, memoryId, boostFactor);
-
-      // Also notify learning engine
       await this.learningEngine.reinforceMemory(userId, memoryId, boostFactor);
 
       log.debug({ userId, memoryId, ...result }, 'Memory reinforced in storage');
@@ -1075,13 +698,9 @@ export class UnifiedMemoryService {
   }
 
   // ==========================================================================
-  // GRAPH API - Associative Memory Links
+  // GRAPH API
   // ==========================================================================
 
-  /**
-   * Get associated memories via graph traversal
-   * This enables "spreading activation" - one memory triggers related ones
-   */
   async getAssociatedMemories(
     userId: string,
     memoryId: string,
@@ -1102,11 +721,6 @@ export class UnifiedMemoryService {
     }
   }
 
-  /**
-   * Create links for a new memory
-   * Analyzes the memory and creates links to related existing memories
-   * Now actually creates links in graph storage!
-   */
   async createMemoryLinks(
     userId: string,
     newMemoryId: string,
@@ -1114,7 +728,6 @@ export class UnifiedMemoryService {
     newMemoryTopics: string[] = []
   ): Promise<MemoryLink[]> {
     try {
-      // Create a memory item for link detection
       const newMemory = {
         id: newMemoryId,
         type: 'topic' as const,
@@ -1127,7 +740,6 @@ export class UnifiedMemoryService {
         source: { collection: 'memories', documentId: newMemoryId },
       };
 
-      // Create links using the deep integration
       const links = await createLinksForNewMemory(userId, newMemory);
 
       log.debug({ userId, newMemoryId, linksCreated: links.length }, 'Created memory links');
@@ -1139,26 +751,16 @@ export class UnifiedMemoryService {
   }
 
   // ==========================================================================
-  // LIFECYCLE API - Maintenance Operations
+  // LIFECYCLE API
   // ==========================================================================
 
-  /**
-   * Run full maintenance cycle for a user
-   * Call at end of session or during off-peak hours
-   * Now uses deep integration that actually affects storage!
-   */
   async runMaintenance(userId: string): Promise<{
     consolidation: ConsolidationResult;
     decay: { memoriesDecayed: number; memoriesArchived: number; memoriesProtected: number };
     graphLinks: number;
   }> {
-    const startTime = Date.now();
-
     try {
-      // Run full lifecycle maintenance (deep integration)
       const lifecycleResult = await runLifecycleMaintenance(userId);
-
-      // Also decay learnings (so old patterns don't dominate)
       await this.learningEngine.decayLearnings(userId);
 
       log.info(
@@ -1175,7 +777,7 @@ export class UnifiedMemoryService {
 
       return {
         consolidation: {
-          consolidated: [], // Would need to store the actual objects
+          consolidated: [],
           memoriesProcessed: lifecycleResult.consolidation.memoriesProcessed,
           groupsFound: lifecycleResult.consolidation.groupsFound,
           durationMs: lifecycleResult.durationMs,
@@ -1198,13 +800,9 @@ export class UnifiedMemoryService {
   }
 
   // ==========================================================================
-  // DIRECT MEMORY ACCESS API - For Deep Signal Extraction
+  // DIRECT MEMORY ACCESS API
   // ==========================================================================
 
-  /**
-   * Get a specific memory by ID
-   * Used for deep signal extraction and cleanup operations
-   */
   async getMemory(
     userId: string,
     memoryId: string
@@ -1241,10 +839,6 @@ export class UnifiedMemoryService {
     }
   }
 
-  /**
-   * Save a memory directly to storage
-   * Used for deep signal extraction and real-time memory capture
-   */
   async saveMemoryDirect(
     userId: string,
     memory: {
@@ -1259,7 +853,6 @@ export class UnifiedMemoryService {
     try {
       const memoryId = memory.id || `mem_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-      // Map type to MemoryItem type
       const typeMap: Record<
         string,
         'summary' | 'moment' | 'topic' | 'commitment' | 'preference' | 'person' | 'event'
@@ -1302,6 +895,28 @@ export class UnifiedMemoryService {
   }
 
   // ==========================================================================
+  // LEARNING ENGINE ACCESS (from memory/unified-service.ts extras)
+  // ==========================================================================
+
+  getPendingSurfacingEventIds(userId: string): string[] {
+    return this.learningEngine.getPendingEventIds(userId);
+  }
+
+  getMostRecentPendingSurfacingEvent(userId: string): {
+    id: string;
+    memoryTopics: string[];
+  } | null {
+    return this.learningEngine.getMostRecentPendingEvent(userId);
+  }
+
+  async recordMemoryReactionViaLearningEngine(
+    eventId: string,
+    reaction: 'engaged' | 'acknowledged' | 'ignored' | 'negative' | 'grateful'
+  ): Promise<void> {
+    await this.learningEngine.recordReaction(eventId, reaction);
+  }
+
+  // ==========================================================================
   // PRIVATE HELPERS
   // ==========================================================================
 
@@ -1312,9 +927,6 @@ export class UnifiedMemoryService {
     return 'closing';
   }
 
-  /**
-   * Record that we're about to surface a memory (for learning)
-   */
   private recordPendingSurfacing(
     userId: string,
     memoryId: string,
@@ -1328,7 +940,6 @@ export class UnifiedMemoryService {
       timeSinceSessionStart: number;
     }
   ): void {
-    // Map input type to valid MemoryItem types
     const typeMap: Record<
       string,
       'summary' | 'moment' | 'topic' | 'commitment' | 'preference' | 'person' | 'event'
@@ -1344,7 +955,6 @@ export class UnifiedMemoryService {
       moment: 'moment',
     };
 
-    // Create a mock memory item for the learning engine
     const mockMemory = {
       id: memoryId,
       type: typeMap[memoryType] ?? 'topic',
@@ -1361,9 +971,6 @@ export class UnifiedMemoryService {
     this.pendingSurfacingEvents.set(memoryId, eventId);
   }
 
-  /**
-   * Map emotion string to learning engine's emotional state
-   */
   private mapEmotionalState(emotion?: string): 'positive' | 'neutral' | 'negative' | 'vulnerable' {
     if (!emotion) return 'neutral';
 
@@ -1385,37 +992,6 @@ export class UnifiedMemoryService {
 
     return 'neutral';
   }
-
-  // ============================================================================
-  // LEARNING ENGINE ACCESS (for external functions)
-  // ============================================================================
-
-  /**
-   * Get pending surfacing event IDs for a user
-   */
-  getPendingSurfacingEventIds(userId: string): string[] {
-    return this.learningEngine.getPendingEventIds(userId);
-  }
-
-  /**
-   * Get the most recent pending surfacing event for a user
-   */
-  getMostRecentPendingSurfacingEvent(userId: string): {
-    id: string;
-    memoryTopics: string[];
-  } | null {
-    return this.learningEngine.getMostRecentPendingEvent(userId);
-  }
-
-  /**
-   * Record a reaction to a surfaced memory
-   */
-  async recordMemoryReactionViaLearningEngine(
-    eventId: string,
-    reaction: 'engaged' | 'acknowledged' | 'ignored' | 'negative' | 'grateful'
-  ): Promise<void> {
-    await this.learningEngine.recordReaction(eventId, reaction);
-  }
 }
 
 // ============================================================================
@@ -1424,9 +1000,6 @@ export class UnifiedMemoryService {
 
 let instance: UnifiedMemoryService | null = null;
 
-/**
- * Get the unified memory service singleton
- */
 export function getUnifiedMemoryService(): UnifiedMemoryService {
   if (!instance) {
     instance = new UnifiedMemoryService();
@@ -1434,25 +1007,18 @@ export function getUnifiedMemoryService(): UnifiedMemoryService {
   return instance;
 }
 
-/**
- * Reset the singleton (for testing)
- */
 export function resetUnifiedMemoryService(): void {
   instance = null;
 }
 
-/**
- * Get pending surfacing event IDs for a user
- * Used by transcript handler to record reactions
- */
+// ============================================================================
+// CONVENIENCE EXPORTS
+// ============================================================================
+
 export function getPendingSurfacingEventIds(userId: string): string[] {
-  const service = getUnifiedMemoryService();
-  return service.getPendingSurfacingEventIds(userId);
+  return getUnifiedMemoryService().getPendingSurfacingEventIds(userId);
 }
 
-/**
- * Get the most recent pending surfacing event for a user
- */
 export function getMostRecentPendingSurfacingEvent(userId: string): {
   eventId: string;
   memoryTopics: string[];
@@ -1460,16 +1026,9 @@ export function getMostRecentPendingSurfacingEvent(userId: string): {
   const service = getUnifiedMemoryService();
   const event = service.getMostRecentPendingSurfacingEvent(userId);
   if (!event) return null;
-  return {
-    eventId: event.id,
-    memoryTopics: event.memoryTopics,
-  };
+  return { eventId: event.id, memoryTopics: event.memoryTopics };
 }
 
-/**
- * Record a reaction to a surfaced memory
- * Called by transcript handler when user responds after memory surfacing
- */
 export async function recordMemoryReaction(
   eventId: string,
   reaction: 'engaged' | 'acknowledged' | 'ignored' | 'negative' | 'grateful'
@@ -1478,14 +1037,6 @@ export async function recordMemoryReaction(
   await service.recordMemoryReactionViaLearningEngine(eventId, reaction);
 }
 
-// ============================================================================
-// CONVENIENCE EXPORTS - For cleanup-handler and deep signal extraction
-// ============================================================================
-
-/**
- * Get a specific memory by ID
- * Convenience wrapper around UnifiedMemoryService.getMemory
- */
 export async function getMemory(
   userId: string,
   memoryId: string
@@ -1499,10 +1050,6 @@ export async function getMemory(
   return getUnifiedMemoryService().getMemory(userId, memoryId);
 }
 
-/**
- * Save a memory directly to storage
- * Convenience wrapper around UnifiedMemoryService.saveMemoryDirect
- */
 export async function saveMemoryDirect(
   userId: string,
   memory: {

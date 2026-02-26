@@ -246,27 +246,42 @@ class InsightsBroadcast extends EventEmitter {
 }
 
 // ============================================================================
-// SINGLETON
+// LAZY SINGLETON
 // ============================================================================
 
-export const insightsBroadcast = new InsightsBroadcast();
+let _instance: InsightsBroadcast | null = null;
+
+/** Get the InsightsBroadcast singleton (lazy-initialized on first access) */
+export function getInsightsBroadcast(): InsightsBroadcast {
+  if (!_instance) {
+    _instance = new InsightsBroadcast();
+  }
+  return _instance;
+}
+
+/** @deprecated Use getInsightsBroadcast() instead. Kept for backward compatibility. */
+export const insightsBroadcast = new Proxy({} as InsightsBroadcast, {
+  get(_target, prop) {
+    return (getInsightsBroadcast() as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
 
 // ============================================================================
 // CONVENIENCE EXPORTS
 // ============================================================================
 
 export function startInsightMonitoring(userId: string): void {
-  insightsBroadcast.startMonitoring(userId);
+  getInsightsBroadcast().startMonitoring(userId);
 }
 
 export function stopInsightMonitoring(userId: string): void {
-  insightsBroadcast.stopMonitoring(userId);
+  getInsightsBroadcast().stopMonitoring(userId);
 }
 
 export async function triggerInsightScan(userId: string): Promise<CrossPersonaInsight[]> {
-  return insightsBroadcast.triggerScan(userId);
+  return getInsightsBroadcast().triggerScan(userId);
 }
 
 export function subscribeToInsights(listener: InsightBroadcastListener): () => void {
-  return insightsBroadcast.subscribe(listener);
+  return getInsightsBroadcast().subscribe(listener);
 }
