@@ -2,7 +2,7 @@
 
 > "We believe in making AI human, and the decisions we make will reflect that."
 
-The speech module (~82,140 lines across 276 files) provides voice-based capabilities that make Ferni feel truly human. It handles everything from SSML generation to emotion detection from voice prosody.
+The speech module (~90K lines across 312+ files) provides voice-based capabilities that make Ferni feel truly human. It handles everything from SSML generation to emotion detection from voice prosody.
 
 ## Production-Ready Status
 
@@ -13,7 +13,8 @@ This module is **production-ready** with:
 - Memory-safe cleanup via `session-cleanup.ts`
 - Optimized FFT with iterative Cooley-Tukey algorithm
 - Tunable detection thresholds via exported constants
-- 28 subdirectories including `adaptive-ssml/` (50 files), `tts-gateway/` (17 files)
+- 48+ subdirectories including `adaptive-ssml/` (50 files), `tts-gateway/` (17 files)
+- DDD bounded context organization (Feb 2026): 32 root files organized into 7 BCs with re-export shims
 
 ## 🎭 Speech Orchestrator (NEW - Recommended Entry Point)
 
@@ -149,10 +150,57 @@ This unifies:
 
 ## Architecture Overview
 
-The speech module contains **276 .ts files** (~82,140 lines) across **28 subdirectories** plus **50 root-level files**.
+The speech module contains **312+ .ts files** (~90K lines) across **48+ subdirectories**.
+
+### DDD Bounded Context Organization (Feb 2026)
+
+Root-level files have been organized into bounded context directories. Re-export shims at old paths ensure backward compatibility — all existing imports work unchanged.
 
 ```
 src/speech/
+│
+├── # ── DDD Bounded Contexts (NEW Feb 2026) ──
+├── audio-processing/             # Audio analysis & signal processing (12 files)
+│   ├── breath-detection.ts       # Breath detection algorithms
+│   ├── volume-dynamics.ts        # Volume analysis
+│   ├── energy-dynamics.ts        # Energy level tracking
+│   ├── word-timing-rhythm.ts     # Word timing & rhythm analysis
+│   ├── voice-tremor.ts           # Voice tremor detection
+│   ├── consonant-smoothing.ts    # Consonant smoothing
+│   ├── fft-analyzer.ts           # FFT analysis (shim → fft-analyzer/)
+│   ├── filler-analysis.ts        # Filler word analysis
+│   ├── fluency-analysis.ts       # Fluency scoring
+│   ├── prosody-turn-bridge.ts    # Prosody-turn bridging
+│   └── index.ts                  # Barrel exports
+├── output-control/               # Speech output management (7 files)
+│   ├── cognitive-speech.ts       # Cognitive speech patterns
+│   ├── cognitive-speech-integration.ts
+│   ├── speech-context.ts         # Speech context state
+│   ├── conversational-presence.ts
+│   ├── enhanced-turn-prediction.ts
+│   ├── authentic-thinking.ts     # Authentic thinking patterns
+│   ├── realtime-preemptive-patch.ts
+│   └── index.ts                  # Barrel exports
+├── voice-quality/                # Emotion & voice quality (4 files)
+│   ├── emotion-profiles.ts       # Persona emotion profiles
+│   ├── emotion-matching.ts       # Emotion matching algorithms
+│   ├── emotional-contagion.ts    # Emotional contagion system
+│   ├── music-reactions.ts        # Music-triggered reactions
+│   └── index.ts                  # Barrel exports
+├── voice-management/             # Persona voice loading (2 files)
+│   ├── persona-voice-loader.ts   # Dynamic voice data loading
+│   ├── pronunciation-memory.ts   # Pronunciation learning
+│   └── index.ts                  # Barrel exports
+├── monitoring/                   # Health & monitoring (2 files)
+│   ├── kyutai-health.ts          # Kyutai health checks
+│   ├── tts-monitoring.ts         # TTS monitoring
+│   └── index.ts                  # Barrel exports
+├── research-enhancements/        # Experimental features
+│   └── index.ts                  # Barrel exports
+├── session-mgmt/                 # Session lifecycle
+│   └── index.ts                  # Barrel exports
+│
+├── # ── Existing Domains ──
 ├── orchestrator/                 # Unified coordination layer (3 files)
 ├── config/                       # Centralized configuration (2 files)
 ├── anticipation/                 # Unified anticipation pipeline (5 files)
@@ -166,15 +214,21 @@ src/speech/
 ├── fft-analyzer/                 # FFT audio analysis (9 files)
 ├── graceful-interrupt/           # Graceful interruption handling (2 files)
 ├── human-listening-pipeline/     # Human listening orchestration (6 files)
-├── humanization/                 # Speech humanization (5 files)
+├── humanization/                 # Speech humanization + behavior-loader (split)
+│   └── behavior-loader/          # Split from 1504-line god file (4 modules)
+│       ├── profile-loader.ts     # Cache, loading, sync accessors
+│       ├── behavior-selector.ts  # All select*() functions
+│       ├── context-matching.ts   # Injection config, late-night, energy
+│       ├── phrases.ts            # Celebrations, catchphrases, anticipation
+│       └── index.ts              # Barrel re-exporting all 4 modules
 ├── live-backchanneling/          # Real-time backchannel (6 files)
 ├── metrics/                      # Speech observability metrics (1 file)
-├── naturalness/                  # Naturalness scoring (4 files)
+├── naturalness/                  # Naturalness scoring + ambient/tool-fillers
 ├── persona-phrases/              # Persona-specific phrases (8 files)
 ├── response-anticipation/        # Response anticipation (5 files)
 ├── sesame-inspired/              # Sesame-inspired prosody features (7 files)
 ├── tts-gateway/                  # TTS gateway orchestration (17 files)
-├── tts/                          # TTS utilities (10 files)
+├── tts/                          # TTS utilities + cartesia patches, bulkhead
 ├── types/                        # Shared type definitions (1 file)
 ├── voice-biomarkers/             # Voice health biomarkers (4 files)
 ├── voice-humanization/           # Voice humanization (5 files)
@@ -185,24 +239,46 @@ src/speech/
 ├── index.ts                      # Main exports
 ├── session-cleanup.ts            # Unified session cleanup (CRITICAL)
 ├── session-service.ts            # Session service abstraction
-├── persona-voice-loader.ts       # Dynamic loading from persona bundles
-└── [46 more root-level .ts files]
+├── session-debug.ts              # Diagnostic utility
+├── # ── Re-export shims (32 files, backward-compat) ──
+├── breath-detection.ts           # → audio-processing/breath-detection.js
+├── volume-dynamics.ts            # → audio-processing/volume-dynamics.js
+├── energy-dynamics.ts            # → audio-processing/energy-dynamics.js
+├── emotion-matching.ts           # → voice-quality/emotion-matching.js
+├── speech-context.ts             # → output-control/speech-context.js
+├── cognitive-speech.ts           # → output-control/cognitive-speech.js
+├── tts-context.ts                # → tts/tts-context.js
+├── persona-voice-loader.ts       # → voice-management/persona-voice-loader.js
+├── ... (32 total shims)
+└── [~20 remaining root-level infrastructure files]
 ```
 
-### Key Root-Level Files
+### DDD Migration Status (Feb 2026)
 
-| Category           | Files                                                                                                                               |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Backchannel**    | `backchanneling.ts`, `enhanced-backchanneling.ts`, `live-backchanneling.ts`, `llm-backchannel.ts`, `backchannel-phrase-selector.ts` |
-| **Voice Analysis** | `audio-prosody.ts`, `fft-analyzer.ts`, `breath-detection.ts`, `voice-tremor.ts`, `volume-dynamics.ts`, `energy-dynamics.ts`         |
-| **Humanization**   | `voice-humanization.ts`, `advanced-humanization.ts`, `response-naturalness.ts`, `consonant-smoothing.ts`                            |
-| **TTS**            | `tts-context.ts`, `tts-bulkhead.ts`, `tts-monitoring.ts`, `cartesia-context-patch.ts`, `cartesia-expressiveness.ts`                 |
-| **Speech Flow**    | `enhanced-turn-prediction.ts`, `prosody-turn-bridge.ts`, `word-timing-rhythm.ts`, `adaptive-ssml.ts`                                |
-| **Cognitive**      | `cognitive-speech.ts`, `cognitive-speech-integration.ts`, `conversational-presence.ts`                                              |
-| **Emotion**        | `emotion-matching.ts`, `emotion-profiles.ts`, `emotional-contagion.ts`                                                              |
-| **Analysis**       | `fluency-analysis.ts`, `filler-analysis.ts`, `multi-signal-laughter.ts`                                                             |
-| **Session**        | `session-cleanup.ts`, `session-debug.ts`, `session-service.ts`, `speech-context.ts`                                                 |
-| **Other**          | `human-listening-pipeline.ts`, `persona-voice-loader.ts`, `tool-fillers.ts`, `music-reactions.ts`                                   |
+| Domain | Files Moved | Shims Created | New Location |
+|--------|-------------|---------------|--------------|
+| Audio Processing | 10 | 10 | `audio-processing/` |
+| Output Control | 7 | 3 | `output-control/` |
+| Voice Quality | 4 | 2 | `voice-quality/` |
+| Voice Management | 2 | 2 | `voice-management/` |
+| Monitoring | 2 | 2 | `monitoring/` |
+| Naturalness | 3 | 1 | `naturalness/` |
+| TTS | 4 | 1 | `tts/` |
+| **Total** | **32** | **~21** | |
+
+**God file split**: `humanization/behavior-loader.ts` (1504 lines) → 4 focused modules in `humanization/behavior-loader/` (profile-loader, behavior-selector, context-matching, phrases)
+
+**Import from new paths for new code.** Old paths work via shims but canonical locations are in the BC directories.
+
+### Key Root-Level Files (Not Shims)
+
+| Category        | Files                                                                                                                               |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Backchannel** | `backchanneling.ts`, `enhanced-backchanneling.ts`, `live-backchanneling.ts`, `llm-backchannel.ts`, `backchannel-phrase-selector.ts` |
+| **Session**     | `session-cleanup.ts`, `session-debug.ts`, `session-service.ts`                                                                      |
+| **Analysis**    | `multi-signal-laughter.ts`, `concern-detection-pipeline.ts`                                                                         |
+| **Pipeline**    | `human-listening-pipeline.ts`, `response-anticipation.ts`                                                                           |
+| **Other**       | `advanced-humanization.ts`, `persona-phrases.ts`, `adaptive-ssml.ts`, `feedback-coordinator.ts`                                     |
 
 ## SSML Architecture
 

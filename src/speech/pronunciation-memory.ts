@@ -1,10 +1,6 @@
 /**
- * Pronunciation Memory System
- *
- * Re-exports from the pronunciation-memory/ subdirectory.
- *
- * @see ./pronunciation-memory/index.ts for implementation
- * @module speech/pronunciation-memory
+ * Re-export shim for backward compatibility.
+ * Canonical location: ./voice-management/pronunciation-memory.ts
+ * @module
  */
-
-export * from './pronunciation-memory/index.js';
+export * from './voice-management/pronunciation-memory.js';

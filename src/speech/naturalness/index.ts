@@ -619,3 +619,8 @@ export const naturalnessEngine = {
 // Re-export types
 export type * from './types.js';
 export * from './combine-adjustments.js';
+
+// Bounded context modules (moved from src/speech/ root)
+export * from './ambient-awareness.js';
+export * from './response-naturalness.js';
+export * from './tool-fillers.js';

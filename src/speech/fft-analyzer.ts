@@ -1,10 +1,6 @@
 /**
- * FFT Analyzer for Audio Intelligence
- *
- * This file re-exports from the split module for backwards compatibility.
- * See ./fft-analyzer/ for the implementation.
- *
- * @module fft-analyzer
+ * Re-export shim for backward compatibility.
+ * Canonical location: ./audio-processing/fft-analyzer.ts
+ * @module
  */
-
-export * from './fft-analyzer/index.js';
+export * from './audio-processing/fft-analyzer.js';

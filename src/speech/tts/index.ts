@@ -155,3 +155,27 @@ export {
   createTTSFromConfig as createLightweightTTS,
   prewarmTTS as prewarmTTSConnection,
 } from './cartesia-core.js';
+
+// ============================================================================
+// CARTESIA CONTEXT (Prosody Continuity)
+// ============================================================================
+
+export * from './cartesia-context-patch.js';
+
+// ============================================================================
+// CARTESIA EXPRESSIVENESS (Emotion/Speed/Volume Mapping)
+// ============================================================================
+
+export * from './cartesia-expressiveness.js';
+
+// ============================================================================
+// TTS BULKHEAD (Session Isolation)
+// ============================================================================
+
+export * from './tts-bulkhead.js';
+
+// ============================================================================
+// TTS CONTEXT (Prosody Continuity Across Turns)
+// ============================================================================
+
+export * from './tts-context.js';
