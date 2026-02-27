@@ -14,7 +14,7 @@
 /**
  * Supported TTS providers
  */
-export type TTSProvider = 'cartesia' | 'btcw' | 'cosyvoice';
+export type TTSProvider = 'cartesia' | 'sonata';
 
 // ============================================================================
 // VOICE CONFIGURATION
@@ -24,7 +24,7 @@ export type TTSProvider = 'cartesia' | 'btcw' | 'cosyvoice';
  * Voice configuration for creating a TTS instance.
  */
 export interface VoiceConfig {
-  /** Cartesia voice ID (UUID format) or BTCW persona name */
+  /** Cartesia voice ID (UUID format) */
   voiceId: string;
   /** TTS provider (default: 'cartesia') */
   provider?: TTSProvider;
@@ -34,12 +34,6 @@ export interface VoiceConfig {
   accent?: 'american' | 'british' | 'australian' | 'indian';
   /** Whether this is a localized (non-American) voice */
   isLocalizedVoice?: boolean;
-  /** BTCW-specific: Server endpoint URL */
-  btcwEndpoint?: string;
-  /** BTCW-specific: API key for authentication */
-  btcwApiKey?: string;
-  /** BTCW-specific: Default emotion */
-  btcwDefaultEmotion?: string;
 }
 
 /**

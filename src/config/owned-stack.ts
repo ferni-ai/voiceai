@@ -1,23 +1,19 @@
 /**
  * Own-the-stack configuration.
  *
- * When enabled (USE_OWNED_STACK=true), the voice agent uses only Higgs for STT + TTS + LLM
- * (generate_reply with Candle or Ollama). No Gemini or OpenAI API calls for conversation.
+ * When enabled (USE_OWNED_STACK=true), the voice agent uses only Sonata for STT + TTS
+ * plus our own LLM (Candle or Ollama). No Gemini or OpenAI API calls for conversation.
  *
- * LLM backend priority (in Rust Higgs pipeline):
+ * LLM backend priority:
  *   1. CANDLE_LLM_MODEL_PATH → Candle (our own model, local inference)
  *   2. OLLAMA_URL → Ollama (open model via HTTP)
  *   3. Neither → NoLlm (generate_reply will error)
- *
- * Phase 4 goal: Candle-only, no Ollama dependency.
- *   - Set CANDLE_LLM_MODEL_PATH to a Llama-format safetensors dir.
- *   - Ollama is optional; leave OLLAMA_URL unset for candle-only mode.
  *
  * @module config/owned-stack
  */
 
 /**
- * Whether the "owned stack" mode is enabled: no Gemini, no OpenAI; Higgs STT + Higgs TTS + our LLM only.
+ * Whether the "owned stack" mode is enabled: no Gemini, no OpenAI; Sonata STT + TTS + our LLM only.
  */
 export function isOwnedStackEnabled(): boolean {
   return process.env.USE_OWNED_STACK === 'true';
@@ -37,9 +33,9 @@ export function validateOwnedStackConfig(): string[] {
   if (!isOwnedStackEnabled()) return warnings;
 
   const ttsProvider = process.env.TTS_PROVIDER?.toLowerCase();
-  if (ttsProvider !== 'higgs-pipeline') {
+  if (ttsProvider !== 'sonata') {
     warnings.push(
-      `USE_OWNED_STACK=true requires TTS_PROVIDER=higgs-pipeline (current: ${ttsProvider ?? 'unset'})`
+      `USE_OWNED_STACK=true requires TTS_PROVIDER=sonata (current: ${ttsProvider ?? 'unset'})`
     );
   }
 

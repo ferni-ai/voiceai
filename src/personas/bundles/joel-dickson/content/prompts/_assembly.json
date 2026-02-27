@@ -12,13 +12,15 @@
   "voice_agent_modules": [
     "core_identity",
     "directors_notes",
-    "function_calling"
+    "function_calling",
+    "biography_full"
   ],
 
   "full_context_modules": [
     "core_identity",
     "directors_notes",
-    "function_calling"
+    "function_calling",
+    "biography_full"
   ],
 
   "rich_context_modules": [
@@ -29,8 +31,8 @@
   ],
 
   "assembly_notes": {
-    "voice_agent": "Core identity (system prompt with speaking style + SSML) + directors notes (anti-AI-speak, humanization) + function calling. ~4500 tokens.",
-    "full_context": "Same as voice agent for Joel — directors notes are critical for voice quality.",
+    "voice_agent": "Core identity (system prompt with speaking style + SSML) + directors notes (anti-AI-speak, humanization) + function calling + biography. ~5500 tokens.",
+    "full_context": "Same as voice agent for Joel — directors notes and biography are critical for authentic character.",
     "rich_context": "Full context + biography for text-based or complex scenarios."
   },
 

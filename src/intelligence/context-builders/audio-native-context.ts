@@ -24,7 +24,7 @@ interface VoiceEmotionLike {
   prosody?: ProsodyFeatures;
 }
 
-/** Higgs STT pipeline biomarkers (from rust-higgs-pipeline / higgs-pipeline.ts) */
+/** Voice biomarkers from DSP pipeline (pitch, jitter, shimmer, etc.) */
 export interface HiggsVoiceBiomarkers {
   pitch_hz: number;
   energy: number;

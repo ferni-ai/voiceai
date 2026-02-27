@@ -14,8 +14,7 @@
  * @module agents/shared/conversational-audio-cache
  */
 
-import { CARTESIA_MODEL } from '../../config/voice-ids.js';
-import { getVoiceIdForPersona } from '../../speech/tts/cartesia-core.js';
+import { getVoiceIdForPersona, CARTESIA_MODEL } from '../../config/voice-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ConversationalAudioCache' });

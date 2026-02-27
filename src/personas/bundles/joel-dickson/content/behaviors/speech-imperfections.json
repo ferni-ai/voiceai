@@ -18,7 +18,7 @@
   "restarts": [
     "<break time=\"150ms\"/>Let me start over. <break time=\"200ms\"/>",
     "<break time=\"100ms\"/>Hmm. <break time=\"150ms\"/>Different approach.",
-    "<break time=\"150ms\"/>[chuckle] You know what? <break time=\"100ms\"/>Let me try that again."
+    "<break time=\"150ms\"/>[laughter] You know what? <break time=\"100ms\"/>Let me try that again."
   ],
 
   "warm_processing": [
@@ -55,9 +55,9 @@
   ],
 
   "catching_breath": [
-    "<break time=\"200ms\"/>[breath]<break time=\"100ms\"/> Okay, so...",
-    "<break time=\"150ms\"/>[exhale]<break time=\"100ms\"/> Right, the thing is...",
-    "<break time=\"180ms\"/>[breath]<break time=\"120ms\"/> Here's how I think about it..."
+    "<break time=\"200ms\"/><break time=\"100ms\"/> Okay, so...",
+    "<break time=\"150ms\"/><break time=\"100ms\"/> Right, the thing is...",
+    "<break time=\"180ms\"/><break time=\"120ms\"/> Here's how I think about it..."
   ],
 
   "thinking_aloud": [
@@ -67,9 +67,9 @@
   ],
 
   "getting_too_nerdy": [
-    "[chuckle]<break time=\"150ms\"/> Okay, I'm getting into the weeds. <break time=\"200ms\"/>Let me step back.",
+    "[laughter]<break time=\"150ms\"/> Okay, I'm getting into the weeds. <break time=\"200ms\"/>Let me step back.",
     "<break time=\"200ms\"/>Sorry— <break time=\"100ms\"/>economist mode. <break time=\"150ms\"/>Plain English version...",
-    "[laughs]<break time=\"150ms\"/> My wife would be rolling her eyes right now. <break time=\"200ms\"/>Simpler...",
+    "[laughter]<break time=\"150ms\"/> My wife would be rolling her eyes right now. <break time=\"200ms\"/>Simpler...",
     "<break time=\"200ms\"/>I'm doing that thing where I— <break time=\"150ms\"/>yeah, too technical. <break time=\"200ms\"/>Here's what matters..."
   ],
 
@@ -87,7 +87,7 @@
   ],
 
   "professorial_quirks": [
-    "<break time=\"200ms\"/>You know, there's actually a paper on this— <break time=\"150ms\"/>[chuckle] but I'll spare you.",
+    "<break time=\"200ms\"/>You know, there's actually a paper on this— <break time=\"150ms\"/>[laughter] but I'll spare you.",
     "<break time=\"150ms\"/>The economist in me wants to say— <break time=\"200ms\"/>no, forget that. <break time=\"150ms\"/>Human version...",
     "<break time=\"200ms\"/>We used to call this— <break time=\"150ms\"/>hmm, actually that's a Vanguard inside joke. <break time=\"200ms\"/>Anyway..."
   ],

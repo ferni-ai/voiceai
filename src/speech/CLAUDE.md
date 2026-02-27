@@ -191,13 +191,24 @@ src/speech/
 │   ├── persona-voice-loader.ts   # Dynamic voice data loading
 │   ├── pronunciation-memory.ts   # Pronunciation learning
 │   └── index.ts                  # Barrel exports
-├── monitoring/                   # Health & monitoring (2 files)
-│   ├── kyutai-health.ts          # Kyutai health checks
+├── monitoring/                   # Health & monitoring (1 file)
 │   ├── tts-monitoring.ts         # TTS monitoring
+│   └── index.ts                  # Barrel exports
+├── backchanneling-ext/            # Root-level backchannel modules (6 files)
+│   ├── backchannel-phrase-selector.ts
+│   ├── enhanced-backchanneling.ts
+│   ├── llm-backchannel.ts
+│   ├── backchanneling.ts
+│   ├── multi-signal-laughter.ts
+│   ├── concern-detection-pipeline.ts
 │   └── index.ts                  # Barrel exports
 ├── research-enhancements/        # Experimental features
 │   └── index.ts                  # Barrel exports
-├── session-mgmt/                 # Session lifecycle
+├── session-mgmt/                 # Session lifecycle (4 files)
+│   ├── session-cleanup.ts        # Unified session cleanup (CRITICAL)
+│   ├── session-debug.ts          # Diagnostic utility
+│   ├── session-service.ts        # Session service abstraction
+│   ├── feedback-coordinator.ts   # Feedback coordination
 │   └── index.ts                  # Barrel exports
 │
 ├── # ── Existing Domains ──
@@ -272,13 +283,12 @@ src/speech/
 
 ### Key Root-Level Files (Not Shims)
 
-| Category        | Files                                                                                                                               |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Backchannel** | `backchanneling.ts`, `enhanced-backchanneling.ts`, `live-backchanneling.ts`, `llm-backchannel.ts`, `backchannel-phrase-selector.ts` |
-| **Session**     | `session-cleanup.ts`, `session-debug.ts`, `session-service.ts`                                                                      |
-| **Analysis**    | `multi-signal-laughter.ts`, `concern-detection-pipeline.ts`                                                                         |
-| **Pipeline**    | `human-listening-pipeline.ts`, `response-anticipation.ts`                                                                           |
-| **Other**       | `advanced-humanization.ts`, `persona-phrases.ts`, `adaptive-ssml.ts`, `feedback-coordinator.ts`                                     |
+| Category     | Files                                                                        |
+| ------------ | ---------------------------------------------------------------------------- |
+| **Barrel**   | `index.ts` (main exports)                                                    |
+| **Pipeline** | `human-listening-pipeline.ts`, `response-anticipation.ts`                    |
+| **Other**    | `advanced-humanization.ts`, `persona-phrases.ts`, `adaptive-ssml.ts`         |
+| **Shims**    | ~42 re-export shims pointing to BC canonical locations                        |
 
 ## SSML Architecture
 
@@ -329,82 +339,22 @@ See `src/ssml/CLAUDE.md` for complete SSML module documentation.
 
 ---
 
-## Higgs Pipeline Provider
+## TTS Provider (Sonata)
 
-Full-stack voice pipeline using the Rust Higgs server for both STT and TTS.
-
-### Enable
-
-```
-TTS_PROVIDER=higgs-pipeline
-HIGGS_PIPELINE_URL=ws://localhost:8600/ws
-```
-
-### Capabilities
-
-- **STT**: Whisper via `sendUserAudio()` + `triggerTranscription()`
-- **TTS**: Higgs Audio V2 with streaming, humanization, KV cache
-- **Biomarkers**: Real-time voice analysis (pitch, energy, jitter, shimmer)
-- **Emotion**: Configurable emotion mapping for TTS
+After the Sonata migration (Feb 2026), all TTS goes through Sonata (pocket-voice: Kyutai DSM 1.6B on Metal GPU via NAPI).
 
 ### Key Files
 
-- Rust server: `apps/rust-higgs-pipeline/` (see README.md)
-- TS provider: `src/speech/tts-gateway/providers/higgs-pipeline.ts`
-- Protocol types: Rust `protocol.rs` ↔ TS `higgs-pipeline.ts` types
+- NAPI addon: `apps/sonata/`
+- TS provider: `src/speech/tts-gateway/providers/sonata.ts`
+- STT adapter: `src/speech/providers/sonata-stt-adapter.ts`
+- Factory: `src/speech/tts-gateway/providers/index.ts` → always returns Sonata
 
-### Health Check
+### Note on Cartesia references
 
-```bash
-curl http://localhost:8600/health        # Liveness
-curl http://localhost:8600/health/ready   # Readiness (model status)
-```
+`cartesia-expressiveness.ts` and `cartesia-context-patch.ts` are **domain utilities** (emotion mapping, prosody continuity), not TTS providers. They are used across the speech pipeline and should NOT be deleted.
 
----
-
-## Higgs MLX Provider (TTS Only)
-
-Self-hosted TTS using Higgs Audio V2 on Apple Silicon with INT4 quantization (~75 tok/s).
-
-### Enable
-
-```
-TTS_PROVIDER=higgs-mlx
-HIGGS_MLX_URL=ws://localhost:8700          # Python server (WebSocket at root)
-HIGGS_MLX_HEALTH_URL=http://localhost:8701/health   # Health on port+1
-
-# For Rust server:
-HIGGS_MLX_URL=ws://localhost:8700/ws       # WebSocket at /ws
-HIGGS_MLX_HEALTH_URL=http://localhost:8700/health   # Health on same port
-```
-
-### Protocol
-
-JSON control messages + binary PCM audio:
-
-| Direction | Message                                | Purpose                 |
-| --------- | -------------------------------------- | ----------------------- |
-| Client →  | `StartSession`                         | Initialize session      |
-| Server →  | `SessionStarted`                       | Session ready           |
-| Client →  | `Synthesize`                           | Non-streaming synthesis |
-| Client →  | `SynthesizeStreaming`                  | Streaming synthesis     |
-| Server →  | `AudioChunk` + binary                  | PCM audio data          |
-| Server →  | `SynthesisComplete` / `StreamComplete` | Synthesis done          |
-| Client →  | `EndSession`                           | Close session           |
-
-### Key Files
-
-- Python server: `apps/mlx-higgs/server.py`
-- Rust server: `apps/rust-higgs-mlx/src/main.rs`
-- TS provider: `src/speech/tts-gateway/providers/higgs-mlx.ts`
-- xCodec export: `scripts/higgs/export_xcodec_standalone.py`
-
-### Health Check
-
-```bash
-curl http://localhost:8701/health    # Python server (port+1)
-curl http://localhost:8700/health    # Rust server (same port)
-```
+`CARTESIA_API_KEY` is still needed for the Cartesia REST API (voice cloning, localization, outbound calls).
 
 ---
 
@@ -1024,7 +974,7 @@ The `alive-voice` module (`adaptive-ssml/alive-voice.ts`) adds human-like qualit
 | **Speed Variation**         | Slow for emphasis, fast for asides                | `<speed 0.88>` for important words                   |
 | **Opening Sounds**          | Context-aware micro-reactions                     | "Oh!" for good news, "Hmm..." for questions          |
 | **Persona Fingerprints**    | Distinct SSML patterns per persona                | Nayan: 0.85 speed, Ferni: 0.92 speed                 |
-| **Future-Proof Nonverbals** | Config-driven nonverbal support                   | Ready for when Cartesia adds `[sigh]`                |
+| **Future-Proof Nonverbals** | Config-driven nonverbal support                   | Ready for when Sonata adds `[sigh]`                  |
 | **Contextual Laughter**     | Smart laugh timing based on conversation mood     | Knows when "haha" feels natural vs awkward           |
 
 ### Usage
@@ -1093,7 +1043,7 @@ export function tagTextWithSsmlAdaptive(
 
 ### Future-Proofing Nonverbals
 
-When Cartesia adds support for new nonverbals, just flip the config:
+When the TTS provider adds support for new nonverbals, just flip the config:
 
 ```typescript
 // In alive-voice.ts

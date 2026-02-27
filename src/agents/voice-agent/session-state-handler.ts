@@ -389,10 +389,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   };
 
   const attemptBackchannel = async () => {
-    // In full-duplex mode (Higgs mixer), backchannels can overlay agent speech.
-    // In standard mode, skip if agent is speaking.
-    const higgsDuplex = userData.higgsFullDuplex ?? false;
-    if (conversationManager.isAgentSpeaking() && !higgsDuplex) return;
+    // Skip if agent is speaking
+    if (conversationManager.isAgentSpeaking()) return;
 
     // ECHO PREVENTION: Don't backchannel immediately after agent stopped speaking
     // Agent's audio gets picked up by mic, VAD thinks user is speaking, agent interrupts itself,
@@ -486,16 +484,15 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
         // RL: Record backchannel experience for dynamics model training
         fireAndForget(async () => {
-          const hb = userData.higgsBiomarkers;
           const ve = userData.voiceEmotion;
           const state: DynamicsState = {
             audioFeatures: {
               energyMean: (typeof ve?.arousal === 'number' ? ve.arousal : 0.5) as number,
               energySlope: 0,
-              pitchMean: (typeof hb?.pitch_hz === 'number' ? hb.pitch_hz : 200) as number,
+              pitchMean: 200,
               pitchSlope: 0,
               pauseDurationMs: (userData.currentSilenceDurationMs ?? 0) as number,
-              speakingRate: (typeof hb?.speech_rate === 'number' ? hb.speech_rate : 3.0) as number,
+              speakingRate: 3.0,
             },
             partialTranscript: userData.lastUserMessage ?? '',
             context: {

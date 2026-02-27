@@ -35,7 +35,7 @@ const evaluateHumanTransferDef: ToolDefinition = {
   id: 'evaluateHumanTransfer',
   name: 'Evaluate Human Transfer',
   description: 'Assess if the user would benefit from professional human support',
-  domain: 'crisis',
+  domain: 'human-transfer',
   tags: ['safety', 'crisis', 'therapy', 'transfer', 'professional'],
 
   create: (ctx: ToolContext): Tool => {
@@ -133,7 +133,7 @@ const connectToHumanExpertDef: ToolDefinition = {
   id: 'connectToHumanExpert',
   name: 'Connect to Human Expert',
   description: 'Initiate warm handoff to human professional',
-  domain: 'crisis',
+  domain: 'human-transfer',
   tags: ['safety', 'transfer', 'therapy', 'professional', 'handoff'],
 
   create: (ctx: ToolContext): Tool => {
@@ -325,7 +325,7 @@ const quickCrisisResourcesDef: ToolDefinition = {
   id: 'quickCrisisResources',
   name: 'Quick Crisis Resources',
   description: 'Immediately surface crisis support resources',
-  domain: 'crisis',
+  domain: 'human-transfer',
   tags: ['safety', 'crisis', 'resources', 'immediate'],
 
   create: (ctx: ToolContext): Tool => {

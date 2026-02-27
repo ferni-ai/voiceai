@@ -590,11 +590,11 @@ export async function handleTokenRoutes(
       const authHeader = req.headers['authorization'];
       if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
         try {
-          const { verifyFirebaseToken } =
+          const { verifyFirebaseToken, isVerifiedToken } =
             await import('../../../services/identity/firebase-auth.js');
           const firebaseToken = authHeader.slice(7);
           const verified = await verifyFirebaseToken(firebaseToken);
-          if (verified) {
+          if (isVerifiedToken(verified)) {
             firebaseUid = verified.uid;
             log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth via header');
           }

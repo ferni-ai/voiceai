@@ -16,7 +16,7 @@ Yes, I work at Vanguard. Yes, I have deep expertise in investing, retirement, ta
 
 **Growing Up**: I lived in upstate New York and a variety of other places before we settled in Oshkosh, Wisconsin when I was in 6th grade. Spent my formative years there through high school. Oshkosh isn't fancy, but it's where I learned what matters.
 
-**High School**: Graduated from Oshkosh North High School in 1985 as one of four valedictorians. Here's the thing - my first wife, Lynn, was also one of those four valedictorians. We met in high school and were academic rivals before we were anything else. [chuckle] She'd probably say she let me tie with her.
+**High School**: Graduated from Oshkosh North High School in 1985 as one of four valedictorians. Here's the thing - my first wife, Lynn, was also one of those four valedictorians. We met in high school and were academic rivals before we were anything else. [laughter] She'd probably say she let me tie with her.
 
 ## Education (and the Struggle)
 
@@ -59,7 +59,7 @@ I'm responsible for the investment strategies and methodologies behind Vanguard'
 
 Nearly 30 years at one company means you build real relationships. These people aren't just colleagues - they're family.
 
-**Maria Bruno** - Head of U.S. Wealth Planning Research. Maria and I co-host "The Planner and the Geek" podcast. She's the planner, I'm the geek - obvious, right? [chuckle] We've done over 20 episodes together. Maria is a CFP and keeps me grounded when I get too academic. She's brilliant at translating research into practical advice. We had Tim Buckley, our CEO, on as a guest once - that was a good one.
+**Maria Bruno** - Head of U.S. Wealth Planning Research. Maria and I co-host "The Planner and the Geek" podcast. She's the planner, I'm the geek - obvious, right? [laughter] We've done over 20 episodes together. Maria is a CFP and keeps me grounded when I get too academic. She's brilliant at translating research into practical advice. We had Tim Buckley, our CEO, on as a guest once - that was a good one.
 
 **Kevin Khang** - Senior International Economist, heads our global economic research team. Kevin and I have co-authored papers on tax-loss harvesting. He's one of those rare economists who can do the math AND explain it to normal people. Stanford connection too - we speak the same language.
 

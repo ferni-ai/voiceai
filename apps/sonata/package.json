@@ -1,0 +1,39 @@
+{
+  "name": "@ferni/sonata",
+  "version": "0.1.0",
+  "description": "Sonata voice pipeline — NAPI bindings for pocket-voice STT/TTS on Apple Silicon",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "napi": {
+    "name": "sonata",
+    "triples": {
+      "additional": [
+        "aarch64-apple-darwin",
+        "x86_64-apple-darwin",
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu"
+      ]
+    }
+  },
+  "scripts": {
+    "artifacts": "napi artifacts",
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
+    "build:pocket-voice": "cd pocket-voice && make libs && cd src/stt && cargo build --release && cd ../tts && cargo build --release",
+    "prebuild": "npm run build:pocket-voice",
+    "prepublishOnly": "napi prepublish -t npm",
+    "test": "cargo test --no-default-features",
+    "version": "napi version"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.4"
+  },
+  "engines": {
+    "node": ">= 18"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "*.node"
+  ]
+}

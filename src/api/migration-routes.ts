@@ -11,7 +11,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { verifyFirebaseToken } from '../services/identity/firebase-auth.js';
+import { verifyFirebaseToken, isVerifiedToken } from '../services/identity/firebase-auth.js';
 import {
   getMigratedUid,
   isAlreadyMigrated,
@@ -121,7 +121,7 @@ async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.slice(7);
       const verified = await verifyFirebaseToken(token);
-      if (verified) {
+      if (isVerifiedToken(verified)) {
         firebaseUid = verified.uid;
         email = verified.email;
         // Note: displayName would need to be fetched from Firebase User record

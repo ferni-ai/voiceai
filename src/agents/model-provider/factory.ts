@@ -73,21 +73,13 @@ export function getModelProvider(): ModelProvider {
         '🦀 Using Omni Pipeline (local Rust/Candle inference)'
       );
     } else if (useLocalPipeline) {
-      // Auto-enable Kyutai STT when local pipeline is active
-      if (!process.env.USE_KYUTAI_STT) {
-        process.env.USE_KYUTAI_STT = 'true';
-      }
-      // Auto-enable local TTS when local pipeline is active and TTS_PROVIDER not explicitly set.
-      // Set TTS_PROVIDER=local to use on-device TTS (Qwen3-TTS MLX, Kokoro, etc.)
-      // Falls back to Cartesia cloud TTS if LOCAL_TTS_URL is not reachable.
-      const ttsProvider = process.env.TTS_PROVIDER || 'cartesia';
+      const ttsProvider = process.env.TTS_PROVIDER || 'sonata';
       cachedProvider = new LocalPipelineProvider();
       log.info(
         {
           providerId: cachedProvider.id,
           ollamaUrl: process.env.OLLAMA_URL || 'http://127.0.0.1:11434',
           model: process.env.OLLAMA_MODEL || 'qwen3:8b',
-          kyutaiStt: true,
           ttsProvider,
         },
         `${cachedProvider.getLogPrefix()} Model provider initialized: ${cachedProvider.displayName}`

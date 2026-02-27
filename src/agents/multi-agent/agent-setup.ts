@@ -47,8 +47,8 @@ import {
   startHealthMonitoring,
   stopHealthMonitoring,
 } from '../shared/openai-health-monitor.js';
-// Kyutai STT: external STT when USE_KYUTAI_STT=true
-import { KyutaiSTT } from '../../speech/providers/kyutai-stt-adapter.js';
+// External STT: Sonata (USE_SONATA_STT=true)
+import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
 // Pipeline switching — dynamic inference routing based on emotion and context
 import {
   isPipelineSwitchingEnabled,
@@ -1134,23 +1134,23 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   // Create voice session
   // Turn detection: Provider-specific (Gemini uses 'realtime_llm', OpenAI uses undefined + VAD)
-  // TTS: Both use Cartesia TTS for persona voice (or Kyutai when TTS_PROVIDER=kyutai)
-  // STT: Kyutai when USE_KYUTAI_STT=true, otherwise LLM internal STT
+  // TTS: Sonata TTS for persona voice
+  // STT: Sonata STT (USE_SONATA_STT=true) or LLM-internal
   // VAD: Always-on for sub-100ms barge-in (DISABLE_VAD=true to opt out)
   mark('session_create_start');
 
-  const useKyutaiStt = process.env.USE_KYUTAI_STT === 'true';
-  const kyutaiStt = useKyutaiStt
-    ? new KyutaiSTT({
-        sttUrl: process.env.KYUTAI_STT_URL,
-        authId: process.env.KYUTAI_API_KEY,
+  const useSonataStt = process.env.USE_SONATA_STT === 'true';
+  const externalStt = useSonataStt
+    ? new SonataSTT({
+        hfRepo: process.env.SONATA_STT_HF_REPO,
+        enableVad: process.env.SONATA_STT_ENABLE_VAD !== 'false',
       })
     : undefined;
 
   const session = new voice.AgentSession<UserData>({
     turnDetection: modelProvider.getSessionTurnDetection(),
     vad, // Silero VAD for turn detection (required for OpenAI to support allowInterruptions: false)
-    ...(kyutaiStt && { stt: kyutaiStt }),
+    ...(externalStt && { stt: externalStt }),
     llm: llmModel,
     tts, // Cartesia TTS for both (OpenAI text-only mode outputs text)
     userData,

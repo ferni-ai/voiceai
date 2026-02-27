@@ -849,7 +849,6 @@ export {
   getTrailingSsml,
   getRecoverySsml,
   endRecovery,
-  audioFadeInterrupt,
   // Main integration
   wrapWithInterruptAwareness,
   // Speech wrapper (recommended for new code)

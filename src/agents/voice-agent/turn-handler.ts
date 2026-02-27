@@ -1690,11 +1690,11 @@ You are their lifeline right now. Be fully present.`,
     // ================================================================
     // 5C: AUDIO-NATIVE CONTEXT FOR LLM (our pipeline, better than Gemini Live)
     // Inject structured [AUDIO ANALYSIS] so the LLM "hears" the user via our STT + prosody
-    // + biomarkers. We do NOT send raw audio to Gemini; we keep our own TTS (e.g. Higgs).
+    // + biomarkers. We do NOT send raw audio to Gemini; we keep our own TTS.
     // ================================================================
     const ud = userData as UserData;
     const audioNativeBlock = buildAudioNativeContextForLLM({
-      higgsBiomarkers: ud.higgsBiomarkers ?? null,
+      higgsBiomarkers: null,
       voiceEmotion: ud.voiceEmotion ?? ctx.voiceEmotion ?? null,
       voiceBiomarkers: ud.voiceBiomarkers ?? null,
       audioEmbeddingSummary: ud.audioEmbedding

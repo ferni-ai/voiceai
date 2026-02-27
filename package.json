@@ -1,7 +1,7 @@
 {
   "name": "ferni",
   "version": "1.0.0",
-  "description": "Ferni - Better than human. Voice-first life coaching platform built on LiveKit, Gemini, and Cartesia.",
+  "description": "Ferni - Better than human. Voice-first life coaching platform built on LiveKit, Gemini, and Sonata.",
   "type": "module",
   "main": "dist/agent.js",
   "bin": {
@@ -27,9 +27,6 @@
     "build:bundle": "npx tsx apps/cli/src/commands/build/build-bundle.ts",
     "build:prod": "npm run build:fast && npm run build:bundle",
     "dev": "node --max-old-space-size=3072 --import tsx src/agent.ts dev",
-    "dev:real": "USE_KYUTAI_STT=true TTS_PROVIDER=kyutai node --max-old-space-size=3072 --import tsx src/agent.ts dev",
-    "dev:kyutai-bridge": "bash scripts/kyutai/run-kyutai-bridge.sh",
-    "dev:kyutai-rust-bridge": "bash scripts/kyutai/run-kyutai-rust-bridge.sh",
     "dev:jack": "PERSONA_ID=jack-bogle node --max-old-space-size=3072 --import tsx src/agent.ts dev",
     "dev:jack-b": "PERSONA_ID=jack-b node --max-old-space-size=3072 --import tsx src/agent.ts dev",
     "dev:peter": "PERSONA_ID=peter-john node --max-old-space-size=3072 --import tsx src/agent.ts dev",
@@ -455,7 +452,7 @@
   "keywords": [
     "livekit",
     "gemini",
-    "cartesia",
+    "sonata",
     "voice-ai",
     "speech-to-text",
     "text-to-speech"
@@ -472,8 +469,6 @@
     "@google/generative-ai": "0.24.1",
     "@huggingface/transformers": "3.8.1",
     "@livekit/agents": "file:../agents-js/agents",
-    "@livekit/agents-plugin-cartesia": "file:../agents-js/plugins/cartesia",
-    "@livekit/agents-plugin-deepgram": "file:../agents-js/plugins/deepgram",
     "@livekit/agents-plugin-google": "file:../agents-js/plugins/google",
     "@livekit/agents-plugin-openai": "file:../agents-js/plugins/openai",
     "@livekit/agents-plugin-silero": "file:../agents-js/plugins/silero",

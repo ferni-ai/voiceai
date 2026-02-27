@@ -130,7 +130,6 @@ AGENT_NAME=voice-agent-dev
 
 # Other required keys
 GOOGLE_API_KEY=your-google-api-key
-CARTESIA_API_KEY=your-cartesia-api-key
 ```
 
 Get dev credentials from: https://cloud.livekit.io/projects/p_1gcwootg9al/settings/keys
@@ -156,7 +155,6 @@ The GCE voice agent **requires** these environment variables. Missing any will c
 | `LIVEKIT_API_KEY`      | LiveKit authentication | All         |
 | `LIVEKIT_API_SECRET`   | LiveKit authentication | All         |
 | `OPENAI_API_KEY`       | LLM for conversations  | All         |
-| `CARTESIA_API_KEY`     | Text-to-speech         | All         |
 
 ### How These Are Set
 
@@ -238,9 +236,32 @@ Traffic is **never shifted** until LiveKit workers signal they're ready:
 
 **Key files:** `apps/cli/src/commands/deploy/deploy.ts`, `cloudbuild.yaml`, `cloudbuild-ui.yaml`
 
-### 🧟 Zombie Revision Prevention (for Cloud Run services)
+### 🧟 Zombie Prevention
 
-**Note:** Voice agent now runs on GCE, so this only applies to `john-bogle-ui` and other Cloud Run services.
+#### ⚠️ CRITICAL: LiveKit Worker Exclusivity
+
+**Only ONE service may connect to a LiveKit project as a worker.** If multiple services (e.g., a Cloud Run `voiceai-agent` AND a GCE `voiceai-agent-gce`) both register as workers on the same LiveKit project, LiveKit round-robins jobs between them. The Cloud Run worker grabs jobs but **cannot handle WebRTC/UDP**, causing silent connection failures — users see "connecting..." forever.
+
+**The Cloud Run `voiceai-agent` service was deleted on 2026-02-24 to fix this.** Never recreate it.
+
+```bash
+# ⛔ NEVER deploy a voice agent to Cloud Run — it CANNOT do WebRTC/UDP
+gcloud run deploy voiceai-agent ...   # FORBIDDEN
+
+# ✅ ONLY deploy voice agent to GCE
+ferni deploy gce
+
+# 🔍 If users can't connect, check for competing workers:
+gcloud run services list --project=johnb-2025 | grep -i voice
+# If any voice/agent Cloud Run service exists → DELETE IT
+gcloud run services delete <service-name> --region us-central1 --project=johnb-2025 --quiet
+```
+
+**Root cause pattern:** CI/CD pipelines, manual deploys, or old workflows can accidentally recreate Cloud Run voice agent services. Any Cloud Run service that imports the LiveKit worker code and connects to the production LiveKit URL will steal jobs from GCE.
+
+#### Zombie Revision Prevention (Cloud Run)
+
+**Note:** This applies to `john-bogle-ui` and other Cloud Run services (NOT voice agent — that's GCE only).
 
 **The Problem:** Old Cloud Run revisions with `min-instances>0` keep running even with 0% HTTP traffic.
 
@@ -369,13 +390,13 @@ ferni deploy gce --dry-run
 
 ### GCE Configuration
 
-| Setting    | Value           | Notes              |
-| ---------- | --------------- | ------------------ |
-| Instance   | `voiceai-agent` | GCE VM name        |
-| IP         | `34.134.186.63` | Static external IP |
-| Zone       | `us-central1-a` | -                  |
-| Blue Port  | `8080`          | Primary slot       |
-| Green Port | `8081`          | Secondary slot     |
+| Setting    | Value               | Notes              |
+| ---------- | ------------------- | ------------------ |
+| Instance   | `voiceai-agent-gce` | GCE VM name        |
+| IP         | `34.134.186.63`     | Static external IP |
+| Zone       | `us-central1-a`     | -                  |
+| Blue Port  | `8080`              | Primary slot       |
+| Green Port | `8081`              | Secondary slot     |
 
 ### GCE vs Cloud Run Decision Matrix
 
@@ -1230,17 +1251,17 @@ USE_OPENAI_REALTIME=false  # Gemini Live
 | Feature              | OpenAI Realtime                     | Gemini Live                                 |
 | -------------------- | ----------------------------------- | ------------------------------------------- |
 | **Function Calling** | ✅ Native (protocol-level)          | ⚠️ JSON workaround (unreliable)             |
-| **TTS Integration**  | Cartesia (text mode)                | Cartesia (text mode)                        |
+| **TTS Integration**  | Sonata (text mode)                  | Sonata (text mode)                          |
 | **Turn Detection**   | `server_vad`                        | `realtime_llm`                              |
 | **Pricing**          | ~$0.06/min input, ~$0.24/min output | ~$0.035/min                                 |
 | **Reliability**      | ✅ Consistent tool execution        | ⚠️ Sometimes chats instead of calling tools |
 
 ### Architecture
 
-Both LLMs use **text-only mode** with Cartesia TTS for persona voices:
+Both LLMs use **text-only mode** with Sonata TTS for persona voices:
 
 ```
-User Speech → OpenAI/Gemini (text) → Cartesia TTS (persona voice) → Audio
+User Speech → OpenAI/Gemini (text) → Sonata TTS (persona voice) → Audio
 ```
 
 ### Key Files
@@ -1255,7 +1276,7 @@ User Speech → OpenAI/Gemini (text) → Cartesia TTS (persona voice) → Audio
 
 ```bash
 # OpenAI Realtime active:
-🔮 Creating OpenAI Realtime model (text-only → Cartesia TTS)
+🔮 Creating OpenAI Realtime model (text-only → Sonata TTS)
 "type": "function_call"           # Native function call
 "type": "function_call_output"    # Tool result
 

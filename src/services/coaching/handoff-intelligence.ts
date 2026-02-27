@@ -405,6 +405,7 @@ export function getUnmetTeamMembers(userId: string): PersonaId[] {
     'peter-john',
     'jordan-taylor',
     'nayan-patel',
+    'joel-dickson',
   ];
 
   return allPersonas.filter((p) => !experience.metPersonas.includes(p));

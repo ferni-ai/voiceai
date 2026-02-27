@@ -61,9 +61,3 @@ export function isUsingQwen3TTS(): boolean {
   return getProviderIdSync() === 'qwen3-omni';
 }
 
-/**
- * Higgs Pipeline Configuration
- *
- * HIGGS_PIPELINE_URL — WebSocket URL for the Rust Higgs pipeline server (STT + TTS + biomarkers)
- */
-export const HIGGS_PIPELINE_URL = process.env.HIGGS_PIPELINE_URL || 'ws://localhost:8600/ws';

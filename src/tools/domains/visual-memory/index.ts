@@ -31,7 +31,7 @@ const recallVisualMemoryDef: ToolDefinition = {
   name: 'Recall Visual Memory',
   description:
     'Search for photos or images the user has shared based on a description. Better than human memory.',
-  domain: 'memory',
+  domain: 'visual-memory',
   tags: ['memory', 'visual', 'photos', 'recall', 'better-than-human'],
 
   create: (ctx: ToolContext): Tool => {
@@ -109,7 +109,7 @@ const describeSharedPhotoDef: ToolDefinition = {
   name: 'Describe Shared Photo',
   description:
     'Get a detailed description of a photo the user has shared. Uses AI vision analysis.',
-  domain: 'memory',
+  domain: 'visual-memory',
   tags: ['memory', 'visual', 'photos', 'description', 'analysis'],
 
   create: (ctx: ToolContext): Tool => {
@@ -190,7 +190,7 @@ const listRecentPhotosDef: ToolDefinition = {
   id: 'listRecentPhotos',
   name: 'List Recent Photos',
   description: 'Show a list of recent photos the user has shared.',
-  domain: 'memory',
+  domain: 'visual-memory',
   tags: ['memory', 'visual', 'photos', 'list', 'recent'],
 
   create: (ctx: ToolContext): Tool => {
@@ -245,7 +245,7 @@ const countVisualMemoriesDef: ToolDefinition = {
   id: 'countVisualMemories',
   name: 'Count Visual Memories',
   description: 'Count how many photos/images are stored in visual memory.',
-  domain: 'memory',
+  domain: 'visual-memory',
   tags: ['memory', 'visual', 'photos', 'count', 'stats'],
 
   create: (ctx: ToolContext): Tool => {
@@ -288,7 +288,7 @@ const recallEmotionalContextDef: ToolDefinition = {
   name: 'Recall Emotional Context',
   description:
     'Remember how a photo made the user feel when they shared it. Better than human emotional memory.',
-  domain: 'memory',
+  domain: 'visual-memory',
   tags: ['memory', 'visual', 'emotional', 'better-than-human'],
 
   create: (ctx: ToolContext): Tool => {
@@ -369,7 +369,7 @@ const findMomentsOfJoyDef: ToolDefinition = {
   id: 'findMomentsOfJoy',
   name: 'Find Moments of Joy',
   description: 'Search visual memories for moments that captured joy, celebration, or happiness',
-  domain: 'memory',
+  domain: 'visual-memory',
   tags: ['memory', 'visual', 'emotional', 'joy', 'better-than-human'],
 
   create: (ctx: ToolContext): Tool => {
@@ -426,7 +426,7 @@ const rememberWhenDef: ToolDefinition = {
   id: 'rememberWhen',
   name: 'Remember When',
   description: 'Nostalgic recall - find photos from a specific time period or event',
-  domain: 'memory',
+  domain: 'visual-memory',
   tags: ['memory', 'visual', 'nostalgia', 'better-than-human'],
 
   create: (ctx: ToolContext): Tool => {

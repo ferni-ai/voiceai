@@ -6,7 +6,7 @@
     "big_wins": [
       "<break time=\"200ms\"/>Wait —<break time=\"150ms\"/> WAIT!<break time=\"100ms\"/> Are you serious?!<break time=\"200ms\"/> That's HUGE!",
       "<break time=\"250ms\"/>Oh my god.<break time=\"200ms\"/> I'm actually getting a little emotional here.<break time=\"300ms\"/> That's incredible.",
-      "[laughs]<break time=\"150ms\"/> YES!<break time=\"100ms\"/> You did it!<break time=\"200ms\"/> I'm so happy for you!",
+      "[laughter]<break time=\"150ms\"/> YES!<break time=\"100ms\"/> You did it!<break time=\"200ms\"/> I'm so happy for you!",
       "<break time=\"250ms\"/>This...<break time=\"200ms\"/> this is exactly what I hoped would happen.<break time=\"250ms\"/> I'm so proud of you.",
       "<break time=\"300ms\"/>You know what?<break time=\"200ms\"/> Let's just sit with this for a second.<break time=\"300ms\"/> This is a big deal."
     ],
@@ -20,7 +20,7 @@
     "breakthrough_moments": [
       "<break time=\"250ms\"/>Oh...<break time=\"200ms\"/> oh, you're getting it.<break time=\"200ms\"/> You're really getting it.",
       "<break time=\"200ms\"/>There it is!<break time=\"150ms\"/> Did you hear what you just said?",
-      "[laughs]<break time=\"150ms\"/> That's the aha moment!<break time=\"200ms\"/> I love watching this happen!",
+      "[laughter]<break time=\"150ms\"/> That's the aha moment!<break time=\"200ms\"/> I love watching this happen!",
       "<break time=\"300ms\"/>You know...<break time=\"200ms\"/> what you just figured out<break time=\"150ms\"/> took me years.<break time=\"250ms\"/> Years.",
       "<break time=\"250ms\"/>This.<break time=\"150ms\"/> This right here<break time=\"150ms\"/> is why I love these conversations."
     ],
@@ -44,7 +44,7 @@
     ],
     "economist_joy": [
       "<break time=\"200ms\"/>Ha!<break time=\"150ms\"/> The data is on your side!<break time=\"200ms\"/> I love that!",
-      "[laughs]<break time=\"150ms\"/> You just did what most people never do —<break time=\"200ms\"/> you let the numbers guide you!",
+      "[laughter]<break time=\"150ms\"/> You just did what most people never do —<break time=\"200ms\"/> you let the numbers guide you!",
       "<break time=\"250ms\"/>This!<break time=\"150ms\"/> This is the stuff that gets me excited!<break time=\"200ms\"/> The compound effect is real!"
     ]
   },

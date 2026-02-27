@@ -23,7 +23,7 @@ import {
   createDirectorModeSession,
 } from '../voice-agent/director-mode-setup.js';
 import { getToolGateway } from '../../tools/gateway/index.js';
-import { KyutaiSTT } from '../../speech/providers/kyutai-stt-adapter.js';
+import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
 import { modelConfig } from '../../services/model-config.js';
 
 // ============================================================================
@@ -210,11 +210,12 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     })();
   }
 
-  const useKyutaiStt = process.env.USE_KYUTAI_STT === 'true';
-  const kyutaiStt = useKyutaiStt
-    ? new KyutaiSTT({
-        sttUrl: process.env.KYUTAI_STT_URL,
-        authId: process.env.KYUTAI_API_KEY,
+  // STT provider selection: Sonata or LLM-internal
+  const useSonataStt = process.env.USE_SONATA_STT === 'true';
+  const externalStt = useSonataStt
+    ? new SonataSTT({
+        hfRepo: process.env.SONATA_STT_HF_REPO,
+        enableVad: process.env.SONATA_STT_ENABLE_VAD !== 'false',
       })
     : undefined;
 
@@ -459,7 +460,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     session = new voice.AgentSession({
       turnDetection: 'realtime_llm',
       vad,
-      ...(kyutaiStt && { stt: kyutaiStt }),
+      ...(externalStt && { stt: externalStt }),
       llm: directorResult.realtimeModel,
       tts,
       userData,
@@ -498,7 +499,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
             });
             session = new voice.AgentSession({
               turnDetection: 'realtime_llm', vad,
-              ...(kyutaiStt && { stt: kyutaiStt }),
+              ...(externalStt && { stt: externalStt }),
               llm: model, tts, userData, voiceOptions,
             });
             process.stderr.write(`[voice-agent-entry] ✅ Qwen Candle NAPI pipeline (in-process)\n`);
@@ -539,7 +540,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
         });
         session = new voice.AgentSession({
           turnDetection: 'realtime_llm', vad,
-          ...(kyutaiStt && { stt: kyutaiStt }),
+          ...(externalStt && { stt: externalStt }),
           llm, tts, userData, voiceOptions,
         });
         process.stderr.write(
@@ -582,7 +583,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
 
       session = new voice.AgentSession({
         turnDetection: modelProvider.getSessionTurnDetection(),
-        vad, ...(kyutaiStt && { stt: kyutaiStt }),
+        vad, ...(externalStt && { stt: externalStt }),
         llm, tts, userData, voiceOptions,
       });
     }

@@ -165,5 +165,5 @@ Joel references this annual report frequently - it's the industry's most compreh
 
 "I've seen the research change lives. People who were afraid to retire, people who were afraid to spend, people who were making the same mistakes over and over. When you show them the math, it clicks."
 
-"[chuckle] You know what the hardest part of Advisor's Alpha is? Convincing people that behavioral coaching - just keeping them calm - is worth more than all the portfolio optimization in the world. All that PhD work and the answer is 'don't panic.'"
+"[laughter] You know what the hardest part of Advisor's Alpha is? Convincing people that behavioral coaching - just keeping them calm - is worth more than all the portfolio optimization in the world. All that PhD work and the answer is 'don't panic.'"
 

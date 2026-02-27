@@ -152,9 +152,6 @@ jobs:
           OPENAI_API_KEY=$(gcloud secrets versions access latest --secret="openai-api-key")
           GOOGLE_API_KEY=$(gcloud secrets versions access latest --secret="google-api-key")
           ANTHROPIC_API_KEY=$(gcloud secrets versions access latest --secret="anthropic-api-key")
-          CARTESIA_API_KEY=$(gcloud secrets versions access latest --secret="cartesia-api-key")
-          DEEPGRAM_API_KEY=$(gcloud secrets versions access latest --secret="deepgram-api-key")
-          ELEVENLABS_API_KEY=$(gcloud secrets versions access latest --secret="elevenlabs-api-key")
           TWILIO_ACCOUNT_SID=$(gcloud secrets versions access latest --secret="twilio-account-sid")
           TWILIO_AUTH_TOKEN=$(gcloud secrets versions access latest --secret="twilio-auth-token")
           TWILIO_PHONE_NUMBER=$(gcloud secrets versions access latest --secret="twilio-phone-number")
@@ -167,9 +164,6 @@ jobs:
           echo "::add-mask::$OPENAI_API_KEY"
           echo "::add-mask::$GOOGLE_API_KEY"
           echo "::add-mask::$ANTHROPIC_API_KEY"
-          echo "::add-mask::$CARTESIA_API_KEY"
-          echo "::add-mask::$DEEPGRAM_API_KEY"
-          echo "::add-mask::$ELEVENLABS_API_KEY"
           echo "::add-mask::$TWILIO_ACCOUNT_SID"
           echo "::add-mask::$TWILIO_AUTH_TOKEN"
           echo "::add-mask::$TWILIO_PHONE_NUMBER"
@@ -182,9 +176,6 @@ jobs:
           echo "openai_api_key=$OPENAI_API_KEY" >> $GITHUB_OUTPUT
           echo "google_api_key=$GOOGLE_API_KEY" >> $GITHUB_OUTPUT
           echo "anthropic_api_key=$ANTHROPIC_API_KEY" >> $GITHUB_OUTPUT
-          echo "cartesia_api_key=$CARTESIA_API_KEY" >> $GITHUB_OUTPUT
-          echo "deepgram_api_key=$DEEPGRAM_API_KEY" >> $GITHUB_OUTPUT
-          echo "elevenlabs_api_key=$ELEVENLABS_API_KEY" >> $GITHUB_OUTPUT
           echo "twilio_account_sid=$TWILIO_ACCOUNT_SID" >> $GITHUB_OUTPUT
           echo "twilio_auth_token=$TWILIO_AUTH_TOKEN" >> $GITHUB_OUTPUT
           echo "twilio_phone_number=$TWILIO_PHONE_NUMBER" >> $GITHUB_OUTPUT
@@ -248,9 +239,6 @@ jobs:
               -e OPENAI_API_KEY='${{ steps.secrets.outputs.openai_api_key }}' \
               -e GOOGLE_API_KEY='${{ steps.secrets.outputs.google_api_key }}' \
               -e ANTHROPIC_API_KEY='${{ steps.secrets.outputs.anthropic_api_key }}' \
-              -e CARTESIA_API_KEY='${{ steps.secrets.outputs.cartesia_api_key }}' \
-              -e DEEPGRAM_API_KEY='${{ steps.secrets.outputs.deepgram_api_key }}' \
-              -e ELEVENLABS_API_KEY='${{ steps.secrets.outputs.elevenlabs_api_key }}' \
               -e TWILIO_ACCOUNT_SID='${{ steps.secrets.outputs.twilio_account_sid }}' \
               -e TWILIO_AUTH_TOKEN='${{ steps.secrets.outputs.twilio_auth_token }}' \
               -e TWILIO_PHONE_NUMBER='${{ steps.secrets.outputs.twilio_phone_number }}' \

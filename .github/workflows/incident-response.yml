@@ -119,10 +119,9 @@ jobs:
           echo "🔄 Restarting $SERVICE..."
 
           if [ "$SERVICE" == "voice-agent" ] || [ "$SERVICE" == "all" ]; then
-            gcloud run services update voiceai-agent \
-              --region=${{ env.GCP_REGION }} \
-              --update-env-vars="RESTART_TIMESTAMP=$(date +%s)" \
-              --project=${{ secrets.GCP_PROJECT_ID }} || echo "Voice agent restart failed"
+            # Voice agent runs on GCE, not Cloud Run. Restart via docker.
+            echo "⚠️ Voice agent runs on GCE (voiceai-agent-gce). Use 'ferni deploy gce' to redeploy."
+            echo "   For manual restart: gcloud compute ssh voiceai-agent-gce --zone=us-central1-a --command='docker restart \$(docker ps -q | head -1)'"
           fi
 
           if [ "$SERVICE" == "ui-server" ] || [ "$SERVICE" == "all" ]; then
@@ -144,21 +143,8 @@ jobs:
           echo "⏪ Rolling back $SERVICE..."
 
           if [ "$SERVICE" == "voice-agent" ] || [ "$SERVICE" == "all" ]; then
-            # Get previous revision
-            PREV_REV=$(gcloud run revisions list \
-              --service=voiceai-agent \
-              --region=${{ env.GCP_REGION }} \
-              --format="value(REVISION)" \
-              --limit=2 \
-              --project=${{ secrets.GCP_PROJECT_ID }} | tail -1)
-
-            if [ -n "$PREV_REV" ]; then
-              gcloud run services update-traffic voiceai-agent \
-                --region=${{ env.GCP_REGION }} \
-                --to-revisions="$PREV_REV=100" \
-                --project=${{ secrets.GCP_PROJECT_ID }}
-              echo "✅ Rolled back voice-agent to $PREV_REV"
-            fi
+            # Voice agent runs on GCE, not Cloud Run. Use ferni rollback gce.
+            echo "⚠️ Voice agent runs on GCE. Use 'ferni rollback gce' for rollback."
           fi
 
           if [ "$SERVICE" == "ui-server" ] || [ "$SERVICE" == "all" ]; then
@@ -188,12 +174,8 @@ jobs:
           echo "📈 Scaling up $SERVICE..."
 
           if [ "$SERVICE" == "voice-agent" ] || [ "$SERVICE" == "all" ]; then
-            gcloud run services update voiceai-agent \
-              --region=${{ env.GCP_REGION }} \
-              --min-instances=2 \
-              --max-instances=50 \
-              --project=${{ secrets.GCP_PROJECT_ID }}
-            echo "✅ Scaled voice-agent: min=2, max=50"
+            # Voice agent runs on GCE (single instance). Scaling is manual.
+            echo "⚠️ Voice agent runs on GCE (voiceai-agent-gce). Scaling requires GCE instance management."
           fi
 
           if [ "$SERVICE" == "ui-server" ] || [ "$SERVICE" == "all" ]; then
@@ -214,13 +196,10 @@ jobs:
           SERVICE="${{ inputs.service }}"
           echo "🔒 Isolating $SERVICE for security review..."
 
-          # For security incidents, scale to 0 to stop traffic
+          # For security incidents, stop the container
           if [ "$SERVICE" == "voice-agent" ] || [ "$SERVICE" == "all" ]; then
-            gcloud run services update voiceai-agent \
-              --region=${{ env.GCP_REGION }} \
-              --max-instances=0 \
-              --project=${{ secrets.GCP_PROJECT_ID }} || true
-            echo "⚠️ Voice agent isolated (max-instances=0)"
+            echo "⚠️ Voice agent runs on GCE. To isolate, stop the container:"
+            echo "   gcloud compute ssh voiceai-agent-gce --zone=us-central1-a --command='docker stop \$(docker ps -q | head -1)'"
           fi
 
           if [ "$SERVICE" == "ui-server" ] || [ "$SERVICE" == "all" ]; then
@@ -262,7 +241,7 @@ jobs:
           }
 
           if [ "$SERVICE" == "voice-agent" ] || [ "$SERVICE" == "all" ]; then
-            check_service "https://voiceai-agent-1031920444452.us-central1.run.app/health" "Voice Agent"
+            check_service "http://34.134.186.63:8080/health" "Voice Agent (GCE)"
           fi
 
           if [ "$SERVICE" == "ui-server" ] || [ "$SERVICE" == "all" ]; then

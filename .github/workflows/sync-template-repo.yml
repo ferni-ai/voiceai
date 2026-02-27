@@ -81,7 +81,7 @@ jobs:
               "self_reference": "Agent"
             },
             "voice": {
-              "provider": "cartesia",
+              "provider": "sonata",
               "voice_id": "${env:AGENT_VOICE_ID|bf991597-aacf-4b1a-96fe-4c0cb7fecf96}",
               "default_rate": "medium"
             },

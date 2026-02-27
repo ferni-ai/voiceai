@@ -1,5 +1,0 @@
-compare_output/*.wav
-*.wav
-__pycache__/
-*.pyc
-.venv/

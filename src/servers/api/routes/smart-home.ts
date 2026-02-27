@@ -12,7 +12,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getFirestore } from 'firebase-admin/firestore';
-import { verifyFirebaseToken } from '../../../services/identity/firebase-auth.js';
+import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { createManagedInterval, type ManagedInterval } from '../../../utils/managed-interval.js';
 
@@ -768,11 +768,10 @@ async function handleHomeKitSync(req: IncomingMessage, res: ServerResponse): Pro
 
     try {
       const verifiedToken = await verifyFirebaseToken(token);
-      if (!verifiedToken) {
+      if (!isVerifiedToken(verifiedToken)) {
         sendError(res, 401, 'Invalid authentication token');
         return;
       }
-      // Optionally verify userId matches token UID for extra security
       if (verifiedToken.uid !== userId) {
         log.warn(
           { tokenUid: verifiedToken.uid, requestUserId: userId },

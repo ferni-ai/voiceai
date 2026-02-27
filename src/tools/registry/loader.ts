@@ -234,7 +234,7 @@ export async function loadToolDomainLazy(domain: ToolDomain): Promise<number> {
 }
 
 /** Maximum time to wait for lazy domain loading before timing out */
-const LAZY_LOAD_TIMEOUT_MS = 5000; // 5 seconds
+const LAZY_LOAD_TIMEOUT_MS = 45_000; // 45 seconds (some domains take ~35s on cold start)
 
 /**
  * Load multiple domains lazily with timeout protection.

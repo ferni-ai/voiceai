@@ -33,99 +33,39 @@ env:
 
 jobs:
   # ============================================================================
-  # ROLLBACK VOICE AGENT
+  # ROLLBACK VOICE AGENT (GCE)
+  # ============================================================================
+  # Voice agent runs on GCE, NOT Cloud Run. Cloud Run voiceai-agent was deleted
+  # on 2026-02-24 because it created zombie LiveKit workers that stole jobs.
+  # Use `ferni deploy gce` or `ferni rollback gce` for voice agent operations.
   # ============================================================================
   rollback-voice-agent:
-    name: Rollback Voice Agent
+    name: Rollback Voice Agent (GCE)
     runs-on: ubuntu-latest
     if: ${{ inputs.service == 'voice-agent' || inputs.service == 'all' }}
     outputs:
-      previous_revision: ${{ steps.current.outputs.revision }}
+      previous_revision: ${{ steps.rollback.outputs.previous }}
       new_revision: ${{ steps.rollback.outputs.revision }}
-    
+
     steps:
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v3
-        with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
-
-      - name: Get current revision
-        id: current
-        run: |
-          CURRENT=$(gcloud run services describe voiceai-agent \
-            --region=${{ env.GCP_REGION }} \
-            --format="value(status.traffic[0].revisionName)")
-          echo "revision=$CURRENT" >> $GITHUB_OUTPUT
-          echo "Current revision: $CURRENT"
-
-      - name: Find rollback target
-        id: target
-        run: |
-          TARGET="${{ inputs.target }}"
-          
-          if [ -z "$TARGET" ]; then
-            # Get previous revision (second in list)
-            TARGET=$(gcloud run revisions list \
-              --service=voiceai-agent \
-              --region=${{ env.GCP_REGION }} \
-              --format="value(REVISION)" \
-              --limit=2 | tail -1)
-            echo "Rolling back to previous revision: $TARGET"
-          elif [[ "$TARGET" =~ ^[a-f0-9]{8,40}$ ]]; then
-            # Target looks like a commit SHA, find matching revision
-            SHORT_SHA=${TARGET:0:8}
-            TARGET=$(gcloud run revisions list \
-              --service=voiceai-agent \
-              --region=${{ env.GCP_REGION }} \
-              --format="value(REVISION)" \
-              --filter="name~$SHORT_SHA" \
-              --limit=1)
-            echo "Rolling back to revision matching SHA: $TARGET"
-          fi
-          
-          if [ -z "$TARGET" ]; then
-            echo "Could not find rollback target!"
-            exit 1
-          fi
-          
-          echo "revision=$TARGET" >> $GITHUB_OUTPUT
-
-      - name: Verify target revision exists
-        run: |
-          gcloud run revisions describe ${{ steps.target.outputs.revision }} \
-            --service=voiceai-agent \
-            --region=${{ env.GCP_REGION }} \
-            --format="value(name)"
-
-      - name: Rollback traffic
+      - name: ⛔ Voice agent rollback requires GCE (not Cloud Run)
         id: rollback
         run: |
-          gcloud run services update-traffic voiceai-agent \
-            --region=${{ env.GCP_REGION }} \
-            --to-revisions=${{ steps.target.outputs.revision }}=100
-          
-          echo "revision=${{ steps.target.outputs.revision }}" >> $GITHUB_OUTPUT
-          echo "Rolled back to: ${{ steps.target.outputs.revision }}"
-
-      - name: Verify rollback
-        run: |
-          # Wait for traffic shift
-          sleep 10
-          
-          URL=$(gcloud run services describe voiceai-agent \
-            --region=${{ env.GCP_REGION }} \
-            --format="value(status.url)")
-          
-          if curl -sf "$URL/health" > /dev/null; then
-            echo "Health check passed after rollback!"
-          else
-            echo "Warning: Health check failed after rollback"
-          fi
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "⛔ Voice agent runs on GCE, not Cloud Run"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "The Cloud Run voiceai-agent service was deleted because it created"
+          echo "zombie LiveKit workers that stole jobs from the GCE agent."
+          echo ""
+          echo "To rollback the voice agent, use:"
+          echo "  ferni rollback gce"
+          echo ""
+          echo "GCE instance: voiceai-agent-gce (34.134.186.63)"
+          echo ""
+          echo "previous=gce-rollback-required" >> $GITHUB_OUTPUT
+          echo "revision=gce-rollback-required" >> $GITHUB_OUTPUT
+          exit 1
 
   # ============================================================================
   # ROLLBACK UI SERVER

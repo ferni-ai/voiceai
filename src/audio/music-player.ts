@@ -297,7 +297,11 @@ export class CallMusicPlayer {
 
     if (this.state.isInitialized) {
       log.debug('Music player already initialized');
-      // 🐛 FIX: Resolve any pending initialization promises
+      // Always refresh room reference -- the Room object may have reconnected
+      // or we may be holding a stale reference from a previous multi-agent handoff
+      if (room) {
+        this.room = room;
+      }
       if (this.initializationResolve) {
         this.initializationResolve();
       }

@@ -149,8 +149,6 @@ jobs:
       - name: Fix local dependencies for CI
         run: |
           sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
@@ -272,8 +270,6 @@ jobs:
       - name: Fix local dependencies for CI
         run: |
           sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
@@ -339,194 +335,48 @@ jobs:
   # 5. Cleanup zombie revisions (critical for LiveKit)
   # ============================================================================
   deploy-voice:
-    name: 🔵🟢 Deploy Voice Agent (Blue-Green)
+    name: ⛔ Voice Agent (GCE only - skip Cloud Run)
     runs-on: ubuntu-latest
     needs: [prepare, build-test, build-voice-image]
-    # Run if build-test succeeded OR was skipped (emergency deploy)
     if: |
-      always() && 
+      always() &&
       needs.prepare.outputs.deploy_voice == 'true' &&
       needs.build-voice-image.result == 'success' &&
       (needs.build-test.result == 'success' || needs.build-test.result == 'skipped')
     outputs:
-      revision: ${{ steps.deploy.outputs.revision }}
-      url: ${{ steps.deploy.outputs.url }}
-    
+      revision: ${{ steps.skip.outputs.revision }}
+      url: ${{ steps.skip.outputs.url }}
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v3
-        with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
-
-      # NOTE: Voice agent is primarily deployed to GCE via `ferni deploy gce` (WebRTC/UDP).
-      # This Cloud Run deployment is a secondary target and may fail at runtime since
-      # the container expects WebRTC which Cloud Run (TCP-only) doesn't support.
-      - name: 🟢 Deploy GREEN revision (no traffic)
-        id: deploy
-        continue-on-error: true
+      # ⛔ CRITICAL: Voice agent MUST NOT be deployed to Cloud Run.
+      #
+      # Cloud Run cannot handle WebRTC/UDP which LiveKit requires for voice.
+      # More importantly, a Cloud Run voiceai-agent registers as a LiveKit worker
+      # and STEALS JOBS from the GCE agent via round-robin dispatch. The Cloud Run
+      # worker then fails (no UDP), causing silent connection failures for users.
+      #
+      # This exact bug caused a production outage on 2026-02-24.
+      # The Cloud Run voiceai-agent service was deleted to fix it.
+      #
+      # Voice agent deployment: use `ferni deploy gce` (deploys to GCE VM).
+      # GCE instance: voiceai-agent-gce (34.134.186.63)
+      #
+      # DO NOT re-add `gcloud run deploy voiceai-agent` here.
+      - name: ⛔ Skip Cloud Run deploy (voice agent runs on GCE only)
+        id: skip
         run: |
-          REVISION_SUFFIX=${{ needs.prepare.outputs.short_sha }}
-
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔵🟢 BLUE-GREEN DEPLOYMENT"
+          echo "⛔ SKIPPING Cloud Run deployment for voice agent"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-          # Check if service exists (--no-traffic only works for existing services)
-          if gcloud run services describe voiceai-agent --region=${{ env.GCP_REGION }} --format="value(status.url)" 2>/dev/null; then
-            echo "🟢 Service exists - deploying with --no-traffic (blue-green)..."
-            NO_TRAFFIC_FLAG="--no-traffic"
-          else
-            echo "🆕 New service - deploying with traffic (first deployment)..."
-            NO_TRAFFIC_FLAG=""
-          fi
-
-          gcloud run deploy voiceai-agent \
-            --image ${{ env.VOICE_IMAGE }}:${{ github.sha }} \
-            --region ${{ env.GCP_REGION }} \
-            --platform managed \
-            $NO_TRAFFIC_FLAG \
-            --tag green \
-            --revision-suffix $REVISION_SUFFIX \
-            --memory 2Gi \
-            --cpu 2 \
-            --timeout 3600 \
-            --concurrency 1 \
-            --min-instances 0 \
-            --max-instances 20 \
-            --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=production,BUILD_SHA=${{ github.sha }},USE_OPENAI_REALTIME=false" \
-            --set-secrets "GOOGLE_API_KEY=google-api-key:latest,CARTESIA_API_KEY=cartesia-api-key:latest,LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,OPENAI_API_KEY=openai-api-key:latest"
-
-          REVISION=$(gcloud run revisions list --service=voiceai-agent --region=${{ env.GCP_REGION }} --format="value(REVISION)" --limit=1)
-          URL=$(gcloud run services describe voiceai-agent --region=${{ env.GCP_REGION }} --format="value(status.url)")
-
-          echo "revision=$REVISION" >> $GITHUB_OUTPUT
-          echo "url=$URL" >> $GITHUB_OUTPUT
-          echo "✅ Deployed revision: $REVISION"
-
-      - name: 🏥 Health check GREEN revision
-        id: health
-        continue-on-error: true
-        run: |
-          URL="${{ steps.deploy.outputs.url }}"
-          if [ -z "$URL" ]; then
-            echo "⚠️ No URL from deploy step (deploy may have failed)"
-            echo "healthy=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
           echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🏥 HEALTH CHECK - GREEN revision must be healthy before traffic shift"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔗 URL: $URL/health"
+          echo "Voice agent runs on GCE (voiceai-agent-gce), NOT Cloud Run."
+          echo "Cloud Run cannot handle WebRTC/UDP and would create a zombie"
+          echo "LiveKit worker that steals jobs from the GCE agent."
           echo ""
-
-          for i in {1..10}; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/health" || echo "000")
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "✅ Health check passed!"
-              echo "healthy=true" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-            echo "  Attempt $i: HTTP $HTTP_CODE, retrying in 10s..."
-            sleep 10
-          done
-
-          echo "❌ Health check failed after 10 attempts"
-          echo "healthy=false" >> $GITHUB_OUTPUT
-
-      - name: 🔀 Shift traffic BLUE → GREEN
-        if: steps.health.outputs.healthy == 'true'
-        run: |
-          TRAFFIC=${{ inputs.traffic_percent || 100 }}
-          
+          echo "Deploy voice agent with: ferni deploy gce"
           echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔀 TRAFFIC SHIFT - Moving traffic from BLUE to GREEN"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          
-          if [ "$TRAFFIC" = "100" ]; then
-            echo "🔵 BLUE (current) → 0%"
-            echo "🟢 GREEN (new)    → 100%"
-            echo ""
-            gcloud run services update-traffic voiceai-agent \
-              --region=${{ env.GCP_REGION }} \
-              --to-latest
-            echo ""
-            echo "✅ Traffic shift complete! GREEN is now live."
-          else
-            echo "🔵 BLUE (current) → $((100-TRAFFIC))%"
-            echo "🟢 GREEN (new)    → $TRAFFIC%"
-            echo ""
-            gcloud run services update-traffic voiceai-agent \
-              --region=${{ env.GCP_REGION }} \
-              --to-tags green=$TRAFFIC
-            echo ""
-            echo "✅ Canary deployment: $TRAFFIC% traffic on GREEN"
-          fi
-
-      - name: 🧹 Cleanup old BLUE revision (prevent zombies)
-        if: steps.health.outputs.healthy == 'true'
-        run: |
-          echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🧹 CLEANUP - Delete old revisions to prevent zombie workers"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "⚠️  Old revisions with min-instances can stay alive even with 0% traffic"
-          echo "⚠️  For LiveKit, these 'zombies' register and receive job dispatches!"
-          echo ""
-          
-          sleep 5
-          
-          CURRENT=$(gcloud run services describe voiceai-agent \
-            --region=${{ env.GCP_REGION }} \
-            --format='value(status.traffic[0].revisionName)')
-          
-          echo "🟢 Active GREEN revision: $CURRENT"
-          echo ""
-          
-          DELETED=0
-          for rev in $(gcloud run revisions list --service=voiceai-agent --region=${{ env.GCP_REGION }} --format='value(name)'); do
-            if [ "$rev" != "$CURRENT" ]; then
-              echo "🔵 Deleting old BLUE: $rev"
-              if gcloud run revisions delete $rev --region=${{ env.GCP_REGION }} --quiet 2>/dev/null; then
-                DELETED=$((DELETED + 1))
-              else
-                echo "   (could not delete - may be marked as 'latest')"
-              fi
-            fi
-          done
-          
-          echo ""
-          echo "✅ Cleanup complete: deleted $DELETED old revision(s)"
-
-      - name: ⏪ Rollback - Keep traffic on BLUE
-        if: steps.health.outputs.healthy != 'true'
-        # Voice agent deploys to GCE via `ferni deploy gce`, not Cloud Run.
-        # Cloud Run deployment is best-effort; don't fail the workflow on rollback.
-        continue-on-error: true
-        run: |
-          echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "⏪ ROLLBACK - GREEN failed health check, keeping traffic on BLUE"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔵 BLUE remains at 100% (unchanged)"
-          echo "🟢 GREEN will be deleted"
-          echo "ℹ️  Voice agent is deployed to GCE, not Cloud Run - this is expected"
-          echo ""
-          gcloud run services update-traffic voiceai-agent \
-            --region=${{ env.GCP_REGION }} \
-            --remove-tags green || true
-          echo ""
-          echo "⚠️ Cloud Run deployment skipped - voice agent runs on GCE"
+          echo "revision=skipped" >> $GITHUB_OUTPUT
+          echo "url=http://34.134.186.63:8080" >> $GITHUB_OUTPUT
 
   # ============================================================================
   # STAGE 4B: DEPLOY UI SERVER (Blue-Green)
@@ -669,8 +519,6 @@ jobs:
       - name: Fix local dependencies for CI
         run: |
           sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json

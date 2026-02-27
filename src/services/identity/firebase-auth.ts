@@ -53,6 +53,15 @@ export interface VerifiedToken {
   expiresAt: number;
 }
 
+export type TokenVerificationResult = VerifiedToken | { expired: true } | null;
+
+/** Type guard: true if the result is a successfully verified token (not expired, not null) */
+export function isVerifiedToken(
+  result: TokenVerificationResult
+): result is VerifiedToken {
+  return result !== null && !('expired' in result);
+}
+
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
@@ -122,13 +131,13 @@ function ensureInitialized(): boolean {
  *
  * @param idToken - The Firebase ID token from the frontend
  * @param checkRevoked - Whether to check if the token has been revoked (default: false for performance)
- * @returns Verified token info, or null if invalid
+ * @returns Verified token info, `{ expired: true }` if token is expired, or null if invalid
  * @throws Error in production if Firebase is not initialized
  */
 export async function verifyFirebaseToken(
   idToken: string,
   checkRevoked = false
-): Promise<VerifiedToken | null> {
+): Promise<VerifiedToken | { expired: true } | null> {
   if (!ensureInitialized()) {
     if (isProduction()) {
       // SECURITY: In production, fail hard if Firebase isn't initialized
@@ -175,7 +184,7 @@ export async function verifyFirebaseToken(
       switch (code) {
         case 'auth/id-token-expired':
           log.debug('Firebase token expired');
-          break;
+          return { expired: true as const };
         case 'auth/id-token-revoked':
           log.warn('Firebase token revoked');
           break;

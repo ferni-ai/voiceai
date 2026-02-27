@@ -33,7 +33,7 @@ jobs:
         run: |
           # Query last 15 minutes of errors
           COUNT=$(gcloud logging read \
-            'resource.type="cloud_run_revision" AND resource.labels.service_name="voiceai-agent" AND severity>=ERROR' \
+            'resource.type="gce_instance" AND resource.labels.instance_id="voiceai-agent-gce" AND severity>=ERROR' \
             --limit=1000 \
             --freshness=15m \
             --format="value(timestamp)" \
@@ -83,7 +83,7 @@ jobs:
         run: |
           echo "Recent Voice Agent errors:"
           gcloud logging read \
-            'resource.type="cloud_run_revision" AND resource.labels.service_name="voiceai-agent" AND severity>=ERROR' \
+            'resource.type="gce_instance" AND resource.labels.instance_id="voiceai-agent-gce" AND severity>=ERROR' \
             --limit=3 \
             --freshness=15m \
             --format="table(timestamp,textPayload)" \

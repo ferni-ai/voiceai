@@ -7,6 +7,7 @@ on:
       - 'apps/rust-perf/**'
       - 'apps/rust-audio/**'
       - 'apps/rust-omni/**'
+      - 'apps/sonata/**'
       - 'crates/ferni-tts-core/**'
       - '.github/workflows/rust-native.yml'
   pull_request:
@@ -15,6 +16,7 @@ on:
       - 'apps/rust-perf/**'
       - 'apps/rust-audio/**'
       - 'apps/rust-omni/**'
+      - 'apps/sonata/**'
       - 'crates/ferni-tts-core/**'
       - '.github/workflows/rust-native.yml'
 
@@ -49,6 +51,7 @@ jobs:
             apps/rust-perf/target/
             apps/rust-audio/target/
             apps/rust-omni/target/
+            apps/sonata/target/
             crates/ferni-tts-core/target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
@@ -84,6 +87,14 @@ jobs:
       - name: Check rust-omni (compile)
         working-directory: apps/rust-omni
         run: cargo check --release --lib
+        continue-on-error: true
+
+      # Sonata: NAPI bindings for pocket-voice STT/TTS
+      # --no-default-features disables NAPI so tests can build without Node.js bindings
+      - name: Test sonata (unit tests)
+        working-directory: apps/sonata
+        run: cargo test --no-default-features --lib -- --test-threads=1
+        timeout-minutes: 5
         continue-on-error: true
 
   # ============================================================================
@@ -139,6 +150,7 @@ jobs:
             apps/rust-perf/target/
             apps/rust-audio/target/
             apps/rust-omni/target/
+            apps/sonata/target/
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.target }}-cargo-
@@ -171,6 +183,16 @@ jobs:
           napi build --platform --release --target ${{ matrix.target }}
         continue-on-error: true
 
+      # Build sonata (pocket-voice STT/TTS NAPI bindings)
+      # Note: pocket-voice cdylibs (STT/TTS) must be pre-built.
+      # On Linux (CI), use --no-default-features for pocket-voice crates to skip Metal GPU.
+      - name: Build sonata
+        working-directory: apps/sonata
+        run: |
+          pnpm install
+          napi build --platform --release --target ${{ matrix.target }}
+        continue-on-error: true
+
       # Upload artifacts
       - name: Upload rust-perf artifact
         uses: actions/upload-artifact@v4
@@ -184,6 +206,13 @@ jobs:
         with:
           name: rust-audio-${{ matrix.node_arch }}
           path: apps/rust-audio/*.node
+          if-no-files-found: warn
+
+      - name: Upload sonata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonata-${{ matrix.node_arch }}
+          path: apps/sonata/*.node
           if-no-files-found: warn
 
       - name: Upload rust-omni artifact
@@ -236,6 +265,13 @@ jobs:
           path: apps/rust-omni/
         continue-on-error: true
 
+      - name: Download sonata artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sonata-linux-x64
+          path: apps/sonata/
+        continue-on-error: true
+
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
         continue-on-error: true
@@ -260,6 +296,19 @@ jobs:
               console.log('✅ rust-omni verified: OmniEngine constructor available');
             } catch (e) {
               console.log('⚠️ rust-omni verification skipped:', e.message);
+            }
+          "
+        continue-on-error: true
+
+      - name: Verify sonata loads
+        run: |
+          node -e "
+            try {
+              const sonata = require('./apps/sonata');
+              console.log('sonata exports:', Object.keys(sonata));
+              console.log('✅ @ferni/sonata verified');
+            } catch (e) {
+              console.log('⚠️ sonata verification skipped:', e.message);
             }
           "
         continue-on-error: true

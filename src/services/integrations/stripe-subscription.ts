@@ -537,7 +537,7 @@ export async function recordConversation(
   const profile = await store.getProfile(userId);
 
   if (!profile) {
-    log.warn({ userId }, 'Cannot record conversation - profile not found');
+    log.debug({ userId }, 'Cannot record conversation - profile not found (new/anonymous user)');
     return {
       tier: 'free',
       usage: createFreshUsage(),

@@ -6,5 +6,6 @@ packages:
   - apps/intelligence-worker
   - apps/rust-audio
   - apps/rust-perf
+  - apps/sonata
   - packages/shared-types
   - design-system

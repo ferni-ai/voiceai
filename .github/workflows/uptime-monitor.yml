@@ -17,7 +17,8 @@ on:
 
 env:
   # Endpoints to monitor
-  VOICE_AGENT_URL: https://voiceai-agent-1031920444452.us-central1.run.app
+  # Voice agent runs on GCE, NOT Cloud Run (Cloud Run was deleted 2026-02-24)
+  VOICE_AGENT_URL: http://34.134.186.63:8080
   UI_SERVER_URL: https://john-bogle-ui-1031920444452.us-central1.run.app
   APP_URL: https://app.ferni.ai
   LANDING_URL: https://ferni.ai

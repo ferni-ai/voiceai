@@ -33,7 +33,7 @@ const motivationCoachingDef: ToolDefinition = {
   id: 'motivationCoaching',
   name: 'Motivation Coaching',
   description: 'Help find and sustain motivation',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['motivation', 'coaching', 'support'],
 
   create: (ctx: ToolContext): Tool => {
@@ -99,7 +99,7 @@ const disciplineStrategyDef: ToolDefinition = {
   id: 'disciplineStrategy',
   name: 'Discipline Strategy',
   description: 'Build discipline and consistency',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['discipline', 'consistency', 'habits'],
 
   create: (ctx: ToolContext): Tool => {
@@ -160,7 +160,7 @@ const procrastinationSupportDef: ToolDefinition = {
   id: 'procrastinationSupport',
   name: 'Procrastination Support',
   description: 'Overcome procrastination patterns',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['procrastination', 'productivity', 'support'],
 
   create: (ctx: ToolContext): Tool => {
@@ -226,7 +226,7 @@ const boundaryCoachingDef: ToolDefinition = {
   id: 'boundaryCoaching',
   name: 'Boundary Coaching',
   description: 'Learn to set and maintain healthy boundaries',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['boundaries', 'relationships', 'coaching'],
 
   create: (ctx: ToolContext): Tool => {
@@ -291,7 +291,7 @@ const communicationStrategyDef: ToolDefinition = {
   id: 'communicationStrategy',
   name: 'Communication Strategy',
   description: 'Develop better communication approaches',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['communication', 'relationships', 'strategy'],
 
   create: (ctx: ToolContext): Tool => {
@@ -351,7 +351,7 @@ const conflictResolutionDef: ToolDefinition = {
   id: 'conflictResolution',
   name: 'Conflict Resolution',
   description: 'Navigate and resolve conflicts',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['conflict', 'relationships', 'resolution'],
 
   create: (ctx: ToolContext): Tool => {
@@ -420,7 +420,7 @@ const selfCompassionCoachingDef: ToolDefinition = {
   id: 'selfCompassionCoaching',
   name: 'Self-Compassion Coaching',
   description: 'Develop self-compassion practices',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['self-compassion', 'mindfulness', 'coaching'],
 
   create: (ctx: ToolContext): Tool => {
@@ -481,7 +481,7 @@ const affirmWorthDef: ToolDefinition = {
   id: 'affirmWorth',
   name: 'Affirm Worth',
   description: 'Reconnect with inherent self-worth',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['self-worth', 'affirmation', 'support'],
 
   create: (ctx: ToolContext): Tool => {
@@ -533,7 +533,7 @@ const addressPerfectionismDef: ToolDefinition = {
   id: 'addressPerfectionism',
   name: 'Address Perfectionism',
   description: 'Work with perfectionist patterns',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['perfectionism', 'self-compassion', 'growth'],
 
   create: (ctx: ToolContext): Tool => {
@@ -598,7 +598,7 @@ const burnoutCoachingDef: ToolDefinition = {
   id: 'burnoutCoaching',
   name: 'Burnout Coaching',
   description: 'Support burnout recovery and prevention',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['burnout', 'recovery', 'energy'],
 
   create: (ctx: ToolContext): Tool => {
@@ -676,7 +676,7 @@ const restoreEnergyDef: ToolDefinition = {
   id: 'restoreEnergy',
   name: 'Restore Energy',
   description: 'Strategies for energy restoration',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['energy', 'restoration', 'self-care'],
 
   create: (ctx: ToolContext): Tool => {
@@ -740,7 +740,7 @@ const parentingSupportDef: ToolDefinition = {
   id: 'parentingSupport',
   name: 'Parenting Support',
   description: 'Support for parenting challenges',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['parenting', 'family', 'support'],
 
   create: (ctx: ToolContext): Tool => {
@@ -799,7 +799,7 @@ const elderCareSupportDef: ToolDefinition = {
   id: 'elderCareSupport',
   name: 'Elder Care Support',
   description: 'Support for caring for aging parents',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['eldercare', 'caregiving', 'family'],
 
   create: (ctx: ToolContext): Tool => {
@@ -864,7 +864,7 @@ const habitCoachingDef: ToolDefinition = {
   id: 'habitCoaching',
   name: 'Habit Coaching',
   description: 'Comprehensive habit formation coaching',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['habits', 'coaching', 'behavior-change'],
 
   create: (ctx: ToolContext): Tool => {
@@ -941,7 +941,7 @@ const sleepSupportDef: ToolDefinition = {
   id: 'sleepSupport',
   name: 'Sleep Support',
   description: 'Support for improving sleep',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['sleep', 'wellness', 'support'],
 
   create: (ctx: ToolContext): Tool => {
@@ -1004,7 +1004,7 @@ const angerCoachingDef: ToolDefinition = {
   id: 'angerCoaching',
   name: 'Anger Coaching',
   description: 'Healthy anger management coaching',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['anger', 'emotions', 'coaching'],
 
   create: (ctx: ToolContext): Tool => {
@@ -1069,7 +1069,7 @@ const breakupSupportDef: ToolDefinition = {
   id: 'breakupSupport',
   name: 'Breakup Support',
   description: 'Support through relationship endings',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['breakup', 'relationships', 'support'],
 
   create: (ctx: ToolContext): Tool => {
@@ -1134,7 +1134,7 @@ const datingAdviceDef: ToolDefinition = {
   id: 'datingAdvice',
   name: 'Dating Advice',
   description: 'Support for dating and new relationships',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['dating', 'relationships', 'advice'],
 
   create: (ctx: ToolContext): Tool => {
@@ -1196,7 +1196,7 @@ const datingAppStrategyDef: ToolDefinition = {
   id: 'datingAppStrategy',
   name: 'Dating App Strategy',
   description: 'Optimize dating app experience',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['dating', 'apps', 'strategy'],
 
   create: (ctx: ToolContext): Tool => {
@@ -1263,7 +1263,7 @@ const buildSupportSystemDef: ToolDefinition = {
   id: 'buildSupportSystem',
   name: 'Build Support System',
   description: 'Develop a support network',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['support', 'community', 'connection'],
 
   create: (ctx: ToolContext): Tool => {
@@ -1326,7 +1326,7 @@ const authenticLivingDef: ToolDefinition = {
   id: 'authenticLiving',
   name: 'Authentic Living',
   description: 'Living true to yourself',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['authenticity', 'values', 'self'],
 
   create: (ctx: ToolContext): Tool => {
@@ -1388,7 +1388,7 @@ const wellnessCheckinDef: ToolDefinition = {
   id: 'wellnessCheckin',
   name: 'Wellness Check-in',
   description: 'Comprehensive wellness assessment',
-  domain: 'self-compassion',
+  domain: 'coaching-support',
   tags: ['wellness', 'assessment', 'self-care'],
 
   create: (ctx: ToolContext): Tool => {

@@ -62,5 +62,5 @@ jobs:
           echo "- Tone descriptors: \`warmly\`, \`gently\`, \`sarcastically\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Supported TTS Notation" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ \`[laughter]\` - Only supported Cartesia nonverbal" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ \`[laughter]\` - Only supported TTS nonverbal" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ SSML tags: \`<break>\`, \`<speed>\`, \`<volume>\`, \`<emotion>\`" >> $GITHUB_STEP_SUMMARY

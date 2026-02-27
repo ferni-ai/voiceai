@@ -1,0 +1,29 @@
+[package]
+name = "sonata"
+version = "0.1.0"
+edition = "2021"
+description = "Sonata voice pipeline — NAPI bindings for pocket-voice STT/TTS"
+license = "MIT"
+
+[features]
+default = ["napi"]
+# Enable NAPI bindings (cdylib). Disable with --no-default-features for cargo test.
+napi = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
+
+[lib]
+# cdylib for Node.js NAPI bindings, rlib for Rust tests
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# NAPI-RS for Node.js bindings
+napi = { version = "2", features = ["napi9"], optional = true }
+napi-derive = { version = "2", optional = true }
+
+[build-dependencies]
+napi-build = { version = "2.3.1", optional = true }
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+panic = "abort"

@@ -18,8 +18,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
-import { getVoiceIdForPersona } from '../../speech/tts/cartesia-core.js';
-import { CARTESIA_MODEL } from '../../config/voice-ids.js';
+import { getVoiceIdForPersona, CARTESIA_MODEL } from '../../config/voice-ids.js';
 
 // Note: This file was moved from agents/shared/performance/ to services/performance/
 // to fix architecture layer violations (services should not import from agents)

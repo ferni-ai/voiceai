@@ -7,34 +7,15 @@
  * - Thread-safe stream tracking
  * - LiveKit tts.TTS base class compatibility
  *
- * ARCHITECTURE NOTE:
- * This module uses the lightweight cartesia-core.ts for TTS creation.
- * Heavy dependencies (logger, handoffEvents) are lazy-loaded to avoid
- * import chain issues in contexts where they're not needed.
- *
- * For simple TTS without voice switching, use cartesia-core.ts directly.
+ * After Sonata migration (Feb 2026), uses Cartesia via LiveKit plugin.
  *
  * @module @ferni/speech/tts/persona-aware
  */
 
 import { tts } from '@livekit/agents';
-import type * as cartesia from '@livekit/agents-plugin-cartesia';
-import {
-  CARTESIA_MODEL,
-  createCartesiaTTS,
-  DEFAULT_VOICE_IDS,
-  getDefaultTTSProvider,
-} from './cartesia-core.js';
-import {
-  createBTCWTTS,
-  getBTCWVoiceIdForPersona,
-  type BTCWTTS,
-  type BTCWEmotionType,
-} from './btcw-core.js';
+import { TTS as CartesiaTTS } from '@livekit/agents-plugin-cartesia';
+import { CARTESIA_MODEL, DEFAULT_VOICE_IDS } from '../../config/voice-ids.js';
 import type { PersonaVoiceConfig } from './types.js';
-
-// Union type for supported TTS providers
-type TTSInstance = cartesia.TTS | BTCWTTS;
 
 // ============================================================================
 // ACCENT TYPES
@@ -43,6 +24,20 @@ type TTSInstance = cartesia.TTS | BTCWTTS;
 export type EnglishAccent = 'american' | 'british' | 'australian' | 'indian';
 export const DEFAULT_ACCENT: EnglishAccent = 'american';
 export const SUPPORTED_ACCENTS: EnglishAccent[] = ['american', 'british', 'australian', 'indian'];
+
+// ============================================================================
+// CARTESIA TTS FACTORY
+// ============================================================================
+
+function createCartesiaTTSInstance(voiceId: string): CartesiaTTS {
+  return new CartesiaTTS({
+    model: CARTESIA_MODEL,
+    voice: voiceId,
+    language: 'en',
+    sampleRate: 24000,
+    encoding: 'pcm_s16le',
+  });
+}
 
 // ============================================================================
 // LAZY-LOADED LOGGER
@@ -97,12 +92,11 @@ function log(level: 'info' | 'debug' | 'warn' | 'error', data: unknown, msg: str
 export class PersonaAwareTTS extends tts.TTS {
   readonly label = 'persona-aware-tts';
 
-  private personaTTS: TTSInstance;
+  private personaTTS: CartesiaTTS;
   private personaName: string;
   private voiceId: string;
   private accent: EnglishAccent;
   private isLocalizedVoice: boolean;
-  private provider: 'cartesia' | 'btcw';
 
   // Synchronization state for safe voice switching
   private isSwitching = false;
@@ -126,21 +120,7 @@ export class PersonaAwareTTS extends tts.TTS {
     this.accent = (voiceConfig.accent as EnglishAccent) ?? DEFAULT_ACCENT;
     this.isLocalizedVoice = voiceConfig.isLocalizedVoice ?? this.accent !== 'american';
 
-    // Determine provider from config or environment
-    this.provider = (voiceConfig.provider as 'cartesia' | 'btcw') || getDefaultTTSProvider();
-
-    // Create TTS using provider-aware factory
-    if (this.provider === 'btcw') {
-      // For BTCW, map the voice ID to a persona name
-      const btcwVoice = getBTCWVoiceIdForPersona(personaName);
-      this.personaTTS = createBTCWTTS(btcwVoice, {
-        endpoint: voiceConfig.btcwEndpoint,
-        apiKey: voiceConfig.btcwApiKey,
-        defaultEmotion: (voiceConfig.btcwDefaultEmotion as BTCWEmotionType | undefined) || 'warm',
-      });
-    } else {
-      this.personaTTS = createCartesiaTTS(this.voiceId);
-    }
+    this.personaTTS = createCartesiaTTSInstance(this.voiceId);
 
     // Initialize logger asynchronously (non-blocking)
     getLogger().then((logger) => {
@@ -150,8 +130,7 @@ export class PersonaAwareTTS extends tts.TTS {
           voiceId: this.voiceId,
           accent: this.accent,
           isLocalizedVoice: this.isLocalizedVoice,
-          provider: this.provider,
-          model: this.provider === 'cartesia' ? CARTESIA_MODEL : 'cosyvoice-3',
+          model: CARTESIA_MODEL,
         },
         '🌍 PersonaAwareTTS initialized'
       );
@@ -285,19 +264,11 @@ export class PersonaAwareTTS extends tts.TTS {
     this.accent = newAccent ?? this.accent;
     this.isLocalizedVoice = this.accent !== 'american';
 
-    // Create new TTS using provider-aware factory
-    if (this.provider === 'btcw') {
-      const btcwVoice = getBTCWVoiceIdForPersona(newPersonaName);
-      this.personaTTS = createBTCWTTS(btcwVoice, {
-        defaultEmotion: 'warm',
-      });
-    } else {
-      this.personaTTS = createCartesiaTTS(newVoiceId);
-    }
+    this.personaTTS = createCartesiaTTSInstance(newVoiceId);
 
     log(
       'info',
-      { from: oldPersona, to: newPersonaName, oldVoiceId, newVoiceId, provider: this.provider },
+      { from: oldPersona, to: newPersonaName, oldVoiceId, newVoiceId },
       '🔄 Voice switched'
     );
 
@@ -337,7 +308,6 @@ export class PersonaAwareTTS extends tts.TTS {
   /**
    * Strip SSML tags from text before sending to TTS.
    * Cartesia doesn't support SSML and will speak tags literally (e.g., "break time 300ms").
-   * BTCW has its own stripping, so this is a safety net for Cartesia.
    */
   private stripSsml(text: string): string {
     // Remove <break> tags entirely
@@ -429,8 +399,6 @@ export class PersonaAwareTTS extends tts.TTS {
 
   /**
    * Synthesize text to speech.
-   * Note: When using BTCW provider, this returns a Promise. We cast to satisfy
-   * the base class signature since both implementations produce compatible audio streams.
    *
    * SSML tags are stripped before synthesis since Cartesia doesn't support them
    * and will speak them literally (e.g., "break time 300ms").
@@ -443,21 +411,16 @@ export class PersonaAwareTTS extends tts.TTS {
       { persona: this.personaName, voiceId: this.voiceId, hadSsml: cleanText !== text },
       'TTS synthesize'
     );
-    // BTCW.synthesize() returns Promise<BTCWChunkedStream>, Cartesia returns ChunkedStream
-    // Both are functionally compatible audio iterables, so we cast for the base class
-    return this.trackStream(() => this.personaTTS.synthesize(cleanText)) as tts.ChunkedStream;
+    return this.trackStream(() => this.personaTTS.synthesize(cleanText));
   }
 
   /**
    * Start a streaming synthesis.
-   * Note: BTCWSynthesizeStream and SynthesizeStream are structurally compatible
-   * (both are AsyncIterable producing audio frames), so we cast for type safety.
    *
    * The returned stream wraps pushText() to strip SSML tags before synthesis.
    */
   stream(): tts.SynthesizeStream {
     log('debug', { persona: this.personaName, voiceId: this.voiceId }, 'TTS stream');
-    // BTCWSynthesizeStream is structurally compatible with SynthesizeStream
     const underlyingStream = this.trackStream(() =>
       this.personaTTS.stream()
     ) as tts.SynthesizeStream;
@@ -495,10 +458,6 @@ export class PersonaAwareTTS extends tts.TTS {
   hasPendingSwitch(): boolean {
     return this.pendingSwitch !== null;
   }
-
-  getProvider(): 'cartesia' | 'btcw' {
-    return this.provider;
-  }
 }
 
 // ============================================================================
@@ -528,5 +487,5 @@ export function createPersonaAwareTTS(
 // RE-EXPORTS
 // ============================================================================
 
-export { CARTESIA_MODEL, DEFAULT_VOICE_IDS, getVoiceIdForPersona } from './cartesia-core.js';
+export { CARTESIA_MODEL, DEFAULT_VOICE_IDS, getVoiceIdForPersona } from '../../config/voice-ids.js';
 export type { PersonaVoiceConfig, VoiceConfig } from './types.js';

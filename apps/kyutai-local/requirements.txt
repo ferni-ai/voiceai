@@ -1,3 +1,0 @@
-moshi-mlx>=0.3.0
-websockets>=13.0
-numpy>=2.0

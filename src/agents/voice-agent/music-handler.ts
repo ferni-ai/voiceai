@@ -40,6 +40,7 @@ import { getDJTimingEngine, resetDJTimingEngine } from '../../audio/dj-timing-en
 import {
   getMusicPlayer,
   initializeMusicPlayer,
+  resetMusicPlayer,
   type MusicState,
   type MusicTrack,
 } from '../../audio/music-player.js';
@@ -505,6 +506,9 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     clearMusicFeedbackRecorder();
     resetDJController();
     resetDJTimingEngine();
+    resetMusicPlayer().catch((err) =>
+      log.warn({ error: String(err) }, 'Music player reset failed during cleanup')
+    );
   };
 
   log.info({ sessionId }, '🎵 Music Handler setup complete');

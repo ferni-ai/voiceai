@@ -41,7 +41,6 @@ export interface ReadinessState {
     startupComplete: boolean;
     workersAvailable: boolean;
     livekitConnected: boolean;
-    kyutaiSidecars?: boolean;
   };
   /** Detailed worker information */
   workers: WorkerStatus[];
@@ -72,11 +71,6 @@ let livekitConnected = false;
 
 // Heartbeat timeout (consider worker dead after this)
 const HEARTBEAT_TIMEOUT_MS = 30_000; // 30 seconds
-
-// Kyutai sidecar readiness state (updated asynchronously to avoid blocking /health/ready)
-let kyutaiSidecarsReady: boolean | null = null; // null = not checked yet
-let lastKyutaiCheckMs = 0;
-const KYUTAI_CHECK_INTERVAL_MS = 10_000; // Re-check every 10 seconds
 
 // ============================================================================
 // WORKER LIFECYCLE
@@ -190,62 +184,6 @@ export function markLivekitDisconnected(): void {
 }
 
 // ============================================================================
-// KYUTAI SIDECAR READINESS
-// ============================================================================
-
-/**
- * Whether Kyutai sidecars are required for this deployment.
- * True when USE_KYUTAI_STT=true or TTS_PROVIDER=kyutai.
- */
-function kyutaiSidecarsRequired(): boolean {
-  return (
-    process.env.USE_KYUTAI_STT === 'true' ||
-    process.env.TTS_PROVIDER === 'kyutai' ||
-    process.env.USE_KYUTAI_TTS === 'true'
-  );
-}
-
-/**
- * Trigger an async Kyutai sidecar health check.
- * Updates the cached kyutaiSidecarsReady state.
- * Does NOT block — call from a periodic interval or before readiness checks.
- */
-export function refreshKyutaiSidecarHealth(): void {
-  if (!kyutaiSidecarsRequired()) {
-    kyutaiSidecarsReady = true; // Not required, consider healthy
-    return;
-  }
-
-  const now = Date.now();
-  if (now - lastKyutaiCheckMs < KYUTAI_CHECK_INTERVAL_MS && kyutaiSidecarsReady !== null) {
-    return; // Throttle checks
-  }
-  lastKyutaiCheckMs = now;
-
-  // Async check — updates cached state when complete
-  import('../../speech/kyutai-health.js')
-    .then(({ checkKyutaiSidecars }) => checkKyutaiSidecars())
-    .then((result) => {
-      const wasReady = kyutaiSidecarsReady;
-      kyutaiSidecarsReady = result.stt.ok && result.tts.ok;
-      if (wasReady !== kyutaiSidecarsReady) {
-        if (kyutaiSidecarsReady) {
-          log.info('Kyutai sidecars are now reachable');
-        } else {
-          log.warn(
-            { stt: result.stt, tts: result.tts },
-            'Kyutai sidecars unreachable — /health/ready will report not ready'
-          );
-        }
-      }
-    })
-    .catch((err) => {
-      log.warn({ error: String(err) }, 'Failed to check Kyutai sidecar health');
-      kyutaiSidecarsReady = false;
-    });
-}
-
-// ============================================================================
 // READINESS CHECK
 // ============================================================================
 
@@ -285,27 +223,21 @@ export function getReadinessState(): ReadinessState {
     // Keep-alive module not loaded yet, use cached state
   }
 
-  // Trigger async Kyutai sidecar health refresh (non-blocking)
-  refreshKyutaiSidecarHealth();
-
   // All checks must pass for overall readiness
   // NOTE: healthServerReady is implicitly true if this endpoint is being called
   // because the health server has to be running to serve this request!
-  const kyutaiRequired = kyutaiSidecarsRequired();
   const checks: ReadinessState['checks'] = {
     healthServer: true, // If we're responding, health server is ready
     startupComplete: startupComplete,
     workersAvailable: readyWorkerCount > 0 || startupComplete, // If startup complete, workers are available
     livekitConnected: livekitActuallyConnected || startupComplete, // Use actual connection status
-    ...(kyutaiRequired ? { kyutaiSidecars: kyutaiSidecarsReady ?? false } : {}),
   };
 
-  // Ready when we have at least one worker ready AND Kyutai sidecars healthy (if required)
+  // Ready when we have at least one worker ready
   // The signalWorkerAcceptingJobs() call marks workers as ready when LiveKit is accepting jobs
   // NOTE: We removed the 90-second fallback (SET-13) - workers MUST signal ready properly
   // This prevents routing traffic to workers that aren't actually ready
-  const kyutaiOk = !kyutaiRequired || (kyutaiSidecarsReady ?? false);
-  const ready = readyWorkerCount > 0 && kyutaiOk;
+  const ready = readyWorkerCount > 0;
 
   // Estimate time to ready based on typical startup times
   let estimatedTimeToReady = 0;
@@ -338,7 +270,6 @@ export function getReadinessState(): ReadinessState {
     if (!checks.startupComplete) pending.push('initialization in progress');
     if (!checks.workersAvailable) pending.push('workers starting');
     if (!checks.livekitConnected) pending.push('connecting to LiveKit');
-    if (checks.kyutaiSidecars === false) pending.push('Kyutai sidecars unreachable');
     message = `Not ready: ${pending.join(', ')}`;
   }
 

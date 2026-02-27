@@ -216,10 +216,17 @@ async function tryFirebaseAuth(req: IncomingMessage): Promise<AuthContext | null
   try {
     const verified = await verifyFirebaseToken(token);
     if (!verified) {
-      // Track failed Firebase auth
+      // Truly invalid token (malformed, revoked, etc.) -- track as failed auth
       void trackFailedAuth(`firebase:${ip}`, ip, 'firebase_token_invalid').catch((e) =>
         log.error({ error: String(e) }, 'Failed to track auth failure')
       );
+      return null;
+    }
+
+    if ('expired' in verified) {
+      // Expired tokens are not attacks -- the frontend just needs to refresh.
+      // Don't count toward lockout to avoid locking out legitimate users.
+      log.debug({ ip }, 'Firebase token expired - not counting toward lockout');
       return null;
     }
 

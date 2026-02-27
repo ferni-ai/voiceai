@@ -141,7 +141,6 @@ export interface AudioFrameStream {
 
 /**
  * Real-time voice analysis metrics from the Rust pipeline.
- * Used by HiggsPipelineProvider for STT biomarker data.
  */
 export interface VoiceBiomarkers {
   pitch_hz: number;
@@ -243,8 +242,8 @@ export interface ITTSProvider {
 /**
  * Extended TTS Provider with STT capabilities
  *
- * Used by providers like HiggsPipelineProvider that support both
- * text-to-speech and speech-to-text over the same connection.
+ * Used by providers that support both text-to-speech and speech-to-text
+ * over the same connection (e.g., Sonata NAPI addon).
  */
 export interface ITTSProviderWithSTT extends ITTSProvider {
   /** Send raw user audio (i16 LE PCM) for STT buffering */
@@ -597,4 +596,3 @@ export interface Disposable {
 }
 
 // VoiceBiomarkers is defined above in this file (line ~146).
-// higgs-pipeline.ts re-exports it FROM here, so no circular re-export needed.

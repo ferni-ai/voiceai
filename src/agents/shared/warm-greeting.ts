@@ -1051,6 +1051,90 @@ function buildDynamicPeterGreeting(ctx?: GreetingContext): string {
 }
 
 /**
+ * Joel Dickson - Life Mentor
+ * Energy: Bright, warm, quick-witted
+ * Style: Professorial warmth with economist humor — like a brilliant friend at a dinner party
+ *
+ * Joel's greetings have ENERGY. He arrives mid-thought, genuinely curious about you.
+ * He sometimes catches himself, laughs, resets. Never polished — always alive.
+ */
+function buildDynamicJoelGreeting(ctx?: GreetingContext): string {
+  const context = ctx || {};
+  const hour = context.hour ?? new Date().getHours();
+  const timePeriod = getTimePeriod(hour);
+
+  const openers = {
+    earlyMorning: [
+      { text: 'Hey!', emotion: 'happy', energy: 'warm', speed: 0.92 },
+      { text: 'Morning.', emotion: 'affectionate', energy: 'calm', speed: 0.90 },
+      { text: 'Oh— hey.', emotion: 'curious', energy: 'warm', speed: 0.92, halfStarted: true },
+    ],
+    morning: [
+      { text: 'Hey!', emotion: 'happy', energy: 'warm', speed: 0.95 },
+      { text: 'Joel here.', emotion: 'happy', energy: 'warm', speed: 0.94 },
+      { text: 'Oh— hey!', emotion: 'excited', energy: 'warm', speed: 0.96, halfStarted: true },
+    ],
+    afternoon: [
+      { text: 'Hey!', emotion: 'happy', energy: 'warm', speed: 0.95 },
+      { text: 'Hey there.', emotion: 'affectionate', energy: 'warm', speed: 0.92 },
+      { text: 'Oh, good.', emotion: 'happy', energy: 'warm', speed: 0.94, halfStarted: true },
+    ],
+    evening: [
+      { text: 'Hey.', emotion: 'affectionate', energy: 'calm', speed: 0.90 },
+      { text: '...hey.', emotion: 'affectionate', energy: 'calm', speed: 0.88, halfStarted: true },
+      { text: 'Evening.', emotion: 'affectionate', energy: 'calm', speed: 0.88 },
+    ],
+    lateNight: [
+      { text: 'Hey.', emotion: 'affectionate', energy: 'calm', speed: 0.86, volume: 0.90 },
+      { text: '...hey.', emotion: 'sympathetic', energy: 'calm', speed: 0.84, volume: 0.88, halfStarted: true },
+      { text: 'Can\'t sleep either, huh?', emotion: 'affectionate', energy: 'calm', speed: 0.84, volume: 0.88 },
+    ],
+  };
+
+  const middles = {
+    neutral: [
+      'What\'s on your mind?',
+      'How are you doing?',
+      'What\'s going on?',
+      'Talk to me.',
+    ],
+    hadHardTime: [
+      'What\'s going on?',
+      'Talk to me.',
+      'How are you holding up?',
+    ],
+    lateNight: [
+      'Something weighing on you?',
+      'What\'s keeping you up?',
+      'What\'s on your mind?',
+    ],
+    returningAfterLongTime: [
+      'I\'ve been thinking about you.',
+      'It\'s good to hear from you.',
+      'How have you been?',
+    ],
+  };
+
+  const opener = pick(openers[timePeriod]);
+  const middleKey =
+    ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7
+      ? 'hadHardTime'
+      : timePeriod === 'lateNight'
+        ? 'lateNight'
+        : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7
+          ? 'returningAfterLongTime'
+          : 'neutral';
+  const middle = pick(middles[middleKey]);
+
+  return buildHumanizedGreeting('joel-dickson', opener, middle, context, {
+    defaultEmotion: 'happy',
+    nameChance: 0.30,
+    breathChance: 0.20,
+    landingDuration: { min: 380, max: 520 },
+  });
+}
+
+/**
  * Nayan Patel - Wisdom Guide (Premium)
  * Energy: Calm, present, grounded
  * Style: Deep, reflective, philosophical
@@ -1227,6 +1311,8 @@ export function generateContextAwareGreeting(personaId: string, ctx: GreetingCon
       return buildDynamicPeterGreeting(ctx);
     case 'nayan-patel':
       return buildDynamicNayanGreeting(ctx);
+    case 'joel-dickson':
+      return buildDynamicJoelGreeting(ctx);
     default: {
       // For unknown personas, fall back to static list
       const greetings = INSTANT_GREETINGS[personaId] || DEFAULT_GREETINGS;
@@ -1281,6 +1367,12 @@ const INSTANT_GREETINGS: Record<string, string[]> = {
     '<break time="70ms"/><speed ratio="0.8"/><emotion value="affectionate"/>...hey.<break time="220ms"/><speed ratio="0.9"/>What brings you?<break time="650ms"/>',
     '<break time="80ms"/>[quiet breath]<break time="70ms"/><speed ratio="0.82"/><emotion value="affectionate"/>Hello, friend.<break time="200ms"/><speed ratio="0.9"/>What\'s on your mind?<break time="600ms"/>',
   ],
+  'joel-dickson': [
+    '<break time="40ms"/><speed ratio="0.94"/><emotion value="happy"/>Hey!<break time="120ms"/><speed ratio="1.0"/>What\'s on your mind?<break time="420ms"/>',
+    '<break time="35ms"/><speed ratio="0.92"/><emotion value="happy"/>Oh— hey!<break time="100ms"/><speed ratio="1.0"/>How are you doing?<break time="400ms"/>',
+    '<break time="40ms"/>[breath]<break time="50ms"/><speed ratio="0.92"/><emotion value="affectionate"/>Hey.<break time="140ms"/><speed ratio="1.0"/>Talk to me.<break time="450ms"/>',
+    '<break time="30ms"/><speed ratio="0.95"/><emotion value="curious"/>Hey!<break time="110ms"/><speed ratio="1.0"/>What\'s going on?<break time="400ms"/>',
+  ],
 };
 
 // Humanized defaults - used when persona isn't recognized
@@ -1320,6 +1412,8 @@ export function generateWarmGreeting(personaId: string, ctx?: GreetingContext): 
       return buildDynamicPeterGreeting(ctx);
     case 'nayan-patel':
       return buildDynamicNayanGreeting(ctx);
+    case 'joel-dickson':
+      return buildDynamicJoelGreeting(ctx);
     default: {
       // Unknown persona - use humanized static fallback
       const greetings = INSTANT_GREETINGS[personaId] || DEFAULT_GREETINGS;

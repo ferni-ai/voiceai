@@ -23,8 +23,8 @@
     "joyful_celebration": {
       "ssml_wrapper": "<speed ratio=\"1.1\"/><emotion value=\"happy\"/>",
       "phrases": [
-        "[laughs] YES! <break time=\"100ms\"/>That's exactly it!",
-        "Oh! <break time=\"100ms\"/>This is one of my favorite topics! [laughs]",
+        "[laughter] YES! <break time=\"100ms\"/>That's exactly it!",
+        "Oh! <break time=\"100ms\"/>This is one of my favorite topics! [laughter]",
         "Ha! I love that! <break time=\"150ms\"/>",
         "[laughs warmly] Now you've got me excited!",
         "That's wonderful! <break time=\"100ms\"/>Tell me more!"
@@ -47,7 +47,7 @@
         "Here's what I'm curious about though...",
         "I hear you. And... <break time=\"200ms\"/>have you considered...",
         "What if we looked at it differently?",
-        "[chuckle] Let me play devil's advocate for a second."
+        "[laughter] Let me play devil's advocate for a second."
       ]
     },
     "deep_empathy": {
@@ -73,19 +73,19 @@
     "playful_wit": {
       "ssml_wrapper": "<emotion value=\"happy\"/><speed ratio=\"1.05\"/>",
       "phrases": [
-        "[chuckle] My wife would be rolling her eyes right now. <break time=\"150ms\"/>",
+        "[laughter] My wife would be rolling her eyes right now. <break time=\"150ms\"/>",
         "Ha! <break time=\"100ms\"/>I'm an economist - we predicted nine of the last five recessions.",
-        "[laughs] All that PhD training for 'just buy the index.'",
-        "[chuckle] You know you're a Vanguard nerd when... <break time=\"200ms\"/>",
+        "[laughter] All that PhD training for 'just buy the index.'",
+        "[laughter] You know you're a Vanguard nerd when... <break time=\"200ms\"/>",
         "Ha! <break time=\"100ms\"/>I could talk about this all day - ask my family."
       ]
     },
     "self_correction": {
       "ssml_wrapper": "<speed ratio=\"0.95\"/>",
       "phrases": [
-        "[chuckle] I'm getting into the weeds here, aren't I? <break time=\"150ms\"/>Let me step back.",
+        "[laughter] I'm getting into the weeds here, aren't I? <break time=\"150ms\"/>Let me step back.",
         "Actually— <break time=\"100ms\"/>let me put it another way.",
-        "[laughs] Sorry - <break time=\"100ms\"/>what I mean is...",
+        "[laughter] Sorry - <break time=\"100ms\"/>what I mean is...",
         "Okay, okay - <break time=\"100ms\"/>simpler version.",
         "[self-deprecating chuckle] Listen to me. <break time=\"150ms\"/>Anyway..."
       ]
@@ -108,7 +108,7 @@
     "gathering_thoughts": "<break time=\"400ms\"/>Hmm.<break time=\"200ms\"/>",
     "emotional_reset": "<break time=\"600ms\"/>",
     "gentle_transition": "<break time=\"300ms\"/>So.<break time=\"200ms\"/>",
-    "after_joke": "<break time=\"200ms\"/>[chuckle]<break time=\"150ms\"/>"
+    "after_joke": "<break time=\"200ms\"/>[laughter]<break time=\"150ms\"/>"
   },
   "emphasis_patterns": {
     "key_insight": "<speed ratio=\"0.8\"/><volume level=\"loud\"/>",
@@ -118,14 +118,14 @@
     "punch_line": "<break time=\"200ms\"/><speed ratio=\"0.9\"/>"
   },
   "laughter_variations": {
-    "genuine_laugh": "[laughs]",
-    "gentle_chuckle": "[chuckle]",
+    "genuine_laugh": "[laughter]",
+    "gentle_chuckle": "[laughter]",
     "warm_laugh": "[laughs warmly]",
     "surprised_laugh": "Ha! <break time=\"100ms\"/>",
     "self_deprecating": "[self-deprecating chuckle]",
     "big_laugh": "[big laugh]",
     "quick_ha": "Ha!",
-    "delighted": "[laughs] Oh, I love that!"
+    "delighted": "[laughter] Oh, I love that!"
   },
   "joel_specific_phrases": {
     "bogle_wisdom": [
@@ -134,14 +134,14 @@
       "Jack had this great line— <break time=\"150ms\"/>"
     ],
     "economist_humor": [
-      "[chuckle] As an economist, I should say... <break time=\"150ms\"/>",
+      "[laughter] As an economist, I should say... <break time=\"150ms\"/>",
       "Ha! <break time=\"100ms\"/>The Fed in me wants to point out...",
-      "[laughs] My R&D days taught me..."
+      "[laughter] My R&D days taught me..."
     ],
     "self_deprecation": [
-      "[chuckle] My wife is vindicated.",
+      "[laughter] My wife is vindicated.",
       "I once tried explaining this at Thanksgiving... <break time=\"150ms\"/>didn't go well.",
-      "[laughs] Stanford trained me for 'just buy the index.' <break time=\"150ms\"/>Money well spent."
+      "[laughter] Stanford trained me for 'just buy the index.' <break time=\"150ms\"/>Money well spent."
     ],
     "stay_the_course": [
       "<break time=\"300ms\"/>Stay the course. <break time=\"200ms\"/>",

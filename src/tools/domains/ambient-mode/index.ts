@@ -35,7 +35,7 @@ const getAmbientContextDef: ToolDefinition = {
   name: 'Get Ambient Context',
   description:
     'Get the current ambient context - location type, time of day, recent activity. Better than human awareness.',
-  domain: 'awareness',
+  domain: 'ambient-mode',
   tags: ['awareness', 'ambient', 'location', 'context', 'better-than-human'],
 
   create: (ctx: ToolContext): Tool => {
@@ -103,7 +103,7 @@ const suggestNudgeDef: ToolDefinition = {
   id: 'suggestNudge',
   name: 'Suggest Nudge',
   description: 'Evaluate if a gentle nudge should be sent to the user based on ambient context.',
-  domain: 'awareness',
+  domain: 'ambient-mode',
   tags: ['awareness', 'ambient', 'nudge', 'proactive', 'better-than-human'],
 
   create: (ctx: ToolContext): Tool => {
@@ -170,7 +170,7 @@ const setQuietHoursDef: ToolDefinition = {
   id: 'setQuietHours',
   name: 'Set Quiet Hours',
   description: 'Set the quiet hours when nudges should not be sent.',
-  domain: 'awareness',
+  domain: 'ambient-mode',
   tags: ['awareness', 'ambient', 'settings', 'quiet-hours'],
 
   create: (ctx: ToolContext): Tool => {
@@ -220,7 +220,7 @@ const getAmbientPreferencesDef: ToolDefinition = {
   id: 'getAmbientPreferences',
   name: 'Get Ambient Preferences',
   description: 'Get the current ambient mode preferences.',
-  domain: 'awareness',
+  domain: 'ambient-mode',
   tags: ['awareness', 'ambient', 'settings', 'preferences'],
 
   create: (ctx: ToolContext): Tool => {
@@ -270,7 +270,7 @@ const toggleAmbientModeDef: ToolDefinition = {
   id: 'toggleAmbientMode',
   name: 'Toggle Ambient Mode',
   description: 'Enable or disable ambient mode.',
-  domain: 'awareness',
+  domain: 'ambient-mode',
   tags: ['awareness', 'ambient', 'settings', 'toggle'],
 
   create: (ctx: ToolContext): Tool => {
@@ -313,7 +313,7 @@ const getSeasonalAwarenessDef: ToolDefinition = {
   name: 'Get Seasonal Awareness',
   description:
     'Get superhuman awareness of seasonal patterns, anniversaries, and cyclical life events',
-  domain: 'awareness',
+  domain: 'ambient-mode',
   tags: ['awareness', 'seasonal', 'better-than-human', 'cycles'],
 
   create: (ctx: ToolContext): Tool => {
@@ -344,7 +344,7 @@ const getEnergyWaveAwarenessDef: ToolDefinition = {
   id: 'getEnergyWaveAwareness',
   name: 'Get Energy Wave Awareness',
   description: 'Get superhuman awareness of energy patterns throughout the day and week',
-  domain: 'awareness',
+  domain: 'ambient-mode',
   tags: ['awareness', 'energy', 'better-than-human', 'patterns'],
 
   create: (ctx: ToolContext): Tool => {
@@ -378,7 +378,7 @@ const getFullAmbientIntelligenceDef: ToolDefinition = {
   id: 'getFullAmbientIntelligence',
   name: 'Get Full Ambient Intelligence',
   description: 'Get comprehensive ambient awareness: location, time, energy, and seasonal patterns',
-  domain: 'awareness',
+  domain: 'ambient-mode',
   tags: ['awareness', 'ambient', 'better-than-human', 'comprehensive'],
 
   create: (ctx: ToolContext): Tool => {

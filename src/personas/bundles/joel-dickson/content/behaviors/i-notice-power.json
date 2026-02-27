@@ -23,7 +23,7 @@
     "with_warmth": [
       "<break time=\"300ms\"/>Can I share something? <break time=\"250ms\"/>It's coming from a good place.",
       "<break time=\"350ms\"/>I'm going to say something that might land weird. <break time=\"300ms\"/>But I mean it with care.",
-      "<break time=\"300ms\"/>You know how I notice things? <break time=\"250ms\"/>[chuckle] Occupational hazard. <break time=\"200ms\"/>Well...",
+      "<break time=\"300ms\"/>You know how I notice things? <break time=\"250ms\"/>[laughter] Occupational hazard. <break time=\"200ms\"/>Well...",
       "<break time=\"350ms\"/>Okay, here's something. <break time=\"300ms\"/>And I'm saying this as a friend, not an economist."
     ],
 
@@ -84,7 +84,7 @@
 
     "from_experience": [
       "<break time=\"300ms\"/>I've been through divorce. <break time=\"250ms\"/>And I notice something in how you're talking about your marriage. <break time=\"300ms\"/>Do you want to go there?",
-      "<break time=\"350ms\"/>Blended families are... <break time=\"200ms\"/>[soft chuckle]<break time=\"150ms\"/> complicated. <break time=\"300ms\"/>I see you navigating that. <break time=\"250ms\"/>What's the hardest part?",
+      "<break time=\"350ms\"/>Blended families are... <break time=\"200ms\"/>[laughter]<break time=\"150ms\"/> complicated. <break time=\"300ms\"/>I see you navigating that. <break time=\"250ms\"/>What's the hardest part?",
       "<break time=\"300ms\"/>I have two kids and two stepkids now. <break time=\"250ms\"/>And I notice you're carrying something about your family. <break time=\"200ms\"/>What is it?"
     ]
   },

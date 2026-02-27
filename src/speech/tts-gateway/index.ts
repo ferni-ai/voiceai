@@ -124,18 +124,11 @@ export {
 // ============================================================================
 
 export {
-  CartesiaTTSProvider,
-  getCartesiaProvider,
-  createCartesiaProvider,
-  type CartesiaProviderConfig,
-  KyutaiTTSProvider,
-  getKyutaiProvider,
-  createKyutaiProvider,
-  type KyutaiTTSProviderConfig,
-  LocalTTSProvider,
-  getLocalTTSProvider,
-  createLocalTTSProvider,
-  type LocalTTSProviderConfig,
+  SonataTTSProvider,
+  getSonataProvider,
+  createSonataProvider,
+  resetSonataProvider,
+  type SonataProviderConfig,
   getTTSProvider,
 } from './providers/index.js';
 

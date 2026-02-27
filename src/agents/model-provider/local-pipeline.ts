@@ -1,19 +1,17 @@
 /**
  * Local Pipeline Model Provider
  *
- * Combines local STT (Kyutai) + local LLM (ollama Qwen3-8B) + cloud TTS (Cartesia)
+ * Combines local STT (Sonata) + local LLM (ollama Qwen3-8B) + TTS (Sonata/Cartesia)
  * for a privacy-first voice agent that runs entirely on-device for STT and LLM.
  *
  * Architecture:
- *   Audio In → Kyutai STT (local, 184ms) → Ollama Qwen3-8B (local, 100ms TTFB)
- *            → Cartesia TTS (cloud, 220ms TTFB) → Audio Out
- *
- * E2E latency: ~500ms end-of-speech to first audio byte (competitive with Gemini Live)
+ *   Audio In → Sonata STT (local) → Ollama Qwen3-8B (local, 100ms TTFB)
+ *            → TTS (Sonata or Cartesia) → Audio Out
  *
  * Environment: USE_LOCAL_PIPELINE=true
  *   OLLAMA_URL          - Ollama API URL (default: http://127.0.0.1:11434)
  *   OLLAMA_MODEL        - Model name (default: qwen3:8b)
- *   USE_KYUTAI_STT=true - Enables Kyutai STT (handled in agent-setup.ts)
+ *   USE_SONATA_STT=true - Enables Sonata STT (handled in agent-setup.ts)
  *
  * @module agents/model-provider/local-pipeline
  */

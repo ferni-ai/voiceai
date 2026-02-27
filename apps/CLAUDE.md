@@ -59,13 +59,11 @@ This directory contains all client applications and deployment targets. Each app
 | `rust-audio/` | ✅        | Zero-allocation audio DSP (AGC, noise suppression) |
 | `rust-perf/`  | ✅        | SIMD-optimized operations (embeddings, hashing)    |
 
-### Self-Hosted Voice (Local / On-Device)
+### Voice Pipeline (Sonata)
 
-| App               | CLAUDE.md | Purpose                                                       |
-| ----------------- | --------- | ------------------------------------------------------------- |
-| `kyutai-local/`   | ✅        | Kyutai DSM MLX servers (STT + TTS on Apple Silicon)           |
-| `mlx-higgs/`      | —         | Higgs Audio V2 MLX server (TTS, INT4 quantized, ~75 tok/s)    |
-| `rust-higgs-mlx/` | —         | Higgs Audio V2 Rust MLX server (TTS, same protocol as Python) |
+| App        | CLAUDE.md | Purpose                                                                |
+| ---------- | --------- | ---------------------------------------------------------------------- |
+| `sonata/`  | —         | Sonata NAPI bindings for pocket-voice STT/TTS on Apple Silicon & Linux |
 
 ### CLI & Marketing
 
@@ -107,73 +105,47 @@ cd apps/rust-perf && cargo build --release
 
 ---
 
-## Self-Hosted Voice Pipeline
+## Sonata Voice Pipeline
 
-Two self-hosted TTS options exist alongside cloud TTS (Cartesia). Both run on Apple Silicon for local dev and can target GPU for production.
+All STT and TTS goes through the **Sonata** NAPI addon (`apps/sonata/`), which wraps the pocket-voice Rust libraries for both speech-to-text and text-to-speech.
 
-### Kyutai DSM (STT + TTS)
+### Architecture
 
-Full self-hosted voice stack — both speech-to-text and text-to-speech.
-
-```bash
-# Start MLX servers (Apple Silicon)
-cd apps/kyutai-local
-python stt_server.py    # STT on port 8089
-python tts_server.py    # TTS on port 8090
-
-# Enable in voice agent
-USE_KYUTAI_STT=true KYUTAI_STT_URL=ws://localhost:8089/api/asr-streaming \
-TTS_PROVIDER=kyutai KYUTAI_TTS_URL=ws://localhost:8090/api/tts_streaming pnpm dev
+```
+apps/sonata/
+├── pocket-voice/           # Git submodule (Kyutai DSM 1.6B model)
+│   └── src/
+│       ├── stt/            # pocket_stt cdylib (Moshi STT)
+│       └── tts/            # pocket_tts_rs cdylib (Moshi TTS)
+├── src/
+│   ├── lib.rs              # NAPI bindings entry
+│   ├── napi_bindings.rs    # Node.js-facing API
+│   ├── stt.rs              # STT FFI wrapper
+│   ├── tts.rs              # TTS FFI wrapper
+│   └── ffi.rs              # C FFI declarations
+├── Cargo.toml              # NAPI crate config
+└── package.json            # @ferni/sonata npm package
 ```
 
-| Component        | Runtime             | Port      | Status           |
-| ---------------- | ------------------- | --------- | ---------------- |
-| STT (1B model)   | MLX Python          | 8089      | Production-ready |
-| TTS (1.6B model) | MLX Python          | 8090      | Production-ready |
-| Rust Bridge      | Candle (Metal/CUDA) | 8089/8090 | Production-ready |
-
-**Key files:** `apps/kyutai-local/`, `services/kyutai-bridge/`, `src/speech/providers/kyutai-stt-adapter.ts`, `src/speech/tts-gateway/providers/kyutai-tts.ts`
-
-### Higgs Audio V2 MLX (TTS Only)
-
-Higher-throughput TTS on Apple Silicon with INT4 quantization.
+### Build
 
 ```bash
-# Python server
-cd apps/mlx-higgs
-pip install -r requirements.txt
-python server.py    # WebSocket on port 8700, health on port 8701
+# Local (Apple Silicon — Metal GPU)
+cd apps/sonata
+pnpm build              # Builds pocket-voice + NAPI module
 
-# Rust server (alternative)
-cd apps/rust-higgs-mlx
-cargo run --release  # WebSocket on ws://localhost:8700/ws, health on :8700/health
-
-# Enable in voice agent
-TTS_PROVIDER=higgs-mlx HIGGS_MLX_URL=ws://localhost:8700 pnpm dev
+# Docker/Linux — skip Metal GPU features
+cargo build --release --no-default-features  # For pocket-voice crates
 ```
 
-| Metric     | Value                                 |
-| ---------- | ------------------------------------- |
-| Model      | Higgs Audio V2 (INT4)                 |
-| Throughput | ~75 tok/s                             |
-| RTF        | ~0.33x real-time                      |
-| Output     | 24 kHz, 16-bit PCM                    |
-| Protocol   | WebSocket (JSON control + binary PCM) |
+### Key Files
 
-**Key files:** `apps/mlx-higgs/`, `apps/rust-higgs-mlx/`, `src/speech/tts-gateway/providers/higgs-mlx.ts`
-
-### Choosing a Self-Hosted TTS
-
-| Feature        | Kyutai DSM             | Higgs MLX          | Cartesia (Cloud) |
-| -------------- | ---------------------- | ------------------ | ---------------- |
-| STT            | Yes (1B model)         | No                 | No (use Gemini)  |
-| TTS            | Yes                    | Yes                | Yes              |
-| Voice Cloning  | safetensors embeddings | Default voice only | 40+ voices       |
-| Latency (TTFB) | ~250ms                 | ~200ms             | ~150ms           |
-| Cost           | Free (self-hosted)     | Free (self-hosted) | ~$0.015/1K chars |
-| Runtime        | MLX or Candle          | MLX                | Cloud API        |
-
-Set `TTS_PROVIDER` to switch: `kyutai`, `higgs-mlx`, or `cartesia` (default).
+| File                                             | Purpose                          |
+| ------------------------------------------------ | -------------------------------- |
+| `apps/sonata/`                                   | NAPI addon crate                 |
+| `src/speech/tts-gateway/providers/sonata.ts`     | TypeScript TTS provider          |
+| `src/speech/tts-gateway/providers/index.ts`      | Provider factory (Sonata only)   |
+| `src/speech/providers/sonata-stt.ts`             | TypeScript STT provider          |
 
 ---
 

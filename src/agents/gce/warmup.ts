@@ -125,7 +125,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       (async () => {
         try {
           const ttsStart = Date.now();
-          await import('../../speech/tts/cartesia-core.js');
+          await import('../../speech/tts/persona-aware.js');
           log('✅ TTS module loaded', { durationMs: Date.now() - ttsStart });
         } catch (e) {
           log('⚠️ TTS load failed', { error: String(e) });

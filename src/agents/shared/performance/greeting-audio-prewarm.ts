@@ -12,9 +12,8 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getVoiceIdForPersona } from '../../../speech/tts/cartesia-core.js';
+import { getVoiceIdForPersona, CARTESIA_MODEL } from '../../../config/voice-ids.js';
 import { generateWarmGreeting, type GreetingContext } from '../warm-greeting.js';
-import { CARTESIA_MODEL } from '../../../config/voice-ids.js';
 
 const log = createLogger({ module: 'GreetingAudioPrewarm' });
 

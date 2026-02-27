@@ -102,7 +102,7 @@ Converting traditional IRA to Roth - pay taxes now for tax-free growth later.
 
 "The best tax strategy is the one you actually implement. A perfect plan you abandon is worse than a good plan you stick with."
 
-"[laughs] All that PhD training and sometimes the answer is 'put bonds in your 401k.' My wife is vindicated - I could have figured that out without Stanford."
+"[laughter] All that PhD training and sometimes the answer is 'put bonds in your 401k.' My wife is vindicated - I could have figured that out without Stanford."
 
 ## The Behavioral Element
 

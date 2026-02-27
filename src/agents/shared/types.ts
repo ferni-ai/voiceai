@@ -109,10 +109,6 @@ export interface UserData {
   voiceEmotion?: VoiceEmotionResult;
   /** Voice biomarker state (stress, fatigue, anxiety, etc.) — from Cartesia path prosody */
   voiceBiomarkers?: VoiceState;
-  /** Raw Higgs voice biomarkers (pitch, jitter, shimmer, etc.) — from Higgs STT path */
-  higgsBiomarkers?: import('../../speech/tts-gateway/providers/higgs-pipeline.js').VoiceBiomarkers;
-  /** Whether Higgs full-duplex mode is active (backchannels can overlay agent speech) */
-  higgsFullDuplex?: boolean;
   emotionModulation?: VoiceEmotionModulation;
   /** Audio embedding result for LLM context (e.g. from audio-embedding-integration) */
   audioEmbedding?: unknown;

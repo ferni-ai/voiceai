@@ -734,7 +734,7 @@ async function serveStaticSite(
 
     // Determine which file to serve
     const requestedFile = filePath || 'index.html';
-    const content = site.files[requestedFile];
+    let content = site.files[requestedFile];
 
     if (!content) {
       // File not found - try index.html for SPA routing
@@ -747,6 +747,21 @@ async function serveStaticSite(
         res.end('File not found');
       }
       return true;
+    }
+
+    // In development, rewrite production endpoints to local dev endpoints
+    // so deployed sites (like Meet Joel) work locally without regeneration
+    if (
+      process.env.NODE_ENV === 'development' &&
+      requestedFile.endsWith('.html') &&
+      content
+    ) {
+      const devLivekitUrl = process.env.LIVEKIT_URL || 'wss://dev-8sm1ba0z.livekit.cloud';
+      const prodLivekitUrl = 'wss://test-rvg91u1z.livekit.cloud';
+      if (devLivekitUrl !== prodLivekitUrl) {
+        content = content.replace(new RegExp(prodLivekitUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), devLivekitUrl);
+        log.debug({ siteId, devLivekitUrl }, 'Rewrote LiveKit URL for local development');
+      }
     }
 
     // Determine content type
@@ -779,24 +794,27 @@ async function serveStaticSite(
       .catch((err: unknown) => log.warn({ err, siteId }, 'Failed to update analytics'));
 
     // Permissive CSP for landing pages - allows LiveKit and inline scripts
+    const isDev = process.env.NODE_ENV === 'development';
+    const connectSrc = isDev
+      ? "connect-src 'self' http://localhost:* ws://localhost:* https://*.livekit.cloud wss://*.livekit.cloud https://*.firebaseio.com https://*.googleapis.com https://api.stripe.com https://api.cartesia.ai https://cdn.jsdelivr.net"
+      : "connect-src 'self' https://*.livekit.cloud wss://*.livekit.cloud https://*.firebaseio.com https://*.googleapis.com https://api.stripe.com https://api.cartesia.ai https://cdn.jsdelivr.net";
+
     const landingPageCSP = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://apis.google.com https://js.stripe.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com https://constellation-static.web.vanguard.com data:",
       "img-src 'self' data: https: blob:",
-      "connect-src 'self' https://*.livekit.cloud wss://*.livekit.cloud https://*.firebaseio.com https://*.googleapis.com https://api.stripe.com https://api.cartesia.ai https://cdn.jsdelivr.net",
+      connectSrc,
       "media-src 'self' blob: https:",
       "object-src 'none'",
       "frame-ancestors 'self'",
       "base-uri 'self'",
     ].join('; ');
 
-    // Short cache for landing pages - allows quick updates after regeneration
-    // CloudFlare will also cache, but can be purged manually if needed
     res.writeHead(200, {
       'Content-Type': contentType,
-      'Cache-Control': 'public, max-age=300, s-maxage=60',
+      'Cache-Control': isDev ? 'no-cache, no-store' : 'public, max-age=300, s-maxage=60',
       'Content-Security-Policy': landingPageCSP,
     });
     res.end(content);

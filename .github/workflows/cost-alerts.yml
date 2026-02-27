@@ -59,10 +59,11 @@ jobs:
 
           # For now, estimate based on instance count
           # Real implementation would query BigQuery billing export
-          VOICE_INSTANCES=$(gcloud run services describe voiceai-agent \
-            --region=us-central1 \
-            --format="value(status.traffic[0].percent)" \
-            --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null || echo "0")
+          # Voice agent runs on GCE (voiceai-agent-gce), not Cloud Run
+          VOICE_INSTANCES=$(gcloud compute instances describe voiceai-agent-gce \
+            --zone=us-central1-a \
+            --format="value(status)" \
+            --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null || echo "UNKNOWN")
 
           UI_INSTANCES=$(gcloud run services describe john-bogle-ui \
             --region=us-central1 \

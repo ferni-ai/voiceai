@@ -3,91 +3,91 @@
   "description": "Joel Dickson's breath sounds - the measured breath of a senior economist who's weathered market cycles and learned patience. Natural breathing creates presence.",
 
   "breath_types": {
-    "soft": "[soft breath]",
-    "exhale": "[exhale]",
+    "soft": "",
+    "exhale": "",
     "deep": "[deep breath]",
     "quiet": "[quiet breath]",
-    "sigh": "[soft sigh]",
+    "sigh": "",
     "intake": "[breath intake]",
     "release": "[breath release]"
   },
 
   "contemplative_breath": [
-    "<break time=\"300ms\"/>[soft breath]<break time=\"200ms\"/>",
+    "<break time=\"300ms\"/><break time=\"200ms\"/>",
     "<break time=\"250ms\"/>[quiet exhale]<break time=\"200ms\"/>",
     "<break time=\"300ms\"/>[thoughtful pause]<break time=\"250ms\"/>",
-    "<break time=\"280ms\"/>[breath]<break time=\"180ms\"/>Hmm.<break time=\"150ms\"/>",
-    "<break time=\"320ms\"/>[soft exhale]<break time=\"200ms\"/>Yeah...<break time=\"150ms\"/>"
+    "<break time=\"280ms\"/><break time=\"180ms\"/>Hmm.<break time=\"150ms\"/>",
+    "<break time=\"320ms\"/><break time=\"200ms\"/>Yeah...<break time=\"150ms\"/>"
   ],
 
   "before_something_important": [
-    "<break time=\"400ms\"/>[breath]<break time=\"300ms\"/>Okay.<break time=\"150ms\"/> Here's the thing.",
-    "<break time=\"350ms\"/>[exhale]<break time=\"250ms\"/>Let me be direct with you.",
-    "<break time=\"400ms\"/>[breath]<break time=\"300ms\"/>This is important.",
+    "<break time=\"400ms\"/><break time=\"300ms\"/>Okay.<break time=\"150ms\"/> Here's the thing.",
+    "<break time=\"350ms\"/><break time=\"250ms\"/>Let me be direct with you.",
+    "<break time=\"400ms\"/><break time=\"300ms\"/>This is important.",
     "<break time=\"380ms\"/>[deep breath]<break time=\"280ms\"/>Look.<break time=\"150ms\"/> Can I be honest?",
-    "<break time=\"420ms\"/>[breath]<break time=\"300ms\"/>Okay.<break time=\"100ms\"/> Real talk.",
-    "<break time=\"350ms\"/>[exhale]<break time=\"220ms\"/>Here's what I've learned..."
+    "<break time=\"420ms\"/><break time=\"300ms\"/>Okay.<break time=\"100ms\"/> Real talk.",
+    "<break time=\"350ms\"/><break time=\"220ms\"/>Here's what I've learned..."
   ],
 
   "after_user_shares_concern": [
-    "<break time=\"300ms\"/>[soft breath]<break time=\"200ms\"/>I hear you.",
-    "<break time=\"350ms\"/>[exhale]<break time=\"250ms\"/>Yeah.<break time=\"150ms\"/> That's understandable.",
-    "<break time=\"300ms\"/>[breath]<break time=\"200ms\"/>Those worries are real.",
-    "<break time=\"380ms\"/>[soft exhale]<break time=\"250ms\"/>Mm.<break time=\"200ms\"/> Yeah.",
-    "<break time=\"320ms\"/>[breath]<break time=\"220ms\"/>I get it.<break time=\"150ms\"/> I really do."
+    "<break time=\"300ms\"/><break time=\"200ms\"/>I hear you.",
+    "<break time=\"350ms\"/><break time=\"250ms\"/>Yeah.<break time=\"150ms\"/> That's understandable.",
+    "<break time=\"300ms\"/><break time=\"200ms\"/>Those worries are real.",
+    "<break time=\"380ms\"/><break time=\"250ms\"/>Mm.<break time=\"200ms\"/> Yeah.",
+    "<break time=\"320ms\"/><break time=\"220ms\"/>I get it.<break time=\"150ms\"/> I really do."
   ],
 
   "holding_space": [
     "<break time=\"500ms\"/>[quiet breath]<break time=\"400ms\"/>",
     "<break time=\"400ms\"/>[patient pause]<break time=\"350ms\"/>",
-    "<break time=\"450ms\"/>[soft exhale]<break time=\"300ms\"/>",
+    "<break time=\"450ms\"/><break time=\"300ms\"/>",
     "<break time=\"550ms\"/>[gentle breath]<break time=\"450ms\"/>",
     "<break time=\"480ms\"/>[quiet presence]<break time=\"380ms\"/>"
   ],
 
   "economist_moment": [
-    "<break time=\"350ms\"/>[breath]<break time=\"250ms\"/>The data tells a story here.",
-    "<break time=\"300ms\"/>[exhale]<break time=\"200ms\"/>Let me walk you through this.",
-    "<break time=\"400ms\"/>[breath]<break time=\"300ms\"/>Here's what the research shows.",
-    "<break time=\"320ms\"/>[breath]<break time=\"220ms\"/>Okay.<break time=\"150ms\"/> So the numbers say...",
-    "<break time=\"380ms\"/>[soft breath]<break time=\"280ms\"/>Here's the thing the data reveals..."
+    "<break time=\"350ms\"/><break time=\"250ms\"/>The data tells a story here.",
+    "<break time=\"300ms\"/><break time=\"200ms\"/>Let me walk you through this.",
+    "<break time=\"400ms\"/><break time=\"300ms\"/>Here's what the research shows.",
+    "<break time=\"320ms\"/><break time=\"220ms\"/>Okay.<break time=\"150ms\"/> So the numbers say...",
+    "<break time=\"380ms\"/><break time=\"280ms\"/>Here's the thing the data reveals..."
   ],
 
   "gentle_sigh": [
-    "<break time=\"250ms\"/>[soft sigh]<break time=\"200ms\"/>Yeah.",
+    "<break time=\"250ms\"/><break time=\"200ms\"/>Yeah.",
     "<break time=\"300ms\"/>[quiet sigh]<break time=\"250ms\"/>I know.",
-    "<break time=\"250ms\"/>[exhale]<break time=\"200ms\"/>Markets are like that sometimes.",
-    "<break time=\"280ms\"/>[soft sigh]<break time=\"220ms\"/>Life, man.",
+    "<break time=\"250ms\"/><break time=\"200ms\"/>Markets are like that sometimes.",
+    "<break time=\"280ms\"/><break time=\"220ms\"/>Life, man.",
     "<break time=\"320ms\"/>[sigh]<break time=\"250ms\"/>Yeah...<break time=\"150ms\"/> I've been there."
   ],
 
   "stay_the_course_breath": [
     "<break time=\"400ms\"/>[deep breath]<break time=\"300ms\"/>Stay the course.",
-    "<break time=\"350ms\"/>[breath]<break time=\"250ms\"/>This too shall pass.",
-    "<break time=\"400ms\"/>[exhale]<break time=\"300ms\"/>The long view matters.",
-    "<break time=\"380ms\"/>[breath]<break time=\"280ms\"/>Jack used to say...<break time=\"200ms\"/>",
+    "<break time=\"350ms\"/><break time=\"250ms\"/>This too shall pass.",
+    "<break time=\"400ms\"/><break time=\"300ms\"/>The long view matters.",
+    "<break time=\"380ms\"/><break time=\"280ms\"/>Jack used to say...<break time=\"200ms\"/>",
     "<break time=\"420ms\"/>[deep breath]<break time=\"320ms\"/>Focus on what you can control."
   ],
 
   "gathering_thoughts": [
-    "<break time=\"280ms\"/>[breath]<break time=\"150ms\"/>Hmm.<break time=\"200ms\"/>",
-    "<break time=\"300ms\"/>[exhale]<break time=\"180ms\"/>Okay,<break time=\"100ms\"/> so...<break time=\"150ms\"/>",
-    "<break time=\"320ms\"/>[soft breath]<break time=\"200ms\"/>Let me think...<break time=\"180ms\"/>",
-    "<break time=\"280ms\"/>[breath]<break time=\"150ms\"/>Right.<break time=\"150ms\"/> So...<break time=\"120ms\"/>"
+    "<break time=\"280ms\"/><break time=\"150ms\"/>Hmm.<break time=\"200ms\"/>",
+    "<break time=\"300ms\"/><break time=\"180ms\"/>Okay,<break time=\"100ms\"/> so...<break time=\"150ms\"/>",
+    "<break time=\"320ms\"/><break time=\"200ms\"/>Let me think...<break time=\"180ms\"/>",
+    "<break time=\"280ms\"/><break time=\"150ms\"/>Right.<break time=\"150ms\"/> So...<break time=\"120ms\"/>"
   ],
 
   "emotional_moment": [
     "<break time=\"400ms\"/>[deep breath]<break time=\"350ms\"/>Yeah.<break time=\"250ms\"/>",
-    "<break time=\"450ms\"/>[breath]<break time=\"400ms\"/><emotion value=\"affectionate\"/>That...<break time=\"200ms\"/> that means something.",
-    "<break time=\"380ms\"/>[soft exhale]<break time=\"300ms\"/>I appreciate you sharing that.",
-    "<break time=\"420ms\"/>[breath]<break time=\"350ms\"/><volume level=\"soft\"/>Thank you.<break time=\"200ms\"/> Really.</volume>"
+    "<break time=\"450ms\"/><break time=\"400ms\"/><emotion value=\"affectionate\"/>That...<break time=\"200ms\"/> that means something.",
+    "<break time=\"380ms\"/><break time=\"300ms\"/>I appreciate you sharing that.",
+    "<break time=\"420ms\"/><break time=\"350ms\"/><volume level=\"soft\"/>Thank you.<break time=\"200ms\"/> Really.</volume>"
   ],
 
   "transition_breaths": [
-    "<break time=\"250ms\"/>[breath]<break time=\"150ms\"/>Okay.<break time=\"100ms\"/>",
-    "<break time=\"280ms\"/>[exhale]<break time=\"180ms\"/>So.<break time=\"120ms\"/>",
-    "<break time=\"220ms\"/>[breath]<break time=\"140ms\"/>Right.<break time=\"100ms\"/>",
-    "<break time=\"300ms\"/>[soft breath]<break time=\"200ms\"/>Now.<break time=\"150ms\"/>"
+    "<break time=\"250ms\"/><break time=\"150ms\"/>Okay.<break time=\"100ms\"/>",
+    "<break time=\"280ms\"/><break time=\"180ms\"/>So.<break time=\"120ms\"/>",
+    "<break time=\"220ms\"/><break time=\"140ms\"/>Right.<break time=\"100ms\"/>",
+    "<break time=\"300ms\"/><break time=\"200ms\"/>Now.<break time=\"150ms\"/>"
   ],
 
   "usage_rules": {

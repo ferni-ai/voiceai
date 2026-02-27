@@ -57,17 +57,3 @@ export { DynamicTTS, createDynamicTTS } from './dynamic-tts.js';
 
 export { PersonaAwareTTS, createPersonaAwareTTS } from '../tts/persona-aware.js';
 
-// ============================================================================
-// TTS CORE (lightweight factory for child processes)
-// ============================================================================
-
-export {
-  CARTESIA_MODEL,
-  DEFAULT_VOICE_IDS,
-  createCartesiaTTS,
-  createTTSFromConfig,
-  getVoiceIdForPersona,
-  isTTSPrewarmed,
-  prewarmTTS,
-  waitForTTSPrewarm,
-} from '../tts/cartesia-core.js';

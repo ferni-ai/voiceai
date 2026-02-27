@@ -25,7 +25,6 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { CartesiaEmotion } from '../cartesia-expressiveness.js';
 
 const log = createLogger({ module: 'GracefulInterrupt' });
 
@@ -534,36 +533,6 @@ export function wrapWithInterruptAwareness(
 }
 
 // =============================================================================
-// AUDIO FADE INTERRUPT (Higgs pipeline)
-// =============================================================================
-
-/**
- * Audio-level fade interrupt for Higgs pipeline.
- *
- * Instead of SSML-based trailing (which only works with Cartesia),
- * this sends a fade_interrupt command to the Rust pipeline for
- * a smooth 80ms audio fade-out at the PCM level.
- *
- * @param provider - HiggsPipelineProvider instance (or any object with fadeInterrupt method)
- * @param fadeMs - Fade duration in ms (default: 80)
- */
-export async function audioFadeInterrupt(
-  provider: { fadeInterrupt: (fadeMs: number) => Promise<void> } | null,
-  fadeMs = 80
-): Promise<boolean> {
-  if (!provider) return false;
-
-  try {
-    await provider.fadeInterrupt(fadeMs);
-    log.debug({ fadeMs }, 'Audio fade interrupt sent to Higgs pipeline');
-    return true;
-  } catch (err) {
-    log.warn({ error: String(err) }, 'Audio fade interrupt failed, falling back to SSML');
-    return false;
-  }
-}
-
-// =============================================================================
 // RE-EXPORT SPEECH WRAPPER
 // =============================================================================
 
@@ -591,8 +560,6 @@ export default {
   getTrailingSsml,
   getRecoverySsml,
   endRecovery,
-  audioFadeInterrupt,
-
   // Main integration
   wrapWithInterruptAwareness,
 

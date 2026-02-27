@@ -142,7 +142,7 @@ impl OnnxRouter {
 
         let load_time = start.elapsed().as_millis();
         eprintln!(
-            "FTIS V3 ONNX Router loaded in {}ms ({} labels)",
+            "FTIS V7 ONNX Router loaded in {}ms ({} labels)",
             load_time,
             label_map.len()
         );

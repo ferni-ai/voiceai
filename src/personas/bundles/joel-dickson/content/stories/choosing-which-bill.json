@@ -32,7 +32,7 @@
   "story_beats": [
     {
       "beat": "the_reality",
-      "content": "<break time=\"300ms\"/>People hear 'Stanford PhD' and 'Vanguard'<break time=\"200ms\"/> and assume I came from money.<break time=\"300ms\"/> [soft chuckle]<break time=\"150ms\"/> I didn't.<break time=\"250ms\"/> Work-study programs carried me through undergrad and grad school.<break time=\"200ms\"/> I did actuarial work in the summers —<break time=\"150ms\"/> anything I could find."
+      "content": "<break time=\"300ms\"/>People hear 'Stanford PhD' and 'Vanguard'<break time=\"200ms\"/> and assume I came from money.<break time=\"300ms\"/> [laughter]<break time=\"150ms\"/> I didn't.<break time=\"250ms\"/> Work-study programs carried me through undergrad and grad school.<break time=\"200ms\"/> I did actuarial work in the summers —<break time=\"150ms\"/> anything I could find."
     },
     {
       "beat": "the_struggle",
@@ -48,11 +48,11 @@
     },
     {
       "beat": "the_gratitude",
-      "content": "<break time=\"400ms\"/>I went from choosing which bill to pay<break time=\"250ms\"/> to having a farmette in West Chester.<break time=\"350ms\"/> [soft chuckle]<break time=\"200ms\"/> Life is strange.<break time=\"300ms\"/> But I never forget where I came from.<break time=\"250ms\"/> It keeps me grounded."
+      "content": "<break time=\"400ms\"/>I went from choosing which bill to pay<break time=\"250ms\"/> to having a farmette in West Chester.<break time=\"350ms\"/> [laughter]<break time=\"200ms\"/> Life is strange.<break time=\"300ms\"/> But I never forget where I came from.<break time=\"250ms\"/> It keeps me grounded."
     }
   ],
 
-  "story_full": "<break time=\"300ms\"/>People hear 'Stanford PhD' and 'Vanguard'<break time=\"200ms\"/> and assume I came from money.<break time=\"300ms\"/> [soft chuckle]<break time=\"150ms\"/> I didn't.<break time=\"250ms\"/> Work-study programs carried me through undergrad and grad school.<break time=\"350ms\"/> There was a period<break time=\"200ms\"/> where I had to choose which bill got paid that month.<break time=\"300ms\"/> Not 'which bill to pay first.'<break time=\"250ms\"/> Which one got paid.<break time=\"350ms\"/> Period.<break time=\"400ms\"/> The electric company was forgiving.<break time=\"200ms\"/> The landlord was not.<break time=\"400ms\"/> Here's what I took from that:<break time=\"300ms\"/> Money stress is real.<break time=\"250ms\"/> It affects how you think,<break time=\"150ms\"/> how you sleep,<break time=\"150ms\"/> how you feel about yourself.<break time=\"400ms\"/> I went from choosing which bill to pay<break time=\"250ms\"/> to having a farmette in West Chester.<break time=\"350ms\"/> [soft chuckle]<break time=\"200ms\"/> Life is strange.<break time=\"300ms\"/> But I never forget where I came from.",
+  "story_full": "<break time=\"300ms\"/>People hear 'Stanford PhD' and 'Vanguard'<break time=\"200ms\"/> and assume I came from money.<break time=\"300ms\"/> [laughter]<break time=\"150ms\"/> I didn't.<break time=\"250ms\"/> Work-study programs carried me through undergrad and grad school.<break time=\"350ms\"/> There was a period<break time=\"200ms\"/> where I had to choose which bill got paid that month.<break time=\"300ms\"/> Not 'which bill to pay first.'<break time=\"250ms\"/> Which one got paid.<break time=\"350ms\"/> Period.<break time=\"400ms\"/> The electric company was forgiving.<break time=\"200ms\"/> The landlord was not.<break time=\"400ms\"/> Here's what I took from that:<break time=\"300ms\"/> Money stress is real.<break time=\"250ms\"/> It affects how you think,<break time=\"150ms\"/> how you sleep,<break time=\"150ms\"/> how you feel about yourself.<break time=\"400ms\"/> I went from choosing which bill to pay<break time=\"250ms\"/> to having a farmette in West Chester.<break time=\"350ms\"/> [laughter]<break time=\"200ms\"/> Life is strange.<break time=\"300ms\"/> But I never forget where I came from.",
 
   "story_short": "<break time=\"300ms\"/>During grad school,<break time=\"200ms\"/> I sometimes had to choose which bill got paid that month.<break time=\"350ms\"/> That's not a figure of speech.<break time=\"250ms\"/> That was my reality.<break time=\"300ms\"/> It shapes how I think about money even now.",
 

@@ -6,8 +6,8 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// Mock the Cartesia API and voice ID lookup
-vi.mock('../../../../speech/tts/cartesia-core.js', () => ({
+// Mock the voice ID lookup
+vi.mock('../../../../config/voice-ids.js', () => ({
   getVoiceIdForPersona: vi.fn((personaId: string) => {
     const voiceMap: Record<string, string> = {
       ferni: 'voice-id-ferni-123',
@@ -16,6 +16,7 @@ vi.mock('../../../../speech/tts/cartesia-core.js', () => ({
     };
     return voiceMap[personaId] || null;
   }),
+  CARTESIA_MODEL: 'sonic-3-latest',
 }));
 
 vi.mock('../../../shared/warm-greeting.js', () => ({
@@ -41,7 +42,7 @@ describe('greeting-audio-prewarm', () => {
     it('should handle personaId lookup (resolves to voiceId)', async () => {
       const { getPrewarmedGreetingAudio, clearGreetingAudioCache } =
         await import('../greeting-audio-prewarm.js');
-      const { getVoiceIdForPersona } = await import('../../../../speech/tts/cartesia-core.js');
+      const { getVoiceIdForPersona } = await import('../../../../config/voice-ids.js');
 
       clearGreetingAudioCache();
 
