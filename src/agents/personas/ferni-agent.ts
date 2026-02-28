@@ -11,9 +11,10 @@
  * @see https://docs.livekit.io/agents/build/agents-handoffs
  */
 
-import { llm, voice } from '@livekit/agents';
+import { llm, stt, voice } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+import { processAudioStream } from '../voice-agent/audio-processor.js';
 import { z } from 'zod';
 
 import type { ToolContext } from '../../tools/registry/types.js';
@@ -610,6 +611,55 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
    */
   async onExit(): Promise<void> {
     log.debug('Transitioning to another agent (handoff)');
+  }
+
+  /**
+   * Override sttNode to tap user audio for parallel biomarker analysis.
+   *
+   * The audio stream is tee'd into two branches:
+   * - audioForStt: goes to the default STT (transcription, unchanged)
+   * - audioForProcessor: goes to processAudioStream (prosody, biomarkers, voice emotion)
+   *
+   * This populates userData.voiceEmotion and userData.voiceBiomarkers, which
+   * turn-handler.ts reads to activate BTH features:
+   * - Protective instinct + somatic presence (turn-handler.ts:1178)
+   * - Voice biomarker pipeline (turn-handler.ts:1617)
+   * - Audio-native LLM context (turn-handler.ts:1691)
+   * - Voice-memory emotional weighting (turn-handler.ts:602)
+   */
+  async sttNode(
+    audio: NodeReadableStream<AudioFrame>,
+    modelSettings: voice.ModelSettings
+  ): Promise<NodeReadableStream<stt.SpeechEvent | string> | null> {
+    const [audioForStt, audioForProcessor] = audio.tee();
+
+    const userData = this.session.userData as import('../shared/types.js').UserData | undefined;
+    const sessionId =
+      (userData?.services as { sessionId?: string } | undefined)?.sessionId ?? '';
+    const userId = userData?.userId as string | undefined;
+
+    const sendDataMessage = async (
+      type: string,
+      payload: Record<string, unknown>
+    ): Promise<void> => {
+      try {
+        const { getFrontendPublisher } = await import('../realtime/index.js');
+        const pub = getFrontendPublisher();
+        if (pub?.isConnected()) await pub.sendData(type, payload);
+      } catch {
+        // Non-critical — frontend publisher may not be initialized yet
+      }
+    };
+
+    // Background audio processing — populates userData.voiceEmotion and userData.voiceBiomarkers
+    void processAudioStream(audioForProcessor, {
+      sessionId,
+      userId,
+      userData,
+      sendDataMessage,
+    }).catch((e) => log.debug({ error: String(e) }, 'Audio processor (non-critical)'));
+
+    return voice.Agent.default.sttNode(this, audioForStt, modelSettings);
   }
 
   /**

@@ -1194,6 +1194,41 @@ export async function dispatchAnticipatoryPresence(
   }
 }
 
+/**
+ * 11. SILENCE ANALYZED - Silence classification for avatar expression matching
+ *
+ * Trigger when: Audio processor detects a meaningful silence (> 3s).
+ * The frontend avatar will match its expression to the silence type
+ * (e.g., contemplative face for reflective silence, attentive for confused silence).
+ */
+export async function dispatchSilenceAnalyzed(
+  sendDataMessage: SendDataMessageFn,
+  context: {
+    silenceType: 'processing' | 'emotional' | 'resistant' | 'confused' | 'reflective' | 'contemplative' | 'disconnection' | 'unknown';
+    silenceDurationMs: number;
+    suggestedBehavior?: string;
+    intensity?: number;
+  }
+): Promise<void> {
+  try {
+    await sendDataMessage('humanization_signal', {
+      signalType: 'silence_analyzed',
+      silenceType: context.silenceType,
+      silenceDurationMs: context.silenceDurationMs,
+      suggestedBehavior: context.suggestedBehavior,
+      intensity: context.intensity ?? DEFAULT_EXPRESSION_INTENSITY,
+      timestamp: Date.now(),
+    });
+
+    log.debug(
+      { silenceType: context.silenceType, durationMs: context.silenceDurationMs },
+      '🤫 BTH: Silence analyzed signal dispatched'
+    );
+  } catch (error) {
+    log.warn({ error: String(error) }, 'silence_analyzed dispatch failed');
+  }
+}
+
 // ============================================================================
 // BTH SIGNAL DETECTION HELPERS
 // These help detect when to trigger BTH signals from conversation content

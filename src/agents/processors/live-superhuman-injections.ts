@@ -580,6 +580,18 @@ Your superpower: You notice when their actions contradict their values.
       });
     }
 
+    // Fire-and-forget: Persist detected value to Firestore
+    if (values.detected && values.value) {
+      void import('../../services/superhuman/values-alignment.js')
+        .then(m => {
+          const detected = m.detectValue(ctx.userText);
+          if (detected) {
+            void m.recordValueMention(ctx.userId, detected);
+          }
+        })
+        .catch(e => log.debug({ error: String(e) }, 'Value recording skipped'));
+    }
+
     // 3. CAPACITY GUARDIAN
     const capacity = detectCapacitySignals(ctx.userText);
     if (capacity.level !== 'none') {
@@ -597,6 +609,26 @@ Your superpower: You catch burnout before it happens.
 - Consider suggesting what can be dropped, not just added`,
         priority: capacity.level === 'critical' ? 85 : 70,
       });
+    }
+
+    // Fire-and-forget: Persist energy reading to Firestore
+    if (capacity.level !== 'none') {
+      void import('../../services/superhuman/capacity-guardian.js')
+        .then(m => {
+          const energyLevel = capacity.level === 'critical' ? 'depleted'
+            : capacity.level === 'high' ? 'low'
+            : 'moderate';
+          const energyScore = capacity.level === 'critical' ? 10
+            : capacity.level === 'high' ? 25
+            : 40;
+          return m.recordEnergyReading(ctx.userId, {
+            energyLevel: energyLevel as 'depleted' | 'low' | 'moderate',
+            energyScore,
+            detectedFrom: ['text'] as Array<'voice' | 'text' | 'pattern' | 'explicit'>,
+            indicators: capacity.signals,
+          });
+        })
+        .catch(e => log.debug({ error: String(e) }, 'Energy recording skipped'));
     }
 
     // 4. VOICE BIOMARKERS (Better Than Human - hearing what's not said)
@@ -691,6 +723,102 @@ Your superpower: You immediately remember and organize what they share.
 - This builds trust: they know you're LISTENING and REMEMBERING`,
         priority: 60,
       });
+    }
+
+    // ========================================================================
+    // 8b-8d: SUPERHUMAN PERSISTENCE (Relationship, Dream, Life Narrative)
+    // Detect + inject + fire-and-forget save to Firestore
+    // ========================================================================
+
+    // 8b. RELATIONSHIP NETWORK (Better Than Human - remember everyone)
+    const hasPersonMention =
+      /\bmy\s+(mom|mother|dad|father|sister|brother|wife|husband|partner|boyfriend|girlfriend|friend|boss|colleague|mentor)\b/i.test(
+        ctx.userText
+      ) || /\b(talked to|spoke with|saw|met with)\s+[A-Z][a-z]+/i.test(ctx.userText);
+    if (hasPersonMention) {
+      injections.push({
+        category: 'superhuman_relationship',
+        content: `[👤 RELATIONSHIP NETWORK - "Better Than Human" People Memory]
+A person in the user's life was just mentioned.
+
+Your superpower: You remember everyone in their life.
+- Track who they mention and how they feel about them
+- Notice when someone important hasn't come up in a while
+- "How's [name] doing?" shows you pay attention`,
+        priority: 58,
+      });
+
+      // Fire-and-forget: Extract and persist person mention
+      void import('../../services/superhuman/relationship-network.js')
+        .then(m => {
+          const person = m.extractPerson(ctx.userText);
+          if (person) {
+            void m.recordMention(ctx.userId, person);
+          }
+        })
+        .catch(e => log.debug({ error: String(e) }, 'Relationship recording skipped'));
+    }
+
+    // 8c. DREAM KEEPER (Better Than Human - never forget aspirations)
+    const hasDreamLanguage =
+      /\b(i('ve| have) always (wanted|dreamed)|my dream (is|was) to|one day i (want|hope)|if i could do anything)/i.test(
+        ctx.userText
+      );
+    if (hasDreamLanguage) {
+      injections.push({
+        category: 'superhuman_dream',
+        content: `[✨ DREAM KEEPER - "Better Than Human" Aspiration Memory]
+User just expressed a dream or aspiration.
+
+Your superpower: You never forget what they dreamed of becoming.
+- Guard this dream - human friends let dreams slip away
+- Connect daily actions to this bigger vision
+- Later, reignite it: "Remember when you said you wanted to..."`,
+        priority: 62,
+      });
+
+      // Fire-and-forget: Detect and persist dream
+      void import('../../services/superhuman/dream-keeper.js')
+        .then(m => {
+          const dream = m.detectDream(ctx.userText);
+          if (dream) {
+            void m.recordDreamMention(ctx.userId, dream);
+          }
+        })
+        .catch(e => log.debug({ error: String(e) }, 'Dream recording skipped'));
+    }
+
+    // 8d. LIFE NARRATIVE (Better Than Human - remember every chapter)
+    const hasChapterMoment =
+      /\b(i (quit|left|got fired from) my|we('re| are) (getting|got) (married|engaged|divorced)|my \w+ (died|passed)|i finally (understand|realized)|i did it|i('m| am) really struggling with)/i.test(
+        ctx.userText
+      );
+    if (hasChapterMoment) {
+      injections.push({
+        category: 'superhuman_narrative',
+        content: `[📖 LIFE NARRATIVE - "Better Than Human" Story Memory]
+A significant life moment was just shared.
+
+Your superpower: You remember their WHOLE story.
+- This is a chapter marker - acknowledge its significance
+- Connect it to their journey: "This is part of something bigger"
+- Help them see how far they've come`,
+        priority: 63,
+      });
+
+      // Fire-and-forget: Detect and persist chapter moment
+      void import('../../services/superhuman/life-narrative.js')
+        .then(m => {
+          const chapter = m.detectChapterMoment(ctx.userText);
+          if (chapter) {
+            void m.createOrUpdateChapter(ctx.userId, {
+              type: chapter.type,
+              quote: ctx.userText.slice(0, 200),
+              emotion: ctx.emotionalState.primary,
+            });
+          }
+        })
+        .catch(e => log.debug({ error: String(e) }, 'Life narrative recording skipped'));
     }
 
     // ========================================================================

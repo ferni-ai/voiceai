@@ -296,6 +296,71 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
       await ctx.room.localParticipant?.publishData(data, { reliable: true });
     } catch { /* Non-critical */ }
   };
+
+  // =========================================================================
+  // 🎤 AUDIO PROCESSOR: Prosody analysis, voice biomarkers, emotion detection
+  // processAudioStream() runs in parallel with STT, analyzing user audio for
+  // Better Than Human features (voice biomarkers, protective instinct,
+  // somatic presence, audio-native LLM context, voice-memory weighting).
+  // =========================================================================
+  try {
+    const { processAudioStream } = await import('../voice-agent/audio-processor.js');
+    const { AudioStream, TrackKind } = await import('@livekit/rtc-node');
+
+    let audioProcessorStarted = false;
+
+    const startAudioProcessing = (track: import('@livekit/rtc-node').RemoteTrack) => {
+      if (audioProcessorStarted) return;
+      if (track.kind !== TrackKind.KIND_AUDIO) return;
+      audioProcessorStarted = true;
+
+      const audioStream = new AudioStream(track, { sampleRate: 16000, numChannels: 1 });
+      process.stderr.write(
+        `[voice-agent-entry] 🎤 Audio processor wired — prosody, biomarkers, and emotion analysis active\n`
+      );
+
+      // AudioStream extends ReadableStream<AudioFrame> but needs cast for node:stream/web compat
+      void processAudioStream(audioStream as unknown as import('node:stream/web').ReadableStream<import('@livekit/rtc-node').AudioFrame>, {
+        sessionId,
+        userId: userId ?? undefined,
+        userData: userData as import('../shared/types.js').UserData,
+        sendDataMessage,
+      }).catch((err) => {
+        process.stderr.write(
+          `[voice-agent-entry] ⚠️ Audio processor ended: ${err}\n`
+        );
+      });
+    };
+
+    // Check already-subscribed tracks (participant may have joined before this point)
+    for (const [, remoteParticipant] of ctx.room.remoteParticipants) {
+      for (const [, publication] of remoteParticipant.trackPublications) {
+        if (publication.track) {
+          startAudioProcessing(publication.track as import('@livekit/rtc-node').RemoteTrack);
+        }
+      }
+    }
+
+    // Listen for new track subscriptions
+    const audioTrackSubHandler = (
+      track: import('@livekit/rtc-node').RemoteTrack,
+      _publication: import('@livekit/rtc-node').RemoteTrackPublication,
+      _participant: import('@livekit/rtc-node').RemoteParticipant,
+    ) => {
+      startAudioProcessing(track);
+    };
+    ctx.room.on('trackSubscribed', audioTrackSubHandler);
+    cleanupTracker.register('event', 'audio-processor-track-sub', () => {
+      ctx.room.off('trackSubscribed', audioTrackSubHandler);
+    });
+
+    process.stderr.write(`[voice-agent-entry] 🎤 Audio processor listener registered\n`);
+  } catch (audioProcessorErr) {
+    process.stderr.write(
+      `[voice-agent-entry] ⚠️ Audio processor wiring failed (non-critical): ${audioProcessorErr}\n`
+    );
+  }
+
   setupToolTrackingHandler({
     session, userData, services, sessionPersona, sessionId, debugEnabled: true, sendDataMessage,
   });

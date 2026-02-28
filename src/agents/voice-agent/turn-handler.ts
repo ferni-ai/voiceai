@@ -599,7 +599,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           sessionId: services.sessionId,
           userId: services.userId,
           turnNumber,
-          prosody: undefined, // Prosody features would come from audio analysis
+          prosody: (userData as UserData).voiceEmotion?.prosody, // Populated by audio-processor.ts sttNode tap
           voiceEmotion: {
             primary: ctx.voiceEmotion.primary,
             confidence: ctx.voiceEmotion.confidence,

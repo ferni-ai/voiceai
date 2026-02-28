@@ -475,6 +475,12 @@ export function handleDataMessage(message: DataMessage): void {
       handleEngagementData(message as EngagementDataEvent);
       break;
 
+    case 'voice_biomarkers':
+      // 🩺 VOICE BIOMARKERS: Stress, fatigue, anxiety from audio analysis
+      // Converts biomarker state into EQ signals for avatar adaptation
+      handleVoiceBiomarkers(message);
+      break;
+
     default:
   }
 }
@@ -903,11 +909,42 @@ function handleBreathSync(event: BreathSyncEvent): void {
 }
 
 /**
- * Handle voice biomarkers - stress, fatigue, anxiety from turn-handler
- * Dispatches for EQ system concern detection and avatar adaptation
+ * Handle voice biomarkers - stress, fatigue, anxiety from turn-handler.
+ * Converts biomarker state into EQ humanization signals for the avatar.
  */
 function handleVoiceBiomarkers(message: DataMessage): void {
+  const msg = message as Record<string, unknown>;
+  const stressLevel = msg['stressLevel'] as number | undefined;
+  const energyLevel = msg['energyLevel'] as number | undefined;
+  const state = msg['state'] as string | undefined;
+  const intervention = msg['intervention'] as string | undefined;
+
+  log.info('🩺 Voice biomarkers received', { state, stressLevel, energyLevel });
+
+  // High stress → trigger concern via EQ avatar (micro-expression + concern analysis)
+  if (stressLevel !== undefined && stressLevel > 0.7) {
+    ferni.playMicroExpression(stressLevel > 0.9 ? 'protective' : 'concern_flash');
+    ferni.analyzeConcern({ voiceStrain: stressLevel });
+    ferniExpressions.setExpression('attentive', 400, 3000);
+    log.debug('🩺 Biomarker stress → concern mode', { stressLevel, state });
+  }
+
+  // Low energy → trigger somatic grounding cue
+  if (energyLevel !== undefined && energyLevel < 0.3) {
+    handleBetterThanHumanSignal({
+      signalType: 'somatic_presence',
+      intensity: 1 - energyLevel,
+      somaticType: 'settling',
+    });
+    log.debug('🩺 Biomarker low energy → somatic_presence', { energyLevel });
+  }
+
+  // Dispatch DOM event for any additional listeners
   document.dispatchEvent(new CustomEvent('ferni:voice-biomarkers', { detail: message }));
+
+  if (intervention) {
+    log.info('🩺 Biomarker intervention:', intervention);
+  }
 }
 
 /**
@@ -959,7 +996,8 @@ type HumanizationSignalType =
   | 'temporal_insight'
   | 'meta_relationship_moment'
   | 'somatic_presence'
-  | 'anticipatory_presence';
+  | 'anticipatory_presence'
+  | 'silence_analyzed';
 
 /**
  * Humanization signal event from backend
@@ -988,6 +1026,10 @@ interface HumanizationSignalEvent extends DataMessage {
   relationshipContext?: string;
   somaticType?: 'breathing' | 'settling' | 'grounding' | 'pause';
   timeContext?: 'late_night' | 'early_morning' | 'weekend' | 'monday' | 'evening';
+  // Silence analysis fields
+  silenceType?: 'processing' | 'emotional' | 'resistant' | 'confused' | 'reflective' | 'contemplative' | 'disconnection' | 'unknown';
+  silenceDurationMs?: number;
+  suggestedBehavior?: string;
 }
 
 /**
@@ -1122,18 +1164,24 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
       setEmotionalState('celebration' as EmotionCategory);
       break;
 
+    case 'silence_analyzed': {
+      // 🤫 Silence classification from backend — match avatar expression to silence type
+      const silenceType = event.silenceType ?? 'unknown';
+      if (silenceType === 'emotional' || silenceType === 'reflective' || silenceType === 'contemplative') {
+        playMicroExpression('warmth_pulse');
+        ferniExpressions.setExpression('holdingSpace', 500, 4000);
+      } else if (silenceType === 'confused' || silenceType === 'resistant') {
+        playMicroExpression('noticing');
+        ferniExpressions.setExpression('attentive', 400, 3000);
+      } else if (silenceType === 'processing') {
+        playMicroExpression('recognition');
+        ferniExpressions.setExpression('present', 300, 2000);
+      }
+      log.debug('🤫 Silence analyzed:', { silenceType, duration: event.silenceDurationMs });
+      break;
+    }
+
     // 🧠 BETTER THAN HUMAN: Route superhuman intelligence signals to EQ bridge
-    // These signals enable the avatar to show deeper emotional connection:
-    // - emotional_bond_deepen: warmth/trust/protectiveness
-    // - protective_instinct: defending user from self-criticism
-    // - spontaneous_delight: appreciation/gratitude/joy
-    // - inside_joke_callback: shared humor reference
-    // - superhuman_observation: pattern surfacing
-    // - visible_vulnerability: Ferni showing appropriate uncertainty
-    // - temporal_insight: cross-session memory reference
-    // - meta_relationship_moment: user reflects on relationship with Ferni
-    // - somatic_presence: physical grounding cues
-    // - anticipatory_presence: time-aware care (late night, Monday morning)
     default: {
       // Delegate BTH signals to the EQ bridge which has full handlers
       const bthSignal: BetterThanHumanSignal = {
@@ -1175,6 +1223,7 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
     meta_relationship_moment: 'tenderness', // Relationship moments = tenderness
     somatic_presence: 'calm', // Grounding/somatic = calm
     anticipatory_presence: 'anticipation', // Direct mapping
+    silence_analyzed: 'reflection', // Silence = reflective state
   };
 
   const mappedEmotion = emotionMap[signalType];
