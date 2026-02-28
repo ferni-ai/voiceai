@@ -46,6 +46,19 @@ services/
 │   ├── engagement/       # Personalization, voice generation
 │   └── analytics/        # Engagement metrics
 │
+├── # ── Phase 2 Bounded Contexts (DDD Refactor Feb 2026) ──
+├── communication/        # WebSocket, broadcast, Slack (12 files)
+├── engagement/           # Celebrations, milestones, rituals (9 files)
+├── performance/          # Alerts, profiling, ops orchestration (12 files)
+├── billing/              # Stripe, Apple IAP, subscriptions (5 files)
+├── persona/              # Content loading, behavior, modes (6 files)
+├── intelligence/         # Emotion detection, awareness, memory (7-9 files)
+├── social/               # Conversations, teams, relationships (5-7 files)
+├── external-apis/        # Google Places, Yelp, Twilio, food delivery (8 files)
+├── platform/             # Feature flags, security, data export (9-10 files)
+├── data/                 # Persistence, WAL, caching (7 files)
+├── session-ext/          # Session warmup, variety tracking (1-5 files)
+│
 ├── # ── Existing Domains ──
 ├── trust-systems/        # 47 trust-building services (→ shims point to trust/)
 ├── trust-and-identity/   # Voice identity, 2FA, verification
@@ -60,7 +73,7 @@ services/
 ├── brand/                # Brand consistency
 ├── di/                   # Dependency injection container
 ├── voice/                # Voice services
-└── [99 root-level service files + 14 re-export shims]
+└── [~25 root-level infrastructure files + ~90 re-export shims]
 ```
 
 ### DDD Migration Status (Feb 2026)
@@ -73,6 +86,16 @@ services/
 | Identity/Contacts | ✅ Consolidated | `contacts.ts` + `contacts/` → `identity/contacts/` |
 | Superhuman | ✅ Organized | `superhuman/index.ts` extracted → `superhuman-service.ts` |
 | Outreach | ✅ Reorganized | Added `scheduling/`, `engagement/`, `analytics/` subdirs |
+| Communication | ✅ Consolidated | 12 root WebSocket/broadcast files → `communication/` |
+| Engagement | ✅ Consolidated | 9 root celebration/ritual files → `engagement/` |
+| Performance | ✅ Consolidated | 12 root perf/ops files → `performance/` |
+| Billing | ✅ Consolidated | 5 root Stripe/IAP files → `billing/` |
+| Persona | ✅ Consolidated | 6 root persona files → `persona/` |
+| Intelligence | ✅ Consolidated | 7-9 root awareness/detection files → `intelligence/` |
+| Social | ✅ Consolidated | 5-7 root conversation/team files → `social/` |
+| External APIs | ✅ Consolidated | 8 root API integration files → `external-apis/` |
+| Platform | ✅ Consolidated | 9-10 root platform files → `platform/` |
+| Data | ✅ Consolidated | 7 root persistence files → `data/` |
 
 **Re-export shims** at old paths ensure backward compatibility. Import from new paths for new code.
 

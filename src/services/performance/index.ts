@@ -103,3 +103,94 @@ export {
   type ToolCacheConfig,
   type ToolCacheMetrics,
 } from './tool-response-cache.js';
+
+// =============================================================================
+// PERFORMANCE ALERTS
+// Slack/email alerting for performance regressions
+// =============================================================================
+
+export * from './performance-alerts.js';
+
+// =============================================================================
+// PERFORMANCE INSTRUMENTATION
+// Memory tracking, phase tracking, performance monitoring
+// =============================================================================
+
+export * from './performance-instrumentation.js';
+
+// =============================================================================
+// PERFORMANCE METRICS
+// MetricsStore with percentile statistics
+// =============================================================================
+
+export * from './performance-metrics.js';
+
+// =============================================================================
+// PERFORMANCE PROFILER
+// Trace/mark/report profiling utilities
+// =============================================================================
+
+export * from './performance-profiler.js';
+
+// =============================================================================
+// OPTIMIZATION ALERTING
+// Optimization regression detection and alerting
+// =============================================================================
+
+export {
+  type AlertSeverity,
+  type AlertChannel,
+  type Alert,
+  // AlertConfig skipped — already exported by performance-alerts
+  type AlertThresholds,
+  alertingService,
+} from './optimization-alerting.js';
+
+// =============================================================================
+// OPTIMIZATION PERSISTENCE
+// Persist optimization data to Firestore
+// =============================================================================
+
+export * from './optimization-persistence.js';
+
+// =============================================================================
+// PREDICTIVE ALERTING
+// Trend-based predictive performance alerts
+// =============================================================================
+
+export * from './predictive-alerting.js';
+
+// =============================================================================
+// OPS ORCHESTRATOR
+// Unified self-healing & alerting system
+// =============================================================================
+
+export * from './ops-orchestrator.js';
+
+// =============================================================================
+// SMART RUNBOOKS
+// AI-generated remediation steps
+// =============================================================================
+
+export * from './smart-runbooks.js';
+
+// =============================================================================
+// INCIDENT TIMELINE
+// Automatic incident documentation
+// =============================================================================
+
+export * from './incident-timeline.js';
+
+// =============================================================================
+// DIAGNOSTIC LOGGER
+// Structured diagnostic logging with categories
+// =============================================================================
+
+export * from './diagnostic-logger.js';
+
+// =============================================================================
+// ERROR TRACKING
+// Sentry integration for production error monitoring
+// =============================================================================
+
+export * from './error-tracking.js';

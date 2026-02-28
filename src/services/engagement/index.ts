@@ -27,3 +27,14 @@ export {
   type ChallengeProgress as GamificationChallengeProgress,
 } from './gamification-store.js';
 export * from './team-engagement.js';
+
+// Consolidated from root-level services (DDD migration Feb 2026)
+export * from './celebration-engine.js';
+export * from './daily-rituals.js';
+export * from './engagement-data-sender.js';
+export * from './growth-visibility-engine.js';
+export * from './milestone-detection.js';
+export * from './ritual-onboarding.js';
+export * from './seed-economy.js';
+export * from './spontaneous-sharing.js';
+export * from './story-tracking.js';

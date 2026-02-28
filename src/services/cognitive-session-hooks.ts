@@ -1,7 +1,7 @@
 /**
- * Cognitive Session Hooks - Re-export Shim
- *
- * @deprecated Import from './session/cognitive-session-hooks.js' instead.
+ * Re-export shim for backward compatibility.
+ * Canonical location: ./session/cognitive-session-hooks.ts
+ * @module
  */
 export {
   onCognitiveSessionStart,

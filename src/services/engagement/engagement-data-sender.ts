@@ -6,13 +6,13 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { PERSONA_RITUALS } from '../scheduling/daily-rituals.js';
+import { PERSONA_RITUALS } from './daily-rituals.js';
 import {
   EngagementStore,
   type EngagementProfile,
   type StoredPrediction,
   type StoredWeatherEntry,
-} from '../engagement/engagement-store.js';
+} from './engagement-store.js';
 
 // Generic interface for LiveKit room-like objects
 // FIX AUDIT ISSUE: Export the interface so consumers can avoid `any` casts

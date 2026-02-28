@@ -12,7 +12,7 @@
 import type { ReasoningStyle } from '../../personas/cognitive-types.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { cognitiveBroadcast } from '../cognitive-broadcast.js';
+import { cognitiveBroadcast } from '../cognitive-intelligence/cognitive-broadcast.js';
 import {
   endCognitiveSession,
   getCognitiveSession,
