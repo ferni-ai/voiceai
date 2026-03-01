@@ -18,6 +18,13 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import {
+  persistInsight,
+  persistKeyMoment,
+  persistTrackedItem,
+  queryPastKnowledge,
+  type ToolCtxWithUserData,
+} from '../shared/persistence.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // HOBBY CATEGORIES
@@ -93,7 +100,15 @@ const trackCreativeProjectDef: ToolDefinition = {
           'Tracking creative project'
         );
 
+        const priorContext = await queryPastKnowledge(
+          ctx as unknown as ToolCtxWithUserData,
+          'creative projects hobbies making creating'
+        );
+
         let response = '';
+        if (priorContext) {
+          response += `I remember some of your creative journey... ${priorContext}\n\n`;
+        }
 
         if (action === 'start') {
           response = `**New Creative Project Started! 🎨**\n\n`;
@@ -135,6 +150,13 @@ const trackCreativeProjectDef: ToolDefinition = {
           response += `• Is this still calling to you?\n`;
           response += `• What's the next step?`;
         }
+
+        persistTrackedItem(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'creativity',
+          itemType: 'creative_project',
+          item: { projectName, medium, action, update, challenge },
+          importance: 'high',
+        });
 
         return response;
       },
@@ -185,6 +207,13 @@ const setCreativeGoalDef: ToolDefinition = {
         response += `**Your goal reframed:**\n`;
         response += `What's a regular practice that would move you toward "${goal}"?`;
 
+        persistTrackedItem(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'creativity',
+          itemType: 'creative_goal',
+          item: { goal, timeframe, motivation },
+          importance: 'high',
+        });
+
         return response;
       },
     });
@@ -207,6 +236,14 @@ const celebrateCreationDef: ToolDefinition = {
       }),
       execute: async ({ creation, howItFeels }) => {
         getLogger().info({ agentId: ctx.agentId, creation }, 'Celebrating creation');
+
+        persistKeyMoment(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'creativity',
+          type: 'celebration',
+          summary: `Created: ${creation}${howItFeels ? ` (feels: ${howItFeels})` : ''}`,
+          emotionalWeight: 'medium',
+          topics: ['creativity', 'creation', 'celebration'],
+        });
 
         let response = `**You Made Something ✨**\n\n`;
         response += `**Creation:** ${creation}\n`;
@@ -284,6 +321,15 @@ const exploreNewHobbyDef: ToolDefinition = {
         response += `5. **It's okay to quit** - Not every hobby is for everyone\n\n`;
 
         response += `What category appeals to you?`;
+
+        if (currentInterests?.length || seeking) {
+          persistInsight(ctx as unknown as ToolCtxWithUserData, {
+            domain: 'creativity',
+            type: 'hobby_exploration',
+            data: { currentInterests, constraints, seeking },
+            confidence: 0.7,
+          });
+        }
 
         return response;
       },
@@ -379,6 +425,13 @@ const suggestHobbyBasedOnInterestsDef: ToolDefinition = {
         response += `\n---\n\n`;
         response += `Any of these spark interest? I can tell you more about how to get started.`;
 
+        persistInsight(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'creativity',
+          type: 'hobby_preferences',
+          data: { preferences, budget, timePerWeek },
+          confidence: 0.8,
+        });
+
         return response;
       },
     });
@@ -415,6 +468,14 @@ const navigateCreativeBlockDef: ToolDefinition = {
       }),
       execute: async ({ blockType, project }) => {
         getLogger().info({ agentId: ctx.agentId, blockType }, 'Navigating creative block');
+
+        persistKeyMoment(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'creativity',
+          type: 'concern',
+          summary: `Creative block: ${blockType}${project ? ` on ${project}` : ''}`,
+          emotionalWeight: 'medium',
+          topics: ['creativity', 'block', blockType],
+        });
 
         let response = `**Navigating Creative Block: ${blockType}**\n`;
         if (project) response += `_Project: ${project}_\n`;

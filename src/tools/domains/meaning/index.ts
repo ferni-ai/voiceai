@@ -17,6 +17,12 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
+import {
+  persistInsight,
+  persistKeyMoment,
+  queryPastKnowledge,
+  type ToolCtxWithUserData,
+} from '../shared/persistence.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
@@ -27,7 +33,7 @@ import { getToolDescription } from '../../utils/tool-descriptions.js';
 const explorePurposeDef: ToolDefinition = {
   id: 'explorePurpose',
   name: 'Explore Purpose',
-  description: 'Guided exploration of what gives life meaning and purpose',
+  description: 'Guide exploration of what gives life meaning and purpose when someone is searching, lost, or refining their sense of why they are here',
   domain: 'meaning',
   tags: ['meaning', 'purpose', 'exploration'],
 
@@ -46,7 +52,16 @@ const explorePurposeDef: ToolDefinition = {
       execute: async ({ currentState, lifeArea }) => {
         getLogger().info({ agentId: ctx.agentId, currentState, lifeArea }, 'Exploring purpose');
 
+        const priorContext = await queryPastKnowledge(
+          ctx as unknown as ToolCtxWithUserData,
+          'purpose meaning values life direction'
+        );
+
         let response = '';
+
+        if (priorContext) {
+          response += `Building on what you've shared before about purpose... ${priorContext}\n\n`;
+        }
 
         if (currentState === 'lost') {
           response = `Feeling lost about purpose is more common than you might think - and it's often a sign that you're ready for something deeper.\n\n`;
@@ -78,6 +93,13 @@ const explorePurposeDef: ToolDefinition = {
         } else {
           response = `Let's explore what purpose means to you. What's prompting this reflection?`;
         }
+
+        persistInsight(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'meaning',
+          type: 'purpose_exploration',
+          data: { currentState, lifeArea },
+          confidence: 0.8,
+        });
 
         return response;
       },
@@ -155,7 +177,7 @@ const alignActionsWithPurposeDef: ToolDefinition = {
 const clarifyValuesDef: ToolDefinition = {
   id: 'clarifyValues',
   name: 'Clarify Values',
-  description: 'Guided process to identify and articulate core values',
+  description: 'Identify and articulate core values through admiration, anger, joy, or regret—whichever lens reveals them most clearly',
   domain: 'meaning',
   tags: ['meaning', 'values', 'clarity'],
 
@@ -170,7 +192,16 @@ const clarifyValuesDef: ToolDefinition = {
       execute: async ({ approach }) => {
         getLogger().info({ agentId: ctx.agentId, approach }, 'Clarifying values');
 
+        const priorContext = await queryPastKnowledge(
+          ctx as unknown as ToolCtxWithUserData,
+          'values beliefs principles what matters'
+        );
+
         let response = `Values are your internal compass. Let's find yours.\n\n`;
+
+        if (priorContext) {
+          response += `From what you've shared before about your values... ${priorContext}\n\n`;
+        }
 
         if (approach === 'from-admiration') {
           response += `**Values from Admiration**\n\n`;
@@ -208,6 +239,13 @@ const clarifyValuesDef: ToolDefinition = {
         } else {
           response += `Let's do a comprehensive values exploration. We'll look at what you admire, what angers you, what brings you joy, and what you regret - each reveals different facets of your values. Which angle would you like to start with?`;
         }
+
+        persistInsight(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'meaning',
+          type: 'values_exploration',
+          data: { approach },
+          confidence: 0.8,
+        });
 
         return response;
       },
@@ -262,7 +300,7 @@ const valueConflictResolutionDef: ToolDefinition = {
 const sitWithBigQuestionDef: ToolDefinition = {
   id: 'sitWithBigQuestion',
   name: 'Sit With Big Question',
-  description: 'Hold space for existential questions without rushing to answers',
+  description: 'Hold space for existential questions—why am I here, does anything matter, am I living right—without rushing to answers or platitudes',
   domain: 'meaning',
   tags: ['meaning', 'existential', 'questions'],
 
@@ -432,6 +470,14 @@ const findMeaningInSufferingDef: ToolDefinition = {
           response += `What meaning, if any, has emerged for you?`;
         }
 
+        persistKeyMoment(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'meaning',
+          type: 'shared_vulnerability',
+          summary: `Finding meaning in suffering: ${nature} (${stage})`,
+          emotionalWeight: 'heavy',
+          topics: ['meaning', 'suffering', 'growth'],
+        });
+
         return response;
       },
     });
@@ -445,7 +491,7 @@ const findMeaningInSufferingDef: ToolDefinition = {
 const spiritualPracticeSupportDef: ToolDefinition = {
   id: 'spiritualPracticeSupport',
   name: 'Spiritual Practice Support',
-  description: 'Support engagement with spiritual or contemplative practices',
+  description: 'Support starting, deepening, returning to, or struggling with spiritual and contemplative practices like meditation, prayer, or gratitude',
   domain: 'meaning',
   tags: ['meaning', 'spiritual', 'practice'],
 
@@ -557,7 +603,7 @@ const exploreLifePhilosophyDef: ToolDefinition = {
 const createPersonalMissionDef: ToolDefinition = {
   id: 'createPersonalMission',
   name: 'Create Personal Mission',
-  description: 'Craft a personal mission statement',
+  description: 'Guide creation of a personal mission statement through discovery, drafting, and refinement stages',
   domain: 'meaning',
   tags: ['meaning', 'mission', 'purpose'],
 
@@ -601,6 +647,14 @@ const createPersonalMissionDef: ToolDefinition = {
           response += `- Include action, not just values\n`;
           response += `- It doesn't need to be perfect - it can evolve\n\n`;
           response += `What draft feels right to start with?`;
+
+          persistKeyMoment(ctx as unknown as ToolCtxWithUserData, {
+            domain: 'meaning',
+            type: 'milestone',
+            summary: 'Started drafting personal mission statement',
+            emotionalWeight: 'medium',
+            topics: ['meaning', 'mission', 'purpose'],
+          });
         } else {
           response = `**Refining Your Mission**\n\n`;
           response += `Your current draft: "${existingDraft}"\n\n`;
@@ -616,6 +670,14 @@ const createPersonalMissionDef: ToolDefinition = {
           response += `- Replace abstract words with concrete ones\n`;
           response += `- Read it aloud - does it sound like you?\n\n`;
           response += `What adjustment would make this feel more true?`;
+
+          persistKeyMoment(ctx as unknown as ToolCtxWithUserData, {
+            domain: 'meaning',
+            type: 'milestone',
+            summary: `Refining personal mission: ${existingDraft}`,
+            emotionalWeight: 'medium',
+            topics: ['meaning', 'mission', 'purpose'],
+          });
         }
 
         return response;

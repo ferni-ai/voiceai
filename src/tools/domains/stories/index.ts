@@ -30,7 +30,7 @@ import {
 const captureLifeStoryDef: ToolDefinition = {
   id: 'captureLifeStory',
   name: 'Capture Life Story',
-  description: 'Guide someone through capturing meaningful pieces of their life story',
+  description: 'Guide someone through capturing meaningful pieces of their life story—childhood, defining moments, relationships, or challenges—for themselves or loved ones',
   domain: 'stories',
   tags: ['stories', 'capture', 'biography'],
 
@@ -103,7 +103,7 @@ const captureLifeStoryDef: ToolDefinition = {
 const exploreLifeChapterDef: ToolDefinition = {
   id: 'exploreLifeChapter',
   name: 'Explore Life Chapter',
-  description: 'Explore a specific chapter or era of life',
+  description: 'Explore a specific chapter or era of life—its setting, characters, plot, themes, and turning points—to understand that period more deeply',
   domain: 'stories',
   tags: ['stories', 'chapters', 'eras'],
 
@@ -145,7 +145,7 @@ const exploreLifeChapterDef: ToolDefinition = {
 const defineLegacyDef: ToolDefinition = {
   id: 'defineLegacy',
   name: 'Define Legacy',
-  description: 'Explore what legacy means and what you want to leave behind',
+  description: 'Explore what legacy means through values, impact, wisdom, or relationships when someone is thinking about what they want to leave behind',
   domain: 'stories',
   tags: ['stories', 'legacy', 'meaning'],
 
@@ -195,7 +195,7 @@ const defineLegacyDef: ToolDefinition = {
 const writeEthicalWillDef: ToolDefinition = {
   id: 'writeEthicalWill',
   name: 'Write Ethical Will',
-  description: 'Guide creation of an ethical will - a document of values and wisdom for loved ones',
+  description: 'Guide creation of an ethical will—a document of values, life lessons, and hopes for loved ones, distinct from a legal will',
   domain: 'stories',
   tags: ['stories', 'legacy', 'ethical-will'],
 
@@ -237,7 +237,7 @@ const writeEthicalWillDef: ToolDefinition = {
 const findNarrativeThreadDef: ToolDefinition = {
   id: 'findNarrativeThread',
   name: 'Find Narrative Thread',
-  description: 'Discover the through-lines and themes in your life story',
+  description: 'Discover recurring themes and through-lines across a life story—resilience, creativity, caregiving—when someone wants to see the bigger picture',
   domain: 'stories',
   tags: ['stories', 'narrative', 'themes'],
 
@@ -290,7 +290,7 @@ const findNarrativeThreadDef: ToolDefinition = {
 const rewriteStoryDef: ToolDefinition = {
   id: 'rewriteStory',
   name: 'Rewrite Story',
-  description: 'Reframe a painful story into a more empowering narrative',
+  description: 'Reframe a painful or limiting life narrative into a more empowering one without denying what happened',
   domain: 'stories',
   tags: ['stories', 'reframe', 'healing'],
 
@@ -328,7 +328,7 @@ const rewriteStoryDef: ToolDefinition = {
 const createTimeCapsuleDef: ToolDefinition = {
   id: 'createTimeCapsule',
   name: 'Create Time Capsule',
-  description: 'Create a time capsule message to your future self or loved ones',
+  description: 'Guide creation of a time capsule message to a future self or loved one, capturing this moment in time for later reflection',
   domain: 'stories',
   tags: ['stories', 'time-capsule', 'future'],
 
@@ -383,7 +383,7 @@ const createTimeCapsuleDef: ToolDefinition = {
 const familyStoryPromptsDef: ToolDefinition = {
   id: 'familyStoryPrompts',
   name: 'Family Story Prompts',
-  description: 'Prompts for collecting stories from family members',
+  description: 'Provide interview prompts for collecting stories from aging family members before those stories are lost',
   domain: 'stories',
   tags: ['stories', 'family', 'interview'],
 
@@ -480,7 +480,7 @@ const familyStoryPromptsDef: ToolDefinition = {
 const recordOralHistoryDef: ToolDefinition = {
   id: 'recordOralHistory',
   name: 'Record Oral History',
-  description: 'Guide for recording and preserving oral history',
+  description: 'Guide recording and preserving oral history—family stories, cultural traditions, lived experiences—for future generations',
   domain: 'stories',
   tags: ['stories', 'oral-history', 'preservation'],
 

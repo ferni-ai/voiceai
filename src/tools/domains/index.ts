@@ -324,6 +324,24 @@ export { getToolDefinitions as getLocalSearchToolDefinitions } from './local-sea
 // "BETTER THAN HUMAN" CORE DOMAINS
 // ============================================================================
 
+// Commitment Tracking domain - promises, follow-ups, accountability (superhuman)
+export { getToolDefinitions as getCommitmentTrackingToolDefinitions } from './commitment-tracking/index.js';
+
+// Capacity Monitoring domain - burnout risk, energy logging, patterns (superhuman)
+export { getToolDefinitions as getCapacityMonitoringToolDefinitions } from './capacity-monitoring/index.js';
+
+// Dream Tracking domain - aspirations, dormant dreams, recording (superhuman)
+export { getToolDefinitions as getDreamTrackingToolDefinitions } from './dream-tracking/index.js';
+
+// Contemplative Practice domain - mindfulness, defusion, practice logging (superhuman)
+export { getToolDefinitions as getContemplativePracticeToolDefinitions } from './contemplative-practice/index.js';
+
+// Life Synthesis domain - cross-domain analysis, trajectory, life score (superhuman)
+export { getToolDefinitions as getLifeSynthesisToolDefinitions } from './life-synthesis/index.js';
+
+// Seasonal Awareness domain - seasonal patterns, dates, event timing (superhuman)
+export { getToolDefinitions as getSeasonalAwarenessToolDefinitions } from './seasonal-awareness/index.js';
+
 // Visual Memory domain - photo recall, image analysis, visual context
 export { getToolDefinitions as getVisualMemoryToolDefinitions } from './visual-memory/index.js';
 
@@ -541,6 +559,13 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./scheduling/index.js').then(async (m) => m.getToolDefinitions()),
     // Concierge domain - AI-powered outreach for hotels, restaurants, appointments
     import('./concierge/index.js').then(async (m) => m.getToolDefinitions()),
+    // Superhuman service domains
+    import('./commitment-tracking/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./capacity-monitoring/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./dream-tracking/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./contemplative-practice/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./life-synthesis/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./seasonal-awareness/index.js').then(async (m) => m.getToolDefinitions()),
     // "Better Than Human" Core domains
     import('./visual-memory/index.js').then(async (m) => m.getToolDefinitions()),
     import('./ambient-mode/index.js').then(async (m) => m.getToolDefinitions()),
@@ -1094,6 +1119,43 @@ export const DOMAIN_METADATA = {
     description:
       'Voice-based executive coaching: briefings, wins, energy, priorities, decisions, focus sessions',
     icon: '🎯',
+    status: 'active',
+  },
+  // Superhuman Service Domains (wired to real backends)
+  'commitment-tracking': {
+    name: 'Commitment Tracking',
+    description: 'Track promises and commitments — follow-ups, accountability, completion marking',
+    icon: '🤝',
+    status: 'active',
+  },
+  'capacity-monitoring': {
+    name: 'Capacity Monitoring',
+    description: 'Burnout risk assessment, energy level logging, and energy pattern analysis',
+    icon: '🔋',
+    status: 'active',
+  },
+  'dream-tracking': {
+    name: 'Dream Tracking',
+    description: 'Track dreams and aspirations — never forget what you dreamed of becoming',
+    icon: '💫',
+    status: 'active',
+  },
+  'contemplative-practice': {
+    name: 'Contemplative Practice',
+    description: 'Mindfulness assessment, cognitive defusion techniques, and practice logging',
+    icon: '🧘',
+    status: 'active',
+  },
+  'life-synthesis': {
+    name: 'Life Synthesis',
+    description: 'Cross-domain life analysis, trajectory projection, and life scoring',
+    icon: '🌐',
+    status: 'active',
+  },
+  'seasonal-awareness': {
+    name: 'Seasonal Awareness',
+    description: 'Seasonal patterns, upcoming personal dates, and event timing intelligence',
+    icon: '🍂',
     status: 'active',
   },
 } as const;

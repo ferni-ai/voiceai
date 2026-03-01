@@ -18,6 +18,12 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import {
+  persistInsight,
+  persistKeyMoment,
+  queryPastKnowledge,
+  type ToolCtxWithUserData,
+} from '../shared/persistence.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // GROUNDING TOOLS
@@ -67,7 +73,7 @@ const groundInBodyDef: ToolDefinition = {
 const groundingExerciseDef: ToolDefinition = {
   id: 'groundingExercise',
   name: 'Grounding Exercise',
-  description: 'Guided grounding exercise for returning to the present',
+  description: 'Guide a grounding exercise—feet on ground, body scan, breath anchor—for returning to the present when feeling unmoored',
   domain: 'presence',
   tags: ['presence', 'grounding', 'exercise'],
 
@@ -191,7 +197,7 @@ const returnToPresentDef: ToolDefinition = {
 const noticeThisMomentDef: ToolDefinition = {
   id: 'noticeThisMoment',
   name: 'Notice This Moment',
-  description: 'Practice simple present-moment awareness',
+  description: 'Practice simple present-moment awareness through open attention, sensory focus, breath, body, or sound',
   domain: 'presence',
   tags: ['presence', 'awareness', 'now'],
 
@@ -258,7 +264,7 @@ const noticeThisMomentDef: ToolDefinition = {
 const breatheWithMeDef: ToolDefinition = {
   id: 'breatheWithMe',
   name: 'Breathe With Me',
-  description: 'Guided breathing for presence and calm',
+  description: 'Guide a specific breathing technique—simple, box, 4-7-8, or coherent—for calm, energy, presence, or sleep',
   domain: 'presence',
   tags: ['presence', 'breathing', 'calm'],
 
@@ -337,6 +343,14 @@ const savorExperienceDef: ToolDefinition = {
       }),
       execute: async ({ experience, when }) => {
         getLogger().info({ agentId: ctx.agentId, when }, 'Savoring experience');
+
+        persistKeyMoment(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'presence',
+          type: 'celebration',
+          summary: `Savoring: ${experience} (${when})`,
+          emotionalWeight: 'medium',
+          topics: ['presence', 'savoring', 'joy'],
+        });
 
         let response = `**Savoring: ${experience}**\n\n`;
 
@@ -433,7 +447,15 @@ const recognizeFlowDef: ToolDefinition = {
       execute: async ({ inFlowNow, activity }) => {
         getLogger().info({ agentId: ctx.agentId, inFlowNow }, 'Recognizing flow');
 
+        const priorContext = await queryPastKnowledge(
+          ctx as unknown as ToolCtxWithUserData,
+          'flow state activities engagement focus'
+        );
+
         let response = '';
+        if (priorContext && !inFlowNow) {
+          response += `I know a bit about what brings you into flow... ${priorContext}\n\n`;
+        }
 
         if (inFlowNow) {
           response = `You might be in flow right now${activity ? ` with ${activity}` : ''}.\n\n`;
@@ -455,6 +477,13 @@ const recognizeFlowDef: ToolDefinition = {
           response += `What activities reliably bring you into flow?`;
         }
 
+        persistInsight(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'presence',
+          type: 'flow_state',
+          data: { activity, inFlowNow },
+          confidence: 0.8,
+        });
+
         return response;
       },
     });
@@ -464,7 +493,7 @@ const recognizeFlowDef: ToolDefinition = {
 const protectPresenceDef: ToolDefinition = {
   id: 'protectPresence',
   name: 'Protect Presence',
-  description: 'Identify and address what fragments attention',
+  description: 'Identify and address what fragments attention—devices, overthinking, multitasking, worry, or busyness—to protect presence',
   domain: 'presence',
   tags: ['presence', 'protection', 'attention'],
 
@@ -598,7 +627,7 @@ const mindfulEatingDef: ToolDefinition = {
 const naturePrescriptionDef: ToolDefinition = {
   id: 'naturePrescription',
   name: 'Nature Prescription',
-  description: 'Use nature for presence and wellbeing',
+  description: 'Prescribe nature-based practices for grounding, calm, perspective, or energy, adapted to whatever nature access is available',
   domain: 'presence',
   tags: ['presence', 'nature', 'wellbeing'],
 

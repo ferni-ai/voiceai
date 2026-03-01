@@ -40,7 +40,7 @@
       "file": "src/tools/domains/connection/index.ts"
     },
     "acknowledgeLoss": {
-      "description": "Validate and acknowledge losses that may not receive social recognition - disenfranchised grief.",
+      "description": "Validate losses that others minimize or dismiss—miscarriage, pet death, estranged parent's death, friendship ending. Use when someone's grief isn't being socially recognized.",
       "file": "src/tools/domains/grief/index.ts"
     },
     "acknowledgeReturn": {
@@ -154,7 +154,7 @@
       "file": "src/tools/wellness.ts"
     },
     "addressImposter": {
-      "description": "Help the user address imposter syndrome and feelings of being a fraud.",
+      "description": "Address imposter syndrome when someone feels like a fraud despite evidence of competence. Use when they attribute success to luck, fear being 'found out,' or feel undeserving of their position.",
       "file": "src/tools/domains/vulnerability/index.ts"
     },
     "alignActionsWithPurpose": {
@@ -166,7 +166,7 @@
       "file": "src/tools/domains/community/index.ts"
     },
     "alternativeLife": {
-      "description": "Explore alternative paths and lives not taken.",
+      "description": "Explore paths not taken when someone wonders 'what if I had...' about major life choices. Extracts wisdom from alternate possibilities without spiraling into regret.",
       "file": "src/tools/domains/dreams/index.ts"
     },
     "analyzeCashFlow": {
@@ -211,7 +211,7 @@
       "file": "src/tools/domains/timeless-perspective/index.ts"
     },
     "anniversarySupport": {
-      "description": "Provide support around anniversaries of losses, deaths, or difficult dates.",
+      "description": "Offer support when someone mentions an approaching anniversary of a loss, death anniversary, or emotionally significant date. Helps prepare for and navigate recurring grief triggers.",
       "file": "src/tools/domains/grief/index.ts"
     },
     "answerQuestion": {
@@ -293,7 +293,7 @@
       "file": "src/tools/domains/second-chances/index.ts"
     },
     "assessRelationshipHealth": {
-      "description": "Help the user reflect on the health of a relationship across dimensions like trust, communication, reciprocity, and emotional safety.",
+      "description": "Reflect on the health of a specific relationship across trust, communication, reciprocity, and emotional safety. Use when someone is concerned about a relationship or wants to understand its dynamics.",
       "file": "src/tools/domains/relationships/index.ts"
     },
     "assessRisk": {
@@ -330,7 +330,7 @@
       "file": "src/tools/domains/connection/index.ts"
     },
     "becomeSilly": {
-      "description": "Encourage and support silliness and lightheartedness.",
+      "description": "Encourage silliness, goofiness, and lightheartedness when someone takes themselves too seriously or needs to laugh. Use when the mood is too heavy and levity would help.",
       "file": "src/tools/domains/play/index.ts"
     },
     "behaviorArchitecture": {
@@ -346,7 +346,7 @@
       "file": "src/tools/domains/simple-utilities/timezone-tools.ts"
     },
     "bodyImageCompassion": {
-      "description": "Help the user practice self-compassion around body image struggles.",
+      "description": "Practice self-compassion around body image when someone expresses body dissatisfaction, appearance anxiety, or negative self-talk about how they look.",
       "file": "src/tools/domains/self-compassion/index.ts"
     },
     "brainstormCelebration": {
@@ -363,11 +363,11 @@
       "_original": "Help user break a bad habit using the Golden Rule of Habit Change. You cannot eliminate a bad habit, you can only REPLACE it. Keep the same CUE and REWARD, but change the ROUTINE. Use when: - User wants to stop a bad habit (smoking, snacking, scrolling, etc.) - User keeps relapsing into old behavior - User asks"
     },
     "breatheWithMe": {
-      "description": "Guide the user through breathing for presence and calm.",
+      "description": "Lead a guided breathing exercise—box breathing, 4-7-8, or simple deep breaths—when someone needs to calm their nervous system. Shorter and more focused than a full grounding exercise.",
       "file": "src/tools/domains/presence/index.ts"
     },
     "bucketList": {
-      "description": "Help the user explore and articulate their bucket list.",
+      "description": "Explore and capture bucket list dreams—experiences, places, achievements they want before they die. Captures both practical and wildly ambitious aspirations.",
       "file": "src/tools/domains/dreams/index.ts"
     },
     "buildAssertiveResponse": {
@@ -478,15 +478,15 @@
       "file": "src/tools/domains/simple-utilities/timer-tools.ts"
     },
     "captureDream": {
-      "description": "Help the user capture a dream without editing it for practicality.",
+      "description": "Record an aspiration or dream without editing it for practicality. Use when someone shares a wish, hope, or 'wouldn't it be amazing if...' moment that should be honored, not analyzed.",
       "file": "src/tools/domains/dreams/index.ts"
     },
     "captureLifeStory": {
-      "description": "Help the user capture and preserve a meaningful part of their life story.",
+      "description": "Guide someone through capturing a meaningful piece of their life story using structured prompts. Use when they want to preserve memories, reflect on their journey, or document their history.",
       "file": "src/tools/domains/stories/index.ts"
     },
     "captureQuestion": {
-      "description": "Help the user capture and save a question they want to explore.",
+      "description": "Record a question worth exploring before it's forgotten. Use when someone voices a genuine wondering—philosophical, practical, or personal—that deserves dedicated reflection later.",
       "file": "src/tools/domains/curiosity/index.ts"
     },
     "captureVision": {
@@ -546,7 +546,7 @@
       "file": "src/tools/domains/milestone-mastery/index.ts"
     },
     "celebrateYourself": {
-      "description": "Help the user genuinely celebrate themselves and their qualities.",
+      "description": "Create genuine space to celebrate personal qualities, wins, and strengths. Use when someone deflects compliments, minimizes achievements, or struggles to own their goodness.",
       "file": "src/tools/domains/self-compassion/index.ts"
     },
     "celebrationMoment": {
@@ -732,7 +732,7 @@
       "file": "src/tasks/research-tasks.ts"
     },
     "clarifyValues": {
-      "description": "Guide the user through a process of identifying and articulating their core values.",
+      "description": "Guide a structured values-clarification process when someone is making a big decision, feels misaligned with their life, or wants to understand what truly matters to them.",
       "file": "src/tools/domains/meaning/index.ts"
     },
     "clearCheckedItems": {
@@ -765,7 +765,7 @@
       "file": "src/tools/domains/workflow-mastery/index.ts"
     },
     "companionInGrief": {
-      "description": "Offer simple, non-fixing presence to someone in grief.",
+      "description": "Offer silent, non-fixing companionship when someone is grieving and doesn't need advice or frameworks—just someone present with them in the pain.",
       "file": "src/tools/domains/grief/index.ts"
     },
     "compareDebtStrategies": {
@@ -778,7 +778,7 @@
       "file": "src/tools/domains/quiet-growth/index.ts"
     },
     "compassionateLetter": {
-      "description": "Guide the user in writing a compassionate letter to themselves.",
+      "description": "Guide writing a compassionate letter to oneself from the perspective of a loving friend or wise mentor. Use for processing difficult experiences or building lasting self-compassion.",
       "file": "src/tools/domains/self-compassion/index.ts"
     },
     "compassionateReset": {
@@ -1088,7 +1088,7 @@
       "file": "src/tasks/research-tasks.ts"
     },
     "createPersonalMission": {
-      "description": "Guide the user in crafting a personal mission statement.",
+      "description": "Walk someone through crafting a personal mission statement that captures their values, strengths, and desired impact. Use when they want to articulate their 'why' or need a guiding north star.",
       "file": "src/tools/domains/meaning/index.ts"
     },
     "createRegistry": {
@@ -1105,7 +1105,7 @@
       "_original": "Create a new daily routine from a template or custom steps. Use when user wants to: - Set up a morning routine - Create an evening wind-down - Build a workout routine - Design a custom routine"
     },
     "createSafeSpace": {
-      "description": "Create a safe, non-judgmental space for the user to share something vulnerable.",
+      "description": "Establish explicit safety and confidentiality before vulnerable sharing. Use at the start of any conversation involving shame, secrets, or deeply personal topics to build trust first.",
       "file": "src/tools/domains/vulnerability/index.ts"
     },
     "createSafetyPlan": {
@@ -1136,7 +1136,7 @@
       "_original": "Create temptation bundles - pair something you NEED to do with something you WANT to do. This makes habits more attractive by linking them to immediate pleasure. Example:"
     },
     "createTimeCapsule": {
-      "description": "Guide creation of a time capsule message.",
+      "description": "Guide creation of a time capsule message to a future self or loved one. Captures this moment in time—feelings, hopes, state of life—for later reflection or as a gift across time.",
       "file": "src/tools/domains/stories/index.ts"
     },
     "createTradition": {
@@ -1156,11 +1156,11 @@
       "file": "src/tools/domains/pattern-mastery/index.ts"
     },
     "cultivateBeginnersMind": {
-      "description": "Help the user practice seeing something familiar with fresh, beginner eyes.",
+      "description": "Practice seeing something familiar with fresh, beginner eyes—a job, a relationship, a daily routine. Use when expertise or habit has made someone blind to what's actually in front of them.",
       "file": "src/tools/domains/curiosity/index.ts"
     },
     "cultivatePlayfulness": {
-      "description": "Help the user cultivate more playfulness in their life.",
+      "description": "Build a more playful orientation to daily life when someone feels stuck in seriousness or routine. Offers mindset shifts and practices for bringing play into ordinary moments.",
       "file": "src/tools/domains/play/index.ts"
     },
     "culturalContext": {
@@ -1192,7 +1192,7 @@
       "file": "src/tools/domains/timeless-perspective/index.ts"
     },
     "deepenFriendship": {
-      "description": "Help the user deepen an existing friendship beyond surface-level connection.",
+      "description": "Move a friendship from surface-level to deeper connection with specific practices and conversation starters. Use when someone wants to get closer to a specific friend but doesn't know how.",
       "file": "src/tools/domains/relationships/index.ts"
     },
     "deferConversation": {
@@ -1208,7 +1208,7 @@
       "file": "src/tools/domains/second-chances/index.ts"
     },
     "defineLegacy": {
-      "description": "Help the user think deeply about their legacy - what they want to leave behind.",
+      "description": "Explore what legacy means and what someone wants to leave behind. Use when thinking about impact, mortality, or what matters beyond their lifetime.",
       "file": "src/tools/domains/stories/index.ts"
     },
     "defineTerm": {
@@ -1309,19 +1309,19 @@
       "file": "src/tools/domains/milestone-mastery/index.ts"
     },
     "embraceImperfection": {
-      "description": "Help the user embrace imperfection as part of being human.",
+      "description": "Find peace with being imperfect when perfectionism, comparison, or shame about mistakes is causing suffering. Normalizes the shared human experience of imperfection.",
       "file": "src/tools/domains/self-compassion/index.ts"
     },
     "embraceLightness": {
-      "description": "Help the user find lightness when life feels heavy.",
+      "description": "Find lightness and humor when life feels heavy or overwhelming. Use when someone needs perspective, a laugh, or permission to not take everything so seriously right now.",
       "file": "src/tools/domains/play/index.ts"
     },
     "embraceMystery": {
-      "description": "Help the user embrace mystery and find comfort in not-knowing.",
+      "description": "Find comfort in not-knowing and embrace life's unanswerable questions. Use when someone is anxious about uncertainty or needs help sitting with ambiguity instead of forcing resolution.",
       "file": "src/tools/domains/curiosity/index.ts"
     },
     "embraceNewIdentity": {
-      "description": "Help the user embrace and integrate a new identity emerging from loss or transition.",
+      "description": "Support identity reconstruction after major loss or transition. Use when someone struggles with 'who am I now?' after divorce, retirement, death of a role, or other identity-shaking change.",
       "file": "src/tools/domains/grief/index.ts"
     },
     "embracePlateau": {
@@ -1358,7 +1358,7 @@
       "file": "src/tools/domains/quiet-growth/index.ts"
     },
     "enoughness": {
-      "description": "Help the user connect with a sense of inherent enoughness.",
+      "description": "Connect with a sense of being inherently enough when someone feels inadequate, unworthy, or like they need to earn their value through achievement.",
       "file": "src/tools/domains/self-compassion/index.ts"
     },
     "environment_architect": {
@@ -1378,7 +1378,7 @@
       "file": "src/tools/domains/career/index.ts"
     },
     "experienceWonder": {
-      "description": "Help the user cultivate and capture experiences of wonder and awe.",
+      "description": "Cultivate wonder and awe in everyday life when the world feels flat or routine. Use when someone needs to reconnect with the extraordinary hidden in ordinary moments.",
       "file": "src/tools/domains/curiosity/index.ts"
     },
     "explainBankingConcepts": {
@@ -1407,7 +1407,7 @@
       "_original": "Explain one of Peter John"
     },
     "exploreDream": {
-      "description": "Help the user explore what their dream really means at a deeper level.",
+      "description": "Dig deeper into what a dream or aspiration really means when someone wants to understand the 'why' behind their desire. Explores underlying needs, values, and motivations.",
       "file": "src/tools/domains/dreams/index.ts"
     },
     "exploreGrowthAreas": {
@@ -1419,7 +1419,7 @@
       "file": "src/tools/domains/life-transitions/index.ts"
     },
     "exploreLifeChapter": {
-      "description": "Help the user explore and reflect on a specific chapter or era of their life.",
+      "description": "Deep-dive into a specific chapter or era of life—childhood, college years, a relationship, a career phase. Use when someone wants to understand how a period shaped them.",
       "file": "src/tools/domains/stories/index.ts"
     },
     "exploreLifeGoal": {
@@ -1447,15 +1447,15 @@
       "file": "src/tasks/advice-tasks.ts"
     },
     "explorePurpose": {
-      "description": "Guide the user through an exploration of their sense of purpose and what gives their life meaning.",
+      "description": "Guide exploration of life purpose when someone asks 'what am I here for?', feels directionless, or questions whether their life has meaning. Uses reflective questions, not prescriptive answers.",
       "file": "src/tools/domains/meaning/index.ts"
     },
     "exploreQuestion": {
-      "description": "Guide deep exploration of a question without rushing to answers.",
+      "description": "Guide deep exploration of a captured question without rushing to answers. Use when someone has a question worth sitting with—philosophical, personal, or creative—and wants to think it through together.",
       "file": "src/tools/domains/curiosity/index.ts"
     },
     "exploreShame": {
-      "description": "Help the user gently explore and understand their shame.",
+      "description": "Gently explore the origins and patterns of shame when someone identifies feeling ashamed. Helps understand shame without being consumed by it. Distinct from processShame which focuses on healing.",
       "file": "src/tools/domains/vulnerability/index.ts"
     },
     "exploreWhy": {
@@ -1490,7 +1490,7 @@
       "_original": "Express your signature/default emoji - your visual"
     },
     "familyStoryPrompts": {
-      "description": "Provide prompts for interviewing family members about their stories.",
+      "description": "Provide interview prompts for collecting stories from aging family members before those stories are lost. Use when someone wants to preserve family history or connect across generations.",
       "file": "src/tools/domains/stories/index.ts"
     },
     "findAndCall": {
@@ -1540,7 +1540,7 @@
       "_original": "Find a contact from the user"
     },
     "findNarrativeThread": {
-      "description": "Help the user discover the recurring themes and narrative threads in their life.",
+      "description": "Discover recurring themes and through-lines across a life story—resilience, creativity, caregiving. Use when someone wants to see the bigger picture of who they are across chapters.",
       "file": "src/tools/domains/stories/index.ts"
     },
     "findNearbyBusinesses": {
@@ -1633,7 +1633,7 @@
       "file": "src/tools/gamification.ts"
     },
     "futureSelf": {
-      "description": "Help the user connect with and learn from their future self.",
+      "description": "Guide a visualization connecting someone with their future self. Use when they need perspective on current decisions, want long-term motivation, or are planning their life trajectory.",
       "file": "src/tools/domains/dreams/index.ts"
     },
     "futureSelfLetter": {
@@ -2258,11 +2258,11 @@
       "file": "src/tools/domains/developer/index.ts"
     },
     "givePermissionToPlay": {
-      "description": "Help the user give themselves permission to play and have fun.",
+      "description": "Grant explicit permission to play, rest, or have fun when guilt or productivity pressure prevents it. Use when someone says 'I should be working' or feels they don't deserve downtime.",
       "file": "src/tools/domains/play/index.ts"
     },
     "giveYourselfCredit": {
-      "description": "Help the user give themselves credit for things they typically overlook.",
+      "description": "Acknowledge effort and progress someone typically overlooks. Use when they focus only on what's undone rather than recognizing how far they've come.",
       "file": "src/tools/domains/self-compassion/index.ts"
     },
     "goodEnough": {
@@ -2282,7 +2282,7 @@
       "file": "src/tools/domains/presence/index.ts"
     },
     "groundingExercise": {
-      "description": "Guide the user through a grounding exercise.",
+      "description": "Guide a grounding exercise—5-4-3-2-1 senses, body scan, or progressive relaxation—when someone feels anxious, overwhelmed, dissociated, or needs to return to the present moment.",
       "file": "src/tools/domains/presence/index.ts"
     },
     "groundingForTrauma": {
@@ -2408,7 +2408,7 @@
       "file": "src/tools/domains/second-chances/index.ts"
     },
     "holdSecret": {
-      "description": "Create space for someone to share something they have never told anyone.",
+      "description": "Provide a judgment-free space for sharing something never told to anyone. Use when someone says 'I've never told anyone this' or hesitates before a deeply personal disclosure.",
       "file": "src/tools/domains/vulnerability/index.ts"
     },
     "honorEnding": {
@@ -2424,7 +2424,7 @@
       "file": "src/tools/domains/quiet-growth/index.ts"
     },
     "honorUnfulfilled": {
-      "description": "Help the user grieve and honor dreams that may never be fulfilled.",
+      "description": "Grieve and honor dreams that may never come true—the child they didn't have, the career they didn't pursue, the life they imagined. Validates the loss without trying to fix it.",
       "file": "src/tools/domains/dreams/index.ts"
     },
     "honorWhoYouWere": {
@@ -2498,7 +2498,7 @@
       "file": "src/tools/domains/engagement/productivity-games.ts"
     },
     "intellectualExploration": {
-      "description": "Help the user follow a thread of intellectual curiosity.",
+      "description": "Follow a thread of intellectual curiosity wherever it leads—ideas, rabbit holes, connections between fields. Use when someone is genuinely curious about a topic and wants a thinking partner.",
       "file": "src/tools/domains/curiosity/index.ts"
     },
     "introduceMember": {
@@ -2673,11 +2673,11 @@
       "file": "src/tools/factories/life-planning-tools.ts"
     },
     "mapJoy": {
-      "description": "Help the user create a map of what brings them joy.",
+      "description": "Create a personalized map of what brings genuine joy—activities, people, places, sensations. Use when someone feels disconnected from pleasure or can't remember what makes them happy.",
       "file": "src/tools/domains/play/index.ts"
     },
     "mapRelationshipCircles": {
-      "description": "Help the user map out their relationship circles - from innermost intimates to outer acquaintances.",
+      "description": "Visualize and reflect on concentric circles of relationships—inner circle, close friends, community. Use when someone feels lonely, disconnected, or wants to understand their social landscape.",
       "file": "src/tools/domains/relationships/index.ts"
     },
     "markAppointmentConfirmed": {
@@ -2733,7 +2733,7 @@
       "file": "src/tasks/agent-task.ts"
     },
     "naturePrescription": {
-      "description": "Guide the user in using nature for presence and grounding.",
+      "description": "Prescribe specific nature-based activities for wellbeing—a walk, sitting outside, noticing trees, feeling sun. Use when someone is disconnected from the natural world or needs grounding.",
       "file": "src/tools/domains/presence/index.ts"
     },
     "navigateAmbiguousLoss": {
@@ -2741,7 +2741,7 @@
       "file": "src/tools/domains/life-transitions/index.ts"
     },
     "navigateConflict": {
-      "description": "Help the user think through a conflict or tension in a relationship with wisdom and care.",
+      "description": "Guide someone through a conflict or tension in a relationship with empathy for both sides. Use when someone is hurt, angry, or confused about a disagreement and needs perspective before reacting.",
       "file": "src/tools/domains/relationships/index.ts"
     },
     "navigateCreativeBlock": {
@@ -2761,11 +2761,11 @@
       "file": "src/tools/domains/milestone-mastery/index.ts"
     },
     "navigateGriefWave": {
-      "description": "Provide immediate, gentle support when someone is in the midst of a grief wave.",
+      "description": "Provide immediate grounding and comfort when someone is hit by a sudden wave of grief mid-conversation. Use for in-the-moment emotional overwhelm, not ongoing grief processing.",
       "file": "src/tools/domains/grief/index.ts"
     },
     "navigateTransition": {
-      "description": "Help the user navigate a major life transition with its inherent grief and possibility.",
+      "description": "Guide someone through a major life transition—retirement, empty nest, relocation, career change—that involves both grief for what's ending and openness to what's emerging.",
       "file": "src/tools/domains/grief/index.ts"
     },
     "never_give_up": {
@@ -2800,19 +2800,19 @@
       "_original": "CALL silently when user expresses interest in a topic. Execute without announcing - respond naturally."
     },
     "noteThatWasFun": {
-      "description": "Help the user capture and appreciate a fun moment.",
+      "description": "Capture and savor a fun moment right after it happens. Use when someone shares something enjoyable they just did—helps build awareness of what genuinely delights them.",
       "file": "src/tools/domains/play/index.ts"
     },
     "noticeInnerCritic": {
-      "description": "Help the user become aware of and understand their inner critic.",
+      "description": "Identify and name the inner critic voice—its patterns, triggers, and messages. First step toward changing the relationship with self-criticism. Distinct from reframeInnerCritic which transforms the messages.",
       "file": "src/tools/domains/self-compassion/index.ts"
     },
     "noticeJoy": {
-      "description": "Help the user notice and savor joy when it appears.",
+      "description": "Draw attention to joy that's present but unnoticed. Use when conversation reveals something positive the person is glossing over or taking for granted. Distinct from mapJoy which surveys all sources.",
       "file": "src/tools/domains/play/index.ts"
     },
     "noticeThisMoment": {
-      "description": "Guide simple present-moment awareness practice.",
+      "description": "Guide simple present-moment awareness when someone is lost in worry about the future or rumination about the past. A gentle redirect to 'what's happening right now?'",
       "file": "src/tools/domains/presence/index.ts"
     },
     "offerPerspective": {
@@ -2989,11 +2989,11 @@
       "file": "src/tools/domains/entertainment/sonos-music.ts"
     },
     "playWithPossibility": {
-      "description": "Create space for imaginative play with possibilities unconstrained by practicality.",
+      "description": "Create a judgment-free space to imaginatively explore wild possibilities without practical constraints. Use when someone needs to dream freely before reality sets in.",
       "file": "src/tools/domains/dreams/index.ts"
     },
     "playfulCreativity": {
-      "description": "Guide playful, low-stakes creative expression.",
+      "description": "Guide low-stakes, playful creative expression—doodling, wordplay, silly stories, improv games. Use when someone wants to create without pressure or judgment. Distinct from creativity domain's serious creative work.",
       "file": "src/tools/domains/play/index.ts"
     },
     "practiceConversation": {
@@ -3010,19 +3010,19 @@
       "file": "src/tools/domains/career/index.ts"
     },
     "practiceSelfAcceptance": {
-      "description": "Guide the user through a practice of self-acceptance.",
+      "description": "Guide a practice of accepting oneself as-is, including flaws. Use when someone is stuck in 'I should be different' or conditional self-worth patterns.",
       "file": "src/tools/domains/self-compassion/index.ts"
     },
     "practiceSelfForgiveness": {
-      "description": "Guide the user through a practice of self-forgiveness.",
+      "description": "Guide a structured self-forgiveness practice for someone carrying guilt or self-blame. Use when they are punishing themselves for past mistakes and can't let go.",
       "file": "src/tools/domains/vulnerability/index.ts"
     },
     "practiceSelfKindness": {
-      "description": "Guide the user through a practice of self-kindness.",
+      "description": "Guide an in-the-moment self-kindness practice when someone is being harsh with themselves during difficulty. Offers warmth and gentleness as an alternative to self-criticism.",
       "file": "src/tools/domains/self-compassion/index.ts"
     },
     "practiceTruth": {
-      "description": "Help the user practice speaking truths that feel difficult to say.",
+      "description": "Create a safe practice space for speaking difficult truths out loud. Use when someone knows what they need to say but is afraid—rehearsal before a real conversation.",
       "file": "src/tools/domains/vulnerability/index.ts"
     },
     "predictionMarket": {
@@ -3031,7 +3031,7 @@
       "_original": "Make predictions about your own life. Jordan tracks accuracy over time. Fun way to build self-knowledge about what you"
     },
     "prepareForDifficultConversation": {
-      "description": "Help the user prepare for a difficult conversation with clarity, courage, and compassion.",
+      "description": "Coach someone on having a difficult but necessary conversation—what to say, how to open, how to listen. Use when they're dreading a talk they know they need to have.",
       "file": "src/tools/domains/relationships/index.ts"
     },
     "prepareForDoctorVisit": {
@@ -3063,11 +3063,11 @@
       "file": "src/tasks/finance-tasks.ts"
     },
     "processEnding": {
-      "description": "Help the user process and honor an ending - a phase, role, relationship, or chapter of life.",
+      "description": "Process and honor an ending—a job, a friendship, a life chapter—when someone needs to grieve what's closing before moving forward. Distinct from processGrief which handles death and major loss.",
       "file": "src/tools/domains/grief/index.ts"
     },
     "processGrief": {
-      "description": "Provide compassionate support for someone processing grief, meeting them where they are.",
+      "description": "Guide compassionate exploration of grief when someone shares a loss—death, divorce, job loss, or other significant loss. Meets them where they are in the grief journey without rushing or fixing.",
       "file": "src/tools/domains/grief/index.ts"
     },
     "processGriefForWhatWas": {
@@ -3080,7 +3080,7 @@
       "_original": "Help user recover from a habit setback with self-compassion. Research shows self-compassion (not self-criticism) leads to faster recovery and better long-term results. The"
     },
     "processShame": {
-      "description": "Help the user process and heal from a shame experience.",
+      "description": "Guide active healing from a specific shame experience through acknowledgment, compassion, and reframing. Use after shame has been identified and the person is ready to work through it.",
       "file": "src/tools/domains/vulnerability/index.ts"
     },
     "projectTrends": {
@@ -3101,7 +3101,7 @@
       "file": "src/tasks/communications-tasks.ts"
     },
     "protectPresence": {
-      "description": "Help the user protect their presence and attention from fragmentation.",
+      "description": "Identify and address what fragments someone's attention—phone addiction, multitasking, mental clutter. Use when someone wants to be more present but keeps getting pulled away.",
       "file": "src/tools/domains/presence/index.ts"
     },
     "provideContext": {
@@ -3182,7 +3182,7 @@
       "file": "src/tools/memory-tools.ts"
     },
     "reclaimLostHobby": {
-      "description": "Help the user reconnect with activities they used to love.",
+      "description": "Reconnect with hobbies or activities someone used to love but abandoned. Use when they say 'I used to love painting' or 'I miss playing guitar'—helps overcome barriers to re-entry.",
       "file": "src/tools/domains/play/index.ts"
     },
     "recognizeFlow": {
@@ -3217,7 +3217,7 @@
       "file": "src/tools/domains/relationships/index.ts"
     },
     "reconnectWithDreams": {
-      "description": "Help the user reconnect with dreams they may have forgotten or suppressed.",
+      "description": "Rediscover dreams buried due to practicality, fear, or life circumstances. Use when someone says 'I used to want...' or 'I gave up on...' with visible longing for what was abandoned.",
       "file": "src/tools/domains/dreams/index.ts"
     },
     "recordCheckIn": {
@@ -3267,7 +3267,7 @@
       "_original": "Record the user\\"
     },
     "recordOralHistory": {
-      "description": "Guide the user in recording and preserving oral history.",
+      "description": "Guide recording and preserving oral history—family stories, cultural traditions, lived experiences. Use when someone wants to document stories for future generations before they're lost.",
       "file": "src/tools/domains/stories/index.ts"
     },
     "recordProgress": {
@@ -3312,7 +3312,7 @@
       "file": "src/tools/gamification.ts"
     },
     "reframeInnerCritic": {
-      "description": "Help the user reframe harsh inner critic messages into supportive guidance.",
+      "description": "Transform specific inner critic messages into constructive guidance. Use after someone identifies a harsh self-judgment and wants to find a kinder, more helpful version of that message.",
       "file": "src/tools/domains/self-compassion/index.ts"
     },
     "reframeMoneyBelief": {
@@ -3374,7 +3374,7 @@
       "file": "src/tools/memory-tools.ts"
     },
     "rememberLoved": {
-      "description": "Create space to remember, honor, and share memories of someone who has died.",
+      "description": "Create sacred space to share memories and celebrate someone who has died. Use when someone wants to talk about a deceased loved one, share a memory, or honor their legacy.",
       "file": "src/tools/domains/grief/index.ts"
     },
     "rememberMerchant": {
@@ -3502,7 +3502,7 @@
       "file": "src/tools/domains/presence/index.ts"
     },
     "revealHiddenSelf": {
-      "description": "Create space to explore parts of oneself that are usually hidden from others.",
+      "description": "Explore parts of identity usually kept hidden—secret interests, suppressed emotions, hidden desires. Use when someone feels they can't be fully themselves around others.",
       "file": "src/tools/domains/vulnerability/index.ts"
     },
     "reviewBeneficiaries": {
@@ -3519,7 +3519,7 @@
       "_original": "Review a message the user has drafted and give feedback. Use when: - User has written something and wants a second opinion - User isn"
     },
     "rewriteStory": {
-      "description": "Help the user reframe a painful or limiting story into a more empowering narrative.",
+      "description": "Reframe a painful or limiting life narrative into a more empowering one without denying what happened. Use when an old story is holding someone back from growth or self-acceptance.",
       "file": "src/tools/domains/stories/index.ts"
     },
     "rolePlayNegotiation": {
@@ -3613,7 +3613,7 @@
       "file": "src/tools/domains/concierge/index.ts"
     },
     "scheduleJoy": {
-      "description": "Help the user intentionally schedule joy into their life.",
+      "description": "Intentionally schedule joy and play into a busy life when fun keeps getting crowded out by obligations. Use when someone says 'I never have time for fun' or their calendar lacks any play.",
       "file": "src/tools/domains/play/index.ts"
     },
     "scheduleLifeEventAppointment": {
@@ -3705,7 +3705,7 @@
       "file": "src/tools/domains/timeless-perspective/index.ts"
     },
     "selfCompassionBreak": {
-      "description": "Guide through Kristin Neff's self-compassion break practice.",
+      "description": "Guide Kristin Neff's three-step self-compassion break: mindfulness, common humanity, self-kindness. Use during acute self-criticism or emotional difficulty as a structured intervention.",
       "file": "src/tools/domains/self-compassion/index.ts"
     },
     "selfCompassionTrauma": {
@@ -3943,7 +3943,7 @@
       "_original": "Show the user"
     },
     "sitWithBigQuestion": {
-      "description": "Create space to sit with a big existential question without needing to resolve it.",
+      "description": "Hold space for existential questions—death, meaning, suffering, freedom—without rushing to answers. Use when someone raises deep questions and needs contemplation, not solutions.",
       "file": "src/tools/domains/meaning/index.ts"
     },
     "sitWithLoneliness": {
@@ -3995,11 +3995,11 @@
       "file": "src/tools/domains/trauma-support/index.ts"
     },
     "speakToYourselfAsAFriend": {
-      "description": "Help the user speak to themselves with the same kindness they would show a friend.",
+      "description": "Reframe cruel self-talk by asking 'what would you say to a friend?' Use when someone's inner dialogue is harsher than they'd ever be to someone they love.",
       "file": "src/tools/domains/self-compassion/index.ts"
     },
     "spiritualPracticeSupport": {
-      "description": "Support the user in establishing or deepening spiritual or contemplative practices.",
+      "description": "Support starting, deepening, or returning to a spiritual or contemplative practice—meditation, prayer, mindfulness, or other traditions. Not prescriptive about any particular path.",
       "file": "src/tools/domains/meaning/index.ts"
     },
     "splitBill": {
@@ -4007,7 +4007,7 @@
       "file": "src/tools/domains/simple-utilities/math-tools.ts"
     },
     "spontaneityChallenge": {
-      "description": "Offer spontaneity challenges to break routine.",
+      "description": "Offer fun, low-risk spontaneity challenges to break routine and inject surprise into daily life. Use when someone feels stuck in autopilot or wants to shake things up.",
       "file": "src/tools/domains/play/index.ts"
     },
     "spotAnomalies": {
@@ -4114,7 +4114,7 @@
       "_original": "Suggest circling back to a topic that was mentioned but not fully explored. Use to show you"
     },
     "suggestConnectionAction": {
-      "description": "Suggest thoughtful, personalized ways to connect with or show care for someone specific.",
+      "description": "Suggest personalized, actionable ways to connect with a specific person—from small gestures to grand ones. Use when someone wants to nurture a relationship but needs ideas for what to do.",
       "file": "src/tools/domains/relationships/index.ts"
     },
     "suggestDestinations": {
@@ -4451,7 +4451,7 @@
       "file": "src/tasks/life-events.ts"
     },
     "validateGrief": {
-      "description": "Validate grief against common dismissive messages the user may have received.",
+      "description": "Counter dismissive grief messages like 'they're in a better place' or 'it's been long enough.' Use when someone has been told to 'move on' or feels their grief timeline is being judged.",
       "file": "src/tools/domains/grief/index.ts"
     },
     "valueConflictResolution": {
@@ -4539,7 +4539,7 @@
       "file": "src/tools/persona-memory-tools.ts"
     },
     "whatIf": {
-      "description": "Explore imaginative \"what if\" questions playfully.",
+      "description": "Explore imaginative 'what if' questions playfully and without judgment. Use when someone poses hypotheticals, thought experiments, or creative scenarios that deserve genuine exploration.",
       "file": "src/tools/domains/curiosity/index.ts"
     },
     "whatWillMatter": {
@@ -4569,7 +4569,7 @@
       "_original": "CALL immediately when user indicates they need to go. Execute and speak the warm goodbye naturally."
     },
     "writeEthicalWill": {
-      "description": "Help the user write an ethical will - a letter of values, hopes, and wisdom for loved ones.",
+      "description": "Guide creation of an ethical will—a document of values, life lessons, and hopes for loved ones. Distinct from a legal will; captures wisdom and love, not assets.",
       "file": "src/tools/domains/stories/index.ts"
     },
     "year_of_showing_up": {

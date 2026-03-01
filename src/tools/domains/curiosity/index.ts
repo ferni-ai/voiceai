@@ -15,6 +15,12 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm, log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
+import {
+  persistInsight,
+  persistTrackedItem,
+  queryPastKnowledge,
+  type ToolCtxWithUserData,
+} from '../shared/persistence.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
@@ -26,7 +32,7 @@ import { generateToolQuestions } from '../../utils/dynamic-tool-questions.js';
 const captureQuestionDef: ToolDefinition = {
   id: 'captureQuestion',
   name: 'Capture Question',
-  description: 'Capture a question that deserves exploration',
+  description: 'Record a question worth exploring before it is forgotten—philosophical, practical, or personal—for dedicated reflection later',
   domain: 'curiosity',
   tags: ['curiosity', 'questions', 'capture'],
 
@@ -44,7 +50,17 @@ const captureQuestionDef: ToolDefinition = {
       execute: async ({ question, context, urgency }) => {
         getLogger().info({ agentId: ctx.agentId, urgency }, 'Capturing question');
 
-        let response = `What a beautiful question to carry: "${question}"\n\n`;
+        const priorContext = await queryPastKnowledge(
+          ctx as unknown as ToolCtxWithUserData,
+          'questions curiosity wondering exploring'
+        );
+
+        let response = '';
+        if (priorContext) {
+          response += `I remember some of the questions you've been carrying... ${priorContext}\n\n`;
+        }
+
+        response += `What a beautiful question to carry: "${question}"\n\n`;
         if (context) response += `Sparked by: ${context}\n\n`;
 
         response += `Questions are gifts. They keep us alive to the world.\n\n`;
@@ -58,6 +74,13 @@ const captureQuestionDef: ToolDefinition = {
           response += `Sometimes the best questions wait for us to be ready. I'll remember this one.`;
         }
 
+        persistTrackedItem(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'curiosity',
+          itemType: 'captured_question',
+          item: { question, context, urgency },
+          importance: urgency === 'burning' ? 'high' : 'medium',
+        });
+
         return response;
       },
     });
@@ -67,7 +90,7 @@ const captureQuestionDef: ToolDefinition = {
 const exploreQuestionDef: ToolDefinition = {
   id: 'exploreQuestion',
   name: 'Explore Question',
-  description: 'Deep exploration of a question without rushing to answers',
+  description: 'Guide deep exploration of a captured question through philosophical, practical, personal, or playful lenses without rushing to answers',
   domain: 'curiosity',
   tags: ['curiosity', 'exploration', 'depth'],
 
@@ -84,6 +107,13 @@ const exploreQuestionDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId, approach }, 'Exploring question');
 
         let response = `Let's sit with: "${question}"\n\n`;
+
+        persistInsight(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'curiosity',
+          type: 'question_explored',
+          data: { question, approach },
+          confidence: 0.8,
+        });
 
         if (approach === 'philosophical') {
           response += `**Philosophically:**\n`;
@@ -126,7 +156,7 @@ const exploreQuestionDef: ToolDefinition = {
 const experienceWonderDef: ToolDefinition = {
   id: 'experienceWonder',
   name: 'Experience Wonder',
-  description: 'Cultivate and capture experiences of wonder',
+  description: 'Cultivate wonder and awe in everyday life when the world feels flat, or capture a moment of wonder before it fades',
   domain: 'curiosity',
   tags: ['curiosity', 'wonder', 'awe'],
 
@@ -178,7 +208,7 @@ const experienceWonderDef: ToolDefinition = {
 const cultivateBeginnersMindDef: ToolDefinition = {
   id: 'cultivateBeginnersMind',
   name: 'Cultivate Beginners Mind',
-  description: 'Practice seeing with fresh, beginner eyes',
+  description: 'Practice seeing something familiar with fresh, beginner eyes when expertise or habit has made someone blind to what is in front of them',
   domain: 'curiosity',
   tags: ['curiosity', 'beginners-mind', 'freshness'],
 
@@ -215,7 +245,7 @@ const cultivateBeginnersMindDef: ToolDefinition = {
 const intellectualExplorationDef: ToolDefinition = {
   id: 'intellectualExploration',
   name: 'Intellectual Exploration',
-  description: 'Follow a thread of intellectual curiosity',
+  description: 'Follow a thread of intellectual curiosity wherever it leads—ideas, rabbit holes, connections between fields—as a thinking partner',
   domain: 'curiosity',
   tags: ['curiosity', 'intellectual', 'learning'],
 
@@ -266,7 +296,7 @@ const intellectualExplorationDef: ToolDefinition = {
 const embraceMysteryDef: ToolDefinition = {
   id: 'embraceMystery',
   name: 'Embrace Mystery',
-  description: 'Find comfort in not-knowing and mystery',
+  description: 'Find comfort in not-knowing and embrace unanswerable questions when someone is anxious about uncertainty or needs help sitting with ambiguity',
   domain: 'curiosity',
   tags: ['curiosity', 'mystery', 'not-knowing'],
 
@@ -315,7 +345,7 @@ const embraceMysteryDef: ToolDefinition = {
 const whatIfDef: ToolDefinition = {
   id: 'whatIf',
   name: 'What If',
-  description: 'Explore imaginative what-if questions',
+  description: 'Explore imaginative what-if questions playfully and without judgment when someone poses hypotheticals or thought experiments',
   domain: 'curiosity',
   tags: ['curiosity', 'imagination', 'what-if'],
 

@@ -33,7 +33,7 @@ import {
 const processGriefDef: ToolDefinition = {
   id: 'processGrief',
   name: 'Process Grief',
-  description: 'Support for processing grief in its many forms',
+  description: 'Guide compassionate exploration of grief—death, divorce, job loss, or other loss—meeting someone where they are without rushing',
   domain: 'grief',
   tags: ['grief', 'processing', 'support'],
 
@@ -131,7 +131,7 @@ const processGriefDef: ToolDefinition = {
 const navigateGriefWaveDef: ToolDefinition = {
   id: 'navigateGriefWave',
   name: 'Navigate Grief Wave',
-  description: 'In-the-moment support during a wave of grief',
+  description: 'Provide immediate grounding when someone is hit by a sudden wave of grief mid-conversation',
   domain: 'grief',
   tags: ['grief', 'wave', 'immediate'],
 
@@ -175,7 +175,7 @@ const navigateGriefWaveDef: ToolDefinition = {
 const anniversarySupportDef: ToolDefinition = {
   id: 'anniversarySupport',
   name: 'Anniversary Support',
-  description: 'Support for grief anniversaries and significant dates',
+  description: 'Offer support for approaching or present anniversaries of loss, death, or emotionally significant dates',
   domain: 'grief',
   tags: ['grief', 'anniversary', 'dates'],
 
@@ -222,7 +222,7 @@ const anniversarySupportDef: ToolDefinition = {
 const acknowledgeLossDef: ToolDefinition = {
   id: 'acknowledgeLoss',
   name: 'Acknowledge Loss',
-  description: 'Acknowledge and validate losses that may not be socially recognized',
+  description: 'Validate losses others minimize—miscarriage, pet death, friendship ending—when grief is not socially recognized',
   domain: 'grief',
   tags: ['grief', 'acknowledgment', 'validation'],
 
@@ -263,7 +263,7 @@ const acknowledgeLossDef: ToolDefinition = {
 const rememberLovedDef: ToolDefinition = {
   id: 'rememberLoved',
   name: 'Remember Loved One',
-  description: 'Create space to remember and celebrate someone who has died',
+  description: 'Create sacred space to share memories and celebrate someone who has died',
   domain: 'grief',
   tags: ['grief', 'memory', 'celebration'],
 
@@ -326,7 +326,7 @@ const rememberLovedDef: ToolDefinition = {
 const navigateTransitionDef: ToolDefinition = {
   id: 'navigateTransition',
   name: 'Navigate Transition',
-  description: 'Support for navigating major life transitions',
+  description: 'Guide someone through a major life transition involving both grief for what is ending and openness to what is emerging',
   domain: 'grief',
   tags: ['grief', 'transition', 'change'],
 
@@ -395,7 +395,7 @@ const navigateTransitionDef: ToolDefinition = {
 const processEndingDef: ToolDefinition = {
   id: 'processEnding',
   name: 'Process Ending',
-  description: 'Help process the ending phase of something meaningful',
+  description: 'Process and honor an ending—a job, friendship, or life chapter—when someone needs to grieve before moving forward',
   domain: 'grief',
   tags: ['grief', 'ending', 'closure'],
 
@@ -441,7 +441,7 @@ const processEndingDef: ToolDefinition = {
 const embraceNewIdentityDef: ToolDefinition = {
   id: 'embraceNewIdentity',
   name: 'Embrace New Identity',
-  description: 'Support the emergence of a new identity after loss or transition',
+  description: 'Support identity reconstruction after major loss or transition when someone struggles with who they are now',
   domain: 'grief',
   tags: ['grief', 'identity', 'transformation'],
 
@@ -492,7 +492,7 @@ const embraceNewIdentityDef: ToolDefinition = {
 const validateGriefDef: ToolDefinition = {
   id: 'validateGrief',
   name: 'Validate Grief',
-  description: 'Validate the experience of grief against common dismissive messages',
+  description: 'Counter dismissive grief messages when someone has been told to move on or their grief timeline is judged',
   domain: 'grief',
   tags: ['grief', 'validation', 'support'],
 
@@ -545,7 +545,7 @@ const validateGriefDef: ToolDefinition = {
 const companionInGriefDef: ToolDefinition = {
   id: 'companionInGrief',
   name: 'Companion in Grief',
-  description: 'Simply be present with someone in their grief',
+  description: 'Offer silent, non-fixing companionship when someone is grieving and just needs presence',
   domain: 'grief',
   tags: ['grief', 'presence', 'companionship'],
 

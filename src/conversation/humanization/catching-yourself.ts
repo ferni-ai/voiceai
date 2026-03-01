@@ -221,6 +221,224 @@ const CATCHING_YOURSELF_TRIGGERS: CatchingYourselfTrigger[] = [
 ];
 
 // ============================================================================
+// PERSONA-SPECIFIC CATCHING PREFERENCES
+// ============================================================================
+
+/** Per-persona phrases for each catching-yourself type. Falls back to default trigger responses when missing. */
+const PERSONA_CATCHING_PREFERENCES: Partial<
+  Record<string, Partial<Record<CatchingYourselfType, { responses: string[]; ssmlResponses: string[] }>>>
+> = {
+  'joel-dickson': {
+    talking_too_much: {
+      responses: [
+        "I'm getting into the weeds again. What's on your mind?",
+        "My wife would be rolling her eyes right now. Your turn.",
+        "Okay, I'm going deep on the data. What do you think?",
+        "I'll stop lecturing. What's coming up for you?",
+      ],
+      ssmlResponses: [
+        "<break time='200ms'/>I'm getting into the weeds again.<break time='150ms'/> What's on your mind?",
+        "My wife would be rolling her eyes right now.<break time='150ms'/> Your turn.",
+        "Okay,<break time='100ms'/> I'm going deep on the data.<break time='150ms'/> What do you think?",
+        "I'll stop lecturing.<break time='150ms'/> What's coming up for you?",
+      ],
+    },
+    circling_back: {
+      responses: [
+        "I keep coming back to this—there's something here, isn't there?",
+        "I've mentioned this a few times now. Must be something I'm trying to say.",
+        "Notice how I keep circling this? Probably worth paying attention to.",
+      ],
+      ssmlResponses: [
+        "I keep coming back to this—<break time='150ms'/>there's something here, isn't there?",
+        "I've mentioned this a few times now.<break time='150ms'/> Must be something I'm trying to say.",
+        "Notice how I keep circling this?<break time='150ms'/> Probably worth paying attention to.",
+      ],
+    },
+    checking_understanding: {
+      responses: [
+        "Am I making sense? I sometimes explain things weird.",
+        "Does that land? I can try again if not.",
+        "Let me check—what are you taking away from that?",
+      ],
+      ssmlResponses: [
+        "Am I making sense?<break time='100ms'/> I sometimes explain things weird.",
+        "Does that land?<break time='150ms'/> I can try again if not.",
+        "Let me check—<break time='100ms'/>what are you taking away from that?",
+      ],
+    },
+    energy_mismatch: {
+      responses: [
+        "I'm being too intense, aren't I? Let me dial it back.",
+        "I'm bringing a lot of energy—is that matching where you're at?",
+      ],
+      ssmlResponses: [
+        "I'm being too intense, aren't I?<break time='150ms'/> Let me dial it back.",
+        "I'm bringing a lot of energy—<break time='100ms'/>is that matching where you're at?",
+      ],
+    },
+  },
+  'peter-john': {
+    talking_too_much: {
+      responses: [
+        "I'm going deep on the data here. What's your read?",
+        "Let me step back. What are you thinking?",
+        "I've been in the weeds. Your turn.",
+        "Sorry—I got into the pattern. What stands out to you?",
+      ],
+      ssmlResponses: [
+        "I'm going deep on the data here.<break time='150ms'/> What's your read?",
+        "Let me step back.<break time='200ms'/> What are you thinking?",
+        "I've been in the weeds.<break time='150ms'/> Your turn.",
+        "Sorry—<break time='100ms'/>I got into the pattern.<break time='150ms'/> What stands out to you?",
+      ],
+    },
+    circling_back: {
+      responses: [
+        "I keep coming back to this—the data suggests something.",
+        "I've mentioned this a few times. Must be a pattern worth noting.",
+        "Notice how this keeps coming up? There might be something to explore.",
+      ],
+      ssmlResponses: [
+        "I keep coming back to this—<break time='150ms'/>the data suggests something.",
+        "I've mentioned this a few times.<break time='150ms'/> Must be a pattern worth noting.",
+        "Notice how this keeps coming up?<break time='150ms'/> There might be something to explore.",
+      ],
+    },
+    checking_understanding: {
+      responses: [
+        "Am I making sense? I can simplify if needed.",
+        "Does that track with what you've seen?",
+        "What's your take on that?",
+      ],
+      ssmlResponses: [
+        "Am I making sense?<break time='100ms'/> I can simplify if needed.",
+        "Does that track with what you've seen?<break time='150ms'/>",
+        "What's your take on that?<break time='150ms'/>",
+      ],
+    },
+  },
+  'maya-santos': {
+    talking_too_much: {
+      responses: [
+        "I've been doing most of the talking. What's on your mind?",
+        "How does that land for you? I want to hear you.",
+        "Okay, I'll stop. Your turn.",
+        "I got carried away. What are you thinking?",
+      ],
+      ssmlResponses: [
+        "I've been doing most of the talking.<break time='150ms'/> What's on your mind?",
+        "How does that land for you?<break time='200ms'/> I want to hear you.",
+        "Okay, I'll stop.<break time='150ms'/> Your turn.",
+        "I got carried away.<break time='150ms'/> What are you thinking?",
+      ],
+    },
+    circling_back: {
+      responses: [
+        "I keep coming back to this—there's something here, isn't there?",
+        "I've mentioned this a few times. Must matter.",
+        "How does that land? I keep circling it.",
+      ],
+      ssmlResponses: [
+        "I keep coming back to this—<break time='150ms'/>there's something here, isn't there?",
+        "I've mentioned this a few times.<break time='150ms'/> Must matter.",
+        "How does that land?<break time='150ms'/> I keep circling it.",
+      ],
+    },
+    checking_understanding: {
+      responses: [
+        "Am I making sense? Sometimes I explain things weird.",
+        "How does that land for you?",
+        "What are you taking away from that?",
+      ],
+      ssmlResponses: [
+        "Am I making sense?<break time='100ms'/> Sometimes I explain things weird.",
+        "How does that land for you?<break time='200ms'/>",
+        "What are you taking away from that?<break time='150ms'/>",
+      ],
+    },
+  },
+  'alex-chen': {
+    talking_too_much: {
+      responses: [
+        "I've been doing most of the talking. What do you think?",
+        "Sorry—I got into the details. Your turn.",
+        "I'll step back. What's on your mind?",
+      ],
+      ssmlResponses: [
+        "I've been doing most of the talking.<break time='150ms'/> What do you think?",
+        "Sorry—<break time='100ms'/>I got into the details.<break time='150ms'/> Your turn.",
+        "I'll step back.<break time='150ms'/> What's on your mind?",
+      ],
+    },
+    checking_understanding: {
+      responses: [
+        "Does that make sense? I can clarify.",
+        "What are you taking away from that?",
+        "Am I being clear?",
+      ],
+      ssmlResponses: [
+        "Does that make sense?<break time='100ms'/> I can clarify.",
+        "What are you taking away from that?<break time='150ms'/>",
+        "Am I being clear?<break time='150ms'/>",
+      ],
+    },
+  },
+  'jordan-taylor': {
+    talking_too_much: {
+      responses: [
+        "I've been going on. What do you think?",
+        "Your turn—what's on your mind?",
+        "I'll let you get a word in. What stands out to you?",
+      ],
+      ssmlResponses: [
+        "I've been going on.<break time='150ms'/> What do you think?",
+        "Your turn—<break time='100ms'/>what's on your mind?",
+        "I'll let you get a word in.<break time='150ms'/> What stands out to you?",
+      ],
+    },
+    checking_understanding: {
+      responses: [
+        "Does that land? I can try again if not.",
+        "What's your read on that?",
+        "Am I making sense?",
+      ],
+      ssmlResponses: [
+        "Does that land?<break time='150ms'/> I can try again if not.",
+        "What's your read on that?<break time='150ms'/>",
+        "Am I making sense?<break time='150ms'/>",
+      ],
+    },
+  },
+  'nayan-patel': {
+    talking_too_much: {
+      responses: [
+        "I've been speaking for a while. What is coming up for you?",
+        "Let me pause. What do you notice?",
+        "Your turn. What is here for you?",
+      ],
+      ssmlResponses: [
+        "I've been speaking for a while.<break time='200ms'/> What is coming up for you?",
+        "Let me pause.<break time='200ms'/> What do you notice?",
+        "Your turn.<break time='150ms'/> What is here for you?",
+      ],
+    },
+    circling_back: {
+      responses: [
+        "I keep coming back to this. Something is here.",
+        "Notice how this returns. There may be something to explore.",
+        "This has come up before. What do you make of that?",
+      ],
+      ssmlResponses: [
+        "I keep coming back to this.<break time='200ms'/> Something is here.",
+        "Notice how this returns.<break time='150ms'/> There may be something to explore.",
+        "This has come up before.<break time='150ms'/> What do you make of that?",
+      ],
+    },
+  },
+};
+
+// ============================================================================
 // DEFAULT CONFIG
 // ============================================================================
 
@@ -351,10 +569,17 @@ export class CatchingYourselfEngine {
         continue;
       }
 
-      // Trigger fired! Choose response
-      const index = seededIndex(`${Date.now()}:1`, trigger.responses.length);
-      const response = trigger.responses[index];
-      const ssml = trigger.ssmlResponses[index];
+      // Trigger fired! Choose response (persona-aware)
+      const personaPrefs = PERSONA_CATCHING_PREFERENCES[context.personaId];
+      const typePrefs = personaPrefs?.[trigger.type];
+      const responses =
+        typePrefs?.responses?.length ? typePrefs.responses : trigger.responses;
+      const ssmlResponses =
+        typePrefs?.ssmlResponses?.length ? typePrefs.ssmlResponses : trigger.ssmlResponses;
+
+      const index = seededIndex(`${Date.now()}:1`, responses.length);
+      const response = responses[index];
+      const ssml = ssmlResponses[index];
 
       // Record usage
       this.state.usageCount++;

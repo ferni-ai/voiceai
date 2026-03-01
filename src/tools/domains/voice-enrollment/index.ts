@@ -7,19 +7,14 @@
  * @module tools/domains/voice-enrollment
  */
 
-import type { ToolDefinition } from '../../registry/types.js';
+import { createDomainExport } from '../../registry/loader.js';
 import { getToolDefinitions as getPhoneEnrollmentTools } from './phone-enrollment-tool.js';
 import { getToolDefinitions as getSelfRegistrationTools } from './self-registration-tool.js';
 
-/**
- * Get all voice enrollment tool definitions.
- */
-export function getToolDefinitions(): ToolDefinition[] {
-  return [...getPhoneEnrollmentTools(), ...getSelfRegistrationTools()];
-}
+const allDefs = [...getPhoneEnrollmentTools(), ...getSelfRegistrationTools()];
 
-export const definitions = getToolDefinitions();
+export const { getToolDefinitions, domain, definitions } = createDomainExport('voice-enrollment', allDefs);
 
-// Re-export individual modules
+// Re-export individual modules for backward compatibility
 export * from './phone-enrollment-tool.js';
 export * from './self-registration-tool.js';

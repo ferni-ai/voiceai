@@ -128,10 +128,8 @@ export async function initConversationSession(
       relationshipStage: config.relationshipStage,
     });
 
-    // Prewarm LLM expression cache (non-blocking)
-    // This loads persisted expressions AND generates new ones for common themes
+    // Prewarm LLM expression cache (non-blocking) — Ferni only
     if (isCoach(config.personaId)) {
-      // Ferni has the full "Better Than Human" personality system
       try {
         const { prewarmPersonalitySession } =
           await import('../../personas/bundles/ferni/personality-integration.js');
@@ -141,25 +139,24 @@ export async function initConversationSession(
       } catch {
         // Prewarm is optional - continue if it fails
       }
+    }
 
-      // Initialize superhuman memory callbacks (non-blocking)
-      // This queues proactive insights like birthdays, growth celebrations, etc.
-      if (config.userId && config.userProfile?.humanMemory) {
-        try {
-          const { initializeMemoryCallbacks } =
-            await import('../../personas/bundles/ferni/superhuman-memory-integration.js');
-          // Pass actual humanMemory for callback generation
-          void initializeMemoryCallbacks(
-            config.userId,
-            config.userProfile.humanMemory as Parameters<typeof initializeMemoryCallbacks>[1]
-          ).then(({ callbacksQueued }) => {
-            if (callbacksQueued > 0) {
-              log.info({ userId: config.userId, callbacksQueued }, '🧠 Memory callbacks queued');
-            }
-          });
-        } catch {
-          // Memory callbacks are optional - continue if they fail
-        }
+    // Initialize superhuman memory callbacks for ALL personas (non-blocking)
+    // Queues proactive insights: dates, growth, absences, inside jokes, comfort
+    if (config.userId && config.userProfile?.humanMemory) {
+      try {
+        const { initializeMemoryCallbacks } =
+          await import('../../personas/bundles/ferni/superhuman-memory-integration.js');
+        void initializeMemoryCallbacks(
+          config.userId,
+          config.userProfile.humanMemory as Parameters<typeof initializeMemoryCallbacks>[1]
+        ).then(({ callbacksQueued }) => {
+          if (callbacksQueued > 0) {
+            log.info({ userId: config.userId, callbacksQueued }, '🧠 Memory callbacks queued');
+          }
+        });
+      } catch {
+        // Memory callbacks are optional - continue if they fail
       }
     }
     // NOTE: Shared LLM expression prewarming removed - use persona-specific expression generators

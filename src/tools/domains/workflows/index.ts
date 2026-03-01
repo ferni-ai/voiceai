@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, Tool, ToolContext } from '../../registry/types.js';
+import { createDomainExport } from '../../registry/loader.js';
 import {
   getWorkflowEngine,
   WORKFLOW_TEMPLATES,
@@ -33,8 +34,7 @@ const log = createLogger({ module: 'workflows-tools' });
 // TOOL DEFINITIONS
 // ============================================================================
 
-export function getWorkflowToolDefinitions(): ToolDefinition[] {
-  return [
+const workflowToolDefs: ToolDefinition[] = [
     // =========================================================================
     // createAutomation - New workflow from template or custom
     // =========================================================================
@@ -409,8 +409,7 @@ export function getWorkflowToolDefinitions(): ToolDefinition[] {
         });
       },
     },
-  ];
-}
+];
 
 // ============================================================================
 // HELPERS
@@ -447,8 +446,4 @@ function formatCategory(category: string): string {
 // DOMAIN EXPORT
 // ============================================================================
 
-export function getToolDefinitions(): ToolDefinition[] {
-  return getWorkflowToolDefinitions();
-}
-
-export const definitions = getWorkflowToolDefinitions();
+export const { getToolDefinitions, domain, definitions } = createDomainExport('workflows', workflowToolDefs);

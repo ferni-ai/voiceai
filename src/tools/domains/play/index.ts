@@ -17,6 +17,13 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import {
+  persistInsight,
+  persistKeyMoment,
+  persistTrackedItem,
+  queryPastKnowledge,
+  type ToolCtxWithUserData,
+} from '../shared/persistence.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // JOY TOOLS
@@ -25,7 +32,7 @@ import { getToolDescription } from '../../utils/tool-descriptions.js';
 const mapJoyDef: ToolDefinition = {
   id: 'mapJoy',
   name: 'Map Joy',
-  description: 'Create a map of what brings joy',
+  description: 'Create a personalized map of what brings genuine joy—activities, people, places, sensations—when someone feels disconnected from pleasure',
   domain: 'play',
   tags: ['play', 'joy', 'mapping'],
 
@@ -40,7 +47,16 @@ const mapJoyDef: ToolDefinition = {
       execute: async ({ category }) => {
         getLogger().info({ agentId: ctx.agentId, category }, 'Mapping joy');
 
-        let response = `**Mapping Your Joy**\n\n`;
+        const priorContext = await queryPastKnowledge(
+          ctx as unknown as ToolCtxWithUserData,
+          'joy play fun things that bring joy'
+        );
+
+        let response = '';
+        if (priorContext) {
+          response += `Building on what I know about your joy... ${priorContext}\n\n`;
+        }
+        response += `**Mapping Your Joy**\n\n`;
         response += `Knowing what brings you joy is practical wisdom. It helps you build a life that feels good.\n\n`;
 
         if (category === 'simple') {
@@ -80,6 +96,13 @@ const mapJoyDef: ToolDefinition = {
           response += `Which would you like to explore?`;
         }
 
+        persistInsight(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'play',
+          type: 'joy_mapping',
+          data: { category },
+          confidence: 0.7,
+        });
+
         return response;
       },
     });
@@ -89,7 +112,7 @@ const mapJoyDef: ToolDefinition = {
 const noticeJoyDef: ToolDefinition = {
   id: 'noticeJoy',
   name: 'Notice Joy',
-  description: 'Practice noticing and savoring joy in the moment',
+  description: 'Draw attention to joy that is present but unnoticed, or guide savoring practices when someone glosses over something positive',
   domain: 'play',
   tags: ['play', 'joy', 'mindfulness'],
 
@@ -106,6 +129,14 @@ const noticeJoyDef: ToolDefinition = {
         let response = '';
 
         if (mode === 'capture' && joyMoment) {
+          persistKeyMoment(ctx as unknown as ToolCtxWithUserData, {
+            domain: 'play',
+            type: 'celebration',
+            summary: `Noticed joy: ${joyMoment}`,
+            emotionalWeight: 'light',
+            topics: ['play', 'joy'],
+          });
+
           response = `You noticed joy: "${joyMoment}"\n\n`;
           response += `Beautiful. Let's hold this moment.\n\n`;
           response += `**Savoring practice:**\n`;
@@ -143,7 +174,7 @@ const noticeJoyDef: ToolDefinition = {
 const scheduleJoyDef: ToolDefinition = {
   id: 'scheduleJoy',
   name: 'Schedule Joy',
-  description: 'Intentionally schedule joy into life',
+  description: 'Intentionally schedule joy and play into a busy life when fun keeps getting crowded out by obligations',
   domain: 'play',
   tags: ['play', 'joy', 'intention'],
 
@@ -188,6 +219,13 @@ const scheduleJoyDef: ToolDefinition = {
 
         response += `\n\nWhat joy do you want to schedule?`;
 
+        persistTrackedItem(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'play',
+          itemType: 'scheduled_joy',
+          item: { timeframe, constraint },
+          importance: 'medium',
+        });
+
         return response;
       },
     });
@@ -201,7 +239,7 @@ const scheduleJoyDef: ToolDefinition = {
 const cultivatePlayfulnessDef: ToolDefinition = {
   id: 'cultivatePlayfulness',
   name: 'Cultivate Playfulness',
-  description: 'Develop a more playful approach to life',
+  description: 'Build a more playful orientation to daily life when someone feels stuck in seriousness, has forgotten how to play, or feels blocked from fun',
   domain: 'play',
   tags: ['play', 'playfulness', 'cultivation'],
 
@@ -258,6 +296,13 @@ const cultivatePlayfulnessDef: ToolDefinition = {
           response += `What kind of play is calling you?`;
         }
 
+        persistInsight(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'play',
+          type: 'play_discovery',
+          data: { currentState, context },
+          confidence: 0.7,
+        });
+
         return response;
       },
     });
@@ -267,7 +312,7 @@ const cultivatePlayfulnessDef: ToolDefinition = {
 const givePermissionToPlayDef: ToolDefinition = {
   id: 'givePermissionToPlay',
   name: 'Give Permission To Play',
-  description: 'Grant permission for fun, silliness, and lightness',
+  description: 'Grant explicit permission to play, rest, or have fun when guilt or productivity pressure prevents it',
   domain: 'play',
   tags: ['play', 'permission', 'lightness'],
 
@@ -309,7 +354,7 @@ const givePermissionToPlayDef: ToolDefinition = {
 const embraceLightnessDef: ToolDefinition = {
   id: 'embraceLightness',
   name: 'Embrace Lightness',
-  description: 'Find lightness amid heaviness',
+  description: 'Find lightness and humor when life feels heavy or overwhelming, without dismissing the difficulty',
   domain: 'play',
   tags: ['play', 'lightness', 'balance'],
 
@@ -349,7 +394,7 @@ const embraceLightnessDef: ToolDefinition = {
 const noteThatWasFunDef: ToolDefinition = {
   id: 'noteThatWasFun',
   name: 'Note That Was Fun',
-  description: 'Capture moments of fun to remember and repeat',
+  description: 'Capture and savor a fun moment right after it happens to build awareness of what genuinely delights',
   domain: 'play',
   tags: ['play', 'fun', 'capture'],
 
@@ -362,6 +407,21 @@ const noteThatWasFunDef: ToolDefinition = {
       }),
       execute: async ({ whatWasFun, whatMadeItFun }) => {
         getLogger().info({ agentId: ctx.agentId }, 'Noting fun');
+
+        persistKeyMoment(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'play',
+          type: 'celebration',
+          summary: `Had fun: ${whatWasFun}${whatMadeItFun ? ` (${whatMadeItFun})` : ''}`,
+          emotionalWeight: 'light',
+          topics: ['play', 'fun'],
+        });
+
+        persistInsight(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'play',
+          type: 'fun_discovery',
+          data: { whatWasFun, whatMadeItFun },
+          confidence: 0.8,
+        });
 
         let response = `Fun detected: ${whatWasFun}\n`;
         if (whatMadeItFun) response += `What made it fun: ${whatMadeItFun}\n`;
@@ -383,7 +443,7 @@ const noteThatWasFunDef: ToolDefinition = {
 const becomeSillyDef: ToolDefinition = {
   id: 'becomeSilly',
   name: 'Become Silly',
-  description: 'Embrace and practice silliness',
+  description: 'Encourage silliness and lightheartedness when someone takes themselves too seriously or needs permission to laugh',
   domain: 'play',
   tags: ['play', 'silly', 'lightness'],
 
@@ -437,7 +497,7 @@ const becomeSillyDef: ToolDefinition = {
 const spontaneityChallengeDef: ToolDefinition = {
   id: 'spontaneityChallenge',
   name: 'Spontaneity Challenge',
-  description: 'Challenges to break routine and embrace spontaneity',
+  description: 'Offer fun, low-risk spontaneity challenges to break routine and inject surprise into daily life',
   domain: 'play',
   tags: ['play', 'spontaneity', 'challenge'],
 
@@ -531,7 +591,7 @@ const spontaneityChallengeDef: ToolDefinition = {
 const playfulCreativityDef: ToolDefinition = {
   id: 'playfulCreativity',
   name: 'Playful Creativity',
-  description: 'Unlock creativity through playful, low-stakes creative activities',
+  description: 'Guide low-stakes, playful creative expression—doodling, wordplay, silly stories—without pressure or judgment',
   domain: 'play',
   tags: ['play', 'creativity', 'expression'],
 
@@ -596,7 +656,7 @@ const playfulCreativityDef: ToolDefinition = {
 const reclaimLostHobbyDef: ToolDefinition = {
   id: 'reclaimLostHobby',
   name: 'Reclaim Lost Hobby',
-  description: 'Reconnect with a hobby or activity that brought joy in the past',
+  description: 'Reconnect with hobbies or activities someone used to love but abandoned due to time, responsibilities, or self-doubt',
   domain: 'play',
   tags: ['play', 'hobbies', 'rediscovery'],
 
@@ -611,6 +671,15 @@ const reclaimLostHobbyDef: ToolDefinition = {
       }),
       execute: async ({ hobby, mode }) => {
         getLogger().info({ agentId: ctx.agentId, hobby, mode }, 'Reclaiming lost hobby');
+
+        if (hobby) {
+          persistInsight(ctx as unknown as ToolCtxWithUserData, {
+            domain: 'play',
+            type: 'hobby_rediscovery',
+            data: { hobby, mode },
+            confidence: 0.8,
+          });
+        }
 
         let response = '';
 

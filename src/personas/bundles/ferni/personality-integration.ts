@@ -83,7 +83,7 @@ import {
 } from './voice-emotion-personality.js';
 
 // NEW: Memory Callbacks
-import { memoryPersonalityBridge, type MemoryCallback } from './memory-personality-bridge.js';
+import { memoryPersonalityBridge, type MemoryCallback } from '../../shared/memory-personality-bridge.js';
 
 // NEW: Cross-Persona Learning
 import { crossPersonaLearning } from '../../shared/cross-persona-learning.js';

@@ -149,7 +149,14 @@ export type ToolDomain =
   | 'human-transfer' // Transfer to human support when needed
   | 'visual-memory' // Visual memory capture and recall
   // UI Navigation
-  | 'ui-navigation'; // UI navigation commands for frontend control
+  | 'ui-navigation' // UI navigation commands for frontend control
+  // Superhuman Domains
+  | 'commitment-tracking' // Commitment tracking, follow-ups, accountability
+  | 'capacity-monitoring' // Burnout risk, energy logging, energy patterns
+  | 'dream-tracking' // Dream/aspiration tracking, dormant dream discovery
+  | 'contemplative-practice' // Mindfulness assessment, defusion, practice logging
+  | 'life-synthesis' // Cross-domain life synthesis and trajectory
+  | 'seasonal-awareness'; // Seasonal patterns, personal dates, timing intelligence
 
 /**
  * All available tool domains
@@ -285,6 +292,13 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'visual-memory',
   // UI Navigation
   'ui-navigation',
+  // Superhuman Domains
+  'commitment-tracking',
+  'capacity-monitoring',
+  'dream-tracking',
+  'contemplative-practice',
+  'life-synthesis',
+  'seasonal-awareness',
 ] as const;
 
 // ============================================================================
@@ -436,6 +450,13 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'visual-memory': 'core', // Visual memory capture
   // UI Navigation
   'ui-navigation': 'core', // UI navigation commands for frontend control
+  // Superhuman Domains
+  'commitment-tracking': 'lifestyle', // Commitment tracking, follow-ups, accountability
+  'capacity-monitoring': 'lifestyle', // Burnout risk, energy logging, patterns
+  'dream-tracking': 'lifestyle', // Dream/aspiration tracking, dormant dreams
+  'contemplative-practice': 'lifestyle', // Mindfulness, defusion, practice logging
+  'life-synthesis': 'lifestyle', // Cross-domain life synthesis and trajectory
+  'seasonal-awareness': 'lifestyle', // Seasonal patterns, personal dates, timing
 };
 
 // ============================================================================

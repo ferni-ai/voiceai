@@ -632,18 +632,19 @@ async function processBetterThanHumanPersonality(
 /**
  * Process personality for any persona
  *
- * ALL personas now use the unified "Better Than Human" shared personality system.
- * The Ferni-specific path is kept for fallback but shouldn't be needed.
+ * Ferni uses her full stack (LLM expressions, memory callbacks, cross-persona learning).
+ * All other personas use the shared "Better Than Human" system with building blocks.
  *
  * Routing:
- * 1. Personas with building blocks → processBetterThanHumanPersonality (shared system)
- * 2. Personas without building blocks → legacy shared personality
- * 3. Ferni-specific fallback → only if shared system fails
+ * 1. Ferni → processFerniPersonality (full Ferni stack)
+ * 2. Personas with building blocks → processBetterThanHumanPersonality (shared system)
+ * 3. Personas without building blocks → legacy shared personality
  */
 export async function processPersonality(
   ctx: PersonalityContext
 ): Promise<PersonalityProcessingResult> {
-  // All personas now route through the shared "Better Than Human" system
-  // Ferni is included - she has building blocks registered in persona-building-blocks.ts
+  if (ctx.personaId === 'ferni') {
+    return processFerniPersonality(ctx);
+  }
   return processSharedPersonality(ctx);
 }

@@ -19,20 +19,28 @@ This directory contains 118+ tool domains - each representing a focused area of 
 
 ## Domain Categories
 
-### Core Personas
-| Domain | Persona | Purpose |
-|--------|---------|---------|
-| `habits/` | Maya | Habit tracking, gamification |
-| `habit-coaching/` | Maya | Habit coaching tools |
-| `maya-coaching/` | Maya | Personalized coaching |
+### Core Domains (Shared Across Personas)
+
+Domains are shared across all personas — persona-specific behavior is implemented via context builders, not separate domains.
+
+| Domain | Primary Persona | Purpose |
+|--------|----------------|---------|
+| `habits/` | Maya | Habit tracking, coaching, gamification |
 | `research/` | Peter | Stock research, market analysis |
-| `peter-analytics/` | Peter | Data analysis tools |
 | `communication/` | Alex | Email, SMS, messaging |
 | `calendar/` | Alex | Scheduling, contacts |
-| `life-planning/` | Jordan | Goals, milestones |
-| `jordan-planning/` | Jordan | Event planning |
+| `life-planning/` | Jordan | Goals, milestones, events |
 | `wisdom/` | Nayan | Quotes, principles |
-| `nayan-wisdom/` | Nayan | Deep wisdom tools |
+
+### Superhuman Services (BTH)
+| Domain | Purpose |
+|--------|---------|
+| `commitment-tracking/` | Track promises and follow-ups |
+| `capacity-monitoring/` | Burnout risk, energy patterns |
+| `dream-tracking/` | Record and revisit aspirations |
+| `contemplative-practice/` | Mindfulness assessment, defusion |
+| `life-synthesis/` | Cross-domain life trajectory |
+| `seasonal-awareness/` | Seasonal patterns, timing |
 
 ### Life Coaching
 | Domain | Purpose |
@@ -139,4 +147,4 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 
 ---
 
-*Last updated: January 2026*
+*Last updated: March 2026*

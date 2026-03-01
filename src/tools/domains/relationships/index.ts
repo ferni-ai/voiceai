@@ -26,7 +26,7 @@ import { generateToolQuestions } from '../../utils/dynamic-tool-questions.js';
 const assessRelationshipHealthDef: ToolDefinition = {
   id: 'assessRelationshipHealth',
   name: 'Assess Relationship Health',
-  description: 'Reflect on the health of a specific relationship across key dimensions',
+  description: 'Reflect on the health of a specific relationship across trust, communication, reciprocity, and emotional safety',
   domain: 'relationships',
   tags: ['relationships', 'assessment', 'health'],
 
@@ -100,7 +100,7 @@ const assessRelationshipHealthDef: ToolDefinition = {
 const suggestConnectionActionDef: ToolDefinition = {
   id: 'suggestConnectionAction',
   name: 'Suggest Connection Action',
-  description: 'Get personalized ideas for meaningful ways to connect with someone',
+  description: 'Suggest personalized, actionable ways to connect with a specific person—from small gestures to grand ones',
   domain: 'relationships',
   tags: ['relationships', 'nurturing', 'action'],
 
@@ -169,7 +169,7 @@ const suggestConnectionActionDef: ToolDefinition = {
 const navigateConflictDef: ToolDefinition = {
   id: 'navigateConflict',
   name: 'Navigate Conflict',
-  description: 'Get guidance for navigating a conflict or tension in a relationship',
+  description: 'Guide someone through a conflict or tension in a relationship with empathy for both sides before reacting',
   domain: 'relationships',
   tags: ['relationships', 'conflict', 'guidance'],
 
@@ -210,7 +210,7 @@ const navigateConflictDef: ToolDefinition = {
 const prepareForDifficultConversationDef: ToolDefinition = {
   id: 'prepareForDifficultConversation',
   name: 'Prepare for Difficult Conversation',
-  description: 'Get coached on having a difficult but necessary conversation',
+  description: 'Coach someone on having a difficult but necessary conversation—what to say, how to open, how to listen',
   domain: 'relationships',
   tags: ['relationships', 'communication', 'difficult-conversations'],
 
@@ -263,7 +263,7 @@ const prepareForDifficultConversationDef: ToolDefinition = {
 const mapRelationshipCirclesDef: ToolDefinition = {
   id: 'mapRelationshipCircles',
   name: 'Map Relationship Circles',
-  description: 'Visualize and reflect on your different circles of relationships',
+  description: 'Visualize and reflect on concentric circles of relationships—inner circle, close friends, community—to understand the social landscape',
   domain: 'relationships',
   tags: ['relationships', 'reflection', 'mapping'],
 
@@ -320,7 +320,7 @@ const mapRelationshipCirclesDef: ToolDefinition = {
 const deepenFriendshipDef: ToolDefinition = {
   id: 'deepenFriendship',
   name: 'Deepen Friendship',
-  description: 'Move a friendship from surface-level to deeper connection',
+  description: 'Move a friendship from surface-level to deeper connection with specific practices and conversation starters',
   domain: 'relationships',
   tags: ['relationships', 'friendship', 'deepening'],
 

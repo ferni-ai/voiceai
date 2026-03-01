@@ -26,7 +26,7 @@ import { getToolDescription } from '../../utils/tool-descriptions.js';
 const practiceSelfKindnessDef: ToolDefinition = {
   id: 'practiceSelfKindness',
   name: 'Practice Self Kindness',
-  description: 'Guide a practice of self-kindness in a difficult moment',
+  description: 'Guide a three-step self-kindness practice—acknowledge pain, common humanity, self-compassion—in a difficult moment',
   domain: 'self-compassion',
   tags: ['self-compassion', 'kindness', 'practice'],
 
@@ -67,7 +67,7 @@ const practiceSelfKindnessDef: ToolDefinition = {
 const speakToYourselfAsAFriendDef: ToolDefinition = {
   id: 'speakToYourselfAsAFriend',
   name: 'Speak To Yourself As A Friend',
-  description: 'Reframe self-talk as if speaking to a dear friend',
+  description: 'Reframe harsh self-talk by asking what you would say to a dear friend in the same situation',
   domain: 'self-compassion',
   tags: ['self-compassion', 'self-talk', 'reframe'],
 
@@ -103,7 +103,7 @@ const speakToYourselfAsAFriendDef: ToolDefinition = {
 const noticeInnerCriticDef: ToolDefinition = {
   id: 'noticeInnerCritic',
   name: 'Notice Inner Critic',
-  description: 'Develop awareness of the inner critic voice',
+  description: 'Develop awareness of the inner critic voice—whose voice it is, what it fears, and whether its protection is still needed',
   domain: 'self-compassion',
   tags: ['self-compassion', 'inner-critic', 'awareness'],
 
@@ -138,7 +138,7 @@ const noticeInnerCriticDef: ToolDefinition = {
 const reframeInnerCriticDef: ToolDefinition = {
   id: 'reframeInnerCritic',
   name: 'Reframe Inner Critic',
-  description: 'Transform inner critic messages into something more helpful',
+  description: 'Transform a harsh inner critic message into something true and kind by finding the kernel of care beneath the cruelty',
   domain: 'self-compassion',
   tags: ['self-compassion', 'inner-critic', 'reframe'],
 
@@ -176,7 +176,7 @@ const reframeInnerCriticDef: ToolDefinition = {
 const practiceSelfAcceptanceDef: ToolDefinition = {
   id: 'practiceSelfAcceptance',
   name: 'Practice Self Acceptance',
-  description: 'Guide a practice of accepting oneself as is',
+  description: 'Guide a practice of accepting oneself as-is—not giving up on growth, but ending the internal war',
   domain: 'self-compassion',
   tags: ['self-compassion', 'acceptance', 'practice'],
 
@@ -215,7 +215,7 @@ const practiceSelfAcceptanceDef: ToolDefinition = {
 const embraceImperfectionDef: ToolDefinition = {
   id: 'embraceImperfection',
   name: 'Embrace Imperfection',
-  description: 'Find peace with imperfection and humanity',
+  description: 'Find peace with a specific imperfection by reframing it as part of being human, not a failure to overcome',
   domain: 'self-compassion',
   tags: ['self-compassion', 'imperfection', 'humanity'],
 
@@ -250,7 +250,7 @@ const embraceImperfectionDef: ToolDefinition = {
 const enoughnessDef: ToolDefinition = {
   id: 'enoughness',
   name: 'Enoughness',
-  description: 'Connect with a sense of being enough as you are',
+  description: 'Challenge the belief of not being enough by exploring whether worth is earned through achievement or inherent in being human',
   domain: 'self-compassion',
   tags: ['self-compassion', 'enoughness', 'worthiness'],
 
@@ -291,7 +291,7 @@ const enoughnessDef: ToolDefinition = {
 const celebrateYourselfDef: ToolDefinition = {
   id: 'celebrateYourself',
   name: 'Celebrate Yourself',
-  description: 'Create space to genuinely celebrate yourself',
+  description: 'Create space to genuinely celebrate yourself without minimizing or deflecting when something deserves acknowledgment',
   domain: 'self-compassion',
   tags: ['self-compassion', 'celebration', 'acknowledgment'],
 
@@ -337,7 +337,7 @@ const celebrateYourselfDef: ToolDefinition = {
 const giveYourselfCreditDef: ToolDefinition = {
   id: 'giveYourselfCredit',
   name: 'Give Yourself Credit',
-  description: 'Acknowledge effort and progress often overlooked',
+  description: 'Acknowledge invisible effort and progress—daily survival, emotional labor, quiet growth—that goes unrecognized',
   domain: 'self-compassion',
   tags: ['self-compassion', 'credit', 'acknowledgment'],
 
@@ -372,7 +372,7 @@ const giveYourselfCreditDef: ToolDefinition = {
 const selfCompassionBreakDef: ToolDefinition = {
   id: 'selfCompassionBreak',
   name: 'Self Compassion Break',
-  description: "Kristin Neff's three-step self-compassion break",
+  description: "Guide Kristin Neff's three-step self-compassion break: mindfulness, common humanity, and self-kindness in a moment of suffering",
   domain: 'self-compassion',
   tags: ['self-compassion', 'neff', 'practice'],
 
@@ -418,7 +418,7 @@ const selfCompassionBreakDef: ToolDefinition = {
 const compassionateLetterDef: ToolDefinition = {
   id: 'compassionateLetter',
   name: 'Compassionate Letter',
-  description: 'Write a letter to yourself from a compassionate perspective',
+  description: 'Guide writing a compassionate letter to yourself from the perspective of a loving friend, wise mentor, or future self',
   domain: 'self-compassion',
   tags: ['self-compassion', 'letter', 'practice'],
 
@@ -458,7 +458,7 @@ const compassionateLetterDef: ToolDefinition = {
 const bodyImageCompassionDef: ToolDefinition = {
   id: 'bodyImageCompassion',
   name: 'Body Image Compassion',
-  description: 'Practice self-compassion specifically around body image',
+  description: 'Practice self-compassion specifically around body image struggles, replacing criticism with gratitude for what the body does',
   domain: 'self-compassion',
   tags: ['self-compassion', 'body', 'acceptance'],
 

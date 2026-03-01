@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, Tool, ToolContext } from '../../registry/types.js';
+import { createDomainExport } from '../../registry/loader.js';
 import { getDefaultStore } from '../../../memory/index.js';
 
 const log = getLogger();
@@ -322,345 +323,328 @@ function saveUserProjects(userId: string, projects: Project[]): void {
 // TOOL DEFINITIONS
 // ============================================================================
 
-export function getProjectToolDefinitions(): ToolDefinition[] {
-  return [
-    // =========================================================================
-    // createProject - New project with optional template
-    // =========================================================================
-    {
-      id: 'createProject',
-      name: 'Create Project',
+const createProjectDef: ToolDefinition = {
+  id: 'createProject',
+  name: 'Create Project',
+  description: 'Create a new project, optionally from a template.',
+  domain: 'projects',
+  tags: ['project', 'create', 'planning'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
       description: 'Create a new project, optionally from a template.',
-      domain: 'projects',
-      tags: ['project', 'create', 'planning'],
+      parameters: z.object({
+        name: z.string().describe('Project name'),
+        template: z
+          .enum(['wedding', 'moving', 'renovation', 'job-search'])
+          .optional()
+          .describe('Template to use'),
+        targetDate: z.string().optional().describe('Target completion date'),
+        description: z.string().optional().describe('Project description'),
+      }),
+      execute: async (params) => {
+        const userId = ctx.userId;
+        if (!userId) {
+          return 'I need to know who you are to create a project.';
+        }
 
-      create: (ctx: ToolContext): Tool => {
-        return llm.tool({
-          description: 'Create a new project, optionally from a template.',
-          parameters: z.object({
-            name: z.string().describe('Project name'),
-            template: z
-              .enum(['wedding', 'moving', 'renovation', 'job-search'])
-              .optional()
-              .describe('Template to use'),
-            targetDate: z.string().optional().describe('Target completion date'),
-            description: z.string().optional().describe('Project description'),
-          }),
-          execute: async (params) => {
-            const userId = ctx.userId;
-            if (!userId) {
-              return 'I need to know who you are to create a project.';
-            }
+        const projects = getUserProjects(userId);
+        const now = new Date().toISOString();
 
-            const projects = getUserProjects(userId);
-            const now = new Date().toISOString();
+        const project: Project = {
+          id: `proj_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+          userId,
+          name: params.name,
+          description: params.description,
+          status: 'planning',
+          template: params.template,
+          targetDate: params.targetDate,
+          progress: 0,
+          tasks: [],
+          milestones: [],
+          tags: [],
+          createdAt: now,
+          updatedAt: now,
+        };
 
-            const project: Project = {
-              id: `proj_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-              userId,
-              name: params.name,
-              description: params.description,
-              status: 'planning',
-              template: params.template,
-              targetDate: params.targetDate,
-              progress: 0,
-              tasks: [],
-              milestones: [],
-              tags: [],
-              createdAt: now,
-              updatedAt: now,
-            };
-
-            // Apply template if specified
-            if (params.template) {
-              const template = PROJECT_TEMPLATES.find((t) => t.id === params.template);
-              if (template) {
-                project.tasks = template.tasks.map((t, i) => ({
-                  ...t,
-                  id: `task_${Date.now()}_${i}`,
-                  projectId: project.id,
-                  status: 'pending',
-                  createdAt: now,
-                  updatedAt: now,
-                }));
-
-                project.milestones = template.milestones.map((m, i) => ({
-                  ...m,
-                  id: `mile_${Date.now()}_${i}`,
-                  projectId: project.id,
-                  createdAt: now,
-                }));
-              }
-            }
-
-            projects.push(project);
-            saveUserProjects(userId, projects);
-
-            let response = `✅ Project created: **${project.name}**\n\n`;
-            if (params.template) {
-              response += `📋 Using the **${params.template}** template\n`;
-              response += `- ${project.tasks.length} tasks\n`;
-              response += `- ${project.milestones.length} milestones\n\n`;
-              response += `Say "show project tasks" to see the full list.`;
-            } else {
-              response += `Start adding tasks with "add task to ${project.name}".`;
-            }
-
-            return response;
-          },
-        });
-      },
-    },
-
-    // =========================================================================
-    // addProjectTask - Task within a project
-    // =========================================================================
-    {
-      id: 'addProjectTask',
-      name: 'Add Project Task',
-      description: 'Add a task to a project.',
-      domain: 'projects',
-      tags: ['project', 'task', 'add'],
-
-      create: (ctx: ToolContext): Tool => {
-        return llm.tool({
-          description: 'Add a task to a project.',
-          parameters: z.object({
-            projectName: z.string().describe('Name of the project'),
-            task: z.string().describe('Task description'),
-            priority: z
-              .enum(['low', 'normal', 'high', 'critical'])
-              .optional()
-              .describe('Task priority'),
-            dueDate: z.string().optional().describe('Due date'),
-            dependsOn: z.array(z.string()).optional().describe('Tasks this depends on'),
-          }),
-          execute: async (params) => {
-            const userId = ctx.userId;
-            if (!userId) {
-              return 'I need to know who you are to add tasks.';
-            }
-
-            const projects = getUserProjects(userId);
-            const project = projects.find((p) =>
-              p.name.toLowerCase().includes(params.projectName.toLowerCase())
-            );
-
-            if (!project) {
-              return `I couldn't find a project matching "${params.projectName}".`;
-            }
-
-            const now = new Date().toISOString();
-            const task: ProjectTask = {
-              id: `task_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        // Apply template if specified
+        if (params.template) {
+          const template = PROJECT_TEMPLATES.find((t) => t.id === params.template);
+          if (template) {
+            project.tasks = template.tasks.map((t, i) => ({
+              ...t,
+              id: `task_${Date.now()}_${i}`,
               projectId: project.id,
-              title: params.task,
               status: 'pending',
-              priority: params.priority || 'normal',
-              dependencies: params.dependsOn || [],
-              dueDate: params.dueDate,
-              order: project.tasks.length + 1,
               createdAt: now,
               updatedAt: now,
-            };
+            }));
 
-            project.tasks.push(task);
-            project.updatedAt = now;
-            saveUserProjects(userId, projects);
+            project.milestones = template.milestones.map((m, i) => ({
+              ...m,
+              id: `mile_${Date.now()}_${i}`,
+              projectId: project.id,
+              createdAt: now,
+            }));
+          }
+        }
 
-            return `✅ Added task to **${project.name}**: "${params.task}"`;
-          },
-        });
+        projects.push(project);
+        saveUserProjects(userId, projects);
+
+        let response = `✅ Project created: **${project.name}**\n\n`;
+        if (params.template) {
+          response += `📋 Using the **${params.template}** template\n`;
+          response += `- ${project.tasks.length} tasks\n`;
+          response += `- ${project.milestones.length} milestones\n\n`;
+          response += `Say "show project tasks" to see the full list.`;
+        } else {
+          response += `Start adding tasks with "add task to ${project.name}".`;
+        }
+
+        return response;
       },
-    },
+    });
+  },
+};
 
-    // =========================================================================
-    // getProjectStatus - Progress overview
-    // =========================================================================
-    {
-      id: 'getProjectStatus',
-      name: 'Get Project Status',
+const addProjectTaskDef: ToolDefinition = {
+  id: 'addProjectTask',
+  name: 'Add Project Task',
+  description: 'Add a task to a project.',
+  domain: 'projects',
+  tags: ['project', 'task', 'add'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: 'Add a task to a project.',
+      parameters: z.object({
+        projectName: z.string().describe('Name of the project'),
+        task: z.string().describe('Task description'),
+        priority: z
+          .enum(['low', 'normal', 'high', 'critical'])
+          .optional()
+          .describe('Task priority'),
+        dueDate: z.string().optional().describe('Due date'),
+        dependsOn: z.array(z.string()).optional().describe('Tasks this depends on'),
+      }),
+      execute: async (params) => {
+        const userId = ctx.userId;
+        if (!userId) {
+          return 'I need to know who you are to add tasks.';
+        }
+
+        const projects = getUserProjects(userId);
+        const project = projects.find((p) =>
+          p.name.toLowerCase().includes(params.projectName.toLowerCase())
+        );
+
+        if (!project) {
+          return `I couldn't find a project matching "${params.projectName}".`;
+        }
+
+        const now = new Date().toISOString();
+        const task: ProjectTask = {
+          id: `task_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+          projectId: project.id,
+          title: params.task,
+          status: 'pending',
+          priority: params.priority || 'normal',
+          dependencies: params.dependsOn || [],
+          dueDate: params.dueDate,
+          order: project.tasks.length + 1,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        project.tasks.push(task);
+        project.updatedAt = now;
+        saveUserProjects(userId, projects);
+
+        return `✅ Added task to **${project.name}**: "${params.task}"`;
+      },
+    });
+  },
+};
+
+const getProjectStatusDef: ToolDefinition = {
+  id: 'getProjectStatus',
+  name: 'Get Project Status',
+  description: 'Get the status and progress of a project.',
+  domain: 'projects',
+  tags: ['project', 'status', 'progress'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
       description: 'Get the status and progress of a project.',
-      domain: 'projects',
-      tags: ['project', 'status', 'progress'],
+      parameters: z.object({
+        projectName: z
+          .string()
+          .optional()
+          .describe('Project name (shows all if not specified)'),
+      }),
+      execute: async (params) => {
+        const userId = ctx.userId;
+        if (!userId) {
+          return 'I need to know who you are to show your projects.';
+        }
 
-      create: (ctx: ToolContext): Tool => {
-        return llm.tool({
-          description: 'Get the status and progress of a project.',
-          parameters: z.object({
-            projectName: z
-              .string()
-              .optional()
-              .describe('Project name (shows all if not specified)'),
-          }),
-          execute: async (params) => {
-            const userId = ctx.userId;
-            if (!userId) {
-              return 'I need to know who you are to show your projects.';
-            }
+        const projects = getUserProjects(userId);
 
-            const projects = getUserProjects(userId);
+        if (projects.length === 0) {
+          return (
+            "You don't have any projects yet. " +
+            'Create one with "create project [name]" or use a template like "create wedding project".'
+          );
+        }
 
-            if (projects.length === 0) {
-              return (
-                "You don't have any projects yet. " +
-                'Create one with "create project [name]" or use a template like "create wedding project".'
-              );
-            }
+        if (params.projectName) {
+          const project = projects.find((p) =>
+            p.name.toLowerCase().includes(params.projectName!.toLowerCase())
+          );
 
-            if (params.projectName) {
-              const project = projects.find((p) =>
-                p.name.toLowerCase().includes(params.projectName!.toLowerCase())
-              );
+          if (!project) {
+            return `I couldn't find a project matching "${params.projectName}".`;
+          }
 
-              if (!project) {
-                return `I couldn't find a project matching "${params.projectName}".`;
-              }
+          const completed = project.tasks.filter((t) => t.status === 'completed').length;
+          const total = project.tasks.length;
+          const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-              const completed = project.tasks.filter((t) => t.status === 'completed').length;
-              const total = project.tasks.length;
-              const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+          let response = `📊 **${project.name}**\n\n`;
+          response += `Status: ${project.status}\n`;
+          response += `Progress: ${progress}% (${completed}/${total} tasks)\n`;
+          if (project.targetDate) {
+            response += `Target: ${project.targetDate}\n`;
+          }
+          response += `\n`;
 
-              let response = `📊 **${project.name}**\n\n`;
-              response += `Status: ${project.status}\n`;
-              response += `Progress: ${progress}% (${completed}/${total} tasks)\n`;
-              if (project.targetDate) {
-                response += `Target: ${project.targetDate}\n`;
-              }
+          const pending = project.tasks.filter((t) => t.status === 'pending').slice(0, 5);
+          if (pending.length > 0) {
+            response += `**Next tasks:**\n`;
+            for (const task of pending) {
+              response += `- ${task.title}`;
+              if (task.priority === 'critical') response += ' 🔴';
+              else if (task.priority === 'high') response += ' 🟠';
               response += `\n`;
-
-              const pending = project.tasks.filter((t) => t.status === 'pending').slice(0, 5);
-              if (pending.length > 0) {
-                response += `**Next tasks:**\n`;
-                for (const task of pending) {
-                  response += `- ${task.title}`;
-                  if (task.priority === 'critical') response += ' 🔴';
-                  else if (task.priority === 'high') response += ' 🟠';
-                  response += `\n`;
-                }
-              }
-
-              return response;
             }
+          }
 
-            // Show all projects
-            let response = `📋 **Your Projects**\n\n`;
-            for (const project of projects.filter((p) => p.status !== 'completed')) {
-              const completed = project.tasks.filter((t) => t.status === 'completed').length;
-              const total = project.tasks.length;
-              const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+          return response;
+        }
 
-              response += `**${project.name}** - ${progress}% complete\n`;
-            }
+        // Show all projects
+        let response = `📋 **Your Projects**\n\n`;
+        for (const project of projects.filter((p) => p.status !== 'completed')) {
+          const completed = project.tasks.filter((t) => t.status === 'completed').length;
+          const total = project.tasks.length;
+          const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-            return response;
-          },
-        });
+          response += `**${project.name}** - ${progress}% complete\n`;
+        }
+
+        return response;
       },
-    },
+    });
+  },
+};
 
-    // =========================================================================
-    // completeProjectTask - Mark task done
-    // =========================================================================
-    {
-      id: 'completeProjectTask',
-      name: 'Complete Project Task',
+const completeProjectTaskDef: ToolDefinition = {
+  id: 'completeProjectTask',
+  name: 'Complete Project Task',
+  description: 'Mark a project task as completed.',
+  domain: 'projects',
+  tags: ['project', 'task', 'complete'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
       description: 'Mark a project task as completed.',
-      domain: 'projects',
-      tags: ['project', 'task', 'complete'],
+      parameters: z.object({
+        projectName: z.string().describe('Name of the project'),
+        taskTitle: z.string().describe('Task to complete'),
+      }),
+      execute: async (params) => {
+        const userId = ctx.userId;
+        if (!userId) {
+          return 'I need to know who you are to complete tasks.';
+        }
 
-      create: (ctx: ToolContext): Tool => {
-        return llm.tool({
-          description: 'Mark a project task as completed.',
-          parameters: z.object({
-            projectName: z.string().describe('Name of the project'),
-            taskTitle: z.string().describe('Task to complete'),
-          }),
-          execute: async (params) => {
-            const userId = ctx.userId;
-            if (!userId) {
-              return 'I need to know who you are to complete tasks.';
-            }
+        const projects = getUserProjects(userId);
+        const project = projects.find((p) =>
+          p.name.toLowerCase().includes(params.projectName.toLowerCase())
+        );
 
-            const projects = getUserProjects(userId);
-            const project = projects.find((p) =>
-              p.name.toLowerCase().includes(params.projectName.toLowerCase())
-            );
+        if (!project) {
+          return `I couldn't find a project matching "${params.projectName}".`;
+        }
 
-            if (!project) {
-              return `I couldn't find a project matching "${params.projectName}".`;
-            }
+        const task = project.tasks.find((t) =>
+          t.title.toLowerCase().includes(params.taskTitle.toLowerCase())
+        );
 
-            const task = project.tasks.find((t) =>
-              t.title.toLowerCase().includes(params.taskTitle.toLowerCase())
-            );
+        if (!task) {
+          return `I couldn't find a task matching "${params.taskTitle}".`;
+        }
 
-            if (!task) {
-              return `I couldn't find a task matching "${params.taskTitle}".`;
-            }
+        task.status = 'completed';
+        task.completedAt = new Date().toISOString();
+        task.updatedAt = task.completedAt;
+        project.updatedAt = task.completedAt;
 
-            task.status = 'completed';
-            task.completedAt = new Date().toISOString();
-            task.updatedAt = task.completedAt;
-            project.updatedAt = task.completedAt;
+        saveUserProjects(userId, projects);
 
-            saveUserProjects(userId, projects);
+        // Calculate progress
+        const completed = project.tasks.filter((t) => t.status === 'completed').length;
+        const total = project.tasks.length;
+        const progress = Math.round((completed / total) * 100);
 
-            // Calculate progress
-            const completed = project.tasks.filter((t) => t.status === 'completed').length;
-            const total = project.tasks.length;
-            const progress = Math.round((completed / total) * 100);
-
-            return (
-              `✅ Completed: "${task.title}"\n\n` +
-              `**${project.name}** is now ${progress}% complete (${completed}/${total} tasks)`
-            );
-          },
-        });
+        return (
+          `✅ Completed: "${task.title}"\n\n` +
+          `**${project.name}** is now ${progress}% complete (${completed}/${total} tasks)`
+        );
       },
-    },
+    });
+  },
+};
 
-    // =========================================================================
-    // listProjectTemplates - Available templates
-    // =========================================================================
-    {
-      id: 'listProjectTemplates',
-      name: 'List Project Templates',
+const listProjectTemplatesDef: ToolDefinition = {
+  id: 'listProjectTemplates',
+  name: 'List Project Templates',
+  description: 'Show available project templates.',
+  domain: 'projects',
+  tags: ['project', 'template', 'list'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
       description: 'Show available project templates.',
-      domain: 'projects',
-      tags: ['project', 'template', 'list'],
+      parameters: z.object({}),
+      execute: async () => {
+        let response = `📋 **Project Templates**\n\n`;
 
-      create: (ctx: ToolContext): Tool => {
-        return llm.tool({
-          description: 'Show available project templates.',
-          parameters: z.object({}),
-          execute: async () => {
-            let response = `📋 **Project Templates**\n\n`;
+        for (const template of PROJECT_TEMPLATES) {
+          response += `**${template.name}** (${template.id})\n`;
+          response += `  ${template.description}\n`;
+          response += `  📝 ${template.tasks.length} tasks, ${template.milestones.length} milestones\n`;
+          response += `  ⏱️ Typical duration: ${template.defaultDuration} days\n\n`;
+        }
 
-            for (const template of PROJECT_TEMPLATES) {
-              response += `**${template.name}** (${template.id})\n`;
-              response += `  ${template.description}\n`;
-              response += `  📝 ${template.tasks.length} tasks, ${template.milestones.length} milestones\n`;
-              response += `  ⏱️ Typical duration: ${template.defaultDuration} days\n\n`;
-            }
+        response += `Create a project from a template with:\n`;
+        response += `"create wedding project" or "create project [name] using moving template"`;
 
-            response += `Create a project from a template with:\n`;
-            response += `"create wedding project" or "create project [name] using moving template"`;
-
-            return response;
-          },
-        });
+        return response;
       },
-    },
-  ];
-}
+    });
+  },
+};
 
 // ============================================================================
 // DOMAIN EXPORT
 // ============================================================================
 
-export function getToolDefinitions(): ToolDefinition[] {
-  return getProjectToolDefinitions();
-}
-
-export const definitions = getProjectToolDefinitions();
+export const { getToolDefinitions, domain, definitions } = createDomainExport('projects', [
+  createProjectDef,
+  addProjectTaskDef,
+  getProjectStatusDef,
+  completeProjectTaskDef,
+  listProjectTemplatesDef,
+]);

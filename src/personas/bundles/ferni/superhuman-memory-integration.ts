@@ -36,7 +36,7 @@ import {
   createGrowthCallback,
   createComfortCallback,
   type MemoryCallback,
-} from './memory-personality-bridge.js';
+} from '../../shared/memory-personality-bridge.js';
 
 const log = createLogger({ module: 'superhuman-memory-integration' });
 

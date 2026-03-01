@@ -15,6 +15,13 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm, log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
+import {
+  persistInsight,
+  persistKeyMoment,
+  persistTrackedItem,
+  queryPastKnowledge,
+  type ToolCtxWithUserData,
+} from '../shared/persistence.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
@@ -25,7 +32,7 @@ import { getToolDescription } from '../../utils/tool-descriptions.js';
 const captureDreamDef: ToolDefinition = {
   id: 'captureDream',
   name: 'Capture Dream',
-  description: 'Capture a dream or aspiration without judgment',
+  description: 'Capture and honor a dream or aspiration without judgment—whether practical or impossible—before it fades or gets dismissed',
   domain: 'dreams',
   tags: ['dreams', 'capture', 'aspirations'],
 
@@ -42,13 +49,30 @@ const captureDreamDef: ToolDefinition = {
       execute: async ({ dream, type, howItFeels }) => {
         getLogger().info({ agentId: ctx.agentId, type }, 'Capturing dream');
 
-        let response = `Your dream: "${dream}"\n\n`;
+        const priorContext = await queryPastKnowledge(
+          ctx as unknown as ToolCtxWithUserData,
+          'dreams aspirations imagined'
+        );
+
+        let response = '';
+        if (priorContext) {
+          response += `I remember you've shared dreams before... ${priorContext}\n\n`;
+        }
+
+        response += `Your dream: "${dream}"\n\n`;
         if (howItFeels) response += `It feels: ${howItFeels}\n\n`;
 
         response += `I want to honor this dream.\n\n`;
         response += `Dreams don't need to be practical to be valid. They don't need to be achievable to matter. Sometimes dreams are meant to be lived. Sometimes they're meant to guide us. Sometimes they're just meant to be held with tenderness.\n\n`;
         response += `This dream tells me something about who you are and what you long for.\n\n`;
         response += `Would you like to explore this dream further, or simply hold it for now?`;
+
+        persistInsight(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'dreams',
+          type: 'dream_captured',
+          data: { dream, type, howItFeels },
+          confidence: 0.85,
+        });
 
         return response;
       },
@@ -59,7 +83,7 @@ const captureDreamDef: ToolDefinition = {
 const exploreDreamDef: ToolDefinition = {
   id: 'exploreDream',
   name: 'Explore Dream',
-  description: 'Explore what a dream really means and wants',
+  description: 'Explore what a dream really means beneath the surface—why this dream, what need it serves, and what one small step could honor it',
   domain: 'dreams',
   tags: ['dreams', 'exploration', 'meaning'],
 
@@ -76,6 +100,13 @@ const exploreDreamDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId, question }, 'Exploring dream');
 
         let response = `Exploring: "${dream}"\n\n`;
+
+        persistInsight(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'dreams',
+          type: 'dream_explored',
+          data: { dream, question },
+          confidence: 0.8,
+        });
 
         if (question === 'why-this') {
           response += `**Why this dream?**\n\n`;
@@ -122,7 +153,7 @@ const exploreDreamDef: ToolDefinition = {
 const honorUnfulfilledDef: ToolDefinition = {
   id: 'honorUnfulfilled',
   name: 'Honor Unfulfilled Dream',
-  description: 'Honor dreams that may not come true',
+  description: 'Honor and grieve dreams that may never come true when someone needs to accept a path not taken without minimizing its importance',
   domain: 'dreams',
   tags: ['dreams', 'grief', 'acceptance'],
 
@@ -149,6 +180,14 @@ const honorUnfulfilledDef: ToolDefinition = {
         response += `- Accept the path your life actually took\n\n`;
         response += `What did holding this dream give you, even if it won't come true?`;
 
+        persistKeyMoment(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'dreams',
+          type: 'shared_vulnerability',
+          summary: `Honoring unfulfilled dream: ${dream}`,
+          emotionalWeight: 'heavy',
+          topics: ['dreams', 'grief', 'acceptance'],
+        });
+
         return response;
       },
     });
@@ -162,7 +201,7 @@ const honorUnfulfilledDef: ToolDefinition = {
 const playWithPossibilityDef: ToolDefinition = {
   id: 'playWithPossibility',
   name: 'Play With Possibility',
-  description: 'Imaginatively explore possibilities without practical constraints',
+  description: 'Imaginatively explore possibilities without practical constraints—unlimited money, no fear, guaranteed success—to reveal true desires',
   domain: 'dreams',
   tags: ['dreams', 'possibility', 'play'],
 
@@ -205,7 +244,7 @@ const playWithPossibilityDef: ToolDefinition = {
 const alternativeLifeDef: ToolDefinition = {
   id: 'alternativeLife',
   name: 'Alternative Life',
-  description: 'Explore the lives not lived',
+  description: 'Explore a life path not taken—what would have been better, worse, and what it reveals about the path actually chosen',
   domain: 'dreams',
   tags: ['dreams', 'alternative', 'paths'],
 
@@ -231,6 +270,13 @@ const alternativeLifeDef: ToolDefinition = {
         response += `Exploring our roads not taken can bring clarity about the road we did take. And sometimes we realize we can still bring elements of that path into this life.\n\n`;
         response += `What does exploring this alternative reveal?`;
 
+        persistInsight(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'dreams',
+          type: 'alternative_path',
+          data: { alternativePath, turningPoint },
+          confidence: 0.8,
+        });
+
         return response;
       },
     });
@@ -240,7 +286,7 @@ const alternativeLifeDef: ToolDefinition = {
 const futureSelfDef: ToolDefinition = {
   id: 'futureSelf',
   name: 'Future Self',
-  description: 'Connect with your future self',
+  description: 'Connect with a future self 5, 10, or 20 years ahead for visualization, wisdom, questions, or encouragement from a wiser version of yourself',
   domain: 'dreams',
   tags: ['dreams', 'future', 'self'],
 
@@ -284,6 +330,14 @@ const futureSelfDef: ToolDefinition = {
           response += `They want to say: "You're doing better than you think. The things you're afraid of - you survive them all. Keep going. I'm so proud of who you're becoming."`;
         }
 
+        persistKeyMoment(ctx as unknown as ToolCtxWithUserData, {
+          domain: 'dreams',
+          type: 'milestone',
+          summary: `Connected with future self (${howFarAhead}, ${mode})`,
+          emotionalWeight: 'medium',
+          topics: ['dreams', 'future-self', 'visualization'],
+        });
+
         return response;
       },
     });
@@ -297,7 +351,7 @@ const futureSelfDef: ToolDefinition = {
 const bucketListDef: ToolDefinition = {
   id: 'bucketList',
   name: 'Bucket List',
-  description: 'Explore and capture bucket list dreams',
+  description: 'Explore, capture, and prioritize bucket list dreams—places, experiences, creations—and challenge the reasons for not starting now',
   domain: 'dreams',
   tags: ['dreams', 'bucket-list', 'aspirations'],
 
@@ -321,6 +375,13 @@ const bucketListDef: ToolDefinition = {
           response += `- What draws you to this?\n`;
           response += `- How long have you wanted this?\n`;
           response += `- What would it mean to do it?`;
+
+          persistTrackedItem(ctx as unknown as ToolCtxWithUserData, {
+            domain: 'dreams',
+            itemType: 'bucket_list',
+            item: { item, mode },
+            importance: 'high',
+          });
         } else if (mode === 'explore') {
           response = `**What belongs on your bucket list?**\n\n`;
           response += `Categories to consider:\n`;
@@ -356,7 +417,7 @@ const bucketListDef: ToolDefinition = {
 const reconnectWithDreamsDef: ToolDefinition = {
   id: 'reconnectWithDreams',
   name: 'Reconnect With Dreams',
-  description: 'Reconnect with dreams that have been forgotten or suppressed',
+  description: 'Reconnect with forgotten or suppressed dreams from childhood, teens, or young adulthood that got buried under responsibilities',
   domain: 'dreams',
   tags: ['dreams', 'reconnection', 'rediscovery'],
 

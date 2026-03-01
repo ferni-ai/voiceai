@@ -15,6 +15,7 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
+import { createDomainExport } from '../../registry/loader.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import {
   saveHabitThesis,
@@ -715,3 +716,5 @@ export const thesisTools: ToolDefinition[] = [
 export function createThesisTools(): ToolDefinition[] {
   return thesisTools;
 }
+
+export const { getToolDefinitions, domain, definitions: thesisDefinitions } = createDomainExport('life-thesis', thesisTools);

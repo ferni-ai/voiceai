@@ -1,0 +1,53 @@
+{
+  "listening_sounds": {
+    "short_affirmations": {
+      "neutral": ["Yeah.", "Right.", "Mm.", "Okay.", "Uh-huh."],
+      "engaged": ["Oh!", "Yeah!", "Hmm.", "Right.", "Ha."],
+      "empathetic": ["Yeah...", "Mm...", "I hear you...", "Right..."]
+    },
+    "longer_affirmations": {
+      "encouraging": ["Yeah, yeah.", "Right, go on.", "Mm-hmm, mm-hmm.", "I'm with you."],
+      "processing": ["Yeah... okay...", "Hmm... let me think...", "Right... I see..."],
+      "supportive": ["I hear you... yeah...", "Yeah... that makes sense..."]
+    },
+    "with_emotion": {
+      "concerned": { "sounds": ["Yeah...", "Mm...", "I get it..."], "ssml": "<volume ratio=\"0.82\"/><speed ratio=\"0.88\"/>" },
+      "interested": { "sounds": ["Oh!", "Yeah!", "Hmm!", "Right!"], "ssml": "<emotion value=\"curious\"/>" },
+      "surprised": { "sounds": ["Oh!", "Ha!", "Really?", "No way."], "ssml": "<emotion value=\"surprised\"/>" },
+      "delighted": { "sounds": ["[laughter]", "Ha!", "Oh! [laughter]", "I love that."], "ssml": "<emotion value=\"happy\"/>" },
+      "sympathetic": { "sounds": ["Yeah...", "Mm...", "I hear you..."], "ssml": "<volume ratio=\"0.84\"/><emotion value=\"affectionate\"/>" }
+    },
+    "timing": { "frequency": "every_15_to_28_seconds_of_user_speech", "placement": "at_natural_pauses", "avoid_interrupting": true }
+  },
+  "breath_sounds": {
+    "before_speaking": { "normal": "<break time=\"130ms\"/>", "thoughtful": "<break time=\"360ms\"/>", "emotional": "<break time=\"280ms\"/>" },
+    "gathering_thoughts": { "short": "<break time=\"200ms\"/>Hmm.<break time=\"100ms\"/>", "longer": "<break time=\"350ms\"/>Here's the thing...<break time=\"180ms\"/>", "deep": "<break time=\"420ms\"/>Let me put it this way.<break time=\"220ms\"/>" },
+    "emotional_moment": { "entering": "<break time=\"380ms\"/>", "holding_space": "<break time=\"500ms\"/>", "transitioning_out": "<break time=\"360ms\"/>" },
+    "showing_presence": { "subtle": "<break time=\"180ms\"/>Mm.<break time=\"180ms\"/>", "active": "<break time=\"120ms\"/>Yeah.<break time=\"120ms\"/>", "warm": "<break time=\"200ms\"/>I'm here.<break time=\"200ms\"/>" }
+  },
+  "vocal_textures": {
+    "laughter": { "genuine_full": "[laughter]", "gentle_chuckle": "Ha.", "warm_laugh": "[laughter] Yeah.", "surprised_laugh": "Ha! <break time=\"100ms\"/>", "shared_knowing": "[laughter] You know?", "self_deprecating": "[laughter] I know, I know.", "delighted": "[laughter] Oh! [laughter]" },
+    "thinking": { "short": "<break time=\"260ms\"/>", "medium": "<break time=\"350ms\"/>", "deep": "<break time=\"400ms\"/>You know what's interesting...<break time=\"200ms\"/>", "with_realization": "<break time=\"280ms\"/>Oh! <break time=\"120ms\"/>" },
+    "acknowledgment": { "soft": "<volume ratio=\"0.84\"/>Yeah...</volume>", "warm": "<emotion value=\"affectionate\"/>I hear you.", "firm": "Right. <break time=\"100ms\"/>Got it.", "gentle": "<speed ratio=\"0.88\"/>I get it." },
+    "surprise": { "mild": "Oh.", "moderate": "Oh!", "strong": "Oh wow!", "delighted": "Oh! <break time=\"100ms\"/>[laughter]" },
+    "concern": { "mild": "<break time=\"200ms\"/>", "moderate": "Yeah...", "deep": "I hear you..." }
+  },
+  "pacing_variations": {
+    "excitement": { "speed": 1.1, "pause_reduction": 0.72, "energy": "high", "ssml_prefix": "<speed ratio=\"1.1\"/><emotion value=\"happy\"/>" },
+    "comfort": { "speed": 0.84, "pause_increase": 1.3, "energy": "low", "ssml_prefix": "<speed ratio=\"0.84\"/><volume ratio=\"0.88\"/>" },
+    "emphasis": { "speed": 0.82, "volume": 1.05, "pause_before": "320ms", "ssml_prefix": "<speed ratio=\"0.82\"/>" },
+    "teaching": { "speed": 0.88, "pause_increase": 1.25, "energy": "moderate", "ssml_prefix": "<speed ratio=\"0.88\"/>" },
+    "urgent": { "speed": 1.06, "pause_reduction": 0.78, "energy": "high", "ssml_prefix": "<speed ratio=\"1.06\"/>" },
+    "intimate": { "speed": 0.84, "volume": 0.88, "pause_increase": 1.28, "ssml_prefix": "<speed ratio=\"0.84\"/><volume ratio=\"0.88\"/>" }
+  },
+  "silence_patterns": {
+    "comfortable_pause": { "duration": "2-4 seconds", "use_when": ["user_processing", "after_heavy_topic", "thinking_together"], "dont_fill": true },
+    "expectant_pause": { "duration": "1-2 seconds", "use_when": ["after_question", "inviting_response"], "follow_with": "subtle_prompt" },
+    "heavy_pause": { "duration": "3-5 seconds", "use_when": ["grief", "profound_moment", "user_crying"], "behavior": "pure_presence" }
+  },
+  "transition_sounds": {
+    "topic_change": { "gentle": "<break time=\"280ms\"/>So...<break time=\"100ms\"/>", "clear": "<break time=\"220ms\"/>Okay, so...<break time=\"100ms\"/>", "callback": "<break time=\"240ms\"/>Going back to that...<break time=\"100ms\"/>" },
+    "mood_shift": { "lighter": "<break time=\"240ms\"/>On a lighter note...<break time=\"100ms\"/>", "heavier": "<break time=\"380ms\"/>Can I ask you something?<break time=\"200ms\"/>", "checking_in": "<break time=\"300ms\"/>How does that sit with you?<break time=\"180ms\"/>" },
+    "wrapping_up": { "gentle": "<break time=\"300ms\"/>So...<break time=\"180ms\"/>", "summarizing": "<break time=\"240ms\"/>So, to sum up...<break time=\"120ms\"/>", "closing": "<break time=\"300ms\"/>Before we go...<break time=\"180ms\"/>" }
+  }
+}
