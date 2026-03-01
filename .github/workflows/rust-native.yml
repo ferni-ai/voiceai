@@ -7,7 +7,6 @@ on:
       - 'apps/rust-perf/**'
       - 'apps/rust-audio/**'
       - 'apps/sonata/**'
-      - 'crates/ferni-tts-core/**'
       - '.github/workflows/rust-native.yml'
   pull_request:
     branches: [main, develop]
@@ -15,7 +14,6 @@ on:
       - 'apps/rust-perf/**'
       - 'apps/rust-audio/**'
       - 'apps/sonata/**'
-      - 'crates/ferni-tts-core/**'
       - '.github/workflows/rust-native.yml'
 
 env:
@@ -49,7 +47,6 @@ jobs:
             apps/rust-perf/target/
             apps/rust-audio/target/
             apps/sonata/target/
-            crates/ferni-tts-core/target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-

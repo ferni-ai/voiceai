@@ -42,11 +42,6 @@ import {
 } from './performance/streaming-tts-transform.js';
 import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
-import {
-  bridgeToFerniContext,
-  enrichContextFromFirestore,
-  enrichContextWithMemory,
-} from '../../speech/tts/ferni-tts-context-bridge.js';
 import { isFTISEnabled } from '../processors/tool-routing-integration.js';
 
 // TTS Gateway integration
@@ -56,21 +51,6 @@ import {
 } from '../../speech/tts-gateway/index.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
-
-// =============================================================================
-// FERNI TTS CONFIGURATION
-// =============================================================================
-
-/**
- * Check if Ferni TTS (superhuman transforms) is enabled
- */
-function isFerniTTSEnabled(): boolean {
-  return (
-    process.env.TTS_PROVIDER === 'ferni-tts' || process.env.ENABLE_FERNI_TTS_TRANSFORMS === 'true'
-  );
-}
-
-// NOTE: _getFerniTTSEndpoint was removed - it was dead code (never called)
 
 // =============================================================================
 // GARBAGE RESPONSE DETECTION & RECOVERY
@@ -1082,64 +1062,7 @@ export async function wrappedTtsNode(
 
   log.debug('Sanitizer, interrupt-awareness, cost tracking, and streaming optimization attached');
 
-  // 6. Build superhuman context for Ferni TTS transforms
-  // This extracts conversation state (emotion, timezone, relationship, etc.) from session userData
-  // The context is used by the 8 "Better than Human" prosody transforms
-  const enableSuperhumanContext = isFerniTTSEnabled();
-  let superhumanContext: ReturnType<typeof bridgeToFerniContext> | undefined;
-
-  if (enableSuperhumanContext) {
-    // Access full session userData for context extraction
-    const fullUserData = agent.session?.userData as Record<string, unknown> | undefined;
-
-    // Bridge conversation state → superhuman context
-    superhumanContext = bridgeToFerniContext(fullUserData);
-
-    // Async enrichment for relationship data (fire-and-forget to not block TTS)
-    // This adds relationship stage from Firestore if not already in session
-    if (userId && userId !== 'anonymous') {
-      // Start async enrichment in background
-      void Promise.all([
-        enrichContextFromFirestore(userId, superhumanContext),
-        enrichContextWithMemory(sessionId, superhumanContext),
-      ])
-        .then(([firestoreEnriched, memoryEnriched]) => {
-          // Merge enriched data back
-          Object.assign(superhumanContext!, firestoreEnriched, memoryEnriched);
-          log.debug(
-            {
-              sessionId,
-              userId,
-              hasRelationshipStage: superhumanContext?.relationshipStage !== undefined,
-              entityCount: superhumanContext?.rememberedEntities?.length || 0,
-            },
-            '🧠 Superhuman context enriched from Firestore/memory'
-          );
-        })
-        .catch((err) => {
-          log.debug({ error: String(err), sessionId }, 'Failed to enrich superhuman context');
-        });
-    }
-
-    log.info(
-      {
-        sessionId,
-        personaId,
-        hasUserLocalHour: superhumanContext.userLocalHour !== undefined,
-        hasRelationshipStage: superhumanContext.relationshipStage !== undefined,
-        hasUserEmotion: superhumanContext.userEmotion !== undefined,
-        hasUserEnergy: superhumanContext.userEnergy !== undefined,
-        turnNumber: superhumanContext.turnNumber,
-        userLocalHour: superhumanContext.userLocalHour,
-        relationshipStage: superhumanContext.relationshipStage?.toFixed(2),
-        emotion: superhumanContext.userEmotion?.[0],
-        energy: superhumanContext.userEnergy?.toFixed(2),
-      },
-      '🦸 BTH: Superhuman context built for TTS transforms'
-    );
-  }
-
-  // 7. Pass to TTS implementation (cache-aware or default)
+  // 6. Pass to TTS implementation (cache-aware or default)
   let audioStream: NodeReadableStream<AudioFrame> | null;
 
   // DIAGNOSTIC: Wrap text stream to detect cancellation
