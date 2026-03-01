@@ -6,7 +6,6 @@ on:
     paths:
       - 'apps/rust-perf/**'
       - 'apps/rust-audio/**'
-      - 'apps/rust-omni/**'
       - 'apps/sonata/**'
       - 'crates/ferni-tts-core/**'
       - '.github/workflows/rust-native.yml'
@@ -15,7 +14,6 @@ on:
     paths:
       - 'apps/rust-perf/**'
       - 'apps/rust-audio/**'
-      - 'apps/rust-omni/**'
       - 'apps/sonata/**'
       - 'crates/ferni-tts-core/**'
       - '.github/workflows/rust-native.yml'
@@ -50,7 +48,6 @@ jobs:
             ~/.cargo/git/db/
             apps/rust-perf/target/
             apps/rust-audio/target/
-            apps/rust-omni/target/
             apps/sonata/target/
             crates/ferni-tts-core/target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
@@ -81,11 +78,6 @@ jobs:
 
       - name: Check rust-audio (compile)
         working-directory: apps/rust-audio
-        run: cargo check --release --lib
-        continue-on-error: true
-
-      - name: Check rust-omni (compile)
-        working-directory: apps/rust-omni
         run: cargo check --release --lib
         continue-on-error: true
 
@@ -149,7 +141,6 @@ jobs:
             ~/.cargo/git/db/
             apps/rust-perf/target/
             apps/rust-audio/target/
-            apps/rust-omni/target/
             apps/sonata/target/
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
@@ -170,14 +161,6 @@ jobs:
       # Build rust-audio
       - name: Build rust-audio
         working-directory: apps/rust-audio
-        run: |
-          pnpm install
-          napi build --platform --release --target ${{ matrix.target }}
-        continue-on-error: true
-
-      # Build rust-omni (depends on rust-perf + rust-audio + ferni-tts-core)
-      - name: Build rust-omni
-        working-directory: apps/rust-omni
         run: |
           pnpm install
           napi build --platform --release --target ${{ matrix.target }}
@@ -213,13 +196,6 @@ jobs:
         with:
           name: sonata-${{ matrix.node_arch }}
           path: apps/sonata/*.node
-          if-no-files-found: warn
-
-      - name: Upload rust-omni artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: rust-omni-${{ matrix.node_arch }}
-          path: apps/rust-omni/*.node
           if-no-files-found: warn
 
   # ============================================================================
@@ -258,13 +234,6 @@ jobs:
           path: apps/rust-audio/
         continue-on-error: true
 
-      - name: Download rust-omni artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-omni-linux-x64
-          path: apps/rust-omni/
-        continue-on-error: true
-
       - name: Download sonata artifact
         uses: actions/download-artifact@v4
         with:
@@ -282,22 +251,6 @@ jobs:
 
       - name: Verify rust-audio loads
         run: node -e "try { const a = require('./apps/rust-audio'); console.log('rust-audio exports:', Object.keys(a)); } catch(e) { console.log('rust-audio not available'); }"
-        continue-on-error: true
-
-      - name: Verify rust-omni loads
-        run: |
-          node -e "
-            try {
-              const omni = require('./apps/rust-omni');
-              console.log('rust-omni exports:', Object.keys(omni));
-              if (typeof omni.OmniEngine !== 'function') {
-                throw new Error('OmniEngine not found');
-              }
-              console.log('✅ rust-omni verified: OmniEngine constructor available');
-            } catch (e) {
-              console.log('⚠️ rust-omni verification skipped:', e.message);
-            }
-          "
         continue-on-error: true
 
       - name: Verify sonata loads
@@ -387,10 +340,3 @@ jobs:
           NODE_ENV: test
         continue-on-error: true
 
-      - name: Run Qwen3-Omni E2E tests
-        run: |
-          pnpm build:fast || true
-          pnpm vitest run src/tests/e2e/qwen3-omni-e2e.test.ts --reporter=verbose
-        env:
-          NODE_ENV: test
-        continue-on-error: true
