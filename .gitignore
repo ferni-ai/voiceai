@@ -24,6 +24,8 @@ latest-logs.txt
 *.env.local
 .plaid-tokens.json
 .forms.env
+GoogleService-Info.plist
+google-services.json
 
 # Local development data (contacts, etc.)
 .ferni/
