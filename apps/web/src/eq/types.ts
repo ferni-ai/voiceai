@@ -140,7 +140,8 @@ export type BetterThanHumanSignalType =
   | 'temporal_insight'
   | 'meta_relationship_moment'
   | 'somatic_presence'
-  | 'anticipatory_presence';
+  | 'anticipatory_presence'
+  | 'micro_expression'; // Backend-driven subliminal flash (concern 60ms, delight 100ms, recognition 80ms)
 
 /**
  * Signal from backend superhuman capabilities
@@ -189,4 +190,10 @@ export interface BetterThanHumanSignal {
   // anticipatory_presence
   /** Time context for anticipatory care: late_night, early_morning, weekend, monday, evening */
   timeContext?: 'late_night' | 'early_morning' | 'weekend' | 'monday' | 'evening';
+
+  // micro_expression (backend-driven subliminal flash)
+  /** Subtype: concern_flash (60ms), delight_flash (100ms), recognition (80ms) */
+  microExpressionSubtype?: 'concern_flash' | 'delight_flash' | 'recognition';
+  /** Duration in ms (40-150) when signalType is micro_expression */
+  durationMs?: number;
 }

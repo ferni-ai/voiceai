@@ -11,9 +11,10 @@
 import { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { ResolvedContact } from '../../tools/domains/telephony/types.js';
-import type {
-  OnBehalfCallRequest,
-  CallOutcome,
+import {
+  type OnBehalfCallRequest,
+  type CallOutcome,
+  registerOnBehalfCallInitiator,
 } from '../../tools/domains/telephony/call-on-behalf.js';
 import { selectScript, buildCallScript } from '../../tools/domains/telephony/scripts/index.js';
 import {
@@ -921,6 +922,7 @@ export function getOnBehalfCallOrchestrator(
 ): OnBehalfCallOrchestrator {
   if (!orchestratorInstance) {
     orchestratorInstance = new OnBehalfCallOrchestrator(config);
+    registerOnBehalfCallInitiator(orchestratorInstance.initiateCall.bind(orchestratorInstance));
   }
   return orchestratorInstance;
 }

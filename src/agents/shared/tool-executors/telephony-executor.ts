@@ -308,6 +308,11 @@ async function execute(
     }
 
     try {
+      // Ensure on-behalf orchestrator is initialized so call-on-behalf tool has a registered initiator
+      const { getOnBehalfCallOrchestrator } =
+        await import('../../../services/outreach/on-behalf-call-orchestrator.js');
+      getOnBehalfCallOrchestrator();
+
       // Lazy load the telephony domain tool
       const { createCallOnBehalfTool } =
         await import('../../../tools/domains/telephony/call-on-behalf.js');

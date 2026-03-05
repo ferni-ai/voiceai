@@ -233,7 +233,8 @@ describe('Webhook Signature Verification', () => {
   });
 
   it('should reject expired signatures', async () => {
-    const { verifySignature } = await import('../services/integrations/developer-webhook-dispatcher.js');
+    const { verifySignature } =
+      await import('../services/integrations/developer-webhook-dispatcher.js');
 
     // Create an old signature (10 minutes ago)
     const oldTimestamp = Math.floor(Date.now() / 1000) - 600;

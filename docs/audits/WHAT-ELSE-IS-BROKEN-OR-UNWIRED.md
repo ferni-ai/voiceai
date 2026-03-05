@@ -3,6 +3,10 @@
 > **Purpose:** Single consolidated view of broken code, unwired integrations, incomplete features, and wiring gaps across the repo.  
 > **Sources:** SRC-ISSUES-AUDIT, VOICE-AGENT-PIPELINE-GAPS-AUDIT, ISSUES-GAPS-AND-DEBT, MEMORY-PIPELINE-AUDIT, KYUTAI-DSM-GAPS, HIGGS-INTEGRATION-STATUS, FIRESTORE-IMPLEMENTATION-AUDIT.  
 > **Last updated:** February 2026
+>
+> **Voice stack:** We are moving to **Sonata**. Do **not** prioritize or propose work on **Qwen3-Omni** or **Kyutai** (see `docs/VOICE-STACK-DIRECTION.md`). Items below that are purely Qwen/Kyutai-related are intentionally deprioritized.
+>
+> **Focus list:** For a single "what to do next" list (everything except Qwen/Kyutai), see **`docs/FOCUS-EVERYTHING-ELSE.md`**.
 
 ---
 

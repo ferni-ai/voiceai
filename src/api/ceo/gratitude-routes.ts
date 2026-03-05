@@ -90,7 +90,7 @@ router.get('/category/:category', async (req: Request, res: Response) => {
     const userId = req.user!.uid;
     const { category } = req.params;
 
-    const entries = await getByCategory(userId, category as any);
+    const entries = await getByCategory(userId, category ?? '');
 
     return res.json(entries);
   } catch (error) {

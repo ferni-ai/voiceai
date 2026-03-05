@@ -550,10 +550,26 @@ async function fetchYourWorld(userId: string): Promise<YourWorld> {
       mentor: 'nayan-patel',
     };
     const categories = [
-      { type: 'family', count: typeCounts.family || 0, color: getPersonaColor(categoryPersonaMap.family) },
-      { type: 'friend', count: typeCounts.friend || 0, color: getPersonaColor(categoryPersonaMap.friend) },
-      { type: 'colleague', count: typeCounts.colleague || 0, color: getPersonaColor(categoryPersonaMap.colleague) },
-      { type: 'mentor', count: typeCounts.mentor || 0, color: getPersonaColor(categoryPersonaMap.mentor) },
+      {
+        type: 'family',
+        count: typeCounts.family || 0,
+        color: getPersonaColor(categoryPersonaMap.family),
+      },
+      {
+        type: 'friend',
+        count: typeCounts.friend || 0,
+        color: getPersonaColor(categoryPersonaMap.friend),
+      },
+      {
+        type: 'colleague',
+        count: typeCounts.colleague || 0,
+        color: getPersonaColor(categoryPersonaMap.colleague),
+      },
+      {
+        type: 'mentor',
+        count: typeCounts.mentor || 0,
+        color: getPersonaColor(categoryPersonaMap.mentor),
+      },
     ].filter((c) => c.count > 0);
 
     const needsAttention = opportunities.length;

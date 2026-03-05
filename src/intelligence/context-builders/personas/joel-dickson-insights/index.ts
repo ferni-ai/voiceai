@@ -29,22 +29,17 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../../index.js';
+import { fetchJoelInsightData } from './data-fetchers.js';
+import { buildCareerCrossroadsContext } from './career-crossroads-context.js';
+import { buildFinancialBehavioralContext } from './financial-behavioral-context.js';
+import { buildLifeWisdomContext } from './life-wisdom-context.js';
+import { getSession } from './session.js';
+import type { ConversationContext, JoelInsightData } from './types.js';
 
 const log = createLogger({ module: 'context:joel-dickson-insights' });
 
-// Session tracking for Joel
-const joelSessions = new Map<string, { briefingTurn: number }>();
-
-function getSession(sessionId: string) {
-  if (!joelSessions.has(sessionId)) {
-    joelSessions.set(sessionId, { briefingTurn: -1 });
-  }
-  return joelSessions.get(sessionId)!;
-}
-
-export function clearJoelSession(sessionId: string): void {
-  joelSessions.delete(sessionId);
-}
+export { clearJoelSession, clearAllJoelSessions } from './session.js';
+export type { JoelSession, JoelInsightData } from './types.js';
 
 // ============================================================================
 // WISDOM PRINCIPLES
@@ -103,14 +98,6 @@ const JOEL_BOGLE_QUOTES = [
 // CONTEXT DETECTION
 // ============================================================================
 
-interface ConversationContext {
-  isFinanceTopic: boolean;
-  isCareerTopic: boolean;
-  isLifeWisdomTopic: boolean;
-  isVanguardTopic: boolean;
-  emotionalTone: 'stressed' | 'curious' | 'excited' | 'reflective' | 'neutral';
-}
-
 function detectConversationContext(userText?: string): ConversationContext {
   const text = (userText || '').toLowerCase();
 
@@ -136,11 +123,36 @@ function detectConversationContext(userText?: string): ConversationContext {
 }
 
 // ============================================================================
-// BUILD BRIEFING
+// BUILD BRIEFING (with optional insight data from data-fetchers)
 // ============================================================================
 
-function buildJoelBriefing(context: ConversationContext, turnCount: number): string[] {
+function buildJoelBriefing(
+  context: ConversationContext,
+  turnCount: number,
+  insightData?: JoelInsightData
+): string[] {
   const lines: string[] = [];
+
+  if (insightData) {
+    const lifeWisdom = buildLifeWisdomContext(insightData);
+    const career = buildCareerCrossroadsContext(insightData);
+    const financial = buildFinancialBehavioralContext(insightData);
+
+    if (lifeWisdom.patternSummary) {
+      lines.push(lifeWisdom.patternSummary);
+      lifeWisdom.prompts.forEach((p) => lines.push(p));
+    }
+    if (career.signals.length > 0) {
+      lines.push(`[CAREER CONTEXT]: ${career.signals.join(' ')}`);
+      career.prompts.forEach((p) => lines.push(p));
+    }
+    if (financial.behavioralSignals.length > 0 || financial.moneyAnxietySignals.length > 0) {
+      lines.push(
+        `[FINANCIAL BEHAVIORAL]: ${[...financial.behavioralSignals, ...financial.moneyAnxietySignals].join(' ')}`
+      );
+      financial.prompts.slice(0, 2).forEach((p) => lines.push(p));
+    }
+  }
 
   // Opening based on turn
   if (turnCount === 0) {
@@ -170,7 +182,6 @@ function buildJoelBriefing(context: ConversationContext, turnCount: number): str
   }
 
   if (context.isLifeWisdomTopic) {
-    // Pick a relevant wisdom principle
     const principle =
       JOEL_WISDOM_PRINCIPLES[Math.floor(Math.random() * JOEL_WISDOM_PRINCIPLES.length)];
     lines.push(`[WISDOM]: ${principle.principle}`);
@@ -185,7 +196,6 @@ function buildJoelBriefing(context: ConversationContext, turnCount: number): str
     );
   }
 
-  // Emotional tone adaptation
   if (context.emotionalTone === 'stressed') {
     lines.push('[STRESS DETECTED]: Slow down. Listen more than advise. Validate first.');
     lines.push("Use: 'That sounds really hard. Tell me more about what's weighing on you.'");
@@ -194,8 +204,12 @@ function buildJoelBriefing(context: ConversationContext, turnCount: number): str
     lines.push("[laughs] 'Oh! Now THIS is interesting...'");
   }
 
-  // Always include wit reminder
   lines.push(JOEL_WIT_PROMPTS[Math.floor(Math.random() * JOEL_WIT_PROMPTS.length)]);
+
+  // When memory/entity context is present (from knowledge-graph builder), surface it in Joel's voice
+  lines.push(
+    "[MEMORY SURFACING]: When you have context about their finances, career, or life decisions, use your economist's eye: 'I've noticed over the last few months...' or 'You've mentioned this before...' — pattern recognition, not just recall. See predictive-intelligence behaviors for phrasing."
+  );
 
   return lines;
 }
@@ -230,7 +244,17 @@ async function buildJoelDicksonInsightsContext(
 
   try {
     const context = detectConversationContext(input.userText);
-    const briefingLines = buildJoelBriefing(context, turnCount);
+
+    let insightData: JoelInsightData | undefined;
+    if (userId !== 'anonymous') {
+      try {
+        insightData = await fetchJoelInsightData(userId);
+      } catch (e) {
+        log.debug({ error: String(e), userId }, 'Joel insight data fetch failed (non-blocking)');
+      }
+    }
+
+    const briefingLines = buildJoelBriefing(context, turnCount, insightData);
 
     const content = briefingLines.join('\n');
 

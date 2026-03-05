@@ -12,7 +12,7 @@ import { createLogger } from './safe-logger.js';
 const log = createLogger({ module: 'managed-interval' });
 
 export interface ManagedInterval {
-  dispose(): void;
+  dispose: () => void;
 }
 
 /**

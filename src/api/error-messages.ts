@@ -60,7 +60,7 @@ export const API_ERRORS = {
   SETTINGS_SAVE_FAILED: "Couldn't save your settings. Mind trying again?",
 
   // Ambient Mode
-  AMBIENT_NOT_ENABLED: 'Ambient mode isn\'t turned on yet. You can enable it in settings.',
+  AMBIENT_NOT_ENABLED: "Ambient mode isn't turned on yet. You can enable it in settings.",
   AMBIENT_SYNC_FAILED: "Couldn't sync your ambient data. Mind trying again?",
   AMBIENT_STATE_FAILED: "Couldn't load your ambient state right now. Try again?",
   AMBIENT_CONTEXT_FAILED: "Couldn't load ambient context right now. Try again?",
@@ -69,7 +69,7 @@ export const API_ERRORS = {
   AMBIENT_ENABLE_FAILED: "Couldn't turn on ambient mode. Give it another shot?",
   AMBIENT_DISABLE_FAILED: "Couldn't turn off ambient mode. Try again?",
   AMBIENT_QUIET_HOURS_TIME_REQUIRED: 'Need both a start and end time (HH:MM format).',
-  AMBIENT_QUIET_HOURS_INVALID_FORMAT: 'That time format didn\'t look right. Use HH:MM (24-hour).',
+  AMBIENT_QUIET_HOURS_INVALID_FORMAT: "That time format didn't look right. Use HH:MM (24-hour).",
   AMBIENT_QUIET_HOURS_FAILED: "Couldn't set quiet hours. Mind trying again?",
   AMBIENT_NUDGE_EVAL_FAILED: "Couldn't evaluate nudge right now. Try again?",
 
@@ -84,22 +84,23 @@ export const API_ERRORS = {
 
   // Apple Health
   HEALTH_SYNC_CREDENTIALS_REQUIRED: 'Need both a sync token and user ID to sync.',
-  HEALTH_INVALID_SYNC_TOKEN: 'That sync token isn\'t valid. Try reconnecting your device.',
+  HEALTH_INVALID_SYNC_TOKEN: "That sync token isn't valid. Try reconnecting your device.",
   HEALTH_SYNC_FAILED: "Couldn't sync your health data. Mind trying again?",
   HEALTH_DEVICE_INFO_REQUIRED: 'Need your device ID and name to set up.',
   HEALTH_TOKEN_GENERATE_FAILED: "Couldn't set up the sync connection. Try again?",
-  HEALTH_NO_DATA: "No health data found for that date.",
+  HEALTH_NO_DATA: 'No health data found for that date.',
   HEALTH_HISTORY_FAILED: "Couldn't load your health history. Try again?",
 
   // Visual Memory
-  VISUAL_NOT_ENABLED: 'Visual memory isn\'t turned on yet. You can enable it in settings.',
+  VISUAL_NOT_ENABLED: "Visual memory isn't turned on yet. You can enable it in settings.",
   VISUAL_UPLOAD_FIELDS_REQUIRED: 'Need both the image data and its type to upload.',
   VISUAL_UPLOAD_FAILED: "Couldn't upload that image. Mind trying again?",
   VISUAL_SEARCH_QUERY_REQUIRED: 'Need a search query to look through your memories.',
   VISUAL_SEARCH_FAILED: "Couldn't search your visual memories. Try again?",
   VISUAL_RECENT_FAILED: "Couldn't load recent memories. Try refreshing?",
   VISUAL_PREFERENCES_FAILED: "Couldn't load your visual memory preferences. Try refreshing?",
-  VISUAL_UPDATE_PREFERENCES_FAILED: "Couldn't save your visual memory preferences. Mind trying again?",
+  VISUAL_UPDATE_PREFERENCES_FAILED:
+    "Couldn't save your visual memory preferences. Mind trying again?",
   VISUAL_ENABLE_FAILED: "Couldn't turn on visual memory. Give it another shot?",
   VISUAL_DISABLE_FAILED: "Couldn't turn off visual memory. Try again?",
   VISUAL_NOT_FOUND: "Couldn't find that visual memory. It may have been removed.",
@@ -108,12 +109,12 @@ export const API_ERRORS = {
 
   // Smart Home Integrations (Oura, Eight Sleep, Ecobee)
   INTEGRATION_NOT_CONFIGURED: (name: string) => `${name} integration isn't set up yet.`,
-  OAUTH_MISSING_PARAMS: "Something went wrong with the connection. Mind trying again?",
+  OAUTH_MISSING_PARAMS: 'Something went wrong with the connection. Mind trying again?',
   OAUTH_INVALID_STATE: 'That link expired. Mind starting over?',
   OAUTH_AUTH_URL_FAILED: "Couldn't start the connection. Try again?",
-  INTEGRATION_NO_SLEEP_DATA: "No sleep data found for that date.",
-  INTEGRATION_NO_READINESS_DATA: "No readiness data found for that date.",
-  INTEGRATION_NO_ACTIVITY_DATA: "No activity data found for that date.",
+  INTEGRATION_NO_SLEEP_DATA: 'No sleep data found for that date.',
+  INTEGRATION_NO_READINESS_DATA: 'No readiness data found for that date.',
+  INTEGRATION_NO_ACTIVITY_DATA: 'No activity data found for that date.',
 
   // Eight Sleep
   EIGHT_SLEEP_TEMP_FAILED: "Couldn't read the temperature. Try again?",
@@ -151,7 +152,7 @@ export const API_ERRORS = {
  * a custom userMessage.
  */
 export const ERROR_DEFAULTS = {
-  GENERIC: "Something went wrong. Mind trying again?",
+  GENERIC: 'Something went wrong. Mind trying again?',
   TOOL_FAILED: "Couldn't complete that action. Let me try something else.",
   VALIDATION: 'Check your input and try again?',
   AUTH_REQUIRED: 'Sign in to continue.',
@@ -159,7 +160,7 @@ export const ERROR_DEFAULTS = {
   RATE_LIMIT: 'Easy there! Try again in a moment.',
   CONFIGURATION: "Something's misconfigured on our end. Reach out to support?",
   TIMEOUT: 'That took too long. Mind trying again?',
-  HANDOFF: "Having trouble connecting you with a colleague. Let me help instead.",
+  HANDOFF: 'Having trouble connecting you with a colleague. Let me help instead.',
 } as const;
 
 // ============================================================================

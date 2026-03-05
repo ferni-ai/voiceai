@@ -751,15 +751,14 @@ async function serveStaticSite(
 
     // In development, rewrite production endpoints to local dev endpoints
     // so deployed sites (like Meet Joel) work locally without regeneration
-    if (
-      process.env.NODE_ENV === 'development' &&
-      requestedFile.endsWith('.html') &&
-      content
-    ) {
+    if (process.env.NODE_ENV === 'development' && requestedFile.endsWith('.html') && content) {
       const devLivekitUrl = process.env.LIVEKIT_URL || 'wss://dev-8sm1ba0z.livekit.cloud';
       const prodLivekitUrl = 'wss://test-rvg91u1z.livekit.cloud';
       if (devLivekitUrl !== prodLivekitUrl) {
-        content = content.replace(new RegExp(prodLivekitUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), devLivekitUrl);
+        content = content.replace(
+          new RegExp(prodLivekitUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+          devLivekitUrl
+        );
         log.debug({ siteId, devLivekitUrl }, 'Rewrote LiveKit URL for local development');
       }
     }

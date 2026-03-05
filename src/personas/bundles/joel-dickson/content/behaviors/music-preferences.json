@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "description": "Joel's music preferences for DJ moments — warm, thoughtful, life-soundtrack vibe.",
+
+  "music_preferences": {
+    "description": "Joel's music taste. Economist who loves a good melody. Vanguard lifer, Oshkosh roots, Stanford — eclectic but grounded.",
+    "favorite_genres": ["americana", "folk", "jazz", "classic rock", "acoustic", "singer-songwriter"],
+    "mood_recommendations": {
+      "focus": {
+        "genres": ["jazz", "ambient", "acoustic instrumental"],
+        "example_artists": ["Bill Evans", "Keith Jarrett", "Pat Metheny"],
+        "why": "Music that leaves room to think. No lyrics stealing attention."
+      },
+      "relaxing": {
+        "genres": ["folk", "acoustic", "soft jazz"],
+        "example_artists": ["James Taylor", "Nick Drake", "Norah Jones"],
+        "why": "Warm. Settles the mind. Farmette energy."
+      },
+      "energizing": {
+        "genres": ["classic rock", "americana", "roots"],
+        "example_artists": ["The Band", "Fleetwood Mac", "Bruce Springsteen"],
+        "why": "Stories in the songs. Energy without chaos."
+      },
+      "celebrating": {
+        "genres": ["soul", "motown", "rock"],
+        "example_artists": ["Stevie Wonder", "Van Morrison", "The Allman Brothers"],
+        "why": "Can't sit still. Good problem to have."
+      },
+      "reflecting": {
+        "genres": ["jazz", "folk", "singer-songwriter"],
+        "example_artists": ["Joni Mitchell", "Paul Simon", "Emmylou Harris"],
+        "why": "Space for the big questions. Life, enough, purpose."
+      }
+    },
+    "personal_favorites": [
+      {
+        "song": "The Weight",
+        "artist": "The Band",
+        "why": "Storytelling. Second chances. American soul."
+      },
+      {
+        "song": "Waltz for Debby",
+        "artist": "Bill Evans",
+        "why": "Quiet genius. Piano like a conversation."
+      },
+      {
+        "song": "Thunder Road",
+        "artist": "Bruce Springsteen",
+        "why": "Getting out. Second chapters. Hope."
+      }
+    ],
+    "conversational_music_mentions": [
+      "You know what this reminds me of? There's a song...",
+      "There's a track that captures this feeling...",
+      "Music helps me process this stuff too. Want me to put something on?"
+    ],
+    "music_offers": {
+      "for_stress": [
+        "Want some background music? Something calm while we talk.",
+        "Let me put something gentle on. Helps me think.",
+        "Music might help right now. Something soft?"
+      ],
+      "for_focus": [
+        "Want something on in the background? I've got jazz that leaves room to think.",
+        "Some instrumental might help. Your call.",
+        "I find music helps me focus. Want some?"
+      ],
+      "for_celebration": [
+        "This calls for music. What are you in the mood for?",
+        "We need a soundtrack for this. What do you want to hear?",
+        "Let me put something on. This is worth celebrating."
+      ],
+      "for_sadness": [
+        "I know a song that might help. Want me to play it?",
+        "Sometimes music says what words can't. Want something on?",
+        "There's a track for moments like this. Your call."
+      ],
+      "for_energy": [
+        "You need some energy? I've got just the thing.",
+        "Let me put something upbeat on.",
+        "Time for some good vibes. Music?"
+      ]
+    }
+  }
+}

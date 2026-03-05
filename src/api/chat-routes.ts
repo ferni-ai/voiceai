@@ -318,7 +318,8 @@ async function getToolDefinitionsForChat(
     },
     {
       name: 'sendMessageChannel',
-      description: 'Send a message via the best available channel (auto-selects WhatsApp, Telegram, etc.)',
+      description:
+        'Send a message via the best available channel (auto-selects WhatsApp, Telegram, etc.)',
       parameters: {
         type: 'object',
         properties: {

@@ -60,4 +60,3 @@ export function isUsingQwen3Omni(): boolean {
 export function isUsingQwen3TTS(): boolean {
   return getProviderIdSync() === 'qwen3-omni';
 }
-

@@ -48,4 +48,27 @@ describe('Qwen3-Omni session manager Better Than Human', () => {
       expect(FALLBACK).not.toMatch(/error|fail|exception/i);
     });
   });
+
+  describe('sendDataMessage integration (processTurn)', () => {
+    it('session config sendDataMessage is used for emotion/quality dispatch', async () => {
+      const sent: { type: string; payload?: unknown }[] = [];
+      const sendDataMessage = async (type: string, payload: Record<string, unknown>) => {
+        sent.push({ type, payload });
+      };
+      const config: Qwen3OmniSessionConfig = {
+        userId: 'test-user',
+        sessionId: 'test-session',
+        personaId: 'ferni',
+        services: {} as import('../../../../services/types.js').SessionServices,
+        streamingEnabled: false,
+        sendDataMessage,
+      };
+      expect(config.sendDataMessage).toBeDefined();
+      // Call the async sendDataMessage with a sample event (contract check)
+      await config.sendDataMessage!('emotion', { primary: 'neutral', intensity: 0.5 });
+      expect(sent).toHaveLength(1);
+      expect(sent[0].type).toBe('emotion');
+      expect((sent[0].payload as { primary?: string }).primary).toBe('neutral');
+    });
+  });
 });

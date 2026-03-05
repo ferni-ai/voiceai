@@ -583,8 +583,7 @@ describe('Maya End-to-End Flows', () => {
   });
 
   it('should support a complete gamification flow', async () => {
-    const { createGamificationToolsV2 } =
-      await import('../tools/domains/habits/gamification.js');
+    const { createGamificationToolsV2 } = await import('../tools/domains/habits/gamification.js');
     const tools = createGamificationToolsV2();
 
     // 1. Get profile

@@ -13,11 +13,7 @@
 import { randomUUID } from 'crypto';
 
 import { createLogger } from '../utils/safe-logger.js';
-import {
-  getFirestoreDb,
-  recordDegradation,
-  cleanForFirestore,
-} from '../utils/firestore-utils.js';
+import { getFirestoreDb, recordDegradation, cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'ConversationPlanner' });
 
@@ -35,11 +31,7 @@ export interface ConversationGoal {
   /** Progress 0-1 */
   progress: number;
   /** Source: detected from user, set by persona, inferred from context */
-  source:
-    | 'user_explicit'
-    | 'user_implicit'
-    | 'persona_suggested'
-    | 'system_inferred';
+  source: 'user_explicit' | 'user_implicit' | 'persona_suggested' | 'system_inferred';
 }
 
 export interface FollowUpItem {
@@ -82,7 +74,8 @@ const GOAL_PATTERNS: Array<{
   source: GoalSource;
 }> = [
   {
-    regex: /\b(?:i want to|i'd like to|i need to|i'm trying to|i hope to)\s+(?:get better at|improve|learn|master|start|stop|build|achieve)\s+([^.?!]+)/i,
+    regex:
+      /\b(?:i want to|i'd like to|i need to|i'm trying to|i hope to)\s+(?:get better at|improve|learn|master|start|stop|build|achieve)\s+([^.?!]+)/i,
     extractDescription: (m) => m[1].trim(),
     source: 'user_implicit',
   },
@@ -152,11 +145,7 @@ export function addGoal(
 /**
  * Update progress on a goal (0-1).
  */
-export function updateGoalProgress(
-  plan: ConversationPlan,
-  goalId: string,
-  progress: number
-): void {
+export function updateGoalProgress(plan: ConversationPlan, goalId: string, progress: number): void {
   const goal = plan.goals.find((g) => g.id === goalId);
   if (!goal || goal.status !== 'active') return;
   goal.progress = Math.max(0, Math.min(1, progress));
@@ -196,9 +185,7 @@ export function detectImplicitGoals(
 ): ConversationGoal[] {
   if (!transcript?.trim()) return [];
   const detected: ConversationGoal[] = [];
-  const existingDescriptions = new Set(
-    currentPlan.goals.map((g) => g.description.toLowerCase())
-  );
+  const existingDescriptions = new Set(currentPlan.goals.map((g) => g.description.toLowerCase()));
 
   for (const { regex, extractDescription, source } of GOAL_PATTERNS) {
     const match = transcript.match(regex);
@@ -245,9 +232,7 @@ export function buildPlanContext(plan: ConversationPlan): string {
 
   const pendingFollowUps = plan.followUps.filter((f) => !f.addressed);
   if (pendingFollowUps.length > 0) {
-    parts.push(
-      `Follow-ups: ${pendingFollowUps.map((f) => f.description).join('; ')}`
-    );
+    parts.push(`Follow-ups: ${pendingFollowUps.map((f) => f.description).join('; ')}`);
   }
 
   if (plan.topicsToExplore.length > 0) {
@@ -347,9 +332,7 @@ export async function persistPlan(plan: ConversationPlan): Promise<PlanResult<vo
 /**
  * Load unaddressed follow-ups from past sessions.
  */
-export async function loadPreviousFollowUps(
-  userId: string
-): Promise<PlanResult<FollowUpItem[]>> {
+export async function loadPreviousFollowUps(userId: string): Promise<PlanResult<FollowUpItem[]>> {
   const db = getFirestoreDb();
   if (!db) {
     recordDegradation('ConversationPlanner', 'db_unavailable');

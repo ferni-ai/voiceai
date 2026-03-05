@@ -13,7 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { CallObjective, CallType } from '../../tools/domains/telephony/call-on-behalf.js';
+import type { CallObjective, CallType } from '../../tools/domains/telephony/types.js';
 
 const log = createLogger({ module: 'outbound-call-tracker' });
 

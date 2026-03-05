@@ -824,7 +824,7 @@ export function createGatewayTTSNode(
         speculativeSynthesisInProgress: !!speculativeSynthesisPromise,
         trace: 'GATEWAY_TTS_SYNTHESIZE',
       },
-      '🎤 Gateway TTS: Calling Cartesia provider'
+      '🎤 Gateway TTS: Calling configured TTS provider'
     );
 
     try {

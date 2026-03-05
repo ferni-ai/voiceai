@@ -1,0 +1,29 @@
+---
+description: When editing code under src/, follow the package audit criteria so each package stays clean, well-architected, wired, normalized, and valuable.
+globs: src/**/*.ts
+alwaysApply: false
+---
+
+# src Package Audit (when working in src/)
+
+When you change or add code under `src/`, treat the **package** (top-level folder, e.g. `agents`, `memory`, `tools`) as the unit of quality.
+
+## Before considering a package "done"
+
+1. **Run automated checks**
+   - `pnpm typecheck`
+   - `pnpm quality:check` (as any, console, file size)
+   - `pnpm quality:arch` (layer boundaries, no circular deps)
+
+2. **Apply the six criteria** (see `docs/audits/SRC-PACKAGE-AUDIT.md`):
+   - **Clean code:** No `as any`/console, files ≤500 lines, single responsibility, JSDoc on public APIs, Result/throw discipline.
+   - **Clean architecture:** Imports respect layers; no circular deps.
+   - **Fully wired:** Barrel exports, DI/startup registration, routes registered if HTTP; no dead code.
+   - **Normalized:** Naming and module suffixes match `.cursorrules`; same patterns as siblings.
+   - **Working e2e:** Unit tests for core logic; run `pnpm vitest run src/<package>` where relevant.
+   - **Valuable:** Clear purpose; no duplicate behavior; documented if non-obvious.
+
+3. **CLI**
+   - Run `ferni audit package` or `ferni audit package <name>` to run checks and print the full checklist.
+
+Fix or document gaps; prefer small, incremental changes that keep existing architecture and patterns.

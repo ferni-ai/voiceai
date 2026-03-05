@@ -170,17 +170,18 @@ async function doInitialize(config: Partial<HierarchicalClassifierConfig>): Prom
     const totalMs = Date.now() - startTime;
     log.info(
       {
+        routerVersion: 'v7',
         stage1Labels: stage1Router.getNumTools(),
         stage2Labels: stage2Router.getNumTools(),
         warmup1Ms: warmup1Ms.toFixed(1),
         warmup2Ms: warmup2Ms.toFixed(1),
         totalMs,
       },
-      '🧠 FTIS hierarchical classifier initialized (2-stage)'
+      '🧠 FTIS V7 hierarchical classifier initialized (2-stage)'
     );
   } catch (error) {
     initError = error instanceof Error ? error : new Error(String(error));
-    log.warn({ error: String(error) }, 'FTIS hierarchical classifier init failed');
+    log.warn({ error: String(error) }, 'FTIS V7 hierarchical classifier init failed');
     throw initError;
   }
 }

@@ -1,0 +1,14 @@
+---
+description: When working in src/, aim for SOTA and better-than-human; use the focus doc for priorities.
+globs: "src/**/*.ts"
+alwaysApply: false
+---
+
+# src/ — SOTA and Better Than Human
+
+When changing or adding code under `src/`, prefer work that makes the platform **state-of-the-art** and **better than human**:
+
+- **SOTA:** Latency, reliability, tool routing, memory quality, observability (see `docs/FOCUS-SOTA-BETTER-THAN-HUMAN.md` §2).
+- **Better than human:** Superhuman memory, presence, pattern recognition, emotional intelligence, life coaching (see same doc §1–3).
+
+Use **`docs/FOCUS-SOTA-BETTER-THAN-HUMAN.md`** for the prioritized src/ action list (prove memory pipeline, tools with execute, session lifecycle, micro-expression events, active listening, BTH observability, TTS streaming, etc.). Use **`docs/FOCUS-EVERYTHING-ELSE.md`** for the general backlog (excludes Qwen/Kyutai).

@@ -1285,6 +1285,21 @@ User Speech → OpenAI/Gemini (text) → Sonata TTS (persona voice) → Audio
 🎯 JSON function call detected    # Workaround intercept
 ```
 
+## 🎯 Voice stack direction: Sonata (ignore Qwen & Kyutai)
+
+**We are moving to Sonata** for the voice/TTS pipeline. When planning work or fixing gaps:
+
+- **Do not** prioritize or propose work on **Qwen3-Omni** (Qwen3, rust-omni, qwen3-omni integration, Qwen TTS, MLX-Qwen plans).
+- **Do not** prioritize or propose work on **Kyutai** (Kyutai DSM, Kyutai STT/TTS, Moshi, Kyutai bridge, voice clone Ferni/Kyutai plans).
+
+Existing Qwen/Kyutai code and docs may remain for reference or legacy paths, but **ignore** gap-filling, E2E integration, and new features for those stacks. Focus voice efforts on **Sonata** and the current production path (OpenAI Realtime or Gemini → Sonata TTS).
+
+See `docs/VOICE-STACK-DIRECTION.md` for the single source of truth.
+
+For **all other** gaps and priorities (memory, tools, tests, debt, Sonata pipeline), see **`docs/FOCUS-EVERYTHING-ELSE.md`** — it lists what to fix/wire/prove next, excluding Qwen/Kyutai.
+
+For **making the platform SOTA and better than human** (technical excellence + BTH completeness in `src/`), see **`docs/FOCUS-SOTA-BETTER-THAN-HUMAN.md`**.
+
 ## 🔧 Function Calling System (Gemini)
 
 **NOTE:** This section only applies when using Gemini Live (`USE_OPENAI_REALTIME=false`). OpenAI Realtime has native function calling that works reliably.

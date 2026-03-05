@@ -180,21 +180,41 @@ interface MismatchInput {
  */
 const SARCASM_PATTERNS: Array<{ pattern: RegExp; type: SarcasmSignal['type']; weight: number }> = [
   // Verbal irony markers
-  { pattern: /\b(oh\s+great|oh\s+wonderful|oh\s+perfect|oh\s+fantastic)\b/i, type: 'verbal_irony', weight: 0.8 },
+  {
+    pattern: /\b(oh\s+great|oh\s+wonderful|oh\s+perfect|oh\s+fantastic)\b/i,
+    type: 'verbal_irony',
+    weight: 0.8,
+  },
   { pattern: /\b(yeah\s+right|sure\s+thing|oh\s+really)\b/i, type: 'verbal_irony', weight: 0.7 },
   { pattern: /\b(thanks?\s+a\s+lot)\b/i, type: 'verbal_irony', weight: 0.5 },
   { pattern: /\b(just\s+what\s+i\s+needed)\b/i, type: 'verbal_irony', weight: 0.7 },
   { pattern: /\b(how\s+lovely|how\s+nice|how\s+delightful)\b/i, type: 'verbal_irony', weight: 0.6 },
-  { pattern: /\b(clearly|obviously)\b.*\b(not|never|nobody)\b/i, type: 'verbal_irony', weight: 0.6 },
-  { pattern: /\b(because\s+that'?s?\s+(exactly|totally|definitely)\s+what)\b/i, type: 'verbal_irony', weight: 0.8 },
+  {
+    pattern: /\b(clearly|obviously)\b.*\b(not|never|nobody)\b/i,
+    type: 'verbal_irony',
+    weight: 0.6,
+  },
+  {
+    pattern: /\b(because\s+that'?s?\s+(exactly|totally|definitely)\s+what)\b/i,
+    type: 'verbal_irony',
+    weight: 0.8,
+  },
 
   // Self-deprecating humor
-  { pattern: /\b(i'?m?\s+such\s+a\s+(genius|winner|catch))\b/i, type: 'self_deprecating', weight: 0.6 },
+  {
+    pattern: /\b(i'?m?\s+such\s+a\s+(genius|winner|catch))\b/i,
+    type: 'self_deprecating',
+    weight: 0.6,
+  },
   { pattern: /\b(way\s+to\s+go\s+me|brilliant\s+move)\b/i, type: 'self_deprecating', weight: 0.6 },
   { pattern: /\b(nailed\s+it)\b/i, type: 'self_deprecating', weight: 0.4 },
 
   // Situational markers
-  { pattern: /\b(what\s+a\s+surprise|who\s+could\s+have\s+(guessed|predicted|known))\b/i, type: 'situational_irony', weight: 0.7 },
+  {
+    pattern: /\b(what\s+a\s+surprise|who\s+could\s+have\s+(guessed|predicted|known))\b/i,
+    type: 'situational_irony',
+    weight: 0.7,
+  },
   { pattern: /\b(shocking|shocker)\b/i, type: 'situational_irony', weight: 0.5 },
 ];
 
@@ -205,7 +225,7 @@ const SARCASM_PATTERNS: Array<{ pattern: RegExp; type: SarcasmSignal['type']; we
 const GENUINE_MARKERS = [
   /\b(so\s+excited|really\s+happy|genuinely|honestly|actually\s+great)\b/i,
   /\b(thank\s+you\s+so\s+much|i\s+really\s+appreciate)\b/i,
-  /!\s*$/,  // Ends with exclamation — more likely genuine
+  /!\s*$/, // Ends with exclamation — more likely genuine
 ];
 
 function detectSarcasm(text: string, textEmotion: string, voiceValence?: number): SarcasmSignal {
@@ -265,7 +285,11 @@ function detectSarcasm(text: string, textEmotion: string, voiceValence?: number)
       ? 'negative'
       : 'neutral';
   const intendedSentiment: SarcasmSignal['intendedSentiment'] =
-    surfaceSentiment === 'positive' ? 'negative' : surfaceSentiment === 'negative' ? 'positive' : 'neutral';
+    surfaceSentiment === 'positive'
+      ? 'negative'
+      : surfaceSentiment === 'negative'
+        ? 'positive'
+        : 'neutral';
 
   return {
     detected: true,
@@ -291,7 +315,8 @@ const KNOWN_BLENDS: Array<{
   {
     name: 'bittersweet',
     components: ['happy', 'sad'],
-    acknowledgment: "There's something bittersweet in that — a kind of joy and loss at the same time.",
+    acknowledgment:
+      "There's something bittersweet in that — a kind of joy and loss at the same time.",
   },
   {
     name: 'anxious_excitement',
@@ -306,7 +331,7 @@ const KNOWN_BLENDS: Array<{
   {
     name: 'frustrated_caring',
     components: ['frustrated', 'grateful'],
-    acknowledgment: "It sounds like frustration from something you deeply care about.",
+    acknowledgment: 'It sounds like frustration from something you deeply care about.',
   },
   {
     name: 'hopeful_fear',
@@ -367,26 +392,26 @@ function detectBlend(
  * Based on Russell's circumplex model of affect.
  */
 const EMOTION_DIMENSIONS: Record<string, EmotionalDimensions> = {
-  happy:       { valence:  0.8, arousal:  0.5, dominance:  0.6 },
-  excited:     { valence:  0.7, arousal:  0.9, dominance:  0.6 },
-  grateful:    { valence:  0.9, arousal:  0.2, dominance:  0.4 },
-  calm:        { valence:  0.5, arousal: -0.5, dominance:  0.3 },
-  neutral:     { valence:  0.0, arousal:  0.0, dominance:  0.0 },
-  confused:    { valence: -0.2, arousal:  0.2, dominance: -0.4 },
-  bored:       { valence: -0.3, arousal: -0.6, dominance: -0.2 },
-  sad:         { valence: -0.7, arousal: -0.4, dominance: -0.5 },
-  anxious:     { valence: -0.5, arousal:  0.6, dominance: -0.6 },
-  frustrated:  { valence: -0.6, arousal:  0.5, dominance: -0.2 },
-  angry:       { valence: -0.7, arousal:  0.8, dominance:  0.5 },
-  fearful:     { valence: -0.8, arousal:  0.7, dominance: -0.7 },
-  distressed:  { valence: -0.8, arousal:  0.6, dominance: -0.5 },
-  disgusted:   { valence: -0.6, arousal:  0.3, dominance:  0.2 },
-  contempt:    { valence: -0.5, arousal:  0.1, dominance:  0.5 },
-  surprised:   { valence:  0.1, arousal:  0.8, dominance: -0.1 },
-  anticipation:{ valence:  0.3, arousal:  0.5, dominance:  0.3 },
-  trust:       { valence:  0.6, arousal: -0.1, dominance:  0.2 },
-  lonely:      { valence: -0.6, arousal: -0.3, dominance: -0.5 },
-  confident:   { valence:  0.5, arousal:  0.3, dominance:  0.8 },
+  happy: { valence: 0.8, arousal: 0.5, dominance: 0.6 },
+  excited: { valence: 0.7, arousal: 0.9, dominance: 0.6 },
+  grateful: { valence: 0.9, arousal: 0.2, dominance: 0.4 },
+  calm: { valence: 0.5, arousal: -0.5, dominance: 0.3 },
+  neutral: { valence: 0.0, arousal: 0.0, dominance: 0.0 },
+  confused: { valence: -0.2, arousal: 0.2, dominance: -0.4 },
+  bored: { valence: -0.3, arousal: -0.6, dominance: -0.2 },
+  sad: { valence: -0.7, arousal: -0.4, dominance: -0.5 },
+  anxious: { valence: -0.5, arousal: 0.6, dominance: -0.6 },
+  frustrated: { valence: -0.6, arousal: 0.5, dominance: -0.2 },
+  angry: { valence: -0.7, arousal: 0.8, dominance: 0.5 },
+  fearful: { valence: -0.8, arousal: 0.7, dominance: -0.7 },
+  distressed: { valence: -0.8, arousal: 0.6, dominance: -0.5 },
+  disgusted: { valence: -0.6, arousal: 0.3, dominance: 0.2 },
+  contempt: { valence: -0.5, arousal: 0.1, dominance: 0.5 },
+  surprised: { valence: 0.1, arousal: 0.8, dominance: -0.1 },
+  anticipation: { valence: 0.3, arousal: 0.5, dominance: 0.3 },
+  trust: { valence: 0.6, arousal: -0.1, dominance: 0.2 },
+  lonely: { valence: -0.6, arousal: -0.3, dominance: -0.5 },
+  confident: { valence: 0.5, arousal: 0.3, dominance: 0.8 },
 };
 
 function getDimensions(emotion: string): EmotionalDimensions {
@@ -472,8 +497,9 @@ export function fuseEmotionSignals(
   }
 
   const energyToIntensity: Record<string, number> = { low: 0.3, medium: 0.5, high: 0.8 };
-  const primaryIntensity =
-    textEmotion.energy ? (energyToIntensity[textEmotion.energy] ?? 0.5) : 0.5;
+  const primaryIntensity = textEmotion.energy
+    ? (energyToIntensity[textEmotion.energy] ?? 0.5)
+    : 0.5;
 
   const primary: EmotionLayer = {
     emotion: primaryEmotion,
@@ -522,8 +548,7 @@ export function fuseEmotionSignals(
     dimensions = {
       valence: textDimensions.valence * 0.4 + voiceEmotion.valence * 0.6,
       arousal: textDimensions.arousal * 0.4 + (voiceEmotion.arousal ?? 0) * 0.6,
-      dominance:
-        textDimensions.dominance * 0.5 + (voiceEmotion.dominance ?? 0) * 0.5,
+      dominance: textDimensions.dominance * 0.5 + (voiceEmotion.dominance ?? 0) * 0.5,
     };
   } else {
     dimensions = textDimensions;
@@ -531,11 +556,7 @@ export function fuseEmotionSignals(
 
   // 4. SARCASM DETECTION
   const userText = textEmotion.keywords?.join(' ') || '';
-  const sarcasm = detectSarcasm(
-    userText,
-    textEmotion.primary,
-    voiceEmotion?.valence
-  );
+  const sarcasm = detectSarcasm(userText, textEmotion.primary, voiceEmotion?.valence);
 
   // If sarcasm detected, flip the primary emotion's effective valence
   if (sarcasm.detected && sarcasm.confidence > 0.5) {
@@ -615,7 +636,7 @@ function computeTrajectory(
 
   return {
     trend,
-    turnsSinceShift: shifted ? 0 : (previous.trajectory.turnsSinceShift + 1),
+    turnsSinceShift: shifted ? 0 : previous.trajectory.turnsSinceShift + 1,
     previousPrimary: previous.primary.emotion,
   };
 }
@@ -691,9 +712,20 @@ export function analyzeRichEmotion(input: AnalyzeRichEmotionInput): RichEmotionS
   // Check voice-text mismatch for suppression signal
   let mismatchInput: MismatchInput | null = null;
   if (voiceEmotion && voiceEmotion.confidence > 0.4) {
-    const textPositive = ['happy', 'excited', 'grateful', 'calm'].includes(textEmotion.primary.toLowerCase());
-    const voiceNegative = ['sad', 'anxious', 'angry', 'fearful', 'distressed'].includes(voiceEmotion.primary.toLowerCase());
-    const textNegative = ['sad', 'anxious', 'angry', 'fearful', 'distressed', 'frustrated'].includes(textEmotion.primary.toLowerCase());
+    const textPositive = ['happy', 'excited', 'grateful', 'calm'].includes(
+      textEmotion.primary.toLowerCase()
+    );
+    const voiceNegative = ['sad', 'anxious', 'angry', 'fearful', 'distressed'].includes(
+      voiceEmotion.primary.toLowerCase()
+    );
+    const textNegative = [
+      'sad',
+      'anxious',
+      'angry',
+      'fearful',
+      'distressed',
+      'frustrated',
+    ].includes(textEmotion.primary.toLowerCase());
     const voicePositive = ['happy', 'excited', 'calm'].includes(voiceEmotion.primary.toLowerCase());
 
     if ((textPositive && voiceNegative) || (textNegative && voicePositive)) {
@@ -703,12 +735,14 @@ export function analyzeRichEmotion(input: AnalyzeRichEmotionInput): RichEmotionS
         textEmotion: textEmotion.primary,
         voiceEmotion: voiceEmotion.primary,
         type: textPositive && voiceNegative ? 'masking_negative' : 'understating_positive',
-        interpretation: textPositive && voiceNegative
-          ? `User says "${textEmotion.primary}" but voice reveals "${voiceEmotion.primary}"`
-          : `User understates — text shows "${textEmotion.primary}" but voice is more "${voiceEmotion.primary}"`,
-        suggestedApproach: textPositive && voiceNegative
-          ? 'Gently acknowledge what you hear beneath the words without calling them out directly.'
-          : 'Celebrate what they might be holding back.',
+        interpretation:
+          textPositive && voiceNegative
+            ? `User says "${textEmotion.primary}" but voice reveals "${voiceEmotion.primary}"`
+            : `User understates — text shows "${textEmotion.primary}" but voice is more "${voiceEmotion.primary}"`,
+        suggestedApproach:
+          textPositive && voiceNegative
+            ? 'Gently acknowledge what you hear beneath the words without calling them out directly.'
+            : 'Celebrate what they might be holding back.',
       };
     }
   }
@@ -781,17 +815,25 @@ export function buildRichEmotionContext(state: RichEmotionState): string {
   const lines: string[] = [];
 
   // Primary emotion with dimensions
-  const v = state.dimensions.valence > 0 ? 'positive' : state.dimensions.valence < -0.2 ? 'negative' : 'neutral';
-  const a = state.dimensions.arousal > 0.3 ? 'activated' : state.dimensions.arousal < -0.3 ? 'calm' : 'moderate';
+  const v =
+    state.dimensions.valence > 0
+      ? 'positive'
+      : state.dimensions.valence < -0.2
+        ? 'negative'
+        : 'neutral';
+  const a =
+    state.dimensions.arousal > 0.3
+      ? 'activated'
+      : state.dimensions.arousal < -0.3
+        ? 'calm'
+        : 'moderate';
   lines.push(
     `Emotion: ${state.primary.emotion} (${(state.primary.confidence * 100).toFixed(0)}% confident, ${v} valence, ${a} energy)`
   );
 
   // Secondary emotions
   if (state.secondary.length > 0) {
-    const secondaryStr = state.secondary
-      .map((s) => `${s.emotion} (${s.source})`)
-      .join(', ');
+    const secondaryStr = state.secondary.map((s) => `${s.emotion} (${s.source})`).join(', ');
     lines.push(`Also feeling: ${secondaryStr}`);
   }
 

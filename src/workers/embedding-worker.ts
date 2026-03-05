@@ -210,8 +210,7 @@ export class EmbeddingWorker extends LocalWorker {
     let apiCalls = 0;
 
     try {
-      const { embedCached, getEmbeddingCache } =
-        await import('../memory/embedding-cache.js');
+      const { embedCached, getEmbeddingCache } = await import('../memory/embedding-cache.js');
       const cache = getEmbeddingCache();
 
       const embeddings: number[][] = [];

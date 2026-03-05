@@ -7,11 +7,7 @@
  * @module intelligence/unified-user-model
  */
 
-import {
-  cleanForFirestore,
-  getFirestoreDb,
-  toSafeDate,
-} from '../utils/firestore-utils.js';
+import { cleanForFirestore, getFirestoreDb, toSafeDate } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'UnifiedUserModel' });
@@ -126,7 +122,10 @@ export function updateFromConversation(
           preferredResponseLength:
             cs.preferredResponseLength ?? next.communicationStyle.preferredResponseLength,
           humorAppreciation: bn(next.communicationStyle.humorAppreciation, cs.humorAppreciation),
-          directnessPreference: bn(next.communicationStyle.directnessPreference, cs.directnessPreference),
+          directnessPreference: bn(
+            next.communicationStyle.directnessPreference,
+            cs.directnessPreference
+          ),
         },
       };
     }
@@ -137,7 +136,10 @@ export function updateFromConversation(
         ...next,
         engagementPatterns: {
           preferredTimeOfDay: ep.preferredTimeOfDay ?? next.engagementPatterns.preferredTimeOfDay,
-          averageSessionDuration: bn(next.engagementPatterns.averageSessionDuration, ep.averageSessionDuration),
+          averageSessionDuration: bn(
+            next.engagementPatterns.averageSessionDuration,
+            ep.averageSessionDuration
+          ),
           sessionFrequency: bn(next.engagementPatterns.sessionFrequency, ep.sessionFrequency),
           topicDepthPreference:
             ep.topicDepthPreference ?? next.engagementPatterns.topicDepthPreference,
@@ -152,7 +154,10 @@ export function updateFromConversation(
         emotionalProfile: {
           baselineValence: bn(next.emotionalProfile.baselineValence, em.baselineValence),
           emotionalRange: bn(next.emotionalProfile.emotionalRange, em.emotionalRange),
-          vulnerabilityComfort: bn(next.emotionalProfile.vulnerabilityComfort, em.vulnerabilityComfort),
+          vulnerabilityComfort: bn(
+            next.emotionalProfile.vulnerabilityComfort,
+            em.vulnerabilityComfort
+          ),
           supportStyle: em.supportStyle ?? next.emotionalProfile.supportStyle,
         },
       };
@@ -181,8 +186,10 @@ export function updateFromConversation(
             lastInteraction: now,
             satisfactionScore:
               satisfactionScore !== undefined
-                ? prev ? blend(prev.satisfactionScore, satisfactionScore) : satisfactionScore
-                : prev?.satisfactionScore ?? 0.5,
+                ? prev
+                  ? blend(prev.satisfactionScore, satisfactionScore)
+                  : satisfactionScore
+                : (prev?.satisfactionScore ?? 0.5),
           },
         },
       };
@@ -219,9 +226,12 @@ export async function loadUserModel(userId: string): Promise<UnifiedUserModel> {
       userId: String(r.userId ?? userId),
       lastUpdated: toSafeDate(r.lastUpdated),
       communicationStyle: {
-        verbosity: ((cs.verbosity as string) || 'moderate') as UnifiedUserModel['communicationStyle']['verbosity'],
-        formality: ((cs.formality as string) || 'balanced') as UnifiedUserModel['communicationStyle']['formality'],
-        preferredResponseLength: ((cs.preferredResponseLength as string) || 'medium') as UnifiedUserModel['communicationStyle']['preferredResponseLength'],
+        verbosity: ((cs.verbosity as string) ||
+          'moderate') as UnifiedUserModel['communicationStyle']['verbosity'],
+        formality: ((cs.formality as string) ||
+          'balanced') as UnifiedUserModel['communicationStyle']['formality'],
+        preferredResponseLength: ((cs.preferredResponseLength as string) ||
+          'medium') as UnifiedUserModel['communicationStyle']['preferredResponseLength'],
         humorAppreciation: Number(cs.humorAppreciation) || 0.5,
         directnessPreference: Number(cs.directnessPreference) || 0.5,
       },
@@ -229,13 +239,15 @@ export async function loadUserModel(userId: string): Promise<UnifiedUserModel> {
         preferredTimeOfDay: (ep.preferredTimeOfDay as string[]) ?? [],
         averageSessionDuration: Number(ep.averageSessionDuration) || 10,
         sessionFrequency: Number(ep.sessionFrequency) || 3,
-        topicDepthPreference: ((ep.topicDepthPreference as string) || 'moderate') as UnifiedUserModel['engagementPatterns']['topicDepthPreference'],
+        topicDepthPreference: ((ep.topicDepthPreference as string) ||
+          'moderate') as UnifiedUserModel['engagementPatterns']['topicDepthPreference'],
       },
       emotionalProfile: {
         baselineValence: Number(em.baselineValence) || 0,
         emotionalRange: Number(em.emotionalRange) || 0.5,
         vulnerabilityComfort: Number(em.vulnerabilityComfort) || 0.5,
-        supportStyle: ((em.supportStyle as string) || 'balanced') as UnifiedUserModel['emotionalProfile']['supportStyle'],
+        supportStyle: ((em.supportStyle as string) ||
+          'balanced') as UnifiedUserModel['emotionalProfile']['supportStyle'],
       },
       interests: interests.map((i) => ({
         topic: String(i.topic ?? ''),
@@ -322,7 +334,8 @@ export function getPersonaRecommendation(model: UnifiedUserModel): string | null
       score:
         c.satisfactionScore * 0.6 +
         (c.sessionCount > 0 ? Math.min(c.sessionCount * 0.05, 0.2) : 0) +
-        (emotionalProfile.supportStyle === 'reflective_listening' && ['nayan', 'ferni'].includes(c.id)
+        (emotionalProfile.supportStyle === 'reflective_listening' &&
+        ['nayan', 'ferni'].includes(c.id)
           ? 0.1
           : 0),
     }))

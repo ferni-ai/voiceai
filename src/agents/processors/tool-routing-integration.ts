@@ -139,7 +139,7 @@ export async function runFTISRouting(
     if (!v7Result || v7Result.predictions.length === 0) {
       log.debug(
         { latencyMs: classificationLatency, available: isHierarchicalClassifierAvailable() },
-        '🧠 FTIS: No classification result - treating as conversation'
+        '🧠 FTIS V7: No classification result - treating as conversation'
       );
       return {
         attempted: true,
@@ -167,7 +167,7 @@ export async function runFTISRouting(
         latencyMs: v7Result.latencyMs,
         source: v7Result.source,
       },
-      '🧠 FTIS: Hierarchical classification complete'
+      '🧠 FTIS V7: Hierarchical classification complete'
     );
 
     // 2. Check if this is a no-tool / conversation intent
@@ -216,7 +216,7 @@ export async function runFTISRouting(
           stage1Ms: v7Result.stage1LatencyMs,
           stage2Ms: v7Result.stage2LatencyMs,
         },
-        '🎯 FTIS: High confidence - executing directly'
+        '🎯 FTIS V7: High confidence - executing directly'
       );
 
       const execResult = await executeDirectFromClassification(executorClassification, userText, {
@@ -258,7 +258,7 @@ export async function runFTISRouting(
         combinedConfidence: topPrediction.combinedConfidence.toFixed(3),
         threshold: DIRECT_EXECUTION_THRESHOLD,
       },
-      '🧠 FTIS: Medium confidence - providing hint to LLM'
+      '🧠 FTIS V7: Medium confidence - providing hint to LLM'
     );
 
     return {

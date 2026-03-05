@@ -112,8 +112,8 @@ describe('BTH Signal Dispatchers', () => {
         intensity: 0.85,
       });
 
-      // Should dispatch both humanization signal and micro-expression
-      expect(mockSendDataMessage).toHaveBeenCalledTimes(2);
+      // Dispatches: humanization_signal (spontaneous_delight), micro_expression (delight_flash), humanization_signal (micro_expression for BTH logging)
+      expect(mockSendDataMessage).toHaveBeenCalledTimes(3);
 
       expect(mockSendDataMessage).toHaveBeenCalledWith(
         'humanization_signal',
@@ -127,6 +127,16 @@ describe('BTH Signal Dispatchers', () => {
         'micro_expression',
         expect.objectContaining({
           expressionType: 'delight_flash',
+          durationMs: 100,
+        })
+      );
+
+      expect(mockSendDataMessage).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'micro_expression',
+          microExpressionSubtype: 'delight_flash',
+          durationMs: 100,
         })
       );
     });

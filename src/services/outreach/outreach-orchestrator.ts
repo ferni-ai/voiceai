@@ -26,6 +26,8 @@ import {
 import { deliverOutreach } from './delivery/index.js';
 // Outreach History Tracking - "Better Than Human" learning from patterns
 import { outreachHistory } from './outreach-history.js';
+// Session lifecycle - respect presence and post-session suppression
+import { sessionLifecycle } from '../session/session-lifecycle-hooks.js';
 
 const log = createLogger({ module: 'OutreachOrchestrator' });
 
@@ -352,6 +354,17 @@ export class OutreachOrchestrator extends EventEmitter {
       '📞 Proactive voice call triggered'
     );
 
+    // Respect session lifecycle: skip delivery if user in session or cooldown
+    try {
+      const { available, reason } = await sessionLifecycle.isAvailableForOutreach(userId);
+      if (!available) {
+        log.debug({ userId, reason }, 'Proactive call skipped - user not available');
+        return event;
+      }
+    } catch (err) {
+      log.warn({ error: String(err), userId }, 'Proactive call availability check failed - proceeding');
+    }
+
     // Attempt to deliver via outbound call system
     try {
       await deliverOutreach({
@@ -625,6 +638,19 @@ export class OutreachOrchestrator extends EventEmitter {
    * Handle outreach ready from decision engine
    */
   private async handleOutreachReady(decision: OutreachDecision): Promise<void> {
+    const userId = decision.trigger.userId;
+
+    // Respect session lifecycle: don't send if user is in session or in post-session cooldown
+    try {
+      const { available, reason } = await sessionLifecycle.isAvailableForOutreach(userId);
+      if (!available) {
+        log.debug({ userId, reason }, 'Outreach skipped - user not available');
+        return;
+      }
+    } catch (err) {
+      log.warn({ error: String(err), userId }, 'Outreach availability check failed - proceeding');
+    }
+
     this.telemetry.totalOutreachAttempts++;
 
     const event: OutreachEvent = {

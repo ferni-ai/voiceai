@@ -140,6 +140,12 @@ export function handleBetterThanHumanSignal(signal: BetterThanHumanSignal): void
     case 'anticipatory_presence':
       void handleAnticipatoryPresenceSignal(signal);
       break;
+    case 'micro_expression':
+      // Backend-driven subliminal flash (concern 60ms, delight 100ms, recognition 80ms)
+      if (signal.microExpressionSubtype) {
+        playMicroExpression(signal.microExpressionSubtype);
+      }
+      break;
   }
 }
 

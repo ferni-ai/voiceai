@@ -32,4 +32,8 @@ export type {
 } from './memory/memory-service-types.js';
 
 // Internal engines (TimingEngine, PhrasingEngine, FeedbackCollector)
-export { TimingEngine, PhrasingEngine, FeedbackCollector } from './memory/memory-service-engines.js';
+export {
+  TimingEngine,
+  PhrasingEngine,
+  FeedbackCollector,
+} from './memory/memory-service-engines.js';

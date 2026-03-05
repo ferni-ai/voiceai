@@ -241,6 +241,24 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     }
   }
 
+  // USER CORRECTIONS: Auto-detect and record when user corrects Ferni (fire-and-forget)
+  if (services.userId && userText.trim().length > 0 && (userData.lastAgentResponse?.length ?? 0) > 0) {
+    const uid = services.userId;
+    const prevFerni = userData.lastAgentResponse as string;
+    const personaId = ctx.persona?.id;
+    safeFireAndForget(
+      async () => {
+        try {
+          const { userCorrections } = await import('../../../services/superhuman/user-corrections.js');
+          await userCorrections.autoRecord(uid, userText, prevFerni, personaId);
+        } catch {
+          // Non-blocking
+        }
+      },
+      { context: 'turn-processor:autoRecordCorrection' }
+    );
+  }
+
   const debugTiming = process.env.DEBUG_TURN_TIMING === 'true';
   const turnStartMs = Date.now();
 
@@ -485,6 +503,20 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
           }
         },
         { context: 'preference-extraction' }
+      );
+    }
+
+    // Communication style: learn from each user turn for mirroring
+    if (services.userId && userText.trim().length > 0 && services.communicationMirroring) {
+      safeFireAndForget(
+        async () => {
+          try {
+            await services.communicationMirroring.analyzeMessage(userText);
+          } catch (e) {
+            diag.debug('Communication style analysis failed (non-blocking)', { error: String(e) });
+          }
+        },
+        { context: 'communication-style-tracking' }
       );
     }
 

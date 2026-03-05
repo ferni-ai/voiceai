@@ -24,10 +24,7 @@
 
 import 'dotenv/config';
 
-import {
-  GCE_WORKER_STARTUP_DELAY_MS,
-  GCE_WORKER_READINESS_DELAY_MS,
-} from '../config/timeouts.js';
+import { GCE_WORKER_STARTUP_DELAY_MS, GCE_WORKER_READINESS_DELAY_MS } from '../config/timeouts.js';
 
 // ============================================================================
 // GLOBAL ERROR HANDLERS (Must be first - prevents process crashes)

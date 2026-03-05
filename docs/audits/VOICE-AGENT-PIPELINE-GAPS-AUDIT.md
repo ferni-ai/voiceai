@@ -44,6 +44,8 @@ if (isFerniTTSEnabled()) {
 }
 ```
 
+**Migration note (Feb 2026):** Cognitive memory callers are being migrated to `unified-memory-service.ts`; see `src/services/memory/cognitive-memory.ts` TODO. Prefer unified-memory-service for new code.
+
 ---
 
 #### Gap 1.2: Event Emissions Without Verified Listeners

@@ -9,11 +9,7 @@
  * @see docs/audits/FIRESTORE-IMPLEMENTATION-AUDIT.md Section 3.3
  */
 
-import type {
-  DocumentData,
-  Query,
-  QuerySnapshot,
-} from 'firebase-admin/firestore';
+import type { DocumentData, Query, QuerySnapshot } from 'firebase-admin/firestore';
 import { createLogger } from './safe-logger.js';
 
 const log = createLogger({ module: 'FirestoreQuery' });

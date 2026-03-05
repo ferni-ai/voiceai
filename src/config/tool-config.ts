@@ -172,7 +172,7 @@ export function loadToolConfig(): ToolConfiguration {
     return cachedConfig;
   }
 
-  const env = process.env;
+  const { env } = process;
 
   // Parse boolean helper
   const parseBool = (value: string | undefined, defaultValue: boolean): boolean => {
@@ -306,8 +306,8 @@ export function capToolsToLimit<T>(
   }
 
   // Partition tools: essential first, then rest
-  const essentialEntries: [string, T][] = [];
-  const otherEntries: [string, T][] = [];
+  const essentialEntries: Array<[string, T]> = [];
+  const otherEntries: Array<[string, T]> = [];
 
   for (const [name, tool] of Object.entries(tools)) {
     if (isEssentialTool(name)) {

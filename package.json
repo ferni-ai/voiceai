@@ -544,6 +544,7 @@
   "optionalDependencies": {
     "@ferni/audio": "workspace:*",
     "@ferni/perf": "workspace:*",
+    "@ferni/sonata": "workspace:*",
     "ferni-speaker": "github:sethdford/ferni-speaker#v0.1.0",
     "node-pty": "1.0.0"
   },

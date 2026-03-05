@@ -1,0 +1,16 @@
+---
+description: Voice stack is Sonata; do not prioritize or propose Qwen or Kyutai work.
+globs: "**/*.{ts,md}"
+alwaysApply: true
+---
+
+# Voice stack: Sonata — ignore Qwen & Kyutai
+
+We are **moving to Sonata** for voice/TTS. When suggesting fixes, gaps, or new work:
+
+- **Do not** propose or prioritize **Qwen3-Omni** / Qwen work (rust-omni, qwen3-omni integration, MLX-Qwen, Qwen TTS, Candle Omni, Director Qwen, "wire Qwen" gaps).
+- **Do not** propose or prioritize **Kyutai** work (DSM, STT/TTS, Moshi bridge, voice clone, Kyutai deploy, "wire Kyutai" gaps).
+
+Existing Qwen/Kyutai code and docs can remain; do not add new features or E2E for those stacks. Focus voice efforts on **Sonata** and the production path (OpenAI Realtime or Gemini → Sonata TTS).
+
+See `docs/VOICE-STACK-DIRECTION.md` and `CLAUDE.md` (section "Voice stack direction: Sonata").

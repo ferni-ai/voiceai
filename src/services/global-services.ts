@@ -156,7 +156,8 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
 
     // Initialize context injection outcome tracker (H2.4 BTH - A/B test injections)
     try {
-      const { initializeContextOutcomeTracker } = await import('../intelligence/context-outcome-tracker.js');
+      const { initializeContextOutcomeTracker } =
+        await import('../intelligence/context-outcome-tracker.js');
       const { getFirestoreDb } = await import('./superhuman/firestore-utils.js');
       const db = getFirestoreDb();
       if (db) {

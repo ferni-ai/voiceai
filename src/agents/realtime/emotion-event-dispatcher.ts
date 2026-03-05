@@ -139,7 +139,11 @@ export type HumanizationSignalType =
   | 'meta_relationship_moment' // Commentary on the relationship itself
   | 'somatic_presence' // Breathing/settling/grounding cues
   | 'anticipatory_presence' // Time-of-day awareness (2am check-in, Monday blues)
-  | 'silence_analyzed'; // Silence classification sent to avatar for expression matching
+  | 'silence_analyzed' // Silence classification sent to avatar for expression matching
+  | 'micro_expression'; // Subliminal flash (concern 60ms, delight 100ms, recognition 80ms)
+
+/** Micro-expression subtype for humanization_signal (duration 60–120ms) */
+export type MicroExpressionSubtype = 'concern_flash' | 'delight_flash' | 'recognition';
 
 /**
  * Humanization signal payload
@@ -166,6 +170,9 @@ export interface HumanizationSignal {
   silenceType?: 'processing' | 'emotional' | 'resistant' | 'confused' | 'reflective' | 'contemplative' | 'disconnection' | 'unknown';
   silenceDurationMs?: number;
   suggestedBehavior?: string;
+  /** For signalType 'micro_expression': subtype and duration for avatar */
+  microExpressionSubtype?: MicroExpressionSubtype;
+  durationMs?: number;
 }
 
 /**
@@ -229,6 +236,15 @@ export async function dispatchEmotionEvents(
         intensity: distressLevel,
         timestamp: Date.now(),
       });
+
+      // Subliminal concern flash (60ms) so avatar shows brief empathy before words
+      await dispatchMicroExpression(
+        'concern_flash',
+        sendDataMessage,
+        distressLevel,
+        undefined,
+        60
+      );
 
       log.debug(
         { userId, concernLevel, concernType },
@@ -822,19 +838,43 @@ export type MicroExpressionType =
  * @param sendDataMessage - Function to send data message to frontend
  * @param intensity - Expression intensity (0-1), defaults to 0.7
  * @param telemetryCtx - Optional telemetry context for analytics
+ * @param durationMs - Optional duration (40-150ms). If omitted, frontend uses default per type.
  */
 export async function dispatchMicroExpression(
   expressionType: MicroExpressionType,
   sendDataMessage: SendDataMessageFn,
   intensity = DEFAULT_EXPRESSION_INTENSITY,
-  telemetryCtx?: BTHTelemetryContext
+  telemetryCtx?: BTHTelemetryContext,
+  durationMs?: number
 ): Promise<void> {
   try {
-    await sendDataMessage('micro_expression', {
+    const payload: Record<string, unknown> = {
       expressionType,
       intensity,
       timestamp: Date.now(),
-    });
+    };
+    if (durationMs !== undefined) {
+      payload.durationMs = Math.max(40, Math.min(150, durationMs));
+    }
+
+    await sendDataMessage('micro_expression', payload);
+
+    // Also send humanization_signal for BTH logging/analytics when we have duration
+    if (durationMs !== undefined && [60, 80, 100].includes(durationMs)) {
+      const subtype: MicroExpressionSubtype =
+        expressionType === 'concern_flash'
+          ? 'concern_flash'
+          : expressionType === 'delight_flash'
+            ? 'delight_flash'
+            : 'recognition';
+      await sendDataMessage('humanization_signal', {
+        signalType: 'micro_expression',
+        microExpressionSubtype: subtype,
+        durationMs: Math.max(40, Math.min(150, durationMs)),
+        intensity,
+        timestamp: Date.now(),
+      });
+    }
 
     // Track for analytics
     if (telemetryCtx) {
@@ -846,7 +886,7 @@ export async function dispatchMicroExpression(
       );
     }
 
-    log.debug({ expressionType, intensity }, '✨ Micro-expression dispatched to frontend');
+    log.debug({ expressionType, intensity, durationMs }, '✨ Micro-expression dispatched to frontend');
   } catch (error) {
     log.warn({ error: String(error), expressionType }, 'Micro-expression dispatch failed');
   }
@@ -926,8 +966,8 @@ export async function dispatchSpontaneousDelight(
       timestamp: Date.now(),
     });
 
-    // Also trigger delight_flash micro-expression
-    await dispatchMicroExpression('delight_flash', sendDataMessage, context.intensity ?? 0.85);
+    // Also trigger delight_flash micro-expression (100ms per BTH spec)
+    await dispatchMicroExpression('delight_flash', sendDataMessage, context.intensity ?? 0.85, telemetryCtx, 100);
 
     // Track for analytics
     if (telemetryCtx) {

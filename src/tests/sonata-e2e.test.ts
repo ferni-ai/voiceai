@@ -140,9 +140,8 @@ describe('Voice Config', () => {
   });
 
   it('should export correct sample rate and frame size', async () => {
-    const { SONATA_SAMPLE_RATE, SONATA_FRAME_SIZE } = await import(
-      '../speech/sonata/voice-config.js'
-    );
+    const { SONATA_SAMPLE_RATE, SONATA_FRAME_SIZE } =
+      await import('../speech/sonata/voice-config.js');
 
     expect(SONATA_SAMPLE_RATE).toBe(24000);
     expect(SONATA_FRAME_SIZE).toBe(1920);
@@ -198,9 +197,7 @@ describe('SonataSTTClient', () => {
     const audio = new Int16Array(1920);
     await client.sendAudio(audio);
 
-    expect(callback).toHaveBeenCalledWith(
-      expect.objectContaining({ text: 'hello world' }),
-    );
+    expect(callback).toHaveBeenCalledWith(expect.objectContaining({ text: 'hello world' }));
   });
 
   it('should flush and return final text', async () => {

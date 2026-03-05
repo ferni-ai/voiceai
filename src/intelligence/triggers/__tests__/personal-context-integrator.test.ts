@@ -32,9 +32,10 @@ describe('Personal Context Integrator', () => {
       updatedAt: new Date(),
     };
 
+    // Use fixed noon to avoid temporal boosts (late_night etc.) that would change multiplier
     baseContext = {
       userId: 'test_user',
-      currentTime: new Date(),
+      currentTime: new Date('2025-06-15T12:00:00Z'),
     };
   });
 

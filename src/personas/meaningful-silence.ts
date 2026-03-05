@@ -2192,13 +2192,9 @@ function sampleBundleExample(
         ? randomFrom(dynamicContent.gentle_observations)
         : null;
     case 'micro_story':
-      return dynamicContent.micro_stories?.length
-        ? randomFrom(dynamicContent.micro_stories)
-        : null;
+      return dynamicContent.micro_stories?.length ? randomFrom(dynamicContent.micro_stories) : null;
     case 'gentle_humor':
-      return dynamicContent.gentle_humor?.length
-        ? randomFrom(dynamicContent.gentle_humor)
-        : null;
+      return dynamicContent.gentle_humor?.length ? randomFrom(dynamicContent.gentle_humor) : null;
     case 'thoughtful_question': {
       const pool = [
         ...(dynamicContent.thoughtful_questions?.persona_voice ?? []),
@@ -2362,7 +2358,7 @@ function getVariedLongSilenceResponse(
   }
 
   // --- Sample a style example from the persona bundle ---
-  let guidance = selected.guidance;
+  let { guidance } = selected;
   const example = sampleBundleExample(selected.type, dynamicContent);
   if (example) {
     const cleanExample = context.wasDiscussingTopic

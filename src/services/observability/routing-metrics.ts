@@ -545,7 +545,11 @@ export async function handleFTISRoutes(
   try {
     // GET /api/ftis/health
     if (pathname === '/api/ftis/health' && req.method === 'GET') {
-      sendResponse({ status: 'ok', timestamp: new Date().toISOString() });
+      sendResponse({
+        status: 'ok',
+        routerVersion: 'v7',
+        timestamp: new Date().toISOString(),
+      });
       return true;
     }
 

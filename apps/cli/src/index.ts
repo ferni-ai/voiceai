@@ -389,9 +389,10 @@ const COMMANDS: Record<string, CliCommand> = {
       'intelligence',
       'legacy',
       'a11y',
+      'package',
       'all',
     ],
-    examples: ['ferni audit quality', 'ferni audit bth', 'ferni audit all'],
+    examples: ['ferni audit quality', 'ferni audit bth', 'ferni audit package agents', 'ferni audit all'],
   },
   build: {
     name: 'Build',
@@ -8141,8 +8142,12 @@ async function handleAudit(args: string[]): Promise<void> {
       `  ${colors.cyan}ferni audit intelligence${colors.reset}  - Validate intelligence system`
     );
     console.log(`  ${colors.cyan}ferni audit legacy${colors.reset}        - Find legacy code`);
+    console.log(`  ${colors.cyan}ferni audit a11y${colors.reset}          - Run accessibility audit`);
     console.log(
-      `  ${colors.cyan}ferni audit a11y${colors.reset}          - Run accessibility audit`
+      `  ${colors.cyan}ferni audit package${colors.reset}     - Run src package audit (quality + arch + checklist)`
+    );
+    console.log(
+      `  ${colors.cyan}ferni audit package <name>${colors.reset} - Audit one package (e.g. agents, memory)`
     );
     console.log(`  ${colors.cyan}ferni audit all${colors.reset}           - Run all audits`);
     return;
@@ -8190,6 +8195,28 @@ async function handleAudit(args: string[]): Promise<void> {
   if (subcommand === 'a11y') {
     console.log(`${colors.cyan}Running accessibility audit...${colors.reset}\n`);
     spawnSync('sh', ['-c', `${scriptsDir}/a11y-audit.sh`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'package') {
+    const pkgName = args[1];
+    console.log(`${colors.cyan}src package audit${colors.reset}\n`);
+    console.log('Running quality:check and quality:arch...\n');
+    const checkResult = spawnSync('sh', ['-c', 'pnpm quality:check'], { stdio: 'inherit' });
+    const archResult = spawnSync('sh', ['-c', 'pnpm quality:arch'], { stdio: 'inherit' });
+    const auditDocPath = join(PROJECT_ROOT, 'docs', 'audits', 'SRC-PACKAGE-AUDIT.md');
+    console.log(`\n${colors.bold}Checklist:${colors.reset} ${auditDocPath}`);
+    if (pkgName) {
+      console.log(
+        `\nPackage ${colors.cyan}src/${pkgName}${colors.reset}: use the six criteria (clean code, clean architecture, wired, normalized, e2e, valuable) in the doc above.`
+      );
+      console.log('Run tests: pnpm vitest run src/' + pkgName + ' --reporter=dot');
+    } else {
+      console.log(
+        '\nPackages: agents, api, audio, config, context, conversation, diagnostics, errors, handoff, intelligence, integrations, memory, marketplace, personas, personality, runtime, servers, services, session, speech, ssml, tasks, tools, types, utils, workers, jobs, i18n.'
+      );
+      console.log('Run ferni audit package <name> to focus one package.');
+    }
+    process.exit(checkResult.status !== 0 || archResult.status !== 0 ? 1 : 0);
   }
 
   if (subcommand === 'all') {

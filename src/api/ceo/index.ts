@@ -23,6 +23,13 @@ import './types.js';
 
 const log = createLogger({ module: 'ceo-routes' });
 
+/** Request extended with auth and parsed body/query for CEO routes */
+interface CEORequest extends IncomingMessage {
+  user?: { uid: string };
+  body?: unknown;
+  query?: Record<string, string>;
+}
+
 /**
  * Handle CEO feature routes
  */
@@ -33,7 +40,7 @@ export async function handleCEORoutes(
   parsedUrl: URL
 ): Promise<boolean> {
   // Route mapping
-  const routes: Record<string, any> = {
+  const routes: Record<string, import('express').IRouter> = {
     '/api/ceo/goals': goalsRoutes,
     '/api/ceo/wins': winsRoutes,
     '/api/ceo/journal': journalRoutes,
@@ -64,10 +71,10 @@ export async function handleCEORoutes(
       }
 
       // Attach user to request
-      (req as any).user = { uid: auth.userId };
+      (req as CEORequest).user = { uid: auth.userId };
 
       // Parse body for POST/PUT requests
-      let body: any = undefined;
+      let body: unknown = undefined;
       if (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE') {
         const rawBody = await parseRawBody(req, { timeoutMs: 30000, maxBytes: 1024 * 1024 });
         try {
@@ -75,11 +82,11 @@ export async function handleCEORoutes(
         } catch {
           body = {};
         }
-        (req as any).body = body;
+        (req as CEORequest).body = body;
       }
 
       // Parse query params
-      (req as any).query = Object.fromEntries(parsedUrl.searchParams);
+      (req as CEORequest).query = Object.fromEntries(parsedUrl.searchParams);
 
       // Strip base path and route
       const routePath = pathname.replace(basePath, '');
@@ -104,7 +111,7 @@ export async function handleCEORoutes(
 async function routeRequest(
   req: IncomingMessage,
   res: ServerResponse,
-  router: any,
+  router: import('express').IRouter,
   path: string
 ): Promise<boolean> {
   const express = await import('express');
@@ -114,11 +121,12 @@ async function routeRequest(
   mockApp.use('/', router);
 
   // Create mock request with the stripped path
-  const mockReq = Object.assign(req, { url: path || '/' });
+  const mockReq = Object.assign(req, { url: path || '/' }) as import('express').Request;
+  const resExpress = res as unknown as import('express').Response;
 
   // Forward to Express router
   await new Promise<void>((resolve, reject) => {
-    mockApp(mockReq as any, res as any, (err: any) => {
+    mockApp(mockReq, resExpress, (err: unknown) => {
       if (err) reject(err);
       else resolve();
     });

@@ -9,7 +9,10 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import { getConversationHumanizer, resetConversationHumanizer } from '../conversation/humanizer/index.js';
+import {
+  getConversationHumanizer,
+  resetConversationHumanizer,
+} from '../conversation/humanizer/index.js';
 import {
   getInterruptionHandler,
   resetInterruptionHandler,

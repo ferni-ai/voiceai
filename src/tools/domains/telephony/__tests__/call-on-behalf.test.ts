@@ -71,7 +71,7 @@ vi.mock('../compliance.js', async () => {
   };
 });
 
-// Mock orchestrator
+// Mock orchestrator - tool now uses registerOnBehalfCallInitiator; mock so getOnBehalfCallOrchestrator() doesn't throw in lazy path
 vi.mock('../../../../services/outreach/on-behalf-call-orchestrator.js', () => ({
   getOnBehalfCallOrchestrator: vi.fn(() => ({
     initiateCall: vi.fn().mockResolvedValue('test-call-id-123'),
@@ -84,6 +84,7 @@ import {
   inferObjective,
   callOnBehalfSchema,
   createCallOnBehalfTool,
+  registerOnBehalfCallInitiator,
 } from '../call-on-behalf.js';
 
 function createMockContext(): ToolContext {
@@ -107,6 +108,8 @@ describe('Call On Behalf Tool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockContext = createMockContext();
+    // Register mock initiator so tool can initiate calls without importing the real orchestrator
+    registerOnBehalfCallInitiator(vi.fn().mockResolvedValue('test-call-id-123'));
   });
 
   afterEach(() => {

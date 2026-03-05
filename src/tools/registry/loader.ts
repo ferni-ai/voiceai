@@ -559,6 +559,50 @@ export async function autoRegisterAllDomains(): Promise<void> {
         ),
     },
 
+    // === SUPERHUMAN SERVICES (BTH) DOMAINS ===
+    {
+      name: 'commitment-tracking' as ToolDomain,
+      loader: async () =>
+        import('../domains/commitment-tracking/index.js').then(async (m) =>
+          m.getToolDefinitions()
+        ),
+    },
+    {
+      name: 'capacity-monitoring' as ToolDomain,
+      loader: async () =>
+        import('../domains/capacity-monitoring/index.js').then(async (m) =>
+          m.getToolDefinitions()
+        ),
+    },
+    {
+      name: 'dream-tracking' as ToolDomain,
+      loader: async () =>
+        import('../domains/dream-tracking/index.js').then(async (m) =>
+          m.getToolDefinitions()
+        ),
+    },
+    {
+      name: 'contemplative-practice' as ToolDomain,
+      loader: async () =>
+        import('../domains/contemplative-practice/index.js').then(async (m) =>
+          m.getToolDefinitions()
+        ),
+    },
+    {
+      name: 'life-synthesis' as ToolDomain,
+      loader: async () =>
+        import('../domains/life-synthesis/index.js').then(async (m) =>
+          m.getToolDefinitions()
+        ),
+    },
+    {
+      name: 'seasonal-awareness' as ToolDomain,
+      loader: async () =>
+        import('../domains/seasonal-awareness/index.js').then(async (m) =>
+          m.getToolDefinitions()
+        ),
+    },
+
     // === DEVELOPER DOMAIN ===
     {
       name: 'developer' as ToolDomain,
@@ -974,9 +1018,18 @@ export async function autoRegisterAllDomains(): Promise<void> {
   if (missingDomains.length > 0) {
     const errorMsg = `CRITICAL: autoRegisterAllDomains is missing ${missingDomains.length} domains: ${missingDomains.join(', ')}. Tools will not be available!`;
     getLogger().error({ missingDomains }, `❌ ${errorMsg}`);
-    // Throw in non-production to catch this during development
-    // In production, log but don't crash (some tools are better than none)
-    if (process.env.NODE_ENV !== 'production') {
+    // In development: log and continue so sessions don't crash (e.g. stale build).
+    // Run pnpm build:fast and restart to fix. In production we also continue so some tools work.
+    if (process.env.NODE_ENV === 'production') {
+      getLogger().warn('Continuing with missing domains - run full build and restart to fix.');
+    } else {
+      getLogger().warn(
+        { hint: 'Run pnpm build:fast and restart to refresh the bundle.' },
+        'Missing domains - continuing without throwing so session can start.'
+      );
+    }
+    // Only throw in CI/test to catch sync bugs; never throw in dev or prod so the app stays up
+    if (process.env.CI === 'true' || process.env.VITEST === 'true') {
       throw new Error(errorMsg);
     }
   }
@@ -1205,7 +1258,15 @@ export function convertLegacyTools(
       description: toolObj.description as string,
       domain,
       tags: options.tags,
-      create: () => ({
+      create: () => {
+        const hasExecute = typeof toolObj.execute === 'function';
+        if (!hasExecute) {
+          getLogger().warn(
+            { toolId: options.prefix ? `${options.prefix}_${id}` : id, domain },
+            'Tool registered without execute(); will return "Not implemented" when called'
+          );
+        }
+        return {
         description: toolObj.description as string,
         parameters: toolObj.parameters as ToolDefinition['create'] extends (ctx: unknown) => infer R
           ? R extends { parameters?: infer P }
@@ -1213,10 +1274,11 @@ export function convertLegacyTools(
             : undefined
           : undefined,
         execute:
-          typeof toolObj.execute === 'function'
-            ? toolObj.execute.bind(toolObj)
+          hasExecute
+            ? (toolObj.execute as () => Promise<unknown>).bind(toolObj)
             : async () => ({ error: 'Not implemented' }),
-      }),
+      };
+      },
     };
 
     definitions.push(definition);

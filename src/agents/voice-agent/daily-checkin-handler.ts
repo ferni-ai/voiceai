@@ -462,8 +462,12 @@ Based on the conversation, determine:
 Respond in JSON format ONLY:
 {"primary": "weather_type", "energy": "level", "note": "brief note", "confidence": 0.0-1.0}`;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (genai as any).models.generateContent({
+    type GeminiGenerateContent = {
+      models: {
+        generateContent: (opts: { model: string; contents: string }) => Promise<{ text?: string }>;
+      };
+    };
+    const result = await (genai as GeminiGenerateContent).models.generateContent({
       model: getDefaultModel(),
       contents: prompt,
     });

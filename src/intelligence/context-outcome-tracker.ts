@@ -188,10 +188,7 @@ export class ContextOutcomeTracker {
    * Get the variant assignment for a user in an experiment.
    * Assignments are sticky (same user always gets same variant).
    */
-  getVariantForUser(
-    experimentId: string,
-    userId: string
-  ): 'control' | 'treatment' | null {
+  getVariantForUser(experimentId: string, userId: string): 'control' | 'treatment' | null {
     const experiment = this.experiments.get(experimentId);
     if (!experiment || !experiment.active) return null;
 
@@ -206,7 +203,7 @@ export class ContextOutcomeTracker {
 
     // Deterministic hash-based assignment for consistency
     const hash = simpleHash(`${userId}:${experimentId}`);
-    const isInTreatment = (hash % 100) < (experiment.treatmentTrafficPercent * 100);
+    const isInTreatment = hash % 100 < experiment.treatmentTrafficPercent * 100;
     const variant = isInTreatment ? 'treatment' : 'control';
 
     userAssignments.set(experimentId, variant);
@@ -266,11 +263,7 @@ export class ContextOutcomeTracker {
    * Record the outcome for a turn and correlate with its injections.
    * Call this after the user responds to the AI's turn.
    */
-  recordOutcome(
-    sessionId: string,
-    turnNumber: number,
-    outcome: TurnOutcome
-  ): void {
+  recordOutcome(sessionId: string, turnNumber: number, outcome: TurnOutcome): void {
     const key = `${sessionId}:${turnNumber}`;
     const snapshot = this.pendingSnapshots.get(key);
 
@@ -335,9 +328,7 @@ export class ContextOutcomeTracker {
       const withEngagement = computeEngagementScore(withCategory);
       const withoutEngagement = computeEngagementScore(withoutCategory);
 
-      const avgSentimentWith = average(
-        withCategory.map((r) => r.outcome?.sentimentDelta ?? 0)
-      );
+      const avgSentimentWith = average(withCategory.map((r) => r.outcome?.sentimentDelta ?? 0));
 
       const positiveFeedbackWith =
         withCategory.filter((r) => r.outcome?.positiveFeedback).length / withCategory.length;
@@ -374,12 +365,8 @@ export class ContextOutcomeTracker {
       (r) => r.outcome !== null && r.injection.experimentId === experimentId
     );
 
-    const control = completedRecords.filter(
-      (r) => r.injection.experimentVariant === 'control'
-    );
-    const treatment = completedRecords.filter(
-      (r) => r.injection.experimentVariant === 'treatment'
-    );
+    const control = completedRecords.filter((r) => r.injection.experimentVariant === 'control');
+    const treatment = completedRecords.filter((r) => r.injection.experimentVariant === 'treatment');
 
     if (control.length < 5 || treatment.length < 5) {
       return {
@@ -446,7 +433,7 @@ export class ContextOutcomeTracker {
       for (const e of topPerformers) {
         lines.push(
           `- ${e.category}: +${(e.engagementLift * 100).toFixed(1)}% engagement, ` +
-          `${(e.continuationRate * 100).toFixed(0)}% continuation (n=${e.sampleSize})`
+            `${(e.continuationRate * 100).toFixed(0)}% continuation (n=${e.sampleSize})`
         );
       }
     }
@@ -476,13 +463,16 @@ export class ContextOutcomeTracker {
       const batch = this.db.batch();
       for (const record of toFlush) {
         const docRef = this.db.collection('context_injection_outcomes').doc(record.id);
-        batch.set(docRef, cleanForFirestore({
-          ...record,
-          injection: {
-            ...record.injection,
-            timestamp: record.injection.timestamp,
-          },
-        }));
+        batch.set(
+          docRef,
+          cleanForFirestore({
+            ...record,
+            injection: {
+              ...record.injection,
+              timestamp: record.injection.timestamp,
+            },
+          })
+        );
       }
       await batch.commit();
       log.debug({ count: toFlush.length }, 'Flushed injection outcomes to Firestore');
@@ -554,7 +544,7 @@ function simpleHash(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash);

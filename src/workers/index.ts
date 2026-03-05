@@ -66,7 +66,10 @@ const WORKER_STARTUP_TIMEOUT_MS = 30_000;
  * Create a timeout promise that rejects after the specified duration.
  * Returns the timer ID alongside the promise so it can be cleared.
  */
-function createTimeout(ms: number, operation: string): { promise: Promise<never>; timerId: ReturnType<typeof setTimeout> } {
+function createTimeout(
+  ms: number,
+  operation: string
+): { promise: Promise<never>; timerId: ReturnType<typeof setTimeout> } {
   let timerId: ReturnType<typeof setTimeout>;
   const promise = new Promise<never>((_, reject) => {
     timerId = setTimeout(() => {

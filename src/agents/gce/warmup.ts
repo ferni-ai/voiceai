@@ -311,10 +311,15 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
-    // 3e. ⚡ FTIS hierarchical classifier warmup (optional; orchestrator inits on first use)
-    // Flat ONNX classifier deprecated; FTIS uses hierarchical-classifier (stage1 + stage2).
+    // 3e. ⚡ FTIS hierarchical classifier warmup (only when FTIS is enabled)
+    // When FTIS_ENABLED is not set, skip the ~50s ONNX load for faster startup.
     tasks.push(
       (async () => {
+        const { isFTISEnabled } = await import('../../config/tool-routing-config.js');
+        if (!isFTISEnabled()) {
+          log('⏭️ FTIS disabled — skipping ONNX classifier load');
+          return;
+        }
         try {
           const ftisStart = Date.now();
           const {

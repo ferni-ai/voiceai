@@ -16,7 +16,7 @@
  * @module agents/multi-agent/agent-setup
  */
 
-import { voice, type JobContext } from '@livekit/agents';
+import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig } from '../../personas/types.js';
 import { getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
@@ -1537,7 +1537,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
   // FerniAgent now hoisted to module level for faster startup
   const agent = new FerniAgent(systemPrompt, {
-    tools: finalTools as any, // Type mismatch: ToolSet vs Record<string, unknown>
+    tools: finalTools as unknown as llm.ToolContext<UserData>,
     // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
     // function-calling instructions. This can confuse the model and break tool calls.
     // The model will greet naturally based on its system prompt.

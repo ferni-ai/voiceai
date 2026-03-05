@@ -271,7 +271,7 @@ async function createWarmSession(): Promise<WarmSession | null> {
       modalities: [Modality.TEXT],
       temperature: geminiConfig.temperature,
       instructions: 'You are a helpful AI assistant. Waiting for persona context.',
-    } as any);
+    });
 
     const warmSession: WarmSession = {
       id: sessionId,

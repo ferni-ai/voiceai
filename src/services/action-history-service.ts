@@ -27,12 +27,12 @@ export interface WasHighImpactResult {
  * Implemented by agents/shared/action-history and registered at load.
  */
 export interface ActionHistoryService {
-  wasHighImpactActionExecuted(
+  wasHighImpactActionExecuted: (
     sessionId: string,
     query: ActionHistoryQuery
-  ): WasHighImpactResult;
+  ) => WasHighImpactResult;
 
-  getHumanReadableSummary(sessionId: string): string;
+  getHumanReadableSummary: (sessionId: string) => string;
 }
 
 let implementation: ActionHistoryService | null = null;

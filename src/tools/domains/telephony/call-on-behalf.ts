@@ -294,19 +294,40 @@ function inferObjective(purpose: string): CallObjective {
 }
 
 // ============================================================================
-// CALL INITIATION
+// CALL INITIATION (dependency injection to avoid circular dependency with orchestrator)
 // ============================================================================
 
+let onBehalfCallInitiator: ((request: OnBehalfCallRequest) => Promise<string>) | null = null;
+
 /**
- * Initiate the call via the orchestrator
+ * Register the function that initiates on-behalf calls.
+ * Called by the orchestrator at startup so the tool never imports the orchestrator.
+ */
+export function registerOnBehalfCallInitiator(
+  initiator: (request: OnBehalfCallRequest) => Promise<string>
+): void {
+  onBehalfCallInitiator = initiator;
+}
+
+/**
+ * Initiate the call via the registered initiator (set by the orchestrator).
+ * If not yet registered, triggers orchestrator init once so it can register.
  */
 async function initiateOnBehalfCall(request: OnBehalfCallRequest): Promise<string> {
-  // Dynamic import to avoid circular dependencies
-  const { getOnBehalfCallOrchestrator } =
-    await import('../../../services/outreach/on-behalf-call-orchestrator.js');
-
-  const orchestrator = getOnBehalfCallOrchestrator();
-  return await orchestrator.initiateCall(request);
+  let initiator = onBehalfCallInitiator;
+  if (!initiator) {
+    // Lazy init: trigger orchestrator creation so it registers (dynamic import is inside function so no circular edge at module level)
+    const { getOnBehalfCallOrchestrator } =
+      await import('../../../services/outreach/on-behalf-call-orchestrator.js');
+    getOnBehalfCallOrchestrator();
+    initiator = onBehalfCallInitiator;
+  }
+  if (!initiator) {
+    throw new Error(
+      'On-behalf call initiator not registered. Ensure the outreach orchestrator is initialized (e.g. getOnBehalfCallOrchestrator() has been called).'
+    );
+  }
+  return initiator(request);
 }
 
 // ============================================================================
