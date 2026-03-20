@@ -469,6 +469,7 @@
     "@google/generative-ai": "0.24.1",
     "@huggingface/transformers": "3.8.1",
     "@livekit/agents": "file:../agents-js/agents",
+    "@livekit/agents-plugin-cartesia": "^1.2.0",
     "@livekit/agents-plugin-google": "file:../agents-js/plugins/google",
     "@livekit/agents-plugin-openai": "file:../agents-js/plugins/openai",
     "@livekit/agents-plugin-silero": "file:../agents-js/plugins/silero",
@@ -554,6 +555,7 @@
   "pnpm": {
     "overrides": {
       "@livekit/agents": "file:../agents-js/agents",
+      "@livekit/agents-plugin-cartesia": "^1.2.0",
       "@livekit/agents-plugin-google": "file:../agents-js/plugins/google",
       "sharp": "^0.34.5",
       "@google-cloud/firestore": "8.0.0"
