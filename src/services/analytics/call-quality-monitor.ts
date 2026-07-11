@@ -87,6 +87,7 @@ export interface CallSession {
   userId?: string;
   personaId?: string;
   startTime: number;
+  stages?: Record<string, number>;
   endTime?: number;
   connectionTimeMs?: number;
   firstResponseTimeMs?: number;
@@ -99,6 +100,14 @@ export interface CallSession {
   handoffSuccesses: number;
   endReason?: 'natural' | 'disconnect' | 'error';
   events: CallEvent[];
+}
+
+export interface CallStageTimings {
+  sessionStartMs?: number;
+  firstAudioMs?: number;
+  jobToFirstAudioMs?: number;
+  stages?: Record<string, number>;
+  [stage: string]: number | Record<string, number> | undefined;
 }
 
 export interface CallQualityMetrics {
@@ -115,6 +124,7 @@ export interface CallQualityMetrics {
   // Response metrics
   avgFirstResponseTimeMs: number;
   p95FirstResponseTimeMs: number;
+  lastSessionStages?: CallStageTimings;
 
   // Duration metrics
   avgCallDurationMs: number;
@@ -169,6 +179,7 @@ export function recordCallEvent(event: CallEvent): void {
       userId: event.userId,
       personaId: event.personaId,
       startTime: event.timestamp,
+      stages: { session_start: 0 },
       userSpeechCount: 0,
       agentSpeechCount: 0,
       interruptionCount: 0,
@@ -190,7 +201,12 @@ export function recordCallEvent(event: CallEvent): void {
       break;
 
     case 'first_response':
-      session.firstResponseTimeMs = event.timestamp - session.startTime;
+      session.firstResponseTimeMs = getElapsedStageMs(session, event.timestamp);
+      session.stages = {
+        ...session.stages,
+        session_start: session.stages?.session_start ?? 0,
+        first_audio: session.firstResponseTimeMs,
+      };
       // Feed to predictive alerting
       recordMetricValue('first_response_time', session.firstResponseTimeMs);
       break;
@@ -256,13 +272,32 @@ export function recordCallEvent(event: CallEvent): void {
  * Convenience function to start a call
  */
 export function startCall(callId: string, userId?: string, personaId?: string): void {
+  const startTime = Date.now();
   recordCallEvent({
     callId,
     userId,
     personaId,
-    timestamp: Date.now(),
+    timestamp: startTime,
     type: 'connection_attempt',
   });
+  const session = sessions.get(callId);
+  if (session) {
+    session.stages = { session_start: 0 };
+  }
+}
+
+/**
+ * Record an elapsed timestamp for a named stage in an active call.
+ */
+export function markCallStage(callId: string, stage: string, atMs: number = Date.now()): void {
+  const session = sessions.get(callId);
+  if (!session) return;
+
+  session.stages = {
+    ...session.stages,
+    session_start: session.stages?.session_start ?? 0,
+    [stage]: getElapsedStageMs(session, atMs),
+  };
 }
 
 /**
@@ -295,6 +330,35 @@ function percentile(values: number[], p: number): number {
   const sorted = [...values].sort((a, b) => a - b);
   const index = Math.ceil((p / 100) * sorted.length) - 1;
   return sorted[Math.max(0, index)];
+}
+
+function getElapsedStageMs(session: CallSession, atMs: number): number {
+  return Math.max(0, atMs - session.startTime);
+}
+
+function getLastSessionStages(
+  windowSessions: readonly CallSession[],
+  activeSessions: readonly CallSession[]
+): CallStageTimings | undefined {
+  const latestSession = [...windowSessions, ...activeSessions].reduce<CallSession | undefined>(
+    (latest, session) => (!latest || session.startTime >= latest.startTime ? session : latest),
+    undefined
+  );
+  if (!latestSession) return undefined;
+
+  const stages = { ...(latestSession.stages ?? {}) };
+  const timings: CallStageTimings = {
+    ...stages,
+    sessionStartMs: latestSession.startTime,
+    stages,
+  };
+
+  if (latestSession.firstResponseTimeMs !== undefined) {
+    timings.firstAudioMs = latestSession.startTime + latestSession.firstResponseTimeMs;
+    timings.jobToFirstAudioMs = latestSession.firstResponseTimeMs;
+  }
+
+  return timings;
 }
 
 export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQualityMetrics {
@@ -335,6 +399,7 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
       ? firstResponseTimes.reduce((a, b) => a + b, 0) / firstResponseTimes.length
       : 0;
   const p95FirstResponseTimeMs = percentile(firstResponseTimes, 95);
+  const lastSessionStages = getLastSessionStages(windowSessions, activeSessions);
 
   // Duration metrics
   const durations = windowSessions
@@ -385,6 +450,7 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
     avgConnectionTimeMs,
     avgFirstResponseTimeMs,
     p95FirstResponseTimeMs,
+    lastSessionStages,
     avgCallDurationMs,
     medianCallDurationMs,
     naturalEndCount,
@@ -635,6 +701,18 @@ export function getActiveCalls(): CallSession[] {
 
 export function getRecentCalls(limit = 100): CallSession[] {
   return completedSessions.slice(-limit);
+}
+
+/**
+ * Clear in-memory call quality state so tests remain isolated.
+ */
+export function resetCallQualityStateForTests(): void {
+  stopCallQualityMonitor();
+  sessions.clear();
+  completedSessions.length = 0;
+  lastAlerts.clear();
+  config = { ...DEFAULT_CONFIG };
+  slackService = null;
 }
 
 /**

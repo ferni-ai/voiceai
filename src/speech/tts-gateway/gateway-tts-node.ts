@@ -34,7 +34,7 @@ import {
 
 // ESM doesn't have global require, so we create one for dynamic imports
 const require = createRequire(import.meta.url);
-import { recordCallEvent } from '../../services/analytics/call-quality-monitor.js';
+import { markCallStage, recordCallEvent } from '../../services/analytics/call-quality-monitor.js';
 import { getTTSCache } from '../../services/tts/index.js';
 import { getTTSProvider } from './providers/index.js';
 import { getSSMLProcessor } from './ssml/index.js';
@@ -401,9 +401,11 @@ async function createStreamingOverlapTTS(
         log.info({ ttfbMs, sessionId }, `🔊 Streaming TTS TTFB: ${ttfbMs}ms`);
         if (sessionId) {
           try {
+            const firstAudioAtMs = Date.now();
+            markCallStage(sessionId, 'tts_first_frame', firstAudioAtMs);
             recordCallEvent({
               callId: sessionId,
-              timestamp: Date.now(),
+              timestamp: firstAudioAtMs,
               type: 'first_response',
             });
           } catch {

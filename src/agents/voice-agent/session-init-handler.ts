@@ -1380,10 +1380,11 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
 
   // Call quality: session connected and accepting conversation
   try {
-    const { startCall, recordCallEvent } = await import(
+    const { startCall, recordCallEvent, markCallStage } = await import(
       '../../services/analytics/call-quality-monitor.js'
     );
     startCall(sessionId, userId, sessionPersona.id);
+    markCallStage(sessionId, 'session_initialized');
     recordCallEvent({
       callId: sessionId,
       userId,
