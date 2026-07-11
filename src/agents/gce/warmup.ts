@@ -508,6 +508,15 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
     );
 
     await Promise.all(tasks);
+
+    // Wire prewarmed greeting/conversational audio into gateway hot path
+    try {
+      const { installProductionTTSCache } = await import('./tts-cache-install.js');
+      await installProductionTTSCache();
+    } catch (e) {
+      log('⚠️ TTS cache install failed (non-fatal)', { error: String(e) });
+    }
+
     const durationMs = Date.now() - warmupStart;
 
     // =========================================================================
