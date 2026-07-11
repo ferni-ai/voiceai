@@ -263,8 +263,9 @@ export class AgentOrchestrator {
         );
       }
 
-      // Speak via agent.say wrapper (uses coordinated speech)
-      // FIX: Disable interruptions for initial greeting - iOS background noise was cutting it off
+      // Speak via agent.say wrapper (uses coordinated speech / Cartesia TTS).
+      // With OVERLAP_GREETING_WITH_PREWARM (default), this runs while Gemini
+      // prewarm continues in the factory background — first audio ≠ prewarm done.
       diag.entry(`🎭 ${agent.personaId} greeting: "${greeting.slice(0, 50)}..."`);
       try {
         const { markCallStage } = await import(

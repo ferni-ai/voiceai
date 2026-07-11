@@ -29,6 +29,10 @@ import {
 } from '../shared/generate-reply-gateway.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
+import {
+  getPrewarmGreetingPolicy,
+  planFactoryPrewarm,
+} from './prewarm-greeting-overlap.js';
 
 const log = getLogger();
 
@@ -94,6 +98,12 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       process.stderr.write(`⏱️ [FACTORY ${personaId}] [${elapsed}ms] ${step}\n`);
     };
     mark('factory_start');
+    try {
+      const { markCallStage } = await import('../../services/analytics/call-quality-monitor.js');
+      markCallStage(sessionId, 'factory_start');
+    } catch {
+      /* non-fatal */
+    }
 
     const agentInstanceId = `${personaId}-${Date.now()}`;
 
@@ -204,121 +214,8 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       // Register session for gateway access (enables generateReplyBySessionId)
       registerSessionForReconnection(sessionId, agentSetup.session);
 
-      // NOTE: Tool registration moved AFTER prewarm (see below).
-      // The Gemini WebSocket connection is established during prewarm, so
-      // realtimeLLMSession is only available after prewarm completes.
-
-      // =========================================================================
-      // PREWARM: SYNCHRONOUS to prevent double connection (provider-dependent)
-      // =========================================================================
-      // FIX: The SDK was creating 2 WebSocket connections because we were
-      // firing prewarm async and the greeting raced ahead. By waiting for
-      // prewarm to complete (with timeout), we establish ONE stable connection.
-      // =========================================================================
-      const provider = getModelProvider();
-      const SKIP_PREWARM = process.env.SKIP_GEMINI_PREWARM === 'true';
-
-      if (provider.needsPrewarm() && !context.isHandoff && !SKIP_PREWARM) {
-        mark('prewarm_start');
-        // SYNCHRONOUS prewarm - establishes stable Gemini connection
-        // This prevents the double connection issue where SDK created 2 WebSockets
-        //
-        // NOTE: prewarmSession() has its own internal 5s timeout (in generate-reply-gateway.ts)
-        // We don't add another timeout here to avoid race conditions and duplicate logs.
-        // If prewarm fails or times out, it returns false and we mark session ready anyway.
-        try {
-          const prewarmStart = Date.now();
-          const prewarmResult = await prewarmSession(agentSetup.session, sessionId);
-          const prewarmMs = Date.now() - prewarmStart;
-          if (prewarmResult) {
-            log.info({ personaId, prewarmMs }, '🔥 Prewarm complete (sync)');
-          } else {
-            // prewarmSession() already logged the timeout/failure reason
-            // We just need to mark the session ready for lazy connection
-            log.info(
-              { personaId, prewarmMs },
-              '⚠️ Prewarm incomplete - session marked ready for lazy connection'
-            );
-            markSessionReady(sessionId);
-          }
-        } catch (prewarmErr) {
-          // FIX: Even on error, mark session ready so it can proceed with lazy connection
-          log.warn(
-            { personaId, error: String(prewarmErr) },
-            '⚠️ Prewarm failed - marking session ready anyway'
-          );
-          markSessionReady(sessionId);
-        }
-        mark('prewarm_done');
-        try {
-          const { markCallStage } = await import(
-            '../../services/analytics/call-quality-monitor.js'
-          );
-          markCallStage(sessionId, 'prewarm_done');
-        } catch {
-          /* non-fatal */
-        }
-      } else if (SKIP_PREWARM) {
-        // FIX: When skipping prewarm, we still need to mark the session ready!
-        log.info(
-          { personaId },
-          '⏭️ Prewarm skipped (SKIP_GEMINI_PREWARM=true) - marking session ready'
-        );
-        markSessionReady(sessionId);
-      } else if (!provider.needsPrewarm()) {
-        // Provider doesn't need prewarm - mark session ready immediately
-        log.info(
-          { personaId, providerId: provider.id },
-          `${provider.getLogPrefix()} No prewarm needed - marking session ready`
-        );
-        markSessionReady(sessionId);
-      } else if (context.isHandoff) {
-        // Handoff sessions inherit readiness from the original session
-        // but we should still mark them ready to be safe
-        log.info({ personaId }, '🔄 Handoff session - marking session ready');
-        markSessionReady(sessionId);
-      }
-
-      // =========================================================================
-      // CRITICAL: Register initial agent tools with the session
-      //
-      // LiveKit's session starts with EMPTY tools - the agent's _tools must be
-      // explicitly sent to the session for native function calling to work.
-      // Without this, Gemini connects with geminiDeclarations=[] and can't call functions!
-      //
-      // TIMING: Must run AFTER prewarm, which establishes the Gemini WebSocket.
-      // Before prewarm, realtimeLLMSession is null and updateTools() silently no-ops.
-      // =========================================================================
-      try {
-        const { registerInitialTools, hasNativeToolUpdates } =
-          await import('../shared/tool-updater.js');
-        const agentTools = (agentSetup.agent as unknown as { _tools?: Record<string, unknown> })
-          ?._tools;
-        const toolCount = agentTools ? Object.keys(agentTools).length : 0;
-
-        if (hasNativeToolUpdates() && toolCount > 0) {
-          const registered = await registerInitialTools(agentSetup.agent);
-          if (registered) {
-            log.info(
-              { personaId, toolCount },
-              '🔧 Initial tools sent to session for native FC (after prewarm)'
-            );
-          }
-        } else {
-          log.debug(
-            { personaId, hasNative: hasNativeToolUpdates(), toolCount },
-            'Tool registration skipped (no native FC or no tools)'
-          );
-        }
-      } catch (toolRegErr) {
-        log.warn(
-          { personaId, error: String(toolRegErr) },
-          '⚠️ Failed to register initial tools (non-fatal)'
-        );
-      }
-
-      // Initialize speech coordination for this agent's session
-      // This enables centralized speech management and prevents overlap
+      // Speech coordination BEFORE prewarm — greeting (TTS) needs it and must
+      // not wait for Gemini. Overlap: user hears greeting while prewarm runs.
       mark('speech_coordination_start');
       try {
         initializeSpeechCoordination({
@@ -335,6 +232,119 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
         );
       }
       mark('speech_coordination_done');
+
+      // =========================================================================
+      // PREWARM + TOOLS
+      // =========================================================================
+      // Greeting uses Cartesia TTS only (agent.say → coordinatedSay) — it does
+      // NOT open a Gemini WebSocket. The historical double-connection bug was
+      // LLM generateReply racing prewarm; generateReply stays gated on
+      // isSessionReady until prewarm marks ready.
+      //
+      // OVERLAP_GREETING_WITH_PREWARM (default on): return from factory before
+      // prewarm finishes so orchestrator can greet (~6s saved on first audio).
+      // Tools still register after prewarm (realtimeLLMSession must exist).
+      // =========================================================================
+      const provider = getModelProvider();
+      const SKIP_PREWARM = process.env.SKIP_GEMINI_PREWARM === 'true';
+      const prewarmPlan = planFactoryPrewarm(getPrewarmGreetingPolicy());
+
+      const runPrewarmAndRegisterTools = async (): Promise<void> => {
+        if (provider.needsPrewarm() && !context.isHandoff && !SKIP_PREWARM) {
+          mark('prewarm_start');
+          try {
+            const prewarmStart = Date.now();
+            const prewarmResult = await prewarmSession(agentSetup.session, sessionId);
+            const prewarmMs = Date.now() - prewarmStart;
+            if (prewarmResult) {
+              log.info(
+                { personaId, prewarmMs, overlapped: !prewarmPlan.blockFactoryOnPrewarm },
+                '🔥 Prewarm complete'
+              );
+            } else {
+              log.info(
+                { personaId, prewarmMs },
+                '⚠️ Prewarm incomplete - session marked ready for lazy connection'
+              );
+              markSessionReady(sessionId);
+            }
+          } catch (prewarmErr) {
+            log.warn(
+              { personaId, error: String(prewarmErr) },
+              '⚠️ Prewarm failed - marking session ready anyway'
+            );
+            markSessionReady(sessionId);
+          }
+          mark('prewarm_done');
+          try {
+            const { markCallStage } = await import(
+              '../../services/analytics/call-quality-monitor.js'
+            );
+            markCallStage(sessionId, 'prewarm_done');
+          } catch {
+            /* non-fatal */
+          }
+        } else if (SKIP_PREWARM) {
+          log.info(
+            { personaId },
+            '⏭️ Prewarm skipped (SKIP_GEMINI_PREWARM=true) - marking session ready'
+          );
+          markSessionReady(sessionId);
+        } else if (!provider.needsPrewarm()) {
+          log.info(
+            { personaId, providerId: provider.id },
+            `${provider.getLogPrefix()} No prewarm needed - marking session ready`
+          );
+          markSessionReady(sessionId);
+        } else if (context.isHandoff) {
+          log.info({ personaId }, '🔄 Handoff session - marking session ready');
+          markSessionReady(sessionId);
+        }
+
+        // Tools AFTER prewarm — realtimeLLMSession exists only then
+        try {
+          const { registerInitialTools, hasNativeToolUpdates } =
+            await import('../shared/tool-updater.js');
+          const agentTools = (agentSetup.agent as unknown as { _tools?: Record<string, unknown> })
+            ?._tools;
+          const toolCount = agentTools ? Object.keys(agentTools).length : 0;
+
+          if (hasNativeToolUpdates() && toolCount > 0) {
+            const registered = await registerInitialTools(agentSetup.agent);
+            if (registered) {
+              log.info(
+                { personaId, toolCount },
+                '🔧 Initial tools sent to session for native FC (after prewarm)'
+              );
+            }
+          } else {
+            log.debug(
+              { personaId, hasNative: hasNativeToolUpdates(), toolCount },
+              'Tool registration skipped (no native FC or no tools)'
+            );
+          }
+        } catch (toolRegErr) {
+          log.warn(
+            { personaId, error: String(toolRegErr) },
+            '⚠️ Failed to register initial tools (non-fatal)'
+          );
+        }
+      };
+
+      if (prewarmPlan.blockFactoryOnPrewarm) {
+        await runPrewarmAndRegisterTools();
+      } else {
+        log.info(
+          { personaId },
+          '⚡ Overlap: factory returns before prewarm — greeting can start (TTS-only)'
+        );
+        void runPrewarmAndRegisterTools().catch((err: unknown) => {
+          log.error(
+            { personaId, error: String(err) },
+            '🚨 Background prewarm/tools failed after overlapped greeting start'
+          );
+        });
+      }
     } catch (startErr) {
       log.error(
         { personaId, agentInstanceId, error: String(startErr) },
