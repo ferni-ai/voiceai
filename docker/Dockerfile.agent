@@ -130,15 +130,17 @@ RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
 
 # Replace local file: dependencies with npm registry versions for Docker builds
 # The local agents-js is not available in Docker context
-# Version is controlled by LIVEKIT_AGENTS_VERSION build arg (defined at top of file)
-RUN echo "Using @livekit/agents version: ^${LIVEKIT_AGENTS_VERSION}" && \
-    sed -i "s|\"file:../agents-js/agents\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/cartesia\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/deepgram\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/google\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/openai\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/silero\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    cat package.json | grep -A5 '"@livekit/agents"' | head -10
+# IMPORTANT: Pin EXACT versions (no ^) — caret on 1.0.31 resolves to 1.5.x which
+# requires @livekit/rtc-node >=0.13.31 and breaks startup (isFrameProcessor missing).
+RUN echo "Using @livekit/agents version: ${LIVEKIT_AGENTS_VERSION} (exact)" && \
+    sed -i "s|\"file:../agents-js/agents\"|\"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/cartesia\"|\"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/deepgram\"|\"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/google\"|\"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/openai\"|\"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/silero\"|\"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"@livekit/agents-plugin-cartesia\": \"[^\"]*\"|\"@livekit/agents-plugin-cartesia\": \"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    cat package.json | grep -E '"@livekit/agents"|"@livekit/agents-plugin' | head -20
 
 # Copy build configs
 COPY tsconfig.json ./
