@@ -93,6 +93,40 @@ function isTTSGatewayEnabled(): boolean {
 
 const log = createLogger({ module: 'GatewayTTSNode' });
 
+type FirstAudioObserver = () => void;
+
+interface FirstAudioObserverOptions {
+  sessionId?: string;
+  startTime: number;
+}
+
+function createFirstAudioObserver({
+  sessionId,
+  startTime,
+}: FirstAudioObserverOptions): FirstAudioObserver {
+  let hasMarkedFirstAudio = false;
+
+  return (): void => {
+    if (hasMarkedFirstAudio) return;
+    hasMarkedFirstAudio = true;
+    const ttfbMs = Date.now() - startTime;
+    log.info({ ttfbMs, sessionId }, `🔊 Gateway TTS TTFB: ${ttfbMs}ms`);
+    if (sessionId) {
+      try {
+        const firstAudioAtMs = Date.now();
+        markCallStage(sessionId, 'tts_first_frame', firstAudioAtMs);
+        recordCallEvent({
+          callId: sessionId,
+          timestamp: firstAudioAtMs,
+          type: 'first_response',
+        });
+      } catch {
+        // Non-fatal observability
+      }
+    }
+  };
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -246,7 +280,8 @@ function createEmptyAudioStream(): NodeReadableStream<AudioFrame> {
 function createAudioFrameStream(
   buffer: ArrayBuffer,
   sampleRate: number,
-  frameDurationMs: number
+  frameDurationMs: number,
+  onFirstFrame?: FirstAudioObserver
 ): NodeReadableStream<AudioFrame> {
   const frames = [...splitIntoFrames(buffer, sampleRate, frameDurationMs)];
   let frameIndex = 0;
@@ -260,6 +295,7 @@ function createAudioFrameStream(
       }
 
       controller.enqueue(frames[frameIndex]);
+      onFirstFrame?.();
       frameIndex++;
 
       // Pace frames to avoid buffer overflow (slightly faster than realtime)
@@ -313,7 +349,7 @@ interface StreamingOverlapOptions {
   cache: ReturnType<typeof getTTSCache> | null;
   provider: ReturnType<typeof getTTSProvider>;
   ssmlProcessor: ReturnType<typeof getSSMLProcessor>;
-  startTime: number;
+  markFirstAudio: FirstAudioObserver;
 }
 
 /**
@@ -364,7 +400,7 @@ async function createStreamingOverlapTTS(
     cache,
     provider,
     ssmlProcessor,
-    startTime,
+    markFirstAudio,
   } = opts;
 
   // Local streaming TTS (Sonata): accumulate all text first, then one stream.
@@ -381,7 +417,6 @@ async function createStreamingOverlapTTS(
       const reader = textStream.getReader();
       let buffer = '';
       let firstChunk = true;
-      let firstAudioEnqueued = false;
       let closed = false;
 
       const closeStream = (err?: Error) => {
@@ -391,26 +426,6 @@ async function createStreamingOverlapTTS(
             if (err) controller.error(err);
             else controller.close();
           } catch { /* already closed or errored */ }
-        }
-      };
-
-      const markFirstAudio = (): void => {
-        if (firstAudioEnqueued) return;
-        firstAudioEnqueued = true;
-        const ttfbMs = Date.now() - startTime;
-        log.info({ ttfbMs, sessionId }, `🔊 Streaming TTS TTFB: ${ttfbMs}ms`);
-        if (sessionId) {
-          try {
-            const firstAudioAtMs = Date.now();
-            markCallStage(sessionId, 'tts_first_frame', firstAudioAtMs);
-            recordCallEvent({
-              callId: sessionId,
-              timestamp: firstAudioAtMs,
-              type: 'first_response',
-            });
-          } catch {
-            // Non-fatal observability
-          }
         }
       };
 
@@ -702,6 +717,7 @@ export function createGatewayTTSNode(
     textStream: NodeReadableStream<string>
   ): Promise<NodeReadableStream<AudioFrame> | null> => {
     const startTime = Date.now();
+    const markFirstAudio = createFirstAudioObserver({ sessionId, startTime });
     metrics.totalRequests++;
 
     // =========================================================================
@@ -721,7 +737,7 @@ export function createGatewayTTSNode(
         cache,
         provider,
         ssmlProcessor,
-        startTime,
+        markFirstAudio,
       });
     }
 
@@ -924,7 +940,7 @@ export function createGatewayTTSNode(
           `⚡ Gateway TTS CACHE HIT in ${hitLatency}ms`
         );
 
-        return createAudioFrameStream(cached.audio, sampleRate, frameDurationMs);
+        return createAudioFrameStream(cached.audio, sampleRate, frameDurationMs, markFirstAudio);
       }
     }
 
@@ -1008,7 +1024,7 @@ export function createGatewayTTSNode(
       // 6. RETURN AUDIO FRAME STREAM
       // =========================================================================
 
-      return createAudioFrameStream(audio, sampleRate, frameDurationMs);
+      return createAudioFrameStream(audio, sampleRate, frameDurationMs, markFirstAudio);
     } catch (error) {
       metrics.errors++;
       log.error(

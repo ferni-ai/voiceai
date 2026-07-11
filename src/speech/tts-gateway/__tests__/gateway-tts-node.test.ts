@@ -16,6 +16,11 @@ import {
   getGatewayTTSMetrics,
   resetGatewayTTSMetrics,
 } from '../gateway-tts-node.js';
+import {
+  getMetrics,
+  resetCallQualityStateForTests,
+  startCall,
+} from '../../../services/analytics/call-quality-monitor.js';
 import { createTTSCache, setTTSCache } from '../../../services/tts/tts-cache.js';
 import type { ITTSProvider } from '../types.js';
 
@@ -101,6 +106,7 @@ describe('Gateway TTS Node', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetGatewayTTSMetrics();
+    resetCallQualityStateForTests();
     // Set up a fresh cache for each test
     const cache = createTTSCache({ maxEntries: 100 });
     setTTSCache(cache);
@@ -111,6 +117,27 @@ describe('Gateway TTS Node', () => {
   });
 
   describe('Basic Flow', () => {
+    it('should mark first audio when non-streaming frames are emitted', async () => {
+      const sessionId = 'non-streaming-first-audio-session';
+      startCall(sessionId, 'test-user', 'ferni');
+      const gatewayTTS = createGatewayTTSNode({
+        voiceId: 'test-voice',
+        sessionId,
+        enableStreamingOverlap: false,
+      });
+
+      const textStream = createTextStream('Hello first audio');
+      const audioStream = await gatewayTTS(textStream);
+
+      expect(audioStream).not.toBeNull();
+      const frames = await collectFrames(audioStream!);
+      expect(frames.length).toBeGreaterThan(0);
+
+      const metrics = getMetrics();
+      expect(metrics.lastSessionStages?.first_audio).toBeTypeOf('number');
+      expect(metrics.lastSessionStages?.stages?.tts_first_frame).toBeTypeOf('number');
+    });
+
     it('should synthesize text and return audio frames', async () => {
       const gatewayTTS = createGatewayTTSNode({
         voiceId: 'test-voice',
