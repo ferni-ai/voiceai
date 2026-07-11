@@ -5,16 +5,19 @@
  *   export LIVEKIT_URL=... LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=...
  *   node scripts/ops/verify-prod-voice-session.mjs
  *
+ * GCP secrets example:
+ *   export LIVEKIT_API_SECRET="$(gcloud secrets versions access latest --secret=LIVEKIT_API_SECRET --project=johnb-2025)"
+ *
  * Optional:
  *   OBS_URL=http://34.134.186.63:8080/api/observability
  *   AGENT_NAME=voice-agent
  *   PROOF_TIMEOUT_MS=40000
  *
  * Exit 0 iff after a join→hear→leave cycle:
- *   connectionSuccesses increased (or >= 1),
+ *   connectionSuccesses increased during this run,
  *   avgFirstResponseTimeMs > 0,
  *   activeCalls === 0,
- *   disconnectCount increased (or natural/error end counted).
+ *   disconnectCount increased, or totalCalls increased when disconnectCount did not.
  */
 
 import { AccessToken, AgentDispatchClient, RoomServiceClient } from 'livekit-server-sdk';
@@ -28,13 +31,20 @@ const AGENT_NAME = process.env.AGENT_NAME || 'voice-agent';
 const PROOF_TIMEOUT_MS = Number(process.env.PROOF_TIMEOUT_MS || 40_000);
 
 function requireEnv() {
-  if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-    console.error(
-      JSON.stringify({
-        proven: false,
-        error: 'Missing LIVEKIT_URL, LIVEKIT_API_KEY, or LIVEKIT_API_SECRET',
-      })
-    );
+  const missing = [
+    ['LIVEKIT_URL', LIVEKIT_URL],
+    ['LIVEKIT_API_KEY', LIVEKIT_API_KEY],
+    ['LIVEKIT_API_SECRET', LIVEKIT_API_SECRET],
+  ]
+    .filter(([, value]) => !value)
+    .map(([name]) => name);
+
+  if (missing.length > 0) {
+    printProof(false, null, {
+      _meta: {
+        error: `Missing ${missing.join(', ')}`,
+      },
+    });
     process.exit(1);
   }
 }
@@ -65,41 +75,72 @@ async function waitUntil(predicate, timeoutMs, label) {
   throw new Error(`Timeout waiting for ${label}: ${JSON.stringify(last)}`);
 }
 
+function metricValue(metrics, key) {
+  return Number(metrics?.[key] || 0);
+}
+
+function getSessionDeltas(before, after) {
+  return {
+    connectionSuccesses: metricValue(after, 'connectionSuccesses') - metricValue(before, 'connectionSuccesses'),
+    disconnectCount: metricValue(after, 'disconnectCount') - metricValue(before, 'disconnectCount'),
+    totalCalls: metricValue(after, 'totalCalls') - metricValue(before, 'totalCalls'),
+  };
+}
+
+function hasEndMetricDelta(deltas) {
+  if (deltas.disconnectCount >= 1) {
+    return true;
+  }
+
+  // Some production paths finalize totalCalls without moving disconnectCount;
+  // allow that only when disconnectCount stayed flat for this run.
+  return deltas.disconnectCount === 0 && deltas.totalCalls >= 1;
+}
+
+function hasConnectionAndFirstResponse(before, after) {
+  const deltas = getSessionDeltas(before, after);
+  return deltas.connectionSuccesses >= 1 && metricValue(after, 'avgFirstResponseTimeMs') > 0;
+}
+
+function isClosedWithEndMetrics(before, after) {
+  const deltas = getSessionDeltas(before, after);
+  return metricValue(after, 'activeCalls') === 0 && hasEndMetricDelta(deltas);
+}
+
+function buildAfter(after, meta) {
+  return {
+    ...after,
+    _meta: meta,
+  };
+}
+
+function printProof(proven, before, after) {
+  console.log(
+    JSON.stringify(
+      {
+        proven,
+        before,
+        after,
+      },
+      null,
+      2
+    )
+  );
+}
+
 async function main() {
   requireEnv();
 
-  const before = await fetchObservability();
   const roomName = `sota-verify-${Date.now()}`;
   const identity = `verifier-${Date.now()}`;
+  let before = null;
 
   const roomService = new RoomServiceClient(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
   const dispatchClient = new AgentDispatchClient(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
 
-  await roomService.createRoom({
-    name: roomName,
-    emptyTimeout: 120,
-    metadata: JSON.stringify({ purpose: 'sota-wave0-verify' }),
-  });
-
-  await dispatchClient.createDispatch(roomName, AGENT_NAME, {
-    metadata: JSON.stringify({ verify: true }),
-  });
-
-  const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-    identity,
-    name: 'SOTA Verifier',
-  });
-  token.addGrant({
-    room: roomName,
-    roomJoin: true,
-    canPublish: true,
-    canSubscribe: true,
-    canPublishData: true,
-  });
-  const jwt = await token.toJwt();
-
   const room = new Room();
   let heardRemoteAudio = false;
+  let roomCreated = false;
 
   room.on(RoomEvent.TrackSubscribed, (_track, publication, participant) => {
     if (participant?.identity && publication?.kind === 'audio') {
@@ -108,62 +149,88 @@ async function main() {
   });
 
   try {
-    await room.connect(LIVEKIT_URL, jwt, { autoSubscribe: true });
+    before = await fetchObservability();
 
-    const afterFirstAudio = await waitUntil(
-      (m) =>
-        (m.avgFirstResponseTimeMs || 0) > 0 ||
-        (m.connectionSuccesses || 0) > (before.connectionSuccesses || 0) ||
-        heardRemoteAudio,
-      PROOF_TIMEOUT_MS,
-      'first audio / connection success'
-    );
+    try {
+      await roomService.createRoom({
+        name: roomName,
+        emptyTimeout: 120,
+        metadata: JSON.stringify({ purpose: 'sota-wave0-verify' }),
+      });
+      roomCreated = true;
 
-    await room.disconnect();
-    await roomService.deleteRoom(roomName).catch(() => undefined);
+      await dispatchClient.createDispatch(roomName, AGENT_NAME, {
+        metadata: JSON.stringify({ verify: true }),
+      });
+
+      const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+        identity,
+        name: 'SOTA Verifier',
+      });
+      token.addGrant({
+        room: roomName,
+        roomJoin: true,
+        canPublish: true,
+        canSubscribe: true,
+        canPublishData: true,
+      });
+      const jwt = await token.toJwt();
+
+      await room.connect(LIVEKIT_URL, jwt, { autoSubscribe: true });
+
+      await waitUntil(
+        (m) => hasConnectionAndFirstResponse(before, m),
+        PROOF_TIMEOUT_MS,
+        'connection success and first response metrics'
+      );
+    } finally {
+      try {
+        await room.disconnect();
+      } catch {
+        // Continue to room deletion even if the local RTC disconnect path fails.
+      }
+      if (roomCreated) {
+        await roomService.deleteRoom(roomName).catch(() => undefined);
+      }
+    }
 
     const after = await waitUntil(
-      (m) => (m.activeCalls || 0) === 0,
+      (m) => isClosedWithEndMetrics(before, m),
       PROOF_TIMEOUT_MS,
-      'activeCalls === 0'
+      'activeCalls === 0 and call end metrics'
     );
+    const deltas = getSessionDeltas(before, after);
 
     const proven =
-      (after.avgFirstResponseTimeMs || 0) > 0 &&
-      (after.activeCalls || 0) === 0 &&
-      ((after.connectionSuccesses || 0) >= 1 ||
-        (after.connectionSuccesses || 0) > (before.connectionSuccesses || 0)) &&
-      ((after.disconnectCount || 0) > (before.disconnectCount || 0) ||
-        (after.naturalEndCount || 0) > (before.naturalEndCount || 0) ||
-        (after.errorCount || 0) > (before.errorCount || 0) ||
-        heardRemoteAudio);
+      deltas.connectionSuccesses >= 1 &&
+      metricValue(after, 'avgFirstResponseTimeMs') > 0 &&
+      metricValue(after, 'activeCalls') === 0 &&
+      hasEndMetricDelta(deltas);
 
-    const payload = {
+    printProof(
       proven,
-      heardRemoteAudio,
-      roomName,
       before,
-      afterFirstAudio,
-      after,
-    };
-    console.log(JSON.stringify(payload, null, 2));
+      buildAfter(after, {
+        roomName,
+        heardRemoteAudio,
+        deltas,
+      })
+    );
     process.exit(proven ? 0 : 1);
   } catch (error) {
+    let after = {};
     try {
-      await room.disconnect();
+      after = await fetchObservability();
     } catch {
-      // ignore
+      after = {};
     }
-    try {
-      await roomService.deleteRoom(roomName);
-    } catch {
-      // ignore
-    }
-    console.error(
-      JSON.stringify({
-        proven: false,
+    printProof(
+      false,
+      before,
+      buildAfter(after, {
         error: String(error?.message || error),
-        before,
+        roomName,
+        heardRemoteAudio,
       })
     );
     process.exit(1);
