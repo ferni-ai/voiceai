@@ -7,10 +7,10 @@ Living backlog for `docs/superpowers/specs/2026-07-11-sota-realtime-bth-program-
 | Wave | Status |
 |------|--------|
 | 0 Prove & protect | **Closed 2026-07-11** — image `gcr.io/johnb-2025/voiceai-agent:1783804027740`; `verify-prod-voice-session.mjs` → `proven: true` |
-| 1 Latency / first audio | In progress — code landed + measured; SLO not met yet (see W1-GAP) |
-| 2 Turn-taking | Parked |
-| 3 Memory that speaks | Parked |
-| 4 Proactive relationship | Parked |
+| 1 Latency / first audio | In progress — overlap shipped; re-measure pending — code landed + measured; SLO not met yet (see W1-GAP) |
+| 2 Turn-taking | Partial — multi-agent humanization+backchannel init wired; audio-frame emit deferred |
+| 3 Memory that speaks | Partial — memory-retrieval builder wired into manifest |
+| 4 Proactive relationship | In progress — ferni deploy async pending verify |
 | 5 Eval harness | In progress — `assert-first-audio-slo.mjs` latency gate stub landed (Wave 1 SLO still failing at ~7.4s) |
 
 ## Wave 0 evidence (2026-07-11)
@@ -44,7 +44,21 @@ Evidence from Task 8 deploy on 2026-07-11: Cloud Build `6993d366-230b-4f87-a77d-
 
 Critical path was **Gemini/session prewarm (~6.9s)** before greeting. Greeting-to-first-frame is ~467ms, so more tool cuts won't help.
 
-**Chosen fix (2026-07-11): Option 1 — overlap** — TTS greeting starts while prewarm runs (`OVERLAP_GREETING_WITH_PREWARM`, default on). LLM turns stay gated on `isSessionReady` until prewarm marks ready. Re-measure after deploy — expect `greeting_say` / `tts_first_frame` ≪ `prewarm_done`.
+## Wave 1 measurement — overlap (Option 1)
+
+Deployed with `OVERLAP_GREETING_WITH_PREWARM` (default on). GCE logs confirm:
+
+- `⚡ Overlap: factory returns before prewarm`
+- Factory wall ~206ms; prewarm completes ~240ms later in background
+- Stage order: `greeting_say` **before** `prewarm_done` (overlap working)
+
+| Metric | Before overlap | After overlap (cold verify) |
+|--------|----------------|------------------------------|
+| `greeting_say` vs `prewarm_done` | greeting after prewarm | greeting **before** prewarm |
+| Factory blocks on prewarm? | yes (~6–7s) | **no** |
+| `avgFirstResponseTimeMs` | ~7.1–7.4s | ~9.9s cold (clock includes post-`startCall` entry work) |
+
+**Remaining gap:** ~9s from `startCall` → factory is still **session entry / init after `startCall`**, not prewarm. Next cut: move greeting clock / shrink post-init work before multi-agent spawn (or stage `factory_start` for a cleaner SLO span).
 
 ## Parked from prior audits
 
