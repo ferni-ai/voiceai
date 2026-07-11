@@ -45,6 +45,8 @@ export interface HandlerSetupInput {
   modelBaseInstructions: string;
   subscriptionTier: 'free' | 'friend' | 'partner';
   stopPeriodicSync?: () => void;
+  /** Skip multi-agent takeover (already attempted on early path). */
+  skipMultiAgentAttempt?: boolean;
 }
 
 /** Result from handler setup */
@@ -171,8 +173,8 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     process.stderr.write(`[voice-agent-entry] 👤 Participant joined: ${participant.identity}\n`);
   }
 
-  // Multi-agent mode
-  if (MULTI_AGENT_MODE && participant) {
+  // Multi-agent mode (skipped when entry already tried early path)
+  if (MULTI_AGENT_MODE && participant && !input.skipMultiAgentAttempt) {
     const { runMultiAgentMode } = await import('../voice-agent/phases/index.js');
     const { unregisterSession } = await import('../shared/crash-analytics.js');
     const multiAgentModeResult = await runMultiAgentMode({

@@ -70,7 +70,8 @@ import { configureModelProvider } from '../../personas/bundles/model-provider-co
 import { parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
 import { buildSessionPersona } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
-import { setupAllHandlers } from './handler-setup.js';
+import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
+import { resolveSessionPath } from './session-path.js';
 import { devStage, MULTI_AGENT_MODE } from './constants.js';
 import type { FinOpsTier, SessionPhase } from './types.js';
 
@@ -512,95 +513,159 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     // =========================================================================
-    // STEP 5: CREATE SESSION
+    // STEP 5a: MULTI-AGENT EARLY PATH (skip duplicate createAgentSession)
     // =========================================================================
-    devStage('session_creation');
-    currentPhase = 'session';
-    e2e.resourceLoading('agent-session');
-    const sessionStart = Date.now();
+    let multiAgentActivatedEarly = false;
+    let skipMultiAgentAttempt = false;
 
-    const voiceDeps = getVoiceDeps();
-    const sessionResult = await createAgentSession({
-      sessionId,
-      sessionPersona,
-      systemPrompt,
-      modelBaseInstructions,
-      userId,
-      userAccent,
-      userData,
-      services,
-      voiceDeps,
-      roomMetadata: ctx.job.room?.metadata,
-      metadata,
-      subscriptionTier: finopsTier === 'partner' ? 'partner' : finopsTier === 'friend' ? 'friend' : 'free',
-      cleanupHandlers,
-    });
+    if (resolveSessionPath(MULTI_AGENT_MODE) === 'multi-agent') {
+      skipMultiAgentAttempt = true;
+      const participantTimeout = 10000;
+      process.stderr.write(
+        `[voice-agent-entry] 🎭 Multi-agent early path — waiting for participant (${participantTimeout}ms), skipping createAgentSession\n`
+      );
+      const participant = await Promise.race([
+        ctx.waitForParticipant(),
+        new Promise<null>((resolve) => {
+          setTimeout(() => {
+            process.stderr.write(
+              `[voice-agent-entry] 👤 Participant wait timed out after ${participantTimeout}ms (early path)\n`
+            );
+            resolve(null);
+          }, participantTimeout);
+        }),
+      ]);
 
-    session = sessionResult.session;
-    const { agent, voiceAgentRef, directorAudioRouter, toolCount, toolLoadMode } = sessionResult;
-
-    e2e.resourceLoaded('agent-session', Date.now() - sessionStart);
-    e2e.sessionStarted(jobId, sessionPersona.id);
-
-    // Speech coordination
-    initializeSpeechCoordination({ session, sessionId, personaId: sessionPersona.id, userId: userId ?? undefined });
-    cleanupHandlers.push(() => cleanupSpeechCoordination(sessionId));
-
-    // Prewarm session for faster first response
-    prewarmSessionAsync(session, sessionId);
-
-    // Register session for reconnection
-    registerSessionForReconnection(sessionId, session);
-
-    // Set active session for native tool location fallback
-    setCurrentActiveSession(userId || 'anonymous', undefined, sessionId);
-
-    // Action dispatcher
-    if (userId && session) {
-      try {
-        initActionDispatcher({ session, sessionId, userId });
-        cleanupHandlers.push(() => {
-          try { clearActionDispatcher(sessionId); } catch { /* ignore */ }
+      if (participant && ctx.room) {
+        process.stderr.write(
+          `[voice-agent-entry] 👤 Participant joined (early): ${participant.identity}\n`
+        );
+        const { runMultiAgentMode } = await import('../voice-agent/phases/index.js');
+        const { unregisterSession: unregisterCrashSession } =
+          await import('../shared/crash-analytics.js');
+        const multiAgentModeResult = await runMultiAgentMode({
+          ctx,
+          room: ctx.room,
+          participant,
+          sessionPersona,
+          services,
+          userData,
+          sessionId,
+          userId: userId ?? undefined,
+          unregisterSession: unregisterCrashSession,
         });
-      } catch (dispatcherErr) {
-        process.stderr.write(`[voice-agent-entry] ⚠️ Action dispatcher failed (non-fatal): ${dispatcherErr}\n`);
+        if (multiAgentModeResult.activated) {
+          multiAgentActivatedEarly = true;
+        } else if (multiAgentModeResult.error) {
+          process.stderr.write(
+            `[voice-agent-entry] 🎭 Multi-agent early path failed, falling back to single-agent: ${multiAgentModeResult.error}\n`
+          );
+        }
+      } else {
+        process.stderr.write(
+          `[voice-agent-entry] 🎭 No participant on early path — falling back to single-agent session\n`
+        );
       }
     }
 
-    // =========================================================================
-    // STEP 6: SET UP ALL HANDLERS
-    // =========================================================================
-    devStage('handlers_setup');
-    currentPhase = 'handlers';
-    process.stderr.write(`[voice-agent-entry] 🔌 Setting up handlers...\n`);
+    let handlersResult: HandlerSetupResult | null = null;
+    let ranSingleAgentHandlers = false;
 
-    const handlersResult = await setupAllHandlers({
-      ctx,
-      session,
-      agent,
-      voiceAgentRef,
-      sessionPersona,
-      userId,
-      sessionId,
-      services,
-      userData,
-      isReturningUser,
-      userName: userName ?? null,
-      cleanupHandlers,
-      cleanupTracker,
-      directorAudioRouter,
-      sessionTools: sessionResult.sessionTools,
-      toolCount,
-      voiceHumanization: null,
-      modelBaseInstructions,
-      subscriptionTier: finopsTier === 'partner' ? 'partner' : finopsTier === 'friend' ? 'friend' : 'free',
-      stopPeriodicSync,
-    });
+    if (!multiAgentActivatedEarly) {
+      // =========================================================================
+      // STEP 5: CREATE SESSION (single-agent or multi-agent fallback)
+      // =========================================================================
+      devStage('session_creation');
+      currentPhase = 'session';
+      e2e.resourceLoading('agent-session');
+      const sessionStart = Date.now();
+
+      const voiceDeps = getVoiceDeps();
+      const sessionResult = await createAgentSession({
+        sessionId,
+        sessionPersona,
+        systemPrompt,
+        modelBaseInstructions,
+        userId,
+        userAccent,
+        userData,
+        services,
+        voiceDeps,
+        roomMetadata: ctx.job.room?.metadata,
+        metadata,
+        subscriptionTier: finopsTier === 'partner' ? 'partner' : finopsTier === 'friend' ? 'friend' : 'free',
+        cleanupHandlers,
+      });
+
+      session = sessionResult.session;
+      const { agent, voiceAgentRef, directorAudioRouter, toolCount, toolLoadMode } = sessionResult;
+      void toolLoadMode;
+
+      e2e.resourceLoaded('agent-session', Date.now() - sessionStart);
+      e2e.sessionStarted(jobId, sessionPersona.id);
+
+      // Speech coordination
+      initializeSpeechCoordination({ session, sessionId, personaId: sessionPersona.id, userId: userId ?? undefined });
+      cleanupHandlers.push(() => cleanupSpeechCoordination(sessionId));
+
+      // Prewarm session for faster first response
+      prewarmSessionAsync(session, sessionId);
+
+      // Register session for reconnection
+      registerSessionForReconnection(sessionId, session);
+
+      // Set active session for native tool location fallback
+      setCurrentActiveSession(userId || 'anonymous', undefined, sessionId);
+
+      // Action dispatcher
+      if (userId && session) {
+        try {
+          initActionDispatcher({ session, sessionId, userId });
+          cleanupHandlers.push(() => {
+            try { clearActionDispatcher(sessionId); } catch { /* ignore */ }
+          });
+        } catch (dispatcherErr) {
+          process.stderr.write(`[voice-agent-entry] ⚠️ Action dispatcher failed (non-fatal): ${dispatcherErr}\n`);
+        }
+      }
+
+      // =========================================================================
+      // STEP 6: SET UP ALL HANDLERS
+      // =========================================================================
+      devStage('handlers_setup');
+      currentPhase = 'handlers';
+      process.stderr.write(`[voice-agent-entry] 🔌 Setting up handlers...\n`);
+
+      handlersResult = await setupAllHandlers({
+        ctx,
+        session,
+        agent,
+        voiceAgentRef,
+        sessionPersona,
+        userId,
+        sessionId,
+        services,
+        userData,
+        isReturningUser,
+        userName: userName ?? null,
+        cleanupHandlers,
+        cleanupTracker,
+        directorAudioRouter,
+        sessionTools: sessionResult.sessionTools,
+        toolCount,
+        voiceHumanization: null,
+        modelBaseInstructions,
+        subscriptionTier: finopsTier === 'partner' ? 'partner' : finopsTier === 'friend' ? 'friend' : 'free',
+        stopPeriodicSync,
+        skipMultiAgentAttempt,
+      });
+      ranSingleAgentHandlers = true;
+    }
 
     // Multi-agent mode took over the session lifecycle (waited for disconnect
     // inside runMultiAgentMode). Still must close call-quality + run cleanup —
     // otherwise activeCalls leaks forever in production.
-    if (!handlersResult) {
+    if (multiAgentActivatedEarly || (ranSingleAgentHandlers && !handlersResult)) {
       process.stderr.write(
         `[voice-agent-entry] 🎭 Multi-agent session returned — running shared cleanup\n`
       );
@@ -671,12 +736,12 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       return;
     }
 
-    patternAnalyzer = handlersResult.patternAnalyzer;
-    autoOptimizer = handlersResult.autoOptimizer;
-    feedbackCollector = handlersResult.feedbackCollector;
-    dataChannelCleanup = handlersResult.dataChannelCleanup;
-    handoffHandler = handlersResult.handoffHandler;
-    musicCleanup = handlersResult.musicCleanup;
+    patternAnalyzer = handlersResult!.patternAnalyzer;
+    autoOptimizer = handlersResult!.autoOptimizer;
+    feedbackCollector = handlersResult!.feedbackCollector;
+    dataChannelCleanup = handlersResult!.dataChannelCleanup;
+    handoffHandler = handlersResult!.handoffHandler;
+    musicCleanup = handlersResult!.musicCleanup;
 
     process.stderr.write(
       `[voice-agent-entry] ✅ Session fully initialized in ${Date.now() - startTime}ms!\n`
