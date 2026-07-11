@@ -155,7 +155,8 @@ function exec(cmd: string, options: { silent?: boolean; cwd?: string } = {}): st
 }
 
 function ssh(cmd: string, options: { silent?: boolean } = {}): string {
-  const sshCmd = `gcloud compute ssh ${CONFIG.sshUser}@${CONFIG.instanceName} --zone=${CONFIG.zone} --command="${cmd.replace(/"/g, '\\"')}"`;
+  // Prefer IAP tunnel — direct port 22 is often blocked from local/CI networks.
+  const sshCmd = `gcloud compute ssh ${CONFIG.sshUser}@${CONFIG.instanceName} --zone=${CONFIG.zone} --tunnel-through-iap --command="${cmd.replace(/"/g, '\\"')}"`;
   return exec(sshCmd, options);
 }
 
