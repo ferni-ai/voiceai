@@ -9,6 +9,12 @@
 # Triggered by:
 #   gcloud builds submit --config=cloudbuild-async.yaml
 #   OR: ferni deploy async
+#
+# COMMIT_SHA is empty for manual `gcloud builds submit` unless passed via
+# --substitutions. Default to "latest" so deploy always has a valid image tag.
+
+substitutions:
+  COMMIT_SHA: 'latest'
 
 steps:
   # Build with Kaniko (fast caching)
