@@ -65,6 +65,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'thinking-of-you': async () => import('../memory/thinking-of-you.js'),
   'memory-enhancement': async () => import('../memory/memory-enhancement.js'),
   'better-than-human-memory': async () => import('../memory/better-than-human-memory.js'),
+  'memory-retrieval': async () => import('../memory-retrieval-builder.js'),
   // 'unified-knowledge' removed - not in BUILDER_MANIFEST (orphaned)
   'generated-insights': async () => import('../superhuman/generated-insights.js'),
   rag: async () => import('../memory/rag.js'),

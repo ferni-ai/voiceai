@@ -166,6 +166,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   [BuilderCategory.MEMORY]: [
     'superhuman-session-priming', // NEW: Surfaces ALL superhuman memory at session start (Better Than Human)
     'better-than-human-memory', // P0: Proactive surfacing with timing intelligence and learning
+    'memory-retrieval', // Wave 3: Turn-level hybrid memory retrieval and reranking
     'unified-memory-orchestrator', // PRIMARY: Coordinates all memory subsystems
     'knowledge-graph', // Unified entity knowledge graph (Better Than Human memory)
     // 'memory',               // DISABLED: Consolidated into orchestrator
