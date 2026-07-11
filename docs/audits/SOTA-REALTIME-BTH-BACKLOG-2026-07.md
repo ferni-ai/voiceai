@@ -11,7 +11,7 @@ Living backlog for `docs/superpowers/specs/2026-07-11-sota-realtime-bth-program-
 | 2 Turn-taking | Parked |
 | 3 Memory that speaks | Parked |
 | 4 Proactive relationship | Parked |
-| 5 Eval harness | Parked (latency stubs with Wave 1) |
+| 5 Eval harness | In progress — `assert-first-audio-slo.mjs` latency gate stub landed (Wave 1 SLO still failing at ~7.4s) |
 
 ## Wave 0 evidence (2026-07-11)
 
@@ -42,7 +42,9 @@ Evidence from Task 8 deploy on 2026-07-11: Cloud Build `6993d366-230b-4f87-a77d-
 
 ### W1-GAP (do not close Wave 1)
 
-Critical path is **Gemini/session prewarm (~6.9s)** before greeting. Greeting-to-first-frame is ~467ms (`greeting_say=6944`, `tts_first_frame=7411`), so the remaining Wave 1 gap is not more tool cuts. Next latency work: shrink/overlap prewarm, cache or reuse provider setup where safe, or skip blocking prewarm when provider behavior allows.
+Critical path was **Gemini/session prewarm (~6.9s)** before greeting. Greeting-to-first-frame is ~467ms, so more tool cuts won't help.
+
+**Chosen fix (2026-07-11): Option 1 — overlap** — TTS greeting starts while prewarm runs (`OVERLAP_GREETING_WITH_PREWARM`, default on). LLM turns stay gated on `isSessionReady` until prewarm marks ready. Re-measure after deploy — expect `greeting_say` / `tts_first_frame` ≪ `prewarm_done`.
 
 ## Parked from prior audits
 
