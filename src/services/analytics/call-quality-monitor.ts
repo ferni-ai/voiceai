@@ -201,14 +201,16 @@ export function recordCallEvent(event: CallEvent): void {
       break;
 
     case 'first_response':
-      session.firstResponseTimeMs = getElapsedStageMs(session, event.timestamp);
-      session.stages = {
-        ...session.stages,
-        session_start: session.stages?.session_start ?? 0,
-        first_audio: session.firstResponseTimeMs,
-      };
-      // Feed to predictive alerting
-      recordMetricValue('first_response_time', session.firstResponseTimeMs);
+      if (session.firstResponseTimeMs === undefined) {
+        session.firstResponseTimeMs = getElapsedStageMs(session, event.timestamp);
+        session.stages = {
+          ...session.stages,
+          session_start: session.stages?.session_start ?? 0,
+          first_audio: session.firstResponseTimeMs,
+        };
+        // Feed to predictive alerting (true first audio only)
+        recordMetricValue('first_response_time', session.firstResponseTimeMs);
+      }
       break;
 
     case 'user_speech':

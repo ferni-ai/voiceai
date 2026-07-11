@@ -70,4 +70,28 @@ describe('call quality stage timings', () => {
     expect(m.lastSessionStages?.stages?.prewarm_done).toBe(50);
     expect(m.lastSessionStages?.stages?.first_audio).toBe(180);
   });
+
+  it('does not overwrite first_audio on later first_response events', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+
+    startCall('c4', 'u4', 'ferni');
+    recordCallEvent({
+      callId: 'c4',
+      type: 'first_response',
+      timestamp: 1_200,
+    });
+    recordCallEvent({
+      callId: 'c4',
+      type: 'first_response',
+      timestamp: 5_000,
+    });
+
+    const m = getMetrics();
+
+    expect(m.avgFirstResponseTimeMs).toBe(200);
+    expect(m.lastSessionStages?.first_audio).toBe(200);
+    expect(m.lastSessionStages?.jobToFirstAudioMs).toBe(200);
+    expect(m.lastSessionStages?.firstAudioMs).toBe(1_200);
+  });
 });
