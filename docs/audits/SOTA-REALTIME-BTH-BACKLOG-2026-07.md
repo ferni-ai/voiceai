@@ -6,12 +6,40 @@ Living backlog for `docs/superpowers/specs/2026-07-11-sota-realtime-bth-program-
 
 | Wave | Status |
 |------|--------|
-| 0 Prove & protect | In progress |
-| 1 Latency / first audio | Pending |
+| 0 Prove & protect | **Closed 2026-07-11** — image `gcr.io/johnb-2025/voiceai-agent:1783804027740`; `verify-prod-voice-session.mjs` → `proven: true` |
+| 1 Latency / first audio | In progress — code landed + measured; SLO not met yet (see W1-GAP) |
 | 2 Turn-taking | Parked |
 | 3 Memory that speaks | Parked |
 | 4 Proactive relationship | Parked |
 | 5 Eval harness | Parked (latency stubs with Wave 1) |
+
+## Wave 0 evidence (2026-07-11)
+
+- Bake: `pnpm ferni deploy gce --skip-git-check` → Cloud Build `f41883ee-41ea-4e39-a2ee-7eac062e8263`, image `gcr.io/johnb-2025/voiceai-agent:1783804027740`, live on `:8080`, `/health` 200, `/health/ready` 200
+- Image contains: `docker exec voiceai-agent-blue grep -n "Multi-agent session returned" /app/dist/agents/voice-agent-entry/index.js` → line `527`
+- Verify: `verify-prod-voice-session.mjs` → `proven: true`, `connectionSuccesses+1`, `disconnectCount+1`, `totalCalls+1`, `activeCalls=0` (`heardRemoteAudio=false`)
+
+## Wave 1 landed (code)
+
+| ID | Item | Status |
+|----|------|--------|
+| W1-A | Skip duplicate createAgentSession | Done (early multi-agent path) |
+| W1-B | Wire delegating TTS cache on GCE | Done (`tts-cache-install.ts`) |
+| W1-C | First-turn tool shrink | Done (`MULTI_AGENT_ESSENTIAL_TOOLS_FIRST`) |
+| W1-D | Unified job→first_audio span | Done (`markCallStage` + observability) |
+
+## Wave 1 measurement (post-deploy, cold-ish)
+
+| Metric | Value | Target |
+|--------|-------|--------|
+| `avgFirstResponseTimeMs` | **7124** | ≤3000 bar / ≤1500 warm |
+| `lastSessionStages.prewarm_done` | **6629** | — |
+| `lastSessionStages.greeting_say` | 6636 | — |
+| `lastSessionStages.tts_first_frame` | 7124 | — |
+
+### W1-GAP (do not close Wave 1)
+
+Critical path is **Gemini/session prewarm (~6.6s)** before greeting. TTS after greeting is ~500ms. Next latency work: shrink or overlap prewarm (or skip when provider allows), not more tool cuts.
 
 ## Parked from prior audits
 
