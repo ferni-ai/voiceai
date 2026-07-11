@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import { onProtectiveMomentChange } from '../data-layer/hooks/better-than-human-hooks.js';
 
 const log = createLogger({ module: 'ProtectiveSilence' });
@@ -181,7 +181,10 @@ export async function removeBoundary(userId: string, boundaryId: string): Promis
  */
 export async function loadBoundaries(userId: string): Promise<ProtectiveBoundary[]> {
   const db = getFirestoreDb();
-  if (!db) return [];
+  if (!db) {
+    recordDegradation('protective-silence');
+    return [];
+  }
 
   try {
     const snapshot = await db

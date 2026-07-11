@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-utils.js';
+import { getFirestoreDb, recordDegradation } from './firestore-utils.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { indexValuesAlignment } from '../data-layer/integrations/index.js';
 import {
@@ -321,7 +321,10 @@ export async function loadUserValues(userId: string): Promise<UserValue[]> {
 
   try {
     const db = getFirestoreDb();
-    if (!db) return [];
+    if (!db) {
+      recordDegradation('values-alignment');
+      return [];
+    }
 
     const snapshot = await db
       .collection('bogle_users')

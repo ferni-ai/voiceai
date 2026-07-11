@@ -345,6 +345,14 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     duration: sessionDuration,
   });
 
+  // Call quality: session disconnect (cleanup runs on room disconnect)
+  try {
+    const { endCall } = await import('../../services/analytics/call-quality-monitor.js');
+    endCall(sessionId, 'disconnect');
+  } catch (qualityErr) {
+    diag.debug('Call quality end failed (non-fatal)', { error: String(qualityErr) });
+  }
+
   // ================================================================
   // GROUP 1: SYNCHRONOUS EVENT LISTENER CLEANUP (immediate, prevents memory leaks)
   // ================================================================

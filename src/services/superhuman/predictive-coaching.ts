@@ -28,7 +28,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import { onPredictiveInsightChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'predictive-coaching' });
@@ -411,7 +411,10 @@ export async function loadUserPatterns(userId: string): Promise<PatternObservati
   // TIER 3: Firestore (source of truth)
   try {
     const db = getFirestoreDb();
-    if (!db) return [];
+    if (!db) {
+      recordDegradation('predictive-coaching');
+      return [];
+    }
 
     const snapshot = await db
       .collection('bogle_users')

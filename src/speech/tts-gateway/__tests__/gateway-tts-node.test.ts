@@ -168,6 +168,7 @@ describe('Gateway TTS Node', () => {
       const gatewayTTS = createGatewayTTSNode({
         voiceId: 'test-voice',
         sessionId: 'test-session',
+        enableStreamingOverlap: false,
       });
 
       const textStream = createChunkedTextStream(['Hello ', 'world, ', 'how are you?']);
@@ -189,6 +190,7 @@ describe('Gateway TTS Node', () => {
         voiceId: 'test-voice',
         sessionId: 'test-session',
         enableCache: true,
+        enableStreamingOverlap: false,
       });
 
       // First call - should synthesize
@@ -207,6 +209,7 @@ describe('Gateway TTS Node', () => {
         voiceId: 'test-voice',
         sessionId: 'test-session',
         enableCache: true,
+        enableStreamingOverlap: false,
       });
 
       // First call - cache miss
@@ -233,6 +236,7 @@ describe('Gateway TTS Node', () => {
         voiceId: 'test-voice',
         sessionId: 'test-session',
         enableCache: false,
+        enableStreamingOverlap: false,
       });
 
       // First call
@@ -252,6 +256,7 @@ describe('Gateway TTS Node', () => {
       const gatewayTTS = createGatewayTTSNode({
         voiceId: 'test-voice',
         sessionId: 'test-session',
+        enableStreamingOverlap: false,
       });
 
       const textStream = createTextStream('<speed ratio="0.8"/>Hello slow');
@@ -271,6 +276,7 @@ describe('Gateway TTS Node', () => {
         voiceId: 'test-voice',
         sessionId: 'test-session',
         emotion: 'happy', // Config emotion
+        enableStreamingOverlap: false,
       });
 
       const textStream = createTextStream('Hello without SSML emotion');
@@ -293,6 +299,7 @@ describe('Gateway TTS Node', () => {
       const gatewayTTS = createGatewayTTSNode({
         voiceId: 'test-voice',
         sessionId: 'test-session',
+        enableStreamingOverlap: false,
       });
 
       const textStream = createTextStream('Error test');

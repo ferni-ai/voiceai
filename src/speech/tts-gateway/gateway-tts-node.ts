@@ -34,6 +34,7 @@ import {
 
 // ESM doesn't have global require, so we create one for dynamic imports
 const require = createRequire(import.meta.url);
+import { recordCallEvent } from '../../services/analytics/call-quality-monitor.js';
 import { getTTSCache } from '../../services/tts/index.js';
 import { getTTSProvider } from './providers/index.js';
 import { getSSMLProcessor } from './ssml/index.js';
@@ -120,9 +121,8 @@ export interface GatewayTTSNodeConfig {
    * This reduces latency on cache misses but increases API costs on cache hits.
    * Recommended only for latency-critical scenarios with low cache hit rates.
    *
-   * TODO (LATENCY-OPT): Cartesia WebSocket synthesizeStreaming for true per-chunk stream.
-   * Prefetch of next sentence while current plays is implemented (cloud overlap path).
-   * Remaining: provider.synthesizeStreaming for Cartesia (~200-400ms TTFB gain on first byte).
+   * Speculative synthesis starts in parallel with cache lookup (cost vs latency tradeoff).
+   * Cartesia WebSocket per-chunk streaming is enabled when CARTESIA_STREAMING_TTS !== 'false'.
    */
   enableSpeculativeSynthesis?: boolean;
 
@@ -367,11 +367,14 @@ async function createStreamingOverlapTTS(
     startTime,
   } = opts;
 
-  // For streaming local TTS (VoiceDesign): accumulate all text first, then
-  // send as a single streaming request. This prevents voice inconsistency
-  // (each request generates a new voice from the description) and eliminates
-  // choppy audio from gaps between separate synthesis calls.
-  const useWholeTextStreaming = !!provider.synthesizeStreaming;
+  // Local streaming TTS (Sonata): accumulate all text first, then one stream.
+  // Cartesia must NOT use this path — it needs sentence overlap + per-chunk WS.
+  const useWholeTextStreaming =
+    !!provider.synthesizeStreaming && provider.name !== 'cartesia';
+  const useCartesiaChunkStreaming =
+    provider.name === 'cartesia' &&
+    typeof provider.synthesizeStreaming === 'function' &&
+    process.env.CARTESIA_STREAMING_TTS !== 'false';
 
   return new ReadableStream<AudioFrame>({
     async start(controller) {
@@ -388,6 +391,24 @@ async function createStreamingOverlapTTS(
             if (err) controller.error(err);
             else controller.close();
           } catch { /* already closed or errored */ }
+        }
+      };
+
+      const markFirstAudio = (): void => {
+        if (firstAudioEnqueued) return;
+        firstAudioEnqueued = true;
+        const ttfbMs = Date.now() - startTime;
+        log.info({ ttfbMs, sessionId }, `🔊 Streaming TTS TTFB: ${ttfbMs}ms`);
+        if (sessionId) {
+          try {
+            recordCallEvent({
+              callId: sessionId,
+              timestamp: Date.now(),
+              type: 'first_response',
+            });
+          } catch {
+            // Non-fatal observability
+          }
         }
       };
 
@@ -416,11 +437,7 @@ async function createStreamingOverlapTTS(
               )) {
                 if (audioChunk && audioChunk.byteLength > 0) {
                   totalBytes += audioChunk.byteLength;
-                  if (!firstAudioEnqueued) {
-                    firstAudioEnqueued = true;
-                    const ttfbMs = Date.now() - startTime;
-                    log.info({ ttfbMs, sessionId }, `🔊 Streaming TTS TTFB: ${ttfbMs}ms`);
-                  }
+                  markFirstAudio();
                   for (const frame of splitIntoFrames(audioChunk, sampleRate, frameDurationMs)) {
                     controller.enqueue(frame);
                   }
@@ -475,6 +492,54 @@ async function createStreamingOverlapTTS(
           return synthesizeWithTimeout(provider, text, voiceId, prosodyWithEmotion, timeoutMs);
         };
 
+        const enqueueStreamedChunk = async (
+          text: string,
+          prosodyWithEmotion: SSMLProsodyConfig
+        ): Promise<void> => {
+          // Cache hit still uses full buffer (faster than opening WS)
+          if (enableCache && cache) {
+            const cached = await cache.get(text, voiceId, prosodyWithEmotion);
+            if (cached) {
+              metrics.cacheHits++;
+              if (cached.audio.byteLength > 0) {
+                markFirstAudio();
+                for (const frame of splitIntoFrames(cached.audio, sampleRate, frameDurationMs)) {
+                  controller.enqueue(frame);
+                }
+              }
+              return;
+            }
+            metrics.cacheMisses++;
+          }
+
+          metrics.gatewaySyntheses++;
+          const parts: Uint8Array[] = [];
+          for await (const audioChunk of provider.synthesizeStreaming!(
+            text,
+            voiceId,
+            prosodyWithEmotion
+          )) {
+            if (!audioChunk || audioChunk.byteLength === 0) continue;
+            parts.push(new Uint8Array(audioChunk));
+            markFirstAudio();
+            for (const frame of splitIntoFrames(audioChunk, sampleRate, frameDurationMs)) {
+              controller.enqueue(frame);
+            }
+          }
+
+          if (enableCache && cache && parts.length > 0) {
+            const total = parts.reduce((n, p) => n + p.byteLength, 0);
+            const merged = new Uint8Array(total);
+            let offset = 0;
+            for (const part of parts) {
+              merged.set(part, offset);
+              offset += part.byteLength;
+            }
+            const durationMs = Math.round((merged.byteLength / 2 / sampleRate) * 1000);
+            await cache.set(text, voiceId, merged.buffer, durationMs, prosodyWithEmotion);
+          }
+        };
+
         while (true) {
           const { done, value } = await reader.read();
           if (value) buffer += value;
@@ -517,24 +582,42 @@ async function createStreamingOverlapTTS(
 
             // Per-chunk error handling: skip failed chunks instead of killing the stream
             try {
-              let audio: ArrayBuffer;
+              // Prefetched full buffers (REST) take priority when matched
               if (
                 prefetch &&
                 prefetch.text === text &&
                 JSON.stringify(prefetch.prosody) === JSON.stringify(prosodyWithEmotion)
               ) {
-                audio = await prefetch.promise;
+                const audio = await prefetch.promise;
                 prefetch = null;
+                if (audio && audio.byteLength > 0) {
+                  markFirstAudio();
+                  for (const frame of splitIntoFrames(audio, sampleRate, frameDurationMs)) {
+                    controller.enqueue(frame);
+                  }
+                }
+              } else if (useCartesiaChunkStreaming) {
+                if (prefetch) {
+                  void prefetch.promise.catch(() => undefined);
+                  prefetch = null;
+                }
+                await enqueueStreamedChunk(text, prosodyWithEmotion);
               } else {
                 if (prefetch) {
                   // Discard mismatched prefetch (best-effort; don't block)
                   void prefetch.promise.catch(() => undefined);
                   prefetch = null;
                 }
-                audio = await synthesizeChunkAudio(text, prosodyWithEmotion);
+                const audio = await synthesizeChunkAudio(text, prosodyWithEmotion);
+                if (audio && audio.byteLength > 0) {
+                  markFirstAudio();
+                  for (const frame of splitIntoFrames(audio, sampleRate, frameDurationMs)) {
+                    controller.enqueue(frame);
+                  }
+                }
               }
 
-              // Speculatively start next sentence if already buffered
+              // Speculatively start next sentence if already buffered (REST prefetch)
               const nextMatch = buffer.match(SENTENCE_END);
               if (nextMatch && nextMatch.index !== undefined && buffer.length >= MIN_CHUNK) {
                 const nextEnd = nextMatch.index + nextMatch[0].length;
@@ -550,17 +633,6 @@ async function createStreamingOverlapTTS(
                     prosody: nextProsody,
                     promise: synthesizeChunkAudio(nextSanitized.text, nextProsody),
                   };
-                }
-              }
-
-              if (audio && audio.byteLength > 0) {
-                if (!firstAudioEnqueued) {
-                  firstAudioEnqueued = true;
-                  const ttfbMs = Date.now() - startTime;
-                  log.debug({ ttfbMs, sessionId }, 'Streaming overlap TTS TTFB');
-                }
-                for (const frame of splitIntoFrames(audio, sampleRate, frameDurationMs)) {
-                  controller.enqueue(frame);
                 }
               }
             } catch (chunkErr) {

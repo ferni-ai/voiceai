@@ -1378,6 +1378,23 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     publisherId,
   });
 
+  // Call quality: session connected and accepting conversation
+  try {
+    const { startCall, recordCallEvent } = await import(
+      '../../services/analytics/call-quality-monitor.js'
+    );
+    startCall(sessionId, userId, sessionPersona.id);
+    recordCallEvent({
+      callId: sessionId,
+      userId,
+      personaId: sessionPersona.id,
+      timestamp: Date.now(),
+      type: 'connection_success',
+    });
+  } catch (qualityErr) {
+    diag.debug('Call quality start failed (non-fatal)', { error: String(qualityErr) });
+  }
+
   return {
     services,
     isReturningUser,

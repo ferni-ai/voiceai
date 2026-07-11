@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import { onRelationshipMilestoneChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'relationship-milestones' });
@@ -220,7 +220,10 @@ async function loadMilestones(userId: string): Promise<RelationshipMilestone[]> 
 
   try {
     const db = getFirestoreDb();
-    if (!db) return [];
+    if (!db) {
+      recordDegradation('relationship-milestones');
+      return [];
+    }
 
     const snapshot = await db
       .collection('bogle_users')

@@ -11,9 +11,9 @@ Living backlog from the Wave 1 platform audit (A → B → C).
 
 | Area | Status | Notes |
 |------|--------|-------|
-| **A — Reliability** | Closed (P0s) | Logger crash harden + `/api/observability` on GCE |
+| **A — Reliability** | Closed (P0s + call quality wiring) | Logger + observability + session events |
 | **B — Quality** | Closed (P0s) | `as any` ≤30; circular outreach↔telephony broken |
-| **C — BTH** | Closed (tractable P0s) | Producer outreach, TTS prefetch, greeting, degraded logs |
+| **C — BTH** | Closed (tractable P0/P1) | Producer outreach, TTS prefetch + Cartesia WS, greeting, degraded logs |
 
 ### Live evidence (session start)
 
@@ -40,6 +40,9 @@ Living backlog from the Wave 1 platform audit (A → B → C).
 | P0-C2 | C | Outreach producer mode: persist on publish, gate agent processing, enable triggerCreation |
 | P0-C3 | C | TTS next-chunk prefetch on Cartesia overlap path |
 | P0-C4 | C | Wisdom services log on `db_unavailable` + `degraded-result` helper |
+| P1-A1 | A | Wire startCall / connection_success / first_response / endCall into sessions |
+| P1-C1 | C | Cartesia WebSocket `synthesizeStreaming` + per-chunk gateway path |
+| P1-C2 | C | High-impact superhuman `return []` → `recordDegradation` |
 
 ---
 
@@ -47,14 +50,11 @@ Living backlog from the Wave 1 platform audit (A → B → C).
 
 | ID | Priority | Item |
 |----|----------|------|
-| P1-A1 | P1 | Wire real session events into call-quality-monitor (endpoint may be empty until then) |
 | P1-B1 | P1 | 1408 files over 500 lines |
-| P1-C1 | P1 | Cartesia WebSocket `synthesizeStreaming` (remaining LATENCY-OPT) |
-| P1-C2 | P1 | Migrate all trust/superhuman `return []` to `degradedEmptyList` |
 | P1-C3 | P1 | Deploy/verify `ferni deploy async` drains pending triggers |
 | P2-C1 | P2 | Pronunciation gaps; CEO calendar still mock |
 | D1 | Later | Remove deprecated `x-user-id` |
 
 ---
 
-*Updated: 2026-07-11*
+*Updated: 2026-07-11 (session 2)*
