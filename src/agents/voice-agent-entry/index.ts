@@ -750,7 +750,12 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }
     } catch { /* diagnosis is best-effort */ }
 
-    // Cleanup on error
+    // Cleanup on error — close call-quality session so metrics don't leak activeCalls
+    try {
+      const { endCall } = await import('../../services/analytics/call-quality-monitor.js');
+      endCall(sessionId, 'error');
+    } catch { /* ignore */ }
+
     try {
       const registryResult = await runSessionCleanup(sessionId);
       process.stderr.write(`[voice-agent-entry] 🧹 Registry cleanup on error: ${registryResult.cleaned} cleaned\n`);
@@ -760,12 +765,18 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       try { await cleanup(); } catch { /* ignore */ }
     }
 
-    // Keep room connected if possible
+    // Best-effort wait for room disconnect — NEVER hang forever on the error path
     try {
-      if (!ctx.room.isConnected) await ctx.connect();
-      await new Promise<void>((resolve) => {
-        ctx.room.on('disconnected', () => resolve());
-      });
+      if (ctx.room.isConnected) {
+        await Promise.race([
+          new Promise<void>((resolve) => {
+            ctx.room.once('disconnected', () => resolve());
+          }),
+          new Promise<void>((resolve) => {
+            setTimeout(resolve, 5_000);
+          }),
+        ]);
+      }
     } catch { /* ignore */ }
 
     unregisterSession(sessionId, `crash_in_${currentPhase}`);

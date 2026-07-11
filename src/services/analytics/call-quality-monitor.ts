@@ -305,23 +305,31 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
   const windowSessions = completedSessions.filter((s) => s.startTime >= windowStart);
   const activeSessions = Array.from(sessions.values());
 
-  // Connection metrics
+  // Connection metrics (include active sessions that already connected)
   const connectionAttempts = windowSessions.length + activeSessions.length;
-  const connectionSuccesses = windowSessions.filter((s) => s.connectionTimeMs !== undefined).length;
+  const connectedCompleted = windowSessions.filter((s) => s.connectionTimeMs !== undefined);
+  const connectedActive = activeSessions.filter((s) => s.connectionTimeMs !== undefined);
+  const connectionSuccesses = connectedCompleted.length + connectedActive.length;
   const connectionSuccessRate =
     connectionAttempts > 0 ? connectionSuccesses / connectionAttempts : 1;
-  const connectionTimes = windowSessions
-    .filter((s) => s.connectionTimeMs !== undefined)
-    .map((s) => s.connectionTimeMs!);
+  const connectionTimes = [
+    ...connectedCompleted.map((s) => s.connectionTimeMs!),
+    ...connectedActive.map((s) => s.connectionTimeMs!),
+  ];
   const avgConnectionTimeMs =
     connectionTimes.length > 0
       ? connectionTimes.reduce((a, b) => a + b, 0) / connectionTimes.length
       : 0;
 
-  // Response metrics
-  const firstResponseTimes = windowSessions
-    .filter((s) => s.firstResponseTimeMs !== undefined)
-    .map((s) => s.firstResponseTimeMs!);
+  // Response metrics (include active — first audio often arrives before call ends)
+  const firstResponseTimes = [
+    ...windowSessions
+      .filter((s) => s.firstResponseTimeMs !== undefined)
+      .map((s) => s.firstResponseTimeMs!),
+    ...activeSessions
+      .filter((s) => s.firstResponseTimeMs !== undefined)
+      .map((s) => s.firstResponseTimeMs!),
+  ];
   const avgFirstResponseTimeMs =
     firstResponseTimes.length > 0
       ? firstResponseTimes.reduce((a, b) => a + b, 0) / firstResponseTimes.length
