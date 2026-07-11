@@ -20,7 +20,7 @@ import { captureCallResult } from '../../../services/outreach/call-result-captur
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import type {
   CallOutcome,
-} from '../../../tools/domains/telephony/call-on-behalf.js';
+} from '../../../tools/domains/telephony/types.js';
 import {
   trackOutboundCall,
   getPendingCall,

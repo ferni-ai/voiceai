@@ -67,34 +67,67 @@ export function serializeError(error: unknown): unknown {
   return error;
 }
 
+const MAX_LOG_DEPTH = 5;
+
 /**
- * Process logging bindings to ensure errors are serializable.
+ * Sanitize values before pino serialization.
+ * Prevents "Maximum call stack size exceeded" from circular / deeply nested objects
+ * (seen in production transcript-handler crashes via pino multistream).
+ */
+function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+
+  if (value instanceof Error) {
+    return serializeError(value);
+  }
+
+  if (depth >= MAX_LOG_DEPTH) {
+    return '[MaxDepth]';
+  }
+
+  if (seen.has(value)) {
+    return '[Circular]';
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeForLog(item, depth + 1, seen));
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    result[key] = sanitizeForLog(nested, depth + 1, seen);
+  }
+  return result;
+}
+
+/**
+ * Process logging bindings to ensure errors are serializable and objects are safe for pino.
  *
  * If the bindings contain an `error` key with an Error object,
  * it will be serialized to a plain object for proper JSON output.
+ * All nested objects are depth-limited and circular-safe.
  */
 function processBindings(bindings: Record<string, unknown>): Record<string, unknown> {
   if (!bindings || typeof bindings !== 'object') {
     return bindings;
   }
 
+  const withErrors: Record<string, unknown> = { ...bindings };
+
   // Check if there's an 'error' key that needs serialization
-  if ('error' in bindings && bindings.error instanceof Error) {
-    return {
-      ...bindings,
-      error: serializeError(bindings.error),
-    };
+  if ('error' in withErrors && withErrors.error instanceof Error) {
+    withErrors.error = serializeError(withErrors.error);
   }
 
   // Also check for 'err' key (pino convention)
-  if ('err' in bindings && bindings.err instanceof Error) {
-    return {
-      ...bindings,
-      err: serializeError(bindings.err),
-    };
+  if ('err' in withErrors && withErrors.err instanceof Error) {
+    withErrors.err = serializeError(withErrors.err);
   }
 
-  return bindings;
+  return sanitizeForLog(withErrors) as Record<string, unknown>;
 }
 
 /**

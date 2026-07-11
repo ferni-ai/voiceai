@@ -285,32 +285,33 @@ export async function startup(): Promise<AppConfig> {
     logger.warn(`Background workers failed to start (non-fatal): ${workerErr}`);
   }
 
-  // Start Intelligent Outreach Decision Engine
-  // This powers "Better Than Human" proactive check-ins, commitment follow-ups,
-  // and context-aware outreach based on conversation extractions
-  logger.info('Starting Intelligent Outreach Engine...');
+  // Outreach: voice agent is PRODUCER only (Pub/Sub + Firestore).
+  // Trigger processing / scheduled drain runs in apps/async — never load 300k triggers here.
+  // Enable processing on the agent only when OUTREACH_TRIGGER_PROCESSING=true (dev/debug).
   try {
-    const { startOutreachDecisionEngine } = await import('./services/outreach/decision-engine.js');
-    startOutreachDecisionEngine();
-    logger.info('✓ Intelligent Outreach Engine running');
-
-    // Schedule daily outreach job (runs at 10am server time daily)
-    // This evaluates all users for "Thinking of You" and growth reflection outreach
-    const { processScheduledTriggers } = await import('./services/outreach/daily-outreach-job.js');
-
-    // Run scheduled trigger check every 30 minutes
-    registerInterval(
-      'outreach-trigger-scheduler',
-      () => {
-        processScheduledTriggers().catch((err) => {
-          logger.debug({ error: String(err) }, 'Scheduled triggers check failed (non-fatal)');
-        });
-      },
-      30 * 60 * 1000
-    );
-    logger.info('✓ Outreach trigger scheduler running (30min intervals)');
+    const { isOutreachFeatureEnabled } = await import('./config/feature-flags.js');
+    if (isOutreachFeatureEnabled('triggerProcessing')) {
+      logger.info('Starting Intelligent Outreach Engine (triggerProcessing enabled)...');
+      const { startOutreachDecisionEngine } = await import('./services/outreach/decision-engine.js');
+      startOutreachDecisionEngine();
+      const { processScheduledTriggers } = await import('./services/outreach/daily-outreach-job.js');
+      registerInterval(
+        'outreach-trigger-scheduler',
+        () => {
+          processScheduledTriggers().catch((err) => {
+            logger.debug({ error: String(err) }, 'Scheduled triggers check failed (non-fatal)');
+          });
+        },
+        30 * 60 * 1000
+      );
+      logger.info('✓ Outreach trigger scheduler running (30min intervals)');
+    } else {
+      logger.info(
+        '📬 Outreach producer mode — processing deferred to async worker (apps/async)'
+      );
+    }
   } catch (outreachErr) {
-    logger.warn(`Intelligent Outreach Engine startup failed (non-fatal): ${outreachErr}`);
+    logger.warn(`Outreach startup gate failed (non-fatal): ${outreachErr}`);
   }
 
   // Start Calendar Briefing Job (Morning notifications for users with calendars)

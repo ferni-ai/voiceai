@@ -18,6 +18,15 @@ export {
   type FallbackLogger,
 } from './safe-logger.js';
 
+export {
+  degradedEmptyList,
+  degradedEmptyObject,
+  isDegradedList,
+  type DegradedListResult,
+  type DegradedMeta,
+  type DegradedObjectResult,
+} from './degraded-result.js';
+
 // ============================================================================
 // ASYNC UTILITIES
 // ============================================================================

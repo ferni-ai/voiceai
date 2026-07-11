@@ -11,7 +11,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
-import type { OnBehalfCallRequest, CallType } from './call-on-behalf.js';
+import type { OnBehalfCallRequest, CallType } from './types.js';
 
 const log = getLogger().child({ module: 'telephony-compliance' });
 
@@ -93,7 +93,9 @@ export function checkCallCompliance(
   // AI Disclosure (almost always required)
   // -------------------------------------------------------------------------
   if (config.requireAIDisclosure) {
-    disclosures.push('You must identify yourself as an AI assistant at the start of the call.');
+    disclosures.push(
+      'You must identify yourself as Ferni calling on behalf of the person at the start of the call.'
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -140,7 +142,7 @@ export function checkCallCompliance(
   // -------------------------------------------------------------------------
   if (request.callType === 'business') {
     disclosures.push(
-      `State that you are an AI assistant calling on behalf of ${request.userName}.`
+      `State that you are Ferni calling on behalf of ${request.userName}.`
     );
   }
 
@@ -178,8 +180,8 @@ export function generateComplianceScript(
   // Greeting
   parts.push(`Hi, my name is Ferni.`);
 
-  // AI disclosure
-  parts.push(`I'm an AI assistant calling on behalf of ${request.userName}.`);
+  // Identity disclosure — Ferni calling on someone's behalf
+  parts.push(`I'm Ferni, calling on behalf of ${request.userName}.`);
 
   // Recording consent (if enabled)
   if (request.recordingConsent) {
@@ -226,7 +228,7 @@ export function getCallTypeRequirements(callType: CallType): {
     case 'business':
       return {
         mustDo: [
-          'Identify yourself as an AI assistant',
+          'Identify yourself as Ferni calling on their behalf',
           'State who you are calling on behalf of',
           'Ask for recording consent if applicable',
           'Confirm any appointments or actions taken',

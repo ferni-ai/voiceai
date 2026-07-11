@@ -313,22 +313,42 @@ async function getExperimentSummaries(): Promise<ExperimentSummary[]> {
 /**
  * Generate a complete briefing for a user
  */
+/**
+ * Resolve a first name for greeting from the user profile.
+ * Falls back to a warm generic address — never a hardcoded name.
+ */
+async function resolveGreetingName(userId: string): Promise<string> {
+  try {
+    const { getFirestoreStore } = await import('../../memory/firestore-store.js');
+    const store = getFirestoreStore();
+    const profile = await store.getProfile(userId);
+    const rawName = profile?.preferredName || profile?.name;
+    if (rawName && rawName !== 'User' && rawName.trim().length > 0) {
+      return rawName.trim().split(/\s+/)[0] ?? 'there';
+    }
+  } catch (error) {
+    log.debug({ error: String(error), userId }, 'Could not resolve greeting name from profile');
+  }
+  return 'there';
+}
+
 export async function generateBriefing(userId: string): Promise<Briefing> {
   log.info({ userId }, 'Generating briefing');
 
   // Fetch all data in parallel
-  const [calendar, priorities, metrics, experiments] = await Promise.all([
+  const [calendar, priorities, metrics, experiments, greetingName] = await Promise.all([
     getCalendarEvents(userId),
     getPrioritiesFromGoals(userId),
     getMetricsSummary(userId),
     getExperimentSummaries(),
+    resolveGreetingName(userId),
   ]);
 
   // Generate AI suggestion based on context
   const suggestion = generateSuggestion(calendar, priorities);
 
   const briefing: Briefing = {
-    greeting: getGreeting('Seth'), // TODO: Get user's name from profile
+    greeting: getGreeting(greetingName),
     date: new Date(),
     calendar,
     priorities,

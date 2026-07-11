@@ -142,7 +142,10 @@ export async function getParadoxes(
   status: 'active' | 'resolved' | 'accepted' | 'all' = 'all'
 ): Promise<Paradox[]> {
   const db = getFirestoreDb();
-  if (!db) return [];
+  if (!db) {
+    log.warn({ reason: 'db_unavailable' }, 'Wisdom intelligence degraded — returning empty');
+    return [];
+  }
 
   try {
     let query = db.collection('bogle_users').doc(userId).collection('paradoxes');
@@ -213,7 +216,10 @@ export async function getEnoughStatements(
   domain?: string
 ): Promise<EnoughStatement[]> {
   const db = getFirestoreDb();
-  if (!db) return [];
+  if (!db) {
+    log.warn({ reason: 'db_unavailable' }, 'Wisdom intelligence degraded — returning empty');
+    return [];
+  }
 
   try {
     let query = db.collection('bogle_users').doc(userId).collection('enough_statements');
@@ -288,7 +294,10 @@ export async function getIncubatingWisdom(
   status: 'incubating' | 'ready' | 'resolved' | 'all' = 'incubating'
 ): Promise<IncubatingWisdom[]> {
   const db = getFirestoreDb();
-  if (!db) return [];
+  if (!db) {
+    log.warn({ reason: 'db_unavailable' }, 'Wisdom intelligence degraded — returning empty');
+    return [];
+  }
 
   try {
     let query = db.collection('bogle_users').doc(userId).collection('wisdom_incubation');
@@ -379,7 +388,10 @@ export async function getWisdomPatterns(
   patternType?: WisdomPattern['patternType']
 ): Promise<WisdomPattern[]> {
   const db = getFirestoreDb();
-  if (!db) return [];
+  if (!db) {
+    log.warn({ reason: 'db_unavailable' }, 'Wisdom intelligence degraded — returning empty');
+    return [];
+  }
 
   try {
     let query = db.collection('bogle_users').doc(userId).collection('wisdom_patterns');
@@ -427,7 +439,10 @@ export async function getLegacyStatements(
   importance?: LegacyStatement['importance']
 ): Promise<LegacyStatement[]> {
   const db = getFirestoreDb();
-  if (!db) return [];
+  if (!db) {
+    log.warn({ reason: 'db_unavailable' }, 'Wisdom intelligence degraded — returning empty');
+    return [];
+  }
 
   try {
     let query = db.collection('bogle_users').doc(userId).collection('legacy_statements');
@@ -508,7 +523,10 @@ export async function getCyclicalPatterns(
   cycle?: CyclicalPattern['cycle']
 ): Promise<CyclicalPattern[]> {
   const db = getFirestoreDb();
-  if (!db) return [];
+  if (!db) {
+    log.warn({ reason: 'db_unavailable' }, 'Wisdom intelligence degraded — returning empty');
+    return [];
+  }
 
   try {
     let query = db.collection('bogle_users').doc(userId).collection('cyclical_patterns');
@@ -553,7 +571,10 @@ export async function getLifeChapters(
   status?: LifeChapter['status']
 ): Promise<LifeChapter[]> {
   const db = getFirestoreDb();
-  if (!db) return [];
+  if (!db) {
+    log.warn({ reason: 'db_unavailable' }, 'Wisdom intelligence degraded — returning empty');
+    return [];
+  }
 
   try {
     let query = db.collection('bogle_users').doc(userId).collection('life_chapters');

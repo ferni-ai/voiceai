@@ -120,7 +120,9 @@ export class EmbeddingWorker {
 
       // Trigger processing if not already running
       if (!this.isProcessing) {
-        this.processQueue();
+        void this.processQueue().catch((error: unknown) => {
+          log.error({ error: String(error) }, 'Embedding queue processing failed');
+        });
       }
     });
   }
@@ -276,7 +278,9 @@ export class EmbeddingWorker {
     // Process queue every batchDelayMs
     setInterval(() => {
       if (this.requestQueue.length > 0 && !this.isProcessing) {
-        this.processQueue();
+        void this.processQueue().catch((error: unknown) => {
+          log.error({ error: String(error) }, 'Embedding queue processing failed');
+        });
       }
     }, this.batchDelayMs);
 

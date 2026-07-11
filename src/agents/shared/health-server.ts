@@ -1078,6 +1078,31 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
         return;
       }
 
+      // Observability snapshot for ops/diagnose + disconnect runbooks
+      // Exposes callQuality from the in-process call-quality-monitor
+      if (url === '/api/observability' || url.startsWith('/api/observability?')) {
+        try {
+          const { getMetrics } = await import('../../services/analytics/call-quality-monitor.js');
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              callQuality: getMetrics(),
+              timestamp: new Date().toISOString(),
+              service: 'voice-agent',
+            })
+          );
+        } catch (obsErr) {
+          res.writeHead(503, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              error: 'Observability unavailable',
+              detail: String(obsErr),
+            })
+          );
+        }
+        return;
+      }
+
       // 404 for other routes (LiveKit agent will handle /worker)
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Not found' }));

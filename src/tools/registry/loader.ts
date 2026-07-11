@@ -1276,7 +1276,16 @@ export function convertLegacyTools(
         execute:
           hasExecute
             ? (toolObj.execute as () => Promise<unknown>).bind(toolObj)
-            : async () => ({ error: 'Not implemented' }),
+            : async () => {
+                getLogger().warn(
+                  { toolId: id, domain },
+                  'Legacy tool invoked without execute implementation'
+                );
+                return {
+                  error: 'Not implemented',
+                  _meta: { degraded: true, reason: 'legacy_tool_missing_execute', toolId: id },
+                };
+              },
       };
       },
     };

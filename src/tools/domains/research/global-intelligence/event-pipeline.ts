@@ -90,7 +90,9 @@ export class EventPipeline {
 
     // Auto-flush if buffer is large
     if (EventPipeline.eventBuffer.length >= 100) {
-      EventPipeline.flush();
+      void EventPipeline.flush().catch((error: unknown) => {
+        log.error({ error: String(error) }, 'Event flush failed');
+      });
     }
   }
 
@@ -121,7 +123,9 @@ export class EventPipeline {
     }
 
     EventPipeline.flushInterval = setInterval(() => {
-      EventPipeline.flush();
+      void EventPipeline.flush().catch((error: unknown) => {
+        log.error({ error: String(error) }, 'Event flush failed');
+      });
     }, intervalMs);
   }
 

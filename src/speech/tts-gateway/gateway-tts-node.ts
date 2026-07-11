@@ -120,12 +120,9 @@ export interface GatewayTTSNodeConfig {
    * This reduces latency on cache misses but increases API costs on cache hits.
    * Recommended only for latency-critical scenarios with low cache hit rates.
    *
-   * TODO (LATENCY-OPT): Implement streaming synthesis for true "better than human" latency.
-   * Current architecture collects all text before synthesis. With streaming:
-   * 1. Start synthesis on first sentence/chunk
-   * 2. Stream audio frames as they arrive
-   * 3. Continue synthesis with subsequent chunks
-   * This would give ~200-400ms faster time-to-first-audio.
+   * TODO (LATENCY-OPT): Cartesia WebSocket synthesizeStreaming for true per-chunk stream.
+   * Prefetch of next sentence while current plays is implemented (cloud overlap path).
+   * Remaining: provider.synthesizeStreaming for Cartesia (~200-400ms TTFB gain on first byte).
    */
   enableSpeculativeSynthesis?: boolean;
 
@@ -442,6 +439,42 @@ async function createStreamingOverlapTTS(
           }
         } else {
         // ── CLOUD TTS PATH: sentence-by-sentence overlap (Cartesia etc) ──
+        // Prefetch next chunk synthesis while current chunk plays (LATENCY-OPT)
+        type PrefetchEntry = {
+          text: string;
+          prosody: SSMLProsodyConfig;
+          promise: Promise<ArrayBuffer>;
+        };
+        let prefetch: PrefetchEntry | null = null;
+
+        const synthesizeChunkAudio = async (
+          text: string,
+          prosodyWithEmotion: SSMLProsodyConfig
+        ): Promise<ArrayBuffer> => {
+          if (enableCache && cache) {
+            const cached = await cache.get(text, voiceId, prosodyWithEmotion);
+            if (cached) {
+              metrics.cacheHits++;
+              return cached.audio;
+            }
+            metrics.cacheMisses++;
+            metrics.gatewaySyntheses++;
+            const audio = await synthesizeWithTimeout(
+              provider,
+              text,
+              voiceId,
+              prosodyWithEmotion,
+              timeoutMs
+            );
+            const sampleCount = audio.byteLength / 2;
+            const durationMs = Math.round((sampleCount / sampleRate) * 1000);
+            await cache.set(text, voiceId, audio, durationMs, prosodyWithEmotion);
+            return audio;
+          }
+          metrics.gatewaySyntheses++;
+          return synthesizeWithTimeout(provider, text, voiceId, prosodyWithEmotion, timeoutMs);
+        };
+
         while (true) {
           const { done, value } = await reader.read();
           if (value) buffer += value;
@@ -484,28 +517,40 @@ async function createStreamingOverlapTTS(
 
             // Per-chunk error handling: skip failed chunks instead of killing the stream
             try {
-              // Batch path: wait for full audio (fast providers like Cartesia)
               let audio: ArrayBuffer;
-              if (enableCache && cache) {
-                const cached = await cache.get(text, voiceId, prosodyWithEmotion);
-                if (cached) {
-                  metrics.cacheHits++;
-                  audio = cached.audio;
-                } else {
-                  metrics.cacheMisses++;
-                  metrics.gatewaySyntheses++;
-                  audio = await synthesizeWithTimeout(
-                    provider, text, voiceId, prosodyWithEmotion, timeoutMs
-                  );
-                  const sampleCount = audio.byteLength / 2; // s16le = 2 bytes per sample
-                  const durationMs = Math.round((sampleCount / sampleRate) * 1000);
-                  await cache.set(text, voiceId, audio, durationMs, prosodyWithEmotion);
-                }
+              if (
+                prefetch &&
+                prefetch.text === text &&
+                JSON.stringify(prefetch.prosody) === JSON.stringify(prosodyWithEmotion)
+              ) {
+                audio = await prefetch.promise;
+                prefetch = null;
               } else {
-                metrics.gatewaySyntheses++;
-                audio = await synthesizeWithTimeout(
-                  provider, text, voiceId, prosodyWithEmotion, timeoutMs
-                );
+                if (prefetch) {
+                  // Discard mismatched prefetch (best-effort; don't block)
+                  void prefetch.promise.catch(() => undefined);
+                  prefetch = null;
+                }
+                audio = await synthesizeChunkAudio(text, prosodyWithEmotion);
+              }
+
+              // Speculatively start next sentence if already buffered
+              const nextMatch = buffer.match(SENTENCE_END);
+              if (nextMatch && nextMatch.index !== undefined && buffer.length >= MIN_CHUNK) {
+                const nextEnd = nextMatch.index + nextMatch[0].length;
+                const nextRaw = buffer.slice(0, nextEnd);
+                const nextSanitized = sanitizeChunkForTTS(nextRaw, ssmlProcessor);
+                if (nextSanitized.text) {
+                  const nextProsody: SSMLProsodyConfig = {
+                    ...nextSanitized.prosody,
+                    emotion: nextSanitized.prosody.emotion || emotion,
+                  };
+                  prefetch = {
+                    text: nextSanitized.text,
+                    prosody: nextProsody,
+                    promise: synthesizeChunkAudio(nextSanitized.text, nextProsody),
+                  };
+                }
               }
 
               if (audio && audio.byteLength > 0) {
@@ -519,6 +564,7 @@ async function createStreamingOverlapTTS(
                 }
               }
             } catch (chunkErr) {
+              prefetch = null;
               log.warn(
                 { err: String(chunkErr), sessionId, personaId, chunkLen: text.length },
                 'Streaming overlap: chunk synthesis failed, skipping'

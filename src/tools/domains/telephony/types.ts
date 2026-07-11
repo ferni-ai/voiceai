@@ -65,3 +65,51 @@ export interface CallScriptTemplate {
   mustConfirm: string[];
   mustNotDo: string[];
 }
+
+// ============================================================================
+// ON-BEHALF CALL REQUEST / OUTCOME
+// ============================================================================
+
+export interface OnBehalfCallRequest {
+  // Who to call
+  contactQuery: string; // "my doctor", "mom", "Olive Garden"
+  resolvedContact?: ResolvedContact;
+
+  // Purpose
+  purpose: string; // "reschedule appointment to next week"
+  objective: CallObjective;
+  callType: CallType;
+
+  // Context from original conversation
+  originalSessionId: string;
+  userId: string;
+  userTimezone: string;
+  userName: string;
+  userPreferences?: {
+    preferredTimes?: string[];
+    constraints?: string[];
+    additionalContext?: string;
+  };
+
+  // Compliance
+  recordingConsent: boolean;
+  requiresHIPAA?: boolean;
+}
+
+export interface CallOutcome {
+  callId: string;
+  status: 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
+
+  // What happened
+  objectiveAchieved: boolean;
+  outcome: string;
+
+  // Follow-ups
+  callbackRequired?: boolean;
+  callbackTime?: string;
+  actionItems?: string[];
+
+  // Recording (if consented)
+  recordingUrl?: string;
+  transcriptSummary?: string;
+}

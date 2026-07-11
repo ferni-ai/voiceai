@@ -94,6 +94,38 @@ function generateTriggerId(): string {
   return `trigger-${timestamp}-${seq}-${random}`;
 }
 
+/**
+ * Persist trigger to Firestore so apps/async can load by id.
+ * Best-effort — Pub/Sub delivery still works if Firestore is unavailable.
+ */
+async function persistTriggerForWorker(payload: OutreachTriggerPayload): Promise<void> {
+  try {
+    const { saveTrigger } = await import('./firestore-persistence.js');
+    const scheduledFor = payload.scheduledFor ? new Date(payload.scheduledFor) : undefined;
+    await saveTrigger(
+      {
+        id: payload.id,
+        type: payload.type,
+        userId: payload.userId,
+        priority: payload.priority,
+        reason: payload.reason,
+        context: payload.context as Record<string, unknown> | undefined,
+        commitment: payload.context?.commitment,
+        milestone: payload.context?.milestone,
+        suggestedPersona: payload.personaId as never,
+        createdAt: new Date(payload.createdAt),
+        suggestedTime: scheduledFor,
+      },
+      scheduledFor
+    );
+  } catch (error) {
+    log.warn(
+      { triggerId: payload.id, error: String(error) },
+      'Failed to persist outreach trigger (Pub/Sub still delivered)'
+    );
+  }
+}
+
 // ============================================================================
 // PUBLISHER
 // ============================================================================
@@ -156,6 +188,9 @@ export async function publishOutreachTrigger(
         'Outreach trigger published to Pub/Sub'
       );
 
+      // Persist so async worker /process-trigger can load by id
+      await persistTriggerForWorker(fullTrigger);
+
       return {
         success: true,
         triggerId,
@@ -163,7 +198,9 @@ export async function publishOutreachTrigger(
       };
     }
 
-    // Local fallback (Pub/Sub disabled)
+    // Local fallback (Pub/Sub disabled) — still persist for batch drain
+    await persistTriggerForWorker(fullTrigger);
+
     log.debug(
       { triggerId, type: trigger.type },
       'Outreach trigger queued locally (Pub/Sub disabled)'

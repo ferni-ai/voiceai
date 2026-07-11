@@ -4,6 +4,9 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+
+import type { Request, Response, Router } from 'express';
+
 import { goalsRoutes } from './goals-routes.js';
 import { winsRoutes } from './wins-routes.js';
 import { journalRoutes } from './journal-routes.js';
@@ -23,7 +26,7 @@ import './types.js';
 
 const log = createLogger({ module: 'ceo-routes' });
 
-/** Request extended with auth and parsed body/query for CEO routes */
+/** Node request augmented for Express-style CEO routers */
 interface CEORequest extends IncomingMessage {
   user?: { uid: string };
   body?: unknown;
@@ -40,7 +43,7 @@ export async function handleCEORoutes(
   parsedUrl: URL
 ): Promise<boolean> {
   // Route mapping
-  const routes: Record<string, import('express').IRouter> = {
+  const routes: Record<string, Router> = {
     '/api/ceo/goals': goalsRoutes,
     '/api/ceo/wins': winsRoutes,
     '/api/ceo/journal': journalRoutes,
@@ -60,6 +63,7 @@ export async function handleCEORoutes(
 
   if (routeEntry) {
     const [basePath, router] = routeEntry;
+    const ceoReq = req as CEORequest;
 
     try {
       // Get authenticated user
@@ -71,7 +75,7 @@ export async function handleCEORoutes(
       }
 
       // Attach user to request
-      (req as CEORequest).user = { uid: auth.userId };
+      ceoReq.user = { uid: auth.userId };
 
       // Parse body for POST/PUT requests
       let body: unknown = undefined;
@@ -82,15 +86,15 @@ export async function handleCEORoutes(
         } catch {
           body = {};
         }
-        (req as CEORequest).body = body;
+        ceoReq.body = body;
       }
 
       // Parse query params
-      (req as CEORequest).query = Object.fromEntries(parsedUrl.searchParams);
+      ceoReq.query = Object.fromEntries(parsedUrl.searchParams);
 
       // Strip base path and route
       const routePath = pathname.replace(basePath, '');
-      const handled = await routeRequest(req, res, router, routePath);
+      const handled = await routeRequest(ceoReq, res, router, routePath);
       return handled;
     } catch (error) {
       log.error({ error: String(error), pathname }, 'CEO route error');
@@ -109,9 +113,9 @@ export async function handleCEORoutes(
  * Route requests to the Express router
  */
 async function routeRequest(
-  req: IncomingMessage,
+  req: CEORequest,
   res: ServerResponse,
-  router: import('express').IRouter,
+  router: Router,
   path: string
 ): Promise<boolean> {
   const express = await import('express');
@@ -121,13 +125,12 @@ async function routeRequest(
   mockApp.use('/', router);
 
   // Create mock request with the stripped path
-  const mockReq = Object.assign(req, { url: path || '/' }) as import('express').Request;
-  const resExpress = res as unknown as import('express').Response;
+  const mockReq = Object.assign(req, { url: path || '/' }) as Request;
 
   // Forward to Express router
   await new Promise<void>((resolve, reject) => {
-    mockApp(mockReq, resExpress, (err: unknown) => {
-      if (err) reject(err);
+    mockApp(mockReq, res as Response, (err?: unknown) => {
+      if (err) reject(err instanceof Error ? err : new Error(String(err)));
       else resolve();
     });
   });

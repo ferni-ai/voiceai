@@ -194,11 +194,12 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
       getLogger().warn({ error }, 'Unified trust persistence init skipped (non-critical)');
     }
 
-    // TODO: Outreach system disabled - needs to be refactored into separate service
-    // Loading 300k triggers on voice agent startup causes memory issues and slow cold starts.
-    // Outreach should run as a separate Cloud Run worker or scheduled job.
-    // See architectural discussion: separate voice agent from outreach worker.
-    getLogger().info('📬 Proactive outreach system disabled (run separately)');
+    // TODO: Full initializeOutreachSystem() bulk-loads pending triggers (can be 300k+)
+    // and must NEVER run on the voice agent. Voice agent is PRODUCER only:
+    // - triggerCreation=true → publishOutreachTrigger persists + Pub/Sub
+    // - Processing → apps/async / outreach-worker (bounded batches)
+    // See: docs/architecture/OUTREACH-WORKER-ARCHITECTURE.md
+    getLogger().info('📬 Proactive outreach: producer mode (processing on async worker)');
     // try {
     //   const { initializeOutreachSystem } = await import('./outreach/index.js');
     //   await initializeOutreachSystem();

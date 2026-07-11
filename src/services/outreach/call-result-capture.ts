@@ -15,7 +15,7 @@ import { onCallResultChange, onFollowUpActionChange } from '../data-layer/hooks/
 import type {
   CallOutcome,
   OnBehalfCallRequest,
-} from '../../tools/domains/telephony/call-on-behalf.js';
+} from '../../tools/domains/telephony/types.js';
 
 const log = getLogger().child({ service: 'call-result-capture' });
 

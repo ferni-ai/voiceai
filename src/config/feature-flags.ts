@@ -325,9 +325,9 @@ const DEFAULT_FLAGS: FeatureFlags = {
   },
   outreach: {
     enabled: true, // Enabled for user-initiated calls ("call me", "have Maya call me")
-    triggerCreation: false, // Disabled - no AI-initiated triggers
-    systemInitialization: true, // Initialize outreach engine
-    triggerProcessing: false, // Disabled - no automatic trigger processing
+    triggerCreation: true, // Voice agent produces triggers for async worker (Pub/Sub + Firestore)
+    systemInitialization: true, // Initialize outreach engine (lightweight; no 300k bulk load)
+    triggerProcessing: false, // Processing runs in apps/async — never bulk-load on GCE
     delivery: true, // Enabled - actually make calls when user requests
   },
   easterEggs: {
