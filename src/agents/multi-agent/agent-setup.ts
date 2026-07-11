@@ -75,6 +75,11 @@ import {
 } from '../../tools/orchestrator/voice-agent-integration.js';
 // Tool Gateway (2026 architecture) - tiered loading, predictive prefetch
 import { getToolGateway } from '../../tools/gateway/index.js';
+import {
+  filterInitialSpawnTools,
+  getInitialToolPolicyFromEnv,
+  type InitialToolPolicy,
+} from './initial-tools.js';
 
 // Check if Tool Gateway is enabled (defaults to true)
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
@@ -90,6 +95,25 @@ import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
 import { generateReply } from '../shared/generate-reply-gateway.js';
 
 const log = getLogger();
+
+interface NamedToolEntry {
+  name: string;
+  tool: unknown;
+}
+
+function filterToolRecordByInitialPolicy(
+  allTools: Record<string, unknown>,
+  essentialNames: ReadonlySet<string>,
+  handoffNames: ReadonlySet<string>,
+  policy: InitialToolPolicy
+): Record<string, unknown> {
+  const namedTools: NamedToolEntry[] = Object.entries(allTools).map(([name, tool]) => ({
+    name,
+    tool,
+  }));
+  const filteredTools = filterInitialSpawnTools(namedTools, essentialNames, handoffNames, policy);
+  return Object.fromEntries(filteredTools.map(({ name, tool }) => [name, tool]));
+}
 
 // ============================================================================
 // TYPES
@@ -600,6 +624,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const HANDOFF_TOOL_TIMEOUT_MS = 8000; // 8s timeout for handoffs (increased from 5s)
   const NORMAL_TOOL_TIMEOUT_MS = 15000; // 15s for initial agent startup
   const toolTimeoutMs = isHandoff ? HANDOFF_TOOL_TIMEOUT_MS : NORMAL_TOOL_TIMEOUT_MS;
+  const initialToolPolicy = getInitialToolPolicyFromEnv();
 
   // =========================================================================
   // ⚡ FASTEST PATH: Use Tool Gateway if enabled and ready
@@ -687,7 +712,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // FALLBACK PATH: Load essential tools when full orchestrator times out
   // BUG FIX: Previously only loaded handoff tools, missing music/weather/etc!
   // FIX: NEVER return empty - always provide minimum viable toolset
-  const loadEssentialToolsFallback = async (): Promise<Record<string, unknown>> => {
+  const loadEssentialToolsFallback = async (
+    policy: InitialToolPolicy = { essentialOnly: false }
+  ): Promise<Record<string, unknown>> => {
     // This is the fallback when full tool loading times out
     // Load ESSENTIAL tools (handoff + entertainment + information) so agent can still function
     // buildHandoffTools now hoisted to module level
@@ -721,16 +748,24 @@ Reference past context when relevant, but don't force it. Let the conversation f
       }
 
       const allTools = { ...handoffTools, ...essentialTools };
+      const filteredTools = filterToolRecordByInitialPolicy(
+        allTools,
+        new Set(Object.keys(essentialTools)),
+        new Set(Object.keys(handoffTools)),
+        policy
+      );
       log.info(
         {
           personaId: persona.id,
           handoffCount,
           essentialCount: Object.keys(essentialTools).length,
           totalCount: Object.keys(allTools).length,
+          filteredCount: Object.keys(filteredTools).length,
+          essentialOnly: policy.essentialOnly,
         },
         '🔄 Essential tools loaded as timeout fallback (handoff + essential domains)'
       );
-      return allTools;
+      return filteredTools;
     } catch (err) {
       // 🚨 CRITICAL: Even if all else fails, return emergency handoff tools
       // These are hardcoded tool definitions that ALWAYS work
@@ -863,8 +898,21 @@ Reference past context when relevant, but don't force it. Let the conversation f
       }
 
       // =========================================================================
-      // INITIAL AGENT: Full orchestrator path (slower but comprehensive)
+      // INITIAL AGENT: Essential-only first (latency) or full orchestrator
       // =========================================================================
+      // MULTI_AGENT_ESSENTIAL_TOOLS_FIRST !== 'false' (default): skip full catalog
+      // on cold path so greeting can start sooner. wireHandlers / turn updates
+      // expand tools after greeting when mid-session updates are safe.
+      if (initialToolPolicy.essentialOnly) {
+        const essentialOnly = await loadEssentialToolsFallback(initialToolPolicy);
+        const count = Object.keys(essentialOnly).length;
+        log.info(
+          { personaId: persona.id, initialToolCount: count, essentialOnly: true },
+          '🎯 Initial spawn: essential-only tools (MULTI_AGENT_ESSENTIAL_TOOLS_FIRST)'
+        );
+        return essentialOnly;
+      }
+
       // Use clearable timeout to avoid spurious warnings when tools load successfully
       // (Promise.race doesn't cancel the timeout, so it would fire even after tools loaded)
       let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -1041,6 +1089,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   // 🚨 CRITICAL WARNING: If tool count is suspiciously low, something is wrong!
   const finalToolNames = Object.keys(finalTools);
+  const initialRegisteredToolCount = finalToolNames.length;
   if (finalToolNames.length < 5) {
     log.error(
       { personaId: persona.id, toolCount: finalToolNames.length, toolNames: finalToolNames },
@@ -1613,9 +1662,20 @@ Reference past context when relevant, but don't force it. Let the conversation f
             await import('../shared/tool-updater.js');
 
           // Only update if it won't cause a session restart (safe for OpenAI, not for Gemini)
-          if (supportsToolUpdates() && isMidSessionToolUpdateSafe()) {
+          const canUpdateMidSession = supportsToolUpdates() && isMidSessionToolUpdateSafe();
+          if (canUpdateMidSession) {
             const essentialTools = dynamicToolLoader.getCurrentTools();
             const essentialDomains = dynamicToolLoader.getLoadedDomains();
+            log.info(
+              {
+                personaId: persona.id,
+                initialToolCount: initialRegisteredToolCount,
+                postGreetingToolCount: Object.keys(essentialTools).length,
+                domains: essentialDomains,
+                canUpdateMidSession,
+              },
+              '🔧 Post-greeting tool expansion check'
+            );
             if (Object.keys(essentialTools).length > 0) {
               const updated = await updateAgentTools(agent, essentialTools, {
                 domains: essentialDomains,
@@ -1629,8 +1689,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
           } else if (supportsToolUpdates()) {
             // Gemini: Skip the update to prevent session restart
             const essentialTools = dynamicToolLoader.getCurrentTools();
+            const essentialDomains = dynamicToolLoader.getLoadedDomains();
             log.info(
-              { toolCount: Object.keys(essentialTools).length, personaId: persona.id },
+              {
+                personaId: persona.id,
+                initialToolCount: initialRegisteredToolCount,
+                postGreetingToolCount: Object.keys(essentialTools).length,
+                domains: essentialDomains,
+                canUpdateMidSession,
+              },
               '🔧 [GEMINI] Skipping essential tools update (would trigger session restart)'
             );
           }
