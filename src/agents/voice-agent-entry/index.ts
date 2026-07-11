@@ -597,9 +597,78 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       stopPeriodicSync,
     });
 
-    // Check for multi-agent mode activation (null sentinel)
+    // Multi-agent mode took over the session lifecycle (waited for disconnect
+    // inside runMultiAgentMode). Still must close call-quality + run cleanup —
+    // otherwise activeCalls leaks forever in production.
     if (!handlersResult) {
-      return; // Multi-agent mode took over
+      process.stderr.write(
+        `[voice-agent-entry] 🎭 Multi-agent session returned — running shared cleanup\n`
+      );
+      e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
+
+      try {
+        const sessionDurationMs = Date.now() - startTime;
+        finops.recordLiveKitCost({
+          durationMinutes: sessionDurationMs / 60000,
+          userId: userId ?? undefined,
+          sessionId,
+          tier: finopsTier,
+        });
+        finops.endSession(sessionId);
+      } catch {
+        /* ignore */
+      }
+
+      try {
+        await runSessionCleanup(sessionId);
+      } catch {
+        /* ignore */
+      }
+
+      clearCurrentActiveSession();
+
+      try {
+        const { handleSessionCleanup } = await import('../voice-agent/cleanup-handler.js');
+        await handleSessionCleanup({
+          sessionId,
+          userId: userId ?? undefined,
+          services,
+          sessionPersona,
+          voiceHumanization,
+          utilitiesCleanup: undefined,
+          patternAnalyzer,
+          autoOptimizer,
+          feedbackCollector,
+          dataChannelCleanup,
+          handoffHandler,
+          cameoCleanup: undefined,
+          musicCleanup,
+          userData,
+          stopPeriodicSync,
+        });
+      } catch (cleanupErr) {
+        process.stderr.write(
+          `[voice-agent-entry] ⚠️ Multi-agent cleanup failed (forcing endCall): ${cleanupErr}\n`
+        );
+        try {
+          const { endCall } = await import('../../services/analytics/call-quality-monitor.js');
+          endCall(sessionId, 'disconnect');
+        } catch {
+          /* ignore */
+        }
+      }
+
+      for (const cleanup of cleanupHandlers) {
+        try {
+          await cleanup();
+        } catch {
+          /* ignore */
+        }
+      }
+
+      process.stderr.write(`[voice-agent-entry] Session ended cleanly (multi-agent).\n`);
+      unregisterSession(sessionId, 'multi_agent_exit');
+      return;
     }
 
     patternAnalyzer = handlersResult.patternAnalyzer;
@@ -644,12 +713,36 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       ctx.room.off('reconnected', reconnectedHandler);
     });
 
-    // Wait for disconnect
+    // Wait for disconnect — never hang forever if LiveKit terminates the job
+    // without emitting a clean room 'disconnected' event. Common failure modes:
+    // room stays isConnected after user leave / room delete, or job gets
+    // shutdownRequest while entrypoint is still awaiting.
     await new Promise<void>((resolve) => {
-      ctx.room.on('disconnected', (reason?: unknown) => {
-        const disconnectReason = String(reason || 'unknown');
-        const sessionDurationMs = Date.now() - startTime;
+      let settled = false;
+      let emptySinceMs: number | null = null;
+      const EMPTY_ROOM_GRACE_MS = 5_000;
+      const timers: Array<ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>> = [];
 
+      const finish = (reason: string): void => {
+        if (settled) return;
+        settled = true;
+        for (const t of timers) clearInterval(t as ReturnType<typeof setInterval>);
+        for (const t of timers) clearTimeout(t as ReturnType<typeof setTimeout>);
+        process.stderr.write(`[voice-agent-entry] 🔌 Ending session wait (${reason})\n`);
+        // Unblock LiveKit job_proc close wait (runs after entrypoint returns).
+        // Without this, empty-room exits hang forever on once(closeEvent).
+        try {
+          if (reason !== 'room.disconnected' && reason !== 'job.shutdownCallback') {
+            ctx.shutdown(reason);
+          }
+        } catch {
+          /* ignore */
+        }
+        resolve();
+      };
+
+      const logDisconnectDiagnostics = (disconnectReason: string): void => {
+        const sessionDurationMs = Date.now() - startTime;
         void (async () => {
           try {
             const { logDisconnect, analyzeDisconnect } = await import('../shared/disconnect-diagnostics.js');
@@ -662,13 +755,70 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
             });
             const analysis = analyzeDisconnect({ sessionId, roomName, reason: disconnectReason, durationMs: sessionDurationMs });
             recordConnectionDrop(sessionId, disconnectReason, analysis.wasGraceful);
-          } catch (e) {
+          } catch {
             process.stderr.write(`[voice-agent-entry] 🔌 Disconnected (reason: ${disconnectReason}, duration: ${sessionDurationMs}ms)\n`);
           }
         })();
+      };
 
-        resolve();
+      ctx.room.on('disconnected', (reason?: unknown) => {
+        logDisconnectDiagnostics(String(reason || 'unknown'));
+        finish('room.disconnected');
       });
+
+      // connectionStateChanged often fires even when isConnected lags
+      const onConnectionStateChanged = (state: unknown): void => {
+        const stateStr = String(state);
+        if (
+          stateStr === 'disconnected' ||
+          stateStr.includes('Disconnected') ||
+          stateStr === '3' // ConnectionState.DISCONNECTED in some builds
+        ) {
+          logDisconnectDiagnostics(`connectionStateChanged:${stateStr}`);
+          finish(`connectionStateChanged:${stateStr}`);
+        }
+      };
+      ctx.room.on('connectionStateChanged', onConnectionStateChanged);
+
+      // User left / room emptied — don't wait forever for a phantom connected agent
+      const onParticipantDisconnected = (): void => {
+        if ((ctx.room.remoteParticipants?.size ?? 0) === 0) {
+          emptySinceMs = emptySinceMs ?? Date.now();
+        }
+      };
+      ctx.room.on('participantDisconnected', onParticipantDisconnected);
+
+      // LiveKit worker shutdown (room delete, job kill, orphan) — unblock entrypoint
+      ctx.addShutdownCallback(async () => {
+        finish('job.shutdownCallback');
+      });
+
+      const poll = setInterval(() => {
+        if (!ctx.room.isConnected) {
+          finish('room.!isConnected');
+          return;
+        }
+
+        const remoteCount = ctx.room.remoteParticipants?.size ?? 0;
+        if (remoteCount === 0) {
+          emptySinceMs = emptySinceMs ?? Date.now();
+          if (Date.now() - emptySinceMs >= EMPTY_ROOM_GRACE_MS) {
+            logDisconnectDiagnostics('empty_room');
+            finish('empty_room');
+          }
+        } else {
+          emptySinceMs = null;
+        }
+      }, 1_000);
+      timers.push(poll);
+
+      // Absolute safety net (shorter than 30m — leaked activeCalls hurt ops)
+      timers.push(setTimeout(() => {
+        if (!settled) {
+          logDisconnectDiagnostics('disconnect_wait_timeout');
+          finish('timeout');
+        }
+      }, 10 * 60_000));
     });
 
     e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);

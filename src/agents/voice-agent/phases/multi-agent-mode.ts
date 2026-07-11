@@ -392,12 +392,48 @@ export async function runMultiAgentMode(
       `[multi-agent-mode] 🎭 voiceSwitch handler registered for LLM-triggered handoffs\n`
     );
 
-    // Wait for disconnect
+    // Wait for disconnect — also end when room empties (agent can stay
+    // "connected" after the user leaves / room delete).
     await new Promise<void>((resolve) => {
-      ctx.room?.once('disconnected', () => {
-        process.stderr.write(`[multi-agent-mode] 🎭 Room disconnected\n`);
+      let settled = false;
+      let emptySinceMs: number | null = null;
+      const EMPTY_ROOM_GRACE_MS = 5_000;
+      const finish = (reason: string): void => {
+        if (settled) return;
+        settled = true;
+        clearInterval(poll);
+        clearTimeout(safety);
+        process.stderr.write(`[multi-agent-mode] 🎭 Ending session wait (${reason})\n`);
         resolve();
+      };
+
+      ctx.room?.once('disconnected', () => {
+        finish('room.disconnected');
       });
+
+      ctx.room?.on('participantDisconnected', () => {
+        if ((ctx.room?.remoteParticipants?.size ?? 0) === 0) {
+          emptySinceMs = emptySinceMs ?? Date.now();
+        }
+      });
+
+      const poll = setInterval(() => {
+        if (!ctx.room?.isConnected) {
+          finish('room.!isConnected');
+          return;
+        }
+        const remoteCount = ctx.room?.remoteParticipants?.size ?? 0;
+        if (remoteCount === 0) {
+          emptySinceMs = emptySinceMs ?? Date.now();
+          if (Date.now() - emptySinceMs >= EMPTY_ROOM_GRACE_MS) {
+            finish('empty_room');
+          }
+        } else {
+          emptySinceMs = null;
+        }
+      }, 1_000);
+
+      const safety = setTimeout(() => finish('timeout'), 10 * 60_000);
     });
 
     // Cleanup
