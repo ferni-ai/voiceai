@@ -17,9 +17,37 @@ const log = createLogger({ module: 'GceTtsCacheInstall' });
 
 const PCM_SAMPLE_RATE = 24000;
 
+type LegacyAudioBuffer = ArrayBuffer | ArrayBufferView;
+
 function estimatePcmDurationMs(byteLength: number): number {
   // 16-bit PCM mono at 24kHz
   return Math.round((byteLength / 2 / PCM_SAMPLE_RATE) * 1000);
+}
+
+function toArrayBuffer(audio: LegacyAudioBuffer): ArrayBuffer {
+  if (audio instanceof ArrayBuffer) {
+    return audio;
+  }
+
+  const source = new Uint8Array(audio.buffer, audio.byteOffset, audio.byteLength);
+  const copy = new Uint8Array(source.byteLength);
+  copy.set(source);
+
+  if (!(copy.buffer instanceof ArrayBuffer)) {
+    throw new Error('Expected copied legacy audio to be backed by ArrayBuffer');
+  }
+
+  return copy.buffer;
+}
+
+function createLegacyCacheEntry(
+  audio: LegacyAudioBuffer
+): { audio: ArrayBuffer; durationMs: number } {
+  const arrayBuffer = toArrayBuffer(audio);
+  return {
+    audio: arrayBuffer,
+    durationMs: estimatePcmDurationMs(arrayBuffer.byteLength),
+  };
 }
 
 /**
@@ -28,6 +56,9 @@ function estimatePcmDurationMs(byteLength: number): number {
  */
 export async function installProductionTTSCache(): Promise<void> {
   const { getCachedGreetingAudio } = await import('../shared/greeting-audio-cache.js');
+  const { getPrewarmedGreetingAudio } = await import(
+    '../shared/performance/greeting-audio-prewarm.js'
+  );
   const { getCachedAudio: getCachedConversationalAudio } =
     await import('../shared/conversational-audio-cache.js');
 
@@ -35,16 +66,17 @@ export async function installProductionTTSCache(): Promise<void> {
     text: string,
     voiceId: string
   ): Promise<{ audio: ArrayBuffer; durationMs: number } | null> => {
-    const conversational = getCachedConversationalAudio(text, voiceId);
-    if (conversational) {
-      return {
-        audio: conversational,
-        durationMs: estimatePcmDurationMs(conversational.byteLength),
-      };
-    }
     const greeting = getCachedGreetingAudio(text, voiceId);
     if (greeting) {
-      return { audio: greeting, durationMs: estimatePcmDurationMs(greeting.byteLength) };
+      return createLegacyCacheEntry(greeting);
+    }
+    const prewarmedGreeting = getPrewarmedGreetingAudio(text, voiceId);
+    if (prewarmedGreeting) {
+      return createLegacyCacheEntry(prewarmedGreeting);
+    }
+    const conversational = getCachedConversationalAudio(text, voiceId);
+    if (conversational) {
+      return createLegacyCacheEntry(conversational);
     }
     return null;
   };
