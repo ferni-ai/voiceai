@@ -30,16 +30,19 @@ Living backlog for `docs/superpowers/specs/2026-07-11-sota-realtime-bth-program-
 
 ## Wave 1 measurement (post-deploy, cold-ish)
 
+Evidence from Task 8 deploy on 2026-07-11: Cloud Build `6993d366-230b-4f87-a77d-2d5d003e5cbb`, image `gcr.io/johnb-2025/voiceai-agent:1783807694651`, promoted healthy to GCE production `:8080`. `verify-prod-voice-session.mjs` returned `proven: true`; observability returned `activeCalls=0`, `connectionSuccesses=1`, `disconnectCount=1`, `errorCount=0`.
+
 | Metric | Value | Target |
 |--------|-------|--------|
-| `avgFirstResponseTimeMs` | **7124** | ≤3000 bar / ≤1500 warm |
-| `lastSessionStages.prewarm_done` | **6629** | — |
-| `lastSessionStages.greeting_say` | 6636 | — |
-| `lastSessionStages.tts_first_frame` | 7124 | — |
+| `avgFirstResponseTimeMs` | **7411** | ≤3000 bar / ≤1500 warm |
+| `lastSessionStages.prewarm_done` | **6938** | — |
+| `lastSessionStages.greeting_say` | 6944 | — |
+| `lastSessionStages.tts_first_frame` | 7411 | — |
+| `lastSessionStages.first_audio` | 7411 | — |
 
 ### W1-GAP (do not close Wave 1)
 
-Critical path is **Gemini/session prewarm (~6.6s)** before greeting. TTS after greeting is ~500ms. Next latency work: shrink or overlap prewarm (or skip when provider allows), not more tool cuts.
+Critical path is **Gemini/session prewarm (~6.9s)** before greeting. Greeting-to-first-frame is ~467ms (`greeting_say=6944`, `tts_first_frame=7411`), so the remaining Wave 1 gap is not more tool cuts. Next latency work: shrink/overlap prewarm, cache or reuse provider setup where safe, or skip blocking prewarm when provider behavior allows.
 
 ## Parked from prior audits
 

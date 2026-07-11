@@ -266,6 +266,14 @@ export class AgentOrchestrator {
       // Speak via agent.say wrapper (uses coordinated speech)
       // FIX: Disable interruptions for initial greeting - iOS background noise was cutting it off
       diag.entry(`🎭 ${agent.personaId} greeting: "${greeting.slice(0, 50)}..."`);
+      try {
+        const { markCallStage } = await import(
+          '../../services/analytics/call-quality-monitor.js'
+        );
+        markCallStage(this.sessionId, 'greeting_say');
+      } catch {
+        /* non-fatal */
+      }
       agent.say(greeting, { allowInterruptions: false });
 
       // ⚡ FAST-AGENT-JOIN: Wire deferred handlers in background after greeting starts

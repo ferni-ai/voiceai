@@ -250,6 +250,14 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
           markSessionReady(sessionId);
         }
         mark('prewarm_done');
+        try {
+          const { markCallStage } = await import(
+            '../../services/analytics/call-quality-monitor.js'
+          );
+          markCallStage(sessionId, 'prewarm_done');
+        } catch {
+          /* non-fatal */
+        }
       } else if (SKIP_PREWARM) {
         // FIX: When skipping prewarm, we still need to mark the session ready!
         log.info(
