@@ -93,6 +93,14 @@ import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.j
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
+// WAVE 2: Voice humanization (micro-interrupt/barge-in recovery) + live backchanneling
+import { getEmotionalArcTracker } from '../../conversation/index.js';
+import {
+  initializeLiveBackchanneling,
+  quickSetupVoiceHumanization,
+  type LiveBackchannelIntegration,
+  type VoiceHumanizationIntegration,
+} from '../integrations/index.js';
 
 const log = getLogger();
 
@@ -1708,13 +1716,74 @@ Reference past context when relevant, but don't force it. Let the conversation f
           );
         }
 
+        // =====================================================================
+        // 🎙️ WAVE 2: Voice humanization (barge-in / micro-interrupt recovery)
+        // Non-fatal — falls back to null (matches prior behavior) on failure,
+        // so a broken humanization service never blocks conversation flow.
+        // =====================================================================
+        let voiceHumanization: VoiceHumanizationIntegration | null = null;
+        try {
+          const emotionalArcTracker = getEmotionalArcTracker();
+          voiceHumanization = quickSetupVoiceHumanization(
+            sessionId,
+            persona.id,
+            emotionalArcTracker,
+            {
+              onInterrupt: () => {
+                try {
+                  session.interrupt();
+                } catch {
+                  // Session may already be closing/closed
+                }
+              },
+            }
+          );
+          cleanupFunctions.push(() => voiceHumanization?.cleanup());
+          log.info(
+            { personaId: persona.id, sessionId },
+            '🎤 Voice humanization wired on multi-agent path'
+          );
+        } catch (voiceHumanizationError) {
+          log.warn(
+            { error: String(voiceHumanizationError), personaId: persona.id },
+            '⚠️ Voice humanization init failed (non-fatal) — micro-interrupt detection disabled'
+          );
+        }
+
+        // =====================================================================
+        // 🎙️ WAVE 2: Live backchanneling (mid-speech presence during breath pauses)
+        // Initializes session-scoped breath/backchannel state so soft verbal
+        // feedback ("mm-hmm") can be considered during user speech.
+        // NOTE: Per-audio-frame wiring (processAudioFrame) is deferred — see
+        // .superpowers/sdd/wave2-report.md for the documented gap.
+        // =====================================================================
+        let liveBackchannel: LiveBackchannelIntegration | null = null;
+        try {
+          liveBackchannel = initializeLiveBackchanneling(
+            sessionId,
+            persona.id,
+            session,
+            () => conversationManager?.isAgentSpeaking() ?? false
+          );
+          cleanupFunctions.push(() => liveBackchannel?.cleanup());
+          log.info(
+            { personaId: persona.id, sessionId },
+            '🎤 Live backchanneling wired on multi-agent path'
+          );
+        } catch (backchannelError) {
+          log.warn(
+            { error: String(backchannelError), personaId: persona.id },
+            '⚠️ Live backchanneling init failed (non-fatal)'
+          );
+        }
+
         const transcriptHandler = createTranscriptHandler({
           room,
           session,
           services,
           sessionPersona: persona,
           conversationManager,
-          voiceHumanization: null,
+          voiceHumanization,
           userData,
           userId,
           sessionId,
@@ -1727,6 +1796,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // Wire transcript events
         const transcriptEventHandler = (event: unknown) => {
           const evt = event as { transcript?: string; isFinal?: boolean };
+
+          // Track turn/emotion state for live backchanneling cooldown + context
+          if (evt.isFinal) {
+            liveBackchannel?.onNewTurn();
+            if (userData.lastEmotionAnalysis) {
+              liveBackchannel?.updateState({ currentEmotion: userData.lastEmotionAnalysis });
+            }
+          }
 
           // Pipeline selection (informational — full routing is future work)
           if (evt.isFinal && isPipelineSwitchingEnabled()) {
