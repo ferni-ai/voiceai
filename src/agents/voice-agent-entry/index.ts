@@ -15,6 +15,7 @@
  */
 
 import type { JobContext } from '@livekit/agents';
+import type { RemoteParticipant } from '@livekit/rtc-node';
 
 // Event cleanup registry for proper memory management
 import {
@@ -114,6 +115,13 @@ if (MULTI_AGENT_MODE) {
 
 let cachedVoiceDeps: VoiceDeps | null = null;
 
+interface ParticipantWaitResult {
+  participant: RemoteParticipant | null;
+  startedAt: number;
+  endedAt: number;
+  source: 'existing' | 'wait' | 'timeout' | 'error';
+}
+
 async function loadVoiceDeps(): Promise<void> {
   if (cachedVoiceDeps) return;
   cachedVoiceDeps = await loadVoiceDepsPhase();
@@ -127,6 +135,75 @@ function getVoiceDeps(): VoiceDeps {
     }
   }
   return cachedVoiceDeps;
+}
+
+function getExistingRemoteParticipant(ctx: JobContext): RemoteParticipant | null {
+  const iterator = ctx.room?.remoteParticipants?.values().next();
+  return iterator && !iterator.done ? iterator.value : null;
+}
+
+function waitForParticipantWithTimeout(
+  ctx: JobContext,
+  timeoutMs: number
+): Promise<ParticipantWaitResult> {
+  const startedAt = Date.now();
+  const existingParticipant = getExistingRemoteParticipant(ctx);
+  if (existingParticipant) {
+    return Promise.resolve({
+      participant: existingParticipant,
+      startedAt,
+      endedAt: Date.now(),
+      source: 'existing',
+    });
+  }
+
+  return new Promise<ParticipantWaitResult>((resolve) => {
+    let settled = false;
+    const finish = (
+      participant: RemoteParticipant | null,
+      source: ParticipantWaitResult['source']
+    ): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      resolve({
+        participant,
+        startedAt,
+        endedAt: Date.now(),
+        source,
+      });
+    };
+
+    const timeout = setTimeout(() => {
+      process.stderr.write(
+        `[voice-agent-entry] 👤 Participant wait timed out after ${timeoutMs}ms (early path)\n`
+      );
+      finish(null, 'timeout');
+    }, timeoutMs);
+
+    ctx
+      .waitForParticipant()
+      .then((participant) => finish(participant, 'wait'))
+      .catch((err: unknown) => {
+        process.stderr.write(
+          `[voice-agent-entry] 👤 Participant wait failed (early path): ${String(err)}\n`
+        );
+        finish(null, 'error');
+      });
+  });
+}
+
+async function markCallStageSafe(
+  sessionId: string,
+  stage: string,
+  atMs: number = Date.now()
+): Promise<void> {
+  try {
+    const { markCallStage } = await import('../../services/analytics/call-quality-monitor.js');
+    markCallStage(sessionId, stage, atMs);
+  } catch {
+    /* non-fatal */
+  }
 }
 
 // ============================================================================
@@ -263,6 +340,17 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       ctx.room.localParticipant?.identity || 'agent',
       Date.now() - connectStart
     );
+
+    const shouldUseMultiAgentEarlyPath = resolveSessionPath(MULTI_AGENT_MODE) === 'multi-agent';
+    const participantTimeout = 10000;
+    const earlyParticipantWaitPromise = shouldUseMultiAgentEarlyPath
+      ? waitForParticipantWithTimeout(ctx, participantTimeout)
+      : null;
+    if (earlyParticipantWaitPromise) {
+      process.stderr.write(
+        `[voice-agent-entry] 🎭 Multi-agent early path — participant wait started during service init (${participantTimeout}ms)\n`
+      );
+    }
 
     // =========================================================================
     // STEP 4: INITIALIZE SESSION SERVICES
@@ -518,28 +606,24 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     let multiAgentActivatedEarly = false;
     let skipMultiAgentAttempt = false;
 
-    if (resolveSessionPath(MULTI_AGENT_MODE) === 'multi-agent') {
+    if (shouldUseMultiAgentEarlyPath) {
       skipMultiAgentAttempt = true;
-      const participantTimeout = 10000;
       process.stderr.write(
-        `[voice-agent-entry] 🎭 Multi-agent early path — waiting for participant (${participantTimeout}ms), skipping createAgentSession\n`
+        `[voice-agent-entry] 🎭 Multi-agent early path — awaiting participant, skipping createAgentSession\n`
       );
-      const participant = await Promise.race([
-        ctx.waitForParticipant(),
-        new Promise<null>((resolve) => {
-          setTimeout(() => {
-            process.stderr.write(
-              `[voice-agent-entry] 👤 Participant wait timed out after ${participantTimeout}ms (early path)\n`
-            );
-            resolve(null);
-          }, participantTimeout);
-        }),
-      ]);
+      const participantWaitResult = await (
+        earlyParticipantWaitPromise ?? waitForParticipantWithTimeout(ctx, participantTimeout)
+      );
+      await markCallStageSafe(sessionId, 'participant_wait_start', participantWaitResult.startedAt);
+      await markCallStageSafe(sessionId, 'participant_wait_done', participantWaitResult.endedAt);
+      const participant = participantWaitResult.participant;
 
       if (participant && ctx.room) {
+        await markCallStageSafe(sessionId, 'participant_ready', participantWaitResult.endedAt);
         process.stderr.write(
-          `[voice-agent-entry] 👤 Participant joined (early): ${participant.identity}\n`
+          `[voice-agent-entry] 👤 Participant ready (${participantWaitResult.source}): ${participant.identity}\n`
         );
+        await markCallStageSafe(sessionId, 'orchestrator_start');
         const { runMultiAgentMode } = await import('../voice-agent/phases/index.js');
         const { unregisterSession: unregisterCrashSession } =
           await import('../shared/crash-analytics.js');
