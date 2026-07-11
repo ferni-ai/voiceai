@@ -51,8 +51,8 @@ steps:
     args:
       - '-c'
       - |
-        # Get the Cloud Run service URL
-        SERVICE_URL=$(gcloud run services describe ferni-async --platform=managed --region=us-central1 --format='value(status.url)')
+        # Get the Cloud Run service URL ($$ escapes Cloud Build substitutions)
+        SERVICE_URL=$$(gcloud run services describe ferni-async --platform=managed --region=us-central1 --format='value(status.url)')
 
         # Create topic if not exists
         gcloud pubsub topics describe outreach-triggers 2>/dev/null || \
@@ -61,14 +61,14 @@ steps:
         # Create or update push subscription
         gcloud pubsub subscriptions describe outreach-triggers-push 2>/dev/null && \
           gcloud pubsub subscriptions update outreach-triggers-push \
-            --push-endpoint="$SERVICE_URL/process-trigger" || \
+            --push-endpoint="$$SERVICE_URL/process-trigger" || \
           gcloud pubsub subscriptions create outreach-triggers-push \
             --topic=outreach-triggers \
-            --push-endpoint="$SERVICE_URL/process-trigger" \
+            --push-endpoint="$$SERVICE_URL/process-trigger" \
             --ack-deadline=60 \
             --message-retention-duration=1d
 
-        echo "✅ Pub/Sub configured: outreach-triggers -> $SERVICE_URL/process-trigger"
+        echo "✅ Pub/Sub configured: outreach-triggers -> $$SERVICE_URL/process-trigger"
     id: 'configure-pubsub'
     waitFor: ['deploy-async']
 
@@ -78,26 +78,26 @@ steps:
     args:
       - '-c'
       - |
-        # Get the Cloud Run service URL
-        SERVICE_URL=$(gcloud run services describe ferni-async --platform=managed --region=us-central1 --format='value(status.url)')
+        # Get the Cloud Run service URL ($$ escapes Cloud Build substitutions)
+        SERVICE_URL=$$(gcloud run services describe ferni-async --platform=managed --region=us-central1 --format='value(status.url)')
 
         # Create or update scheduler job (runs every 5 minutes)
         gcloud scheduler jobs describe outreach-batch-processor --location=us-central1 2>/dev/null && \
           gcloud scheduler jobs update http outreach-batch-processor \
             --location=us-central1 \
-            --uri="$SERVICE_URL/process-batch?limit=100" \
+            --uri="$$SERVICE_URL/process-batch?limit=100" \
             --http-method=POST \
             --schedule="*/5 * * * *" \
             --time-zone="America/Los_Angeles" || \
           gcloud scheduler jobs create http outreach-batch-processor \
             --location=us-central1 \
-            --uri="$SERVICE_URL/process-batch?limit=100" \
+            --uri="$$SERVICE_URL/process-batch?limit=100" \
             --http-method=POST \
             --schedule="*/5 * * * *" \
             --time-zone="America/Los_Angeles" \
             --attempt-deadline=300s
 
-        echo "✅ Cloud Scheduler configured: every 5 min -> $SERVICE_URL/process-batch"
+        echo "✅ Cloud Scheduler configured: every 5 min -> $$SERVICE_URL/process-batch"
     id: 'configure-scheduler'
     waitFor: ['deploy-async']
 
