@@ -48,7 +48,8 @@ import {
   recordDemoSession,
   startRateLimitCleanup,
 } from './demo-rate-limit.js';
-import { isValidId, sendInvalidIdError, getClientIp } from './validation.js';
+import { isValidId, sendInvalidIdError, getClientIp, sanitizeReturnUrl } from './validation.js';
+import { verifyFirebaseToken } from '../../services/identity/firebase-auth.js';
 import * as spotify from './oauth/spotify.js';
 import * as googleCalendar from './oauth/google-calendar.js';
 import * as wearables from './oauth/wearables.js';
@@ -302,13 +303,58 @@ export function createTokenServer(): http.Server {
         return;
       }
 
+      // SECURITY: Verify Firebase auth before issuing LiveKit tokens.
+      // Anonymous Firebase users are an intentional product path (zero-friction onboarding);
+      // they still present a verified ID token. Unauthenticated requests cannot bind firebase_uid.
+      const authHeader = typeof req.headers.authorization === 'string' ? req.headers.authorization : '';
+      if (!authHeader.startsWith('Bearer ')) {
+        log.warn({ ip: clientIp }, 'SECURITY: /token rejected — missing Firebase auth');
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            error: 'Authentication required',
+            message: 'Sign in (including anonymous Firebase) before requesting a voice token',
+          })
+        );
+        return;
+      }
+
+      let verifiedUid: string;
+      try {
+        const verified = await verifyFirebaseToken(authHeader.slice(7));
+        if (!verified || 'expired' in verified) {
+          log.warn({ ip: clientIp }, 'SECURITY: /token rejected — invalid or expired Firebase token');
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid or expired authentication token' }));
+          return;
+        }
+        // Prefer authenticated UID for metadata; reject spoofed firebase_uid
+        if (firebase_uid && firebase_uid !== verified.uid && verified.claims.admin !== true) {
+          log.warn(
+            { ip: clientIp, claimed: firebase_uid, actual: verified.uid },
+            'SECURITY: /token rejected — firebase_uid does not match authenticated user'
+          );
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'firebase_uid does not match authenticated user' }));
+          return;
+        }
+        verifiedUid = verified.uid;
+      } catch (authError) {
+        log.error({ error: String(authError) }, 'Firebase auth verification failed for /token');
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Authentication service unavailable' }));
+        return;
+      }
+
       try {
         const personaId = persona_id || 'ferni';
+        // Always bind LiveKit metadata to the verified Firebase UID (never trust query alone)
+        const boundFirebaseUid = verifiedUid;
 
         await createRoomWithAgent(room, {
           persona_id: personaId,
           device_id,
-          firebase_uid,
+          firebase_uid: boundFirebaseUid,
           user_name: username,
         });
 
@@ -319,14 +365,14 @@ export function createTokenServer(): http.Server {
           participantName: username,
           metadata: {
             device_id,
-            firebase_uid,
+            firebase_uid: boundFirebaseUid,
             persona_id: personaId,
             spotify_linked: spotifyLinked,
           },
         });
 
         log.info(
-          { username, room, firebaseUid: firebase_uid || 'none', personaId },
+          { username, room, firebaseUid: boundFirebaseUid, personaId },
           'Token generated'
         );
 
@@ -372,11 +418,11 @@ export function createTokenServer(): http.Server {
         return;
       }
 
-      // SECURITY: Bind OAuth state to client IP to prevent CSRF/state theft
+      // SECURITY: Bind OAuth state to client IP; allowlist return_url hosts
       const clientIp = getClientIp(req);
       const state = oauthStates.create({
         device_id,
-        return_url: return_url || '/',
+        return_url: sanitizeReturnUrl(return_url, '/'),
         client_ip: clientIp,
       });
       if (!state) {
@@ -530,12 +576,12 @@ export function createTokenServer(): http.Server {
         return;
       }
 
-      // SECURITY: Bind OAuth state to client IP
+      // SECURITY: Bind OAuth state to client IP; allowlist return_url hosts
       const clientIp = getClientIp(req);
       const state = crypto.randomUUID();
       googleOAuthStates.set(state, {
         user_id,
-        return_url: return_url || '/?calendar_linked=true',
+        return_url: sanitizeReturnUrl(return_url, '/?calendar_linked=true'),
         created_at: Date.now(),
         client_ip: clientIp,
       });
@@ -715,13 +761,13 @@ export function createTokenServer(): http.Server {
         return;
       }
 
-      // SECURITY: Bind OAuth state to client IP
+      // SECURITY: Bind OAuth state to client IP; allowlist return_url hosts
       const clientIp = getClientIp(req);
       const state = crypto.randomUUID();
       wearablesOAuthStates.set(state, {
         user_id,
         provider,
-        return_url: return_url || `/?${provider}_linked=true`,
+        return_url: sanitizeReturnUrl(return_url, `/?${provider}_linked=true`),
         created_at: Date.now(),
         client_ip: clientIp,
       });

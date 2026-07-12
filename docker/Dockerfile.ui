@@ -36,7 +36,7 @@ ARG LIVEKIT_AGENTS_VERSION
 # Install git and enable pnpm
 RUN apt-get update && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/* \
-    && corepack enable && corepack prepare pnpm@latest --activate
+    && corepack enable && corepack prepare pnpm@10.29.3 --activate
 
 WORKDIR /app
 
@@ -64,13 +64,19 @@ RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
 
 # Replace local file: dependencies with npm registry versions for Docker builds
 # Version is controlled by LIVEKIT_AGENTS_VERSION build arg (defined at top of file)
-RUN echo "Using @livekit/agents version: ^${LIVEKIT_AGENTS_VERSION}" && \
-    sed -i "s|\"file:../agents-js/agents\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/cartesia\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/deepgram\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/google\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/openai\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/silero\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json
+# Pin exact LiveKit SDK versions (no caret) — mismatched plugins crash at import time
+RUN echo "Using @livekit/agents version: ${LIVEKIT_AGENTS_VERSION}" && \
+    sed -i "s|\"file:../agents-js/agents\"|\"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/cartesia\"|\"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/deepgram\"|\"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/google\"|\"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/openai\"|\"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/silero\"|\"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"@livekit/agents-plugin-cartesia\": \"[^\"]*\"|\"@livekit/agents-plugin-cartesia\": \"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"@livekit/agents\": \"[^\"]*\"|\"@livekit/agents\": \"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"@livekit/agents-plugin-google\": \"[^\"]*\"|\"@livekit/agents-plugin-google\": \"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"@livekit/agents-plugin-openai\": \"[^\"]*\"|\"@livekit/agents-plugin-openai\": \"${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"@livekit/agents-plugin-silero\": \"[^\"]*\"|\"@livekit/agents-plugin-silero\": \"${LIVEKIT_AGENTS_VERSION}\"|g" package.json
 
 # Install dependencies with pnpm (no frozen lockfile since we modified package.json)
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
@@ -145,7 +151,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl \
     && rm -rf /var/lib/apt/lists/* \
-    && corepack enable && corepack prepare pnpm@latest --activate
+    && corepack enable && corepack prepare pnpm@10.29.3 --activate
 
 # Copy package files from builder stage (has file: deps replaced with npm versions)
 COPY --from=backend-builder /app/package.json ./

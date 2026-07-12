@@ -562,8 +562,9 @@ function deployToSlot(
     PUBSUB_ENABLED: 'true',
     // Use Gemini Live model (not OpenAI Realtime)
     USE_OPENAI_REALTIME: 'false',
-    // Gemini model config — match local .env settings
-    GEMINI_MODEL: 'gemini-2.0-flash-live-preview-04-09',
+    // Split: Live API model vs generateContent-capable default
+    LLM_REALTIME_MODEL: 'gemini-2.0-flash-live-preview-04-09',
+    GEMINI_MODEL: 'gemini-2.5-flash',
     CARTESIA_MODEL: 'sonic-3-latest',
     // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
     GOOGLE_GENAI_USE_VERTEXAI: 'true',
@@ -630,8 +631,9 @@ function promoteSlot(slot: 'blue' | 'green', image: string, secrets: Record<stri
     PUBSUB_ENABLED: 'true',
     // Use Gemini Live model (not OpenAI Realtime)
     USE_OPENAI_REALTIME: 'false',
-    // Gemini model config — match local .env settings
-    GEMINI_MODEL: 'gemini-2.0-flash-live-preview-04-09',
+    // Split: Live API model vs generateContent-capable default
+    LLM_REALTIME_MODEL: 'gemini-2.0-flash-live-preview-04-09',
+    GEMINI_MODEL: 'gemini-2.5-flash',
     CARTESIA_MODEL: 'sonic-3-latest',
     // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
     GOOGLE_GENAI_USE_VERTEXAI: 'true',
@@ -806,9 +808,10 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
   envVarsArray.push('REDIS_URL=redis://10.237.188.163:6379'); // Redis internal IP
   envVarsArray.push('PUBSUB_ENABLED=true');
   envVarsArray.push('PORT=8080');
-  // Gemini model config — match local .env settings
+  // Split: Live API model vs generateContent-capable default
   envVarsArray.push('USE_OPENAI_REALTIME=false');
-  envVarsArray.push('GEMINI_MODEL=gemini-2.0-flash-live-preview-04-09');
+  envVarsArray.push('LLM_REALTIME_MODEL=gemini-2.0-flash-live-preview-04-09');
+  envVarsArray.push('GEMINI_MODEL=gemini-2.5-flash');
   envVarsArray.push('CARTESIA_MODEL=sonic-3-latest');
   // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
   envVarsArray.push('GOOGLE_GENAI_USE_VERTEXAI=true');

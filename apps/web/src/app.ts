@@ -460,6 +460,8 @@ import {
 class VoiceAIApp {
   private isInitialized = false;
   private audioCleanup: (() => void) | null = null;
+  /** One automatic reconnect after mid-session errors; then honest retry copy */
+  private autoReconnectAttempted = false;
 
   // 🎵 Track connection/handoff time to filter out system sounds (stingers)
 
@@ -3074,6 +3076,7 @@ class VoiceAIApp {
           // 🚀 Ferni EQ: Dispatch thinking state
           dispatchThinking(true);
         } else if (state === 'connected') {
+          this.autoReconnectAttempted = false;
           thinkingUI.hide();
           waveformUI.setThinking(false);
           // 🚀 Ferni EQ: Dispatch thinking state
@@ -3283,9 +3286,24 @@ class VoiceAIApp {
 
       onError: (error) => {
         log.error('Connection error:', error);
-        messageUI.show('Something went wrong. Let me reconnect...', 'error');
         thinkingUI.hide();
         waveformUI.setThinking(false);
+
+        // Prefer one automatic reconnect with backoff, then honest copy + tap-to-retry
+        if (!this.autoReconnectAttempted) {
+          this.autoReconnectAttempted = true;
+          messageUI.show('Something went wrong. Reconnecting...', 'info');
+          const backoffMs = 1000;
+          setTimeout(() => {
+            void this.connect().catch((reconnectErr) => {
+              // connect() already shows an honest error; log here for diagnostics
+              log.error('Auto-reconnect failed:', reconnectErr);
+            });
+          }, backoffMs);
+          return;
+        }
+
+        messageUI.show("Couldn't connect. Tap to try again?", 'error');
       },
     });
 

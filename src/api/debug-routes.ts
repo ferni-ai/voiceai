@@ -24,6 +24,7 @@ import {
   clearAllContexts,
 } from '../services/context-inspection.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { requireAdmin } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendJSON, sendError } from './helpers.js';
 
 const log = createLogger({ module: 'DebugAPI' });
@@ -46,17 +47,9 @@ export async function handleDebugRoutes(
     return true;
   }
 
-  // NOTE: In production, these endpoints should be protected with requireAdmin
-  // For now, they're open in dev mode only
-  const isDev = process.env.NODE_ENV !== 'production';
-  if (!isDev) {
-    // In production, require dev mode header or admin auth
-    const devHeader = req.headers['x-dev-mode'];
-    if (devHeader !== 'true') {
-      sendError(res, 'Debug endpoints only available in dev mode', 403);
-      return true;
-    }
-  }
+  // SECURITY: Admin auth required (replaces spoofable X-Dev-Mode header)
+  const auth = await requireAdmin(req, res);
+  if (!auth) return true;
 
   try {
     // GET /api/debug/triggers - Get trigger analytics

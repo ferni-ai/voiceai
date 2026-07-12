@@ -6,7 +6,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import * as plaidService from '../services/plaid.js';
-import { rateLimit } from '../../../api/auth-middleware.js';
+import { rateLimit, requireAuth } from '../../../api/auth-middleware.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PlaidRoutes' });
@@ -26,6 +26,10 @@ export async function handlePlaidRoutes(
     if (rateLimit(req, res, { maxRequests: 5, windowMs: 60000 })) {
       return true; // Rate limited
     }
+
+    // SECURITY: Require auth; user_id in body must match authenticated user
+    const auth = await requireAuth(req, res);
+    if (!auth) return true;
 
     let body = '';
     req.on('data', (chunk: Buffer) => (body += chunk.toString()));
@@ -59,6 +63,17 @@ export async function handlePlaidRoutes(
             return;
           }
 
+          if (user_id !== auth.userId && !auth.isAdmin) {
+            log.warn(
+              { authUserId: auth.userId, requestedUserId: user_id },
+              'SECURITY: Blocked Plaid exchange for mismatched user_id'
+            );
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'user_id does not match authenticated user' }));
+            resolve(true);
+            return;
+          }
+
           if (!plaidService.isConfigured()) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Plaid not configured' }));
@@ -76,12 +91,18 @@ export async function handlePlaidRoutes(
             return;
           }
 
-          // Store the access token for this user (async - uses Firestore)
-          await plaidService.storeToken(user_id, result.accessToken, result.itemId, institution);
+          // Store under authenticated user (never trust body user_id alone)
+          const boundUserId = auth.userId;
+          await plaidService.storeToken(
+            boundUserId,
+            result.accessToken,
+            result.itemId,
+            institution
+          );
 
           log.info(
             {
-              userId: user_id,
+              userId: boundUserId,
               institution: institution?.name || 'Unknown',
               accounts: accounts?.length || 0,
             },
@@ -110,16 +131,19 @@ export async function handlePlaidRoutes(
 
   // Check if user has Plaid linked
   if (pathname === '/plaid/status') {
-    const params = new URL(req.url || '', 'http://localhost').searchParams;
-    const user_id = params.get('user_id');
+    const auth = await requireAuth(req, res);
+    if (!auth) return true;
 
-    if (!user_id) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Missing user_id' }));
+    const params = new URL(req.url || '', 'http://localhost').searchParams;
+    const user_id = params.get('user_id') || auth.userId;
+
+    if (user_id !== auth.userId && !auth.isAdmin) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
       return true;
     }
 
-    const tokenData = await plaidService.getToken(user_id);
+    const tokenData = await plaidService.getToken(auth.userId);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(

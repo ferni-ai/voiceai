@@ -12,6 +12,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { requireAuth } from './auth-middleware.js';
 import {
   getWorkflowData,
   saveWorkflowData,
@@ -56,6 +57,23 @@ function getQueryParam(url: URL, name: string): string | null {
   return url.searchParams.get(name);
 }
 
+/**
+ * Bind requested userId to authenticated user (admins may override).
+ * Returns null and sends 403 if the caller tried to spoof another user.
+ */
+function resolveBoundUserId(
+  authUserId: string,
+  isAdmin: boolean,
+  requested: string | null | undefined,
+  res: ServerResponse
+): string | null {
+  if (requested && requested !== authUserId && !isAdmin) {
+    sendJson(res, 403, { error: 'Forbidden' });
+    return null;
+  }
+  return isAdmin && requested ? requested : authUserId;
+}
+
 // ============================================================================
 // WORKFLOW ROUTES
 // ============================================================================
@@ -66,7 +84,15 @@ export async function handleLifeAutomationRoutes(
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
+  if (!pathname.startsWith('/api/life-automation')) {
+    return false;
+  }
+
   const method = req.method || 'GET';
+
+  // SECURITY: All life-automation routes require auth; userId bound to auth.userId
+  const auth = await requireAuth(req, res);
+  if (!auth) return true;
 
   // -------------------------------------------------------------------------
   // WORKFLOWS
@@ -74,11 +100,13 @@ export async function handleLifeAutomationRoutes(
 
   // GET /api/life-automation/workflows - List workflows
   if (pathname === '/api/life-automation/workflows' && method === 'GET') {
-    const userId = getQueryParam(parsedUrl, 'userId');
-    if (!userId) {
-      sendJson(res, 400, { error: 'Missing userId' });
-      return true;
-    }
+    const userId = resolveBoundUserId(
+      auth.userId,
+      auth.isAdmin,
+      getQueryParam(parsedUrl, 'userId'),
+      res
+    );
+    if (!userId) return true;
 
     try {
       const data = await getWorkflowData(userId);
@@ -94,17 +122,25 @@ export async function handleLifeAutomationRoutes(
   if (pathname === '/api/life-automation/workflows' && method === 'POST') {
     try {
       const body = (await parseBody(req)) as Record<string, unknown>;
-      const { userId, name, description, trigger, conditions, actions, tags, icon, color } = body;
+      const { name, description, trigger, conditions, actions, tags, icon, color } = body;
 
-      if (!userId || !name || !trigger) {
-        sendJson(res, 400, { error: 'Missing required fields: userId, name, trigger' });
+      if (!name || !trigger) {
+        sendJson(res, 400, { error: 'Missing required fields: name, trigger' });
         return true;
       }
+
+      const userId = resolveBoundUserId(
+        auth.userId,
+        auth.isAdmin,
+        body.userId as string | undefined,
+        res
+      );
+      if (!userId) return true;
 
       const now = new Date().toISOString();
       const workflow: Workflow = {
         id: `wf_${randomUUID()}`,
-        userId: userId as string,
+        userId,
         name: name as string,
         description: description as string | undefined,
         status: 'paused',
@@ -122,9 +158,9 @@ export async function handleLifeAutomationRoutes(
         updatedAt: now,
       };
 
-      const data = await getWorkflowData(userId as string);
+      const data = await getWorkflowData(userId);
       data.workflows.push(workflow);
-      await saveWorkflowData(userId as string, data);
+      await saveWorkflowData(userId, data);
 
       log.info({ workflowId: workflow.id, userId }, 'Workflow created');
       sendJson(res, 201, { workflow });
@@ -139,12 +175,13 @@ export async function handleLifeAutomationRoutes(
   const workflowMatch = pathname.match(/^\/api\/life-automation\/workflows\/([^/]+)$/);
   if (workflowMatch && method === 'GET') {
     const workflowId = workflowMatch[1];
-    const userId = getQueryParam(parsedUrl, 'userId');
-
-    if (!userId) {
-      sendJson(res, 400, { error: 'Missing userId' });
-      return true;
-    }
+    const userId = resolveBoundUserId(
+      auth.userId,
+      auth.isAdmin,
+      getQueryParam(parsedUrl, 'userId'),
+      res
+    );
+    if (!userId) return true;
 
     try {
       const data = await getWorkflowData(userId);
@@ -169,12 +206,13 @@ export async function handleLifeAutomationRoutes(
 
     try {
       const body = (await parseBody(req)) as Record<string, unknown>;
-      const userId = body.userId as string;
-
-      if (!userId) {
-        sendJson(res, 400, { error: 'Missing userId' });
-        return true;
-      }
+      const userId = resolveBoundUserId(
+        auth.userId,
+        auth.isAdmin,
+        body.userId as string | undefined,
+        res
+      );
+      if (!userId) return true;
 
       const data = await getWorkflowData(userId);
       const workflow = data.workflows.find((w) => w.id === workflowId);
@@ -210,12 +248,13 @@ export async function handleLifeAutomationRoutes(
   // DELETE /api/life-automation/workflows/:id
   if (workflowMatch && method === 'DELETE') {
     const workflowId = workflowMatch[1];
-    const userId = getQueryParam(parsedUrl, 'userId');
-
-    if (!userId) {
-      sendJson(res, 400, { error: 'Missing userId' });
-      return true;
-    }
+    const userId = resolveBoundUserId(
+      auth.userId,
+      auth.isAdmin,
+      getQueryParam(parsedUrl, 'userId'),
+      res
+    );
+    if (!userId) return true;
 
     try {
       const data = await getWorkflowData(userId);
@@ -246,12 +285,13 @@ export async function handleLifeAutomationRoutes(
 
     try {
       const body = (await parseBody(req)) as Record<string, unknown>;
-      const userId = body.userId as string;
-
-      if (!userId) {
-        sendJson(res, 400, { error: 'Missing userId' });
-        return true;
-      }
+      const userId = resolveBoundUserId(
+        auth.userId,
+        auth.isAdmin,
+        body.userId as string | undefined,
+        res
+      );
+      if (!userId) return true;
 
       const data = await getWorkflowData(userId);
       const workflow = data.workflows.find((w) => w.id === workflowId);
@@ -293,12 +333,13 @@ export async function handleLifeAutomationRoutes(
 
     try {
       const body = (await parseBody(req)) as Record<string, unknown>;
-      const userId = body.userId as string;
-
-      if (!userId) {
-        sendJson(res, 400, { error: 'Missing userId' });
-        return true;
-      }
+      const userId = resolveBoundUserId(
+        auth.userId,
+        auth.isAdmin,
+        body.userId as string | undefined,
+        res
+      );
+      if (!userId) return true;
 
       const data = await getWorkflowData(userId);
       const workflow = data.workflows.find((w) => w.id === workflowId);
@@ -330,13 +371,14 @@ export async function handleLifeAutomationRoutes(
 
     try {
       const body = (await parseBody(req)) as Record<string, unknown>;
-      const userId = body.userId as string;
       const variables = body.variables as Record<string, unknown> | undefined;
-
-      if (!userId) {
-        sendJson(res, 400, { error: 'Missing userId' });
-        return true;
-      }
+      const userId = resolveBoundUserId(
+        auth.userId,
+        auth.isAdmin,
+        body.userId as string | undefined,
+        res
+      );
+      if (!userId) return true;
 
       const data = await getWorkflowData(userId);
       const workflow = data.workflows.find((w) => w.id === workflowId);
@@ -418,13 +460,14 @@ export async function handleLifeAutomationRoutes(
 
     try {
       const body = (await parseBody(req)) as Record<string, unknown>;
-      const userId = body.userId as string;
       const variables = body.variables as Record<string, unknown> | undefined;
-
-      if (!userId) {
-        sendJson(res, 400, { error: 'Missing userId' });
-        return true;
-      }
+      const userId = resolveBoundUserId(
+        auth.userId,
+        auth.isAdmin,
+        body.userId as string | undefined,
+        res
+      );
+      if (!userId) return true;
 
       const workflowData = getTemplateLibrary().createFromTemplate(
         templateId,
@@ -478,12 +521,13 @@ export async function handleLifeAutomationRoutes(
 
   // GET /api/life-automation/integrations/connected - List user's connected integrations
   if (pathname === '/api/life-automation/integrations/connected' && method === 'GET') {
-    const userId = getQueryParam(parsedUrl, 'userId');
-
-    if (!userId) {
-      sendJson(res, 400, { error: 'Missing userId' });
-      return true;
-    }
+    const userId = resolveBoundUserId(
+      auth.userId,
+      auth.isAdmin,
+      getQueryParam(parsedUrl, 'userId'),
+      res
+    );
+    if (!userId) return true;
 
     try {
       const connections = await getConnectedIntegrations(userId);
@@ -501,12 +545,13 @@ export async function handleLifeAutomationRoutes(
   );
   if (integrationStatusMatch && method === 'GET') {
     const provider = integrationStatusMatch[1];
-    const userId = getQueryParam(parsedUrl, 'userId');
-
-    if (!userId) {
-      sendJson(res, 400, { error: 'Missing userId' });
-      return true;
-    }
+    const userId = resolveBoundUserId(
+      auth.userId,
+      auth.isAdmin,
+      getQueryParam(parsedUrl, 'userId'),
+      res
+    );
+    if (!userId) return true;
 
     try {
       const status = await getOAuthManager().getStatus(userId, provider);
@@ -527,12 +572,13 @@ export async function handleLifeAutomationRoutes(
 
     try {
       const body = (await parseBody(req)) as Record<string, unknown>;
-      const userId = body.userId as string;
-
-      if (!userId) {
-        sendJson(res, 400, { error: 'Missing userId' });
-        return true;
-      }
+      const userId = resolveBoundUserId(
+        auth.userId,
+        auth.isAdmin,
+        body.userId as string | undefined,
+        res
+      );
+      if (!userId) return true;
 
       const success = await getOAuthManager().disconnect(userId, provider);
 

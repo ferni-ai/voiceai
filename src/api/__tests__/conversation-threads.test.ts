@@ -44,15 +44,6 @@ vi.mock('../helpers.js', async () => {
   const actual = await vi.importActual('../helpers.js');
   return {
     ...actual,
-    requireUserId: vi.fn((req, res, parsedUrl) => {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        res.writeHead(400);
-        res.end(JSON.stringify({ error: 'userId is required' }));
-        return null;
-      }
-      return userId;
-    }),
     sendJSON: vi.fn((res, data, status = 200) => {
       res.writeHead(status, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(data));
@@ -64,6 +55,25 @@ vi.mock('../helpers.js', async () => {
     readBody: vi.fn().mockResolvedValue({}),
   };
 });
+
+// Mock auth middleware
+vi.mock('../auth-middleware.js', () => ({
+  requireAuth: vi.fn(async (req, res) => {
+    const url = new URL(req.url || 'http://localhost/', 'http://localhost');
+    const userId = url.searchParams.get('userId');
+    if (!userId && !req.headers.authorization) {
+      res.writeHead(401);
+      res.end(JSON.stringify({ error: 'Authentication required' }));
+      return null;
+    }
+    return {
+      userId: userId || 'test-user',
+      isAdmin: false,
+      isDevMode: true,
+      authMethod: 'dev_mode' as const,
+    };
+  }),
+}));
 
 // Create mock request
 function createMockRequest(options: {
@@ -100,10 +110,10 @@ describe('Conversation Threads API', () => {
   });
 
   describe('GET /api/conversations/threads', () => {
-    it('should require userId parameter', async () => {
+    it('should require authentication', async () => {
       const { handleConversationThreadsRoutes } = await import('../routes/conversation-threads.js');
 
-      const req = createMockRequest({ method: 'GET' });
+      const req = createMockRequest({ method: 'GET', url: '/api/conversations/threads' });
       const res = createMockResponse();
       const parsedUrl = new URL('http://localhost/api/conversations/threads');
 
@@ -115,12 +125,16 @@ describe('Conversation Threads API', () => {
       );
 
       expect(handled).toBe(true);
+      expect(res._statusCode).toBe(401);
     });
 
-    it('should return threads for valid userId', async () => {
+    it('should return threads for authenticated user', async () => {
       const { handleConversationThreadsRoutes } = await import('../routes/conversation-threads.js');
 
-      const req = createMockRequest({ method: 'GET' });
+      const req = createMockRequest({
+        method: 'GET',
+        url: '/api/conversations/threads?userId=test-user-123',
+      });
       const res = createMockResponse();
       const parsedUrl = new URL('http://localhost/api/conversations/threads?userId=test-user-123');
 
@@ -137,7 +151,10 @@ describe('Conversation Threads API', () => {
     it('should filter threads by status', async () => {
       const { handleConversationThreadsRoutes } = await import('../routes/conversation-threads.js');
 
-      const req = createMockRequest({ method: 'GET' });
+      const req = createMockRequest({
+        method: 'GET',
+        url: '/api/conversations/threads?userId=test-user&status=open',
+      });
       const res = createMockResponse();
       const parsedUrl = new URL(
         'http://localhost/api/conversations/threads?userId=test-user&status=open'
@@ -165,7 +182,10 @@ describe('Conversation Threads API', () => {
         personaId: 'ferni',
       });
 
-      const req = createMockRequest({ method: 'POST' });
+      const req = createMockRequest({
+        method: 'POST',
+        url: '/api/conversations/threads?userId=test-user',
+      });
       const res = createMockResponse();
       const parsedUrl = new URL('http://localhost/api/conversations/threads?userId=test-user');
 
@@ -185,7 +205,10 @@ describe('Conversation Threads API', () => {
 
       vi.mocked(readBody).mockResolvedValue({});
 
-      const req = createMockRequest({ method: 'POST' });
+      const req = createMockRequest({
+        method: 'POST',
+        url: '/api/conversations/threads?userId=test-user',
+      });
       const res = createMockResponse();
       const parsedUrl = new URL('http://localhost/api/conversations/threads?userId=test-user');
 
@@ -209,7 +232,10 @@ describe('Conversation Threads API', () => {
         status: 'resolved',
       });
 
-      const req = createMockRequest({ method: 'PATCH' });
+      const req = createMockRequest({
+        method: 'PATCH',
+        url: '/api/conversations/threads/thread-123?userId=test-user',
+      });
       const res = createMockResponse();
       const parsedUrl = new URL(
         'http://localhost/api/conversations/threads/thread-123?userId=test-user'

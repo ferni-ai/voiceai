@@ -128,11 +128,11 @@ export const LIGHT_MODEL = process.env.LLM_LIGHT_MODEL || 'gemini-2.0-flash-lite
  * Default: gemini-2.0-flash-live-preview-04-09 (supports TEXT modality)
  * NOTE: gemini-live-2.5-flash-preview also works but gemini-live-2.5-flash is private GA
  * NOTE: Native-audio models (gemini-live-*-native-audio) do NOT work with TEXT modality!
+ * NOTE: Do NOT fall back to GEMINI_MODEL — Live models break generateContent callers
+ *       that use getDefaultModel()/GEMINI_MODEL. Keep the two env vars separate.
  */
 export const REALTIME_MODEL =
-  process.env.LLM_REALTIME_MODEL ||
-  process.env.GEMINI_MODEL ||
-  'gemini-2.0-flash-live-preview-04-09';
+  process.env.LLM_REALTIME_MODEL || 'gemini-2.0-flash-live-preview-04-09';
 
 /**
  * OpenAI realtime model (for OpenAI realtime API)

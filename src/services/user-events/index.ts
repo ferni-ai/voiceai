@@ -96,6 +96,9 @@ export async function broadcastUserEvent<T>(
     source: 'voice',
   };
 
+  // Buffer for HTTP poll/SSE clients (Firebase Hosting has no WebSocket proxy)
+  bufferPendingEvent(event);
+
   // Broadcast via Redis pub/sub for multi-instance
   try {
     const pubsub = getRedisPubSub();
@@ -114,7 +117,69 @@ export async function broadcastUserEvent<T>(
     }
   }
 
+  // Notify SSE subscribers
+  for (const listener of sseListeners) {
+    try {
+      listener(event);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'SSE listener failed');
+    }
+  }
+
   log.debug({ userId, eventType }, '📡 User event broadcast');
+}
+
+// ============================================================================
+// PENDING EVENT BUFFER (for poll / SSE on Firebase Hosting)
+// ============================================================================
+
+const MAX_PENDING_PER_USER = 30;
+const PENDING_TTL_MS = 120_000;
+const pendingByUser = new Map<string, UserEvent[]>();
+
+type SSEListener = (event: UserEvent) => void;
+const sseListeners = new Set<SSEListener>();
+
+function bufferPendingEvent(event: UserEvent): void {
+  const list = pendingByUser.get(event.userId) ?? [];
+  list.push(event);
+  while (list.length > MAX_PENDING_PER_USER) {
+    list.shift();
+  }
+  pendingByUser.set(event.userId, list);
+  pruneExpiredPending(event.userId);
+}
+
+function pruneExpiredPending(userId: string): void {
+  const list = pendingByUser.get(userId);
+  if (!list) return;
+  const cutoff = Date.now() - PENDING_TTL_MS;
+  const kept = list.filter((e) => Date.parse(e.timestamp) >= cutoff);
+  if (kept.length === 0) {
+    pendingByUser.delete(userId);
+  } else {
+    pendingByUser.set(userId, kept);
+  }
+}
+
+/**
+ * Get pending user events since a timestamp (ms or ISO).
+ * Used by HTTP polling clients on Firebase Hosting.
+ */
+export function getPendingUserEvents(userId: string, sinceMs = 0): UserEvent[] {
+  pruneExpiredPending(userId);
+  const list = pendingByUser.get(userId) ?? [];
+  return list.filter((e) => Date.parse(e.timestamp) > sinceMs);
+}
+
+/**
+ * Subscribe to user events for SSE streams.
+ */
+export function subscribeUserEventsSSE(listener: SSEListener): () => void {
+  sseListeners.add(listener);
+  return () => {
+    sseListeners.delete(listener);
+  };
 }
 
 // ============================================================================
@@ -178,12 +243,24 @@ export async function initUserEventsSubscription(): Promise<void> {
     await pubsub.subscribe(CHANNELS.USER_EVENTS, (message: PubSubMessage<UserEvent>) => {
       const event = message.data;
 
+      // Buffer for HTTP poll clients on this instance (Firebase Hosting)
+      bufferPendingEvent(event);
+
       // Forward to local WebSocket connections
       for (const broadcast of broadcastRegistry) {
         try {
           broadcast(event.userId, event.type, event.data);
         } catch (error) {
           log.warn({ error: String(error) }, 'WebSocket forward failed');
+        }
+      }
+
+      // Notify local SSE subscribers
+      for (const listener of sseListeners) {
+        try {
+          listener(event);
+        } catch (error) {
+          log.warn({ error: String(error) }, 'SSE forward failed');
         }
       }
     });

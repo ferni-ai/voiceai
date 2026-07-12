@@ -763,10 +763,14 @@ class CalendarViewUI {
     // Maya notices - prefer API, fall back to generated
     const mayaNotices = apiData?.mayaNotices?.message || this.generateMayaPatternNotice();
     
-    // Stats - prefer API, fall back to calculated
-    const followThrough = apiData?.stats?.followThroughPercent ?? this.calculateFollowThrough();
-    const habitsThisWeek = apiData?.stats?.habitsCompletedThisWeek ?? this.getHabitCount();
-    const momentumTrend = apiData?.stats?.momentumTrend ?? this.getMomentumTrend();
+    // Stats - only show real API metrics (never fabricate personal numbers)
+    const followThrough = apiData?.stats?.followThroughPercent;
+    const habitsThisWeek = apiData?.stats?.habitsCompletedThisWeek;
+    const momentumTrend = apiData?.stats?.momentumTrend;
+    const hasRealStats =
+      typeof followThrough === 'number' ||
+      typeof habitsThisWeek === 'number' ||
+      typeof momentumTrend === 'string';
     
     return `
       <div class="calendar-view__practice">
@@ -850,21 +854,27 @@ class CalendarViewUI {
           ` : ''}
         </div>
 
-        <!-- Progress & Momentum -->
+        <!-- Progress & Momentum — only when we have real metrics -->
+        ${hasRealStats ? `
         <div class="calendar-view__practice-stats">
           <div class="calendar-view__practice-stat">
-            <div class="calendar-view__practice-stat-value">${followThrough}%</div>
+            <div class="calendar-view__practice-stat-value">${typeof followThrough === 'number' ? `${followThrough}%` : '—'}</div>
             <div class="calendar-view__practice-stat-label">follow-through</div>
           </div>
           <div class="calendar-view__practice-stat">
-            <div class="calendar-view__practice-stat-value">${habitsThisWeek}</div>
+            <div class="calendar-view__practice-stat-value">${typeof habitsThisWeek === 'number' ? habitsThisWeek : '—'}</div>
             <div class="calendar-view__practice-stat-label">habits this week</div>
           </div>
           <div class="calendar-view__practice-stat">
-            <div class="calendar-view__practice-stat-value">${typeof momentumTrend === 'string' ? momentumTrend : this.getMomentumTrend()}</div>
+            <div class="calendar-view__practice-stat-value">${typeof momentumTrend === 'string' ? momentumTrend : '—'}</div>
             <div class="calendar-view__practice-stat-label">momentum</div>
           </div>
         </div>
+        ` : `
+        <div class="calendar-view__practice-stats calendar-view__practice-stats--empty">
+          <p class="calendar-view__practice-stats-empty-copy">We'll show follow-through and momentum once we have enough of your week to go on.</p>
+        </div>
+        `}
 
         <!-- Cross-Persona Insights (from API) -->
         ${apiData?.crossPersonaInsights?.length ? `
@@ -1082,31 +1092,6 @@ class CalendarViewUI {
       'You seem most creative after your walks.',
     ];
     return wisdoms[Math.floor(Math.random() * wisdoms.length)] ?? null;
-  }
-
-  /**
-   * Calculate follow-through percentage
-   */
-  private calculateFollowThrough(): number {
-    // TODO: Get real data
-    return Math.floor(75 + Math.random() * 20);
-  }
-
-  /**
-   * Get habit count for the week
-   */
-  private getHabitCount(): number {
-    // TODO: Get real data
-    return Math.floor(3 + Math.random() * 4);
-  }
-
-  /**
-   * Get momentum trend indicator
-   */
-  private getMomentumTrend(): string {
-    // TODO: Get real data
-    const trends = ['↗ rising', '→ steady', '↗ building'];
-    return trends[Math.floor(Math.random() * trends.length)] ?? '→ steady';
   }
 
   /**
@@ -2924,6 +2909,19 @@ class CalendarViewUI {
         font-size: var(--text-2xs, 0.6875rem);
         color: var(--color-text-muted, #756a5e);
         text-transform: lowercase;
+      }
+
+      .calendar-view__practice-stats--empty {
+        justify-content: center;
+        text-align: center;
+      }
+
+      .calendar-view__practice-stats-empty-copy {
+        margin: 0;
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-muted, #756a5e);
+        line-height: 1.5;
+        max-width: 28rem;
       }
 
       /* ========================================================================

@@ -347,8 +347,96 @@ async function getRelationships(userId: string): Promise<DynamicRelationship[]> 
 }
 
 /**
+ * Map raw signal-like objects to HumanSignal[].
+ * Accepts both flat extractor shape ({ value }) and HumanMemory fields
+ * ({ label }, { description }, { fear }, etc.).
+ */
+function mapSignals(arr: unknown[]): HumanSignal[] {
+  if (!Array.isArray(arr)) return [];
+  return arr.map((item: unknown) => {
+    const obj = item as Record<string, unknown>;
+    const value = String(
+      obj.value ||
+        obj.label ||
+        obj.description ||
+        obj.fear ||
+        obj.challenge ||
+        obj.trigger ||
+        obj.reference ||
+        (obj.type && obj.effectiveFor ? `${obj.type} (${obj.effectiveFor})` : '') ||
+        ''
+    );
+    const extractedAtRaw = obj.extractedAt || obj.discoveredAt || obj.observedAt || obj.firstMentioned;
+    const extractedAt =
+      (extractedAtRaw as { toDate?: () => Date })?.toDate?.() ||
+      (extractedAtRaw instanceof Date ? extractedAtRaw : new Date());
+    return {
+      id: String(obj.id || ''),
+      type: String(obj.type || ''),
+      value,
+      context: obj.context
+        ? String(obj.context)
+        : obj.notes
+          ? String(obj.notes)
+          : obj.evidence && Array.isArray(obj.evidence)
+            ? String(obj.evidence[0] || '')
+            : undefined,
+      confidence: Number(obj.confidence) || 0.7,
+      extractedAt,
+    };
+  });
+}
+
+/**
+ * Normalize Firestore human_memory/profile OR profile.humanMemory into HumanMemoryProfile.
+ * Handles flat arrays and nested HumanMemory (identity / growthArc / emotionalSignature).
+ */
+function normalizeHumanMemoryData(data: Record<string, unknown>): HumanMemoryProfile {
+  const identity = (data.identity as Record<string, unknown> | undefined) || undefined;
+  const growthArc = (data.growthArc as Record<string, unknown> | undefined) || undefined;
+  const emotionalSignature =
+    (data.emotionalSignature as Record<string, unknown> | undefined) || undefined;
+
+  return {
+    importantDates: mapSignals((data.importantDates as unknown[]) || []),
+    values: mapSignals(
+      (data.values as unknown[]) || (identity?.values as unknown[]) || []
+    ),
+    dreams: mapSignals(
+      (data.dreams as unknown[]) || (identity?.dreams as unknown[]) || []
+    ),
+    fears: mapSignals((data.fears as unknown[]) || (identity?.fears as unknown[]) || []),
+    growthMarkers: mapSignals(
+      (data.growthMarkers as unknown[]) || (growthArc?.markers as unknown[]) || []
+    ),
+    comfortPatterns: mapSignals(
+      (data.comfortPatterns as unknown[]) ||
+        (emotionalSignature?.comfortPatterns as unknown[]) ||
+        []
+    ),
+    challenges: mapSignals(
+      (data.challenges as unknown[]) || (growthArc?.challenges as unknown[]) || []
+    ),
+    stressTriggers: mapSignals(
+      (data.stressTriggers as unknown[]) ||
+        (emotionalSignature?.stressTriggers as unknown[]) ||
+        []
+    ),
+    importantPeople: mapSignals((data.importantPeople as unknown[]) || []),
+  };
+}
+
+function isHumanMemoryProfileEmpty(profile: HumanMemoryProfile): boolean {
+  return Object.values(profile).every((arr) => arr.length === 0);
+}
+
+/**
  * Retrieve human signals from LLM extraction (Jan 2026)
  * "Better Than Human" memory - dreams, fears, values, important dates, etc.
+ *
+ * Read path (unified):
+ * 1. Prefer human_memory/profile subcollection
+ * 2. If missing/empty, fall back to profile.humanMemory on the main user doc
  */
 async function getHumanSignals(userId: string): Promise<HumanMemoryProfile | null> {
   try {
@@ -358,47 +446,34 @@ async function getHumanSignals(userId: string): Promise<HumanMemoryProfile | nul
       return null;
     }
 
-    const profileRef = db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('human_memory')
-      .doc('profile');
+    const userRef = db.collection('bogle_users').doc(userId);
 
-    const doc = await profileRef.get();
+    // 1. Prefer dedicated human_memory/profile doc
+    const profileDoc = await userRef.collection('human_memory').doc('profile').get();
+    if (profileDoc.exists) {
+      const fromSubcollection = normalizeHumanMemoryData(profileDoc.data() || {});
+      if (!isHumanMemoryProfileEmpty(fromSubcollection)) {
+        return fromSubcollection;
+      }
+    }
 
-    if (!doc.exists) {
+    // 2. Fall back to main user profile doc's humanMemory field
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) {
+      return null;
+    }
+    const humanMemory = userDoc.data()?.humanMemory as Record<string, unknown> | undefined;
+    if (!humanMemory || typeof humanMemory !== 'object') {
       return null;
     }
 
-    const data = doc.data()!;
+    const fromProfile = normalizeHumanMemoryData(humanMemory);
+    if (isHumanMemoryProfileEmpty(fromProfile)) {
+      return null;
+    }
 
-    // Map each signal array, ensuring proper date conversion
-    const mapSignals = (arr: unknown[]): HumanSignal[] => {
-      if (!Array.isArray(arr)) return [];
-      return arr.map((item: unknown) => {
-        const obj = item as Record<string, unknown>;
-        return {
-          id: String(obj.id || ''),
-          type: String(obj.type || ''),
-          value: String(obj.value || ''),
-          context: obj.context ? String(obj.context) : undefined,
-          confidence: Number(obj.confidence) || 0.7,
-          extractedAt: (obj.extractedAt as { toDate?: () => Date })?.toDate?.() || new Date(),
-        };
-      });
-    };
-
-    return {
-      importantDates: mapSignals(data.importantDates || []),
-      values: mapSignals(data.values || []),
-      dreams: mapSignals(data.dreams || []),
-      fears: mapSignals(data.fears || []),
-      growthMarkers: mapSignals(data.growthMarkers || []),
-      comfortPatterns: mapSignals(data.comfortPatterns || []),
-      challenges: mapSignals(data.challenges || []),
-      stressTriggers: mapSignals(data.stressTriggers || []),
-      importantPeople: mapSignals(data.importantPeople || []),
-    };
+    log.debug({ userId }, '🧠 [MEMORY] Using profile.humanMemory fallback for human signals');
+    return fromProfile;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to retrieve human signals');
     return null;

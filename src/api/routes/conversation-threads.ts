@@ -17,7 +17,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import admin from 'firebase-admin';
 import { createLogger } from '../../utils/safe-logger.js';
-import { requireUserId, sendJSON, sendError, parsePositiveInt, readBody } from '../helpers.js';
+import { requireAuth } from '../auth-middleware.js';
+import { sendJSON, sendError, parsePositiveInt, readBody } from '../helpers.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'ConversationThreadsAPI' });
@@ -276,12 +277,16 @@ export async function handleGetThreads(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  // Get userId from query param (like background-results API)
-  const userId = parsedUrl.searchParams.get('userId');
-  if (!userId) {
-    sendError(res, 'userId is required', 400);
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+
+  const requestedUserId = parsedUrl.searchParams.get('userId');
+  if (requestedUserId && requestedUserId !== auth.userId && !auth.isAdmin) {
+    sendError(res, 'Forbidden', 403);
     return;
   }
+
+  const userId = auth.isAdmin && requestedUserId ? requestedUserId : auth.userId;
 
   try {
     const limit = parsePositiveInt(parsedUrl.searchParams.get('limit'), 5, 20);
@@ -326,10 +331,11 @@ export async function handleGetThreads(
 export async function handleCreateThread(
   req: IncomingMessage,
   res: ServerResponse,
-  parsedUrl: URL
+  _parsedUrl: URL
 ): Promise<void> {
-  const userId = requireUserId(req, res, parsedUrl);
-  if (!userId) return;
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const userId = auth.userId;
 
   try {
     const body = await readBody<{
@@ -380,11 +386,12 @@ export async function handleCreateThread(
 export async function handleUpdateThread(
   req: IncomingMessage,
   res: ServerResponse,
-  parsedUrl: URL,
+  _parsedUrl: URL,
   threadId: string
 ): Promise<void> {
-  const userId = requireUserId(req, res, parsedUrl);
-  if (!userId) return;
+  const auth = await requireAuth(req, res);
+  if (!auth) return;
+  const userId = auth.userId;
 
   try {
     const body = await readBody<{

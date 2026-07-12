@@ -146,6 +146,7 @@ import { handleContactsRoutes } from '../../api/contacts-routes.js';
 import { handleGiftRoutes } from '../../api/gift-routes.js';
 import { handleStoryJourneyRoutes } from '../../api/story-journey-routes.js';
 import { handleStoryRoutes } from '../../api/story-routes.js';
+import { handleUserEventsRoutes } from '../../api/user-events-routes.js';
 import { handleSubscriptionRequest, isSubscriptionRoute } from '../../api/subscription-routes.js';
 import { handleAnalyticsRoutes } from '../../api/user-analytics-routes.js';
 import { handleBuilderMetricsRoutes } from '../../api/routes/builder-metrics.js';
@@ -1319,6 +1320,12 @@ const server = http.createServer(async (req, res) => {
     // Story routes (Your Story dashboard - actions, summary, stream)
     if (pathname.startsWith('/api/story')) {
       const handled = await handleStoryRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Voice → UI user events (poll + SSE for Firebase Hosting)
+    if (pathname.startsWith('/api/user-events')) {
+      const handled = await handleUserEventsRoutes(req, res, pathname);
       if (handled) return;
     }
 

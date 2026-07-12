@@ -1079,14 +1079,16 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
       }
 
       // Observability snapshot for ops/diagnose + disconnect runbooks
-      // Exposes callQuality from the in-process call-quality-monitor
+      // Exposes callQuality + memory speak-rate from in-process monitors
       if (url === '/api/observability' || url.startsWith('/api/observability?')) {
         try {
           const { getMetrics } = await import('../../services/analytics/call-quality-monitor.js');
+          const { memoryMetrics } = await import('../../services/observability/memory-health.js');
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(
             JSON.stringify({
               callQuality: getMetrics(),
+              memory: memoryMetrics.getSnapshot(),
               timestamp: new Date().toISOString(),
               service: 'voice-agent',
             })
@@ -1099,6 +1101,58 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
               detail: String(obsErr),
             })
           );
+        }
+        return;
+      }
+
+      // Local/dev-only: seed barge-in + memory-speak samples for SOTA e2e gates
+      if (url === '/api/observability/sota-seed' && req.method === 'POST') {
+        const allowSeed =
+          process.env.ALLOW_SOTA_SEED === 'true' ||
+          process.env.NODE_ENV === 'development' ||
+          (process.env.AGENT_NAME || '').includes('-dev');
+
+        if (!allowSeed) {
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'sota-seed disabled outside local/dev' }));
+          return;
+        }
+
+        try {
+          const {
+            startCall,
+            recordBargeInDetected,
+            recordBargeInAgentStopped,
+            endCall,
+            getMetrics,
+          } = await import('../../services/analytics/call-quality-monitor.js');
+          const { memoryMetrics } = await import('../../services/observability/memory-health.js');
+
+          const callId = `sota-seed-${Date.now()}`;
+          const sessionId = `sota-mem-${Date.now()}`;
+          const t0 = Date.now();
+
+          startCall(callId, 'sota-local-e2e', 'ferni');
+          recordBargeInDetected(callId, t0);
+          recordBargeInAgentStopped(callId, t0 + 120);
+          endCall(callId, 'natural');
+
+          memoryMetrics.recordMemoryRecallOpportunity({ sessionId, memoryCount: 2 });
+          memoryMetrics.recordMemoryRecallSurfaced({ sessionId, surfacedCount: 1 });
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              ok: true,
+              callId,
+              sessionId,
+              callQuality: getMetrics(),
+              memory: memoryMetrics.getSnapshot(),
+            })
+          );
+        } catch (seedErr) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: String(seedErr) }));
         }
         return;
       }

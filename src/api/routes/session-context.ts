@@ -5,17 +5,19 @@
  * - App tracks what user viewed → Voice knows what they're interested in
  * - Voice stores session summary → App shows insights from conversation
  *
+ * SECURITY: All routes require auth; userId is bound to auth.userId.
+ *
  * @module api/routes/session-context
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { requireAuth } from '../auth-middleware.js';
 import {
   getActiveUserContext,
   recordAppScreenView,
   recordAppInteraction,
   formatContextForApp,
-  type AppBrowsingContext,
 } from '../../services/session-context/session-summary.js';
 
 const log = createLogger({ module: 'SessionContextRoutes' });
@@ -25,20 +27,38 @@ const log = createLogger({ module: 'SessionContextRoutes' });
 // ============================================================================
 
 interface ScreenViewRequest {
-  userId: string;
+  userId?: string;
   screenName: string;
   durationSeconds: number;
 }
 
 interface InteractionRequest {
-  userId: string;
+  userId?: string;
   interaction: string;
 }
 
 interface BrowsingContextRequest {
-  userId: string;
+  userId?: string;
   screens: Array<{ name: string; duration: number }>;
   interactions: string[];
+}
+
+function assertOwnUserId(
+  authUserId: string,
+  isAdmin: boolean,
+  requestedUserId: string | undefined | null,
+  res: ServerResponse
+): boolean {
+  if (requestedUserId && requestedUserId !== authUserId && !isAdmin) {
+    log.warn(
+      { authUserId, requestedUserId },
+      'SECURITY: Blocked cross-user session-context access'
+    );
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Forbidden' }));
+    return false;
+  }
+  return true;
 }
 
 // ============================================================================
@@ -50,16 +70,17 @@ interface BrowsingContextRequest {
  * POST /api/context/screen-view
  */
 export async function handleScreenView(
-  req: IncomingMessage,
+  _req: IncomingMessage,
   res: ServerResponse,
-  body: ScreenViewRequest
+  body: ScreenViewRequest,
+  userId: string
 ): Promise<void> {
   try {
-    const { userId, screenName, durationSeconds } = body;
+    const { screenName, durationSeconds } = body;
 
-    if (!userId || !screenName) {
+    if (!screenName) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Missing userId or screenName' }));
+      res.end(JSON.stringify({ error: 'Missing screenName' }));
       return;
     }
 
@@ -79,16 +100,17 @@ export async function handleScreenView(
  * POST /api/context/interaction
  */
 export async function handleInteraction(
-  req: IncomingMessage,
+  _req: IncomingMessage,
   res: ServerResponse,
-  body: InteractionRequest
+  body: InteractionRequest,
+  userId: string
 ): Promise<void> {
   try {
-    const { userId, interaction } = body;
+    const { interaction } = body;
 
-    if (!userId || !interaction) {
+    if (!interaction) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Missing userId or interaction' }));
+      res.end(JSON.stringify({ error: 'Missing interaction' }));
       return;
     }
 
@@ -108,25 +130,18 @@ export async function handleInteraction(
  * POST /api/context/browsing
  */
 export async function handleBrowsingContext(
-  req: IncomingMessage,
+  _req: IncomingMessage,
   res: ServerResponse,
-  body: BrowsingContextRequest
+  body: BrowsingContextRequest,
+  userId: string
 ): Promise<void> {
   try {
-    const { userId, screens, interactions } = body;
+    const { screens, interactions } = body;
 
-    if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Missing userId' }));
-      return;
-    }
-
-    // Record screens
     for (const screen of screens || []) {
       await recordAppScreenView(userId, screen.name, screen.duration);
     }
 
-    // Record interactions
     for (const interaction of interactions || []) {
       await recordAppInteraction(userId, interaction);
     }
@@ -142,22 +157,14 @@ export async function handleBrowsingContext(
 
 /**
  * Get context for displaying in app (after voice call).
- * GET /api/context/for-app?userId=xxx
+ * GET /api/context/for-app
  */
 export async function handleGetContextForApp(
-  req: IncomingMessage,
-  res: ServerResponse
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
 ): Promise<void> {
   try {
-    const url = new URL(req.url || '', 'http://localhost');
-    const userId = url.searchParams.get('userId');
-
-    if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Missing userId' }));
-      return;
-    }
-
     const context = await getActiveUserContext(userId);
 
     if (!context) {
@@ -186,22 +193,14 @@ export async function handleGetContextForApp(
 
 /**
  * Get full active context (for debugging/admin).
- * GET /api/context/active?userId=xxx
+ * GET /api/context/active
  */
 export async function handleGetActiveContext(
-  req: IncomingMessage,
-  res: ServerResponse
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
 ): Promise<void> {
   try {
-    const url = new URL(req.url || '', 'http://localhost');
-    const userId = url.searchParams.get('userId');
-
-    if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Missing userId' }));
-      return;
-    }
-
     const context = await getActiveUserContext(userId);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -228,33 +227,63 @@ export async function handleSessionContextRoute(
   const url = req.url || '';
   const method = req.method || 'GET';
 
+  const isContextRoute =
+    url.startsWith('/api/context/screen-view') ||
+    url.startsWith('/api/context/interaction') ||
+    url.startsWith('/api/context/browsing') ||
+    url.startsWith('/api/context/for-app') ||
+    url.startsWith('/api/context/active');
+
+  if (!isContextRoute) {
+    return false;
+  }
+
+  // SECURITY: Require auth; bind all operations to auth.userId
+  const auth = await requireAuth(req, res);
+  if (!auth) return true;
+
+  const parsedUrl = new URL(url, 'http://localhost');
+  const queryUserId = parsedUrl.searchParams.get('userId');
+  const bodyUserId =
+    parsedBody && typeof parsedBody === 'object' && 'userId' in parsedBody
+      ? String((parsedBody as { userId?: string }).userId || '')
+      : undefined;
+
+  if (!assertOwnUserId(auth.userId, auth.isAdmin, queryUserId || bodyUserId || undefined, res)) {
+    return true;
+  }
+
+  // Admins may act on another userId when explicitly requested; everyone else uses auth.userId
+  const userId =
+    auth.isAdmin && (queryUserId || bodyUserId) ? queryUserId || bodyUserId || auth.userId : auth.userId;
+
   // POST /api/context/screen-view
   if (method === 'POST' && url.startsWith('/api/context/screen-view')) {
-    await handleScreenView(req, res, parsedBody as ScreenViewRequest);
+    await handleScreenView(req, res, parsedBody as ScreenViewRequest, userId);
     return true;
   }
 
   // POST /api/context/interaction
   if (method === 'POST' && url.startsWith('/api/context/interaction')) {
-    await handleInteraction(req, res, parsedBody as InteractionRequest);
+    await handleInteraction(req, res, parsedBody as InteractionRequest, userId);
     return true;
   }
 
   // POST /api/context/browsing
   if (method === 'POST' && url.startsWith('/api/context/browsing')) {
-    await handleBrowsingContext(req, res, parsedBody as BrowsingContextRequest);
+    await handleBrowsingContext(req, res, parsedBody as BrowsingContextRequest, userId);
     return true;
   }
 
   // GET /api/context/for-app
   if (method === 'GET' && url.startsWith('/api/context/for-app')) {
-    await handleGetContextForApp(req, res);
+    await handleGetContextForApp(req, res, userId);
     return true;
   }
 
   // GET /api/context/active
   if (method === 'GET' && url.startsWith('/api/context/active')) {
-    await handleGetActiveContext(req, res);
+    await handleGetActiveContext(req, res, userId);
     return true;
   }
 

@@ -10,6 +10,57 @@ import type { ServerResponse } from 'http';
 const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]{1,128}$/;
 
 /**
+ * Hosts allowed for OAuth return_url redirects (open-redirect prevention).
+ * Relative paths (starting with `/` but not `//`) are always allowed.
+ */
+const ALLOWED_OAUTH_RETURN_HOSTS = new Set([
+  'app.ferni.ai',
+  'ferni.ai',
+  'www.ferni.ai',
+  'ferni-prod.web.app',
+  'localhost',
+  '127.0.0.1',
+]);
+
+/**
+ * Validate OAuth return_url against an allowlist.
+ * Allows same-origin relative paths; rejects protocol-relative and unknown hosts.
+ */
+export function isAllowedReturnUrl(returnUrl: string | undefined | null): boolean {
+  if (!returnUrl) {
+    return true; // Caller will use a safe default relative path
+  }
+
+  // Relative path on our origin — allow (but reject protocol-relative //evil.com)
+  if (returnUrl.startsWith('/') && !returnUrl.startsWith('//')) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(returnUrl);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return false;
+    }
+    return ALLOWED_OAUTH_RETURN_HOSTS.has(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Sanitize return_url: return the URL if allowed, otherwise a safe default.
+ */
+export function sanitizeReturnUrl(
+  returnUrl: string | undefined | null,
+  fallback = '/'
+): string {
+  if (isAllowedReturnUrl(returnUrl) && returnUrl) {
+    return returnUrl;
+  }
+  return fallback;
+}
+
+/**
  * Validate that an ID is safe (prevents injection attacks)
  */
 export function isValidId(id: unknown): id is string {

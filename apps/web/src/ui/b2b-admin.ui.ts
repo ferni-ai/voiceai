@@ -702,7 +702,7 @@ async function fetchOrgData(orgId: string): Promise<{
   usageStats: OrgUsageStats;
   roiEstimate: ROIEstimate;
   onboardingChecklist: OnboardingItem[];
-}> {
+} | null> {
   try {
     const response = await apiGet<{
       organization: Organization;
@@ -714,61 +714,7 @@ async function fetchOrgData(orgId: string): Promise<{
     return response.data;
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to fetch org data');
-    // Return mock data for demo
-    return {
-      organization: currentOrg!,
-      usageStats: {
-        orgId,
-        period: new Date().toISOString().slice(0, 7),
-        totalConversations: 234,
-        totalMinutes: 1872,
-        activeMembers: currentOrg?.activeSeats || 12,
-        topTopics: ['stress', 'productivity', 'communication', 'work-life balance'],
-        avgConversationsPerMember: 19.5,
-      },
-      roiEstimate: {
-        monthlyInvestment: (currentOrg?.seatCount || 25) * 800,
-        estimatedSavings: (currentOrg?.seatCount || 25) * 1200,
-        roi: 50,
-        assumptions: [
-          'Each employee replaces 0.5 therapy sessions/month with Ferni',
-          'Average therapy session cost: $150',
-          'Productivity improvement worth $20/employee/month',
-        ],
-      },
-      onboardingChecklist: [
-        {
-          id: 'invite_team',
-          title: 'Invite your team',
-          description: 'Send invites to at least 5 team members',
-          completed: true,
-        },
-        {
-          id: 'customize_welcome',
-          title: 'Customize welcome message',
-          description: 'Add a personalized welcome for your team',
-          completed: false,
-        },
-        {
-          id: 'add_values',
-          title: 'Add company values',
-          description: "Ferni can incorporate your company's values in conversations",
-          completed: false,
-        },
-        {
-          id: 'first_conversation',
-          title: 'Have your first conversation',
-          description: 'Try talking to Ferni yourself',
-          completed: true,
-        },
-        {
-          id: 'review_analytics',
-          title: 'Review team analytics',
-          description: 'Check how your team is using Ferni',
-          completed: false,
-        },
-      ],
-    };
+    return null;
   }
 }
 
@@ -893,6 +839,14 @@ async function renderContent(): Promise<void> {
 
   const data = await fetchOrgData(currentOrg.id);
 
+  if (!data) {
+    contentEl.innerHTML = renderFetchError();
+    contentEl.querySelector('[data-action="retry-org"]')?.addEventListener('click', () => {
+      void renderContent();
+    });
+    return;
+  }
+
   switch (currentView) {
     case 'overview':
       contentEl.innerHTML = renderOverview(
@@ -913,6 +867,20 @@ async function renderContent(): Promise<void> {
       contentEl.innerHTML = renderBilling(data.roiEstimate);
       break;
   }
+}
+
+function renderFetchError(): string {
+  return `
+    <div class="b2b-admin-empty">
+      <p>Couldn't load team stats right now.</p>
+      <p style="margin-top: var(--space-2, 8px); color: var(--color-text-secondary);">
+        Try again in a moment — we won't show placeholder numbers.
+      </p>
+      <button type="button" class="b2b-admin-invite-btn" data-action="retry-org" style="margin-top: var(--space-4, 16px);">
+        Try again
+      </button>
+    </div>
+  `;
 }
 
 function renderOverview(
@@ -1017,7 +985,7 @@ function renderTeam(): string {
       email: `member${i + 1}@${currentOrg?.slug || 'company'}.com`,
       role: currentOrg?.adminUserIds.includes(userId) ? 'admin' : 'member',
       joinedAt: new Date(Date.now() - i * 7 * 24 * 60 * 60 * 1000).toISOString(),
-      conversationCount: Math.floor(Math.random() * 30) + 5,
+      conversationCount: 0,
     })) || [];
 
   return `

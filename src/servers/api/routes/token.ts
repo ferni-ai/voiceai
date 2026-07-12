@@ -585,45 +585,69 @@ export async function handleTokenRoutes(
     const selectedPersona = persona_id || 'ferni';
 
     try {
-      // Try to verify Firebase token from Authorization header
-      let firebaseUid: string | null = null;
+      // SECURITY: Require verified Firebase auth before issuing LiveKit tokens.
+      // Anonymous Firebase users are an intentional product path (zero-friction onboarding);
+      // they still present a verified ID token. Query-param firebase_uid alone is never trusted.
       const authHeader = req.headers['authorization'];
-      if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-        try {
-          const { verifyFirebaseToken, isVerifiedToken } =
-            await import('../../../services/identity/firebase-auth.js');
-          const firebaseToken = authHeader.slice(7);
-          const verified = await verifyFirebaseToken(firebaseToken);
-          if (isVerifiedToken(verified)) {
-            firebaseUid = verified.uid;
-            log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth via header');
-          }
-        } catch (firebaseErr) {
-          log.debug({ note: (firebaseErr as Error).message }, 'Firebase auth header failed');
-        }
+      if (
+        !authHeader ||
+        typeof authHeader !== 'string' ||
+        !authHeader.startsWith('Bearer ')
+      ) {
+        log.warn('SECURITY: /token rejected — missing Firebase auth');
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            error: 'Authentication required',
+            message: 'Sign in (including anonymous Firebase) before requesting a voice token',
+          })
+        );
+        return true;
       }
 
-      // 🐛 FIX: Fallback to firebase_uid query param if header auth failed
-      // This is critical for user memory persistence!
-      if (!firebaseUid && firebase_uid_param) {
-        firebaseUid = firebase_uid_param;
-        log.info(
-          { firebaseUid: firebaseUid.substring(0, 8) },
-          '🔑 Using firebase_uid from query param (header auth unavailable)'
-        );
+      let firebaseUid: string;
+      try {
+        const { verifyFirebaseToken, isVerifiedToken } =
+          await import('../../../services/identity/firebase-auth.js');
+        const verified = await verifyFirebaseToken(authHeader.slice(7));
+        if (!isVerifiedToken(verified)) {
+          log.warn('SECURITY: /token rejected — invalid or expired Firebase token');
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid or expired authentication token' }));
+          return true;
+        }
+        if (
+          firebase_uid_param &&
+          firebase_uid_param !== verified.uid &&
+          verified.claims.admin !== true
+        ) {
+          log.warn(
+            {
+              claimed: firebase_uid_param.substring(0, 8),
+              actual: verified.uid.substring(0, 8),
+            },
+            'SECURITY: /token rejected — firebase_uid does not match authenticated user'
+          );
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'firebase_uid does not match authenticated user' }));
+          return true;
+        }
+        firebaseUid = verified.uid;
+        log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth via header');
+      } catch (firebaseErr) {
+        log.error({ error: String(firebaseErr) }, 'Firebase auth verification failed for /token');
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Authentication service unavailable' }));
+        return true;
       }
 
       // 🧠 MEMORY AUDIT: Log identity chain for debugging memory issues
       log.info(
         {
           room,
-          hasFirebaseUid: !!firebaseUid,
-          firebaseUidSource: firebaseUid
-            ? firebase_uid_param
-              ? 'query_param'
-              : 'auth_header'
-            : 'none',
-          firebaseUidPrefix: firebaseUid ? firebaseUid.substring(0, 8) : 'none',
+          hasFirebaseUid: true,
+          firebaseUidSource: 'auth_header',
+          firebaseUidPrefix: firebaseUid.substring(0, 8),
           hasDeviceId: !!device_id,
           deviceIdPrefix: device_id ? device_id.substring(0, 16) : 'none',
         },

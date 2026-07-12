@@ -23,10 +23,13 @@ export function evaluateMemorySpeakSlo(payload, minRecallRate = MIN_RECALL_RATE)
   const memoryRecallsPerSession = Number(memory?.memoryRecallsPerSession || 0);
 
   if (sessionsWithMemoryData === 0) {
+    const requireSamples = process.env.REQUIRE_SAMPLES === 'true';
     return {
-      ok: true,
+      ok: !requireSamples,
       skipped: true,
-      reason: 'No sessions with memory data',
+      reason: requireSamples
+        ? 'No sessions with memory data (REQUIRE_SAMPLES=true)'
+        : 'No sessions with memory data',
       sessionsWithMemoryData,
       sessionsWithMemoryRecalls,
       memoryRecallRate,

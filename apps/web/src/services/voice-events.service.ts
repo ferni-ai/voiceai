@@ -2,18 +2,16 @@
  * Voice Events Service
  *
  * Receives real-time events from voice commands via WebSocket.
- * Enables voice-triggered UI changes like theme switching.
+ * Enables voice-triggered UI changes like theme switching and panel navigation.
  *
- * Architecture:
- * - Voice tool calls broadcastUserEvent() on backend
- * - Event published to Redis pub/sub
- * - WebSocket server forwards to connected UI clients
- * - This service receives events and updates UI accordingly
+ * On Firebase Hosting (no WebSocket proxy), uses SSE/polling over HTTP rewrites
+ * and also accepts LiveKit data-channel events when a session is active.
  *
  * @module voice-events.service
  */
 
 import { setTheme, type ThemeName } from '../theme/index.js';
+import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('VoiceEvents');
@@ -45,12 +43,15 @@ interface UserEvent<T = unknown> {
 // ============================================================================
 
 let wsConnection: WebSocket | null = null;
+let eventSource: EventSource | null = null;
 let reconnectAttempts = 0;
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+let pollingInterval: ReturnType<typeof setInterval> | null = null;
 let currentUserId: string | null = null;
 let isEnabled = true;
+let lastPollTimestamp = 0;
+const processedEventKeys = new Set<string>();
 
-// Exponential backoff configuration
 const RECONNECT_CONFIG = {
   initialDelayMs: 1000,
   maxDelayMs: 60000,
@@ -59,25 +60,22 @@ const RECONNECT_CONFIG = {
   jitterMs: 500,
 };
 
+const POLL_INTERVAL_MS = 2000;
+
 // ============================================================================
 // THEME MAPPING
 // ============================================================================
 
-/**
- * Map backend theme names to frontend theme names
- * Backend: 'dark' | 'light' | 'auto'
- * Frontend: 'midnight' | 'zen'
- */
 function mapBackendThemeToFrontend(backendTheme: BackendTheme): ThemeName {
   switch (backendTheme) {
     case 'dark':
       return 'midnight';
     case 'light':
       return 'zen';
-    case 'auto':
-      // For auto, check system preference
+    case 'auto': {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       return prefersDark ? 'midnight' : 'zen';
+    }
     default:
       return 'zen';
   }
@@ -87,51 +85,41 @@ function mapBackendThemeToFrontend(backendTheme: BackendTheme): ThemeName {
 // EVENT HANDLERS
 // ============================================================================
 
-/**
- * Handle theme change event from voice
- */
 function handleThemeChange(data: ThemeChangeData): void {
   const frontendTheme = mapBackendThemeToFrontend(data.theme);
-  log.info({ backendTheme: data.theme, frontendTheme, source: data.source }, 'Voice-triggered theme change');
-
-  // Apply the theme with animation
+  log.info(
+    { backendTheme: data.theme, frontendTheme, source: data.source },
+    'Voice-triggered theme change'
+  );
   setTheme(frontendTheme, true);
 }
 
-/**
- * Handle show_view event from voice - opens UI panels/dashboards
- * 
- * Maps panel IDs to custom events that app.ts listens for.
- * This enables voice-activated navigation: "Show me my story", "Open memory lane", etc.
- */
 function handleShowView(data: ShowViewData): void {
   const { view, params } = data;
   log.info({ view, params }, 'Voice-triggered panel navigation');
 
-  // Map panel IDs to custom event names
   const panelEventMap: Record<string, string> = {
     'your-story': 'ferni:open-your-story',
     'memory-lane': 'ferni:open-memory-lane',
-    'history': 'ferni:open-history',
-    'patterns': 'ferni:open-patterns',
-    'quiz': 'ferni:open-quiz',
-    'music': 'ferni:open-music',
-    'calendar': 'ferni:open-calendar',
-    'contacts': 'ferni:open-contacts',
-    'journal': 'ferni:open-journal',
+    history: 'ferni:open-history',
+    patterns: 'ferni:open-patterns',
+    quiz: 'ferni:open-quiz',
+    music: 'ferni:open-music',
+    calendar: 'ferni:open-calendar',
+    contacts: 'ferni:open-contacts',
+    journal: 'ferni:open-journal',
     'year-with-ferni': 'ferni:open-year-with-ferni',
-    'settings': 'ferni:open-settings',
+    settings: 'ferni:open-settings',
     'guided-practices': 'ferni:open-practices',
     'household-members': 'ferni:open-household',
     'voice-id': 'ferni:open-voice-id',
-    'notifications': 'ferni:open-notifications',
-    'close': 'ferni:close-panel',
+    notifications: 'ferni:open-notifications',
+    close: 'ferni:close-panel',
   };
 
   const eventName = panelEventMap[view];
-  
+
   if (eventName) {
-    // Dispatch custom event that app.ts will handle
     window.dispatchEvent(new CustomEvent(eventName, { detail: params }));
     log.debug({ view, eventName }, 'Dispatched panel open event');
   } else {
@@ -139,38 +127,68 @@ function handleShowView(data: ShowViewData): void {
   }
 }
 
+function eventDedupeKey(event: UserEvent): string {
+  return `${event.type}:${event.timestamp}:${JSON.stringify(event.data)}`;
+}
+
 /**
- * Handle incoming WebSocket message
+ * Process a voice user event from any transport (WS, SSE, poll, data channel).
  */
+export function processVoiceUserEvent(event: UserEvent): void {
+  const key = eventDedupeKey(event);
+  if (processedEventKeys.has(key)) {
+    return;
+  }
+  processedEventKeys.add(key);
+  if (processedEventKeys.size > 200) {
+    const first = processedEventKeys.values().next().value;
+    if (first) processedEventKeys.delete(first);
+  }
+
+  switch (event.type) {
+    case 'welcome':
+    case 'subscribed':
+      log.debug('Connected to voice events stream');
+      break;
+    case 'theme_change':
+      handleThemeChange(event.data as ThemeChangeData);
+      break;
+    case 'show_view':
+      handleShowView(event.data as ShowViewData);
+      break;
+    case 'pong':
+    case 'heartbeat':
+      break;
+    default:
+      log.debug({ type: event.type }, 'Unknown voice event type');
+  }
+}
+
+/**
+ * Handle LiveKit data-channel messages that carry voice→UI events.
+ */
+export function handleVoiceEventDataMessage(message: {
+  type?: string;
+  data?: unknown;
+  timestamp?: string;
+}): boolean {
+  if (!message.type) return false;
+  if (message.type !== 'show_view' && message.type !== 'theme_change') {
+    return false;
+  }
+
+  processVoiceUserEvent({
+    type: message.type,
+    data: message.data ?? message,
+    timestamp: message.timestamp || new Date().toISOString(),
+  });
+  return true;
+}
+
 function handleMessage(event: MessageEvent): void {
   try {
     const message = JSON.parse(event.data) as UserEvent;
-
-    switch (message.type) {
-      case 'welcome':
-        log.debug('Connected to voice events stream');
-        break;
-
-      case 'subscribed':
-        log.debug('Subscribed to voice events');
-        break;
-
-      case 'theme_change':
-        handleThemeChange(message.data as ThemeChangeData);
-        break;
-
-      case 'show_view':
-        handleShowView(message.data as ShowViewData);
-        break;
-
-      case 'pong':
-      case 'heartbeat':
-        // Ignore heartbeat responses
-        break;
-
-      default:
-        log.debug({ type: message.type }, 'Unknown voice event type');
-    }
+    processVoiceUserEvent(message);
   } catch (err) {
     log.warn({ error: String(err) }, 'Failed to parse voice event message');
   }
@@ -180,9 +198,6 @@ function handleMessage(event: MessageEvent): void {
 // WEBSOCKET CONNECTION
 // ============================================================================
 
-/**
- * Calculate reconnection delay with exponential backoff
- */
 function getReconnectDelay(): number {
   const baseDelay = Math.min(
     RECONNECT_CONFIG.initialDelayMs * Math.pow(RECONNECT_CONFIG.multiplier, reconnectAttempts),
@@ -192,9 +207,6 @@ function getReconnectDelay(): number {
   return baseDelay + jitter;
 }
 
-/**
- * Schedule a reconnection attempt
- */
 function scheduleReconnect(): void {
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout);
@@ -202,14 +214,17 @@ function scheduleReconnect(): void {
   }
 
   if (reconnectAttempts >= RECONNECT_CONFIG.maxAttempts) {
-    log.warn('Max reconnection attempts reached for voice events');
+    log.warn('Max reconnection attempts reached — falling back to polling');
+    startPolling();
     return;
   }
 
   const delay = getReconnectDelay();
   reconnectAttempts++;
 
-  log.debug(`Scheduling voice events reconnect attempt ${reconnectAttempts}/${RECONNECT_CONFIG.maxAttempts} in ${Math.round(delay)}ms`);
+  log.debug(
+    `Scheduling voice events reconnect attempt ${reconnectAttempts}/${RECONNECT_CONFIG.maxAttempts} in ${Math.round(delay)}ms`
+  );
 
   reconnectTimeout = setTimeout(() => {
     if (isEnabled && currentUserId) {
@@ -218,10 +233,6 @@ function scheduleReconnect(): void {
   }, delay);
 }
 
-/**
- * Check if we're running on Firebase Hosting (production)
- * Firebase Hosting doesn't support WebSocket proxying
- */
 function isFirebaseHosting(): boolean {
   const host = window.location.hostname;
   return (
@@ -232,15 +243,12 @@ function isFirebaseHosting(): boolean {
   );
 }
 
-/**
- * Connect to the voice events WebSocket
- */
 export function connectToVoiceEvents(userId: string): void {
   currentUserId = userId;
 
-  // Firebase Hosting doesn't support WebSocket - skip connection
   if (isFirebaseHosting()) {
-    log.debug('Firebase Hosting detected - voice events WebSocket not available');
+    log.debug('Firebase Hosting — using SSE/polling instead of WebSocket');
+    startHttpFallback(userId);
     return;
   }
 
@@ -255,7 +263,6 @@ export function connectToVoiceEvents(userId: string): void {
   }
 
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  // In development, connect directly to UI server (port 3002) to bypass Vite proxy
   const host = import.meta.env.DEV ? 'localhost:3002' : window.location.host;
   const wsUrl = `${protocol}//${host}/ws/user-events?userId=${encodeURIComponent(userId)}`;
 
@@ -265,6 +272,8 @@ export function connectToVoiceEvents(userId: string): void {
     wsConnection.onopen = () => {
       log.info('Connected to voice events WebSocket');
       reconnectAttempts = 0;
+      stopPolling();
+      stopSSE();
     };
 
     wsConnection.onmessage = handleMessage;
@@ -289,9 +298,6 @@ export function connectToVoiceEvents(userId: string): void {
   }
 }
 
-/**
- * Disconnect from voice events WebSocket
- */
 export function disconnectFromVoiceEvents(): void {
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout);
@@ -300,6 +306,8 @@ export function disconnectFromVoiceEvents(): void {
 
   reconnectAttempts = 0;
   currentUserId = null;
+  stopPolling();
+  stopSSE();
 
   if (wsConnection) {
     wsConnection.close();
@@ -308,9 +316,130 @@ export function disconnectFromVoiceEvents(): void {
   }
 }
 
-/**
- * Enable/disable voice events
- */
+// ============================================================================
+// SSE + POLLING (Firebase Hosting fallback)
+// ============================================================================
+
+function startSSE(userId: string): boolean {
+  if (typeof EventSource === 'undefined') {
+    return false;
+  }
+
+  stopSSE();
+
+  try {
+    const url = `/api/user-events/stream?userId=${encodeURIComponent(userId)}`;
+    eventSource = new EventSource(url);
+
+    eventSource.onopen = () => {
+      log.info('Connected to voice events SSE');
+      reconnectAttempts = 0;
+      stopPolling();
+    };
+
+    eventSource.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data) as UserEvent;
+        processVoiceUserEvent(message);
+        if (message.timestamp) {
+          lastPollTimestamp = Math.max(lastPollTimestamp, Date.parse(message.timestamp) || 0);
+        }
+      } catch (err) {
+        log.warn({ error: String(err) }, 'Failed to parse SSE voice event');
+      }
+    };
+
+    eventSource.addEventListener('user_event', (event) => {
+      try {
+        const message = JSON.parse((event as MessageEvent).data) as UserEvent;
+        processVoiceUserEvent(message);
+      } catch (err) {
+        log.warn({ error: String(err) }, 'Failed to parse SSE user_event');
+      }
+    });
+
+    eventSource.onerror = () => {
+      log.warn('Voice events SSE error — falling back to polling');
+      stopSSE();
+      startPolling();
+    };
+
+    return true;
+  } catch (err) {
+    log.warn({ error: String(err) }, 'Failed to start voice events SSE');
+    return false;
+  }
+}
+
+function stopSSE(): void {
+  if (eventSource) {
+    eventSource.close();
+    eventSource = null;
+  }
+}
+
+async function pollForEvents(): Promise<void> {
+  if (!currentUserId) return;
+
+  try {
+    const since = lastPollTimestamp || Date.now() - 30_000;
+    const response = await apiGet<{ events?: UserEvent[] }>(
+      `/api/user-events/pending?userId=${encodeURIComponent(currentUserId)}&since=${since}`
+    );
+
+    if (!response.ok || !response.data) return;
+
+    const events = response.data.events || [];
+    for (const event of events) {
+      processVoiceUserEvent(event);
+      const ts = Date.parse(event.timestamp);
+      if (!Number.isNaN(ts)) {
+        lastPollTimestamp = Math.max(lastPollTimestamp, ts);
+      }
+    }
+
+    if (events.length === 0 && lastPollTimestamp === 0) {
+      lastPollTimestamp = Date.now();
+    }
+  } catch (err) {
+    log.debug({ error: String(err) }, 'Failed to poll voice events');
+  }
+}
+
+function startPolling(): void {
+  if (pollingInterval) {
+    log.debug('Voice events polling already active');
+    return;
+  }
+
+  pollingInterval = setInterval(() => {
+    void pollForEvents();
+  }, POLL_INTERVAL_MS);
+
+  void pollForEvents();
+  log.info('Started voice events polling');
+}
+
+function stopPolling(): void {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+    log.info('Stopped voice events polling');
+  }
+}
+
+function startHttpFallback(userId: string): void {
+  currentUserId = userId;
+  lastPollTimestamp = Date.now();
+  // EventSource cannot send Authorization headers; use authenticated polling
+  // (same pattern as journal-sync / cross-team notifications on Firebase Hosting)
+  startPolling();
+}
+
+// ============================================================================
+// PUBLIC API
+// ============================================================================
+
 export function setVoiceEventsEnabled(enabled: boolean): void {
   isEnabled = enabled;
 
@@ -319,49 +448,50 @@ export function setVoiceEventsEnabled(enabled: boolean): void {
   }
 }
 
-/**
- * Initialize voice events for a user
- */
 export function initVoiceEvents(userId: string): void {
   if (!userId) {
     log.warn('No userId provided, voice events disabled');
     return;
   }
 
-  // Don't connect on Firebase Hosting (no WebSocket support)
   if (isFirebaseHosting()) {
-    log.info('Firebase Hosting detected - voice events will not be available');
-    return;
+    log.info('Firebase Hosting detected — using SSE/polling for voice events');
+    startHttpFallback(userId);
+  } else {
+    connectToVoiceEvents(userId);
   }
 
-  connectToVoiceEvents(userId);
   log.info('Voice events initialized');
 }
 
-/**
- * Cleanup voice events
- */
 export function disposeVoiceEvents(): void {
   disconnectFromVoiceEvents();
   setVoiceEventsEnabled(false);
+  processedEventKeys.clear();
   log.debug('Voice events disposed');
 }
 
-/**
- * Get current connection state (for debugging)
- */
 export function getVoiceEventsState(): {
   isEnabled: boolean;
   isConnected: boolean;
   userId: string | null;
   reconnectAttempts: number;
   reconnectPending: boolean;
+  usingPolling: boolean;
+  usingSSE: boolean;
 } {
+  const sseOpen =
+    typeof EventSource !== 'undefined' &&
+    eventSource !== null &&
+    eventSource.readyState === EventSource.OPEN;
+
   return {
     isEnabled,
-    isConnected: wsConnection?.readyState === WebSocket.OPEN,
+    isConnected: wsConnection?.readyState === WebSocket.OPEN || sseOpen,
     userId: currentUserId,
     reconnectAttempts,
     reconnectPending: reconnectTimeout !== null,
+    usingPolling: pollingInterval !== null,
+    usingSSE: eventSource !== null,
   };
 }

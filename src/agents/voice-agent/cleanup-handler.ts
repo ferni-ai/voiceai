@@ -470,6 +470,22 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
         })()
       : Promise.resolve(),
 
+    // Social graph final persist (relationships extracted mid-session)
+    // Wired here because cleanup-handler is the live voice teardown path;
+    // handleEndSession also calls this but is not always on the critical path.
+    userId
+      ? (async () => {
+          try {
+            const { persistSocialGraphOnEnd } =
+              await import('../../services/session/session-end-cleanup.js');
+            await persistSocialGraphOnEnd(userId);
+            diag.session('📇 Social graph persisted on session end', { userId });
+          } catch (err) {
+            diag.warn('Social graph persist failed (non-fatal)', { error: String(err) });
+          }
+        })()
+      : Promise.resolve(),
+
     // Capability learning - track which capabilities resonated for collective learning
     userId ? cleanupCapabilityLearning(userId, sessionId) : Promise.resolve(),
 

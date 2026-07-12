@@ -13,7 +13,7 @@
  */
 
 const OBS_URL = process.env.OBS_URL || 'http://34.134.186.63:8080/api/observability';
-const MAX_MS = Number(process.env.MAX_MS || 500);
+const MAX_MS = Number(process.env.BARGE_IN_MAX_MS || process.env.MAX_MS || 500);
 
 async function fetchObservability() {
   const res = await fetch(OBS_URL);
@@ -29,12 +29,14 @@ export function evaluateBargeInSlo(metrics) {
   const bargeInRecoverP95Ms = Number(metrics?.bargeInRecoverP95Ms || 0);
 
   if (samples === 0) {
+    const requireSamples = process.env.REQUIRE_SAMPLES === 'true';
     return {
-      ok: true,
+      ok: !requireSamples,
       skipped: true,
       bargeInRecoverP95Ms,
       samples,
       maxMs: MAX_MS,
+      ...(requireSamples ? { reason: 'No barge-in samples (REQUIRE_SAMPLES=true)' } : {}),
     };
   }
 

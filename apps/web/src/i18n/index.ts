@@ -373,6 +373,14 @@ export function onLocaleChange(listener: (locale: SupportedLocale) => void): () 
 // ============================================================================
 
 /**
+ * Placeholder strings are treated as missing so we fall back to en-US.
+ */
+function isUsableTranslation(value: string | undefined): value is string {
+  if (!value) return false;
+  return !value.startsWith('[NEEDS_TRANSLATION]');
+}
+
+/**
  * Get a nested value from an object using dot notation
  */
 function getNestedValue(obj: Translations, path: string): string | undefined {
@@ -444,11 +452,11 @@ export function t(
     }
   }
 
-  // Try current locale
+  // Try current locale (skip [NEEDS_TRANSLATION] placeholders)
   const translations = loadedTranslations.get(currentLocale);
   if (translations) {
     const value = getNestedValue(translations, key);
-    if (value) {
+    if (isUsableTranslation(value)) {
       return interpolate(value, params);
     }
   }
@@ -458,7 +466,7 @@ export function t(
     const fallbackTranslations = loadedTranslations.get(localefall);
     if (fallbackTranslations) {
       const value = getNestedValue(fallbackTranslations, key);
-      if (value) {
+      if (isUsableTranslation(value)) {
         return interpolate(value, params);
       }
     }
@@ -468,7 +476,7 @@ export function t(
   const enTranslations = loadedTranslations.get('en-US');
   if (enTranslations) {
     const value = getNestedValue(enTranslations, key);
-    if (value) {
+    if (isUsableTranslation(value)) {
       return interpolate(value, params);
     }
   }

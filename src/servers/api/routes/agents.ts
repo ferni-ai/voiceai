@@ -8,7 +8,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import fs from 'fs';
 import path from 'path';
-import { rateLimit } from '../../../api/auth-middleware.js';
+import { rateLimit, requireAdmin } from '../../../api/auth-middleware.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { listCustomAgents } from '../../../services/custom-agent/custom-agent-persistence-service.js';
 import type { CustomAgent } from '../../../types/custom-agent-api.js';
@@ -322,6 +322,9 @@ export async function handleAgentRoutes(
       return true;
     }
 
+    const auth = await requireAdmin(req, res);
+    if (!auth) return true;
+
     try {
       const body = await parseJsonBody(req);
       const order = body.order as string[];
@@ -389,6 +392,9 @@ export async function handleAgentRoutes(
     if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000 })) {
       return true;
     }
+
+    const auth = await requireAdmin(req, res);
+    if (!auth) return true;
 
     const agentId = pathname.split('/')[3] ?? '';
 

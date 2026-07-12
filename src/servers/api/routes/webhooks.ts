@@ -21,6 +21,8 @@ import {
   validateWebhookInput,
   type WebhookPlatform,
 } from '../../../services/webhooks/index.js';
+import { requireAuth } from '../../../api/auth-middleware.js';
+import { setCorsHeaders, handleCorsPreflightRequest } from '../../shared/cors.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { handleTwilioCallStatus } from './twilio-call-status.js';
 
@@ -29,26 +31,6 @@ const log = createLogger({ module: 'webhook-routes' });
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-/**
- * Extract user ID from request (from auth header or session)
- */
-function getUserId(req: IncomingMessage): string | null {
-  // Try Authorization header first (Bearer token or X-User-ID)
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    // In production, validate JWT and extract userId
-    // For now, assume it's the userId directly
-    return authHeader.slice(7);
-  }
-
-  const userIdHeader = req.headers['x-user-id'];
-  if (userIdHeader && typeof userIdHeader === 'string') {
-    return userIdHeader;
-  }
-
-  return null;
-}
 
 /**
  * Parse JSON body from request
@@ -98,19 +80,22 @@ export async function handleWebhookRoutes(
   req: IncomingMessage,
   res: ServerResponse,
   pathname: string,
-  parsedUrl: URL
+  _parsedUrl: URL
 ): Promise<boolean> {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-User-ID, X-Siri-Token'
-  );
+  // SECURITY: Use allowlisted CORS origins (never Access-Control-Allow-Origin: *)
+  setCorsHeaders(req, res, {
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    headers: [
+      'Content-Type',
+      'Authorization',
+      'X-API-Key',
+      'X-Admin-Key',
+      'X-Siri-Token',
+      'X-Request-Id',
+    ],
+  });
 
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
+  if (handleCorsPreflightRequest(req, res)) {
     return true;
   }
 
@@ -127,17 +112,28 @@ export async function handleWebhookRoutes(
   // ============================================================================
   // INCOMING WEBHOOK (from Siri Shortcuts)
   // POST /api/webhooks/incoming/trigger
+  // Auth: X-Siri-Token secret + userId lookup key (token hash binds identity).
+  // Not Firebase Bearer — Shortcuts cannot send ID tokens easily.
   // ============================================================================
   if (pathname === '/api/webhooks/incoming/trigger' && req.method === 'POST') {
     const siriToken = req.headers['x-siri-token'] as string | undefined;
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const body = await parseBody<{
+      webhookId?: string;
+      webhookName?: string;
+      userId?: string;
+    }>(req);
+
+    // userId is a lookup key for the hashed Siri token — not standalone auth
+    const userId =
+      (body?.userId && typeof body.userId === 'string' ? body.userId : undefined) ||
+      (typeof req.headers['x-user-id'] === 'string' ? req.headers['x-user-id'] : undefined);
 
     if (!siriToken || !userId) {
-      sendError(res, 401, 'Missing X-Siri-Token or X-User-ID header');
+      sendError(res, 401, 'Missing X-Siri-Token or userId');
       return true;
     }
 
-    // Validate token
+    // Validate token (secret proves possession; userId scopes the lookup)
     const tokenData = await validateSiriToken(userId, siriToken);
     if (!tokenData) {
       log.warn({ userId }, 'Invalid Siri token used');
@@ -151,8 +147,6 @@ export async function handleWebhookRoutes(
       return true;
     }
 
-    // Parse body
-    const body = await parseBody<{ webhookId?: string; webhookName?: string }>(req);
     if (!body || (!body.webhookId && !body.webhookName)) {
       sendError(res, 400, 'Request body must include webhookId or webhookName');
       return true;
@@ -183,12 +177,15 @@ export async function handleWebhookRoutes(
     return true;
   }
 
-  // All other routes require authentication
-  const userId = getUserId(req);
-  if (!userId) {
-    sendError(res, 401, 'Authentication required');
-    return true;
+  // Only handle remaining /api/webhooks* CRUD after this point
+  if (!pathname.startsWith('/api/webhooks')) {
+    return false;
   }
+
+  // All other routes require Firebase/API-key authentication
+  const auth = await requireAuth(req, res);
+  if (!auth) return true;
+  const userId = auth.userId;
 
   // ============================================================================
   // LIST WEBHOOKS
@@ -421,6 +418,6 @@ export async function handleWebhookRoutes(
     return true;
   }
 
-  // Not a webhook route
+  // Not a webhook route we handle
   return false;
 }

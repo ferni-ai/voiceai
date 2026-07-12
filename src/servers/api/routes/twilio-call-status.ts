@@ -17,7 +17,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { captureCallResult } from '../../../services/outreach/call-result-capture.js';
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { validateTwilioSignature } from '../../../services/outreach/webhooks/twilio-webhooks.js';
 import type {
   CallOutcome,
 } from '../../../tools/domains/telephony/types.js';
@@ -188,6 +188,31 @@ export async function handleTwilioCallStatus(
   try {
     // Parse the URL-encoded body
     const payload = (await parseFormBody(req)) as unknown as TwilioCallStatusPayload;
+
+    // SECURITY: Validate Twilio request signature (skip only in test with explicit flag)
+    const skipValidation =
+      process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
+    if (!skipValidation) {
+      const signature = req.headers['x-twilio-signature'];
+      if (typeof signature !== 'string' || !signature) {
+        log.warn({ url: req.url }, 'Missing Twilio signature for call-status webhook');
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
+        res.end('Forbidden');
+        return true;
+      }
+
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers.host || '';
+      const fullUrl = `${protocol}://${host}${req.url}`;
+      const params = payload as unknown as Record<string, string>;
+
+      if (!validateTwilioSignature(signature, fullUrl, params)) {
+        log.warn({ url: req.url, callSid: payload.CallSid }, 'Invalid Twilio signature');
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
+        res.end('Forbidden');
+        return true;
+      }
+    }
 
     log.debug(
       {

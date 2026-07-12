@@ -37,6 +37,7 @@ import { conversationTracker } from '../services/conversation-tracker.service.js
 import { delightService } from '../services/delight.service.js';
 // 🌱 Smart Vote Prompts - Track user mentions for feature recommendations
 import { engagementService, handoffService, moodService } from '../services/index.js';
+import { handleVoiceEventDataMessage } from '../services/voice-events.service.js';
 import { smartPromptTracker } from '../services/roadmap.service.js';
 import { setWrappingUp } from '../state/app.state.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
@@ -223,6 +224,17 @@ export function handleDataMessage(message: DataMessage): void {
 
   // Try to process as engagement update
   if (engagementService.handleDataMessage(message)) {
+    return;
+  }
+
+  // Voice → UI navigation / theme (data-channel fallback for Firebase Hosting)
+  if (
+    handleVoiceEventDataMessage({
+      type: (message as { type?: string }).type,
+      data: (message as { data?: unknown }).data ?? message,
+      timestamp: (message as { timestamp?: string }).timestamp,
+    })
+  ) {
     return;
   }
 

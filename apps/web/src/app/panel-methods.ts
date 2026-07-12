@@ -692,10 +692,10 @@ export async function showTeamHuddle(_topic?: string): Promise<void> {
     return;
   }
 
-  // No data available - show a demo weekly huddle anyway (better UX than empty)
-  const demoHuddle = getDemoTeamHuddle('weekly');
-  showTeamHuddleUI(demoHuddle);
-  log.debug('Team huddle shown (fallback demo)');
+  // Honest empty state — never fabricate a huddle in production
+  const { toast } = await import('../ui/whisper.ui.js');
+  toast.info("Team huddle isn't ready yet. Ask Ferni when you're in a conversation.");
+  log.debug('Team huddle unavailable (no API, demo disabled)');
 }
 
 // ============================================================================

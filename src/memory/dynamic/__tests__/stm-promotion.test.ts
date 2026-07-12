@@ -72,6 +72,56 @@ vi.mock('../../../utils/firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => mockDb),
 }));
 
+const mockPersistHumanSignals = vi.fn().mockResolvedValue({
+  success: true,
+  persisted: {
+    dates: 0,
+    values: 0,
+    dreams: 1,
+    fears: 0,
+    growthMarkers: 0,
+    challenges: 0,
+    comfortPatterns: 0,
+    stressTriggers: 0,
+    avoidances: 0,
+    insideJokes: 0,
+  },
+  errors: [],
+});
+
+const mockExtractHumanSignals = vi.fn().mockReturnValue({
+  importantDates: [],
+  values: [],
+  dreams: [{ id: 'd1', description: 'write a book', category: 'creative' }],
+  fears: [],
+  growthMarkers: [],
+  challenges: [],
+  comfortPatterns: [],
+  stressTriggers: [],
+  avoidances: [],
+  insideJokes: [],
+});
+
+vi.mock('../../human-signal-extractor.js', () => ({
+  extractHumanSignals: (...args: unknown[]) => mockExtractHumanSignals(...args),
+}));
+
+vi.mock('../../human-signal-persistence.js', () => ({
+  persistHumanSignals: (...args: unknown[]) => mockPersistHumanSignals(...args),
+}));
+
+vi.mock('../../cross-persona/shared-memory-api.js', () => ({
+  storeMemory: vi.fn().mockResolvedValue(undefined),
+  PERSONA_MEMORY_INTERESTS: {
+    ferni: ['entity', 'fact'],
+    peter: ['fact'],
+    maya: ['entity'],
+    jordan: ['entity'],
+    alex: ['fact'],
+    nayan: ['entity', 'fact'],
+  },
+}));
+
 // ============================================================================
 // TEST HELPERS
 // ============================================================================
@@ -584,6 +634,59 @@ describe('STM Promotion', () => {
 
       // Verify Firestore operations were called
       expect(mockBatch.commit).toHaveBeenCalled();
+    });
+
+    it('should extract human signals before STM cleanup (buffer still has turns)', async () => {
+      recordTurn(
+        testSessionId,
+        testUserId,
+        createMockCaptureResult([{ name: 'Mom', type: 'person' }]),
+        'I dream of writing a novel someday',
+        1
+      );
+      recordTurn(
+        testSessionId,
+        testUserId,
+        createMockCaptureResult([{ name: 'Mom', type: 'person' }]),
+        'Mom would be proud',
+        2
+      );
+
+      // Capture buffer state at the moment extractHumanSignals is invoked
+      let turnCountAtExtraction = -1;
+      mockExtractHumanSignals.mockImplementationOnce((turns: unknown[]) => {
+        turnCountAtExtraction = Array.isArray(turns) ? turns.length : 0;
+        // Buffer must still exist during extraction
+        expect(getSTMBuffer(testSessionId, testUserId)?.turns.length).toBeGreaterThan(0);
+        return {
+          importantDates: [],
+          values: [],
+          dreams: [{ id: 'd1', description: 'write a book', category: 'creative' }],
+          fears: [],
+          growthMarkers: [],
+          challenges: [],
+          comfortPatterns: [],
+          stressTriggers: [],
+          avoidances: [],
+          insideJokes: [],
+        };
+      });
+
+      await onSessionEnd(testSessionId, testUserId);
+
+      expect(mockExtractHumanSignals).toHaveBeenCalled();
+      expect(turnCountAtExtraction).toBe(2);
+      expect(mockPersistHumanSignals).toHaveBeenCalledWith(
+        testUserId,
+        expect.objectContaining({
+          dreams: expect.arrayContaining([
+            expect.objectContaining({ description: 'write a book' }),
+          ]),
+        }),
+        expect.objectContaining({ sessionId: testSessionId })
+      );
+      // After onSessionEnd, STM turns are gone (getSTMBuffer recreates empty shell)
+      expect(getSTMBuffer(testSessionId, testUserId)?.turns ?? []).toHaveLength(0);
     });
   });
 

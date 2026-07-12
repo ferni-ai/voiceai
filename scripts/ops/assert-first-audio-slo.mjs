@@ -13,7 +13,7 @@
  */
 
 const OBS_URL = process.env.OBS_URL || 'http://34.134.186.63:8080/api/observability';
-const MAX_MS = Number(process.env.MAX_MS || 3000);
+const MAX_MS = Number(process.env.FIRST_AUDIO_MAX_MS || process.env.MAX_MS || 3000);
 
 async function fetchObservability() {
   const res = await fetch(OBS_URL);

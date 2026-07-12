@@ -29,6 +29,7 @@ export const PRODUCTION_ORIGINS = [
   'https://ferni.ai',
   'https://www.ferni.ai',
   'https://app.ferni.ai',
+  'https://ferni-prod.web.app',
   'https://ferni-landing.web.app',
   'https://john-bogle-ui-1031920444452.us-central1.run.app',
 ];

@@ -12,6 +12,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { parse as parseUrl } from 'url';
+import { requireAuth } from '../../../api/auth-middleware.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'BTH-API' });
@@ -57,6 +58,10 @@ export async function handleBTHIntelligenceRoutes(
     return false;
   }
 
+  // SECURITY: Require auth before returning user knowledge (PII)
+  const auth = await requireAuth(req, res);
+  if (!auth) return true;
+
   await loadUserKnowledge();
 
   // Parse user ID from path: /api/bth/:userId or /api/bth/:userId/subpath
@@ -68,6 +73,16 @@ export async function handleBTHIntelligenceRoutes(
   }
 
   const userId = pathParts[2];
+  // SECURITY: Callers may only read their own knowledge (admins may read any)
+  if (userId !== auth.userId && !auth.isAdmin) {
+    log.warn(
+      { authUserId: auth.userId, requestedUserId: userId },
+      'SECURITY: Blocked cross-user BTH knowledge access'
+    );
+    sendError(res, 403, 'Forbidden');
+    return true;
+  }
+
   const subPath = pathParts.slice(3).join('/');
 
   try {

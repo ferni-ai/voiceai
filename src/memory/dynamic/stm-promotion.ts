@@ -528,74 +528,69 @@ async function doPromoteSessionToFirestore(
 }
 
 /**
- * Hook to call at session end
- *
- * This should be called from session cleanup handlers
+ * Extract and persist human signals while STM buffer still has turns.
+ * MUST run before cleanupSession — otherwise getSTMBuffer returns empty.
  */
-export async function onSessionEnd(sessionId: string, userId: string): Promise<void> {
-  log.info({ sessionId, userId }, '🧠 [MEMORY-AUDIT] onSessionEnd called');
-  const result = await promoteSessionToFirestore(sessionId, userId);
-
-  // 🧠 BTH FIX: Extract and persist human signals (dreams, fears, values)
-  // This is the #1 BTH blocker - without this, Ferni forgets deepest revelations
+async function extractAndPersistHumanSignals(sessionId: string, userId: string): Promise<void> {
   try {
     const buffer = getSTMBuffer(sessionId, userId);
-    if (buffer && buffer.turns.length > 0) {
-      // Convert STM turns to conversation format for signal extraction
-      const turns = buffer.turns.map((turn) => ({
-        role: 'user' as const,
-        content: turn.transcript || '',
-        timestamp: new Date(turn.timestamp),
-      }));
+    if (!buffer || buffer.turns.length === 0) {
+      return;
+    }
 
-      // Extract human signals from conversation
-      const personaId = buffer.turns[0]?.personaId || 'ferni';
-      const signals = extractHumanSignals(turns, {
-        userId,
-        personaId,
-      });
+    const turns = buffer.turns.map((turn) => ({
+      role: 'user' as const,
+      content: turn.transcript || '',
+      timestamp: new Date(turn.timestamp),
+    }));
 
-      // Count non-empty signals
-      const signalCount =
-        signals.importantDates.length +
-        signals.values.length +
-        signals.dreams.length +
-        signals.fears.length +
-        signals.growthMarkers.length +
-        signals.challenges.length +
-        signals.comfortPatterns.length +
-        signals.stressTriggers.length +
-        signals.avoidances.length +
-        signals.insideJokes.length;
+    const personaId = buffer.turns[0]?.personaId || 'ferni';
+    const signals = extractHumanSignals(turns, {
+      userId,
+      personaId,
+    });
 
-      if (signalCount > 0) {
-        // Persist to Firestore
-        const persistResult = await persistHumanSignals(userId, signals, { sessionId });
+    const signalCount =
+      signals.importantDates.length +
+      signals.values.length +
+      signals.dreams.length +
+      signals.fears.length +
+      signals.growthMarkers.length +
+      signals.challenges.length +
+      signals.comfortPatterns.length +
+      signals.stressTriggers.length +
+      signals.avoidances.length +
+      signals.insideJokes.length;
 
-        log.info(
-          {
-            sessionId,
-            userId,
-            signalCount,
-            persisted: persistResult.persisted,
-            success: persistResult.success,
-          },
-          '💾 [BTH] Human signals extracted and persisted'
-        );
-      } else {
-        log.debug({ sessionId, userId }, '🧠 [BTH] No human signals detected in session');
-      }
+    if (signalCount > 0) {
+      const persistResult = await persistHumanSignals(userId, signals, { sessionId });
+
+      log.info(
+        {
+          sessionId,
+          userId,
+          signalCount,
+          persisted: persistResult.persisted,
+          success: persistResult.success,
+        },
+        '💾 [BTH] Human signals extracted and persisted'
+      );
+    } else {
+      log.debug({ sessionId, userId }, '🧠 [BTH] No human signals detected in session');
     }
   } catch (humanSignalErr) {
     log.error(
       { sessionId, userId, error: String(humanSignalErr) },
       '❌ [BTH] Failed to extract/persist human signals'
     );
-    // Non-critical - don't fail the session end
   }
+}
 
-  // 🤝 Cross-persona memory: Bridge promoted entities into shared memory API
-  // This allows all personas to see entities captured by ANY persona
+/**
+ * Bridge frequent STM entities into shared cross-persona memory.
+ * MUST run before cleanupSession — needs getSTMBuffer / getFrequentEntities.
+ */
+async function bridgeCrossPersonaEntities(sessionId: string, userId: string): Promise<void> {
   try {
     const { storeMemory, PERSONA_MEMORY_INTERESTS } =
       await import('../cross-persona/shared-memory-api.js');
@@ -608,13 +603,11 @@ export async function onSessionEnd(sessionId: string, userId: string): Promise<v
       | 'alex'
       | 'nayan';
 
-    // Store promoted entities as shared memories
     const frequentEntities = getFrequentEntities(sessionId, 10);
     let sharedCount = 0;
     for (const entity of frequentEntities) {
-      if (entity.mentionCount < 2) continue; // Only share frequently mentioned entities
+      if (entity.mentionCount < 2) continue;
       const category = entity.type === 'person' ? ('entity' as const) : ('fact' as const);
-      // Determine which personas this is relevant to
       const relevantPersonas = Object.entries(PERSONA_MEMORY_INTERESTS)
         .filter(([, interests]) => interests.includes(category))
         .map(([id]) => id) as (typeof personaId)[];
@@ -643,8 +636,24 @@ export async function onSessionEnd(sessionId: string, userId: string): Promise<v
       'Cross-persona memory bridge failed (non-critical)'
     );
   }
+}
 
-  // voice-session-store was removed during DDD cleanup (non-critical feature)
+/**
+ * Hook to call at session end
+ *
+ * This should be called from session cleanup handlers.
+ * Order is critical: buffer-dependent work BEFORE promoteSessionToFirestore
+ * (which calls cleanupSession and wipes STM).
+ */
+export async function onSessionEnd(sessionId: string, userId: string): Promise<void> {
+  log.info({ sessionId, userId }, '🧠 [MEMORY-AUDIT] onSessionEnd called');
+
+  // 1–2. Buffer-dependent work FIRST (cleanup happens inside promote)
+  await extractAndPersistHumanSignals(sessionId, userId);
+  await bridgeCrossPersonaEntities(sessionId, userId);
+
+  // 3. Promote entities/arcs/topics, then cleanup STM
+  const result = await promoteSessionToFirestore(sessionId, userId);
 
   log.info(
     {

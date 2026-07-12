@@ -8,11 +8,14 @@
  * - POST /api/background-results/mark-delivered - Mark results as delivered
  * - GET /api/background-results/history - Get result history
  *
+ * SECURITY: requireAuth; userId bound to auth.userId.
+ *
  * @module BackgroundResultsRoutes
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { requireAuth } from './auth-middleware.js';
 import { parseRequestBody, sendJsonResponse } from './helpers.js';
 
 const log = createLogger({ module: 'BackgroundResultsRoutes' });
@@ -35,18 +38,23 @@ export async function handleBackgroundResultsRoutes(
     return false;
   }
 
+  const auth = await requireAuth(req, res);
+  if (!auth) return true;
+
   const method = req.method?.toUpperCase();
 
   try {
-    // GET /api/background-results/pending?userId=xxx
+    // GET /api/background-results/pending
     if (pathname === '/api/background-results/pending' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      const limit = parseInt(parsedUrl.searchParams.get('limit') || '10', 10);
-
-      if (!userId) {
-        sendJsonResponse(res, 400, { error: 'userId is required' });
+      const requestedUserId = parsedUrl.searchParams.get('userId');
+      if (requestedUserId && requestedUserId !== auth.userId && !auth.isAdmin) {
+        sendJsonResponse(res, 403, { error: 'Forbidden' });
         return true;
       }
+
+      const userId =
+        auth.isAdmin && requestedUserId ? requestedUserId : auth.userId;
+      const limit = parseInt(parsedUrl.searchParams.get('limit') || '10', 10);
 
       log.info({ userId, limit }, 'Fetching pending background results');
 
@@ -68,22 +76,29 @@ export async function handleBackgroundResultsRoutes(
     // POST /api/background-results/mark-delivered
     if (pathname === '/api/background-results/mark-delivered' && method === 'POST') {
       const body = await parseRequestBody<{
-        userId: string;
+        userId?: string;
         resultIds: string[];
         deliveryMethod?: 'voice' | 'push' | 'email' | 'sms';
       }>(req);
 
-      if (!body.userId || !body.resultIds || body.resultIds.length === 0) {
-        sendJsonResponse(res, 400, { error: 'userId and resultIds are required' });
+      if (!body.resultIds || body.resultIds.length === 0) {
+        sendJsonResponse(res, 400, { error: 'resultIds are required' });
         return true;
       }
 
-      log.info({ userId: body.userId, resultIds: body.resultIds }, 'Marking results as delivered');
+      if (body.userId && body.userId !== auth.userId && !auth.isAdmin) {
+        sendJsonResponse(res, 403, { error: 'Forbidden' });
+        return true;
+      }
+
+      const userId = auth.isAdmin && body.userId ? body.userId : auth.userId;
+
+      log.info({ userId, resultIds: body.resultIds }, 'Marking results as delivered');
 
       const { markResultsDelivered } =
         await import('../services/background-agents/unified-result-capture.js');
 
-      await markResultsDelivered(body.userId, body.resultIds, body.deliveryMethod);
+      await markResultsDelivered(userId, body.resultIds, body.deliveryMethod);
 
       sendJsonResponse(res, 200, {
         success: true,
@@ -92,16 +107,18 @@ export async function handleBackgroundResultsRoutes(
       return true;
     }
 
-    // GET /api/background-results/history?userId=xxx&limit=20&type=xxx
+    // GET /api/background-results/history
     if (pathname === '/api/background-results/history' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      const limit = parseInt(parsedUrl.searchParams.get('limit') || '20', 10);
-      const type = parsedUrl.searchParams.get('type') || undefined;
-
-      if (!userId) {
-        sendJsonResponse(res, 400, { error: 'userId is required' });
+      const requestedUserId = parsedUrl.searchParams.get('userId');
+      if (requestedUserId && requestedUserId !== auth.userId && !auth.isAdmin) {
+        sendJsonResponse(res, 403, { error: 'Forbidden' });
         return true;
       }
+
+      const userId =
+        auth.isAdmin && requestedUserId ? requestedUserId : auth.userId;
+      const limit = parseInt(parsedUrl.searchParams.get('limit') || '20', 10);
+      const type = parsedUrl.searchParams.get('type') || undefined;
 
       log.info({ userId, limit, type }, 'Fetching background results history');
 
@@ -130,9 +147,4 @@ export async function handleBackgroundResultsRoutes(
   }
 }
 
-/**
- * Check if a route should be handled by background results routes
- */
-export function isBackgroundResultsRoute(pathname: string): boolean {
-  return pathname.startsWith('/api/background-results');
-}
+export default handleBackgroundResultsRoutes;

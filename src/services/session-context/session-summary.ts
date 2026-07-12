@@ -298,23 +298,26 @@ export function formatContextForVoiceCall(context: ActiveUserContext): string {
   lines.push('');
 
   // Last voice session
-  if (context.lastVoiceSession) {
+  if (context.lastVoiceSession?.endedAt) {
     const daysSince = Math.round(
       (Date.now() - context.lastVoiceSession.endedAt.getTime()) / (1000 * 60 * 60 * 24)
     );
 
     if (daysSince <= 7) {
+      const mainTopics = context.lastVoiceSession.mainTopics ?? [];
+      const unfinishedTopics = context.lastVoiceSession.unfinishedTopics ?? [];
+
       lines.push(
         `Last conversation: ${daysSince === 0 ? 'today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`}`
       );
-      lines.push(`Topics discussed: ${context.lastVoiceSession.mainTopics.join(', ')}`);
+      lines.push(`Topics discussed: ${mainTopics.join(', ')}`);
 
       if (context.lastVoiceSession.naturalSummary) {
         lines.push(`Summary: ${context.lastVoiceSession.naturalSummary}`);
       }
 
-      if (context.lastVoiceSession.unfinishedTopics.length > 0) {
-        lines.push(`Unfinished topics: ${context.lastVoiceSession.unfinishedTopics.join(', ')}`);
+      if (unfinishedTopics.length > 0) {
+        lines.push(`Unfinished topics: ${unfinishedTopics.join(', ')}`);
       }
 
       lines.push('');
@@ -322,16 +325,18 @@ export function formatContextForVoiceCall(context: ActiveUserContext): string {
   }
 
   // App browsing context
-  if (context.appBrowsingContext && context.appBrowsingContext.recentScreens.length > 0) {
+  const browsing = context.appBrowsingContext;
+  const recentScreens = browsing?.recentScreens ?? [];
+  if (browsing?.updatedAt && recentScreens.length > 0) {
     const hoursSince = Math.round(
-      (Date.now() - context.appBrowsingContext.updatedAt.getTime()) / (1000 * 60 * 60)
+      (Date.now() - browsing.updatedAt.getTime()) / (1000 * 60 * 60)
     );
 
     if (hoursSince <= 24) {
       lines.push("Since our last conversation, they've been looking at:");
 
       // Find screens with significant time
-      const significantScreens = Object.entries(context.appBrowsingContext.timeSpent)
+      const significantScreens = Object.entries(browsing.timeSpent ?? {})
         .filter(([_, time]) => time > 30) // More than 30 seconds
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3);
@@ -341,10 +346,9 @@ export function formatContextForVoiceCall(context: ActiveUserContext): string {
         lines.push(`  - ${screen} (${minutes > 0 ? `${minutes} min` : `${time} sec`})`);
       }
 
-      if (context.appBrowsingContext.interactions.length > 0) {
-        lines.push(
-          `Recent interactions: ${context.appBrowsingContext.interactions.slice(0, 3).join(', ')}`
-        );
+      const interactions = browsing.interactions ?? [];
+      if (interactions.length > 0) {
+        lines.push(`Recent interactions: ${interactions.slice(0, 3).join(', ')}`);
       }
 
       lines.push('');
@@ -352,13 +356,14 @@ export function formatContextForVoiceCall(context: ActiveUserContext): string {
   }
 
   // Pending topics
-  if (context.pendingTopics.length > 0) {
-    lines.push(`Topics to follow up on: ${context.pendingTopics.join(', ')}`);
+  const pendingTopics = context.pendingTopics ?? [];
+  if (pendingTopics.length > 0) {
+    lines.push(`Topics to follow up on: ${pendingTopics.join(', ')}`);
     lines.push('');
   }
 
   // Emotional state
-  if (context.emotionalState.current !== 'neutral') {
+  if (context.emotionalState?.current && context.emotionalState.current !== 'neutral') {
     lines.push(
       `Last known emotional state: ${context.emotionalState.current} (${context.emotionalState.trajectory})`
     );
@@ -389,26 +394,29 @@ export function formatContextForApp(context: ActiveUserContext): {
   const result = {
     bridgeMessage: undefined as string | undefined,
     insights: [] as SessionInsight[],
-    pendingTopics: context.pendingTopics,
-    emotionalState: context.emotionalState.current,
+    pendingTopics: context.pendingTopics ?? [],
+    emotionalState: context.emotionalState?.current ?? 'neutral',
   };
 
-  if (context.lastVoiceSession) {
+  if (context.lastVoiceSession?.endedAt) {
     const hoursSince = Math.round(
       (Date.now() - context.lastVoiceSession.endedAt.getTime()) / (1000 * 60 * 60)
     );
 
     if (hoursSince <= 24) {
+      const insightsGenerated = context.lastVoiceSession.insightsGenerated ?? [];
+      const unfinishedTopics = context.lastVoiceSession.unfinishedTopics ?? [];
+
       // Generate bridge message
       if (context.lastVoiceSession.wasSignificant) {
         result.bridgeMessage = "I've been thinking about what you shared earlier...";
-      } else if (context.lastVoiceSession.insightsGenerated.length > 0) {
+      } else if (insightsGenerated.length > 0) {
         result.bridgeMessage = 'I noticed something from our conversation...';
-      } else if (context.lastVoiceSession.unfinishedTopics.length > 0) {
+      } else if (unfinishedTopics.length > 0) {
         result.bridgeMessage = "There's more I wanted to explore with you...";
       }
 
-      result.insights = context.lastVoiceSession.insightsGenerated;
+      result.insights = insightsGenerated;
     }
   }
 
@@ -502,13 +510,17 @@ async function persistContextToFirestore(context: ActiveUserContext): Promise<vo
     const admin = await import('firebase-admin');
     const db = admin.default.firestore();
 
+    // Destructure out lastVoiceSession — never write undefined to Firestore
+    // (it's stored separately in voice_sessions)
+    const { lastVoiceSession: _lastVoiceSession, appBrowsingContext, ...contextBase } = context;
+
     await db
       .collection('bogle_users')
       .doc(context.userId)
       .collection('active_context')
       .doc('current')
       .set({
-        ...context,
+        ...contextBase,
         lastInteractionAt: context.lastInteractionAt.toISOString(),
         emotionalState: {
           ...context.emotionalState,
@@ -518,14 +530,14 @@ async function persistContextToFirestore(context: ActiveUserContext): Promise<vo
           ...u,
           detectedAt: u.detectedAt.toISOString(),
         })),
-        appBrowsingContext: context.appBrowsingContext
+        ...(appBrowsingContext
           ? {
-              ...context.appBrowsingContext,
-              updatedAt: context.appBrowsingContext.updatedAt.toISOString(),
+              appBrowsingContext: {
+                ...appBrowsingContext,
+                updatedAt: appBrowsingContext.updatedAt.toISOString(),
+              },
             }
-          : undefined,
-        // Don't store full lastVoiceSession here (it's in voice_sessions collection)
-        lastVoiceSession: undefined,
+          : {}),
       });
 
     log.debug({ userId: context.userId }, 'Active context persisted to Firestore');
@@ -556,6 +568,9 @@ async function loadLastSummaryFromFirestore(userId: string): Promise<VoiceSessio
       ...data,
       startedAt: new Date(data.startedAt),
       endedAt: new Date(data.endedAt),
+      mainTopics: data.mainTopics || [],
+      unfinishedTopics: data.unfinishedTopics || [],
+      commitmentsMade: data.commitmentsMade || [],
       emotionalArc: (data.emotionalArc || []).map((m: Record<string, unknown>) => ({
         ...m,
         timestamp: new Date(m.timestamp as string),
@@ -588,9 +603,11 @@ async function loadContextFromFirestore(userId: string): Promise<ActiveUserConte
     }
 
     const data = doc.data()!;
+    const browsing = data.appBrowsingContext as AppBrowsingContext | undefined;
     const context: ActiveUserContext = {
       ...data,
       lastInteractionAt: new Date(data.lastInteractionAt),
+      pendingTopics: data.pendingTopics || [],
       emotionalState: {
         ...data.emotionalState,
         updatedAt: new Date(data.emotionalState.updatedAt),
@@ -599,10 +616,13 @@ async function loadContextFromFirestore(userId: string): Promise<ActiveUserConte
         ...u,
         detectedAt: new Date(u.detectedAt as string),
       })),
-      appBrowsingContext: data.appBrowsingContext
+      appBrowsingContext: browsing
         ? {
-            ...data.appBrowsingContext,
-            updatedAt: new Date(data.appBrowsingContext.updatedAt),
+            ...browsing,
+            recentScreens: browsing.recentScreens || [],
+            timeSpent: browsing.timeSpent || {},
+            interactions: browsing.interactions || [],
+            updatedAt: new Date(browsing.updatedAt),
           }
         : undefined,
     } as ActiveUserContext;
