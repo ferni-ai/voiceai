@@ -187,9 +187,18 @@ export function loadToolConfig(): ToolConfiguration {
     return isNaN(parsed) ? defaultValue : parsed;
   };
 
+  const useMetaTool = parseBool(env.USE_META_TOOL, DEFAULT_CONFIG.useMetaTool);
+  if (useMetaTool) {
+    log.warn(
+      '⚠️ USE_META_TOOL is DEPRECATED and slated for removal — the meta-tool routing ' +
+        'strategy has no known production users. Use the semantic router (default) or ' +
+        'native function calling instead. See docs/audits/AUDIT-FIXES-2026-07-11.md.'
+    );
+  }
+
   cachedConfig = {
     maxTools: parseNum(env.TOOL_LIMIT, DEFAULT_CONFIG.maxTools),
-    useMetaTool: parseBool(env.USE_META_TOOL, DEFAULT_CONFIG.useMetaTool),
+    useMetaTool,
     metaToolCatalogInPrompt: parseBool(
       env.META_TOOL_CATALOG_IN_PROMPT,
       DEFAULT_CONFIG.metaToolCatalogInPrompt

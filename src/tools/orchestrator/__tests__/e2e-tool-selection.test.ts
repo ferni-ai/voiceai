@@ -104,7 +104,8 @@ describe('E2E: Tool Selection Pipeline', () => {
         },
       });
 
-      expect(result.meta.sources.contextual).toBeGreaterThanOrEqual(0);
+      // An emotional-context request must actually select tools
+      expect(result.meta.selected).toBeGreaterThan(0);
       console.log('Anxiety scenario tools:', Object.keys(result.tools).slice(0, 10));
     });
   });
@@ -118,15 +119,20 @@ describe('E2E: Tool Selection Pipeline', () => {
         'what would you do in my situation',
       ];
 
+      let anyDecisionTriggered = false;
       for (const phrase of phrases) {
         const intent = detectToolIntent(phrase);
         console.log(`"${phrase.slice(0, 30)}..." → categories: ${intent.categories.join(', ')}`);
 
-        // At least one should trigger decisions
-        if (phrase.includes('should') || phrase.includes('decide')) {
-          expect(intent.categories.length).toBeGreaterThanOrEqual(0);
+        if (
+          (phrase.includes('should') || phrase.includes('decide')) &&
+          intent.categories.length > 0
+        ) {
+          anyDecisionTriggered = true;
         }
       }
+      // At least one decision-shaped phrase must trigger a category
+      expect(anyDecisionTriggered).toBe(true);
     });
   });
 
@@ -189,8 +195,8 @@ describe('E2E: Tool Selection Pipeline', () => {
         agentId: 'ferni',
       });
 
-      // Essential sources should be > 0
-      expect(result.meta.sources.essential).toBeGreaterThanOrEqual(0);
+      // Essential (always-on) domains must contribute tools even for a minimal query
+      expect(result.meta.sources.essential).toBeGreaterThan(0);
 
       // Total should include essential tools
       console.log('Essential tools count:', result.meta.sources.essential);
