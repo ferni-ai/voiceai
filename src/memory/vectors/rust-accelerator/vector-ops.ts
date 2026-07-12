@@ -163,7 +163,10 @@ export function findSimilarPairs(
   // F32 SIMD path (60x faster for batches)
   if (perf.findSimilarPairsF32 && embeddings.length >= 5) {
     const flatEmbeddings = toFlatFloat32Array(embeddings);
-    return perf.findSimilarPairsF32(flatEmbeddings, embeddings.length, dim, threshold);
+    // Derive the dimension from the data: the `dim` default (1536) panics the
+    // native module when embeddings come from a smaller model
+    const actualDim = embeddings[0]?.length || dim;
+    return perf.findSimilarPairsF32(flatEmbeddings, embeddings.length, actualDim, threshold);
   }
 
   // For small batches, use JS (NAPI overhead not worth it)

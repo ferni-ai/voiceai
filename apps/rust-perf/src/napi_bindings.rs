@@ -475,6 +475,12 @@ pub fn find_similar_pairs_f32(
     let dimension = dim as usize;
     let threshold_f32 = threshold as f32;
 
+    // Guard: a panic here unwinds across the NAPI boundary and kills the
+    // Node process. Mismatched count*dim vs buffer length returns no pairs.
+    if dimension == 0 || count.checked_mul(dimension).is_none_or(|n| n > emb_slice.len()) {
+        return Vec::new();
+    }
+
     // Generate all pairs and check in parallel
     let pairs: Vec<SimilarPair> = (0..count)
         .into_par_iter()

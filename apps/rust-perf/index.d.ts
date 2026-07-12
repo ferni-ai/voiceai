@@ -26,23 +26,6 @@ export interface RouterConfig {
  * (useful for one-off predictions, but slower due to model loading)
  */
 export declare function quickPredict(modelPath: string, tokenizerPath: string, labelMapPath: string, query: string): RouterPredictResult
-export interface CandleToolPrediction {
-  toolId: string
-  confidence: number
-}
-export interface CandleRouterResult {
-  predictions: Array<CandleToolPrediction>
-  latencyMs: number
-  device: string
-}
-export interface CandleRouterConfig {
-  modelPath: string
-  tokenizerPath: string
-  labelMapPath: string
-  maxLength: number
-  threshold: number
-  topK: number
-}
 /**
  * Compute cosine similarity between two embedding vectors.
  * Uses SIMD instructions when available (AVX2/SSE/NEON).
@@ -803,21 +786,6 @@ export declare class OnnxRouter {
    * Warmup the model by running a dummy inference
    * Call this at startup to avoid cold-start latency on first real request
    */
-  warmup(): number
-}
-/** Metal GPU-accelerated FTIS V3 Router using Candle */
-export declare class CandleRouter {
-  /** Create a new Candle router with Metal GPU acceleration */
-  constructor(config: CandleRouterConfig)
-  /** Predict tools for a query using Metal GPU */
-  predict(query: string): CandleRouterResult
-  /** Get the number of supported tools */
-  getNumTools(): number
-  /** Get all tool labels */
-  getLabels(): Array<string>
-  /** Get the device being used (Metal GPU or CPU) */
-  getDevice(): string
-  /** Warmup the model by running a dummy inference */
   warmup(): number
 }
 /**
