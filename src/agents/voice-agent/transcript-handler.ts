@@ -1485,6 +1485,7 @@ async function processFinalTranscript(
 
         // If FTIS executed a tool directly, interrupt SDK and speak the result
         if (ftisResult.bypassLLM && ftisResult.toolResult) {
+          (userData as Record<string, unknown>).ftisBypassedLlmThisTurn = true;
           const toolResult = ftisResult.toolResult;
           diag.state('🎯 FTIS: Tool executed - interrupting SDK auto-response', {
             toolId: toolResult.toolId,
@@ -1661,15 +1662,24 @@ async function processFinalTranscript(
 
   userData.turnCount = (userData.turnCount || 0) + 1;
 
-  await surfaceMemoryRecallForNextReply({
-    transcript: event.transcript,
-    session,
-    services,
-    sessionPersona,
-    userData,
-    userId,
-    sessionId,
-  });
+  // Memory-that-speaks: only when FTIS did not already take the turn.
+  // Fire-and-forget so retrieval latency doesn't block the rest of the turn path.
+  const ftisTookTurn = (userData as Record<string, unknown>).ftisBypassedLlmThisTurn === true;
+  if (ftisTookTurn) {
+    delete (userData as Record<string, unknown>).ftisBypassedLlmThisTurn;
+  } else {
+    void surfaceMemoryRecallForNextReply({
+      transcript: event.transcript,
+      session,
+      services,
+      sessionPersona,
+      userData,
+      userId,
+      sessionId,
+    }).catch((memoryErr: unknown) => {
+      diag.debug('Memory recall failed (non-fatal)', { error: String(memoryErr) });
+    });
+  }
 
   // Record turn in voice humanization for rhythm learning
   if (voiceHumanization) {

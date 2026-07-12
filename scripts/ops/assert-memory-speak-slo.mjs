@@ -15,8 +15,8 @@ const OBS_URL = process.env.OBS_URL || 'http://34.134.186.63:8080/api/observabil
 const MIN_RECALL_RATE = Number(process.env.MIN_RECALL_RATE || 0.1);
 
 export function evaluateMemorySpeakSlo(payload, minRecallRate = MIN_RECALL_RATE) {
-  const metrics = payload?.callQuality || payload;
-  const memory = metrics?.memory || metrics;
+  // Prefer hub memory snapshot (includes speak-rate fields), then callQuality.memory.
+  const memory = payload?.memory || payload?.callQuality?.memory || payload;
   const sessionsWithMemoryData = Number(memory?.sessionsWithMemoryData || 0);
   const sessionsWithMemoryRecalls = Number(memory?.sessionsWithMemoryRecalls || 0);
   const memoryRecallRate = Number(memory?.memoryRecallRate || 0);
