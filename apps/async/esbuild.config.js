@@ -6,9 +6,20 @@
  * ~12x faster than tsc for compilation (no type checking)
  */
 
-import * as esbuild from 'esbuild';
 import { readdirSync, statSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
+
+import * as esbuild from 'esbuild';
+
+const asyncLoggerShim = resolve('./src/daily-outreach-logger-shim.ts');
+const asyncLoggerPlugin = {
+  name: 'async-logger-shim',
+  setup(build) {
+    build.onResolve({ filter: /utils\/safe-logger\.js$/ }, () => ({
+      path: asyncLoggerShim,
+    }));
+  },
+};
 
 // Recursively find all TypeScript files in src/
 function findTsFiles(dir, files = []) {
@@ -25,8 +36,9 @@ function findTsFiles(dir, files = []) {
 }
 
 const entryPoints = findTsFiles('./src');
+const dailyOutreachEntry = '../../src/services/outreach/daily-outreach-job.ts';
 
-console.log(`Building ${entryPoints.length} TypeScript files...`);
+console.log(`Building ${entryPoints.length} async TypeScript files...`);
 const start = Date.now();
 
 await esbuild.build({
@@ -44,6 +56,23 @@ await esbuild.build({
   preserveSymlinks: true,
 });
 
+console.log('Building bundled daily outreach job...');
+await esbuild.build({
+  entryPoints: [dailyOutreachEntry],
+  outdir: 'dist/daily-outreach',
+  entryNames: '[name]',
+  chunkNames: 'chunks/[name]-[hash]',
+  format: 'esm',
+  platform: 'node',
+  target: 'node20',
+  sourcemap: true,
+  bundle: true,
+  splitting: true,
+  packages: 'external',
+  preserveSymlinks: true,
+  plugins: [asyncLoggerPlugin],
+});
+
 const elapsed = Date.now() - start;
-console.log(`✅ Built ${entryPoints.length} files in ${elapsed}ms`);
+console.log(`✅ Built async worker and daily outreach bundle in ${elapsed}ms`);
 

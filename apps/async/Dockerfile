@@ -16,16 +16,19 @@ RUN npm install -g pnpm@9
 WORKDIR /app
 
 # Copy package files first for better layer caching
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/async/package.json ./apps/async/package.json
 
 # Install all dependencies (including devDependencies for build)
-RUN pnpm install --frozen-lockfile --prefer-offline || pnpm install
+RUN pnpm install --filter @ferni/async... --frozen-lockfile --prefer-offline || pnpm install --filter @ferni/async...
 
 # Copy source and config
-COPY tsconfig.json esbuild.config.js ./
+COPY apps/async/tsconfig.json apps/async/esbuild.config.js ./apps/async/
+COPY apps/async/src ./apps/async/src
 COPY src ./src
 
 # Build with esbuild (fast!)
+WORKDIR /app/apps/async
 RUN pnpm build:fast
 
 # -----------------------------------------------------------------------------
@@ -42,13 +45,15 @@ WORKDIR /app
 RUN npm install -g pnpm@9
 
 # Copy package files
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/async/package.json ./apps/async/package.json
 
 # Install production dependencies only
-RUN pnpm install --prod --frozen-lockfile --prefer-offline || pnpm install --prod
+RUN pnpm install --filter @ferni/async --prod --frozen-lockfile --prefer-offline || pnpm install --filter @ferni/async --prod
 
 # Copy built files from builder
-COPY --from=builder /app/dist ./dist
+WORKDIR /app/apps/async
+COPY --from=builder /app/apps/async/dist ./dist
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

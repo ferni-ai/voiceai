@@ -38,6 +38,24 @@ const config: WorkerConfig = {
   dryRun: process.env.DRY_RUN === 'true',
 };
 
+interface DailyOutreachJobResult {
+  usersEvaluated: number;
+  outreachSent: number;
+  durationMs: number;
+  errors: Array<{ userId: string; error: string }>;
+  [key: string]: unknown;
+}
+
+interface DailyOutreachJobConfig {
+  getUserProfiles: () => Promise<Array<Record<string, unknown>>>;
+  dryRun: boolean;
+  maxUsersPerRun: number;
+}
+
+interface DailyOutreachModule {
+  runDailyOutreachJob: (jobConfig: DailyOutreachJobConfig) => Promise<DailyOutreachJobResult>;
+}
+
 // ============================================================================
 // Express App
 // ============================================================================
@@ -118,14 +136,14 @@ app.post('/jobs/daily-outreach', async (req, res) => {
 
     log.info({ dryRun: config.dryRun }, '📬 Starting daily outreach job');
 
-    // Dynamic import: daily-outreach-job lives in the monorepo src tree and may
-    // be unavailable in the slim apps/async image. Keep /health and trigger
-    // processing up even when that module is not packaged.
-    let runDailyOutreachJob: typeof import('../../../src/services/outreach/daily-outreach-job.js').runDailyOutreachJob;
+    // Dynamic import keeps /health and trigger processing up if this optional
+    // job bundle fails to load, while Docker packaging now includes it in dist.
+    let runDailyOutreachJob: DailyOutreachModule['runDailyOutreachJob'];
+    const dailyOutreachBundlePath = './daily-outreach/daily-outreach-job.js';
     try {
-      ({ runDailyOutreachJob } = await import(
-        '../../../src/services/outreach/daily-outreach-job.js'
-      ));
+      ({ runDailyOutreachJob } = (await import(
+        dailyOutreachBundlePath
+      )) as DailyOutreachModule);
     } catch (importErr) {
       log.error({ error: importErr }, 'daily-outreach-job module unavailable in this image');
       res.status(501).json({
@@ -147,7 +165,7 @@ app.post('/jobs/daily-outreach', async (req, res) => {
           ...doc.data(),
         }));
       },
-      dryRun: config.dryRun,
+      dryRun: Boolean(config.dryRun),
       maxUsersPerRun: 500,
     });
 
