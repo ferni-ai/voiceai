@@ -666,6 +666,12 @@ export function checkForEasterEgg(
   personaId: string,
   context: EasterEggContext = {}
 ): EasterEggResult {
+  // Empty input never triggers — without this, the random-quirk roll below
+  // can fire on silence/noise turns (and made the empty-message test flaky)
+  if (!userText.trim()) {
+    return { type: 'none', triggered: false };
+  }
+
   // 1. Check keyword triggers in user text (highest priority)
   const keywordResult = checkKeywordTriggers(userText);
   if (keywordResult) {
