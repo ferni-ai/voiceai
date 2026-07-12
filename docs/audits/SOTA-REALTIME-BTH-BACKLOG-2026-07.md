@@ -8,10 +8,10 @@ Living backlog for `docs/superpowers/specs/2026-07-11-sota-realtime-bth-program-
 |------|--------|
 | 0 Prove & protect | **Closed 2026-07-11** — image `gcr.io/johnb-2025/voiceai-agent:1783804027740`; `verify-prod-voice-session.mjs` → `proven: true` |
 | 1 Latency / first audio | **Closed 2026-07-12** — cold ~3.0s / warm **1424ms**; `assert-first-audio-slo.mjs` → `ok: true` (avg 2219 ≤ 3000) |
-| 2 Turn-taking | Partial — multi-agent humanization+backchannel init wired; audio-frame emit deferred |
-| 3 Memory that speaks | Partial — memory-retrieval builder wired into manifest |
-| 4 Proactive relationship | Partial — `ferni-async` live + healthy; Pub/Sub/Scheduler wiring next; daily-outreach module still needs packaging |
-| 5 Eval harness | Partial — first-audio SLO gate green; broader eval suite still open |
+| 2 Turn-taking | **Closed 2026-07-12** — multi-agent `processAudioFrame` wired; barge-in p95 metric + `assert-barge-in-slo.mjs` |
+| 3 Memory that speaks | **Closed 2026-07-12** — live transcript path retrieves + speaks recalls; `assert-memory-speak-slo.mjs` |
+| 4 Proactive relationship | **Closed 2026-07-12** — daily-outreach bundled in async image; drain assert + health proven |
+| 5 Eval harness | **Closed 2026-07-12** — `scripts/ops/sota-release-gate.mjs` runs latency/barge-in/memory/outreach asserts |
 
 ## Wave 0 evidence (2026-07-11)
 
@@ -51,7 +51,8 @@ Earlier ~7–10s was **session entry work after `startCall`** (profile load, dia
 
 - `cloudbuild-async.yaml`: escaped `$$SERVICE_URL`; custom `_IMAGE_TAG` for manual submit
 - `ferni-async` Cloud Run healthy: `https://ferni-async-bmopaivmsq-uc.a.run.app/health`
-- Remaining: package `daily-outreach-job` into async image; confirm Pub/Sub drain ≤5 min (P1-C3)
+- Daily outreach packaged via `apps/async/esbuild.config.js` → `dist/daily-outreach/`
+- Release gate: `node scripts/ops/sota-release-gate.mjs`
 
 ## Parked from prior audits
 
