@@ -41,7 +41,7 @@ interface TokenResponse {
 }
 
 // Configuration
-const TOKEN_SERVER_URL = process.env.TOKEN_SERVER_URL || 'http://localhost:3001';
+const TOKEN_SERVER_URL = process.env.TOKEN_SERVER_URL || 'http://localhost:3002';
 const DEFAULT_TIMEOUT = 20; // seconds
 
 async function getToken(persona = 'ferni'): Promise<TokenResponse> {
@@ -302,7 +302,7 @@ ${c.bold}Options:${c.reset}
   --help, -h          Show this help
 
 ${c.bold}Requirements:${c.reset}
-  - Token server running on port 3001
+  - UI server running on port 3002
   - Voice agent running on port 8080
 `);
     process.exit(0);

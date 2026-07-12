@@ -74,7 +74,7 @@ export abstract class IntelligentTask<TResult> extends AgentTask<TResult> {
 
   constructor(options: {
     instructions: string | AdaptiveInstructions;
-    tools?: llm.ToolContext<any>;
+    tools?: Record<string, unknown> | llm.ToolContextLike<any>;
     emotionThreshold?: number;
   }) {
     // If string, convert to adaptive format

@@ -55,6 +55,13 @@
           }
         },
         {
+          "source": "/wearables/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/subscription/**",
           "run": {
             "serviceId": "john-bogle-ui",
@@ -203,6 +210,13 @@
         },
         {
           "source": "/spotify/**",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/wearables/**",
           "run": {
             "serviceId": "john-bogle-ui",
             "region": "us-central1"

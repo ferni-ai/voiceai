@@ -33,6 +33,7 @@ const CAPABILITIES: llm.RealtimeCapabilities = {
   userTranscription: true,
   autoToolReplyGeneration: false,
   audioOutput: true,
+  manualFunctionCalls: false,
 };
 
 // =============================================================================
@@ -115,7 +116,7 @@ export class SessionManagerRealtimeSession extends llm.RealtimeSession {
   private sessionInitialized = false;
 
   private _chatCtx: llm.ChatContext;
-  private _toolCtx: llm.ToolContext = {};
+  private _toolCtx: llm.ToolContext = llm.toToolContext({});
 
   constructor(realtimeModel: llm.RealtimeModel) {
     super(realtimeModel);

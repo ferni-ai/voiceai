@@ -123,17 +123,27 @@ export interface OAuthTokens {
 }
 
 /**
- * LiveKit room metadata
+ * LiveKit room metadata — passed to both RoomServiceClient and AgentDispatchClient
  */
 export interface RoomMetadata {
   persona_id: string;
   device_id?: string;
   firebase_uid?: string;
   user_name?: string;
+  user_email?: string;
   is_demo?: boolean;
+  demo_id?: string;
   demo_started?: number;
   demo_expires?: number;
+  session_duration_minutes?: number;
   source?: string;
+  publisher_id?: string;
+  locale?: string;
+  locales?: string[];
+  preferredAccent?: string;
+  countryCode?: string;
+  city?: string;
+  regionCode?: string;
 }
 
 /**

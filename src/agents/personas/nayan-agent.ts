@@ -73,7 +73,7 @@ function buildMemoryTools(agentId: string): ToolSet {
     getRelationshipSummary: getRelationshipSummaryDef.create(ctx),
     updateMemory: updateMemoryDef.create(ctx),
     forgetMemory: forgetMemoryDef.create(ctx),
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 /**
@@ -94,7 +94,7 @@ function buildWisdomTools(): ToolSet {
     getCrashPerspective: wisdom.getCrashPerspective,
     // Financial wisdom
     getCostImpact: wisdom.getCostImpact,
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 /**
@@ -122,7 +122,7 @@ async function buildSuperhumanWisdomTools(userId: string): Promise<ToolSet> {
   }
 
   log.debug({ toolCount: Object.keys(tools).length }, 'Built Nayan superhuman wisdom tools');
-  return tools as ToolSet;
+  return tools as unknown as ToolSet;
 }
 
 function buildHandoffTools(): ToolSet {
@@ -202,7 +202,7 @@ function buildHandoffTools(): ToolSet {
         });
       },
     }),
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 // ============================================================================
@@ -215,6 +215,7 @@ function buildHandoffTools(): ToolSet {
  * Extends PersonaVoiceAgent for shared TTS processing.
  * Rich system prompt loaded from bundles/nayan-patel/identity/system-prompt.md
  */
+// @ts-ignore TS2417 - static create() has different signature than base Agent.create()
 export class NayanAgent extends PersonaVoiceAgent {
   private static systemPromptCache: string | null = null;
 
@@ -241,7 +242,7 @@ export class NayanAgent extends PersonaVoiceAgent {
     const conversationTools = createConversationTools();
 
     // Superhuman wisdom tools (Nayan's "Better Than Human" capabilities)
-    let superhumanWisdomTools: ToolSet = {} as ToolSet;
+    let superhumanWisdomTools: ToolSet = {} as unknown as ToolSet;
     try {
       superhumanWisdomTools = await buildSuperhumanWisdomTools(userId || 'anonymous');
       log.info(
@@ -258,7 +259,7 @@ export class NayanAgent extends PersonaVoiceAgent {
       ...superhumanWisdomTools,
       ...handoffTools,
       ...conversationTools,
-    } as ToolSet;
+    } as unknown as ToolSet;
 
     return new NayanAgent(NayanAgent.systemPromptCache, allTools, { chatCtx });
   }

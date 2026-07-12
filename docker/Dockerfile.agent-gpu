@@ -106,23 +106,12 @@ RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
     echo '{"name":"@ferni/perf","version":"0.1.0"}' > apps/rust-perf/package.json && \
     echo '{"name":"@ferni/design-system","version":"1.0.0"}' > design-system/package.json
 
-# Replace local file: dependencies with npm registry versions for Docker builds
-# The local agents-js is not available in Docker context
-# Version is controlled by LIVEKIT_AGENTS_VERSION build arg (defined at top of file)
-RUN echo "Using @livekit/agents version: ^${LIVEKIT_AGENTS_VERSION}" && \
-    sed -i "s|\"file:../agents-js/agents\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/cartesia\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/deepgram\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/google\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/openai\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    sed -i "s|\"file:../agents-js/plugins/silero\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
-    cat package.json | grep -A5 '"@livekit/agents"' | head -10
-
+# LiveKit agents packages are exact-pinned in package.json (no file: / no caret).
 # Copy build configs
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
-# Install dependencies with pnpm (no frozen lockfile since we modified package.json)
+# Use --no-frozen-lockfile because Docker creates stub workspace package.json files.
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --prefer-offline --no-frozen-lockfile
 

@@ -10,7 +10,7 @@
  * 5. ✅ Agent speaks (greeting)
  * 
  * Usage:
- *   npx tsx scripts/test-voice-e2e.ts              # Test local (localhost:3001)
+ *   npx tsx scripts/test-voice-e2e.ts              # Test local (localhost:3002)
  *   npx tsx scripts/test-voice-e2e.ts --prod       # Test production (app.ferni.ai)
  *   npx tsx scripts/test-voice-e2e.ts --timeout=60 # Custom timeout
  */
@@ -32,7 +32,7 @@ const TIMEOUT_MS = timeoutArg ? parseInt(timeoutArg.split('=')[1]) * 1000 : 30_0
 
 const TOKEN_SERVER = isProd 
   ? 'https://app.ferni.ai' 
-  : 'http://localhost:3001';
+  : 'http://localhost:3002';
 
 const TEST_ROOM = `e2e-test-${Date.now()}`;
 const TEST_USER = 'e2e-tester';

@@ -16,7 +16,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 // ============================================================================
 
 const UI_SERVER_PORT = 3003;
-const TOKEN_SERVER_PORT = 3001;
+const TOKEN_SERVER_PORT = 3002;
 const TEST_USER_ID = 'test-user-e2e-123';
 const TEST_DEVICE_ID = 'test-device-e2e-456';
 

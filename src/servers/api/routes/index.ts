@@ -45,3 +45,5 @@ export { handleBTHIntelligenceRoutes } from './better-than-human-intelligence.js
 //               /api/semantic-store/diagnostics, /api/semantic-store/cleanup, /api/semantic-store/ttl-statistics
 // NOTE: handleOutreachRoutes is registered from src/api/outreach.routes.ts in the main server
 // NOTE: calendar-data.ts was removed - calendar data is served via /api/calendar/* routes in calendar-routes.ts
+// Wearables OAuth routes (login, callback, token, unlink, status)
+export { handleWearablesRoutes, shutdownWearablesRoutes } from './wearables.js';

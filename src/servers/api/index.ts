@@ -52,6 +52,9 @@ import {
   handleVisualMemoryRoutes,
   handleAmbientModeRoutes,
   handleBTHIntelligenceRoutes,
+  // Wearables OAuth routes
+  handleWearablesRoutes,
+  shutdownWearablesRoutes,
 } from './routes/index.js';
 import { handleStaticRoutes, serveStaticFile } from './static.js';
 
@@ -325,9 +328,14 @@ const server = http.createServer(async (req, res) => {
     if (await handlePlaidRoutes(req, res, pathname, parsedUrl)) return;
   }
 
-  // Spotify routes
+  // Spotify routes (Web Playback SDK + OAuth device flows)
   if (pathname.startsWith('/spotify')) {
     if (await handleSpotifyRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // Wearables OAuth routes (login, callback, token, unlink, status)
+  if (pathname.startsWith('/wearables')) {
+    if (await handleWearablesRoutes(req, res, pathname, parsedUrl)) return;
   }
 
   // Google Calendar OAuth routes
@@ -1649,6 +1657,7 @@ async function gracefulShutdown(): Promise<void> {
       shutdownGoogleCalendar(),
       shutdownSpotifyOAuth(),
       shutdownApplePolling(),
+      Promise.resolve(shutdownWearablesRoutes()),
     ]);
     log.info('Services shutdown complete');
 

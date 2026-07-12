@@ -28,13 +28,13 @@ servers/
 ├── index.ts                    # Main exports
 ├── gateway.ts                  # API gateway
 │
-├── token/                      # 🔐 Token Server (port 3001)
-│   ├── index.ts                # Token server entry
+├── token/                      # 🔐 Token utilities (library, no HTTP server)
+│   ├── index.ts                # Re-exports: livekit, validation, demo-rate-limit
 │   ├── livekit.ts              # LiveKit token generation
 │   ├── demo-rate-limit.ts      # Demo rate limiting
-│   ├── validation.ts           # Token validation
-│   └── oauth/                  # OAuth flows
-│       └── (spotify, google)
+│   ├── validation.ts           # OAuth state validation helpers
+│   └── oauth/                  # OAuth flows (Spotify, Wearables, Google)
+│       └── (spotify, wearables, google-calendar)
 │
 ├── api/                        # 🌐 UI Server API (port 3002)
 │   ├── index.ts                # API entry & route matching
@@ -57,17 +57,15 @@ servers/
 
 ## Server Architecture
 
-Ferni runs **3 development servers**:
+Ferni runs **2 development servers** (plus the Voice Agent):
 
 | Server | Port | Purpose |
 |--------|------|---------|
-| **Token Server** | 3001 | LiveKit tokens, Spotify OAuth, subscriptions |
-| **UI Server** | 3002 | Business APIs, engagement routes, agent registry |
+| **UI Server** | 3002 | LiveKit tokens, Spotify/Wearables OAuth, APIs, engagement routes |
 | **Vite Dev** | 3004 | Frontend with HMR |
 
 **Vite proxies:**
-- `/api/*` → UI Server (3002)
-- `/token`, `/spotify/*`, `/subscription/*` → Token Server (3001)
+- `/api/*`, `/token`, `/spotify/*`, `/wearables/*`, `/subscription/*` → UI Server (3002)
 
 ---
 
@@ -186,13 +184,10 @@ if (!allowed) {
 ## Development Setup
 
 ```bash
-# Terminal 1: Token Server
-node token-server.js
+# Terminal 1: UI Server (port 3002 — handles tokens, OAuth, APIs)
+pnpm ui-server
 
-# Terminal 2: UI Server
-PORT=3002 node ui-server.js
-
-# Terminal 3: Frontend
+# Terminal 2: Frontend
 cd apps/web && pnpm dev
 ```
 
@@ -205,7 +200,7 @@ cd apps/web && pnpm dev
 pnpm vitest run src/servers/__tests__/
 
 # Test token generation
-curl http://localhost:3001/token?room=test&identity=user1
+curl http://localhost:3002/token?room=test&identity=user1
 ```
 
 ---

@@ -82,6 +82,7 @@ export default defineConfig(({ mode }) => {
         '/token-url': 'http://localhost:3002',
         '/demo-token': 'http://localhost:3002',
         '/spotify': 'http://localhost:3002',
+        '/wearables': 'http://localhost:3002',
         '/auth': 'http://localhost:3002',
         '/api': 'http://localhost:3002',
         '/calendar': 'http://localhost:3002', // Calendar provider routes (Apple, Outlook)

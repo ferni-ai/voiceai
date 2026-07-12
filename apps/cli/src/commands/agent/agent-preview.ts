@@ -484,15 +484,15 @@ function createDevServer(manifest: AgentManifest, bundlePath: string, options: P
         break;
 
       case '/token':
-        // Proxy to token server
+        // Proxy to UI server
         const persona = url.searchParams.get('persona') || manifest.identity.id;
-        const tokenUrl = `http://localhost:3001/token?persona=${persona}`;
+        const tokenUrl = `http://localhost:3002/token?persona=${persona}`;
         http.get(tokenUrl, (proxyRes) => {
           res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
           proxyRes.pipe(res);
         }).on('error', (err) => {
           res.writeHead(502, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Token server unavailable', details: err.message }));
+          res.end(JSON.stringify({ error: 'UI server unavailable', details: err.message }));
         });
         break;
 
@@ -619,7 +619,7 @@ ${color.bold('Options:')}
 
 ${color.bold('Requirements:')}
   The following services should be running:
-  • Token Server (port 3001): node token-server.js
+  • UI Server (port 3002): pnpm ui-server
   • Voice Agent (port 8080): pnpm dev
 
 ${color.bold('Examples:')}
@@ -667,12 +667,12 @@ ${color.bold('Examples:')}
 
   const services: { name: string; url: string; status: 'ok' | 'error' }[] = [];
 
-  // Check token server
+  // Check UI server
   try {
-    await fetch('http://localhost:3001/health', { signal: AbortSignal.timeout(2000) });
-    services.push({ name: 'Token Server', url: 'localhost:3001', status: 'ok' });
+    await fetch('http://localhost:3002/health', { signal: AbortSignal.timeout(2000) });
+    services.push({ name: 'UI Server', url: 'localhost:3002', status: 'ok' });
   } catch {
-    services.push({ name: 'Token Server', url: 'localhost:3001', status: 'error' });
+    services.push({ name: 'UI Server', url: 'localhost:3002', status: 'error' });
   }
 
   // Check voice agent
@@ -697,8 +697,8 @@ ${color.bold('Examples:')}
   if (missingServices.length > 0) {
     p.log.warn('Some services are not running. Voice testing may not work.');
     p.log.info(color.dim('Start them with:'));
-    if (services.find((s) => s.name === 'Token Server' && s.status === 'error')) {
-      console.log(color.dim('  node token-server.js'));
+    if (services.find((s) => s.name === 'UI Server' && s.status === 'error')) {
+      console.log(color.dim('  pnpm ui-server'));
     }
     if (services.find((s) => s.name === 'Voice Agent' && s.status === 'error')) {
       console.log(color.dim('  pnpm dev'));

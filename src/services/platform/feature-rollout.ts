@@ -165,7 +165,7 @@ const BUILTIN_CHECKS: Record<string, ValidationCheck> = {
       try {
         const isDev = process.env.NODE_ENV !== 'production';
         const healthUrl =
-          process.env.HEALTH_CHECK_URL || (isDev ? 'http://localhost:3001/health' : '');
+          process.env.HEALTH_CHECK_URL || (isDev ? 'http://localhost:3002/health' : '');
         const response = await fetch(healthUrl, { signal: AbortSignal.timeout(5000) });
 
         if (!response.ok) {

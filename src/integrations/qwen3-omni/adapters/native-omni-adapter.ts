@@ -48,6 +48,7 @@ const NATIVE_OMNI_CAPABILITIES: llm.RealtimeCapabilities = {
   userTranscription: true,
   autoToolReplyGeneration: false,
   audioOutput: true,
+  manualFunctionCalls: false,
 };
 
 export interface NativeOmniRealtimeModelConfig {
@@ -103,7 +104,7 @@ export class NativeOmniRealtimeSession extends llm.RealtimeSession {
 
   private _instructions = '';
   private _chatCtx: llm.ChatContext = llm.ChatContext.empty();
-  private _toolCtx: llm.ToolContext = {};
+  private _toolCtx: llm.ToolContext = llm.toToolContext({});
   private currentAbortController: AbortController | null = null;
   private isGenerating = false;
 

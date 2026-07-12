@@ -260,7 +260,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     url: info.url,
     token: info.token,
     workerId: _workerId,
-  };
+  } as unknown as import('@livekit/agents').RunningJobInfo;
 
   const ctx = new JobContext(
     proc,

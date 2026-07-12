@@ -215,7 +215,8 @@ export function canTriggerProactive(sessionId: string): boolean {
  * @returns Result indicating success/failure and whether it was skipped
  */
 export async function triggerProactiveResponse(
-  session: voice.AgentSession<UserData>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session: voice.AgentSession<any>,
   sessionId: string,
   options: ProactiveOptions
 ): Promise<GatewayResult & { skippedByOrchestrator?: boolean }> {

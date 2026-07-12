@@ -7,12 +7,12 @@
  * 
  * Usage:
  *   npx tsx scripts/smoke-test.ts --url https://api.ferni.ai
- *   npx tsx scripts/smoke-test.ts --url http://localhost:3001
+ *   npx tsx scripts/smoke-test.ts --url http://localhost:3002
  */
 
 const BASE_URL = process.argv.find(arg => arg.startsWith('--url='))?.split('=')[1] 
   || process.env.SMOKE_TEST_URL 
-  || 'http://localhost:3001';
+  || 'http://localhost:3002';
 
 interface TestResult {
   name: string;

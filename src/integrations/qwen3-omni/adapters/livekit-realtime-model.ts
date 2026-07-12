@@ -80,6 +80,7 @@ const QWEN3_CAPABILITIES: llm.RealtimeCapabilities = {
   userTranscription: true,
   autoToolReplyGeneration: false,
   audioOutput: true,
+  manualFunctionCalls: false,
 };
 
 export class Qwen3OmniRealtimeModel extends llm.RealtimeModel {
@@ -128,7 +129,7 @@ export class Qwen3OmniRealtimeSession extends llm.RealtimeSession {
   private conversationHistory: Qwen3OmniMessage[] = [];
   private _instructions = '';
   private _chatCtx: llm.ChatContext;
-  private _toolCtx: llm.ToolContext = {};
+  private _toolCtx: llm.ToolContext = llm.toToolContext({});
   private _toolsForApi: Qwen3FunctionDefinition[] = [];
 
   // Generation state

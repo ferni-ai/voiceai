@@ -108,7 +108,7 @@ export class OllamaLLMAdapter extends llm.LLM {
 
   chat(opts: {
     chatCtx: llm.ChatContext;
-    toolCtx?: llm.ToolContext;
+    toolCtx?: llm.ToolContextLike;
     connOptions?: APIConnectOptions;
     parallelToolCalls?: boolean;
     toolChoice?: unknown;
@@ -137,7 +137,7 @@ class OllamaLLMStream extends llm.LLMStream {
     adapter: OllamaLLMAdapter,
     opts: {
       chatCtx: llm.ChatContext;
-      toolCtx?: llm.ToolContext;
+      toolCtx?: llm.ToolContextLike;
       connOptions: APIConnectOptions;
     }
   ) {

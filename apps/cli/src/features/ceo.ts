@@ -66,7 +66,7 @@ const c = {
 // ============================================================================
 
 const CONFIG = {
-  tokenServerUrl: process.env.CLI_TOKEN_SERVER || 'http://localhost:3001',
+  tokenServerUrl: process.env.CLI_TOKEN_SERVER || 'http://localhost:3002',
   uiServerUrl: process.env.CLI_UI_SERVER || 'http://localhost:3002',
   defaultUserId: process.env.CLI_USER_ID || 'cli-user',
 };

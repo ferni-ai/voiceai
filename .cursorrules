@@ -1155,11 +1155,10 @@ Before submitting code, verify:
 
 For Cursor AI agents: Start each server in a **separate background terminal** so logs can be watched individually.
 
-### 4 Required Servers
+### 3 Required Servers
 
 | Server | Port | Command |
 |--------|------|---------|
-| **Token Server** | 3001 | `pnpm token-server` |
 | **UI Server** | 3002 | `pnpm ui-server` |
 | **Vite Frontend** | 3004 | `cd apps/web && pnpm dev` |
 | **Voice Agent** | LiveKit | `LOG_FULL_RESPONSES=true pnpm dev` |
@@ -1171,7 +1170,6 @@ Run `ferni dev cursor` to see commands for starting servers in separate terminal
 ### Health Check After Starting
 
 ```bash
-curl -s http://localhost:3001/health  # Token server
 curl -s http://localhost:3002/health  # UI server
 curl -s http://localhost:3004/ | head -c 50  # Vite
 ```

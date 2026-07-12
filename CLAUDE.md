@@ -58,32 +58,28 @@ Pre-commit hooks validate both backend and frontend code. CI enforces all qualit
 | Layer violations         | 0          | `pnpm quality:arch`               |
 | Design tokens (frontend) | 0          | `cd apps/web && pnpm lint:tokens` |
 
-## 🚀 Development Servers (MUST RUN ALL 4)
+## 🚀 Development Servers (MUST RUN ALL 3)
 
-For full development, you need 4 servers running:
+For full development, you need 3 servers running:
 
-| Server            | Port    | Purpose                                       |
-| ----------------- | ------- | --------------------------------------------- |
-| **Token Server**  | 3001    | LiveKit tokens, Spotify OAuth, subscriptions  |
-| **UI Server**     | 3002    | APIs, engagement routes, agent registry       |
-| **Vite Frontend** | 3004    | Frontend with HMR                             |
-| **Voice Agent**   | LiveKit | Voice agent (connects to dev LiveKit project) |
+| Server            | Port    | Purpose                                                     |
+| ----------------- | ------- | ----------------------------------------------------------- |
+| **UI Server**     | 3002    | APIs, LiveKit tokens, Spotify/Wearables OAuth, subscriptions |
+| **Vite Frontend** | 3004    | Frontend with HMR                                           |
+| **Voice Agent**   | LiveKit | Voice agent (connects to dev LiveKit project)               |
 
 ### For Cursor AI Agents (Recommended)
 
 Start each server in a **separate background terminal** so logs can be watched:
 
 ```bash
-# Terminal 1: Token Server (port 3001)
-pnpm token-server
-
-# Terminal 2: UI Server (port 3002)
+# Terminal 1: UI Server (port 3002)
 pnpm ui-server
 
-# Terminal 3: Vite Frontend (port 3004)
+# Terminal 2: Vite Frontend (port 3004)
 cd apps/web && pnpm dev
 
-# Terminal 4: Voice Agent (LiveKit worker)
+# Terminal 3: Voice Agent (LiveKit worker)
 LOG_FULL_RESPONSES=true pnpm dev
 ```
 
@@ -92,7 +88,6 @@ Run `ferni dev cursor` for a quick reference of these commands.
 ### Health Check
 
 ```bash
-curl -s http://localhost:3001/health  # Token server
 curl -s http://localhost:3002/health  # UI server
 curl -s http://localhost:3004/ | head -c 100  # Vite
 ```
@@ -103,7 +98,7 @@ curl -s http://localhost:3004/ | head -c 100  # Vite
 ferni dev stop
 ```
 
-**Why 4 servers?** Vite proxies API calls: `/api/*` → UI Server (3002), `/token`, `/spotify/*`, `/subscription/*` → Token Server (3001). The Voice Agent connects directly to LiveKit.
+**Why 3 servers?** Vite proxies API calls: `/api/*`, `/token`, `/spotify/*`, `/wearables/*`, `/subscription/*` → UI Server (3002). The Voice Agent connects directly to LiveKit.
 
 ## 🔑 LiveKit Configuration (Dev vs Production)
 
@@ -2279,23 +2274,20 @@ gh run list --workflow=ci.yml
 ## 🎯 Seth's Preferences
 
 - **Always start local dev servers** when beginning a coding session
-- Start all 4 servers in **separate background terminals** so logs can be watched individually
+- Start all 3 servers in **separate background terminals** so logs can be watched individually
 
 ### Cursor AI Agent: Starting Dev Servers
 
 When starting a dev session, run each command in a separate background shell so terminal logs are watchable:
 
 ```bash
-# Terminal 1: Token Server (port 3001)
-pnpm token-server
-
-# Terminal 2: UI Server (port 3002)
+# Terminal 1: UI Server (port 3002)
 pnpm ui-server
 
-# Terminal 3: Vite Frontend (port 3004)
+# Terminal 2: Vite Frontend (port 3004)
 cd apps/web && pnpm dev
 
-# Terminal 4: Voice Agent (LiveKit worker)
+# Terminal 3: Voice Agent (LiveKit worker)
 LOG_FULL_RESPONSES=true pnpm dev
 ```
 
@@ -2304,7 +2296,7 @@ LOG_FULL_RESPONSES=true pnpm dev
 **Verify all running:**
 
 ```bash
-curl -s http://localhost:3001/health && curl -s http://localhost:3002/health && curl -s http://localhost:3004/ | head -c 50
+curl -s http://localhost:3002/health && curl -s http://localhost:3004/ | head -c 50
 ```
 
 **Stop all:** `ferni dev stop`

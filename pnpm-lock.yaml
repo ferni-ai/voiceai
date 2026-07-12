@@ -5,8 +5,12 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@livekit/agents': file:../agents-js/agents
-  '@livekit/agents-plugin-google': file:../agents-js/plugins/google
+  '@livekit/agents': 1.5.1
+  '@livekit/agents-plugin-cartesia': 1.5.1
+  '@livekit/agents-plugin-google': 1.5.1
+  '@livekit/agents-plugin-openai': 1.5.1
+  '@livekit/agents-plugin-silero': 1.5.1
+  '@livekit/rtc-node': 0.13.31
   sharp: ^0.34.5
   '@google-cloud/firestore': 8.0.0
 
@@ -45,23 +49,20 @@ importers:
         specifier: 3.8.1
         version: 3.8.1
       '@livekit/agents':
-        specifier: file:../agents-js/agents
-        version: file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13)
+        specifier: 1.5.1
+        version: 1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)
       '@livekit/agents-plugin-cartesia':
-        specifier: file:../agents-js/plugins/cartesia
-        version: file:../agents-js/plugins/cartesia(@livekit/agents@file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13))(@livekit/rtc-node@0.13.24)
-      '@livekit/agents-plugin-deepgram':
-        specifier: file:../agents-js/plugins/deepgram
-        version: file:../agents-js/plugins/deepgram(@livekit/agents@file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13))(@livekit/rtc-node@0.13.24)
+        specifier: 1.5.1
+        version: 1.5.1(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)
       '@livekit/agents-plugin-google':
-        specifier: file:../agents-js/plugins/google
-        version: file:../agents-js/plugins/google(@livekit/agents@file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13))(@livekit/rtc-node@0.13.24)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))
+        specifier: 1.5.1
+        version: 1.5.1(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))(ws@8.18.3)(zod@4.1.13)
       '@livekit/agents-plugin-openai':
-        specifier: file:../agents-js/plugins/openai
-        version: file:../agents-js/plugins/openai(@livekit/agents@file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13))(@livekit/rtc-node@0.13.24)(zod@4.1.13)
+        specifier: 1.5.1
+        version: 1.5.1(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)
       '@livekit/agents-plugin-silero':
-        specifier: file:../agents-js/plugins/silero
-        version: file:../agents-js/plugins/silero(@livekit/agents@file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13))(@livekit/rtc-node@0.13.24)
+        specifier: 1.5.1
+        version: 1.5.1(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)
       '@livekit/noise-cancellation-node':
         specifier: ^0.1.9
         version: 0.1.9
@@ -69,8 +70,8 @@ importers:
         specifier: 1.43.4
         version: 1.43.4
       '@livekit/rtc-node':
-        specifier: 0.13.24
-        version: 0.13.24
+        specifier: 0.13.31
+        version: 0.13.31
       '@modelcontextprotocol/sdk':
         specifier: ^1.24.3
         version: 1.25.1(hono@4.11.1)(zod@4.1.13)
@@ -265,6 +266,9 @@ importers:
       '@ferni/perf':
         specifier: workspace:*
         version: link:apps/rust-perf
+      '@ferni/sonata':
+        specifier: workspace:*
+        version: link:apps/sonata
       ferni-speaker:
         specifier: github:sethdford/ferni-speaker#v0.1.0
         version: git+https://github.com/sethdford/ferni-speaker.git#99034254a600dc9b2105fbb2dccb1c85c34719ec
@@ -384,6 +388,12 @@ importers:
         version: 2.18.4
 
   apps/rust-perf:
+    devDependencies:
+      '@napi-rs/cli':
+        specifier: ^2.18.4
+        version: 2.18.4
+
+  apps/sonata:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^2.18.4
@@ -1292,49 +1302,6 @@ packages:
   '@fastify/busboy@3.2.0':
     resolution: {integrity: sha512-m9FVDXU3GT2ITSe0UaMA5rU3QkfC/UXtCU8y0gSN/GugTqtVldOBWIB5V6V3sbmenVZUIpU6f+mPEO2+m5iTaA==}
 
-  '@ffmpeg-installer/darwin-arm64@4.1.5':
-    resolution: {integrity: sha512-hYqTiP63mXz7wSQfuqfFwfLOfwwFChUedeCVKkBtl/cliaTM7/ePI9bVzfZ2c+dWu3TqCwLDRWNSJ5pqZl8otA==}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@ffmpeg-installer/darwin-x64@4.1.0':
-    resolution: {integrity: sha512-Z4EyG3cIFjdhlY8wI9aLUXuH8nVt7E9SlMVZtWvSPnm2sm37/yC2CwjUzyCQbJbySnef1tQwGG2Sx+uWhd9IAw==}
-    cpu: [x64]
-    os: [darwin]
-
-  '@ffmpeg-installer/ffmpeg@1.1.0':
-    resolution: {integrity: sha512-Uq4rmwkdGxIa9A6Bd/VqqYbT7zqh1GrT5/rFwCwKM70b42W5gIjWeVETq6SdcL0zXqDtY081Ws/iJWhr1+xvQg==}
-
-  '@ffmpeg-installer/linux-arm64@4.1.4':
-    resolution: {integrity: sha512-dljEqAOD0oIM6O6DxBW9US/FkvqvQwgJ2lGHOwHDDwu/pX8+V0YsDL1xqHbj1DMX/+nP9rxw7G7gcUvGspSoKg==}
-    cpu: [arm64]
-    os: [linux]
-
-  '@ffmpeg-installer/linux-arm@4.1.3':
-    resolution: {integrity: sha512-NDf5V6l8AfzZ8WzUGZ5mV8O/xMzRag2ETR6+TlGIsMHp81agx51cqpPItXPib/nAZYmo55Bl2L6/WOMI3A5YRg==}
-    cpu: [arm]
-    os: [linux]
-
-  '@ffmpeg-installer/linux-ia32@4.1.0':
-    resolution: {integrity: sha512-0LWyFQnPf+Ij9GQGD034hS6A90URNu9HCtQ5cTqo5MxOEc7Rd8gLXrJvn++UmxhU0J5RyRE9KRYstdCVUjkNOQ==}
-    cpu: [ia32]
-    os: [linux]
-
-  '@ffmpeg-installer/linux-x64@4.1.0':
-    resolution: {integrity: sha512-Y5BWhGLU/WpQjOArNIgXD3z5mxxdV8c41C+U15nsE5yF8tVcdCGet5zPs5Zy3Ta6bU7haGpIzryutqCGQA/W8A==}
-    cpu: [x64]
-    os: [linux]
-
-  '@ffmpeg-installer/win32-ia32@4.1.0':
-    resolution: {integrity: sha512-FV2D7RlaZv/lrtdhaQ4oETwoFUsUjlUiasiZLDxhEUPdNDWcH1OU9K1xTvqz+OXLdsmYelUDuBS/zkMOTtlUAw==}
-    cpu: [ia32]
-    os: [win32]
-
-  '@ffmpeg-installer/win32-x64@4.1.0':
-    resolution: {integrity: sha512-Drt5u2vzDnIONf4ZEkKtFlbvwj6rI3kxw1Ck9fpudmtgaZIHD4ucsWB2lCZBXRxJgXR+2IMSti+4rtM4C4rXgg==}
-    cpu: [x64]
-    os: [win32]
-
   '@firebase/analytics-compat@0.2.14':
     resolution: {integrity: sha512-unRVY6SvRqfNFIAA/kwl4vK+lvQAL2HVcgu9zTrUtTyYDmtIt/lOuHJynBMYEgLnKm39YKBDhtqdapP2e++ASw==}
     peerDependencies:
@@ -1648,8 +1615,8 @@ packages:
       '@modelcontextprotocol/sdk':
         optional: true
 
-  '@google/genai@1.41.0':
-    resolution: {integrity: sha512-S4WGil+PG0NBQRAx+0yrQuM/TWOLn2gGEy5wn4IsoOI6ouHad0P61p3OWdhJ3aqr9kfj8o904i/jevfaGoGuIQ==}
+  '@google/genai@1.52.0':
+    resolution: {integrity: sha512-gwSvbpiN/17O9TbsqSsE/OzZcpv5Fo4RQjdngGgogtuB9RsyJ8ZHhX5KjHj1bp5N9snN2eK8LDGXSaWW2hof8Q==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.25.2
@@ -1751,89 +1718,105 @@ packages:
     resolution: {integrity: sha512-excjX8DfsIcJ10x1Kzr4RcWe1edC9PquDRRPx3YVCvQv+U5p7Yin2s32ftzikXojb1PIFc/9Mt28/y+iRklkrw==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-arm@1.2.4':
     resolution: {integrity: sha512-bFI7xcKFELdiNCVov8e44Ia4u2byA+l3XtsAj+Q8tfCwO6BQ8iDojYdvoPMqsKDkuoOo+X6HZA0s0q11ANMQ8A==}
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-ppc64@1.2.4':
     resolution: {integrity: sha512-FMuvGijLDYG6lW+b/UvyilUWu5Ayu+3r2d1S8notiGCIyYU/76eig1UfMmkZ7vwgOrzKzlQbFSuQfgm7GYUPpA==}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-riscv64@1.2.4':
     resolution: {integrity: sha512-oVDbcR4zUC0ce82teubSm+x6ETixtKZBh/qbREIOcI3cULzDyb18Sr/Wcyx7NRQeQzOiHTNbZFF1UwPS2scyGA==}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-s390x@1.2.4':
     resolution: {integrity: sha512-qmp9VrzgPgMoGZyPvrQHqk02uyjA0/QrTO26Tqk6l4ZV0MPWIW6LTkqOIov+J1yEu7MbFQaDpwdwJKhbJvuRxQ==}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-x64@1.2.4':
     resolution: {integrity: sha512-tJxiiLsmHc9Ax1bz3oaOYBURTXGIRDODBqhveVHonrHJ9/+k89qbLl0bcJns+e4t4rvaNBxaEZsFtSfAdquPrw==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linuxmusl-arm64@1.2.4':
     resolution: {integrity: sha512-FVQHuwx1IIuNow9QAbYUzJ+En8KcVm9Lk5+uGUQJHaZmMECZmOlix9HnH7n1TRkXMS0pGxIJokIVB9SuqZGGXw==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@img/sharp-libvips-linuxmusl-x64@1.2.4':
     resolution: {integrity: sha512-+LpyBk7L44ZIXwz/VYfglaX/okxezESc6UxDSoyo2Ks6Jxc4Y7sGjpgU9s4PMgqgjj1gZCylTieNamqA1MF7Dg==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@img/sharp-linux-arm64@0.34.5':
     resolution: {integrity: sha512-bKQzaJRY/bkPOXyKx5EVup7qkaojECG6NLYswgktOZjaXecSAeCWiZwwiFf3/Y+O1HrauiE3FVsGxFg8c24rZg==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-arm@0.34.5':
     resolution: {integrity: sha512-9dLqsvwtg1uuXBGZKsxem9595+ujv0sJ6Vi8wcTANSFpwV/GONat5eCkzQo/1O6zRIkh0m/8+5BjrRr7jDUSZw==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-ppc64@0.34.5':
     resolution: {integrity: sha512-7zznwNaqW6YtsfrGGDA6BRkISKAAE1Jo0QdpNYXNMHu2+0dTrPflTLNkpc8l7MUP5M16ZJcUvysVWWrMefZquA==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-riscv64@0.34.5':
     resolution: {integrity: sha512-51gJuLPTKa7piYPaVs8GmByo7/U7/7TZOq+cnXJIHZKavIRHAP77e3N2HEl3dgiqdD/w0yUfiJnII77PuDDFdw==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-s390x@0.34.5':
     resolution: {integrity: sha512-nQtCk0PdKfho3eC5MrbQoigJ2gd1CgddUMkabUj+rBevs8tZ2cULOx46E7oyX+04WGfABgIwmMC0VqieTiR4jg==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-x64@0.34.5':
     resolution: {integrity: sha512-MEzd8HPKxVxVenwAa+JRPwEC7QFjoPWuS5NZnBt6B3pu7EG2Ge0id1oLHZpPJdn3OQK+BQDiw9zStiHBTJQQQQ==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linuxmusl-arm64@0.34.5':
     resolution: {integrity: sha512-fprJR6GtRsMt6Kyfq44IsChVZeGN97gTD331weR1ex1c1rypDEABN6Tm2xa1wE6lYb5DdEnk03NZPqA7Id21yg==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@img/sharp-linuxmusl-x64@0.34.5':
     resolution: {integrity: sha512-Jg8wNT1MUzIvhBFxViqrEhWDGzqymo3sV7z7ZsaWbZNDLXRJZoRGrjulp60YYtV4wfY8VIKcWidjojlLcWrd8Q==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@img/sharp-wasm32@0.34.5':
     resolution: {integrity: sha512-OdWTEiVkY2PHwqkbBI8frFxQQFekHaSSkUIJkwzclWZe64O1X4UlUjqqqLaPbUpMOQk6FBu/HtlGXNblIs0huw==}
@@ -1937,41 +1920,98 @@ packages:
   '@js-sdsl/ordered-map@4.4.2':
     resolution: {integrity: sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==}
 
-  '@livekit/agents-plugin-cartesia@file:../agents-js/plugins/cartesia':
-    resolution: {directory: ../agents-js/plugins/cartesia, type: directory}
+  '@livekit/agents-plugin-cartesia@1.5.1':
+    resolution: {integrity: sha512-kAhFZZP4IYKpwWRNMF7R3RkhLQ2d8v/9Y8agafRvofRHB9TBIHTjdPuTe+uRH90WYv3CToPHz9nzfzgQKrkp+g==}
     peerDependencies:
-      '@livekit/agents': workspace:*
-      '@livekit/rtc-node': 'catalog:'
-
-  '@livekit/agents-plugin-deepgram@file:../agents-js/plugins/deepgram':
-    resolution: {directory: ../agents-js/plugins/deepgram, type: directory}
-    peerDependencies:
-      '@livekit/agents': workspace:*
-      '@livekit/rtc-node': 'catalog:'
-
-  '@livekit/agents-plugin-google@file:../agents-js/plugins/google':
-    resolution: {directory: ../agents-js/plugins/google, type: directory}
-    peerDependencies:
-      '@livekit/agents': workspace:*
-      '@livekit/rtc-node': 'catalog:'
-
-  '@livekit/agents-plugin-openai@file:../agents-js/plugins/openai':
-    resolution: {directory: ../agents-js/plugins/openai, type: directory}
-    peerDependencies:
-      '@livekit/agents': workspace:*
-      '@livekit/rtc-node': 'catalog:'
-
-  '@livekit/agents-plugin-silero@file:../agents-js/plugins/silero':
-    resolution: {directory: ../agents-js/plugins/silero, type: directory}
-    peerDependencies:
-      '@livekit/agents': workspace:*
-      '@livekit/rtc-node': 'catalog:'
-
-  '@livekit/agents@file:../agents-js/agents':
-    resolution: {directory: ../agents-js/agents, type: directory}
-    peerDependencies:
-      '@livekit/rtc-node': 'catalog:'
+      '@livekit/agents': 1.5.1
+      '@livekit/rtc-node': 0.13.31
       zod: ^3.25.76 || ^4.1.8
+
+  '@livekit/agents-plugin-google@1.5.1':
+    resolution: {integrity: sha512-/gAFFPGmDqPJPpOoNMMQHWnYJBFb8dshqfAIrTducRwIrlIzrGDEyBU7TcrhFjVZISihE8jIukpc7/ZGdtygfQ==}
+    peerDependencies:
+      '@livekit/agents': 1.5.1
+      '@livekit/rtc-node': 0.13.31
+
+  '@livekit/agents-plugin-openai@1.5.1':
+    resolution: {integrity: sha512-qhaUtrPkVshe+TzYEWE6SzwP+P6Yv70LB/ulYa+oBOZRkT1RitXdftNXxowMNu90maz7vKB0mrexMzuvVHdQOw==}
+    peerDependencies:
+      '@livekit/agents': 1.5.1
+      '@livekit/rtc-node': 0.13.31
+      zod: ^3.25.76 || ^4.1.8
+
+  '@livekit/agents-plugin-silero@1.5.1':
+    resolution: {integrity: sha512-xmo98uybp9kMBHViYQCY5uajx9MQL5VWDNsL1Ow7EZpK2maSaSWf65TG0KKNZz60bL0ypzJ7+ef3NdXBsj0t0Q==}
+    peerDependencies:
+      '@livekit/agents': 1.5.1
+      '@livekit/rtc-node': 0.13.31
+
+  '@livekit/agents@1.5.1':
+    resolution: {integrity: sha512-pA9kddXEJBIZeJDBbK2EedI3cIfbh2vs87qLrieo7/CH8gRrtHoYNEKp56WYUf9lkih8bYQLJhvLPL18Mfl5/g==}
+    hasBin: true
+    peerDependencies:
+      '@livekit/rtc-node': 0.13.31
+      zod: ^3.25.76 || ^4.1.8
+
+  '@livekit/av-darwin-arm64@7.1.501':
+    resolution: {integrity: sha512-vUL1KJvoCicXewhRzeRCcJkqNynsLBhHKL8aJ63OShHnx8e6UGMkzmR70zUO23rZztxQpBxSG8Awah8Z/6Q4sg==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@livekit/av-darwin-x64@7.1.501':
+    resolution: {integrity: sha512-y5vd5kSZ6c/Yw4nN+st7NQ6ThIKE0k2n8Z6iYdFf+xLCIxOWyT3av/7wmuVt0QJOJTf9YUv3kQRGssepyvVYNQ==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@livekit/av-linux-arm64@7.1.501':
+    resolution: {integrity: sha512-tSmB4MEsR8nDysD7p+lWedvabkoLPD6fV5xj3QHRgklwFXkk4yoiUyYbNZb2uIZOvrpMltxnm7kbAYGk34fdXg==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@livekit/av-linux-x64@7.1.501':
+    resolution: {integrity: sha512-jpCAtd4kUfLEMIwQW9PxjfrABXK4f91TZ5qx56b6pkkRBMrtFn4e2b1A08+WMeG0jI4X5Yd8XEnjlW5dUzEZaA==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@livekit/av-win32-x64@7.1.501':
+    resolution: {integrity: sha512-u3klXmY8oMBbbLDKIOGUnEBhZQk3v9wrzj/ta6lIlhB4bLBKn1Aq/75BK8D7xOxalKjt/RZPGKn94K9ohvxIuA==}
+    cpu: [x64]
+    os: [win32]
+
+  '@livekit/av@7.1.501':
+    resolution: {integrity: sha512-o/T5WvmyMADwIKHx/XHdQ/gfGBikBRU7FZcJ0//COD24ev6YrCE9+L9jLp9HYR3X6Unosh4mlv8UcqFsivDVTw==}
+    engines: {node: '>=18.0.0'}
+
+  '@livekit/local-inference-darwin-arm64@0.2.6':
+    resolution: {integrity: sha512-YdzE0eXgLpUfT0S6AcJ73BknX6fnHWqmH2AukNkO6IBmpth4dFnTvTpOrGWPunlbDJmXanCwdD+Bh9O4oQA+PQ==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@livekit/local-inference-darwin-x64@0.2.6':
+    resolution: {integrity: sha512-fSicCqoYA5iOtW2jZfB91RIcNafXs19xRNPH5QSHvrRXljvCn8WMh+7do1jEg1f2U98TDsyptZ91laiDSh8xNg==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@livekit/local-inference-linux-arm64-gnu@0.2.6':
+    resolution: {integrity: sha512-XvLWw8IwiIimoQjivxelRdSz9uSenR7UJiw1KDL35qJd3ZrI3QMORnyx63s7TFgNNCoyJ2CBFBqs9k9pPuqkTA==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@livekit/local-inference-linux-x64-gnu@0.2.6':
+    resolution: {integrity: sha512-L9MagQm/5tm0r82/GXecIZU8jz/2LY8DsMzRPlkz/2Et6qR4zz+8wEOUifuLC520L8MFN7HN6yf+PNbQnSfvWA==}
+    cpu: [x64]
+    os: [linux]
+
+  '@livekit/local-inference-win32-x64-msvc@0.2.6':
+    resolution: {integrity: sha512-g3B10sLdIsE0du8xh8+oFAllvbKZBRcVUXf52HvtRwNVQ3OiodrRI/Ehyvy9C94rwKDI40Kk5ZWcPo7cTI68IQ==}
+    cpu: [x64]
+    os: [win32]
+
+  '@livekit/local-inference@0.2.6':
+    resolution: {integrity: sha512-HtA5tC+gdDHoWAkb0QJYVCIoLL6/53VGXVoRY68zIeTUik9kAW/EOuYirEqRuGlL2UCzjWRRhRSkxLleLyucmQ==}
+    engines: {node: '>=18.0.0'}
 
   '@livekit/mutex@1.1.1':
     resolution: {integrity: sha512-EsshAucklmpuUAfkABPxJNhzj9v2sG7JuzFDL4ML1oJQSV14sqrpTYnsaOudMAw9yOaW53NU3QQTlUQoRs4czw==}
@@ -2010,39 +2050,54 @@ packages:
   '@livekit/protocol@1.43.4':
     resolution: {integrity: sha512-mJDFt/p+G2OKmIGizYiACK7Jb06wd42m9Pe7Y9cAOfdYpvwCqHlw4yul5Z7iRU3VKPsYJ27WL3oeHEoiu+HuAA==}
 
-  '@livekit/rtc-node-darwin-arm64@0.13.24':
-    resolution: {integrity: sha512-gm5xOpGu6Rj/mNU2jEijcGhQGN2GdxV2dNYQm3NCKN7ow0BmMFZvXSCAWOWf+9oTutPXHnrc7EN1mt2v+lfqhA==}
-    engines: {node: '>= 10'}
+  '@livekit/protocol@1.49.0':
+    resolution: {integrity: sha512-TCmihwjHBWAUdNrqvmrN/K59r7vDnPIy3OEaE3p0g4FvdcQTiLynmFC3igR25Q2fnifahhAJjnnfSCtWUK7kYg==}
+
+  '@livekit/rtc-ffi-bindings-darwin-arm64@0.12.60':
+    resolution: {integrity: sha512-YHXqybkYfaTc3txJXXWoVogiSP3yKJdkaZlIlZ6IDMGnN9elUoHDYU+ZSn/rbdGu0pp4HUOzffXkbkItN735Bw==}
+    engines: {node: '>= 18'}
     cpu: [arm64]
     os: [darwin]
 
-  '@livekit/rtc-node-darwin-x64@0.13.24':
-    resolution: {integrity: sha512-jZSK5lHDp7+u0jby7PEWMzbxc0F0nLx6FT3FVjuMlT13ZY6QWKDUUCFbfDOtbdhiOZJYc5A4SwvubY6woEJXTg==}
-    engines: {node: '>= 10'}
+  '@livekit/rtc-ffi-bindings-darwin-x64@0.12.60':
+    resolution: {integrity: sha512-SkPPWE2/nb2BAXrCWP6+vaR2I4EeyG3Vv+csUaa1EvDVMbFqBHWqNVTQcx/ChgecbYB9dIFZHVYpfjbFkVd84g==}
+    engines: {node: '>= 18'}
     cpu: [x64]
     os: [darwin]
 
-  '@livekit/rtc-node-linux-arm64-gnu@0.13.24':
-    resolution: {integrity: sha512-I+IeZET2h+viZ48moEFF0EWDHa+kLii5yuEsw38ya4mHZaZtlfbzrYKGKdONqbI9M9ldvv8XXuD0wFPjuH5CZw==}
-    engines: {node: '>= 10'}
+  '@livekit/rtc-ffi-bindings-linux-arm64-gnu@0.12.60':
+    resolution: {integrity: sha512-8umeMn9p/VZ41EGty1qX9zPV5mfGxCioYKeUnALpf8AKqT/yXDjnog1VkS5f8gFX/zY7HDaeE+s60nZXaOZJbw==}
+    engines: {node: '>= 18'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
-  '@livekit/rtc-node-linux-x64-gnu@0.13.24':
-    resolution: {integrity: sha512-vKOxzN/SsrtV8zIVwZCi31bZUhlb6RhJZ0NnY5MwKGSRFPi7Dwt8fmr0Vh0YmsY/p+4eZjKxvFmy7L3WVE54zw==}
-    engines: {node: '>= 10'}
+  '@livekit/rtc-ffi-bindings-linux-x64-gnu@0.12.60':
+    resolution: {integrity: sha512-ttWrR/e8Ghaa9I+LaStxK8lh+aA9QBz6Dge6eXyKwTrAMHwHEtL2Rnf1rHQTiwadeH7AoytpfWf5FZl/OelLaQ==}
+    engines: {node: '>= 18'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
-  '@livekit/rtc-node-win32-x64-msvc@0.13.24':
-    resolution: {integrity: sha512-yTzqwndq2oKLUkXW2i/BkZMJC6kZOpRO/DKvkkKQvqc3Q+JuWz1m48GmyjIwTOKF28QjqEU3+IrnD65Uu+mFOg==}
-    engines: {node: '>= 10'}
+  '@livekit/rtc-ffi-bindings-win32-x64-msvc@0.12.60':
+    resolution: {integrity: sha512-HfOBEf3rmpsG7hU3/BM9x2jnkVwKFve2v3cyjxlk41d6OkCthYb+g/ULEPFBKPafYyepDwcd2c8MDo5fMM+4Zw==}
+    engines: {node: '>= 18'}
     cpu: [x64]
     os: [win32]
 
-  '@livekit/rtc-node@0.13.24':
-    resolution: {integrity: sha512-06pF8YJlJk11R6J7kFXFpwV8etpbmCskoXFvwfwcDDixMqaP6qtS5srq3G23mDaRjx7ofz/PXg2GtiZbqNGT5A==}
+  '@livekit/rtc-ffi-bindings@0.12.60':
+    resolution: {integrity: sha512-ZJD2DNoHfR8PzKeyDMH6i1zKpk7S4LlrQDIZvisxj6HPaJnKofzSssNMF8fpGFvVCZ844kbcOFogRPgHFno82w==}
     engines: {node: '>= 18'}
+
+  '@livekit/rtc-node@0.13.31':
+    resolution: {integrity: sha512-uCpyUUOoph+sDsjW6mSmDe6ox1vSfgaWR5VFgP7u4KGf1clyJooX7d6Fe94ZruDjLTsGxxV97IOmVU5+cBiBgg==}
+    engines: {node: '>= 18'}
+
+  '@livekit/throws-transformer@0.1.8':
+    resolution: {integrity: sha512-AaSwQfIaG6YArKOCO+5/DgI8HfL19oHdrkyI0LJJVCqGeZXzPsZIO/Nm/SKUHbT1ERGhF5c34X8CcVWeOePpIQ==}
+    hasBin: true
+    peerDependencies:
+      typescript: '>=4.7.0'
 
   '@livekit/typed-emitter@3.0.0':
     resolution: {integrity: sha512-9bl0k4MgBPZu3Qu3R3xy12rmbW17e3bE9yf4YY85gJIQ3ezLEj/uzpKHWBsLaDoL5Mozz8QCgggwIBudYQWeQg==}
@@ -2514,56 +2569,67 @@ packages:
     resolution: {integrity: sha512-dV3T9MyAf0w8zPVLVBptVlzaXxka6xg1f16VAQmjg+4KMSTWDvhimI/Y6mp8oHwNrmnmVl9XxJ/w/mO4uIQONA==}
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-arm-musleabihf@4.53.5':
     resolution: {integrity: sha512-wIGYC1x/hyjP+KAu9+ewDI+fi5XSNiUi9Bvg6KGAh2TsNMA3tSEs+Sh6jJ/r4BV/bx/CyWu2ue9kDnIdRyafcQ==}
     cpu: [arm]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-arm64-gnu@4.53.5':
     resolution: {integrity: sha512-Y+qVA0D9d0y2FRNiG9oM3Hut/DgODZbU9I8pLLPwAsU0tUKZ49cyV1tzmB/qRbSzGvY8lpgGkJuMyuhH7Ma+Vg==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-arm64-musl@4.53.5':
     resolution: {integrity: sha512-juaC4bEgJsyFVfqhtGLz8mbopaWD+WeSOYr5E16y+1of6KQjc0BpwZLuxkClqY1i8sco+MdyoXPNiCkQou09+g==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-loong64-gnu@4.53.5':
     resolution: {integrity: sha512-rIEC0hZ17A42iXtHX+EPJVL/CakHo+tT7W0pbzdAGuWOt2jxDFh7A/lRhsNHBcqL4T36+UiAgwO8pbmn3dE8wA==}
     cpu: [loong64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-ppc64-gnu@4.53.5':
     resolution: {integrity: sha512-T7l409NhUE552RcAOcmJHj3xyZ2h7vMWzcwQI0hvn5tqHh3oSoclf9WgTl+0QqffWFG8MEVZZP1/OBglKZx52Q==}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-riscv64-gnu@4.53.5':
     resolution: {integrity: sha512-7OK5/GhxbnrMcxIFoYfhV/TkknarkYC1hqUw1wU2xUN3TVRLNT5FmBv4KkheSG2xZ6IEbRAhTooTV2+R5Tk0lQ==}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-riscv64-musl@4.53.5':
     resolution: {integrity: sha512-GwuDBE/PsXaTa76lO5eLJTyr2k8QkPipAyOrs4V/KJufHCZBJ495VCGJol35grx9xryk4V+2zd3Ri+3v7NPh+w==}
     cpu: [riscv64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-s390x-gnu@4.53.5':
     resolution: {integrity: sha512-IAE1Ziyr1qNfnmiQLHBURAD+eh/zH1pIeJjeShleII7Vj8kyEm2PF77o+lf3WTHDpNJcu4IXJxNO0Zluro8bOw==}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-x64-gnu@4.53.5':
     resolution: {integrity: sha512-Pg6E+oP7GvZ4XwgRJBuSXZjcqpIW3yCBhK4BcsANvb47qMvAbCjR6E+1a/U2WXz1JJxp9/4Dno3/iSJLcm5auw==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-x64-musl@4.53.5':
     resolution: {integrity: sha512-txGtluxDKTxaMDzUduGP0wdfng24y1rygUMnmlUJ88fzCCULCLn7oE5kb2+tRB+MWq1QDZT6ObT5RrR8HFRKqg==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-openharmony-arm64@4.53.5':
     resolution: {integrity: sha512-3DFiLPnTxiOQV993fMc+KO8zXHTcIjgaInrqlG8zDp1TlhYl6WgrOHuJkJQ6M8zHEcntSJsUp1XFZSY8C1DYbg==}
@@ -3027,6 +3093,9 @@ packages:
   '@types/request@2.48.13':
     resolution: {integrity: sha512-FGJ6udDNUCjd19pp0Q3iTiDkwhYup7J8hpMW9c4k53NrccQFFWKRho6hvtPPEhnXWKvukfwAlB6DbDz4yhH5Gg==}
 
+  '@types/retry@0.12.0':
+    resolution: {integrity: sha512-wWKOClTTiizcZhXnPY4wikVAwmdYHp8q6DmC+EJUzAMsycb7HB32Kh9RN4+0gExjmPmZSAQjgURXIGATPegAvA==}
+
   '@types/semver@7.7.1':
     resolution: {integrity: sha512-FmgJfu+MOcQ370SD0ev7EI8TlCAfKYU+B4m5T3yXc1CiRN94g/SZPtsCkk506aUDtlMnFZvasDwHHUcZUEaYuA==}
 
@@ -3336,6 +3405,10 @@ packages:
     resolution: {integrity: sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+
+  adm-zip@0.5.18:
+    resolution: {integrity: sha512-ufJnssQGbxzLNS1Ho9bCtX4rQKCCvoVuDLHoJyc3F9dOGDB4BkWs2Ci0kv53lqocAEQ/Cbi+I2XCsNYGqVYqng==}
+    engines: {node: '>=12.0'}
 
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
@@ -3868,6 +3941,9 @@ packages:
     resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
     engines: {node: '>=6'}
 
+  destr@2.0.5:
+    resolution: {integrity: sha512-ugFTXCtDZunbzasqBxrK93Ik/DRYsO6S/fedkWEMKqt04xZ4csmnmwGDBAb07QWNaGMAmnTIemsYZCksjATwsA==}
+
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
@@ -4391,6 +4467,10 @@ packages:
     resolution: {integrity: sha512-YGGyuEdVIjqxkxVH1pUTMY/XtmmsApXrCVv5EU25iX6inEPbV+VakJfLealkBtJN69AQmh1eGOdCl9Sm1UP6XQ==}
     engines: {node: '>=18'}
 
+  gaxios@7.2.0:
+    resolution: {integrity: sha512-CUVb4wcYe+771XevyH6HtGmXFAGGKkIC3kswAP8Z1JCe0j80JMaTPZH930DWFrvo0atjh18Arc0pEyUCWa5bfg==}
+    engines: {node: '>=18'}
+
   gcp-metadata@6.1.1:
     resolution: {integrity: sha512-a4tiq7E0/5fTjxPAaH4jpjkSv/uCaU2p5KC6HVGrvl0cDjA8iBZv4vv1gyzlmK0ZUKqwpOyQMKzZQe3lTit77A==}
     engines: {node: '>=14'}
@@ -4493,6 +4573,10 @@ packages:
 
   google-auth-library@10.5.0:
     resolution: {integrity: sha512-7ABviyMOlX5hIVD60YOfHw4/CxOfBhyduaYB+wbFWCWoni4N7SLcV46hrVRktuBbZjFC9ONyqamZITN7q3n32w==}
+    engines: {node: '>=18'}
+
+  google-auth-library@10.9.0:
+    resolution: {integrity: sha512-xtvUqvINPhTaBm7nXqlYPcrMHJPm1lCNdSovxnKKhTm+4JsvQ+KGVYJViLoH9Yxu8w+T0Qv5HubzYT9BLrppJg==}
     engines: {node: '>=18'}
 
   google-auth-library@9.15.1:
@@ -4753,10 +4837,6 @@ packages:
     resolution: {integrity: sha512-xelSayHH36ZgE7ZWhli7pW34hNbNl8Ojv5KVmkJD4hBdD3th8Tfk9vYasLM+mXWOZhFkgZfxhLSnrwRr4elSSg==}
     engines: {node: '>=0.10.0'}
 
-  is-network-error@1.3.0:
-    resolution: {integrity: sha512-6oIwpsgRfnDiyEDLMay/GqCl3HoAtH5+RUKW29gYkL0QA+ipzpDLA16yQs7/RHCSu+BwgbJaOUqa4A99qNVQVw==}
-    engines: {node: '>=16'}
-
   is-number@7.0.0:
     resolution: {integrity: sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng==}
     engines: {node: '>=0.12.0'}
@@ -4928,6 +5008,10 @@ packages:
   jsonparse@1.3.1:
     resolution: {integrity: sha512-POQXvpdL69+CluYsillJ7SUhKvytYjW9vG/GKpnf+xP8UWgYEM/RaMzHHofbALDiKbbP1W8UEYmgGl39WkPZsg==}
     engines: {'0': node >= 0.2.0}
+
+  jsonrepair@3.15.0:
+    resolution: {integrity: sha512-wy8OTjwsJwQRnQJkKnMJJ9vcytRdBPAgIF/Hy6+s1dAj42BHMKiyL8JzEieIl3JY7idt8eyHwBWTO8mh/+mtwA==}
+    hasBin: true
 
   jsonwebtoken@9.0.3:
     resolution: {integrity: sha512-MT/xP0CrubFRNLNKvxJ2BYfy53Zkm++5bX9dtuPbqAeQpTVe0MQTFhao8+Cp//EmJp244xt6Drw/GVEGCUj40g==}
@@ -5289,6 +5373,9 @@ packages:
     engines: {node: '>=10.5.0'}
     deprecated: Use your platform's native DOMException instead
 
+  node-fetch-native@1.6.7:
+    resolution: {integrity: sha512-g9yhqoedzIUm0nTnTqAQvueMPVOuIY16bqgAJJC8XOOubYFNwz6IER9qs0Gq2Xd0+CecCKFjtdDTMA4u4xG06Q==}
+
   node-fetch@2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
     engines: {node: 4.x || >=6.0.0}
@@ -5305,6 +5392,10 @@ packages:
   node-forge@1.3.3:
     resolution: {integrity: sha512-rLvcdSyRCyouf6jcOIPe/BgwG/d7hKjzMKOas33/pHEr6gbq18IK9zV7DiPvzsz0oBJPme6qr6H6kGZuI9/DZg==}
     engines: {node: '>= 6.13.0'}
+
+  node-gyp-build@4.8.4:
+    resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
+    hasBin: true
 
   node-pty@1.0.0:
     resolution: {integrity: sha512-wtBMWWS7dFZm/VgqElrTvtfMq4GzJ6+edFI0Y0zyzygUSZMgZdraDUMUhCIvkjhJjme15qWmbyJbtAx4ot4uZA==}
@@ -5344,6 +5435,9 @@ packages:
   obug@2.1.1:
     resolution: {integrity: sha512-uTqF9MuPraAQ+IsnPf366RG4cP9RtUi7MLO1N3KEc+wb0a6yKpeL0lmk2IB1jY5KHPAlTc6T/JRdC/YqxHNwkQ==}
 
+  ofetch@1.5.1:
+    resolution: {integrity: sha512-2W4oUZlVaqAPAil6FUg/difl6YhqhUR7x2eZY4bQCko22UXg3hptq9KLQdqFClV+Wu85UX7hNtdGTngi/1BxcA==}
+
   on-exit-leak-free@2.1.2:
     resolution: {integrity: sha512-0eJJY6hXLGf1udHwfNftBqH+g73EU4B504nZeKpz1sYRKafAghwxEJunB2O7rDZkL4PGfsMVnTXZ2EjibbqcsA==}
     engines: {node: '>=14.0.0'}
@@ -5381,6 +5475,9 @@ packages:
   onnxruntime-common@1.23.2:
     resolution: {integrity: sha512-5LFsC9Dukzp2WV6kNHYLNzp8sT6V02IubLCbzw2Xd6X5GOlr65gAX6xiJwyi2URJol/s71gaQLC5F2C25AAR2w==}
 
+  onnxruntime-common@1.24.3:
+    resolution: {integrity: sha512-GeuPZO6U/LBJXvwdaqHbuUmoXiEdeCjWi/EG7Y1HNnDwJYuk6WUbNXpF6luSUY8yASul3cmUlLGrCCL1ZgVXqA==}
+
   onnxruntime-node@1.14.0:
     resolution: {integrity: sha512-5ba7TWomIV/9b6NH/1x/8QEeowsb+jBEvFzU6z0T4mNsFwdPqXeFUM7uxC6QeSRkEbWu3qEB0VMjrvzN/0S9+w==}
     os: [win32, darwin, linux]
@@ -5391,6 +5488,10 @@ packages:
 
   onnxruntime-node@1.21.0:
     resolution: {integrity: sha512-NeaCX6WW2L8cRCSqy3bInlo5ojjQqu2fD3D+9W5qb5irwxhEyWKXeH2vZ8W9r6VxaMPUan+4/7NDwZMtouZxEw==}
+    os: [win32, darwin, linux]
+
+  onnxruntime-node@1.24.3:
+    resolution: {integrity: sha512-JH7+czbc8ALA819vlTgcV+Q214/+VjGeBHDjX81+ZCD0PCVCIFGFNtT0V4sXG/1JXypKPgScQcB3ij/hk3YnTg==}
     os: [win32, darwin, linux]
 
   onnxruntime-web@1.14.0:
@@ -5458,9 +5559,9 @@ packages:
     resolution: {integrity: sha512-RwFpb72c/BhQLEXIZ5K2e+AhgNVmIejGlTgiB9MzZ0e93GRvqZ7uSi0dvRF7/XIXDeNkra2fNHBxTyPDGySpjQ==}
     engines: {node: '>=8'}
 
-  p-retry@7.1.1:
-    resolution: {integrity: sha512-J5ApzjyRkkf601HpEeykoiCvzHQjWxPAHhyjFcEUP2SWq0+35NKh8TLhpLw+Dkq5TZBFvUM6UigdE9hIVYTl5w==}
-    engines: {node: '>=20'}
+  p-retry@4.6.2:
+    resolution: {integrity: sha512-312Id396EbJdvRONlngUx0NydfrIQ5lsYu0znKVUzVvArzEIt08V1qhtyESbGVd1FGX7UKtiFp5uwKZdM8wIuQ==}
+    engines: {node: '>=8'}
 
   p-timeout@3.2.0:
     resolution: {integrity: sha512-rhIwUycgwwKcP9yTOOFK/AKsAopjjCakVqLHePO3CC6Mir1Z99xT+R63jZxAT5lFZLa2inS5h+ZS2GvR99/FBg==}
@@ -7584,41 +7685,6 @@ snapshots:
 
   '@fastify/busboy@3.2.0': {}
 
-  '@ffmpeg-installer/darwin-arm64@4.1.5':
-    optional: true
-
-  '@ffmpeg-installer/darwin-x64@4.1.0':
-    optional: true
-
-  '@ffmpeg-installer/ffmpeg@1.1.0':
-    optionalDependencies:
-      '@ffmpeg-installer/darwin-arm64': 4.1.5
-      '@ffmpeg-installer/darwin-x64': 4.1.0
-      '@ffmpeg-installer/linux-arm': 4.1.3
-      '@ffmpeg-installer/linux-arm64': 4.1.4
-      '@ffmpeg-installer/linux-ia32': 4.1.0
-      '@ffmpeg-installer/linux-x64': 4.1.0
-      '@ffmpeg-installer/win32-ia32': 4.1.0
-      '@ffmpeg-installer/win32-x64': 4.1.0
-
-  '@ffmpeg-installer/linux-arm64@4.1.4':
-    optional: true
-
-  '@ffmpeg-installer/linux-arm@4.1.3':
-    optional: true
-
-  '@ffmpeg-installer/linux-ia32@4.1.0':
-    optional: true
-
-  '@ffmpeg-installer/linux-x64@4.1.0':
-    optional: true
-
-  '@ffmpeg-installer/win32-ia32@4.1.0':
-    optional: true
-
-  '@ffmpeg-installer/win32-x64@4.1.0':
-    optional: true
-
   '@firebase/analytics-compat@0.2.14(@firebase/app-compat@0.2.43)(@firebase/app@0.10.13)':
     dependencies:
       '@firebase/analytics': 0.10.8(@firebase/app@0.10.13)
@@ -8179,10 +8245,10 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@google/genai@1.41.0(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))':
+  '@google/genai@1.52.0(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))':
     dependencies:
       google-auth-library: 10.5.0
-      p-retry: 7.1.1
+      p-retry: 4.6.2
       protobufjs: 7.5.4
       ws: 8.18.3
     optionalDependencies:
@@ -8471,66 +8537,65 @@ snapshots:
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
-  '@livekit/agents-plugin-cartesia@file:../agents-js/plugins/cartesia(@livekit/agents@file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13))(@livekit/rtc-node@0.13.24)':
+  '@livekit/agents-plugin-cartesia@1.5.1(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)':
     dependencies:
-      '@livekit/agents': file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13)
-      '@livekit/rtc-node': 0.13.24
+      '@livekit/agents': 1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)
+      '@livekit/rtc-node': 0.13.31
       ws: 8.18.3
+      zod: 4.1.13
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents-plugin-deepgram@file:../agents-js/plugins/deepgram(@livekit/agents@file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13))(@livekit/rtc-node@0.13.24)':
+  '@livekit/agents-plugin-google@1.5.1(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))(ws@8.18.3)(zod@4.1.13)':
     dependencies:
-      '@livekit/agents': file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13)
-      '@livekit/rtc-node': 0.13.24
-      ws: 8.18.3
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-
-  '@livekit/agents-plugin-google@file:../agents-js/plugins/google(@livekit/agents@file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13))(@livekit/rtc-node@0.13.24)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))':
-    dependencies:
-      '@google/genai': 1.41.0(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))
-      '@livekit/agents': file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13)
+      '@google/genai': 1.52.0(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))
+      '@livekit/agents': 1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)
       '@livekit/mutex': 1.1.1
-      '@livekit/rtc-node': 0.13.24
+      '@livekit/rtc-node': 0.13.31
       '@types/json-schema': 7.0.15
+      google-auth-library: 10.9.0
       json-schema: 0.4.0
+      openai: 6.10.0(ws@8.18.3)(zod@4.1.13)
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
       - bufferutil
       - supports-color
       - utf-8-validate
-
-  '@livekit/agents-plugin-openai@file:../agents-js/plugins/openai(@livekit/agents@file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13))(@livekit/rtc-node@0.13.24)(zod@4.1.13)':
-    dependencies:
-      '@livekit/agents': file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13)
-      '@livekit/mutex': 1.1.1
-      '@livekit/rtc-node': 0.13.24
-      openai: 6.10.0(ws@8.18.3)(zod@4.1.13)
-      ws: 8.18.3
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
+      - ws
       - zod
 
-  '@livekit/agents-plugin-silero@file:../agents-js/plugins/silero(@livekit/agents@file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13))(@livekit/rtc-node@0.13.24)':
+  '@livekit/agents-plugin-openai@1.5.1(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)':
     dependencies:
-      '@livekit/agents': file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13)
-      '@livekit/rtc-node': 0.13.24
-      onnxruntime-node: 1.21.0
+      '@livekit/agents': 1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)
+      '@livekit/mutex': 1.1.1
+      '@livekit/rtc-node': 0.13.31
+      openai: 6.10.0(ws@8.18.3)(zod@4.1.13)
+      ws: 8.18.3
+      zod: 4.1.13
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  '@livekit/agents-plugin-silero@1.5.1(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)':
+    dependencies:
+      '@livekit/agents': 1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)
+      '@livekit/rtc-node': 0.13.31
+      onnxruntime-node: 1.24.3
       ws: 8.18.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents@file:../agents-js/agents(@livekit/rtc-node@0.13.24)(zod@4.1.13)':
+  '@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)':
     dependencies:
-      '@ffmpeg-installer/ffmpeg': 1.1.0
+      '@bufbuild/protobuf': 1.10.1
+      '@livekit/av': 7.1.501
+      '@livekit/local-inference': 0.2.6
       '@livekit/mutex': 1.1.1
-      '@livekit/protocol': 1.43.4
-      '@livekit/rtc-node': 0.13.24
+      '@livekit/protocol': 1.49.0
+      '@livekit/rtc-node': 0.13.31
+      '@livekit/throws-transformer': 0.1.8(typescript@5.9.3)
       '@livekit/typed-emitter': 3.0.0
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/api-logs': 0.54.2
@@ -8550,20 +8615,70 @@ snapshots:
       form-data: 4.0.5
       heap-js: 2.7.1
       json-schema: 0.4.0
+      jsonrepair: 3.15.0
       livekit-server-sdk: 2.15.0
+      ofetch: 1.5.1
       openai: 6.10.0(ws@8.18.3)(zod@4.1.13)
       pidusage: 4.0.1
       pino: 8.21.0
       pino-pretty: 11.3.0
       sharp: 0.34.5
-      uuid: 11.1.0
       ws: 8.18.3
       zod: 4.1.13
       zod-to-json-schema: 3.25.0(zod@4.1.13)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
+      - typescript
       - utf-8-validate
+
+  '@livekit/av-darwin-arm64@7.1.501':
+    optional: true
+
+  '@livekit/av-darwin-x64@7.1.501':
+    optional: true
+
+  '@livekit/av-linux-arm64@7.1.501':
+    optional: true
+
+  '@livekit/av-linux-x64@7.1.501':
+    optional: true
+
+  '@livekit/av-win32-x64@7.1.501':
+    optional: true
+
+  '@livekit/av@7.1.501':
+    optionalDependencies:
+      '@livekit/av-darwin-arm64': 7.1.501
+      '@livekit/av-darwin-x64': 7.1.501
+      '@livekit/av-linux-arm64': 7.1.501
+      '@livekit/av-linux-x64': 7.1.501
+      '@livekit/av-win32-x64': 7.1.501
+
+  '@livekit/local-inference-darwin-arm64@0.2.6':
+    optional: true
+
+  '@livekit/local-inference-darwin-x64@0.2.6':
+    optional: true
+
+  '@livekit/local-inference-linux-arm64-gnu@0.2.6':
+    optional: true
+
+  '@livekit/local-inference-linux-x64-gnu@0.2.6':
+    optional: true
+
+  '@livekit/local-inference-win32-x64-msvc@0.2.6':
+    optional: true
+
+  '@livekit/local-inference@0.2.6':
+    dependencies:
+      node-gyp-build: 4.8.4
+    optionalDependencies:
+      '@livekit/local-inference-darwin-arm64': 0.2.6
+      '@livekit/local-inference-darwin-x64': 0.2.6
+      '@livekit/local-inference-linux-arm64-gnu': 0.2.6
+      '@livekit/local-inference-linux-x64-gnu': 0.2.6
+      '@livekit/local-inference-win32-x64-msvc': 0.2.6
 
   '@livekit/mutex@1.1.1': {}
 
@@ -8581,7 +8696,7 @@ snapshots:
 
   '@livekit/noise-cancellation-node@0.1.9':
     dependencies:
-      '@livekit/rtc-node': 0.13.24
+      '@livekit/rtc-node': 0.13.31
       tsx: 4.21.0
     optionalDependencies:
       '@livekit/noise-cancellation-darwin-arm64': 0.1.9
@@ -8601,35 +8716,48 @@ snapshots:
     dependencies:
       '@bufbuild/protobuf': 1.10.1
 
-  '@livekit/rtc-node-darwin-arm64@0.13.24':
-    optional: true
-
-  '@livekit/rtc-node-darwin-x64@0.13.24':
-    optional: true
-
-  '@livekit/rtc-node-linux-arm64-gnu@0.13.24':
-    optional: true
-
-  '@livekit/rtc-node-linux-x64-gnu@0.13.24':
-    optional: true
-
-  '@livekit/rtc-node-win32-x64-msvc@0.13.24':
-    optional: true
-
-  '@livekit/rtc-node@0.13.24':
+  '@livekit/protocol@1.49.0':
     dependencies:
       '@bufbuild/protobuf': 1.10.1
+
+  '@livekit/rtc-ffi-bindings-darwin-arm64@0.12.60':
+    optional: true
+
+  '@livekit/rtc-ffi-bindings-darwin-x64@0.12.60':
+    optional: true
+
+  '@livekit/rtc-ffi-bindings-linux-arm64-gnu@0.12.60':
+    optional: true
+
+  '@livekit/rtc-ffi-bindings-linux-x64-gnu@0.12.60':
+    optional: true
+
+  '@livekit/rtc-ffi-bindings-win32-x64-msvc@0.12.60':
+    optional: true
+
+  '@livekit/rtc-ffi-bindings@0.12.60':
+    dependencies:
+      '@bufbuild/protobuf': 1.10.1
+    optionalDependencies:
+      '@livekit/rtc-ffi-bindings-darwin-arm64': 0.12.60
+      '@livekit/rtc-ffi-bindings-darwin-x64': 0.12.60
+      '@livekit/rtc-ffi-bindings-linux-arm64-gnu': 0.12.60
+      '@livekit/rtc-ffi-bindings-linux-x64-gnu': 0.12.60
+      '@livekit/rtc-ffi-bindings-win32-x64-msvc': 0.12.60
+
+  '@livekit/rtc-node@0.13.31':
+    dependencies:
       '@datastructures-js/deque': 1.0.8
       '@livekit/mutex': 1.1.1
+      '@livekit/rtc-ffi-bindings': 0.12.60
       '@livekit/typed-emitter': 3.0.0
       pino: 9.14.0
       pino-pretty: 13.1.3
-    optionalDependencies:
-      '@livekit/rtc-node-darwin-arm64': 0.13.24
-      '@livekit/rtc-node-darwin-x64': 0.13.24
-      '@livekit/rtc-node-linux-arm64-gnu': 0.13.24
-      '@livekit/rtc-node-linux-x64-gnu': 0.13.24
-      '@livekit/rtc-node-win32-x64-msvc': 0.13.24
+
+  '@livekit/throws-transformer@0.1.8(typescript@5.9.3)':
+    dependencies:
+      glob: 13.0.3
+      typescript: 5.9.3
 
   '@livekit/typed-emitter@3.0.0': {}
 
@@ -9847,6 +9975,8 @@ snapshots:
       '@types/tough-cookie': 4.0.5
       form-data: 2.5.5
 
+  '@types/retry@0.12.0': {}
+
   '@types/semver@7.7.1': {}
 
   '@types/send@0.17.6':
@@ -10297,6 +10427,8 @@ snapshots:
       acorn: 8.15.0
 
   acorn@8.15.0: {}
+
+  adm-zip@0.5.18: {}
 
   agent-base@6.0.2:
     dependencies:
@@ -10787,6 +10919,8 @@ snapshots:
   depd@2.0.0: {}
 
   dequal@2.0.3: {}
+
+  destr@2.0.5: {}
 
   detect-libc@2.1.2: {}
 
@@ -11527,6 +11661,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  gaxios@7.2.0:
+    dependencies:
+      extend: 3.0.2
+      https-proxy-agent: 7.0.6
+      node-fetch: 3.3.2
+    transitivePeerDependencies:
+      - supports-color
+
   gcp-metadata@6.1.1:
     dependencies:
       gaxios: 6.7.1
@@ -11665,6 +11807,17 @@ snapshots:
       gcp-metadata: 8.1.2
       google-logging-utils: 1.1.3
       gtoken: 8.0.0
+      jws: 4.0.1
+    transitivePeerDependencies:
+      - supports-color
+
+  google-auth-library@10.9.0:
+    dependencies:
+      base64-js: 1.5.1
+      ecdsa-sig-formatter: 1.0.11
+      gaxios: 7.2.0
+      gcp-metadata: 8.1.2
+      google-logging-utils: 1.1.3
       jws: 4.0.1
     transitivePeerDependencies:
       - supports-color
@@ -11971,8 +12124,6 @@ snapshots:
     dependencies:
       is-extglob: 2.1.1
 
-  is-network-error@1.3.0: {}
-
   is-number@7.0.0: {}
 
   is-obj@2.0.0: {}
@@ -12141,6 +12292,8 @@ snapshots:
   jsonify@0.0.1: {}
 
   jsonparse@1.3.1: {}
+
+  jsonrepair@3.15.0: {}
 
   jsonwebtoken@9.0.3:
     dependencies:
@@ -12494,6 +12647,8 @@ snapshots:
 
   node-domexception@1.0.0: {}
 
+  node-fetch-native@1.6.7: {}
+
   node-fetch@2.7.0:
     dependencies:
       whatwg-url: 5.0.0
@@ -12505,6 +12660,8 @@ snapshots:
       formdata-polyfill: 4.0.10
 
   node-forge@1.3.3: {}
+
+  node-gyp-build@4.8.4: {}
 
   node-pty@1.0.0:
     dependencies:
@@ -12540,6 +12697,12 @@ snapshots:
 
   obug@2.1.1: {}
 
+  ofetch@1.5.1:
+    dependencies:
+      destr: 2.0.5
+      node-fetch-native: 1.6.7
+      ufo: 1.6.1
+
   on-exit-leak-free@2.1.2: {}
 
   on-finished@2.4.1:
@@ -12572,6 +12735,8 @@ snapshots:
 
   onnxruntime-common@1.23.2: {}
 
+  onnxruntime-common@1.24.3: {}
+
   onnxruntime-node@1.14.0:
     dependencies:
       onnxruntime-common: 1.14.0
@@ -12587,6 +12752,12 @@ snapshots:
       global-agent: 3.0.0
       onnxruntime-common: 1.21.0
       tar: 7.5.2
+
+  onnxruntime-node@1.24.3:
+    dependencies:
+      adm-zip: 0.5.18
+      global-agent: 3.0.0
+      onnxruntime-common: 1.24.3
 
   onnxruntime-web@1.14.0:
     dependencies:
@@ -12669,9 +12840,10 @@ snapshots:
       eventemitter3: 4.0.7
       p-timeout: 3.2.0
 
-  p-retry@7.1.1:
+  p-retry@4.6.2:
     dependencies:
-      is-network-error: 1.3.0
+      '@types/retry': 0.12.0
+      retry: 0.13.1
 
   p-timeout@3.2.0:
     dependencies:

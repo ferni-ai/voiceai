@@ -111,7 +111,8 @@ import { getContinuousProsodyStream } from '../../intelligence/context-builders/
 
 export interface SessionStateContext {
   /** Voice session instance */
-  session: voice.AgentSession<UserData>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session: voice.AgentSession<any>;
   /** Current persona config */
   sessionPersona: PersonaConfig;
   /** Conversation manager for checking agent speaking state */

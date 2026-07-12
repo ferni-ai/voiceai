@@ -137,7 +137,7 @@ export class Gemma3nLLMAdapter extends llm.LLM {
 
   chat(opts: {
     chatCtx: llm.ChatContext;
-    toolCtx?: llm.ToolContext;
+    toolCtx?: llm.ToolContextLike;
     connOptions?: APIConnectOptions;
     parallelToolCalls?: boolean;
     toolChoice?: unknown;
@@ -166,7 +166,7 @@ class Gemma3nLLMStream extends llm.LLMStream {
     adapter: Gemma3nLLMAdapter,
     opts: {
       chatCtx: llm.ChatContext;
-      toolCtx?: llm.ToolContext;
+      toolCtx?: llm.ToolContextLike;
       connOptions: APIConnectOptions;
     }
   ) {

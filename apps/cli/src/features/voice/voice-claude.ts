@@ -14,7 +14,7 @@
  *
  * Prerequisites:
  *   1. Claude Code CLI installed: npm install -g @anthropic-ai/claude-code
- *   2. Token server running: node token-server.js
+ *   2. Token server running: pnpm ui-server
  *   3. Agent running: pnpm agent:dev
  *
  * Usage:
@@ -42,7 +42,7 @@ dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
 // ============================================================================
 
 const CONFIG = {
-  tokenServerUrl: process.env.CLI_TOKEN_SERVER || 'http://localhost:3001',
+  tokenServerUrl: process.env.CLI_TOKEN_SERVER || 'http://localhost:3002',
   livekitUrl: process.env.LIVEKIT_URL || '',
 };
 
@@ -853,7 +853,7 @@ ${colors.bold}Usage:${colors.reset}
 
 ${colors.bold}Prerequisites:${colors.reset}
   1. Claude Code CLI: npm install -g @anthropic-ai/claude-code
-  2. Token server: node token-server.js
+  2. Token server: pnpm ui-server
   3. Agent: pnpm agent:dev
 
 ${colors.bold}How it works:${colors.reset}
@@ -908,7 +908,7 @@ Using Claude Code's streaming JSON API for real-time communication.${colors.rese
   } catch {
     console.log(`${colors.red}Token server not running!${colors.reset}`);
     console.log(`\n${colors.yellow}Start it with:${colors.reset}`);
-    console.log(`${colors.dim}  node token-server.js${colors.reset}\n`);
+    console.log(`${colors.dim}  pnpm ui-server${colors.reset}\n`);
     process.exit(1);
   }
 
@@ -978,7 +978,7 @@ ${colors.bold}${colors.magenta}╔═══════════════�
     if (!healthCheck.ok) throw new Error('unhealthy');
   } catch {
     console.log(`${colors.red}Token server not running!${colors.reset}`);
-    console.log(`${colors.yellow}Start it: node token-server.js${colors.reset}\n`);
+    console.log(`${colors.yellow}Start it: pnpm ui-server${colors.reset}\n`);
     return;
   }
 

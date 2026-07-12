@@ -108,7 +108,7 @@ export class ChipChatLLMAdapter extends llm.LLM {
 
   chat(opts: {
     chatCtx: llm.ChatContext;
-    toolCtx?: llm.ToolContext;
+    toolCtx?: llm.ToolContextLike;
     connOptions?: APIConnectOptions;
     parallelToolCalls?: boolean;
     toolChoice?: unknown;
@@ -137,7 +137,7 @@ class ChipChatLLMStream extends llm.LLMStream {
     adapter: ChipChatLLMAdapter,
     opts: {
       chatCtx: llm.ChatContext;
-      toolCtx?: llm.ToolContext;
+      toolCtx?: llm.ToolContextLike;
       connOptions: APIConnectOptions;
     }
   ) {

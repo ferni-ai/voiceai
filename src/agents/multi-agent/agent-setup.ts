@@ -173,7 +173,8 @@ export interface AgentSetupConfig {
  */
 export interface AgentSetupResult {
   /** The voice session */
-  session: voice.AgentSession<UserData>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session: voice.AgentSession<any>;
   /** The agent wrapper */
   agent: voice.Agent<UserData>;
   /** TTS engine (PersonaAwareTTS or Qwen3TTSAdapter depending on provider) */
@@ -1294,7 +1295,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
         // Use a minimal instruction that won't produce audible output
         // The LLM processes this silently to verify connection health
-        const result = await generateReply(session, sessionId, {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await generateReply(session as any, sessionId, {
           instructions: '[Connection health check - acknowledge silently]',
           context: 'health-ping', // FIX: Add context for better debugging
           waitForPlayout: false, // Don't wait for audio - just verify connection works

@@ -70,7 +70,7 @@ function buildMemoryTools(agentId: string): ToolSet {
     getRelationshipSummary: getRelationshipSummaryDef.create(ctx),
     updateMemory: updateMemoryDef.create(ctx),
     forgetMemory: forgetMemoryDef.create(ctx),
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 function buildCommunicationTools(): ToolSet {
@@ -93,7 +93,7 @@ function buildCommunicationTools(): ToolSet {
     // Contacts
     saveContactInfo: commTools.saveContactInfo,
     getCommunicationSummary: commTools.getCommunicationSummary,
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 function buildHandoffTools(): ToolSet {
@@ -137,7 +137,7 @@ function buildHandoffTools(): ToolSet {
         });
       },
     }),
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 // ============================================================================
@@ -150,6 +150,7 @@ function buildHandoffTools(): ToolSet {
  * Extends PersonaVoiceAgent for shared TTS processing.
  * Rich system prompt loaded from bundles/alex-chen/identity/system-prompt.md
  */
+// @ts-ignore TS2417 - static create() has different signature than base Agent.create()
 export class AlexAgent extends PersonaVoiceAgent {
   private static systemPromptCache: string | null = null;
 
@@ -164,7 +165,7 @@ export class AlexAgent extends PersonaVoiceAgent {
       ...communicationTools,
       ...handoffTools,
       ...conversationTools,
-    } as ToolSet;
+    } as unknown as ToolSet;
 
     // Pass tools to PersonaVoiceAgent (which passes to voice.Agent)
     super(systemPrompt, {

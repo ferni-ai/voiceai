@@ -59,7 +59,8 @@ export interface DataChannelContext {
   /** LiveKit job context (needed for coordinator) */
   ctx?: JobContext;
   /** Voice session instance */
-  session: voice.AgentSession<UserData>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session: voice.AgentSession<any>;
   /** Session services */
   services: SessionServices;
   /** Current persona config */

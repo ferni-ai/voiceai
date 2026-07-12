@@ -6,8 +6,9 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { AccessToken, AgentDispatchClient } from 'livekit-server-sdk';
 import { rateLimit } from '../../../api/auth-middleware.js';
+import { createToken, createRoomWithAgent, getLiveKitUrl } from '../../token/livekit.js';
+import type { RoomMetadata } from '../../shared/types.js';
 import { prewarmContent, type ContentType } from '../../../services/llm-dynamic-content.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import * as demoSessions from '../services/demo-sessions.js';
@@ -169,47 +170,6 @@ function prefetchUserData(userId: string, personaId: string): void {
     });
 }
 
-// Configuration
-const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
-const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
-const AGENT_NAME = process.env.AGENT_NAME || 'voice-agent';
-
-// Convert WSS URL to HTTPS for REST API calls (AgentDispatchClient uses HTTP, not WebSocket)
-const LIVEKIT_HOST = LIVEKIT_URL.replace('wss://', 'https://');
-
-// Agent dispatch client
-let agentDispatch: AgentDispatchClient | null = null;
-
-/**
- * Initialize the agent dispatch client
- */
-function getAgentDispatch(): AgentDispatchClient {
-  if (!agentDispatch) {
-    agentDispatch = new AgentDispatchClient(LIVEKIT_HOST, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
-  }
-  return agentDispatch;
-}
-
-/**
- * Generate LiveKit access token
- */
-async function createToken(roomName: string, participantName: string): Promise<string> {
-  const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-    identity: participantName,
-  });
-
-  at.addGrant({
-    room: roomName,
-    roomJoin: true,
-    canPublish: true,
-    canSubscribe: true,
-    canPublishData: true,
-  });
-
-  return await at.toJwt();
-}
-
 /**
  * Get IP address from request
  */
@@ -279,7 +239,7 @@ export async function handleTokenRoutes(
       return true;
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ url: LIVEKIT_URL }));
+    res.end(JSON.stringify({ url: getLiveKitUrl() }));
     return true;
   }
 
@@ -375,48 +335,53 @@ export async function handleTokenRoutes(
         log.debug({ note: (geoErr as Error).message }, 'Demo geo detection failed (non-fatal)');
       }
 
-      // Generate token
-      const token = await createToken(roomName, username);
-
       // 🔗 Developer Platform: Look up publisher for marketplace personas (including demos)
       const publisherId = await getPublisherIdForPersona(personaId);
 
-      // Dispatch agent with requested persona
-      try {
-        const agentMetadata = {
-          is_demo: true,
-          demo_id: demoId,
-          session_duration_minutes: DEMO_CONFIG.sessionDurationMinutes,
-          persona_id: personaId,
-          // 🔗 Developer Platform: publisher ID for custom/marketplace personas
-          publisher_id: publisherId,
-          // 🌍 Include geo data for weather and local content (TikTok-style)
-          locale: demoGeoData.locale,
-          preferredAccent: demoGeoData.detectedAccent,
-          countryCode: demoGeoData.countryCode,
-          city: demoGeoData.city,
-          regionCode: demoGeoData.regionCode,
-        };
-        log.info(
-          { room: roomName, agent: AGENT_NAME, persona: personaId, city: demoGeoData.city },
-          '🚀 Dispatching agent'
-        );
-        await getAgentDispatch().createDispatch(roomName, AGENT_NAME, {
-          metadata: JSON.stringify(agentMetadata),
-        });
-        log.info({ room: roomName, agent: AGENT_NAME, persona: personaId }, '✅ Agent dispatched');
-      } catch (dispatchErr) {
-        log.error(
-          { error: (dispatchErr as Error).message, room: roomName },
-          '❌ Agent dispatch failed'
-        );
+      // Build room metadata (shared type — also used for agent dispatch inside createRoomWithAgent)
+      const demoRoomMetadata: RoomMetadata = {
+        persona_id: personaId,
+        device_id: demoId,
+        is_demo: true,
+        demo_id: demoId,
+        session_duration_minutes: DEMO_CONFIG.sessionDurationMinutes,
+        // 🔗 Developer Platform: publisher ID for custom/marketplace personas
+        publisher_id: publisherId,
+        source: 'landing_page',
+        // 🌍 Geo data for weather and local content (TikTok-style)
+        locale: demoGeoData.locale,
+        preferredAccent: demoGeoData.detectedAccent,
+        countryCode: demoGeoData.countryCode,
+        city: demoGeoData.city,
+        regionCode: demoGeoData.regionCode,
+      };
+
+      // Generate token with shared helper (includes metadata on the participant JWT)
+      const token = await createToken({
+        roomName,
+        participantName: username,
+        metadata: { is_demo: true, demo_id: demoId, persona_id: personaId },
+      });
+
+      // Create room and dispatch agent (createRoomWithAgent handles both — no double-dispatch)
+      log.info({ room: roomName, persona: personaId, city: demoGeoData.city }, '🚀 Dispatching agent');
+      const dispatched = await createRoomWithAgent(
+        roomName,
+        demoRoomMetadata,
+        DEMO_CONFIG.sessionDurationMinutes * 60 + 30, // emptyTimeout in seconds + buffer
+        2 // visitor + agent
+      );
+      if (dispatched) {
+        log.info({ room: roomName, persona: personaId }, '✅ Agent dispatched');
+      } else {
+        log.error({ room: roomName }, '❌ Agent dispatch failed');
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
           token,
-          url: LIVEKIT_URL,
+          url: getLiveKitUrl(),
           room: roomName,
           username,
           demo_id: demoId,
@@ -654,9 +619,6 @@ export async function handleTokenRoutes(
         '🧠 [MEMORY-AUDIT] Token endpoint identity chain'
       );
 
-      // Generate token
-      const token = await createToken(room, username);
-
       // 🌍 INTERNATIONAL ACCENT SUPPORT
       // Priority order:
       // 1. Explicit accent parameter from frontend (user's saved preference)
@@ -795,49 +757,47 @@ export async function handleTokenRoutes(
       // This enables MCP server loading and webhook dispatch for custom personas
       const publisherId = await getPublisherIdForPersona(selectedPersona);
 
-      // Dispatch agent
-      try {
-        const agentMetadata = {
-          user_name: username,
-          firebase_uid: firebaseUid || undefined,
-          // 🐛 FIX: Include user_email for granted profile linking
-          user_email: user_email_param || undefined,
-          device_id: device_id || undefined,
-          persona_id: selectedPersona,
-          // 🔗 Developer Platform: publisher ID for custom/marketplace personas
-          publisher_id: publisherId,
-          source: 'web',
-          locale: geoData.locale,
-          locales: geoData.locales,
-          preferredAccent: geoData.detectedAccent,
-          countryCode: geoData.countryCode,
-          // IP-detected location for weather, local content hints (TikTok-style)
-          city: geoData.city,
-          regionCode: geoData.regionCode,
-        };
-        log.info(
-          { agent: AGENT_NAME, room, persona_id: selectedPersona },
-          '🎯 Dispatching agent with persona'
-        );
-        await getAgentDispatch().createDispatch(room, AGENT_NAME, {
-          metadata: JSON.stringify(agentMetadata),
-        });
-        log.info(
-          { agent: AGENT_NAME, room, persona_id: selectedPersona },
-          '✅ Agent dispatch successful'
-        );
-      } catch (dispatchErr) {
-        log.error(
-          { error: (dispatchErr as Error).message, room, persona_id: selectedPersona },
-          '❌ Agent dispatch FAILED'
-        );
+      // Build room metadata (shared type — also passed to agent dispatch inside createRoomWithAgent)
+      const roomMetadata: RoomMetadata = {
+        user_name: username,
+        firebase_uid: firebaseUid || undefined,
+        // 🐛 FIX: Include user_email for granted profile linking
+        user_email: user_email_param || undefined,
+        device_id: device_id || undefined,
+        persona_id: selectedPersona,
+        // 🔗 Developer Platform: publisher ID for custom/marketplace personas
+        publisher_id: publisherId,
+        source: 'web',
+        locale: geoData.locale,
+        locales: geoData.locales,
+        preferredAccent: geoData.detectedAccent,
+        countryCode: geoData.countryCode,
+        // IP-detected location for weather, local content hints (TikTok-style)
+        city: geoData.city,
+        regionCode: geoData.regionCode,
+      };
+
+      // Generate token with shared helper
+      const token = await createToken({
+        roomName: room,
+        participantName: username,
+        metadata: { device_id, firebase_uid: firebaseUid, persona_id: selectedPersona },
+      });
+
+      // Create room and dispatch agent (createRoomWithAgent handles both — no double-dispatch)
+      log.info({ room, persona_id: selectedPersona }, '🎯 Dispatching agent with persona');
+      const dispatched = await createRoomWithAgent(room, roomMetadata);
+      if (dispatched) {
+        log.info({ room, persona_id: selectedPersona }, '✅ Agent dispatch successful');
+      } else {
+        log.error({ room, persona_id: selectedPersona }, '❌ Agent dispatch FAILED');
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
           token,
-          url: LIVEKIT_URL,
+          url: getLiveKitUrl(),
           room,
           username,
           device_id,

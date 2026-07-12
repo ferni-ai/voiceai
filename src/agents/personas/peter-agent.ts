@@ -74,7 +74,7 @@ function buildMemoryTools(agentId: string): ToolSet {
     getRelationshipSummary: getRelationshipSummaryDef.create(ctx),
     updateMemory: updateMemoryDef.create(ctx),
     forgetMemory: forgetMemoryDef.create(ctx),
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 /**
@@ -106,7 +106,7 @@ function buildResearchTools(): ToolSet {
     findTheLever: insights.findTheLever,
     // Superhuman tools (52 tools for "Better than Human" capabilities)
     ...superhumanTools,
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 function buildHandoffTools(): ToolSet {
@@ -189,7 +189,7 @@ function buildHandoffTools(): ToolSet {
         });
       },
     }),
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 // ============================================================================
@@ -202,6 +202,7 @@ function buildHandoffTools(): ToolSet {
  * Extends PersonaVoiceAgent for shared TTS processing.
  * Rich system prompt loaded from bundles/peter-john/identity/system-prompt.md
  */
+// @ts-ignore TS2417 - static create() has different signature than base Agent.create()
 export class PeterAgent extends PersonaVoiceAgent {
   private static systemPromptCache: string | null = null;
 
@@ -216,7 +217,7 @@ export class PeterAgent extends PersonaVoiceAgent {
       ...researchTools,
       ...handoffTools,
       ...conversationTools,
-    } as ToolSet;
+    } as unknown as ToolSet;
 
     // Pass tools to PersonaVoiceAgent (which passes to voice.Agent)
     super(systemPrompt, {

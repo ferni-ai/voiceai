@@ -83,7 +83,8 @@ export interface CoordinatorAdapterConfig {
   /** LiveKit job context */
   ctx: JobContext;
   /** Voice session */
-  session: voice.AgentSession<UserData>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session: voice.AgentSession<any>;
   /** Session services */
   services: SessionServices;
   /** Room for data channel */
@@ -128,7 +129,8 @@ export interface AdapterHandoffResult {
  */
 export class CoordinatorAdapter {
   private readonly coordinator: HandoffCoordinator;
-  private readonly session: voice.AgentSession<UserData>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly session: voice.AgentSession<any>;
   private readonly services: SessionServices;
   private readonly room: Room;
   private readonly getVoiceAgentRef: () => {

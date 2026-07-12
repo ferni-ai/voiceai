@@ -18,7 +18,7 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI =
   process.env.GOOGLE_CALENDAR_REDIRECT_URI ||
-  `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}/auth/google/callback`;
+  `http://localhost:${process.env.PORT || 3002}/auth/google/callback`;
 
 /**
  * Google OAuth token response

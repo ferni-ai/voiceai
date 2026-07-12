@@ -18,7 +18,7 @@ const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const SPOTIFY_REDIRECT_URI =
   process.env.SPOTIFY_REDIRECT_URI ||
-  `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}/spotify/callback`;
+  `http://localhost:${process.env.PORT || 3002}/spotify/callback`;
 
 /**
  * Spotify OAuth token response

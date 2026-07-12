@@ -13,7 +13,7 @@
  * - Gemini Live STT + Cartesia TTS
  *
  * Prerequisites:
- *   1. Token server running: node token-server.js
+ *   1. Token server running: pnpm ui-server
  *   2. Agent running: pnpm agent:dev (or deployed to Cloud Run)
  *   3. brew install sox (for microphone capture)
  *
@@ -42,7 +42,7 @@ dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
 // ============================================================================
 
 const CONFIG = {
-  tokenServerUrl: process.env.CLI_TOKEN_SERVER || 'http://localhost:3001',
+  tokenServerUrl: process.env.CLI_TOKEN_SERVER || 'http://localhost:3002',
   livekitUrl: process.env.LIVEKIT_URL || '',
 };
 
@@ -890,7 +890,7 @@ ${c.bold}Usage:${c.reset}
   ferni voice --debug            # Show debug info
 
 ${c.bold}Prerequisites:${c.reset}
-  1. Token server: node token-server.js
+  1. Token server: pnpm ui-server
   2. Agent: pnpm agent:dev
 
 ${c.bold}The Team:${c.reset}
@@ -947,7 +947,7 @@ ${c.dim}Platform capabilities:${c.reset}
   } catch {
     console.log(`${colors.red}Token server not running!${colors.reset}`);
     console.log(`\n${colors.yellow}Start it with:${colors.reset}`);
-    console.log(`${colors.dim}  node token-server.js${colors.reset}\n`);
+    console.log(`${colors.dim}  pnpm ui-server${colors.reset}\n`);
     process.exit(1);
   }
 
@@ -1028,7 +1028,7 @@ ${c.dim}Starting with:${c.reset} ${activePersona.color}${activePersona.emoji} ${
     if (!healthCheck.ok) throw new Error('unhealthy');
   } catch {
     console.log(`${colors.red}Token server not running!${colors.reset}`);
-    console.log(`${colors.yellow}Start it: node token-server.js${colors.reset}\n`);
+    console.log(`${colors.yellow}Start it: pnpm ui-server${colors.reset}\n`);
     return;
   }
 

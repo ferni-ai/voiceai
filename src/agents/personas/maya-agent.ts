@@ -80,7 +80,7 @@ function buildMemoryTools(agentId: string): ToolSet {
     getRelationshipSummary: getRelationshipSummaryDef.create(ctx),
     updateMemory: updateMemoryDef.create(ctx),
     forgetMemory: forgetMemoryDef.create(ctx),
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 /**
@@ -107,7 +107,7 @@ function buildHabitTools(): ToolSet {
     // Gamification - motivation system
     getGamificationProfileV2: gamificationTools.getGamificationProfileV2,
     getLeaderboard: gamificationTools.getLeaderboard,
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 /**
@@ -155,7 +155,7 @@ function buildHandoffTools(): ToolSet {
         });
       },
     }),
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 // ============================================================================
@@ -173,6 +173,7 @@ function buildHandoffTools(): ToolSet {
  * - Inline handoff tools for team switching
  * - Rich system prompt loaded from bundles/maya-santos/identity/system-prompt.md
  */
+// @ts-ignore TS2417 - static create() has different signature than base Agent.create()
 export class MayaAgent extends PersonaVoiceAgent {
   private static systemPromptCache: string | null = null;
 
@@ -193,7 +194,7 @@ export class MayaAgent extends PersonaVoiceAgent {
       ...habitTools,
       ...handoffTools,
       ...conversationTools,
-    } as ToolSet;
+    } as unknown as ToolSet;
 
     // Pass tools to PersonaVoiceAgent (which passes to voice.Agent)
     super(systemPrompt, {

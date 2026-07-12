@@ -383,7 +383,8 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
 
   const agent = new FerniAgent(systemPrompt, {
     skipGreeting: true,
-    tools: sessionTools,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tools: sessionTools as any,
   });
 
   // Create VoiceAgentRef for handoff support

@@ -184,7 +184,7 @@ function buildMemoryTools(agentId: string): ToolSet {
     getRelationshipSummary: getRelationshipSummaryDef.create(ctx),
     updateMemory: updateMemoryDef.create(ctx),
     forgetMemory: forgetMemoryDef.create(ctx),
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 /**
@@ -206,7 +206,7 @@ function buildEntertainmentTools(): ToolSet {
     useFreePreviews: musicTools.useFreePreviews,
     discoverMusic: musicTools.discoverMusic,
     keepVibeGoing: musicTools.keepVibeGoing,
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 /**
@@ -234,7 +234,7 @@ function buildInformationTools(agentId: string): ToolSet {
     tools[def.id] = def.create(ctx);
   }
 
-  return tools as ToolSet;
+  return tools as unknown as ToolSet;
 }
 
 /**
@@ -269,7 +269,7 @@ function buildPresenceTools(agentId: string): ToolSet {
     tools[def.id] = def.create(ctx);
   }
 
-  return tools as ToolSet;
+  return tools as unknown as ToolSet;
 }
 
 /**
@@ -284,7 +284,7 @@ function buildProactiveTools(agentId: string): ToolSet {
     tools[def.id] = def.create(ctx);
   }
 
-  return tools as ToolSet;
+  return tools as unknown as ToolSet;
 }
 
 /**
@@ -305,7 +305,7 @@ function buildCrisisTools(agentId: string): ToolSet {
     tools[def.id] = def.create(ctx);
   }
 
-  return tools as ToolSet;
+  return tools as unknown as ToolSet;
 }
 
 /**
@@ -320,7 +320,7 @@ function buildHabitsTools(agentId: string): ToolSet {
     tools[def.id] = def.create(ctx);
   }
 
-  return tools as ToolSet;
+  return tools as unknown as ToolSet;
 }
 
 /**
@@ -335,7 +335,7 @@ function buildWellnessTools(agentId: string): ToolSet {
     tools[def.id] = def.create(ctx);
   }
 
-  return tools as ToolSet;
+  return tools as unknown as ToolSet;
 }
 
 /**
@@ -350,7 +350,7 @@ function buildConnectionTools(agentId: string): ToolSet {
     tools[def.id] = def.create(ctx);
   }
 
-  return tools as ToolSet;
+  return tools as unknown as ToolSet;
 }
 
 /**
@@ -425,7 +425,7 @@ function buildHandoffTools(): ToolSet {
         });
       },
     }),
-  } as ToolSet;
+  } as unknown as ToolSet;
 }
 
 // ============================================================================
@@ -512,7 +512,7 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
         ...connectionTools,
         // Conversation flow tools (goodbye handling)
         ...conversationTools,
-      } as ToolSet;
+      } as unknown as ToolSet;
       toolSource = 'internal';
 
       log.info(
@@ -592,7 +592,7 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
 
     // Use gateway for proper error handling and session readiness
     fireAndForget(async () => {
-      await generateReply(this.session, derivedSessionId, {
+      await generateReply(this.session as unknown as voice.AgentSession<unknown>, derivedSessionId, {
         instructions: `You are Ferni. ${contextHint}
 
 Generate a warm, brief greeting (1-2 sentences max).
@@ -693,10 +693,10 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     // Pass session so tool results can be spoken via safeGenerateReply
     // isFirstTurn enables more aggressive streaming optimization for faster first-audio
     return wrappedTtsNode(this, text, modelSettings, {
-      tools: this._tools as Record<string, unknown> | undefined,
+      tools: this.toolCtx as unknown as Record<string, unknown> | undefined,
       sessionContext: extractTtsSessionContext(this, personaId),
       onInterruptRecoveryApplied: () => clearInterruptFlags(this),
-      session: this.session,
+      session: this.session as unknown as voice.AgentSession<unknown>,
       isFirstTurn: turnCount <= 1, // First turn gets aggressive streaming optimization
     });
   }
@@ -784,5 +784,5 @@ export function buildAllFerniTools(agentId = 'ferni'): ToolSet {
     ...wellnessTools,
     ...connectionTools,
     ...conversationTools,
-  } as ToolSet;
+  } as unknown as ToolSet;
 }

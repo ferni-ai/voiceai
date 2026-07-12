@@ -111,7 +111,7 @@ export class OmniPipelineLLMAdapter extends llm.LLM {
 
   chat(opts: {
     chatCtx: llm.ChatContext;
-    toolCtx?: llm.ToolContext;
+    toolCtx?: llm.ToolContextLike;
     connOptions?: APIConnectOptions;
     parallelToolCalls?: boolean;
     toolChoice?: unknown;
@@ -153,7 +153,7 @@ class OmniPipelineLLMStream extends llm.LLMStream {
     adapter: OmniPipelineLLMAdapter,
     opts: {
       chatCtx: llm.ChatContext;
-      toolCtx?: llm.ToolContext;
+      toolCtx?: llm.ToolContextLike;
       connOptions: APIConnectOptions;
     }
   ) {

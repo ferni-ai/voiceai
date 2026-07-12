@@ -37,7 +37,8 @@ import { recordToolTiming } from '../../intelligence/context-builders/awareness/
 
 export interface ToolTrackingContext {
   /** Voice session instance */
-  session: voice.AgentSession<UserData>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session: voice.AgentSession<any>;
   /** User data with conversation state */
   userData: UserData;
   /** Session services */

@@ -8,7 +8,7 @@
  */
 
 import type { AudioFrame } from '@livekit/rtc-node';
-import { stt, type APIConnectOptions } from '@livekit/agents';
+import { stt, asLanguageCode, type APIConnectOptions } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
 import { SonataSTTClient } from './sonata-stt.js';
 
@@ -98,7 +98,7 @@ class SonataSpeechStream extends stt.SpeechStream {
         type: stt.SpeechEventType.FINAL_TRANSCRIPT,
         alternatives: [
           {
-            language: 'en',
+            language: asLanguageCode('en'),
             text: result.text,
             startTime,
             endTime: Date.now() / 1000,
@@ -133,7 +133,7 @@ class SonataSpeechStream extends stt.SpeechStream {
           type: stt.SpeechEventType.FINAL_TRANSCRIPT,
           alternatives: [
             {
-              language: 'en',
+              language: asLanguageCode('en'),
               text: finalResult.text,
               startTime,
               endTime: Date.now() / 1000,

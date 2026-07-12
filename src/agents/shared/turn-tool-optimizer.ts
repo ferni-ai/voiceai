@@ -472,8 +472,8 @@ export async function applyOptimizedToolsToAgent<T>(
 
   // Convert to LiveKit tool format and update
   try {
-    // @ts-expect-error - updateTools is available on agent
-    if (typeof agent.updateTools === 'function') {
+    // @ts-ignore - updateTools may be available on agent
+    if (typeof (agent as any).updateTools === 'function') {
       // Convert our ToolDefinitions to LiveKit tool format
       const livekitTools = result.tools.reduce(
         (acc, tool) => {

@@ -400,7 +400,7 @@ function buildMultiAdvisorTemplateContext(
   const env = config.deployment?.environment || 'production';
   const tokenEndpoint =
     config.deployment?.tokenEndpoint ||
-    (env === 'development' ? 'http://localhost:3001/token' : '/token');
+    (env === 'development' ? 'http://localhost:3002/token' : '/token');
   const livekitUrl =
     config.deployment?.livekitUrl ||
     (env === 'development'

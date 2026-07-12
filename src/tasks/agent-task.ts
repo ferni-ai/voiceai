@@ -52,9 +52,20 @@ export abstract class AgentTask<TResult> {
   private _completed = false;
   protected _session?: voice.AgentSession<any>;
 
-  constructor(options: { instructions: string; tools?: llm.ToolContext<any> }) {
+  constructor(options: {
+    instructions: string;
+    /**
+     * Plain tool map (LiveKit 1.5 ToolDefinitionMap) or ToolContext.
+     * Typed loosely so task subclasses can declare named tools without
+     * excess-property errors against the ToolContext class shape.
+     */
+    tools?: Record<string, unknown> | llm.ToolContextLike<any>;
+  }) {
     this._instructions = options.instructions;
-    this._tools = options.tools || {};
+    this._tools =
+      options.tools instanceof llm.ToolContext
+        ? options.tools
+        : llm.toToolContext((options.tools ?? {}) as llm.ToolContextLike<any>);
 
     // Create a promise that will be resolved when the task completes
     this._promise = new Promise<TResult>((resolve, reject) => {

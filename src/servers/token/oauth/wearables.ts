@@ -78,7 +78,7 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     ],
     redirectUri:
       process.env.FITBIT_REDIRECT_URI ||
-      `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}/wearables/fitbit/callback`,
+      `http://localhost:${process.env.PORT || 3002}/wearables/fitbit/callback`,
   },
   oura: {
     clientId: process.env.OURA_CLIENT_ID,
@@ -88,7 +88,7 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     scopes: ['daily', 'heartrate', 'session', 'sleep', 'workout', 'personal'],
     redirectUri:
       process.env.OURA_REDIRECT_URI ||
-      `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}/wearables/oura/callback`,
+      `http://localhost:${process.env.PORT || 3002}/wearables/oura/callback`,
   },
   garmin: {
     clientId: process.env.GARMIN_CLIENT_ID,
@@ -100,7 +100,7 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     scopes: ['health_export', 'activity_export', 'sleep_export', 'heart_rate_export'],
     redirectUri:
       process.env.GARMIN_REDIRECT_URI ||
-      `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}/wearables/garmin/callback`,
+      `http://localhost:${process.env.PORT || 3002}/wearables/garmin/callback`,
     // Note: Garmin Health API requires PKCE. The buildAuthUrl function handles this.
     usesPKCE: true,
   },
@@ -112,7 +112,7 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     scopes: ['read:profile', 'read:cycles', 'read:recovery', 'read:sleep', 'read:workout'],
     redirectUri:
       process.env.WHOOP_REDIRECT_URI ||
-      `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}/wearables/whoop/callback`,
+      `http://localhost:${process.env.PORT || 3002}/wearables/whoop/callback`,
   },
   eight_sleep: {
     clientId: process.env.EIGHT_SLEEP_CLIENT_ID,
@@ -122,7 +122,7 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     scopes: ['user:read', 'sleep:read', 'bed:read'],
     redirectUri:
       process.env.EIGHT_SLEEP_REDIRECT_URI ||
-      `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}/wearables/eight_sleep/callback`,
+      `http://localhost:${process.env.PORT || 3002}/wearables/eight_sleep/callback`,
   },
 };
 

@@ -77,7 +77,7 @@ export class Qwen3LLMAdapter extends llm.LLM {
 
   chat(opts: {
     chatCtx: llm.ChatContext;
-    toolCtx?: llm.ToolContext;
+    toolCtx?: llm.ToolContextLike;
     connOptions?: APIConnectOptions;
     parallelToolCalls?: boolean;
     toolChoice?: unknown;
@@ -106,7 +106,7 @@ class Qwen3LLMStream extends llm.LLMStream {
     adapter: Qwen3LLMAdapter,
     opts: {
       chatCtx: llm.ChatContext;
-      toolCtx?: llm.ToolContext;
+      toolCtx?: llm.ToolContextLike;
       connOptions: APIConnectOptions;
     }
   ) {

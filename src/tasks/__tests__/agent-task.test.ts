@@ -91,7 +91,8 @@ describe('AgentTask', () => {
 
     it('should create a task with empty tools by default', () => {
       const task = new TestTask();
-      expect(task.tools).toEqual({});
+      expect(task.tools).toBeInstanceOf(Object);
+      expect(task.tools.tools?.length ?? 0).toBe(0);
     });
 
     it('should not be done initially', () => {
