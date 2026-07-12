@@ -101,6 +101,7 @@ import {
   type LiveBackchannelIntegration,
   type VoiceHumanizationIntegration,
 } from '../integrations/index.js';
+import { initConversationSession } from '../integrations/conversation-session-integration.js';
 
 const log = getLogger();
 
@@ -1225,6 +1226,52 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   mark('session_created');
 
+  // Match the single-agent conversation humanization bootstrap without adding
+  // work to the agent join critical path.
+  void (async () => {
+    try {
+      await initConversationSession({
+        sessionId,
+        userId: userId || 'anonymous',
+        personaId: persona.id,
+        sessionCount: services.userProfile?.totalConversations,
+        relationshipStage: services.userProfile?.relationshipStage as
+          | 'stranger'
+          | 'acquaintance'
+          | 'friend'
+          | 'trusted_advisor'
+          | undefined,
+        userProfile: services.userProfile
+          ? { humanMemory: services.userProfile.humanMemory }
+          : undefined,
+      });
+
+      const { initializeFromPersistence } = await import(
+        '../../conversation/humanization/persistence.js'
+      );
+      await initializeFromPersistence(userId || 'anonymous', sessionId);
+
+      const { setupVoiceHumanizationInit } = await import(
+        '../voice-agent/voice-humanization-init-handler.js'
+      );
+      setupVoiceHumanizationInit({
+        sessionId,
+        sessionPersona: persona,
+        userId: userId ?? undefined,
+        userProfile: services.userProfile,
+      });
+      log.info(
+        { personaId: persona.id, sessionId },
+        '🎤 Conversation humanization initialized on multi-agent path'
+      );
+    } catch (humanizationInitError) {
+      log.warn(
+        { error: String(humanizationInitError), personaId: persona.id },
+        '⚠️ Conversation humanization init failed on multi-agent path (non-fatal)'
+      );
+    }
+  })();
+
   // =========================================================================
   // BETTER THAN HUMAN: Start health monitoring for OpenAI connections
   // This proactively tracks connection health and can trigger reconnection
@@ -1753,9 +1800,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // =====================================================================
         // 🎙️ WAVE 2: Live backchanneling (mid-speech presence during breath pauses)
         // Initializes session-scoped breath/backchannel state so soft verbal
-        // feedback ("mm-hmm") can be considered during user speech.
-        // NOTE: Per-audio-frame wiring (processAudioFrame) is deferred — see
-        // .superpowers/sdd/wave2-report.md for the documented gap.
+        // feedback ("mm-hmm") can be considered during user speech. The
+        // subscribed audio track below feeds the same frames into breath-pause
+        // detection and the prosody/audio processor.
         // =====================================================================
         let liveBackchannel: LiveBackchannelIntegration | null = null;
         try {
@@ -1769,6 +1816,74 @@ Reference past context when relevant, but don't force it. Let the conversation f
           log.info(
             { personaId: persona.id, sessionId },
             '🎤 Live backchanneling wired on multi-agent path'
+          );
+
+          const { processAudioStream } = await import('../voice-agent/audio-processor.js');
+          const { AudioStream, TrackKind } = await import('@livekit/rtc-node');
+          const { ReadableStream } = await import('node:stream/web');
+          let audioProcessorStarted = false;
+          let audioProcessingCancelled = false;
+
+          const startAudioProcessing = (track: import('@livekit/rtc-node').RemoteTrack): void => {
+            if (audioProcessorStarted) return;
+            if (track.kind !== TrackKind.KIND_AUDIO) return;
+            audioProcessorStarted = true;
+
+            const audioStream = new AudioStream(track, { sampleRate: 16000, numChannels: 1 });
+            const processorStream = new ReadableStream<import('@livekit/rtc-node').AudioFrame>({
+              async start(controller) {
+                try {
+                  for await (const frame of audioStream as unknown as AsyncIterable<
+                    import('@livekit/rtc-node').AudioFrame
+                  >) {
+                    if (audioProcessingCancelled) break;
+                    liveBackchannel?.processAudioFrame(frame);
+                    controller.enqueue(frame);
+                  }
+                  controller.close();
+                } catch (audioFrameError) {
+                  controller.error(audioFrameError);
+                }
+              },
+            });
+
+            void processAudioStream(processorStream, {
+              sessionId,
+              userId: userId ?? undefined,
+              userData,
+              sendDataMessage,
+            }).catch((audioProcessorError) => {
+              log.warn(
+                { error: String(audioProcessorError), personaId: persona.id, sessionId },
+                '⚠️ Multi-agent audio processor ended'
+              );
+            });
+          };
+
+          for (const [, remoteParticipant] of room.remoteParticipants) {
+            for (const [, publication] of remoteParticipant.trackPublications) {
+              if (publication.track) {
+                startAudioProcessing(publication.track as import('@livekit/rtc-node').RemoteTrack);
+              }
+            }
+          }
+
+          const audioTrackSubHandler = (
+            track: import('@livekit/rtc-node').RemoteTrack,
+            _publication: import('@livekit/rtc-node').RemoteTrackPublication,
+            _participant: import('@livekit/rtc-node').RemoteParticipant
+          ): void => {
+            startAudioProcessing(track);
+          };
+          room.on('trackSubscribed', audioTrackSubHandler);
+          cleanupFunctions.push(() => {
+            audioProcessingCancelled = true;
+            room.off('trackSubscribed', audioTrackSubHandler);
+          });
+
+          log.info(
+            { personaId: persona.id, sessionId },
+            '🎤 Multi-agent audio frame processing wired'
           );
         } catch (backchannelError) {
           log.warn(

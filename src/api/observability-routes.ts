@@ -22,6 +22,7 @@
  * - GET /api/observability/ftis - FTIS (Tool Intelligence) metrics (transitions, outcomes, patterns)
  * - GET /api/observability/superhuman - Superhuman capability activation metrics
  * - GET /api/observability/bth - Better Than Human EQ telemetry (micro-expressions, memory, growth)
+ * - GET /api/observability/call-quality - Call quality metrics (first audio, barge-in recovery)
  * - GET /api/observability/tts-gateway - TTS Gateway metrics (cache hits, synthesis latency, errors)
  * - GET /api/observability/injections - BTH Injection effectiveness metrics (Phase 1 Communication System Overhaul)
  * - GET /api/observability/native-bindings - ONNX/Transformers health (circuit breakers, crashes, latency)
@@ -56,6 +57,7 @@ import {
   getSuperhumanActivationEvents,
   getSuperhumanActivationStats,
 } from '../services/observability/superhuman-events.js';
+import { getMetrics as getCallQualityMetrics } from '../services/analytics/call-quality-monitor.js';
 // Re-export for backward compatibility with existing importers
 export {
   emitSuperhumanActivation,
@@ -543,7 +545,16 @@ export async function handleObservabilityRoutes(
     // GET /api/observability - Full snapshot
     if (pathname === '/api/observability' && req.method === 'GET') {
       const snapshot = observabilityHub.getSnapshot(windowMinutes);
-      sendJSON(res, snapshot);
+      sendJSON(res, {
+        ...snapshot,
+        callQuality: getCallQualityMetrics(),
+      });
+      return true;
+    }
+
+    // GET /api/observability/call-quality - Call quality metrics
+    if (pathname === '/api/observability/call-quality' && req.method === 'GET') {
+      sendJSON(res, getCallQualityMetrics());
       return true;
     }
 

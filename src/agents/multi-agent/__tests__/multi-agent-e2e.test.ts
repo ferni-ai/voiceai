@@ -7,6 +7,9 @@
  * @module agents/multi-agent/__tests__/multi-agent-e2e
  */
 
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock external dependencies - must mock child() method
@@ -57,6 +60,17 @@ describe('Multi-Agent Entry Point E2E', () => {
       const { createAgentOrchestrator } = await import('../orchestrator.js');
       expect(createAgentOrchestrator).toBeDefined();
       expect(typeof createAgentOrchestrator).toBe('function');
+    });
+  });
+
+  describe('Wave 2 audio wiring', () => {
+    it('wires live backchanneling to subscribed audio frames', async () => {
+      const agentSetupPath = fileURLToPath(new URL('../agent-setup.ts', import.meta.url));
+      const source = await readFile(agentSetupPath, 'utf8');
+
+      expect(source).toContain('new AudioStream');
+      expect(source).toContain('liveBackchannel?.processAudioFrame(frame)');
+      expect(source).not.toContain('Per-audio-frame wiring (processAudioFrame) is deferred');
     });
   });
 });

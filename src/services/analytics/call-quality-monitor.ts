@@ -98,6 +98,8 @@ export interface CallSession {
   silenceCount: number;
   handoffAttempts: number;
   handoffSuccesses: number;
+  pendingBargeInDetectAtMs?: number;
+  bargeInRecoverLatenciesMs: number[];
   endReason?: 'natural' | 'disconnect' | 'error';
   events: CallEvent[];
 }
@@ -140,6 +142,8 @@ export interface CallQualityMetrics {
   // Interaction metrics
   avgInterruptionsPerCall: number;
   avgSilencePerCall: number;
+  bargeInRecoverSamples: number;
+  bargeInRecoverP95Ms: number;
 
   // Handoff metrics
   handoffAttempts: number;
@@ -186,6 +190,7 @@ export function recordCallEvent(event: CallEvent): void {
       silenceCount: 0,
       handoffAttempts: 0,
       handoffSuccesses: 0,
+      bargeInRecoverLatenciesMs: [],
       events: [],
     };
     sessions.set(event.callId, session);
@@ -300,6 +305,36 @@ export function markCallStage(callId: string, stage: string, atMs: number = Date
     session_start: session.stages?.session_start ?? 0,
     [stage]: getElapsedStageMs(session, atMs),
   };
+}
+
+/**
+ * Record the moment a user barge-in is detected while the agent is speaking.
+ */
+export function recordBargeInDetected(callId: string, atMs: number = Date.now()): void {
+  recordCallEvent({
+    callId,
+    timestamp: atMs,
+    type: 'interruption',
+    metadata: { source: 'barge_in_detected' },
+  });
+
+  const session = sessions.get(callId);
+  if (session) {
+    session.pendingBargeInDetectAtMs = atMs;
+  }
+}
+
+/**
+ * Record when agent speech actually stops after a barge-in.
+ */
+export function recordBargeInAgentStopped(callId: string, atMs: number = Date.now()): void {
+  const session = sessions.get(callId);
+  if (!session || session.pendingBargeInDetectAtMs === undefined) return;
+
+  const latencyMs = Math.max(0, atMs - session.pendingBargeInDetectAtMs);
+  session.bargeInRecoverLatenciesMs.push(latencyMs);
+  session.pendingBargeInDetectAtMs = undefined;
+  recordMetricValue('barge_in_recover_latency', latencyMs);
 }
 
 /**
@@ -428,6 +463,12 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
     windowSessions.length > 0
       ? windowSessions.reduce((a, b) => a + b.silenceCount, 0) / windowSessions.length
       : 0;
+  const bargeInRecoverLatencies = [
+    ...windowSessions.flatMap((s) => s.bargeInRecoverLatenciesMs),
+    ...activeSessions.flatMap((s) => s.bargeInRecoverLatenciesMs),
+  ];
+  const bargeInRecoverSamples = bargeInRecoverLatencies.length;
+  const bargeInRecoverP95Ms = percentile(bargeInRecoverLatencies, 95);
 
   // Handoff metrics
   const handoffAttempts = windowSessions.reduce((a, b) => a + b.handoffAttempts, 0);
@@ -462,6 +503,8 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
     completionRate,
     avgInterruptionsPerCall,
     avgSilencePerCall,
+    bargeInRecoverSamples,
+    bargeInRecoverP95Ms,
     handoffAttempts,
     handoffSuccesses,
     handoffSuccessRate,

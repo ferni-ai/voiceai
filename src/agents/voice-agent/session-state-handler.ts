@@ -35,6 +35,10 @@ import {
   type SilenceContext,
 } from '../../personas/meaningful-silence.js';
 import type { PersonaConfig } from '../../personas/types.js';
+import {
+  recordBargeInAgentStopped,
+  recordBargeInDetected,
+} from '../../services/analytics/call-quality-monitor.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
@@ -698,6 +702,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
       userData.lastAgentSpeechEndTime = speechEndTime;
       userData.lastAgentUtteranceDurationMs = utteranceDuration;
+      recordBargeInAgentStopped(sessionId, speechEndTime);
 
       // Notify speech coordinator for adaptive timing learning
       coordinator.onSpeechEnded(
@@ -801,6 +806,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         const interruptLatencyMs = userData.lastAgentSpeechStartTime
           ? Date.now() - userData.lastAgentSpeechStartTime
           : undefined;
+        recordBargeInDetected(sessionId);
         diag.state('🎭 User interrupted agent - VAD-triggered', {
           interruptLatencyMs,
         });

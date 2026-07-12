@@ -3,6 +3,8 @@ import {
   startCall,
   markCallStage,
   recordCallEvent,
+  recordBargeInAgentStopped,
+  recordBargeInDetected,
   endCall,
   getMetrics,
   resetCallQualityStateForTests,
@@ -93,5 +95,21 @@ describe('call quality stage timings', () => {
     expect(m.lastSessionStages?.first_audio).toBe(200);
     expect(m.lastSessionStages?.jobToFirstAudioMs).toBe(200);
     expect(m.lastSessionStages?.firstAudioMs).toBe(1_200);
+  });
+
+  it('exposes p95 barge-in recover latency from detect to agent stop', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+
+    startCall('c5', 'u5', 'ferni');
+    recordBargeInDetected('c5', 10_100);
+    recordBargeInAgentStopped('c5', 10_420);
+    recordBargeInDetected('c5', 11_000);
+    recordBargeInAgentStopped('c5', 11_480);
+
+    const m = getMetrics();
+
+    expect(m.bargeInRecoverSamples).toBe(2);
+    expect(m.bargeInRecoverP95Ms).toBe(480);
   });
 });
