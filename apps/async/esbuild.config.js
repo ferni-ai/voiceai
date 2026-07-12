@@ -59,15 +59,14 @@ await esbuild.build({
 console.log('Building bundled daily outreach job...');
 await esbuild.build({
   entryPoints: [dailyOutreachEntry],
-  outdir: 'dist/daily-outreach',
-  entryNames: '[name]',
-  chunkNames: 'chunks/[name]-[hash]',
+  outfile: 'dist/daily-outreach/daily-outreach-job.js',
   format: 'esm',
   platform: 'node',
   target: 'node20',
   sourcemap: true,
   bundle: true,
-  splitting: true,
+  // Single file — Cloud Build upload cannot ship thousands of split chunks.
+  splitting: false,
   packages: 'external',
   preserveSymlinks: true,
   plugins: [asyncLoggerPlugin],
