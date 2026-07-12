@@ -1281,8 +1281,8 @@ async function deployAsync(options: DeployOptions): Promise<boolean> {
     return false;
   }
 
-  // Submit Cloud Build — COMMIT_SHA is empty for manual submit unless passed
-  const commitSha = exec('git rev-parse --short HEAD', { silent: true }).trim() || 'latest';
+  // Submit Cloud Build — use custom _IMAGE_TAG (built-in COMMIT_SHA is empty on manual submit)
+  const imageTag = exec('git rev-parse --short HEAD', { silent: true }).trim() || 'latest';
   log.info('Submitting Cloud Build...');
   return new Promise((resolve) => {
     const child: ChildProcess = spawn(
@@ -1292,7 +1292,7 @@ async function deployAsync(options: DeployOptions): Promise<boolean> {
         'submit',
         `--config=cloudbuild-async.yaml`,
         `--project=${CONFIG.projectId}`,
-        `--substitutions=COMMIT_SHA=${commitSha}`,
+        `--substitutions=_IMAGE_TAG=${imageTag}`,
       ],
       {
         cwd: PROJECT_ROOT,
