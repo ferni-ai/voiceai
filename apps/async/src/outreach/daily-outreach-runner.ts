@@ -110,8 +110,13 @@ export async function runDailyOutreachJob(
   }
 
   if (config.workerConfig && !dryRun) {
-    const drain = await processPendingTriggers(config.workerConfig, 100);
-    triggersDrained = drain.processed;
+    try {
+      const drain = await processPendingTriggers(config.workerConfig, 100);
+      triggersDrained = drain.processed;
+    } catch (drainError) {
+      log.warn({ error: drainError }, 'Pending trigger drain failed (non-fatal)');
+      errors.push({ userId: '_drain', error: String(drainError) });
+    }
   }
 
   const completedAt = new Date();
