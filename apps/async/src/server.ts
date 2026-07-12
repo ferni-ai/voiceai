@@ -38,24 +38,6 @@ const config: WorkerConfig = {
   dryRun: process.env.DRY_RUN === 'true',
 };
 
-interface DailyOutreachJobResult {
-  usersEvaluated: number;
-  outreachSent: number;
-  durationMs: number;
-  errors: Array<{ userId: string; error: string }>;
-  [key: string]: unknown;
-}
-
-interface DailyOutreachJobConfig {
-  getUserProfiles: () => Promise<Array<Record<string, unknown>>>;
-  dryRun: boolean;
-  maxUsersPerRun: number;
-}
-
-interface DailyOutreachModule {
-  runDailyOutreachJob: (jobConfig: DailyOutreachJobConfig) => Promise<DailyOutreachJobResult>;
-}
-
 // ============================================================================
 // Express App
 // ============================================================================
@@ -136,23 +118,11 @@ app.post('/jobs/daily-outreach', async (req, res) => {
 
     log.info({ dryRun: config.dryRun }, '📬 Starting daily outreach job');
 
-    // Dynamic import keeps /health and trigger processing up if this optional
-    // job bundle fails to load, while Docker packaging now includes it in dist.
-    let runDailyOutreachJob: DailyOutreachModule['runDailyOutreachJob'];
-    const dailyOutreachBundlePath = './daily-outreach/daily-outreach-job.js';
-    try {
-      ({ runDailyOutreachJob } = (await import(
-        dailyOutreachBundlePath
-      )) as DailyOutreachModule);
-    } catch (importErr) {
-      log.error({ error: importErr }, 'daily-outreach-job module unavailable in this image');
-      res.status(501).json({
-        error: 'daily-outreach-job not packaged in async image',
-      });
-      return;
-    }
+    const { runDailyOutreachJob } = await import('./outreach/daily-outreach-runner.js');
 
     const result = await runDailyOutreachJob({
+      db,
+      workerConfig: config,
       getUserProfiles: async () => {
         // Fetch active users from Firestore
         const snapshot = await db.collection('bogle_users')
