@@ -73,6 +73,20 @@ export const CORE_MAPPINGS: Record<string, ToolMapping> = {
       reason: args.reason || args.topic,
     }),
   },
+  handoff: {
+    domainToolId: 'handoff',
+    transformArgs: (args) => ({
+      targetPersona: args.targetPersona || args.persona,
+      reason: args.reason || args.topic,
+    }),
+  },
+  handoff_maya_implicit: {
+    domainToolId: 'handoff',
+    transformArgs: (args) => ({
+      targetPersona: 'maya',
+      reason: args.reason || args.topic,
+    }),
+  },
   research_topic: {
     domainToolId: 'deepResearch',
     transformArgs: (args) => ({ topic: args.topic, depth: args.depth }),

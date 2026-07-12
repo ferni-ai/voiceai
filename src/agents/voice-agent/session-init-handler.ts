@@ -1416,12 +1416,16 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     publisherId,
   });
 
-  // Call quality: session connected and accepting conversation
+  // Call quality: prefer an earlier startCall (room-connect / identify) when
+  // present so stage clocks measure real first-audio latency. Fall back here.
   try {
-    const { startCall, recordCallEvent, markCallStage } = await import(
+    const { startCall, recordCallEvent, markCallStage, getActiveCalls } = await import(
       '../../services/analytics/call-quality-monitor.js'
     );
-    startCall(sessionId, userId, sessionPersona.id);
+    const alreadyStarted = getActiveCalls().some((call) => call.callId === sessionId);
+    if (!alreadyStarted) {
+      startCall(sessionId, userId, sessionPersona.id);
+    }
     markCallStage(sessionId, 'session_initialized');
     recordCallEvent({
       callId: sessionId,

@@ -16,7 +16,6 @@ import admin from 'firebase-admin';
 import express from 'express';
 import { createLogger } from './logger.js';
 import { processPendingTriggers, processTrigger } from './outreach/processor.js';
-import { runDailyOutreachJob } from '../../../src/services/outreach/daily-outreach-job.js';
 import type { WorkerConfig } from './types.js';
 
 const log = createLogger('server');
@@ -118,6 +117,22 @@ app.post('/jobs/daily-outreach', async (req, res) => {
     }
 
     log.info({ dryRun: config.dryRun }, '📬 Starting daily outreach job');
+
+    // Dynamic import: daily-outreach-job lives in the monorepo src tree and may
+    // be unavailable in the slim apps/async image. Keep /health and trigger
+    // processing up even when that module is not packaged.
+    let runDailyOutreachJob: typeof import('../../../src/services/outreach/daily-outreach-job.js').runDailyOutreachJob;
+    try {
+      ({ runDailyOutreachJob } = await import(
+        '../../../src/services/outreach/daily-outreach-job.js'
+      ));
+    } catch (importErr) {
+      log.error({ error: importErr }, 'daily-outreach-job module unavailable in this image');
+      res.status(501).json({
+        error: 'daily-outreach-job not packaged in async image',
+      });
+      return;
+    }
 
     const result = await runDailyOutreachJob({
       getUserProfiles: async () => {

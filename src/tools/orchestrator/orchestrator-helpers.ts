@@ -20,12 +20,18 @@ const log = getLogger();
 
 /**
  * Limit tools to maxTools, prioritizing essential domains.
+ *
+ * maxTools <= 0 means unlimited (matches TOOL_LIMIT=0 / model-config maxTools: 0).
  */
 export function limitTools(
   tools: Record<string, Tool>,
   maxTools: number,
   alwaysDomains: ToolDomain[]
 ): Record<string, Tool> {
+  if (maxTools <= 0) {
+    return tools;
+  }
+
   const entries = Object.entries(tools);
 
   if (entries.length <= maxTools) {

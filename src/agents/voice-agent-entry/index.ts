@@ -352,6 +352,15 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       );
     }
 
+    // Start call-quality clock as early as possible so stages reflect true latency.
+    try {
+      const { startCall } = await import('../../services/analytics/call-quality-monitor.js');
+      startCall(sessionId, undefined, sessionPersona.id);
+      await markCallStageSafe(sessionId, 'session_start');
+    } catch {
+      /* non-fatal */
+    }
+
     // =========================================================================
     // STEP 4: INITIALIZE SESSION SERVICES
     // =========================================================================
@@ -415,7 +424,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // CRITICAL FIX: Set personaId on userData for TTS wrapper
     userData.personaId = sessionPersona.id;
 
-    // Initialize handoff context
+    // Minimal sync work required before greeting (handoff + FinOps).
     const customData = services.userProfile?.customData as Record<string, unknown> | undefined;
     initializeHandoffContext({
       meetingCounts:
@@ -426,187 +435,197 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         (customData?.lastTopicsPerPersona as Record<string, string> | undefined),
     });
 
-    // Comprehensive identity diagnostics
-    try {
-      const { logDiagnostics, generateDiagnostics } =
-        await import('../../services/identity/identity-error-handler.js');
-      logDiagnostics(userId ?? undefined, services.userProfile ?? null, sessionId);
-      const diagnostics = generateDiagnostics(userId ?? undefined, services.userProfile ?? null);
-      process.stderr.write(
-        `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
-      );
-      process.stderr.write(
-        `[voice-agent-entry] 🔍 IDENTITY DIAGNOSTICS:\n` +
-          `  - userId: ${userId || 'MISSING!'}\n` +
-          `  - userIdFormat: ${diagnostics.userIdFormat}\n` +
-          `  - hasProfile: ${diagnostics.hasProfile ? 'YES' : 'NO!'}\n` +
-          `  - hasName: ${diagnostics.hasName ? `YES (${services.userProfile?.name || services.userProfile?.preferredName || userName})` : 'NO!'}\n` +
-          `  - hasVoiceSketch: ${diagnostics.hasVoiceSketch ? 'YES (cross-device ready)' : 'NO'}\n` +
-          `  - isReturningUser: ${diagnostics.isReturningUser}\n` +
-          `  - totalConversations: ${diagnostics.totalConversations}\n` +
-          `  - onboardingComplete: ${diagnostics.onboardingComplete}\n` +
-          `  - lastConversationSummary: ${services.userProfile?.lastConversationSummary ? `YES (${services.userProfile.lastConversationSummary.slice(0, 40)}...)` : 'NO!'}\n` +
-          `  - lastContact: ${services.userProfile?.lastContact || 'NEVER'}\n` +
-          `  - issues: ${diagnostics.issues.length > 0 ? diagnostics.issues.join(', ') : 'NONE ✅'}\n`
-      );
-    } catch {
-      process.stderr.write(
-        `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
-      );
-    }
-
-    // User awareness injection
-    const userAwarenessResult = buildUserAwareness({
-      userProfile: services.userProfile,
-      isReturningUser,
-      userName,
-      sessionStartTime,
-    });
-    if (userAwarenessResult.facts.length > 0) {
-      modelBaseInstructions += userAwarenessResult.instructionsBlock;
-      process.stderr.write(
-        `[voice-agent-entry] 👤 BETTER THAN HUMAN - User awareness injected (${userAwarenessResult.facts.length} facts):\n`
-      );
-      userAwarenessResult.facts.forEach((fact: string, i: number) => {
-        process.stderr.write(`[voice-agent-entry]   ${i + 1}. ${fact}\n`);
-      });
-    } else {
-      process.stderr.write(
-        `[voice-agent-entry] 👤 No user awareness facts available (new user or empty profile)\n`
-      );
-    }
-
-    // Calendar awareness (non-blocking)
-    if (services.userProfile && userId) {
-      void (async () => {
-        try {
-          const { getAmbientCalendarContext } =
-            await import('../../services/calendar/ambient-calendar-awareness.js');
-          const calendarContext = await getAmbientCalendarContext(userId!);
-          if (calendarContext.isCalendarConnected) {
-            const calendarAwareness: string[] = [];
-            if (calendarContext.nextMeeting.event && calendarContext.nextMeeting.minutesUntil !== null) {
-              const minutes = calendarContext.nextMeeting.minutesUntil;
-              const meetingTitle = calendarContext.nextMeeting.event.title;
-              if (minutes <= 15) {
-                calendarAwareness.push(`⏰ They have "${meetingTitle}" in ${minutes} minutes - be mindful of time.`);
-              } else if (minutes <= 60) {
-                calendarAwareness.push(`📅 They have "${meetingTitle}" in about ${Math.round(minutes / 15) * 15} minutes.`);
-              }
-            }
-            if (calendarContext.justEndedMeeting.event && calendarContext.justEndedMeeting.minutesSince !== null) {
-              const minutes = calendarContext.justEndedMeeting.minutesSince;
-              if (minutes <= 15) {
-                calendarAwareness.push(`💬 They just finished "${calendarContext.justEndedMeeting.event.title}" - could be a natural topic.`);
-              }
-            }
-            if (calendarContext.remainingMeetingsToday >= 4) {
-              calendarAwareness.push(`📊 They have ${calendarContext.remainingMeetingsToday} more meetings today - busy day.`);
-            }
-            if (calendarAwareness.length > 0) {
-              userData.calendarAwareness = calendarAwareness.join(' ');
-              process.stderr.write(`[voice-agent-entry] 📅 Calendar awareness loaded (${calendarAwareness.length} insights)\n`);
-            }
-          }
-        } catch (calErr) {
-          process.stderr.write(`[voice-agent-entry] 📅 Calendar fetch failed (non-critical): ${String(calErr)}\n`);
-        }
-      })();
-    }
-
-    // Voice verification for inbound calls
-    if (callType === 'inbound_call' && metadata.isKnownCaller && services.userProfile?.voiceSketch) {
-      try {
-        const { registerForVoiceVerification, shouldSetupVoiceVerification } =
-          await import('../../services/voice/inbound-voice-verification.js');
-        const verificationCheck = shouldSetupVoiceVerification(services.userProfile, true, metadata.isKnownCaller as boolean);
-        if (verificationCheck.shouldSetup && verificationCheck.voiceSketch) {
-          registerForVoiceVerification(sessionId, userId || '', verificationCheck.userName || (metadata.callerName as string) || 'the caller', verificationCheck.voiceSketch);
-          const { cleanupVoiceVerification } = await import('../../services/voice/inbound-voice-verification.js');
-          cleanupHandlers.push(() => cleanupVoiceVerification(sessionId));
-        }
-      } catch (voiceVerifyErr) {
-        process.stderr.write(`[voice-agent-entry] ⚠️ Voice verification setup failed (non-fatal): ${String(voiceVerifyErr)}\n`);
-      }
-    }
-
-    // Thread continuity (non-blocking)
-    if (userId) {
-      void (async () => {
-        try {
-          const { buildThreadContext } =
-            await import('../../intelligence/context-builders/session/thread-context.js');
-          const threadContext = await buildThreadContext(
-            userId!,
-            personaId as import('../../personas/types.js').PersonaId,
-            { sessionId, fromNotification: metadata.fromNotification === true }
-          );
-          if (threadContext) {
-            userData.threadContext = threadContext.content;
-            userData.threadId = threadContext.threadId;
-            userData.isOutreachResponse = threadContext.isOutreachResponse;
-            process.stderr.write(`[voice-agent-entry] 🧵 Thread context loaded (threadId: ${threadContext.threadId || 'new'})\n`);
-          }
-          // Initialize thread recording
-          try {
-            const { initializeThreadRecording, cleanupThreadRecording } =
-              await import('../../services/conversation-thread/thread-recorder.js');
-            const threadInit = await initializeThreadRecording(
-              userId!,
-              sessionId,
-              personaId as import('../../personas/types.js').PersonaId,
-              { existingThreadId: userData.threadId as string | undefined, isOutreachResponse: userData.isOutreachResponse as boolean | undefined }
-            );
-            userData.threadId = threadInit.threadId;
-            cleanupHandlers.push(() => { cleanupThreadRecording(sessionId); });
-          } catch (threadRecordErr) {
-            process.stderr.write(`[voice-agent-entry] 🧵 Thread recording init failed (non-critical): ${String(threadRecordErr)}\n`);
-          }
-        } catch (threadErr) {
-          process.stderr.write(`[voice-agent-entry] 🧵 Thread context fetch failed (non-critical): ${String(threadErr)}\n`);
-        }
-      })();
-    }
-
-    // FinOps cost tracking
     const userSubTier = services.userProfile?.subscription?.tier || 'free';
     finopsTier = userSubTier === 'partner' ? 'partner' : userSubTier === 'friend' ? 'friend' : 'free';
     finops.startSession({ sessionId, userId: userId ?? undefined, tier: finopsTier });
     process.stderr.write(`[voice-agent-entry] FinOps tracking started (tier: ${finopsTier})\n`);
 
-    // Register session with SessionDataManager
-    if (userId) {
+    const runPostInitEnrichment = async (): Promise<void> => {
+      // Comprehensive identity diagnostics
       try {
-        const { getSessionDataManager } = await import('../../services/session-data-manager.js');
-        getSessionDataManager().sessionStarted(userId);
-      } catch { /* non-fatal */ }
-    }
+        const { logDiagnostics, generateDiagnostics } =
+          await import('../../services/identity/identity-error-handler.js');
+        logDiagnostics(userId ?? undefined, services.userProfile ?? null, sessionId);
+        const diagnostics = generateDiagnostics(userId ?? undefined, services.userProfile ?? null);
+        process.stderr.write(
+          `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
+        );
+        process.stderr.write(
+          `[voice-agent-entry] 🔍 IDENTITY DIAGNOSTICS:\n` +
+            `  - userId: ${userId || 'MISSING!'}\n` +
+            `  - userIdFormat: ${diagnostics.userIdFormat}\n` +
+            `  - hasProfile: ${diagnostics.hasProfile ? 'YES' : 'NO!'}\n` +
+            `  - hasName: ${diagnostics.hasName ? `YES (${services.userProfile?.name || services.userProfile?.preferredName || userName})` : 'NO!'}\n` +
+            `  - hasVoiceSketch: ${diagnostics.hasVoiceSketch ? 'YES (cross-device ready)' : 'NO'}\n` +
+            `  - isReturningUser: ${diagnostics.isReturningUser}\n` +
+            `  - totalConversations: ${diagnostics.totalConversations}\n` +
+            `  - onboardingComplete: ${diagnostics.onboardingComplete}\n` +
+            `  - lastConversationSummary: ${services.userProfile?.lastConversationSummary ? `YES (${services.userProfile.lastConversationSummary.slice(0, 40)}...)` : 'NO!'}\n` +
+            `  - lastContact: ${services.userProfile?.lastContact || 'NEVER'}\n` +
+            `  - issues: ${diagnostics.issues.length > 0 ? diagnostics.issues.join(', ') : 'NONE ✅'}\n`
+        );
+      } catch {
+        process.stderr.write(
+          `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
+        );
+      }
 
-    // Performance optimizations
-    try {
-      const perfModule = await import('../shared/performance/index.js');
-      await perfModule.initializePerformanceOptimizations({
-        userId: userId || 'anonymous',
-        personaId,
-        sessionId,
-        enablePubSub: process.env.PUBSUB_ENABLED === 'true',
-        enableSpeculativeTTS: true,
-        enableBatchedAnalysis: false,
-        enableParallelMemory: true,
-        enableContextCache: true,
-        enableProfiling: true,
+      // User awareness injection
+      const userAwarenessResult = buildUserAwareness({
+        userProfile: services.userProfile,
+        isReturningUser,
+        userName,
+        sessionStartTime,
       });
-      cleanupHandlers.push(async () => {
-        try {
-          const summary = await perfModule.getPerformanceSummary();
-          if (summary) {
-            process.stderr.write(`[voice-agent-entry] 📊 Performance summary: ${JSON.stringify(summary.turnProfiling || {})}\n`);
+      if (userAwarenessResult.facts.length > 0) {
+        modelBaseInstructions += userAwarenessResult.instructionsBlock;
+        process.stderr.write(
+          `[voice-agent-entry] 👤 BETTER THAN HUMAN - User awareness injected (${userAwarenessResult.facts.length} facts):\n`
+        );
+        userAwarenessResult.facts.forEach((fact: string, i: number) => {
+          process.stderr.write(`[voice-agent-entry]   ${i + 1}. ${fact}\n`);
+        });
+      } else {
+        process.stderr.write(
+          `[voice-agent-entry] 👤 No user awareness facts available (new user or empty profile)\n`
+        );
+      }
+
+      // Calendar awareness (non-blocking)
+      if (services.userProfile && userId) {
+        void (async () => {
+          try {
+            const { getAmbientCalendarContext } =
+              await import('../../services/calendar/ambient-calendar-awareness.js');
+            const calendarContext = await getAmbientCalendarContext(userId!);
+            if (calendarContext.isCalendarConnected) {
+              const calendarAwareness: string[] = [];
+              if (calendarContext.nextMeeting.event && calendarContext.nextMeeting.minutesUntil !== null) {
+                const minutes = calendarContext.nextMeeting.minutesUntil;
+                const meetingTitle = calendarContext.nextMeeting.event.title;
+                if (minutes <= 15) {
+                  calendarAwareness.push(`⏰ They have "${meetingTitle}" in ${minutes} minutes - be mindful of time.`);
+                } else if (minutes <= 60) {
+                  calendarAwareness.push(`📅 They have "${meetingTitle}" in about ${Math.round(minutes / 15) * 15} minutes.`);
+                }
+              }
+              if (calendarContext.justEndedMeeting.event && calendarContext.justEndedMeeting.minutesSince !== null) {
+                const minutes = calendarContext.justEndedMeeting.minutesSince;
+                if (minutes <= 15) {
+                  calendarAwareness.push(`💬 They just finished "${calendarContext.justEndedMeeting.event.title}" - could be a natural topic.`);
+                }
+              }
+              if (calendarContext.remainingMeetingsToday >= 4) {
+                calendarAwareness.push(`📊 They have ${calendarContext.remainingMeetingsToday} more meetings today - busy day.`);
+              }
+              if (calendarAwareness.length > 0) {
+                userData.calendarAwareness = calendarAwareness.join(' ');
+                process.stderr.write(`[voice-agent-entry] 📅 Calendar awareness loaded (${calendarAwareness.length} insights)\n`);
+              }
+            }
+          } catch (calErr) {
+            process.stderr.write(`[voice-agent-entry] 📅 Calendar fetch failed (non-critical): ${String(calErr)}\n`);
           }
-          perfModule.resetPerformanceOptimizations();
-        } catch { /* ignore */ }
+        })();
+      }
+
+      // Voice verification for inbound calls
+      if (callType === 'inbound_call' && metadata.isKnownCaller && services.userProfile?.voiceSketch) {
+        try {
+          const { registerForVoiceVerification, shouldSetupVoiceVerification } =
+            await import('../../services/voice/inbound-voice-verification.js');
+          const verificationCheck = shouldSetupVoiceVerification(services.userProfile, true, metadata.isKnownCaller as boolean);
+          if (verificationCheck.shouldSetup && verificationCheck.voiceSketch) {
+            registerForVoiceVerification(sessionId, userId || '', verificationCheck.userName || (metadata.callerName as string) || 'the caller', verificationCheck.voiceSketch);
+            const { cleanupVoiceVerification } = await import('../../services/voice/inbound-voice-verification.js');
+            cleanupHandlers.push(() => cleanupVoiceVerification(sessionId));
+          }
+        } catch (voiceVerifyErr) {
+          process.stderr.write(`[voice-agent-entry] ⚠️ Voice verification setup failed (non-fatal): ${String(voiceVerifyErr)}\n`);
+        }
+      }
+
+      // Thread continuity (non-blocking)
+      if (userId) {
+        void (async () => {
+          try {
+            const { buildThreadContext } =
+              await import('../../intelligence/context-builders/session/thread-context.js');
+            const threadContext = await buildThreadContext(
+              userId!,
+              personaId as import('../../personas/types.js').PersonaId,
+              { sessionId, fromNotification: metadata.fromNotification === true }
+            );
+            if (threadContext) {
+              userData.threadContext = threadContext.content;
+              userData.threadId = threadContext.threadId;
+              userData.isOutreachResponse = threadContext.isOutreachResponse;
+              process.stderr.write(`[voice-agent-entry] 🧵 Thread context loaded (threadId: ${threadContext.threadId || 'new'})\n`);
+            }
+            try {
+              const { initializeThreadRecording, cleanupThreadRecording } =
+                await import('../../services/conversation-thread/thread-recorder.js');
+              const threadInit = await initializeThreadRecording(
+                userId!,
+                sessionId,
+                personaId as import('../../personas/types.js').PersonaId,
+                { existingThreadId: userData.threadId as string | undefined, isOutreachResponse: userData.isOutreachResponse as boolean | undefined }
+              );
+              userData.threadId = threadInit.threadId;
+              cleanupHandlers.push(() => { cleanupThreadRecording(sessionId); });
+            } catch (threadRecordErr) {
+              process.stderr.write(`[voice-agent-entry] 🧵 Thread recording init failed (non-critical): ${String(threadRecordErr)}\n`);
+            }
+          } catch (threadErr) {
+            process.stderr.write(`[voice-agent-entry] 🧵 Thread context fetch failed (non-critical): ${String(threadErr)}\n`);
+          }
+        })();
+      }
+
+      if (userId) {
+        try {
+          const { getSessionDataManager } = await import('../../services/session-data-manager.js');
+          getSessionDataManager().sessionStarted(userId);
+        } catch { /* non-fatal */ }
+      }
+
+      try {
+        const perfModule = await import('../shared/performance/index.js');
+        await perfModule.initializePerformanceOptimizations({
+          userId: userId || 'anonymous',
+          personaId,
+          sessionId,
+          enablePubSub: process.env.PUBSUB_ENABLED === 'true',
+          enableSpeculativeTTS: true,
+          enableBatchedAnalysis: false,
+          enableParallelMemory: true,
+          enableContextCache: true,
+          enableProfiling: true,
+        });
+        cleanupHandlers.push(async () => {
+          try {
+            const summary = await perfModule.getPerformanceSummary();
+            if (summary) {
+              process.stderr.write(`[voice-agent-entry] 📊 Performance summary: ${JSON.stringify(summary.turnProfiling || {})}\n`);
+            }
+            perfModule.resetPerformanceOptimizations();
+          } catch { /* ignore */ }
+        });
+      } catch (perfErr) {
+        process.stderr.write(`[voice-agent-entry] ⚠️ Performance optimizations failed (non-fatal): ${perfErr}\n`);
+      }
+    };
+
+    // Multi-agent: fire enrichment in background so greeting is not blocked by
+    // diagnostics / awareness / performance init (~9s observed in prod).
+    if (shouldUseMultiAgentEarlyPath) {
+      void runPostInitEnrichment().catch((enrichErr: unknown) => {
+        process.stderr.write(
+          `[voice-agent-entry] ⚠️ Deferred post-init enrichment failed (non-fatal): ${String(enrichErr)}\n`
+        );
       });
-    } catch (perfErr) {
-      process.stderr.write(`[voice-agent-entry] ⚠️ Performance optimizations failed (non-fatal): ${perfErr}\n`);
+    } else {
+      await runPostInitEnrichment();
     }
 
     // =========================================================================

@@ -95,6 +95,8 @@ describe('Voice Agent Entry - Module Structure', () => {
     expect(content).toContain("markCallStageSafe(sessionId, 'services_init_done'");
     expect(content).toContain("markCallStageSafe(sessionId, 'services_deferred_start'");
     expect(content).toContain('deferHeavyStartup: shouldUseMultiAgentEarlyPath');
+    expect(content).toContain('runPostInitEnrichment');
+    expect(content).toContain('void runPostInitEnrichment()');
   });
 
   it('should have e2e diagnostics integration', async () => {
