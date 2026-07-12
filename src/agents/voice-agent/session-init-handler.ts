@@ -158,6 +158,11 @@ export interface SessionInitContext {
   };
   /** Publisher ID for marketplace/custom personas (Developer Platform) */
   publisherId?: string;
+  /**
+   * Multi-agent first-audio fast path: return after core session state is ready
+   * and defer profile/tool/developer enrichments that are not needed for greeting.
+   */
+  deferHeavyStartup?: boolean;
 }
 
 export interface SessionInitResult {
@@ -199,7 +204,16 @@ export type UserDataInit = UserData;
  * This is STEP 2-3 of the entry() function.
  */
 export async function initializeSession(ctx: SessionInitContext): Promise<SessionInitResult> {
-  const { sessionId, userId, userName, userAccent, sessionPersona, room, publisherId } = ctx;
+  const {
+    sessionId,
+    userId,
+    userName,
+    userAccent,
+    sessionPersona,
+    room,
+    publisherId,
+    deferHeavyStartup = false,
+  } = ctx;
   const logger = log();
   const initStart = Date.now();
 
@@ -330,6 +344,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     userId,
     userName, // CRITICAL: Pass name from onboarding/auth for profile persistence
     isReturningUser: undefined, // Determined from profile
+    deferProfileLoad: deferHeavyStartup,
     personaSpeech: sessionPersona.speechCharacteristics,
     personaEnergy: sessionPersona.personality?.energy ?? 0.6, // Default energy if personality not loaded
     personaId: sessionPersona.id,
@@ -1293,7 +1308,11 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   // ================================================================
   let refreshedTools: Record<string, unknown> | undefined;
 
-  if (isOrchestratorInitialized()) {
+  const refreshToolsWithContext = async (): Promise<Record<string, unknown> | undefined> => {
+    if (!isOrchestratorInitialized()) {
+      return undefined;
+    }
+
     const subscriptionTier = services.userProfile?.subscription?.tier || 'free';
     try {
       // Build context update with voice emotion if available
@@ -1320,12 +1339,12 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
       });
 
       if (refreshResult.shouldRefresh && refreshResult.tools) {
-        refreshedTools = refreshResult.tools;
         diag.session('🔄 Tool Orchestrator: Tools refreshed with real user context', {
           toolCount: Object.keys(refreshResult.tools).length,
           subscriptionTier,
           hasUserProfile: !!services.userProfile,
         });
+        return refreshResult.tools;
       } else {
         diag.session('Tool Orchestrator: No tool refresh needed at session start');
       }
@@ -1334,13 +1353,26 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
         error: String(refreshErr),
       });
     }
+    return undefined;
+  };
+
+  if (deferHeavyStartup) {
+    fireAndForget(async () => {
+      refreshedTools = await refreshToolsWithContext();
+    }, 'session-init:deferred-tool-refresh');
+  } else {
+    refreshedTools = await refreshToolsWithContext();
   }
 
   // ================================================================
   // DEVELOPER PLATFORM: LOAD API-REGISTERED CUSTOM TOOLS
   // Only loads if publisherId is available (marketplace/custom personas)
   // ================================================================
-  if (publisherId) {
+  const loadDeveloperToolsForSession = async (): Promise<void> => {
+    if (!publisherId) {
+      return;
+    }
+
     try {
       const devToolResult = await loadDeveloperTools({
         publisherId,
@@ -1365,6 +1397,12 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
         error: String(devToolErr),
       });
     }
+  };
+
+  if (deferHeavyStartup) {
+    fireAndForget(loadDeveloperToolsForSession, 'session-init:deferred-developer-tools');
+  } else {
+    await loadDeveloperToolsForSession();
   }
 
   // ================================================================

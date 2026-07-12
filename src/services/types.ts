@@ -283,6 +283,11 @@ export interface CreateSessionOptions {
   /** User's name from onboarding or auth - persisted to Firestore on profile creation */
   userName?: string;
   isReturningUser?: boolean;
+  /**
+   * Defer profile loading and profile-derived enrichment until after the session
+   * can start speaking. Used by the multi-agent first-audio fast path.
+   */
+  deferProfileLoad?: boolean;
   personaSpeech?: import('../personas/types.js').SpeechCharacteristics;
   personaEnergy?: number;
   personaId?: string;

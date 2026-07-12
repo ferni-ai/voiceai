@@ -383,6 +383,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       personaId: sessionPersona.id,
     });
 
+    const servicesInitStartedAt = Date.now();
+
     // Initialize session services
     const initResult = await initializeSession({
       sessionId,
@@ -392,7 +394,14 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       sessionPersona,
       room: ctx.room,
       publisherId,
+      deferHeavyStartup: shouldUseMultiAgentEarlyPath,
     });
+    const servicesInitDoneAt = Date.now();
+    await markCallStageSafe(sessionId, 'services_init_start', servicesInitStartedAt);
+    await markCallStageSafe(sessionId, 'services_init_done', servicesInitDoneAt);
+    if (shouldUseMultiAgentEarlyPath) {
+      await markCallStageSafe(sessionId, 'services_deferred_start');
+    }
 
     services = initResult.services;
     isReturningUser = initResult.isReturningUser;

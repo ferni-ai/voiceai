@@ -88,6 +88,15 @@ describe('Voice Agent Entry - Module Structure', () => {
     expect(content).toContain('cleanupHandlers');
   });
 
+  it('should defer heavyweight startup before the multi-agent greeting path', async () => {
+    const content = await readAllEntryFiles();
+
+    expect(content).toContain("markCallStageSafe(sessionId, 'services_init_start'");
+    expect(content).toContain("markCallStageSafe(sessionId, 'services_init_done'");
+    expect(content).toContain("markCallStageSafe(sessionId, 'services_deferred_start'");
+    expect(content).toContain('deferHeavyStartup: shouldUseMultiAgentEarlyPath');
+  });
+
   it('should have e2e diagnostics integration', async () => {
     const content = await readAllEntryFiles();
 

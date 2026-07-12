@@ -222,11 +222,13 @@ export async function createSessionServices(
   // Handle both calling conventions
   let sessionId: string;
   let userName: string | undefined;
+  let deferProfileLoad = false;
   if (typeof sessionIdOrOptions === 'object') {
     sessionId = sessionIdOrOptions.sessionId;
     userId = sessionIdOrOptions.userId;
     userName = sessionIdOrOptions.userName;
     isReturningUser = sessionIdOrOptions.isReturningUser;
+    deferProfileLoad = sessionIdOrOptions.deferProfileLoad === true;
     personaSpeech = sessionIdOrOptions.personaSpeech;
     personaEnergy = sessionIdOrOptions.personaEnergy;
     personaId = sessionIdOrOptions.personaId;
@@ -254,26 +256,26 @@ export async function createSessionServices(
   let userProfile: UserProfile | null = null;
   const validatedUserId = validateUserId(userId);
 
-  if (validatedUserId) {
+  const loadProfileForSession = async (profileUserId: string): Promise<UserProfile | null> => {
     // ⚡ PERFORMANCE: Use Redis-backed profile cache for faster session start
     // Cache hit: ~5-20ms vs Firestore: ~100-500ms
     const { getProfileWithCache, cacheProfile, invalidateProfile } =
       await import('../data-layer/profile-cache.js');
 
     // BLOCKING: Load profile with cache-through pattern (Redis → Firestore)
-    userProfile = await getProfileWithCache(validatedUserId, async (uid) => {
+    userProfile = await getProfileWithCache(profileUserId, async (uid) => {
       return global.store.getProfile(uid);
     });
 
     if (!userProfile) {
       const { createUserProfile } = await import('../../types/user-profile.js');
       // CRITICAL: Pass userName from onboarding so Ferni remembers their name!
-      userProfile = createUserProfile(validatedUserId, userName);
+      userProfile = createUserProfile(profileUserId, userName);
       await global.store.saveProfile(userProfile);
       // Cache the new profile
-      void cacheProfile(validatedUserId, userProfile);
+      void cacheProfile(profileUserId, userProfile);
       getLogger().info(
-        { userId: validatedUserId, name: userName || '(none)' },
+        { userId: profileUserId, name: userName || '(none)' },
         '🆕 Created new user profile with name from onboarding'
       );
     } else if (!userProfile.name && userName) {
@@ -281,13 +283,18 @@ export async function createSessionServices(
       userProfile.name = userName;
       await global.store.saveProfile(userProfile);
       // Invalidate cache so next session gets updated profile
-      void invalidateProfile(validatedUserId);
+      void invalidateProfile(profileUserId);
       getLogger().info(
-        { userId: validatedUserId, name: userName },
+        { userId: profileUserId, name: userName },
         '✨ Updated existing profile with name from onboarding'
       );
     }
-    isReturningUser = userProfile.totalConversations > 0;
+    return userProfile;
+  };
+
+  if (validatedUserId && !deferProfileLoad) {
+    userProfile = await loadProfileForSession(validatedUserId);
+    isReturningUser = userProfile ? userProfile.totalConversations > 0 : false;
 
     // NON-BLOCKING: Start intelligent loader for on-demand domain loading
     import('../data-layer/intelligent-loader.js')
@@ -355,6 +362,12 @@ export async function createSessionServices(
           /* Non-critical */
         });
     }
+  } else if (validatedUserId && deferProfileLoad) {
+    isReturningUser = false;
+    getLogger().info(
+      { sessionId, userId: validatedUserId },
+      '⚡ Deferring profile load for first-audio fast path'
+    );
   } else if (userId) {
     getLogger().warn(
       { providedUserId: userId?.slice(0, 20) },
@@ -2292,6 +2305,77 @@ export async function createSessionServices(
 
   // Store in active sessions
   activeSessions.set(sessionId, services);
+
+  if (validatedUserId && deferProfileLoad) {
+    void (async () => {
+      try {
+        const loadedProfile = await loadProfileForSession(validatedUserId);
+        if (!loadedProfile) return;
+
+        userProfile = loadedProfile;
+        services.userProfile = loadedProfile;
+        isReturningUser = loadedProfile.totalConversations > 0;
+
+        try {
+          const loaderModule = await import('../data-layer/intelligent-loader.js');
+          const loader = loaderModule.getIntelligentLoader(validatedUserId, sessionId);
+          void loader.initializeSession();
+        } catch {
+          // Non-critical - domains load on-demand anyway
+        }
+
+        if (isReturningUser) {
+          try {
+            loadIntelligenceFromProfile(validatedUserId, loadedProfile);
+          } catch {
+            // Non-critical
+          }
+
+          void realtimeMemory
+            .getLastConversationContext(validatedUserId)
+            .then((lastContext) => {
+              if (lastContext && services.userProfile && !services.userProfile.lastConversationSummary) {
+                const summary =
+                  lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
+                if (summary) services.userProfile.lastConversationSummary = summary;
+              }
+            })
+            .catch(() => {
+              /* Non-critical */
+            });
+
+          void loadCrossPersonaInsights(validatedUserId).catch(() => {
+            /* Non-critical */
+          });
+          void import('../social-graph/index.js')
+            .then(async ({ loadGraphFromFirestore }) => loadGraphFromFirestore(validatedUserId))
+            .catch(() => {
+              /* Non-critical */
+            });
+          void onSessionStartUnified(validatedUserId, sessionId).catch(() => {
+            /* Non-critical */
+          });
+          void import('../../agents/shared/performance/session-optimizations.js')
+            .then(async ({ optimizeSessionStart }) =>
+              optimizeSessionStart(sessionId, validatedUserId)
+            )
+            .catch(() => {
+              /* Non-critical */
+            });
+        }
+
+        getLogger().info(
+          { sessionId, userId: validatedUserId, isReturningUser },
+          '⚡ Deferred profile load attached to active session'
+        );
+      } catch (error) {
+        getLogger().warn(
+          { sessionId, userId: validatedUserId, error: String(error) },
+          'Deferred profile load failed (session continues with generic context)'
+        );
+      }
+    })();
+  }
 
   // Memory pipeline diagnostics - track session start
   diagnosticSessionStart(sessionId, validatedUserId || 'unknown');
