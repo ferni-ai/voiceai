@@ -47,4 +47,24 @@ describe('Observability Service', () => {
       expect(finopsModule).toBeDefined();
     });
   });
+
+  describe('Memory Recall Metrics', () => {
+    it('should calculate recall rate from sessions with memory data', async () => {
+      const { memoryMetrics } = await import('../memory-health.js');
+
+      memoryMetrics.resetMemoryRecallStats();
+      memoryMetrics.recordMemoryRecallOpportunity({ sessionId: 'session-a', memoryCount: 2 });
+      memoryMetrics.recordMemoryRecallOpportunity({ sessionId: 'session-b', memoryCount: 1 });
+      memoryMetrics.recordMemoryRecallSurfaced({ sessionId: 'session-a', surfacedCount: 1 });
+
+      const snapshot = memoryMetrics.getSnapshot();
+
+      expect(snapshot.sessionsWithMemoryData).toBe(2);
+      expect(snapshot.sessionsWithMemoryRecalls).toBe(1);
+      expect(snapshot.memoryRecallsPerSession).toBe(0.5);
+      expect(snapshot.memoryRecallRate).toBe(0.5);
+
+      memoryMetrics.resetMemoryRecallStats();
+    });
+  });
 });

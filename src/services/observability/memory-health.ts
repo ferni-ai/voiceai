@@ -67,6 +67,13 @@ export interface MemoryHealthSnapshot {
   // Retrieval quality
   lowRelevanceSearches: number;
   emptyResultSearches: number;
+
+  // Memory that speaks
+  sessionsWithMemoryData: number;
+  sessionsWithMemoryRecalls: number;
+  memoryRecalls: number;
+  memoryRecallsPerSession: number;
+  memoryRecallRate: number;
 }
 
 // ============================================================================
@@ -79,6 +86,8 @@ const MAX_EVENTS = 1000;
 let currentStoreType = 'memory';
 let documentCount = 0;
 const storageBySource: Record<string, number> = {};
+const sessionsWithMemoryData = new Set<string>();
+const memoryRecallsBySession = new Map<string, number>();
 
 // ============================================================================
 // RECORDING
@@ -126,6 +135,28 @@ export function updateStorageStats(
   if (bySource) {
     Object.assign(storageBySource, bySource);
   }
+}
+
+export function recordMemoryRecallOpportunity(input: {
+  sessionId: string;
+  memoryCount: number;
+}): void {
+  if (input.memoryCount <= 0) return;
+  sessionsWithMemoryData.add(input.sessionId);
+}
+
+export function recordMemoryRecallSurfaced(input: {
+  sessionId: string;
+  surfacedCount: number;
+}): void {
+  if (input.surfacedCount <= 0) return;
+  const currentCount = memoryRecallsBySession.get(input.sessionId) ?? 0;
+  memoryRecallsBySession.set(input.sessionId, currentCount + input.surfacedCount);
+}
+
+export function resetMemoryRecallStats(): void {
+  sessionsWithMemoryData.clear();
+  memoryRecallsBySession.clear();
 }
 
 // ============================================================================
@@ -177,6 +208,19 @@ export function getSnapshot(): MemoryHealthSnapshot {
   // Quality metrics
   const lowRelevanceSearches = recentSearches.filter((e) => e.avgScore < 0.5).length;
   const emptyResultSearches = recentSearches.filter((e) => e.resultsCount === 0).length;
+  const memoryDataSessionCount = sessionsWithMemoryData.size;
+  const sessionsWithRecalls = Array.from(memoryRecallsBySession.entries()).filter(
+    ([sessionId, recallCount]) => sessionsWithMemoryData.has(sessionId) && recallCount > 0
+  ).length;
+  const memoryRecalls = Array.from(memoryRecallsBySession.entries()).reduce(
+    (sum, [sessionId, recallCount]) =>
+      sessionsWithMemoryData.has(sessionId) ? sum + recallCount : sum,
+    0
+  );
+  const memoryRecallsPerSession =
+    memoryDataSessionCount > 0 ? memoryRecalls / memoryDataSessionCount : 0;
+  const memoryRecallRate =
+    memoryDataSessionCount > 0 ? sessionsWithRecalls / memoryDataSessionCount : 0;
 
   return {
     avgSearchLatencyMs,
@@ -199,6 +243,11 @@ export function getSnapshot(): MemoryHealthSnapshot {
 
     lowRelevanceSearches,
     emptyResultSearches,
+    sessionsWithMemoryData: memoryDataSessionCount,
+    sessionsWithMemoryRecalls: sessionsWithRecalls,
+    memoryRecalls,
+    memoryRecallsPerSession,
+    memoryRecallRate,
   };
 }
 
@@ -210,5 +259,8 @@ export const memoryMetrics = {
   recordVectorSearch,
   recordEmbedding,
   updateStorageStats,
+  recordMemoryRecallOpportunity,
+  recordMemoryRecallSurfaced,
+  resetMemoryRecallStats,
   getSnapshot,
 };

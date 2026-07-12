@@ -38,6 +38,11 @@ import {
   type ExtractedPreference,
 } from '../../intelligence/preference-extractor.js';
 import {
+  buildMemoryRetrievalContext,
+  getSurfacedMemoryIds,
+  type MemoryRetrievalBuilderInput,
+} from '../../intelligence/context-builders/memory-retrieval-builder.js';
+import {
   extractMemorableMoments,
   mergeMemorableMoments,
   type SilenceContext,
@@ -47,6 +52,7 @@ import type { ConversationManager } from '../../services/conversation-manager.js
 import { diag } from '../../services/diagnostic-logger.js';
 import { checkTrialStatus } from '../../services/first-taste-trial.js';
 import type { SessionServices } from '../../services/index.js';
+import { memoryMetrics } from '../../services/observability/index.js';
 import {
   recordCacheAttempt,
   recordLatency,
@@ -178,6 +184,113 @@ export interface TranscriptHandlerContext {
   };
   /** Function to send data messages to frontend */
   sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>;
+}
+
+interface MemoryRecallReplyInput {
+  transcript: string;
+  session: voice.AgentSession<UserData>;
+  services: SessionServices;
+  sessionPersona: PersonaConfig;
+  userData: UserData;
+  userId: string | undefined;
+  sessionId: string;
+}
+
+function buildMemoryRecallInstructions(input: {
+  transcript: string;
+  memoryContents: readonly string[];
+  personaName: string;
+}): string {
+  return [
+    `The person just said: "${input.transcript}"`,
+    '',
+    'You have relevant private memory context for this one reply:',
+    input.memoryContents.join('\n\n'),
+    '',
+    `Reply as ${input.personaName}. Use the memory only if it genuinely helps this reply feel more known and continuous.`,
+    'If you use a memory, speak one brief, natural recall in your own words. Do not mention prompts, context, retrieval, or memory systems.',
+  ].join('\n');
+}
+
+async function surfaceMemoryRecallForNextReply(input: MemoryRecallReplyInput): Promise<void> {
+  const { transcript, session, services, sessionPersona, userData, userId, sessionId } = input;
+  if (!userId || !transcript.trim()) return;
+
+  try {
+    const memoryRetrievalResult = await buildMemoryRetrievalContext({
+      userText: transcript,
+      analysis: {
+        emotion: {
+          primary: userData.lastEmotionAnalysis?.primary || 'neutral',
+          intensity: userData.lastEmotionAnalysis?.intensity ?? 0.5,
+        },
+        intent: { primary: 'unknown' },
+        topics: { detected: userData.recentTopics || [] },
+        state: {},
+      },
+      userData: { turnCount: userData.turnCount || 1 },
+      services: {
+        userId,
+        sessionId,
+      },
+      persona: { identity: { id: sessionPersona.id } },
+      userProfile: services.userProfile || undefined,
+      surfacedMemoryIds: getSurfacedMemoryIds(sessionId),
+    } as unknown as MemoryRetrievalBuilderInput);
+
+    const retrievedCount = memoryRetrievalResult.memoryContext?.memories.length || 0;
+    memoryMetrics.recordMemoryRecallOpportunity({
+      sessionId,
+      memoryCount: retrievedCount,
+    });
+
+    if (memoryRetrievalResult.injections.length === 0) return;
+
+    try {
+      session.interrupt();
+      diag.state('🧠 Memory recall: SDK interrupted for memory-aware reply', {
+        sessionId,
+        retrievedCount,
+      });
+    } catch (interruptErr) {
+      diag.debug('Memory recall interrupt failed', { error: String(interruptErr) });
+    }
+
+    const { generateReplyBySessionId, TOOL_RESPONSE_TIMEOUT_MS } = await import(
+      '../shared/generate-reply-gateway.js'
+    );
+    const instructions = buildMemoryRecallInstructions({
+      transcript,
+      memoryContents: memoryRetrievalResult.injections.map((injection) => injection.content),
+      personaName: sessionPersona.displayName || sessionPersona.name || 'Ferni',
+    });
+
+    const replyResult = await generateReplyBySessionId(sessionId, {
+      instructions,
+      context: 'memory-recall',
+      priority: 'high',
+      allowInterruptions: true,
+      waitForPlayout: false,
+      fallbackMessage: "I'm with you.",
+      timeoutMs: TOOL_RESPONSE_TIMEOUT_MS,
+    });
+
+    if (replyResult.success) {
+      memoryMetrics.recordMemoryRecallSurfaced({
+        sessionId,
+        surfacedCount: memoryRetrievalResult.surfacedIds.length || retrievedCount || 1,
+      });
+    }
+
+    diag.state('🧠 Memory recall reply generated', {
+      sessionId,
+      success: replyResult.success,
+      retrievedCount,
+      injectionCount: memoryRetrievalResult.injections.length,
+    });
+  } catch (memoryError) {
+    diag.debug('Memory recall retrieval failed (non-fatal)', { error: String(memoryError) });
+  }
 }
 
 /**
@@ -1547,6 +1660,16 @@ async function processFinalTranscript(
   }
 
   userData.turnCount = (userData.turnCount || 0) + 1;
+
+  await surfaceMemoryRecallForNextReply({
+    transcript: event.transcript,
+    session,
+    services,
+    sessionPersona,
+    userData,
+    userId,
+    sessionId,
+  });
 
   // Record turn in voice humanization for rhythm learning
   if (voiceHumanization) {
