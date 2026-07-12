@@ -1462,7 +1462,7 @@ Ferni has **tools across 118 domains**. The system uses semantic selection to pi
 # Environment variables (see .env.example)
 TOOL_LIMIT=0          # 0 = unlimited, semantic router filters
 USE_META_TOOL=false   # Single executeTool vs 100+ declarations
-USE_FTIS=true         # FTIS hierarchical classifier (default: on)
+FTIS_ENABLED=true     # FTIS hierarchical classifier (default: OFF since 2026-03, opt-in)
 FTIS_THRESHOLD=70     # Confidence threshold (0-100)
 ```
 
@@ -1520,7 +1520,7 @@ Ferni supports multiple tool routing strategies. Set via environment variables:
 | ----------------------------- | --------------------------- | -------------------------------------------------------- |
 | **Semantic Router** (default) | None                        | Embedding-based pre-filtering → LLM picks from ~40 tools |
 | **Meta-Tool**                 | `USE_META_TOOL=true`        | Single `executeTool` function, LLM picks from catalog   |
-| **FTIS**                      | `USE_FTIS=true` (default)   | Hierarchical classifier (domain → meta-tool) routes      |
+| **FTIS**                      | `FTIS_ENABLED=true` (opt-in; default OFF since 2026-03) | Hierarchical classifier (domain → meta-tool) routes      |
 | **Native FC**                 | `GEMINI_USE_NATIVE_FC=true` | Gemini's native function calling                         |
 
 #### FTIS Hierarchical Classifier

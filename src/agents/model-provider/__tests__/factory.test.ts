@@ -212,8 +212,15 @@ describe('GeminiLiveProvider', () => {
     expect(provider.displayName).toBe('Gemini Live API');
   });
 
-  // FTIS is default (Feb 2026). When FTIS_ENABLED is true (default), Gemini has no tool knowledge
-  describe('FTIS mode (default)', () => {
+  // FTIS is opt-in since 915b2c25b (Mar 2026): disabled by default, enabled via FTIS_ENABLED=true.
+  // When FTIS is on, Gemini has no tool knowledge — FTIS handles all routing.
+  describe('FTIS mode (opt-in via FTIS_ENABLED=true)', () => {
+    beforeEach(() => {
+      process.env.FTIS_ENABLED = 'true';
+      // Recreate provider with new env
+      provider = new GeminiLiveProvider();
+    });
+
     it('should not have native function calling in FTIS mode', () => {
       // FTIS handles all tool routing - Gemini is pure conversation
       expect(provider.hasNativeFunctionCalling()).toBe(false);
@@ -230,15 +237,15 @@ describe('GeminiLiveProvider', () => {
     });
   });
 
-  describe('non-FTIS mode (legacy)', () => {
+  describe('non-FTIS mode (current default)', () => {
     beforeEach(() => {
-      process.env.FTIS_ENABLED = 'false';
+      delete process.env.FTIS_ENABLED;
       // Recreate provider with new env
       provider = new GeminiLiveProvider();
     });
 
-    it('should have native function calling as backup in non-FTIS mode', () => {
-      expect(provider.hasNativeFunctionCalling()).toBe(true);
+    it('should use the JSON workaround by default (native FC off unless GEMINI_USE_NATIVE_FC=true)', () => {
+      expect(provider.hasNativeFunctionCalling()).toBe(false);
       expect(provider.needsJsonWorkaround()).toBe(true);
     });
 

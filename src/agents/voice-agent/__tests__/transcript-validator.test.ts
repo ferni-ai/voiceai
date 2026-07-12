@@ -237,15 +237,16 @@ describe('Transcript Validator', () => {
     });
 
     describe('Echo Window Detection', () => {
-      it('should reject short transcripts during echo window', () => {
+      it('should accept whitelisted greetings even during echo window', () => {
         const echoContext: ValidationContext = {
           ...defaultContext,
           timeSinceAgentSpoke: 1000, // 1 second - within echo window
         };
 
+        // "hi" is in VALID_SHORT_PHRASES, which is checked before echo-window filters
         const result = validateTranscript('hi', echoContext);
-        expect(result.isValid).toBe(false);
-        expect(result.reason).toBe('too_short');
+        expect(result.isValid).toBe(true);
+        expect(result.confidence).toBe(1.0);
       });
 
       it('should accept short transcripts outside echo window', () => {
@@ -304,15 +305,16 @@ describe('Transcript Validator', () => {
     });
 
     describe('Agent Speaking Interruption', () => {
-      it('should reject single word during agent speech', () => {
+      it('should accept whitelisted interruption words during agent speech', () => {
         const speakingContext: ValidationContext = {
           ...defaultContext,
           isAgentSpeaking: true,
         };
 
+        // "wait" is in VALID_SHORT_PHRASES so users can interrupt the agent
         const result = validateTranscript('wait', speakingContext);
-        expect(result.isValid).toBe(false);
-        expect(result.reason).toBe('too_short');
+        expect(result.isValid).toBe(true);
+        expect(result.confidence).toBe(1.0);
       });
 
       it('should accept multi-word interruption during agent speech', () => {

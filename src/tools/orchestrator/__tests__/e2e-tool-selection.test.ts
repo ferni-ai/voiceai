@@ -131,8 +131,9 @@ describe('E2E: Tool Selection Pipeline', () => {
   });
 
   describe('Tool Limits', () => {
-    it('should never exceed maxTools limit', async () => {
-      // Test with a very broad query that could match many tools
+    it('should return all matched tools when maxTools=0 (unlimited default)', async () => {
+      // Default config is maxTools=0 = unlimited (see data/model-config.json);
+      // a broad query must return every matched tool, never zero, never more than available
       const result = await toolOrchestrator.getToolsForIntent({
         transcript:
           'help me with everything - music, weather, habits, relationships, career, finances',
@@ -140,13 +141,21 @@ describe('E2E: Tool Selection Pipeline', () => {
         agentId: 'ferni',
       });
 
-      // Essential (always-available) tools may exceed base maxTools (35)
-      // since they're required for core functionality (memory, handoff, entertainment, etc.)
-      // The limit applies to non-essential tools, not the total
-      // Currently essential domains have ~49+ tools
-      expect(result.meta.selected).toBeLessThanOrEqual(100);
+      expect(result.meta.selected).toBeGreaterThan(0);
+      expect(result.meta.selected).toBeLessThanOrEqual(result.meta.totalAvailable);
       console.log('Broad query selected:', result.meta.selected, 'tools');
     }, 60000); // 60s timeout for complex query
+
+    it('limitTools should cap at a positive maxTools and treat <= 0 as unlimited', async () => {
+      const { limitTools } = await import('../orchestrator-helpers.js');
+      const tools = Object.fromEntries(
+        Array.from({ length: 10 }, (_, i) => [`tool_${i}`, { description: `t${i}` }])
+      ) as never;
+
+      expect(Object.keys(limitTools(tools, 3, [])).length).toBe(3);
+      expect(Object.keys(limitTools(tools, 0, [])).length).toBe(10);
+      expect(Object.keys(limitTools(tools, -1, [])).length).toBe(10);
+    });
   });
 
   describe('Caching Behavior', () => {

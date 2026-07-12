@@ -13,7 +13,7 @@ const mockRecordEngagementSignal = vi.fn();
 const mockCreateAdjustment = vi.fn();
 const mockUpdateStoryRankings = vi.fn();
 
-vi.mock('../../intelligence/community-insights.js', () => ({
+vi.mock('../../intelligence/collective/community-insights.js', () => ({
   getCommunityInsights: vi.fn(() => ({
     recordEngagementSignal: mockRecordEngagementSignal,
   })),

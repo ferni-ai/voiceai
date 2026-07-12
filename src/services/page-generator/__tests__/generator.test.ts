@@ -430,7 +430,9 @@ describe('Deployment Configuration', () => {
     };
     const result = await generateAgentPage(config);
 
-    expect(result.html).toContain('localhost:3001');
+    // Dev uses a relative token endpoint (proxy forwards /token to the token
+    // server) but the dev LiveKit project URL
+    expect(result.html).toContain("'/token'");
     expect(result.html).toContain('dev-8sm1ba0z.livekit.cloud');
   });
 

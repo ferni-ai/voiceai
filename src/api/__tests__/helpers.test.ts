@@ -85,7 +85,9 @@ describe('API Helpers', () => {
       expect(result).toBe('user-123');
     });
 
-    it('should get userId from x-user-id header', () => {
+    it('should NOT accept the client-spoofable x-user-id header', () => {
+      // SECURITY: only x-firebase-uid (set server-side by auth-middleware),
+      // query param, or dev bypass identify the user — never a raw client header
       const req = createMockRequest({
         headers: { 'x-user-id': 'header-user-456' },
       });
@@ -93,7 +95,7 @@ describe('API Helpers', () => {
 
       const result = getUserId(req, parsedUrl);
 
-      expect(result).toBe('header-user-456');
+      expect(result).toBeNull();
     });
 
     it('should prefer query param over header', () => {

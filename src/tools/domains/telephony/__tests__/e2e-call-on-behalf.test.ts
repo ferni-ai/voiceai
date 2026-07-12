@@ -138,7 +138,7 @@ vi.mock('../../../../services/outreach/delivery/push-notifications.js', () => ({
 // ============================================================================
 
 import type { ToolContext } from '../../../registry/types.js';
-import { createCallOnBehalfTool } from '../call-on-behalf.js';
+import { createCallOnBehalfTool, registerOnBehalfCallInitiator } from '../call-on-behalf.js';
 import {
   handleTwilioCallStatus,
   trackOutboundCall,
@@ -220,6 +220,9 @@ describe('E2E: Call On Behalf Flow', () => {
 
     // Default orchestrator mock - returns call ID successfully
     mockOrchestratorInitiateCall.mockResolvedValue('call-mock-id-123');
+    // The mocked orchestrator module never self-registers the initiator
+    // (the real one does at import time), so register the mock explicitly
+    registerOnBehalfCallInitiator(mockOrchestratorInitiateCall);
   });
 
   afterEach(() => {
@@ -647,6 +650,8 @@ describe('Integration: Contact Resolution → Tool Execution', () => {
 
     // Default orchestrator mock - returns call ID successfully
     mockOrchestratorInitiateCall.mockResolvedValue('call-integration-id');
+    // Mocked orchestrator module never self-registers; register explicitly
+    registerOnBehalfCallInitiator(mockOrchestratorInitiateCall);
   });
 
   it('should resolve contact by relationship and initiate call', async () => {

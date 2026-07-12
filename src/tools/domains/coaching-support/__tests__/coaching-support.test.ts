@@ -109,9 +109,9 @@ describe('Coaching Support Domain', () => {
       expect(toolDefinitions.length).toBe(22);
     });
 
-    it('should have all tools in self-compassion domain', async () => {
+    it('should have all tools in coaching-support domain', async () => {
       for (const toolDef of toolDefinitions) {
-        expect(toolDef.domain).toBe('self-compassion');
+        expect(toolDef.domain).toBe('coaching-support');
       }
     });
 

@@ -44,7 +44,8 @@ describe('Persona Speech Traits Loader', () => {
       expect(personas).toContain('alex-chen');
       expect(personas).toContain('jordan-taylor');
       expect(personas).toContain('nayan-patel');
-      expect(personas).toHaveLength(6);
+      expect(personas).toContain('joel-dickson');
+      expect(personas).toHaveLength(7);
     });
   });
 

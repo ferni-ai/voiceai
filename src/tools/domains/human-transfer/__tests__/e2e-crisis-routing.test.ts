@@ -33,7 +33,8 @@ vi.mock('../../../../utils/safe-logger.js', () => ({
   }),
 }));
 
-// Mock llm.tool
+// Mock llm.tool (llm.LLM is extended by model-provider/local-pipeline.ts, which this
+// test reaches transitively via injection-builders — it must exist as a class)
 vi.mock('@livekit/agents', () => ({
   llm: {
     tool: vi.fn((config) => ({
@@ -41,6 +42,9 @@ vi.mock('@livekit/agents', () => ({
       parameters: config.parameters,
       execute: config.execute,
     })),
+    LLM: class MockLLM {},
+    LLMStream: class MockLLMStream {},
+    RealtimeModel: class MockRealtimeModel {},
   },
 }));
 

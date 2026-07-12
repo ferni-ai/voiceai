@@ -36,6 +36,7 @@ vi.mock('../../../utils/safe-logger.js', () => {
 vi.mock('../firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => null),
   cleanForFirestore: vi.fn((obj) => obj),
+  recordDegradation: vi.fn(),
 }));
 
 vi.mock('../../calendar/calendar-load-service.js', () => ({

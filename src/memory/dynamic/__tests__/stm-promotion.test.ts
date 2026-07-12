@@ -34,6 +34,18 @@ vi.mock('../../../utils/safe-logger.js', () => ({
     error: vi.fn(),
     debug: vi.fn(),
   }),
+  getLogger: () => {
+    const logger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn(),
+    };
+    logger.child.mockReturnValue(logger);
+    return logger;
+  },
+  serializeError: (e: unknown) => String(e),
 }));
 
 // Mock Firestore utilities

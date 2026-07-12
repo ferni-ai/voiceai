@@ -12,12 +12,27 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { loadBundle } from '../../../src/personas/bundles/loader.js';
 import { join } from 'path';
 import { readdir } from 'fs/promises';
+import { existsSync } from 'fs';
 
 // =============================================================================
 // TEST DATA
 // =============================================================================
 
 const MARKETPLACE_AGENTS_PATH = join(process.cwd(), 'apps/marketplace-agents/agents');
+
+// apps/marketplace-agents/agents/ is gitignored — bundles are installed locally
+// from github.com/sethdford/voiceai-agents (see apps/marketplace-agents/README.md).
+// Skip the whole suite with a reason on checkouts without the install instead of
+// failing 90+ tests.
+const AGENTS_INSTALLED = existsSync(MARKETPLACE_AGENTS_PATH);
+const describeIfInstalled = AGENTS_INSTALLED ? describe : describe.skip;
+if (!AGENTS_INSTALLED) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    'Skipping marketplace agent tests: apps/marketplace-agents/agents/ not installed. ' +
+      'Clone github.com/sethdford/voiceai-agents and copy its agents/ directory there.'
+  );
+}
 
 // All 15 marketplace agents
 const MARKETPLACE_AGENTS = [
@@ -81,7 +96,7 @@ async function getAgentBehaviorFiles(agentId: string): Promise<string[]> {
 // BUNDLE LOADING TESTS
 // =============================================================================
 
-describe('Marketplace Agents - Bundle Loading', () => {
+describeIfInstalled('Marketplace Agents - Bundle Loading', () => {
   it('should have all expected marketplace agents', async () => {
     const agents = await readdir(MARKETPLACE_AGENTS_PATH);
     const agentDirs = agents.filter((a) => !a.startsWith('.'));
@@ -111,7 +126,7 @@ describe('Marketplace Agents - Bundle Loading', () => {
 // BEHAVIOR FILE LOADING TESTS
 // =============================================================================
 
-describe('Marketplace Agents - Behavior Loading', () => {
+describeIfInstalled('Marketplace Agents - Behavior Loading', () => {
   it.each(MARKETPLACE_AGENTS)('should load behaviors for %s', async (agentId) => {
     const bundlePath = join(MARKETPLACE_AGENTS_PATH, agentId);
     const bundle = await loadBundle(bundlePath);
@@ -148,7 +163,7 @@ describe('Marketplace Agents - Behavior Loading', () => {
 // SCHEMA VERSION VALIDATION
 // =============================================================================
 
-describe('Marketplace Agents - Schema Validation', () => {
+describeIfInstalled('Marketplace Agents - Schema Validation', () => {
   it.each(MARKETPLACE_AGENTS)(
     'should have schema_version 2 in behavior files for %s',
     async (agentId) => {
@@ -180,7 +195,7 @@ describe('Marketplace Agents - Schema Validation', () => {
 // 200% SUPERHUMAN BEHAVIORS TEST
 // =============================================================================
 
-describe('Marketplace Agents - 200% Superhuman Behaviors', () => {
+describeIfInstalled('Marketplace Agents - 200% Superhuman Behaviors', () => {
   it.each(MARKETPLACE_AGENTS)(
     'should have superhuman behavior files for %s',
     async (agentId) => {
@@ -217,7 +232,7 @@ describe('Marketplace Agents - 200% Superhuman Behaviors', () => {
 // BEHAVIOR FILE INVENTORY
 // =============================================================================
 
-describe('Marketplace Agents - Behavior Inventory', () => {
+describeIfInstalled('Marketplace Agents - Behavior Inventory', () => {
   it('should generate behavior file inventory', async () => {
     console.log('\n📊 BEHAVIOR FILE INVENTORY\n');
     console.log('=' .repeat(80));
@@ -284,7 +299,7 @@ describe('Marketplace Agents - Behavior Inventory', () => {
 // PREDICTIVE INTELLIGENCE VALIDATION
 // =============================================================================
 
-describe('Marketplace Agents - Predictive Intelligence', () => {
+describeIfInstalled('Marketplace Agents - Predictive Intelligence', () => {
   it.each(MARKETPLACE_AGENTS)(
     'should have valid predictive intelligence for %s',
     async (agentId) => {

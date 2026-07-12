@@ -203,7 +203,7 @@ describe('Life Context API Routes', () => {
       expect(mockAggregateLifeContext).toHaveBeenCalledWith('user-123');
     });
 
-    it('should accept userId from X-User-Id header', async () => {
+    it('should reject the client-spoofable X-User-Id header (auth comes from x-firebase-uid)', async () => {
       mockAggregateLifeContext.mockResolvedValue(createMockLifeContextSnapshot());
       mockGenerateSynthesisTriggers.mockReturnValue([]);
 
@@ -212,8 +212,8 @@ describe('Life Context API Routes', () => {
 
       await handleLifeContextRoutes(req, res, '/api/life-context');
 
-      expect(res._statusCode).toBe(200);
-      expect(mockAggregateLifeContext).toHaveBeenCalledWith('user-456');
+      expect(res._statusCode).toBe(400);
+      expect(mockAggregateLifeContext).not.toHaveBeenCalledWith('user-456');
     });
   });
 

@@ -129,19 +129,19 @@ describe('Human Transfer Domain Tools', () => {
     it('should have evaluateHumanTransfer tool', () => {
       const tool = toolDefinitions.find((t) => t.id === 'evaluateHumanTransfer');
       expect(tool).toBeDefined();
-      expect(tool?.domain).toBe('crisis');
+      expect(tool?.domain).toBe('human-transfer');
     });
 
     it('should have connectToHumanExpert tool', () => {
       const tool = toolDefinitions.find((t) => t.id === 'connectToHumanExpert');
       expect(tool).toBeDefined();
-      expect(tool?.domain).toBe('crisis');
+      expect(tool?.domain).toBe('human-transfer');
     });
 
     it('should have quickCrisisResources tool', () => {
       const tool = toolDefinitions.find((t) => t.id === 'quickCrisisResources');
       expect(tool).toBeDefined();
-      expect(tool?.domain).toBe('crisis');
+      expect(tool?.domain).toBe('human-transfer');
     });
   });
 
@@ -420,9 +420,9 @@ describe('Human Transfer Domain Tools', () => {
       }
     });
 
-    it('all tools should be in crisis domain', () => {
+    it('all tools should be in human-transfer domain', () => {
       for (const toolDef of toolDefinitions) {
-        expect(toolDef.domain).toBe('crisis');
+        expect(toolDef.domain).toBe('human-transfer');
       }
     });
 
