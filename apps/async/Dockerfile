@@ -19,8 +19,10 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/async/package.json ./apps/async/package.json
 
-# Install all dependencies (including devDependencies for build)
-RUN pnpm install --filter @ferni/async... --frozen-lockfile --prefer-offline || pnpm install --filter @ferni/async...
+# Install all dependencies (including devDependencies for build).
+# Avoid --frozen-lockfile: workspace filter installs with a partial package
+# copy can disagree with root lockfile overrides under pnpm 9.
+RUN pnpm install --filter @ferni/async... --prefer-offline
 
 # Copy source and config
 COPY apps/async/tsconfig.json apps/async/esbuild.config.js ./apps/async/
@@ -49,7 +51,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/async/package.json ./apps/async/package.json
 
 # Install production dependencies only
-RUN pnpm install --filter @ferni/async --prod --frozen-lockfile --prefer-offline || pnpm install --filter @ferni/async --prod
+RUN pnpm install --filter @ferni/async --prod --prefer-offline
 
 # Copy built files from builder
 WORKDIR /app/apps/async
