@@ -1271,13 +1271,22 @@ async function deployAsync(options: DeployOptions): Promise<boolean> {
     return false;
   }
 
-  // Typecheck before deploying
+  // Typecheck + prebuild (daily-outreach bundle needs monorepo sources)
   log.info('Typechecking async workers...');
   try {
-    exec('pnpm typecheck', { cwd: asyncDir });
+    exec('pnpm --dir apps/async typecheck', { silent: true });
     log.success('Typecheck passed');
   } catch {
     log.error('Typecheck failed - fix errors before deploying');
+    return false;
+  }
+
+  log.info('Building async workers (includes daily-outreach bundle)...');
+  try {
+    exec('pnpm --dir apps/async build:fast');
+    log.success('Async build complete');
+  } catch {
+    log.error('Async build failed - fix errors before deploying');
     return false;
   }
 
@@ -1290,7 +1299,8 @@ async function deployAsync(options: DeployOptions): Promise<boolean> {
       [
         'builds',
         'submit',
-        `--config=cloudbuild-async.yaml`,
+        'apps/async',
+        `--config=${join(PROJECT_ROOT, 'cloudbuild-async.yaml')}`,
         `--project=${CONFIG.projectId}`,
         `--substitutions=_IMAGE_TAG=${imageTag}`,
       ],

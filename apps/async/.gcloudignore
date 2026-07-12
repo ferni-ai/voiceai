@@ -1,0 +1,6 @@
+# Cloud Build upload ignore for apps/async
+# Keep dist/ — ferni deploy async prebuilds daily-outreach + server there.
+node_modules/
+.git/
+*.log
+coverage/

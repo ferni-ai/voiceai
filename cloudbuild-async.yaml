@@ -17,11 +17,11 @@ substitutions:
   _IMAGE_TAG: 'latest'
 
 steps:
-  # Build with Kaniko (fast caching)
+  # Build with Kaniko. Source context is apps/async (prebuilt dist/ required).
   - name: 'gcr.io/kaniko-project/executor:latest'
     args:
-      - '--dockerfile=apps/async/Dockerfile'
-      - '--context=.'
+      - '--dockerfile=Dockerfile'
+      - '--context=dir://.'
       - '--destination=gcr.io/$PROJECT_ID/ferni-async:latest'
       - '--destination=gcr.io/$PROJECT_ID/ferni-async:$_IMAGE_TAG'
       - '--cache=true'
