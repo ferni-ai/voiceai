@@ -6,7 +6,7 @@ Use this for prioritization and sprint planning. Update as items are done.
 
 **SOTA / Better than human:** For the *vision* and src/-level plan to make the platform state-of-the-art and better than human, see **`docs/FOCUS-SOTA-BETTER-THAN-HUMAN.md`**.
 
-**Last updated:** February 2026
+**Last updated:** July 2026
 
 ---
 
@@ -14,8 +14,8 @@ Use this for prioritization and sprint planning. Update as items are done.
 
 | # | Item | Location | Action |
 |---|------|----------|--------|
-| 1 | **Tools with no `execute`** | `tools/registry/loader.ts:1218` | When a tool has no `execute`, loader uses a no-op that returns "Not implemented". Audit registered tools; add `execute` or reject at registration so callers don't get silent no-ops. |
-| 2 | **Memory pipeline underpopulated** | Dynamic memory, entity extraction | Validate L2/L3 and entity extraction; backfill human signals; fix topic/keyPoints in summarization (see MEMORY-PIPELINE-AUDIT). |
+| 1 | **Tools with no `execute`** | `tools/registry/loader.ts` + `buildToolSet` | ✅ Fixed Jul 2026: reject missing `execute` in `convertLegacyTools`; `isTool()` guards in `buildToolSet` and `dynamic-domain-executor`. |
+| 2 | **Memory pipeline underpopulated** | Dynamic memory, entity extraction | ✅ Partial Jul 2026: topic-hint queues deep extraction; STM topics merge into empty summaries; coaching topic keywords; knowledge capture init at GCE startup; E2E checks `dynamic_entities`. Remaining: Spanner L3, backfills. |
 
 ---
 
@@ -35,7 +35,7 @@ Use this for prioritization and sprint planning. Update as items are done.
 
 | # | Item | Location | Action |
 |---|------|----------|--------|
-| 8 | **TTS streaming latency** | `gateway-tts-node.ts:123` | TODO: implement streaming synthesis for better-than-human latency (Sonata path). |
+| 8 | **TTS streaming latency** | `gateway-tts-node.ts` Sonata path | ✅ Partial Jul 2026: Sonata uses sentence-overlap + `synthesizeStreaming` (same as Cartesia chunk path). Opt into old whole-text drain with `TTS_WHOLE_TEXT_STREAMING=true`. Remaining: native incremental `setText`/`step` pipelining. |
 | 9 | **Cache hits not tracked** | `turn-processor-integration.ts:408` | "TODO: track cache hits" — currently passes `false`. Wire or remove TODO. |
 | 10 | **Link reinforcement not tracked** | `memory/unified-store/facade.ts:810` | `linksStrengthened: 0` — TODO to track link reinforcement. |
 | 11 | **Agent messages across turns** | `turn-processor.ts:2297` | TODO: track agent messages across turns (services doesn't expose easily). Document or implement. |

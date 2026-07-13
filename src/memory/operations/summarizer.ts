@@ -50,12 +50,23 @@ function extractTopics(turns: ConversationTurn[]): string[] {
     savings: ['save', 'saving', 'emergency fund', 'savings account'],
     debt: ['debt', 'loan', 'mortgage', 'credit card', 'pay off'],
     fees: ['fee', 'cost', 'expense ratio', 'charges'],
-    goals: ['goal', 'plan', 'target', 'objective'],
+    goals: ['goal', 'plan', 'target', 'objective', 'dream', 'ambition', 'aspiration'],
     risk: ['risk', 'volatility', 'conservative', 'aggressive'],
-    family: ['family', 'kids', 'children', 'spouse', 'wife', 'husband'],
+    family: ['family', 'kids', 'children', 'spouse', 'wife', 'husband', 'mom', 'dad', 'parents'],
     emotions: ['worried', 'anxious', 'scared', 'happy', 'excited', 'stressed'],
     education: ['college', 'education', 'tuition', '529'],
     home: ['house', 'home', 'mortgage', 'down payment'],
+    // Life-coaching topics (aligned with fast-capture TOPIC_PATTERNS)
+    work: ['work', 'job', 'career', 'office', 'boss', 'meeting', 'project', 'deadline'],
+    health: ['health', 'doctor', 'sick', 'pain', 'medication', 'symptoms', 'diagnosis'],
+    relationships: ['relationship', 'dating', 'marriage', 'divorce', 'partner'],
+    finances: ['money', 'financial', 'bills', 'budget', 'rent'],
+    mental_health: ['stress', 'anxiety', 'depression', 'therapy', 'mental health'],
+    sleep: ['sleep', 'tired', 'exhausted', 'insomnia', 'rest'],
+    fitness: ['exercise', 'gym', 'workout', 'run', 'fitness'],
+    creative: ['hobby', 'creative', 'art', 'music', 'writing'],
+    habits: ['habit', 'routine', 'streak', 'ritual'],
+    grief: ['grief', 'loss', 'mourning', 'passed away', 'funeral'],
   };
 
   const text = turns
@@ -99,6 +110,13 @@ function extractKeyPoints(turns: ConversationTurn[]): string[] {
     'my advice',
     'I recommend',
     'stay the course',
+    'what matters',
+    'notice that',
+    'i notice',
+    "let's",
+    'try this',
+    'next step',
+    'one thing',
   ];
 
   for (const turn of turns) {

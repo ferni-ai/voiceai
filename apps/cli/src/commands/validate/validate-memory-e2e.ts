@@ -679,14 +679,24 @@ async function buildValidationChecks(
       name: 'Entities Subcollection',
       category: 'extraction' as const,
       check: async () => {
-        const snap = await userRef.collection('entities').get();
-        // Entities subcollection is populated by entity extraction worker (async)
+        const [legacySnap, dynamicSnap, promotedSnap] = await Promise.all([
+          userRef.collection('entities').get(),
+          userRef.collection('dynamic_entities').get(),
+          userRef.collection('promoted_entities').get(),
+        ]);
+        const total = legacySnap.size + dynamicSnap.size + promotedSnap.size;
         return {
-          passed: true, // Pass - requires async worker
-          expected: 'Requires entity extraction worker (async)',
-          actual: `${snap.size} entities`,
-          gap: undefined,
-          fix: snap.size === 0 ? 'Run entity extraction worker or use standard/thorough test' : undefined,
+          passed: total > 0,
+          expected: '>= 1 entity in entities, dynamic_entities, or promoted_entities',
+          actual: `${legacySnap.size} entities, ${dynamicSnap.size} dynamic, ${promotedSnap.size} promoted`,
+          gap:
+            total === 0
+              ? 'No entities in known collections — deep extraction / STM promotion may not have run'
+              : undefined,
+          fix:
+            total === 0
+              ? 'Ensure startDeepExtractionWorker + onSessionEnd promotion; check dynamic_entities'
+              : undefined,
         };
       },
     },

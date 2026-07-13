@@ -311,7 +311,8 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
     emotionSignals.some((e) => e.intensity !== 'low') ||
     dateSignals.length > 0 ||
     relationshipSignals.length > 0 ||
-    linkingSignals.length > 0;
+    linkingSignals.length > 0 ||
+    topicHints.length > 0;
 
   if (hasSignals && transcript.length > 20) {
     asyncJobId = await queueDeepExtraction({

@@ -44,6 +44,28 @@ export async function generateSummary(
 ): Promise<ConversationSummary | null> {
   log.info({ sessionId, turnCount: turns.length }, '📝 Starting conversation summarization');
 
+  const enrichWithStmTopics = async (
+    summary: ConversationSummary
+  ): Promise<ConversationSummary> => {
+    if (summary.mainTopics?.length) {
+      return summary;
+    }
+    try {
+      const { getRecentTopics } = await import('../../memory/dynamic/stm-buffer.js');
+      const stmTopics = getRecentTopics(sessionId).slice(0, 10);
+      if (stmTopics.length === 0) {
+        return summary;
+      }
+      log.info(
+        { sessionId, stmTopicCount: stmTopics.length },
+        '📝 Merged STM topic hints into empty summary.mainTopics'
+      );
+      return { ...summary, mainTopics: stmTopics };
+    } catch {
+      return summary;
+    }
+  };
+
   // Try LLM summarization first
   try {
     const { createSummarizationLLMCaller } = await import('../llm-utils.js');
@@ -58,11 +80,12 @@ export async function generateSummary(
     );
 
     if (summary) {
+      const enriched = await enrichWithStmTopics(summary);
       log.info(
-        { sessionId, keyPoints: summary.keyPoints?.length || 0 },
+        { sessionId, keyPoints: enriched.keyPoints?.length || 0 },
         '✅ LLM summarization succeeded'
       );
-      return summary;
+      return enriched;
     }
   } catch (llmError) {
     log.warn(
@@ -81,11 +104,12 @@ export async function generateSummary(
     );
 
     if (summary) {
+      const enriched = await enrichWithStmTopics(summary);
       log.info(
-        { sessionId, keyPoints: summary.keyPoints?.length || 0 },
+        { sessionId, keyPoints: enriched.keyPoints?.length || 0 },
         '✅ Extraction summarization succeeded'
       );
-      return summary;
+      return enriched;
     }
   } catch (extractError) {
     log.warn({ sessionId, error: String(extractError) }, '⚠️ Extraction summarization also failed');

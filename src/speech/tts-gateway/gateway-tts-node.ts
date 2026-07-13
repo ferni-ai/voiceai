@@ -403,14 +403,15 @@ async function createStreamingOverlapTTS(
     markFirstAudio,
   } = opts;
 
-  // Local streaming TTS (Sonata): accumulate all text first, then one stream.
-  // Cartesia must NOT use this path — it needs sentence overlap + per-chunk WS.
+  // Prefer sentence-overlap for all streaming providers (Sonata + Cartesia).
+  // Whole-text drain delayed first audio until the full LLM reply finished — opt in only for debug.
   const useWholeTextStreaming =
-    !!provider.synthesizeStreaming && provider.name !== 'cartesia';
-  const useCartesiaChunkStreaming =
-    provider.name === 'cartesia' &&
+    process.env.TTS_WHOLE_TEXT_STREAMING === 'true' &&
+    !!provider.synthesizeStreaming &&
+    provider.name !== 'cartesia';
+  const useProviderChunkStreaming =
     typeof provider.synthesizeStreaming === 'function' &&
-    process.env.CARTESIA_STREAMING_TTS !== 'false';
+    (provider.name !== 'cartesia' || process.env.CARTESIA_STREAMING_TTS !== 'false');
 
   return new ReadableStream<AudioFrame>({
     async start(controller) {
@@ -613,7 +614,7 @@ async function createStreamingOverlapTTS(
                     controller.enqueue(frame);
                   }
                 }
-              } else if (useCartesiaChunkStreaming) {
+              } else if (useProviderChunkStreaming) {
                 if (prefetch) {
                   void prefetch.promise.catch(() => undefined);
                   prefetch = null;

@@ -1261,32 +1261,19 @@ export function convertLegacyTools(
       create: () => {
         const hasExecute = typeof toolObj.execute === 'function';
         if (!hasExecute) {
-          getLogger().warn(
-            { toolId: options.prefix ? `${options.prefix}_${id}` : id, domain },
-            'Tool registered without execute(); will return "Not implemented" when called'
+          throw new Error(
+            `Legacy tool "${id}" in domain "${domain}" is missing execute(); refusing silent no-op`
           );
         }
         return {
-        description: toolObj.description as string,
-        parameters: toolObj.parameters as ToolDefinition['create'] extends (ctx: unknown) => infer R
-          ? R extends { parameters?: infer P }
-            ? P
-            : undefined
-          : undefined,
-        execute:
-          hasExecute
-            ? (toolObj.execute as () => Promise<unknown>).bind(toolObj)
-            : async () => {
-                getLogger().warn(
-                  { toolId: id, domain },
-                  'Legacy tool invoked without execute implementation'
-                );
-                return {
-                  error: 'Not implemented',
-                  _meta: { degraded: true, reason: 'legacy_tool_missing_execute', toolId: id },
-                };
-              },
-      };
+          description: toolObj.description as string,
+          parameters: toolObj.parameters as ToolDefinition['create'] extends (ctx: unknown) => infer R
+            ? R extends { parameters?: infer P }
+              ? P
+              : undefined
+            : undefined,
+          execute: (toolObj.execute as () => Promise<unknown>).bind(toolObj),
+        };
       },
     };
 

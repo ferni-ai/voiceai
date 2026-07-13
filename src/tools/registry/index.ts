@@ -30,6 +30,7 @@ import {
   DOMAIN_TO_CATEGORY,
   EmptyServiceRegistry,
   EnvironmentServiceRegistry,
+  isTool,
   validateToolDefinition,
   validateToolSetSpec,
   type RegistryEvent,
@@ -423,6 +424,14 @@ export class ToolRegistry {
       // Create the tool instance
       try {
         const tool = def.create(ctx);
+        if (!isTool(tool)) {
+          skipped.push({ toolId: def.id, reason: 'Tool instance missing description or execute' });
+          getLogger().error(
+            { toolId: def.id, domain: def.domain },
+            'Tool missing execute — excluded from tool set'
+          );
+          return false;
+        }
         tools[def.id] = tool;
         included.add(def.id);
         getLogger().debug({ toolId: def.id, reason }, 'Tool added to set');

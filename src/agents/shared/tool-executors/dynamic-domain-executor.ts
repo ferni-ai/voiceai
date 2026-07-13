@@ -14,6 +14,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { isTool } from '../../../tools/registry/types.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'DynamicDomainExecutor' });
@@ -223,6 +224,10 @@ async function executeDomainTool(
   try {
     // Create and execute the tool
     const tool = toolDef.create(toolContext);
+    if (!isTool(tool)) {
+      log.error({ toolId, domain: domainName }, 'Tool missing execute');
+      return "I couldn't run that action right now.";
+    }
     const result = await tool.execute(args);
 
     log.info(

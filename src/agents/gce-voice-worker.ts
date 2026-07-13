@@ -214,6 +214,16 @@ import { startDeepExtractionWorker, startSyncService } from '../memory/dynamic/i
 startDeepExtractionWorker();
 log('✅ Deep extraction worker started');
 
+// Knowledge capture must be ready before first turns — avoids captureTurn no-ops
+import { initializeKnowledgeCapture } from '../memory/knowledge-graph/index.js';
+void initializeKnowledgeCapture()
+  .then(() => log('✅ Knowledge capture initialized'))
+  .catch((err) =>
+    log('⚠️ Knowledge capture init failed (entity persistence may be delayed)', {
+      error: String(err),
+    })
+  );
+
 // Initialize Spanner Graph (L3 long-term memory)
 // CRITICAL: Must initialize before starting sync service
 import { initializeSpanner } from '../memory/spanner-graph/client.js';
