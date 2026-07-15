@@ -121,7 +121,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload to Pages
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         continue-on-error: true
         with:
           path: ./dashboard
