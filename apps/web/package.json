@@ -42,7 +42,7 @@
     "prepare": "husky || true"
   },
   "dependencies": {
-    "@capacitor/core": "^7.4.4",
+    "@capacitor/core": "^8.2.0",
     "@capacitor/haptics": "^7.0.2",
     "@capacitor/local-notifications": "^7.0.3",
     "@capacitor/push-notifications": "^7.0.3",
