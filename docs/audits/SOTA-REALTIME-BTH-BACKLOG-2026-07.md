@@ -66,7 +66,7 @@ Earlier ~7–10s was **session entry work after `startCall`** (profile load, dia
 
 | ID | Status | Evidence |
 |----|--------|----------|
-| BTH-B1 | partial | Write: `human-signal-persistence.ts` `persistHumanSignals` → `human_signals/*`. Read: `dynamic-memory-context.ts` `getHumanSignals` → `human_memory/profile` only — **mismatch**. |
+| BTH-B1 | closed | Task 2 (2026-07-18): `getHumanSignals` now merges `human_signals/*` shards via `mergeHumanSignalSources` (`memory/storage/human-signal-merge.ts`); `persistHumanSignals` mirrors shards into `human_memory/profile` after each successful `batch.commit()`. Round-trip covered by `memory/__tests__/human-signal-roundtrip.test.ts`. Dual-write (shards + mirror) is intentional this sprint. |
 | BTH-G1 | partial | Builder: `social-relationships.ts`. Persist/load APIs exist in `social-graph/index.ts` (`persistGraphToFirestore` / `loadGraphFromFirestore`) but builder does not load before insights. |
 | BTH-G2 | partial | Live injection: `live-superhuman-injections.ts` `detectDataCapture` → category `superhuman_data_capture`. Residual: durable contact store not proven. |
 
