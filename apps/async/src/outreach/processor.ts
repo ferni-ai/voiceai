@@ -13,6 +13,7 @@ import { createLogger } from '../logger.js';
 import type { OutreachTrigger, ProcessResult, UserContext, WorkerConfig } from '../types.js';
 import { isTestUser } from '../types.js';
 import { makeDeliveryDecision } from './decision-engine.js';
+import { fulfillDeliveryIntent } from './delivery-adapter.js';
 
 const log = createLogger('outreach-processor');
 
@@ -147,34 +148,12 @@ export async function processTrigger(
       'Trigger processed'
     );
 
-    if (dryRun) {
-      log.info({ triggerId, decision }, '[DRY RUN] Would process trigger');
-      return { triggerId, success: true, decision };
-    }
-
-    // Update trigger status
-    if (decision.shouldDeliver) {
-      await triggerRef.update({
-        status: 'processing',
-        processedAt: new Date(),
-        decision: {
-          channel: decision.channel,
-          delayMinutes: decision.delayMinutes,
-          reason: decision.reason,
-        },
-      });
-
-      // TODO: Schedule delivery via Cloud Tasks
-      // For now, just mark as "processing" - delivery worker will pick it up
-    } else {
-      await triggerRef.update({
-        status: 'cancelled',
-        processedAt: new Date(),
-        cancelReason: decision.reason,
-      });
-    }
-
-    return { triggerId, success: true, decision };
+    const fulfillment = await fulfillDeliveryIntent(config, trigger, decision);
+    return {
+      triggerId,
+      success: fulfillment.status !== 'failed',
+      decision,
+    };
   } catch (error) {
     log.error({ error, triggerId }, 'Error processing trigger');
     return {

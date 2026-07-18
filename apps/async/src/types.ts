@@ -16,7 +16,13 @@ export type OutreachType =
   | 'wisdom_share'
   | 'gentle_nudge';
 
-export type TriggerStatus = 'pending' | 'processing' | 'delivered' | 'failed' | 'cancelled';
+export type TriggerStatus =
+  | 'pending'
+  | 'processing'
+  | 'delivered'
+  | 'failed'
+  | 'cancelled'
+  | 'skipped';
 
 export type Priority = 'high' | 'medium' | 'low';
 
