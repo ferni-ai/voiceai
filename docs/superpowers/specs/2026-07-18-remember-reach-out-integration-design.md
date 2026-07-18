@@ -203,7 +203,10 @@ S1 (audit) ──► S2 (signals) ──► S3 (context)
 | S2 | | | |
 | S3 | | | |
 | S4 | `curl -X POST …/process-batch` + doc read | | |
-| S5 | `node scripts/ops/sota-local-e2e.mjs` (or gate) | | |
+| S5 | `node scripts/ops/assert-human-signal-roundtrip.mjs` | `{"ok":true,"name":"human-signal-roundtrip","status":0}` | 2026-07-18 |
+| S5 | `node scripts/ops/assert-outreach-delivery-intent.mjs` | `{"ok":true,"name":"outreach-delivery-intent","status":0}` | 2026-07-18 |
+
+Note: delivery plumbing closed; channel credentials (Twilio/FCM live sends) out of scope this sprint.
 
 ---
 
