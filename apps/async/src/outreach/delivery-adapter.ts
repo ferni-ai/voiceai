@@ -10,7 +10,7 @@ const log = createLogger('delivery-adapter');
 
 export interface DeliveryIntentResult {
   triggerId: string;
-  status: 'delivered' | 'skipped' | 'failed';
+  status: 'delivered' | 'skipped' | 'failed' | 'processing';
   dryRun: boolean;
   channel: DeliveryChannel;
   reason: string;
@@ -71,9 +71,11 @@ export async function fulfillDeliveryIntent(
     };
   }
 
-  // Live path: mark processing then delivered.
-  // Full Twilio/FCM calls stay out of sprint scope — record intent + terminal delivered
-  // once channel adapters are credentialed later.
+  // Live path: channel send (Twilio/FCM) is out of sprint scope — creds aren't
+  // wired yet. We must NEVER write status `delivered` without a real external
+  // send, or DRY_RUN being unset in prod would silently mask uncontacted users.
+  // Record the intent and leave the trigger in `processing` so it's visibly
+  // "not yet actually delivered" until a real channel adapter lands.
   try {
     await triggerRef.update({
       status: 'processing',
@@ -84,22 +86,16 @@ export async function fulfillDeliveryIntent(
         reason: decision.reason,
       },
       deliveryIntent,
-    });
-
-    // Placeholder for channel send — fail closed to failed if you call real send later.
-    await triggerRef.update({
-      status: 'delivered',
-      deliveredAt: new Date(),
       dryRun: false,
-      deliveryNote: 'intent-recorded-no-external-send',
+      deliveryNote: 'intent-recorded-awaiting-channel-send',
     });
 
     return {
       triggerId: trigger.id,
-      status: 'delivered',
+      status: 'processing',
       dryRun: false,
       channel: decision.channel,
-      reason: decision.reason,
+      reason: 'external channel send not implemented; intent recorded as processing',
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

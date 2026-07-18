@@ -487,13 +487,16 @@ async function getHumanSignals(userId: string): Promise<HumanMemoryProfile | nul
       }
     }
 
-    const base =
-      fromSubcollection && !isHumanMemoryProfileEmpty(fromSubcollection)
-        ? fromSubcollection
-        : (fromProfile ?? emptyProfile());
+    const profileHasContent = !!fromSubcollection && !isHumanMemoryProfileEmpty(fromSubcollection);
+    const base = profileHasContent ? fromSubcollection : (fromProfile ?? emptyProfile());
 
-    // 3. Merge in human_signals/* shards (BTH-B1 unification)
-    const shards = await getPersistedHumanSignals(userId);
+    // 3. Merge in human_signals/* shards (BTH-B1 unification).
+    // The shard writer (`persistHumanSignals`) mirrors every shard into
+    // human_memory/profile on write, so once the profile doc is non-empty it
+    // already reflects the shards — skip the extra shard fan-out (10 doc
+    // reads) in that case. Still fetch shards when the profile is empty/
+    // missing so STM-only shard writes stay visible until the mirror runs.
+    const shards = profileHasContent ? {} : await getPersistedHumanSignals(userId);
     // HumanSignal is a closed interface (no index signature); the merge
     // helper's item type is intentionally generic so it stays dependency-free.
     // mapSignals() below re-normalizes every item back into HumanSignal.
