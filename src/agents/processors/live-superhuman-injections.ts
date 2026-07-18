@@ -1583,6 +1583,7 @@ export {
   detectValuesLanguage,
   detectCapacitySignals,
   detectPatternTrigger,
+  detectDataCapture,
   analyzeDeepVoiceBiomarkers,
   analyzeTimingReadiness,
   detectAmbientContext,
