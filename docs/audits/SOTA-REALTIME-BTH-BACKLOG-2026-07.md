@@ -61,9 +61,14 @@ Earlier ~7–10s was **session entry work after `startCall`** (profile load, dia
 | P1-B1 | later | 1408 files over 500 lines | WAVE1-P0-BACKLOG |
 | P1-C3 | 4 | `ferni deploy async` drain verify | WAVE1-P0-BACKLOG |
 | P2-C1 | later | Pronunciation gaps; CEO calendar mock | WAVE1-P0-BACKLOG |
-| BTH-G1 | 3 | Social graph not in context | BETTER-THAN-HUMAN-GAPS |
-| BTH-G2 | 3 | Data capture results not injected | BETTER-THAN-HUMAN-GAPS |
-| BTH-B1 | 3 | Human signals never persisted | BTH-BLOCKERS-AUDIT |
+
+## Remember & reach out integration (2026-07-18)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| BTH-B1 | partial | Write: `human-signal-persistence.ts` `persistHumanSignals` → `human_signals/*`. Read: `dynamic-memory-context.ts` `getHumanSignals` → `human_memory/profile` only — **mismatch**. |
+| BTH-G1 | partial | Builder: `social-relationships.ts`. Persist/load APIs exist in `social-graph/index.ts` (`persistGraphToFirestore` / `loadGraphFromFirestore`) but builder does not load before insights. |
+| BTH-G2 | partial | Live injection: `live-superhuman-injections.ts` `detectDataCapture` → category `superhuman_data_capture`. Residual: durable contact store not proven. |
 
 ## Wave 1 candidates (after instrumentation)
 

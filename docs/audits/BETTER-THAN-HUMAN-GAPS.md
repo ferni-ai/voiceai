@@ -232,6 +232,10 @@ if (captureResult.contextForLLM) {
 |-----|--------|--------|----------|--------|
 | Social Graph Context | 🔴 High | Low | **P0** | ✅ DONE |
 | Data Capture Acknowledgment | 🔴 High | Low | **P0** | ✅ DONE |
+
+> **2026-07-18:** Treated as **partial** pending remember-reach-out integration sprint
+> (`docs/superpowers/specs/2026-07-18-remember-reach-out-integration-design.md`).
+> Injection may exist; persist↔retrieve / Firestore load still incomplete.
 | Emotional Trajectory Surfacing | 🔴 High | Medium | **P1** | ✅ DONE |
 | Pattern-Aware Outreach Triggers | 🟡 Medium | Medium | **P1** | ✅ DONE |
 | Enhanced Voice Biomarkers | 🟡 Medium | High | **P2** | ✅ DONE |
