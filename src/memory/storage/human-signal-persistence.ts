@@ -259,6 +259,37 @@ export async function persistHumanSignals(
         },
         '💾 Human signals persisted'
       );
+
+      // Mirror shards into human_memory/profile (BTH-B1: unify persist ↔ retrieve).
+      // getHumanSignals reads this doc; without the mirror, shard-only writes
+      // are invisible until Task 2's merge-on-read also lands. Kept
+      // best-effort — a mirror failure must not flip a successful shard
+      // write to a failure.
+      try {
+        const mirrored = await getPersistedHumanSignals(userId);
+        const profileRef = userRef.collection('human_memory').doc('profile');
+        await profileRef.set(
+          {
+            importantDates: mirrored.importantDates ?? [],
+            values: mirrored.values ?? [],
+            dreams: mirrored.dreams ?? [],
+            fears: mirrored.fears ?? [],
+            growthMarkers: mirrored.growthMarkers ?? [],
+            challenges: mirrored.challenges ?? [],
+            comfortPatterns: mirrored.comfortPatterns ?? [],
+            stressTriggers: mirrored.stressTriggers ?? [],
+            insideJokes: mirrored.insideJokes ?? [],
+            lastMirroredAt: now,
+            source: 'human-signal-persistence',
+          },
+          { merge: true }
+        );
+      } catch (mirrorError) {
+        log.warn(
+          { userId, error: String(mirrorError) },
+          'Failed to mirror human signals into human_memory/profile'
+        );
+      }
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

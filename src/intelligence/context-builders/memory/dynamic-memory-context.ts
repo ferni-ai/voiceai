@@ -18,8 +18,13 @@ import {
   getFrequentEntities,
   getRecentTopics,
 } from '../../../memory/dynamic/stm-buffer.js';
+import { getPersistedHumanSignals } from '../../../memory/human-signal-persistence.js';
 import type { RetrievedMemory } from '../../../memory/interfaces/index.js';
 import { semanticSearch } from '../../../memory/retrieval/index.js';
+import {
+  mergeHumanSignalSources,
+  type HumanMemoryProfileLike,
+} from '../../../memory/storage/human-signal-merge.js';
 import { getFirestoreDb, toSafeDate } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { BuilderCategory } from '../core/categories.js';
@@ -366,7 +371,8 @@ function mapSignals(arr: unknown[]): HumanSignal[] {
         (obj.type && obj.effectiveFor ? `${obj.type} (${obj.effectiveFor})` : '') ||
         ''
     );
-    const extractedAtRaw = obj.extractedAt || obj.discoveredAt || obj.observedAt || obj.firstMentioned;
+    const extractedAtRaw =
+      obj.extractedAt || obj.discoveredAt || obj.observedAt || obj.firstMentioned;
     const extractedAt =
       (extractedAtRaw as { toDate?: () => Date })?.toDate?.() ||
       (extractedAtRaw instanceof Date ? extractedAtRaw : new Date());
@@ -399,12 +405,8 @@ function normalizeHumanMemoryData(data: Record<string, unknown>): HumanMemoryPro
 
   return {
     importantDates: mapSignals((data.importantDates as unknown[]) || []),
-    values: mapSignals(
-      (data.values as unknown[]) || (identity?.values as unknown[]) || []
-    ),
-    dreams: mapSignals(
-      (data.dreams as unknown[]) || (identity?.dreams as unknown[]) || []
-    ),
+    values: mapSignals((data.values as unknown[]) || (identity?.values as unknown[]) || []),
+    dreams: mapSignals((data.dreams as unknown[]) || (identity?.dreams as unknown[]) || []),
     fears: mapSignals((data.fears as unknown[]) || (identity?.fears as unknown[]) || []),
     growthMarkers: mapSignals(
       (data.growthMarkers as unknown[]) || (growthArc?.markers as unknown[]) || []
@@ -418,9 +420,7 @@ function normalizeHumanMemoryData(data: Record<string, unknown>): HumanMemoryPro
       (data.challenges as unknown[]) || (growthArc?.challenges as unknown[]) || []
     ),
     stressTriggers: mapSignals(
-      (data.stressTriggers as unknown[]) ||
-        (emotionalSignature?.stressTriggers as unknown[]) ||
-        []
+      (data.stressTriggers as unknown[]) || (emotionalSignature?.stressTriggers as unknown[]) || []
     ),
     importantPeople: mapSignals((data.importantPeople as unknown[]) || []),
   };
@@ -430,13 +430,30 @@ function isHumanMemoryProfileEmpty(profile: HumanMemoryProfile): boolean {
   return Object.values(profile).every((arr) => arr.length === 0);
 }
 
+function emptyProfile(): HumanMemoryProfile {
+  return {
+    importantDates: [],
+    values: [],
+    dreams: [],
+    fears: [],
+    growthMarkers: [],
+    comfortPatterns: [],
+    challenges: [],
+    stressTriggers: [],
+    importantPeople: [],
+  };
+}
+
 /**
  * Retrieve human signals from LLM extraction (Jan 2026)
  * "Better Than Human" memory - dreams, fears, values, important dates, etc.
  *
- * Read path (unified):
+ * Read path (unified, BTH-B1):
  * 1. Prefer human_memory/profile subcollection
  * 2. If missing/empty, fall back to profile.humanMemory on the main user doc
+ * 3. Merge in human_signals/* shards written by `persistHumanSignals` — the
+ *    two write paths are dual-write this sprint, so the reader must union
+ *    both or shard-only writes silently disappear on the next session.
  */
 async function getHumanSignals(userId: string): Promise<HumanMemoryProfile | null> {
   try {
@@ -450,30 +467,64 @@ async function getHumanSignals(userId: string): Promise<HumanMemoryProfile | nul
 
     // 1. Prefer dedicated human_memory/profile doc
     const profileDoc = await userRef.collection('human_memory').doc('profile').get();
-    if (profileDoc.exists) {
-      const fromSubcollection = normalizeHumanMemoryData(profileDoc.data() || {});
-      if (!isHumanMemoryProfileEmpty(fromSubcollection)) {
-        return fromSubcollection;
+    const fromSubcollection = profileDoc.exists
+      ? normalizeHumanMemoryData(profileDoc.data() || {})
+      : null;
+
+    // 2. Fall back to main user profile doc's humanMemory field
+    let fromProfile: HumanMemoryProfile | null = null;
+    if (!fromSubcollection || isHumanMemoryProfileEmpty(fromSubcollection)) {
+      const userDoc = await userRef.get();
+      const humanMemory = userDoc.exists
+        ? (userDoc.data()?.humanMemory as Record<string, unknown> | undefined)
+        : undefined;
+      if (humanMemory && typeof humanMemory === 'object') {
+        const normalized = normalizeHumanMemoryData(humanMemory);
+        if (!isHumanMemoryProfileEmpty(normalized)) {
+          log.debug({ userId }, '🧠 [MEMORY] Using profile.humanMemory fallback for human signals');
+          fromProfile = normalized;
+        }
       }
     }
 
-    // 2. Fall back to main user profile doc's humanMemory field
-    const userDoc = await userRef.get();
-    if (!userDoc.exists) {
-      return null;
-    }
-    const humanMemory = userDoc.data()?.humanMemory as Record<string, unknown> | undefined;
-    if (!humanMemory || typeof humanMemory !== 'object') {
+    const base =
+      fromSubcollection && !isHumanMemoryProfileEmpty(fromSubcollection)
+        ? fromSubcollection
+        : (fromProfile ?? emptyProfile());
+
+    // 3. Merge in human_signals/* shards (BTH-B1 unification)
+    const shards = await getPersistedHumanSignals(userId);
+    // HumanSignal is a closed interface (no index signature); the merge
+    // helper's item type is intentionally generic so it stays dependency-free.
+    // mapSignals() below re-normalizes every item back into HumanSignal.
+    const mergedRaw = mergeHumanSignalSources(base as unknown as HumanMemoryProfileLike, {
+      importantDates: shards.importantDates,
+      values: shards.values,
+      dreams: shards.dreams,
+      fears: shards.fears,
+      growthMarkers: shards.growthMarkers,
+      comfortPatterns: shards.comfortPatterns,
+      challenges: shards.challenges,
+      stressTriggers: shards.stressTriggers,
+    });
+
+    const merged: HumanMemoryProfile = {
+      importantDates: mapSignals(mergedRaw.importantDates),
+      values: mapSignals(mergedRaw.values),
+      dreams: mapSignals(mergedRaw.dreams),
+      fears: mapSignals(mergedRaw.fears),
+      growthMarkers: mapSignals(mergedRaw.growthMarkers),
+      comfortPatterns: mapSignals(mergedRaw.comfortPatterns),
+      challenges: mapSignals(mergedRaw.challenges),
+      stressTriggers: mapSignals(mergedRaw.stressTriggers),
+      importantPeople: base.importantPeople,
+    };
+
+    if (isHumanMemoryProfileEmpty(merged)) {
       return null;
     }
 
-    const fromProfile = normalizeHumanMemoryData(humanMemory);
-    if (isHumanMemoryProfileEmpty(fromProfile)) {
-      return null;
-    }
-
-    log.debug({ userId }, '🧠 [MEMORY] Using profile.humanMemory fallback for human signals');
-    return fromProfile;
+    return merged;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to retrieve human signals');
     return null;
@@ -716,7 +767,7 @@ function formatSemanticMemories(memories: RetrievedMemory[]): string {
               ? '💡'
               : '🧠';
 
-    const content = mem.item.content;
+    const { content } = mem.item;
     if (content) {
       lines.push(`${typeLabel} ${content.slice(0, 150)}${matchScore}`);
     }
@@ -948,7 +999,15 @@ async function buildDynamicMemoryContext(input: ContextBuilderInput): Promise<Co
       }
 
       // Surface fears/worries
-      const fearKeywords = ['worried', 'afraid', 'anxious', 'scared', 'nervous', 'concern', 'stress'];
+      const fearKeywords = [
+        'worried',
+        'afraid',
+        'anxious',
+        'scared',
+        'nervous',
+        'concern',
+        'stress',
+      ];
       if (fearKeywords.some((kw) => lowerText.includes(kw))) {
         const fearHint = humanSignals.fears
           .slice(0, 2)
