@@ -240,6 +240,10 @@ if (captureResult.contextForLLM) {
 | Cross-Device Voice | 🟢 Future | High | **P3** | ✅ DONE |
 | Micro-Expression Events | 🟢 Future | Medium | **P3** | - |
 
+> **2026-07-18:** Treated as **partial** pending remember-reach-out integration sprint
+> (`docs/superpowers/specs/2026-07-18-remember-reach-out-integration-design.md`).
+> Injection may exist; persist↔retrieve / Firestore load still incomplete.
+
 ---
 
 ## ✅ ALL IMPLEMENTED (Dec 28, 2024)

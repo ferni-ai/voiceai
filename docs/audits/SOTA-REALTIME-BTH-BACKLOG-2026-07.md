@@ -61,9 +61,15 @@ Earlier ~7–10s was **session entry work after `startCall`** (profile load, dia
 | P1-B1 | later | 1408 files over 500 lines | WAVE1-P0-BACKLOG |
 | P1-C3 | 4 | `ferni deploy async` drain verify | WAVE1-P0-BACKLOG |
 | P2-C1 | later | Pronunciation gaps; CEO calendar mock | WAVE1-P0-BACKLOG |
-| BTH-G1 | 3 | Social graph not in context | BETTER-THAN-HUMAN-GAPS |
-| BTH-G2 | 3 | Data capture results not injected | BETTER-THAN-HUMAN-GAPS |
-| BTH-B1 | 3 | Human signals never persisted | BTH-BLOCKERS-AUDIT |
+
+## Remember & reach out integration (2026-07-18)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| BTH-B1 | closed | Task 2 (2026-07-18): `getHumanSignals` now merges `human_signals/*` shards via `mergeHumanSignalSources` (`memory/storage/human-signal-merge.ts`); `persistHumanSignals` mirrors shards into `human_memory/profile` after each successful `batch.commit()`. Round-trip covered by `memory/__tests__/human-signal-roundtrip.test.ts`. Dual-write (shards + mirror) is intentional this sprint. |
+| BTH-G1 | closed | Task 3 (2026-07-18): `social-relationships.ts` `socialRelationshipsBuilder.build()` now calls `loadGraphFromFirestore(userId)` (load-once per user, `globalThis.__ferniSocialGraphLoaded` guard) before `generateSocialInsights`/`getImportantPeople`. Proven by `context-builders/relationship/__tests__/social-relationships-load.test.ts` (asserts `loadGraphFromFirestore` called with userId and Sarah-pattern insight reaches injection content). Session-end flush is wired: `cleanup-handler.ts` (~473-487) → `persistSocialGraphOnEnd` → `persistGraphToFirestore` (`realtime-persistence.ts` ~184-191). Residual: no e2e asserting flush *content* (wiring exists; content correctness unproven). |
+| BTH-G2 | closed | Task 3 (2026-07-18): `live-superhuman-injections.ts` `detectDataCapture` is now exported and covered by `agents/processors/__tests__/live-superhuman-data-capture.test.ts` (email detection → `superhuman_data_capture` injection content). Spec AC #1 for S3 is injection-path proof, which this closes. Durable contacts path exists separately: `process-turn.ts` → `processDataCapture` → `routeToStorage` → contacts service (`data-capture/index.ts` ~451-491, ~304-375). Residual: `detectDataCapture` is ack-injection only (separate path from durable store); do not conflate the two. |
+| S5 | closed | Task 5 (2026-07-18): `node scripts/ops/assert-human-signal-roundtrip.mjs` → `{"ok":true,"name":"human-signal-roundtrip","status":0}`; `node scripts/ops/assert-outreach-delivery-intent.mjs` → `{"ok":true,"name":"outreach-delivery-intent","status":0}`. Both registered in `sota-release-gate.mjs` CHECKS and called from `sota-local-e2e.mjs` (`proveRememberReachOutIntegration`). Delivery plumbing closed; channel credentials (Twilio/FCM live sends) out of scope. |
 
 ## Wave 1 candidates (after instrumentation)
 
