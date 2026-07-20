@@ -775,6 +775,6 @@ export const DEFAULT_CONFIG: UnifiedStoreConfig = {
     useVectorSearch: true,
     useGraphExpansion: true,
     useHybridSearch: true,
-    useSpannerGraph: true,
+    useSpannerGraph: false, // opt-in; idle Spanner is expensive (~$65/mo)
   },
 };
