@@ -157,7 +157,6 @@ jobs:
         run: pnpm test:unit:coverage -- --reporter=verbose
         env:
           NODE_ENV: test
-        continue-on-error: true
 
       - name: Upload unit coverage
         uses: codecov/codecov-action@v5
@@ -311,17 +310,14 @@ jobs:
 
       - name: Build backend
         run: pnpm build
-        continue-on-error: true
 
       - name: Build design-system
         run: pnpm build:design-system
-        continue-on-error: true
 
       - name: Build frontend
         run: |
           cd apps/web
           pnpm build
-        continue-on-error: true
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -592,9 +588,15 @@ jobs:
 
       - name: Build design-system
         run: pnpm build:design-system
-        continue-on-error: true
 
       - name: TypeScript type check
+        # NOT blocking yet: design-system/components/index.ts re-exports 34
+        # utility functions (content/persona/sequence/responsive) from
+        # ../dist/*-utils.js modules that do not exist in source or in the build
+        # output, and apps/web/src/ui/components/index.ts re-exports them again.
+        # vite tree-shakes them so the frontend BUILD passes, but tsc reports 4
+        # errors. Make this blocking once those 34 functions are located or the
+        # dead re-exports are removed from both barrels.
         run: |
           cd apps/web
           pnpm typecheck
