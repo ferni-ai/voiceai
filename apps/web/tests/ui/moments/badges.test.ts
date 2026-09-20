@@ -73,27 +73,24 @@ describe('BadgeDisplay', () => {
       expect(display1).toBe(display2);
     });
 
-    it('should create badge container after init', async () => {
-      badges.init();
+    it('should not create any DOM - rendering moved to unified-indicator/journey', async () => {
+      const before = document.body.children.length;
 
-      // Wait for avatar container detection
+      badges.init();
       await new Promise((r) => setTimeout(r, 100));
 
-      const container = document.querySelector('.moments-badges');
-      expect(container).toBeTruthy();
+      expect(document.querySelector('.moments-badges')).toBeNull();
+      expect(document.querySelector('.moments-badge--streak')).toBeNull();
+      expect(document.body.children.length).toBe(before);
     });
 
-    it('should clean up orphaned elements', async () => {
-      // Simulate orphaned element
-      const orphan = document.createElement('div');
-      orphan.className = 'moments-badges';
-      document.body.appendChild(orphan);
-
+    it('should be idempotent', () => {
       badges.init();
-      await new Promise((r) => setTimeout(r, 100));
+      badges.updateStreak(7, false);
 
-      const containers = document.querySelectorAll('.moments-badges');
-      expect(containers.length).toBe(1);
+      badges.init(); // must not reset accumulated state
+
+      expect(badges.getState().streak).toBe(7);
     });
   });
 
@@ -106,24 +103,43 @@ describe('BadgeDisplay', () => {
       expect(state.streak).toBe(7);
     });
 
-    it('should not render badge if streak is 0', async () => {
+    it('should not dispatch when the streak stays at 0', () => {
       badges.init();
+      const handler = vi.fn();
+      window.addEventListener('ferni:streak-updated', handler);
+
       badges.updateStreak(0, false);
 
-      await new Promise((r) => setTimeout(r, 100));
-
-      const streakBadge = document.querySelector('.moments-badge--streak');
-      expect(streakBadge).toBeFalsy();
+      expect(handler).not.toHaveBeenCalled();
+      window.removeEventListener('ferni:streak-updated', handler);
     });
 
-    it('should render badge when streak > 0', async () => {
+    it('should dispatch ferni:streak-updated when the streak grows', () => {
       badges.init();
-      await new Promise((r) => setTimeout(r, 100));
+      const handler = vi.fn();
+      window.addEventListener('ferni:streak-updated', handler);
 
       badges.updateStreak(7, false);
 
-      const streakBadge = document.querySelector('.moments-badge--streak');
-      expect(streakBadge).toBeTruthy();
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect((handler.mock.calls[0][0] as CustomEvent).detail).toEqual({
+        count: 7,
+        previous: 0,
+      });
+      window.removeEventListener('ferni:streak-updated', handler);
+    });
+
+    it('should not dispatch when the streak decreases', () => {
+      badges.init();
+      badges.updateStreak(7, false);
+
+      const handler = vi.fn();
+      window.addEventListener('ferni:streak-updated', handler);
+      badges.updateStreak(3, false);
+
+      expect(handler).not.toHaveBeenCalled();
+      expect(badges.getState().streak).toBe(3);
+      window.removeEventListener('ferni:streak-updated', handler);
     });
   });
 
@@ -136,15 +152,34 @@ describe('BadgeDisplay', () => {
       expect(state.seeds).toBe(150);
     });
 
-    it('should format large numbers', async () => {
+    it('should keep the raw count in state and dispatch ferni:seeds-updated', () => {
+      // Display formatting (e.g. "1.5k") is now the renderer's concern; this
+      // module carries the unrounded value.
       badges.init();
-      await new Promise((r) => setTimeout(r, 100));
+      const handler = vi.fn();
+      window.addEventListener('ferni:seeds-updated', handler);
 
       badges.updateSeeds(1500, false);
 
-      const seedsBadge = document.querySelector('.moments-badge--seeds');
-      const count = seedsBadge?.querySelector('.moments-badge__count');
-      expect(count?.textContent).toBe('1.5k');
+      expect(badges.getState().seeds).toBe(1500);
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect((handler.mock.calls[0][0] as CustomEvent).detail).toEqual({
+        count: 1500,
+        previous: 0,
+      });
+      window.removeEventListener('ferni:seeds-updated', handler);
+    });
+
+    it('should not dispatch when the seeds value is unchanged', () => {
+      badges.init();
+      badges.updateSeeds(150, false);
+
+      const handler = vi.fn();
+      window.addEventListener('ferni:seeds-updated', handler);
+      badges.updateSeeds(150, false);
+
+      expect(handler).not.toHaveBeenCalled();
+      window.removeEventListener('ferni:seeds-updated', handler);
     });
   });
 
@@ -166,14 +201,31 @@ describe('BadgeDisplay', () => {
       expect(state.unseenAchievements.has('badge1')).toBe(true);
     });
 
-    it('should add new indicator for unseen', async () => {
+    it('should dispatch ferni:achievement-earned for newly earned badges', () => {
       badges.init();
-      await new Promise((r) => setTimeout(r, 100));
+      const handler = vi.fn();
+      window.addEventListener('ferni:achievement-earned', handler);
 
       badges.updateAchievements(3, ['badge1']);
 
-      const badge = document.querySelector('.moments-badge--achievements');
-      expect(badge?.classList.contains('moments-badge--new')).toBe(true);
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect((handler.mock.calls[0][0] as CustomEvent).detail).toEqual({
+        count: 3,
+        newBadgeIds: ['badge1'],
+      });
+      window.removeEventListener('ferni:achievement-earned', handler);
+    });
+
+    it('should not dispatch when no new badge ids are supplied', () => {
+      badges.init();
+      const handler = vi.fn();
+      window.addEventListener('ferni:achievement-earned', handler);
+
+      badges.updateAchievements(3);
+
+      expect(handler).not.toHaveBeenCalled();
+      expect(badges.getState().achievementCount).toBe(3);
+      window.removeEventListener('ferni:achievement-earned', handler);
     });
   });
 
@@ -191,32 +243,39 @@ describe('BadgeDisplay', () => {
   describe('setCheckinPending()', () => {
     it('should update checkin state', () => {
       badges.init();
-      badges.setCheckin(true, 'Test message');
+      badges.setCheckinPending(true, 'Test message');
 
       const state = badges.getState();
       expect(state.hasCheckin).toBe(true);
       expect(state.checkinMessage).toBe('Test message');
     });
 
-    it('should create checkin badge', async () => {
+    it('should dispatch ferni:checkin-available when pending', () => {
       badges.init();
-      await new Promise((r) => setTimeout(r, 100));
+      const handler = vi.fn();
+      window.addEventListener('ferni:checkin-available', handler);
 
-      badges.setCheckin(true);
+      badges.setCheckinPending(true, 'Test message');
 
-      const checkinBadge = document.querySelector('.moments-checkin-badge');
-      expect(checkinBadge).toBeTruthy();
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect((handler.mock.calls[0][0] as CustomEvent).detail).toEqual({
+        message: 'Test message',
+      });
+      window.removeEventListener('ferni:checkin-available', handler);
     });
 
-    it('should remove checkin badge when cleared', async () => {
+    it('should dispatch ferni:checkin-dismissed when cleared', () => {
       badges.init();
-      await new Promise((r) => setTimeout(r, 100));
+      badges.setCheckinPending(true, 'Test message');
 
-      badges.setCheckin(true);
-      badges.setCheckin(false);
+      const handler = vi.fn();
+      window.addEventListener('ferni:checkin-dismissed', handler);
+      badges.setCheckinPending(false);
 
-      const checkinBadge = document.querySelector('.moments-checkin-badge');
-      expect(checkinBadge).toBeFalsy();
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(badges.getState().hasCheckin).toBe(false);
+      expect(badges.getState().checkinMessage).toBeUndefined();
+      window.removeEventListener('ferni:checkin-dismissed', handler);
     });
   });
 
@@ -247,48 +306,43 @@ describe('BadgeDisplay', () => {
   });
 
   describe('event dispatching', () => {
-    it('should dispatch event on streak click', async () => {
+    it('should not dispatch renderer-owned click events - it has no DOM', () => {
+      // ferni:show-streak-details / ferni:open-trophy-room are dispatched by
+      // whatever renders the badges (journey.ui.ts), not by this data manager.
       badges.init();
-      await new Promise((r) => setTimeout(r, 100));
+      const streakDetails = vi.fn();
+      const trophyRoom = vi.fn();
+      window.addEventListener('ferni:show-streak-details', streakDetails);
+      window.addEventListener('ferni:open-trophy-room', trophyRoom);
+
       badges.updateStreak(7, false);
+      badges.updateAchievements(5, ['badge1']);
 
-      const handler = vi.fn();
-      window.addEventListener('ferni:show-streak-details', handler);
+      expect(streakDetails).not.toHaveBeenCalled();
+      expect(trophyRoom).not.toHaveBeenCalled();
 
-      const streakBadge = document.querySelector('.moments-badge--streak');
-      streakBadge?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-
-      expect(handler).toHaveBeenCalled();
-
-      window.removeEventListener('ferni:show-streak-details', handler);
-    });
-
-    it('should dispatch event on achievements click', async () => {
-      badges.init();
-      await new Promise((r) => setTimeout(r, 100));
-      badges.updateAchievements(5);
-
-      const handler = vi.fn();
-      window.addEventListener('ferni:open-trophy-room', handler);
-
-      const achievementsBadge = document.querySelector('.moments-badge--achievements');
-      achievementsBadge?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-
-      expect(handler).toHaveBeenCalled();
-
-      window.removeEventListener('ferni:open-trophy-room', handler);
+      window.removeEventListener('ferni:show-streak-details', streakDetails);
+      window.removeEventListener('ferni:open-trophy-room', trophyRoom);
     });
   });
 
   describe('cleanup', () => {
-    it('should clean up on destroy', async () => {
+    it('should reset all state on destroy', () => {
       badges.init();
-      await new Promise((r) => setTimeout(r, 100));
       badges.updateStreak(7, false);
+      badges.updateSeeds(100, false);
+      badges.updateAchievements(5, ['badge1']);
+      badges.setCheckinPending(true, 'hello');
 
       badges.destroy();
 
-      expect(document.querySelector('.moments-badges')).toBeFalsy();
+      const state = badges.getState();
+      expect(state.streak).toBe(0);
+      expect(state.seeds).toBe(0);
+      expect(state.achievementCount).toBe(0);
+      expect(state.unseenAchievements.size).toBe(0);
+      expect(state.hasCheckin).toBe(false);
+      expect(state.checkinMessage).toBeUndefined();
     });
   });
 });

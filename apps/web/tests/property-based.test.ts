@@ -366,11 +366,24 @@ describe('Result Monad: Property-Based Tests', () => {
         fc.property(fc.anything(), (value) => {
           const result = ok(value);
           if (isOk(result)) {
-            return result.value === value;
+            // Object.is, not ===: fc.anything() generates NaN, and NaN === NaN
+            // is false, so === made this property fail on a valid preservation.
+            return Object.is(result.value, value);
           }
           return false;
         })
       );
+    });
+
+    // fast-check only reaches NaN on some seeds, so pin the counterexample that
+    // actually broke this property (seed -642665119) as a deterministic case.
+    it('ok preserves NaN and -0 exactly', () => {
+      const nanResult = ok(Number.NaN);
+      expect(isOk(nanResult)).toBe(true);
+      expect(Number.isNaN((nanResult as { value: number }).value)).toBe(true);
+
+      const negZero = ok(-0);
+      expect(Object.is((negZero as { value: number }).value, -0)).toBe(true);
     });
 
     it('err preserves the error', () => {

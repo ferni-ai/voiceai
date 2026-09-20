@@ -98,7 +98,7 @@ describe('MemoryLaneUI', () => {
             memories: [
               {
                 id: 'mem-1',
-                date: new Date().toISOString(),
+                occurredAt: new Date().toISOString(),
                 content: 'You shared about starting your new project',
                 emotionalTone: 'joyful',
                 yearAgo: 1,
@@ -116,7 +116,7 @@ describe('MemoryLaneUI', () => {
             memories: [
               {
                 id: 'mem-1',
-                date: new Date().toISOString(),
+                occurredAt: new Date().toISOString(),
                 content: 'You shared about starting your new project',
                 emotionalTone: 'joyful',
                 yearAgo: 1,
@@ -195,18 +195,14 @@ describe('MemoryLaneUI', () => {
       expect(styleElements.length).toBe(1);
     });
 
-    it('should create button in avatar container', () => {
+    it('should not create its own avatar button', () => {
+      // The entry point moved to the settings menu and the
+      // ferni:open-memory-lane event (wired in app.ts); this module no longer
+      // injects a launcher of its own.
       initMemoryLaneUI();
 
-      const button = avatarContainer.querySelector('.memory-lane-button');
-      expect(button).toBeTruthy();
-    });
-
-    it('should render SVG icon in button', () => {
-      initMemoryLaneUI();
-
-      const svg = avatarContainer.querySelector('.memory-lane-button svg');
-      expect(svg).toBeTruthy();
+      expect(avatarContainer.querySelector('.memory-lane-button')).toBeNull();
+      expect(document.querySelector('.memory-lane-button')).toBeNull();
     });
   });
 
@@ -214,32 +210,33 @@ describe('MemoryLaneUI', () => {
   // BUTTON BEHAVIOR
   // ============================================================================
 
-  describe('Button behavior', () => {
-    it('should have aria-label on button', () => {
+  describe('Entry point', () => {
+    it('should open the modal via the public open() API', async () => {
       initMemoryLaneUI();
 
-      const button = avatarContainer.querySelector('.memory-lane-button');
-      expect(button?.getAttribute('aria-label')).toBe('View memories');
+      expect(document.querySelector('.memory-lane-modal')).toBeNull();
+      await memoryLaneUI.open();
+
+      const modal = document.querySelector('.memory-lane-modal');
+      expect(modal).toBeTruthy();
+      expect(modal?.getAttribute('role')).toBe('dialog');
+
+      // The open class is applied in a requestAnimationFrame callback
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+      expect(modal?.classList.contains('memory-lane-modal--open')).toBe(true);
     });
 
-    it('should have title on button', () => {
+    it('should title the modal Memory Lane', async () => {
       initMemoryLaneUI();
+      await memoryLaneUI.open();
 
-      const button = avatarContainer.querySelector('.memory-lane-button');
-      expect(button?.getAttribute('title')).toBe('Memory Lane');
+      const title = document.querySelector('.memory-lane-modal');
+      expect(title?.getAttribute('aria-label')).toBe('Memory Lane');
     });
 
-    it('should open drawer on button click', async () => {
-      initMemoryLaneUI();
-
-      const button = avatarContainer.querySelector('.memory-lane-button') as HTMLElement;
-      button?.click();
-
-      // Wait for async operations
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      const drawer = document.querySelector('.memory-lane-drawer');
-      expect(drawer).toBeTruthy();
+    it('should expose open and close on the facade', () => {
+      expect(typeof memoryLaneUI.open).toBe('function');
+      expect(typeof memoryLaneUI.close).toBe('function');
     });
   });
 
@@ -252,8 +249,8 @@ describe('MemoryLaneUI', () => {
       initMemoryLaneUI();
       await memoryLaneUI.open();
 
-      const drawer = document.querySelector('.memory-lane-drawer');
-      expect(drawer).toBeTruthy();
+      const modal = document.querySelector('.memory-lane-modal');
+      expect(modal).toBeTruthy();
     });
 
     it('should fetch highlights from API', async () => {
@@ -283,8 +280,11 @@ describe('MemoryLaneUI', () => {
       initMemoryLaneUI();
       await memoryLaneUI.open();
 
-      const emptyState = document.querySelector('.memory-lane-empty');
+      // highlights and timeline render the shared empty-state component;
+      // only the on-this-day tab uses the local .memory-lane-empty markup.
+      const emptyState = document.querySelector('.ferni-empty-state');
       expect(emptyState).toBeTruthy();
+      expect(document.querySelectorAll('.memory-lane-card').length).toBe(0);
     });
   });
 
@@ -297,23 +297,23 @@ describe('MemoryLaneUI', () => {
       initMemoryLaneUI();
       await memoryLaneUI.open();
 
-      const drawer = document.querySelector('.memory-lane-drawer');
-      expect(drawer?.getAttribute('role')).toBe('dialog');
+      const modal = document.querySelector('.memory-lane-modal');
+      expect(modal?.getAttribute('role')).toBe('dialog');
     });
 
     it('should have aria-label on drawer', async () => {
       initMemoryLaneUI();
       await memoryLaneUI.open();
 
-      const drawer = document.querySelector('.memory-lane-drawer');
-      expect(drawer?.getAttribute('aria-label')).toBe('Memory Lane');
+      const modal = document.querySelector('.memory-lane-modal');
+      expect(modal?.getAttribute('aria-label')).toBe('Memory Lane');
     });
 
     it('should have aria-label on close button', async () => {
       initMemoryLaneUI();
       await memoryLaneUI.open();
 
-      const closeBtn = document.querySelector('.memory-lane-drawer__close');
+      const closeBtn = document.querySelector('.memory-lane-modal__close');
       expect(closeBtn?.getAttribute('aria-label')).toBe('Close');
     });
 
@@ -341,11 +341,21 @@ describe('MemoryLaneUI', () => {
       expect(contents[0]?.textContent).toContain('starting your new project');
     });
 
-    it('should format date with year ago', async () => {
+    it('should format date with year ago on the On This Day tab', async () => {
       initMemoryLaneUI();
       await memoryLaneUI.open();
 
+      // Years-ago labelling is specific to the on-this-day tab; highlights
+      // renders plain dates.
+      const onThisDayTab = document.querySelector(
+        '.memory-lane-modal__tab[data-tab="on-this-day"]'
+      ) as HTMLElement;
+      expect(onThisDayTab).toBeTruthy();
+      onThisDayTab.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
       const dates = document.querySelectorAll('.memory-lane-card__date');
+      expect(dates.length).toBeGreaterThan(0);
       expect(dates[0]?.textContent).toContain('1 year ago');
     });
 
@@ -377,23 +387,27 @@ describe('MemoryLaneUI', () => {
       expect(mockApiGet).toHaveBeenCalledWith('/api/memories/on-this-day');
     });
 
-    it('should show toast when memory found', async () => {
+    it('should surface an anniversary notification when a memory is found', async () => {
       vi.useFakeTimers();
 
       initMemoryLaneUI();
       await vi.advanceTimersByTimeAsync(3500);
 
-      expect(mockToast.info).toHaveBeenCalledWith('1 year ago today...');
+      const notification = document.querySelector('.memory-lane-anniversary-notification');
+      expect(notification).toBeTruthy();
+      expect(notification?.textContent).toContain('1 year');
     });
 
-    it('should add indicator class to button when memory found', async () => {
+    it('should make the anniversary notification keyboard-accessible', async () => {
       vi.useFakeTimers();
 
       initMemoryLaneUI();
       await vi.advanceTimersByTimeAsync(3500);
 
-      const button = avatarContainer.querySelector('.memory-lane-button');
-      expect(button?.classList.contains('memory-lane-button--has-memory')).toBe(true);
+      const notification = document.querySelector('.memory-lane-anniversary-notification');
+      expect(notification?.getAttribute('role')).toBe('button');
+      expect(notification?.getAttribute('tabindex')).toBe('0');
+      expect(notification?.getAttribute('aria-label')).toBe('View memory from this day');
     });
 
     it('should not check again on same day', async () => {
@@ -418,14 +432,14 @@ describe('MemoryLaneUI', () => {
       initMemoryLaneUI();
       await memoryLaneUI.open();
 
-      const closeBtn = document.querySelector('.memory-lane-drawer__close') as HTMLElement;
+      const closeBtn = document.querySelector('.memory-lane-modal__close') as HTMLElement;
       closeBtn?.click();
 
       // Wait for animation
       await new Promise((resolve) => setTimeout(resolve, 350));
 
-      const drawer = document.querySelector('.memory-lane-drawer');
-      expect(drawer).toBeFalsy();
+      const modal = document.querySelector('.memory-lane-modal');
+      expect(modal).toBeFalsy();
     });
 
     it('should close on Escape key', async () => {
@@ -437,21 +451,22 @@ describe('MemoryLaneUI', () => {
       // Wait for animation
       await new Promise((resolve) => setTimeout(resolve, 350));
 
-      const drawer = document.querySelector('.memory-lane-drawer');
-      expect(drawer).toBeFalsy();
+      const modal = document.querySelector('.memory-lane-modal');
+      expect(modal).toBeFalsy();
     });
 
     it('should close on backdrop click', async () => {
       initMemoryLaneUI();
       await memoryLaneUI.open();
 
-      const drawer = document.querySelector('.memory-lane-drawer') as HTMLElement;
-      drawer?.click();
+      const backdrop = document.querySelector('.memory-lane-modal__backdrop') as HTMLElement;
+      expect(backdrop).toBeTruthy();
+      backdrop.click();
 
       // Wait for animation
       await new Promise((resolve) => setTimeout(resolve, 350));
 
-      expect(document.querySelector('.memory-lane-drawer')).toBeFalsy();
+      expect(document.querySelector('.memory-lane-modal')).toBeFalsy();
     });
   });
 
@@ -460,14 +475,24 @@ describe('MemoryLaneUI', () => {
   // ============================================================================
 
   describe('Cleanup', () => {
-    it('should remove button on dispose', () => {
+    it('should clear cached memories on dispose so the next open refetches', async () => {
       initMemoryLaneUI();
+      await memoryLaneUI.open();
+      expect(mockApiGet).toHaveBeenCalledWith('/api/memories/highlights');
 
-      expect(avatarContainer.querySelector('.memory-lane-button')).toBeTruthy();
+      // Second open reuses the cache - no refetch
+      memoryLaneUI.close();
+      mockApiGet.mockClear();
+      await memoryLaneUI.open();
+      expect(mockApiGet).not.toHaveBeenCalledWith('/api/memories/highlights');
 
+      // Dispose clears the cache, so the next open must hit the API again
       disposeMemoryLaneUI();
+      mockApiGet.mockClear();
+      initMemoryLaneUI();
+      await memoryLaneUI.open();
 
-      expect(avatarContainer.querySelector('.memory-lane-button')).toBeFalsy();
+      expect(mockApiGet).toHaveBeenCalledWith('/api/memories/highlights');
     });
 
     it('should remove styles on dispose', () => {
@@ -489,8 +514,8 @@ describe('MemoryLaneUI', () => {
       // Wait for animation
       await new Promise((resolve) => setTimeout(resolve, 350));
 
-      const drawer = document.querySelector('.memory-lane-drawer');
-      expect(drawer).toBeFalsy();
+      const modal = document.querySelector('.memory-lane-modal');
+      expect(modal).toBeFalsy();
     });
 
     it('should allow re-initialization after dispose', async () => {
@@ -500,8 +525,8 @@ describe('MemoryLaneUI', () => {
 
       await memoryLaneUI.open();
 
-      const drawer = document.querySelector('.memory-lane-drawer');
-      expect(drawer).toBeTruthy();
+      const modal = document.querySelector('.memory-lane-modal');
+      expect(modal).toBeTruthy();
     });
   });
 });

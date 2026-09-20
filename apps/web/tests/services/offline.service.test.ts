@@ -155,7 +155,11 @@ describe('OfflineService', () => {
       expect(typeof unsubscribe).toBe('function');
     });
 
-    it('should call callback when going offline', () => {
+    it('should call callback when going offline', async () => {
+      // navigator.onLine is unreliable, so handleOffline() verifies with a real
+      // HEAD request before declaring offline. Make that probe fail.
+      mockFetch.mockRejectedValue(new Error('network down'));
+
       initOfflineService();
       const callback = vi.fn();
       onOfflineChange(callback);
@@ -164,7 +168,7 @@ describe('OfflineService', () => {
       navigatorMock.onLine = false;
       windowListeners.offline.forEach((handler) => handler());
 
-      expect(callback).toHaveBeenCalledWith(true);
+      await vi.waitFor(() => expect(callback).toHaveBeenCalledWith(true));
     });
 
     it('should call callback when coming online', () => {
@@ -339,7 +343,9 @@ describe('OfflineService', () => {
       expect(isOffline()).toBe(false);
     });
 
-    it('should update state on offline event', () => {
+    it('should update state on offline event once connectivity check fails', async () => {
+      mockFetch.mockRejectedValue(new Error('network down'));
+
       navigatorMock.onLine = true;
       initOfflineService();
 
@@ -349,7 +355,23 @@ describe('OfflineService', () => {
       navigatorMock.onLine = false;
       windowListeners.offline.forEach((handler) => handler());
 
-      expect(isOffline()).toBe(true);
+      await vi.waitFor(() => expect(isOffline()).toBe(true));
+    });
+
+    it('should stay online when navigator lies and the probe succeeds', async () => {
+      // The whole point of verifying: a spurious offline event must not take the
+      // app offline when the network is actually reachable.
+      mockFetch.mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({}) });
+
+      navigatorMock.onLine = true;
+      initOfflineService();
+      expect(isOffline()).toBe(false);
+
+      navigatorMock.onLine = false;
+      windowListeners.offline.forEach((handler) => handler());
+
+      await vi.waitFor(() => expect(mockFetch).toHaveBeenCalled());
+      expect(isOffline()).toBe(false);
     });
 
     it('should update lastOnline when coming online', () => {

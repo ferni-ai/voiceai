@@ -217,8 +217,12 @@ describe('GrowthJournalUI', () => {
       initGrowthJournalUI();
       await openGrowthJournal();
 
-      const emptyState = document.querySelector('.growth-journal-empty');
+      // The empty state is rendered by the shared component
+      // (createEmptyState('growth-journal')); .growth-journal-empty now only
+      // survives as leftover CSS.
+      const emptyState = document.querySelector('.ferni-empty-state');
       expect(emptyState).toBeTruthy();
+      expect(document.querySelectorAll('.growth-journal-entry').length).toBe(0);
     });
   });
 

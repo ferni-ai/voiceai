@@ -34,16 +34,21 @@ vi.mock('@/config/animation-constants.js', () => ({
 
 vi.mock('@/services/haptics.service.js', () => ({
   getHapticsService: () => ({
-    play: vi.fn(),
+    play: () => undefined,
   }),
 }));
 
+// NOTE: these factories return plain functions, not vi.fn().mockReturnValue().
+// The global tests/setup.ts afterEach runs vi.restoreAllMocks(), which strips
+// implementations from module-scope mocks - so from the second test onward they
+// would return undefined. getSeedBalance is also synchronous in
+// cosmetics.service.ts, so it must not be a resolved Promise.
 vi.mock('@/services/cosmetics.service.js', () => ({
-  getSeedBalance: vi.fn().mockResolvedValue(100),
+  getSeedBalance: () => 100,
 }));
 
 vi.mock('@/services/seeds-economy.service.js', () => ({
-  getCurrentStreak: vi.fn().mockReturnValue(7),
+  getCurrentStreak: () => 7,
 }));
 
 vi.mock('@/utils/logger.js', () => ({
@@ -90,25 +95,33 @@ describe('Moments System E2E', () => {
     resetTrophyRoom();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // Tear down in afterEach, not inline: a failing assertion aborts the rest
+    // of a test body, so inline cleanup would leak singleton state into the
+    // tests that follow.
+    const { destroyMomentsSystem } = await import('@/ui/moments/init.js');
+    const { resetBadgeDisplay } = await import('@/ui/moments/badges.js');
+    destroyMomentsSystem();
+    resetBadgeDisplay();
     vi.clearAllMocks();
   });
 
   describe('Full System Integration', () => {
     it('should initialize moments system completely', async () => {
-      const { initMomentsSystem, destroyMomentsSystem } = await import('@/ui/moments/init.js');
+      const { initMomentsSystem } = await import('@/ui/moments/init.js');
+      const { badges } = await import('@/ui/moments/badges.js');
 
       await initMomentsSystem();
 
       // Wait for deferred initialization
       await new Promise((r) => setTimeout(r, 200));
 
-      // Verify badge container created (styles are injected lazily on first use)
-      const badgeContainer = document.querySelector('.moments-badges');
-      expect(badgeContainer).toBeTruthy();
-
-      // Cleanup
-      destroyMomentsSystem();
+      // Badge rendering moved to unified-indicator/journey, so the observable
+      // outcome of init is that badge STATE has been synced from the services
+      // (getCurrentStreak -> 7, getSeedBalance -> 100 per the mocks above).
+      const state = badges.getState();
+      expect(state.streak).toBe(7);
+      expect(state.seeds).toBe(100);
     });
 
     it('should sync badge data from services', async () => {
@@ -216,7 +229,7 @@ describe('Moments System E2E', () => {
     });
 
     it('should fire data connector events', async () => {
-      const { attachDataListeners, detachDataListeners } = await import(
+      const { attachDataListeners, detachDataListeners, onStreakUpdate } = await import(
         '@/ui/moments/data-connector.js'
       );
       const { badges, initBadgeDisplay, resetBadgeDisplay } = await import(
@@ -229,25 +242,33 @@ describe('Moments System E2E', () => {
 
       await new Promise((r) => setTimeout(r, 100));
 
-      // Fire streak event
-      window.dispatchEvent(
-        new CustomEvent('ferni:streak-updated', {
-          detail: { streak: 21 },
-        })
-      );
-
-      await new Promise((r) => setTimeout(r, 50));
+      // Streak: badges is the only producer of ferni:streak-updated, so the
+      // connector does not listen for it (that echo used to wipe the value).
+      // Callers drive it directly.
+      onStreakUpdate(21);
       expect(badges.getState().streak).toBe(21);
 
-      // Fire seeds event
-      window.dispatchEvent(
+      // Seeds: seeds-economy.service dispatches on `document` with the amount
+      // earned; the connector reads the authoritative balance from
+      // cosmetics.service (mocked to 100 above).
+      document.dispatchEvent(
         new CustomEvent('ferni:seeds-earned', {
-          detail: { balance: 500 },
+          detail: { amount: 25, reason: 'daily streak', type: 'streak' },
         })
       );
 
       await new Promise((r) => setTimeout(r, 50));
-      expect(badges.getState().seeds).toBe(500);
+      expect(badges.getState().seeds).toBe(100);
+
+      // Achievements: easter-eggs.ui.ts dispatches { id, achievement }
+      window.dispatchEvent(
+        new CustomEvent('ferni:achievement-unlocked', {
+          detail: { id: 'early_riser', achievement: { name: 'Early Riser' } },
+        })
+      );
+
+      await new Promise((r) => setTimeout(r, 50));
+      expect(badges.getState().unseenAchievements.has('early_riser')).toBe(true);
 
       detachDataListeners();
       resetBadgeDisplay();
@@ -329,21 +350,22 @@ describe('Moments System E2E', () => {
       resetMomentsManager();
     });
 
-    it('should have proper screen reader text', async () => {
-      const { badges, initBadgeDisplay, resetBadgeDisplay } = await import(
-        '@/ui/moments/badges.js'
-      );
+    it('should expose the data a renderer needs for screen reader text', async () => {
+      // aria-labels live with the markup, which is now unified-indicator.ui.ts /
+      // journey.ui.ts. What this module owes them is accurate state.
+      const { badges, initBadgeDisplay } = await import('@/ui/moments/badges.js');
 
-      resetBadgeDisplay();
       initBadgeDisplay();
-      await new Promise((r) => setTimeout(r, 100));
-
       badges.updateStreak(7, false);
+      badges.updateAchievements(2, ['badge1']);
 
-      const streakBadge = document.querySelector('.moments-badge--streak');
-      expect(streakBadge?.getAttribute('aria-label')).toContain('streak');
+      const state = badges.getState();
+      expect(state.streak).toBe(7);
+      expect(state.achievementCount).toBe(2);
+      expect(state.unseenAchievements.has('badge1')).toBe(true);
 
-      resetBadgeDisplay();
+      // and it renders nothing itself
+      expect(document.querySelector('.moments-badge--streak')).toBeNull();
     });
   });
 

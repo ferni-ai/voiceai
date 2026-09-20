@@ -211,41 +211,64 @@ export function onTrophyRoomViewed(): void {
 let listenersAttached = false;
 
 /**
+ * Handlers are kept on module scope so detachDataListeners() can actually
+ * remove them. Previously the listeners were anonymous and detach only flipped
+ * the flag, so every init/destroy cycle left another live set attached.
+ */
+interface AttachedListener {
+  target: EventTarget;
+  type: string;
+  handler: EventListener;
+}
+
+let attachedListeners: AttachedListener[] = [];
+
+function listen(target: EventTarget, type: string, handler: EventListener): void {
+  target.addEventListener(type, handler);
+  attachedListeners.push({ target, type, handler });
+}
+
+/**
  * Attach event listeners for data updates
  */
 export function attachDataListeners(): void {
   if (listenersAttached) return;
 
-  // Listen for streak updates
-  window.addEventListener('ferni:streak-updated', ((e: CustomEvent<{ streak: number }>) => {
-    onStreakUpdate(e.detail.streak);
+  // NOTE: we deliberately do NOT listen for 'ferni:streak-updated'. badges.ts
+  // is that event's only producer, so listening here echoed the badge's own
+  // update straight back into badges.updateStreak() - and because the event
+  // detail is { count, previous } rather than { streak }, the echo passed
+  // undefined and wiped the streak on every update.
+
+  // Seeds are announced by seeds-economy.service on `document` (matching
+  // seeds-toast/seeds-display), and the detail carries the amount EARNED, not
+  // the new balance - so read the balance from its owner instead.
+  listen(document, 'ferni:seeds-earned', (() => {
+    onSeedsEarned(getSeedBalance());
   }) as EventListener);
 
-  // Listen for seeds earned
-  window.addEventListener('ferni:seeds-earned', ((e: CustomEvent<{ balance: number }>) => {
-    onSeedsEarned(e.detail.balance);
-  }) as EventListener);
-
-  // Listen for achievement unlocks
-  window.addEventListener('ferni:achievement-unlocked', ((e: CustomEvent<{ badgeId: string }>) => {
-    onAchievementUnlocked(e.detail.badgeId);
+  // Achievement unlocks come from easter-eggs.ui.ts as { id, achievement }.
+  listen(window, 'ferni:achievement-unlocked', ((e: CustomEvent<{ id: string }>) => {
+    if (e.detail?.id) {
+      onAchievementUnlocked(e.detail.id);
+    }
   }) as EventListener);
 
   // Listen for check-in requests
-  window.addEventListener('ferni:checkin-request', ((e: CustomEvent<{ message?: string }>) => {
+  listen(window, 'ferni:checkin-request', ((e: CustomEvent<{ message?: string }>) => {
     onCheckinRequest(e.detail?.message);
   }) as EventListener);
 
   // Listen for trophy room open request
-  window.addEventListener('ferni:open-trophy-room', () => {
-    import('./trophy-room.js').then(({ openTrophyRoom }) => {
+  listen(window, 'ferni:open-trophy-room', () => {
+    void import('./trophy-room.js').then(({ openTrophyRoom }) => {
       const achievements = getEarnedAchievements();
       openTrophyRoom(achievements);
     });
   });
 
   // Listen for trophy room close
-  window.addEventListener('ferni:trophy-room-closed', () => {
+  listen(window, 'ferni:trophy-room-closed', () => {
     onTrophyRoomViewed();
   });
 
@@ -257,7 +280,10 @@ export function attachDataListeners(): void {
  * Remove event listeners
  */
 export function detachDataListeners(): void {
-  // Note: In production, we'd store references to remove them
-  // For now, we just mark as detached
+  for (const { target, type, handler } of attachedListeners) {
+    target.removeEventListener(type, handler);
+  }
+  attachedListeners = [];
   listenersAttached = false;
+  log.debug('Data listeners detached');
 }
