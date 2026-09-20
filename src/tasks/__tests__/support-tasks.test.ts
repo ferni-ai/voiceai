@@ -27,18 +27,30 @@ vi.mock('../../utils/safe-logger.js', () => ({
 }));
 
 // Mock LiveKit agents
-vi.mock('@livekit/agents', () => ({
-  llm: {
-    tool: vi.fn((config) => ({
-      ...config,
-      execute: config.execute,
-    })),
-  },
-}));
+vi.mock('@livekit/agents', async (importOriginal) => {
+  // Spread the REAL module so this mock cannot drift from the SDK surface.
+  // AgentTask uses llm.ToolContext / llm.toToolContext, and the real
+  // toToolContext validates that each entry is a genuine function tool —
+  // so llm.tool must stay real. Only `log` is stubbed, to keep tests quiet.
+  const actual = await importOriginal<typeof import('@livekit/agents')>();
+  return {
+    ...actual,
+    log: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    },
+  };
+});
 
 // ============================================================================
 // EMOTIONAL SUPPORT TASK TESTS
 // ============================================================================
+
+// The real LiveKit ToolContext exposes tools via getFunctionTool()/hasTool(),
+// not as plain object properties.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const toolOf = (task: any, name: string) => task.tools.getFunctionTool(name);
 
 describe('EmotionalSupportTask', () => {
   it('should create with proper instructions', () => {
@@ -51,10 +63,10 @@ describe('EmotionalSupportTask', () => {
   it('should have support-focused tools', () => {
     const task = new EmotionalSupportTask();
 
-    expect(task.tools).toHaveProperty('acknowledgeEmotion');
-    expect(task.tools).toHaveProperty('shareVulnerability');
-    expect(task.tools).toHaveProperty('checkIn');
-    expect(task.tools).toHaveProperty('concludeSupport');
+    expect(task.tools.hasTool('acknowledgeEmotion')).toBe(true);
+    expect(task.tools.hasTool('shareVulnerability')).toBe(true);
+    expect(task.tools.hasTool('checkIn')).toBe(true);
+    expect(task.tools.hasTool('concludeSupport')).toBe(true);
   });
 
   it('should have lower emotion threshold (0.4)', () => {
@@ -81,10 +93,8 @@ describe('EmotionalSupportTask', () => {
   describe('tools', () => {
     it('acknowledgeEmotion should return the response', async () => {
       const task = new EmotionalSupportTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
 
-      const result = await tools.acknowledgeEmotion.execute({
+      const result = await toolOf(task, 'acknowledgeEmotion').execute({
         emotion: 'sadness',
         response: 'I hear how hard this is.',
       });
@@ -94,10 +104,8 @@ describe('EmotionalSupportTask', () => {
 
     it('checkIn should return one of the check-in phrases', async () => {
       const task = new EmotionalSupportTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
 
-      const result = await tools.checkIn.execute();
+      const result = await toolOf(task, 'checkIn').execute();
 
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
@@ -105,10 +113,8 @@ describe('EmotionalSupportTask', () => {
 
     it('concludeSupport should complete the task', async () => {
       const task = new EmotionalSupportTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
 
-      await tools.concludeSupport.execute({
+      await toolOf(task, 'concludeSupport').execute({
         emotionAddressed: 'anxiety',
         userFeelsBetter: true,
         needsMoreSupport: false,
@@ -122,10 +128,8 @@ describe('EmotionalSupportTask', () => {
 
     it('concludeSupport response varies based on user feeling better', async () => {
       const task1 = new EmotionalSupportTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools1 = task1.tools as any;
 
-      const betterResult = await tools1.concludeSupport.execute({
+      const betterResult = await toolOf(task1, 'concludeSupport').execute({
         emotionAddressed: 'sadness',
         userFeelsBetter: true,
         needsMoreSupport: false,
@@ -134,10 +138,8 @@ describe('EmotionalSupportTask', () => {
       expect(betterResult).toContain('glad');
 
       const task2 = new EmotionalSupportTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools2 = task2.tools as any;
 
-      const notBetterResult = await tools2.concludeSupport.execute({
+      const notBetterResult = await toolOf(task2, 'concludeSupport').execute({
         emotionAddressed: 'sadness',
         userFeelsBetter: false,
         needsMoreSupport: true,
@@ -196,10 +198,8 @@ describe('CheckInTask', () => {
   describe('tools', () => {
     it('recordCheckIn should complete with mood assessment', async () => {
       const task = new CheckInTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
 
-      await tools.recordCheckIn.execute({
+      await toolOf(task, 'recordCheckIn').execute({
         howTheyAre: 'good',
         whatShared: 'Work is going well',
         needsSupport: false,
@@ -223,10 +223,8 @@ describe('CheckInTask', () => {
 
       for (const mood of moods) {
         const task = new CheckInTask();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const tools = task.tools as any;
 
-        const response = await tools.recordCheckIn.execute({
+        const response = await toolOf(task, 'recordCheckIn').execute({
           howTheyAre: mood,
           needsSupport: mood === 'struggling',
         });
@@ -252,18 +250,16 @@ describe('ComfortTask', () => {
   it('should have comfort-focused tools', () => {
     const task = new ComfortTask('test concern');
 
-    expect(task.tools).toHaveProperty('validateConcern');
-    expect(task.tools).toHaveProperty('offerPerspective');
-    expect(task.tools).toHaveProperty('concludeComfort');
+    expect(task.tools.hasTool('validateConcern')).toBe(true);
+    expect(task.tools.hasTool('offerPerspective')).toBe(true);
+    expect(task.tools.hasTool('concludeComfort')).toBe(true);
   });
 
   describe('tools', () => {
     it('validateConcern should return validation', async () => {
       const task = new ComfortTask('finances');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
 
-      const result = await tools.validateConcern.execute({
+      const result = await toolOf(task, 'validateConcern').execute({
         validation: "That's a real concern.",
       });
 
@@ -272,17 +268,15 @@ describe('ComfortTask', () => {
 
     it('offerPerspective should prefix based on source', async () => {
       const task = new ComfortTask('finances');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
 
-      const experienceResult = await tools.offerPerspective.execute({
+      const experienceResult = await toolOf(task, 'offerPerspective').execute({
         perspective: 'These things tend to work out.',
         isFromExperience: true,
       });
 
       expect(experienceResult).toContain("what I've seen");
 
-      const thinkingResult = await tools.offerPerspective.execute({
+      const thinkingResult = await toolOf(task, 'offerPerspective').execute({
         perspective: 'There are options available.',
         isFromExperience: false,
       });
@@ -292,10 +286,8 @@ describe('ComfortTask', () => {
 
     it('concludeComfort should complete with result', async () => {
       const task = new ComfortTask('health');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
 
-      await tools.concludeComfort.execute({
+      await toolOf(task, 'concludeComfort').execute({
         concernAddressed: 'health anxiety',
         techniqueUsed: 'validation',
         effectivenessRating: 4,
@@ -346,17 +338,15 @@ describe('CrisisDetectionTask', () => {
   it('should have crisis-specific tools', () => {
     const task = new CrisisDetectionTask();
 
-    expect(task.tools).toHaveProperty('flagCrisis');
-    expect(task.tools).toHaveProperty('resolveCrisis');
+    expect(task.tools.hasTool('flagCrisis')).toBe(true);
+    expect(task.tools.hasTool('resolveCrisis')).toBe(true);
   });
 
   describe('tools', () => {
     it('flagCrisis should return appropriate message for severity', async () => {
       const task = new CrisisDetectionTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
 
-      const highResult = await tools.flagCrisis.execute({
+      const highResult = await toolOf(task, 'flagCrisis').execute({
         crisisType: 'emotional',
         severity: 'high',
         immediateActionNeeded: true,
@@ -365,7 +355,7 @@ describe('CrisisDetectionTask', () => {
 
       expect(highResult).toContain('serious');
 
-      const lowResult = await tools.flagCrisis.execute({
+      const lowResult = await toolOf(task, 'flagCrisis').execute({
         crisisType: 'financial',
         severity: 'low',
         immediateActionNeeded: false,
@@ -377,10 +367,8 @@ describe('CrisisDetectionTask', () => {
 
     it('resolveCrisis should complete the task', async () => {
       const task = new CrisisDetectionTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
 
-      await tools.resolveCrisis.execute({
+      await toolOf(task, 'resolveCrisis').execute({
         crisisDetected: true,
         crisisType: 'emotional',
         severity: 'medium',
@@ -396,10 +384,8 @@ describe('CrisisDetectionTask', () => {
 
     it('resolveCrisis response varies based on detection', async () => {
       const task1 = new CrisisDetectionTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools1 = task1.tools as any;
 
-      const detectedResponse = await tools1.resolveCrisis.execute({
+      const detectedResponse = await toolOf(task1, 'resolveCrisis').execute({
         crisisDetected: true,
         severity: 'medium',
       });
@@ -407,10 +393,8 @@ describe('CrisisDetectionTask', () => {
       expect(detectedResponse).toContain('carry everything alone');
 
       const task2 = new CrisisDetectionTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools2 = task2.tools as any;
 
-      const notDetectedResponse = await tools2.resolveCrisis.execute({
+      const notDetectedResponse = await toolOf(task2, 'resolveCrisis').execute({
         crisisDetected: false,
         severity: 'low',
       });
@@ -427,10 +411,8 @@ describe('CrisisDetectionTask', () => {
 describe('Support Task Results', () => {
   it('SupportResult should have required fields', async () => {
     const task = new EmotionalSupportTask();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tools = task.tools as any;
 
-    await tools.concludeSupport.execute({
+    await toolOf(task, 'concludeSupport').execute({
       emotionAddressed: 'anxiety',
       userFeelsBetter: true,
       needsMoreSupport: false,
@@ -445,10 +427,8 @@ describe('Support Task Results', () => {
 
   it('CheckInResult should have mood categories', async () => {
     const task = new CheckInTask();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tools = task.tools as any;
 
-    await tools.recordCheckIn.execute({
+    await toolOf(task, 'recordCheckIn').execute({
       howTheyAre: 'okay',
       needsSupport: false,
     });
@@ -459,10 +439,8 @@ describe('Support Task Results', () => {
 
   it('CrisisResult should indicate action needed for high severity', async () => {
     const task = new CrisisDetectionTask();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tools = task.tools as any;
 
-    await tools.resolveCrisis.execute({
+    await toolOf(task, 'resolveCrisis').execute({
       crisisDetected: true,
       crisisType: 'emotional',
       severity: 'high',

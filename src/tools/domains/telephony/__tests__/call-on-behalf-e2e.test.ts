@@ -11,6 +11,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IncomingMessage, ServerResponse } from 'http';
 import { Readable } from 'stream';
+import { createHmac } from 'crypto';
 
 // Mock dependencies before imports
 vi.mock('../../../../utils/safe-logger.js', () => ({
@@ -103,26 +104,57 @@ import {
   captureCallResult,
   getCallResult,
 } from '../../../../services/outreach/call-result-capture.js';
+import { initializeTwilioWebhooks } from '../../../../services/outreach/webhooks/twilio-webhooks.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../call-on-behalf.js';
 
 // ============================================================================
 // TEST HELPERS
 // ============================================================================
 
+const TEST_TWILIO_AUTH_TOKEN = 'test-twilio-auth-token';
+const TEST_WEBHOOK_HOST = 'webhooks.test';
+const TEST_WEBHOOK_PATH = '/api/twilio/call-status';
+
+// The webhook handler verifies a real Twilio HMAC-SHA1 signature. Tests sign
+// their requests exactly as Twilio does, so the security path stays under test
+// instead of being bypassed with SKIP_TWILIO_VALIDATION.
+initializeTwilioWebhooks(TEST_TWILIO_AUTH_TOKEN);
+
+function signTwilioPayload(url: string, params: Record<string, string>): string {
+  const data = Object.keys(params)
+    .sort()
+    .reduce((acc, key) => acc + key + params[key], url);
+  return createHmac('sha1', TEST_TWILIO_AUTH_TOKEN).update(data).digest('base64');
+}
+
 /**
- * Create a mock HTTP request with URL-encoded body (Twilio format)
+ * Create a mock HTTP request with URL-encoded body (Twilio format).
+ * Signed by default; pass `{ signature: null }` for unsigned or a string to
+ * forge an invalid signature.
  */
-function createMockTwilioRequest(payload: Record<string, string>): IncomingMessage {
+function createMockTwilioRequest(
+  payload: Record<string, string>,
+  options: { signature?: string | null } = {}
+): IncomingMessage {
   const body = new URLSearchParams(payload).toString();
   const readable = new Readable();
   readable.push(body);
   readable.push(null);
 
+  const signature =
+    options.signature === undefined
+      ? signTwilioPayload(`https://${TEST_WEBHOOK_HOST}${TEST_WEBHOOK_PATH}`, payload)
+      : options.signature;
+
   const req = readable as unknown as IncomingMessage;
   req.method = 'POST';
+  req.url = TEST_WEBHOOK_PATH;
   req.headers = {
     'content-type': 'application/x-www-form-urlencoded',
     'content-length': Buffer.byteLength(body).toString(),
+    host: TEST_WEBHOOK_HOST,
+    'x-forwarded-proto': 'https',
+    ...(signature ? { 'x-twilio-signature': signature } : {}),
   };
   return req;
 }
@@ -230,6 +262,60 @@ describe('Twilio Call Status Webhook', () => {
       expect(handled).toBe(true);
     });
   });
+
+  describe('Signature Validation (security posture)', () => {
+    const payload = {
+      CallSid: 'CAsecurity1',
+      CallStatus: 'completed',
+      From: '+14155551234',
+      To: '+14155556789',
+      CallDuration: '30',
+    };
+
+    it('should reject an unsigned request with 403', async () => {
+      const req = createMockTwilioRequest(payload, { signature: null });
+      const res = createMockResponse();
+
+      const handled = await handleTwilioCallStatus(req, res);
+
+      expect(handled).toBe(true);
+      expect(res.statusCode).toBe(403);
+      expect(res.body).toBe('Forbidden');
+    });
+
+    it('should reject a forged signature with 403', async () => {
+      const req = createMockTwilioRequest(payload, { signature: 'not-a-valid-signature' });
+      const res = createMockResponse();
+
+      const handled = await handleTwilioCallStatus(req, res);
+
+      expect(handled).toBe(true);
+      expect(res.statusCode).toBe(403);
+      expect(res.body).toBe('Forbidden');
+    });
+
+    it('should accept a correctly signed request', async () => {
+      trackOutboundCall('CAsecurity1', {
+        callId: 'test-signed',
+        userId: 'user-signed',
+        contactName: 'Dr. Smith',
+        purpose: 'reschedule appointment',
+        objective: 'reschedule',
+        callType: 'business',
+        originalSessionId: 'session-signed',
+        startedAt: new Date().toISOString(),
+      });
+
+      const req = createMockTwilioRequest(payload);
+      const res = createMockResponse();
+
+      const handled = await handleTwilioCallStatus(req, res);
+
+      expect(handled).toBe(true);
+      expect(res.statusCode).toBe(200);
+    });
+  });
+
 
   describe('Status Mapping', () => {
     const testCases = [

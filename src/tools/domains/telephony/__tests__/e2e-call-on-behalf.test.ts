@@ -11,6 +11,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { createHmac } from 'crypto';
 import { Readable } from 'stream';
 
 // ============================================================================
@@ -144,6 +145,7 @@ import {
   trackOutboundCall,
   getPendingCall,
 } from '../../../../servers/api/routes/twilio-call-status.js';
+import { initializeTwilioWebhooks } from '../../../../services/outreach/webhooks/twilio-webhooks.js';
 import { captureCallResult } from '../../../../services/outreach/call-result-capture.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../call-on-behalf.js';
 
@@ -166,8 +168,23 @@ function createMockContext(): ToolContext {
   };
 }
 
+const TEST_TWILIO_AUTH_TOKEN = 'test-twilio-auth-token';
+const TEST_WEBHOOK_HOST = 'webhooks.test';
+const TEST_WEBHOOK_PATH = '/api/webhooks/call-status';
+
+// Sign webhook requests the way Twilio does so the handler's real signature
+// check runs in tests rather than being bypassed.
+initializeTwilioWebhooks(TEST_TWILIO_AUTH_TOKEN);
+
+function signTwilioPayload(url: string, params: Record<string, string>): string {
+  const data = Object.keys(params)
+    .sort()
+    .reduce((acc, key) => acc + key + params[key], url);
+  return createHmac('sha1', TEST_TWILIO_AUTH_TOKEN).update(data).digest('base64');
+}
+
 /**
- * Create a mock HTTP request with form-urlencoded body
+ * Create a mock HTTP request with form-urlencoded body, signed as Twilio would.
  */
 function createMockRequest(body: Record<string, string>): IncomingMessage {
   const bodyString = new URLSearchParams(body).toString();
@@ -175,9 +192,15 @@ function createMockRequest(body: Record<string, string>): IncomingMessage {
 
   return Object.assign(readable, {
     method: 'POST',
-    url: '/api/webhooks/call-status',
+    url: TEST_WEBHOOK_PATH,
     headers: {
       'content-type': 'application/x-www-form-urlencoded',
+      host: TEST_WEBHOOK_HOST,
+      'x-forwarded-proto': 'https',
+      'x-twilio-signature': signTwilioPayload(
+        `https://${TEST_WEBHOOK_HOST}${TEST_WEBHOOK_PATH}`,
+        body
+      ),
     },
   }) as unknown as IncomingMessage;
 }

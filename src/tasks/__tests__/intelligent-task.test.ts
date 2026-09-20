@@ -28,19 +28,21 @@ vi.mock('../../utils/safe-logger.js', () => ({
 }));
 
 // Mock LiveKit agents
-vi.mock('@livekit/agents', () => ({
-  llm: {
-    tool: vi.fn((config) => ({
-      ...config,
-      execute: config.execute,
-    })),
-  },
-  log: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
-}));
+vi.mock('@livekit/agents', async (importOriginal) => {
+  // Spread the REAL module so this mock cannot drift from the SDK surface.
+  // AgentTask uses llm.ToolContext / llm.toToolContext, and the real
+  // toToolContext validates that each entry is a genuine function tool —
+  // so llm.tool must stay real. Only `log` is stubbed, to keep tests quiet.
+  const actual = await importOriginal<typeof import('@livekit/agents')>();
+  return {
+    ...actual,
+    log: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    },
+  };
+});
 
 // ============================================================================
 // TEST HELPERS

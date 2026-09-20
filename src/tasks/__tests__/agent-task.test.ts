@@ -30,19 +30,26 @@ vi.mock('../../utils/safe-logger.js', () => ({
 }));
 
 // Mock LiveKit agents
-vi.mock('@livekit/agents', () => ({
-  llm: {
-    tool: vi.fn((config) => ({
-      ...config,
-      execute: config.execute,
-    })),
-  },
-  log: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
-}));
+vi.mock('@livekit/agents', async (importOriginal) => {
+  // Spread the REAL module so this mock cannot drift from the SDK surface.
+  // AgentTask uses llm.ToolContext / llm.toToolContext, and the real
+  // toToolContext validates that each entry is a genuine function tool —
+  // so llm.tool must stay real. Only `log` is stubbed, to keep tests quiet.
+  const actual = await importOriginal<typeof import('@livekit/agents')>();
+  return {
+    ...actual,
+    log: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    },
+  };
+});
+
+// The real LiveKit ToolContext exposes tools via getFunctionTool()/hasTool(),
+// not as plain object properties.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const toolOf = (task: any, name: string) => task.tools.getFunctionTool(name);
 
 // ============================================================================
 // TEST TASK IMPLEMENTATIONS
@@ -92,7 +99,7 @@ describe('AgentTask', () => {
     it('should create a task with empty tools by default', () => {
       const task = new TestTask();
       expect(task.tools).toBeInstanceOf(Object);
-      expect(task.tools.tools?.length ?? 0).toBe(0);
+      expect(task.tools.tools).toHaveLength(0);
     });
 
     it('should not be done initially', () => {
@@ -417,17 +424,13 @@ describe('Prebuilt Tasks', () => {
 
     it('should have consentGiven and consentDenied tools', () => {
       const task = new CollectConsentTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
-      expect(tools.consentGiven).toBeDefined();
-      expect(tools.consentDenied).toBeDefined();
+      expect(task.tools.hasTool('consentGiven')).toBe(true);
+      expect(task.tools.hasTool('consentDenied')).toBe(true);
     });
 
     it('should complete with true when consent given', async () => {
       const task = new CollectConsentTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
-      await tools.consentGiven.execute();
+      await toolOf(task, 'consentGiven').execute();
 
       expect(task.done()).toBe(true);
       const result = await task;
@@ -436,9 +439,7 @@ describe('Prebuilt Tasks', () => {
 
     it('should complete with false when consent denied', async () => {
       const task = new CollectConsentTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
-      await tools.consentDenied.execute();
+      await toolOf(task, 'consentDenied').execute();
 
       expect(task.done()).toBe(true);
       const result = await task;
@@ -454,17 +455,13 @@ describe('Prebuilt Tasks', () => {
 
     it('should have recordName and nameDeclined tools', () => {
       const task = new CollectNameTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
-      expect(tools.recordName).toBeDefined();
-      expect(tools.nameDeclined).toBeDefined();
+      expect(task.tools.hasTool('recordName')).toBe(true);
+      expect(task.tools.hasTool('nameDeclined')).toBe(true);
     });
 
     it('should complete with name when provided', async () => {
       const task = new CollectNameTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
-      await tools.recordName.execute({ name: 'Alice' });
+      await toolOf(task, 'recordName').execute({ name: 'Alice' });
 
       const result = await task;
       expect(result).toEqual({ name: 'Alice' });
@@ -472,9 +469,7 @@ describe('Prebuilt Tasks', () => {
 
     it('should complete with Anonymous when declined', async () => {
       const task = new CollectNameTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
-      await tools.nameDeclined.execute();
+      await toolOf(task, 'nameDeclined').execute();
 
       const result = await task;
       expect(result).toEqual({ name: 'Anonymous' });
@@ -489,17 +484,13 @@ describe('Prebuilt Tasks', () => {
 
     it('should have recordEmail and emailDeclined tools', () => {
       const task = new CollectEmailTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
-      expect(tools.recordEmail).toBeDefined();
-      expect(tools.emailDeclined).toBeDefined();
+      expect(task.tools.hasTool('recordEmail')).toBe(true);
+      expect(task.tools.hasTool('emailDeclined')).toBe(true);
     });
 
     it('should complete with email when provided', async () => {
       const task = new CollectEmailTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
-      await tools.recordEmail.execute({ email: 'test@example.com' });
+      await toolOf(task, 'recordEmail').execute({ email: 'test@example.com' });
 
       const result = await task;
       expect(result).toEqual({ email: 'test@example.com' });
@@ -507,9 +498,7 @@ describe('Prebuilt Tasks', () => {
 
     it('should complete with empty string when declined', async () => {
       const task = new CollectEmailTask();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tools = task.tools as any;
-      await tools.emailDeclined.execute();
+      await toolOf(task, 'emailDeclined').execute();
 
       const result = await task;
       expect(result).toEqual({ email: '' });
