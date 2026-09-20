@@ -200,12 +200,23 @@ describe('Semantic Router E2E', () => {
       enableRouting();
     });
 
-    it('should execute music tool and return natural response', async () => {
+    it('should route a music request to the music tool', async () => {
       const result = await startSemanticRouting('play jazz', mockContext);
 
-      // If execution happens, we should get output
-      if (result.executed && result.output) {
-        expect(result.output).toContain('jazz');
+      // Assert the ROUTING DECISION, not the response prose: without a music
+      // backend available the domain bridge answers with a documented graceful
+      // fallback (see domain-bridge/fallbacks.ts), so the text is not a stable
+      // contract - the matched tool and extracted args are.
+      expect(result.attempted).toBe(true);
+      expect(result.routeResult).toBeDefined();
+
+      const matches = result.routeResult?.matches ?? [];
+      expect(matches.length).toBeGreaterThan(0);
+      expect(matches.some((m) => m.toolId.toLowerCase().includes('music'))).toBe(true);
+
+      if (result.executed) {
+        // Something answered - either the real tool or the graceful fallback
+        expect(result.output ?? '').not.toBe('');
       }
     });
   });

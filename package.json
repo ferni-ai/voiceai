@@ -8,7 +8,7 @@
     "ferni": "./bin/ferni.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "NODE_OPTIONS='--max-old-space-size=8192' tsc -p tsconfig.build.json",
     "build:tool-tiers": "node scripts/generate-tool-tiers.js",
     "build:fast": "npm run build:tool-tiers && npx tsx apps/cli/src/commands/build/build-fast.ts",
     "build:fast:types": "npx tsx apps/cli/src/commands/build/build-fast.ts --types",

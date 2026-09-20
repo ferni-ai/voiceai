@@ -362,22 +362,32 @@ describe('Personality Bridge E2E - Unified Recording', () => {
 
 describe('Personality Bridge E2E - Frontend Signal Contract', () => {
   it('should match frontend BetterThanHumanSignalType enum values', async () => {
-    // These are the signal types the frontend expects
-    // From: apps/web/src/eq/types.ts - BetterThanHumanSignalType
-    const expectedSignalTypes = [
-      'visible_vulnerability',
-      'spontaneous_delight',
-      'superhuman_observation',
-      'emotional_bond_deepen',
-      'anticipatory_presence',
-      'inside_joke_callback',
-      'temporal_insight',
-      'meta_relationship_moment',
-      'somatic_presence',
-      'concern_detected',
-      'voice_state_detected',
-      'emotional_trajectory',
-    ];
+    // Derive the contract from the frontend's own union instead of keeping a
+    // hand-maintained copy here - the copy had drifted in BOTH directions
+    // (it listed concern_detected / voice_state_detected / emotional_trajectory,
+    // which the frontend does not declare, and omitted protective_instinct and
+    // micro_expression, which it does).
+    const { readFileSync } = await import('fs');
+    const { fileURLToPath } = await import('url');
+    const { dirname, resolve } = await import('path');
+
+    const here = dirname(fileURLToPath(import.meta.url));
+    const frontendTypesPath = resolve(here, '../../../apps/web/src/eq/types.ts');
+    const frontendTypes = readFileSync(frontendTypesPath, 'utf8');
+
+    const unionMatch = frontendTypes.match(
+      /export type BetterThanHumanSignalType\s*=([\s\S]*?);/
+    );
+    expect(
+      unionMatch,
+      `Could not find BetterThanHumanSignalType in ${frontendTypesPath}`
+    ).toBeTruthy();
+
+    const expectedSignalTypes = Array.from(
+      (unionMatch?.[1] ?? '').matchAll(/'([a-z_]+)'/g),
+      (m) => m[1]
+    );
+    expect(expectedSignalTypes.length).toBeGreaterThan(5);
 
     // Import our dispatchers
     const {

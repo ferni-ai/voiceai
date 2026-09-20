@@ -10,11 +10,14 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getCommerceToolDefinitions } from '../../tools/domains/commerce/index.js';
-import { getDocumentToolDefinitions } from '../../tools/domains/documents/index.js';
-import { getMealPlanningToolDefinitions } from '../../tools/domains/meal-planning/index.js';
-import { getWorkflowToolDefinitions } from '../../tools/domains/workflows/index.js';
-import { getTransportationToolDefinitions } from '../../tools/domains/transportation/index.js';
+// Tool domains were standardised on createDomainExport(), whose
+// getToolDefinitions() is ASYNC. These suites read the definitions
+// synchronously, so they use the `definitions` array each domain also exports.
+import { definitions as commerceDefinitions } from '../../tools/domains/commerce/index.js';
+import { definitions as documentDefinitions } from '../../tools/domains/documents/index.js';
+import { definitions as mealPlanningDefinitions } from '../../tools/domains/meal-planning/index.js';
+import { definitions as workflowDefinitions } from '../../tools/domains/workflows/index.js';
+import { definitions as transportationDefinitions } from '../../tools/domains/transportation/index.js';
 import type { ToolDefinition } from '../../tools/registry/types.js';
 
 // ============================================================================
@@ -38,7 +41,7 @@ function validateToolDefinition(tool: ToolDefinition): void {
 // ============================================================================
 
 describe('Commerce Tool Domain', () => {
-  const tools = getCommerceToolDefinitions();
+  const tools = commerceDefinitions;
 
   it('should export tool definitions', () => {
     expect(Array.isArray(tools)).toBe(true);
@@ -80,7 +83,7 @@ describe('Commerce Tool Domain', () => {
 // ============================================================================
 
 describe('Documents Tool Domain', () => {
-  const tools = getDocumentToolDefinitions();
+  const tools = documentDefinitions;
 
   it('should export tool definitions', () => {
     expect(Array.isArray(tools)).toBe(true);
@@ -122,7 +125,7 @@ describe('Documents Tool Domain', () => {
 // ============================================================================
 
 describe('Meal Planning Tool Domain', () => {
-  const tools = getMealPlanningToolDefinitions();
+  const tools = mealPlanningDefinitions;
 
   it('should export tool definitions', () => {
     expect(Array.isArray(tools)).toBe(true);
@@ -166,7 +169,7 @@ describe('Meal Planning Tool Domain', () => {
 // ============================================================================
 
 describe('Workflows Tool Domain', () => {
-  const tools = getWorkflowToolDefinitions();
+  const tools = workflowDefinitions;
 
   it('should export tool definitions', () => {
     expect(Array.isArray(tools)).toBe(true);
@@ -210,7 +213,7 @@ describe('Workflows Tool Domain', () => {
 // ============================================================================
 
 describe('Transportation Tool Domain', () => {
-  const tools = getTransportationToolDefinitions();
+  const tools = transportationDefinitions;
 
   it('should export tool definitions', () => {
     expect(Array.isArray(tools)).toBe(true);
@@ -255,11 +258,11 @@ describe('Transportation Tool Domain', () => {
 describe('Tool Domain Registry', () => {
   it('should have unique tool IDs across all life automation domains', () => {
     const allTools = [
-      ...getCommerceToolDefinitions(),
-      ...getDocumentToolDefinitions(),
-      ...getMealPlanningToolDefinitions(),
-      ...getWorkflowToolDefinitions(),
-      ...getTransportationToolDefinitions(),
+      ...commerceDefinitions,
+      ...documentDefinitions,
+      ...mealPlanningDefinitions,
+      ...workflowDefinitions,
+      ...transportationDefinitions,
     ];
 
     const ids = allTools.map((t) => t.id);
@@ -270,29 +273,29 @@ describe('Tool Domain Registry', () => {
 
   it('should have tools in the correct domain categories', () => {
     // Commerce tools should have shopping/subscription related tags
-    const commerceTools = getCommerceToolDefinitions();
+    const commerceTools = commerceDefinitions;
     const commerceTags = commerceTools.flatMap((t) => t.tags);
     expect(commerceTags.some((t) => ['grocery', 'subscription', 'shopping'].includes(t))).toBe(
       true
     );
 
     // Document tools should have document-related tags
-    const docTools = getDocumentToolDefinitions();
+    const docTools = documentDefinitions;
     const docTags = docTools.flatMap((t) => t.tags);
     expect(docTags.some((t) => ['document', 'receipt', 'warranty'].includes(t))).toBe(true);
 
     // Meal tools should have food-related tags
-    const mealTools = getMealPlanningToolDefinitions();
+    const mealTools = mealPlanningDefinitions;
     const mealTags = mealTools.flatMap((t) => t.tags);
     expect(mealTags.some((t) => ['meal', 'recipe', 'shopping'].includes(t))).toBe(true);
 
     // Workflow tools should have automation-related tags
-    const workflowTools = getWorkflowToolDefinitions();
+    const workflowTools = workflowDefinitions;
     const workflowTags = workflowTools.flatMap((t) => t.tags);
     expect(workflowTags.some((t) => ['automation', 'workflow', 'trigger'].includes(t))).toBe(true);
 
     // Transportation tools should have ride-related tags
-    const transportTools = getTransportationToolDefinitions();
+    const transportTools = transportationDefinitions;
     const transportTags = transportTools.flatMap((t) => t.tags);
     expect(transportTags.some((t) => ['uber', 'lyft', 'ride', 'transport'].includes(t))).toBe(true);
   });

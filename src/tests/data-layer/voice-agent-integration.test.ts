@@ -249,10 +249,21 @@ describe('TTL Cleanup Integration', () => {
   });
 
   it('TTL cleanup has a scheduled job endpoint', async () => {
-    const jobsPath = join(process.cwd(), 'src/api/scheduled-jobs.routes.ts');
-    const content = await readFile(jobsPath, 'utf-8');
+    // Assert against the modules rather than grepping source text:
+    // src/api/scheduled-jobs.routes.ts became a re-export shim when the routes
+    // were split, so the old text search silently stopped checking anything.
+    const routes = await import('../../api/scheduled-jobs/index.js');
+    expect(typeof routes.handleScheduledJobsRoutes).toBe('function');
 
-    expect(content).toContain('/api/jobs/ttl-cleanup');
-    expect(content).toContain('handleTTLCleanup');
+    const maintenance = await import('../../api/scheduled-jobs/maintenance-jobs.js');
+    expect(typeof maintenance.handleTTLCleanup).toBe('function');
+
+    // And that the router actually dispatches the path to it
+    const routerSource = await readFile(
+      join(process.cwd(), 'src/api/scheduled-jobs/index.ts'),
+      'utf-8'
+    );
+    expect(routerSource).toContain("'/api/jobs/ttl-cleanup'");
+    expect(routerSource).toContain('handleTTLCleanup');
   });
 });

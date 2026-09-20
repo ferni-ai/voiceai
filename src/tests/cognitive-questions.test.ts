@@ -8,7 +8,7 @@
  * @module tests/cognitive-questions
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   generateCognitiveQuestion,
@@ -158,27 +158,37 @@ describe('Cognitive Questions', () => {
     });
 
     it('should return deeper questions for deep depth', () => {
-      // Use many iterations because of significant randomness:
-      // - 40% chance of persona favorite (which may not be deep)
-      // - Pool includes both 'moderate' and 'deep' questions when conversationDepth='deep'
-      // - Random selection from potentially large pool
-      let foundDeep = false;
-      for (let i = 0; i < 200; i++) {
-        const question = generateCognitiveQuestion({
-          personaId: 'ferni',
-          topic: 'feelings',
-          emotionalWeight: 0.5,
-          conversationDepth: 'deep',
-        });
+      // Selection is seeded on Date.now(), so a tight loop reuses the same seed
+      // for every iteration inside the same millisecond and samples only a
+      // handful of distinct outcomes - which made this test fail roughly 1 run
+      // in 5. Advance fake timers 1ms per iteration so each attempt gets its own
+      // seed and the sampling is both deterministic and actually varied.
+      vi.useFakeTimers();
+      try {
+        let foundDeep = false;
+        for (let i = 0; i < 200; i++) {
+          vi.advanceTimersByTime(1);
 
-        if (question && question.depth === 'deep') {
-          foundDeep = true;
-          break;
+          const question = generateCognitiveQuestion({
+            personaId: 'ferni',
+            topic: 'feelings',
+            emotionalWeight: 0.5,
+            conversationDepth: 'deep',
+          });
+
+          // A 'deep' conversation must never surface a 'surface' question
+          expect(question?.depth).not.toBe('surface');
+
+          if (question && question.depth === 'deep') {
+            foundDeep = true;
+            break;
+          }
         }
-      }
 
-      // With 200 iterations, we should statistically find at least one deep question
-      expect(foundDeep).toBe(true);
+        expect(foundDeep).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('should use empathetic questions for high emotional weight', () => {
@@ -192,26 +202,34 @@ describe('Cognitive Questions', () => {
       // - Date.now() seeded randomness
       //
       // We just need to find at least one emotional question to prove the feature works.
-      let foundEmotional = false;
-      // Increased iterations because seededPick uses Date.now() as seed,
-      // and fast loop iterations can share the same millisecond timestamp
-      const maxIterations = 2000;
+      // seededPick is seeded on Date.now(), so a tight loop reuses one seed per
+      // millisecond. Raising the iteration count (previously 2000) only papered
+      // over that; advance fake timers 1ms per attempt so each one is a genuinely
+      // different draw.
+      vi.useFakeTimers();
+      try {
+        let foundEmotional = false;
 
-      for (let i = 0; i < maxIterations && !foundEmotional; i++) {
-        const question = generateCognitiveQuestion({
-          personaId: 'peter-john', // Analytical, but high emotion should add empathetic
-          topic: 'grief',
-          emotionalWeight: 0.9,
-          conversationDepth: 'deep', // Use 'deep' to include more empathetic questions
-        });
+        for (let i = 0; i < 500 && !foundEmotional; i++) {
+          vi.advanceTimersByTime(1);
 
-        if (question && question.expectedResponse === 'emotional') {
-          foundEmotional = true;
+          const question = generateCognitiveQuestion({
+            personaId: 'peter-john', // Analytical, but high emotion should add empathetic
+            topic: 'grief',
+            emotionalWeight: 0.9,
+            conversationDepth: 'deep', // Use 'deep' to include more empathetic questions
+          });
+
+          if (question && question.expectedResponse === 'emotional') {
+            foundEmotional = true;
+          }
         }
-      }
 
-      // High emotional weight should allow emotional questions even for analytical personas
-      expect(foundEmotional).toBe(true);
+        // High emotional weight should allow emotional questions even for analytical personas
+        expect(foundEmotional).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('should return action-oriented questions for pragmatic style', () => {
@@ -231,23 +249,27 @@ describe('Cognitive Questions', () => {
     it('should avoid recently asked questions', () => {
       const recentQuestions = ['What does the data show?'];
 
-      let foundDifferent = false;
-      for (let i = 0; i < 10; i++) {
-        const question = generateCognitiveQuestion({
-          personaId: 'peter-john',
-          topic: 'analysis',
-          emotionalWeight: 0.3,
-          conversationDepth: 'moderate',
-          recentQuestions,
-        });
+      // The recent question is filtered out of the pool, so this is an invariant,
+      // not a probability: across distinct seeds it must NEVER come back.
+      vi.useFakeTimers();
+      try {
+        for (let i = 0; i < 50; i++) {
+          vi.advanceTimersByTime(1);
 
-        if (question && !question.text.includes('What does the data show')) {
-          foundDifferent = true;
-          break;
+          const question = generateCognitiveQuestion({
+            personaId: 'peter-john',
+            topic: 'analysis',
+            emotionalWeight: 0.3,
+            conversationDepth: 'moderate',
+            recentQuestions,
+          });
+
+          expect(question).toBeTruthy();
+          expect(question?.text).not.toContain('What does the data show');
         }
+      } finally {
+        vi.useRealTimers();
       }
-
-      expect(foundDifferent).toBe(true);
     });
   });
 

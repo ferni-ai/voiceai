@@ -362,51 +362,57 @@ describe('Phase 5: Context Carrier', () => {
 // TOOL SUCCESS TRACKER TESTS
 // ============================================================================
 
-describe('Phase 5: Tool Success Tracker', () => {
-  it('should export tool success tracker functions', async () => {
-    const { getToolSuccessTracker, resetToolSuccessTracker } =
-      await import('../tools/tool-success-tracker.js');
+// src/tools/tool-success-tracker.ts was removed in e0ccff0af. Tool outcome
+// tracking now lives on the context carrier (src/tools/context-carrier.ts).
+describe('Phase 5: Tool Success Tracker (context carrier)', () => {
+  it('should export tool tracking functions', async () => {
+    const { getContextCarrier, resetContextCarrier } = await import('../tools/context-carrier.js');
 
-    expect(getToolSuccessTracker).toBeDefined();
-    expect(resetToolSuccessTracker).toBeDefined();
+    expect(getContextCarrier).toBeDefined();
+    expect(resetContextCarrier).toBeDefined();
   });
 
   it('should record tool calls', async () => {
-    const { getToolSuccessTracker, resetToolSuccessTracker } =
-      await import('../tools/tool-success-tracker.js');
+    const { getContextCarrier, resetContextCarrier } = await import('../tools/context-carrier.js');
 
-    resetToolSuccessTracker();
-    const tracker = getToolSuccessTracker();
+    resetContextCarrier();
+    const carrier = getContextCarrier();
+    carrier.startSession('session_1', 'user_1');
 
-    await tracker.recordCall({
-      toolId: 'recallMemory',
-      userId: 'user_1',
-      timestamp: new Date(),
-      success: true,
-      latency: 150,
-      context: {
-        topic: 'career',
-        emotion: 'neutral',
-      },
-    });
+    carrier.recordToolUsage('session_1', 'recallMemory', 'success', { duration: 150 });
 
-    // Recording shouldn't throw
-    expect(true).toBe(true);
+    const used = carrier.getToolsUsed('session_1');
+    expect(used.length).toBe(1);
+    expect(used[0].toolId).toBe('recallMemory');
+    expect(used[0].result).toBe('success');
+    expect(used[0].duration).toBe(150);
+    expect(carrier.wasToolUsedRecently('session_1', 'recallMemory')).toBe(true);
+
+    resetContextCarrier();
   });
 
   it('should calculate contextual success rate', async () => {
-    const { getToolSuccessTracker, resetToolSuccessTracker } =
-      await import('../tools/tool-success-tracker.js');
+    const { getContextCarrier, resetContextCarrier } = await import('../tools/context-carrier.js');
 
-    resetToolSuccessTracker();
-    const tracker = getToolSuccessTracker();
+    resetContextCarrier();
+    const carrier = getContextCarrier();
+    carrier.startSession('session_2', 'user_1');
 
-    // Without data, should return 0.5 (default)
-    const rate = await tracker.getContextualSuccessRate('user_1', 'recallMemory', {
-      topic: 'career',
-    });
+    // No data yet
+    expect(carrier.getToolSuccessRate('session_2', 'recallMemory')).toBe(0);
 
-    expect(rate).toBe(0.5);
+    carrier.recordToolUsage('session_2', 'recallMemory', 'success');
+    carrier.recordToolUsage('session_2', 'recallMemory', 'failure');
+    expect(carrier.getToolSuccessRate('session_2', 'recallMemory')).toBe(0.5);
+
+    carrier.recordToolUsage('session_2', 'recallMemory', 'success');
+    carrier.recordToolUsage('session_2', 'recallMemory', 'success');
+    expect(carrier.getToolSuccessRate('session_2', 'recallMemory')).toBe(0.75);
+
+    // Unknown tool is not counted against a known one
+    expect(carrier.getToolSuccessRate('session_2', 'unknownTool')).toBe(0);
+
+    resetContextCarrier();
   });
 });
 
@@ -503,65 +509,74 @@ describe('Phase 5: Pattern Formation', () => {
 // MEMORY-AWARE ROUTER TESTS
 // ============================================================================
 
-describe('Phase 5: Memory-Aware Router', () => {
-  it('should export memory-aware router functions', async () => {
-    const { getMemoryAwareRouter, resetMemoryAwareRouter } =
-      await import('../tools/memory-aware-router.js');
+// src/tools/memory-aware-router.ts was removed in e0ccff0af. Memory-influenced
+// routing now lives in src/tools/memory-aware/router-integration.ts as
+// calculateToolAdjustments() + applyAdjustments().
+describe('Phase 5: Memory-Aware Router (router-integration)', () => {
+  const baseContext = {
+    query: 'help me with career',
+    userTopics: ['career'],
+    recentTopics: ['career'],
+    importantPeople: [],
+    activeCommitments: 0,
+    sessionDepth: 'moderate' as const,
+    relevantMemories: [],
+  };
 
-    expect(getMemoryAwareRouter).toBeDefined();
-    expect(resetMemoryAwareRouter).toBeDefined();
-  });
-
-  it('should calculate routing boosts', async () => {
-    const { getMemoryAwareRouter, resetMemoryAwareRouter } =
-      await import('../tools/memory-aware-router.js');
-
-    resetMemoryAwareRouter();
-    const router = getMemoryAwareRouter();
-
-    const boosts = await router.calculateBoosts(
-      {
-        userId: 'user_1',
-        sessionId: 'session_1',
-        query: 'help me with career',
-        topic: 'career',
-        emotion: 'anxious',
-        personaId: 'ferni',
-      },
-      ['recallMemory', 'setGoal', 'breathingExercise']
+  it('should export memory-aware routing functions', async () => {
+    const { calculateToolAdjustments, applyAdjustments } = await import(
+      '../tools/memory-aware/router-integration.js'
     );
 
-    expect(boosts.length).toBe(3);
-    expect(boosts.every((b) => typeof b.boost === 'number')).toBe(true);
+    expect(calculateToolAdjustments).toBeDefined();
+    expect(applyAdjustments).toBeDefined();
   });
 
-  it('should enhance tool scores', async () => {
-    const { getMemoryAwareRouter, resetMemoryAwareRouter } =
-      await import('../tools/memory-aware-router.js');
-
-    resetMemoryAwareRouter();
-    const router = getMemoryAwareRouter();
-
-    const enhanced = await router.enhanceScores(
-      {
-        userId: 'user_1',
-        sessionId: 'session_1',
-        query: 'help me relax',
-        emotion: 'anxious',
-        personaId: 'ferni',
-      },
-      [
-        { toolId: 'recallMemory', score: 0.8 },
-        { toolId: 'breathingExercise', score: 0.7 },
-      ]
+  it('should calculate routing adjustments from memory context', async () => {
+    const { calculateToolAdjustments } = await import(
+      '../tools/memory-aware/router-integration.js'
     );
 
-    expect(enhanced.length).toBe(2);
-    expect(enhanced.every((e) => e.finalScore > 0)).toBe(true);
+    // No commitments -> no commitment-tool boost
+    const none = calculateToolAdjustments({ ...baseContext });
+    expect(none.some((a) => a.toolName === 'check_commitments')).toBe(false);
 
-    // breathingExercise should have a valid boost (may not be >= 1 without history)
-    const breathing = enhanced.find((e) => e.toolId === 'breathingExercise');
-    expect(breathing?.memoryBoost).toBeGreaterThan(0);
+    // Active commitments -> commitment tools get boosted, with a reason
+    const withCommitments = calculateToolAdjustments({
+      ...baseContext,
+      activeCommitments: 3,
+    });
+
+    const check = withCommitments.find((a) => a.toolName === 'check_commitments');
+    expect(check).toBeDefined();
+    expect(check?.adjustment).toBeGreaterThan(0);
+    expect(check?.reason).toContain('3');
+    expect(withCommitments.every((a) => typeof a.adjustment === 'number')).toBe(true);
+  });
+
+  it('should apply adjustments to tool scores, clamped to [0,1]', async () => {
+    const { applyAdjustments } = await import('../tools/memory-aware/router-integration.js');
+
+    const scores = new Map<string, number>([
+      ['check_commitments', 0.5],
+      ['breathingExercise', 0.7],
+      ['alreadyMaxed', 0.95],
+    ]);
+
+    const adjusted = applyAdjustments(scores, [
+      { toolName: 'check_commitments', adjustment: 0.3, reason: 'has commitments' },
+      { toolName: 'alreadyMaxed', adjustment: 0.5, reason: 'clamp check' },
+      { toolName: 'notPresent', adjustment: -0.5, reason: 'floor check' },
+    ]);
+
+    expect(adjusted.get('check_commitments')).toBeCloseTo(0.8);
+    // untouched tools keep their score
+    expect(adjusted.get('breathingExercise')).toBe(0.7);
+    // clamped at 1 and 0
+    expect(adjusted.get('alreadyMaxed')).toBe(1);
+    expect(adjusted.get('notPresent')).toBe(0);
+    // the input map is not mutated
+    expect(scores.get('check_commitments')).toBe(0.5);
   });
 });
 

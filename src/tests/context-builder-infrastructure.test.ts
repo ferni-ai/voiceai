@@ -102,7 +102,7 @@ describe('Voice Emotion Orchestrator Integration', () => {
 
   it('should analyze voice + text emotion together', async () => {
     const { analyzeVoiceEmotion, formatVoiceEmotionForPrompt } =
-      await import('../intelligence/voice-emotion-orchestrator.js');
+      await import('../intelligence/core/voice-emotion-orchestrator.js');
 
     const voiceInput = {
       emotion: 'anxious',
@@ -131,7 +131,7 @@ describe('Voice Emotion Orchestrator Integration', () => {
 
   it('should detect emotion suppression', async () => {
     const { detectEmotionSuppression } =
-      await import('../intelligence/voice-emotion-orchestrator.js');
+      await import('../intelligence/core/voice-emotion-orchestrator.js');
 
     const voiceInput = {
       emotion: 'distressed',

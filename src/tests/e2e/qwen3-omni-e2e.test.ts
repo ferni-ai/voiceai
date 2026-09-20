@@ -308,28 +308,69 @@ describe('Weight Path Resolution', () => {
     expect(getModelWeightPath('mlx')).toBe('/custom/weights');
   });
 
-  it('should return a path containing the backend name when no override', () => {
+  it('should resolve to a declared candidate directory when no override', () => {
     delete process.env.QWEN3_OMNI_WEIGHT_PATH;
     delete process.env.CANDLE_WEIGHT_PATH;
     delete process.env.VLLM_WEIGHT_PATH;
     delete process.env.MLX_WEIGHT_PATH;
 
-    const candlePath = getModelWeightPath('candle');
-    const vllmPath = getModelWeightPath('vllm');
-    const mlxPath = getModelWeightPath('mlx');
+    // Each backend's candidate list is either a backend-specific cache dir or the
+    // SHARED HuggingFace hub cache (deliberately reused so weights are not
+    // downloaded per backend). Which one is returned depends on what exists on
+    // this machine, so assert the candidate set rather than the backend name -
+    // vllm in particular has no vllm-named candidate at all.
+    const SHARED_HF_CACHE = '.cache/huggingface/hub/models--Qwen--Qwen3-Omni';
 
-    expect(candlePath).toContain('candle');
-    expect(vllmPath).toContain('vllm');
-    expect(mlxPath).toContain('mlx');
+    for (const backend of ['candle', 'vllm', 'mlx'] as const) {
+      const resolved = getModelWeightPath(backend);
+
+      expect(resolved, `${backend} should resolve to a non-empty path`).toBeTruthy();
+      expect(
+        resolved.includes(backend) || resolved.includes(SHARED_HF_CACHE),
+        `${backend} resolved to an undeclared path: ${resolved}`
+      ).toBe(true);
+    }
   });
 
-  it('should use backend-specific env vars', () => {
-    delete process.env.QWEN3_OMNI_WEIGHT_PATH;
-    process.env.CANDLE_WEIGHT_PATH = '/candle/custom/weights';
+  it('should prefer an existing backend-specific override over the shared cache', async () => {
+    const { mkdtempSync, rmSync } = await import('fs');
+    const { tmpdir } = await import('os');
+    const { join } = await import('path');
 
-    const path = getModelWeightPath('candle');
-    expect(typeof path).toBe('string');
-    expect(path.length).toBeGreaterThan(0);
+    delete process.env.QWEN3_OMNI_WEIGHT_PATH;
+    // Resolution walks the candidate list and returns the first directory that
+    // EXISTS, so the override only wins when it is actually present on disk.
+    const dir = mkdtempSync(join(tmpdir(), 'vllm-weights-'));
+    process.env.VLLM_WEIGHT_PATH = dir;
+
+    try {
+      expect(getModelWeightPath('vllm')).toBe(dir);
+    } finally {
+      delete process.env.VLLM_WEIGHT_PATH;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('should use backend-specific env vars', async () => {
+    // This previously asserted only "a non-empty string", which is true whatever
+    // the function does - and so hid that the backend-specific env vars were
+    // snapshotted at module load and ignored when set later.
+    const { mkdtempSync, rmSync } = await import('fs');
+    const { tmpdir } = await import('os');
+    const { join } = await import('path');
+
+    delete process.env.QWEN3_OMNI_WEIGHT_PATH;
+    const dir = mkdtempSync(join(tmpdir(), 'candle-weights-'));
+    process.env.CANDLE_WEIGHT_PATH = dir;
+
+    try {
+      expect(getModelWeightPath('candle')).toBe(dir);
+      // and it must not leak into an unrelated backend
+      expect(getModelWeightPath('vllm')).not.toBe(dir);
+    } finally {
+      delete process.env.CANDLE_WEIGHT_PATH;
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

@@ -920,7 +920,7 @@ describe('API Module Exports', () => {
 
   describe('Outreach Routes', () => {
     it('should export handleOutreachRoutes', async () => {
-      const module = await import('../api/outreach-routes.js');
+      const module = await import('../api/outreach.routes.js');
       expect(module.handleOutreachRoutes).toBeDefined();
     });
   });

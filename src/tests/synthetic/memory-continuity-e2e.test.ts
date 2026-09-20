@@ -55,13 +55,10 @@ import {
   type MemoryCapsule,
 } from '../../memory/dynamic/memory-continuity.js';
 
-import {
-  getCachedContinuity,
-  getEnrichedContinuity,
-  enrichFromSpanner,
-  clearSessionContinuity,
-  getContinuityCacheStats,
-} from '../../memory/dynamic/session-continuity-cache.js';
+// NOTE: src/memory/dynamic/session-continuity-cache.ts was removed in 10d8bb325
+// and has no replacement, so the cache-specific tests that lived here were
+// retired. Thread state, capsule hydration and hybrid retrieval below are still
+// live and remain covered.
 
 import {
   retrieveContinuityBundle,
@@ -211,8 +208,6 @@ describe('Thread State Creation and Merge', () => {
 describe('Firestore Capsule Hydration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Clear any cached continuity from previous tests
-    clearSessionContinuity('test-session');
   });
 
   it('should return null for non-existent capsule', async () => {
@@ -235,38 +230,6 @@ describe('Firestore Capsule Hydration', () => {
     // This test verifies the function handles existing data correctly
   });
 
-  it('should cache capsule in session continuity cache', () => {
-    const sessionId = 'cache-test-session';
-    const capsule = createTestCapsule();
-
-    // Simulate what session-init-handler does
-    (globalThis as Record<string, unknown>)[`memoryCapsule_${sessionId}`] = capsule;
-
-    const cached = getCachedContinuity(sessionId);
-
-    expect(cached).not.toBeNull();
-    expect(cached?.rollingSummary).toBe(capsule.rollingSummary);
-
-    // Cleanup
-    clearSessionContinuity(sessionId);
-  });
-
-  it('should clear cache on session end', () => {
-    const sessionId = 'cleanup-test-session';
-    const capsule = createTestCapsule();
-
-    (globalThis as Record<string, unknown>)[`memoryCapsule_${sessionId}`] = capsule;
-
-    // Verify cached
-    expect(getCachedContinuity(sessionId)).not.toBeNull();
-
-    // Clear
-    clearSessionContinuity(sessionId);
-
-    // Verify cleared
-    expect(getCachedContinuity(sessionId)).toBeNull();
-    expect((globalThis as Record<string, unknown>)[`memoryCapsule_${sessionId}`]).toBeUndefined();
-  });
 });
 
 // ============================================================================
@@ -416,63 +379,6 @@ describe('Hybrid Retrieval Ranking', () => {
 });
 
 // ============================================================================
-// SESSION CONTINUITY CACHE TESTS
-// ============================================================================
-
-describe('Session Continuity Cache', () => {
-  const testSessionId = 'cache-session-123';
-  const testUserId = 'cache-user-456';
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    clearSessionContinuity(testSessionId);
-  });
-
-  afterEach(() => {
-    clearSessionContinuity(testSessionId);
-  });
-
-  it('should track cache statistics', () => {
-    const stats = getContinuityCacheStats();
-
-    expect(stats).toHaveProperty('activeSessions');
-    expect(stats).toHaveProperty('enrichedSessions');
-    expect(typeof stats.activeSessions).toBe('number');
-  });
-
-  it('should convert capsule to continuity bundle format', () => {
-    const capsule = createTestCapsule();
-    (globalThis as Record<string, unknown>)[`memoryCapsule_${testSessionId}`] = capsule;
-
-    const cached = getCachedContinuity(testSessionId);
-    expect(cached).not.toBeNull();
-    expect(cached?.activeThreads.length).toBe(2);
-  });
-
-  it('should trigger async enrichment', () => {
-    enrichFromSpanner(testSessionId, testUserId, 'test context');
-
-    // Enrichment runs in background, but we can verify it was initiated
-    // by checking that getEnrichedContinuity returns something
-    const enriched = getEnrichedContinuity(testSessionId);
-
-    // May be null if enrichment hasn't completed yet
-    // The important thing is that the function doesn't throw
-    expect(enriched).toBeDefined();
-  });
-
-  it('should handle missing session gracefully', () => {
-    const nonexistentSession = 'nonexistent-session';
-
-    const cached = getCachedContinuity(nonexistentSession);
-    const enriched = getEnrichedContinuity(nonexistentSession);
-
-    expect(cached).toBeNull();
-    expect(enriched).toBeNull();
-  });
-});
-
-// ============================================================================
 // INTEGRATION TESTS
 // ============================================================================
 
@@ -489,22 +395,19 @@ describe('Memory Continuity Integration', () => {
     const capsule = createTestCapsule({ userId });
     (globalThis as Record<string, unknown>)[`memoryCapsule_${sessionId}`] = capsule;
 
-    // 2. First turn - get cached continuity
-    const cached = getCachedContinuity(sessionId);
-    expect(cached).not.toBeNull();
-
-    // 3. Trigger Spanner enrichment
-    enrichFromSpanner(sessionId, userId, 'career discussion');
-
-    // 4. Session end - write continuity data
+    // 2. Session end - write continuity data
+    // (the in-memory continuity cache step was removed with
+    // session-continuity-cache.ts in 10d8bb325)
     const sessionData = createTestSessionData({ sessionId, userId });
     const writeResult = await writeSessionContinuity(sessionData);
 
     expect(writeResult).toHaveProperty('capsuleUpdated');
 
-    // 5. Cleanup
-    clearSessionContinuity(sessionId);
-    expect(getCachedContinuity(sessionId)).toBeNull();
+    // 3. Cleanup
+    delete (globalThis as Record<string, unknown>)[`memoryCapsule_${sessionId}`];
+    expect(
+      (globalThis as Record<string, unknown>)[`memoryCapsule_${sessionId}`]
+    ).toBeUndefined();
   });
 
   it('should handle Spanner unavailability gracefully', async () => {

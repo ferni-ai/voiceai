@@ -15,18 +15,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // MOCK SETUP
 // ============================================================================
 
-const mockIsOutreachTriggerCreationEnabled = vi.fn(() => true);
+// vi.mock factories are hoisted above module-level consts, so the spy must be
+// created with vi.hoisted() to exist by the time the factory runs.
+const { mockIsOutreachTriggerCreationEnabled } = vi.hoisted(() => ({
+  mockIsOutreachTriggerCreationEnabled: vi.fn(() => true),
+}));
 
-vi.mock('../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
+// Spread the real logger module so this mock cannot drift from its surface
+// (it exports getLogger as well as createLogger).
+vi.mock('../utils/safe-logger.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../utils/safe-logger.js')>();
+  const quiet = () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
-  }),
-}));
+    child: vi.fn(() => quiet()),
+  });
+  return { ...actual, createLogger: quiet, getLogger: quiet };
+});
 
-vi.mock('../../config/feature-flags.js', () => ({
+vi.mock('../config/feature-flags.js', () => ({
   isOutreachTriggerCreationEnabled: mockIsOutreachTriggerCreationEnabled,
 }));
 

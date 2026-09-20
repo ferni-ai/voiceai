@@ -250,7 +250,11 @@ export class GoogleEmbeddings extends EmbeddingProvider {
   constructor(config?: { model?: string; apiKey?: string; dimensions?: number }) {
     super();
     this._model = config?.model || 'gemini-embedding-001';
-    this._dimensions = config?.dimensions || 3072; // gemini-embedding-001 returns 3072d
+    // Derive dimensions from the configured model rather than hardcoding the
+    // default model's 3072: text-embedding-004/005 and gecko are 768-d, and
+    // returning 3072 for them broke dimension validation downstream.
+    this._dimensions =
+      config?.dimensions ?? getModelDimensions(this._model) ?? 3072;
     // Use explicit apiKey if provided (even empty string), otherwise fall back to env var
     this.apiKey = config?.apiKey !== undefined ? config.apiKey : process.env.GOOGLE_API_KEY || '';
 

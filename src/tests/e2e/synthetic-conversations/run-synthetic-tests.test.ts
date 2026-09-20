@@ -441,18 +441,22 @@ async function runConversationTests(conversations: SyntheticConversation[]): Pro
   // Import extractors
   const { extractSmallDetails } =
     await import('../../../intelligence/conversation-quality/small-details.js');
-  const { ConversationHistoryTracker } = await import('../../../memory/history.js');
+  const { getHistoryTracker } = await import('../../../memory/index.js');
   const { stripSSML } = await import('../../../utils/text-utils.js');
 
   for (const conversation of conversations) {
     const checks: TestResult['checks'] = [];
 
     // Process conversation through tracker
-    const tracker = new ConversationHistoryTracker(`test-${conversation.id}`);
+    const tracker = getHistoryTracker(`test-${conversation.id}-${Date.now()}`, 'synthetic-user');
 
     for (const turn of conversation.turns) {
       const content = turn.role === 'assistant' ? stripSSML(turn.content) : turn.content;
-      tracker.addTurn({ role: turn.role, content, timestamp: new Date() });
+      if (turn.role === 'user') {
+        tracker.addUserTurn(content, new Date());
+      } else {
+        tracker.addAssistantTurn(content, new Date());
+      }
     }
 
     // Extract details from user turns

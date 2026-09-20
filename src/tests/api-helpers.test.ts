@@ -137,7 +137,12 @@ describe('API Helpers', () => {
       expect(result).toBe('user-123');
     });
 
-    it('should get userId from X-User-Id header', () => {
+    // SECURITY POSTURE: x-user-id is client-controlled and is deliberately NOT
+    // a trusted identity source. Only x-firebase-uid (set by auth-middleware
+    // after verifying the token), the userId query param, or the dev admin_key
+    // bypass identify a caller. These cases pin that, so restoring the old
+    // header trust would fail the suite.
+    it('should IGNORE the x-user-id header', () => {
       const req = createMockRequest({
         headers: { 'x-user-id': 'header-user-456' },
       });
@@ -145,10 +150,32 @@ describe('API Helpers', () => {
 
       const result = getUserId(req, url);
 
-      expect(result).toBe('header-user-456');
+      expect(result).toBeNull();
     });
 
-    it('should prefer query param over header', () => {
+    it('should trust x-firebase-uid set by auth middleware', () => {
+      const req = createMockRequest({
+        headers: { 'x-firebase-uid': 'firebase-uid-789' },
+      });
+      const url = new URL('http://localhost/api/test');
+
+      const result = getUserId(req, url);
+
+      expect(result).toBe('firebase-uid-789');
+    });
+
+    it('should prefer x-firebase-uid over the userId query param', () => {
+      const req = createMockRequest({
+        headers: { 'x-firebase-uid': 'firebase-uid-789' },
+      });
+      const url = new URL('http://localhost/api/test?userId=query-user');
+
+      const result = getUserId(req, url);
+
+      expect(result).toBe('firebase-uid-789');
+    });
+
+    it('should use the query param when no verified uid is present', () => {
       const req = createMockRequest({
         headers: { 'x-user-id': 'header-user' },
       });

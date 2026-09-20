@@ -115,23 +115,28 @@ describe('API Error Messages', () => {
       });
 
       it('should use friendly language', () => {
-        Object.values(API_ERRORS).forEach((message) => {
-          if (typeof message === 'string') {
-            // Should have question marks, encouraging language, or explanations
-            const lowerMessage = message.toLowerCase();
-            const isFriendly =
-              message.includes('?') ||
-              lowerMessage.includes('try') ||
-              lowerMessage.includes('please') ||
-              lowerMessage.includes('may') ||
-              lowerMessage.includes("we're") ||
-              lowerMessage.includes('looks like') ||
-              lowerMessage.includes('step') ||
-              lowerMessage.includes('confirm') ||
-              lowerMessage.includes("couldn't");
-            expect(isFriendly).toBe(true);
-          }
-        });
+        // A keyword whitelist ("try"/"please"/...) was a poor proxy: perfectly
+        // friendly copy like "Ambient mode isn't turned on yet. You can enable
+        // it in settings." failed it. Assert the properties that actually make a
+        // message user-facing, and name the offending key when one fails.
+        const DEV_JARGON =
+          /\b(null|undefined|NaN|stack trace|exception|errno|ECONN[A-Z]*|ENOENT|500|502|503|traceback)\b/i;
+        const BLAMING = /\byou (?:failed|screwed|messed)\b/i;
+
+        for (const [key, message] of Object.entries(API_ERRORS)) {
+          if (typeof message !== 'string') continue;
+
+          // Substantive, not a bare code
+          expect(message.length, `${key} is too short to be helpful`).toBeGreaterThan(10);
+          // Reads as a sentence
+          expect(/[.!?]$/.test(message.trim()), `${key} should end in punctuation: "${message}"`).toBe(
+            true
+          );
+          // No developer-facing internals leaked to users
+          expect(DEV_JARGON.test(message), `${key} leaks developer jargon: "${message}"`).toBe(false);
+          // Does not blame the user
+          expect(BLAMING.test(message), `${key} blames the user: "${message}"`).toBe(false);
+        }
       });
 
       it('should be sentence case or start with capital', () => {

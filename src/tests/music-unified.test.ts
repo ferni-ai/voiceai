@@ -457,12 +457,17 @@ describe('Spotify Token Management', () => {
 // ============================================================================
 
 describe('Local Music Intent Detection', () => {
+  // detectMusicIntent deliberately defaults to AMBIENT (in-call iTunes previews)
+  // and only returns 'listening' for very explicit Spotify/device requests.
+  // These cases mirror the listening patterns the implementation declares.
   it('should detect listening patterns', async () => {
     const { detectMusicIntent } = await import('../tools/domains/entertainment/music.js');
 
-    expect(detectMusicIntent('play the song Bohemian Rhapsody')).toBe('listening');
-    expect(detectMusicIntent('I want to hear Taylor Swift')).toBe('listening');
+    expect(detectMusicIntent('play this on Spotify')).toBe('listening');
+    expect(detectMusicIntent('play it on my Sonos')).toBe('listening');
     expect(detectMusicIntent('full song please')).toBe('listening');
+    expect(detectMusicIntent('queue up something')).toBe('listening');
+    expect(detectMusicIntent('play Bohemian Rhapsody by Queen')).toBe('listening');
   });
 
   it('should detect ambient patterns', async () => {
@@ -472,6 +477,15 @@ describe('Local Music Intent Detection', () => {
     expect(detectMusicIntent('something relaxing')).toBe('ambient');
     expect(detectMusicIntent('background music')).toBe('ambient');
     expect(detectMusicIntent('chill vibes')).toBe('ambient');
+  });
+
+  it('should keep under-specified requests ambient rather than hijacking Spotify', async () => {
+    const { detectMusicIntent } = await import('../tools/domains/entertainment/music.js');
+
+    // No artist, no device, no "full song" -> stays in-call
+    expect(detectMusicIntent('play the song Bohemian Rhapsody')).toBe('ambient');
+    expect(detectMusicIntent('I want to hear Taylor Swift')).toBe('ambient');
+    expect(detectMusicIntent('play Taylor Swift')).toBe('ambient');
   });
 
   it('should default short queries to ambient', async () => {

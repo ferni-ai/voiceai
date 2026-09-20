@@ -216,26 +216,18 @@ describe('Memory Flow E2E', () => {
       // by checking that turns are properly tracked
 
       // Use the history module directly
-      const { ConversationHistoryTracker } = await import('../../memory/history.js');
+      const { getHistoryTracker } = await import('../../memory/index.js');
 
-      const tracker = new ConversationHistoryTracker(TEST_SESSION_ID);
+      const tracker = getHistoryTracker(`${TEST_SESSION_ID}-hist1-${Date.now()}`, 'e2e-user');
 
       // Add user turn
-      tracker.addTurn({
-        role: 'user',
-        content: "Hi, I'm testing the memory system",
-        timestamp: new Date(),
-      });
+      tracker.addUserTurn("Hi, I'm testing the memory system", new Date());
 
       // Add assistant turn
-      tracker.addTurn({
-        role: 'assistant',
-        content: 'Hello! Nice to meet you.',
-        timestamp: new Date(),
-      });
+      tracker.addAssistantTurn('Hello! Nice to meet you.', new Date());
 
       // Get turns
-      const turns = tracker.getTurns();
+      const turns = tracker.getSimpleTurns();
 
       expect(turns.length).toBe(2);
       expect(turns.filter((t) => t.role === 'user').length).toBe(1);
@@ -282,22 +274,22 @@ describe('Memory Flow E2E', () => {
       // This is a high-level smoke test that validates the conversation
       // processing pipeline doesn't throw errors
 
-      const { ConversationHistoryTracker } = await import('../../memory/history.js');
+      const { getHistoryTracker } = await import('../../memory/index.js');
       const { stripSSML } = await import('../../utils/text-utils.js');
 
-      const tracker = new ConversationHistoryTracker(TEST_SESSION_ID);
+      const tracker = getHistoryTracker(`${TEST_SESSION_ID}-hist2-${Date.now()}`, 'e2e-user');
 
       for (const turn of SYNTHETIC_CONVERSATION) {
         if (turn.role === 'user') {
-          tracker.addTurn({ role: 'user', content: turn.content, timestamp: new Date() });
+          tracker.addUserTurn(turn.content, new Date() );
         } else {
           // Strip SSML like the fix does
           const cleanContent = stripSSML(turn.content);
-          tracker.addTurn({ role: 'assistant', content: cleanContent, timestamp: new Date() });
+          tracker.addAssistantTurn(cleanContent, new Date() );
         }
       }
 
-      const turns = tracker.getTurns();
+      const turns = tracker.getSimpleTurns();
 
       expect(turns.length).toBe(SYNTHETIC_CONVERSATION.length);
 
@@ -424,11 +416,11 @@ describe('Name Capture Scenarios', () => {
 describe('Comprehensive Synthetic Conversations', () => {
   it('should handle a career coaching conversation', async () => {
     const { stripSSML } = await import('../../utils/text-utils.js');
-    const { ConversationHistoryTracker } = await import('../../memory/history.js');
+    const { getHistoryTracker } = await import('../../memory/index.js');
     const { extractSmallDetails } =
       await import('../../intelligence/conversation-quality/small-details.js');
 
-    const tracker = new ConversationHistoryTracker(`career-session-${Date.now()}`);
+    const tracker = getHistoryTracker(`career-session-${Date.now()}`, 'e2e-user');
 
     const careerConversation = [
       { role: 'user' as const, content: "Hi, I'm David. I need help with my career." },
@@ -455,10 +447,14 @@ describe('Comprehensive Synthetic Conversations', () => {
     // Process conversation
     for (const turn of careerConversation) {
       const content = turn.role === 'assistant' ? stripSSML(turn.content) : turn.content;
-      tracker.addTurn({ role: turn.role, content, timestamp: new Date() });
+      if (turn.role === 'user') {
+        tracker.addUserTurn(content, new Date());
+      } else {
+        tracker.addAssistantTurn(content, new Date());
+      }
     }
 
-    const turns = tracker.getTurns();
+    const turns = tracker.getSimpleTurns();
     expect(turns.length).toBe(5);
 
     // Extract details from user turns
@@ -479,9 +475,9 @@ describe('Comprehensive Synthetic Conversations', () => {
 
   it('should handle an emotional support conversation', async () => {
     const { stripSSML } = await import('../../utils/text-utils.js');
-    const { ConversationHistoryTracker } = await import('../../memory/history.js');
+    const { getHistoryTracker } = await import('../../memory/index.js');
 
-    const tracker = new ConversationHistoryTracker(`emotional-session-${Date.now()}`);
+    const tracker = getHistoryTracker(`emotional-session-${Date.now()}`, 'e2e-user');
 
     const emotionalConversation = [
       { role: 'user' as const, content: "I've been feeling really overwhelmed lately." },
@@ -509,10 +505,14 @@ describe('Comprehensive Synthetic Conversations', () => {
     // Process conversation
     for (const turn of emotionalConversation) {
       const content = turn.role === 'assistant' ? stripSSML(turn.content) : turn.content;
-      tracker.addTurn({ role: turn.role, content, timestamp: new Date() });
+      if (turn.role === 'user') {
+        tracker.addUserTurn(content, new Date());
+      } else {
+        tracker.addAssistantTurn(content, new Date());
+      }
     }
 
-    const turns = tracker.getTurns();
+    const turns = tracker.getSimpleTurns();
     expect(turns.length).toBe(5);
 
     // Verify assistant responses are clean

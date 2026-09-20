@@ -131,10 +131,15 @@ describe('Memory System', () => {
 });
 
 describe('Session Memory', () => {
+  // src/memory/history.ts was removed in 1ebd2d07a. Turn tracking now comes from
+  // getHistoryTracker() in src/memory/index.ts, and topic / emotional-journey
+  // tracking moved to the context carrier (src/tools/context-carrier.ts) - the
+  // history tracker's metadata is a backward-compatibility stub that is always
+  // empty, so asserting on it would pass for the wrong reason.
   it('should track conversation turns', async () => {
-    const { ConversationHistoryTracker } = await import('../memory/history.js');
+    const { getHistoryTracker } = await import('../memory/index.js');
 
-    const tracker = new ConversationHistoryTracker('session-test');
+    const tracker = getHistoryTracker('session-test', 'user-test');
 
     tracker.addUserTurn('Hello, how are you?');
     tracker.addAssistantTurn("Hello! I'm doing well. How can I help you today?");
@@ -143,36 +148,50 @@ describe('Session Memory', () => {
     expect(tracker.getTurnCount()).toBe(3);
 
     const history = tracker.getSessionHistory();
-    expect(history.turns.length).toBe(3);
-    expect(history.turns[0].role).toBe('user');
-    expect(history.turns[1].role).toBe('assistant');
+    expect(history.turns).toBeDefined();
+    expect(history.turns?.length).toBe(3);
+    expect(history.turns?.[0].role).toBe('user');
+    expect(history.turns?.[1].role).toBe('assistant');
   });
 
-  it('should track session metadata', async () => {
-    const { ConversationHistoryTracker } = await import('../memory/history.js');
+  it('should track the emotional journey on the context carrier', async () => {
+    const { getContextCarrier, resetContextCarrier } = await import(
+      '../tools/context-carrier.js'
+    );
 
-    const tracker = new ConversationHistoryTracker('session-test-2');
+    resetContextCarrier();
+    const carrier = getContextCarrier();
+    carrier.startSession('session-test-2', 'user-test');
 
-    tracker.addUserTurn("I'm worried about the market.", { emotionDetected: 'anxious' });
-    tracker.addAssistantTurn('I understand. Market volatility can be concerning.');
+    carrier.recordEmotion('session-test-2', 'anxious', 0.8, 'market volatility');
 
-    const history = tracker.getSessionHistory();
+    const current = carrier.getCurrentEmotion('session-test-2');
+    expect(current?.emotion).toBe('anxious');
+    expect(current?.intensity).toBe(0.8);
+    expect(current?.trigger).toBe('market volatility');
 
-    expect(history.metadata.emotionalJourney).toContain('anxious');
+    const snapshot = carrier.getSnapshot('session-test-2');
+    expect(snapshot).toBeTruthy();
+
+    resetContextCarrier();
   });
 
-  it('should extract topics from conversation', async () => {
-    const { ConversationHistoryTracker } = await import('../memory/history.js');
+  it('should track topics discussed on the context carrier', async () => {
+    const { getContextCarrier, resetContextCarrier } = await import(
+      '../tools/context-carrier.js'
+    );
 
-    const tracker = new ConversationHistoryTracker('session-test-3');
+    resetContextCarrier();
+    const carrier = getContextCarrier();
+    carrier.startSession('session-test-3', 'user-test');
 
-    tracker.addUserTurn('Tell me about retirement planning.', { topicsDetected: ['retirement'] });
-    tracker.addAssistantTurn('Retirement planning is crucial...');
-    tracker.addUserTurn('What about index funds?', { topicsDetected: ['index funds'] });
+    carrier.recordTopicDiscussed('session-test-3', 'retirement');
+    carrier.recordTopicDiscussed('session-test-3', 'index funds');
 
-    const history = tracker.getSessionHistory();
+    const topics = carrier.getRecentTopics('session-test-3');
+    expect(topics).toContain('retirement');
+    expect(topics).toContain('index funds');
 
-    expect(history.metadata.topicsDiscussed).toContain('retirement');
-    expect(history.metadata.topicsDiscussed).toContain('index funds');
+    resetContextCarrier();
   });
 });

@@ -26,6 +26,15 @@ const IS_PRODUCTION = BASE_URL.includes('app.ferni.ai');
 // Skip production tests by default (run with TEST_PRODUCTION=true)
 const shouldRunProduction = process.env.TEST_PRODUCTION === 'true';
 
+// These suites make real HTTP calls to BASE_URL, so they need a server running.
+// The previous gate only skipped them when BASE_URL pointed at production, which
+// meant that locally they always ran and always failed with `fetch failed`.
+// Opt in explicitly:
+//   TEST_HTTP_ENDPOINTS=true pnpm vitest run memory-production-validation
+// (optionally with TEST_BASE_URL=... to point at a different server)
+const shouldRunHttpEndpoints = process.env.TEST_HTTP_ENDPOINTS === 'true';
+const skipHttpSuite = !shouldRunHttpEndpoints || (!shouldRunProduction && IS_PRODUCTION);
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -49,7 +58,7 @@ async function getHealth(endpoint: string): Promise<Response> {
 // ============================================================================
 
 describe('Memory Job API Endpoints', () => {
-  describe.skipIf(!shouldRunProduction && IS_PRODUCTION)('Production Validation', () => {
+  describe.skipIf(skipHttpSuite)('Production Validation', () => {
     it('should have memory-consolidation endpoint', async () => {
       const response = await postJob('memory-consolidation');
       expect(response.status).toBeLessThan(500); // Accept 200 or 4xx
@@ -102,7 +111,7 @@ describe('Memory Job API Endpoints', () => {
 // ============================================================================
 
 describe('Knowledge Graph Job API Endpoints', () => {
-  describe.skipIf(!shouldRunProduction && IS_PRODUCTION)('Production Validation', () => {
+  describe.skipIf(skipHttpSuite)('Production Validation', () => {
     // Note: knowledge-graph-insights and knowledge-graph-consolidation have a pre-existing
     // initialization bug in the knowledge-graph module. The API handlers work correctly
     // but the underlying job classes need the knowledge graph to be initialized first.
@@ -151,7 +160,7 @@ describe('Knowledge Graph Job API Endpoints', () => {
 // ============================================================================
 
 describe('Memory Health Endpoint', () => {
-  describe.skipIf(!shouldRunProduction && IS_PRODUCTION)('Production Validation', () => {
+  describe.skipIf(skipHttpSuite)('Production Validation', () => {
     it('should return health status', async () => {
       const response = await getHealth('health');
       expect(response.status).toBeLessThan(500);

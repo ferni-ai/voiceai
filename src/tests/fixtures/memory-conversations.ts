@@ -238,8 +238,11 @@ export const HEALTH_TRACKING_CONVERSATION: SyntheticConversation = {
         emotions: [],
         topics: ['fitness', 'sleep'],
         dateSignals: [],
-        // No entities or high-intensity emotions - won't trigger deep extraction
-        shouldQueueDeepExtraction: false,
+        // fastCapture queues deep extraction on ANY meaningful signal, and that
+        // includes topic hints - measured: this turn yields ['sleep','fitness'].
+        // (Turn 1 above expects no queue because the extractor finds no signals
+        // in it at all, not because topics are ignored.)
+        shouldQueueDeepExtraction: true,
       },
     },
   ],

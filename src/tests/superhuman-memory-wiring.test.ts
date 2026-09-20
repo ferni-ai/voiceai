@@ -166,16 +166,6 @@ vi.mock('../memory/semantic-rag.js', () => ({
   ragLookup: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock('../tools/tool-success-tracker.js', () => ({
-  getToolSuccessTracker: vi.fn(() => ({
-    getMetrics: vi.fn().mockResolvedValue({ totalCalls: 10, successfulCalls: 8 }),
-    getContextualSuccessRate: vi.fn().mockResolvedValue(0.8),
-    getRecommendations: vi.fn().mockResolvedValue([]),
-    recordCall: vi.fn(),
-    getTopTools: vi.fn().mockResolvedValue([]),
-  })),
-}));
-
 vi.mock('../tools/context-carrier.js', () => ({
   getContextCarrier: vi.fn(() => ({
     startSession: vi.fn(),
@@ -199,57 +189,66 @@ describe('Superhuman Memory Wiring', () => {
     vi.restoreAllMocks();
   });
 
+  // src/tools/memory-aware-router.ts was removed in e0ccff0af; memory-influenced
+  // routing is now calculateToolAdjustments() + applyAdjustments() in
+  // src/tools/memory-aware/router-integration.ts.
   describe('Memory-Aware Router Integration', () => {
-    it('should calculate boosts based on user history', async () => {
-      const { getMemoryAwareRouter, resetMemoryAwareRouter } =
-        await import('../tools/memory-aware-router.js');
-
-      resetMemoryAwareRouter();
-      const router = getMemoryAwareRouter();
-
-      const boosts = await router.calculateBoosts(
-        {
-          userId: 'user_123',
-          sessionId: 'session_456',
-          query: 'Help me with exercise',
-          topic: 'fitness',
-          emotion: 'motivated',
-          personaId: 'maya',
-        },
-        ['habitTracker', 'goalSetter', 'breathingExercise']
+    it('should calculate adjustments based on user history', async () => {
+      const { calculateToolAdjustments } = await import(
+        '../tools/memory-aware/router-integration.js'
       );
 
-      expect(boosts).toBeDefined();
-      expect(boosts.length).toBe(3);
-      expect(boosts[0]).toHaveProperty('toolId');
-      expect(boosts[0]).toHaveProperty('boost');
-      expect(boosts[0]).toHaveProperty('reason');
+      const adjustments = calculateToolAdjustments({
+        query: 'Help me with exercise',
+        userTopics: ['fitness'],
+        recentTopics: ['fitness'],
+        importantPeople: [],
+        activeCommitments: 2,
+        sessionDepth: 'moderate',
+        relevantMemories: [],
+      });
+
+      expect(adjustments.length).toBeGreaterThan(0);
+      expect(adjustments[0]).toHaveProperty('toolName');
+      expect(adjustments[0]).toHaveProperty('adjustment');
+      expect(adjustments[0]).toHaveProperty('reason');
+      expect(adjustments.some((a) => a.toolName === 'check_commitments')).toBe(true);
     });
 
     it('should enhance tool scores with memory awareness', async () => {
-      const { getMemoryAwareRouter, resetMemoryAwareRouter } =
-        await import('../tools/memory-aware-router.js');
-
-      resetMemoryAwareRouter();
-      const router = getMemoryAwareRouter();
-
-      const enhanced = await router.enhanceScores(
-        {
-          userId: 'user_123',
-          sessionId: 'session_456',
-          query: 'I want to start exercising',
-        },
-        [
-          { toolId: 'habitTracker', score: 0.8 },
-          { toolId: 'goalSetter', score: 0.7 },
-        ]
+      const { calculateToolAdjustments, applyAdjustments } = await import(
+        '../tools/memory-aware/router-integration.js'
       );
 
-      expect(enhanced).toBeDefined();
-      expect(enhanced.length).toBe(2);
-      expect(enhanced[0]).toHaveProperty('baseScore');
-      expect(enhanced[0]).toHaveProperty('memoryBoost');
-      expect(enhanced[0]).toHaveProperty('finalScore');
+      const baseScores = new Map<string, number>([
+        ['habitTracker', 0.8],
+        ['check_commitments', 0.4],
+      ]);
+
+      const adjustments = calculateToolAdjustments({
+        query: 'I want to start exercising',
+        userTopics: ['fitness'],
+        recentTopics: [],
+        importantPeople: [],
+        activeCommitments: 2,
+        sessionDepth: 'shallow',
+        relevantMemories: [],
+      });
+
+      const enhanced = applyAdjustments(baseScores, adjustments);
+
+      // applyAdjustments also surfaces adjusted tools that were not scored yet,
+      // starting them from 0 - so the map can grow beyond the base entries.
+      expect(enhanced.size).toBeGreaterThanOrEqual(baseScores.size);
+      // the commitment tool was boosted above its base score
+      expect(enhanced.get('check_commitments')!).toBeGreaterThan(0.4);
+      // an unrelated tool is untouched
+      expect(enhanced.get('habitTracker')).toBe(0.8);
+      // newly surfaced tools stay within [0,1]
+      for (const score of enhanced.values()) {
+        expect(score).toBeGreaterThanOrEqual(0);
+        expect(score).toBeLessThanOrEqual(1);
+      }
     });
   });
 
@@ -467,11 +466,13 @@ describe('Component Exports', () => {
     expect(resetUnifiedMemoryService).toBeDefined();
   });
 
-  it('should export memory-aware router', async () => {
-    const { getMemoryAwareRouter, resetMemoryAwareRouter } =
-      await import('../tools/memory-aware-router.js');
+  it('should export memory-aware router integration', async () => {
+    const { calculateToolAdjustments, applyAdjustments, buildRoutingContext } = await import(
+      '../tools/memory-aware/router-integration.js'
+    );
 
-    expect(getMemoryAwareRouter).toBeDefined();
-    expect(resetMemoryAwareRouter).toBeDefined();
+    expect(calculateToolAdjustments).toBeDefined();
+    expect(applyAdjustments).toBeDefined();
+    expect(buildRoutingContext).toBeDefined();
   });
 });

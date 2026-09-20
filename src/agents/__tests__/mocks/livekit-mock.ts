@@ -407,7 +407,14 @@ export function createMockAudioTrack(overrides: Partial<MockTrack> = {}): MockTr
  * Setup complete LiveKit module mocks for vi.mock()
  */
 export function setupLiveKitMocks(): void {
-  vi.mock('@livekit/agents', () => ({
+  vi.mock('@livekit/agents', async (importOriginal) => {
+    // Spread the REAL module so this mock cannot drift from the SDK surface.
+    // A hand-listed `llm` omitted llm.LLM, and production classes such as
+    // OllamaLLMAdapter do `extends llm.LLM` at module-evaluation time - which
+    // threw "Class extends value undefined" and failed whole test FILES.
+    const actual = await importOriginal<typeof import('@livekit/agents')>();
+    return {
+    ...actual,
     defineAgent: vi.fn((definition) => definition),
     cli: {
       runApp: vi.fn(),
@@ -425,19 +432,22 @@ export function setupLiveKitMocks(): void {
       })),
     })),
     llm: {
+      ...actual.llm,
       ChatContext: vi.fn().mockImplementation(() => ({
         messages: [],
         addMessage: vi.fn(),
       })),
     },
     voice: {
+      ...actual.voice,
       VoicePipelineAgent: vi
         .fn()
         .mockImplementation((options) => new MockVoicePipelineAgent(options)),
     },
     AudioFrame: vi.fn(),
     JobContext: vi.fn(),
-  }));
+    };
+  });
 }
 
 // ============================================================================

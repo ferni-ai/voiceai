@@ -12,7 +12,21 @@
  * 5. Phone number lookup cache rehydrates
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+
+// These tests exercise the generic phone-identification path. identifyByPhone()
+// deliberately checks sponsored identities (family members) FIRST, and with real
+// credentials present that lookup hits live Firestore - where the sample number
+// below happens to have a real sponsored identity. Stub the lookup so the test
+// is hermetic and actually tests the path it names.
+vi.mock('../services/identity/sponsored-identity.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/identity/sponsored-identity.js')>();
+  return {
+    ...actual,
+    lookupByPhone: vi.fn(async () => ({ found: false })),
+  };
+});
+
 
 // ============================================================================
 // TEST CONFIGURATION

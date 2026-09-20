@@ -613,10 +613,12 @@ describe('Edge Cases & Robustness', () => {
   });
 
   describe('Empty and Invalid Inputs', () => {
-    it('should handle empty string', async () => {
-      const emb = await embed('');
-      expect(emb).toBeDefined();
-      expect(emb.length).toBeGreaterThan(0);
+    it('should reject empty and whitespace-only input', async () => {
+      // embed() guards against empty text rather than returning a zero vector,
+      // which would silently poison every similarity comparison.
+      await expect(embed('')).rejects.toThrow('Cannot generate embedding for empty text');
+      await expect(embed('   ')).rejects.toThrow('Cannot generate embedding for empty text');
+      await expect(embed('\n\t')).rejects.toThrow('Cannot generate embedding for empty text');
     });
 
     it('should handle very long input', async () => {

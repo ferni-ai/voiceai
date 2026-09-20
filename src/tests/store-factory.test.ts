@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { MemoryStore } from '../memory/store.js';
+import type { MemoryStore } from '../memory/storage/store.js';
 
 // Mock the logger
 vi.mock('../utils/safe-logger.js', () => ({
@@ -28,7 +28,7 @@ vi.mock('../utils/safe-logger.js', () => ({
 }));
 
 // Mock the stores
-vi.mock('../memory/in-memory-store.js', () => ({
+vi.mock('../memory/storage/in-memory-store.js', () => ({
   getDefaultStore: vi.fn(() => ({
     type: 'in-memory',
     initialize: vi.fn(),
@@ -36,7 +36,7 @@ vi.mock('../memory/in-memory-store.js', () => ({
   })),
 }));
 
-vi.mock('../memory/firestore-store.js', () => ({
+vi.mock('../memory/storage/firestore-store.js', () => ({
   getFirestoreStore: vi.fn(() => ({
     type: 'firestore',
     initialize: vi.fn(),
@@ -44,7 +44,7 @@ vi.mock('../memory/firestore-store.js', () => ({
   })),
 }));
 
-vi.mock('../memory/postgres-store.js', () => ({
+vi.mock('../memory/storage/postgres-store.js', () => ({
   getPostgresStore: vi.fn(() => ({
     type: 'postgres',
     initialize: vi.fn(),
@@ -52,8 +52,8 @@ vi.mock('../memory/postgres-store.js', () => ({
   })),
 }));
 
-import { getStore, getStoreSync, resetStore, setStore } from '../memory/store-factory.js';
-import { getDefaultStore } from '../memory/in-memory-store.js';
+import { getStore, getStoreSync, resetStore, setStore } from '../memory/storage/store-factory.js';
+import { getDefaultStore } from '../memory/storage/in-memory-store.js';
 
 describe('Store Factory', () => {
   const originalEnv = process.env;

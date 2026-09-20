@@ -355,7 +355,19 @@ describe('Embeddings Module', () => {
     });
 
     it('should have correct dimensions for model', () => {
+      // text-embedding-004 is a 768-d model (see EMBEDDING_DIMENSIONS)
       expect(provider.dimensions).toBe(768);
+    });
+
+    it('should default to the gemini-embedding-001 dimensions', () => {
+      expect(new GoogleEmbeddings({ apiKey: 'test-key' }).dimensions).toBe(3072);
+    });
+
+    it('should honour an explicit dimensions override', () => {
+      expect(
+        new GoogleEmbeddings({ model: 'text-embedding-004', apiKey: 'test-key', dimensions: 256 })
+          .dimensions
+      ).toBe(256);
     });
 
     it('should embed text via API', async () => {

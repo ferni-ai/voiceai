@@ -183,7 +183,10 @@ describe('Quiet Growth Proactive Triggers', () => {
   };
 
   beforeAll(async () => {
-    const module = await import('../tools/proactive-coaching.js');
+    // tools/proactive-coaching.ts is a back-compat shim that only re-exports
+    // createProactiveCoachingTools; the message generators live at the canonical
+    // path the shim itself points to.
+    const module = await import('../tools/domains/proactive/coaching/index.js');
     generateRestPermissionMessage = module.generateRestPermissionMessage;
     generatePlateauCelebrationMessage = module.generatePlateauCelebrationMessage;
     generateSeasonalTransitionMessage = module.generateSeasonalTransitionMessage;

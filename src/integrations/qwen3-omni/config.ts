@@ -227,25 +227,35 @@ export function getInferenceBackend(): InferenceBackend {
   return 'candle';
 }
 
-/** Default weight cache directories per backend. MLX/vLLM = external servers; dirs for docs/local cache. */
-const WEIGHT_DIRS: Record<InferenceBackend, string[]> = {
-  candle: [
-    process.env.CANDLE_WEIGHT_PATH || '',
-    process.env.QWEN3_OMNI_WEIGHT_PATH || '',
-    `${process.env.HOME || '~'}/.cache/candle-qwen3-omni`,
-    `${process.env.HOME || '~'}/.cache/huggingface/hub/models--Qwen--Qwen3-Omni`,
-  ],
-  vllm: [
-    process.env.VLLM_WEIGHT_PATH || '',
-    `${process.env.HOME || '~'}/.cache/huggingface/hub/models--Qwen--Qwen3-Omni`,
-  ],
-  mlx: [
-    process.env.MLX_WEIGHT_PATH || '',
-    process.env.QWEN3_OMNI_WEIGHT_PATH || '',
-    `${process.env.HOME || '~'}/.cache/rust-mlx-omni`,
-    `${process.env.HOME || '~'}/.cache/huggingface/hub/models--Qwen--Qwen3-Omni`,
-  ],
-};
+/**
+ * Default weight cache directories per backend. MLX/vLLM = external servers;
+ * dirs for docs/local cache.
+ *
+ * Computed per call, NOT snapshotted at module load: as a module-level const the
+ * backend-specific overrides (CANDLE_WEIGHT_PATH / VLLM_WEIGHT_PATH /
+ * MLX_WEIGHT_PATH) were frozen at first import, so setting them afterwards did
+ * nothing - while QWEN3_OMNI_WEIGHT_PATH, read inside the function, worked.
+ */
+function getWeightDirs(): Record<InferenceBackend, string[]> {
+  const home = process.env.HOME || '~';
+  const sharedHubCache = `${home}/.cache/huggingface/hub/models--Qwen--Qwen3-Omni`;
+
+  return {
+    candle: [
+      process.env.CANDLE_WEIGHT_PATH || '',
+      process.env.QWEN3_OMNI_WEIGHT_PATH || '',
+      `${home}/.cache/candle-qwen3-omni`,
+      sharedHubCache,
+    ],
+    vllm: [process.env.VLLM_WEIGHT_PATH || '', sharedHubCache],
+    mlx: [
+      process.env.MLX_WEIGHT_PATH || '',
+      process.env.QWEN3_OMNI_WEIGHT_PATH || '',
+      `${home}/.cache/rust-mlx-omni`,
+      sharedHubCache,
+    ],
+  };
+}
 
 /**
  * Resolve the model weight path with a fallback chain.
@@ -261,7 +271,7 @@ export function getModelWeightPath(backend?: InferenceBackend): string {
     return explicitPath;
   }
 
-  const candidates = WEIGHT_DIRS[effectiveBackend].filter(Boolean);
+  const candidates = getWeightDirs()[effectiveBackend].filter(Boolean);
 
   // In Node we can check sync — but to avoid fs import overhead at module level,
   // we do a lazy check. The caller can use validateModelWeights() for thorough checks.
