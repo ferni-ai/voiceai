@@ -62,7 +62,7 @@ vi.mock('../services/persistence/index.js', () => ({
   }),
 }));
 
-vi.mock('../tools/proactive-outreach.js', () => ({
+vi.mock('../../apps/cli/src/commands/exec/proactive-outreach.ts.js', () => ({
   canReachUser: vi.fn().mockResolvedValue(true),
   scheduleText: vi.fn().mockResolvedValue({ success: true }),
 }));

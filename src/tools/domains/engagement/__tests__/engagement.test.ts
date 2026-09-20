@@ -79,7 +79,7 @@ vi.mock('../../../../services/daily-rituals.js', () => ({
 }));
 
 // Mock persona voices
-vi.mock('../../../../personas/persona-voices.js', () => ({
+vi.mock('../../../../services/brand/persona-voices.ts.js', () => ({
   PERSONA_VOICES: {
     ferni: { celebrationStyle: 'warm' },
     maya: { celebrationStyle: 'encouraging' },

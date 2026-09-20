@@ -54,7 +54,7 @@ vi.mock('../utils/safe-logger.js', () => ({
 }));
 
 // Mock services that are heavy dependencies
-vi.mock('../services/financial-store.js', () => ({
+vi.mock('../services/stores/financial-store.ts.js', () => ({
   getFinancialStore: vi.fn(() => ({
     loadUserData: vi.fn(() => Promise.resolve()),
     getUserBudgets: vi.fn(() => []),
@@ -63,14 +63,14 @@ vi.mock('../services/financial-store.js', () => ({
   })),
 }));
 
-vi.mock('../services/productivity-store.js', () => ({
+vi.mock('../services/stores/productivity-store.ts.js', () => ({
   getProductivityStore: vi.fn(() => ({
     loadUserData: vi.fn(() => Promise.resolve()),
     getUserHabits: vi.fn(() => []),
   })),
 }));
 
-vi.mock('../services/gamification-store.js', () => ({
+vi.mock('../services/engagement/gamification-store.ts.js', () => ({
   getGamificationStore: vi.fn(() => ({
     loadUserData: vi.fn(() => Promise.resolve()),
     getMoodLogs: vi.fn(() => Promise.resolve([])),

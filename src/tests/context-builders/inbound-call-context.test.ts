@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // MOCKS
 // ============================================================================
 
-vi.mock('../../../utils/safe-logger.js', () => ({
+vi.mock('../../utils/safe-logger.ts.js', () => ({
   createLogger: () => ({
     info: vi.fn(),
     debug: vi.fn(),

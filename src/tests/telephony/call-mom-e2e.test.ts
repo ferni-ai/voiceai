@@ -63,7 +63,7 @@ vi.mock('firebase-admin/firestore', () => ({
 }));
 
 // Mock logger
-vi.mock('../../../utils/safe-logger.js', () => ({
+vi.mock('../../utils/safe-logger.ts.js', () => ({
   createLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),

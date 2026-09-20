@@ -10,7 +10,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the DJ Controller
-vi.mock('../../audio/dj-controller.js', () => ({
+vi.mock('../audio/dj-controller.ts.js', () => ({
   getDJController: vi.fn(() => ({
     isMusicActive: vi.fn(() => false),
     getState: vi.fn(() => ({

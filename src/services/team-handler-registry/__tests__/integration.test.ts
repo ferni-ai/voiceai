@@ -25,7 +25,7 @@ vi.mock('../../../tools/registry/index.js', () => ({
 }));
 
 // Mock life data store
-vi.mock('../../life-data-store.js', () => ({
+vi.mock('../../stores/life-data-store.ts.js', () => ({
   getLifeDataStore: () => ({
     getGoals: vi.fn().mockResolvedValue([
       {

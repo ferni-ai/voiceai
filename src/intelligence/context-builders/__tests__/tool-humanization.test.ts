@@ -9,7 +9,7 @@ import { toolHumanizationBuilder } from '../humanization/tool-humanization.js';
 import type { ContextBuilderInput } from '../index.js';
 
 // Mock the cognitive-tool-interpretation module
-vi.mock('../../../tools/cognitive-tool-interpretation.js', () => ({
+vi.mock('../../../tools/intelligence/cognitive-tool-interpretation.ts.js', () => ({
   getDomainInterpretation: vi.fn((personaId: string, domain: string) => {
     const interpretations: Record<string, Record<string, string>> = {
       ferni: {

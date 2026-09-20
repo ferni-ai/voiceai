@@ -12,7 +12,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import type http from 'http';
 
 // Mock auth for tests
-vi.mock('../../api/auth.js', () => ({
+vi.mock('../../api/middleware/auth.ts.js', () => ({
   validateAuth: vi.fn().mockReturnValue({ uid: 'test-user-123' }),
 }));
 

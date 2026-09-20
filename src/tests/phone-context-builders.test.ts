@@ -17,7 +17,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // ============================================================================
 
 // Mock session services for context builders that need them
-vi.mock('../services/session/session-context.js', () => ({
+vi.mock('../api/routes/session-context.ts.js', () => ({
   getSessionContext: vi.fn(() => ({
     sessionId: 'test-session',
     userId: 'test-user',

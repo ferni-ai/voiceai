@@ -37,7 +37,7 @@ const mockLogs = [
   }),
 ];
 
-vi.mock('../../services/stores/productivity-store.js', () => ({
+vi.mock('../services/stores/productivity-store.ts.js', () => ({
   getProductivityStore: () => ({
     loadUserData: vi.fn().mockResolvedValue(undefined),
     getUserHabits: vi.fn().mockReturnValue(mockHabits),
@@ -46,7 +46,7 @@ vi.mock('../../services/stores/productivity-store.js', () => ({
 }));
 
 // Mock maya-habit-outreach functions
-vi.mock('../../services/outreach/maya-habit-outreach.js', () => ({
+vi.mock('../services/outreach/maya-habit-outreach.ts.js', () => ({
   checkStreaksAtRisk: vi.fn().mockResolvedValue({
     atRisk: true,
     habits: [{ id: 'habit-1', name: 'Morning meditation', streakDays: 10, lastCompleted: null }],
@@ -55,7 +55,7 @@ vi.mock('../../services/outreach/maya-habit-outreach.js', () => ({
 }));
 
 // Mock logger
-vi.mock('../../utils/safe-logger.js', () => ({
+vi.mock('../utils/safe-logger.ts.js', () => ({
   getLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),

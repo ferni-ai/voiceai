@@ -41,7 +41,7 @@ vi.mock('../memory/firestore-client.js', () => ({
 }));
 
 // Mock stores
-vi.mock('../services/financial-store.js', () => ({
+vi.mock('../services/stores/financial-store.ts.js', () => ({
   getFinancialStore: vi.fn(() => ({
     // Async methods
     loadUserData: vi.fn(() =>
@@ -78,7 +78,7 @@ vi.mock('../services/financial-store.js', () => ({
   })),
 }));
 
-vi.mock('../services/productivity-store.js', () => ({
+vi.mock('../services/stores/productivity-store.ts.js', () => ({
   getProductivityStore: vi.fn(() => ({
     // Async methods
     loadUserData: vi.fn(() => Promise.resolve({ habits: [], goals: [], moodLogs: [] })),
@@ -119,7 +119,7 @@ vi.mock('../services/productivity-store.js', () => ({
   })),
 }));
 
-vi.mock('../services/gamification-store.js', () => ({
+vi.mock('../services/engagement/gamification-store.ts.js', () => ({
   getGamificationStore: vi.fn(() => ({
     getMoodLogs: vi.fn(() =>
       Promise.resolve([

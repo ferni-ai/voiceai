@@ -47,7 +47,7 @@ vi.mock('firebase-admin/firestore', () => ({
 }));
 
 // Mock habit coaching module
-vi.mock('../../../../tools/domains/habits/habit-coaching.js', () => ({
+vi.mock('../../../../tools/habit-coaching.ts.js', () => ({
   createHabit: vi.fn().mockResolvedValue({ id: 'habit-123', name: 'Morning run' }),
   logHabitCompletion: vi.fn().mockResolvedValue({ streak: 5 }),
   getHabitProgress: vi.fn().mockResolvedValue({ completionRate: 0.8, streak: 5 }),

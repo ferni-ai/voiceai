@@ -16,7 +16,7 @@ import {
 } from '../personality-resonance-store.js';
 
 // Mock Firestore
-vi.mock('../../../memory/firestore.js', () => ({
+vi.mock('../../../marketplace/persistence/firestore.ts.js', () => ({
   getFirestore: vi.fn().mockResolvedValue({
     collection: vi.fn().mockReturnValue({
       doc: vi.fn().mockReturnValue({

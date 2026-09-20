@@ -28,7 +28,7 @@ const mockCollection = vi.fn().mockReturnValue({
   get: mockGet,
 });
 
-vi.mock('../../memory/firestore.js', () => ({
+vi.mock('../../marketplace/persistence/firestore.ts.js', () => ({
   getFirestore: () => ({
     collection: mockCollection,
   }),

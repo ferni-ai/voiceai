@@ -42,7 +42,7 @@ vi.mock('@livekit/agents', () => ({
   log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock('../../../../services/productivity-store.js', () => ({
+vi.mock('../../../../services/stores/productivity-store.ts.js', () => ({
   getProductivityStore: () => ({
     tasks: {
       get: vi.fn().mockResolvedValue(null),

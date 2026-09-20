@@ -103,7 +103,7 @@ vi.mock('../utils/safe-logger.js', () => {
   };
 });
 
-vi.mock('../services/cartesia-voice-localization.js', () => ({
+vi.mock('../services/voice/cartesia-voice-localization.ts.js', () => ({
   getLocalizedVoiceId: vi.fn((personaId: string, accent: string) => {
     return Promise.resolve({
       voiceId: `${personaId}-${accent}-voice-id`,

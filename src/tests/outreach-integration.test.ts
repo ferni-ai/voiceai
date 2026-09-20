@@ -12,7 +12,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock external dependencies before imports
-vi.mock('../../utils/safe-logger.js', () => ({
+vi.mock('../utils/safe-logger.ts.js', () => ({
   createLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -21,23 +21,23 @@ vi.mock('../../utils/safe-logger.js', () => ({
   }),
 }));
 
-vi.mock('./thinking-of-you.js', () => ({
+vi.mock('../services/trust-systems/thinking-of-you.ts.js', () => ({
   generateRandomWarmth: vi.fn(() => null),
   generateThinkingOfYouMoments: vi.fn(() => []),
   markMomentSent: vi.fn(),
 }));
 
-vi.mock('./small-wins.js', () => ({
+vi.mock('../services/trust-systems/small-wins.ts.js', () => ({
   generateCelebration: vi.fn(() => null),
   getUncelebratedWins: vi.fn(() => []),
 }));
 
-vi.mock('./growth-reflection.js', () => ({
+vi.mock('../services/trust-systems/growth-reflection.ts.js', () => ({
   generateGrowthReflection: vi.fn(() => null),
   getUnreflectedGrowth: vi.fn(() => []),
 }));
 
-vi.mock('../outreach/persona-outreach-formatter.js', () => ({
+vi.mock('../services/outreach/persona-outreach-formatter.ts.js', () => ({
   routeToPersona: vi.fn((type: string) => {
     const routes: Record<string, string> = {
       thinking_of_you: 'ferni',
@@ -78,16 +78,16 @@ vi.mock('firebase-admin/firestore', () => ({
   })),
 }));
 
-vi.mock('../communication-service.js', () => ({
+vi.mock('../services/communication-service.ts.js', () => ({
   sendSMS: vi.fn().mockResolvedValue('Message sent successfully'),
 }));
 
-vi.mock('../outreach/delivery/push-notifications.js', () => ({
+vi.mock('../services/outreach/delivery/push-notifications.ts.js', () => ({
   sendPushNotification: vi.fn().mockResolvedValue([{ success: true }]),
   hasPushEnabled: vi.fn(() => true),
 }));
 
-vi.mock('../voice-call.js', () => ({
+vi.mock('../services/voice/voice-call.ts.js', () => ({
   callWithPersonaVoice: vi.fn().mockResolvedValue({
     success: true,
     callSid: 'test-call-sid',
