@@ -153,55 +153,12 @@ export type { ContrastResult, FocusableElement, A11yAuditResult, A11yIssue } fro
 // Re-exports from utilities
 // ============================================================================
 
-// Content templates
-export {
-  getErrorMessage,
-  getPersonaIntro,
-  getPhrases,
-  getRandomPhrase,
-  getStreakCelebration,
-  getTimeAwareGreeting,
-} from '../dist/content-utils.js';
-
-// Persona utilities
-export {
-  getAllPersonaIds,
-  getPersonaAnimation,
-  getPersonaByTrait,
-  getPersonaColors,
-  getPersonaDuration,
-  getPersonaEasing,
-  getPersonaKit,
-  getPersonaPhrase,
-  getPersonaVoice,
-} from '../dist/persona-utils.js';
-
-// Sequence utilities
-export {
-  getAllSequenceIds,
-  getAnimation,
-  getReducedMotionSequence,
-  getSequence,
-  getSequenceDuration,
-  getSequencePriority,
-  getSequenceSteps,
-  getSequencesByEmotion,
-  isSequenceInterruptible,
-} from '../dist/sequence-utils.js';
-
-// Responsive utilities
-export {
-  getBreakpoint,
-  getComponentBehavior,
-  getCurrentBreakpoint,
-  getFluidTypography,
-  getMediaQuery,
-  getTouchTarget,
-  getTypographyScale,
-  isDesktop,
-  isMobile,
-  isTablet,
-} from '../dist/responsive-utils.js';
+// NOTE: blocks re-exporting ../dist/{content,persona,sequence,responsive}-utils.js
+// were removed on 2026-09-20. Those modules exist in neither source nor build
+// output, so the 34 names they declared resolved to nothing; nothing imported them
+// from this barrel or from apps/web's, and no call site used them (every
+// getPersonaColors() caller defines its own). vite tree-shook them, so only tsc
+// saw the breakage - which kept the apps/web typecheck permanently red.
 
 // Brand rules
 export {

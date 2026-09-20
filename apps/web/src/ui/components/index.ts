@@ -46,47 +46,9 @@ export {
   type CelebrationOptions,
   type CelebrationType,
 
-  // Content utilities
-  getErrorMessage,
-  getPersonaIntro,
-  getPhrases,
-  getRandomPhrase,
-  getStreakCelebration,
-  getTimeAwareGreeting,
 
-  // Persona utilities
-  getAllPersonaIds,
-  getPersonaAnimation,
-  getPersonaByTrait,
-  getPersonaColors,
-  getPersonaDuration,
-  getPersonaEasing,
-  getPersonaKit,
-  getPersonaPhrase,
-  getPersonaVoice,
 
-  // Sequence utilities
-  getAllSequenceIds,
-  getAnimation,
-  getReducedMotionSequence,
-  getSequence,
-  getSequenceDuration,
-  getSequencePriority,
-  getSequenceSteps,
-  getSequencesByEmotion,
-  isSequenceInterruptible,
 
-  // Responsive utilities
-  getBreakpoint,
-  getComponentBehavior,
-  getCurrentBreakpoint,
-  getFluidTypography,
-  getMediaQuery,
-  getTouchTarget,
-  getTypographyScale,
-  isDesktop,
-  isMobile,
-  isTablet,
 
   // Brand rules
   applyBrandReplacements,

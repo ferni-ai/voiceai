@@ -590,17 +590,9 @@ jobs:
         run: pnpm build:design-system
 
       - name: TypeScript type check
-        # NOT blocking yet: design-system/components/index.ts re-exports 34
-        # utility functions (content/persona/sequence/responsive) from
-        # ../dist/*-utils.js modules that do not exist in source or in the build
-        # output, and apps/web/src/ui/components/index.ts re-exports them again.
-        # vite tree-shakes them so the frontend BUILD passes, but tsc reports 4
-        # errors. Make this blocking once those 34 functions are located or the
-        # dead re-exports are removed from both barrels.
         run: |
           cd apps/web
           pnpm typecheck
-        continue-on-error: true
 
       - name: ESLint check
         run: |
