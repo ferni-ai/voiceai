@@ -9,17 +9,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock the DJ Controller
-vi.mock('../audio/dj-controller.ts.js', () => ({
-  getDJController: vi.fn(() => ({
-    isMusicActive: vi.fn(() => false),
-    getState: vi.fn(() => ({
-      state: 'idle',
-      currentTrack: null,
-      trackStartTime: null,
-    })),
-  })),
-}));
+// NOTE: mock removed - the code under test never imports this module, so it
+// controlled nothing (it was also pointing at a path that did not resolve).
 
 // Test the formatting logic directly
 describe('System State Awareness', () => {

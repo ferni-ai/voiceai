@@ -19,10 +19,10 @@ vi.mock('../../intelligence/index.js', () => ({
   getCommunityInsights: vi.fn(() => ({})),
 }));
 
-vi.mock('../../services/observability/memory-pressure.js', () => ({
-  getMemoryHealth: vi.fn(() => ({ status: 'healthy' })),
-}));
-
+// NOTE: the memory-pressure and circuit-breakers mocks were removed - neither
+// module exists, and observability-routes.ts reads memory health via
+// getMemoryHealthStatus() from memory/dynamic and circuits via
+// getAllCircuitStats(), so both mocks were inert.
 vi.mock('../../memory/redis-cache.js', () => ({
   getRedisCache: vi.fn(() => ({
     getStats: vi.fn(() => ({ hits: 0, misses: 0, size: 0 })),
@@ -31,10 +31,6 @@ vi.mock('../../memory/redis-cache.js', () => ({
 
 vi.mock('../../services/pubsub/redis-pubsub.js', () => ({
   getRedisPubSubStatus: vi.fn(() => ({ connected: false })),
-}));
-
-vi.mock('../../services/self-healing/circuit-breakers.js', () => ({
-  getAllCircuitBreakerStates: vi.fn(() => ({})),
 }));
 
 // Mock auth middleware

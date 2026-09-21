@@ -22,7 +22,7 @@ vi.mock('../../../utils/safe-logger.js', () => {
 });
 
 // Mock Firestore
-vi.mock('../../../utils/firestore-utils.ts.js', () => ({
+vi.mock('../../../utils/firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => null),
 
   cleanForFirestore: vi.fn((obj) => {

@@ -13,7 +13,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the productivity store
-vi.mock('../services/stores/productivity-store.ts.js', () => ({
+vi.mock('../services/stores/productivity-store.js', () => ({
   getProductivityStore: () => ({
     loadUserData: vi.fn().mockResolvedValue(undefined),
     getUserHabits: vi.fn().mockReturnValue([
@@ -28,7 +28,7 @@ vi.mock('../services/stores/productivity-store.ts.js', () => ({
 }));
 
 // Mock the outreach functions
-vi.mock('../services/outreach/maya-habit-outreach.ts.js', () => ({
+vi.mock('../services/outreach/maya-habit-outreach.js', () => ({
   generateWeeklyReviewData: vi.fn().mockResolvedValue({
     totalHabits: 3,
     completedThisWeek: 15,
@@ -41,7 +41,7 @@ vi.mock('../services/outreach/maya-habit-outreach.ts.js', () => ({
 }));
 
 // Mock logger
-vi.mock('../utils/safe-logger.ts.js', () => ({
+vi.mock('../utils/safe-logger.js', () => ({
   getLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),

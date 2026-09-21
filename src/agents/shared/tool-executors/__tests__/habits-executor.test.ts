@@ -46,18 +46,8 @@ vi.mock('firebase-admin/firestore', () => ({
   })),
 }));
 
-// Mock habit coaching module
-vi.mock('../../../../tools/habit-coaching.ts.js', () => ({
-  createHabit: vi.fn().mockResolvedValue({ id: 'habit-123', name: 'Morning run' }),
-  logHabitCompletion: vi.fn().mockResolvedValue({ streak: 5 }),
-  getHabitProgress: vi.fn().mockResolvedValue({ completionRate: 0.8, streak: 5 }),
-  getHabitStreak: vi.fn().mockResolvedValue(5),
-  suggestHabitStack: vi.fn().mockResolvedValue(['Habit 1', 'Habit 2']),
-  getHabits: vi.fn().mockResolvedValue([]),
-  deleteHabit: vi.fn().mockResolvedValue(true),
-  pauseHabit: vi.fn().mockResolvedValue(true),
-  resumeHabit: vi.fn().mockResolvedValue(true),
-}));
+// NOTE: mock removed - the code under test never imports this module, so it
+// controlled nothing (it was also pointing at a path that did not resolve).
 
 describe('HabitsExecutor', () => {
   const createContext = (overrides: Partial<ToolExecutionContext> = {}): ToolExecutionContext => ({

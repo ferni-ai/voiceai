@@ -104,12 +104,12 @@ const { mockLogger, mockBehaviors } = vi.hoisted(() => {
   return { mockLogger: logger, mockBehaviors: behaviors };
 });
 
-vi.mock('../utils/safe-logger.ts.js', () => ({
+vi.mock('../utils/safe-logger.js', () => ({
   getLogger: vi.fn(() => mockLogger),
   createLogger: vi.fn(() => mockLogger),
 }));
 
-vi.mock('../../personas/bundles/loader.js', () => ({
+vi.mock('../personas/bundles/loader.js', () => ({
   loadBundleById: vi.fn().mockResolvedValue({
     getBehaviors: vi.fn().mockResolvedValue(mockBehaviors),
   }),

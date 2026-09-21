@@ -23,11 +23,8 @@ const mockCalendarService = {
   disconnect: vi.fn(),
 };
 
-vi.mock('../../services/calendar/google-calendar.service.js', () => ({
-  default: mockCalendarService,
-  ...mockCalendarService,
-}));
-
+// NOTE: mock removed - the module does not exist and the code under test does
+// not import it, so it controlled nothing.
 // Mock auth
 vi.mock('../auth-middleware.js', () => ({
   requireAuth: vi.fn(async (req, res) => {

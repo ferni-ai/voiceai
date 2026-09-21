@@ -14,7 +14,7 @@ import {
 import { hasPersonaBuildingBlocks, getPersonaBuildingBlocks } from '../persona-building-blocks.js';
 
 // Mock Firestore to avoid actual DB calls
-vi.mock('../../../marketplace/persistence/firestore.ts.js', () => ({
+vi.mock('../../../marketplace/persistence/firestore.js', () => ({
   getFirestore: vi.fn().mockResolvedValue({
     collection: vi.fn().mockReturnValue({
       doc: vi.fn().mockReturnValue({

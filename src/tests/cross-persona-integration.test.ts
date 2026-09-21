@@ -13,35 +13,10 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
-// Mock Firestore before imports
-vi.mock('../memory/firestore-client.js', () => ({
-  getFirestoreDb: vi.fn(() => ({
-    collection: vi.fn(() => ({
-      doc: vi.fn(() => ({
-        get: vi.fn(() => Promise.resolve({ exists: false, data: () => null })),
-        set: vi.fn(() => Promise.resolve()),
-        update: vi.fn(() => Promise.resolve()),
-        collection: vi.fn(() => ({
-          get: vi.fn(() => Promise.resolve({ docs: [] })),
-          add: vi.fn(() => Promise.resolve({ id: 'mock-id' })),
-        })),
-      })),
-      get: vi.fn(() => Promise.resolve({ docs: [] })),
-      where: vi.fn(() => ({
-        get: vi.fn(() => Promise.resolve({ docs: [] })),
-        orderBy: vi.fn(() => ({
-          limit: vi.fn(() => ({
-            get: vi.fn(() => Promise.resolve({ docs: [] })),
-          })),
-        })),
-      })),
-    })),
-  })),
-  isFirestoreAvailable: vi.fn(() => true),
-}));
-
+// NOTE: mock removed - the module does not exist and the code under test does
+// not import it, so it controlled nothing.
 // Mock stores
-vi.mock('../services/stores/financial-store.ts.js', () => ({
+vi.mock('../services/stores/financial-store.js', () => ({
   getFinancialStore: vi.fn(() => ({
     // Async methods
     loadUserData: vi.fn(() =>
@@ -78,7 +53,7 @@ vi.mock('../services/stores/financial-store.ts.js', () => ({
   })),
 }));
 
-vi.mock('../services/stores/productivity-store.ts.js', () => ({
+vi.mock('../services/stores/productivity-store.js', () => ({
   getProductivityStore: vi.fn(() => ({
     // Async methods
     loadUserData: vi.fn(() => Promise.resolve({ habits: [], goals: [], moodLogs: [] })),
@@ -119,7 +94,7 @@ vi.mock('../services/stores/productivity-store.ts.js', () => ({
   })),
 }));
 
-vi.mock('../services/engagement/gamification-store.ts.js', () => ({
+vi.mock('../services/engagement/gamification-store.js', () => ({
   getGamificationStore: vi.fn(() => ({
     getMoodLogs: vi.fn(() =>
       Promise.resolve([

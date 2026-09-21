@@ -34,15 +34,8 @@ vi.mock('firebase-admin/firestore', () => ({
   })),
 }));
 
-// Mock telephony service
-vi.mock('../../../../services/telephony/phone-service.js', () => ({
-  initiateCall: vi.fn().mockResolvedValue({ callId: 'call-123', status: 'connecting' }),
-  callOnBehalf: vi.fn().mockResolvedValue({ callId: 'call-124', status: 'connecting' }),
-  callAndConverse: vi.fn().mockResolvedValue({ callId: 'call-125', status: 'in-progress' }),
-  scheduleCallback: vi.fn().mockResolvedValue({ scheduled: true, callbackId: 'cb-123' }),
-  checkVoicemail: vi.fn().mockResolvedValue({ messages: [], count: 0 }),
-}));
-
+// NOTE: the phone-service mock was removed - telephony-executor.ts imports
+// contact-relationship-service, voice-call and sms-delivery instead.
 describe('TelephonyExecutor', () => {
   const createContext = (overrides: Partial<ToolExecutionContext> = {}): ToolExecutionContext => ({
     userId: 'test-user-123',

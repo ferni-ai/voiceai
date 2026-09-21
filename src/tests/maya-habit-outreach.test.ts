@@ -55,7 +55,7 @@ const mockLogsWithSetback = Array.from({ length: 7 }, (_, i) => {
   };
 });
 
-vi.mock('../services/stores/productivity-store.ts.js', () => ({
+vi.mock('../services/stores/productivity-store.js', () => ({
   getProductivityStore: () => ({
     loadUserData: vi.fn().mockResolvedValue(undefined),
     getUserHabits: vi.fn().mockReturnValue(mockHabits),
@@ -66,14 +66,14 @@ vi.mock('../services/stores/productivity-store.ts.js', () => ({
 }));
 
 // Mock the trigger publisher
-vi.mock('../services/outreach/trigger-publisher.ts.js', () => ({
+vi.mock('../services/outreach/trigger-publisher.js', () => ({
   publishOutreachTrigger: vi
     .fn()
     .mockResolvedValue({ success: true, triggerId: 'test-trigger-123' }),
 }));
 
 // Mock logger
-vi.mock('../utils/safe-logger.ts.js', () => ({
+vi.mock('../utils/safe-logger.js', () => ({
   getLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),

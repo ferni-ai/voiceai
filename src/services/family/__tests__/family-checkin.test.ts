@@ -13,7 +13,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock Firestore
-vi.mock('../../firestore-utils.js', () => ({
+vi.mock('../../superhuman/firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => null), // Start with no DB for unit tests
 }));
 

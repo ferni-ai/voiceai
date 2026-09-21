@@ -19,32 +19,7 @@ vi.mock('../../../utils/safe-logger.js', () => ({
   }),
 }));
 
-vi.mock('../classifier-boundary.js', () => ({
-  FTISDecisionBoundary: class MockDecisionBoundary {
-    isReady() {
-      return false;
-    }
-  },
-  getFTISDecisionBoundary: () => new (class {
-    isReady() {
-      return false;
-    }
-  })(),
-}));
-
-vi.mock('../classifier-calibration.js', () => ({
-  FTISCalibration: class MockCalibration {
-    isReady() {
-      return false;
-    }
-  },
-  getFTISCalibration: () => new (class {
-    isReady() {
-      return false;
-    }
-  })(),
-}));
-
+// NOTE: the classifier-boundary / classifier-calibration mocks were removed -
 // Import the session tracker for testing
 import {
   getSessionReadinessTracker,

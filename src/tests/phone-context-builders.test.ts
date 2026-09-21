@@ -16,14 +16,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // MOCKS
 // ============================================================================
 
-// Mock session services for context builders that need them
-vi.mock('../api/routes/session-context.ts.js', () => ({
-  getSessionContext: vi.fn(() => ({
-    sessionId: 'test-session',
-    userId: 'test-user',
-    isInboundCall: true,
-  })),
-}));
+// NOTE: mock removed - the code under test never imports this module, so it
+// controlled nothing (it was also pointing at a path that did not resolve).
 
 // ============================================================================
 // TEST DATA

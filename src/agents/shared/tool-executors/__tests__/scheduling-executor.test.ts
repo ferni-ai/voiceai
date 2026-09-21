@@ -58,13 +58,8 @@ vi.mock('../../../../services/calendar/index.js', () => ({
   addEvent: vi.fn().mockResolvedValue({ id: 'event-123' }),
 }));
 
-// Mock contacts service
-vi.mock('../../../../services/contacts/contact-service.js', () => ({
-  saveContact: vi.fn().mockResolvedValue({ id: 'contact-123' }),
-  getContact: vi.fn().mockResolvedValue(null),
-  searchContacts: vi.fn().mockResolvedValue([]),
-}));
-
+// NOTE: the contact-service mock was removed - scheduling-executor.ts uses
+// contact-relationship-service, which is mocked where the tests need it.
 describe('SchedulingExecutor', () => {
   const createContext = (overrides: Partial<ToolExecutionContext> = {}): ToolExecutionContext => ({
     userId: 'test-user-123',

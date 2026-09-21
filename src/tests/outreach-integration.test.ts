@@ -12,55 +12,61 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock external dependencies before imports
-vi.mock('../utils/safe-logger.ts.js', () => ({
-  createLogger: () => ({
+// Spread the real module: safe-logger exports getLogger as well as createLogger.
+vi.mock('../utils/safe-logger.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../utils/safe-logger.js')>();
+  const quiet = () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
-  }),
-}));
+    child: vi.fn(() => quiet()),
+  });
+  return { ...actual, createLogger: quiet, getLogger: quiet };
+});
 
-vi.mock('../services/trust-systems/thinking-of-you.ts.js', () => ({
+vi.mock('../services/trust-systems/thinking-of-you.js', () => ({
   generateRandomWarmth: vi.fn(() => null),
   generateThinkingOfYouMoments: vi.fn(() => []),
   markMomentSent: vi.fn(),
 }));
 
-vi.mock('../services/trust-systems/small-wins.ts.js', () => ({
+vi.mock('../services/trust-systems/small-wins.js', () => ({
   generateCelebration: vi.fn(() => null),
   getUncelebratedWins: vi.fn(() => []),
 }));
 
-vi.mock('../services/trust-systems/growth-reflection.ts.js', () => ({
+vi.mock('../services/trust-systems/growth-reflection.js', () => ({
   generateGrowthReflection: vi.fn(() => null),
   getUnreflectedGrowth: vi.fn(() => []),
 }));
 
-vi.mock('../services/outreach/persona-outreach-formatter.ts.js', () => ({
-  routeToPersona: vi.fn((type: string) => {
-    const routes: Record<string, string> = {
-      thinking_of_you: 'ferni',
-      celebration: 'ferni',
-      growth_reflection: 'ferni',
-      habit_check: 'maya-santos',
-      appointment_reminder: 'alex-chen',
-    };
-    return routes[type] || 'ferni';
-  }),
-  formatSmsMessage: vi.fn((personaId: string, message: string) => ({
-    message: `[${personaId}] ${message}`,
-    greeting: `Hey from ${personaId}!`,
-  })),
-  formatPushNotification: vi.fn((personaId: string, message: string) => ({
-    title: `From ${personaId}`,
-    body: message,
-  })),
-  formatVoiceMessage: vi.fn((personaId: string, message: string) => ({
-    message,
-    opening: `Hey, this is ${personaId} calling.`,
-  })),
-}));
+// Use the REAL routeToPersona: it scores personas against the outreach type AND
+// the context (topic/habit/appointment), which is exactly what the "Persona
+// Routing Integration" cases below assert. The previous stub was a flat
+// type->persona table that ignored context, so once this mock became effective
+// it routed a habit_streak celebration to ferni instead of maya-santos.
+// Only the presentational formatters stay stubbed.
+vi.mock('../services/outreach/persona-outreach-formatter.js', async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import('../services/outreach/persona-outreach-formatter.js')
+  >();
+  return {
+    ...actual,
+    formatSmsMessage: vi.fn((personaId: string, message: string) => ({
+      message: `[${personaId}] ${message}`,
+      greeting: `Hey from ${personaId}!`,
+    })),
+    formatPushNotification: vi.fn((personaId: string, message: string) => ({
+      title: `From ${personaId}`,
+      body: message,
+    })),
+    formatVoiceMessage: vi.fn((personaId: string, message: string) => ({
+      message,
+      opening: `Hey, this is ${personaId} calling.`,
+    })),
+  };
+});
 
 vi.mock('firebase-admin/firestore', () => ({
   getFirestore: vi.fn(() => ({
@@ -78,16 +84,16 @@ vi.mock('firebase-admin/firestore', () => ({
   })),
 }));
 
-vi.mock('../services/communication-service.ts.js', () => ({
+vi.mock('../services/communication-service.js', () => ({
   sendSMS: vi.fn().mockResolvedValue('Message sent successfully'),
 }));
 
-vi.mock('../services/outreach/delivery/push-notifications.ts.js', () => ({
+vi.mock('../services/outreach/delivery/push-notifications.js', () => ({
   sendPushNotification: vi.fn().mockResolvedValue([{ success: true }]),
   hasPushEnabled: vi.fn(() => true),
 }));
 
-vi.mock('../services/voice/voice-call.ts.js', () => ({
+vi.mock('../services/voice/voice-call.js', () => ({
   callWithPersonaVoice: vi.fn().mockResolvedValue({
     success: true,
     callSid: 'test-call-sid',

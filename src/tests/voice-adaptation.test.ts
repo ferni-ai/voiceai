@@ -22,7 +22,7 @@ vi.mock('../utils/safe-logger.js', () => ({
   })),
 }));
 
-vi.mock('./persona-behavior-manager.js', () => ({
+vi.mock('../services/persona/persona-behavior-manager.js', () => ({
   loadPersonaBehaviors: vi.fn().mockResolvedValue({
     microExpressions: {},
     speechPatterns: {},

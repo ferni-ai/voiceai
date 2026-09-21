@@ -13,14 +13,20 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // MOCKS
 // ============================================================================
 
-vi.mock('../../utils/safe-logger.ts.js', () => ({
-  createLogger: () => ({
+// Spread the real module: safe-logger exports getLogger as well as createLogger,
+// and this mock only became effective once its path was corrected - a factory
+// listing just createLogger then broke every test in the file.
+vi.mock('../../utils/safe-logger.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../utils/safe-logger.js')>();
+  const quiet = () => ({
     info: vi.fn(),
     debug: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-}));
+    child: vi.fn(() => quiet()),
+  });
+  return { ...actual, createLogger: quiet, getLogger: quiet };
+});
 
 // ============================================================================
 // TEST DATA

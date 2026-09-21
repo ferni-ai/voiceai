@@ -12,9 +12,16 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 // Mock the voice ID resolver
-vi.mock('../../../speech/tts/cartesia-core.js', () => ({
-  getVoiceIdForPersona: vi.fn((persona: string) => `voice-id-${persona}`),
-}));
+// Spread the real module: it also exports CARTESIA_MODEL / CARTESIA_API_URL /
+// VOICE_IDS etc., and replacing the whole module with one function left those
+// undefined for everything else on the TTS path.
+vi.mock('../../../config/voice-ids.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../config/voice-ids.js')>();
+  return {
+    ...actual,
+    getVoiceIdForPersona: vi.fn((persona: string) => `voice-id-${persona}`),
+  };
+});
 
 // Now import the module
 import {

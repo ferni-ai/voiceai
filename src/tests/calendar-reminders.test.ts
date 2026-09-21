@@ -62,10 +62,8 @@ vi.mock('../services/persistence/index.js', () => ({
   }),
 }));
 
-vi.mock('../../apps/cli/src/commands/exec/proactive-outreach.ts.js', () => ({
-  canReachUser: vi.fn().mockResolvedValue(true),
-  scheduleText: vi.fn().mockResolvedValue({ success: true }),
-}));
+// NOTE: mock removed - the code under test never imports this module, so it
+// controlled nothing (it was also pointing at a path that did not resolve).
 
 vi.mock('../services/outreach-intelligence.js', () => ({
   canSendOutreach: vi.fn().mockReturnValue(true),

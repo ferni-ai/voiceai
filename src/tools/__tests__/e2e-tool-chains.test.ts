@@ -812,12 +812,12 @@ describe('E2E Health → Smart Home Cross-Domain', () => {
     }));
 
     // Mock Home Assistant service
-    vi.mock('../../services/smart-home/home-assistant.ts.js', () => ({
+    vi.mock('../../services/smart-home/home-assistant.js', () => ({
       getHomeAssistantService: vi.fn(() => null),
     }));
 
     // Mock Ecobee API
-    vi.mock('../../services/identity/ecobee-api.ts.js', () => ({
+    vi.mock('../../services/identity/ecobee-api.js', () => ({
       getEcobeeApi: vi.fn(() => null),
     }));
 

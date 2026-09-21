@@ -43,23 +43,8 @@ vi.mock('../utils/safe-logger.js', () => {
   };
 });
 
-vi.mock('../memory/firebase-client.js', () => ({
-  getFirestoreClient: () => ({
-    collection: () => ({
-      doc: () => ({
-        collection: () => ({
-          doc: () => ({
-            set: vi.fn().mockResolvedValue(undefined),
-          }),
-          orderBy: () => ({
-            get: vi.fn().mockResolvedValue({ docs: [] }),
-          }),
-        }),
-      }),
-    }),
-  }),
-}));
-
+// NOTE: mock removed - the module does not exist and the code under test does
+// not import it, so it controlled nothing.
 vi.mock('../services/contacts/contact-relationship-service.js', () => ({
   getContact: vi.fn().mockResolvedValue({
     contactId: 'contact-123',

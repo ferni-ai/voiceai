@@ -22,7 +22,7 @@ vi.mock('../../utils/safe-logger.js', () => ({
 }));
 
 // Mock Firestore to avoid real DB calls
-vi.mock('../../marketplace/persistence/firestore.ts.js', () => ({
+vi.mock('../../marketplace/persistence/firestore.js', () => ({
   getFirestore: vi.fn().mockReturnValue({
     collection: vi.fn().mockReturnValue({
       doc: vi.fn().mockReturnValue({

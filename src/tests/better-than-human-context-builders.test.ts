@@ -71,7 +71,7 @@ const createMockLogger = () => {
 };
 
 // Mock the safe-logger
-vi.mock('../utils/safe-logger.ts.js', () => ({
+vi.mock('../utils/safe-logger.js', () => ({
   createLogger: createMockLogger,
   getLogger: createMockLogger,
 }));

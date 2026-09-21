@@ -79,7 +79,7 @@ vi.mock('../../../personas/registry/unified-registry.js', () => ({
 }));
 
 // Mock PersonaRegistry
-vi.mock('../../../personas/PersonaRegistry.js', () => ({
+vi.mock('../types.js', () => ({
   createHandoffEvent: (agentId: string, options: Record<string, unknown>) => ({
     agentId,
     ...options,

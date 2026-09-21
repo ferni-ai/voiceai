@@ -54,7 +54,7 @@ vi.mock('../utils/safe-logger.js', () => ({
 }));
 
 // Mock services that are heavy dependencies
-vi.mock('../services/stores/financial-store.ts.js', () => ({
+vi.mock('../services/stores/financial-store.js', () => ({
   getFinancialStore: vi.fn(() => ({
     loadUserData: vi.fn(() => Promise.resolve()),
     getUserBudgets: vi.fn(() => []),
@@ -63,21 +63,21 @@ vi.mock('../services/stores/financial-store.ts.js', () => ({
   })),
 }));
 
-vi.mock('../services/stores/productivity-store.ts.js', () => ({
+vi.mock('../services/stores/productivity-store.js', () => ({
   getProductivityStore: vi.fn(() => ({
     loadUserData: vi.fn(() => Promise.resolve()),
     getUserHabits: vi.fn(() => []),
   })),
 }));
 
-vi.mock('../services/engagement/gamification-store.ts.js', () => ({
+vi.mock('../services/engagement/gamification-store.js', () => ({
   getGamificationStore: vi.fn(() => ({
     loadUserData: vi.fn(() => Promise.resolve()),
     getMoodLogs: vi.fn(() => Promise.resolve([])),
   })),
 }));
 
-vi.mock('../services/memory-orchestrator.js', () => ({
+vi.mock('../memory/orchestrator.js', () => ({
   getMemoryOrchestrator: vi.fn(() => ({
     getBehavioralPatterns: vi.fn(() => Promise.resolve([])),
     getEmotionalThreads: vi.fn(() => Promise.resolve([])),

@@ -8,18 +8,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock Firestore
-vi.mock('../../memory/firestore/index.js', () => ({
-  getFirestoreClient: vi.fn(() => ({
-    collection: vi.fn(() => ({
-      doc: vi.fn(() => ({
-        set: vi.fn().mockResolvedValue(undefined),
-        get: vi.fn().mockResolvedValue({ exists: false }),
-      })),
-    })),
-  })),
-}));
-
+// NOTE: mock removed - summarization-worker.ts uses firebase-admin/firestore
+// directly plus utils/firestore-utils.js, not memory/firestore.
 // Import worker
 import { SummarizationWorker, getSummarizationWorker } from '../summarization-worker.js';
 

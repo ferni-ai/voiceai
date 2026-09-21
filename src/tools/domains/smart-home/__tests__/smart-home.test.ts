@@ -70,13 +70,11 @@ vi.mock('../../../utils/tool-descriptions.js', () => ({
   getToolDescription: (id: string) => `Description for ${id}`,
 }));
 
-// Mock Home Assistant service
-vi.mock('../../../../services/smart-home/home-assistant.ts.js', () => ({
-  getHomeAssistantService: vi.fn(() => null),
-}));
+// NOTE: mock removed - the code under test never imports this module, so it
+// controlled nothing (it was also pointing at a path that did not resolve).
 
 // Mock Ecobee API
-vi.mock('../../../../services/identity/ecobee-api.ts.js', () => ({
+vi.mock('../../../../services/identity/ecobee-api.js', () => ({
   getEcobeeApi: vi.fn(() => null),
 }));
 

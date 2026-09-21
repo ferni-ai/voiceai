@@ -9,28 +9,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock Firestore before any imports
-vi.mock('../../memory/firestore/client.js', () => ({
-  getFirestore: vi.fn(() => ({
-    collection: vi.fn(() => ({
-      doc: vi.fn(() => ({
-        get: vi.fn(async () => ({ exists: false, data: () => null })),
-        set: vi.fn(async () => {}),
-        update: vi.fn(async () => {}),
-        delete: vi.fn(async () => {}),
-      })),
-      where: vi.fn(() => ({
-        get: vi.fn(async () => ({ docs: [] })),
-      })),
-      orderBy: vi.fn(() => ({
-        limit: vi.fn(() => ({
-          get: vi.fn(async () => ({ docs: [] })),
-        })),
-      })),
-    })),
-  })),
-}));
-
+// NOTE: mock removed - the semantic-intelligence modules read Firestore via
+// getFirestoreDb() from services/superhuman/firestore-utils.js, not getFirestore().
 describe('Semantic Intelligence E2E', () => {
   const TEST_USER_ID = 'test-user-semantic-e2e';
   const TEST_SESSION_ID = 'test-session-semantic-e2e';

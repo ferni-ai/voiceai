@@ -28,7 +28,7 @@ const mockCollection = vi.fn().mockReturnValue({
   get: mockGet,
 });
 
-vi.mock('../../marketplace/persistence/firestore.ts.js', () => ({
+vi.mock('../../marketplace/persistence/firestore.js', () => ({
   getFirestore: () => ({
     collection: mockCollection,
   }),
@@ -71,10 +71,8 @@ vi.mock('../../utils/safe-logger.js', () => ({
 
 // Mock semantic indexing
 const mockIndexToSemantic = vi.fn().mockResolvedValue({ success: true });
-vi.mock('../../services/data-layer/semantic-indexing.js', () => ({
-  indexToSemantic: mockIndexToSemantic,
-}));
-
+// NOTE: the semantic-indexing mock was removed - indexToSemantic no longer
+// exists; the domain hooks call onStoreChange, which is mocked just below.
 // Mock store hooks (domain hooks call onStoreChange)
 const mockOnStoreChange = vi.fn();
 vi.mock('../../services/data-layer/store-hooks.js', () => ({

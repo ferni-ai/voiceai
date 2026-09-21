@@ -78,17 +78,8 @@ vi.mock('../../../../services/daily-rituals.js', () => ({
   }),
 }));
 
-// Mock persona voices
-vi.mock('../../../../services/brand/persona-voices.ts.js', () => ({
-  PERSONA_VOICES: {
-    ferni: { celebrationStyle: 'warm' },
-    maya: { celebrationStyle: 'encouraging' },
-    alex: { celebrationStyle: 'professional' },
-    jordan: { celebrationStyle: 'enthusiastic' },
-    peter: { celebrationStyle: 'analytical' },
-    nayan: { celebrationStyle: 'wise' },
-  },
-}));
+// NOTE: mock removed - the code under test never imports this module, so it
+// controlled nothing (it was also pointing at a path that did not resolve).
 
 // ============================================================================
 // IMPORTS

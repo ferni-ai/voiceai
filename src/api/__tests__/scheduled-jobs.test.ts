@@ -27,34 +27,78 @@ vi.mock('../../services/outreach/index.js', () => ({
   resetWeeklyCounters: vi.fn().mockResolvedValue({ reset: true }),
 }));
 
-// Mock analytics
-vi.mock('../../services/community-insights.js', () => ({
-  aggregateCommunityInsights: vi.fn().mockResolvedValue({ aggregated: 100 }),
-}));
+// These jobs were split into src/api/scheduled-jobs/* and now import their
+// implementations from different modules. The previous mocks pointed at
+// services/community-insights.js, persona-metrics.js, trust-profiles.js,
+// transcript-cleanup.js, intelligence/deep-analysis.js and
+// predictive-analysis.js - none of which exist, so every one was inert and these
+// routes ran their real jobs. Each mock below targets the module the matching
+// handler actually imports, with the symbols it destructures.
 
-vi.mock('../../services/persona-metrics.js', () => ({
-  rollupPersonaMetrics: vi.fn().mockResolvedValue({ rolledUp: true }),
-}));
+// handleAggregateCommunityInsights
+vi.mock('../../intelligence/capability-learning.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../intelligence/capability-learning.js')>();
+  return {
+    ...actual,
+    persistPatterns: vi.fn().mockResolvedValue({ aggregated: 100 }),
+    getAllPatterns: vi.fn(() => []),
+  };
+});
 
-vi.mock('../../services/trust-profiles.js', () => ({
-  syncTrustProfiles: vi.fn().mockResolvedValue({ synced: 50 }),
-}));
+// handleRollupPersonaMetrics
+vi.mock('../../services/analytics/humanization-analytics.js', async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import('../../services/analytics/humanization-analytics.js')
+  >();
+  return {
+    ...actual,
+    getHumanizationAnalytics: vi.fn(() => ({
+      rollup: vi.fn().mockResolvedValue({ rolledUp: true }),
+      getMetrics: vi.fn(() => ({})),
+    })),
+  };
+});
 
-// Mock transcripts
-vi.mock('../../services/transcript-cleanup.js', () => ({
-  cleanupOldTranscripts: vi.fn().mockResolvedValue({ deleted: 20 }),
-}));
+// handleSyncTrustProfiles
+vi.mock('../../services/trust-systems/unified-persistence.js', async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import('../../services/trust-systems/unified-persistence.js')
+  >();
+  return {
+    ...actual,
+    flushPendingChanges: vi.fn().mockResolvedValue({ synced: 50 }),
+    initializeUnifiedPersistence: vi.fn(),
+  };
+});
 
-// Mock deep analysis
-vi.mock('../../intelligence/deep-analysis.js', () => ({
-  runDeepAnalysis: vi.fn().mockResolvedValue({ analyzed: 10 }),
-  flushMLState: vi.fn().mockResolvedValue({ flushed: true }),
-}));
+// handleCleanupTranscripts + memory jobs
+vi.mock('../../tasks/scheduled/memory-jobs.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../tasks/scheduled/memory-jobs.js')>();
+  return {
+    ...actual,
+    TranscriptCleanupJob: class {
+      async run() {
+        return { deleted: 20 };
+      }
+    },
+  };
+});
 
-// Mock predictions
-vi.mock('../../services/predictive-analysis.js', () => ({
-  runPredictiveAnalysis: vi.fn().mockResolvedValue({ predictions: 25 }),
-}));
+// handleRunDeepAnalysis
+vi.mock('../../tasks/scheduled/deep-analysis-job.js', async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import('../../tasks/scheduled/deep-analysis-job.js')
+  >();
+  return { ...actual, runDeepAnalysis: vi.fn().mockResolvedValue({ analyzed: 10 }) };
+});
+
+// handleRunPredictiveAnalysis
+vi.mock('../../services/predictive-insights/index.js', async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import('../../services/predictive-insights/index.js')
+  >();
+  return { ...actual, runPredictiveAnalysis: vi.fn().mockResolvedValue({ predictions: 25 }) };
+});
 
 // Create mock request
 function createMockRequest(options: {

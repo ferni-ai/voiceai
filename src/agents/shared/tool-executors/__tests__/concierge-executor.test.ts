@@ -34,17 +34,8 @@ vi.mock('firebase-admin/firestore', () => ({
   })),
 }));
 
-// Mock concierge service
-vi.mock('../../../../services/concierge/concierge-service.js', () => ({
-  requestHotelQuotes: vi.fn().mockResolvedValue({ requestId: 'hotel-123', status: 'searching' }),
-  makeRestaurantReservation: vi
-    .fn()
-    .mockResolvedValue({ reservationId: 'res-123', confirmed: true }),
-  scheduleHealthcareAppointment: vi.fn().mockResolvedValue({ appointmentId: 'apt-123' }),
-  getServiceQuotes: vi.fn().mockResolvedValue([]),
-  checkConciergeStatus: vi.fn().mockResolvedValue({ status: 'pending', quotes: [] }),
-}));
-
+// NOTE: the concierge-service mock was removed - no such module exists and
+// concierge-executor.ts does not import one.
 describe('ConciergeExecutor', () => {
   const createContext = (overrides: Partial<ToolExecutionContext> = {}): ToolExecutionContext => ({
     userId: 'test-user-123',
