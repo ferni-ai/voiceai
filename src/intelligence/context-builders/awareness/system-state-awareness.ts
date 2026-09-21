@@ -183,7 +183,8 @@ function getStoredSystemState(input: ContextBuilderInput): SystemStateContext | 
 /**
  * Format duration in human-readable form
  */
-function formatDuration(seconds: number): string {
+/** @internal Exported for tests - pure seconds -> human duration. */
+export function formatDuration(seconds: number): string {
   if (seconds < 60) {
     return `${seconds} seconds`;
   }

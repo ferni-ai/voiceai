@@ -1,35 +1,41 @@
 /**
- * System State Awareness Context Builder Tests
+ * System State Awareness Tests
  *
- * Tests the context builder that injects system state (music, timers, tools)
- * into the LLM context on every turn.
+ * Exercises the REAL builder in
+ * src/intelligence/context-builders/awareness/system-state-awareness.ts.
  *
- * @module tests/system-state-awareness
+ * This file previously imported nothing: it redefined formatDuration and a
+ * simplified formatSystemState inside the test and asserted against those local
+ * copies. Two consequences that rewriting exposed:
+ *   - the local formatSystemState dropped tools older than 60s, while production
+ *     drops them at 30s. A test literally named "should NOT include tool executed
+ *     more than 60s ago" was documenting the wrong threshold.
+ *   - the "Context Builder Integration" cases asserted expect('').toBe('') and
+ *     compared a locally-declared BUILDER_PRIORITY constant to a literal, so they
+ *     could not have failed for any reason.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-// NOTE: mock removed - the code under test never imports this module, so it
-// controlled nothing (it was also pointing at a path that did not resolve).
+import {
+  formatDuration,
+  formatSystemState,
+  systemStateAwarenessBuilder,
+} from '../intelligence/context-builders/awareness/system-state-awareness.js';
 
-// Test the formatting logic directly
+const idle = {
+  music: { isPlaying: false, isDucked: false },
+  timers: { active: 0 },
+};
+
 describe('System State Awareness', () => {
   describe('formatDuration', () => {
-    function formatDuration(seconds: number): string {
-      if (seconds < 60) {
-        return `${seconds} seconds`;
-      }
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return secs > 0 ? `${mins} minutes ${secs} seconds` : `${mins} minutes`;
-    }
-
     it('should format seconds correctly', () => {
       expect(formatDuration(30)).toBe('30 seconds');
       expect(formatDuration(59)).toBe('59 seconds');
     });
 
-    it('should format minutes correctly', () => {
+    it('should format whole minutes without a seconds part', () => {
       expect(formatDuration(60)).toBe('1 minutes');
       expect(formatDuration(120)).toBe('2 minutes');
     });
@@ -41,177 +47,133 @@ describe('System State Awareness', () => {
   });
 
   describe('formatSystemState', () => {
-    interface SystemStateContext {
-      music: {
-        isPlaying: boolean;
-        currentTrack?: { name: string; artist: string };
-        playDurationSeconds?: number;
-        isDucked: boolean;
-      };
-      timers: {
-        active: number;
-        nextExpiry?: Date;
-      };
-      lastToolExecuted?: {
-        toolId: string;
-        timestamp: Date;
-        result?: string;
-      };
-    }
-
-    function formatDuration(seconds: number): string {
-      if (seconds < 60) {
-        return `${seconds} seconds`;
-      }
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return secs > 0 ? `${mins} minutes ${secs} seconds` : `${mins} minutes`;
-    }
-
-    function formatSystemState(state: SystemStateContext): string {
-      const lines: string[] = [];
-
-      if (state.music.isPlaying) {
-        if (state.music.currentTrack) {
-          const duration = state.music.playDurationSeconds
-            ? ` (playing for ${formatDuration(state.music.playDurationSeconds)})`
-            : '';
-          const duckStatus = state.music.isDucked ? ', ducked for conversation' : '';
-          lines.push(
-            `Music is playing: "${state.music.currentTrack.name}" by ${state.music.currentTrack.artist}${duration}${duckStatus}`
-          );
-        } else {
-          lines.push('Music is playing');
-        }
-      }
-
-      if (state.timers.active > 0) {
-        const expiry = state.timers.nextExpiry
-          ? ` (next expires at ${state.timers.nextExpiry.toLocaleTimeString()})`
-          : '';
-        lines.push(`${state.timers.active} active timer(s)${expiry}`);
-      }
-
-      if (state.lastToolExecuted) {
-        const agoMs = Date.now() - state.lastToolExecuted.timestamp.getTime();
-        if (agoMs < 60000) {
-          const agoSec = Math.round(agoMs / 1000);
-          lines.push(`Just executed: ${state.lastToolExecuted.toolId} (${agoSec}s ago)`);
-        }
-      }
-
-      return lines.length > 0 ? `${lines.join('. ')}.` : '';
-    }
-
     it('should return empty string when nothing is active', () => {
-      const result = formatSystemState({
-        music: { isPlaying: false, isDucked: false },
-        timers: { active: 0 },
-      });
-      expect(result).toBe('');
+      expect(formatSystemState({ ...idle })).toBe('');
     });
 
     it('should format music playing with track info', () => {
       const result = formatSystemState({
+        ...idle,
         music: {
           isPlaying: true,
-          currentTrack: { name: 'Jazz Vibes', artist: 'Miles Davis' },
           isDucked: false,
+          currentTrack: { name: 'Blue in Green', artist: 'Miles Davis' },
         },
-        timers: { active: 0 },
       });
-      expect(result).toContain('Music is playing: "Jazz Vibes" by Miles Davis');
+
+      expect(result).toContain('Blue in Green');
+      expect(result).toContain('Miles Davis');
+      expect(result).toContain('Music is playing');
     });
 
     it('should include play duration when available', () => {
       const result = formatSystemState({
+        ...idle,
         music: {
           isPlaying: true,
-          currentTrack: { name: 'Jazz Vibes', artist: 'Miles Davis' },
-          playDurationSeconds: 90,
           isDucked: false,
+          currentTrack: { name: 'Blue in Green', artist: 'Miles Davis' },
+          playDurationSeconds: 90,
         },
-        timers: { active: 0 },
       });
+
       expect(result).toContain('playing for 1 minutes 30 seconds');
     });
 
     it('should indicate when music is ducked', () => {
       const result = formatSystemState({
+        ...idle,
         music: {
           isPlaying: true,
-          currentTrack: { name: 'Jazz Vibes', artist: 'Miles Davis' },
           isDucked: true,
+          currentTrack: { name: 'Blue in Green', artist: 'Miles Davis' },
         },
-        timers: { active: 0 },
       });
+
       expect(result).toContain('ducked for conversation');
     });
 
-    it('should format active timers', () => {
+    it('should tell the LLM not to offer music that is already playing', () => {
       const result = formatSystemState({
-        music: { isPlaying: false, isDucked: false },
-        timers: { active: 2 },
+        ...idle,
+        music: { isPlaying: true, isDucked: false },
       });
-      expect(result).toContain('2 active timer(s)');
+
+      // The guidance block is the point of this builder
+      expect(result).toContain('[GUIDANCE:');
+      expect(result.toLowerCase()).toContain('already on');
     });
 
-    it('should format recently executed tool', () => {
+    it('should format active timers', () => {
+      const result = formatSystemState({ ...idle, timers: { active: 2 } });
+
+      expect(result).toContain('2 active timer(s)');
+      expect(result).toContain('[GUIDANCE:');
+    });
+
+    it('should format a recently executed tool', () => {
       const result = formatSystemState({
-        music: { isPlaying: false, isDucked: false },
-        timers: { active: 0 },
-        lastToolExecuted: {
-          toolId: 'playMusic',
-          timestamp: new Date(),
-        },
+        ...idle,
+        lastToolExecuted: { toolId: 'playMusic', timestamp: new Date() },
       });
+
       expect(result).toContain('Just executed: playMusic');
     });
 
-    it('should NOT include tool executed more than 60s ago', () => {
+    it('should NOT include a tool executed more than 30s ago', () => {
+      // Production's window is 30s, not the 60s the old local copy used.
       const result = formatSystemState({
-        music: { isPlaying: false, isDucked: false },
-        timers: { active: 0 },
+        ...idle,
         lastToolExecuted: {
           toolId: 'playMusic',
-          timestamp: new Date(Date.now() - 120000), // 2 minutes ago
+          timestamp: new Date(Date.now() - 31_000),
         },
       });
-      expect(result).not.toContain('playMusic');
+
+      expect(result).not.toContain('Just executed');
+      expect(result).toBe('');
+    });
+
+    it('should still include a tool executed 29s ago', () => {
+      const result = formatSystemState({
+        ...idle,
+        lastToolExecuted: {
+          toolId: 'playMusic',
+          timestamp: new Date(Date.now() - 29_000),
+        },
+      });
+
+      expect(result).toContain('Just executed: playMusic');
     });
 
     it('should combine multiple active states', () => {
       const result = formatSystemState({
         music: {
           isPlaying: true,
-          currentTrack: { name: 'Jazz', artist: 'Artist' },
-          isDucked: true,
+          isDucked: false,
+          currentTrack: { name: 'Blue in Green', artist: 'Miles Davis' },
         },
         timers: { active: 1 },
-        lastToolExecuted: {
-          toolId: 'setTimer',
-          timestamp: new Date(),
-        },
+        lastToolExecuted: { toolId: 'setTimer', timestamp: new Date() },
       });
+
       expect(result).toContain('Music is playing');
-      expect(result).toContain('1 active timer');
+      expect(result).toContain('1 active timer(s)');
       expect(result).toContain('Just executed: setTimer');
     });
   });
 });
 
 describe('Context Builder Integration', () => {
-  it('should not inject when nothing is active', () => {
-    // When music not playing, no timers, no recent tools
-    // The builder should return empty array (no injection)
-    const emptyFormatted = '';
-    expect(emptyFormatted).toBe('');
+  it('should be registered with a name and description', () => {
+    expect(systemStateAwarenessBuilder.name).toBe('system-state-awareness');
+    expect(systemStateAwarenessBuilder.description).toBeTruthy();
+    expect(typeof systemStateAwarenessBuilder.build).toBe('function');
   });
 
-  it('should inject with high priority when music is playing', () => {
-    // The builder has priority 10 (very high)
-    // This ensures LLM knows system state before responding
-    const BUILDER_PRIORITY = 10;
-    expect(BUILDER_PRIORITY).toBeLessThan(20); // Safety builders are 0-20
+  it('should run at a priority ahead of ordinary context builders', () => {
+    // The LLM must know system state before responding
+    expect(systemStateAwarenessBuilder.priority).toBe(10);
+    expect(systemStateAwarenessBuilder.priority).toBeLessThan(20);
   });
 });
