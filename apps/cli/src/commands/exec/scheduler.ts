@@ -291,7 +291,8 @@ function getNextRun(schedule: string, from: Date): string {
   return now.toISOString();
 }
 
-function formatSchedule(schedule: string): string {
+/** @internal Exported for tests - pure schedule-string -> human label. */
+export function formatSchedule(schedule: string): string {
   const [frequency, time] = schedule.split('@');
 
   if (frequency === 'daily') {
@@ -343,7 +344,8 @@ const CRON_MARKER_END = '# END FERNI EXEC SCHEDULER';
  *       'weekly@mon-09:00' -> '0 9 * * 1'
  *       'monthly@1-09:00' -> '0 9 1 * *'
  */
-function scheduleToCron(schedule: string): string {
+/** @internal Exported for tests - pure schedule-string -> cron expression. */
+export function scheduleToCron(schedule: string): string {
   const [frequency, time] = schedule.split('@');
 
   if (frequency === 'daily') {

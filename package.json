@@ -38,6 +38,7 @@
     "test": "vitest run",
     "test:unit": "vitest run --config vitest.config.unit.ts",
     "test:frontend": "cd apps/web && vitest run",
+    "test:cli:unit": "cd apps/cli && vitest run",
     "test:frontend:watch": "cd apps/web && vitest",
     "test:integration": "vitest run --config vitest.config.integration.ts",
     "test:e2e:vitest": "vitest run --config vitest.config.e2e.ts",
