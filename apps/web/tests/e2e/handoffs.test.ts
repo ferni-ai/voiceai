@@ -9,14 +9,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { normalizeAgentId, getPersona, getTeamMembers } from '../../src/config/personas.js';
 import type { PersonaId } from '../../src/types/persona.js';
 
-// Mock audio service
-vi.mock('../../src/services/audio.service.js', () => ({
-  audioService: {
-    playSound: vi.fn().mockResolvedValue(undefined),
-    initialize: vi.fn().mockResolvedValue(undefined),
-  },
-}));
-
 describe('Handoff Flow', () => {
   describe('Persona Normalization', () => {
     it('should normalize backend legacy IDs to canonical IDs', () => {

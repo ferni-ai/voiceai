@@ -28,36 +28,6 @@ import type {
 // MOCK STORAGE
 // ============================================================================
 
-// Mock Firestore
-vi.mock('../memory/firestore-factory.js', () => ({
-  getFirestoreInstance: vi.fn(() => ({
-    collection: vi.fn(() => ({
-      doc: vi.fn(() => ({
-        get: vi.fn(() => Promise.resolve({ exists: false, data: () => null })),
-        set: vi.fn(() => Promise.resolve()),
-        update: vi.fn(() => Promise.resolve()),
-        delete: vi.fn(() => Promise.resolve()),
-      })),
-      where: vi.fn(() => ({
-        orderBy: vi.fn(() => ({
-          limit: vi.fn(() => ({
-            get: vi.fn(() => Promise.resolve({ docs: [] })),
-          })),
-          get: vi.fn(() => Promise.resolve({ docs: [] })),
-        })),
-        get: vi.fn(() => Promise.resolve({ docs: [] })),
-      })),
-      orderBy: vi.fn(() => ({
-        limit: vi.fn(() => ({
-          get: vi.fn(() => Promise.resolve({ docs: [] })),
-        })),
-        get: vi.fn(() => Promise.resolve({ docs: [] })),
-      })),
-      add: vi.fn(() => Promise.resolve({ id: 'mock-id' })),
-    })),
-  })),
-}));
-
 // ============================================================================
 // TYPE TESTS
 // ============================================================================

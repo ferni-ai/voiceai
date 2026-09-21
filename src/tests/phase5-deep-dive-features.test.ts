@@ -18,12 +18,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // MOCKS
 // ============================================================================
 
-// Mock Firestore
-vi.mock('../services/superhuman/firestore-utils.js', () => ({
-  getFirestoreDb: vi.fn(() => null),
-  cleanForFirestore: vi.fn((obj) => obj),
-}));
-
 // Mock Google AI
 vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: vi.fn(() => ({

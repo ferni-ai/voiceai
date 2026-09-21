@@ -7,19 +7,6 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock dependencies
-vi.mock('../store.js', () => ({
-  MemoryStore: vi.fn(),
-}));
-
-vi.mock('../in-memory-store.js', () => ({
-  getDefaultStore: vi.fn(() => ({
-    getProfile: vi.fn(),
-    getSummaries: vi.fn(),
-    getKeyMoments: vi.fn(),
-  })),
-}));
-
 describe('SessionPrimer', () => {
   beforeEach(() => {
     vi.clearAllMocks();

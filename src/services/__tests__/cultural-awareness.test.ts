@@ -23,11 +23,6 @@ vi.mock('../../utils/safe-logger.js', () => ({
   }),
 }));
 
-// Mock persona behavior manager
-vi.mock('../persona-behavior-manager.js', () => ({
-  loadPersonaBehaviors: vi.fn().mockResolvedValue({}),
-}));
-
 import { type Holiday, type Season, type CulturalContext } from '../cultural-awareness.js';
 
 describe('CulturalAwareness', () => {

@@ -19,28 +19,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // MOCK SETUP
 // ============================================================================
 
-// Mock the logger to avoid noise during tests
-vi.mock('../utils/safe-logger.js', () => ({
-  getLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: () => ({
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    }),
-  }),
-  createLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
-
 // ============================================================================
 // TEST DATA
 // ============================================================================

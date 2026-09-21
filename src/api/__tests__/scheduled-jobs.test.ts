@@ -8,17 +8,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EventEmitter } from 'events';
 import type { IncomingMessage, ServerResponse } from 'http';
 
-// Mock task service
-vi.mock('../../tasks/index.js', () => ({
-  processBackgroundTasks: vi.fn().mockResolvedValue({ processed: 5, errors: 0 }),
-  getTaskStats: vi.fn().mockReturnValue({ pending: 10, completed: 100 }),
-}));
-
-// Mock session cleanup
-vi.mock('../../services/session-manager/index.js', () => ({
-  cleanupExpiredSessions: vi.fn().mockResolvedValue({ cleaned: 3 }),
-}));
-
 // Mock outreach services
 vi.mock('../../services/outreach/index.js', () => ({
   runDailyOutreach: vi.fn().mockResolvedValue({ sent: 10, skipped: 5 }),

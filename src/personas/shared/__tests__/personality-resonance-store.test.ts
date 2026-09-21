@@ -15,30 +15,6 @@ import {
   flushResonanceProfile,
 } from '../personality-resonance-store.js';
 
-// Mock Firestore
-vi.mock('../../../marketplace/persistence/firestore.js', () => ({
-  getFirestore: vi.fn().mockResolvedValue({
-    collection: vi.fn().mockReturnValue({
-      doc: vi.fn().mockReturnValue({
-        set: vi.fn().mockResolvedValue(undefined),
-        get: vi.fn().mockResolvedValue({
-          exists: false,
-          data: () => undefined,
-        }),
-        collection: vi.fn().mockReturnValue({
-          doc: vi.fn().mockReturnValue({
-            set: vi.fn().mockResolvedValue(undefined),
-            get: vi.fn().mockResolvedValue({
-              exists: false,
-              data: () => undefined,
-            }),
-          }),
-        }),
-      }),
-    }),
-  }),
-}));
-
 describe('personality-resonance-store', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -53,7 +53,8 @@ interface SECContext {
 /**
  * Extract potential stock tickers from conversation
  */
-function extractTickers(text: string): string[] {
+/** @internal Exported for tests - pure text -> tickers helper. */
+export function extractTickers(text: string): string[] {
   // Common patterns:
   // - $AAPL style
   // - "Apple stock"

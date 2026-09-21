@@ -28,12 +28,6 @@ const mockCollection = vi.fn().mockReturnValue({
   get: mockGet,
 });
 
-vi.mock('../../marketplace/persistence/firestore.js', () => ({
-  getFirestore: () => ({
-    collection: mockCollection,
-  }),
-}));
-
 // Mock Redis
 const mockRedisSet = vi.fn().mockResolvedValue(true);
 const mockRedisGet = vi.fn().mockResolvedValue(null);

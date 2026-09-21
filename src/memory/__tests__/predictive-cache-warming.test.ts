@@ -25,10 +25,6 @@ vi.mock('../embeddings.js', () => ({
   embed: vi.fn().mockResolvedValue(Array(1536).fill(0.1)),
 }));
 
-vi.mock('../semantic-memory-cache.js', () => ({
-  storeInSemanticCache: vi.fn().mockResolvedValue(undefined),
-}));
-
 vi.mock('../../utils/safe-logger.js', () => {
   const mockLogger = {
     debug: vi.fn(),

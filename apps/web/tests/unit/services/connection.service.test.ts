@@ -39,12 +39,6 @@ vi.mock('../../../src/utils/logger.js', () => ({
   })),
 }));
 
-vi.mock('../../../src/utils/platform.js', () => ({
-  lockToPortrait: vi.fn(),
-  unlockOrientation: vi.fn(),
-  isNative: vi.fn(() => false),
-}));
-
 // Mock LiveKit Room
 const createMockRoom = () => ({
   state: 'disconnected',

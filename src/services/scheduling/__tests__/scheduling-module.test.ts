@@ -37,10 +37,6 @@ vi.mock('../../../utils/interval-manager.js', () => ({
   clearNamedInterval: vi.fn(),
 }));
 
-vi.mock('../../../memory/index.js', () => ({
-  getDefaultStore: vi.fn(() => null),
-}));
-
 // Import after mocks
 import { registerTaskHandler, getTaskHandler, TaskQueueService } from '../task-queue.js';
 import { WorkflowEngine } from '../workflow-engine.js';

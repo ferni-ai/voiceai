@@ -41,15 +41,6 @@ vi.mock('@google-cloud/firestore', () => ({
   })),
 }));
 
-vi.mock('../../../../../utils/safe-logger.js', () => ({
-  getLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
-
 // Import after mocks
 import type {
   InvestmentThesis,

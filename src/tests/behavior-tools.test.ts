@@ -43,33 +43,6 @@ vi.mock('@livekit/agents', () => ({
   },
 }));
 
-vi.mock('../agents/realtime/behavior-event-dispatcher.js', () => ({
-  createModeShiftSignal: vi.fn((mode, reason) => ({
-    type: 'mode_shift',
-    mode,
-    reason,
-    timestamp: Date.now(),
-  })),
-  createPacingChangeSignal: vi.fn((pacing, reason) => ({
-    type: 'pacing_change',
-    pacing,
-    reason,
-    timestamp: Date.now(),
-  })),
-  createHoldSpaceSignal: vi.fn((duration, reason) => ({
-    type: 'hold_space',
-    duration,
-    reason,
-    timestamp: Date.now(),
-  })),
-  createProcessingSignal: vi.fn((isStart, expression) => ({
-    type: isStart ? 'processing_start' : 'processing_end',
-    expression,
-    timestamp: Date.now(),
-  })),
-  emitBehaviorSignal: vi.fn().mockResolvedValue(undefined),
-}));
-
 vi.mock('../intelligence/processing-intelligence.js', () => ({
   composeProcessingExpression: vi.fn(() => ({
     phrase: 'Let me think about that...',

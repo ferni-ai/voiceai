@@ -43,11 +43,6 @@ vi.mock('../utils/safe-logger.js', () => ({
   }),
 }));
 
-// Mock persona behavior manager
-vi.mock('../services/persona-behavior-manager.js', () => ({
-  loadPersonaBehaviors: vi.fn().mockResolvedValue(null),
-}));
-
 describe('Cultural Awareness Service', () => {
   describe('getCulturalContext', () => {
     it('should return cultural context object', () => {

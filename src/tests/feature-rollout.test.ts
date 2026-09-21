@@ -35,17 +35,6 @@ vi.mock('../utils/safe-logger.js', () => ({
   }),
 }));
 
-vi.mock('../services/feature-flags.js', () => ({
-  getFeatureFlags: () => ({
-    getFlag: vi.fn((id: string) => ({ id, enabled: true, rolloutPercentage: 0 })),
-    updateFlag: vi.fn().mockResolvedValue(undefined),
-  }),
-}));
-
-vi.mock('../services/slack-notifications.js', () => ({
-  notifyRollout: vi.fn().mockResolvedValue(undefined),
-}));
-
 // Mock fetch
 const mockFetch = vi.fn();
 global.fetch = mockFetch as unknown as typeof fetch;

@@ -29,11 +29,6 @@ vi.mock('../../utils/safe-logger.js', () => ({
   logPreview: vi.fn(),
 }));
 
-// Mock LLM utils to avoid actual API calls
-vi.mock('../llm-utils.js', () => ({
-  callLLM: vi.fn().mockResolvedValue('Generated content from LLM'),
-}));
-
 describe('LLM Dynamic Content System', () => {
   beforeEach(() => {
     vi.clearAllMocks();

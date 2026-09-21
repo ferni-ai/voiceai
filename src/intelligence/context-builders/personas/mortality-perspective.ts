@@ -68,7 +68,8 @@ interface UserMortalityProfile {
 /**
  * Detect if conversation warrants mortality perspective
  */
-function detectMortalityRelevance(text: string): {
+/** @internal Exported for tests - pure text -> relevance helper. */
+export function detectMortalityRelevance(text: string): {
   relevant: boolean;
   topic?: string;
   parentMentioned?: boolean;

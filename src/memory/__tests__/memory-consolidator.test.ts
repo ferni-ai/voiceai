@@ -13,14 +13,6 @@ import {
   resetMemoryConsolidator,
 } from '../memory-consolidator.js';
 
-// Mock embedding functions
-vi.mock('../embedding-cache.js', () => ({
-  embedCached: vi.fn(async (text: string) => ({
-    ok: true,
-    value: mockEmbedding(text),
-  })),
-}));
-
 // Helper to create mock embeddings based on text similarity
 function mockEmbedding(text: string): number[] {
   // Create a simple embedding where similar texts have similar vectors

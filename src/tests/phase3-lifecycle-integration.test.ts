@@ -33,14 +33,6 @@ vi.mock('../memory/embeddings.js', () => ({
   embed: vi.fn(() => Array(768).fill(0.1)),
 }));
 
-// Mock Chronicle service
-vi.mock('../services/chronicle/index.js', () => ({
-  getChronicleService: vi.fn(() => ({
-    getEntries: vi.fn(() => []),
-    searchEntries: vi.fn(() => []),
-  })),
-}));
-
 // Mock life narrative
 vi.mock('../services/superhuman/life-narrative.js', () => ({
   detectChapterMoment: vi.fn(() => null),

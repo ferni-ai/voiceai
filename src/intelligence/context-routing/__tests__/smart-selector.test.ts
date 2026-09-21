@@ -28,12 +28,6 @@ vi.mock('../../../tools/intelligence/learning/index.js', () => ({
   }),
 }));
 
-// Mock injection filter
-vi.mock('../../../agents/processors/injection-filter.js', () => ({
-  filterInjections: (injections: unknown[]) => injections.slice(0, 6),
-  detectConversationMode: () => 'unknown',
-}));
-
 // Import after mocking
 import {
   SlotAllocator,

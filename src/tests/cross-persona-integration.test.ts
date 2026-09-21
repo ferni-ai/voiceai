@@ -116,10 +116,6 @@ vi.mock('../tools/handoff/executor.js', () => ({
   getHandoffContext: vi.fn(() => undefined),
 }));
 
-vi.mock('../tools/proactive-coaching.js', () => ({
-  detectProactiveTriggers: vi.fn(() => []),
-}));
-
 // ============================================================================
 // SUPERHUMAN INTEGRATION TESTS
 // ============================================================================

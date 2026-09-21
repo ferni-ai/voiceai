@@ -11,16 +11,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock logger
-vi.mock('../utils/safe-logger.js', () => ({
-  getLogger: vi.fn(() => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  })),
-}));
-
 describe('LLM Utils', () => {
   describe('callLLMForJSON - JSON extraction logic', () => {
     it('should extract JSON from plain text response', () => {

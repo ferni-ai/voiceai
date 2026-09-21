@@ -32,21 +32,6 @@ const mockVoiceService = {
   generateVoicePreview: vi.fn(),
 };
 
-vi.mock('../../services/custom-agent/voice-clone-service.js', () => mockVoiceService);
-
-// Mock GCS
-vi.mock('@google-cloud/storage', () => ({
-  Storage: vi.fn().mockImplementation(() => ({
-    bucket: vi.fn().mockReturnValue({
-      file: vi.fn().mockReturnValue({
-        save: vi.fn().mockResolvedValue(undefined),
-        delete: vi.fn().mockResolvedValue(undefined),
-        getSignedUrl: vi.fn().mockResolvedValue(['https://storage.googleapis.com/signed-url']),
-      }),
-    }),
-  })),
-}));
-
 // Mock multer
 vi.mock('multer', () => ({
   default: vi.fn(() => ({

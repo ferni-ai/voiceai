@@ -75,16 +75,6 @@ vi.mock('../memory-metrics.js', () => ({
   }),
 }));
 
-// Mock retrieval explanations
-vi.mock('../retrieval-explanations.js', () => ({
-  getRetrievalExplainer: () => ({
-    explain: (memory: unknown, context: unknown) => ({
-      naturalExplanation: 'This is relevant because...',
-      suggestedReference: 'You mentioned this before...',
-    }),
-  }),
-}));
-
 describe('Semantic RAG', () => {
   beforeEach(() => {
     vi.clearAllMocks();

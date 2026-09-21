@@ -62,24 +62,6 @@ vi.mock('@livekit/agents', () => ({
   },
 }));
 
-// Mock tool-descriptions.json
-vi.mock('../../../config/tool-descriptions.json', () => ({
-  default: {
-    startTextGame: { description: 'Start a text game' },
-    makeTextGameMove: { description: 'Make a move' },
-    getTextGameBoard: { description: 'Get board' },
-    endTextGame: { description: 'End text game' },
-    startGame: { description: 'Start a music game' },
-    submitGameAnswer: { description: 'Submit game answer' },
-    endGame: { description: 'End game' },
-    getGameHint: { description: 'Get hint' },
-    skipGameRound: { description: 'Skip round' },
-    getGameStatus: { description: 'Get status' },
-    getGameHistory: { description: 'Get history' },
-    suggestGame: { description: 'Suggest game' },
-  },
-}));
-
 // Import after mocks
 import { getToolDefinitions } from '../index.js';
 import type { ToolDefinition, ToolContext } from '../../../registry/types.js';

@@ -8,33 +8,12 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock dependencies
-vi.mock('@/config/animation-constants.js', () => ({
-  DURATION: { FAST: 100, NORMAL: 200, SLOW: 300, CELEBRATION: 800, DELIBERATE: 500 },
-  EASING: { SPRING: 'ease-out', STANDARD: 'ease', EXPO_OUT: 'ease-out' },
-  STAGGER: { TIGHT: 30, NORMAL: 50, RELAXED: 80, DRAMATIC: 120 },
-  prefersReducedMotion: () => false,
-}));
-
-vi.mock('@/services/haptics.service.js', () => ({
-  getHapticsService: () => ({
-    play: vi.fn(),
-  }),
-}));
-
 vi.mock('@/utils/logger.js', () => ({
   createLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-}));
-
-vi.mock('@/utils/tracked-timeout.js', () => ({
-  createTimeoutTracker: () => ({
-    trackedTimeout: (fn: () => void, ms: number) => setTimeout(fn, ms),
-    clearAll: vi.fn(),
   }),
 }));
 

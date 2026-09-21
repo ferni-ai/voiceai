@@ -14,13 +14,6 @@ import {
   detectRelationshipSignals,
 } from '../fast-capture.js';
 
-// Mock AsyncEvents to prevent actual event emission
-vi.mock('../../../services/async-events/index.js', () => ({
-  AsyncEvents: {
-    emit: vi.fn(),
-  },
-}));
-
 describe('Fast Capture', () => {
   beforeEach(() => {
     vi.clearAllMocks();

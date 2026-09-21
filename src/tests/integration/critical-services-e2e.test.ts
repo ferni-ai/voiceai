@@ -13,6 +13,22 @@
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
+import { createHmac } from 'crypto';
+
+// Twilio webhook handlers validate an HMAC-SHA1 signature unless
+// SKIP_TWILIO_VALIDATION=true, and return { success: false } without one. These
+// tests passed only the payload, so every assertion below failed - invisible
+// while this file was collected by no vitest config. Sign the way Twilio does.
+const TWILIO_TEST_TOKEN = 'test-auth-token';
+const TWILIO_TEST_URL = 'https://webhooks.test/api/twilio/webhook';
+
+function signTwilioPayload(params: Record<string, unknown>): string {
+  const data = Object.keys(params)
+    .sort()
+    .reduce((acc, k) => acc + k + String(params[k]), TWILIO_TEST_URL);
+  return createHmac('sha1', TWILIO_TEST_TOKEN).update(data).digest('base64');
+}
+
 // ============================================================================
 // TEST UTILITIES
 // ============================================================================
@@ -515,7 +531,7 @@ describe('Outreach Webhooks (Twilio)', () => {
         await import('../../services/outreach/webhooks/twilio-webhooks.js');
 
       // Initialize with a test token
-      initializeTwilioWebhooks('test-auth-token-12345');
+      initializeTwilioWebhooks(TWILIO_TEST_TOKEN);
 
       // Test signature validation
       const isValid = validateTwilioSignature(
@@ -536,15 +552,20 @@ describe('Outreach Webhooks (Twilio)', () => {
       const { handleSMSStatusWebhook, initializeTwilioWebhooks } =
         await import('../../services/outreach/webhooks/twilio-webhooks.js');
 
-      initializeTwilioWebhooks('test-auth-token');
+      initializeTwilioWebhooks(TWILIO_TEST_TOKEN);
 
-      const result = await handleSMSStatusWebhook({
+      const payload = {
         MessageSid: `SM-test-${Date.now()}`,
         MessageStatus: 'delivered',
         To: '+15551234567',
         From: '+15559876543',
         AccountSid: 'ACtest',
-      });
+      };
+      const result = await handleSMSStatusWebhook(
+        payload,
+        signTwilioPayload(payload),
+        TWILIO_TEST_URL
+      );
 
       expect(result.success).toBe(true);
       console.log('SMS status webhook handled:', result);
@@ -554,7 +575,7 @@ describe('Outreach Webhooks (Twilio)', () => {
       const { handleSMSStatusWebhook } =
         await import('../../services/outreach/webhooks/twilio-webhooks.js');
 
-      const result = await handleSMSStatusWebhook({
+      const payload = {
         MessageSid: `SM-fail-${Date.now()}`,
         MessageStatus: 'failed',
         To: '+15551234567',
@@ -562,7 +583,12 @@ describe('Outreach Webhooks (Twilio)', () => {
         AccountSid: 'ACtest',
         ErrorCode: '30007',
         ErrorMessage: 'Carrier violation',
-      });
+      };
+      const result = await handleSMSStatusWebhook(
+        payload,
+        signTwilioPayload(payload),
+        TWILIO_TEST_URL
+      );
 
       expect(result.success).toBe(true);
       console.log('SMS failure handled with error code:', '30007');
@@ -574,14 +600,19 @@ describe('Outreach Webhooks (Twilio)', () => {
       const { handleInboundSMSWebhook } =
         await import('../../services/outreach/webhooks/twilio-webhooks.js');
 
-      const result = await handleInboundSMSWebhook({
+      const payload = {
         MessageSid: `SM-inbound-${Date.now()}`,
         Body: 'Hello, this is a test reply!',
         From: '+15551234567',
         To: '+15559876543',
         NumMedia: '0',
         AccountSid: 'ACtest',
-      });
+      };
+      const result = await handleInboundSMSWebhook(
+        payload,
+        signTwilioPayload(payload),
+        TWILIO_TEST_URL
+      );
 
       expect(result.success).toBe(true);
       console.log('Inbound SMS handled');
@@ -591,14 +622,19 @@ describe('Outreach Webhooks (Twilio)', () => {
       const { handleInboundSMSWebhook } =
         await import('../../services/outreach/webhooks/twilio-webhooks.js');
 
-      const result = await handleInboundSMSWebhook({
+      const payload = {
         MessageSid: `SM-optout-${Date.now()}`,
         Body: 'STOP',
         From: '+15551234567',
         To: '+15559876543',
         NumMedia: '0',
         AccountSid: 'ACtest',
-      });
+      };
+      const result = await handleInboundSMSWebhook(
+        payload,
+        signTwilioPayload(payload),
+        TWILIO_TEST_URL
+      );
 
       expect(result.success).toBe(true);
       expect(result.twiml).toContain('unsubscribed');
@@ -609,14 +645,19 @@ describe('Outreach Webhooks (Twilio)', () => {
       const { handleInboundSMSWebhook } =
         await import('../../services/outreach/webhooks/twilio-webhooks.js');
 
-      const result = await handleInboundSMSWebhook({
+      const payload = {
         MessageSid: `SM-optin-${Date.now()}`,
         Body: 'START',
         From: '+15551234567',
         To: '+15559876543',
         NumMedia: '0',
         AccountSid: 'ACtest',
-      });
+      };
+      const result = await handleInboundSMSWebhook(
+        payload,
+        signTwilioPayload(payload),
+        TWILIO_TEST_URL
+      );
 
       expect(result.success).toBe(true);
       expect(result.twiml).toContain('Welcome back');
@@ -629,7 +670,7 @@ describe('Outreach Webhooks (Twilio)', () => {
       const { handleCallStatusWebhook } =
         await import('../../services/outreach/webhooks/twilio-webhooks.js');
 
-      const result = await handleCallStatusWebhook({
+      const payload = {
         CallSid: `CA-test-${Date.now()}`,
         CallStatus: 'completed',
         To: '+15551234567',
@@ -638,7 +679,12 @@ describe('Outreach Webhooks (Twilio)', () => {
         CallDuration: '45',
         AnsweredBy: 'human',
         AccountSid: 'ACtest',
-      });
+      };
+      const result = await handleCallStatusWebhook(
+        payload,
+        signTwilioPayload(payload),
+        TWILIO_TEST_URL
+      );
 
       expect(result.success).toBe(true);
       console.log('Call status webhook handled');
@@ -648,7 +694,7 @@ describe('Outreach Webhooks (Twilio)', () => {
       const { handleCallStatusWebhook } =
         await import('../../services/outreach/webhooks/twilio-webhooks.js');
 
-      const result = await handleCallStatusWebhook({
+      const payload = {
         CallSid: `CA-vm-${Date.now()}`,
         CallStatus: 'in-progress',
         To: '+15551234567',
@@ -656,7 +702,12 @@ describe('Outreach Webhooks (Twilio)', () => {
         Direction: 'outbound-api',
         AnsweredBy: 'machine_end_beep',
         AccountSid: 'ACtest',
-      });
+      };
+      const result = await handleCallStatusWebhook(
+        payload,
+        signTwilioPayload(payload),
+        TWILIO_TEST_URL
+      );
 
       expect(result.success).toBe(true);
       console.log('Voicemail detection handled');
@@ -736,7 +787,7 @@ describe('Spotify OAuth Service', () => {
 
   describe('Service Functions', () => {
     it('should check if Spotify is configured', async () => {
-      const { isSpotifyConfigured } = await import('../../services/spotify-auth.js');
+      const { isSpotifyConfigured } = await import('../../services/identity/spotify-auth.js');
 
       const configured = isSpotifyConfigured();
       expect(typeof configured).toBe('boolean');
@@ -745,7 +796,7 @@ describe('Spotify OAuth Service', () => {
     });
 
     it('should get Spotify token status', async () => {
-      const { getSpotifyTokenStatus } = await import('../../services/spotify-auth.js');
+      const { getSpotifyTokenStatus } = await import('../../services/identity/spotify-auth.js');
 
       const status = getSpotifyTokenStatus();
 
@@ -757,7 +808,7 @@ describe('Spotify OAuth Service', () => {
     });
 
     it('should get Spotify health status', async () => {
-      const { getSpotifyHealthStatus } = await import('../../services/spotify-auth.js');
+      const { getSpotifyHealthStatus } = await import('../../services/identity/spotify-auth.js');
 
       const health = getSpotifyHealthStatus();
 
@@ -774,7 +825,7 @@ describe('Spotify OAuth Service', () => {
     it.skipIf(!config.spotify.configured)(
       'should get access token (requires Spotify)',
       async () => {
-        const { getSpotifyAccessToken } = await import('../../services/spotify-auth.js');
+        const { getSpotifyAccessToken } = await import('../../services/identity/spotify-auth.js');
 
         const token = await getSpotifyAccessToken();
 
@@ -788,7 +839,7 @@ describe('Spotify OAuth Service', () => {
     );
 
     it('should handle token refresh gracefully when not configured', async () => {
-      const { getSpotifyAccessToken } = await import('../../services/spotify-auth.js');
+      const { getSpotifyAccessToken } = await import('../../services/identity/spotify-auth.js');
 
       // Should not throw even if not configured
       const token = await getSpotifyAccessToken();
@@ -799,7 +850,7 @@ describe('Spotify OAuth Service', () => {
 
     it('should reset circuit breaker', async () => {
       const { resetSpotifyCircuitBreaker, getSpotifyHealthStatus } =
-        await import('../../services/spotify-auth.js');
+        await import('../../services/identity/spotify-auth.js');
 
       resetSpotifyCircuitBreaker();
 

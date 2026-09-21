@@ -13,21 +13,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // MOCKS
 // ============================================================================
 
-vi.mock('../../src/utils/logger.js', () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
-
-vi.mock('../../src/config/animation-constants.js', () => ({
-  DURATION: { FAST: 150, NORMAL: 200, SLOW: 300, DRAMATIC: 600, CELEBRATION: 800 },
-  EASING: { EXPO_OUT: 'ease-out', SPRING: 'ease-out' },
-  prefersReducedMotion: () => false,
-}));
-
 const mockApiGet = vi.fn();
 const mockApiPost = vi.fn();
 const mockToast = {
@@ -35,16 +20,6 @@ const mockToast = {
   success: vi.fn(),
   error: vi.fn(),
 };
-
-vi.mock('../../src/utils/api.js', () => ({
-  apiGet: mockApiGet,
-  apiPost: mockApiPost,
-  getUserId: () => 'test-user-123',
-}));
-
-vi.mock('../../src/ui/whisper.ui.js', () => ({
-  toast: mockToast,
-}));
 
 // ============================================================================
 // TEST DATA

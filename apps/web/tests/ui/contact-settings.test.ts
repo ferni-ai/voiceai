@@ -53,12 +53,6 @@ vi.mock('../../src/utils/api.js', () => ({
   apiPost: mockApiPost,
 }));
 
-// Mock toast (via whisper system)
-vi.mock('../../src/ui/whisper.ui.js', () => ({
-  toast: mockToast,
-  whisper: mockToast,
-}));
-
 // ============================================================================
 // TEST DATA
 // ============================================================================

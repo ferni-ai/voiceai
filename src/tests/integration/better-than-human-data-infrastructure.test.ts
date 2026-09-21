@@ -331,45 +331,15 @@ describe('Phase 4: Cross-Encoder Reranking', () => {
 // PHASE 5: MEMORY CONSOLIDATION TESTS
 // ============================================================================
 
-describe('Phase 5: Memory Consolidation', () => {
-  describe('Consolidation Service', () => {
-    it('should initialize service', async () => {
-      const { getConsolidationService } =
-        await import('../../memory/consolidation/memory-consolidation-service.js');
-
-      const service = getConsolidationService();
-      expect(service).toBeDefined();
-      expect(service.isConsolidating()).toBe(false);
-    });
-
-    it('should support dry run mode', async () => {
-      const { getConsolidationService } =
-        await import('../../memory/consolidation/memory-consolidation-service.js');
-
-      const service = getConsolidationService();
-
-      // Dry run should not throw
-      const result = await service.runConsolidation({
-        userIds: [],
-        dryRun: true,
-        maxUsers: 0,
-      });
-
-      expect(result).toHaveProperty('jobId');
-      expect(result).toHaveProperty('metrics');
-      expect(result.durationMs).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should track job status', async () => {
-      const { getConsolidationService } =
-        await import('../../memory/consolidation/memory-consolidation-service.js');
-
-      const service = getConsolidationService();
-
-      // Initially not running
-      expect(service.isConsolidating()).toBe(false);
-      expect(service.getCurrentJobId()).toBeNull();
-    });
+// RETIRED 2026-09-20: memory/consolidation/memory-consolidation-service.ts no
+// longer exists, and the getConsolidationService() API it tested
+// (isConsolidating / runConsolidation / getCurrentJobId) has no equivalent.
+// Consolidation now lives in memory/lifecycle/consolidation-manager.ts
+// (getConsolidationManager / resetConsolidationManager) and
+// memory/memory-consolidator.ts - a different surface that needs its own tests.
+describe.skip('Phase 5: Memory Consolidation (service removed)', () => {
+  it('needs rewriting against ConsolidationManager', () => {
+    expect(true).toBe(true);
   });
 });
 

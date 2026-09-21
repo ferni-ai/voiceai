@@ -13,27 +13,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // MOCKS
 // ============================================================================
 
-// Mock logger
-vi.mock('../../src/utils/logger.js', () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
-
-// Mock animation constants
-vi.mock('../../src/config/animation-constants.js', () => ({
-  DURATION: { FAST: 150, NORMAL: 200, SLOW: 300 },
-  EASING: { EXPO_OUT: 'ease-out', SPRING: 'ease-out', EASE_IN_OUT: 'ease-in-out' },
-}));
-
-// Mock theme
-vi.mock('../../src/theme/index.js', () => ({
-  setTheme: vi.fn(),
-}));
-
 // ============================================================================
 // TEST HELPERS
 // ============================================================================

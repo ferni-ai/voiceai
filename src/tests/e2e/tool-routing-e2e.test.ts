@@ -43,12 +43,6 @@ vi.mock('../../utils/safe-logger.js', () => ({
   }),
 }));
 
-// Mock Firestore to avoid actual database calls
-vi.mock('../../utils/firestore-utils.js', () => ({
-  cleanForFirestore: vi.fn((obj) => obj),
-  getFirestore: vi.fn(() => null),
-}));
-
 // Import after mocks
 import {
   getUnifiedIntelligence,

@@ -13,13 +13,6 @@ import {
 } from '../musical-dna.js';
 import type { MusicalDNA } from '../types.js';
 
-// Mock the engagement store
-vi.mock('../../../services/engagement/engagement-store.js', () => ({
-  getEngagementStore: vi.fn().mockResolvedValue({
-    getProfile: vi.fn().mockResolvedValue(null),
-  }),
-}));
-
 describe('Musical DNA', () => {
   const mockUserId = 'test-user-123';
 

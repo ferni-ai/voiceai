@@ -25,12 +25,6 @@ vi.mock('../../../utils/safe-logger.js', () => ({
   }),
 }));
 
-vi.mock('../../../services/performance-instrumentation.js', () => ({
-  traceToolCall: vi.fn((_name, fn) => fn()),
-  traceHandoff: vi.fn((_name, fn) => fn()),
-  traceServiceCall: vi.fn((_name, fn) => fn()),
-}));
-
 import {
   allToolDefinitions,
   toolsByCategory,

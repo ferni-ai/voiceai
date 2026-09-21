@@ -13,30 +13,6 @@ import {
 } from '../shared-personality-integration.js';
 import { hasPersonaBuildingBlocks, getPersonaBuildingBlocks } from '../persona-building-blocks.js';
 
-// Mock Firestore to avoid actual DB calls
-vi.mock('../../../marketplace/persistence/firestore.js', () => ({
-  getFirestore: vi.fn().mockResolvedValue({
-    collection: vi.fn().mockReturnValue({
-      doc: vi.fn().mockReturnValue({
-        set: vi.fn().mockResolvedValue(undefined),
-        get: vi.fn().mockResolvedValue({
-          exists: false,
-          data: () => undefined,
-        }),
-        collection: vi.fn().mockReturnValue({
-          doc: vi.fn().mockReturnValue({
-            set: vi.fn().mockResolvedValue(undefined),
-            get: vi.fn().mockResolvedValue({
-              exists: false,
-              data: () => undefined,
-            }),
-          }),
-        }),
-      }),
-    }),
-  }),
-}));
-
 vi.mock('../personality-resonance-store.js', () => ({
   prewarmResonanceCache: vi.fn().mockResolvedValue(undefined),
   recordResonanceEvent: vi.fn().mockResolvedValue(undefined),

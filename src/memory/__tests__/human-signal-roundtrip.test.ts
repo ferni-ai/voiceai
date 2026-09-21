@@ -11,13 +11,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockProfileStore = new Map<string, Record<string, unknown>>();
 const mockSignalShards = new Map<string, Record<string, unknown>>();
 
-vi.mock('../../utils/safe-logger.js', () => ({
-  getLogger: () => ({
-    child: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
-  }),
-  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
-}));
-
 // Prefer testing the pure merge helper once extracted — see Step 3.
 import {
   mergeHumanSignalSources,

@@ -23,11 +23,6 @@ const { mockLogger, mockRegisteredBuilders } = vi.hoisted(() => ({
   mockRegisteredBuilders: new Map<string, () => unknown[]>(),
 }));
 
-vi.mock('../utils/safe-logger.js', () => ({
-  getLogger: vi.fn(() => mockLogger),
-  createLogger: vi.fn(() => mockLogger),
-}));
-
 // ============================================================================
 // TESTS
 // ============================================================================

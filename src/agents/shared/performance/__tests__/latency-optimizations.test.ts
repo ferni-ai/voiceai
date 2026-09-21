@@ -20,14 +20,6 @@ vi.mock('../../../../intelligence/predictive/index.js', () => ({
   getPredictiveIntelligenceContext: vi.fn().mockResolvedValue('predictive context data'),
 }));
 
-vi.mock('../../../processors/injection-builders.js', () => ({
-  buildCrossPersonaInsightsInjection: vi.fn().mockResolvedValue({
-    category: 'cross-persona',
-    content: 'cross-persona insights',
-    priority: 70,
-  }),
-}));
-
 // Mock speculative TTS (used by cache-aware-tts)
 vi.mock('../../../../services/performance/speculative-tts.js', () => ({
   getTTSWithSpeculation: vi.fn().mockResolvedValue({ cached: false, audio: new ArrayBuffer(0) }),

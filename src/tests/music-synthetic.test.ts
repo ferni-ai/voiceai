@@ -29,23 +29,6 @@ const LLM_TIMEOUT = LLM_TEST_TIMEOUT * 2; // Music tests need more time
 // MOCK SETUP
 // ============================================================================
 
-vi.mock('../utils/safe-logger.js', () => ({
-  createLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
-  }),
-  getLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
-  }),
-}));
-
 // ============================================================================
 // LLM SCENARIO GENERATOR
 // ============================================================================

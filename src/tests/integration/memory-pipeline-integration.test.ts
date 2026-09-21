@@ -312,45 +312,13 @@ describe('Memory Pipeline Integration', () => {
     });
   });
 
-  describe('Associative Cortex with SpannerMemoryGraph', () => {
-    it('should use SpannerMemoryGraph by default', async () => {
-      const { resetAssociativeCortex, getAssociativeCortex } = await import(
-        '../../memory/associative-cortex/cortex.js'
-      );
-
-      resetAssociativeCortex();
-      const cortex = getAssociativeCortex();
-
-      // Cortex should be initialized
-      await cortex.initialize();
-
-      // The cortex should have been created with SpannerMemoryGraph
-      // (or InMemoryGraph fallback)
-      expect(cortex).toBeDefined();
-
-      resetAssociativeCortex();
-    });
-
-    it('should spread activation across memory graph', async () => {
-      const { resetAssociativeCortex, getAssociativeCortex } = await import(
-        '../../memory/associative-cortex/cortex.js'
-      );
-
-      resetAssociativeCortex();
-      const cortex = getAssociativeCortex();
-      await cortex.initialize();
-
-      // Create some test memories in the cortex
-      const result = await cortex.spreadActivation(['memory-1', 'memory-2'], {
-        topK: 10,
-        maxDepth: 2,
-      });
-
-      expect(result).toBeDefined();
-      expect(result.stats).toBeDefined();
-      expect(result.durationMs).toBeGreaterThanOrEqual(0);
-
-      resetAssociativeCortex();
+  // RETIRED 2026-09-20: memory/associative-cortex/cortex.ts no longer exists and
+  // getAssociativeCortex()/resetAssociativeCortex() have no equivalent. Spreading
+  // activation now lives in memory/retrieval/spreading-activation.ts, which has a
+  // different surface and needs its own tests.
+  describe.skip('Associative Cortex with SpannerMemoryGraph (module removed)', () => {
+    it('needs rewriting against retrieval/spreading-activation', () => {
+      expect(true).toBe(true);
     });
   });
 

@@ -28,11 +28,11 @@ import {
 } from '../../services/wisdom/life-expectancy.js';
 
 // Context Builders
-import { buildSECIntelligenceContext } from '../../intelligence/context-builders/sec-intelligence.js';
+import { buildSECIntelligenceContext } from '../../intelligence/context-builders/intelligence/sec-intelligence.js';
 import {
   buildMortalityPerspectiveContext,
   calculateParentVisitsRemaining,
-} from '../../intelligence/context-builders/mortality-perspective.js';
+} from '../../intelligence/context-builders/personas/mortality-perspective.js';
 
 // ============================================================================
 // SEC EDGAR TESTS
@@ -229,7 +229,7 @@ describe('Life Expectancy Service', () => {
 describe('SEC Intelligence Context Builder', () => {
   it('should extract tickers from text', async () => {
     const { extractTickers } =
-      await import('../../intelligence/context-builders/sec-intelligence.js');
+      await import('../../intelligence/context-builders/intelligence/sec-intelligence.js');
 
     const tickers = extractTickers('I want to buy some $AAPL and Microsoft stock');
     expect(tickers).toContain('AAPL');
@@ -253,7 +253,7 @@ describe('SEC Intelligence Context Builder', () => {
 describe('Mortality Perspective Context Builder', () => {
   it('should detect mortality-relevant topics', async () => {
     const { detectMortalityRelevance } =
-      await import('../../intelligence/context-builders/mortality-perspective.js');
+      await import('../../intelligence/context-builders/personas/mortality-perspective.js');
 
     const somedayResult = detectMortalityRelevance("I'll do it someday");
     expect(somedayResult.relevant).toBe(true);

@@ -142,20 +142,6 @@ vi.mock('../intelligence/response-quality-tracker.js', () => ({
   removeResponseQualityTracker: vi.fn(),
 }));
 
-vi.mock('../intelligence/conversation-pattern-analyzer.js', () => ({
-  getConversationPatternAnalyzer: vi.fn(() => ({
-    analyzePatterns: () => ({
-      preferredTimes: ['morning'],
-      preferredDays: ['monday'],
-      averageDuration: 15,
-      likesSmallTalkFirst: true,
-      prefersQuick: false,
-    }),
-    exportSessions: () => [],
-  })),
-  removeConversationPatternAnalyzer: vi.fn(),
-}));
-
 vi.mock('../intelligence/cross-session-threader.js', () => ({
   getCrossSessionThreader: vi.fn(() => ({
     getAllData: () => ({
