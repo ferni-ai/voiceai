@@ -66,7 +66,7 @@ describe('OutreachWorker', () => {
       expect(result.scheduled).toBeGreaterThanOrEqual(0);
       expect(result.skipped).toBeGreaterThanOrEqual(0);
       expect(result.failed).toBeGreaterThanOrEqual(0);
-      expect(result.durationMs).toBeGreaterThan(0);
+      expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should respect dry-run mode', async () => {

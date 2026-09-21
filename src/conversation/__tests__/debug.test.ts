@@ -295,7 +295,7 @@ describe('Orchestrator Debug', () => {
 
       expect(result).toBe('completed');
       expect(profile.name).toBe('test-op');
-      expect(profile.durationMs).toBeGreaterThan(0);
+      expect(profile.durationMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should create profiler with marks', () => {

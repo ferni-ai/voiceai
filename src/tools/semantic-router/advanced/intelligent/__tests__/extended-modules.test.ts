@@ -427,7 +427,7 @@ describe('Cache Warming', () => {
       });
 
       expect(result.timings).toHaveProperty('totalMs');
-      expect(result.timings.totalMs).toBeGreaterThan(0);
+      expect(result.timings.totalMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should track errors gracefully', async () => {

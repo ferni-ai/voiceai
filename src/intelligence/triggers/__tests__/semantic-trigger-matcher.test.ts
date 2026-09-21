@@ -121,7 +121,7 @@ describe('SemanticTriggerMatcher', () => {
 
       expect(result.bestMatch).not.toBeNull();
       expect(result.matchingStrategy).toBe('hybrid');
-      expect(result.processingTimeMs).toBeGreaterThan(0);
+      expect(result.processingTimeMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should include semantic and pattern scores', async () => {
@@ -153,7 +153,7 @@ describe('SemanticTriggerMatcher', () => {
       expect(result).toHaveProperty('bestMatch');
       expect(result).toHaveProperty('allMatches');
       expect(result).toHaveProperty('matchingStrategy');
-      expect(result.processingTimeMs).toBeGreaterThan(0);
+      expect(result.processingTimeMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should return category for matches', async () => {

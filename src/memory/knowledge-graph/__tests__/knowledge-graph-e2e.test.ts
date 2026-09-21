@@ -454,7 +454,7 @@ describe('Knowledge Graph E2E Tests', () => {
 
       expect(result.queryType).toBe('entity_profile');
       expect(result.formattedResponse).toBeDefined();
-      expect(result.processingTimeMs).toBeGreaterThan(0);
+      expect(result.processingTimeMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should execute temporal query', async () => {

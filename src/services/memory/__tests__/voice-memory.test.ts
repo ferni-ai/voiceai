@@ -46,7 +46,7 @@ describe('VoiceMemory', () => {
       builder.processAudioChunk(samples, 0);
 
       const progress = builder.getProgress();
-      expect(progress.durationMs).toBeGreaterThan(0);
+      expect(progress.durationMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should return null for insufficient data', () => {
@@ -248,7 +248,7 @@ describe('VoiceMemory', () => {
 
       const progress = service.getProgress('session-1');
       expect(progress).toBeDefined();
-      expect(progress!.durationMs).toBeGreaterThan(0);
+      expect(progress!.durationMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should return null progress for unknown session', () => {

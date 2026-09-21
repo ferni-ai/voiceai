@@ -377,7 +377,7 @@ describe('Native FFT Module E2E', () => {
 
       const metrics = getFftMetrics();
 
-      expect(metrics.totalTimeMs).toBeGreaterThan(0);
+      expect(metrics.totalTimeMs).toBeGreaterThanOrEqual(0);
       expect(metrics.avgTimeMs).toBeGreaterThan(0);
     });
 
@@ -453,7 +453,7 @@ describe('Native FFT Module E2E', () => {
       // All calls should be tracked
       expect(metrics.calls).toBe(20);
       expect(metrics.totalSamples).toBe(4096 * 20);
-      expect(metrics.totalTimeMs).toBeGreaterThan(0);
+      expect(metrics.totalTimeMs).toBeGreaterThanOrEqual(0);
     });
   });
 

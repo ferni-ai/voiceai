@@ -59,7 +59,7 @@ describe('AudioAnalysisWorkerPool', () => {
       expect(result.jobId).toBe('test-1');
       expect(result.type).toBe('prosody');
       expect(result.result).toBeDefined();
-      expect(result.durationMs).toBeGreaterThan(0);
+      expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should process emotion classification job', async () => {

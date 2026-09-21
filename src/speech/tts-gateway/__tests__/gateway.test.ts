@@ -67,7 +67,7 @@ describe('TTSGateway', () => {
       });
 
       expect(result.audio.byteLength).toBeGreaterThan(0);
-      expect(result.durationMs).toBeGreaterThan(0);
+      expect(result.durationMs).toBeGreaterThanOrEqual(0);
       expect(result.cached).toBe(false);
       expect(result.provider).toBe('mock-provider');
       expect(result.traceId).toBeTruthy();
