@@ -235,7 +235,12 @@ describe('Handoff Timing', () => {
       const justNow = Date.now();
       const cooldown = getRateLimitCooldown(justNow);
 
-      expect(cooldown).toBe(HANDOFF_TIMING.DEBOUNCE_MS);
+      // getRateLimitCooldown subtracts real elapsed ms, so an exact toBe()
+      // only holds if zero milliseconds pass between Date.now() and the call.
+      // Under load that is false and the suite flakes; assert the contract
+      // (essentially the full debounce, never more) instead.
+      expect(cooldown).toBeLessThanOrEqual(HANDOFF_TIMING.DEBOUNCE_MS);
+      expect(cooldown).toBeGreaterThan(HANDOFF_TIMING.DEBOUNCE_MS - 1000);
     });
   });
 
