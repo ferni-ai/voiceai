@@ -371,13 +371,24 @@ jobs:
       - name: Run pnpm audit
         run: pnpm audit --audit-level=high || echo "⚠️ Security vulnerabilities found - review required"
 
-      - name: Check for secrets
+      # On a PR, scan the diff. On a push to main, scan the WHOLE repo: this repo
+      # pushes directly to main (14 commits landed that way on 2026-09-25), so the
+      # PR-only form meant trufflehog had never once scanned main. A secret
+      # committed straight to main was never looked at.
+      - name: Check for secrets (PR diff)
         if: github.event_name == 'pull_request'
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
           base: ${{ github.event.pull_request.base.sha }}
           head: ${{ github.event.pull_request.head.sha }}
+          extra_args: --only-verified
+
+      - name: Check for secrets (full repo, push)
+        if: github.event_name == 'push'
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
           extra_args: --only-verified
 
   # ============================================================================

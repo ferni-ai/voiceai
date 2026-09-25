@@ -186,3 +186,10 @@ voice-embeddings/*.pt
 
 # Test audio output artifacts
 test_higgs_output.wav
+.worktrees/
+
+# Real LinkedIn OAuth tokens — the .example template stays tracked.
+# apps/website/ferni-website/.env.linkedin held a live 350-char access token
+# (committed 0b3e276cf); untracked 2026-09-25. See the audit note in ci.yml.
+.env.linkedin
+**/.env.linkedin
