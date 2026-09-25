@@ -135,7 +135,9 @@ jobs:
   test-unit:
     name: Unit Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 20 -> 35: the first run compiles the rust-perf binding from scratch on top of
+    # an ~8 min test run. Cached cargo brings later runs back near the old budget.
+    timeout-minutes: 35
     needs: setup
     steps:
       - name: Checkout
@@ -160,6 +162,39 @@ jobs:
             packages/*/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
+
+      # 60 call sites use the THROWING loadRustPerf() (tryLoadRustPerf is documented
+      # "for availability checks, not for actual operations"), so the accelerator is
+      # genuinely required — skipping those tests would hide coverage, not fix it.
+      # apps/rust-perf ships ferni-perf.darwin-arm64.node, which is why this passes
+      # on a dev Mac and failed here with
+      #   NativeRustAcceleratorUnavailableError: Cannot find module '@ferni/perf-linux-x64-gnu'
+      # rust-native.yml already builds this target ("Linux x86_64 (production - GCE)"),
+      # but its artifact never reaches this job. Debug build: compiles far faster than
+      # --release and the tests only need the binding to load.
+      # Deliberately NOT continue-on-error — if the binding fails to build the tests
+      # fail anyway, and a silent build failure is the exact pattern this audit is
+      # unwinding.
+      - name: Setup Rust (for the @ferni/perf native binding)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo + rust-perf target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            apps/rust-perf/target/
+          key: ${{ runner.os }}-rustperf-${{ hashFiles('apps/rust-perf/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rustperf-
+
+      - name: Build @ferni/perf native binding
+        working-directory: apps/rust-perf
+        run: |
+          pnpm add -g @napi-rs/cli
+          napi build --platform
 
       - name: Run unit tests with coverage
         run: pnpm test:unit:coverage -- --reporter=verbose
