@@ -371,13 +371,17 @@ jobs:
       - name: Run pnpm audit
         run: pnpm audit --audit-level=high || echo "⚠️ Security vulnerabilities found - review required"
 
+      # trufflehog is pinned to an immutable commit SHA, not @main: a mutable ref
+      # means this job runs whatever is on that branch at run time, and this
+      # particular action is handed the whole repo specifically to find secrets in
+      # it — the worst thing to leave floating. Bump the SHA deliberately.
       # On a PR, scan the diff. On a push to main, scan the WHOLE repo: this repo
       # pushes directly to main (14 commits landed that way on 2026-09-25), so the
       # PR-only form meant trufflehog had never once scanned main. A secret
       # committed straight to main was never looked at.
       - name: Check for secrets (PR diff)
         if: github.event_name == 'pull_request'
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@4dd8831c5f12599465d4d45c3c447b4018a34c85 # v3.97.9
         with:
           path: ./
           base: ${{ github.event.pull_request.base.sha }}
@@ -386,7 +390,7 @@ jobs:
 
       - name: Check for secrets (full repo, push)
         if: github.event_name == 'push'
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@4dd8831c5f12599465d4d45c3c447b4018a34c85 # v3.97.9
         with:
           path: ./
           extra_args: --only-verified
