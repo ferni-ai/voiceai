@@ -175,8 +175,10 @@ jobs:
       # Deliberately NOT continue-on-error — if the binding fails to build the tests
       # fail anyway, and a silent build failure is the exact pattern this audit is
       # unwinding.
+      # Pinned to a commit SHA, not @stable: that is a moving branch, so the
+      # toolchain action could change under this workflow without review.
       - name: Setup Rust (for the @ferni/perf native binding)
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable @ 2026-09-25
 
       - name: Cache cargo + rust-perf target
         uses: actions/cache@v4
@@ -193,8 +195,8 @@ jobs:
       - name: Build @ferni/perf native binding
         working-directory: apps/rust-perf
         run: |
-          pnpm add -g @napi-rs/cli
-          napi build --platform
+          pnpm install
+          pnpm exec napi build --platform
 
       - name: Run unit tests with coverage
         run: pnpm test:unit:coverage -- --reporter=verbose
