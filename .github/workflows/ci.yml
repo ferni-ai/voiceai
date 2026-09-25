@@ -180,7 +180,7 @@ jobs:
       - name: Setup Rust (for the @ferni/perf native binding)
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable @ 2026-09-25
 
-      - name: Cache cargo + rust-perf target
+      - name: Cache cargo + native targets
         uses: actions/cache@v4
         with:
           path: |
@@ -188,12 +188,26 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             apps/rust-perf/target/
-          key: ${{ runner.os }}-rustperf-${{ hashFiles('apps/rust-perf/Cargo.lock') }}
+            apps/rust-audio/target/
+          key: ${{ runner.os }}-native-${{ hashFiles('apps/rust-perf/Cargo.lock', 'apps/rust-audio/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-rustperf-
+            ${{ runner.os }}-native-
 
+      # Build the two bindings a passing dev machine actually has:
+      #   apps/rust-perf/ferni-perf.darwin-arm64.node
+      #   apps/rust-audio/ferni-audio.darwin-arm64.node
+      # @ferni/sonata is the third napi package in the workspace but has NO local
+      # binding either, and the suite passes without it — so it is tolerated and is
+      # deliberately not built here. rust-native.yml also notes sonata needs
+      # pre-built pocket-voice cdylibs, which is a separate problem.
       - name: Build @ferni/perf native binding
         working-directory: apps/rust-perf
+        run: |
+          pnpm install
+          pnpm exec napi build --platform
+
+      - name: Build @ferni/audio native binding
+        working-directory: apps/rust-audio
         run: |
           pnpm install
           pnpm exec napi build --platform
