@@ -39,9 +39,17 @@ jobs:
   # ============================================================================
   # SETUP - Shared dependency installation and caching
   # ============================================================================
+  # runs-on: was [self-hosted, Linux, X64, gce] on all 13 jobs, but the repo has
+  # ZERO registered self-hosted runners (gh api .../actions/runners -> total_count 0).
+  # A job waiting for a runner is not covered by timeout-minutes (that starts when the
+  # job STARTS), so each run sat in GitHub's 24h queue timeout and was cancelled — the
+  # last three runs are all `cancelled` at 24h0m0s, going back to 2026-07-19. The
+  # pipeline produced no verdict at all, which reads the same as green.
+  # Moved to GitHub-hosted. deploy-gce.yml keeps self-hosted deliberately: it deploys
+  # TO gce, so running there is the point.
   setup:
     name: Setup & Cache Dependencies
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
       cache-key: ${{ steps.cache-key.outputs.key }}
@@ -80,7 +88,7 @@ jobs:
   # ============================================================================
   lint:
     name: Lint & Type Check
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: setup
     steps:
@@ -126,7 +134,7 @@ jobs:
   # ============================================================================
   test-unit:
     name: Unit Tests
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: setup
     steps:
@@ -172,7 +180,7 @@ jobs:
   # ============================================================================
   test-integration:
     name: Integration Tests
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: setup
     steps:
@@ -237,7 +245,7 @@ jobs:
   # ============================================================================
   test-agi-features:
     name: AGI Feature Tests
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: setup
     steps:
@@ -281,7 +289,7 @@ jobs:
   # ============================================================================
   build:
     name: Build
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [setup, lint, test-unit, test-integration, test-agi-features]
     steps:
@@ -333,7 +341,7 @@ jobs:
   # ============================================================================
   security:
     name: Security Scan
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: setup
     steps:
@@ -377,7 +385,7 @@ jobs:
   # ============================================================================
   code-quality:
     name: Code Quality Metrics
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: setup
     steps:
@@ -415,7 +423,7 @@ jobs:
   # ============================================================================
   quality-gates:
     name: Quality Gates (Blocking)
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: setup
     steps:
@@ -453,7 +461,7 @@ jobs:
   # ============================================================================
   validation:
     name: Validation Checks
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: setup
     steps:
@@ -493,7 +501,7 @@ jobs:
   # ============================================================================
   e2e-validation:
     name: E2E Validation
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: setup
     steps:
@@ -559,7 +567,7 @@ jobs:
   # ============================================================================
   frontend-quality:
     name: Frontend Quality
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: setup
     steps:
@@ -623,7 +631,7 @@ jobs:
   # ============================================================================
   dependencies:
     name: Dependency Check
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: setup
     steps:
