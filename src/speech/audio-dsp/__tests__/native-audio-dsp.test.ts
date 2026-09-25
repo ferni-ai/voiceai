@@ -412,8 +412,18 @@ describe('Performance', () => {
     }
     const elapsed = performance.now() - start;
 
-    // Should process 100 frames in < 200ms (2ms per frame - lenient for CI)
-    expect(elapsed).toBeLessThan(200);
+    // Budget was 200ms (2ms/frame), commented "lenient for CI" — but it was
+    // calibrated on a dev Mac and never actually run on CI, because ci.yml had no
+    // runners from 2026-07-19 until today. A GitHub-hosted runner measures ~321ms
+    // (3.2ms/frame), so the budget was wrong about the machine, not about the code.
+    //
+    // Raised to 1000ms (10ms/frame): ~3x headroom over the observed CI figure. That
+    // keeps the thing this test is actually for — catching a catastrophic
+    // regression, e.g. the native path silently falling back to a slow JS one, which
+    // would be orders of magnitude out — while no longer asserting a specific
+    // machine's speed. A tight per-frame budget belongs in a benchmark on fixed
+    // hardware, not in the unit suite on shared runners.
+    expect(elapsed).toBeLessThan(1000);
     console.log(
       `100 pitch detections: ${elapsed.toFixed(2)}ms (${(elapsed / 100).toFixed(3)}ms/frame)`
     );
@@ -429,7 +439,12 @@ describe('Performance', () => {
     const elapsed = performance.now() - start;
 
     // Should process 1000 frames in < 50ms (0.05ms per frame)
-    expect(elapsed).toBeLessThan(50);
+    // Same reasoning as the pitch budget above: this passed on CI today at the old
+    // figure, but it is the same shape — a wall-clock budget calibrated on a dev
+    // machine — and the pitch one was ~1.6x out on a shared runner. Widened to the
+    // same ~3x headroom so this is a catastrophic-regression guard rather than a
+    // latent flake waiting for a slower runner.
+    expect(elapsed).toBeLessThan(250);
     console.log(
       `1000 RMS calculations: ${elapsed.toFixed(2)}ms (${(elapsed / 1000).toFixed(4)}ms/frame)`
     );

@@ -123,6 +123,12 @@ describe('Metrics', () => {
     });
   });
 
+  /* Tolerance for timer-vs-performance.now() rounding. setTimeout(N) can return a
+   * measured duration marginally below N; observed 49 for 50 and 29 for 30 on a
+   * GitHub-hosted runner. Large enough to absorb that, far too small to hide a
+   * timer that is not running at all. */
+  const TIMER_SLOP_MS = 5;
+
   describe('Timing', () => {
     it('should time async function', async () => {
       const result = await Metrics.time('async_operation', async () => {
@@ -134,7 +140,12 @@ describe('Metrics', () => {
 
       const stats = Metrics.getHistogramStats('async_operation', { status: 'success' });
       expect(stats?.count).toBe(1);
-      expect(stats?.min).toBeGreaterThanOrEqual(50);
+      // setTimeout(50) is not guaranteed to sleep >= 50ms: the timer deadline and
+      // performance.now() are different clocks, and rounding lets the callback fire
+      // fractionally early (CI measured 49). What this test is actually about is
+      // that Metrics.time RECORDS the duration of the awaited operation — asserting
+      // setTimeout's precision is testing the runtime, not the subject.
+      expect(stats?.min).toBeGreaterThanOrEqual(50 - TIMER_SLOP_MS);
     });
 
     it('should record error timing', async () => {
@@ -156,7 +167,8 @@ describe('Metrics', () => {
 
       const duration = endTimer();
 
-      expect(duration).toBeGreaterThanOrEqual(30);
+      // Same clock-granularity slop as above (CI measured 29 for a 30ms sleep).
+      expect(duration).toBeGreaterThanOrEqual(30 - TIMER_SLOP_MS);
 
       const stats = Metrics.getHistogramStats('manual_timer');
       expect(stats?.count).toBe(1);
