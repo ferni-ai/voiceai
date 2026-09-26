@@ -562,7 +562,10 @@
       "@livekit/agents-plugin-silero": "1.5.1",
       "@livekit/rtc-node": "0.13.31",
       "sharp": "^0.34.5",
-      "@google-cloud/firestore": "8.0.0"
+      "@google-cloud/firestore": "8.0.0",
+      "fast-xml-parser@>=4 <4.5.4": "4.5.7",
+      "websocket-driver@<0.7.5": "0.7.5",
+      "tar@>=7 <7.5.21": "7.5.22"
     },
     "ignoredBuiltDependencies": [
       "@ffmpeg-installer/darwin-arm64",
