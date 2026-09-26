@@ -62,24 +62,28 @@ export interface CrisisDetectionResult {
 // CRISIS PATTERNS
 // ============================================================================
 
-/** Explicit crisis indicators - immediate red flags */
+/**
+ * Explicit crisis indicators - immediate red flags.
+ *
+ * Only language that is unambiguous about self-harm belongs here: a match
+ * alone replaces the model's reply with the 988 script. Everyday idioms that
+ * merely sound hopeless ("what's the point of this meeting", "I want to die of
+ * embarrassment") live in IMPLICIT_DISTRESS_PATTERNS, where they block only
+ * when voice distress corroborates them.
+ */
 const EXPLICIT_CRISIS_PATTERNS = [
-  // Suicidal ideation
-  /want(ing)? to (die|end it|kill myself|not (be here|exist|wake up))/i,
+  // Suicidal ideation. "die" excludes idioms: die of/from embarrassment, die laughing.
+  /want(ing)? to (die\b(?! (of|from|laughing)\b)|kill myself|not (be here|exist|wake up))/i,
+  // "end it" only when nothing follows (or "all"): excludes "end it with him".
+  /want(ing)? to end (it all|my life|it\s*[.!?]*$)/i,
   /don't want to (live|be alive|exist|be here anymore)/i,
   /(thinking about|consider(ing)?) (suicide|ending (it|my life)|killing myself)/i,
-  /no (point|reason) (in|to) (living|going on|continuing)/i,
+  /no (point|reason) (in|to) (go(ing)? on )?(living|going on|continuing)/i,
   /(would|should) (be|everyone) better off (without me|if i (was|were) gone)/i,
-  /can't (do this|keep going|take it) anymore/i,
 
-  // Self-harm
+  // Self-harm. Excludes "cutting myself a slice", "burning myself out".
   /(want to|going to|thinking about) hurt(ing)? myself/i,
-  /cutting myself|burning myself|harming myself/i,
-
-  // Hopelessness
-  /nothing (will ever|is ever going to) (change|get better)/i,
-  /there's no (hope|way out|point)/i,
-  /what's (even )?the point/i,
+  /\b(cutting|burning|harming) myself\b(?! (a|an|some|off|out|slack|short)\b)/i,
 ];
 
 /** Implicit distress indicators - need gentle exploration */
@@ -90,7 +94,14 @@ const IMPLICIT_DISTRESS_PATTERNS = [
   /I'm (such a|a complete) (failure|burden|mess)/i,
   /I (hate|can't stand) myself/i,
   /feeling (so )?alone/i,
-  /trapped|stuck|no way out/i,
+  /\bfeel(ing)? (so |really )?(trapped|stuck)\b|\bno way out\b/i,
+
+  // Hopelessness. Ambiguous on text alone ("there's no point arguing with him");
+  // voice distress lifts these past the block threshold.
+  /can't (do this|keep going|take it) anymore/i,
+  /nothing (will ever|is ever going to) (change|get better)/i,
+  /there's no (hope|point)/i,
+  /what's (even )?the point/i,
 ];
 
 /** Dismissive response patterns - NEVER use during distress */

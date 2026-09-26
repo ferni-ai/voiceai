@@ -16,6 +16,36 @@ import { coordinatedSay } from '../../speech/coordination/index.js';
 import { isPipelineSwitchingEnabled, selectPipeline, type PipelineSwitchContext } from '../shared/performance/pipeline-switcher.js';
 import { computeDynamicVADDuration } from '../shared/performance/adaptive-timing.js';
 import { finops } from '../../services/observability/finops.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import {
+  observeCrisisTurn,
+  resolveCrisisGuardMode,
+  toGuardVoiceEmotion,
+  type CrisisGuardMode,
+  type ProsodyEmotionLike,
+} from '../safety/crisis-shadow.js';
+
+const crisisLog = createLogger({ module: 'CrisisShadow' });
+
+/** Log the crisis guard's would-be decision for one final transcript. Never throws. */
+function recordCrisisShadow(
+  transcript: string,
+  userData: Record<string, unknown>,
+  sessionId: string,
+  mode: CrisisGuardMode
+): void {
+  try {
+    const voiceEmotion = toGuardVoiceEmotion(
+      userData.voiceEmotion as ProsodyEmotionLike | undefined
+    );
+    const crisis = observeCrisisTurn(transcript, voiceEmotion, mode);
+    if (crisis && crisis.severity > 0) {
+      crisisLog.info({ sessionId, turn: userData.turnCount, ...crisis }, 'CRISIS_SHADOW');
+    }
+  } catch (error) {
+    crisisLog.error({ sessionId, error: String(error) }, 'Crisis shadow evaluation failed');
+  }
+}
 
 /** Inputs for handler setup */
 export interface HandlerSetupInput {
@@ -449,6 +479,10 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   const voiceMod = await import('../voice-agent/phases/index.js');
   const cachedDeps = voiceMod.getCachedVoiceDeps();
 
+  // Crisis guard runs in SHADOW on the live path: it logs what it would do and
+  // never touches the reply. Promotion to live is gated on reviewing this log.
+  const crisisGuardMode = resolveCrisisGuardMode();
+
   const userInputTranscribedHandler = (event: unknown) => {
     const evt = event as { transcript?: string; isFinal?: boolean };
     if (evt.isFinal) {
@@ -468,6 +502,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
       }
       const transcript = evt.transcript || '';
       process.stderr.write(`\n📝 [TURN ${userData.turnCount}] FINAL: "${transcript}"\n`);
+      recordCrisisShadow(transcript, userData, sessionId, crisisGuardMode);
       if (transcript) {
         const wordCount = transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
         const estimatedDurationSeconds = (wordCount / 150) * 60;
