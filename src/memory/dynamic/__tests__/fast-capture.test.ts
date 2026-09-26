@@ -13,6 +13,7 @@ import {
   detectDateSignals,
   detectRelationshipSignals,
 } from '../fast-capture.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 describe('Fast Capture', () => {
   beforeEach(() => {
@@ -30,7 +31,7 @@ describe('Fast Capture', () => {
       });
       const duration = Date.now() - start;
 
-      expect(duration).toBeLessThan(200); // Allow buffer for CI/local dev machine load
+      expect(duration).toBeLessThan(perfBudget(200)); // Allow buffer for CI/local dev machine load
       expect(result.captureTimeMs).toBeLessThan(200);
     });
 

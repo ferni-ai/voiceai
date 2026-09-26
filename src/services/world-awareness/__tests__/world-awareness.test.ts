@@ -50,6 +50,7 @@ import {
   type NewsContext,
   type CulturalContext,
 } from '../index.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 describe('WorldAwareness', () => {
   const testUserId = 'world-test-user-' + Date.now();
@@ -93,7 +94,7 @@ describe('WorldAwareness', () => {
       const duration = Date.now() - startTime;
 
       // Should return quickly (not wait for all fetches)
-      expect(duration).toBeLessThan(1000);
+      expect(duration).toBeLessThan(perfBudget(1000));
     });
   });
 

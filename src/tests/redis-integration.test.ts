@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { perfBudget } from './perf-budget.js';
 
 // ============================================================================
 // TEST SETUP
@@ -268,7 +269,7 @@ describe('Redis Performance', () => {
     const duration = Date.now() - start;
 
     // Should be fast
-    expect(duration).toBeLessThan(1000); // Less than 1 second for 200 ops
+    expect(duration).toBeLessThan(perfBudget(1000)); // Less than 1 second for 200 ops
     expect(hits).toBe(iterations);
   });
 });

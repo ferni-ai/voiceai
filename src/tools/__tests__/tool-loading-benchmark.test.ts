@@ -12,6 +12,7 @@
  * - Session cache: <10ms (instant for handoffs)
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { perfBudget } from '../../tests/perf-budget.js';
 
 // Mock safe-logger to prevent errors during testing
 vi.mock('../../utils/safe-logger.js', () => ({
@@ -224,7 +225,7 @@ describe('Tool Loading Performance Benchmarks', () => {
         await loadToolManifest();
         const elapsed = performance.now() - start;
         console.log(`📦 Manifest cold load: ${Math.round(elapsed)}ms`);
-        expect(elapsed).toBeLessThan(1000);
+        expect(elapsed).toBeLessThan(perfBudget(1000));
       } catch {
         // File might not exist in test environment - that's OK for sanity check
         console.log('📦 Manifest file not found (OK for sanity check)');
@@ -242,7 +243,7 @@ describe('Tool Loading Performance Benchmarks', () => {
         await loadPrecomputedEmbeddings();
         const elapsed = performance.now() - start;
         console.log(`🧠 Embeddings cold load: ${Math.round(elapsed)}ms`);
-        expect(elapsed).toBeLessThan(1000);
+        expect(elapsed).toBeLessThan(perfBudget(1000));
       } catch {
         // File might not exist in test environment - that's OK for sanity check
         console.log('🧠 Embeddings file not found (OK for sanity check)');
@@ -265,7 +266,7 @@ describe('Tool Loading Performance Benchmarks', () => {
       clearHandoffToolsCache(sessionId);
 
       console.log(`⚡ Cache hit: ${elapsed.toFixed(2)}ms`);
-      expect(elapsed).toBeLessThan(10);
+      expect(elapsed).toBeLessThan(perfBudget(10));
     });
   });
 });

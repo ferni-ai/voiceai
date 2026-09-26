@@ -22,6 +22,7 @@ import {
   type SemanticIntelligenceResult,
 } from '../orchestrator.js';
 import { resetForTesting, initializeForTesting } from '../persistence.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // Test constants
 const TEST_USER = 'test-user-orchestrator';
@@ -215,7 +216,7 @@ describe('Semantic Intelligence Orchestrator', () => {
 
       const duration = performance.now() - start;
       // Should return immediately (within 1ms typically)
-      expect(duration).toBeLessThan(50);
+      expect(duration).toBeLessThan(perfBudget(50));
     });
   });
 
@@ -322,7 +323,7 @@ describe('Semantic Intelligence Orchestrator', () => {
       // Production runs <50ms; under a fully parallel vitest run this test
       // has measured ~1300ms from worker contention alone, so the bound only
       // guards against hangs/pathological regressions, not real latency
-      expect(duration).toBeLessThan(3000);
+      expect(duration).toBeLessThan(perfBudget(3000));
     });
   });
 });

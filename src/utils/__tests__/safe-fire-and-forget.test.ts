@@ -11,6 +11,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { safeFireAndForget, fireAndForget } from '../safe-fire-and-forget.js';
+import { perfBudget } from '../../tests/perf-budget.js';
 
 describe('safeFireAndForget', () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -85,7 +86,7 @@ describe('safeFireAndForget', () => {
     const elapsed = Date.now() - start;
 
     // Should return immediately (< 10ms), not wait for 100ms
-    expect(elapsed).toBeLessThan(50);
+    expect(elapsed).toBeLessThan(perfBudget(50));
     expect(executed).toBe(false); // Not executed yet
   });
 

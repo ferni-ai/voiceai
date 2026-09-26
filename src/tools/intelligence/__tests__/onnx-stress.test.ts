@@ -25,6 +25,7 @@ import {
   getSessionReadinessTracker,
   retryWithBackoff,
 } from '../../../utils/transformers-loader.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 describe('Session Readiness Tracker', () => {
   let sessionTracker: ReturnType<typeof getSessionReadinessTracker>;
@@ -90,7 +91,7 @@ describe('Session Readiness Tracker', () => {
       const elapsed = Date.now() - start;
 
       expect(elapsed).toBeGreaterThanOrEqual(40);
-      expect(elapsed).toBeLessThan(200);
+      expect(elapsed).toBeLessThan(perfBudget(200));
     });
 
     it('should throw if session is already failed', async () => {

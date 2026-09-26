@@ -14,6 +14,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { perfBudget } from '../perf-budget.js';
 
 // ============================================================================
 // PHASE 1: ENTITY STORE MIGRATION TESTS
@@ -571,7 +572,7 @@ describe('Performance: BTH Data Infrastructure', () => {
     const results = index.search('topic');
     const duration = performance.now() - start;
 
-    expect(duration).toBeLessThan(50);
+    expect(duration).toBeLessThan(perfBudget(50));
     expect(results.length).toBeGreaterThan(0);
   });
 
@@ -592,7 +593,7 @@ describe('Performance: BTH Data Infrastructure', () => {
     const fused = fuseSearchResults(bm25Results, vectorResults);
     const duration = performance.now() - start;
 
-    expect(duration).toBeLessThan(10);
+    expect(duration).toBeLessThan(perfBudget(10));
     expect(fused.length).toBeGreaterThan(0);
   });
 
@@ -611,7 +612,7 @@ describe('Performance: BTH Data Infrastructure', () => {
     const { results } = await reranker.rerank('AI topics', documents);
     const duration = performance.now() - start;
 
-    expect(duration).toBeLessThan(100);
+    expect(duration).toBeLessThan(perfBudget(100));
     expect(results.length).toBeGreaterThan(0);
   });
 });

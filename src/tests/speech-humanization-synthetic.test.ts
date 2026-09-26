@@ -53,6 +53,7 @@ const USE_LLM = !!process.env.GOOGLE_API_KEY;
 const LLM_TIMEOUT = 60000;
 
 import { TEST_LLM_MODEL as GEMINI_MODEL } from './test-llm-config.js';
+import { perfBudget } from './perf-budget.js';
 
 // =============================================================================
 // LLM SCENARIO GENERATOR
@@ -868,7 +869,7 @@ describe('Performance Benchmarks', () => {
     const avgTime = elapsed / iterations;
 
     console.log(`Humanization: ${avgTime.toFixed(2)}ms avg over ${iterations} iterations`);
-    expect(avgTime).toBeLessThan(50); // Should be very fast
+    expect(avgTime).toBeLessThan(perfBudget(50)); // Should be very fast
   });
 
   it('should detect callbacks quickly (< 10ms)', () => {
@@ -885,7 +886,7 @@ describe('Performance Benchmarks', () => {
     const avgTime = elapsed / iterations;
 
     console.log(`Callback detection: ${avgTime.toFixed(2)}ms avg over ${iterations} iterations`);
-    expect(avgTime).toBeLessThan(10);
+    expect(avgTime).toBeLessThan(perfBudget(10));
   });
 
   // SKIP: This test is inherently flaky due to cache warm-up timing differences

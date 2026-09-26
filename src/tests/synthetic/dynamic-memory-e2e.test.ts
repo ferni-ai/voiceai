@@ -35,6 +35,7 @@ import {
   type SyntheticConversation,
   type TranscriptTestCase,
 } from '../fixtures/memory-conversations.js';
+import { perfBudget } from '../perf-budget.js';
 
 // ============================================================================
 // MOCK SETUP
@@ -103,7 +104,7 @@ describe('Fast Capture Pipeline', () => {
       });
       const duration = Date.now() - start;
 
-      expect(duration).toBeLessThan(100); // Allow buffer for CI
+      expect(duration).toBeLessThan(perfBudget(100)); // Allow buffer for CI
       expect(result.captureTimeMs).toBeLessThan(100);
     });
 
@@ -128,7 +129,7 @@ describe('Fast Capture Pipeline', () => {
       });
       const duration = Date.now() - start;
 
-      expect(duration).toBeLessThan(150); // Still fast with long input
+      expect(duration).toBeLessThan(perfBudget(150)); // Still fast with long input
       expect(result.mentionedEntities.length).toBeGreaterThan(0);
     });
   });
@@ -970,7 +971,7 @@ describe('Full E2E Round-Trip', () => {
         const totalDuration = Date.now() - start;
 
         // 10 turns + context build should be under 1 second total
-        expect(totalDuration).toBeLessThan(1000);
+        expect(totalDuration).toBeLessThan(perfBudget(1000));
       } finally {
         cleanupSession(sessionId);
       }

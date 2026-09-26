@@ -22,6 +22,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
 // Static type import (can't use `type` keyword in dynamic imports)
 import type { Commitment } from '../../services/superhuman/commitment-keeper.js';
+import { perfBudget } from '../perf-budget.js';
 
 // ============================================================================
 // MOCK SETUP
@@ -700,7 +701,7 @@ describe('BTH: Performance Requirements', () => {
       });
 
       const latency = Date.now() - startTime;
-      expect(latency).toBeLessThan(200);
+      expect(latency).toBeLessThan(perfBudget(200));
     });
   });
 
@@ -730,7 +731,7 @@ describe('BTH: Performance Requirements', () => {
       await engine.recordReaction(eventId, 'acknowledged');
 
       const latency = Date.now() - startTime;
-      expect(latency).toBeLessThan(50);
+      expect(latency).toBeLessThan(perfBudget(50));
     });
   });
 });

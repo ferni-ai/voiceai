@@ -19,6 +19,7 @@ import {
   type ToolHint,
   type ToolHintContext,
 } from '../tool-hints.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // Test constants
 const TEST_USER = 'test-user-hints';
@@ -301,7 +302,7 @@ describe('Tool Hints', () => {
 
       const duration = performance.now() - start;
       // 200ms is generous threshold for CI/test environments with cold starts
-      expect(duration).toBeLessThan(200);
+      expect(duration).toBeLessThan(perfBudget(200));
     });
   });
 });

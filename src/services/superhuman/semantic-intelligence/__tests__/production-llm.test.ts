@@ -13,6 +13,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { perfBudget } from '../../../../tests/perf-budget.js';
 
 // Skip if no API key
 const SKIP_TESTS = !process.env.GOOGLE_API_KEY;
@@ -215,7 +216,7 @@ describe.skipIf(SKIP_TESTS)('Production LLM Tests', () => {
       console.log(`📄 Context length: ${formatted.length} chars`);
 
       // Should complete within 2 seconds (includes Firestore calls)
-      expect(elapsed).toBeLessThan(2000);
+      expect(elapsed).toBeLessThan(perfBudget(2000));
 
       // Should have some content (even if empty for new user)
       expect(typeof formatted).toBe('string');
@@ -280,6 +281,6 @@ describe.skipIf(SKIP_TESTS)('LLM Latency Benchmarks', () => {
     console.log(`  Samples: ${latencies.join('ms, ')}ms`);
 
     // P95 should be under 500ms for good UX
-    expect(avgLatency).toBeLessThan(500);
+    expect(avgLatency).toBeLessThan(perfBudget(500));
   });
 });

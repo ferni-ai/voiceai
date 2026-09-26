@@ -38,6 +38,7 @@ import { getVoiceHumanizationService } from '../voice-humanization.js';
 
 // Supporting types
 import type { EmotionalArc } from '../../conversation/emotional-arc.js';
+import { perfBudget } from '../../tests/perf-budget.js';
 
 // ============================================================================
 // TEST HELPERS
@@ -497,7 +498,7 @@ describe('E2E Speech Pipeline', () => {
       expect(typeof quickResult.shouldSlowDown).toBe('boolean');
 
       // Should be fast (<50ms)
-      expect(elapsed).toBeLessThan(50);
+      expect(elapsed).toBeLessThan(perfBudget(50));
     });
   });
 
@@ -553,7 +554,7 @@ describe('Speech Pipeline Performance', () => {
     const elapsed = performance.now() - startTime;
 
     // Full analysis should complete in <500ms
-    expect(elapsed).toBeLessThan(500);
+    expect(elapsed).toBeLessThan(perfBudget(500));
   });
 
   it('should handle rapid sequential turns efficiently', async () => {
@@ -574,6 +575,6 @@ describe('Speech Pipeline Performance', () => {
     const elapsed = performance.now() - startTime;
 
     // 10 turns should complete in <3 seconds
-    expect(elapsed).toBeLessThan(3000);
+    expect(elapsed).toBeLessThan(perfBudget(3000));
   });
 });

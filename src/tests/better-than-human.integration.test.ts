@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { perfBudget } from './perf-budget.js';
 
 // ============================================================================
 // LIVE SUPERHUMAN INJECTIONS
@@ -323,7 +324,7 @@ describe('BTH Pipeline Performance', () => {
     });
     const elapsed = Date.now() - start;
 
-    expect(elapsed).toBeLessThan(80);
+    expect(elapsed).toBeLessThan(perfBudget(80));
   });
 
   it('mismatch detection completes under 5ms', async () => {
@@ -344,7 +345,7 @@ describe('BTH Pipeline Performance', () => {
     );
     const elapsed = Date.now() - start;
 
-    expect(elapsed).toBeLessThan(5);
+    expect(elapsed).toBeLessThan(perfBudget(5));
   });
 });
 

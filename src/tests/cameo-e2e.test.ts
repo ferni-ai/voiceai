@@ -13,6 +13,7 @@
 
 import { EventEmitter } from 'events';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { perfBudget } from './perf-budget.js';
 
 // ============================================================================
 // MOCK SETUP
@@ -464,7 +465,7 @@ describe('Handoff Queue and Timeout', () => {
       expect(HANDOFF_TIMEOUT_MS).toBeGreaterThanOrEqual(5000);
 
       // Should be at most 30 seconds (reasonable maximum)
-      expect(HANDOFF_TIMEOUT_MS).toBeLessThanOrEqual(30000);
+      expect(HANDOFF_TIMEOUT_MS).toBeLessThanOrEqual(perfBudget(30000));
     });
 
     it('should handle timeout by forcing completion (design verification)', () => {

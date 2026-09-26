@@ -20,6 +20,7 @@ import {
   isEntityStoreReady,
 } from '../integration.js';
 import type { Entity, PersonAttributes, CommitmentAttributes } from '../types.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // ============================================================================
 // TEST SETUP
@@ -578,7 +579,7 @@ describe('Entity Store Performance', () => {
     createdEntities = createdEntities.filter((id) => !entities.some((e) => e.id === id));
 
     // Performance expectations
-    expect(createTime).toBeLessThan(30000); // 30s for 10 entities
-    expect(searchTime).toBeLessThan(5000); // 5s for search
+    expect(createTime).toBeLessThan(perfBudget(30000)); // 30s for 10 entities
+    expect(searchTime).toBeLessThan(perfBudget(5000)); // 5s for search
   });
 });

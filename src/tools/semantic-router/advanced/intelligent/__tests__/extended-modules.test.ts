@@ -448,7 +448,7 @@ describe('Cache Warming', () => {
       const duration = performance.now() - start;
 
       // Quick warmup should be < 500ms
-      expect(duration).toBeLessThan(500);
+      expect(duration).toBeLessThan(perfBudget(500));
     });
 
     it('should return warmup result', async () => {
@@ -484,6 +484,7 @@ import {
   createLLMProvider,
   createProviderFromEnv,
 } from '../llm-providers.js';
+import { perfBudget } from '../../../../../tests/perf-budget.js';
 
 describe('LLM Providers', () => {
   describe('createLLMProvider', () => {

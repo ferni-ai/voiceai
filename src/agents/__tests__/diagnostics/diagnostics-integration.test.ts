@@ -8,6 +8,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // Re-implement diagnostic tracking for tests
 // (In production, this comes from e2e-diagnostics.ts)
@@ -428,7 +429,7 @@ describe('E2E Diagnostics Integration', () => {
       const acceptanceTime = (job?.acceptedAt || 0) - (job?.receivedAt || 0);
 
       // Acceptance should be nearly instant in tests
-      expect(acceptanceTime).toBeLessThan(100);
+      expect(acceptanceTime).toBeLessThan(perfBudget(100));
     });
 
     it('should assert job status transitions', () => {

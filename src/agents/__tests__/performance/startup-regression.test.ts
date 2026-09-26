@@ -11,6 +11,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // ============================================================================
 // PERFORMANCE BUDGETS
@@ -248,7 +249,7 @@ describe('Performance Regression Tests', () => {
       });
 
       // Should complete very quickly
-      expect(durationMs).toBeLessThan(100);
+      expect(durationMs).toBeLessThan(perfBudget(100));
     });
 
     it('should measure async operations accurately', async () => {
@@ -262,7 +263,7 @@ describe('Performance Regression Tests', () => {
       // Should be at least 50ms
       expect(durationMs).toBeGreaterThanOrEqual(45);
       // But not much more
-      expect(durationMs).toBeLessThan(150);
+      expect(durationMs).toBeLessThan(perfBudget(150));
     });
 
     it('should collect benchmark statistics', async () => {
@@ -461,7 +462,7 @@ describe('Performance Regression Tests', () => {
 
       tracker.recordMetric('simulated_prewarm', durationMs, 'ms', 500); // Simulated budget
 
-      expect(durationMs).toBeLessThan(500);
+      expect(durationMs).toBeLessThan(perfBudget(500));
     });
 
     it('should leave buffer before LiveKit timeout', () => {

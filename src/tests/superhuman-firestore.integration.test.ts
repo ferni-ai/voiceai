@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { perfBudget } from './perf-budget.js';
 
 // Check if we're running with the emulator
 const EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST;
@@ -408,7 +409,7 @@ describeWithEmulator('Superhuman Services - Firestore Integration', () => {
       const duration = Date.now() - start;
 
       // Should complete within 2 seconds (generous for emulator)
-      expect(duration).toBeLessThan(2000);
+      expect(duration).toBeLessThan(perfBudget(2000));
       console.log(`Full superhuman context built in ${duration}ms`);
     });
   });

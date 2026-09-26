@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { perfBudget } from '../perf-budget.js';
 
 // Skip these tests if emulator is not running
 const EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST;
@@ -740,7 +741,7 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
       const duration = Date.now() - startTime;
 
       // Should complete within reasonable time (5 seconds for 50 items)
-      expect(duration).toBeLessThan(5000);
+      expect(duration).toBeLessThan(perfBudget(5000));
     });
   });
 

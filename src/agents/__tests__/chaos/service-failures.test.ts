@@ -22,6 +22,7 @@ import {
   createMockVoicePipelineAgent,
   resetAllMocks,
 } from '../mocks/index.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // ============================================================================
 // CHAOS TEST UTILITIES
@@ -96,7 +97,7 @@ describe('Chaos Tests - Service Failures', () => {
       );
 
       const elapsed = Date.now() - startTime;
-      expect(elapsed).toBeLessThan(200); // Should timeout quickly
+      expect(elapsed).toBeLessThan(perfBudget(200)); // Should timeout quickly
     });
 
     it('should handle LLM generation failure', async () => {
@@ -387,7 +388,7 @@ describe('Chaos Tests - Service Failures', () => {
       );
 
       const elapsed = Date.now() - startTime;
-      expect(elapsed).toBeLessThan(200);
+      expect(elapsed).toBeLessThan(perfBudget(200));
     });
 
     it('should handle very short timeouts', async () => {

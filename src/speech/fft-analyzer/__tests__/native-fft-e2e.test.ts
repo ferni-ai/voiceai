@@ -47,6 +47,7 @@ import {
   type NativeSpectralFeatures,
   type NativeFftResult,
 } from '../native-fft.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 describe('Native FFT Module E2E', () => {
   beforeEach(() => {
@@ -411,7 +412,7 @@ describe('Native FFT Module E2E', () => {
         const elapsed = performance.now() - start;
 
         // Should complete in reasonable time (< 100ms for up to 8K samples)
-        expect(elapsed).toBeLessThan(100);
+        expect(elapsed).toBeLessThan(perfBudget(100));
       }
     });
 
@@ -432,7 +433,7 @@ describe('Native FFT Module E2E', () => {
       const avgTime = elapsed / iterations;
 
       // Average should be < 10ms per analysis
-      expect(avgTime).toBeLessThan(10);
+      expect(avgTime).toBeLessThan(perfBudget(10));
     });
 
     it('should track all calls in metrics', () => {

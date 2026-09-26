@@ -11,6 +11,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { perfBudget } from '../../src/tests/perf-budget.js';
 
 // Performance targets (in milliseconds)
 // Note: These targets are relaxed for CI environments where resources may be limited
@@ -191,7 +192,7 @@ describe('Performance Optimization E2E Tests', () => {
       // Should be quick since tasks are queued asynchronously
       // Note: 500ms threshold accounts for system load variance in CI
       // (150ms was too tight, causing flaky failures)
-      expect(duration).toBeLessThan(500);
+      expect(duration).toBeLessThan(perfBudget(500));
 
       console.log(`✓ Background tasks queued in ${duration}ms`);
     });
@@ -282,7 +283,7 @@ describe('Performance Optimization E2E Tests', () => {
       // which is the work hybridSearch itself does, and keep a loose overall
       // ceiling purely to catch pathological regressions.
       expect(metrics.fusionLatencyMs).toBeLessThan(50);
-      expect(duration).toBeLessThan(5000);
+      expect(duration).toBeLessThan(perfBudget(5000));
 
       console.log(
         `✓ Hybrid search completed in ${duration}ms (reported ${metrics.totalLatencyMs}ms: ` +

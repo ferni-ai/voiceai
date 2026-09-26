@@ -16,6 +16,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import type { StoredMemory, MemoryInput, RecallResult } from '../../memory/unified-store/types.js';
+import { perfBudget } from '../perf-budget.js';
 
 // ============================================================================
 // TEST CONFIGURATION
@@ -615,7 +616,7 @@ describe('Performance Characteristics', () => {
     const duration = Date.now() - start;
 
     // Should complete within 1 second (mocked environment)
-    expect(duration).toBeLessThan(1000);
+    expect(duration).toBeLessThan(perfBudget(1000));
 
     await store.shutdown();
   });

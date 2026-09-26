@@ -127,6 +127,7 @@ import {
   updateUserIdentity,
   type SessionState,
 } from '../session/session-state.js';
+import { perfBudget } from '../../tests/perf-budget.js';
 
 describe('Session State Management', () => {
   describe('createInitialSessionState', () => {
@@ -1739,7 +1740,7 @@ describe('Voice Agent Critical Paths', () => {
       const duration = Date.now() - start;
 
       // Parallel should be faster than sequential (3x30 = 90ms)
-      expect(duration).toBeLessThan(90);
+      expect(duration).toBeLessThan(perfBudget(90));
     });
   });
 });

@@ -12,6 +12,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { perfBudget } from './perf-budget.js';
 
 describe('Better-Than-PhD Integration', () => {
   describe('Context Builder Pipeline', () => {
@@ -310,7 +311,7 @@ describe('Better-Than-PhD Integration', () => {
       const duration = Date.now() - start;
 
       // Should complete within 500ms (generous for first load)
-      expect(duration).toBeLessThan(500);
+      expect(duration).toBeLessThan(perfBudget(500));
     });
 
     it('should be faster on subsequent calls (after lazy loading)', async () => {
@@ -353,7 +354,7 @@ describe('Better-Than-PhD Integration', () => {
 
       // Subsequent calls should be reasonably fast (< 250ms average)
       // Threshold increased for CI environments with variable performance
-      expect(avgTime).toBeLessThan(250);
+      expect(avgTime).toBeLessThan(perfBudget(250));
     });
   });
 

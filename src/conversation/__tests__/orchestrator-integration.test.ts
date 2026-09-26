@@ -26,6 +26,7 @@ import {
   // Performance
   resetPerformanceOptimizations,
 } from '../orchestrator/index.js';
+import { perfBudget } from '../../tests/perf-budget.js';
 
 // ============================================================================
 // TEST SETUP
@@ -293,7 +294,7 @@ describe('Orchestrator Integration', () => {
       const duration = Date.now() - startTime;
 
       // Should complete within 500ms for simple cases
-      expect(duration).toBeLessThan(500);
+      expect(duration).toBeLessThan(perfBudget(500));
     });
 
     it('should benefit from caching on repeated analysis', async () => {

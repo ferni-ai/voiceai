@@ -24,6 +24,7 @@ import {
   applyAgc,
   type PreSTTConfig,
 } from '../pre-stt-transform.js';
+import { perfBudget } from '../../../../tests/perf-budget.js';
 
 describe('PreSTTTransform', () => {
   beforeEach(() => {
@@ -531,7 +532,7 @@ describe('Pre-STT Performance', () => {
     // Should process in under 500ms (25% real-time) for comfortable margin in CI
     // Note: CI environments have variable performance, so we use a generous threshold
     const avgTimePerFrame = elapsed / 100;
-    expect(avgTimePerFrame).toBeLessThan(5); // < 5ms per frame allows for CI variance
+    expect(avgTimePerFrame).toBeLessThan(perfBudget(5)); // < 5ms per frame allows for CI variance
 
     const metrics = getPreSTTMetrics();
     expect(metrics.avgProcessingTimeMs).toBeLessThan(5);

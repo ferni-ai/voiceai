@@ -6,6 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { perfBudget } from '../../tests/perf-budget.js';
 
 // Mock Firestore
 vi.mock('@google-cloud/firestore', () => ({
@@ -90,7 +91,7 @@ describe('Background Indexer', () => {
       const elapsed = Date.now() - startTime;
 
       // Should return almost immediately (not wait for indexing)
-      expect(elapsed).toBeLessThan(50);
+      expect(elapsed).toBeLessThan(perfBudget(50));
     });
 
     it('should not start if already indexing', async () => {

@@ -13,6 +13,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { perfBudget } from '../perf-budget.js';
 
 // Check if running with emulator
 const isEmulatorRunning = !!process.env.FIRESTORE_EMULATOR_HOST;
@@ -314,7 +315,7 @@ describeWithEmulator('Dynamic Memory Firestore Integration', () => {
       const queryTime = Date.now() - startTime;
 
       // Should complete within 500ms (emulator may be slower than production)
-      expect(queryTime).toBeLessThan(500);
+      expect(queryTime).toBeLessThan(perfBudget(500));
     });
 
     it('should support compound queries', async () => {

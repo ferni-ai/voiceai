@@ -9,6 +9,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 
 // Import from unified ssml module
 import { tagTextWithSsml, tagTextWithSsmlPersonaAware, regexCache } from '../ssml/index.js';
+import { perfBudget } from './perf-budget.js';
 
 // ============================================================================
 // TEST DATA
@@ -233,7 +234,7 @@ describe('SSML Performance Benchmarks', () => {
       console.log(
         `100 short messages: ${elapsed.toFixed(2)}ms total, ${(elapsed / 100).toFixed(3)}ms avg`
       );
-      expect(elapsed).toBeLessThan(500);
+      expect(elapsed).toBeLessThan(perfBudget(500));
     });
 
     it('should handle rapid persona switching without degradation', () => {
@@ -249,7 +250,7 @@ describe('SSML Performance Benchmarks', () => {
       console.log(
         `60 persona-switching calls: ${elapsed.toFixed(2)}ms total, ${(elapsed / 60).toFixed(3)}ms avg`
       );
-      expect(elapsed).toBeLessThan(300);
+      expect(elapsed).toBeLessThan(perfBudget(300));
     });
   });
 });

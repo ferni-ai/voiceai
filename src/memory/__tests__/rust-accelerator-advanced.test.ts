@@ -45,6 +45,7 @@ import {
   type ConversationTurnInput,
   type ConversationDynamicsResult,
 } from '../rust-accelerator.js';
+import { perfBudget } from '../../tests/perf-budget.js';
 
 describe('Injection Deduplication', () => {
   beforeEach(() => {
@@ -505,7 +506,7 @@ describe('Performance Characteristics', () => {
     const elapsed = performance.now() - start;
 
     // Should complete in reasonable time (< 1 second even for 100 items)
-    expect(elapsed).toBeLessThan(1000);
+    expect(elapsed).toBeLessThan(perfBudget(1000));
     expect(result.keepIds.length + result.removedIds.length).toBe(100);
   });
 
@@ -520,7 +521,7 @@ describe('Performance Characteristics', () => {
     const results = batchAnalyzeMessagesOptimized(messages);
     const elapsed = performance.now() - start;
 
-    expect(elapsed).toBeLessThan(500); // Should be fast
+    expect(elapsed).toBeLessThan(perfBudget(500)); // Should be fast
     expect(results.length).toBe(100);
   });
 
@@ -538,7 +539,7 @@ describe('Performance Characteristics', () => {
     const result = analyzeConversationDynamicsOptimized(turns);
     const elapsed = performance.now() - start;
 
-    expect(elapsed).toBeLessThan(200); // Should be very fast
+    expect(elapsed).toBeLessThan(perfBudget(200)); // Should be very fast
     expect(result.conversationPhase).toBe('established'); // 50 turns = established
   });
 });

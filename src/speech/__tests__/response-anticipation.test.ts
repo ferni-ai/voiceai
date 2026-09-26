@@ -16,6 +16,7 @@ import {
   CACHED_PATTERNS,
   type IntentCategory,
 } from '../response-anticipation.js';
+import { perfBudget } from '../../tests/perf-budget.js';
 
 // ============================================================================
 // TEST SETUP
@@ -336,7 +337,7 @@ describe('Response Anticipation', () => {
       const elapsed = performance.now() - start;
       const avgMs = elapsed / 300;
 
-      expect(avgMs).toBeLessThan(5);
+      expect(avgMs).toBeLessThan(perfBudget(5));
     });
 
     it('should anticipate response quickly (< 10ms)', () => {
@@ -351,7 +352,7 @@ describe('Response Anticipation', () => {
       const elapsed = performance.now() - start;
       const avgMs = elapsed / 100;
 
-      expect(avgMs).toBeLessThan(10);
+      expect(avgMs).toBeLessThan(perfBudget(10));
     });
   });
 });

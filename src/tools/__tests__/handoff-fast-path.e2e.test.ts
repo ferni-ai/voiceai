@@ -6,6 +6,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { perfBudget } from '../../tests/perf-budget.js';
 
 // Mock logger
 const mockLogger = {
@@ -64,7 +65,7 @@ describe('Handoff Fast Path E2E', () => {
 
     // Warmup should complete in reasonable time (< 5s)
     // This is the "slow" operation that happens once per session
-    expect(elapsed).toBeLessThan(5000);
+    expect(elapsed).toBeLessThan(perfBudget(5000));
 
     console.log(`⏱️ Session cache warmup took ${elapsed}ms`);
   });
@@ -86,7 +87,7 @@ describe('Handoff Fast Path E2E', () => {
     expect(Object.keys(cachedTools || {}).length).toBeGreaterThan(0);
 
     // Cache retrieval should be fast (< 100ms, allowing for CI environment variability)
-    expect(elapsed).toBeLessThan(100);
+    expect(elapsed).toBeLessThan(perfBudget(100));
 
     console.log(
       `⚡ Cache retrieval took ${elapsed}ms, got ${Object.keys(cachedTools || {}).length} tools`

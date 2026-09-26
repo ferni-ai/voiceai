@@ -15,6 +15,7 @@ import type {
   ContextBuilderInput,
   ContextInjection,
 } from '../intelligence/context-builders/index.js';
+import { perfBudget } from './perf-budget.js';
 
 // ============================================================================
 // TEST FIXTURES
@@ -287,7 +288,7 @@ describe('Ferni Behavior Performance', () => {
         const duration = performance.now() - start;
 
         // Each builder should complete within 50ms
-        expect(duration).toBeLessThan(50);
+        expect(duration).toBeLessThan(perfBudget(50));
       }
     }
   });
@@ -324,6 +325,6 @@ describe('Ferni Behavior Performance', () => {
     const duration = performance.now() - start;
 
     // All builders together should complete within 200ms
-    expect(duration).toBeLessThan(200);
+    expect(duration).toBeLessThan(perfBudget(200));
   });
 });

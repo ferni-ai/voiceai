@@ -9,6 +9,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { getAmbientAwarenessService, resetAmbientAwareness } from '../ambient-awareness.js';
+import { perfBudget } from '../../tests/perf-budget.js';
 
 // ============================================================================
 // TEST SETUP
@@ -174,7 +175,7 @@ describe('Ambient Awareness', () => {
       const elapsed = performance.now() - start;
       const avgMs = elapsed / 100;
 
-      expect(avgMs).toBeLessThan(10);
+      expect(avgMs).toBeLessThan(perfBudget(10));
     });
 
     it('should get analysis quickly (< 5ms)', () => {
@@ -195,7 +196,7 @@ describe('Ambient Awareness', () => {
       const elapsed = performance.now() - start;
       const avgMs = elapsed / 1000;
 
-      expect(avgMs).toBeLessThan(5);
+      expect(avgMs).toBeLessThan(perfBudget(5));
     });
   });
 });

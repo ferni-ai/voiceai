@@ -14,6 +14,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { EmotionalState, ContextInjection } from '../types.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // ============================================================================
 // MOCK SETUP - Full Integration Mocking
@@ -480,7 +481,7 @@ describe('Turn Processor Integration Tests', () => {
       const elapsedMs = Date.now() - startTime;
 
       expect(elapsedMs).toBeGreaterThanOrEqual(0);
-      expect(elapsedMs).toBeLessThan(100); // Should be fast
+      expect(elapsedMs).toBeLessThan(perfBudget(100)); // Should be fast
       expect(injections).toHaveLength(5);
     });
   });

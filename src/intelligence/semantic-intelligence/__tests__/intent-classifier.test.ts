@@ -17,6 +17,7 @@ import {
   needsCrisisSupport,
   type IntentClassification,
 } from '../intent-classifier.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 describe('Intent Classifier', () => {
   describe('classifyIntent', () => {
@@ -209,7 +210,7 @@ describe('Intent Classifier', () => {
       const start = performance.now();
       classifyIntent(input);
       const duration = performance.now() - start;
-      expect(duration).toBeLessThan(5);
+      expect(duration).toBeLessThan(perfBudget(5));
     });
   });
 

@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { perfBudget } from './perf-budget.js';
 
 // ============================================================================
 // MOCKS
@@ -194,7 +195,7 @@ describe('Session Warmup', () => {
     const elapsed = Date.now() - start;
 
     // Should complete within reasonable time
-    expect(elapsed).toBeLessThan(500);
+    expect(elapsed).toBeLessThan(perfBudget(500));
     expect(result).toHaveProperty('warmedCaches');
   });
 

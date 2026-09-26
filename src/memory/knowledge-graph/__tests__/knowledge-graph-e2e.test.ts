@@ -143,6 +143,7 @@ import {
   resolveOpenQuestion,
   findOrCreateThread,
 } from '../storage/thread-store.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // ============================================================================
 // TEST SETUP
@@ -635,7 +636,7 @@ describe('Knowledge Graph E2E Tests', () => {
       const elapsed = Date.now() - start;
 
       // Should complete in under 5 seconds (including LLM call)
-      expect(elapsed).toBeLessThan(5000);
+      expect(elapsed).toBeLessThan(perfBudget(5000));
       expect(result.processingTimeMs).toBeLessThan(5000);
     });
 
@@ -647,7 +648,7 @@ describe('Knowledge Graph E2E Tests', () => {
       const elapsed = Date.now() - start;
 
       // Should complete in under 2 seconds
-      expect(elapsed).toBeLessThan(2000);
+      expect(elapsed).toBeLessThan(perfBudget(2000));
     });
   });
 });

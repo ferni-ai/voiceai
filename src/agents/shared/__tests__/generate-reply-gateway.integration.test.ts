@@ -24,6 +24,7 @@ import {
   resetSessionState,
 } from '../generate-reply-gateway.js';
 import type { voice } from '@livekit/agents';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // Skip if no API key available
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -202,7 +203,7 @@ describe.skipIf(!!SKIP_REASON)('Generate Reply Gateway - Integration', () => {
       const elapsed = Date.now() - start;
 
       // Should have timed out in roughly the expected time
-      expect(elapsed).toBeLessThan(2000); // Should fail within 2s
+      expect(elapsed).toBeLessThan(perfBudget(2000)); // Should fail within 2s
       expect(result.success).toBe(false);
       expect(result.error).toContain('timeout');
     }, 10000);

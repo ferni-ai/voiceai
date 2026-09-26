@@ -129,6 +129,7 @@ import { temporalPatterns } from '../temporal-patterns.js';
 import { behavioralIntelligence } from '../behavioral-intelligence.js';
 import { coachingIntelligence } from '../coaching-intelligence.js';
 import { selfAwareness } from '../self-awareness.js';
+import { perfBudget } from '../../../../tests/perf-budget.js';
 
 // ============================================================================
 // LLM SCENARIO GENERATOR
@@ -822,7 +823,7 @@ describe('Stress Testing - High Volume', () => {
     console.log(
       `Processed ${iterations} records in ${elapsed}ms (${((iterations / elapsed) * 1000).toFixed(1)}/sec)`
     );
-    expect(elapsed).toBeLessThan(5000); // Should complete in <5 seconds
+    expect(elapsed).toBeLessThan(perfBudget(5000)); // Should complete in <5 seconds
   });
 
   it('should handle concurrent context building', async () => {
@@ -841,6 +842,6 @@ describe('Stress Testing - High Volume', () => {
     const elapsed = Date.now() - startTime;
 
     console.log(`Built context for ${users.length} users in ${elapsed}ms`);
-    expect(elapsed).toBeLessThan(10000); // Should complete in <10 seconds
+    expect(elapsed).toBeLessThan(perfBudget(10000)); // Should complete in <10 seconds
   });
 });

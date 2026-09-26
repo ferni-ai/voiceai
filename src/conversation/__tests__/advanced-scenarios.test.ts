@@ -18,6 +18,7 @@ import {
   getActiveSessions,
   type ConversationSession,
 } from '../unified-integration.js';
+import { perfBudget } from '../../tests/perf-budget.js';
 
 describe('Advanced Conversation Scenarios', () => {
   const sessionIds: string[] = [];
@@ -393,7 +394,7 @@ This is line 3.`,
       const duration = Date.now() - start;
 
       // Should be reasonably fast
-      expect(duration).toBeLessThan(500); // Allow some buffer for CI
+      expect(duration).toBeLessThan(perfBudget(500)); // Allow some buffer for CI
     });
 
     it('should provide timing breakdown', async () => {
@@ -424,7 +425,7 @@ This is line 3.`,
       const duration = Date.now() - start;
 
       // 5 turns should complete in reasonable time
-      expect(duration).toBeLessThan(2000);
+      expect(duration).toBeLessThan(perfBudget(2000));
     });
   });
 

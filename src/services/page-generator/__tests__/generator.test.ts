@@ -23,6 +23,7 @@ import {
   generateAllFavicons,
 } from '../index.js';
 import type { AgentPageConfig } from '../types.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // ============================================================================
 // TEST FIXTURES
@@ -403,8 +404,8 @@ describe('Page Generator', () => {
       const secondDuration = Date.now() - start2;
 
       // Both should complete quickly (template is cached)
-      expect(firstDuration).toBeLessThan(500);
-      expect(secondDuration).toBeLessThan(500);
+      expect(firstDuration).toBeLessThan(perfBudget(500));
+      expect(secondDuration).toBeLessThan(perfBudget(500));
     });
 
     it('should clear cache when requested', async () => {

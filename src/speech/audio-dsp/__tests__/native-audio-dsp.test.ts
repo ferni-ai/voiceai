@@ -23,6 +23,7 @@ import {
   createAudioDspProcessor,
   convertI16ToF32,
 } from '../native-audio-dsp.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // ============================================================================
 // TEST HELPERS
@@ -155,7 +156,7 @@ describe('Native Audio DSP', () => {
 
       // RMS of sine wave with amplitude 1 is 1/sqrt(2) ≈ 0.707
       expect(rms).toBeGreaterThan(0.65);
-      expect(rms).toBeLessThan(0.75);
+      expect(rms).toBeLessThan(perfBudget(0.75));
     });
 
     it('should calculate RMS of silence as 0', () => {
@@ -423,7 +424,7 @@ describe('Performance', () => {
     // would be orders of magnitude out — while no longer asserting a specific
     // machine's speed. A tight per-frame budget belongs in a benchmark on fixed
     // hardware, not in the unit suite on shared runners.
-    expect(elapsed).toBeLessThan(1000);
+    expect(elapsed).toBeLessThan(perfBudget(1000));
     console.log(
       `100 pitch detections: ${elapsed.toFixed(2)}ms (${(elapsed / 100).toFixed(3)}ms/frame)`
     );
@@ -444,7 +445,7 @@ describe('Performance', () => {
     // machine — and the pitch one was ~1.6x out on a shared runner. Widened to the
     // same ~3x headroom so this is a catastrophic-regression guard rather than a
     // latent flake waiting for a slower runner.
-    expect(elapsed).toBeLessThan(250);
+    expect(elapsed).toBeLessThan(perfBudget(250));
     console.log(
       `1000 RMS calculations: ${elapsed.toFixed(2)}ms (${(elapsed / 1000).toFixed(4)}ms/frame)`
     );

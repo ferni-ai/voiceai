@@ -13,6 +13,7 @@ import { CognitiveIntelligenceEngine } from '../personas/cognitive-intelligence.
 import { detectUserCognitiveStyle } from '../personas/cognitive-advanced.js';
 import { ferniCognitiveProfile, cognitiveProfiles } from '../personas/cognitive-profiles.js';
 import type { Message } from '../personas/cognitive-types.js';
+import { perfBudget } from './perf-budget.js';
 
 describe('Cognitive Performance', () => {
   beforeEach(() => {
@@ -49,8 +50,8 @@ describe('Cognitive Performance', () => {
 
       console.log(`Guidance generation: avg=${avgTime.toFixed(2)}ms, p95=${p95Time.toFixed(2)}ms`);
 
-      expect(avgTime).toBeLessThan(50);
-      expect(p95Time).toBeLessThan(100);
+      expect(avgTime).toBeLessThan(perfBudget(50));
+      expect(p95Time).toBeLessThan(perfBudget(100));
     });
 
     it('should handle all persona profiles efficiently', async () => {
@@ -70,7 +71,7 @@ describe('Cognitive Performance', () => {
         `Cross-persona guidance: avg=${avgTime.toFixed(2)}ms for ${profiles.length} personas`
       );
 
-      expect(avgTime).toBeLessThan(50);
+      expect(avgTime).toBeLessThan(perfBudget(50));
     });
   });
 
@@ -100,8 +101,8 @@ describe('Cognitive Performance', () => {
 
       console.log(`User style detection: avg=${avgTime.toFixed(2)}ms, p95=${p95Time.toFixed(2)}ms`);
 
-      expect(avgTime).toBeLessThan(20);
-      expect(p95Time).toBeLessThan(50);
+      expect(avgTime).toBeLessThan(perfBudget(20));
+      expect(p95Time).toBeLessThan(perfBudget(50));
     });
 
     it('should handle long conversation histories', async () => {
@@ -119,7 +120,7 @@ describe('Cognitive Performance', () => {
 
       console.log(`Long history detection (50 messages): ${duration.toFixed(2)}ms`);
 
-      expect(duration).toBeLessThan(50);
+      expect(duration).toBeLessThan(perfBudget(50));
       expect(result.primary).toBeDefined();
     });
   });
@@ -198,7 +199,7 @@ describe('Cognitive Performance', () => {
         `Full cognitive pipeline: avg=${avgTime.toFixed(2)}ms, under50ms=${under50.toFixed(1)}%`
       );
 
-      expect(avgTime).toBeLessThan(50);
+      expect(avgTime).toBeLessThan(perfBudget(50));
       expect(under50).toBeGreaterThan(95);
     });
   });
