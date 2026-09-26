@@ -79,6 +79,10 @@ const EXPLICIT_CRISIS_PATTERNS = [
   /don't want to (live|be alive|exist|be here anymore)/i,
   /(thinking about|consider(ing)?) (suicide|ending (it|my life)|killing myself)/i,
   /no (point|reason) (in|to) (go(ing)? on )?(living|going on|continuing)/i,
+  // "end/take my (own) life" — excludes recovery language: "take my life back / in a new direction".
+  /\b(end|take) my (own )?life\b(?! (back|in|into|to|forward)\b)/i,
+  /\b(have|got|made|making) a plan to (kill myself|end (it|my life))/i,
+  /\bcan't go on living\b/i,
   /(would|should) (be|everyone) better off (without me|if i (was|were) gone)/i,
 
   // Self-harm. Excludes "cutting myself a slice", "burning myself out".
@@ -102,6 +106,7 @@ const IMPLICIT_DISTRESS_PATTERNS = [
   /nothing (will ever|is ever going to) (change|get better)/i,
   /there's no (hope|point)/i,
   /what's (even )?the point/i,
+  /\bwant (it|this|everything|the pain) to (stop|end) (for good|forever)\b/i,
 ];
 
 /** Dismissive response patterns - NEVER use during distress */

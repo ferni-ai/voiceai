@@ -27,6 +27,8 @@ const BENIGN_IDIOMS = [
   "I've been burning myself out at work",
   "I'm stuck in traffic",
   'I want to end it with him, the relationship is over',
+  'I want to take my life back after the divorce',
+  "I'm going to take my life in a new direction",
 ];
 
 const EXPLICIT_CRISIS = [
@@ -38,6 +40,11 @@ const EXPLICIT_CRISIS = [
   'everyone would be better off without me',
   "I've been cutting myself again",
   "there's no reason to go on living",
+  "I'm going to end my life tonight",
+  'I have a plan to kill myself',
+  'I want to take my own life',
+  "I've decided to end my life",
+  "I can't go on living like this",
 ];
 
 const HOPELESS_VOICE = { primary: 'hopeless', intensity: 0.9, confidence: 0.8 };
@@ -70,6 +77,11 @@ describe('crisis guard escalation', () => {
     const withVoice = guardPreResponse("honestly what's the point anymore", HOPELESS_VOICE);
     expect(textOnly.shouldBlock).toBe(false);
     expect(withVoice.shouldBlock).toBe(true);
+  });
+
+  it('wanting the pain to stop for good is tracked as distress', () => {
+    const result = detectCrisis('I just want it to stop for good');
+    expect(result.indicators).toContain('implicit_distress');
   });
 
   it('"can\'t keep going anymore" blocks with a hopeless voice', () => {
