@@ -658,7 +658,7 @@ gcloud secrets versions access latest --secret=secret-name
 | `.env` | Local development secrets |
 | `.env.example` | Template |
 | `firestore.indexes.json` | Firestore index definitions |
-| `livekit.toml` | LiveKit local config |
+| `livekit.toml` / `livekit.prod.toml` | LiveKit CLI config: default is ferni-dev; production must be selected with `--config livekit.prod.toml` |
 
 ---
 
