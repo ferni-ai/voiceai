@@ -13,6 +13,7 @@
  * @module tools/domains/family/schedule-family-checkin
  */
 
+import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import type { DayOfWeek } from '../../../services/family/proactive-family-checkin.js';
@@ -610,7 +611,7 @@ export const scheduleFamilyCheckinToolDef: ToolDefinition = {
 Ferni will call them and have a natural conversation to check on their wellbeing.`,
   domain: 'family',
   tags: ['family', 'scheduling', 'calls', 'checkin', 'proactive'],
-  create: createScheduleFamilyCheckinTool,
+  create: (ctx: ToolContext) => llm.tool(createScheduleFamilyCheckinTool(ctx)),
 };
 
 export const listFamilyCheckinsToolDef: ToolDefinition = {
@@ -619,7 +620,7 @@ export const listFamilyCheckinsToolDef: ToolDefinition = {
   description: `List all scheduled family check-in calls.`,
   domain: 'family',
   tags: ['family', 'scheduling', 'calls', 'list'],
-  create: createListFamilyCheckinsTool,
+  create: (ctx: ToolContext) => llm.tool(createListFamilyCheckinsTool(ctx)),
 };
 
 export const getCheckinStatusToolDef: ToolDefinition = {
@@ -628,7 +629,7 @@ export const getCheckinStatusToolDef: ToolDefinition = {
   description: `Get the status of recent check-in calls to a family member.`,
   domain: 'family',
   tags: ['family', 'calls', 'status', 'summary'],
-  create: createGetCheckinStatusTool,
+  create: (ctx: ToolContext) => llm.tool(createGetCheckinStatusTool(ctx)),
 };
 
 export const toggleCheckinToolDef: ToolDefinition = {
@@ -637,7 +638,7 @@ export const toggleCheckinToolDef: ToolDefinition = {
   description: `Pause or resume family check-in calls.`,
   domain: 'family',
   tags: ['family', 'scheduling', 'calls', 'pause', 'resume'],
-  create: createToggleCheckinTool,
+  create: (ctx: ToolContext) => llm.tool(createToggleCheckinTool(ctx)),
 };
 
 // ============================================================================

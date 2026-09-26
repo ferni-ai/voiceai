@@ -11,6 +11,7 @@
  * @module tools/domains/family/family-sharing-tool
  */
 
+import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import type { SponsoredIdentity } from '../../../services/identity/sponsored-identity.js';
@@ -281,7 +282,7 @@ export const shareWithFamilyToolDef: ToolDefinition = {
 Used when sponsor wants to share something with family members.`,
   domain: 'family',
   tags: ['family', 'sharing', 'communication'],
-  create: createShareWithFamilyTool,
+  create: (ctx: ToolContext) => llm.tool(createShareWithFamilyTool(ctx)),
 };
 
 export const requestCheckInToolDef: ToolDefinition = {
@@ -291,7 +292,7 @@ export const requestCheckInToolDef: ToolDefinition = {
 Used when sponsor wants Ferni to check on how family is doing.`,
   domain: 'family',
   tags: ['family', 'check-in', 'wellness'],
-  create: createRequestCheckInTool,
+  create: (ctx: ToolContext) => llm.tool(createRequestCheckInTool(ctx)),
 };
 
 // ============================================================================
