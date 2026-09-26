@@ -18,6 +18,7 @@
  *   - "Set this up for you" instead of "Create workflow"
  */
 
+import { llm } from '@livekit/agents';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 import { createLogger } from '../../../utils/safe-logger.js';
@@ -363,14 +364,14 @@ const routineToolDefinitions: ToolDefinition[] = [
       'List what Ferni is doing automatically for the user. Use when user asks "what do you do for me?", "show my routines", "what are you taking care of?"',
     domain: 'routines',
     tags: ['routines', 'list', 'care', 'automation'],
-    create: () => ({
+    create: (ctx: ToolContext) => llm.tool({
       description: 'List what I do for you',
       parameters: {
         type: 'object',
         properties: {},
         required: [],
       },
-      execute: async (_args: unknown, ctx: ToolContext) => listRoutines(ctx),
+      execute: async (_args: unknown) => listRoutines(ctx),
     }),
   },
   {
@@ -380,7 +381,7 @@ const routineToolDefinitions: ToolDefinition[] = [
       'Set up a new automated routine for the user. Use when user says "remind me every morning", "when I get home do X", "set up a routine"',
     domain: 'routines',
     tags: ['routines', 'create', 'setup'],
-    create: () => ({
+    create: (ctx: ToolContext) => llm.tool({
       description: 'Set up something new for you',
       parameters: {
         type: 'object',
@@ -404,7 +405,7 @@ const routineToolDefinitions: ToolDefinition[] = [
         },
         required: ['name', 'triggerType', 'triggerValue', 'action'],
       },
-      execute: async (args: unknown, ctx: ToolContext) =>
+      execute: async (args: unknown) =>
         createRoutineFromVoice(
           ctx,
           args as {
@@ -423,7 +424,7 @@ const routineToolDefinitions: ToolDefinition[] = [
       'Manually trigger a routine right now. Use when user says "run my morning routine", "do my check-in now"',
     domain: 'routines',
     tags: ['routines', 'run', 'trigger', 'now'],
-    create: () => ({
+    create: (ctx: ToolContext) => llm.tool({
       description: 'Run a routine right now',
       parameters: {
         type: 'object',
@@ -432,7 +433,7 @@ const routineToolDefinitions: ToolDefinition[] = [
         },
         required: ['routineName'],
       },
-      execute: async (args: unknown, ctx: ToolContext) =>
+      execute: async (args: unknown) =>
         runRoutine(ctx, args as { routineName: string }),
     }),
   },
@@ -443,7 +444,7 @@ const routineToolDefinitions: ToolDefinition[] = [
       'Pause or resume an automated routine. Use when user says "pause my morning routine", "stop doing X", "resume my check-ins"',
     domain: 'routines',
     tags: ['routines', 'pause', 'resume', 'toggle'],
-    create: () => ({
+    create: (ctx: ToolContext) => llm.tool({
       description: 'Pause or resume a routine',
       parameters: {
         type: 'object',
@@ -457,7 +458,7 @@ const routineToolDefinitions: ToolDefinition[] = [
         },
         required: ['routineName', 'action'],
       },
-      execute: async (args: unknown, ctx: ToolContext) =>
+      execute: async (args: unknown) =>
         toggleRoutine(ctx, args as { routineName: string; action: 'pause' | 'resume' }),
     }),
   },
@@ -468,7 +469,7 @@ const routineToolDefinitions: ToolDefinition[] = [
       'Delete an automated routine permanently. Use when user says "stop my morning routine forever", "delete that routine", "remove X"',
     domain: 'routines',
     tags: ['routines', 'delete', 'remove'],
-    create: () => ({
+    create: (ctx: ToolContext) => llm.tool({
       description: 'Remove a routine',
       parameters: {
         type: 'object',
@@ -477,7 +478,7 @@ const routineToolDefinitions: ToolDefinition[] = [
         },
         required: ['routineName'],
       },
-      execute: async (args: unknown, ctx: ToolContext) =>
+      execute: async (args: unknown) =>
         removeRoutine(ctx, args as { routineName: string }),
     }),
   },
@@ -488,14 +489,14 @@ const routineToolDefinitions: ToolDefinition[] = [
       'Suggest routine ideas the user might like. Use when user asks "what could you do for me?", "give me ideas", "what routines do you recommend?"',
     domain: 'routines',
     tags: ['routines', 'suggestions', 'ideas', 'recommendations'],
-    create: () => ({
+    create: (ctx: ToolContext) => llm.tool({
       description: 'Suggest routines that might help',
       parameters: {
         type: 'object',
         properties: {},
         required: [],
       },
-      execute: async (_args: unknown, ctx: ToolContext) => suggestRoutines(ctx),
+      execute: async (_args: unknown) => suggestRoutines(ctx),
     }),
   },
 ];
