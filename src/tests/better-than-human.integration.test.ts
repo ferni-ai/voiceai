@@ -113,7 +113,7 @@ describe('Live Superhuman Injections', () => {
     // Should have detected commitment and values
     expect(result.signals.commitmentDetected).toBe(true);
     expect(result.injections.length).toBeGreaterThan(0);
-    expect(result.processingTimeMs).toBeLessThan(100); // Fast enough for real-time
+    expect(result.processingTimeMs).toBeLessThan(perfBudget(100)); // Fast enough for real-time
   });
 });
 

@@ -1702,7 +1702,7 @@ describe('Voice Agent Critical Paths', () => {
     };
 
     it('should respond within acceptable latency', async () => {
-      const LATENCY_TARGET = 200; // 200ms target for memory ops
+      const LATENCY_TARGET = perfBudget(200); // 200ms target for memory ops
 
       const start = Date.now();
       await simulateOperation(50); // Simulate fast memory lookup

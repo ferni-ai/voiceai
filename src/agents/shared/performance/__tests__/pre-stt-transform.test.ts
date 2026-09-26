@@ -535,6 +535,6 @@ describe('Pre-STT Performance', () => {
     expect(avgTimePerFrame).toBeLessThan(perfBudget(5)); // < 5ms per frame allows for CI variance
 
     const metrics = getPreSTTMetrics();
-    expect(metrics.avgProcessingTimeMs).toBeLessThan(5);
+    expect(metrics.avgProcessingTimeMs).toBeLessThan(perfBudget(5));
   });
 });

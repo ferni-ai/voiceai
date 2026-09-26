@@ -82,7 +82,7 @@ describe('SSML Performance Benchmarks', () => {
     it('should process short text in < 10ms average', () => {
       const result = benchmark(() => tagTextWithSsml(SAMPLE_TEXTS.short));
       console.log(`Short text: avg=${result.avgMs.toFixed(3)}ms, max=${result.maxMs.toFixed(3)}ms`);
-      expect(result.avgMs).toBeLessThan(10);
+      expect(result.avgMs).toBeLessThan(perfBudget(10));
     });
 
     it('should process medium text in < 10ms average', () => {
@@ -90,13 +90,13 @@ describe('SSML Performance Benchmarks', () => {
       console.log(
         `Medium text: avg=${result.avgMs.toFixed(3)}ms, max=${result.maxMs.toFixed(3)}ms`
       );
-      expect(result.avgMs).toBeLessThan(10);
+      expect(result.avgMs).toBeLessThan(perfBudget(10));
     });
 
     it('should process long text in < 20ms average', () => {
       const result = benchmark(() => tagTextWithSsml(SAMPLE_TEXTS.long));
       console.log(`Long text: avg=${result.avgMs.toFixed(3)}ms, max=${result.maxMs.toFixed(3)}ms`);
-      expect(result.avgMs).toBeLessThan(20);
+      expect(result.avgMs).toBeLessThan(perfBudget(20));
     });
 
     it('should handle financial-heavy text efficiently', () => {
@@ -104,7 +104,7 @@ describe('SSML Performance Benchmarks', () => {
       console.log(
         `Financial text: avg=${result.avgMs.toFixed(3)}ms, max=${result.maxMs.toFixed(3)}ms`
       );
-      expect(result.avgMs).toBeLessThan(15);
+      expect(result.avgMs).toBeLessThan(perfBudget(15));
     });
   });
 
@@ -116,7 +116,7 @@ describe('SSML Performance Benchmarks', () => {
       console.log(
         `[Persona] Short text: avg=${result.avgMs.toFixed(3)}ms, max=${result.maxMs.toFixed(3)}ms`
       );
-      expect(result.avgMs).toBeLessThan(10);
+      expect(result.avgMs).toBeLessThan(perfBudget(10));
     });
 
     it('should process medium text in < 10ms average', () => {
@@ -126,7 +126,7 @@ describe('SSML Performance Benchmarks', () => {
       console.log(
         `[Persona] Medium text: avg=${result.avgMs.toFixed(3)}ms, max=${result.maxMs.toFixed(3)}ms`
       );
-      expect(result.avgMs).toBeLessThan(10);
+      expect(result.avgMs).toBeLessThan(perfBudget(10));
     });
 
     it('should process long text in < 20ms average', () => {
@@ -136,7 +136,7 @@ describe('SSML Performance Benchmarks', () => {
       console.log(
         `[Persona] Long text: avg=${result.avgMs.toFixed(3)}ms, max=${result.maxMs.toFixed(3)}ms`
       );
-      expect(result.avgMs).toBeLessThan(20);
+      expect(result.avgMs).toBeLessThan(perfBudget(20));
     });
 
     it('should handle emotional text with appropriate pacing', () => {
@@ -146,7 +146,7 @@ describe('SSML Performance Benchmarks', () => {
       console.log(
         `[Persona] Emotional text: avg=${result.avgMs.toFixed(3)}ms, max=${result.maxMs.toFixed(3)}ms`
       );
-      expect(result.avgMs).toBeLessThan(10);
+      expect(result.avgMs).toBeLessThan(perfBudget(10));
     });
 
     it('should handle storytelling text with enhancements', () => {
@@ -156,7 +156,7 @@ describe('SSML Performance Benchmarks', () => {
       console.log(
         `[Persona] Storytelling text: avg=${result.avgMs.toFixed(3)}ms, max=${result.maxMs.toFixed(3)}ms`
       );
-      expect(result.avgMs).toBeLessThan(15);
+      expect(result.avgMs).toBeLessThan(perfBudget(15));
     });
   });
 
@@ -195,7 +195,7 @@ describe('SSML Performance Benchmarks', () => {
       // Performance should be consistent - use absolute threshold since relative comparisons
       // are flaky when first batch is very fast (sub-millisecond)
       // Both batches should complete in under 20ms on average (generous for CI load)
-      expect(secondBatch.avgMs).toBeLessThan(20);
+      expect(secondBatch.avgMs).toBeLessThan(perfBudget(20));
     });
   });
 
@@ -217,8 +217,8 @@ describe('SSML Performance Benchmarks', () => {
       // Use absolute performance threshold instead of relative ratio
       // Both should complete single processing in under 5ms (acceptable for real-time)
       // Increased legacy tolerance from 2ms to 5ms due to CI/system load variance
-      expect(personaResult.avgMs).toBeLessThan(5);
-      expect(legacyResult.avgMs).toBeLessThan(5);
+      expect(personaResult.avgMs).toBeLessThan(perfBudget(5));
+      expect(legacyResult.avgMs).toBeLessThan(perfBudget(5));
     });
   });
 

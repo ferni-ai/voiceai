@@ -25,6 +25,7 @@ import {
 } from '../mocks/index.js';
 
 import { sessions, users } from '../fixtures/index.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // Setup all mocks
 setupAllMocks();
@@ -128,7 +129,7 @@ describe('Session Lifecycle Integration Tests', () => {
       await jobCtx.connect();
 
       // Session should have started within a reasonable time
-      expect(Date.now() - startTime).toBeLessThan(1000);
+      expect(Date.now() - startTime).toBeLessThan(perfBudget(1000));
     });
 
     it('should track participant identity', async () => {

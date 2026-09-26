@@ -23,6 +23,7 @@ import {
 } from '../../../services/analytics/call-quality-monitor.js';
 import { createTTSCache, setTTSCache } from '../../../services/tts/tts-cache.js';
 import type { ITTSProvider } from '../types.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // ==========================================================================
 // MOCKS
@@ -554,7 +555,7 @@ describe('Gateway TTS Node', () => {
       expect(metrics.cacheHits).toBe(1);
       // Cache hit latency should be small (< 50ms in tests) since it only
       // measures the cache lookup, not preprocessing (SSML parsing, etc.)
-      expect(metrics.avgCacheHitLatencyMs).toBeLessThan(50);
+      expect(metrics.avgCacheHitLatencyMs).toBeLessThan(perfBudget(50));
     });
   });
 

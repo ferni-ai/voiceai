@@ -516,7 +516,7 @@ describe('Turn Processor Integration Tests', () => {
     });
 
     it('should process turn within acceptable latency', async () => {
-      const maxLatencyMs = 200; // 200ms target
+      const maxLatencyMs = perfBudget(200); // 200ms target
       const startTime = performance.now();
 
       // Full mock processing pipeline

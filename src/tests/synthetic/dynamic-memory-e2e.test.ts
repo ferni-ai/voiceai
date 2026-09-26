@@ -105,7 +105,7 @@ describe('Fast Capture Pipeline', () => {
       const duration = Date.now() - start;
 
       expect(duration).toBeLessThan(perfBudget(100)); // Allow buffer for CI
-      expect(result.captureTimeMs).toBeLessThan(100);
+      expect(result.captureTimeMs).toBeLessThan(perfBudget(100));
     });
 
     it('should be fast even with long transcripts', async () => {

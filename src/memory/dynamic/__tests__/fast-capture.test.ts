@@ -32,7 +32,7 @@ describe('Fast Capture', () => {
       const duration = Date.now() - start;
 
       expect(duration).toBeLessThan(perfBudget(200)); // Allow buffer for CI/local dev machine load
-      expect(result.captureTimeMs).toBeLessThan(200);
+      expect(result.captureTimeMs).toBeLessThan(perfBudget(200));
     });
 
     it('should extract entity mentions', async () => {

@@ -45,6 +45,7 @@ import {
 import { cleanupSpeechSession, registerSpeechSession } from '../session-cleanup.js';
 
 import type { ProsodyFeatures } from '../audio-prosody.js';
+import { perfBudget } from '../../tests/perf-budget.js';
 
 // ============================================================================
 // BENCHMARK CONFIGURATION
@@ -441,7 +442,7 @@ describe('Performance Benchmarks', () => {
 
       logBenchmarkResult(result);
 
-      expect(result.avgMs).toBeLessThan(1);
+      expect(result.avgMs).toBeLessThan(perfBudget(1));
     });
   });
 

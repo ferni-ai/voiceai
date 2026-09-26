@@ -54,6 +54,7 @@ import {
 // Types
 import type { PartialTranscript } from '../sesame-inspired/types.js';
 import type { CartesiaEmotion } from '../cartesia-expressiveness.js';
+import { perfBudget } from '../../tests/perf-budget.js';
 
 // ============================================================================
 // TEST HELPERS
@@ -391,7 +392,7 @@ describe('Sesame-Inspired Prosody', () => {
 
       expect(result.enhanced).toContain('<emotion');
       expect(result.features.length).toBeGreaterThan(0);
-      expect(result.processingMs).toBeLessThan(100); // Should be fast
+      expect(result.processingMs).toBeLessThan(perfBudget(100)); // Should be fast
     });
 
     it('should add emotion tag if missing', () => {

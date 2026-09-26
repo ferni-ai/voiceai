@@ -12,6 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { perfBudget } from './perf-budget.js';
 
 // NOTE: mock removed - the module does not exist and the code under test does
 // not import it, so it controlled nothing.
@@ -409,7 +410,7 @@ describe('Context Builder Integration with Superhuman', () => {
 // ============================================================================
 
 describe('Performance Benchmarks', () => {
-  const MAX_BUILDER_TIME_MS = 2000; // 2000ms max per builder (generous for test env with parallel execution)
+  const MAX_BUILDER_TIME_MS = perfBudget(2000); // 2000ms max per builder (generous for test env with parallel execution)
 
   it('should build Peter context within time limit', async () => {
     const { buildPeterResearchInsightsContext } =

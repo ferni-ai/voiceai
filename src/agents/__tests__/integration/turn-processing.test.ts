@@ -34,6 +34,7 @@ setupAllMocks({ llmClient: mockLLM });
 // Now import the modules under test
 import { getCelebrationEvents, injectTurnContext } from '../../processors/turn-processor/index.js';
 import type { TurnProcessorResult } from '../../processors/types.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 // ============================================================================
 // TEST HELPERS
@@ -517,7 +518,7 @@ describe('Turn Processing Integration Tests', () => {
         },
       });
 
-      expect(result.context.elapsedMs).toBeLessThan(500);
+      expect(result.context.elapsedMs).toBeLessThan(perfBudget(500));
     });
   });
 });

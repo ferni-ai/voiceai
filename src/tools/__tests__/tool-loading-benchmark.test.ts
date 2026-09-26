@@ -118,7 +118,7 @@ describe('Tool Loading Performance Benchmarks', () => {
 
       results.push(result);
       console.log(`📦 Manifest Load: ${result.avgMs}ms avg`);
-      expect(result.avgMs).toBeLessThan(500); // Should be under 500ms
+      expect(result.avgMs).toBeLessThan(perfBudget(500)); // Should be under 500ms
     });
 
     it('should benchmark embeddings loading', async () => {
@@ -139,7 +139,7 @@ describe('Tool Loading Performance Benchmarks', () => {
 
       results.push(result);
       console.log(`🧠 Embeddings Load: ${result.avgMs}ms avg`);
-      expect(result.avgMs).toBeLessThan(500); // Should be under 500ms
+      expect(result.avgMs).toBeLessThan(perfBudget(500)); // Should be under 500ms
     });
 
     it('should benchmark semantic matching with pre-computed embeddings', async () => {
@@ -169,7 +169,7 @@ describe('Tool Loading Performance Benchmarks', () => {
 
       results.push(result);
       console.log(`🎯 Semantic Match: ${result.avgMs}ms avg (5 queries)`);
-      expect(result.avgMs).toBeLessThan(100); // Should be under 100ms for 5 queries
+      expect(result.avgMs).toBeLessThan(perfBudget(100)); // Should be under 100ms for 5 queries
     });
 
     it('should benchmark session cache warmup', async () => {
@@ -187,7 +187,7 @@ describe('Tool Loading Performance Benchmarks', () => {
 
       results.push(result);
       console.log(`🔥 Session Cache Warmup: ${result.avgMs}ms avg`);
-      expect(result.avgMs).toBeLessThan(1000); // Should be under 1s
+      expect(result.avgMs).toBeLessThan(perfBudget(1000)); // Should be under 1s
     });
 
     it('should benchmark session cache retrieval (instant)', async () => {
@@ -209,7 +209,7 @@ describe('Tool Loading Performance Benchmarks', () => {
 
       results.push(result);
       console.log(`⚡ Session Cache Retrieval: ${result.avgMs}ms avg`);
-      expect(result.avgMs).toBeLessThan(5); // Should be under 5ms (instant!)
+      expect(result.avgMs).toBeLessThan(perfBudget(5)); // Should be under 5ms (instant!)
     });
   });
 

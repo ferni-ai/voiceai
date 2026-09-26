@@ -637,7 +637,7 @@ describe('Knowledge Graph E2E Tests', () => {
 
       // Should complete in under 5 seconds (including LLM call)
       expect(elapsed).toBeLessThan(perfBudget(5000));
-      expect(result.processingTimeMs).toBeLessThan(5000);
+      expect(result.processingTimeMs).toBeLessThan(perfBudget(5000));
     });
 
     it('should complete queries in reasonable time', async () => {
