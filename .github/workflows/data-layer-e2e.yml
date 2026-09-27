@@ -10,6 +10,7 @@ on:
       - 'src/memory/**'
       - 'src/intelligence/**'
       - 'src/tests/data-layer/**'
+      - '.github/workflows/data-layer-e2e.yml'
   push:
     branches: [main]
     paths:
@@ -36,7 +37,9 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '17'
+          # firebase-tools refuses to start the emulator on Java < 21, which failed
+          # the three emulator-dependent tests on every run.
+          java-version: '21'
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
