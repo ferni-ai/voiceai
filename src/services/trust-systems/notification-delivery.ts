@@ -622,7 +622,7 @@ function isRetryableError(error: unknown): boolean {
  */
 async function getFirebaseAdmin(): Promise<typeof import('firebase-admin') | null> {
   try {
-    const admin = await import('firebase-admin');
+    const admin = (await import('firebase-admin')).default;
     // Check if already initialized
     if (admin.apps.length === 0) {
       // Will use GOOGLE_APPLICATION_CREDENTIALS

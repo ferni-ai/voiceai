@@ -942,7 +942,7 @@ export async function loadAnalyticsFromFirestore(): Promise<void> {
   if (analyticsLoaded) return;
 
   try {
-    const admin = await import('firebase-admin');
+    const admin = (await import('firebase-admin')).default;
     const app = admin.apps.length > 0 ? admin.apps[0] : admin.initializeApp();
     if (!app) return;
 
@@ -976,7 +976,7 @@ export async function persistAnalyticsToFirestore(): Promise<void> {
 
     if (allStats.size === 0) return;
 
-    const admin = await import('firebase-admin');
+    const admin = (await import('firebase-admin')).default;
     const app = admin.apps.length > 0 ? admin.apps[0] : null;
     if (!app) return;
 

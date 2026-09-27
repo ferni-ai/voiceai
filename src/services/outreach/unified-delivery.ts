@@ -409,7 +409,7 @@ async function deliverPush(
       return deliverInApp(userId, content, outreachType, triggerId);
     }
 
-    const admin = await import('firebase-admin');
+    const admin = (await import('firebase-admin')).default;
 
     // Initialize if needed
     if (admin.apps.length === 0) {

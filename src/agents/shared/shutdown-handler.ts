@@ -207,7 +207,7 @@ async function notifyCrashToSlack(event: CrashEvent): Promise<void> {
 async function persistCrashAnalytics(event: CrashEvent): Promise<void> {
   try {
     // Dynamic import to avoid circular dependencies
-    const admin = await import('firebase-admin');
+    const admin = (await import('firebase-admin')).default;
 
     // Check if already initialized
     const app = admin.apps.length > 0 ? admin.apps[0] : admin.initializeApp();
