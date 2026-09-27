@@ -193,3 +193,9 @@ test_higgs_output.wav
 # (committed 0b3e276cf); untracked 2026-09-25. See the audit note in ci.yml.
 .env.linkedin
 **/.env.linkedin
+
+# Xcode build output: DerivedData-style dirs embed the build machine environment
+# (a leaked GEMINI_API_KEY lived in apps/ios-native/build/XCBuildData until 2026-09-27)
+apps/ios-native/build/
+apps/shared/build/
+apps/*/build/XCBuildData/

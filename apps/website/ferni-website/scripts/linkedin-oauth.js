@@ -17,8 +17,8 @@
 
 // Ferni Marketing app credentials
 const CONFIG = {
-  clientId: '86tmx8qezi0jz1',
-  clientSecret: 'WPL_AP1.FQQlhC4yNWsm3NUb.imS7jg==',
+  clientId: process.env.LINKEDIN_CLIENT_ID || '',
+  clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
   redirectUri: 'http://localhost:3000/callback',
   organizationId: '110229625', // Ferni company page
 

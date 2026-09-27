@@ -17,8 +17,8 @@ const crypto = require('crypto');
 
 // Ferni app credentials (from .env)
 const CONFIG = {
-  clientId: process.env.TWITTER_CLIENT_ID || 'LD9Eys1DbmTLpmt5ByF8X4p6E',
-  clientSecret: process.env.TWITTER_CLIENT_SECRET || 'TQ7adI_dCUDAPX9_mJGvyTLero8JS_6M2zOuN5V8ks6MwQWrC7',
+  clientId: process.env.TWITTER_CLIENT_ID || '',
+  clientSecret: process.env.TWITTER_CLIENT_SECRET || '',
   // Use production callback - must match Twitter Developer Portal settings
   redirectUri: process.env.TWITTER_CALLBACK_URL || 'https://app.ferni.ai/api/marketing/twitter/callback',
 
