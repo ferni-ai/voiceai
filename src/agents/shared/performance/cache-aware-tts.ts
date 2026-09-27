@@ -33,49 +33,14 @@ import { getCachedAudio as getConversationalCachedAudio } from '../conversationa
 // ⚡ Import greeting audio cache for instant first greeting
 import { getPrewarmedGreetingAudio } from './greeting-audio-prewarm.js';
 // 🚀 CONSOLIDATED: Use gateway's SSML processor (single source of truth)
-import { getSSMLProcessor } from '../../../speech/tts-gateway/ssml/index.js';
 // 🚀 NEW: Check unified TTSCache first (highest priority cache)
 import { getTTSCache } from '../../../services/tts/index.js';
 
 const log = createLogger({ module: 'CacheAwareTTS' });
 
-// ============================================================================
-// SSML STRIPPING (DELEGATED TO TTS GATEWAY)
-// ============================================================================
-//
-// PROBLEM: The LiveKit Cartesia plugin uses a SentenceTokenizer internally that
-// fragments SSML tags across WebSocket packets. When tags like <break time="280ms"/>
-// get split, Cartesia speaks them literally ("break 280 milliseconds").
-//
-// SOLUTION: Use the TTS Gateway's SSMLProcessor (single source of truth).
-// This processor:
-// - Buffers incomplete SSML tags
-// - Converts breaks to natural punctuation
-// - Strips prosody tags that don't work in streaming
-// - Cleans up resulting text
-//
-// ============================================================================
-
-/**
- * Wrap a text stream with SSML stripping before sending to Cartesia.
- * Uses the TTS Gateway's SSMLProcessor for consistent behavior.
- */
-function stripSSMLFromStream(textStream: NodeReadableStream<string>): NodeReadableStream<string> {
-  const processor = getSSMLProcessor();
-  // Buffer incomplete tags, then strip via parse
-  const bufferTransform = processor.createBufferTransform();
-
-  const stripTransform = new TransformStream<string, string>({
-    transform(chunk, controller) {
-      const result = processor.parse(chunk);
-      if (result.cleanText.trim()) {
-        controller.enqueue(result.cleanText);
-      }
-    },
-  }) as NodeTransformStream<string, string>;
-
-  return textStream.pipeThrough(bufferTransform).pipeThrough(stripTransform);
-}
+// Markup is NOT stripped here. PersonaAwareTTS assembles tags across chunks and
+// forwards the ones Cartesia supports (speech/tts/cartesia-markup-filter.ts);
+// stripping here as well would silence every emotion, pause and laugh.
 
 /**
  * Type interface for accessing the internal ttsNode method on voice.Agent.default.
@@ -606,7 +571,7 @@ export function createCacheAwareTTSNode(
     // If cache is disabled, pass through directly to default TTS
     // 🔧 FIX: Buffer SSML tags to prevent fragmentation (Cartesia speaks fragmented tags!)
     if (!enableCache) {
-      return getDefaultTTSNode().ttsNode(agent, stripSSMLFromStream(text), modelSettings);
+      return getDefaultTTSNode().ttsNode(agent, text, modelSettings);
     }
 
     // =========================================================================
@@ -858,7 +823,7 @@ export function createCacheAwareTTSNode(
       }) as NodeReadableStream<string>;
 
       // 🔧 FIX: Buffer SSML tags to prevent fragmentation (Cartesia speaks fragmented tags!)
-      return getDefaultTTSNode().ttsNode(agent, stripSSMLFromStream(fullStream), modelSettings);
+      return getDefaultTTSNode().ttsNode(agent, fullStream, modelSettings);
     }
 
     // CACHE MISS - pass entire stream to default TTS
@@ -916,12 +881,7 @@ export function createCacheAwareTTSNode(
       },
     }) as NodeReadableStream<string>;
 
-    // 🔧 FIX: Buffer SSML tags to prevent fragmentation (Cartesia speaks fragmented tags!)
-    return getDefaultTTSNode().ttsNode(
-      agent,
-      stripSSMLFromStream(reconstructedStream),
-      modelSettings
-    );
+    return getDefaultTTSNode().ttsNode(agent, reconstructedStream, modelSettings);
   };
 }
 
