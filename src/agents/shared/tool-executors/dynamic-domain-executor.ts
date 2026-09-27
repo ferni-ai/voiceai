@@ -43,55 +43,55 @@ let initialized = false;
  * This dynamic executor only runs if the tool ID isn't claimed by a specialized executor.
  * This provides a fallback for domain tools that aren't in specialized HANDLED_TOOLS arrays.
  */
-const DOMAIN_MODULES: Record<string, string> = {
+export const DOMAIN_MODULES: Readonly<Record<string, string>> = {
   // Life Coaching Domains
-  career: '../../tools/domains/career/index.js',
-  grief: '../../tools/domains/grief/index.js',
-  'pattern-mastery': '../../tools/domains/pattern-mastery/index.js',
-  'workflow-mastery': '../../tools/domains/workflow-mastery/index.js',
-  health: '../../tools/domains/health/index.js', // Fallback for tools not in health-executor
-  wellness: '../../tools/domains/wellness/index.js',
-  wisdom: '../../tools/domains/wisdom/index.js',
-  communication: '../../tools/domains/communication/index.js',
-  crisis: '../../tools/domains/crisis/index.js',
-  relationships: '../../tools/domains/relationships/index.js',
-  boundaries: '../../tools/domains/boundaries/index.js',
-  dating: '../../tools/domains/dating/index.js',
-  anger: '../../tools/domains/anger/index.js',
-  procrastination: '../../tools/domains/procrastination/index.js',
-  'burnout-recovery': '../../tools/domains/burnout-recovery/index.js',
-  'trauma-support': '../../tools/domains/trauma-support/index.js',
-  'chronic-conditions': '../../tools/domains/chronic-conditions/index.js',
-  'digital-wellness': '../../tools/domains/digital-wellness/index.js',
-  'body-relationship': '../../tools/domains/body-relationship/index.js',
-  neurodiversity: '../../tools/domains/neurodiversity/index.js',
-  'self-compassion': '../../tools/domains/self-compassion/index.js',
-  intimacy: '../../tools/domains/intimacy/index.js',
-  'breakup-recovery': '../../tools/domains/breakup-recovery/index.js',
-  midlife: '../../tools/domains/midlife/index.js',
-  'life-transitions': '../../tools/domains/life-transitions/index.js',
-  'life-planning': '../../tools/domains/life-planning/index.js',
-  decisions: '../../tools/domains/decisions/index.js',
-  family: '../../tools/domains/family/index.js',
-  creativity: '../../tools/domains/creativity/index.js',
-  learning: '../../tools/domains/learning/index.js',
-  meaning: '../../tools/domains/meaning/index.js',
-  dreams: '../../tools/domains/dreams/index.js',
-  vulnerability: '../../tools/domains/vulnerability/index.js',
-  presence: '../../tools/domains/presence/index.js',
-  play: '../../tools/domains/play/index.js',
-  stories: '../../tools/domains/stories/index.js',
-  connection: '../../tools/domains/connection/index.js',
-  curiosity: '../../tools/domains/curiosity/index.js',
-  community: '../../tools/domains/community/index.js',
-  sobriety: '../../tools/domains/sobriety/index.js',
-  finance: '../../tools/domains/finance/index.js', // Fallback for tools not in finance-executor
-  travel: '../../tools/domains/travel/index.js', // Fallback for tools not in travel-executor
-  engagement: '../../tools/domains/engagement/index.js',
-  games: '../../tools/domains/games/index.js', // Fallback for tools not in entertainment-executor
-  'ceo-coaching': '../../tools/domains/ceo-coaching/index.js', // Fallback for tools not in ceo-executor
-  transportation: '../../tools/domains/transportation/index.js', // Part of travel-executor
-  'simple-utilities': '../../tools/domains/simple-utilities/index.js', // Humor tools in entertainment-executor
+  career: '../../../tools/domains/career/index.js',
+  grief: '../../../tools/domains/grief/index.js',
+  'pattern-mastery': '../../../tools/domains/pattern-mastery/index.js',
+  'workflow-mastery': '../../../tools/domains/workflow-mastery/index.js',
+  health: '../../../tools/domains/health/index.js', // Fallback for tools not in health-executor
+  wellness: '../../../tools/domains/wellness/index.js',
+  wisdom: '../../../tools/domains/wisdom/index.js',
+  communication: '../../../tools/domains/communication/index.js',
+  crisis: '../../../tools/domains/crisis/index.js',
+  relationships: '../../../tools/domains/relationships/index.js',
+  boundaries: '../../../tools/domains/boundaries/index.js',
+  dating: '../../../tools/domains/dating/index.js',
+  anger: '../../../tools/domains/anger/index.js',
+  procrastination: '../../../tools/domains/procrastination/index.js',
+  'burnout-recovery': '../../../tools/domains/burnout-recovery/index.js',
+  'trauma-support': '../../../tools/domains/trauma-support/index.js',
+  'chronic-conditions': '../../../tools/domains/chronic-conditions/index.js',
+  'digital-wellness': '../../../tools/domains/digital-wellness/index.js',
+  'body-relationship': '../../../tools/domains/body-relationship/index.js',
+  neurodiversity: '../../../tools/domains/neurodiversity/index.js',
+  'self-compassion': '../../../tools/domains/self-compassion/index.js',
+  intimacy: '../../../tools/domains/intimacy/index.js',
+  'breakup-recovery': '../../../tools/domains/breakup-recovery/index.js',
+  midlife: '../../../tools/domains/midlife/index.js',
+  'life-transitions': '../../../tools/domains/life-transitions/index.js',
+  'life-planning': '../../../tools/domains/life-planning/index.js',
+  decisions: '../../../tools/domains/decisions/index.js',
+  family: '../../../tools/domains/family/index.js',
+  creativity: '../../../tools/domains/creativity/index.js',
+  learning: '../../../tools/domains/learning/index.js',
+  meaning: '../../../tools/domains/meaning/index.js',
+  dreams: '../../../tools/domains/dreams/index.js',
+  vulnerability: '../../../tools/domains/vulnerability/index.js',
+  presence: '../../../tools/domains/presence/index.js',
+  play: '../../../tools/domains/play/index.js',
+  stories: '../../../tools/domains/stories/index.js',
+  connection: '../../../tools/domains/connection/index.js',
+  curiosity: '../../../tools/domains/curiosity/index.js',
+  community: '../../../tools/domains/community/index.js',
+  sobriety: '../../../tools/domains/sobriety/index.js',
+  finance: '../../../tools/domains/finance/index.js', // Fallback for tools not in finance-executor
+  travel: '../../../tools/domains/travel/index.js', // Fallback for tools not in travel-executor
+  engagement: '../../../tools/domains/engagement/index.js',
+  games: '../../../tools/domains/games/index.js', // Fallback for tools not in entertainment-executor
+  'ceo-coaching': '../../../tools/domains/ceo-coaching/index.js', // Fallback for tools not in ceo-executor
+  transportation: '../../../tools/domains/transportation/index.js', // Part of travel-executor
+  'simple-utilities': '../../../tools/domains/simple-utilities/index.js', // Humor tools in entertainment-executor
 };
 
 /**
@@ -149,8 +149,9 @@ async function initializeDomainMap(): Promise<void> {
       loadedDomains++;
       log.debug({ domain: domainName, toolCount: definitions.length }, 'Domain loaded');
     } catch (err) {
-      // Domain might not exist or have issues - that's OK, skip it
-      log.debug({ domain: domainName, error: String(err) }, 'Domain not available');
+      // A mapped domain that fails to load drops all of its tools from this
+      // fallback, so say so where it will be seen.
+      log.warn({ domain: domainName, error: String(err) }, 'Domain failed to load');
     }
   }
 
