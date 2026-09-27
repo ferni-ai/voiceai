@@ -57,6 +57,9 @@ jobs:
           pnpm vitest run src/tests/data-layer/e2e-firestore.test.ts --reporter=verbose
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
+          # Same project the emulator was started with; firebase-admin's
+          # initializeApp() cannot detect one on a CI runner.
+          GCLOUD_PROJECT: demo-project
           NODE_ENV: test
           # Disable Google API for tests (no real embeddings)
           GOOGLE_API_KEY: ''
@@ -73,6 +76,7 @@ jobs:
           pnpm vitest run src/intelligence/__tests__/ --reporter=verbose
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
+          GCLOUD_PROJECT: demo-project
           NODE_ENV: test
 
       - name: Summary
