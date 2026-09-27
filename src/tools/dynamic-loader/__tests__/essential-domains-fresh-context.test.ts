@@ -10,7 +10,10 @@ import { loadEssentialDomains } from '../index.js';
 
 describe('loadEssentialDomains in a fresh job context', () => {
   it('loads the essential domains itself instead of assuming a preloaded registry', async () => {
-    const tools = await loadEssentialDomains('test-user', undefined);
+    // The live caller passes its SessionServices, which is not a tool
+    // ServiceRegistry (no .has()); building with it threw and was swallowed.
+    const sessionServices = { sessionId: 'session-1', userId: 'test-user', userProfile: null };
+    const tools = await loadEssentialDomains('test-user', sessionServices);
     const names = Object.keys(tools);
 
     // memory, handoff, music, and safety must reach the model on the first turn

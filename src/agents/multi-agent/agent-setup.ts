@@ -72,6 +72,7 @@ import {
 import * as voiceManagerModule from '../../speech/voice-manager.js';
 import { resolveVoiceId } from '../../tools/handoff/voice-id-resolver.js';
 import { FerniAgent } from '../personas/ferni-agent.js';
+import { createTurnIntelligenceHook, resolveTurnIntelligenceMode } from './turn-intelligence.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
@@ -765,6 +766,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
           { error: String(essentialErr) },
           '⚠️ Failed to load essential tools - only handoffs available'
         );
+        // This logger is silent inside the job context; a call without its
+        // domain tools must be visible in the agent log.
+        process.stderr.write(`🚨 Essential tools failed to load: ${String(essentialErr)}\n`);
       }
 
       const allTools = { ...handoffTools, ...essentialTools };
@@ -1677,8 +1681,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // FIX: Previously used voice.Agent which BYPASSED the JSON function call sanitizer!
   // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
   // FerniAgent now hoisted to module level for faster startup
+  // Per-turn intelligence (context builders, memory retrieval, emotional
+  // guidance) - see turn-intelligence.ts for why this is gated.
+  const onUserTurn =
+    resolveTurnIntelligenceMode() === 'on'
+      ? createTurnIntelligenceHook({ persona, services, userData, room })
+      : undefined;
+
   const agent = new FerniAgent(systemPrompt, {
     tools: finalTools as unknown as llm.ToolContext<UserData>,
+    onUserTurn,
     // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
     // function-calling instructions. This can confuse the model and break tool calls.
     // The model will greet naturally based on its system prompt.

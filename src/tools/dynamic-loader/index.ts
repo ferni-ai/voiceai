@@ -407,12 +407,16 @@ export async function loadEssentialDomains(
   const { toolRegistry, EnvironmentServiceRegistry } = await import('../registry/index.js');
   type ToolDomainType = import('../registry/types.js').ToolDomain;
 
-  // Create a minimal tool context
+  // Tools look services up through a ServiceRegistry (has/get). Callers on the
+  // live path pass their SessionServices, which is a different shape; building
+  // with it threw "services.has is not a function" and the call got no tools.
+  const isServiceRegistry =
+    typeof (services as { has?: unknown } | undefined)?.has === 'function';
   const ctx = {
     userId: userId || 'anonymous',
     agentId: 'ferni',
     agentDisplayName: 'Ferni',
-    services: services || new EnvironmentServiceRegistry(),
+    services: isServiceRegistry ? services : new EnvironmentServiceRegistry(),
   };
 
   // Cast domains to the expected type
