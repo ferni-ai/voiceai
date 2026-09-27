@@ -271,9 +271,8 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   );
 
   // Register initial tools with session
-  const registeredToolCount = (agent as { _tools?: Record<string, unknown> })?._tools
-    ? Object.keys((agent as { _tools?: Record<string, unknown> })._tools!).length
-    : 0;
+  const { getAgentToolCount } = await import('../shared/tool-updater.js');
+  const registeredToolCount = getAgentToolCount(agent);
   process.stderr.write(`[voice-agent-entry] ✅ Agent registered with ${registeredToolCount} tools\n`);
 
   try {
@@ -297,8 +296,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     nativeFCCallCount++;
     const timeSinceLast = lastNativeFCCallAt ? Date.now() - lastNativeFCCallAt : 0;
     lastNativeFCCallAt = Date.now();
-    const agentToolsObj = (agent as { _tools?: Record<string, unknown> })?._tools;
-    const currentToolCount = agentToolsObj ? Object.keys(agentToolsObj).length : 0;
+    const currentToolCount = getAgentToolCount(agent);
     if (calls.length === 0) {
       process.stderr.write(`\n🔧 [NATIVE FC] function_calls_collected (empty) at ${new Date().toISOString()}\n`);
       return;
@@ -400,8 +398,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   // Tool health monitor
   const toolHealthCheckInterval = setInterval(
     () => void (async () => {
-      const agentToolsObj = (agent as { _tools?: Record<string, unknown> })?._tools;
-      const tc = agentToolsObj ? Object.keys(agentToolsObj).length : 0;
+      const tc = getAgentToolCount(agent);
       const turnsSinceLastFC = ((userData.turnCount as number) || 0) - nativeFCCallCount;
       process.stderr.write(`\n🏥 [TOOL HEALTH] Turn ${userData.turnCount || 0} | Tools: ${tc} | FC calls: ${nativeFCCallCount} | Turns without FC: ${turnsSinceLastFC}\n`);
       if (turnsSinceLastFC > 3 && tc > 0) {
