@@ -2,19 +2,24 @@
  * Per-turn memory recall for the live agent.
  *
  * Loads the caller's memory when the call starts (see memory/recall/
- * session-recall.ts) and, on each user turn, adds what is relevant to that
- * turn's chat context before the reply is generated. The SDK awaits
- * onUserTurnCompleted, so this runs on the turn path: matching is in memory,
- * and the only wait is on the first turn if the load has not finished, capped
- * at FIRST_TURN_WAIT_MS.
+ * session-recall.ts). When the user's words are transcribed, what is relevant
+ * is added to the agent's chat context straight away, in the same tick as the
+ * transcript event.
  *
- * Follow-ups from recent sessions are offered on the first turn only.
+ * Timing matters: on a final transcript the SDK emits user_input_transcribed
+ * and then starts preemptive generation from a copy of the agent's context.
+ * If the memory were added later (in onUserTurnCompleted), the context would
+ * no longer match and the SDK would discard the preemptive reply and start
+ * over (observed 2026-09-27: "chat context or tools have changed after
+ * onUserTurnCompleted"). Agent.updateChatCtx sets the context synchronously
+ * before its first await, so calling it from the listener lands first.
+ *
+ * Follow-ups from recent sessions are offered once, with the first recall.
  *
  * @module agents/multi-agent/memory-recall-hook
  */
 
 import {
-  EMPTY_SNAPSHOT,
   factId,
   formatRecall,
   loadRecallSnapshot,
@@ -24,12 +29,8 @@ import {
 } from '../../memory/recall/session-recall.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import type { UserTurnHook } from './turn-intelligence.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
-
-/** Longest the first turn waits for the snapshot before replying without it. */
-const FIRST_TURN_WAIT_MS = 300;
 
 export function memoryRecallMode(env: Record<string, string | undefined> = process.env): boolean {
   return env.MEMORY_RECALL !== 'off';
@@ -66,58 +67,63 @@ export interface MemoryRecallDeps {
   userId: string;
   userName?: string;
   store?: RecallStore;
-  firstTurnWaitMs?: number;
 }
 
-export function createMemoryRecallHook(deps: MemoryRecallDeps): UserTurnHook {
+export interface MemoryRecall {
+  /** Resolves once the snapshot is loaded (for tests and startup logging). */
+  ready: Promise<void>;
+  /** The recall note for this transcript, or null. Synchronous: never waits on the store. */
+  noteFor(transcript: string): string | null;
+}
+
+export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const started = Date.now();
-  const snapshot: Promise<RecallSnapshot> = loadRecallSnapshot(
-    deps.store ?? firestoreRecallStore,
-    deps.userId
-  ).then((s) => {
+  let snapshot: RecallSnapshot | undefined;
+  const surfaced = new Set<string>();
+  let followUpsOffered = false;
+
+  const ready = loadRecallSnapshot(deps.store ?? firestoreRecallStore, deps.userId).then((s) => {
+    snapshot = s;
     log.info(
       { facts: s.facts.length, followUps: s.followUps.length, ms: Date.now() - started },
       'Recall snapshot loaded'
     );
-    return s;
   });
-  const surfaced = new Set<string>();
-  let turn = 0;
 
-  return async (turnCtx, newMessage) => {
-    const userText = newMessage.textContent?.trim();
-    if (!userText) return;
-    turn++;
-
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const late = new Promise<RecallSnapshot>((resolve) => {
-      timer = setTimeout(() => resolve(EMPTY_SNAPSHOT), deps.firstTurnWaitMs ?? FIRST_TURN_WAIT_MS);
-    });
-    const snap = await Promise.race([snapshot, late]).finally(() => clearTimeout(timer));
-
-    const facts = recallForTurn(snap, userText, surfaced);
-    const followUps = turn === 1 ? snap.followUps : [];
-    const note = formatRecall(facts, followUps, deps.userName);
-    if (!note) return;
-
-    for (const f of facts) surfaced.add(factId(f));
-    turnCtx.addMessage({ role: 'system', content: note });
-    log.info({ turn, facts: facts.length, followUps: followUps.length }, 'Recall added to turn');
+  return {
+    ready,
+    noteFor(transcript) {
+      const text = transcript.trim();
+      if (!snapshot || !text) return null;
+      const facts = recallForTurn(snapshot, text, surfaced);
+      const followUps = followUpsOffered ? [] : snapshot.followUps;
+      const note = formatRecall(facts, followUps, deps.userName);
+      if (!note) return null;
+      followUpsOffered = true;
+      for (const f of facts) surfaced.add(factId(f));
+      log.info({ facts: facts.length, followUps: followUps.length }, 'Recall added');
+      return note;
+    },
   };
 }
 
-/** Run hooks in order; a failing hook never stops the reply. */
-export function chainUserTurnHooks(...hooks: Array<UserTurnHook | undefined>): UserTurnHook | undefined {
-  const active = hooks.filter((h): h is UserTurnHook => Boolean(h));
-  if (active.length <= 1) return active[0];
-  return async (turnCtx, newMessage) => {
-    for (const hook of active) {
-      try {
-        await hook(turnCtx, newMessage);
-      } catch (error) {
-        if ((error as { name?: string })?.name === 'StopResponse') throw error;
-        log.warn({ error: String(error) }, 'User turn hook failed; continuing');
-      }
-    }
+/** The slice of the SDK Agent this needs. */
+export interface RecallAgent {
+  readonly chatCtx: {
+    copy(): { addMessage(msg: { role: 'system'; content: string }): unknown };
   };
+  updateChatCtx(chatCtx: unknown): Promise<void>;
+}
+
+/**
+ * Add a recall note to the agent's context now. updateChatCtx assigns the
+ * context before its first await, so the note is in place for the preemptive
+ * generation the SDK starts right after the transcript event.
+ */
+export function addRecallNote(agent: RecallAgent, note: string): void {
+  const ctx = agent.chatCtx.copy();
+  ctx.addMessage({ role: 'system', content: note });
+  agent.updateChatCtx(ctx).catch((error: unknown) => {
+    log.warn({ error: String(error) }, 'Recall note not added');
+  });
 }

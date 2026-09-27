@@ -80,9 +80,10 @@ import {
   usesServerTurnDetection,
 } from './turn-intelligence.js';
 import {
-  chainUserTurnHooks,
-  createMemoryRecallHook,
+  addRecallNote,
+  createMemoryRecall,
   memoryRecallMode,
+  type RecallAgent,
 } from './memory-recall-hook.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
@@ -1702,15 +1703,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // FerniAgent now hoisted to module level for faster startup
   // Per-turn intelligence (context builders, memory retrieval, emotional
   // guidance) - see turn-intelligence.ts for why this is gated.
-  // Memory recall runs first so turn intelligence (when on) sees it too.
-  const onUserTurn = chainUserTurnHooks(
-    userId && userId !== 'anonymous' && memoryRecallMode()
-      ? createMemoryRecallHook({ userId, userName: userData.userName })
-      : undefined,
+  const onUserTurn =
     resolveTurnIntelligenceMode() === 'on'
       ? createTurnIntelligenceHook({ persona, services, userData, room })
-      : undefined
-  );
+      : undefined;
 
   const agentInstructions = composeAgentInstructions(
     systemPrompt,
@@ -1726,6 +1722,21 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // The model will greet naturally based on its system prompt.
     skipGreeting: true,
   }) as unknown as voice.Agent<UserData>; // Type cast needed - FerniAgent uses compatible session data
+
+  // Memory recall: add what Ferni remembers as soon as the user's words are
+  // transcribed, before the SDK starts preemptive generation (see
+  // memory-recall-hook.ts for why it must not wait for onUserTurnCompleted).
+  if (userId && userId !== 'anonymous' && memoryRecallMode() && sessionWithEvents.on) {
+    const recall = createMemoryRecall({ userId, userName: userData.userName });
+    const onRecallTranscript = (event: unknown) => {
+      const evt = event as { transcript?: string; isFinal?: boolean };
+      if (!evt.isFinal || !evt.transcript) return;
+      const note = recall.noteFor(evt.transcript);
+      if (note) addRecallNote(agent as unknown as RecallAgent, note);
+    };
+    sessionWithEvents.on('user_input_transcribed', onRecallTranscript);
+    cleanupFunctions.push(() => sessionWithEvents.off?.('user_input_transcribed', onRecallTranscript));
+  }
 
   // Realtime models that detect turns server-side never call
   // onUserTurnCompleted, so the same per-turn context is pushed into the
