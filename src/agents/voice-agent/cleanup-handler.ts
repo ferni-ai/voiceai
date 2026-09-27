@@ -1824,25 +1824,27 @@ async function extractAndSaveHumanSignals(
     // Create LLM extractor with Gemini caller
     const extractor = new LLMSignalExtractor({ useLLM: true });
     
-    // Set up Gemini LLM caller for extraction
+    // Set up Gemini LLM caller for extraction. Uses the shared client (Vertex on
+    // the agent) and the configured extraction model; the hard-coded
+    // gemini-1.5-flash here was retired, so every session end fell back to regex.
     try {
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-      
-      if (apiKey) {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        // Use flash model for cost efficiency
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-        
+      const { getGeminiClient, getExtractionModel } = await import('../../config/gemini-config.js');
+      const client = (await getGeminiClient()) as {
+        models: {
+          generateContent(req: { model: string; contents: string }): Promise<{ text?: string }>;
+        };
+      } | null;
+
+      if (client) {
+        const model = getExtractionModel();
         extractor.setLLMCall(async (prompt: string) => {
-          const result = await model.generateContent(prompt);
-          const response = await result.response;
-          return response.text();
+          const response = await client.models.generateContent({ model, contents: prompt });
+          return response.text ?? '';
         });
-        
-        diag.session('🤖 LLM signal extractor configured with Gemini 1.5 Flash');
+
+        diag.session('🤖 LLM signal extractor configured', { model });
       } else {
-        diag.warn('No Gemini API key available, falling back to regex extraction');
+        diag.warn('Gemini client not configured, falling back to regex extraction');
       }
     } catch (llmSetupErr) {
       diag.warn('Failed to set up LLM caller, using regex fallback', { error: String(llmSetupErr) });

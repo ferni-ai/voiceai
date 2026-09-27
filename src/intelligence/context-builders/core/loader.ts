@@ -65,7 +65,7 @@ function shouldLoadCategory(category: BuilderCategory): boolean {
         return false;
       }
       // Also check feature flag
-      if (!isFeatureEnabled('voiceEmotionDetection')) {
+      if (!isFeatureEnabled('experimental.voiceEmotionDetection')) {
         return false;
       }
       return true;
@@ -626,7 +626,7 @@ export function getLoadingStatus(): {
  * prewarmBuildersInBackground(); // Non-blocking
  */
 export function prewarmBuildersInBackground(): void {
-  if (!isFeatureEnabled('contextBuilderPrewarm')) {
+  if (!isFeatureEnabled('experimental.contextBuilderPrewarm')) {
     log.debug('Context builder pre-warm disabled by feature flag');
     return;
   }
@@ -651,7 +651,7 @@ export function prewarmBuildersInBackground(): void {
  * @param config - Conditional loading configuration
  */
 export function prewarmBuildersWithConfig(config: Partial<ConditionalLoadingConfig>): void {
-  if (!isFeatureEnabled('contextBuilderPrewarm')) {
+  if (!isFeatureEnabled('experimental.contextBuilderPrewarm')) {
     log.debug('Context builder pre-warm disabled by feature flag');
     return;
   }

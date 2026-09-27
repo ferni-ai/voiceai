@@ -17,35 +17,8 @@ import { isPipelineSwitchingEnabled, selectPipeline, type PipelineSwitchContext 
 import { computeDynamicVADDuration } from '../shared/performance/adaptive-timing.js';
 import { finops } from '../../services/observability/finops.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  observeCrisisTurn,
-  resolveCrisisGuardMode,
-  toGuardVoiceEmotion,
-  type CrisisGuardMode,
-  type ProsodyEmotionLike,
-} from '../safety/crisis-shadow.js';
-
-const crisisLog = createLogger({ module: 'CrisisShadow' });
-
-/** Log the crisis guard's would-be decision for one final transcript. Never throws. */
-function recordCrisisShadow(
-  transcript: string,
-  userData: Record<string, unknown>,
-  sessionId: string,
-  mode: CrisisGuardMode
-): void {
-  try {
-    const voiceEmotion = toGuardVoiceEmotion(
-      userData.voiceEmotion as ProsodyEmotionLike | undefined
-    );
-    const crisis = observeCrisisTurn(transcript, voiceEmotion, mode);
-    if (crisis && crisis.severity > 0) {
-      crisisLog.info({ sessionId, turn: userData.turnCount, ...crisis }, 'CRISIS_SHADOW');
-    }
-  } catch (error) {
-    crisisLog.error({ sessionId, error: String(error) }, 'Crisis shadow evaluation failed');
-  }
-}
+import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
+import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
 
 /** Inputs for handler setup */
 export interface HandlerSetupInput {
@@ -271,9 +244,8 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   );
 
   // Register initial tools with session
-  const registeredToolCount = (agent as { _tools?: Record<string, unknown> })?._tools
-    ? Object.keys((agent as { _tools?: Record<string, unknown> })._tools!).length
-    : 0;
+  const { getAgentToolCount } = await import('../shared/tool-updater.js');
+  const registeredToolCount = getAgentToolCount(agent);
   process.stderr.write(`[voice-agent-entry] ✅ Agent registered with ${registeredToolCount} tools\n`);
 
   try {
@@ -297,8 +269,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     nativeFCCallCount++;
     const timeSinceLast = lastNativeFCCallAt ? Date.now() - lastNativeFCCallAt : 0;
     lastNativeFCCallAt = Date.now();
-    const agentToolsObj = (agent as { _tools?: Record<string, unknown> })?._tools;
-    const currentToolCount = agentToolsObj ? Object.keys(agentToolsObj).length : 0;
+    const currentToolCount = getAgentToolCount(agent);
     if (calls.length === 0) {
       process.stderr.write(`\n🔧 [NATIVE FC] function_calls_collected (empty) at ${new Date().toISOString()}\n`);
       return;
@@ -400,8 +371,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   // Tool health monitor
   const toolHealthCheckInterval = setInterval(
     () => void (async () => {
-      const agentToolsObj = (agent as { _tools?: Record<string, unknown> })?._tools;
-      const tc = agentToolsObj ? Object.keys(agentToolsObj).length : 0;
+      const tc = getAgentToolCount(agent);
       const turnsSinceLastFC = ((userData.turnCount as number) || 0) - nativeFCCallCount;
       process.stderr.write(`\n🏥 [TOOL HEALTH] Turn ${userData.turnCount || 0} | Tools: ${tc} | FC calls: ${nativeFCCallCount} | Turns without FC: ${turnsSinceLastFC}\n`);
       if (turnsSinceLastFC > 3 && tc > 0) {
@@ -502,7 +472,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
       }
       const transcript = evt.transcript || '';
       process.stderr.write(`\n📝 [TURN ${userData.turnCount}] FINAL: "${transcript}"\n`);
-      recordCrisisShadow(transcript, userData, sessionId, crisisGuardMode);
+      observeFinalTranscript({ session, transcript, userData, sessionId, crisisMode: crisisGuardMode });
       if (transcript) {
         const wordCount = transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
         const estimatedDurationSeconds = (wordCount / 150) * 60;

@@ -14,9 +14,13 @@
  * @module memory/llm-link-detector
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getClassificationModel, TEMP_CLASSIFICATION } from '../../config/gemini-config.js';
+import {
+  getClassificationModel,
+  isGeminiConfigured,
+  TEMP_CLASSIFICATION,
+} from '../../config/gemini-config.js';
+import { getGenerativeModel } from '../../config/generative-model.js';
 import { getMemoryGraph, type LinkType, type MemoryLink } from '../memory-graph.js';
 
 // Map our semantic link types to the MemoryGraph link types
@@ -81,19 +85,16 @@ const DEFAULT_CONFIG: LLMLinkDetectorConfig = {
 // ============================================================================
 
 export class LLMLinkDetector {
-  private genAI: GoogleGenerativeAI | null = null;
+  private readonly geminiAvailable: boolean;
   private config: LLMLinkDetectorConfig;
   private lastCallTime = 0;
 
   constructor(config?: Partial<LLMLinkDetectorConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
 
-    // Initialize Gemini
-    const apiKey = process.env.GOOGLE_API_KEY;
-    if (apiKey) {
-      this.genAI = new GoogleGenerativeAI(apiKey);
-    } else {
-      log.warn('GOOGLE_API_KEY not set - LLM link detection disabled');
+    this.geminiAvailable = isGeminiConfigured();
+    if (!this.geminiAvailable) {
+      log.warn('Gemini not configured - LLM link detection disabled');
     }
   }
 
@@ -109,7 +110,7 @@ export class LLMLinkDetector {
     memories: MemoryItem[],
     existingLinks: MemoryLink[] = []
   ): Promise<DetectedLink[]> {
-    if (!this.genAI || memories.length < 2) return [];
+    if (!this.geminiAvailable || memories.length < 2) return [];
 
     // Filter out pairs that already have causal links
     const existingPairs = new Set(
@@ -136,7 +137,7 @@ export class LLMLinkDetector {
     memories: MemoryItem[],
     existingLinks: MemoryLink[] = []
   ): Promise<DetectedLink[]> {
-    if (!this.genAI || memories.length < 2) return [];
+    if (!this.geminiAvailable || memories.length < 2) return [];
 
     // Filter out pairs that already have narrative links
     const existingPairs = new Set(
@@ -163,7 +164,7 @@ export class LLMLinkDetector {
     memories: MemoryItem[],
     existingLinks: MemoryLink[] = []
   ): Promise<DetectedLink[]> {
-    if (!this.genAI || memories.length < 2) return [];
+    if (!this.geminiAvailable || memories.length < 2) return [];
 
     // Filter out pairs that already have contrast links
     const existingPairs = new Set(
@@ -191,7 +192,7 @@ export class LLMLinkDetector {
   ): Promise<LinkDetectionResult> {
     const startTime = Date.now();
 
-    if (!this.genAI || memories.length < 2) {
+    if (!this.geminiAvailable || memories.length < 2) {
       return { detected: [], processedPairs: 0, llmCalls: 0, duration: 0 };
     }
 
@@ -300,20 +301,21 @@ export class LLMLinkDetector {
     pairs: Array<[MemoryItem, MemoryItem]>,
     linkType: 'causal' | 'narrative' | 'contrast' | 'all'
   ): Promise<DetectedLink[]> {
-    if (!this.genAI) return [];
+    if (!this.geminiAvailable) return [];
 
     const prompt = this.buildPrompt(pairs, linkType);
 
     try {
       await this.rateLimit();
 
-      const model = this.genAI.getGenerativeModel({
+      const model = await getGenerativeModel({
         model: this.config.model,
         generationConfig: {
           temperature: this.config.temperature,
           responseMimeType: 'application/json',
         },
       });
+      if (!model) return [];
 
       const result = await model.generateContent(prompt);
       const text = result.response.text();

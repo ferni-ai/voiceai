@@ -1,0 +1,94 @@
+diff --git a/dist/realtime/realtime_api.cjs b/dist/realtime/realtime_api.cjs
+index 8336d2c..2567b7c 100644
+--- a/dist/realtime/realtime_api.cjs
++++ b/dist/realtime/realtime_api.cjs
+@@ -101,6 +101,8 @@ class RealtimeModel extends import_agents.llm.RealtimeModel {
+       model,
+       apiKey,
+       voice: options.voice || "Puck",
++      // PATCHED(ferni): custom voice config, e.g. replicatedVoiceConfig
++      voiceConfig: options.voiceConfig,
+       language: options.language ? (0, import_agents.normalizeLanguage)(options.language) : void 0,
+       responseModalities: options.modalities || [import_genai.Modality.AUDIO],
+       vertexai,
+@@ -940,7 +942,8 @@ class RealtimeSession extends import_agents.llm.RealtimeSession {
+         parts: [{ text: opts.instructions }]
+       } : void 0,
+       speechConfig: {
+-        voiceConfig: {
++        // PATCHED(ferni): prefer an explicit voiceConfig (e.g. replicatedVoiceConfig)
++        voiceConfig: opts.voiceConfig ?? {
+           prebuiltVoiceConfig: {
+             voiceName: opts.voice
+           }
+diff --git a/dist/realtime/realtime_api.d.cts b/dist/realtime/realtime_api.d.cts
+index 9bf37b1..362ae5d 100644
+--- a/dist/realtime/realtime_api.d.cts
++++ b/dist/realtime/realtime_api.d.cts
+@@ -31,6 +31,7 @@ interface RealtimeOptions {
+     model: LiveAPIModels | string;
+     apiKey?: string;
+     voice: Voice | string;
++    voiceConfig?: types.VoiceConfig;
+     language?: string;
+     responseModalities: Modality[];
+     vertexai: boolean;
+@@ -86,6 +87,11 @@ export declare class RealtimeModel extends llm.RealtimeModel {
+          * Voice setting for audio outputs
+          */
+         voice?: Voice | string;
++        /**
++         * Full voice config; overrides `voice`. Use for replicatedVoiceConfig
++         * (custom voice from a 10-20s sample). PATCHED(ferni).
++         */
++        voiceConfig?: types.VoiceConfig;
+         /**
+          * The language (BCP-47 Code) to use for the API
+          * See https://ai.google.dev/gemini-api/docs/live#supported-languages
+diff --git a/dist/realtime/realtime_api.d.ts b/dist/realtime/realtime_api.d.ts
+index 9bf37b1..362ae5d 100644
+--- a/dist/realtime/realtime_api.d.ts
++++ b/dist/realtime/realtime_api.d.ts
+@@ -31,6 +31,7 @@ interface RealtimeOptions {
+     model: LiveAPIModels | string;
+     apiKey?: string;
+     voice: Voice | string;
++    voiceConfig?: types.VoiceConfig;
+     language?: string;
+     responseModalities: Modality[];
+     vertexai: boolean;
+@@ -86,6 +87,11 @@ export declare class RealtimeModel extends llm.RealtimeModel {
+          * Voice setting for audio outputs
+          */
+         voice?: Voice | string;
++        /**
++         * Full voice config; overrides `voice`. Use for replicatedVoiceConfig
++         * (custom voice from a 10-20s sample). PATCHED(ferni).
++         */
++        voiceConfig?: types.VoiceConfig;
+         /**
+          * The language (BCP-47 Code) to use for the API
+          * See https://ai.google.dev/gemini-api/docs/live#supported-languages
+diff --git a/dist/realtime/realtime_api.js b/dist/realtime/realtime_api.js
+index e7f92c1..655878c 100644
+--- a/dist/realtime/realtime_api.js
++++ b/dist/realtime/realtime_api.js
+@@ -86,6 +86,8 @@ class RealtimeModel extends llm.RealtimeModel {
+       model,
+       apiKey,
+       voice: options.voice || "Puck",
++      // PATCHED(ferni): custom voice config, e.g. replicatedVoiceConfig
++      voiceConfig: options.voiceConfig,
+       language: options.language ? normalizeLanguage(options.language) : void 0,
+       responseModalities: options.modalities || [Modality.AUDIO],
+       vertexai,
+@@ -925,7 +927,8 @@ class RealtimeSession extends llm.RealtimeSession {
+         parts: [{ text: opts.instructions }]
+       } : void 0,
+       speechConfig: {
+-        voiceConfig: {
++        // PATCHED(ferni): prefer an explicit voiceConfig (e.g. replicatedVoiceConfig)
++        voiceConfig: opts.voiceConfig ?? {
+           prebuiltVoiceConfig: {
+             voiceName: opts.voice
+           }

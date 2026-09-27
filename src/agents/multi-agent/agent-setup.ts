@@ -16,7 +16,9 @@
  * @module agents/multi-agent/agent-setup
  */
 
+import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
+import { routeSayThroughModel } from '../shared/native-speech.js';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig } from '../../personas/types.js';
 import { getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
@@ -27,11 +29,19 @@ import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getRealtimeModel } from '../../config/gemini-config.js';
+import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
+import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
 // Centralized tool configuration (Jan 2026)
 import { capToolsToLimit, getMaxTools } from '../../config/tool-config.js';
 
 // Model provider abstraction - centralizes all model-specific behavior
-import { getModelProvider, isUsingOpenAI, isUsingQwen3Omni } from '../model-provider/index.js';
+import {
+  buildCascadeKeyterms,
+  createProviderSTT,
+  getModelProvider,
+  isUsingOpenAI,
+  isUsingQwen3Omni,
+} from '../model-provider/index.js';
 
 // Get the model provider (singleton)
 const modelProvider = getModelProvider();
@@ -63,6 +73,12 @@ import {
 import * as voiceManagerModule from '../../speech/voice-manager.js';
 import { resolveVoiceId } from '../../tools/handoff/voice-id-resolver.js';
 import { FerniAgent } from '../personas/ferni-agent.js';
+import {
+  createRealtimeTurnContextPusher,
+  createTurnIntelligenceHook,
+  resolveTurnIntelligenceMode,
+  usesServerTurnDetection,
+} from './turn-intelligence.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
@@ -78,8 +94,10 @@ import { getToolGateway } from '../../tools/gateway/index.js';
 import {
   filterInitialSpawnTools,
   getInitialToolPolicyFromEnv,
+  resolveInitialToolLimit,
   type InitialToolPolicy,
 } from './initial-tools.js';
+import { composeAgentInstructions } from './agent-instructions.js';
 
 // Check if Tool Gateway is enabled (defaults to true)
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
@@ -755,6 +773,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
           { error: String(essentialErr) },
           '⚠️ Failed to load essential tools - only handoffs available'
         );
+        // This logger is silent inside the job context; a call without its
+        // domain tools must be visible in the agent log.
+        process.stderr.write(`🚨 Essential tools failed to load: ${String(essentialErr)}\n`);
       }
 
       const allTools = { ...handoffTools, ...essentialTools };
@@ -1061,9 +1082,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const provider = getModelProvider();
   const configuredLimit = getMaxTools();
 
-  // Use configured limit, or default to 50 for Gemini if no limit configured
-  const effectiveLimit =
-    configuredLimit > 0 ? configuredLimit : provider.id === 'gemini-live' ? 50 : 0;
+  // Every provider gets a cap: the essential domains alone are ~340 tools.
+  const effectiveLimit = resolveInitialToolLimit(configuredLimit);
 
   if (effectiveLimit > 0 && toolCount > effectiveLimit) {
     // Use centralized tool capping which handles essential tool prioritization
@@ -1141,6 +1161,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     model: VOICE_MODEL,
     instructions: modelBaseInstructions,
     temperature: geminiConfig.temperature,
+    personaId: persona.id,
   });
 
   log.info(
@@ -1204,7 +1225,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
         hfRepo: process.env.SONATA_STT_HF_REPO,
         enableVad: process.env.SONATA_STT_ENABLE_VAD !== 'false',
       })
-    : undefined;
+    : (createProviderSTT(
+        modelProvider,
+        buildCascadeKeyterms({
+          userName: (services.userProfile?.preferredName ||
+            services.userProfile?.name ||
+            userData?.userName) as string | undefined,
+        })
+      ) as InstanceType<typeof SonataSTT> | undefined);
 
   const session = new voice.AgentSession<UserData>({
     turnDetection: modelProvider.getSessionTurnDetection(),
@@ -1224,6 +1252,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
       preemptiveGeneration: true,
     },
   });
+
+  // Gemini native audio speaks for itself: scripted say() lines must come from
+  // the model too, or the call alternates between Gemini's and Cartesia's voice.
+  if (modelProvider.speaksNatively?.()) {
+    routeSayThroughModel(session as unknown as Parameters<typeof routeSayThroughModel>[0]);
+  }
 
   mark('session_created');
 
@@ -1247,14 +1281,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
           : undefined,
       });
 
-      const { initializeFromPersistence } = await import(
-        '../../conversation/humanization/persistence.js'
-      );
+      const { initializeFromPersistence } =
+        await import('../../conversation/humanization/persistence.js');
       await initializeFromPersistence(userId || 'anonymous', sessionId);
 
-      const { setupVoiceHumanizationInit } = await import(
-        '../voice-agent/voice-humanization-init-handler.js'
-      );
+      const { setupVoiceHumanizationInit } =
+        await import('../voice-agent/voice-humanization-init-handler.js');
       setupVoiceHumanizationInit({
         sessionId,
         sessionPersona: persona,
@@ -1470,6 +1502,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
     sessionWithEvents.on('error', sessionErrorHandler);
     sessionEventHandlers.push({ event: 'error', handler: sessionErrorHandler });
 
+    // One TURN_METRICS log line per turn: response latency breakdown + cost inputs.
+    const turnMetricsHandler = createTurnMetricsHandler(sessionId, (record) =>
+      log.info(record, 'TURN_METRICS')
+    );
+    sessionWithEvents.on(TURN_METRICS_EVENT, turnMetricsHandler as (...args: unknown[]) => void);
+    sessionEventHandlers.push({
+      event: TURN_METRICS_EVENT,
+      handler: turnMetricsHandler as (...args: unknown[]) => void,
+    });
+
     // 🔊 COMPREHENSIVE SESSION DEBUG: Track ALL session events during startup
     // This helps us understand what's happening during prewarm
     process.stderr.write(
@@ -1498,11 +1540,22 @@ Reference past context when relevant, but don't force it. Let the conversation f
     sessionEventHandlers.push({ event: 'speech_created', handler: speechCreatedHandler });
 
     // Track user input transcription
+    // Crisis guard in SHADOW + per-turn voice/delivery: same observers as the
+    // single-agent path, so the live multi-agent path is not silently skipped.
+    const crisisGuardMode = resolveCrisisGuardMode();
     const userInputHandler = (event: unknown) => {
       const evt = event as { transcript?: string; isFinal?: boolean };
       process.stderr.write(
         `\n📝 [USER TRANSCRIPT] isFinal=${evt.isFinal}: "${evt.transcript || '(empty)'}"\n`
       );
+      if (!evt.isFinal) return;
+      observeFinalTranscript({
+        session: sessionWithEvents,
+        transcript: evt.transcript || '',
+        userData: userData as unknown as Record<string, unknown>,
+        sessionId,
+        crisisMode: crisisGuardMode,
+      });
     };
     sessionWithEvents.on('user_input_transcribed', userInputHandler);
     sessionEventHandlers.push({ event: 'user_input_transcribed', handler: userInputHandler });
@@ -1642,13 +1695,55 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // FIX: Previously used voice.Agent which BYPASSED the JSON function call sanitizer!
   // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
   // FerniAgent now hoisted to module level for faster startup
-  const agent = new FerniAgent(systemPrompt, {
+  // Per-turn intelligence (context builders, memory retrieval, emotional
+  // guidance) - see turn-intelligence.ts for why this is gated.
+  const onUserTurn =
+    resolveTurnIntelligenceMode() === 'on'
+      ? createTurnIntelligenceHook({ persona, services, userData, room })
+      : undefined;
+
+  const agentInstructions = composeAgentInstructions(
+    systemPrompt,
+    modelBaseInstructions,
+    modelProvider.getPromptModules()
+  );
+
+  const agent = new FerniAgent(agentInstructions, {
     tools: finalTools as unknown as llm.ToolContext<UserData>,
+    onUserTurn,
     // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
     // function-calling instructions. This can confuse the model and break tool calls.
     // The model will greet naturally based on its system prompt.
     skipGreeting: true,
   }) as unknown as voice.Agent<UserData>; // Type cast needed - FerniAgent uses compatible session data
+
+  // Realtime models that detect turns server-side never call
+  // onUserTurnCompleted, so the same per-turn context is pushed into the
+  // session between turns instead (informs the next reply).
+  if (onUserTurn && usesServerTurnDetection(session) && sessionWithEvents.on) {
+    const pusher = createRealtimeTurnContextPusher(
+      onUserTurn,
+      agent as unknown as Parameters<typeof createRealtimeTurnContextPusher>[1]
+    );
+    const onTranscript = (event: unknown) => {
+      const evt = event as { transcript?: string; isFinal?: boolean };
+      if (!evt.isFinal || !evt.transcript) return;
+      pusher.onFinalTranscript(evt.transcript).catch((error: unknown) =>
+        log.warn({ error: String(error) }, 'Realtime turn context failed')
+      );
+    };
+    const onAgentState = (event: unknown) => {
+      pusher
+        .onAgentState((event as { newState?: string }).newState)
+        .catch((error: unknown) => log.warn({ error: String(error) }, 'Realtime turn context push failed'));
+    };
+    sessionWithEvents.on('user_input_transcribed', onTranscript);
+    sessionWithEvents.on('agent_state_changed', onAgentState);
+    cleanupFunctions.push(() => {
+      sessionWithEvents.off?.('user_input_transcribed', onTranscript);
+      sessionWithEvents.off?.('agent_state_changed', onAgentState);
+    });
+  }
 
   // Track handler status
   const handlersStatus = {
@@ -1812,7 +1907,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
             sessionId,
             persona.id,
             session,
-            () => conversationManager?.isAgentSpeaking() ?? false
+            () => conversationManager?.isAgentSpeaking() ?? false,
+            // A native-audio model would turn a scripted "mm-hmm" into a full
+            // reply while the user is still talking.
+            { enabled: !getModelProvider().speaksNatively?.() }
           );
           cleanupFunctions.push(() => liveBackchannel?.cleanup());
           log.info(

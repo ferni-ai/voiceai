@@ -68,6 +68,13 @@ const LAUGHTER_BRACKET_REGEX =
 const STRIP_BRACKET_REGEX =
   /\[(excited|leans in|leans forward|pauses?|sighs?|smiles?|nods?|grins?|winks?|thinks?|gestures?|whispers?|shrugs?|clears throat|beats?|softly|warmly|gently|laughs at self)[^\]]*\]/gi;
 
+/**
+ * The same stage directions in parentheses, e.g. "(pause)", "(laughs softly)".
+ * Only direction words are matched, so "(or text me)" is still spoken.
+ */
+const STRIP_PAREN_DIRECTION_REGEX =
+  /\s*\((?:pauses?|beat|sighs?|smiles?|nods?|grins?|winks?|laughs?|laughing|chuckles?|chuckling|whispers?|shrugs?|breathes|breath|clears throat|leans in|softly|warmly|gently)\b[^)]{0,30}\)/gi;
+
 /** Speed range (Cartesia limits) */
 const SPEED_MIN = 0.6;
 const SPEED_MAX = 1.5;
@@ -287,6 +294,7 @@ export class SSMLProcessor implements ISSMLProcessor {
 
     // Strip non-synthesizable bracket expressions entirely
     cleanText = cleanText.replace(STRIP_BRACKET_REGEX, '');
+    cleanText = cleanText.replace(STRIP_PAREN_DIRECTION_REGEX, '');
 
     // =========================================================================
     // CRITICAL: Strip JSON function call blocks
@@ -475,14 +483,24 @@ export class SSMLProcessor implements ISSMLProcessor {
       text
         // Collapse multiple spaces
         .replace(/\s+/g, ' ')
-        // Fix multiple periods
-        .replace(/\.+/g, '.')
+        // Runs of periods: keep a spoken ellipsis ("..."), collapse the rest.
+        // Collapsing "..." to "." turned a trailing-off pause into a full stop.
+        .replace(/\.{4,}/g, '...')
+        .replace(/(^|[^.])\.\.(?!\.)/g, '$1.')
         // Fix multiple commas
         .replace(/,+/g, ',')
+        // A comma stuck to sentence punctuation ("Talk to me., Mm.,") comes
+        // from a pause tag turned into a comma; the sentence end already pauses
+        .replace(/([.!?])\s*,/g, '$1')
+        // ...or a period stuck to a question or exclamation mark ("happening?.")
+        .replace(/([!?])\s*\.(?!\.)/g, '$1')
         // Fix space before punctuation
         .replace(/\s+([.,!?;:])/g, '$1')
-        // Fix punctuation without following space
-        .replace(/([.,!?;:])([a-zA-Z])/g, '$1 $2')
+        // Sentences joined without a space ("background.I'm"), but not
+        // initialisms (U.S.), decimals (3.5) or domains (ferni.ai)
+        .replace(/([a-z][.!?])([A-Z])/g, '$1 $2')
+        // Commas and colons without a following space
+        .replace(/([,;:])([a-zA-Z])/g, '$1 $2')
         // Remove leading punctuation
         .replace(/^[.,!?;:\s]+/, '')
         // Trim

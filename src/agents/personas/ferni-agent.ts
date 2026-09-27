@@ -97,6 +97,11 @@ export interface PersonaVoiceAgentOptions {
   userData?: FerniSessionData;
   /** Pre-selected tools from orchestrator (if provided, skips internal tool building) */
   tools?: ToolSet;
+  /**
+   * Runs before the reply to each user turn and may add context to its chat
+   * context (see agents/multi-agent/turn-intelligence.ts).
+   */
+  onUserTurn?: (turnCtx: llm.ChatContext, newMessage: llm.ChatMessage) => Promise<void>;
 }
 
 // ============================================================================
@@ -449,6 +454,7 @@ function buildHandoffTools(): ToolSet {
  */
 export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
   private skipGreeting: boolean;
+  private readonly onUserTurn?: PersonaVoiceAgentOptions['onUserTurn'];
 
   constructor(systemPrompt: string, options: PersonaVoiceAgentOptions = {}) {
     // TOKEN LIMIT - Defense-in-depth
@@ -542,6 +548,7 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
     });
 
     this.skipGreeting = options.skipGreeting ?? false;
+    this.onUserTurn = options.onUserTurn;
 
     if (toolSource === 'orchestrator') {
       const toolNamesList = Object.keys(allTools);
@@ -565,6 +572,13 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
    * Called when Ferni becomes the active agent.
    * Generates a contextual greeting unless skipGreeting is set.
    */
+  /** Called by the SDK before it generates the reply to a user turn. */
+  async onUserTurnCompleted(turnCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
+    if (this.onUserTurn) {
+      await this.onUserTurn(turnCtx, newMessage);
+    }
+  }
+
   async onEnter(): Promise<void> {
     if (this.skipGreeting) {
       // Greeting handled externally (by generateAndSpeakGreeting)

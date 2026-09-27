@@ -32,7 +32,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getExtractionModel } from '../../config/gemini-config.js';
+import { getExtractionModel, isGeminiConfigured } from '../../config/gemini-config.js';
+import { getGenerativeModel } from '../../config/generative-model.js';
 
 const log = createLogger({ module: 'CrossEncoder' });
 
@@ -151,22 +152,22 @@ export interface CrossEncoderProvider {
  */
 export class GeminiCrossEncoder implements CrossEncoderProvider {
   private isInitialized = false;
-  private apiKey: string | null = null;
+  private geminiAvailable = false;
 
   getName(): string {
     return getExtractionModel();
   }
 
   async initialize(): Promise<void> {
-    this.apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || null;
-    if (!this.apiKey) {
-      log.warn('Gemini API key not found, cross-encoder disabled');
+    this.geminiAvailable = isGeminiConfigured();
+    if (!this.geminiAvailable) {
+      log.warn('Gemini not configured, cross-encoder disabled');
     }
     this.isInitialized = true;
   }
 
   isLoaded(): boolean {
-    return this.isInitialized && !!this.apiKey;
+    return this.isInitialized && this.geminiAvailable;
   }
 
   async score(query: string, document: string): Promise<number> {
@@ -175,9 +176,8 @@ export class GeminiCrossEncoder implements CrossEncoderProvider {
     }
 
     try {
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(this.apiKey!);
-      const model = genAI.getGenerativeModel({ model: getExtractionModel() });
+      const model = await getGenerativeModel({ model: getExtractionModel() });
+      if (!model) throw new Error('Gemini client unavailable');
 
       const prompt = `Rate how relevant the following document is to the query on a scale from 0 to 100, where 0 means completely irrelevant and 100 means perfectly relevant. Only respond with a single number.
 
@@ -216,7 +216,7 @@ Relevance score (0-100):`;
 
   async unload(): Promise<void> {
     this.isInitialized = false;
-    this.apiKey = null;
+    this.geminiAvailable = false;
   }
 }
 

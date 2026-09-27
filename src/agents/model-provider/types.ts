@@ -10,7 +10,7 @@
 
 // Note: AgentSession.turnDetection accepts 'realtime_llm' | undefined
 // We don't import the type directly as it's not exported
-type AgentSessionTurnDetection = 'realtime_llm' | undefined;
+export type AgentSessionTurnDetection = 'realtime_llm' | 'vad' | 'stt' | undefined;
 
 // ============================================================================
 // PROVIDER IDENTITY
@@ -20,6 +20,8 @@ type AgentSessionTurnDetection = 'realtime_llm' | undefined;
  * Supported model provider identifiers
  */
 export type ModelProviderId =
+  | 'cartesia-cascade'
+  | 'gemini-native-audio'
   | 'openai-realtime'
   | 'gemini-live'
   | 'qwen3-omni'
@@ -71,6 +73,27 @@ export interface PromptModuleConfig {
    * OpenAI needs minimal to avoid JSON output as speech
    */
   useMinimalInstructions: boolean;
+
+  /**
+   * Keep the Cartesia speech-markup guidance (<emotion/>, <break/>, [laughter]).
+   * Only right when a markup-aware TTS speaks the text; false for providers
+   * that produce the audio themselves. Undefined means true.
+   */
+  includeSpeechMarkup?: boolean;
+
+  /**
+   * Replace the persona's Cartesia tag tables with one sparse contract: at most
+   * one emotion tag opening a reply, no break/speed/volume tags. For a
+   * markup-aware TTS whose model paces itself from punctuation (Sonic 3.x).
+   */
+  sparseSpeechMarkup?: boolean;
+
+  /**
+   * The LLM has no model-level instructions field (a plain text LLM), so the
+   * model-level block (honesty, speech patterns, safety, date/time, who the
+   * user is) must be prepended to the agent instructions or it is lost.
+   */
+  modelInstructionsInAgentPrompt?: boolean;
 }
 
 // ============================================================================
@@ -92,6 +115,9 @@ export interface LLMModelConfig {
 
   /** Voice configuration (for native TTS, if used) */
   voice?: string;
+
+  /** Persona the model speaks as; native-audio providers pick its voice. */
+  personaId?: string;
 
   /** Tool definitions for function calling */
   tools?: unknown[];
@@ -212,6 +238,13 @@ export interface TurnDetectionConfig {
  * ```
  */
 export interface ModelProvider {
+  /**
+   * True when the model produces the audio itself (no separate TTS). Scripted
+   * say() lines must then go through the model so a call keeps one voice.
+   * Optional; absent means false.
+   */
+  speaksNatively?(): boolean;
+
   // -------------------------------------------------------------------------
   // Identity
   // -------------------------------------------------------------------------

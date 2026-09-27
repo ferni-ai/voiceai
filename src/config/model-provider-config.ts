@@ -14,6 +14,8 @@
  * Supported model provider identifiers (must stay in sync with agents/model-provider/types.ts)
  */
 export type ModelProviderIdSync =
+  | 'cartesia-cascade'
+  | 'gemini-native-audio'
   | 'openai-realtime'
   | 'gemini-live'
   | 'qwen3-omni'
@@ -27,7 +29,10 @@ export type ModelProviderIdSync =
 export function getProviderIdSync(): ModelProviderIdSync {
   if (process.env.USE_QWEN3_THINKER_LOCAL === 'true') return 'qwen3-thinker-local';
   if (process.env.USE_QWEN3_OMNI === 'true') return 'qwen3-omni';
-  return process.env.USE_OPENAI_REALTIME === 'true' ? 'openai-realtime' : 'gemini-live';
+  if (process.env.USE_OPENAI_REALTIME === 'true') return 'openai-realtime';
+  // Keep in step with agents/model-provider/factory.ts getProviderIdSync.
+  if (process.env.VOICE_PIPELINE === 'gemini-native-audio') return 'gemini-native-audio';
+  return process.env.VOICE_PIPELINE === 'gemini-live' ? 'gemini-live' : 'cartesia-cascade';
 }
 
 /**

@@ -36,3 +36,18 @@ export function getInitialToolPolicyFromEnv(
     essentialOnly: env.MULTI_AGENT_ESSENTIAL_TOOLS_FIRST !== 'false',
   };
 }
+
+/**
+ * Tool cap for the first agent when TOOL_LIMIT is unset.
+ *
+ * The essential domains hold ~340 tools. Sending all of them on every LLM call
+ * costs prefill latency and tool-choice accuracy, and Gemini Live cannot swap
+ * tools mid-session without reconnecting, so the initial set has to be good on
+ * its own. capToolsToLimit keeps must-keep tools (safety, memory, handoffs, core
+ * actions from tool-config) first and fills the rest.
+ */
+export const DEFAULT_INITIAL_TOOL_LIMIT = 64;
+
+export function resolveInitialToolLimit(configuredLimit: number): number {
+  return configuredLimit > 0 ? configuredLimit : DEFAULT_INITIAL_TOOL_LIMIT;
+}

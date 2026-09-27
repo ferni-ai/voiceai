@@ -41,6 +41,7 @@ import {
 } from '../../services/analytics/call-quality-monitor.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { isRealSilence, type SessionStates } from './dead-air.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import {
@@ -104,6 +105,7 @@ import {
 } from '../shared/performance/dynamics-learner.js';
 // 5D: Continuous prosody stream for rolling window updates
 import { getContinuousProsodyStream } from '../../intelligence/context-builders/continuous-prosody.js';
+import { cueSay } from '../../speech/direction/index.js';
 
 // ============================================================================
 // TYPES
@@ -272,11 +274,17 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         threshold: IDLE_TIMEOUT.WARNING_THRESHOLD_SECONDS,
       });
 
-      // Gentle check-in using coordinated speech
+      // Gentle check-in, in the character's own words
       try {
-        coordinatedSay(
+        cueSay(
           sessionId,
-          `<break time="300ms"/>Hey, I'm still here if you need me. <break time="200ms"/>Just let me know when you want to continue.`,
+          {
+            moment: 'idle_checkin',
+            direction:
+              "They've gone quiet for a while. Gently let them know you're still here, with no pressure to talk. Don't ask if everything is okay.",
+            fallback: "Hey, I'm still here if you need me. Just let me know when you want to continue.",
+            urgency: 'soon',
+          },
           { allowInterruptions: true }
         );
       } catch (e) {
@@ -295,9 +303,15 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
       // Say goodbye, then trigger disconnect
       try {
-        coordinatedSay(
+        cueSay(
           sessionId,
-          `<break time="200ms"/>Looks like you might be busy. <break time="150ms"/>I'll be here whenever you're ready to chat again. <break time="300ms"/>Take care!`,
+          {
+            moment: 'idle_goodbye',
+            direction:
+              "They've been quiet a long time and you're ending the call for now. Say a short, warm goodbye that makes it easy to come back. No guilt.",
+            fallback: "Looks like you might be busy. I'll be here whenever you're ready to chat again. Take care!",
+            urgency: 'now',
+          },
           { allowInterruptions: false }
         );
 
@@ -1137,7 +1151,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           if (
             !conversationManager.isAgentSpeaking() &&
             !hasActiveResponsePending(sessionId) &&
-            !sdkActive
+            !sdkActive &&
+            // A reply still being generated (agent "thinking") is not dead air
+            isRealSilence(session as unknown as SessionStates)
           ) {
             const timeSinceStop = Date.now() - userStoppedAt;
             if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {

@@ -223,7 +223,7 @@ export async function runTTLCleanup(options?: {
 
   try {
     // Get Firestore instance
-    const admin = await import('firebase-admin');
+    const admin = (await import('firebase-admin')).default;
     if (admin.apps.length === 0) {
       admin.initializeApp();
     }
@@ -322,7 +322,7 @@ export async function runUserDataCleanup(userId: string): Promise<CleanupReport>
   log.info({ userId }, '🧹 Starting user data cleanup');
 
   try {
-    const admin = await import('firebase-admin');
+    const admin = (await import('firebase-admin')).default;
     if (admin.apps.length === 0) {
       admin.initializeApp();
     }

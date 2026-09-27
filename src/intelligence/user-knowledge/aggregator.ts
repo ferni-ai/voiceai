@@ -66,7 +66,7 @@ export function clearKnowledgeCache(userId: string): void {
 
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
   try {
-    const admin = await import('firebase-admin');
+    const admin = (await import('firebase-admin')).default;
     if (admin.apps.length === 0) {
       admin.initializeApp();
     }

@@ -98,9 +98,23 @@ const DEFAULT_ESSENTIAL_TOOLS = [
   'getWeatherForecast',
   'getNews',
   'searchWeb',
+  // Safety (a companion must never lose these to a cap)
+  'provideCrisisResources',
+  'createSafetyPlan',
+  'deEscalateAnxiety',
+  'quickCrisisResources',
+  'evaluateHumanTransfer',
+  'connectToHumanExpert',
+  'groundingExercise',
+  'breatheWithMe',
+  'groundingForTrauma',
   // Memory
   'rememberAboutUser',
   'recallFromMemory',
+  'recallPreviousConversation',
+  'rememberImportantFact',
+  'surfaceRelevantMemory',
+  'getRelationshipSummary',
   'quickNote',
   'recallNote',
   // Quick actions (high-frequency)
@@ -123,15 +137,13 @@ const DEFAULT_ESSENTIAL_TOOLS = [
   'getHabits',
   'habitCheckIn',
   // Calendar
-  'getCalendarEvents',
+  'getCalendarToday',
   'createCalendarEvent',
-  'getUpcomingEvents',
+  'getCalendarWeek',
   // Contacts & communication
-  'sendMessage',
-  'makeCall',
-  'getContacts',
+  'callOnBehalf',
+  'getContactInfo',
   // Smart home
-  'controlSmartHome',
   'doNotDisturb',
   // Core context
   'getCurrentContext',

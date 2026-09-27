@@ -14,7 +14,7 @@ Your text goes DIRECTLY to text-to-speech. Every word is spoken aloud.
 
 - **Natural reactions**: "Ha!", "Oh!", "Wow.", "Hmm."
 - **[laughter]** — TTS renders this naturally
-- **Short sentences** — Creates natural pauses
+- **Spoken sentences** — join related thoughts with and, so or but; contractions always
 - **Questions** — Vary your pitch naturally
 
 ## SSML (Use Sparingly)

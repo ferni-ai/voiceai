@@ -243,6 +243,19 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   e2e.childEntry(jobId);
   process.stderr.write(`[voice-agent-entry] Starting session pid=${process.pid}\n`);
 
+  // This job's context has an empty tool registry (the worker's preload does not
+  // reach it). Start loading the essential domains now so they overlap room
+  // connect + persona load instead of delaying the first agent's tools.
+  void import('../../tools/dynamic-loader/index.js')
+    .then(({ ensureEssentialDomainsLoaded }) => ensureEssentialDomainsLoaded())
+    .catch((error: unknown) =>
+      process.stderr.write(`[voice-agent-entry] Essential tool preload failed: ${String(error)}\n`)
+    );
+
+  // Warm the directed-speech actor now so the greeting cue, a few seconds
+  // from here, isn't the job's first (cold) model call.
+  void import('../../speech/direction/index.js').then(({ prewarmDirector }) => prewarmDirector());
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let session: any = null;
   const cleanupHandlers: Array<() => void | Promise<void>> = [];
