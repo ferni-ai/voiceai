@@ -40,6 +40,8 @@ export interface CleanupResult {
   deleted: number;
   errors: number;
   durationMs: number;
+  /** Why the collection failed, when errors > 0. */
+  error?: string;
 }
 
 export interface CleanupReport {
@@ -145,6 +147,7 @@ async function deleteExpiredDocuments(
 
   let deleted = 0;
   let errors = 0;
+  let errorMessage: string | undefined;
   const batchSize = config.batchSize || 100;
 
   try {
@@ -192,7 +195,8 @@ async function deleteExpiredDocuments(
       '✅ TTL cleanup complete'
     );
   } catch (error) {
-    log.error({ error: String(error), collection: config.path }, 'TTL cleanup failed');
+    errorMessage = String(error);
+    log.error({ error: errorMessage, collection: config.path }, 'TTL cleanup failed');
     errors = 1;
   }
 
@@ -201,6 +205,7 @@ async function deleteExpiredDocuments(
     deleted,
     errors,
     durationMs: Date.now() - startTime,
+    ...(errorMessage && { error: errorMessage }),
   };
 }
 
@@ -270,6 +275,7 @@ export async function runTTLCleanup(options?: {
             deleted: 0,
             errors: 1,
             durationMs: 0,
+            error: String(error),
           });
           totalErrors++;
         }
