@@ -17,6 +17,14 @@ import { isPipelineSwitchingEnabled, selectPipeline, type PipelineSwitchContext 
 import { computeDynamicVADDuration } from '../shared/performance/adaptive-timing.js';
 import { finops } from '../../services/observability/finops.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { getSessionAudioProsodyAnalyzer } from '../../speech/audio-prosody/index.js';
+import {
+  deliveryStyleForUserVoice,
+  isAdaptiveDeliveryEnabled,
+  type DeliveryStyle,
+  type UserVoiceReading,
+} from '../../speech/tts/delivery-style.js';
+import { captureTurnVoiceEmotion } from '../voice-agent/turn-voice-emotion.js';
 import {
   observeCrisisTurn,
   resolveCrisisGuardMode,
@@ -26,6 +34,30 @@ import {
 } from '../safety/crisis-shadow.js';
 
 const crisisLog = createLogger({ module: 'CrisisShadow' });
+const turnVoiceLog = createLogger({ module: 'TurnVoice' });
+
+/**
+ * Per-turn voice: read the caller's voice for this turn (so the crisis shadow
+ * and delivery see it), then, when ADAPTIVE_DELIVERY=on, set how Ferni's
+ * reply should sound. Never throws.
+ */
+function applyTurnVoice(session: unknown, userData: Record<string, unknown>, sessionId: string): void {
+  try {
+    const reading = captureTurnVoiceEmotion(getSessionAudioProsodyAnalyzer(sessionId), userData) as
+      | UserVoiceReading
+      | null;
+    if (!isAdaptiveDeliveryEnabled()) return;
+    const style = deliveryStyleForUserVoice(reading);
+    const tts = (session as { tts?: { setDeliveryStyle?: (s: DeliveryStyle | null) => void } }).tts;
+    tts?.setDeliveryStyle?.(style);
+    turnVoiceLog.info(
+      { sessionId, turn: userData.turnCount, voice: reading?.primary ?? null, style },
+      'DELIVERY_STYLE'
+    );
+  } catch (error) {
+    turnVoiceLog.error({ sessionId, error: String(error) }, 'Per-turn voice failed');
+  }
+}
 
 /** Log the crisis guard's would-be decision for one final transcript. Never throws. */
 function recordCrisisShadow(
@@ -502,6 +534,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
       }
       const transcript = evt.transcript || '';
       process.stderr.write(`\n📝 [TURN ${userData.turnCount}] FINAL: "${transcript}"\n`);
+      applyTurnVoice(session, userData, sessionId);
       recordCrisisShadow(transcript, userData, sessionId, crisisGuardMode);
       if (transcript) {
         const wordCount = transcript.split(/\s+/).filter((w: string) => w.length > 0).length;

@@ -12,6 +12,7 @@
  * @module @ferni/speech/tts/persona-aware
  */
 
+import type { DeliveryStyle } from './delivery-style.js';
 import { tts } from '@livekit/agents';
 import { TTS as CartesiaTTS } from '@livekit/agents-plugin-cartesia';
 import { CARTESIA_MODEL, DEFAULT_VOICE_IDS } from '../../config/voice-ids.js';
@@ -103,6 +104,9 @@ export class PersonaAwareTTS extends tts.TTS {
   private pendingSwitch: { personaName: string; voiceId: string; accent?: EnglishAccent } | null =
     null;
   private activeStreamCount = 0;
+
+  // Adaptive delivery (emotion/speed) for the next reply; survives voice switches.
+  private deliveryStyle: DeliveryStyle | null = null;
 
   // Legacy property for backwards compatibility (no longer auto-subscribes to events)
   private voiceSwitchHandler: ((data: { newAgent: string; voiceId: string }) => void) | null = null;
@@ -265,6 +269,7 @@ export class PersonaAwareTTS extends tts.TTS {
     this.isLocalizedVoice = this.accent !== 'american';
 
     this.personaTTS = createCartesiaTTSInstance(newVoiceId);
+    this.applyDeliveryStyle();
 
     log(
       'info',
@@ -403,6 +408,27 @@ export class PersonaAwareTTS extends tts.TTS {
    * SSML tags are stripped before synthesis since Cartesia doesn't support them
    * and will speak them literally (e.g., "break time 300ms").
    */
+  /**
+   * Set how the next replies should sound (Cartesia Sonic-3 emotion + speed),
+   * or null for default delivery. Applied to the current voice and re-applied
+   * after a persona voice switch.
+   */
+  setDeliveryStyle(style: DeliveryStyle | null): void {
+    this.deliveryStyle = style;
+    this.applyDeliveryStyle();
+  }
+
+  getDeliveryStyle(): DeliveryStyle | null {
+    return this.deliveryStyle;
+  }
+
+  private applyDeliveryStyle(): void {
+    this.personaTTS.updateOptions({
+      emotion: this.deliveryStyle ? [this.deliveryStyle.emotion] : undefined,
+      speed: this.deliveryStyle?.speed,
+    });
+  }
+
   synthesize(text: string): tts.ChunkedStream {
     // Strip SSML tags - Cartesia speaks them literally if not removed
     const cleanText = this.stripSsml(text);
