@@ -137,15 +137,13 @@ const DEFAULT_ESSENTIAL_TOOLS = [
   'getHabits',
   'habitCheckIn',
   // Calendar
-  'getCalendarEvents',
+  'getCalendarToday',
   'createCalendarEvent',
-  'getUpcomingEvents',
+  'getCalendarWeek',
   // Contacts & communication
-  'sendMessage',
-  'makeCall',
-  'getContacts',
+  'callOnBehalf',
+  'getContactInfo',
   // Smart home
-  'controlSmartHome',
   'doNotDisturb',
   // Core context
   'getCurrentContext',

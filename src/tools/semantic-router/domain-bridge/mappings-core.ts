@@ -11,6 +11,23 @@ import type { ToolMapping } from './types.js';
 
 export const CORE_MAPPINGS: Record<string, ToolMapping> = {
   // ==========================================================================
+  // SAFETY + MEMORY (these intents had no mapping, so routing them failed)
+  // ==========================================================================
+  crisis_support: { domainToolId: 'provideCrisisResources' },
+  safety_planning: { domainToolId: 'createSafetyPlan' },
+  quick_crisis_resources: { domainToolId: 'quickCrisisResources' },
+  evaluate_human_transfer: { domainToolId: 'evaluateHumanTransfer' },
+  connect_to_human_expert: { domainToolId: 'connectToHumanExpert' },
+  grounding_exercise: { domainToolId: 'groundingExercise' },
+  memory_people: { domainToolId: 'getRelationshipSummary' },
+  memory_surface: { domainToolId: 'surfaceRelevantMemory' },
+  memory_predict: { domainToolId: 'predictUserNeed' },
+  habit_track: { domainToolId: 'logHabitCompletion' },
+  habit_create: { domainToolId: 'createHabit' },
+  habit_coaching: { domainToolId: 'habitCheckIn' },
+  comm_send_message: { domainToolId: 'quickText' },
+
+  // ==========================================================================
   // ⭐ CANONICAL SEMANTIC IDs (Critical Path)
   // ==========================================================================
   music_play: {
@@ -34,11 +51,11 @@ export const CORE_MAPPINGS: Record<string, ToolMapping> = {
     transformArgs: (args) => ({ duration: args.duration, label: args.label }),
   },
   reminder_create: {
-    domainToolId: 'createReminder',
+    domainToolId: 'setReminder',
     transformArgs: (args) => ({ text: args.text, time: args.time }),
   },
   call_contact: {
-    domainToolId: 'callContact',
+    domainToolId: 'callOnBehalf',
     transformArgs: (args) => ({ contactName: args.contact || args.name }),
   },
   calendar_create: { domainToolId: 'createCalendarEvent', transformArgs: (args) => args },
@@ -103,18 +120,18 @@ export const CORE_MAPPINGS: Record<string, ToolMapping> = {
     domainToolId: 'musicInfo',
     transformArgs: (args) => ({ query: args.query }),
   },
-  calendar_read: { domainToolId: 'getCalendarEvents', transformArgs: (args) => args },
+  calendar_read: { domainToolId: 'getCalendarToday', transformArgs: (args) => args },
   calendar_delete: { domainToolId: 'deleteCalendarEvent', transformArgs: (args) => args },
   calendar_modify: { domainToolId: 'updateCalendarEvent', transformArgs: (args) => args },
   habit_manage: { domainToolId: 'manageHabit', transformArgs: (args) => args },
   habit_coach: { domainToolId: 'habitCoaching', transformArgs: (args) => args },
   habit_stats: { domainToolId: 'getHabitStats', transformArgs: (args) => args },
-  task_create: { domainToolId: 'createTask', transformArgs: (args) => args },
+  task_create: { domainToolId: 'addTask', transformArgs: (args) => args },
   task_read: { domainToolId: 'getTasks', transformArgs: (args) => args },
   task_complete: { domainToolId: 'completeTask', transformArgs: (args) => args },
-  reminder_manage: { domainToolId: 'createReminder', transformArgs: (args) => args },
+  reminder_manage: { domainToolId: 'setReminder', transformArgs: (args) => args },
   routine_manage: { domainToolId: 'manageRoutine', transformArgs: (args) => args },
-  call_make: { domainToolId: 'makeCall', transformArgs: (args) => args },
+  call_make: { domainToolId: 'callOnBehalf', transformArgs: (args) => args },
   call_schedule: { domainToolId: 'scheduleCall', transformArgs: (args) => args },
   travel_plan: { domainToolId: 'planTrip', transformArgs: (args) => args },
   travel_ride: { domainToolId: 'getRide', transformArgs: (args) => args },
@@ -124,12 +141,12 @@ export const CORE_MAPPINGS: Record<string, ToolMapping> = {
   games_play: { domainToolId: 'startGame', transformArgs: (args) => args },
   social_post: { domainToolId: 'createSocialPost', transformArgs: (args) => args },
   message_manage: { domainToolId: 'manageMessages', transformArgs: (args) => args },
-  home_control: { domainToolId: 'controlSmartHome', transformArgs: (args) => args },
+  home_control: { domainToolId: 'quickSmartHome', transformArgs: (args) => args },
   document_manage: { domainToolId: 'manageDocument', transformArgs: (args) => args },
   finance_manage: { domainToolId: 'manageFinance', transformArgs: (args) => args },
   concierge_manage: { domainToolId: 'concierge', transformArgs: (args) => args },
   memory_photos: { domainToolId: 'browsePhotos', transformArgs: (args) => args },
-  research_web: { domainToolId: 'webSearch', transformArgs: (args) => ({ query: args.query }) },
+  research_web: { domainToolId: 'searchWeb', transformArgs: (args) => ({ query: args.query }) },
 
   // ==========================================================================
   // 🎵 MUSIC & ENTERTAINMENT (10 tools)
@@ -189,13 +206,13 @@ export const CORE_MAPPINGS: Record<string, ToolMapping> = {
     domainToolId: 'getNews',
     transformArgs: (args) => ({ topic: args.topic, category: args.category }),
   },
-  info_search: { domainToolId: 'webSearch', transformArgs: (args) => ({ query: args.query }) },
+  info_search: { domainToolId: 'searchWeb', transformArgs: (args) => ({ query: args.query }) },
   info_time: {
-    domainToolId: 'getCurrentTime',
+    domainToolId: 'getCurrentContext',
     transformArgs: (args) => ({ timezone: args.timezone }),
   },
   info_date: {
-    domainToolId: 'getCurrentDate',
+    domainToolId: 'getCurrentContext',
     transformArgs: (args) => ({ timezone: args.timezone }),
   },
   info_sports: {

@@ -72,7 +72,12 @@ import {
 import * as voiceManagerModule from '../../speech/voice-manager.js';
 import { resolveVoiceId } from '../../tools/handoff/voice-id-resolver.js';
 import { FerniAgent } from '../personas/ferni-agent.js';
-import { createTurnIntelligenceHook, resolveTurnIntelligenceMode } from './turn-intelligence.js';
+import {
+  createRealtimeTurnContextPusher,
+  createTurnIntelligenceHook,
+  resolveTurnIntelligenceMode,
+  usesServerTurnDetection,
+} from './turn-intelligence.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
@@ -1696,6 +1701,34 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // The model will greet naturally based on its system prompt.
     skipGreeting: true,
   }) as unknown as voice.Agent<UserData>; // Type cast needed - FerniAgent uses compatible session data
+
+  // Realtime models that detect turns server-side never call
+  // onUserTurnCompleted, so the same per-turn context is pushed into the
+  // session between turns instead (informs the next reply).
+  if (onUserTurn && usesServerTurnDetection(session) && sessionWithEvents.on) {
+    const pusher = createRealtimeTurnContextPusher(
+      onUserTurn,
+      agent as unknown as Parameters<typeof createRealtimeTurnContextPusher>[1]
+    );
+    const onTranscript = (event: unknown) => {
+      const evt = event as { transcript?: string; isFinal?: boolean };
+      if (!evt.isFinal || !evt.transcript) return;
+      pusher.onFinalTranscript(evt.transcript).catch((error: unknown) =>
+        log.warn({ error: String(error) }, 'Realtime turn context failed')
+      );
+    };
+    const onAgentState = (event: unknown) => {
+      pusher
+        .onAgentState((event as { newState?: string }).newState)
+        .catch((error: unknown) => log.warn({ error: String(error) }, 'Realtime turn context push failed'));
+    };
+    sessionWithEvents.on('user_input_transcribed', onTranscript);
+    sessionWithEvents.on('agent_state_changed', onAgentState);
+    cleanupFunctions.push(() => {
+      sessionWithEvents.off?.('user_input_transcribed', onTranscript);
+      sessionWithEvents.off?.('agent_state_changed', onAgentState);
+    });
+  }
 
   // Track handler status
   const handlersStatus = {
