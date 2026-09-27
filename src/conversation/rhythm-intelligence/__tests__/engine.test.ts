@@ -59,6 +59,9 @@ describe('RhythmIntelligence', () => {
       const guidance = await rhythm.getGuidance(
         createContext({
           userTurnWordCount: 100,
+          // Pinned: late at night the engine caps replies (brief), so an unpinned
+          // clock made this fail whenever CI ran after 22:00 UTC.
+          timeOfDay: 'afternoon',
         })
       );
 
