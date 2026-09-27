@@ -313,6 +313,13 @@ jobs:
           echo "Pulling private base image: gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-speaker:latest"
           docker pull gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-speaker:latest
 
+      - name: Free runner disk space
+        # The ui image build ran out of disk (ERR_PNPM_ENOSPC) on ubuntu-latest.
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker system prune -af || true
+          df -h /
+
       - name: Build and push image
         run: |
           # Native docker build (uses locally cached base image)
