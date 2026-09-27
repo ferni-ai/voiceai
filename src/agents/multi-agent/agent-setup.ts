@@ -1726,11 +1726,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // Memory recall: add what Ferni remembers as soon as the user's words are
   // transcribed, before the SDK starts preemptive generation (see
   // memory-recall-hook.ts for why it must not wait for onUserTurnCompleted).
+  // Interim events count: with STT turn detection the SDK starts preemptive
+  // generation from the preflight transcript, which arrives as an interim.
   if (userId && userId !== 'anonymous' && memoryRecallMode() && sessionWithEvents.on) {
     const recall = createMemoryRecall({ userId, userName: userData.userName });
     const onRecallTranscript = (event: unknown) => {
-      const evt = event as { transcript?: string; isFinal?: boolean };
-      if (!evt.isFinal || !evt.transcript) return;
+      const evt = event as { transcript?: string };
+      if (!evt.transcript) return;
       const note = recall.noteFor(evt.transcript);
       if (note) addRecallNote(agent as unknown as RecallAgent, note);
     };

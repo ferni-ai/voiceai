@@ -6,8 +6,10 @@
  * is added to the agent's chat context straight away, in the same tick as the
  * transcript event.
  *
- * Timing matters: on a final transcript the SDK emits user_input_transcribed
- * and then starts preemptive generation from a copy of the agent's context.
+ * Timing matters: on a preflight or final transcript the SDK emits
+ * user_input_transcribed and then starts preemptive generation from a copy of
+ * the agent's context. (With Ink's STT turn detection it is the preflight,
+ * emitted as an interim, that starts it: 160ms before the final on 2026-09-27.)
  * If the memory were added later (in onUserTurnCompleted), the context would
  * no longer match and the SDK would discard the preemptive reply and start
  * over (observed 2026-09-27: "chat context or tools have changed after
