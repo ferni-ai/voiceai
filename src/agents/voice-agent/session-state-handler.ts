@@ -41,6 +41,7 @@ import {
 } from '../../services/analytics/call-quality-monitor.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { isRealSilence, type SessionStates } from './dead-air.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import {
@@ -1137,7 +1138,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           if (
             !conversationManager.isAgentSpeaking() &&
             !hasActiveResponsePending(sessionId) &&
-            !sdkActive
+            !sdkActive &&
+            // A reply still being generated (agent "thinking") is not dead air
+            isRealSilence(session as unknown as SessionStates)
           ) {
             const timeSinceStop = Date.now() - userStoppedAt;
             if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {

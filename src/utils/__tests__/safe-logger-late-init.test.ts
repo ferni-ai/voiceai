@@ -35,3 +35,19 @@ describe('module loggers', () => {
     expect(written(stdout)).not.toContain('after init');
   });
 });
+
+describe('log line size', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('caps huge strings and arrays so one log stays one small line', () => {
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    createLogger({ module: 'Big' }).info(
+      { tools: Array.from({ length: 500 }, (_, i) => `tool${i}`), blob: 'x'.repeat(100_000) },
+      'huge'
+    );
+    const line = written(stderr);
+    expect(line).toContain('"huge"');
+    expect(line).toContain('[+470 more]');
+    expect(line.length).toBeLessThan(4000);
+  });
+});
