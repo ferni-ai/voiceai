@@ -89,16 +89,29 @@ export function buildCascadeLLMOptions(
   env: Env = process.env,
   temperature?: number
 ): CascadeLLMOptions {
+  const model = env.CASCADE_LLM_MODEL || 'gemini-3.5-flash';
   return {
-    model: env.CASCADE_LLM_MODEL || 'gemini-3.5-flash',
+    model,
     vertexai: true,
     project: env.GOOGLE_CLOUD_PROJECT,
     location: env.CASCADE_LLM_LOCATION || 'global',
     temperature,
     // Gemini 3.x thinks by default and the hidden tokens delay the first word.
     // The plugin ignores thinkingBudget for Gemini 3; only the level applies.
-    thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+    thinkingConfig: { thinkingLevel: cascadeThinkingLevel(model, env) },
   };
+}
+
+/**
+ * The lowest thinking level the model accepts, unless CASCADE_LLM_THINKING
+ * names one. gemini-3.8-flash rejects MINIMAL with a 400 (measured
+ * 2026-09-27); at LOW its first text took ~2.2s median vs ~0.9s for
+ * gemini-3.5-flash at MINIMAL, with 64 tools and the full Ferni prompt.
+ */
+function cascadeThinkingLevel(model: string, env: Env): ThinkingLevel {
+  const named = env.CASCADE_LLM_THINKING?.toUpperCase();
+  if (named && named in ThinkingLevel) return ThinkingLevel[named as keyof typeof ThinkingLevel];
+  return /^gemini-3\.8/.test(model) ? ThinkingLevel.LOW : ThinkingLevel.MINIMAL;
 }
 
 /** STT options for the cascade. ink-2 is Cartesia's English streaming model. */

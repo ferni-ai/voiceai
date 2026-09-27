@@ -50,6 +50,18 @@ describe('buildCascadeLLMOptions', () => {
   });
 });
 
+describe('cascade thinking level', () => {
+  it('uses LOW for gemini-3.8 models, which reject MINIMAL', () => {
+    const opts = buildCascadeLLMOptions({ CASCADE_LLM_MODEL: 'gemini-3.8-flash' });
+    expect(opts.thinkingConfig).toEqual({ thinkingLevel: 'LOW' });
+  });
+
+  it('honours CASCADE_LLM_THINKING', () => {
+    const opts = buildCascadeLLMOptions({ CASCADE_LLM_THINKING: 'medium' });
+    expect(opts.thinkingConfig).toEqual({ thinkingLevel: 'MEDIUM' });
+  });
+});
+
 describe('buildCascadeSTTOptions', () => {
   it('defaults to Cartesia ink-2 in English', () => {
     expect(buildCascadeSTTOptions({})).toEqual({ model: 'ink-2', language: 'en' });
