@@ -10,7 +10,7 @@
 
 // Note: AgentSession.turnDetection accepts 'realtime_llm' | undefined
 // We don't import the type directly as it's not exported
-type AgentSessionTurnDetection = 'realtime_llm' | undefined;
+export type AgentSessionTurnDetection = 'realtime_llm' | 'vad' | undefined;
 
 // ============================================================================
 // PROVIDER IDENTITY
@@ -20,6 +20,7 @@ type AgentSessionTurnDetection = 'realtime_llm' | undefined;
  * Supported model provider identifiers
  */
 export type ModelProviderId =
+  | 'cartesia-cascade'
   | 'openai-realtime'
   | 'gemini-live'
   | 'qwen3-omni'

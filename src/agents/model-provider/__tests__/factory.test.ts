@@ -16,6 +16,7 @@ import {
   isUsingOpenAI,
   setModelProvider,
 } from '../factory.js';
+import { CartesiaCascadeProvider } from '../cartesia-cascade.js';
 import { GeminiLiveProvider } from '../gemini-live.js';
 import { OpenAIRealtimeProvider } from '../openai-realtime.js';
 import type { ModelProvider } from '../types.js';
@@ -26,15 +27,27 @@ describe('ModelProviderFactory', () => {
     clearModelProvider();
     // Clear env vars
     delete process.env.USE_OPENAI_REALTIME;
+    delete process.env.VOICE_PIPELINE;
   });
 
   afterEach(() => {
     clearModelProvider();
     delete process.env.USE_OPENAI_REALTIME;
+    delete process.env.VOICE_PIPELINE;
   });
 
   describe('getModelProvider', () => {
-    it('should return GeminiLiveProvider by default', () => {
+    // The default used to be Gemini Live. Its text-output model was retired and
+    // current Gemini Live models are audio-output only, so the default is now
+    // the Cartesia STT -> Gemini text LLM -> Cartesia TTS cascade.
+    it('should return CartesiaCascadeProvider by default', () => {
+      const provider = getModelProvider();
+      expect(provider.id).toBe('cartesia-cascade');
+      expect(provider).toBeInstanceOf(CartesiaCascadeProvider);
+    });
+
+    it('should return GeminiLiveProvider only when VOICE_PIPELINE=gemini-live', () => {
+      process.env.VOICE_PIPELINE = 'gemini-live';
       const provider = getModelProvider();
       expect(provider.id).toBe('gemini-live');
       expect(provider).toBeInstanceOf(GeminiLiveProvider);
@@ -56,22 +69,27 @@ describe('ModelProviderFactory', () => {
     it('should respect USE_OPENAI_REALTIME only on first call (singleton)', () => {
       // First call with default
       const provider1 = getModelProvider();
-      expect(provider1.id).toBe('gemini-live');
+      expect(provider1.id).toBe('cartesia-cascade');
 
       // Change env var
       process.env.USE_OPENAI_REALTIME = 'true';
 
       // Should still return cached provider
       const provider2 = getModelProvider();
-      expect(provider2.id).toBe('gemini-live');
+      expect(provider2.id).toBe('cartesia-cascade');
       expect(provider1).toBe(provider2);
     });
   });
 
   describe('isUsingOpenAI / isUsingGemini', () => {
-    it('should return correct values for Gemini', () => {
-      expect(isUsingGemini()).toBe(true);
+    it('should report neither Gemini Live nor OpenAI for the default cascade', () => {
+      expect(isUsingGemini()).toBe(false);
       expect(isUsingOpenAI()).toBe(false);
+    });
+
+    it('should report Gemini Live when VOICE_PIPELINE=gemini-live', () => {
+      process.env.VOICE_PIPELINE = 'gemini-live';
+      expect(isUsingGemini()).toBe(true);
     });
 
     it('should return correct values for OpenAI', () => {
