@@ -562,3 +562,55 @@ describe('Gateway Integration Scenarios', () => {
   // ==========================================================================
   // HIGGS FULL LOOP: raw-audio play handler
 });
+
+// ============================================================================
+// A LONG REPLY IS NOT A DEAD MODEL
+// ============================================================================
+
+describe('Generate Reply Gateway - long replies', () => {
+  const sessionId = 'long-reply-session';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetSessionState(sessionId);
+    markSessionReady(sessionId);
+  });
+
+  it('treats a reply still playing at the timeout as success, not a failure', async () => {
+    // Live call: replies over ~6s of audio were logged as "Gateway timeout -
+    // speech may be active", played the fallback ("Done!"), counted toward
+    // reconnect and, at 3 in a row, a graceful exit that ends the call.
+    let onState: ((e: { newState: string }) => void) | undefined;
+    const session = {
+      generateReply: vi.fn().mockImplementation(() => {
+        // Speech starts 20ms in and plays for 600ms, well past the 100ms timeout.
+        setTimeout(() => onState?.({ newState: 'speaking' }), 20);
+        return {
+          waitForPlayout: vi.fn().mockImplementation(() => new Promise((r) => setTimeout(r, 600))),
+        };
+      }),
+      say: vi.fn(),
+      on: vi
+        .fn()
+        .mockImplementation(
+          (_evt: string, fn: (e: { newState: string }) => void) => (onState = fn)
+        ),
+      off: vi.fn(),
+      interrupt: vi.fn(),
+    };
+    for (let i = 0; i < 3; i++) {
+      await new Promise((r) => setTimeout(r, 600)); // clear the debounce window
+      const result = await generateReply(session as any, sessionId, {
+        instructions: 'Say something long',
+        context: 'long-reply',
+        timeoutMs: 100,
+        fallbackMessage: 'Done!',
+      });
+      expect(result).toMatchObject({ success: true, usedFallback: false });
+    }
+
+    expect(mockCoordinatedSay).not.toHaveBeenCalled();
+    expect(session.interrupt).not.toHaveBeenCalled();
+    expect(getGatewayStats(sessionId)).toMatchObject({ failedCalls: 0, successfulCalls: 3 });
+  }, 20_000);
+});
