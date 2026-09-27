@@ -9,9 +9,9 @@
  * lets STT, LLM and TTS be chosen and measured independently.
  *
  * LLM defaults were measured (2026-09-27, Vertex global, streaming,
- * voice-length reply): gemini-3.5-flash with thinkingBudget 0 reached first
- * text in 0.68-0.88s with 0 thinking tokens. gemini-3.8-flash ignores
- * thinkingBudget 0 and spent ~110 hidden thinking tokens (2.1-3.2s).
+ * voice-length reply): gemini-3.5-flash at MINIMAL thinking reached first
+ * text in 0.7-0.9s; LOW took 1.4-1.9s. gemini-3.8-flash rejects MINIMAL, so
+ * it is not the default.
  *
  * Credentials: Vertex via Application Default Credentials
  * (GOOGLE_APPLICATION_CREDENTIALS on LiveKit Cloud); Cartesia via
@@ -20,6 +20,7 @@
  * @module agents/model-provider/cartesia-cascade
  */
 
+import { ThinkingLevel } from '@google/genai';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import * as google from '@livekit/agents-plugin-google';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -41,7 +42,7 @@ export interface CascadeLLMOptions {
   project?: string;
   location: string;
   temperature?: number;
-  thinkingConfig: { thinkingBudget: number };
+  thinkingConfig: { thinkingLevel: ThinkingLevel };
 }
 
 export interface CascadeSTTOptions {
@@ -61,7 +62,8 @@ export function buildCascadeLLMOptions(
     location: env.CASCADE_LLM_LOCATION || 'global',
     temperature,
     // Gemini 3.x thinks by default and the hidden tokens delay the first word.
-    thinkingConfig: { thinkingBudget: 0 },
+    // The plugin ignores thinkingBudget for Gemini 3; only the level applies.
+    thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
   };
 }
 

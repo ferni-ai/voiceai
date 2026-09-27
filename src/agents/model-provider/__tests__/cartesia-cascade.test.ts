@@ -2,9 +2,9 @@
  * Cartesia cascade provider: Cartesia STT -> Gemini text LLM (Vertex) -> Cartesia TTS.
  *
  * The LLM defaults were chosen by measurement (2026-09-27, Vertex global,
- * streaming, voice-length reply): gemini-3.5-flash with thinkingBudget 0 gave
- * 0.68-0.88s to first text and 0 thinking tokens. gemini-3.8-flash ignores
- * thinkingBudget 0 (~110 thinking tokens, 2.1-3.2s). These tests pin the
+ * streaming, voice-length reply): gemini-3.5-flash at MINIMAL thinking gave
+ * 0.7-0.9s to first text; LOW gave 1.4-1.9s. The plugin ignores thinkingBudget
+ * for Gemini 3, so the level must be set explicitly. These tests pin the
  * defaults so a later edit cannot silently re-enable hidden thinking.
  */
 import { afterEach, describe, expect, it } from 'vitest';
@@ -28,13 +28,13 @@ afterEach(() => {
 });
 
 describe('buildCascadeLLMOptions', () => {
-  it('defaults to gemini-3.5-flash on Vertex global with thinking disabled', () => {
+  it('defaults to gemini-3.5-flash on Vertex global at MINIMAL thinking', () => {
     const opts = buildCascadeLLMOptions({ GOOGLE_CLOUD_PROJECT: 'proj' });
     expect(opts.model).toBe('gemini-3.5-flash');
     expect(opts.vertexai).toBe(true);
     expect(opts.project).toBe('proj');
     expect(opts.location).toBe('global');
-    expect(opts.thinkingConfig).toEqual({ thinkingBudget: 0 });
+    expect(opts.thinkingConfig).toEqual({ thinkingLevel: 'MINIMAL' });
   });
 
   it('honours CASCADE_LLM_MODEL and CASCADE_LLM_LOCATION overrides', () => {
