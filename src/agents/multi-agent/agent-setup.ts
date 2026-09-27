@@ -16,6 +16,7 @@
  * @module agents/multi-agent/agent-setup
  */
 
+import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig } from '../../personas/types.js';
@@ -1474,6 +1475,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
     };
     sessionWithEvents.on('error', sessionErrorHandler);
     sessionEventHandlers.push({ event: 'error', handler: sessionErrorHandler });
+
+    // One TURN_METRICS log line per turn: response latency breakdown + cost inputs.
+    const turnMetricsHandler = createTurnMetricsHandler(sessionId, (record) =>
+      log.info(record, 'TURN_METRICS')
+    );
+    sessionWithEvents.on(TURN_METRICS_EVENT, turnMetricsHandler as (...args: unknown[]) => void);
+    sessionEventHandlers.push({
+      event: TURN_METRICS_EVENT,
+      handler: turnMetricsHandler as (...args: unknown[]) => void,
+    });
 
     // 🔊 COMPREHENSIVE SESSION DEBUG: Track ALL session events during startup
     // This helps us understand what's happening during prewarm

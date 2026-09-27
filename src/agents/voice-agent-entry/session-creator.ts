@@ -13,6 +13,10 @@ import type { AudioRouter } from '../../integrations/qwen3-omni/director/audio-r
 import type { UserLocation } from './types.js';
 import { USE_TOOL_GATEWAY } from './constants.js';
 import { createLightweightVoiceAgentRef } from './voice-agent-ref.js';
+import { attachTurnMetrics } from '../shared/turn-metrics.js';
+import { createLogger as createTurnMetricsLogger } from '../../utils/safe-logger.js';
+
+const turnMetricsLog = createTurnMetricsLogger({ module: 'TurnMetrics' });
 import {
   createProviderSTT,
   getModelProvider,
@@ -597,6 +601,13 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   // Add cleanup handler for retry counter WeakMap
   const { clearRetryCounter } = await import('../shared/sanitizer/index.js');
   if (session) {
+    // One TURN_METRICS log line per turn: response latency breakdown + cost inputs.
+    const detachTurnMetrics = attachTurnMetrics(
+      session as unknown as Parameters<typeof attachTurnMetrics>[0],
+      sessionId,
+      (record) => turnMetricsLog.info(record, 'TURN_METRICS')
+    );
+    cleanupHandlers.push(detachTurnMetrics);
     cleanupHandlers.push(() => {
       try { clearRetryCounter(session); } catch { /* ignore */ }
     });
