@@ -152,6 +152,7 @@ scripts/
 !scripts/build-tool-manifest.ts
 !scripts/build-tool-embeddings.ts
 !scripts/generate-tool-tiers.js
+!scripts/docker/verify-node-modules.cjs
 
 # Services directory (5.8 GB - not used in Docker builds)
 services/

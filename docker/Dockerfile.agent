@@ -183,24 +183,27 @@ RUN rm -rf dist && pnpm run build:fast && \
 # (~5s) instead of re-downloading everything from scratch in production (~120s).
 # Also applies LiveKit patches and cleanup here to keep the production stage thin.
 COPY patches/ ./patches/
+# Refuses a partial prod install (see scripts/docker/verify-node-modules.cjs).
+COPY scripts/docker/verify-node-modules.cjs /tmp/verify-node-modules.cjs
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     echo "=== Preparing production node_modules ===" && \
     mkdir -p /prod-deps && \
     cp package.json pnpm-workspace.yaml .npmrc /prod-deps/ && \
-    cp pnpm-lock.yaml /prod-deps/ 2>/dev/null || true && \
-    cp -r patches /prod-deps/ 2>/dev/null || true && \
+    { cp pnpm-lock.yaml /prod-deps/ 2>/dev/null || true; } && \
+    { cp -r patches /prod-deps/ 2>/dev/null || true; } && \
     for dir in apps/rust-audio apps/rust-perf design-system apps/cli apps/web apps/async apps/intelligence-worker packages/shared-types; do \
       mkdir -p /prod-deps/$dir && cp $dir/package.json /prod-deps/$dir/ 2>/dev/null || true; \
     done && \
     cd /prod-deps && \
     pnpm install --prefer-offline --prod --no-frozen-lockfile && \
+    node /tmp/verify-node-modules.cjs /prod-deps && \
     pnpm store prune && \
     echo "=== Cleaning up node_modules ===" && \
-    find node_modules \( -name "*.md" -o -name "*.map" -o -name "CHANGELOG*" \
-      -o -name "LICENSE*" -o -name ".npmignore" \) -delete 2>/dev/null || true && \
-    find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true && \
-    find node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" \
-      -o -name "docs" \) -exec rm -rf {} + 2>/dev/null || true && \
+    { find node_modules \( -name "*.md" -o -name "*.map" -o -name "CHANGELOG*" \
+      -o -name "LICENSE*" -o -name ".npmignore" \) -delete 2>/dev/null || true; } && \
+    { find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true; } && \
+    { find node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" \
+      -o -name "docs" \) -exec rm -rf {} + 2>/dev/null || true; } && \
     echo "=== Patching LiveKit SDK timeouts ===" && \
     find node_modules -name "worker.js" -o -name "worker.cjs" | xargs -I{} sh -c ' \
       grep -q "initializeTimeout: 3e4" "{}" && \

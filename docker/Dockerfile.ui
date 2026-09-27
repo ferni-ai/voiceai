@@ -157,16 +157,22 @@ COPY --from=backend-builder /app/apps/async/package.json ./apps/async/
 COPY --from=backend-builder /app/apps/intelligence-worker/package.json ./apps/intelligence-worker/
 COPY --from=backend-builder /app/packages/shared-types/package.json ./packages/shared-types/
 
+# The install must fail the build on its own: a trailing `|| true` in this chain
+# used to swallow an ENOSPC mid-install, and an image with no top-level links
+# shipped and crashed on "Cannot find package 'dotenv'". Each `|| true` below is
+# scoped to its own find, and verify-node-modules refuses a partial install.
+COPY scripts/docker/verify-node-modules.cjs /tmp/verify-node-modules.cjs
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --prefer-offline --prod --no-frozen-lockfile && \
+    node /tmp/verify-node-modules.cjs /app && \
     # Remove unnecessary files from node_modules to reduce image size (~30% reduction)
-    find node_modules -name "*.md" -delete 2>/dev/null || true && \
-    find node_modules -name "*.map" -delete 2>/dev/null || true && \
-    find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true && \
-    find node_modules -name "CHANGELOG*" -delete 2>/dev/null || true && \
-    find node_modules -type d -name "test" -exec rm -rf {} + 2>/dev/null || true && \
-    find node_modules -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
-    find node_modules -type d -name "__tests__" -exec rm -rf {} + 2>/dev/null || true
+    { find node_modules -name "*.md" -delete 2>/dev/null || true; } && \
+    { find node_modules -name "*.map" -delete 2>/dev/null || true; } && \
+    { find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true; } && \
+    { find node_modules -name "CHANGELOG*" -delete 2>/dev/null || true; } && \
+    { find node_modules -type d -name "test" -exec rm -rf {} + 2>/dev/null || true; } && \
+    { find node_modules -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true; } && \
+    { find node_modules -type d -name "__tests__" -exec rm -rf {} + 2>/dev/null || true; }
 
 # UI server is compiled from TypeScript (src/servers/api/index.ts → dist/servers/api/index.js)
 
