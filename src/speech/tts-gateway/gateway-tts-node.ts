@@ -38,6 +38,7 @@ import { markCallStage, recordCallEvent } from '../../services/analytics/call-qu
 import { getTTSCache } from '../../services/tts/index.js';
 import { getTTSProvider } from './providers/index.js';
 import { getSSMLProcessor } from './ssml/index.js';
+import { findChunkEnd } from './chunk-boundary.js';
 import type { SSMLProsodyConfig } from './types.js';
 
 // ============================================================================
@@ -317,7 +318,6 @@ function createAudioFrameStream(
 
 // Sentence boundary: match sentence-ending punctuation followed by space or end-of-string.
 // Negative lookbehind avoids splitting on abbreviations (Dr. Mr. Ms. U.S. etc.) and decimals (3.5).
-const SENTENCE_END = /(?<![A-Z][a-z]|[A-Z]|[0-9])([.!?]+)\s|([.!?]+)$/;
 const MIN_FIRST_CHUNK = 20;
 const MIN_CHUNK = 15;
 
@@ -565,22 +565,12 @@ async function createStreamingOverlapTTS(
           const minLen = firstChunk ? MIN_FIRST_CHUNK : MIN_CHUNK;
           let chunk: string | null = null;
 
-          if (buffer.length >= minLen) {
-            const match = buffer.match(SENTENCE_END);
-            if (match && match.index !== undefined) {
-              const end = match.index + match[0].length;
-              chunk = buffer.slice(0, end);
-              buffer = buffer.slice(end);
-              firstChunk = false;
-            } else if (buffer.length >= 80) {
-              // Word-boundary fallback: find last space before 80, or any space at all
-              const space = buffer.lastIndexOf(' ', 80);
-              const anySpace = space > 0 ? space : buffer.indexOf(' ');
-              const cut = anySpace > 0 ? anySpace + 1 : 80;
-              chunk = buffer.slice(0, cut);
-              buffer = buffer.slice(cut);
-              firstChunk = false;
-            }
+          // Never cut inside Cartesia markup (see chunk-boundary.ts)
+          const end = findChunkEnd(buffer, minLen);
+          if (end !== null) {
+            chunk = buffer.slice(0, end);
+            buffer = buffer.slice(end);
+            firstChunk = false;
           }
 
           if (done && buffer.length > 0) {
@@ -636,9 +626,8 @@ async function createStreamingOverlapTTS(
               }
 
               // Speculatively start next sentence if already buffered (REST prefetch)
-              const nextMatch = buffer.match(SENTENCE_END);
-              if (nextMatch && nextMatch.index !== undefined && buffer.length >= MIN_CHUNK) {
-                const nextEnd = nextMatch.index + nextMatch[0].length;
+              const nextEnd = findChunkEnd(buffer, MIN_CHUNK);
+              if (nextEnd !== null) {
                 const nextRaw = buffer.slice(0, nextEnd);
                 const nextSanitized = sanitizeChunkForTTS(nextRaw, ssmlProcessor);
                 if (nextSanitized.text) {
