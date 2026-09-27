@@ -33,6 +33,7 @@ import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js';
 import { filterCaptionStream } from './caption-filter.js';
+import { OpenerGate } from './opener-gate.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -714,8 +715,13 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
     const ctx = turnStyleReminderEnabled() ? withTurnStyleReminder(chatCtx) : chatCtx;
-    return super.llmNode(ctx, toolCtx, modelSettings);
+    const stream = await super.llmNode(ctx, toolCtx, modelSettings);
+    if (!stream || process.env.OPENER_GATE === 'off') return stream;
+    return this.openerGate.wrap(stream as never) as unknown as typeof stream;
   }
+
+  /** Limits stock reaction-word openers across this agent's replies. See opener-gate.ts. */
+  private readonly openerGate = new OpenerGate();
 
   async ttsNode(
     text: NodeReadableStream<string>,
