@@ -48,13 +48,37 @@ function stripForCartesia(text: string): string {
     .trim();
 }
 
+const clamp = (value: number, min: number, max: number): number =>
+  Math.min(max, Math.max(min, value));
+
+/**
+ * The chunk's prosody as sonic-3 inline tags (rendered on both /tts/bytes and
+ * the WebSocket). The gateway extracts speed/volume/emotion from the reply's
+ * markup per chunk; without this the provider sent plain text and every
+ * delivery cue was lost.
+ */
+export function prosodyTags(prosody?: SSMLProsodyConfig): string {
+  if (!prosody) return '';
+  const tags: string[] = [];
+  if (prosody.speed !== undefined && prosody.speed !== 1) {
+    tags.push(`<speed ratio="${clamp(prosody.speed, 0.6, 1.5)}"/>`);
+  }
+  if (prosody.volume !== undefined && prosody.volume !== 1) {
+    tags.push(`<volume ratio="${clamp(prosody.volume, 0.5, 2)}"/>`);
+  }
+  if (prosody.emotion && /^[a-z_]+$/.test(prosody.emotion)) {
+    tags.push(`<emotion value="${prosody.emotion}"/>`);
+  }
+  return tags.join('');
+}
+
 export class CartesiaTTSProvider implements ITTSProvider {
   readonly name = 'cartesia';
 
   async synthesize(
     text: string,
     voiceId: string,
-    _prosody?: SSMLProsodyConfig
+    prosody?: SSMLProsodyConfig
   ): Promise<ArrayBuffer> {
     const apiKey = process.env.CARTESIA_API_KEY;
     if (!apiKey) {
@@ -68,7 +92,7 @@ export class CartesiaTTSProvider implements ITTSProvider {
 
     const body = {
       model_id: CARTESIA_MODEL,
-      transcript: plainText,
+      transcript: prosodyTags(prosody) + plainText,
       voice: { mode: 'id' as const, id: voiceId },
       output_format: {
         container: 'raw' as const,
@@ -108,7 +132,7 @@ export class CartesiaTTSProvider implements ITTSProvider {
   async *synthesizeStreaming(
     text: string,
     voiceId: string,
-    _prosody?: SSMLProsodyConfig
+    prosody?: SSMLProsodyConfig
   ): AsyncIterable<ArrayBuffer> {
     const apiKey = process.env.CARTESIA_API_KEY;
     if (!apiKey) {
@@ -178,11 +202,7 @@ export class CartesiaTTSProvider implements ITTSProvider {
           };
 
           if (message.type === 'error' || message.error) {
-            fail(
-              new Error(
-                message.error || message.message || 'Cartesia WebSocket TTS error'
-              )
-            );
+            fail(new Error(message.error || message.message || 'Cartesia WebSocket TTS error'));
             return;
           }
 
@@ -219,7 +239,7 @@ export class CartesiaTTSProvider implements ITTSProvider {
       ws.send(
         JSON.stringify({
           model_id: CARTESIA_MODEL,
-          transcript: plainText,
+          transcript: prosodyTags(prosody) + plainText,
           voice: { mode: 'id', id: voiceId },
           output_format: {
             container: 'raw',
