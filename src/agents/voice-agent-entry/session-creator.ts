@@ -19,6 +19,7 @@ import { createLogger as createTurnMetricsLogger } from '../../utils/safe-logger
 
 const turnMetricsLog = createTurnMetricsLogger({ module: 'TurnMetrics' });
 import {
+  buildCascadeKeyterms,
   createProviderSTT,
   getModelProvider,
   isQwen3OmniCandleBackend,
@@ -224,7 +225,14 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
         hfRepo: process.env.SONATA_STT_HF_REPO,
         enableVad: process.env.SONATA_STT_ENABLE_VAD !== 'false',
       })
-    : (createProviderSTT(modelProvider) as InstanceType<typeof SonataSTT> | undefined);
+    : (createProviderSTT(
+        modelProvider,
+        buildCascadeKeyterms({
+          userName: (services.userProfile?.preferredName ||
+            services.userProfile?.name ||
+            userData.userName) as string | undefined,
+        })
+      ) as InstanceType<typeof SonataSTT> | undefined);
 
   // =========================================================================
   // TOOL LOADING: Gateway (2026) or Legacy Orchestrator

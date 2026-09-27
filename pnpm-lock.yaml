@@ -18,6 +18,9 @@ overrides:
   tar@>=7 <7.5.21: 7.5.22
 
 patchedDependencies:
+  '@livekit/agents-plugin-cartesia@1.5.1':
+    hash: 22d95d32d793927e6ea3577dcf21e0cc423f81885bec64d18ab46ac6b7195ec1
+    path: patches/@livekit__agents-plugin-cartesia@1.5.1.patch
   '@livekit/agents-plugin-google@1.5.1':
     hash: 600e63a6f4fb690164ed9f26f9498e85dee74b6eadb44c74ef810c34a0919dd7
     path: patches/@livekit__agents-plugin-google@1.5.1.patch
@@ -61,7 +64,7 @@ importers:
         version: 1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)
       '@livekit/agents-plugin-cartesia':
         specifier: 1.5.1
-        version: 1.5.1(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)
+        version: 1.5.1(patch_hash=22d95d32d793927e6ea3577dcf21e0cc423f81885bec64d18ab46ac6b7195ec1)(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)
       '@livekit/agents-plugin-google':
         specifier: 1.5.1
         version: 1.5.1(patch_hash=600e63a6f4fb690164ed9f26f9498e85dee74b6eadb44c74ef810c34a0919dd7)(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))(ws@8.18.3)(zod@4.1.13)
@@ -8544,7 +8547,7 @@ snapshots:
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
-  '@livekit/agents-plugin-cartesia@1.5.1(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)':
+  '@livekit/agents-plugin-cartesia@1.5.1(patch_hash=22d95d32d793927e6ea3577dcf21e0cc423f81885bec64d18ab46ac6b7195ec1)(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)':
     dependencies:
       '@livekit/agents': 1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)
       '@livekit/rtc-node': 0.13.31

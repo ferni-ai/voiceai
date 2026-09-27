@@ -76,6 +76,7 @@ export {
   CartesiaCascadeProvider,
   buildCascadeLLMOptions,
   buildCascadeSTTOptions,
+  buildCascadeKeyterms,
   createProviderSTT,
 } from './cartesia-cascade.js';
 export {

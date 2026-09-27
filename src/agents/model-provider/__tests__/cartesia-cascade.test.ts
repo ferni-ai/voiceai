@@ -13,6 +13,7 @@ import {
   CartesiaCascadeProvider,
   buildCascadeLLMOptions,
   buildCascadeSTTOptions,
+  buildCascadeKeyterms,
   createProviderSTT,
 } from '../cartesia-cascade.js';
 
@@ -20,6 +21,8 @@ const ENV_KEYS = [
   'CASCADE_LLM_MODEL',
   'CASCADE_LLM_LOCATION',
   'CASCADE_STT_MODEL',
+  'CASCADE_STT_KEYTERMS',
+  'CASCADE_TURN_DETECTION',
   'VOICE_PIPELINE',
   'USE_OPENAI_REALTIME',
 ];
@@ -57,6 +60,32 @@ describe('buildCascadeSTTOptions', () => {
   });
 });
 
+describe('buildCascadeKeyterms', () => {
+  it('biases ink-2 toward the team and the caller by name', () => {
+    const terms = buildCascadeKeyterms({ userName: 'Seth Ford' }, {});
+    for (const t of ['Ferni', 'Maya', 'Peter', 'Nayan', 'Seth Ford', 'Seth'])
+      expect(terms).toContain(t);
+  });
+
+  it('adds CASCADE_STT_KEYTERMS, drops duplicates and blanks', () => {
+    const terms = buildCascadeKeyterms(
+      { userName: ' ' },
+      { CASCADE_STT_KEYTERMS: 'St. Petersburg, Ferni,,Tampa Bay' }
+    );
+    expect(terms).toContain('St. Petersburg');
+    expect(terms).toContain('Tampa Bay');
+    expect(terms.filter((t) => t === 'Ferni')).toHaveLength(1);
+    expect(terms).not.toContain('');
+  });
+
+  it("stays inside Cartesia's limits (100 terms, 1200 characters)", () => {
+    const many = Array.from({ length: 300 }, (_, i) => `term${i}`).join(',');
+    const terms = buildCascadeKeyterms({}, { CASCADE_STT_KEYTERMS: many });
+    expect(terms.length).toBeLessThanOrEqual(100);
+    expect(terms.join('').length).toBeLessThanOrEqual(1200);
+  });
+});
+
 describe('CartesiaCascadeProvider', () => {
   const provider = new CartesiaCascadeProvider();
 
@@ -66,8 +95,11 @@ describe('CartesiaCascadeProvider', () => {
     expect(provider.needsJsonWorkaround()).toBe(false);
   });
 
-  it('uses VAD turn detection because there is no realtime model', () => {
+  it("ends turns on ink-2's own turn detection, with VAD as the opt-out", () => {
+    // A fixed silence timer can end the turn at a thinking pause.
     expect(provider.hasBuiltInTurnDetection()).toBe(false);
+    expect(provider.getSessionTurnDetection()).toBe('stt');
+    process.env.CASCADE_TURN_DETECTION = 'vad';
     expect(provider.getSessionTurnDetection()).toBe('vad');
   });
 

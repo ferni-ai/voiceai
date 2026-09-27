@@ -36,6 +36,7 @@ import { capToolsToLimit, getMaxTools } from '../../config/tool-config.js';
 
 // Model provider abstraction - centralizes all model-specific behavior
 import {
+  buildCascadeKeyterms,
   createProviderSTT,
   getModelProvider,
   isUsingOpenAI,
@@ -1224,7 +1225,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
         hfRepo: process.env.SONATA_STT_HF_REPO,
         enableVad: process.env.SONATA_STT_ENABLE_VAD !== 'false',
       })
-    : (createProviderSTT(modelProvider) as InstanceType<typeof SonataSTT> | undefined);
+    : (createProviderSTT(
+        modelProvider,
+        buildCascadeKeyterms({
+          userName: (services.userProfile?.preferredName ||
+            services.userProfile?.name ||
+            userData?.userName) as string | undefined,
+        })
+      ) as InstanceType<typeof SonataSTT> | undefined);
 
   const session = new voice.AgentSession<UserData>({
     turnDetection: modelProvider.getSessionTurnDetection(),

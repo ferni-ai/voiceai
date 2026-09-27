@@ -48,6 +48,40 @@ export interface CascadeLLMOptions {
 export interface CascadeSTTOptions {
   model: string;
   language: string;
+  baseUrl?: string;
+  keyterms?: string[];
+}
+
+/** First names of the team: made-up or uncommon names a general model has no prior for. */
+const TEAM_NAMES = ['Ferni', 'Maya', 'Peter', 'Alex', 'Jordan', 'Nayan'];
+const MAX_KEYTERMS = 100;
+const MAX_KEYTERM_CHARS = 1200;
+
+/**
+ * Words to bias ink-2 toward: the team, the caller's name, and anything in
+ * CASCADE_STT_KEYTERMS (comma-separated). Deduplicated and trimmed to
+ * Cartesia's limits (100 terms, 1200 characters in total).
+ */
+export function buildCascadeKeyterms(
+  context: { userName?: string },
+  env: Env = process.env
+): string[] {
+  const name = context.userName?.trim();
+  const candidates = [
+    ...TEAM_NAMES,
+    ...(name ? [name, name.split(/\s+/)[0]] : []),
+    ...(env.CASCADE_STT_KEYTERMS ?? '').split(','),
+  ];
+  const terms: string[] = [];
+  let chars = 0;
+  for (const raw of candidates) {
+    const term = raw.trim();
+    if (!term || terms.includes(term)) continue;
+    if (terms.length >= MAX_KEYTERMS || chars + term.length > MAX_KEYTERM_CHARS) break;
+    terms.push(term);
+    chars += term.length;
+  }
+  return terms;
 }
 
 /** LLM options for the cascade. Pure, so the defaults are pinned by tests. */
@@ -72,6 +106,7 @@ export function buildCascadeSTTOptions(env: Env = process.env): CascadeSTTOption
   return {
     model: env.CASCADE_STT_MODEL || 'ink-2',
     language: env.CASCADE_STT_LANGUAGE || 'en',
+    ...(env.CASCADE_STT_BASE_URL && { baseUrl: env.CASCADE_STT_BASE_URL }),
   };
 }
 
@@ -125,14 +160,23 @@ export class CartesiaCascadeProvider implements ModelProvider {
     return new google.LLM(opts);
   }
 
-  createSTT(): unknown {
-    const opts = buildCascadeSTTOptions();
-    log.info({ model: opts.model, language: opts.language }, 'Creating cascade Cartesia STT');
+  createSTT(keyterms: string[] = []): unknown {
+    const opts = { ...buildCascadeSTTOptions(), keyterms };
+    log.info(
+      { model: opts.model, language: opts.language, keyterms: keyterms.length },
+      'Creating cascade Cartesia STT'
+    );
     return new cartesia.STT(opts);
   }
 
+  /**
+   * ink-2 decides when the caller has finished (it emits turn start/end) from
+   * what was said, not just silence. The VAD path ends a turn after a fixed
+   * silence (endpointing 150-450ms), so a thinking pause can end it early.
+   * CASCADE_TURN_DETECTION=vad restores the silence timer.
+   */
   getSessionTurnDetection(): AgentSessionTurnDetection {
-    return 'vad';
+    return process.env.CASCADE_TURN_DETECTION === 'vad' ? 'vad' : 'stt';
   }
 
   needsPrewarm(): boolean {
@@ -150,6 +194,6 @@ export class CartesiaCascadeProvider implements ModelProvider {
  * providers (their model transcribes internally). Used by both session
  * builders (voice-agent-entry and multi-agent) so a handoff keeps its STT.
  */
-export function createProviderSTT(provider: { id: string }): unknown {
-  return provider instanceof CartesiaCascadeProvider ? provider.createSTT() : undefined;
+export function createProviderSTT(provider: { id: string }, keyterms: string[] = []): unknown {
+  return provider instanceof CartesiaCascadeProvider ? provider.createSTT(keyterms) : undefined;
 }
