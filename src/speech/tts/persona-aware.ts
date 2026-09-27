@@ -12,6 +12,7 @@
  * @module @ferni/speech/tts/persona-aware
  */
 
+import { StreamingMarkupStripper } from './streaming-markup-stripper.js';
 import { tts } from '@livekit/agents';
 import { TTS as CartesiaTTS } from '@livekit/agents-plugin-cartesia';
 import { CARTESIA_MODEL, DEFAULT_VOICE_IDS } from '../../config/voice-ids.js';
@@ -425,11 +426,27 @@ export class PersonaAwareTTS extends tts.TTS {
       this.personaTTS.stream()
     ) as tts.SynthesizeStream;
 
-    // Wrap pushText to strip SSML before forwarding to underlying stream
+    // Strip markup across chunk boundaries: a tag split between two chunks
+    // ("<break ti" + "me=\"80ms\"/>") used to be spoken as words, and trimming
+    // each chunk glued sentences together. See streaming-markup-stripper.ts.
+    const stripper = new StreamingMarkupStripper();
     const originalPushText = underlyingStream.pushText.bind(underlyingStream);
+    const forward = (text: string): void => {
+      const cleaned = this.cleanColonPatterns(text);
+      if (cleaned) originalPushText(cleaned);
+    };
     underlyingStream.pushText = (text: string) => {
-      const cleanText = this.stripSsml(text);
-      return originalPushText(cleanText);
+      forward(stripper.push(text));
+    };
+    const originalFlush = underlyingStream.flush.bind(underlyingStream);
+    underlyingStream.flush = () => {
+      forward(stripper.flush());
+      originalFlush();
+    };
+    const originalEndInput = underlyingStream.endInput.bind(underlyingStream);
+    underlyingStream.endInput = () => {
+      forward(stripper.flush());
+      originalEndInput();
     };
 
     return underlyingStream;
