@@ -31,6 +31,7 @@ import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
+import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -694,6 +695,19 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
    *
    * @see ../shared/tts-wrapper.ts
    */
+  /**
+   * Every LLM request (preemptive or not) goes through here: add the
+   * turn-length reminder to a copy of the context. See turn-style.ts.
+   */
+  async llmNode(
+    chatCtx: llm.ChatContext,
+    toolCtx: llm.ToolContext,
+    modelSettings: voice.ModelSettings
+  ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
+    const ctx = turnStyleReminderEnabled() ? withTurnStyleReminder(chatCtx) : chatCtx;
+    return super.llmNode(ctx, toolCtx, modelSettings);
+  }
+
   async ttsNode(
     text: NodeReadableStream<string>,
     modelSettings: voice.ModelSettings
