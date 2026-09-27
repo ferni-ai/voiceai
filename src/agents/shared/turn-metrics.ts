@@ -2,9 +2,9 @@
  * Per-turn voice metrics.
  *
  * LiveKit emits one `metrics_collected` event per component per turn (end of
- * utterance, LLM, TTS, ...), linked by `speechId`. This joins them into one
- * record per turn so latency and cost can be measured per turn rather than
- * guessed. Response latency follows LiveKit's definition:
+ * utterance, LLM, TTS, ...). This joins them into one record per turn, by
+ * arrival order (see TurnMetricsAggregator), so latency and cost can be
+ * measured per turn rather than guessed. Response latency follows LiveKit's definition:
  *
  *   responseLatencyMs = EOU delay + LLM time-to-first-token + TTS time-to-first-byte
  *
@@ -52,54 +52,49 @@ export interface TurnMetricsRecord {
   interrupted: boolean;
 }
 
-interface PendingTurn {
-  eou?: EouMetric;
+interface OpenTurn {
+  eou: EouMetric;
   llm?: LlmMetric;
-  tts?: TtsMetric;
 }
 
+/**
+ * Joins metrics into turns by ARRIVAL ORDER, not speechId: in LiveKit 1.5.1
+ * only eou_metrics carries a speechId; llm_metrics and tts_metrics carry just
+ * a requestId. An end-of-utterance opens a turn; its first LLM metric and the
+ * first TTS metric after that complete it. TTS with no open turn (e.g. the
+ * greeting) is ignored, later LLM calls in the same turn (tool calls) are
+ * ignored, and a new end-of-utterance abandons an unanswered turn.
+ */
 export class TurnMetricsAggregator {
-  private readonly pending = new Map<string, PendingTurn>();
-
-  constructor(private readonly maxPending = 64) {}
+  private open: OpenTurn | null = null;
 
   /** Add one metric. Returns the completed record once a turn has eou, llm and tts. */
   add(metric: AnyMetric): TurnMetricsRecord | null {
-    const id = metric.speechId;
-    if (!id) return null;
-    const turn = this.pending.get(id) ?? {};
-    if (metric.type === 'eou_metrics') turn.eou = metric as EouMetric;
-    else if (metric.type === 'llm_metrics') turn.llm = metric as LlmMetric;
-    else if (metric.type === 'tts_metrics') turn.tts = metric as TtsMetric;
-    else return null;
-
-    if (turn.eou && turn.llm && turn.tts) {
-      this.pending.delete(id);
-      return {
-        speechId: id,
-        responseLatencyMs: turn.eou.endOfUtteranceDelayMs + turn.llm.ttftMs + turn.tts.ttfbMs,
-        eouDelayMs: turn.eou.endOfUtteranceDelayMs,
-        transcriptionDelayMs: turn.eou.transcriptionDelayMs,
-        llmTtftMs: turn.llm.ttftMs,
-        ttsTtfbMs: turn.tts.ttfbMs,
-        promptTokens: turn.llm.promptTokens,
-        completionTokens: turn.llm.completionTokens,
-        ttsCharacters: turn.tts.charactersCount,
-        interrupted: turn.tts.cancelled,
-      };
+    if (metric.type === 'eou_metrics') {
+      this.open = { eou: metric as EouMetric };
+      return null;
     }
-
-    this.pending.set(id, turn);
-    while (this.pending.size > this.maxPending) {
-      const oldest = this.pending.keys().next().value;
-      if (oldest === undefined) break;
-      this.pending.delete(oldest);
+    const turn = this.open;
+    if (!turn) return null;
+    if (metric.type === 'llm_metrics') {
+      if (!turn.llm) turn.llm = metric as LlmMetric;
+      return null;
     }
-    return null;
-  }
-
-  pendingCount(): number {
-    return this.pending.size;
+    if (metric.type !== 'tts_metrics' || !turn.llm) return null;
+    const tts = metric as TtsMetric;
+    this.open = null;
+    return {
+      speechId: turn.eou.speechId ?? '',
+      responseLatencyMs: turn.eou.endOfUtteranceDelayMs + turn.llm.ttftMs + tts.ttfbMs,
+      eouDelayMs: turn.eou.endOfUtteranceDelayMs,
+      transcriptionDelayMs: turn.eou.transcriptionDelayMs,
+      llmTtftMs: turn.llm.ttftMs,
+      ttsTtfbMs: tts.ttfbMs,
+      promptTokens: turn.llm.promptTokens,
+      completionTokens: turn.llm.completionTokens,
+      ttsCharacters: tts.charactersCount,
+      interrupted: tts.cancelled,
+    };
   }
 }
 
