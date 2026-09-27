@@ -121,7 +121,7 @@ export function formatRecall(
     for (const item of followUps) lines.push(`- ${item}`);
   }
   lines.push(
-    'Use this only if it fits naturally, the way a friend who remembers would. Never say you looked it up.'
+    'Use at most one of these, and only if it fits naturally, the way a friend who remembers would. Never list them or say you looked it up.'
   );
   return lines.join('\n');
 }
