@@ -75,7 +75,19 @@ const MAX_LOG_DEPTH = 5;
  * Prevents "Maximum call stack size exceeded" from circular / deeply nested objects
  * (seen in production transcript-handler crashes via pino multistream).
  */
+/**
+ * Size caps for logged values. Each log is one JSON line, and one oversized
+ * line (the full essential-tool list) broke the LiveKit log stream
+ * ("bufio.Scanner: token too long"), dropping every line after it.
+ */
+const MAX_LOG_STRING = 1000;
+const MAX_LOG_ARRAY = 30;
+
 function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+  if (typeof value === 'string') {
+    if (value.length <= MAX_LOG_STRING || isFullLoggingEnabled()) return value;
+    return `${value.slice(0, MAX_LOG_STRING)}…[+${value.length - MAX_LOG_STRING} chars]`;
+  }
   if (value === null || typeof value !== 'object') {
     return value;
   }
@@ -94,7 +106,11 @@ function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<object>())
   seen.add(value);
 
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeForLog(item, depth + 1, seen));
+    const items = value
+      .slice(0, MAX_LOG_ARRAY)
+      .map((item) => sanitizeForLog(item, depth + 1, seen));
+    if (value.length > MAX_LOG_ARRAY) items.push(`[+${value.length - MAX_LOG_ARRAY} more]`);
+    return items;
   }
 
   const result: Record<string, unknown> = {};
