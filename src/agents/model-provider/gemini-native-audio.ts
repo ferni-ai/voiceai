@@ -143,7 +143,11 @@ export class GeminiNativeAudioProvider implements ModelProvider {
     const personaId = config.personaId ?? 'ferni';
     const base = buildNativeAudioModelOptions(process.env, config.instructions ?? '', config.temperature);
     const voiceConfig = await this.resolveVoiceConfig(personaId, base);
-    const opts = voiceConfig ? { ...base, voiceConfig } : base;
+    // The allowlisted project is only for the replicated voice. Without it, run in
+    // the main project: this agent may have no Vertex access in the other one.
+    const opts = voiceConfig
+      ? { ...base, voiceConfig }
+      : { ...base, project: process.env.GOOGLE_CLOUD_PROJECT || base.project };
     log.info(
       {
         personaId,

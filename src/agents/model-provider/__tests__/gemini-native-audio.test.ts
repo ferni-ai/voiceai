@@ -30,14 +30,21 @@ import {
 
 const SAMPLE = Buffer.alloc(15 * 24000 * 2, 1);
 
+const ENV_KEYS = [
+  'NATIVE_AUDIO_PROJECT',
+  'GOOGLE_CLOUD_PROJECT',
+  'NATIVE_AUDIO_MODEL',
+  'NATIVE_AUDIO_LOCATION',
+  'NATIVE_AUDIO_VOICE',
+] as const;
+const ORIGINAL_ENV = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
+
+// Restore rather than delete: a worker may reuse this process for other files.
 afterEach(() => {
-  for (const k of [
-    'NATIVE_AUDIO_PROJECT',
-    'NATIVE_AUDIO_MODEL',
-    'NATIVE_AUDIO_LOCATION',
-    'NATIVE_AUDIO_VOICE',
-  ])
-    delete process.env[k];
+  for (const k of ENV_KEYS) {
+    if (ORIGINAL_ENV[k] === undefined) delete process.env[k];
+    else process.env[k] = ORIGINAL_ENV[k];
+  }
 });
 
 describe('buildNativeAudioModelOptions', () => {
@@ -105,14 +112,21 @@ describe('GeminiNativeAudioProvider.createLLMModel voice selection', () => {
       expect.objectContaining({ project: 'fern-prod-2', location: 'us-central1', model: 'gemini-3.8-live' })
     );
     expect(model._options.voiceConfig).toEqual(toReplicatedVoiceConfig(SAMPLE));
+    expect((model._options as { project?: string }).project).toBe('fern-prod-2');
   });
 
-  it('falls back to the prebuilt voice when the project is not allowlisted', async () => {
+  it('falls back to the prebuilt voice in the main project when not allowlisted', async () => {
+    // The allowlisted project may not grant this agent Vertex at all; running the
+    // whole session there would fail the call, not just the cloned voice.
+    process.env.GOOGLE_CLOUD_PROJECT = 'main-project';
     replicated.getPersonaVoiceSample.mockResolvedValue(SAMPLE);
     replicated.isReplicatedVoiceAllowed.mockResolvedValue(false);
-    const model = (await provider.createLLMModel({ instructions: 'x', personaId: 'ferni' })) as Model;
+    const model = (await provider.createLLMModel({ instructions: 'x', personaId: 'ferni' })) as Model & {
+      _options: { project?: string };
+    };
     expect(model._options.voiceConfig).toBeUndefined();
     expect(model._options.voice).toBe('Puck');
+    expect(model._options.project).toBe('main-project');
   });
 
   it('skips the allowlist check when no sample could be made', async () => {
