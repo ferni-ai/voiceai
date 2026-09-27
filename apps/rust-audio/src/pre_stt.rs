@@ -89,12 +89,14 @@ impl AutoGainControl {
             return;
         }
 
+        // The coefficients are per sample, but this runs once per frame, so raise
+        // them to the frame length; otherwise a 5 ms attack took ~2 s per frame.
+        let n = samples.len() as i32;
+        let attack = self.attack_coeff.powi(n);
+        let release = self.release_coeff.powi(n);
+
         // Envelope follower with attack/release
-        let coeff = if rms > self.envelope {
-            self.attack_coeff
-        } else {
-            self.release_coeff
-        };
+        let coeff = if rms > self.envelope { attack } else { release };
         self.envelope = self.envelope * coeff + rms * (1.0 - coeff);
 
         // Calculate target gain
@@ -104,8 +106,10 @@ impl AutoGainControl {
             1.0
         };
 
-        // Smoothly adjust gain (use release coefficient for smoothness)
-        self.current_gain = self.current_gain * 0.99 + target_gain * 0.01;
+        // Reduce gain on the attack time constant (never let a loud signal through
+        // boosted); raise it on the release time constant (don't pump noise up).
+        let gain_coeff = if target_gain < self.current_gain { attack } else { release };
+        self.current_gain = self.current_gain * gain_coeff + target_gain * (1.0 - gain_coeff);
 
         // Apply gain with SIMD
         self.apply_gain_simd(samples);
@@ -791,13 +795,12 @@ mod tests {
     fn test_agc_boosts_quiet_signal() {
         let mut agc = AutoGainControl::new(16000);
 
-        // Create quiet signal (-40 dBFS)
-        let mut samples: Vec<f32> = (0..320)
-            .map(|i| (2.0 * PI * 440.0 * i as f32 / 16000.0).sin() * 0.01)
-            .collect();
-
-        // Process multiple frames to let AGC adapt
+        // A stream of quiet frames (-40 dBFS). Each frame is fresh input: feeding
+        // the AGC its own output back measures a feedback loop, not the AGC.
         for _ in 0..10 {
+            let mut samples: Vec<f32> = (0..320)
+                .map(|i| (2.0 * PI * 440.0 * i as f32 / 16000.0).sin() * 0.01)
+                .collect();
             agc.process(&mut samples);
         }
 
@@ -806,21 +809,39 @@ mod tests {
     }
 
     #[test]
+    fn test_agc_never_boosts_a_loud_signal() {
+        // The envelope used a per-sample coefficient once per frame, so it started
+        // near 0, read a loud input as quiet, and pushed gain above 1 first.
+        let mut agc = AutoGainControl::new(16000);
+        for _ in 0..20 {
+            let mut samples: Vec<f32> = (0..320)
+                .map(|i| (2.0 * PI * 440.0 * i as f32 / 16000.0).sin() * 0.7)
+                .collect();
+            agc.process(&mut samples);
+            assert!(agc.current_gain() <= 1.0, "gain rose to {} on a loud signal", agc.current_gain());
+        }
+    }
+
+    #[test]
     fn test_agc_reduces_loud_signal() {
         let mut agc = AutoGainControl::new(16000);
+        let frame = || -> Vec<f32> {
+            (0..320)
+                .map(|i| (2.0 * PI * 440.0 * i as f32 / 16000.0).sin() * 0.7)
+                .collect()
+        };
 
-        // Create loud signal (-3 dBFS)
-        let mut samples: Vec<f32> = (0..320)
-            .map(|i| (2.0 * PI * 440.0 * i as f32 / 16000.0).sin() * 0.7)
-            .collect();
-
-        // Process multiple frames
+        // A stream of loud frames (-3 dBFS), each one fresh input.
         for _ in 0..10 {
-            agc.process(&mut samples);
+            agc.process(&mut frame());
         }
 
-        // Gain should have decreased
+        // Gain should have decreased and brought the output to the target level.
         assert!(agc.current_gain() < 0.5, "AGC should reduce loud signal");
+        let mut out = frame();
+        agc.process(&mut out);
+        let rms = (out.iter().map(|x| x * x).sum::<f32>() / out.len() as f32).sqrt();
+        assert!((rms - 0.1).abs() < 0.01, "output RMS {rms} should be at the 0.1 target");
     }
 
     #[test]

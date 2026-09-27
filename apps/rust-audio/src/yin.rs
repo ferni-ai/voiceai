@@ -57,6 +57,9 @@ pub struct YinDetector {
     diff_buffer: Vec<f32>,
     /// Pre-allocated buffer for cumulative mean normalized difference
     cmndf_buffer: Vec<f32>,
+    /// Largest lag the current frame supports (n/2, capped at max_lag). Lags
+    /// above it are not computed for this frame, so nothing may read them.
+    active_max_lag: usize,
 }
 
 impl YinDetector {
@@ -71,6 +74,7 @@ impl YinDetector {
             max_lag,
             diff_buffer: vec![0.0; max_lag + 1],
             cmndf_buffer: vec![0.0; max_lag + 1],
+            active_max_lag: max_lag,
         }
     }
 
@@ -85,8 +89,11 @@ impl YinDetector {
     pub fn estimate_pitch(&mut self, samples: &[f32]) -> YinResult {
         let n = samples.len();
         
-        // Need at least 2 * max_lag samples for reliable estimation
-        if n < self.max_lag * 2 {
+        // A frame of n samples supports lags up to n/2. A short frame narrows the
+        // pitch range (its lowest detectable pitch rises) instead of returning
+        // nothing: 512 samples at 16 kHz still covers 62.5-500 Hz.
+        self.active_max_lag = self.max_lag.min(n / 2);
+        if self.active_max_lag <= self.min_lag.max(2) {
             return YinResult::default();
         }
 
@@ -143,7 +150,7 @@ impl YinDetector {
         let r0 = sum_of_squares_simd(&samples[..w]);
         
         // For each lag τ, compute d(τ)
-        for tau in 1..=self.max_lag.min(w) {
+        for tau in 1..=self.active_max_lag.min(w) {
             // Compute r'(0) = Σx[j+τ]² for shifted window
             // and r(τ) = Σx[j]*x[j+τ]
             let (r_shifted, autocorr) = compute_shifted_stats_simd(samples, tau, w);
@@ -164,7 +171,7 @@ impl YinDetector {
         
         let mut running_sum = 0.0f32;
         
-        for tau in 1..=self.max_lag {
+        for tau in 1..=self.active_max_lag {
             running_sum += self.diff_buffer[tau];
             
             if running_sum > 0.0 {
@@ -182,7 +189,7 @@ impl YinDetector {
     fn find_best_lag(&self) -> (usize, f32) {
         // Skip lag 0 and very short lags (unrealistic pitches)
         let search_min = self.min_lag.max(2);
-        let search_max = self.max_lag.min(self.cmndf_buffer.len() - 1);
+        let search_max = self.active_max_lag.min(self.cmndf_buffer.len() - 1);
         
         let mut best_lag = 0usize;
         let mut best_value = 1.0f32;
@@ -227,7 +234,7 @@ impl YinDetector {
     /// Parabolic interpolation around the minimum for sub-sample accuracy
     #[inline]
     fn parabolic_interpolation(&self, lag: usize) -> f32 {
-        if lag == 0 || lag >= self.cmndf_buffer.len() - 1 {
+        if lag == 0 || lag >= self.active_max_lag {
             return lag as f32;
         }
         
@@ -538,6 +545,18 @@ mod tests {
         
         assert!(valid_count > results.len() / 2,
             "Most frames should detect ~200 Hz");
+    }
+
+    #[test]
+    fn test_short_frame_after_long_frame_uses_only_its_own_lags() {
+        // Lags beyond n/2 are not computed for a short frame; reading them would
+        // reuse values left over from the previous, longer frame.
+        let mut detector = YinDetector::new(YinConfig::default());
+        let long = generate_sine_wave(60.0, 16000, 1024);
+        let _ = detector.estimate_pitch(&long);
+        let short = generate_sine_wave(200.0, 16000, 512);
+        let r = detector.estimate_pitch(&short);
+        assert!(r.pitch_hz > 180.0 && r.pitch_hz < 220.0, "got {} Hz", r.pitch_hz);
     }
 
     #[test]
