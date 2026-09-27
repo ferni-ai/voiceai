@@ -510,14 +510,35 @@ const SELF_VOICED_NOTE =
   'You speak in your own voice. Never write tags, brackets, or stage directions; ' +
   'express warmth, laughter, and pauses through your words and tone.';
 
+/**
+ * Appended when Cartesia Sonic voices the text but should get sparse markup.
+ * Sonic paces itself from punctuation and reads emotion from the words; the
+ * persona tables of break/speed/volume tags made the LLM stack them (Cartesia
+ * warns stacked breaks cause hallucinated audio) and open every reply with the
+ * same templated "Ha!".
+ */
+const SPARSE_MARKUP_NOTE = `## How your words become speech
+
+Cartesia Sonic voices your text. It reads emotion from your words and pacing from your punctuation, so:
+- Write the way you talk: short sentences, contractions, commas and "..." where you'd pause. That is all the pacing you need.
+- You may begin a reply with ONE emotion tag, like <emotion value="affectionate"/>, when the feeling is clear and your words carry it too: affectionate, sympathetic, curious, excited, calm, contemplative, content, surprised or sad. Most replies need none. Never add a second tag or put one mid-reply.
+- Never write pause, speed or volume tags, brackets, asterisks or stage directions.
+- Don't open with a stock reaction ("Ha!", "Oh!", "Hmm.") out of habit. React when something actually amused or surprised you, and vary how you begin.`;
+
+/** Fit a prompt's speech-markup guidance to what voices the provider's text. */
+function adaptSpeechMarkup(prompt: string): string {
+  const modules = getModelProvider().getPromptModules();
+  if (modules.includeSpeechMarkup === false || modules.sparseSpeechMarkup) {
+    return stripSpeechMarkupGuidance(prompt);
+  }
+  return prompt;
+}
+
 export async function loadSystemPrompt(
   personaId: string,
   mode: PromptMode = 'voice_agent'
 ): Promise<string> {
-  const prompt = await loadSystemPromptForTTS(personaId, mode);
-  return getModelProvider().getPromptModules().includeSpeechMarkup === false
-    ? stripSpeechMarkupGuidance(prompt)
-    : prompt;
+  return adaptSpeechMarkup(await loadSystemPromptForTTS(personaId, mode));
 }
 
 async function loadSystemPromptForTTS(
@@ -834,8 +855,10 @@ export async function loadModelBaseInstructions(): Promise<string> {
     // A provider that speaks for itself must not be taught Cartesia markup.
     const adapted =
       promptConfig.includeSpeechMarkup === false
-        ? `${stripSpeechMarkupGuidance(combined)}\n\n${SELF_VOICED_NOTE}`
-        : combined;
+        ? `${adaptSpeechMarkup(combined)}\n\n${SELF_VOICED_NOTE}`
+        : promptConfig.sparseSpeechMarkup
+          ? `${adaptSpeechMarkup(combined)}\n\n${SPARSE_MARKUP_NOTE}`
+          : combined;
 
     // Cache it
     modelBaseInstructionsCache = adapted;

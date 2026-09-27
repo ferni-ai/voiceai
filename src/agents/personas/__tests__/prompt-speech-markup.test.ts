@@ -20,13 +20,28 @@ async function promptsUnder(providerModule: string, className: string): Promise<
 }
 
 describe('speech markup in the live Ferni prompts', () => {
-  it('is present under the Cartesia cascade (Cartesia renders it)', async () => {
-    const [base, system] = await promptsUnder('../../model-provider/cartesia-cascade.js', 'CartesiaCascadeProvider');
-    expect(hasSpeechMarkup(base) || hasSpeechMarkup(system)).toBe(true);
+  it('is reduced to one opening emotion tag under the Cartesia cascade', async () => {
+    const [base, system] = await promptsUnder(
+      '../../model-provider/cartesia-cascade.js',
+      'CartesiaCascadeProvider'
+    );
+    const both = `${base}\n${system}`;
+    // Sonic paces itself from punctuation; stacked breaks make it hallucinate.
+    expect(both).not.toMatch(/<break|<speed|<volume/);
+    // The persona files' tag tables and templated openers are gone...
+    expect(system).not.toMatch(/<emotion/);
+    expect(system).not.toContain('Natural reactions: "Ha!"');
+    // ...replaced by one contract in the model-level block.
+    expect(base).toContain('ONE emotion tag');
+    expect(base.match(/<emotion value=/g)?.length).toBe(1);
+    expect(system.length).toBeGreaterThan(1000);
   }, 60_000);
 
   it('is absent under Gemini native audio, which speaks for itself', async () => {
-    const [base, system] = await promptsUnder('../../model-provider/gemini-native-audio.js', 'GeminiNativeAudioProvider');
+    const [base, system] = await promptsUnder(
+      '../../model-provider/gemini-native-audio.js',
+      'GeminiNativeAudioProvider'
+    );
     expect(hasSpeechMarkup(base)).toBe(false);
     expect(hasSpeechMarkup(system)).toBe(false);
     expect(base).toContain('You speak in your own voice');

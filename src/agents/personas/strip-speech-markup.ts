@@ -11,7 +11,8 @@
  * @module agents/personas/strip-speech-markup
  */
 
-const MARKUP = /<\/?(?:emotion|break|speed|volume|spell|prosody|speak)\b|\[\s*laugh(?:ter|s|ing)?\s*\]/i;
+const MARKUP =
+  /<\/?(?:emotion|break|speed|volume|spell|prosody|speak)\b|\[\s*laugh(?:ter|s|ing)?\s*\]/i;
 const MARKUP_HEADING = /\b(?:ssml|markup|emotion tags?|nonverbal|laughter)\b/i;
 const HEADING = /^(#{1,6})\s+(.*)$/;
 
@@ -39,5 +40,38 @@ export function stripSpeechMarkupGuidance(prompt: string): string {
     out.push(line);
   }
 
-  return out.join('\n').replace(/\n{3,}/g, '\n\n');
+  return dropEmptySections(dropEmptyFences(out))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n');
+}
+
+/** A code fence left empty by stripping, plus the `**Label:**` line that introduced it. */
+function dropEmptyFences(lines: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim().startsWith('```') && lines[i + 1]?.trim() === '```') {
+      while (out.length && out[out.length - 1].trim() === '') out.pop();
+      if (/^\*\*.*\*\*.*$/.test(out[out.length - 1]?.trim() ?? '')) out.pop();
+      i++;
+      continue;
+    }
+    out.push(lines[i]);
+  }
+  return out;
+}
+
+/** A heading whose section has nothing left before the next heading of the same or higher level. */
+function dropEmptySections(lines: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const heading = HEADING.exec(lines[i]);
+    if (heading) {
+      let j = i + 1;
+      while (j < lines.length && lines[j].trim() === '') j++;
+      const next = HEADING.exec(lines[j] ?? '');
+      if (j >= lines.length || (next && next[1].length <= heading[1].length)) continue;
+    }
+    out.push(lines[i]);
+  }
+  return out;
 }

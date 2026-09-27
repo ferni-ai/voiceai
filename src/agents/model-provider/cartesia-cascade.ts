@@ -98,6 +98,8 @@ export class CartesiaCascadeProvider implements ModelProvider {
       includeToolUsageGuidance: true,
       includeModelBaseInstructions: true,
       useMinimalInstructions: false,
+      sparseSpeechMarkup: true,
+      modelInstructionsInAgentPrompt: true,
     };
   }
 

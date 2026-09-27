@@ -80,6 +80,20 @@ export interface PromptModuleConfig {
    * that produce the audio themselves. Undefined means true.
    */
   includeSpeechMarkup?: boolean;
+
+  /**
+   * Replace the persona's Cartesia tag tables with one sparse contract: at most
+   * one emotion tag opening a reply, no break/speed/volume tags. For a
+   * markup-aware TTS whose model paces itself from punctuation (Sonic 3.x).
+   */
+  sparseSpeechMarkup?: boolean;
+
+  /**
+   * The LLM has no model-level instructions field (a plain text LLM), so the
+   * model-level block (honesty, speech patterns, safety, date/time, who the
+   * user is) must be prepended to the agent instructions or it is lost.
+   */
+  modelInstructionsInAgentPrompt?: boolean;
 }
 
 // ============================================================================

@@ -96,6 +96,7 @@ import {
   resolveInitialToolLimit,
   type InitialToolPolicy,
 } from './initial-tools.js';
+import { composeAgentInstructions } from './agent-instructions.js';
 
 // Check if Tool Gateway is enabled (defaults to true)
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
@@ -1693,7 +1694,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
       ? createTurnIntelligenceHook({ persona, services, userData, room })
       : undefined;
 
-  const agent = new FerniAgent(systemPrompt, {
+  const agentInstructions = composeAgentInstructions(
+    systemPrompt,
+    modelBaseInstructions,
+    modelProvider.getPromptModules()
+  );
+
+  const agent = new FerniAgent(agentInstructions, {
     tools: finalTools as unknown as llm.ToolContext<UserData>,
     onUserTurn,
     // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
