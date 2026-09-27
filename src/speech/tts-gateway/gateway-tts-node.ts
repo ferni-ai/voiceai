@@ -701,6 +701,8 @@ export function createGatewayTTSNode(
   // Get gateway components
   const cache = getTTSCache();
   const provider = getTTSProvider();
+  // Connect now so the socket handshake overlaps the LLM's thinking.
+  provider.prewarm?.();
   const ssmlProcessor = getSSMLProcessor();
 
   return async (
