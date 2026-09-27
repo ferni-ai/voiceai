@@ -519,11 +519,16 @@ const SELF_VOICED_NOTE =
  */
 const SPARSE_MARKUP_NOTE = `## How your words become speech
 
-Cartesia Sonic voices your text. It reads emotion from your words and pacing from your punctuation, so:
-- Write the way you talk: short sentences, contractions, commas and "..." where you'd pause. That is all the pacing you need.
-- You may begin a reply with ONE emotion tag, like <emotion value="affectionate"/>, when the feeling is clear and your words carry it too: affectionate, sympathetic, curious, excited, calm, contemplative, content, surprised or sad. Most replies need none. Never add a second tag or put one mid-reply.
+Cartesia Sonic voices your text. It takes its pitch, emphasis and pauses from your words and punctuation, so write the way people talk, not the way they write:
+- Always use contractions: it's, that's, I'm, you're, don't. "It is" and "that is" sound read aloud.
+- Join related thoughts with and, so, but or because instead of a full stop after every few words. Mix a longer sentence with a short one. A string of short sentences comes out as stop, pause, stop, pause.
+- A filler like "uh", "um", "I mean" or "you know" is fine when you'd genuinely pause to think, set off with commas, at most once in a reply.
+- Use "..." only for a thought that trails off, never as a dramatic pause. No em-dashes.
+- Before: "Yeah. The ups and downs of it all. It is like one minute you see something that feels like magic, and the next, it is just frustrating."
+  After: "Yeah, the ups and downs, right? One minute it feels like magic, and the next it's just, uh, frustrating."
+- You may begin a reply with ONE emotion tag, like <emotion value="sympathetic"/>, only when the feeling is clear and your words carry it: calm, content, curious, affectionate, sympathetic or contemplative. Most replies need none.
 - Never write pause, speed or volume tags, brackets, asterisks or stage directions.
-- Don't open with a stock reaction ("Ha!", "Oh!", "Hmm.") out of habit. React when something actually amused or surprised you, and vary how you begin.`;
+- Don't open with a stock reaction ("Ha!", "Oh!", "Hmm.") out of habit, and vary how you begin.`;
 
 /** Fit a prompt's speech-markup guidance to what voices the provider's text. */
 function adaptSpeechMarkup(prompt: string): string {

@@ -21,6 +21,21 @@ import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type { SSMLProsodyConfig } from './types.js';
 
 const MIN_FIRST_CHUNK = 20;
+/**
+ * Emotions passed to the voice. Big ones (excited, surprised...) widened the
+ * cloned voice's pitch range from 8.7 to 10.9 semitones and swung it between
+ * turns; calm-adjacent tags read as more human. Anything else is dropped and
+ * the voice takes its tone from the words.
+ */
+const CALM_EMOTIONS = new Set([
+  'calm',
+  'content',
+  'curious',
+  'affectionate',
+  'sympathetic',
+  'contemplative',
+]);
+
 /** Cartesia inline tags restoring default speed and volume. */
 const RESET_PACE_TAGS = '<speed ratio="1"/><volume ratio="1"/>';
 const MIN_CHUNK = 15;
@@ -57,7 +72,9 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
       if (!text) return;
       if (first) {
         first = false;
-        reply.push(`${openingTags({ ...prosody, emotion: prosody.emotion || emotion })}${text} `);
+        const chosen = prosody.emotion || emotion;
+        const calm = chosen && CALM_EMOTIONS.has(chosen) ? chosen : undefined;
+        reply.push(`${openingTags({ ...prosody, emotion: calm })}${text} `);
         const slowed = prosody.speed !== undefined && prosody.speed !== 1;
         const quieted = prosody.volume !== undefined && prosody.volume !== 1;
         if (slowed || quieted) resetAfterOpening = RESET_PACE_TAGS;

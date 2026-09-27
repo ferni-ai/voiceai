@@ -116,6 +116,23 @@ describe('createContinuationTTS', () => {
     expect(reply.pushes[1].startsWith('<speed ratio="1"/><volume ratio="1"/>')).toBe(true);
   });
 
+  it('passes only calm emotions to the voice; big ones are left to the words', async () => {
+    // "excited" widened Ferni's pitch range to 10.9 semitones vs 8.7 untagged.
+    const calm = new FakeReply([4]);
+    await drain(
+      run(['<emotion value="sympathetic"/>That sounds hard.'], calm)
+        .stream as unknown as ReadableStream<AudioFrame>
+    );
+    expect(calm.pushes[0]).toBe('<emotion value="sympathetic"/>That sounds hard. ');
+
+    const big = new FakeReply([4]);
+    await drain(
+      run(['<emotion value="excited"/>Wait, a life coach?! That is so cool.'], big)
+        .stream as unknown as ReadableStream<AudioFrame>
+    );
+    expect(big.pushes[0]).not.toContain('<emotion');
+  });
+
   it('adds no reset when the reply opened at normal speed and volume', async () => {
     const reply = new FakeReply([4]);
     const { stream } = run(['First sentence here. ', 'Second sentence here.'], reply);

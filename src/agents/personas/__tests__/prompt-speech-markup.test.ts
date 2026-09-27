@@ -37,6 +37,20 @@ describe('speech markup in the live Ferni prompts', () => {
     expect(system.length).toBeGreaterThan(1000);
   }, 60_000);
 
+  it('teaches spoken rather than read writing under the cascade', async () => {
+    const [base, system] = await promptsUnder(
+      '../../model-provider/cartesia-cascade.js',
+      'CartesiaCascadeProvider'
+    );
+    // A live call read as a string of full stops: "Yeah. The ups and downs of it all. It is like..."
+    expect(base).toContain('contractions');
+    expect(base).toMatch(/and.*so.*but/);
+    expect(base).toContain("it's just, uh, frustrating");
+    // Big emotions swung Ferni's pitch range from 6.4 to 10.9 semitones between turns.
+    expect(base).not.toMatch(/excited|surprised|enthusiastic/);
+    expect(`${base}\n${system}`).not.toContain('Short sentences — Creates natural pauses');
+  }, 60_000);
+
   it('is absent under Gemini native audio, which speaks for itself', async () => {
     const [base, system] = await promptsUnder(
       '../../model-provider/gemini-native-audio.js',
