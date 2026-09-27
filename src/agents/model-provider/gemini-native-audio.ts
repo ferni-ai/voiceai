@@ -115,6 +115,10 @@ export class GeminiNativeAudioProvider implements ModelProvider {
     return true;
   }
 
+  speaksNatively(): boolean {
+    return true;
+  }
+
   getPromptModules(): PromptModuleConfig {
     return {
       includeFunctionCallingBase: false,

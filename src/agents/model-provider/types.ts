@@ -224,6 +224,13 @@ export interface TurnDetectionConfig {
  * ```
  */
 export interface ModelProvider {
+  /**
+   * True when the model produces the audio itself (no separate TTS). Scripted
+   * say() lines must then go through the model so a call keeps one voice.
+   * Optional; absent means false.
+   */
+  speaksNatively?(): boolean;
+
   // -------------------------------------------------------------------------
   // Identity
   // -------------------------------------------------------------------------

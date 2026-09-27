@@ -91,6 +91,10 @@ describe('GeminiNativeAudioProvider', () => {
     expect(provider.hasNativeFunctionCalling()).toBe(true);
     expect(provider.needsJsonWorkaround()).toBe(false);
   });
+
+  it('declares that it speaks for itself, so scripted lines route through it', () => {
+    expect(provider.speaksNatively()).toBe(true);
+  });
 });
 
 describe('GeminiNativeAudioProvider.createLLMModel voice selection', () => {
