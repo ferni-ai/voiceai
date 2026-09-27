@@ -76,13 +76,23 @@ export interface MemoryRecall {
   ready: Promise<void>;
   /** The recall note for this transcript, or null. Synchronous: never waits on the store. */
   noteFor(transcript: string): string | null;
+  /** The agent started replying: the next transcript belongs to a new user turn. */
+  newTurn(): void;
 }
+
+/**
+ * Facts recalled per user turn. Interim transcripts arrive many times a turn;
+ * without a turn budget each one pulled in 4 more facts about the same thing
+ * (15 notes, ~45 facts for one sentence on 2026-09-27).
+ */
+const FACTS_PER_TURN = 4;
 
 export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const started = Date.now();
   let snapshot: RecallSnapshot | undefined;
   const surfaced = new Set<string>();
   let followUpsOffered = false;
+  let factsThisTurn = 0;
 
   const ready = loadRecallSnapshot(deps.store ?? firestoreRecallStore, deps.userId).then((s) => {
     snapshot = s;
@@ -97,14 +107,19 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     noteFor(transcript) {
       const text = transcript.trim();
       if (!snapshot || !text) return null;
-      const facts = recallForTurn(snapshot, text, surfaced);
+      const budget = FACTS_PER_TURN - factsThisTurn;
+      const facts = budget > 0 ? recallForTurn(snapshot, text, surfaced, budget) : [];
       const followUps = followUpsOffered ? [] : snapshot.followUps;
       const note = formatRecall(facts, followUps, deps.userName);
       if (!note) return null;
       followUpsOffered = true;
+      factsThisTurn += facts.length;
       for (const f of facts) surfaced.add(factId(f));
       log.info({ facts: facts.length, followUps: followUps.length }, 'Recall added');
       return note;
+    },
+    newTurn() {
+      factsThisTurn = 0;
     },
   };
 }

@@ -29,6 +29,31 @@ describe('createMemoryRecall', () => {
     expect(recall.noteFor('Biscuit is asleep now')).toBeNull();
   });
 
+  it('recalls at most 4 facts per user turn across interim transcripts, then resets', async () => {
+    const many = {
+      facts: async () =>
+        Array.from({ length: 12 }, (_, i) => ({
+          entityName: 'Biscuit',
+          key: `fact_${i}`,
+          value: `detail number ${i}`,
+          confidence: 1,
+        })),
+      summaries: async () => [],
+    };
+    const recall = createMemoryRecall({ userId: 'u1', store: many });
+    await recall.ready;
+
+    const count = (note: string | null) => (note?.match(/^- Biscuit:/gm) ?? []).length;
+    let recalled = 0;
+    for (const interim of ['Biscuit', 'Biscuit did', 'Biscuit did it', 'Biscuit did it again']) {
+      recalled += count(recall.noteFor(interim));
+    }
+    expect(recalled).toBe(4);
+
+    recall.newTurn();
+    expect(count(recall.noteFor('Biscuit again'))).toBe(4);
+  });
+
   it('returns null instead of waiting while memory is still loading', () => {
     const slow = {
       facts: () =>

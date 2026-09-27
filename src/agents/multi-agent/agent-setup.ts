@@ -1736,8 +1736,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
       const note = recall.noteFor(evt.transcript);
       if (note) addRecallNote(agent as unknown as RecallAgent, note);
     };
+    const onRecallAgentState = (event: unknown) => {
+      if ((event as { newState?: string }).newState === 'speaking') recall.newTurn();
+    };
     sessionWithEvents.on('user_input_transcribed', onRecallTranscript);
-    cleanupFunctions.push(() => sessionWithEvents.off?.('user_input_transcribed', onRecallTranscript));
+    sessionWithEvents.on('agent_state_changed', onRecallAgentState);
+    cleanupFunctions.push(() => {
+      sessionWithEvents.off?.('user_input_transcribed', onRecallTranscript);
+      sessionWithEvents.off?.('agent_state_changed', onRecallAgentState);
+    });
   }
 
   // Realtime models that detect turns server-side never call
