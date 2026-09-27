@@ -1,26 +1,25 @@
 # =============================================================================
-# LiveKit Configuration
+# LiveKit CLI config: DEFAULT = ferni-dev (dev-8sm1ba0z)
 # =============================================================================
-# 
-# IMPORTANT: We have TWO LiveKit projects to prevent dev/prod conflicts:
 #
-# PRODUCTION (GCE): test-rvg91u1z.livekit.cloud
-# DEVELOPMENT:      dev-8sm1ba0z.livekit.cloud (Project: ferni-dev, ID: p_1gcwootg9al)
+# A bare `lk agent deploy` from the repo root targets this file. It points at
+# the DEV project on purpose, so a deploy without flags cannot reach
+# production. The production agent record lives in livekit.prod.toml and must
+# be selected explicitly with `--config livekit.prod.toml`.
 #
-# When running locally, use the dev project credentials in your .env file.
-# GCE production uses the production credentials from Secret Manager.
+# Deploying the voice agent to LiveKit Cloud (measured on ferni-dev, 2026-09-26):
+#   - lk builds ./Dockerfile; copy docker/Dockerfile.agent there first.
+#   - set secret PORT=8081. The platform health-checks 8081, and the worker
+#     defaults to 8080 (the GCE blue port). Without it, the instance keeps
+#     restarting and never settles at Running.
+#   - NODE_ENV=production requires persistent memory (Firestore). LiveKit
+#     Cloud has no GCP identity, so it needs a mounted service-account key
+#     (--secret-mount).
+#   - instances are 2 CPU / 4 GB; `--region` is required non-interactively.
 # =============================================================================
 
-# Default project for CLI (production)
 [project]
-  subdomain = "test-rvg91u1z"
+  subdomain = "dev-8sm1ba0z"
 
 [agent]
-  id = "A_AHg7cGc8SpXh"
-  name = "voice-agent"
-
-# Development project (use this locally)
-# Get credentials from: https://cloud.livekit.io/projects/p_1gcwootg9al/settings/keys
-[project.dev]
-  subdomain = "dev-8sm1ba0z"
-  project_id = "p_1gcwootg9al"
+  id = "CA_siTDMHEba4Fg"
