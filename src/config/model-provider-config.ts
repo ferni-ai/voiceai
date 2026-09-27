@@ -15,6 +15,7 @@
  */
 export type ModelProviderIdSync =
   | 'cartesia-cascade'
+  | 'gemini-native-audio'
   | 'openai-realtime'
   | 'gemini-live'
   | 'qwen3-omni'
@@ -30,6 +31,7 @@ export function getProviderIdSync(): ModelProviderIdSync {
   if (process.env.USE_QWEN3_OMNI === 'true') return 'qwen3-omni';
   if (process.env.USE_OPENAI_REALTIME === 'true') return 'openai-realtime';
   // Keep in step with agents/model-provider/factory.ts getProviderIdSync.
+  if (process.env.VOICE_PIPELINE === 'gemini-native-audio') return 'gemini-native-audio';
   return process.env.VOICE_PIPELINE === 'gemini-live' ? 'gemini-live' : 'cartesia-cascade';
 }
 

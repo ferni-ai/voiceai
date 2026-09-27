@@ -21,6 +21,7 @@ export type AgentSessionTurnDetection = 'realtime_llm' | 'vad' | undefined;
  */
 export type ModelProviderId =
   | 'cartesia-cascade'
+  | 'gemini-native-audio'
   | 'openai-realtime'
   | 'gemini-live'
   | 'qwen3-omni'

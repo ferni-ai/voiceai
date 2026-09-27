@@ -583,6 +583,9 @@
       "onnxruntime-node",
       "protobufjs",
       "sharp"
-    ]
+    ],
+    "patchedDependencies": {
+      "@livekit/agents-plugin-google@1.5.1": "patches/@livekit__agents-plugin-google@1.5.1.patch"
+    }
   }
 }

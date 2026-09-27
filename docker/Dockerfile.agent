@@ -113,6 +113,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy package files first (cache layer)
 COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
+# pnpm applies patchedDependencies during install, so patches must exist first.
+COPY patches/ ./patches/
 COPY .npmrc .pnpmrc* ./
 
 # Copy workspace packages that are referenced (apps/cli needs to be available)
