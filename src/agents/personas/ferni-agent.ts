@@ -32,6 +32,7 @@ import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
 import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js';
+import { filterCaptionStream } from './caption-filter.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -695,6 +696,14 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
    *
    * @see ../shared/tts-wrapper.ts
    */
+  /** Captions are what the app shows: drop speech markup the TTS consumes. See caption-filter.ts. */
+  async transcriptionNode(
+    text: Parameters<voice.Agent<PersonaSessionData>['transcriptionNode']>[0],
+    modelSettings: voice.ModelSettings
+  ): ReturnType<voice.Agent<PersonaSessionData>['transcriptionNode']> {
+    return super.transcriptionNode(filterCaptionStream(text), modelSettings);
+  }
+
   /**
    * Every LLM request (preemptive or not) goes through here: add the
    * turn-length reminder to a copy of the context. See turn-style.ts.
