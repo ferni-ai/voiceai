@@ -485,4 +485,6 @@ export const DEFAULT_ESSENTIAL_DOMAINS: ToolDomain[] = [
   'games', // "Play a game", "Tic tac toe" - users request games often!
   'presence', // "Help me calm down", "I'm anxious" - grounding tools needed fast
   'trauma-support', // SAFETY-CRITICAL: Immediate access for users in crisis
+  'crisis', // SAFETY-CRITICAL: crisis support, safety planning, crisis resources
+  'human-transfer', // SAFETY-CRITICAL: hand a user in crisis to a human
 ];
