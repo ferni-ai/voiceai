@@ -757,6 +757,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
           { error: String(essentialErr) },
           '⚠️ Failed to load essential tools - only handoffs available'
         );
+        // This logger is silent inside the job context; a call without its
+        // domain tools must be visible in the agent log.
+        process.stderr.write(`🚨 Essential tools failed to load: ${String(essentialErr)}\n`);
       }
 
       const allTools = { ...handoffTools, ...essentialTools };
