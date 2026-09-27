@@ -21,18 +21,20 @@ function fakeStream() {
 }
 
 describe('PersonaAwareTTS.stream() markup handling', () => {
-  it('strips a tag split across pushText calls and keeps words apart', () => {
+  it('forwards a tag split across pushText calls to Cartesia whole', () => {
     const tts = new PersonaAwareTTS('Ferni', { voiceId: 'voice-a' } as never);
     const { sent, stream, flush, endInput } = fakeStream();
     (tts as unknown as { personaTTS: { stream: () => unknown } }).personaTTS.stream = () => stream;
     const s = tts.stream() as unknown as { pushText: (t: string) => void; endInput: () => void };
     s.pushText('Hey.<break ti');
     s.pushText('me="80ms"/> What');
-    s.pushText("'s up? [laughter] Nice.");
+    s.pushText("'s up? [laughter] [soft breath] Nice.");
     s.endInput();
-    const spoken = sent.join('');
-    expect(spoken).not.toMatch(/break|time|80ms|laughter|[<>]/);
-    expect(spoken.replace(/\s+/g, ' ')).toBe("Hey. What's up? Nice.");
+    // Each piece handed to Cartesia holds only whole tags.
+    for (const piece of sent) {
+      expect((piece.match(/</g) ?? []).length).toBe((piece.match(/>/g) ?? []).length);
+    }
+    expect(sent.join('')).toBe('Hey.<break time="80ms"/> What\'s up? [laughter] Nice.');
     expect(endInput).toHaveBeenCalledOnce();
     void flush;
   });
@@ -47,5 +49,18 @@ describe('PersonaAwareTTS.stream() markup handling', () => {
     expect(sent.join('')).toBe('Rate it [1-10] please');
     expect(flush).toHaveBeenCalledOnce();
     void endInput;
+  });
+
+  it('synthesize() keeps supported markup and drops the rest', () => {
+    const tts = new PersonaAwareTTS('Ferni', { voiceId: 'voice-a' } as never);
+    const seen: string[] = [];
+    (tts as unknown as { personaTTS: { synthesize: (t: string) => unknown } }).personaTTS.synthesize = (
+      t: string
+    ) => {
+      seen.push(t);
+      return {};
+    };
+    tts.synthesize('<speak>[soft breath]<emotion value="calm"/>Hi.</speak>');
+    expect(seen).toEqual(['<emotion value="calm"/>Hi.']);
   });
 });
