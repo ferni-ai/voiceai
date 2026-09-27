@@ -9,6 +9,61 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { handleCleanupOrphanedUploads } from '../jobs/cleanup-orphaned-uploads.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { sendJson } from './helpers.js';
+import { verifySchedulerRequest } from './scheduler-auth.js';
+
+const log = createLogger({ module: 'ScheduledJobs' });
+
+/** Every job route below; auth is checked only for these, so unknown paths still 404. */
+export const JOB_PATHS: ReadonlySet<string> = new Set([
+  '/api/jobs/process-background-tasks',
+  '/api/jobs/check-scheduled',
+  '/api/jobs/cleanup-sessions',
+  '/api/jobs/cleanup-old-tasks',
+  '/api/jobs/aggregate-community-insights',
+  '/api/jobs/rollup-persona-metrics',
+  '/api/jobs/sync-trust-profiles',
+  '/api/jobs/cleanup-transcripts',
+  '/api/jobs/daily-outreach',
+  '/api/jobs/evaluate-thinking-of-you',
+  '/api/jobs/run-predictive-analysis',
+  '/api/jobs/rollup-outreach-analytics',
+  '/api/jobs/reset-weekly-counters',
+  '/api/jobs/better-than-human-outreach',
+  '/api/jobs/process-insight-actions',
+  '/api/jobs/family-checkin-calls',
+  '/api/jobs/run-deep-analysis',
+  '/api/jobs/flush-ml-state',
+  '/api/jobs/semantic-router-learning',
+  '/api/jobs/cleanup-orphaned-uploads',
+  '/api/jobs/ttl-cleanup',
+  '/api/jobs/ttl-backfill',
+  '/api/jobs/daily-admin-report',
+  '/api/jobs/memory-consolidation',
+  '/api/jobs/memory-decay',
+  '/api/jobs/memory-deduplication',
+  '/api/jobs/memory-health-check',
+  '/api/jobs/deep-analysis',
+  '/api/jobs/knowledge-graph-insights',
+  '/api/jobs/knowledge-graph-consolidation',
+  '/api/jobs/knowledge-graph-thread-maintenance',
+  '/api/jobs/knowledge-graph-entity-decay',
+  '/api/jobs/brand-award-deadline-check',
+  '/api/jobs/brand-story-review-reminder',
+  '/api/jobs/brand-workstream-progress',
+  '/api/jobs/brand-milestone-check',
+  '/api/jobs/brand-ambassador-engagement',
+  '/api/jobs/brand-metrics-collection',
+  '/api/jobs/brand-weekly-report',
+  '/api/jobs/brand-publish-stories',
+  '/api/jobs/gtm-daily-publishing',
+  '/api/jobs/gtm-weekly-content',
+  '/api/jobs/semantic-router-retrain',
+  '/api/jobs/semantic-router-volume-check',
+  '/api/jobs/semantic-router-quality-check',
+  '/api/jobs/semantic-router-health',
+]);
 
 // Background task handlers
 import {
@@ -101,6 +156,18 @@ export async function handleScheduledJobsRoutes(
   // Only handle POST requests for jobs
   if (method !== 'POST') {
     return false;
+  }
+
+  if (!JOB_PATHS.has(path)) {
+    return false;
+  }
+
+  // Only Cloud Scheduler (its signed OIDC token) may run a job.
+  const auth = await verifySchedulerRequest(req, path);
+  if (!auth.ok) {
+    log.warn({ path, reason: auth.reason }, 'Scheduled job request refused');
+    sendJson(res, 401, { error: 'unauthorized' });
+    return true;
   }
 
   switch (path) {

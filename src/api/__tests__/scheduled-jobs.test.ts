@@ -121,6 +121,32 @@ function createMockResponse(): ServerResponse & { _data: string; _statusCode: nu
 describe('Scheduled Jobs Routes API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Handler behaviour is tested here; scheduler auth is tested below and in
+    // scheduled-jobs/__tests__/scheduler-auth.test.ts.
+    vi.stubEnv('SCHEDULED_JOBS_AUTH', 'off');
+  });
+
+  describe('Scheduler auth', () => {
+    it('refuses a job request without a scheduler token and does not run it', async () => {
+      vi.stubEnv('SCHEDULED_JOBS_AUTH', '');
+      const { handleScheduledJobsRoutes } = await import('../scheduled-jobs.routes.js');
+      const req = createMockRequest({ method: 'POST', url: '/api/jobs/memory-consolidation' });
+      const res = createMockResponse();
+
+      const handled = await handleScheduledJobsRoutes(req, res, '/api/jobs/memory-consolidation');
+
+      expect(handled).toBe(true);
+      expect(res._statusCode).toBe(401);
+    });
+
+    it('lists every routed job path in JOB_PATHS', async () => {
+      const { readFileSync } = await import('fs');
+      const { JOB_PATHS } = await import('../scheduled-jobs/index.js');
+      const source = readFileSync(new URL('../scheduled-jobs/index.ts', import.meta.url), 'utf8');
+      const routed = [...source.matchAll(/case '(\/api\/jobs\/[^']+)':/g)].map((m) => m[1]);
+      expect(routed.length).toBeGreaterThan(40);
+      expect([...JOB_PATHS].sort()).toEqual([...routed].sort());
+    });
   });
 
   describe('POST /api/jobs/process-background-tasks', () => {
