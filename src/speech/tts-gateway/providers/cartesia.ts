@@ -12,8 +12,6 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { WebSocket } from 'ws';
-
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   CARTESIA_MODEL,
@@ -21,6 +19,7 @@ import {
   CARTESIA_API_URL,
 } from '../../../config/voice-ids.js';
 import type { ITTSProvider, SSMLProsodyConfig } from '../types.js';
+import { CartesiaSocket } from './cartesia-socket.js';
 
 const log = createLogger({ module: 'CartesiaTTSProvider' });
 
@@ -74,6 +73,10 @@ export function prosodyTags(prosody?: SSMLProsodyConfig): string {
 
 export class CartesiaTTSProvider implements ITTSProvider {
   readonly name = 'cartesia';
+  private readonly socket = new CartesiaSocket(
+    () => buildWebsocketUrl(process.env.CARTESIA_API_KEY ?? ''),
+    WS_OPEN_TIMEOUT_MS
+  );
 
   async synthesize(
     text: string,
@@ -145,7 +148,6 @@ export class CartesiaTTSProvider implements ITTSProvider {
     }
 
     const contextId = randomUUID();
-    const wsUrl = buildWebsocketUrl(apiKey);
     const queue: ArrayBuffer[] = [];
     let resolveWait: (() => void) | null = null;
     let streamDone = false;
@@ -159,85 +161,10 @@ export class CartesiaTTSProvider implements ITTSProvider {
       }
     };
 
-    const fail = (err: Error): void => {
-      streamError = err;
-      streamDone = true;
-      wake();
-    };
-
-    const ws = new WebSocket(wsUrl);
-
     try {
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => {
-          reject(new Error(`Cartesia WebSocket open timed out after ${WS_OPEN_TIMEOUT_MS}ms`));
-        }, WS_OPEN_TIMEOUT_MS);
-
-        ws.once('open', () => {
-          clearTimeout(timer);
-          resolve();
-        });
-        ws.once('error', (err: Error) => {
-          clearTimeout(timer);
-          reject(err);
-        });
-      });
-
-      ws.on('message', (raw: Buffer | ArrayBuffer | Buffer[] | string) => {
-        try {
-          const textPayload =
-            typeof raw === 'string'
-              ? raw
-              : Buffer.isBuffer(raw)
-                ? raw.toString('utf8')
-                : Array.isArray(raw)
-                  ? Buffer.concat(raw).toString('utf8')
-                  : Buffer.from(raw).toString('utf8');
-          const message = JSON.parse(textPayload) as {
-            type?: string;
-            data?: string;
-            done?: boolean;
-            error?: string;
-            message?: string;
-          };
-
-          if (message.type === 'error' || message.error) {
-            fail(new Error(message.error || message.message || 'Cartesia WebSocket TTS error'));
-            return;
-          }
-
-          if (message.type === 'chunk' && message.data) {
-            const pcm = Buffer.from(message.data, 'base64');
-            if (pcm.byteLength > 0) {
-              queue.push(pcm.buffer.slice(pcm.byteOffset, pcm.byteOffset + pcm.byteLength));
-              wake();
-            }
-          }
-
-          if (message.type === 'done' || message.done === true) {
-            streamDone = true;
-            wake();
-          }
-        } catch (parseErr) {
-          fail(
-            parseErr instanceof Error
-              ? parseErr
-              : new Error(`Cartesia WS parse error: ${String(parseErr)}`)
-          );
-        }
-      });
-
-      ws.on('error', (err: Error) => {
-        fail(err);
-      });
-
-      ws.on('close', () => {
-        streamDone = true;
-        wake();
-      });
-
-      ws.send(
-        JSON.stringify({
+      await this.socket.send(
+        contextId,
+        {
           model_id: CARTESIA_MODEL,
           transcript: prosodyTags(prosody) + plainText,
           voice: { mode: 'id', id: voiceId },
@@ -249,7 +176,22 @@ export class CartesiaTTSProvider implements ITTSProvider {
           language: 'en',
           context_id: contextId,
           continue: false,
-        })
+        },
+        {
+          onChunk: (pcm) => {
+            queue.push(pcm);
+            wake();
+          },
+          onDone: () => {
+            streamDone = true;
+            wake();
+          },
+          onError: (error) => {
+            streamError = error;
+            streamDone = true;
+            wake();
+          },
+        }
       );
 
       const deadline = Date.now() + WS_STREAM_TIMEOUT_MS;
@@ -276,14 +218,24 @@ export class CartesiaTTSProvider implements ITTSProvider {
         'Cartesia WebSocket streaming TTS complete'
       );
     } finally {
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-        try {
-          ws.close();
-        } catch {
-          // ignore close errors
-        }
-      }
+      // Stopped early (interrupted, timed out, failed): stop Cartesia generating
+      // for this context but keep the shared socket for the next chunk.
+      if (streamDone) this.socket.release(contextId);
+      else this.socket.cancel(contextId);
     }
+  }
+
+  /**
+   * Open the shared socket ahead of the first chunk so its handshake overlaps
+   * the LLM's thinking instead of delaying the first audio. Never throws.
+   */
+  prewarm(): void {
+    if (!process.env.CARTESIA_API_KEY) return;
+    this.socket
+      .connect()
+      .catch((error: unknown) =>
+        log.warn({ error: String(error) }, 'Cartesia socket prewarm failed')
+      );
   }
 
   async isAvailable(): Promise<boolean> {

@@ -185,6 +185,9 @@ export interface ITTSProvider {
   /** Provider identifier */
   readonly name: string;
 
+  /** Open connections ahead of the first synthesis (optional, never throws). */
+  prewarm?(): void;
+
   /**
    * Generate audio from text (non-streaming)
    *
