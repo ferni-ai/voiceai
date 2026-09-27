@@ -21,6 +21,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { stripSpeechMarkupGuidance } from './strip-speech-markup.js';
 import { getModelProvider } from '../model-provider/index.js';
 // Use centralized FTIS mode check - single source of truth
 import { isFTISEnabled } from '../processors/tool-routing-integration.js';
@@ -504,9 +505,24 @@ async function loadAssemblyConfig(bundleDir: string): Promise<AssemblyConfig | n
  * @param mode - 'voice_agent' for lean prompt, 'full_context' for rich prompt
  * @returns The assembled system prompt string
  */
+/** Appended when the model produces its own audio (no markup-aware TTS). */
+const SELF_VOICED_NOTE =
+  'You speak in your own voice. Never write tags, brackets, or stage directions; ' +
+  'express warmth, laughter, and pauses through your words and tone.';
+
 export async function loadSystemPrompt(
   personaId: string,
   mode: PromptMode = 'voice_agent'
+): Promise<string> {
+  const prompt = await loadSystemPromptForTTS(personaId, mode);
+  return getModelProvider().getPromptModules().includeSpeechMarkup === false
+    ? stripSpeechMarkupGuidance(prompt)
+    : prompt;
+}
+
+async function loadSystemPromptForTTS(
+  personaId: string,
+  mode: PromptMode
 ): Promise<string> {
   const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
   const fallback = FALLBACK_PROMPTS[bundleDir] || `You are ${personaId}, a helpful AI assistant.`;
@@ -815,9 +831,15 @@ export async function loadModelBaseInstructions(): Promise<string> {
       ? `${baseContent}\n\n---\n\n${voiceOutputRules}`
       : baseContent;
 
+    // A provider that speaks for itself must not be taught Cartesia markup.
+    const adapted =
+      promptConfig.includeSpeechMarkup === false
+        ? `${stripSpeechMarkupGuidance(combined)}\n\n${SELF_VOICED_NOTE}`
+        : combined;
+
     // Cache it
-    modelBaseInstructionsCache = combined;
-    return combined;
+    modelBaseInstructionsCache = adapted;
+    return adapted;
   } catch (error) {
     log.warn(
       { error: String(error), skipJsonInstructions },

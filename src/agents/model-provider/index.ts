@@ -81,7 +81,7 @@ export {
 export {
   GeminiNativeAudioProvider,
   buildNativeAudioModelOptions,
-  buildNativeAudioVoiceConfig,
+  toReplicatedVoiceConfig,
 } from './gemini-native-audio.js';
 export { Qwen3OmniProvider } from './qwen3-omni.js';
 export { LocalPipelineProvider, OllamaLLMAdapter } from './local-pipeline.js';

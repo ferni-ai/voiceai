@@ -7,62 +7,37 @@
  * unpatched install, which is the point: an SDK upgrade that drops the patch
  * must break this test, not silently fall back to a prebuilt voice.
  */
-import { mkdtempSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const replicated = vi.hoisted(() => ({
+  getPersonaVoiceSample: vi.fn(),
+  isReplicatedVoiceAllowed: vi.fn(),
+}));
+vi.mock('../replicated-voice.js', () => ({
+  REPLICATED_VOICE_MIME: 'audio/pcm;rate=24000',
+  getPersonaVoiceSample: replicated.getPersonaVoiceSample,
+  isReplicatedVoiceAllowed: replicated.isReplicatedVoiceAllowed,
+}));
+
 import {
   GeminiNativeAudioProvider,
   buildNativeAudioModelOptions,
-  buildNativeAudioVoiceConfig,
+  toReplicatedVoiceConfig,
 } from '../gemini-native-audio.js';
 
-const SAMPLE_RATE = 24000;
-function pcmFile(seconds: number, ext = '.pcm'): string {
-  const dir = mkdtempSync(join(tmpdir(), 'voice-sample-'));
-  const path = join(dir, `ferni${ext}`);
-  writeFileSync(path, Buffer.alloc(Math.round(seconds * SAMPLE_RATE * 2), 1));
-  return path;
-}
+const SAMPLE = Buffer.alloc(15 * 24000 * 2, 1);
 
 afterEach(() => {
   for (const k of [
-    'NATIVE_AUDIO_VOICE_SAMPLE',
+    'NATIVE_AUDIO_PROJECT',
     'NATIVE_AUDIO_MODEL',
     'NATIVE_AUDIO_LOCATION',
     'NATIVE_AUDIO_VOICE',
   ])
     delete process.env[k];
-});
-
-describe('buildNativeAudioVoiceConfig', () => {
-  it('returns undefined (prebuilt voice) when no sample is configured', () => {
-    expect(buildNativeAudioVoiceConfig({})).toBeUndefined();
-  });
-
-  it('builds a replicatedVoiceConfig from a 15s 24kHz PCM sample', () => {
-    const cfg = buildNativeAudioVoiceConfig({ NATIVE_AUDIO_VOICE_SAMPLE: pcmFile(15) });
-    expect(cfg?.replicatedVoiceConfig?.mimeType).toBe('audio/pcm;rate=24000');
-    const bytes = Buffer.from(cfg?.replicatedVoiceConfig?.voiceSampleAudio ?? '', 'base64').length;
-    expect(bytes).toBe(15 * SAMPLE_RATE * 2);
-  });
-
-  it('rejects samples outside the documented 10-20s window', () => {
-    expect(() => buildNativeAudioVoiceConfig({ NATIVE_AUDIO_VOICE_SAMPLE: pcmFile(5) })).toThrow(
-      /10-20s/
-    );
-    expect(() => buildNativeAudioVoiceConfig({ NATIVE_AUDIO_VOICE_SAMPLE: pcmFile(25) })).toThrow(
-      /10-20s/
-    );
-  });
-
-  it('rejects non-PCM files instead of sending a container header as audio', () => {
-    expect(() =>
-      buildNativeAudioVoiceConfig({ NATIVE_AUDIO_VOICE_SAMPLE: pcmFile(15, '.wav') })
-    ).toThrow(/raw PCM/);
-  });
 });
 
 describe('buildNativeAudioModelOptions', () => {
@@ -83,8 +58,19 @@ describe('buildNativeAudioModelOptions', () => {
   });
 
   it('carries the replicated voice config through', () => {
-    const opts = buildNativeAudioModelOptions({ NATIVE_AUDIO_VOICE_SAMPLE: pcmFile(12) }, 'x');
-    expect(opts.voiceConfig?.replicatedVoiceConfig?.mimeType).toBe('audio/pcm;rate=24000');
+    const opts = buildNativeAudioModelOptions({}, 'x', undefined, toReplicatedVoiceConfig(SAMPLE));
+    expect(opts.voiceConfig?.replicatedVoiceConfig).toEqual({
+      voiceSampleAudio: SAMPLE.toString('base64'),
+      mimeType: 'audio/pcm;rate=24000',
+    });
+  });
+
+  it('uses the allowlisted project when NATIVE_AUDIO_PROJECT is set', () => {
+    const opts = buildNativeAudioModelOptions(
+      { GOOGLE_CLOUD_PROJECT: 'main', NATIVE_AUDIO_PROJECT: 'fern-prod-2' },
+      'x'
+    );
+    expect(opts.project).toBe('fern-prod-2');
   });
 });
 
@@ -97,6 +83,43 @@ describe('GeminiNativeAudioProvider', () => {
     expect(provider.hasBuiltInTurnDetection()).toBe(true);
     expect(provider.hasNativeFunctionCalling()).toBe(true);
     expect(provider.needsJsonWorkaround()).toBe(false);
+  });
+});
+
+describe('GeminiNativeAudioProvider.createLLMModel voice selection', () => {
+  const provider = new GeminiNativeAudioProvider();
+  type Model = { _options: { voiceConfig?: unknown; voice?: string } };
+
+  beforeEach(() => {
+    replicated.getPersonaVoiceSample.mockReset();
+    replicated.isReplicatedVoiceAllowed.mockReset();
+    process.env.NATIVE_AUDIO_PROJECT = 'fern-prod-2';
+  });
+
+  it("speaks with the persona's replicated voice when the project is allowlisted", async () => {
+    replicated.getPersonaVoiceSample.mockResolvedValue(SAMPLE);
+    replicated.isReplicatedVoiceAllowed.mockResolvedValue(true);
+    const model = (await provider.createLLMModel({ instructions: 'x', personaId: 'maya-santos' })) as Model;
+    expect(replicated.getPersonaVoiceSample).toHaveBeenCalledWith('maya-santos');
+    expect(replicated.isReplicatedVoiceAllowed).toHaveBeenCalledWith(
+      expect.objectContaining({ project: 'fern-prod-2', location: 'us-central1', model: 'gemini-3.8-live' })
+    );
+    expect(model._options.voiceConfig).toEqual(toReplicatedVoiceConfig(SAMPLE));
+  });
+
+  it('falls back to the prebuilt voice when the project is not allowlisted', async () => {
+    replicated.getPersonaVoiceSample.mockResolvedValue(SAMPLE);
+    replicated.isReplicatedVoiceAllowed.mockResolvedValue(false);
+    const model = (await provider.createLLMModel({ instructions: 'x', personaId: 'ferni' })) as Model;
+    expect(model._options.voiceConfig).toBeUndefined();
+    expect(model._options.voice).toBe('Puck');
+  });
+
+  it('skips the allowlist check when no sample could be made', async () => {
+    replicated.getPersonaVoiceSample.mockResolvedValue(null);
+    const model = (await provider.createLLMModel({ instructions: 'x', personaId: 'ferni' })) as Model;
+    expect(replicated.isReplicatedVoiceAllowed).not.toHaveBeenCalled();
+    expect(model._options.voiceConfig).toBeUndefined();
   });
 });
 

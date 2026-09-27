@@ -13,19 +13,29 @@
  * `voiceConfig` option. Replicated voices are allowlisted by Google ("select
  * customers") and require consent and rights for the sample.
  *
+ * Each persona speaks with a voice replicated from its own Cartesia voice (see
+ * replicated-voice.ts). If the project is not allowlisted, or no sample can be
+ * made, the persona uses a prebuilt voice instead of failing the call.
+ *
  * Selected with VOICE_PIPELINE=gemini-native-audio. Env:
+ *   NATIVE_AUDIO_PROJECT        GCP project allowlisted for replicated voices
+ *                               (default GOOGLE_CLOUD_PROJECT)
  *   NATIVE_AUDIO_MODEL          default gemini-3.8-live
- *   NATIVE_AUDIO_LOCATION       default us-central1
- *   NATIVE_AUDIO_VOICE          prebuilt voice when no sample, default Puck
- *   NATIVE_AUDIO_VOICE_SAMPLE   path to raw PCM, 24kHz 16-bit mono, 10-20s. Make one with:
- *     ffmpeg -i sample.wav -ac 1 -ar 24000 -f s16le sample.pcm
+ *   NATIVE_AUDIO_LOCATION       default us-central1 (3.8 Live is not served in global)
+ *   NATIVE_AUDIO_VOICE          prebuilt fallback voice, default Puck
+ *   NATIVE_AUDIO_VOICE_SAMPLE_<PERSONA> / NATIVE_AUDIO_VOICE_SAMPLE
+ *                               optional hand-recorded sample, raw 24kHz s16le PCM, 10-20s
  *
  * @module agents/model-provider/gemini-native-audio
  */
 
-import { readFileSync } from 'node:fs';
 import * as google from '@livekit/agents-plugin-google';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  REPLICATED_VOICE_MIME,
+  getPersonaVoiceSample,
+  isReplicatedVoiceAllowed,
+} from './replicated-voice.js';
 import type {
   AgentSessionTurnDetection,
   LLMModelConfig,
@@ -37,11 +47,6 @@ import type {
 const log = createLogger({ module: 'GeminiNativeAudioProvider' });
 
 type Env = Record<string, string | undefined>;
-
-const SAMPLE_RATE = 24000;
-const BYTES_PER_SECOND = SAMPLE_RATE * 2; // 16-bit mono
-const MIN_SAMPLE_SECONDS = 10;
-const MAX_SAMPLE_SECONDS = 20;
 
 export interface ReplicatedVoiceConfig {
   replicatedVoiceConfig: { voiceSampleAudio: string; mimeType: string };
@@ -61,53 +66,33 @@ export interface NativeAudioModelOptions {
   outputAudioTranscription: Record<string, never>;
 }
 
-/**
- * Replicated-voice config from NATIVE_AUDIO_VOICE_SAMPLE, or undefined to use
- * a prebuilt voice. Throws on a sample Google would reject, so a bad file
- * fails at session start instead of silently changing the voice.
- */
-export function buildNativeAudioVoiceConfig(
-  env: Env = process.env,
-  readFile: (path: string) => Buffer = readFileSync
-): ReplicatedVoiceConfig | undefined {
-  const path = env.NATIVE_AUDIO_VOICE_SAMPLE;
-  if (!path) return undefined;
-  if (!path.toLowerCase().endsWith('.pcm')) {
-    throw new Error(
-      `NATIVE_AUDIO_VOICE_SAMPLE must be raw PCM (.pcm, 24kHz 16-bit mono), got ${path}`
-    );
-  }
-  const audio = readFile(path);
-  const seconds = audio.length / BYTES_PER_SECOND;
-  if (seconds < MIN_SAMPLE_SECONDS || seconds > MAX_SAMPLE_SECONDS) {
-    throw new Error(
-      `Voice sample must be 10-20s of 24kHz 16-bit mono PCM; ${path} is ${seconds.toFixed(1)}s`
-    );
-  }
+/** Wrap a PCM sample in the Live API's replicated voice config. */
+export function toReplicatedVoiceConfig(sample: Buffer): ReplicatedVoiceConfig {
   return {
     replicatedVoiceConfig: {
-      voiceSampleAudio: audio.toString('base64'),
-      mimeType: `audio/pcm;rate=${SAMPLE_RATE}`,
+      voiceSampleAudio: sample.toString('base64'),
+      mimeType: REPLICATED_VOICE_MIME,
     },
   };
 }
 
-/** Options for the plugin's RealtimeModel. Pure apart from reading the sample. */
+/** Options for the plugin's RealtimeModel. Pure. */
 export function buildNativeAudioModelOptions(
   env: Env,
   instructions: string,
-  temperature?: number
+  temperature?: number,
+  voiceConfig?: ReplicatedVoiceConfig
 ): NativeAudioModelOptions {
   return {
     model: env.NATIVE_AUDIO_MODEL || 'gemini-3.8-live',
     vertexai: true,
-    project: env.GOOGLE_CLOUD_PROJECT,
+    project: env.NATIVE_AUDIO_PROJECT || env.GOOGLE_CLOUD_PROJECT,
     location: env.NATIVE_AUDIO_LOCATION || 'us-central1',
     modalities: ['AUDIO'],
     instructions,
     temperature,
     voice: env.NATIVE_AUDIO_VOICE || 'Puck',
-    voiceConfig: buildNativeAudioVoiceConfig(env),
+    voiceConfig,
     // Keep transcripts flowing: crisis shadow, per-turn metrics and memory read them.
     inputAudioTranscription: {},
     outputAudioTranscription: {},
@@ -137,6 +122,8 @@ export class GeminiNativeAudioProvider implements ModelProvider {
       includeToolUsageGuidance: true,
       includeModelBaseInstructions: true,
       useMinimalInstructions: false,
+      // Gemini Live speaks for itself; Cartesia markup would be read aloud.
+      includeSpeechMarkup: false,
     };
   }
 
@@ -153,22 +140,50 @@ export class GeminiNativeAudioProvider implements ModelProvider {
   }
 
   async createLLMModel(config: LLMModelConfig): Promise<unknown> {
-    const opts = buildNativeAudioModelOptions(
-      process.env,
-      config.instructions ?? '',
-      config.temperature
-    );
+    const personaId = config.personaId ?? 'ferni';
+    const base = buildNativeAudioModelOptions(process.env, config.instructions ?? '', config.temperature);
+    const voiceConfig = await this.resolveVoiceConfig(personaId, base);
+    const opts = voiceConfig ? { ...base, voiceConfig } : base;
     log.info(
       {
+        personaId,
         model: opts.model,
+        project: opts.project,
         location: opts.location,
-        voice: opts.voiceConfig ? 'replicated' : opts.voice,
+        voice: voiceConfig ? 'replicated' : opts.voice,
       },
       'Creating Gemini native-audio realtime model'
     );
     return new google.realtime.RealtimeModel(
       opts as unknown as ConstructorParameters<typeof google.realtime.RealtimeModel>[0]
     );
+  }
+
+  /**
+   * The persona's replicated voice, or undefined for the prebuilt voice when no
+   * sample can be made or the project is not allowlisted (Google would close
+   * the session at setup with 1007).
+   */
+  private async resolveVoiceConfig(
+    personaId: string,
+    opts: NativeAudioModelOptions
+  ): Promise<ReplicatedVoiceConfig | undefined> {
+    const sample = await getPersonaVoiceSample(personaId);
+    if (!sample || !opts.project) return undefined;
+    const allowed = await isReplicatedVoiceAllowed({
+      project: opts.project,
+      location: opts.location,
+      model: opts.model,
+      sample,
+    });
+    if (!allowed) {
+      log.warn(
+        { personaId, project: opts.project },
+        'Replicated voice not available for this project; using the prebuilt voice'
+      );
+      return undefined;
+    }
+    return toReplicatedVoiceConfig(sample);
   }
 
   getSessionTurnDetection(): AgentSessionTurnDetection {

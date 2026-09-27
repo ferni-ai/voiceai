@@ -571,6 +571,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
         model: geminiConfig.model,
         instructions: modelBaseInstructions,
         temperature: geminiConfig.temperature,
+        personaId: sessionPersona.id,
       });
 
       process.stderr.write(
