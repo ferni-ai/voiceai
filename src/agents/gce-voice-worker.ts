@@ -195,12 +195,9 @@ log('Phase 2.5: Starting async background workers');
 // Previously this was only done in Phase 3 (global-services.ts), which meant the
 // deep extraction worker would start without event listeners.
 import { configureAsyncEvents } from '../memory/dynamic/async-events-config.js';
-import { AsyncEvents } from '../services/async-events/index.js';
+import { memoryAsyncEvents } from '../services/async-events/index.js';
 try {
-  configureAsyncEvents({
-    emit: (event, data) => AsyncEvents.emit(event as never, data as Record<string, unknown>),
-    on: (event, handler) => AsyncEvents.on(event as never, handler),
-  });
+  configureAsyncEvents(memoryAsyncEvents);
   log('✅ AsyncEvents configured for memory workers');
 } catch (diError) {
   log('⚠️ AsyncEvents DI setup failed (deep extraction will be disabled)', {
