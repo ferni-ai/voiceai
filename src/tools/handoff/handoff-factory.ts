@@ -711,23 +711,21 @@ Do NOT try to transfer to them. This was just a quick hello.`,
         '🎭 Cameo unlock: Timing visual reveal to speech completion'
       );
 
-      // Wait for speech to (approximately) finish, then trigger the visual reveal
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, revealDelayMs);
-      });
-
-      // Now emit the event - visual celebration appears as speech finishes!
-      cameoUnlockEvents.emit('memberUnlocked', {
-        memberId: member.memberId,
-        displayName: member.displayName,
-        role: member.role,
-        spokenIntro: introText,
-      });
-
-      getLogger().info(
-        { memberId: member.memberId, displayName: member.displayName },
-        '🎭 Cameo unlock: Visual reveal triggered!'
-      );
+      // Schedule the reveal for when the speech should finish. Never wait for
+      // it here: the LLM cannot speak until this tool returns, so awaiting the
+      // delay left the caller in silence for the whole intro (27.6s on a call).
+      setTimeout(() => {
+        cameoUnlockEvents.emit('memberUnlocked', {
+          memberId: member.memberId,
+          displayName: member.displayName,
+          role: member.role,
+          spokenIntro: introText,
+        });
+        getLogger().info(
+          { memberId: member.memberId, displayName: member.displayName },
+          '🎭 Cameo unlock: Visual reveal triggered!'
+        );
+      }, revealDelayMs);
 
       return {
         success: true,
@@ -737,7 +735,7 @@ Do NOT try to transfer to them. This was just a quick hello.`,
         spoken_intro: introText,
         // Signal to frontend to show the unlock celebration
         trigger_cameo_unlock: true,
-        instructions: `Perfect! You've introduced ${member.displayName} and the celebration just appeared!
+        instructions: `Perfect! You've introduced ${member.displayName}; the celebration appears as you finish speaking.
 
 The user now has access to talk with them. Offer to connect:
 "Would you like to chat with ${member.displayName} about this?"

@@ -68,6 +68,13 @@ const LAUGHTER_BRACKET_REGEX =
 const STRIP_BRACKET_REGEX =
   /\[(excited|leans in|leans forward|pauses?|sighs?|smiles?|nods?|grins?|winks?|thinks?|gestures?|whispers?|shrugs?|clears throat|beats?|softly|warmly|gently|laughs at self)[^\]]*\]/gi;
 
+/**
+ * The same stage directions in parentheses, e.g. "(pause)", "(laughs softly)".
+ * Only direction words are matched, so "(or text me)" is still spoken.
+ */
+const STRIP_PAREN_DIRECTION_REGEX =
+  /\s*\((?:pauses?|beat|sighs?|smiles?|nods?|grins?|winks?|laughs?|laughing|chuckles?|chuckling|whispers?|shrugs?|breathes|breath|clears throat|leans in|softly|warmly|gently)\b[^)]{0,30}\)/gi;
+
 /** Speed range (Cartesia limits) */
 const SPEED_MIN = 0.6;
 const SPEED_MAX = 1.5;
@@ -287,6 +294,7 @@ export class SSMLProcessor implements ISSMLProcessor {
 
     // Strip non-synthesizable bracket expressions entirely
     cleanText = cleanText.replace(STRIP_BRACKET_REGEX, '');
+    cleanText = cleanText.replace(STRIP_PAREN_DIRECTION_REGEX, '');
 
     // =========================================================================
     // CRITICAL: Strip JSON function call blocks

@@ -438,4 +438,18 @@ describe('SSMLProcessor', () => {
       expect(result.prosody.emotionIntensity).toBe(0.8);
     });
   });
+  describe('parenthetical stage directions', () => {
+    it('drops (pause) and similar instead of reading them aloud', () => {
+      // Seen live: "Oh! Oh wow. (pause) A golden retriever named Biscuit?!"
+      const result = processor.parse('Oh wow. (pause) A golden retriever named Biscuit?! (laughs softly) Amazing.');
+      expect(result.cleanText).not.toMatch(/pause|laughs/i);
+      expect(result.cleanText).toContain('A golden retriever named Biscuit?!');
+      expect(result.cleanText).toContain('Amazing.');
+    });
+
+    it('keeps ordinary parentheses that are part of what is said', () => {
+      const result = processor.parse('Call me (or text me) any time.');
+      expect(result.cleanText).toContain('(or text me)');
+    });
+  });
 });

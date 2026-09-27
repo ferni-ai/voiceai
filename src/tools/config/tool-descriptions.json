@@ -2502,7 +2502,7 @@
       "file": "src/tools/domains/curiosity/index.ts"
     },
     "introduceMember": {
-      "description": "Formally introduces a team member to the user for the first time.",
+      "description": "Unlocks a teammate after you have introduced them out loud. Say the introduction first, in the same reply, then call this with what you said as spoken_intro. Only when the conversation clearly needs that teammate's specialty and the user has not met them; never in reply to small talk, personal news or a first hello.",
       "file": "src/tools/handoff/handoff-factory.ts"
     },
     "inviteCameo": {
