@@ -19,6 +19,7 @@ import {
   CARTESIA_API_URL,
 } from '../../../config/voice-ids.js';
 import type { ITTSProvider, SSMLProsodyConfig } from '../types.js';
+import { CartesiaReplyStream, type ReplyStream } from './cartesia-reply-stream.js';
 import { CartesiaSocket } from './cartesia-socket.js';
 
 const log = createLogger({ module: 'CartesiaTTSProvider' });
@@ -223,6 +224,29 @@ export class CartesiaTTSProvider implements ITTSProvider {
       if (streamDone) this.socket.release(contextId);
       else this.socket.cancel(contextId);
     }
+  }
+
+  /**
+   * Voice a whole reply on one Cartesia context (continuations): the gateway
+   * pushes each sentence as the LLM finishes it, and Cartesia keeps the tone
+   * and pacing continuous across them. Put any inline tags on the first push.
+   */
+  openReplyStream(voiceId: string): ReplyStream {
+    return new CartesiaReplyStream(
+      this.socket,
+      (transcript, more, contextId) => ({
+        model_id: CARTESIA_MODEL,
+        transcript,
+        voice: { mode: 'id', id: voiceId },
+        output_format: { container: 'raw', encoding: 'pcm_s16le', sample_rate: 24000 },
+        language: 'en',
+        context_id: contextId,
+        continue: more,
+        // The gateway already sends whole sentences; server buffering only adds delay.
+        max_buffer_delay_ms: 0,
+      }),
+      WS_STREAM_TIMEOUT_MS
+    );
   }
 
   /**

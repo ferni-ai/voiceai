@@ -39,6 +39,8 @@ import { getTTSCache } from '../../services/tts/index.js';
 import { getTTSProvider } from './providers/index.js';
 import { getSSMLProcessor } from './ssml/index.js';
 import { findChunkEnd } from './chunk-boundary.js';
+import { createContinuationTTS } from './continuation-tts.js';
+import { prosodyTags } from './providers/cartesia.js';
 import type { SSMLProsodyConfig } from './types.js';
 
 // ============================================================================
@@ -402,6 +404,23 @@ async function createStreamingOverlapTTS(
     ssmlProcessor,
     markFirstAudio,
   } = opts;
+
+  // One continuous generation per reply when the provider supports it: tone
+  // and pacing carry across sentences and there are no per-sentence gaps.
+  if (provider.openReplyStream && process.env.TTS_REPLY_CONTINUATIONS !== 'false') {
+    metrics.gatewaySyntheses++;
+    return createContinuationTTS({
+      textStream,
+      reply: provider.openReplyStream(voiceId),
+      sanitize: (chunk) => sanitizeChunkForTTS(chunk, ssmlProcessor),
+      openingTags: prosodyTags,
+      emotion,
+      toFrames: (pcm) => splitIntoFrames(pcm, sampleRate, frameDurationMs),
+      onFirstAudio: markFirstAudio,
+      onError: (err, phase) =>
+        log.warn({ err: String(err), phase, sessionId, personaId }, 'Continuous reply TTS failed'),
+    });
+  }
 
   // Prefer sentence-overlap for all streaming providers (Sonata + Cartesia).
   // Whole-text drain delayed first audio until the full LLM reply finished — opt in only for debug.

@@ -16,6 +16,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@livekit/agents-plugin-cartesia', () => ({
   TTS: class MockCartesiaTTS {
     constructor(_config?: { model?: string; voice?: string }) {}
+    // PersonaAwareTTS re-applies its delivery style on every voice switch.
+    updateOptions(_opts: { emotion?: string[]; speed?: number }) {}
     synthesize(_text: string) {
       return {
         [Symbol.asyncIterator]: async function* () {
@@ -195,7 +197,7 @@ describe('VoiceManager', () => {
     });
 
     it('should have consistent model across all voices', () => {
-      const expectedModel = process.env.CARTESIA_MODEL || 'sonic-3-latest';
+      const expectedModel = process.env.CARTESIA_MODEL || 'sonic-3.6';
       for (const [_id, config] of Object.entries(VOICES)) {
         expect(config.model).toBe(expectedModel);
       }

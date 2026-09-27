@@ -8,6 +8,7 @@
  */
 
 import type { AudioFrame } from '@livekit/rtc-node';
+import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type {
   TransformStream as NodeTransformStream,
   ReadableStream as NodeReadableStream,
@@ -227,6 +228,12 @@ export interface ITTSProvider {
     voiceId: string,
     prosody?: SSMLProsodyConfig
   ): AsyncIterable<ArrayBuffer>;
+
+  /**
+   * Voice one reply as a single continuous generation, fed piece by piece as
+   * the LLM streams it. Preferred over per-sentence synthesis when present.
+   */
+  openReplyStream?(voiceId: string): ReplyStream;
 
   /**
    * Check if provider is available/healthy
