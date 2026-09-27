@@ -8,6 +8,7 @@
  */
 
 import type { PersonaConfig } from '../../personas/types.js';
+import { routeSayThroughModel } from '../shared/native-speech.js';
 import type { VoiceDeps } from '../voice-agent/phases/index.js';
 import type { AudioRouter } from '../../integrations/qwen3-omni/director/audio-router.js';
 import type { UserLocation } from './types.js';
@@ -595,6 +596,12 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
         llm, tts, userData, voiceOptions,
       });
     }
+  }
+
+  // Gemini native audio speaks for itself: route scripted say() lines through the
+  // model so the call keeps one voice (see agents/shared/native-speech.ts).
+  if (session && modelProvider.speaksNatively?.()) {
+    routeSayThroughModel(session as unknown as Parameters<typeof routeSayThroughModel>[0]);
   }
 
   // Add cleanup handler for retry counter WeakMap

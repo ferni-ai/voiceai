@@ -17,6 +17,7 @@
  */
 
 import { voice, type JobContext, llm } from '@livekit/agents';
+import { routeSayThroughModel } from '../shared/native-speech.js';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig } from '../../personas/types.js';
 import { getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
@@ -1231,6 +1232,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
     },
   });
 
+  // Gemini native audio speaks for itself: scripted say() lines must come from
+  // the model too, or the call alternates between Gemini's and Cartesia's voice.
+  if (modelProvider.speaksNatively?.()) {
+    routeSayThroughModel(session as unknown as Parameters<typeof routeSayThroughModel>[0]);
+  }
+
   mark('session_created');
 
   // Match the single-agent conversation humanization bootstrap without adding
@@ -1818,7 +1825,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
             sessionId,
             persona.id,
             session,
-            () => conversationManager?.isAgentSpeaking() ?? false
+            () => conversationManager?.isAgentSpeaking() ?? false,
+            // A native-audio model would turn a scripted "mm-hmm" into a full
+            // reply while the user is still talking.
+            { enabled: !getModelProvider().speaksNatively?.() }
           );
           cleanupFunctions.push(() => liveBackchannel?.cleanup());
           log.info(
