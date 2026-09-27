@@ -438,10 +438,39 @@ describe('SSMLProcessor', () => {
       expect(result.prosody.emotionIntensity).toBe(0.8);
     });
   });
+  describe('sentences joined without a space', () => {
+    it('separates them so they are read as two sentences', () => {
+      // Seen live around a tool call: "...in the background.I'm just going to let this play"
+      const result = processor.parse(
+        "Something easy in the background.I'm just going to let this play."
+      );
+      expect(result.cleanText).toContain("background. I'm just");
+    });
+
+    it('drops a comma stuck to sentence punctuation', () => {
+      // Scripted greeting on a live call: "Hey. Talk to me., Mm.,"
+      expect(processor.parse('Hey. Talk to me., Mm.,').cleanText).toBe('Hey. Talk to me. Mm.');
+      expect(processor.parse("What's happening?,").cleanText).toBe("What's happening?");
+    });
+
+    it('keeps an ellipsis as a trailing-off pause, not a full stop', () => {
+      // "..." was collapsed to "." so "That is... that's" became two sentences.
+      const result = processor.parse("That is... that's a lot to carry.");
+      expect(result.cleanText).toBe("That is... that's a lot to carry.");
+    });
+
+    it('leaves initialisms, decimals and domains alone', () => {
+      const result = processor.parse('The U.S. rate was 3.5 at ferni.ai today.');
+      expect(result.cleanText).toBe('The U.S. rate was 3.5 at ferni.ai today.');
+    });
+  });
+
   describe('parenthetical stage directions', () => {
     it('drops (pause) and similar instead of reading them aloud', () => {
       // Seen live: "Oh! Oh wow. (pause) A golden retriever named Biscuit?!"
-      const result = processor.parse('Oh wow. (pause) A golden retriever named Biscuit?! (laughs softly) Amazing.');
+      const result = processor.parse(
+        'Oh wow. (pause) A golden retriever named Biscuit?! (laughs softly) Amazing.'
+      );
       expect(result.cleanText).not.toMatch(/pause|laughs/i);
       expect(result.cleanText).toContain('A golden retriever named Biscuit?!');
       expect(result.cleanText).toContain('Amazing.');

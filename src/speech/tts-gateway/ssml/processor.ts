@@ -483,14 +483,22 @@ export class SSMLProcessor implements ISSMLProcessor {
       text
         // Collapse multiple spaces
         .replace(/\s+/g, ' ')
-        // Fix multiple periods
-        .replace(/\.+/g, '.')
+        // Runs of periods: keep a spoken ellipsis ("..."), collapse the rest.
+        // Collapsing "..." to "." turned a trailing-off pause into a full stop.
+        .replace(/\.{4,}/g, '...')
+        .replace(/(^|[^.])\.\.(?!\.)/g, '$1.')
         // Fix multiple commas
         .replace(/,+/g, ',')
+        // A comma stuck to sentence punctuation ("Talk to me., Mm.,") comes
+        // from a pause tag turned into a comma; the sentence end already pauses
+        .replace(/([.!?])\s*,/g, '$1')
         // Fix space before punctuation
         .replace(/\s+([.,!?;:])/g, '$1')
-        // Fix punctuation without following space
-        .replace(/([.,!?;:])([a-zA-Z])/g, '$1 $2')
+        // Sentences joined without a space ("background.I'm"), but not
+        // initialisms (U.S.), decimals (3.5) or domains (ferni.ai)
+        .replace(/([a-z][.!?])([A-Z])/g, '$1 $2')
+        // Commas and colons without a following space
+        .replace(/([,;:])([a-zA-Z])/g, '$1 $2')
         // Remove leading punctuation
         .replace(/^[.,!?;:\s]+/, '')
         // Trim
