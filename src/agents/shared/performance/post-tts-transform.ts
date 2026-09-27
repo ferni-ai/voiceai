@@ -1005,9 +1005,10 @@ export function createPostTTSTransform(
             splitbandRatio: 4, // 4:1 compression on high band only
             // Limiter: soft limiter to prevent clipping
             enableLimiter: true,
-            // Crossfade: seamless frame boundaries
-            enableCrossfade: true,
-            crossfadeMs: 5,
+            // Crossfade OFF: frames of one TTS stream are already continuous; blending
+            // the emitted tail into the next head replayed audio and clicked at every
+            // frame boundary. The Rust processor now ignores this flag as well.
+            enableCrossfade: false,
             // Soft edges: gentle fade in/out at utterance boundaries
             softAttackMs: fullConfig.enableSoftEdges ? fullConfig.softEdgeMs : 0,
             softReleaseMs: fullConfig.enableSoftEdges ? fullConfig.softEdgeMs : 0,

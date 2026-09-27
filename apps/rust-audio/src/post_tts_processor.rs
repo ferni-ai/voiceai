@@ -5072,29 +5072,20 @@ impl PostTTSProcessor {
             stats.soft_release_applied = true;
         }
 
-        // 7. Crossfade - blend with previous frame (both frames now fully processed)
-        // Uses equal-power crossfade to maintain constant loudness
-        if self.config.enable_crossfade && self.crossfade_buffer.has_tail {
-            self.crossfade_buffer.apply_crossfade(samples);
-            stats.crossfade_applied = true;
-        }
+        // 7. No crossfade between frames. Consecutive frames of one TTS stream are
+        // already continuous: the previous frame's tail has been emitted, so blending
+        // it into this frame's head replays 5 ms of past audio and jumps the waveform
+        // back at every boundary (measured 6.9x the signal's own step at the boundary,
+        // 19.9x mid-frame from the alignment shift). `enable_crossfade` is accepted for
+        // API compatibility and ignored here; CrossfadeBuffer is only valid for
+        // splicing two independently generated segments.
 
-        // 7b. Noise floor - add subtle room tone BEFORE storing tail
-        // This ensures the crossfade region has consistent noise characteristics.
-        // Without this, the tail would have no noise, creating a subtle discontinuity.
+        // 7b. Noise floor - subtle room tone
         if self.config.enable_noise_floor {
             self.noise_floor.process(samples);
         }
 
-        // 8. Store tail BEFORE limiter for next frame's crossfade
-        // (so crossfade blends pre-limited audio for smoother result)
-        // Note: Noise floor is now included in the tail for consistency
-        if self.config.enable_crossfade && !is_last_frame {
-            self.crossfade_buffer.store_tail(samples);
-        }
-
-        // 9. Limiter - LAST in chain to catch any peaks from crossfade or processing
-        // This ensures output never clips, even if crossfade creates constructive interference
+        // 9. Limiter - LAST in chain to catch any peaks from processing
         if self.config.enable_limiter {
             let reduction = self.apply_limiter(samples);
             stats.limiter_reduction_db = reduction;
@@ -5352,15 +5343,14 @@ mod tests {
             let is_last = i == 4;
             let stats = processor.process_frame(&mut samples, is_last);
 
+            // Contiguous frames are never crossfaded: that replays emitted audio.
+            assert!(!stats.crossfade_applied);
             if i == 0 {
                 assert!(stats.soft_attack_applied);
-                assert!(!stats.crossfade_applied);
             } else if i == 4 {
                 assert!(stats.soft_release_applied);
-                assert!(stats.crossfade_applied);
             } else {
                 assert!(!stats.soft_attack_applied);
-                assert!(stats.crossfade_applied);
             }
         }
 
@@ -6957,5 +6947,145 @@ mod click_diagnostics {
         // Verify limiter bounds
         let max_abs: f32 = all_output.iter().map(|s| s.abs()).fold(0.0, f32::max);
         assert!(max_abs <= 1.0, "Output exceeds limiter bounds: {}", max_abs);
+    }
+}
+
+/// Frame-boundary continuity of the chain exactly as the live agent configures it.
+///
+/// The TS glue (post-tts-transform.ts, `betterThanHuman` preset) sets most flags,
+/// and every flag it does not send keeps the Rust default. `live_config()` mirrors
+/// that. A clean tone must come out without jumps larger than its own natural
+/// sample-to-sample slope, or the listener hears a click at every frame.
+#[cfg(test)]
+mod live_chain_continuity {
+    use super::*;
+
+    const SR: u32 = 24_000;
+    const FRAME: usize = 480; // 20 ms at 24 kHz
+    const FRAMES: usize = 40;
+
+    fn live_config() -> ProcessorConfig {
+        ProcessorConfig {
+            sample_rate: SR,
+            enable_warmth: true,
+            warmth_gain_db: 0.25 * 6.0,
+            enable_presence: false,
+            enable_compression: true,
+            comp_threshold_db: -20.0,
+            comp_ratio: 1.5,
+            comp_attack_ms: 30.0,
+            comp_release_ms: 300.0,
+            enable_deesser: false,
+            enable_splitband_deesser: true,
+            splitband_crossover_freq: 5000.0,
+            splitband_threshold_db: -20.0,
+            splitband_ratio: 4.0,
+            enable_limiter: true,
+            enable_crossfade: true,
+            crossfade_ms: 5.0,
+            soft_attack_ms: 10.0,
+            soft_release_ms: 10.0,
+            enable_breath: false,
+            enable_micro_pitch: false,
+            enable_noise_floor: false,
+            enable_amplitude_jitter: false,
+            enable_pitch_drift: false,
+            use_sola_pitch: false,
+            enable_emotion_prosody: false,
+            enable_adaptive_pacing: false,
+            enable_vocal_fry: false,
+            enable_lip_smacks: false,
+            enable_tempo_variation: false,
+            enable_onset_softening: false,
+            // Not sent by the TS glue: these keep the Rust defaults.
+            ..ProcessorConfig::default()
+        }
+    }
+
+    /// 220 Hz fundamental plus two harmonics: a crude voiced-speech stand-in.
+    fn tone(n: usize) -> Vec<f32> {
+        (0..n)
+            .map(|i| {
+                let t = i as f32 / SR as f32;
+                let w = 2.0 * std::f32::consts::PI * 220.0 * t;
+                0.30 * w.sin() + 0.12 * (2.0 * w).sin() + 0.06 * (3.0 * w).sin()
+            })
+            .collect()
+    }
+
+    fn max_step(x: &[f32]) -> f32 {
+        x.windows(2).map(|w| (w[1] - w[0]).abs()).fold(0.0, f32::max)
+    }
+
+    /// Returns (max step at frame boundaries, max step inside frames), skipping
+    /// the first and last two frames where soft attack/release legitimately act.
+    fn run(config: ProcessorConfig) -> (f32, f32) {
+        let input = tone(FRAME * FRAMES);
+        let mut p = PostTTSProcessor::new(config);
+        p.start_utterance();
+        let mut out = Vec::with_capacity(input.len());
+        for (k, chunk) in input.chunks(FRAME).enumerate() {
+            let mut buf = chunk.to_vec();
+            p.process_frame(&mut buf, k == FRAMES - 1);
+            out.extend_from_slice(&buf);
+        }
+        let (mut at_boundary, mut inside) = (0.0f32, 0.0f32);
+        for i in (2 * FRAME + 1)..((FRAMES - 2) * FRAME) {
+            let step = (out[i] - out[i - 1]).abs();
+            if i % FRAME == 0 {
+                at_boundary = at_boundary.max(step);
+            } else {
+                inside = inside.max(step);
+            }
+        }
+        (at_boundary, inside)
+    }
+
+    #[test]
+    fn ablation_report() {
+        let natural = max_step(&tone(FRAME * 4));
+        let base = live_config();
+        let variants: Vec<(&str, ProcessorConfig)> = vec![
+            ("live", base.clone()),
+            ("live - crossfade", ProcessorConfig { enable_crossfade: false, ..base.clone() }),
+            ("live - jitter", ProcessorConfig { enable_jitter: false, ..base.clone() }),
+            ("live - shimmer", ProcessorConfig { enable_shimmer: false, ..base.clone() }),
+            ("live - hnr", ProcessorConfig { enable_hnr_modulation: false, ..base.clone() }),
+            ("live - subglottal", ProcessorConfig { enable_subglottal_resonance: false, ..base.clone() }),
+            ("live - limiter", ProcessorConfig { enable_limiter: false, ..base.clone() }),
+            ("live - splitband", ProcessorConfig { enable_splitband_deesser: false, ..base.clone() }),
+            ("live - compression", ProcessorConfig { enable_compression: false, ..base.clone() }),
+            ("live - warmth", ProcessorConfig { enable_warmth: false, ..base.clone() }),
+            (
+                "live - crossfade/jitter/shimmer/hnr/subglottal",
+                ProcessorConfig {
+                    enable_crossfade: false,
+                    enable_jitter: false,
+                    enable_shimmer: false,
+                    enable_hnr_modulation: false,
+                    enable_subglottal_resonance: false,
+                    ..base.clone()
+                },
+            ),
+        ];
+        println!("natural max step of the tone: {natural:.4}");
+        for (name, cfg) in variants {
+            let (b, i) = run(cfg);
+            println!("{name:<48} boundary {b:.4} ({:.1}x)  inside {i:.4} ({:.1}x)", b / natural, i / natural);
+        }
+    }
+
+    #[test]
+    fn live_chain_has_no_frame_boundary_clicks() {
+        let natural = max_step(&tone(FRAME * 4));
+        let (at_boundary, inside) = run(live_config());
+        assert!(
+            at_boundary <= 1.5 * natural,
+            "click at frame boundary: step {at_boundary:.4} vs natural {natural:.4}"
+        );
+        assert!(
+            inside <= 1.5 * natural,
+            "discontinuity inside frames: step {inside:.4} vs natural {natural:.4}"
+        );
     }
 }
