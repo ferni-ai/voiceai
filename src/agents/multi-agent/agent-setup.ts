@@ -87,6 +87,7 @@ import { getToolGateway } from '../../tools/gateway/index.js';
 import {
   filterInitialSpawnTools,
   getInitialToolPolicyFromEnv,
+  resolveInitialToolLimit,
   type InitialToolPolicy,
 } from './initial-tools.js';
 
@@ -1070,9 +1071,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const provider = getModelProvider();
   const configuredLimit = getMaxTools();
 
-  // Use configured limit, or default to 50 for Gemini if no limit configured
-  const effectiveLimit =
-    configuredLimit > 0 ? configuredLimit : provider.id === 'gemini-live' ? 50 : 0;
+  // Every provider gets a cap: the essential domains alone are ~340 tools.
+  const effectiveLimit = resolveInitialToolLimit(configuredLimit);
 
   if (effectiveLimit > 0 && toolCount > effectiveLimit) {
     // Use centralized tool capping which handles essential tool prioritization
@@ -1263,14 +1263,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
           : undefined,
       });
 
-      const { initializeFromPersistence } = await import(
-        '../../conversation/humanization/persistence.js'
-      );
+      const { initializeFromPersistence } =
+        await import('../../conversation/humanization/persistence.js');
       await initializeFromPersistence(userId || 'anonymous', sessionId);
 
-      const { setupVoiceHumanizationInit } = await import(
-        '../voice-agent/voice-humanization-init-handler.js'
-      );
+      const { setupVoiceHumanizationInit } =
+        await import('../voice-agent/voice-humanization-init-handler.js');
       setupVoiceHumanizationInit({
         sessionId,
         sessionPersona: persona,

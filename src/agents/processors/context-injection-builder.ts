@@ -217,6 +217,23 @@ export async function buildContextInjections(
     });
   }
 
+  // A source that fails or misses its budget is dropped from this turn's
+  // context; log which one so a source that never lands is visible.
+  const contextSourceFailed = (source: string, error: unknown): null => {
+    diag.warn('Context source failed', { source, error: String(error) });
+    return null;
+  };
+  const withinBudget = <T,>(source: string, ms: number, work: Promise<T | null>): Promise<T | null> => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const budget = new Promise<null>((resolve) => {
+      timer = setTimeout(() => {
+        diag.info('Context source missed its first-turn budget', { source, budgetMs: ms });
+        resolve(null);
+      }, ms);
+    });
+    return Promise.race([work, budget]).finally(() => clearTimeout(timer));
+  };
+
   // 2c–2g. PREDICTIVE + FIRST-TURN CONTEXT (all run in PARALLEL)
   // Previously these ran sequentially, adding 300-600ms on first turn.
   // Now they all fire at once with individual timeouts.
@@ -230,40 +247,38 @@ export async function buildContextInjections(
       ? getPredictiveIntelligenceContext(userId, {
           currentEmotion: analysis.emotion.primary,
           currentTopic,
-        }).catch(() => null)
+        }).catch((error: unknown) => contextSourceFailed('predictive', error))
       : Promise.resolve(null),
 
     // 2d. TEAM HUDDLE (first turn only)
     userId && isFirstTurn
-      ? Promise.race([
+      ? withinBudget('team_huddle', FIRST_TURN_TIMEOUT_MS,
           import('../../services/cross-persona/team-huddle.js').then(async ({ generateTeamHuddle, formatTeamHuddleForLLM }) => {
             const huddle = await generateTeamHuddle(userId);
             if (huddle.observations.length > 0) {
               return { category: 'team_huddle' as const, content: formatTeamHuddleForLLM(huddle), priority: 78 };
             }
             return null;
-          }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), FIRST_TURN_TIMEOUT_MS)),
-        ]).catch(() => null)
+          })
+        ).catch((error: unknown) => contextSourceFailed('team_huddle', error))
       : Promise.resolve(null),
 
     // 2e. OUTREACH BRIDGE (first turn only)
     userId && isFirstTurn
-      ? Promise.race([
+      ? withinBudget('outreach_bridge', FIRST_TURN_TIMEOUT_MS,
           import('../../services/outreach/conversation-context-bridge.js').then(async ({ buildOutreachBridgeInjection }) => {
             const bridgeInjection = await buildOutreachBridgeInjection(userId);
             if (bridgeInjection) {
               return { category: 'outreach_bridge' as const, content: bridgeInjection.content, priority: bridgeInjection.priority };
             }
             return null;
-          }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), FIRST_TURN_TIMEOUT_MS)),
-        ]).catch(() => null)
+          })
+        ).catch((error: unknown) => contextSourceFailed('outreach_bridge', error))
       : Promise.resolve(null),
 
     // 2f. CROSS-CHANNEL CONTEXT (first turn only)
     userId && isFirstTurn
-      ? Promise.race([
+      ? withinBudget('cross_channel', FIRST_TURN_TIMEOUT_MS,
           import('../../services/session-context/session-summary.js').then(async ({ getActiveUserContext, formatContextForVoiceCall }) => {
             const activeContext = await getActiveUserContext(userId);
             if (activeContext) {
@@ -273,23 +288,21 @@ export async function buildContextInjections(
               }
             }
             return null;
-          }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), FIRST_TURN_TIMEOUT_MS)),
-        ]).catch(() => null)
+          })
+        ).catch((error: unknown) => contextSourceFailed('cross_channel', error))
       : Promise.resolve(null),
 
     // 2g. WHILE YOU WERE AWAY (first turn only)
     userId && isFirstTurn
-      ? Promise.race([
+      ? withinBudget('pending_background_results', FIRST_TURN_TIMEOUT_MS,
           import('../../intelligence/context-builders/external/pending-call-results.js').then(async ({ buildAllPendingResultsContext }) => {
             const pendingResultsContext = await buildAllPendingResultsContext(userId);
             if (pendingResultsContext) {
               return { category: 'pending_background_results' as const, content: pendingResultsContext, priority: 90 };
             }
             return null;
-          }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), FIRST_TURN_TIMEOUT_MS)),
-        ]).catch(() => null)
+          })
+        ).catch((error: unknown) => contextSourceFailed('pending_background_results', error))
       : Promise.resolve(null),
   ]);
 
