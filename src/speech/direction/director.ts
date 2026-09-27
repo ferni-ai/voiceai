@@ -102,6 +102,21 @@ function withinBudget<T>(work: Promise<T>, ms: number): Promise<T | 'late'> {
 }
 
 /**
+ * Warm the actor at call start. The first model call in a call job pays for
+ * client setup and auth; on dev it pushed the greeting past its budget, so
+ * the scripted greeting played. Never throws.
+ */
+export async function prewarmDirector(actor: Actor = defaultActor): Promise<void> {
+  const started = Date.now();
+  try {
+    await actor('Reply with the single word: ok', 'ok');
+    log.debug({ ms: Date.now() - started }, 'Director prewarmed');
+  } catch (error) {
+    log.debug({ error: String(error) }, 'Director prewarm failed (non-critical)');
+  }
+}
+
+/**
  * Get the line for a cue: the actor's if it arrives in time and is usable,
  * otherwise the cue's fallback.
  */

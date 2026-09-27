@@ -9,6 +9,7 @@ export {
   buildDirection,
   directLine,
   directionMode,
+  prewarmDirector,
   type DirectedLine,
   type Scene,
 } from './director.js';

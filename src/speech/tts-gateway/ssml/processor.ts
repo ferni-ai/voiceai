@@ -492,6 +492,8 @@ export class SSMLProcessor implements ISSMLProcessor {
         // A comma stuck to sentence punctuation ("Talk to me., Mm.,") comes
         // from a pause tag turned into a comma; the sentence end already pauses
         .replace(/([.!?])\s*,/g, '$1')
+        // ...or a period stuck to a question or exclamation mark ("happening?.")
+        .replace(/([!?])\s*\.(?!\.)/g, '$1')
         // Fix space before punctuation
         .replace(/\s+([.,!?;:])/g, '$1')
         // Sentences joined without a space ("background.I'm"), but not

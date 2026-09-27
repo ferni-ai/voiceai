@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { acceptLine, type Cue } from '../cue.js';
-import { buildDirection, directLine, directionMode, type Scene } from '../director.js';
+import { buildDirection, directLine, directionMode, prewarmDirector, type Scene } from '../director.js';
 
 const cue: Cue = {
   moment: 'music_started',
@@ -104,5 +104,24 @@ describe('directLine', () => {
     expect(directionMode({})).toBe('on');
     expect(directionMode({ DIRECTED_SPEECH: 'shadow' })).toBe('shadow');
     expect(directionMode({ DIRECTED_SPEECH: 'off' })).toBe('off');
+  });
+});
+
+describe('prewarmDirector', () => {
+  it('makes one tiny actor call so the first real cue is not cold', async () => {
+    const calls: string[] = [];
+    await prewarmDirector(async (_system, prompt) => {
+      calls.push(prompt);
+      return 'ok';
+    });
+    expect(calls).toHaveLength(1);
+  });
+
+  it('never throws, even if the actor fails', async () => {
+    await expect(
+      prewarmDirector(async () => {
+        throw new Error('503');
+      })
+    ).resolves.toBeUndefined();
   });
 });

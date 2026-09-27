@@ -447,6 +447,12 @@ describe('SSMLProcessor', () => {
       expect(result.cleanText).toContain("background. I'm just");
     });
 
+    it('drops a period stuck to a question or exclamation mark', () => {
+      // Scripted greeting on dev: "hey there. What's happening?."
+      expect(processor.parse("hey there. What's happening?.").cleanText).toBe("hey there. What's happening?");
+      expect(processor.parse('Wow!. That is great.').cleanText).toBe('Wow! That is great.');
+    });
+
     it('drops a comma stuck to sentence punctuation', () => {
       // Scripted greeting on a live call: "Hey. Talk to me., Mm.,"
       expect(processor.parse('Hey. Talk to me., Mm.,').cleanText).toBe('Hey. Talk to me. Mm.');
