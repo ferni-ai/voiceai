@@ -221,6 +221,17 @@ jobs:
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker gcr.io --quiet
 
+      # The agent image compiles two Rust native modules in Docker, which ran the
+      # GitHub-hosted runner out of disk ("No space left on device", 2026-09-27).
+      # Remove preinstalled toolchains this job never uses (~30 GB).
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/local/.ghcup
+          sudo docker image prune --all --force
+          df -h /
+
       - name: Build and push image
         run: |
           # Use native docker build (gcloud auth configure-docker works with this)
