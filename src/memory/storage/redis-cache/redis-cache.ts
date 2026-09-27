@@ -84,6 +84,13 @@ export class RedisCache {
   }
 
   private async doInitialize(): Promise<void> {
+    // No Redis configured (the LiveKit Cloud agent has none): don't dial
+    // localhost:6379 and leave every cache call waiting on retries.
+    if (!this.config.url && !process.env.REDIS_HOST) {
+      getLogger().debug('Redis not configured (REDIS_URL/REDIS_HOST unset) - cache disabled');
+      return;
+    }
+
     try {
       // Dynamic import of ioredis
       const Redis = (await import('ioredis')).default;
@@ -140,6 +147,11 @@ export class RedisCache {
       this.initialized = true;
       getLogger().info('Redis cache initialized successfully');
     } catch (error) {
+      // Drop the unconnected client so cache calls skip Redis instead of
+      // retrying against it (each retry was a MaxRetriesPerRequestError).
+      const failed = this.client as unknown as { disconnect?: () => void } | null;
+      this.client = null;
+      failed?.disconnect?.();
       getLogger().error(`Redis initialization failed: ${error}`);
       throw error;
     }

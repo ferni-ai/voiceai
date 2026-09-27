@@ -79,6 +79,11 @@ import {
   resolveTurnIntelligenceMode,
   usesServerTurnDetection,
 } from './turn-intelligence.js';
+import {
+  chainUserTurnHooks,
+  createMemoryRecallHook,
+  memoryRecallMode,
+} from './memory-recall-hook.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
@@ -1697,10 +1702,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // FerniAgent now hoisted to module level for faster startup
   // Per-turn intelligence (context builders, memory retrieval, emotional
   // guidance) - see turn-intelligence.ts for why this is gated.
-  const onUserTurn =
+  // Memory recall runs first so turn intelligence (when on) sees it too.
+  const onUserTurn = chainUserTurnHooks(
+    userId && userId !== 'anonymous' && memoryRecallMode()
+      ? createMemoryRecallHook({ userId, userName: userData.userName })
+      : undefined,
     resolveTurnIntelligenceMode() === 'on'
       ? createTurnIntelligenceHook({ persona, services, userData, room })
-      : undefined;
+      : undefined
+  );
 
   const agentInstructions = composeAgentInstructions(
     systemPrompt,
