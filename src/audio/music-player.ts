@@ -51,6 +51,7 @@ import * as path from 'path';
 import { promisify } from 'util';
 import { isDebugEnabled } from '../config/feature-flags.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { swapBackgroundPlayer } from './background-player-swap.js';
 // AgentSession is the session object from voice pipeline - using any for compatibility
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AgentSession = any;
@@ -866,11 +867,11 @@ export class CallMusicPlayer {
             '🎧 [MIXER-FIX] Previous track done - recreating BackgroundAudioPlayer for fresh mixer'
           );
           try {
-            this.backgroundPlayer = new BackgroundAudioPlayer();
-            await this.backgroundPlayer.start({
-              room: this.room,
-              agentSession: this.agentSession ?? undefined,
-            });
+            this.backgroundPlayer = await swapBackgroundPlayer(
+              this.backgroundPlayer,
+              () => new BackgroundAudioPlayer(),
+              { room: this.room!, agentSession: this.agentSession ?? undefined }
+            );
           } catch (recreateError) {
             log.error(
               { error: String(recreateError), track: track.name },
@@ -905,11 +906,11 @@ export class CallMusicPlayer {
           );
 
           try {
-            this.backgroundPlayer = new BackgroundAudioPlayer();
-            await this.backgroundPlayer.start({
-              room: this.room,
-              agentSession: this.agentSession ?? undefined,
-            });
+            this.backgroundPlayer = await swapBackgroundPlayer(
+              this.backgroundPlayer,
+              () => new BackgroundAudioPlayer(),
+              { room: this.room!, agentSession: this.agentSession ?? undefined }
+            );
 
             // Retry play with fresh player
             this.currentPlayHandle = this.backgroundPlayer.play(
@@ -1289,11 +1290,11 @@ export class CallMusicPlayer {
         );
 
         try {
-          this.backgroundPlayer = new BackgroundAudioPlayer();
-          await this.backgroundPlayer.start({
-            room: this.room,
-            agentSession: this.agentSession ?? undefined,
-          });
+          this.backgroundPlayer = await swapBackgroundPlayer(
+            this.backgroundPlayer,
+            () => new BackgroundAudioPlayer(),
+            { room: this.room!, agentSession: this.agentSession ?? undefined }
+          );
 
           this.currentPlayHandle = this.backgroundPlayer.play({ source: audioPath, volume }, false);
           log.info(

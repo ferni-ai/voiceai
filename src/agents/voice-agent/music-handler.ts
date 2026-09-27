@@ -60,6 +60,7 @@ import { startAnalyticsPersistence } from '../../audio/music-transition-analytic
 
 // Frontend communication
 import { getFrontendPublisher } from '../realtime/frontend-publisher.js';
+import { djSpeaksOnItsOwn } from '../../audio/dj-speech-policy.js';
 
 const log = createLogger({ module: 'MusicHandler' });
 
@@ -239,9 +240,9 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
         handleDJMoment(momentType, t, sessionPersona.id, sessionId, conversationManager);
       });
 
-      // Pre-warm LLM cache
+      // Pre-warm LLM cache (only used when the DJ speaks on its own)
       const speechContext: TrackSpeechContext = { track, personaId: sessionPersona.id };
-      prewarmInterjectionCache(speechContext).catch((err) => {
+      if (djSpeaksOnItsOwn()) prewarmInterjectionCache(speechContext).catch((err) => {
         log.debug(
           { error: String(err), personaId: sessionPersona.id },
           'Interjection cache prewarm failed (non-critical)'
@@ -308,7 +309,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     if (outroDecision.shouldSpeak && !conversationManager.isAgentSpeaking()) {
       const speechContext: TrackSpeechContext = { track, personaId: sessionPersona.id };
       const phrase = getOutroPhrase(speechContext);
-      coordinatedSay(sessionId, phrase);
+      djSay(sessionId, phrase);
     }
   });
 
@@ -385,7 +386,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
               const phrase =
                 continuationPhrases[Math.floor(Math.random() * continuationPhrases.length)];
               if (phrase) {
-                coordinatedSay(sessionId, phrase);
+                djSay(sessionId, phrase);
               }
             }
           } catch (err) {
@@ -520,6 +521,12 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
 // HELPERS
 // ============================================================================
 
+/** A line the DJ says on its own; silent unless DJ_SPOKEN_LINES=on. */
+function djSay(sessionId: string, phrase: string): void {
+  if (!djSpeaksOnItsOwn()) return;
+  coordinatedSay(sessionId, phrase);
+}
+
 async function speakTrackIntro(
   track: MusicTrack,
   personaId: string,
@@ -538,7 +545,7 @@ async function speakTrackIntro(
     phrase = getDropPhrase(speechContext);
   }
 
-  coordinatedSay(sessionId, phrase);
+  djSay(sessionId, phrase);
 }
 
 async function handleDJMoment(
@@ -569,7 +576,7 @@ async function handleDJMoment(
   }
 
   log.debug({ momentType, track: track.name }, 'DJ moment triggered');
-  coordinatedSay(sessionId, phrase);
+  djSay(sessionId, phrase);
 }
 
 // ============================================================================
