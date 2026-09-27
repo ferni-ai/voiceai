@@ -27,6 +27,8 @@ import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getRealtimeModel } from '../../config/gemini-config.js';
+import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
+import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
 // Centralized tool configuration (Jan 2026)
 import { capToolsToLimit, getMaxTools } from '../../config/tool-config.js';
 
@@ -1498,11 +1500,22 @@ Reference past context when relevant, but don't force it. Let the conversation f
     sessionEventHandlers.push({ event: 'speech_created', handler: speechCreatedHandler });
 
     // Track user input transcription
+    // Crisis guard in SHADOW + per-turn voice/delivery: same observers as the
+    // single-agent path, so the live multi-agent path is not silently skipped.
+    const crisisGuardMode = resolveCrisisGuardMode();
     const userInputHandler = (event: unknown) => {
       const evt = event as { transcript?: string; isFinal?: boolean };
       process.stderr.write(
         `\n📝 [USER TRANSCRIPT] isFinal=${evt.isFinal}: "${evt.transcript || '(empty)'}"\n`
       );
+      if (!evt.isFinal) return;
+      observeFinalTranscript({
+        session: sessionWithEvents,
+        transcript: evt.transcript || '',
+        userData: userData as unknown as Record<string, unknown>,
+        sessionId,
+        crisisMode: crisisGuardMode,
+      });
     };
     sessionWithEvents.on('user_input_transcribed', userInputHandler);
     sessionEventHandlers.push({ event: 'user_input_transcribed', handler: userInputHandler });
