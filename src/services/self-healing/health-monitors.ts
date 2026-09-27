@@ -17,6 +17,7 @@ import { createCircuitBreaker } from './circuit-breaker.js';
 import { recordLatency, recordSuccessRate } from './anomaly-detection.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
+import { getDefaultModel, getGeminiClient } from '../../config/gemini-config.js';
 
 const log = createLogger({ module: 'health-monitors' });
 
@@ -176,50 +177,41 @@ async function checkCartesia(): Promise<HealthCheckResult> {
 }
 
 /**
- * Gemini AI health check - verify API connectivity
+ * Gemini AI health check.
+ *
+ * Uses the shared Gemini client (Vertex or API key, whichever production is
+ * configured for) and asks for the configured default model, so it fails when
+ * that backend or model is unavailable. It used to list models on the AI Studio
+ * API with GOOGLE_API_KEY, a key the live pipeline does not use.
  */
-async function checkGemini(): Promise<HealthCheckResult> {
+export async function checkGemini(): Promise<HealthCheckResult> {
   const start = Date.now();
+  const model = getDefaultModel();
 
   try {
-    const apiKey = process.env.GOOGLE_API_KEY;
-    if (!apiKey) {
-      return {
-        healthy: false,
-        latencyMs: 0,
-        error: 'GOOGLE_API_KEY not configured',
-      };
+    const client = (await getGeminiClient()) as {
+      models: { get: (params: { model: string }) => Promise<unknown> };
+    } | null;
+    if (!client) {
+      return { healthy: false, latencyMs: 0, error: 'Gemini client not configured' };
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('timed out after 5000ms')), 5000);
+    });
     try {
-      // List models endpoint as health check
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`,
-        {
-          method: 'GET',
-          signal: controller.signal,
-        }
-      );
-
-      clearTimeout(timeout);
-      const latencyMs = Date.now() - start;
-
-      return {
-        healthy: response.ok,
-        latencyMs,
-        details: `Status: ${response.status}`,
-      };
+      await Promise.race([client.models.get({ model }), timeout]);
     } finally {
-      clearTimeout(timeout);
+      clearTimeout(timer);
     }
+
+    return { healthy: true, latencyMs: Date.now() - start, details: `Model ${model} available` };
   } catch (error) {
     return {
       healthy: false,
       latencyMs: Date.now() - start,
-      error: error instanceof Error ? error.message : String(error),
+      error: `Model ${model}: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
