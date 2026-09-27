@@ -14,6 +14,7 @@
  *   Coaching Quant: behavioralScore, peerComparison
  */
 
+import { llm } from '@livekit/agents';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, ExternalService } from '../../registry/types.js';
 
@@ -686,7 +687,7 @@ function getKnowledgeGraphToolDefinitions(): ToolDefinition[] {
       domain: 'research',
       tags: ['knowledge', 'education', 'concepts'],
       create: (_ctx: ToolContext) => {
-        return {
+        return llm.tool({
           description: 'Explain any financial concept with examples and connections',
           parameters: {
             type: 'object',
@@ -733,7 +734,7 @@ function getKnowledgeGraphToolDefinitions(): ToolDefinition[] {
 
             return lines.join('\n');
           },
-        };
+        });
       },
     },
     {
@@ -744,7 +745,7 @@ function getKnowledgeGraphToolDefinitions(): ToolDefinition[] {
       domain: 'research',
       tags: ['knowledge', 'education', 'learning-path'],
       create: (_ctx: ToolContext) => {
-        return {
+        return llm.tool({
           description: 'Get a learning path from basics to advanced',
           parameters: {
             type: 'object',
@@ -793,7 +794,7 @@ function getKnowledgeGraphToolDefinitions(): ToolDefinition[] {
 
             return lines.join('\n');
           },
-        };
+        });
       },
     },
   ];
@@ -813,7 +814,7 @@ function getBackgroundResearchToolDefinitions(): ToolDefinition[] {
       domain: 'research',
       tags: ['background', 'async', 'research', 'while-you-were-away'],
       create: (ctx: ToolContext) => {
-        return {
+        return llm.tool({
           description:
             'Start deep research in the background. Results are saved and delivered when the user returns. Use for research that takes time.',
           parameters: {
@@ -884,7 +885,7 @@ I'll keep working on this even if you disconnect. When you come back, I'll have 
               return `I couldn't start the background research right now. Let me do this research in real-time instead...`;
             }
           },
-        };
+        });
       },
     },
   ];

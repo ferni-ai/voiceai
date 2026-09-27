@@ -15,6 +15,7 @@
  * @module tools/domains/family/leave-message-tool
  */
 
+import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 
@@ -420,7 +421,7 @@ export const leaveMessageToolDef: ToolDefinition = {
 Used by family phone callers to send messages like "Tell Seth I love him".`,
   domain: 'family',
   tags: ['family', 'messages', 'phone', 'communication'],
-  create: createLeaveMessageTool,
+  create: (ctx: ToolContext) => llm.tool(createLeaveMessageTool(ctx)),
 };
 
 export const checkMessagesToolDef: ToolDefinition = {
@@ -430,7 +431,7 @@ export const checkMessagesToolDef: ToolDefinition = {
 Used when sponsor asks about messages from family.`,
   domain: 'family',
   tags: ['family', 'messages', 'phone', 'communication'],
-  create: createCheckMessagesForMeTool,
+  create: (ctx: ToolContext) => llm.tool(createCheckMessagesForMeTool(ctx)),
 };
 
 export const coordinatedReminderToolDef: ToolDefinition = {
@@ -440,7 +441,7 @@ export const coordinatedReminderToolDef: ToolDefinition = {
 Used when family members want to remind the sponsor about something.`,
   domain: 'family',
   tags: ['family', 'reminders', 'phone', 'coordination'],
-  create: createCoordinatedReminderTool,
+  create: (ctx: ToolContext) => llm.tool(createCoordinatedReminderTool(ctx)),
 };
 
 // ============================================================================

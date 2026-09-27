@@ -7,6 +7,7 @@
  * @module tools/domains/voice-enrollment/self-registration-tool
  */
 
+import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 
@@ -212,7 +213,7 @@ const selfRegisterDef: ToolDefinition = {
   domain: 'voice-enrollment',
   category: 'core',
   tags: ['registration', 'identity', 'phone', 'onboarding'],
-  create: createSelfRegisterTool,
+  create: (ctx: ToolContext) => llm.tool(createSelfRegisterTool(ctx)),
 };
 
 const checkPendingDef: ToolDefinition = {
@@ -222,7 +223,7 @@ const checkPendingDef: ToolDefinition = {
   domain: 'voice-enrollment',
   category: 'core',
   tags: ['registration', 'identity', 'admin'],
-  create: createCheckPendingIdentifiesTool,
+  create: (ctx: ToolContext) => llm.tool(createCheckPendingIdentifiesTool(ctx)),
 };
 
 // ============================================================================

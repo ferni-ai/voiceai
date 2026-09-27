@@ -13,6 +13,7 @@
  * @module tools/domains/voice-enrollment/phone-enrollment-tool
  */
 
+import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 
@@ -236,7 +237,7 @@ const startPhoneEnrollmentDef: ToolDefinition = {
   domain: 'voice-enrollment',
   category: 'core',
   tags: ['voice', 'enrollment', 'phone', 'identity'],
-  create: createStartEnrollmentTool,
+  create: (ctx: ToolContext) => llm.tool(createStartEnrollmentTool(ctx)),
 };
 
 const recordVoiceSampleDef: ToolDefinition = {
@@ -246,7 +247,7 @@ const recordVoiceSampleDef: ToolDefinition = {
   domain: 'voice-enrollment',
   category: 'core',
   tags: ['voice', 'enrollment', 'phone'],
-  create: createRecordSampleTool,
+  create: (ctx: ToolContext) => llm.tool(createRecordSampleTool(ctx)),
 };
 
 const finishPhoneEnrollmentDef: ToolDefinition = {
@@ -256,7 +257,7 @@ const finishPhoneEnrollmentDef: ToolDefinition = {
   domain: 'voice-enrollment',
   category: 'core',
   tags: ['voice', 'enrollment', 'phone'],
-  create: createFinishEnrollmentTool,
+  create: (ctx: ToolContext) => llm.tool(createFinishEnrollmentTool(ctx)),
 };
 
 // ============================================================================
