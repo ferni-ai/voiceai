@@ -14,6 +14,7 @@ import type { UserLocation } from './types.js';
 import { USE_TOOL_GATEWAY } from './constants.js';
 import { createLightweightVoiceAgentRef } from './voice-agent-ref.js';
 import {
+  createProviderSTT,
   getModelProvider,
   isQwen3OmniCandleBackend,
   isUsingQwen3TTS,
@@ -212,12 +213,13 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
 
   // STT provider selection: Sonata or LLM-internal
   const useSonataStt = process.env.USE_SONATA_STT === 'true';
+  // The cascade has no realtime model, so it needs its own STT (Cartesia ink-2).
   const externalStt = useSonataStt
     ? new SonataSTT({
         hfRepo: process.env.SONATA_STT_HF_REPO,
         enableVad: process.env.SONATA_STT_ENABLE_VAD !== 'false',
       })
-    : undefined;
+    : (createProviderSTT(modelProvider) as InstanceType<typeof SonataSTT> | undefined);
 
   // =========================================================================
   // TOOL LOADING: Gateway (2026) or Legacy Orchestrator
@@ -555,7 +557,9 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
           ? 'qwen_realtime'
           : process.env.USE_OPENAI_REALTIME === 'true'
             ? 'openai_cartesia'
-            : 'gemini_cartesia';
+            : modelProvider.id === 'cartesia-cascade'
+              ? 'cartesia_cascade'
+              : 'gemini_cartesia';
       process.stderr.write(
         `[voice-agent-entry] ${modelProvider.getLogPrefix()} Creating LLM model via ${modelProvider.displayName} (path=${pathLabel})...\n`
       );

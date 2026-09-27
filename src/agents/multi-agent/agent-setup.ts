@@ -31,7 +31,12 @@ import { getRealtimeModel } from '../../config/gemini-config.js';
 import { capToolsToLimit, getMaxTools } from '../../config/tool-config.js';
 
 // Model provider abstraction - centralizes all model-specific behavior
-import { getModelProvider, isUsingOpenAI, isUsingQwen3Omni } from '../model-provider/index.js';
+import {
+  createProviderSTT,
+  getModelProvider,
+  isUsingOpenAI,
+  isUsingQwen3Omni,
+} from '../model-provider/index.js';
 
 // Get the model provider (singleton)
 const modelProvider = getModelProvider();
@@ -1204,7 +1209,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         hfRepo: process.env.SONATA_STT_HF_REPO,
         enableVad: process.env.SONATA_STT_ENABLE_VAD !== 'false',
       })
-    : undefined;
+    : (createProviderSTT(modelProvider) as InstanceType<typeof SonataSTT> | undefined);
 
   const session = new voice.AgentSession<UserData>({
     turnDetection: modelProvider.getSessionTurnDetection(),
