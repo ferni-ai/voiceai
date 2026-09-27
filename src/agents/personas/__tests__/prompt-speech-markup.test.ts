@@ -1,0 +1,35 @@
+/**
+ * The live prompts for Ferni teach Cartesia markup. Under the cascade that is
+ * right (Cartesia renders it); under Gemini native audio the same prompts must
+ * arrive with no markup at all. Loads the real prompt files both ways.
+ */
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { hasSpeechMarkup } from '../strip-speech-markup.js';
+
+beforeAll(() => {
+  process.env.CARTESIA_API_KEY = process.env.CARTESIA_API_KEY || 'test-key';
+});
+
+async function promptsUnder(providerModule: string, className: string): Promise<[string, string]> {
+  vi.resetModules();
+  const factory = await import('../../model-provider/factory.js');
+  const mod = (await import(providerModule)) as Record<string, new () => unknown>;
+  factory.setModelProvider(new mod[className]() as never);
+  const loader = await import('../prompt-loader.js');
+  return [await loader.loadModelBaseInstructions(), await loader.loadSystemPrompt('ferni')];
+}
+
+describe('speech markup in the live Ferni prompts', () => {
+  it('is present under the Cartesia cascade (Cartesia renders it)', async () => {
+    const [base, system] = await promptsUnder('../../model-provider/cartesia-cascade.js', 'CartesiaCascadeProvider');
+    expect(hasSpeechMarkup(base) || hasSpeechMarkup(system)).toBe(true);
+  }, 60_000);
+
+  it('is absent under Gemini native audio, which speaks for itself', async () => {
+    const [base, system] = await promptsUnder('../../model-provider/gemini-native-audio.js', 'GeminiNativeAudioProvider');
+    expect(hasSpeechMarkup(base)).toBe(false);
+    expect(hasSpeechMarkup(system)).toBe(false);
+    expect(base).toContain('You speak in your own voice');
+    expect(system.length).toBeGreaterThan(1000);
+  }, 60_000);
+});

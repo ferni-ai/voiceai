@@ -1149,6 +1149,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     model: VOICE_MODEL,
     instructions: modelBaseInstructions,
     temperature: geminiConfig.temperature,
+    personaId: persona.id,
   });
 
   log.info(

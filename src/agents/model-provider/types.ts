@@ -21,6 +21,7 @@ export type AgentSessionTurnDetection = 'realtime_llm' | 'vad' | undefined;
  */
 export type ModelProviderId =
   | 'cartesia-cascade'
+  | 'gemini-native-audio'
   | 'openai-realtime'
   | 'gemini-live'
   | 'qwen3-omni'
@@ -72,6 +73,13 @@ export interface PromptModuleConfig {
    * OpenAI needs minimal to avoid JSON output as speech
    */
   useMinimalInstructions: boolean;
+
+  /**
+   * Keep the Cartesia speech-markup guidance (<emotion/>, <break/>, [laughter]).
+   * Only right when a markup-aware TTS speaks the text; false for providers
+   * that produce the audio themselves. Undefined means true.
+   */
+  includeSpeechMarkup?: boolean;
 }
 
 // ============================================================================
@@ -93,6 +101,9 @@ export interface LLMModelConfig {
 
   /** Voice configuration (for native TTS, if used) */
   voice?: string;
+
+  /** Persona the model speaks as; native-audio providers pick its voice. */
+  personaId?: string;
 
   /** Tool definitions for function calling */
   tools?: unknown[];

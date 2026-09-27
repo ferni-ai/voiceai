@@ -11,6 +11,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import type { ModelProvider, ModelProviderId } from './types.js';
 import { OpenAIRealtimeProvider } from './openai-realtime.js';
 import { CartesiaCascadeProvider } from './cartesia-cascade.js';
+import { GeminiNativeAudioProvider } from './gemini-native-audio.js';
 import { GeminiLiveProvider } from './gemini-live.js';
 import { Qwen3OmniProvider } from './qwen3-omni.js';
 import { LocalPipelineProvider } from './local-pipeline.js';
@@ -110,6 +111,12 @@ export function getModelProvider(): ModelProvider {
         { providerId: cachedProvider.id },
         `${cachedProvider.getLogPrefix()} Model provider initialized: ${cachedProvider.displayName}`
       );
+    } else if (process.env.VOICE_PIPELINE === 'gemini-native-audio') {
+      cachedProvider = new GeminiNativeAudioProvider();
+      log.info(
+        { providerId: cachedProvider.id },
+        `${cachedProvider.getLogPrefix()} Model provider initialized: ${cachedProvider.displayName}`
+      );
     } else if (process.env.VOICE_PIPELINE === 'gemini-live') {
       // Legacy opt-in only: the Gemini Live text-output model Ferni used is retired.
       cachedProvider = new GeminiLiveProvider();
@@ -143,6 +150,7 @@ export function getProviderIdSync(): ModelProviderId {
   if (process.env.USE_QWEN3_THINKER_LOCAL === 'true') return 'qwen3-thinker-local';
   if (process.env.USE_QWEN3_OMNI === 'true') return 'qwen3-omni';
   if (process.env.USE_OPENAI_REALTIME === 'true') return 'openai-realtime';
+  if (process.env.VOICE_PIPELINE === 'gemini-native-audio') return 'gemini-native-audio';
   return process.env.VOICE_PIPELINE === 'gemini-live' ? 'gemini-live' : 'cartesia-cascade';
 }
 
@@ -232,6 +240,8 @@ export function createProvider(id: ModelProviderId): ModelProvider {
   switch (id) {
     case 'cartesia-cascade':
       return new CartesiaCascadeProvider();
+    case 'gemini-native-audio':
+      return new GeminiNativeAudioProvider();
     case 'openai-realtime':
       return new OpenAIRealtimeProvider();
     case 'gemini-live':

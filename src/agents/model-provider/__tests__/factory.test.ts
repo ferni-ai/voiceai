@@ -18,6 +18,7 @@ import {
 } from '../factory.js';
 import { CartesiaCascadeProvider } from '../cartesia-cascade.js';
 import { GeminiLiveProvider } from '../gemini-live.js';
+import { GeminiNativeAudioProvider } from '../gemini-native-audio.js';
 import { OpenAIRealtimeProvider } from '../openai-realtime.js';
 import type { ModelProvider } from '../types.js';
 
@@ -44,6 +45,13 @@ describe('ModelProviderFactory', () => {
       const provider = getModelProvider();
       expect(provider.id).toBe('cartesia-cascade');
       expect(provider).toBeInstanceOf(CartesiaCascadeProvider);
+    });
+
+    it('should return GeminiNativeAudioProvider when VOICE_PIPELINE=gemini-native-audio', () => {
+      process.env.VOICE_PIPELINE = 'gemini-native-audio';
+      const provider = getModelProvider();
+      expect(provider.id).toBe('gemini-native-audio');
+      expect(provider).toBeInstanceOf(GeminiNativeAudioProvider);
     });
 
     it('should return GeminiLiveProvider only when VOICE_PIPELINE=gemini-live', () => {

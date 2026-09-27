@@ -563,7 +563,9 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
             ? 'openai_cartesia'
             : modelProvider.id === 'cartesia-cascade'
               ? 'cartesia_cascade'
-              : 'gemini_cartesia';
+              : modelProvider.id === 'gemini-native-audio'
+                ? 'gemini_native_audio'
+                : 'gemini_cartesia';
       process.stderr.write(
         `[voice-agent-entry] ${modelProvider.getLogPrefix()} Creating LLM model via ${modelProvider.displayName} (path=${pathLabel})...\n`
       );
@@ -573,6 +575,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
         model: geminiConfig.model,
         instructions: modelBaseInstructions,
         temperature: geminiConfig.temperature,
+        personaId: sessionPersona.id,
       });
 
       process.stderr.write(
