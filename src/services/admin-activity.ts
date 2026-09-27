@@ -57,7 +57,7 @@ const COLLECTION = 'admin_activity_log';
  */
 export async function initializeActivityLog(): Promise<boolean> {
   try {
-    const admin = await import('firebase-admin');
+    const admin = (await import('firebase-admin')).default;
 
     if (admin.apps.length === 0) {
       try {
@@ -99,7 +99,7 @@ export async function recordActivity(
 
   if (firestoreAvailable && firestoreClient) {
     try {
-      const admin = await import('firebase-admin');
+      const admin = (await import('firebase-admin')).default;
       const doc: FirestoreActivityDoc = {
         id: newEvent.id,
         type: newEvent.type,
@@ -143,7 +143,7 @@ export async function getRecentActivity(limit = 20): Promise<ActivityEvent[]> {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - TTL_DAYS);
 
-      const admin = await import('firebase-admin');
+      const admin = (await import('firebase-admin')).default;
       const snapshot = await firestoreClient
         .collection(COLLECTION)
         .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(cutoffDate))
@@ -183,7 +183,7 @@ export async function getActivityByType(
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - TTL_DAYS);
 
-      const admin = await import('firebase-admin');
+      const admin = (await import('firebase-admin')).default;
       const snapshot = await firestoreClient
         .collection(COLLECTION)
         .where('type', '==', type)
@@ -231,7 +231,7 @@ export async function getActivityCounts(): Promise<Record<ActivityEvent['type'],
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - TTL_DAYS);
 
-      const admin = await import('firebase-admin');
+      const admin = (await import('firebase-admin')).default;
       const snapshot = await firestoreClient
         .collection(COLLECTION)
         .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(cutoffDate))
@@ -283,7 +283,7 @@ export async function cleanupOldEvents(): Promise<number> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - TTL_DAYS);
 
-    const admin = await import('firebase-admin');
+    const admin = (await import('firebase-admin')).default;
     const cutoffTimestamp = admin.firestore.Timestamp.fromDate(cutoffDate);
 
     let totalDeleted = 0;

@@ -82,7 +82,7 @@ const COLLECTIONS = {
 
 export async function initializeSubscriptionMetrics(): Promise<boolean> {
   try {
-    const admin = await import('firebase-admin');
+    const admin = (await import('firebase-admin')).default;
 
     // Defensive check: admin.apps may be undefined if firebase-admin isn't properly loaded
     if (!admin.apps || admin.apps.length === 0) {
