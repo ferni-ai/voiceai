@@ -422,6 +422,8 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
 
       // Dry run: exercises every configured collection without deleting anything.
       const report = await runTTLCleanup({ dryRun: true });
+      const failures = report.results.filter((r) => r.errors > 0).map((r) => `${r.collection}: ${r.error}`);
+      expect(failures).toEqual([]);
       expect(report.totalErrors).toBe(0);
       expect(report.results.length).toBeGreaterThan(0);
     });
