@@ -190,14 +190,43 @@ function createFallbackLogger(bindings?: Record<string, unknown>): FallbackLogge
  * ```
  */
 export function safeLog(): FallbackLogger {
-  try {
-    const baseLogger = log();
-    // Wrap the logger to automatically serialize errors
-    return wrapLoggerWithErrorSerialization(baseLogger);
-  } catch {
-    // LiveKit logger not initialized - use console fallback
-    return createFallbackLogger();
-  }
+  return lazyLogger();
+}
+
+/**
+ * A logger that resolves LiveKit's logger when it logs, not when it is created.
+ *
+ * Most modules create their logger at import time, which in the agent runs
+ * before LiveKit's logger is initialized. Binding then pinned those loggers to
+ * the console fallback for life, and in the deployed job that output never
+ * reached the agent log. Until LiveKit's logger exists this uses the console
+ * fallback; after that it binds once and stays bound.
+ */
+function lazyLogger(bindings?: Record<string, unknown>): FallbackLogger {
+  let bound: FallbackLogger | null = null;
+  let fallback: FallbackLogger | null = null;
+  const current = (): FallbackLogger => {
+    if (bound) return bound;
+    try {
+      const baseLogger = log();
+      const target = bindings ? baseLogger.child(bindings) : baseLogger;
+      bound = wrapLoggerWithErrorSerialization(target as ReturnType<typeof log>);
+      return bound;
+    } catch {
+      fallback ??= createFallbackLogger(bindings);
+      return fallback;
+    }
+  };
+  return {
+    debug: (...args: unknown[]) =>
+      current().debug(...(args as Parameters<FallbackLogger['debug']>)),
+    info: (...args: unknown[]) => current().info(...(args as Parameters<FallbackLogger['info']>)),
+    warn: (...args: unknown[]) => current().warn(...(args as Parameters<FallbackLogger['warn']>)),
+    error: (...args: unknown[]) =>
+      current().error(...(args as Parameters<FallbackLogger['error']>)),
+    child: (childBindings: Record<string, unknown>) =>
+      lazyLogger({ ...bindings, ...childBindings }),
+  };
 }
 
 /**
@@ -260,14 +289,7 @@ function wrapLoggerWithErrorSerialization(pinoLogger: ReturnType<typeof log>): F
  * ```
  */
 export function createLogger(bindings: Record<string, unknown>): FallbackLogger {
-  try {
-    const baseLogger = log();
-    const childLogger = baseLogger.child(bindings);
-    // Wrap the child logger to automatically serialize errors
-    return wrapLoggerWithErrorSerialization(childLogger as unknown as ReturnType<typeof log>);
-  } catch {
-    return createFallbackLogger(bindings);
-  }
+  return lazyLogger(bindings);
 }
 
 // ============================================================================
