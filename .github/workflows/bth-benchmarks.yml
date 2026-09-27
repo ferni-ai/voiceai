@@ -12,7 +12,8 @@ on:
   # On PRs touching BTH-related code
   pull_request:
     paths:
-      - 'src/services/bth-validation/**'
+      - 'src/services/better-than-human-validation/**'
+      - '.github/workflows/bth-benchmarks.yml'
       - 'src/agents/integrations/better-than-human-integration.ts'
       - 'src/conversation/superhuman/**'
       - 'src/services/superhuman/**'
@@ -40,6 +41,10 @@ jobs:
       contents: read
       pull-requests: write
     timeout-minutes: 30
+    # The PR comment needs write access; the default token is read-only.
+    permissions:
+      contents: read
+      pull-requests: write
 
     outputs:
       has_regressions: ${{ steps.benchmark.outputs.has_regressions }}
@@ -58,17 +63,18 @@ jobs:
         run: pnpm build:fast
         continue-on-error: true
 
+      # These steps used continue-on-error and pointed at src/services/bth-validation,
+      # which moved to better-than-human-validation long ago; the benchmark found
+      # no tests and could not import its module, yet reported success nightly.
       - name: Run BTH Validation Tests
-        run: pnpm vitest run src/services/bth-validation/__tests__/ --reporter=verbose
-        continue-on-error: true
+        run: pnpm vitest run src/services/better-than-human-validation/__tests__/ --reporter=verbose
 
       - name: Run BTH Benchmarks
         id: benchmark
-        continue-on-error: true
         run: |
           # Create a script to run benchmarks and output results
           cat > run-benchmarks.ts << 'EOF'
-          import { runFullBenchmark, formatBenchmarkReport } from './src/services/bth-validation/index.js';
+          import { runFullBenchmark, formatBenchmarkReport } from './src/services/better-than-human-validation/capability-benchmark.js';
 
           async function main() {
             console.log('🎯 Running BTH Capability Benchmarks...\n');
@@ -162,6 +168,7 @@ jobs:
           echo "*Run: ${RUN_NUMBER} | Commit: ${COMMIT_SHA}*" >> $GITHUB_STEP_SUMMARY
 
       - name: Comment on PR
+        continue-on-error: true
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         env:
