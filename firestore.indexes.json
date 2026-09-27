@@ -597,6 +597,14 @@
   ],
   "fieldOverrides": [
     {
+      "collectionGroup": "scheduled_actions",
+      "fieldPath": "status",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
       "collectionGroup": "google_watch_channels",
       "fieldPath": "expiration",
       "indexes": [
