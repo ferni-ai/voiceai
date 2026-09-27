@@ -12,9 +12,10 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { dirname, join, basename } from 'path';
 import { fileURLToPath } from 'url';
 import * as readline from 'readline';
+import { findProjectRoot } from '../../services/project-root.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = dirname(dirname(__dirname));
+const PROJECT_ROOT = findProjectRoot(__dirname);
 
 // =============================================================================
 // COLORS

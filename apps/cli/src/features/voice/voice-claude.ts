@@ -28,11 +28,12 @@ import { fileURLToPath } from 'url';
 import * as readline from 'readline';
 import { spawn, ChildProcess, execSync } from 'child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { findProjectRoot } from '../../services/project-root.js';
 
 // Detect if running as SEA binary (shim URL) vs normal execution
 const isSEA = import.meta.url.includes('ferni-sea-binary');
 const __dirname = isSEA ? process.cwd() : dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = isSEA ? process.cwd() : dirname(dirname(__dirname));
+const PROJECT_ROOT = isSEA ? process.cwd() : findProjectRoot(__dirname);
 
 // Load environment
 dotenvConfig({ path: join(PROJECT_ROOT, '.env') });

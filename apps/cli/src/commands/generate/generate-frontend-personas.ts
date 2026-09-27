@@ -26,7 +26,8 @@ import { fileURLToPath } from 'url';
 // Get script directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const projectRoot = join(__dirname, '..');
+// apps/cli/src/commands/generate -> repo root
+const projectRoot = join(__dirname, '..', '..', '..', '..', '..');
 
 // Types matching the persona manifest schema
 interface PersonaManifest {
@@ -35,7 +36,9 @@ interface PersonaManifest {
     id: string;
     name: string;
     display_name?: string;
-    description: string;
+    /** Absent on legend bundles (john-bogle, peter-lynch), which have a tagline. */
+    description?: string;
+    tagline?: string;
     aliases?: string[];
     initials?: string;
     self_reference?: string;
@@ -326,6 +329,8 @@ async function manifestToFrontendPersona(
   bundlePath: string
 ): Promise<FrontendPersona> {
   const roleId = manifest.team?.role_id || manifest.role?.id || manifest.identity.id;
+  // Legend bundles (john-bogle, peter-lynch) have a tagline but no description.
+  const description: string = manifest.identity.description ?? manifest.identity.tagline ?? '';
   const isCoordinator = manifest.team?.coordinator === true;
   
   // Load quotes and entrance from bundle content
@@ -341,15 +346,15 @@ async function manifestToFrontendPersona(
     initials: manifest.identity.initials || generateInitials(manifest.identity.name),
     subtitle: manifest.team?.role_description?.split(' - ')[0] || roleSubtitles[roleId] || 'Team Member',
     role: isCoordinator ? 'coach' : 'team',
-    description: manifest.identity.description,
-    helperText: manifest.team?.role_description?.split(' - ')[0] || manifest.identity.description.split('.')[0],
+    description,
+    helperText: manifest.team?.role_description?.split(' - ')[0] || description.split('.')[0],
     skills: roleSkills[roleId] || [{ icon: '', name: 'Support' }],
     entrancePhrase: entrancePhrase || 
       (manifest.team?.handoff_phrases?.receive?.[0]) ||
       (manifest.handoff?.entrance_phrases?.[0]) ||
       `${manifest.identity.name} here. How can I help?`,
     quotes: bundleQuotes.length > 0 ? bundleQuotes : [
-      `"${manifest.identity.description.split('.')[0]}."`,
+      `"${description.split('.')[0]}."`,
     ],
     traits: manifest.personality?.traits || [],
     domains: manifest.role?.domains || [],

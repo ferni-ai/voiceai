@@ -110,6 +110,12 @@ jobs:
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
+    # actions: read lets the analyze step read its own workflow run; without it
+    # the step ends in a "configuration error" on this private repo.
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout
@@ -124,10 +130,23 @@ jobs:
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
 
+      # Uploading to code scanning needs GitHub Code Security on a private repo,
+      # which is not enabled. Keep the analysis and publish the SARIF as an
+      # artifact instead of failing on the upload.
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:javascript-typescript"
+          upload: never
+          output: codeql-results
+
+      - name: Upload CodeQL results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif
+          path: codeql-results
+          if-no-files-found: ignore
 
   # Secret scanning (check for accidentally committed secrets)
   secret-scan:
