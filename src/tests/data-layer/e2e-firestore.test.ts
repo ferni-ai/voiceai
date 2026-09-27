@@ -409,19 +409,21 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
     it('should get TTL statistics', async () => {
       const { getTTLStatistics } = await import('../../services/data-layer/ttl-cleanup.js');
 
-      const stats = getTTLStatistics();
+      // getTTLStatistics is async; the old test inspected the Promise itself.
+      const stats = await getTTLStatistics();
 
-      expect(stats).toBeDefined();
-      expect(typeof stats).toBe('object');
-      // Should have entries for entity types with TTL
-      expect(Object.keys(stats).length).toBeGreaterThan(0);
+      // Should have an entry for every collection with a TTL
+      expect(stats.collections).toBeGreaterThan(0);
+      expect(stats.configured).toHaveLength(stats.collections);
     });
 
     it('should run cleanup without errors', async () => {
-      const { cleanupExpiredDocuments } = await import('../../services/data-layer/ttl-cleanup.js');
+      const { runTTLCleanup } = await import('../../services/data-layer/ttl-cleanup.js');
 
-      // Should complete without throwing (even if no docs to clean)
-      await expect(cleanupExpiredDocuments()).resolves.not.toThrow();
+      // Dry run: exercises every configured collection without deleting anything.
+      const report = await runTTLCleanup({ dryRun: true });
+      expect(report.totalErrors).toBe(0);
+      expect(report.results.length).toBeGreaterThan(0);
     });
   });
 
@@ -753,11 +755,11 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
     it('should gracefully handle missing user', async () => {
       const { searchUserContext } = await import('../../services/data-layer/index.js');
 
-      // Search for non-existent user
-      const results = await searchUserContext('non-existent-user', 'anything');
+      // Search for non-existent user: a context for that user with no memories, not a throw
+      const context = await searchUserContext('non-existent-user', 'anything');
 
-      // Should return empty results, not throw
-      expect(Array.isArray(results) || results === undefined).toBe(true);
+      expect(context.userId).toBe('non-existent-user');
+      expect(context.relevantMemories).toEqual([]);
     });
 
     it('should handle malformed content gracefully', async () => {
