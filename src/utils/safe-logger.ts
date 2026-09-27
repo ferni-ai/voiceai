@@ -28,7 +28,8 @@
  * @module utils/safe-logger
  */
 
-import { log } from '@livekit/agents';
+import type { log } from '@livekit/agents';
+import pino from 'pino';
 
 /**
  * Console-based fallback logger that matches LiveKit's Logger interface
@@ -131,47 +132,6 @@ function processBindings(bindings: Record<string, unknown>): Record<string, unkn
 }
 
 /**
- * Create a fallback logger that uses console methods
- */
-// Re-entry guard: prevents infinite recursion if console methods are hooked by Pino pretty-printing.
-// When Pino intercepts console.debug/info/warn/error, calling them from the fallback logger
-// can trigger console → Pino → fallback → console → ... stack overflow.
-let isLoggingFallback = false;
-
-function createFallbackLogger(bindings?: Record<string, unknown>): FallbackLogger {
-  const prefix = bindings ? `[${Object.values(bindings).join(':')}] ` : '';
-
-  // Helper to process first arg if it's a bindings object
-  const processFirstArg = (args: unknown[]): unknown[] => {
-    if (args.length > 0 && args[0] && typeof args[0] === 'object' && !Array.isArray(args[0])) {
-      return [processBindings(args[0] as Record<string, unknown>), ...args.slice(1)];
-    }
-    return args;
-  };
-
-  const safeFallback =
-    (method: 'debug' | 'info' | 'warn' | 'error') =>
-    (...args: unknown[]) => {
-      if (isLoggingFallback) return; // Break recursion
-      isLoggingFallback = true;
-      try {
-        console[method](prefix, ...processFirstArg(args));
-      } finally {
-        isLoggingFallback = false;
-      }
-    };
-
-  return {
-    debug: safeFallback('debug'),
-    info: safeFallback('info'),
-    warn: safeFallback('warn'),
-    error: safeFallback('error'),
-    child: (childBindings: Record<string, unknown>) =>
-      createFallbackLogger({ ...bindings, ...childBindings }),
-  };
-}
-
-/**
  * Safe logger that falls back to console if LiveKit logger isn't initialized.
  *
  * This is the recommended way to get a logger throughout the codebase.
@@ -194,28 +154,36 @@ export function safeLog(): FallbackLogger {
 }
 
 /**
- * A logger that resolves LiveKit's logger when it logs, not when it is created.
+ * Application log sink: JSON lines on stderr.
  *
- * Most modules create their logger at import time, which in the agent runs
- * before LiveKit's logger is initialized. Binding then pinned those loggers to
- * the console fallback for life, and in the deployed job that output never
- * reached the agent log. Until LiveKit's logger exists this uses the console
- * fallback; after that it binds once and stays bound.
+ * In a LiveKit job process only stderr reaches the agent log; LiveKit's own
+ * logger writes to the job's stdout, which is dropped. Module loggers that
+ * bound to it (or whose info went to console.info/stdout) were invisible in
+ * deployed calls: TURN_METRICS, tool counts, turn intelligence, and warnings
+ * once they bound. One stderr sink works in the worker and in every job.
  */
+let appSink: pino.Logger | null = null;
+
+function appLogger(): pino.Logger {
+  appSink ??= pino(
+    {
+      level: process.env.LOG_LEVEL || 'info',
+      serializers: { error: pino.stdSerializers.err },
+    },
+    process.stderr
+  );
+  return appSink;
+}
+
+/** A logger whose output always goes to the stderr sink, whenever it was created. */
 function lazyLogger(bindings?: Record<string, unknown>): FallbackLogger {
   let bound: FallbackLogger | null = null;
-  let fallback: FallbackLogger | null = null;
   const current = (): FallbackLogger => {
     if (bound) return bound;
-    try {
-      const baseLogger = log();
-      const target = bindings ? baseLogger.child(bindings) : baseLogger;
-      bound = wrapLoggerWithErrorSerialization(target as ReturnType<typeof log>);
-      return bound;
-    } catch {
-      fallback ??= createFallbackLogger(bindings);
-      return fallback;
-    }
+    const base = appLogger();
+    const target = bindings ? base.child(bindings) : base;
+    bound = wrapLoggerWithErrorSerialization(target as unknown as ReturnType<typeof log>);
+    return bound;
   };
   return {
     debug: (...args: unknown[]) =>

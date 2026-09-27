@@ -1,33 +1,37 @@
 /**
- * Most modules create their logger at import time, which in the agent happens
- * before LiveKit's logger is initialized. Those loggers were bound to a console
- * fallback for life, and in the deployed job their output never reached the
- * agent log (TURN_METRICS, tool counts, turn intelligence were all invisible).
- * A logger must use LiveKit's logger once it exists, whenever it was created.
+ * In a LiveKit job process only stderr reaches the agent log; LiveKit's logger
+ * writes to the job's stdout, which is dropped. Module loggers (mostly created
+ * at import time) therefore log to stderr, whether or not LiveKit's logger has
+ * been initialized.
  */
-import { initializeLogger, log } from '@livekit/agents';
-import { describe, expect, it, vi } from 'vitest';
+import { initializeLogger } from '@livekit/agents';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createLogger, getLogger } from '../safe-logger.js';
 
 // The global test setup mocks safe-logger; this test needs the real one.
 vi.unmock('../safe-logger.js');
 
-describe('loggers created before LiveKit logger init', () => {
-  it('route to the LiveKit logger once it is initialized', () => {
+const written = (spy: { mock: { calls: unknown[][] } }) =>
+  spy.mock.calls.map((call) => String(call[0])).join('');
+
+describe('module loggers', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('write to stderr before and after LiveKit logger init', () => {
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const stdout = vi.spyOn(process.stdout, 'write');
     const early = getLogger();
     const earlyChild = createLogger({ module: 'EarlyModule' });
 
+    early.warn({ n: 1 }, 'before init');
     initializeLogger({ pretty: false, level: 'info' });
-    const base = log();
-    const info = vi.spyOn(base, 'info');
-    const child = base.child({ module: 'EarlyModule' });
-    const childInfo = vi.spyOn(child, 'info');
-    vi.spyOn(base, 'child').mockReturnValue(child as unknown as ReturnType<typeof base.child>);
+    early.info({ n: 2 }, 'after init');
+    earlyChild.info({ n: 3 }, 'child after init');
 
-    early.info({ n: 1 }, 'from early getLogger');
-    earlyChild.info({ n: 2 }, 'from early createLogger');
-
-    expect(info).toHaveBeenCalledWith({ n: 1 }, 'from early getLogger');
-    expect(childInfo).toHaveBeenCalledWith({ n: 2 }, 'from early createLogger');
+    const out = written(stderr);
+    expect(out).toContain('before init');
+    expect(out).toContain('after init');
+    expect(out).toContain('"module":"EarlyModule"');
+    expect(written(stdout)).not.toContain('after init');
   });
 });
