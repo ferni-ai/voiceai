@@ -475,8 +475,13 @@ export async function handleHealthRoutes(
         collections: options.collections,
       });
 
+      // Per-collection error text stays in the server logs, not the response.
+      const publicResult = {
+        ...result,
+        results: result.results.map(({ error: _error, ...rest }) => rest),
+      };
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(result, null, 2));
+      res.end(JSON.stringify(publicResult, null, 2));
     } catch (err) {
       log.error({ error: (err as Error).message }, 'TTL cleanup error');
       res.writeHead(500, { 'Content-Type': 'application/json' });
