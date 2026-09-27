@@ -32,10 +32,12 @@ vi.mock('../../../utils/safe-logger.js', () => ({
   }),
 }));
 
-// Mock speech coordination
+// Fallback speech goes through the director, which rewrites the canned
+// line in the character's words; here it is captured with its canned text.
 const mockCoordinatedSay = vi.fn();
-vi.mock('../../../speech/coordination/index.js', () => ({
-  coordinatedSay: (...args: unknown[]) => mockCoordinatedSay(...args),
+vi.mock('../../../speech/direction/index.js', () => ({
+  sayInOwnWords: (sessionId: string, canned: string, _moment: string, options: unknown) =>
+    mockCoordinatedSay(sessionId, canned, options),
 }));
 
 // ============================================================================

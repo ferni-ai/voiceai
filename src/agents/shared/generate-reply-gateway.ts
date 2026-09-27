@@ -17,8 +17,6 @@
 
 import { voice } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
-// Speech coordination for fallback TTS
-import { coordinatedSay } from '../../speech/coordination/index.js';
 // E2E Latency tracking - diagnose OpenAI vs TTS vs our code
 import {
   markLLMRequestSent,
@@ -102,6 +100,7 @@ setReconnectionCallbacks({
 // ============================================================================
 
 import type { GatewayOptions, GatewayResult } from './gateway/types.js';
+import { sayInOwnWords } from '../../speech/direction/index.js';
 export type { GatewayOptions, GatewayResult };
 
 /** Type alias for external consumers */
@@ -264,7 +263,7 @@ export async function generateReply(
         log.warn({ sessionId, context }, '❌ [GATEWAY] Session not ready after wait');
         if (fallbackMessage) {
           try {
-            coordinatedSay(sessionId, fallbackMessage, { allowInterruptions: true });
+            sayInOwnWords(sessionId, fallbackMessage, `fallback:${context}`, { allowInterruptions: true });
           } catch {
             /* ignore */
           }
@@ -330,7 +329,7 @@ export async function generateReply(
       );
       if (fallbackMessage) {
         try {
-          coordinatedSay(sessionId, fallbackMessage, { allowInterruptions: true });
+          sayInOwnWords(sessionId, fallbackMessage, `fallback:${context}`, { allowInterruptions: true });
         } catch {
           /* ignore */
         }
@@ -943,7 +942,7 @@ export async function generateReply(
     // Use fallback TTS
     if (fallbackMessage) {
       try {
-        coordinatedSay(sessionId, fallbackMessage, { allowInterruptions: true });
+        sayInOwnWords(sessionId, fallbackMessage, `fallback:${context}`, { allowInterruptions: true });
         return {
           success: false,
           usedFallback: true,
