@@ -7,7 +7,9 @@
  * paragraphs per reply. Offline, on the same conversation (gemini-3.5-flash,
  * MINIMAL, 6 samples each, 2026-09-27): prompt as is 74 words; rule moved to
  * the end 55; rule removed from "elaborate" 53; a reminder on the user turn
- * 33 words, one paragraph, one question.
+ * 33 words, one paragraph, one question. Adding the opener and question
+ * lines took stock openers ("Oh", "Ugh") from 8/9 to 0/9 and replies ending on
+ * a question from 9/9 to 4/9 at the same length (9 samples each).
  *
  * System messages cannot carry it: the Google plugin moves every system
  * message into systemInstruction, which is the "rule at the end" case. So the
@@ -22,7 +24,8 @@
 import { llm } from '@livekit/agents';
 
 export const TURN_STYLE_REMINDER =
-  'Reply in one to three sentences, about 15 to 35 words, with at most one question and no paragraph breaks, unless they asked you to explain, plan or tell a story.';
+  'Reply in one to three sentences, about 15 to 35 words, with at most one question and no paragraph breaks, unless they asked you to explain, plan or tell a story. ' +
+  'Start with the substance, not a reaction word like Oh, Ugh, Yeah or Hmm. Often end without a question: a thought, a reaction or an offer is enough.';
 
 export function turnStyleReminderEnabled(
   env: Record<string, string | undefined> = process.env
