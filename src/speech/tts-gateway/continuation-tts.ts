@@ -21,6 +21,8 @@ import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type { SSMLProsodyConfig } from './types.js';
 
 const MIN_FIRST_CHUNK = 20;
+/** Cartesia inline tags restoring default speed and volume. */
+const RESET_PACE_TAGS = '<speed ratio="1"/><volume ratio="1"/>';
 const MIN_CHUNK = 15;
 
 export interface ContinuationOptions {
@@ -47,15 +49,22 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
   const feed = async (): Promise<void> => {
     let buffer = '';
     let first = true;
+    // A soft start (interrupt recovery) slows and quiets the opening only.
+    // Inline tags persist on a context, so reset them after the first piece.
+    let resetAfterOpening = '';
     const push = (raw: string): void => {
       const { text, prosody } = sanitize(raw);
       if (!text) return;
       if (first) {
         first = false;
         reply.push(`${openingTags({ ...prosody, emotion: prosody.emotion || emotion })}${text} `);
+        const slowed = prosody.speed !== undefined && prosody.speed !== 1;
+        const quieted = prosody.volume !== undefined && prosody.volume !== 1;
+        if (slowed || quieted) resetAfterOpening = RESET_PACE_TAGS;
       } else {
         // Pieces are joined verbatim, so keep a space between sentences.
-        reply.push(`${text} `);
+        reply.push(`${resetAfterOpening}${text} `);
+        resetAfterOpening = '';
       }
     };
     try {

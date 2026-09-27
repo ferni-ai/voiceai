@@ -99,6 +99,30 @@ describe('createContinuationTTS', () => {
     );
   });
 
+  it('returns to normal speed and volume after an opening soft start', async () => {
+    // Interrupt recovery opens a reply softer and slower. On one continuous
+    // context those inline tags persist, so without a reset the whole reply
+    // came out 24% quieter and 12% slower.
+    const reply = new FakeReply([4]);
+    const { stream } = run(
+      [
+        '<break time="300ms"/><volume ratio="0.76"/><speed ratio="0.88"/>Oh, go ahead. ',
+        'I was just saying that it sounds like a lot.',
+      ],
+      reply
+    );
+    await drain(stream as unknown as ReadableStream<AudioFrame>);
+    expect(reply.pushes[0]).toContain('<volume ratio="0.76"/>');
+    expect(reply.pushes[1].startsWith('<speed ratio="1"/><volume ratio="1"/>')).toBe(true);
+  });
+
+  it('adds no reset when the reply opened at normal speed and volume', async () => {
+    const reply = new FakeReply([4]);
+    const { stream } = run(['First sentence here. ', 'Second sentence here.'], reply);
+    await drain(stream as unknown as ReadableStream<AudioFrame>);
+    expect(reply.pushes[1]).toBe('Second sentence here. ');
+  });
+
   it('cancels the provider when playback is interrupted', async () => {
     const reply = new FakeReply([8], true);
     const { stream } = run(['A long reply the user talks over.'], reply);

@@ -157,7 +157,7 @@ const RECOVERY_PREFIXES = {
 const INTERRUPT_ACKNOWLEDGMENTS = {
   hard: [
     '<emotion value="calm"/>Mm-hmm.<break time="120ms"/>',
-    '<emotion value="warm"/>Yeah.<break time="100ms"/>',
+    '<emotion value="affectionate"/>Yeah.<break time="100ms"/>',
     '', // No verbal ack - just soft prosody (most natural)
     '',
     '',
