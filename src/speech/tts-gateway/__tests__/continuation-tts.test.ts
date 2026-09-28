@@ -99,38 +99,40 @@ describe('createContinuationTTS', () => {
     );
   });
 
-  it('returns to normal speed and volume after an opening soft start', async () => {
-    // Interrupt recovery opens a reply softer and slower. On one continuous
-    // context those inline tags persist, so without a reset the whole reply
-    // came out 24% quieter and 12% slower.
+  it('keeps a reply softer and slower until the reply changes it', async () => {
+    // The humanization layer's pace and volume used to survive only the first
+    // sentence; now they hold, and a later tag (e.g. the end of an interrupt
+    // soft start) returns the voice to normal.
     const reply = new FakeReply([4]);
     const { stream } = run(
       [
-        '<break time="300ms"/><volume ratio="0.76"/><speed ratio="0.88"/>Oh, go ahead. ',
-        'I was just saying that it sounds like a lot.',
+        '<volume ratio="0.8"/><speed ratio="0.92"/>Oh, I hear you. ',
+        'That sounds like a lot. ',
+        '<speed ratio="1"/><volume ratio="1"/>Want to talk it through?',
       ],
       reply
     );
     await drain(stream as unknown as ReadableStream<AudioFrame>);
-    expect(reply.pushes[0]).toContain('<volume ratio="0.76"/>');
-    expect(reply.pushes[1].startsWith('<speed ratio="1"/><volume ratio="1"/>')).toBe(true);
+    expect(reply.pushes[0]).toContain('<volume ratio="0.8"/>');
+    expect(reply.pushes[1]).toBe('That sounds like a lot. ');
+    expect(reply.pushes[2].startsWith('<speed ratio="1"/><volume ratio="1"/>')).toBe(true);
   });
 
-  it('passes only calm emotions to the voice; big ones are left to the words', async () => {
-    // "excited" widened Ferni's pitch range to 10.9 semitones vs 8.7 untagged.
-    const calm = new FakeReply([4]);
+  it("passes the reply's own emotion, including big ones, and a change mid-reply", async () => {
+    const reply = new FakeReply([4]);
     await drain(
-      run(['<emotion value="sympathetic"/>That sounds hard.'], calm)
-        .stream as unknown as ReadableStream<AudioFrame>
+      run(
+        [
+          '<emotion value="excited"/>Wait, a life coach?! That is so cool. ',
+          '<emotion value="sympathetic"/>But I know the timing is hard.',
+        ],
+        reply
+      ).stream as unknown as ReadableStream<AudioFrame>
     );
-    expect(calm.pushes[0]).toBe('<emotion value="sympathetic"/>That sounds hard. ');
-
-    const big = new FakeReply([4]);
-    await drain(
-      run(['<emotion value="excited"/>Wait, a life coach?! That is so cool.'], big)
-        .stream as unknown as ReadableStream<AudioFrame>
-    );
-    expect(big.pushes[0]).not.toContain('<emotion');
+    expect(reply.pushes[0]).toContain('<emotion value="excited"/>');
+    const later = reply.pushes.find((p) => p.includes('timing'));
+    expect(later).toBe('<emotion value="sympathetic"/>But I know the timing is hard. ');
+    expect(reply.pushes.filter((p) => p.includes('<emotion'))).toHaveLength(2);
   });
 
   it('adds no reset when the reply opened at normal speed and volume', async () => {

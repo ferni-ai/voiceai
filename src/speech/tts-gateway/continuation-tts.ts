@@ -4,10 +4,10 @@
  * The LLM's text is cut at sentence boundaries (never inside markup), cleaned,
  * and pushed into a single provider reply stream as it arrives, so synthesis
  * starts on the first sentence while the model is still writing the rest, and
- * the provider keeps one tone and rhythm across the whole reply. The reply's
- * opening emotion/speed/volume go on the first push only; per the persona
- * contract there is one per reply, and Cartesia treats mid-reply shifts as
- * experimental.
+ * the provider keeps one tone and rhythm across the whole reply. Emotion,
+ * speed and volume tags travel inline with the sentence they belong to and
+ * hold until changed, so the reply keeps its pacing and emotional colour
+ * without splitting the generation.
  *
  * @module speech/tts-gateway/continuation-tts
  */
@@ -21,23 +21,27 @@ import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type { SSMLProsodyConfig } from './types.js';
 
 const MIN_FIRST_CHUNK = 20;
-/**
- * Emotions passed to the voice. Big ones (excited, surprised...) widened the
- * cloned voice's pitch range from 8.7 to 10.9 semitones and swung it between
- * turns; calm-adjacent tags read as more human. Anything else is dropped and
- * the voice takes its tone from the words.
- */
-const CALM_EMOTIONS = new Set([
-  'calm',
-  'content',
-  'curious',
-  'affectionate',
-  'sympathetic',
-  'contemplative',
-]);
 
-/** Cartesia inline tags restoring default speed and volume. */
-const RESET_PACE_TAGS = '<speed ratio="1"/><volume ratio="1"/>';
+/** The voice settings in force on the Cartesia context. */
+interface VoiceState {
+  speed: number;
+  volume: number;
+  emotion?: string;
+}
+
+/**
+ * Tags that move the context from `from` to `to`. Inline tags persist on a
+ * Cartesia context until changed, so a tag is written only when a setting
+ * changes, including an explicit return to 1 (which prosodyTags would skip).
+ */
+export function voiceStateTags(from: VoiceState, to: VoiceState): string {
+  let tags = '';
+  if (to.speed !== from.speed) tags += `<speed ratio="${to.speed}"/>`;
+  if (to.volume !== from.volume) tags += `<volume ratio="${to.volume}"/>`;
+  if (to.emotion && to.emotion !== from.emotion) tags += `<emotion value="${to.emotion}"/>`;
+  return tags;
+}
+
 const MIN_CHUNK = 15;
 
 export interface ContinuationOptions {
@@ -64,25 +68,25 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
   const feed = async (): Promise<void> => {
     let buffer = '';
     let first = true;
-    // A soft start (interrupt recovery) slows and quiets the opening only.
-    // Inline tags persist on a context, so reset them after the first piece.
-    let resetAfterOpening = '';
+    // Each sentence carries the emotion, speed and volume the reply's markup
+    // gives it, from where it appears until it changes (the same semantics as
+    // Cartesia inline tags). Only the first sentence used to keep its tags,
+    // with emotion cut to a calm list: the humanization layer's pacing, softer
+    // volume and emotional colour were written and then thrown away.
+    let state: VoiceState = { speed: 1, volume: 1 };
     const push = (raw: string): void => {
       const { text, prosody } = sanitize(raw);
       if (!text) return;
-      if (first) {
-        first = false;
-        const chosen = prosody.emotion || emotion;
-        const calm = chosen && CALM_EMOTIONS.has(chosen) ? chosen : undefined;
-        reply.push(`${openingTags({ ...prosody, emotion: calm })}${text} `);
-        const slowed = prosody.speed !== undefined && prosody.speed !== 1;
-        const quieted = prosody.volume !== undefined && prosody.volume !== 1;
-        if (slowed || quieted) resetAfterOpening = RESET_PACE_TAGS;
-      } else {
-        // Pieces are joined verbatim, so keep a space between sentences.
-        reply.push(`${resetAfterOpening}${text} `);
-        resetAfterOpening = '';
-      }
+      const next: VoiceState = {
+        speed: prosody.speed ?? state.speed,
+        volume: prosody.volume ?? state.volume,
+        emotion: prosody.emotion ?? (first ? emotion : undefined) ?? state.emotion,
+      };
+      const tags = first ? openingTags(next) : voiceStateTags(state, next);
+      first = false;
+      state = next;
+      // Pieces are joined verbatim, so keep a space between sentences.
+      reply.push(`${tags}${text} `);
     };
     try {
       while (!stopped) {
