@@ -1937,6 +1937,32 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // =====================================================================
         let liveBackchannel: LiveBackchannelIntegration | null = null;
         let lastUserFinalTranscript = '';
+        // Pace matching: a turn's words over its speaking time, recorded when
+        // the next turn starts (final transcripts can land after the stop).
+        const { getPaceMatcher, clearPaceMatcher } = await import(
+          '../../speech/output-control/pace-matching.js'
+        );
+        const paceWords: string[] = [];
+        let paceStartedAt = 0;
+        let paceStoppedAt = 0;
+        const paceStateHandler = (ev: unknown): void => {
+          const state = (ev as { newState?: string }).newState;
+          if (state === 'listening' && paceStartedAt) paceStoppedAt = Date.now();
+          if (state !== 'speaking') return;
+          if (paceStartedAt && paceStoppedAt > paceStartedAt && paceWords.length) {
+            const pace = getPaceMatcher(sessionId);
+            pace.recordTurn(paceWords.join(' '), paceStoppedAt - paceStartedAt);
+            log.info({ sessionId, userWpm: pace.userWpm, speed: pace.speed() }, 'pace');
+          }
+          paceWords.length = 0;
+          paceStartedAt = Date.now();
+          paceStoppedAt = 0;
+        };
+        session.on(voice.AgentSessionEventTypes.UserStateChanged, paceStateHandler);
+        cleanupFunctions.push(() => {
+          session.off(voice.AgentSessionEventTypes.UserStateChanged, paceStateHandler);
+          clearPaceMatcher(sessionId);
+        });
         try {
           const { startBackchannelClips } = await import('../integrations/clip-player.js');
           const { getCachedAudioForPersona } =
@@ -2076,6 +2102,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           }
           if (evt.isFinal) {
             lastUserFinalTranscript = evt.transcript ?? '';
+            paceWords.push(evt.transcript ?? '');
             liveBackchannel?.onNewTurn();
             if (userData.lastEmotionAnalysis) {
               liveBackchannel?.updateState({ currentEmotion: userData.lastEmotionAnalysis });

@@ -42,7 +42,13 @@ function textStream(pieces: string[]) {
 }
 
 const processor = getSSMLProcessor();
-function run(pieces: string[], reply: FakeReply, emotion?: string, openReply?: () => FakeReply) {
+function run(
+  pieces: string[],
+  reply: FakeReply,
+  emotion?: string,
+  openReply?: () => FakeReply,
+  baseSpeed?: number
+) {
   let firstAudio = 0;
   const errors: unknown[] = [];
   const stream = createContinuationTTS({
@@ -55,6 +61,7 @@ function run(pieces: string[], reply: FakeReply, emotion?: string, openReply?: (
     openingTags: prosodyTags,
     emotion,
     openReply,
+    baseSpeed,
     toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
     onFirstAudio: () => firstAudio++,
     onError: (e) => errors.push(e),
@@ -136,6 +143,20 @@ describe('createContinuationTTS', () => {
     expect(reply.pushes.filter((p) => p.includes('<emotion'))).toHaveLength(2);
   });
 
+  it('speaks at the session pace, with reply speed tags relative to it', async () => {
+    const reply = new FakeReply([10]);
+    const { stream } = run(
+      ['That deadline is a lot to absorb this week. ', '<speed ratio="0.9"/>Take a breath first. '],
+      reply,
+      undefined,
+      undefined,
+      1.06
+    );
+    await drain(stream as unknown as ReadableStream<AudioFrame>);
+    expect(reply.pushes[0]).toContain('<speed ratio="1.06"/>');
+    expect(reply.pushes[1]).toContain('<speed ratio="0.95"/>');
+  });
+
   it('continues on a fresh generation when the emotion shifts, playing audio in order', async () => {
     // Cartesia: emotion shifts inside one generation are highly experimental;
     // use a separate context per emotion.
@@ -155,7 +176,9 @@ describe('createContinuationTTS', () => {
         return second;
       }
     );
-    const frames = (await drain(stream as unknown as ReadableStream<AudioFrame>)) as unknown as Array<{
+    const frames = (await drain(
+      stream as unknown as ReadableStream<AudioFrame>
+    )) as unknown as Array<{
       bytes: number;
     }>;
     expect(opened).toHaveLength(1);

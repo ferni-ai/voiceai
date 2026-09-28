@@ -34,6 +34,11 @@ interface VoiceState {
  * Cartesia context until changed, so a tag is written only when a setting
  * changes, including an explicit return to 1 (which prosodyTags would skip).
  */
+/** A reply's relative speed on the session base, within Cartesia's 0.6-1.5. */
+export function scaleSpeed(base: number, relative: number): number {
+  return Math.round(Math.min(1.5, Math.max(0.6, base * relative)) * 100) / 100;
+}
+
 export function voiceStateTags(from: VoiceState, to: VoiceState): string {
   let tags = '';
   if (to.speed !== from.speed) tags += `<speed ratio="${to.speed}"/>`;
@@ -61,6 +66,11 @@ export interface ContinuationOptions {
   openingTags(prosody: SSMLProsodyConfig): string;
   /** Session emotion hint, used when the reply names none. */
   emotion?: string;
+  /**
+   * Session base speed (pace matching). Speed tags in the reply are relative
+   * to it: "0.9" on a 1.05 base plays at 0.95.
+   */
+  baseSpeed?: number;
   toFrames(pcm: ArrayBuffer): Iterable<AudioFrame>;
   onFirstAudio(): void;
   onError(error: unknown, phase: 'text' | 'audio'): void;
@@ -93,17 +103,21 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
     // Cartesia inline tags). Only the first sentence used to keep its tags,
     // with emotion cut to a calm list: the humanization layer's pacing, softer
     // volume and emotional colour were written and then thrown away.
-    let state: VoiceState = { speed: 1, volume: 1 };
+    const base = opts.baseSpeed ?? 1;
+    let state: VoiceState = { speed: base, volume: 1 };
     const push = (raw: string): void => {
       const { text, prosody } = sanitize(raw);
       if (!text) return;
       const next: VoiceState = {
-        speed: prosody.speed ?? state.speed,
+        speed: prosody.speed !== undefined ? scaleSpeed(base, prosody.speed) : state.speed,
         volume: prosody.volume ?? state.volume,
         emotion: prosody.emotion ?? (first ? emotion : undefined) ?? state.emotion,
       };
       const shiftsEmotion =
-        !first && opts.openReply !== undefined && next.emotion !== undefined && next.emotion !== state.emotion;
+        !first &&
+        opts.openReply !== undefined &&
+        next.emotion !== undefined &&
+        next.emotion !== state.emotion;
       if (shiftsEmotion) {
         current.end();
         current = opts.openReply!();
