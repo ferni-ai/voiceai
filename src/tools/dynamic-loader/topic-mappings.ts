@@ -14,6 +14,31 @@ import type { ToolDomain } from '../registry/types.js';
 // ============================================================================
 
 export const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
+  // Everyday utilities (timers, conversions, notes...). Loaded on mention
+  // rather than always: 82 tool definitions on every turn slowed the model.
+  timer: ['simple-utilities'],
+  alarm: ['simple-utilities'],
+  stopwatch: ['simple-utilities'],
+  countdown: ['simple-utilities'],
+  'wake me': ['simple-utilities'],
+  convert: ['simple-utilities'],
+  conversion: ['simple-utilities'],
+  currency: ['simple-utilities'],
+  'exchange rate': ['simple-utilities'],
+  'time zone': ['simple-utilities'],
+  timezone: ['simple-utilities'],
+  translate: ['simple-utilities'],
+  translation: ['simple-utilities'],
+  define: ['simple-utilities'],
+  definition: ['simple-utilities'],
+  dictionary: ['simple-utilities'],
+  spell: ['simple-utilities'],
+  calculate: ['simple-utilities'],
+  calculator: ['simple-utilities'],
+  math: ['simple-utilities'],
+  note: ['simple-utilities'],
+  list: ['simple-utilities'],
+  memo: ['simple-utilities'],
   // =========================================================================
   // FINANCIAL TOPICS
   // =========================================================================
@@ -64,7 +89,7 @@ export const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
   deadlines: ['calendar', 'productivity'],
   project: ['productivity'],
   projects: ['productivity'],
-  reminder: ['productivity', 'calendar', 'scheduling'],
+  reminder: ['productivity', 'calendar', 'scheduling', 'simple-utilities'],
   reminders: ['productivity', 'calendar', 'scheduling'],
   'remind me': ['productivity', 'scheduling'],
   'set a reminder': ['productivity'],
@@ -268,7 +293,7 @@ export const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
   dancing: ['entertainment', 'wellness'],
   laugh: ['play'],
   laughing: ['play'],
-  joke: ['play'],
+  joke: ['play', 'simple-utilities'],
   jokes: ['play'],
   funny: ['play'],
 
@@ -406,7 +431,7 @@ export const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
   recall: ['memory'],
   forgot: ['memory'],
   forget: ['memory'],
-  remind: ['memory', 'calendar'],
+  remind: ['memory', 'calendar', 'simple-utilities'],
   'remember that': ['memory'],
   "don't forget": ['memory'],
   'did i tell you': ['memory'],
@@ -470,21 +495,32 @@ export const DOMAIN_PRIORITY: Partial<Record<ToolDomain, number>> = {
  * telephony is essential because "call my mom" should work immediately.
  * trauma-support is SAFETY-CRITICAL: users in crisis need immediate access.
  */
-export const DEFAULT_ESSENTIAL_DOMAINS: ToolDomain[] = [
+export const DEFAULT_ESSENTIAL_DOMAINS: ToolDomain[] = essentialDomainsFromEnv() ?? [
   'memory',
   'handoff',
   'awareness',
   'entertainment',
-  'information',
   'telephony',
-  'communication',
   'calendar', // Schedule, appointments - users ask constantly!
   'productivity', // Tasks, notes, todos - users create these immediately!
-  'habits', // "Log my workout", "How are my habits?" - daily use
-  'simple-utilities', // Timers, conversions - basic utility requests
   'games', // "Play a game", "Tic tac toe" - users request games often!
   'presence', // "Help me calm down", "I'm anxious" - grounding tools needed fast
   'trauma-support', // SAFETY-CRITICAL: Immediate access for users in crisis
   'crisis', // SAFETY-CRITICAL: crisis support, safety planning, crisis resources
   'human-transfer', // SAFETY-CRITICAL: hand a user in crisis to a human
+  // Loaded when the conversation mentions them (topic keys above), not on
+  // every turn: simple-utilities (82 tools), information (58), communication
+  // (35), habits (31). With all 338 tools on every request gemini-3.5-flash
+  // took p50 7.7 s to its first word; at 120 tools ~1.0 s, at 200 ~2 s
+  // (10 calls each, full prompt, 2026-09-28).
 ];
+
+/** ESSENTIAL_TOOL_DOMAINS=memory,handoff,... overrides the list (e.g. to roll back). */
+function essentialDomainsFromEnv(): ToolDomain[] | null {
+  const raw = process.env.ESSENTIAL_TOOL_DOMAINS?.trim();
+  if (!raw) return null;
+  return raw
+    .split(',')
+    .map((d) => d.trim())
+    .filter(Boolean) as ToolDomain[];
+}

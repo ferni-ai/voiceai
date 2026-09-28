@@ -40,6 +40,21 @@ export { TOPIC_TO_DOMAINS, DOMAIN_PRIORITY, DEFAULT_ESSENTIAL_DOMAINS } from './
 // DYNAMIC LOADER CLASS
 // ============================================================================
 
+/**
+ * Topic keywords match whole words (with -s, -es, -ed or -ing). A plain substring test
+ * fired on fragments: "start" loaded the play domain via "art", "recall"
+ * telephony via "call", "moment" family via "mom", "funeral" games via "fun".
+ * Each false hit swapped the agent's tools mid-turn, which also discards the
+ * SDK's preemptive reply.
+ */
+const TOPIC_PATTERNS: Array<[string, readonly ToolDomain[], RegExp]> = Object.entries(
+  TOPIC_TO_DOMAINS
+).map(([topic, domains]) => [
+  topic,
+  domains,
+  new RegExp(`(?<![a-z])${topic.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:s|es|ed|ing)?(?![a-z])`),
+]);
+
 export class DynamicToolLoader {
   private config: DynamicLoaderConfig;
   private loadedDomains = new Map<ToolDomain, LoadedDomainState>();
@@ -113,9 +128,9 @@ export class DynamicToolLoader {
     const detectedTopics: string[] = [];
     const domainScores = new Map<ToolDomain, number>();
 
-    // Check each topic keyword
-    for (const [topic, domains] of Object.entries(TOPIC_TO_DOMAINS)) {
-      if (lowerMessage.includes(topic)) {
+    // Check each topic keyword, as a whole word
+    for (const [topic, domains, pattern] of TOPIC_PATTERNS) {
+      if (pattern.test(lowerMessage)) {
         detectedTopics.push(topic);
         for (const domain of domains) {
           const currentScore = domainScores.get(domain) || 0;
@@ -410,8 +425,7 @@ export async function loadEssentialDomains(
   // Tools look services up through a ServiceRegistry (has/get). Callers on the
   // live path pass their SessionServices, which is a different shape; building
   // with it threw "services.has is not a function" and the call got no tools.
-  const isServiceRegistry =
-    typeof (services as { has?: unknown } | undefined)?.has === 'function';
+  const isServiceRegistry = typeof (services as { has?: unknown } | undefined)?.has === 'function';
   const ctx = {
     userId: userId || 'anonymous',
     agentId: 'ferni',
