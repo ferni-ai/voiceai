@@ -11,6 +11,14 @@
  * lines took stock openers ("Oh", "Ugh") from 8/9 to 0/9 and replies ending on
  * a question from 9/9 to 4/9 at the same length (9 samples each).
  *
+ * A word band ("about 15 to 35 words") made every reply the same length: live
+ * replies were 27-37 words (spread CV 0.06-0.12). On a 7-turn conversation,
+ * 21 replies per variant (2026-09-28): the band gave mean 31 words, CV 0.25,
+ * 52% ending on a question; dropping the number made replies longer (42);
+ * "ask only when you really want to know" raised questions to 71-81%. The
+ * wording below gave mean 22-25 words, CV 0.36-0.48, replies as short as 8
+ * words, and 33-38% questions, in two separate batches.
+ *
  * System messages cannot carry it: the Google plugin moves every system
  * message into systemInstruction, which is the "rule at the end" case. So the
  * reminder is appended to the last user message of a COPY of the context,
@@ -24,8 +32,8 @@
 import { llm } from '@livekit/agents';
 
 export const TURN_STYLE_REMINDER =
-  'Reply in one to three sentences, about 15 to 35 words, with at most one question and no paragraph breaks, unless they asked you to explain, plan or tell a story. ' +
-  'Start with the substance, not a reaction word like Oh, Ugh, Yeah or Hmm. Often end without a question: a thought, a reaction or an offer is enough.';
+  'Keep it short, like a friend on a call: often one sentence, sometimes just a few words ("Again? That cat."), never more than three sentences unless they asked you to explain, plan or tell a story. No paragraph breaks. ' +
+  'Start with the substance, not a stock reaction word like Oh, Ugh, Yeah or Hmm. Usually end on a thought, a reaction or an offer rather than a question, and never ask more than one.';
 
 export function turnStyleReminderEnabled(
   env: Record<string, string | undefined> = process.env

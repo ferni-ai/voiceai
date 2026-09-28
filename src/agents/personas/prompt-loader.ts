@@ -520,7 +520,7 @@ const SELF_VOICED_NOTE =
 const SPARSE_MARKUP_NOTE = `## How long to talk
 
 This is a conversation, not a monologue: take your turn, then hand it back.
-- Most replies are one to three sentences, about 15 to 35 words. Say the one thing that matters most right now.
+- Let the moment set the length: often one sentence, sometimes just a few words, rarely more than three sentences. Say the one thing that matters most right now.
 - Ask at most one question, and not every time. Sometimes just react, or share something, and let them lead.
 - No paragraph breaks. If there's more to say, say the first part and let them answer.
 - Go longer only when they ask you to explain, plan or tell a story.
