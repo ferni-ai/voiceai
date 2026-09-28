@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { getProviderIdSync as configProviderId } from '../../../config/model-provider-config.js';
 import {
   CartesiaCascadeProvider,
+  buildCascadeHedge,
   buildCascadeLLMOptions,
   buildCascadeSTTOptions,
   buildCascadeKeyterms,
@@ -59,6 +60,35 @@ describe('cascade thinking level', () => {
   it('honours CASCADE_LLM_THINKING', () => {
     const opts = buildCascadeLLMOptions({ CASCADE_LLM_THINKING: 'medium' });
     expect(opts.thinkingConfig).toEqual({ thinkingLevel: 'MEDIUM' });
+  });
+});
+
+describe('buildCascadeHedge', () => {
+  it('hedges gemini-3.5-flash with gemini-3-flash-preview after 1.3 s by default', () => {
+    const hedge = buildCascadeHedge({ GOOGLE_CLOUD_PROJECT: 'proj' });
+    expect(hedge?.hedgeAfterMs).toBe(1300);
+    expect(hedge?.backup).toMatchObject({
+      model: 'gemini-3-flash-preview',
+      location: 'global',
+      vertexai: true,
+    });
+  });
+
+  it('can be turned off, and never hedges a model with itself', () => {
+    expect(buildCascadeHedge({ CASCADE_LLM_HEDGE_MS: 'off' })).toBeNull();
+    expect(buildCascadeHedge({ CASCADE_LLM_BACKUP_MODEL: 'gemini-3.5-flash' })).toBeNull();
+  });
+
+  it('takes the delay, backup model and region from env', () => {
+    const hedge = buildCascadeHedge({
+      CASCADE_LLM_HEDGE_MS: '900',
+      CASCADE_LLM_BACKUP_MODEL: 'gemini-2.5-flash',
+      CASCADE_LLM_BACKUP_LOCATION: 'us-central1',
+    });
+    expect(hedge).toMatchObject({
+      hedgeAfterMs: 900,
+      backup: { model: 'gemini-2.5-flash', location: 'us-central1' },
+    });
   });
 });
 
@@ -161,12 +191,13 @@ describe('createProviderSTT', () => {
 
 describe('ink-2 turn detection', () => {
   it('defaults to the Responsive profile and honours CASCADE_TURN_PROFILE', async () => {
-    const { inkTurnProfile, INK_TURN_PROFILES, buildCascadeSTTOptions } = await import(
-      '../cartesia-cascade.js'
-    );
+    const { inkTurnProfile, INK_TURN_PROFILES, buildCascadeSTTOptions } =
+      await import('../cartesia-cascade.js');
     expect(inkTurnProfile({})).toEqual(INK_TURN_PROFILES.responsive);
     expect(inkTurnProfile({ CASCADE_TURN_PROFILE: 'Patient' })).toEqual(INK_TURN_PROFILES.patient);
-    expect(inkTurnProfile({ CASCADE_TURN_PROFILE: 'nonsense' })).toEqual(INK_TURN_PROFILES.responsive);
+    expect(inkTurnProfile({ CASCADE_TURN_PROFILE: 'nonsense' })).toEqual(
+      INK_TURN_PROFILES.responsive
+    );
     expect(buildCascadeSTTOptions({}).turnDetection).toEqual(INK_TURN_PROFILES.responsive);
   });
 

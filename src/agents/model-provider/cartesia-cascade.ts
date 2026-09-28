@@ -27,6 +27,7 @@ import { ThinkingLevel } from '@google/genai';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import * as google from '@livekit/agents-plugin-google';
 import { createLogger } from '../../utils/safe-logger.js';
+import { HedgedLLM } from './hedged-llm.js';
 import type {
   AgentSessionTurnDetection,
   LLMModelConfig,
@@ -71,7 +72,12 @@ export interface CascadeSTTOptions {
  */
 export const INK_TURN_PROFILES: Record<'balanced' | 'responsive' | 'patient', InkTurnDetection> = {
   balanced: { startThreshold: 0.8, eagerEndThreshold: 0.6, endThreshold: 0.3, endTimeoutMs: 5600 },
-  responsive: { startThreshold: 0.7, eagerEndThreshold: 0.6, endThreshold: 0.4, endTimeoutMs: 4500 },
+  responsive: {
+    startThreshold: 0.7,
+    eagerEndThreshold: 0.6,
+    endThreshold: 0.4,
+    endTimeoutMs: 4500,
+  },
   patient: { startThreshold: 0.8, eagerEndThreshold: 0.3, endThreshold: 0.1, endTimeoutMs: 8000 },
 };
 
@@ -143,6 +149,33 @@ function cascadeThinkingLevel(model: string, env: Env): ThinkingLevel {
   return /^gemini-3\.8/.test(model) ? ThinkingLevel.LOW : ThinkingLevel.MINIMAL;
 }
 
+/**
+ * Backup model for hedged replies (see hedged-llm.ts), or null when off.
+ * gemini-3-flash-preview kept humour and emotion tags in side-by-side replies
+ * and its first text took p50 1.5 s / p90 1.7 s on 2026-09-28, when the
+ * primary gemini-3.5-flash took p50 7.2 s. CASCADE_LLM_HEDGE_MS=off disables.
+ */
+export function buildCascadeHedge(
+  env: Env = process.env
+): { backup: CascadeLLMOptions; hedgeAfterMs: number } | null {
+  const raw = env.CASCADE_LLM_HEDGE_MS ?? '1300';
+  if (raw === 'off') return null;
+  const hedgeAfterMs = Number(raw);
+  if (!Number.isFinite(hedgeAfterMs) || hedgeAfterMs < 0) return null;
+  const model = env.CASCADE_LLM_BACKUP_MODEL || 'gemini-3-flash-preview';
+  const primary = buildCascadeLLMOptions(env);
+  if (model === primary.model) return null;
+  return {
+    hedgeAfterMs,
+    backup: {
+      ...primary,
+      model,
+      location: env.CASCADE_LLM_BACKUP_LOCATION || primary.location,
+      thinkingConfig: { thinkingLevel: cascadeThinkingLevel(model, env) },
+    },
+  };
+}
+
 /** STT options for the cascade. ink-2 is Cartesia's English streaming model. */
 export function buildCascadeSTTOptions(env: Env = process.env): CascadeSTTOptions {
   return {
@@ -199,8 +232,20 @@ export class CartesiaCascadeProvider implements ModelProvider {
    */
   async createLLMModel(config: LLMModelConfig): Promise<unknown> {
     const opts = buildCascadeLLMOptions(process.env, config.temperature);
-    log.info({ model: opts.model, location: opts.location }, 'Creating cascade Gemini text LLM');
-    return new google.LLM(opts);
+    const hedge = buildCascadeHedge(process.env);
+    log.info(
+      {
+        model: opts.model,
+        location: opts.location,
+        backupModel: hedge?.backup.model ?? null,
+        hedgeAfterMs: hedge?.hedgeAfterMs ?? null,
+      },
+      'Creating cascade Gemini text LLM'
+    );
+    const primary = new google.LLM(opts);
+    if (!hedge) return primary;
+    const backup = new google.LLM({ ...hedge.backup, temperature: config.temperature });
+    return new HedgedLLM(primary, backup, hedge.hedgeAfterMs);
   }
 
   createSTT(keyterms: string[] = []): unknown {
