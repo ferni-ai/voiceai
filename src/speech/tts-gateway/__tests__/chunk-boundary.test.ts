@@ -40,8 +40,16 @@ describe('gateway chunk boundaries', () => {
     expect(chunks.filter(hasSplitMarkup)).toEqual([]);
   });
 
-  it('still cuts long untagged text at a word boundary', () => {
-    const plain = 'word '.repeat(40);
+  it('keeps an ordinary long sentence whole until it ends', () => {
+    // Cut at 80 characters, sentences like this reached Cartesia in two halves.
+    const partial = 'Sometimes it helps to just pick one tiny, almost ridiculously easy thing first to get';
+    expect(partial.length).toBeGreaterThan(80);
+    expect(findChunkEnd(partial, 15)).toBeNull();
+    expect(findChunkEnd(`${partial} some momentum. And`, 15)).toBe(`${partial} some momentum. `.length);
+  });
+
+  it('still cuts runaway unpunctuated text at a word boundary', () => {
+    const plain = 'word '.repeat(60);
     expect(findChunkEnd(plain, 15)).toBeGreaterThan(0);
     expect(plain.slice(0, findChunkEnd(plain, 15)!)).toMatch(/ $/);
   });

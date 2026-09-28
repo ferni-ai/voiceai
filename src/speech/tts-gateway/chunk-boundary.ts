@@ -17,7 +17,14 @@
 export const SENTENCE_END = /(?<![A-Z][a-z]|[A-Z]|[0-9])([.!?]+)\s|(?<![0-9])([.!?]+)$/;
 
 /** Longest a chunk may grow without a sentence end before cutting at a space. */
-const MAX_UNPUNCTUATED = 80;
+/**
+ * Longest run without sentence punctuation before a forced cut (a safety net
+ * for text that never punctuates). It was 80, which split ordinary 80-120
+ * character sentences mid-sentence; Cartesia paces and intonates from whole
+ * sentences ("full sentences ... produce the best pacing and intonation") and
+ * the reply stream sends with max_buffer_delay_ms 0, trusting whole sentences.
+ */
+const MAX_UNPUNCTUATED = 250;
 
 /** True when `index` falls inside an unclosed `open`...`close` span of `text`. */
 function insideSpan(text: string, index: number, open: string, close: string): boolean {

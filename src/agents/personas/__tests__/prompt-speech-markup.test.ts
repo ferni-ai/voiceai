@@ -36,6 +36,8 @@ describe('speech markup in the live Ferni prompts', () => {
     expect(base).toContain('where it genuinely shifts');
     expect(base).toContain('<speed ratio="0.9"/>');
     expect(base).toContain('[laughter]');
+    // Cartesia reads all-caps words as initialisms ("NUH-yun" came out as N-U-H).
+    expect(base).toContain('Never write words in capitals for emphasis');
     expect(system.length).toBeGreaterThan(1000);
   }, 60_000);
 

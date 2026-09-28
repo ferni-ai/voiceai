@@ -29,6 +29,18 @@ const log = createLogger({ module: 'VoiceIds' });
 export const CARTESIA_SNAPSHOT = 'sonic-3.6-2026-08-27';
 export const CARTESIA_MODEL = pinCartesiaModel(process.env.CARTESIA_MODEL);
 
+/**
+ * Cartesia pronunciation dictionary for names TTS gets wrong (e.g. Nayan,
+ * which sonic read as "NIGH-in"), built from COMMON_DIFFICULT_NAMES in
+ * speech/pronunciation-memory/constants.ts. Spread into every TTS request.
+ */
+export function cartesiaPronunciation(
+  env: Record<string, string | undefined> = process.env
+): { pronunciation_dict_id?: string } {
+  const id = env.CARTESIA_PRONUNCIATION_DICT_ID?.trim();
+  return id ? { pronunciation_dict_id: id } : {};
+}
+
 /** The bare sonic-3.6 alias (or nothing) becomes the dated snapshot; anything else is kept. */
 export function pinCartesiaModel(model: string | undefined): string {
   return !model || model === 'sonic-3.6' ? CARTESIA_SNAPSHOT : model;

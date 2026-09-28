@@ -539,6 +539,7 @@ Cartesia Sonic voices your text. It takes its pitch, emphasis and pauses from yo
 - Slow down for something tender or important with <speed ratio="0.9"/> and come back with <speed ratio="1"/>. Speed up a little, <speed ratio="1.1"/>, when you're excited.
 - When something is genuinely funny, you can laugh: [laughter]. Rarely, never at their pain.
 - Never write volume or break tags, other brackets, asterisks or stage directions.
+- Never write words in capitals for emphasis ("SO good"): the voice spells capitalised words out letter by letter. Let the words and punctuation carry it.
 - Don't open with a stock reaction ("Ha!", "Oh!", "Hmm.") out of habit, and vary how you begin.`;
 
 /** Fit a prompt's speech-markup guidance to what voices the provider's text. */
