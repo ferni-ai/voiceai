@@ -139,7 +139,7 @@ await pump;
 await room.disconnect();
 
 const trackSummaries = [];
-for (const [, rec] of tracks) {
+for (const [sid, rec] of tracks) {
   const pcm = Buffer.concat(rec.bufs);
   const header = Buffer.alloc(44);
   header.write('RIFF', 0);
@@ -155,7 +155,7 @@ for (const [, rec] of tracks) {
   header.writeUInt16LE(16, 34);
   header.write('data', 36);
   header.writeUInt32LE(pcm.length, 40);
-  const file = outJson.replace(/\.json$/, `.${rec.name.replace(/[^A-Za-z0-9_-]/g, '_')}.wav`);
+  const file = outJson.replace(/\.json$/, `.${rec.name.replace(/[^A-Za-z0-9_-]/g, '_')}.${sid.slice(-6)}.wav`);
   writeFileSync(file, Buffer.concat([header, pcm]));
   trackSummaries.push({ name: rec.name, file, voice: rec.voice });
 }

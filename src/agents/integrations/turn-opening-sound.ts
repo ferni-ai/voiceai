@@ -13,6 +13,10 @@
  * @module agents/integrations/turn-opening-sound
  */
 
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'TurnOpeningSound' });
+
 export const TURN_OPENING = {
   /** Play only if the agent is still silent this long after the turn ends. */
   waitMs: 650,
@@ -73,6 +77,7 @@ export function attachTurnOpeningSound(
         sinceLastClipMs: Date.now() - clips.lastPlayedAt(),
       });
       playedLastTurn = text !== null && clips.playClip(text);
+      if (playedLastTurn) log.info({ text }, 'turn opening clip played');
     }, TURN_OPENING.waitMs);
   };
   session.on('agent_state_changed', onState);

@@ -1939,9 +1939,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
         let lastUserFinalTranscript = '';
         // Pace matching: a turn's words over its speaking time, recorded when
         // the next turn starts (final transcripts can land after the stop).
-        const { getPaceMatcher, clearPaceMatcher } = await import(
-          '../../speech/output-control/pace-matching.js'
-        );
+        const { getPaceMatcher, clearPaceMatcher } =
+          await import('../../speech/output-control/pace-matching.js');
         const paceWords: string[] = [];
         let paceStartedAt = 0;
         let paceStoppedAt = 0;
@@ -1997,6 +1996,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
             { enabled: !getModelProvider().speaksNatively?.(), playClip: clips?.playClip }
           );
           cleanupFunctions.push(() => liveBackchannel?.cleanup());
+          // A user turn ends when the agent takes the floor. Ink finalizes a
+          // transcript segment at every pause, so counting finals as turns
+          // reset the "has been talking a while" clock at each pause, the very
+          // moment a backchannel belongs.
+          const turnEndHandler = (ev: unknown): void => {
+            if ((ev as { newState?: string }).newState === 'speaking') liveBackchannel?.onNewTurn();
+          };
+          session.on(voice.AgentSessionEventTypes.AgentStateChanged, turnEndHandler);
+          cleanupFunctions.push(() => {
+            session.off(voice.AgentSessionEventTypes.AgentStateChanged, turnEndHandler);
+          });
           log.info(
             { personaId: persona.id, sessionId },
             '🎤 Live backchanneling wired on multi-agent path'
@@ -2103,7 +2113,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
           if (evt.isFinal) {
             lastUserFinalTranscript = evt.transcript ?? '';
             paceWords.push(evt.transcript ?? '');
-            liveBackchannel?.onNewTurn();
             if (userData.lastEmotionAnalysis) {
               liveBackchannel?.updateState({ currentEmotion: userData.lastEmotionAnalysis });
             }

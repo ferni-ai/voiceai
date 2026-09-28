@@ -32,6 +32,18 @@ export async function* pcmToFrames(pcm: ArrayBuffer): AsyncGenerator<AudioFrame>
   for (const out of resampler.flush()) yield out;
 }
 
+/**
+ * Endless silence at mixer rate. The SDK's AudioMixer (rtc-node) ends itself
+ * once its last stream is removed, and later play() calls then fail inside a
+ * background task while still returning a handle: only the first clip of a
+ * session was ever heard (measured 2026-09-28). A silent stream that never
+ * ends keeps the mixer open.
+ */
+export async function* silence(): AsyncGenerator<AudioFrame> {
+  const samples = MIX_RATE / 10; // 100 ms, the mixer's block
+  for (;;) yield new AudioFrame(new Int16Array(samples), MIX_RATE, 1, samples);
+}
+
 export class ClipPlayer {
   private readonly player = new voice.BackgroundAudioPlayer();
   private started = false;
@@ -39,6 +51,7 @@ export class ClipPlayer {
 
   async start(room: Room, session: voice.AgentSession): Promise<void> {
     await this.player.start({ room, agentSession: session });
+    this.player.play({ source: silence() });
     this.started = true;
   }
 

@@ -24,6 +24,8 @@ const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : nu
 const round = (x, d = 2) => (x === null ? null : Math.round(x * 10 ** d) / 10 ** d);
 
 const delays = [];
+const perceived = [];
+let openingSounds = 0;
 const replies = [];
 let backchannels = 0;
 let interruptions = 0;
@@ -32,6 +34,17 @@ let userSpeechMs = 0;
 for (const file of process.argv.slice(2)) {
   const run = JSON.parse(readFileSync(file, 'utf8'));
   for (const r of run.results) if (r.replyDelayMs !== null) delays.push(r.replyDelayMs);
+
+  // Side-track clips (backchannels, opening sounds) come from a track whose
+  // name mentions "background"; the reply voice is the other agent track.
+  const side = run.tracks.filter((t) => /background/i.test(t.name));
+  for (const r of run.results) {
+    if (r.replyDelayMs === null) continue;
+    const replyAt = r.userEndedAt + r.replyDelayMs;
+    const clipStarts = side.flatMap((t) => t.voice.map(([vs]) => vs)).filter((vs) => vs >= r.userEndedAt && vs < replyAt);
+    if (clipStarts.length) openingSounds++;
+    perceived.push(Math.min(r.replyDelayMs, ...clipStarts.map((vs) => vs - r.userEndedAt)));
+  }
 
   // Agent replies to the scripted turns (skip the greeting, before the first turn).
   const firstTurnAt = run.userSpeech[0]?.[0] ?? 0;
@@ -55,6 +68,9 @@ const sd = m === null ? null : Math.sqrt(mean(words.map((w) => (w - m) ** 2)));
 const score = {
   replies: replies.length,
   replyDelayMs: { p50: pct(delays, 50), p90: pct(delays, 90), n: delays.length },
+  // First agent sound of any kind (an opening "mm" counts): the gap people hear.
+  perceivedDelayMs: { p50: pct(perceived, 50), p90: pct(perceived, 90) },
+  openingSounds,
   wordsPerReply: { mean: round(m, 1), min: words.length ? Math.min(...words) : null, max: words.length ? Math.max(...words) : null, cv: m ? round(sd / m) : null },
   questionEndRate: round(replies.filter((t) => /\?\s*$/.test(t)).length / (replies.length || 1)),
   stockOpenerRate: round(replies.filter((t) => STOCK_OPENER.test(t.trim())).length / (replies.length || 1)),
