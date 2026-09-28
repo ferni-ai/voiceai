@@ -70,7 +70,18 @@ interface Pick {
   speculative: boolean;
 }
 
-const norm = (s: string): string => s.toLowerCase().replace(/\s+/g, ' ').trim();
+/**
+ * Key for matching a transcript to its precomputed embedding: final
+ * transcripts gain punctuation and casing the interim one lacked.
+ */
+export const matchKey = (s: string): string =>
+  s
+    .toLowerCase()
+    .replace(/['\u2019]/g, '')
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+const norm = matchKey;
 
 export class TurnToolRetrieval {
   private readonly k: number;
@@ -84,6 +95,7 @@ export class TurnToolRetrieval {
   /** tool → turn it was last used or picked in. */
   private readonly sticky = new Map<string, number>();
   private turn = 0;
+  private readonly logged = new WeakSet<object>();
 
   constructor(private readonly opts: TurnToolRetrievalOptions) {
     this.k = opts.k ?? 20;
@@ -172,7 +184,9 @@ export class TurnToolRetrieval {
   /** Shadow mode: pick and log without changing what the model gets. */
   observe(text: string, toolCtx: llm.ToolContext): void {
     void this.pick(text).then((p) => {
-      if (!p) return;
+      // llmNode runs several times per turn (preemptive, final, after tools).
+      if (!p || this.logged.has(p)) return;
+      this.logged.add(p);
       const available = toolCtx.functionTools;
       const selected = Object.keys(available).filter(
         (n) => p.tools.some((t) => t.tool === n) || this.isCore(n) || this.isSticky(n)
@@ -229,11 +243,19 @@ export function getTurnToolRetrieval(session: object | undefined): TurnToolRetri
   return session ? sessions.get(session) : undefined;
 }
 
-/** The text of the latest user message in a chat context. */
+/**
+ * The user's words for the current turn: every user message since the agent
+ * last spoke. A turn with a pause arrives as several user messages, and the
+ * request can be in an earlier one ("what's the weather tomorrow?" then
+ * "I'm thinking of going for a hike").
+ */
 export function latestUserText(chatCtx: llm.ChatContext): string | null {
+  const parts: string[] = [];
   for (let i = chatCtx.items.length - 1; i >= 0; i--) {
     const item = chatCtx.items[i];
-    if (item.type === 'message' && item.role === 'user') return item.textContent ?? null;
+    if (item.type !== 'message') continue;
+    if (item.role === 'assistant') break;
+    if (item.role === 'user' && item.textContent) parts.unshift(item.textContent);
   }
-  return null;
+  return parts.length ? parts.join(' ') : null;
 }

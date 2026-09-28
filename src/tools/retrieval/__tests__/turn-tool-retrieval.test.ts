@@ -94,12 +94,24 @@ describe('TurnToolRetrieval', () => {
 });
 
 describe('helpers', () => {
-  it('finds the latest user message', () => {
+  it("takes the user's whole turn: every user message since the agent spoke", () => {
     const ctx = new llm.ChatContext();
     ctx.addMessage({ role: 'user', content: 'first' });
     ctx.addMessage({ role: 'assistant', content: 'reply' });
-    ctx.addMessage({ role: 'user', content: 'second' });
-    expect(latestUserText(ctx)).toBe('second');
+    ctx.addMessage({ role: 'user', content: "What's the weather tomorrow?" });
+    ctx.addMessage({ role: 'user', content: "I'm thinking of going for a hike." });
+    expect(latestUserText(ctx)).toBe(
+      "What's the weather tomorrow? I'm thinking of going for a hike."
+    );
+  });
+
+  it('matches an interim transcript to its final despite punctuation and casing', async () => {
+    const { r, embedder } = await setup();
+    r.onTranscript('whats the weathers supposed to be like tomorrow', true);
+    const before = embedder.calls;
+    const pick = await r.pick("What's the weather's supposed to be like tomorrow?");
+    expect(pick?.speculative).toBe(true);
+    expect(embedder.calls).toBe(before);
   });
 
   it('is off unless TOOL_RETRIEVAL says shadow or live', () => {

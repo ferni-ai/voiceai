@@ -133,6 +133,17 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
+    // 1a. Tool retrieval index (TOOL_RETRIEVAL=shadow|live): load it from the
+    // machine's disk cache, or build it (~25 s on a machine's first boot) so
+    // the first call does not wait. Not awaited: warm-up keeps its time budget.
+    if (process.env.TOOL_RETRIEVAL === 'shadow' || process.env.TOOL_RETRIEVAL === 'live') {
+      void import('../../tools/retrieval/dense-index.js')
+        .then(({ createVertexEmbedder, getSharedToolIndex }) =>
+          getSharedToolIndex(createVertexEmbedder())
+        )
+        .catch((e: unknown) => log('⚠️ Tool index warm-up failed', { error: String(e) }));
+    }
+
     // 1b. ⚡ PRE-CACHE CONVERSATIONAL AUDIO - Biggest latency win!
     // Generate TTS audio for greetings, handoffs, banter, and backchannels.
     // Target: ALL conversational phrases under 800ms (most under 200ms when cached).
