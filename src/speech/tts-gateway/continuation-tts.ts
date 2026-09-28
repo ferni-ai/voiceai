@@ -47,6 +47,14 @@ const MIN_CHUNK = 15;
 export interface ContinuationOptions {
   textStream: NodeReadableStream<string>;
   reply: ReplyStream;
+  /**
+   * Opens another reply stream on the same voice. When given, a change of
+   * emotion mid-reply continues on a fresh generation: Cartesia calls emotion
+   * shifts inside one generation highly experimental and recommends a separate
+   * context per emotion. Audio still plays in order, with the next context
+   * generating while the previous one plays.
+   */
+  openReply?: () => ReplyStream;
   /** Strip markup and instruction blocks; returns speakable text and its prosody. */
   sanitize(chunk: string): { text: string; prosody: SSMLProsodyConfig };
   /** Render the opening prosody as inline tags for the first push. */
@@ -63,6 +71,18 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
     opts;
   const reader = textStream.getReader();
   let stopped = false;
+  // Contexts in play order; the feed writes to the last one.
+  const replies: ReplyStream[] = [reply];
+  let current = reply;
+  let feedDone = false;
+  let wakeAudio: (() => void) | null = null;
+  const notifyAudio = (): void => {
+    wakeAudio?.();
+    wakeAudio = null;
+  };
+  const cancelAll = (): void => {
+    for (const r of replies) r.cancel();
+  };
 
   /** Cut the LLM text into sentences and push them as they complete. */
   const feed = async (): Promise<void> => {
@@ -82,11 +102,20 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
         volume: prosody.volume ?? state.volume,
         emotion: prosody.emotion ?? (first ? emotion : undefined) ?? state.emotion,
       };
-      const tags = first ? openingTags(next) : voiceStateTags(state, next);
+      const shiftsEmotion =
+        !first && opts.openReply !== undefined && next.emotion !== undefined && next.emotion !== state.emotion;
+      if (shiftsEmotion) {
+        current.end();
+        current = opts.openReply!();
+        replies.push(current);
+        notifyAudio();
+      }
+      // A new context starts from the defaults, so it gets the full state.
+      const tags = first || shiftsEmotion ? openingTags(next) : voiceStateTags(state, next);
       first = false;
       state = next;
       // Pieces are joined verbatim, so keep a space between sentences.
-      reply.push(`${tags}${text} `);
+      current.push(`${tags}${text} `);
     };
     try {
       while (!stopped) {
@@ -100,11 +129,13 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
         if (done) break;
       }
       if (buffer && !stopped) push(buffer);
-      reply.end();
+      current.end();
     } catch (error) {
       onError(error, 'text');
-      reply.cancel();
+      cancelAll();
     } finally {
+      feedDone = true;
+      notifyAudio();
       try {
         reader.releaseLock();
       } catch {
@@ -118,14 +149,22 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
       const feeding = feed();
       let heardAudio = false;
       try {
-        for await (const pcm of reply) {
-          if (stopped) break;
-          if (pcm.byteLength === 0) continue;
-          if (!heardAudio) {
-            heardAudio = true;
-            onFirstAudio();
+        for (let i = 0; !stopped; i++) {
+          while (i >= replies.length && !feedDone) {
+            await new Promise<void>((resolve) => {
+              wakeAudio = resolve;
+            });
           }
-          for (const frame of toFrames(pcm)) controller.enqueue(frame);
+          if (i >= replies.length) break;
+          for await (const pcm of replies[i]) {
+            if (stopped) break;
+            if (pcm.byteLength === 0) continue;
+            if (!heardAudio) {
+              heardAudio = true;
+              onFirstAudio();
+            }
+            for (const frame of toFrames(pcm)) controller.enqueue(frame);
+          }
         }
       } catch (error) {
         onError(error, 'audio');
@@ -142,7 +181,8 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
     cancel() {
       // The listener stopped playback (the user interrupted): stop both sides.
       stopped = true;
-      reply.cancel();
+      cancelAll();
+      notifyAudio();
       void reader.cancel().catch(() => undefined);
     },
   }) as NodeReadableStream<AudioFrame>;

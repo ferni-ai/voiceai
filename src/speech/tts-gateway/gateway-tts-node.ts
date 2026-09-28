@@ -412,6 +412,7 @@ async function createStreamingOverlapTTS(
     return createContinuationTTS({
       textStream,
       reply: provider.openReplyStream(voiceId),
+      openReply: () => provider.openReplyStream!(voiceId),
       sanitize: (chunk) => sanitizeChunkForTTS(chunk, ssmlProcessor),
       openingTags: prosodyTags,
       emotion,

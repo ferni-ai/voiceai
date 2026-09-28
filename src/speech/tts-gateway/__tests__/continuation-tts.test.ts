@@ -42,7 +42,7 @@ function textStream(pieces: string[]) {
 }
 
 const processor = getSSMLProcessor();
-function run(pieces: string[], reply: FakeReply, emotion?: string) {
+function run(pieces: string[], reply: FakeReply, emotion?: string, openReply?: () => FakeReply) {
   let firstAudio = 0;
   const errors: unknown[] = [];
   const stream = createContinuationTTS({
@@ -54,6 +54,7 @@ function run(pieces: string[], reply: FakeReply, emotion?: string) {
     },
     openingTags: prosodyTags,
     emotion,
+    openReply,
     toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
     onFirstAudio: () => firstAudio++,
     onError: (e) => errors.push(e),
@@ -133,6 +134,48 @@ describe('createContinuationTTS', () => {
     const later = reply.pushes.find((p) => p.includes('timing'));
     expect(later).toBe('<emotion value="sympathetic"/>But I know the timing is hard. ');
     expect(reply.pushes.filter((p) => p.includes('<emotion'))).toHaveLength(2);
+  });
+
+  it('continues on a fresh generation when the emotion shifts, playing audio in order', async () => {
+    // Cartesia: emotion shifts inside one generation are highly experimental;
+    // use a separate context per emotion.
+    const first = new FakeReply([3]);
+    const second = new FakeReply([5]);
+    const opened: FakeReply[] = [];
+    const { stream } = run(
+      [
+        '<emotion value="excited"/>You got the job?! ',
+        'That is huge. ',
+        '<emotion value="sympathetic"/>I know the last month was hard, though.',
+      ],
+      first,
+      undefined,
+      () => {
+        opened.push(second);
+        return second;
+      }
+    );
+    const frames = (await drain(stream as unknown as ReadableStream<AudioFrame>)) as unknown as Array<{
+      bytes: number;
+    }>;
+    expect(opened).toHaveLength(1);
+    expect(first.ended).toBe(true);
+    expect(first.pushes.join('')).not.toContain('sympathetic');
+    expect(second.pushes[0].startsWith('<emotion value="sympathetic"/>I know')).toBe(true);
+    expect(second.ended).toBe(true);
+    expect(frames.map((f) => f.bytes)).toEqual([3, 5]);
+  });
+
+  it('keeps one generation when the emotion does not change', async () => {
+    const reply = new FakeReply([4]);
+    let opened = 0;
+    await drain(
+      run(['<emotion value="calm"/>Okay. ', 'Take your time.'], reply, undefined, () => {
+        opened++;
+        return new FakeReply();
+      }).stream as unknown as ReadableStream<AudioFrame>
+    );
+    expect(opened).toBe(0);
   });
 
   it('adds no reset when the reply opened at normal speed and volume', async () => {
