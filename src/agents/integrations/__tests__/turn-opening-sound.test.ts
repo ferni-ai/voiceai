@@ -74,3 +74,31 @@ describe('attachTurnOpeningSound', () => {
     expect(played).toEqual(['Mm', 'Mm']);
   });
 });
+
+describe('attachTurnOpeningSound with reply audio', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('stays quiet when the reply audio already exists, even before the speaking state', () => {
+    vi.useFakeTimers({ now: 10_000 });
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const session = new EventEmitter();
+    const played: string[] = [];
+    let replyAudioAt = 0;
+    attachTurnOpeningSound(
+      session,
+      { playClip: (t) => (played.push(t), true), lastPlayedAt: () => 0 },
+      () => 'It has been a long day.',
+      (since) => replyAudioAt >= since
+    );
+    session.emit('user_state_changed', { newState: 'speaking' });
+    vi.advanceTimersByTime(3000);
+    session.emit('agent_state_changed', { newState: 'thinking' });
+    vi.advanceTimersByTime(600);
+    replyAudioAt = Date.now(); // TTS produced the first frame at 600 ms
+    vi.advanceTimersByTime(100);
+    expect(played).toEqual([]);
+  });
+});

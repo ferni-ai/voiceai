@@ -1976,12 +1976,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
             cleanupFunctions.push(() => void clips.close());
             const { attachTurnOpeningSound } =
               await import('../integrations/turn-opening-sound.js');
+            const { replyAudioSince, clearReplyActivity } =
+              await import('../../speech/output-control/reply-activity.js');
+            cleanupFunctions.push(() => clearReplyActivity(sessionId));
             if (process.env.TURN_OPENING_SOUND !== 'off') {
               cleanupFunctions.push(
                 attachTurnOpeningSound(
                   session as unknown as Parameters<typeof attachTurnOpeningSound>[0],
                   clips,
-                  () => lastUserFinalTranscript
+                  () => lastUserFinalTranscript,
+                  (since) => replyAudioSince(sessionId, since)
                 )
               );
             }

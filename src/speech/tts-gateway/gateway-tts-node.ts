@@ -40,6 +40,7 @@ import { getTTSProvider } from './providers/index.js';
 import { getSSMLProcessor } from './ssml/index.js';
 import { findChunkEnd } from './chunk-boundary.js';
 import { sessionSpeed } from '../output-control/pace-matching.js';
+import { noteReplyAudio } from '../output-control/reply-activity.js';
 import { createContinuationTTS } from './continuation-tts.js';
 import { prosodyTags } from './providers/cartesia.js';
 import type { SSMLProsodyConfig } from './types.js';
@@ -116,6 +117,7 @@ function createFirstAudioObserver({
     const ttfbMs = Date.now() - startTime;
     log.info({ ttfbMs, sessionId }, `🔊 Gateway TTS TTFB: ${ttfbMs}ms`);
     if (sessionId) {
+      noteReplyAudio(sessionId);
       try {
         const firstAudioAtMs = Date.now();
         markCallStage(sessionId, 'tts_first_frame', firstAudioAtMs);

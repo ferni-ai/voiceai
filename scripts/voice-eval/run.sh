@@ -33,3 +33,4 @@ tok=$(lk token create --project $project --join --room $room --identity eval-use
 json=$out/$scenario-$label.json
 (cd $ROOT && node $HERE/converse.mjs $url "$tok" $json $turns)
 node $HERE/score.mjs $json | tee ${json:r}.score.json
+node $HERE/mix.mjs $json >&2

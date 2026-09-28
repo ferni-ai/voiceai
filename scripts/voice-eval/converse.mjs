@@ -39,13 +39,14 @@ let mainVoiceStartedAt = 0;
 room.on(RoomEvent.TrackSubscribed, async (track, pub, participant) => {
   if (track.kind !== TrackKind.KIND_AUDIO) return;
   const name = `${participant.identity}:${pub.name || track.sid}`;
-  const rec = { name, bufs: [], voice: [] };
+  const rec = { name, bufs: [], voice: [], startT: null };
   tracks.set(track.sid, rec);
   const isMain = /roomio_audio|agent_audio|^[^:]+:$/.test(name) || !/background/.test(name);
   let open = null;
   let lastLoud = 0;
   for await (const frame of new AudioStream(track, { sampleRate: 24000, numChannels: 1 })) {
     const pcm = new Int16Array(frame.data.buffer, frame.data.byteOffset, frame.data.length);
+    if (rec.startT === null) rec.startT = now();
     rec.bufs.push(Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength));
     let peak = 0;
     for (const s of pcm) peak = Math.max(peak, Math.abs(s));
@@ -86,6 +87,8 @@ const silence = new Int16Array(CHUNK);
 let speaking = null;
 let pos = 0;
 let stop = false;
+const micBufs = [];
+let micStartT = null;
 const pump = (async () => {
   while (!stop) {
     let frame = silence;
@@ -95,6 +98,8 @@ const pump = (async () => {
       pos += CHUNK;
       if (pos >= speaking.length) speaking = null;
     }
+    if (micStartT === null) micStartT = now();
+    micBufs.push(Buffer.from(frame.buffer, frame.byteOffset, frame.byteLength));
     await source.captureFrame(new AudioFrame(frame, 48000, 1, CHUNK));
   }
 })();
@@ -138,9 +143,7 @@ stop = true;
 await pump;
 await room.disconnect();
 
-const trackSummaries = [];
-for (const [sid, rec] of tracks) {
-  const pcm = Buffer.concat(rec.bufs);
+function wav(pcm, rate) {
   const header = Buffer.alloc(44);
   header.write('RIFF', 0);
   header.writeUInt32LE(36 + pcm.length, 4);
@@ -149,16 +152,24 @@ for (const [sid, rec] of tracks) {
   header.writeUInt32LE(16, 16);
   header.writeUInt16LE(1, 20);
   header.writeUInt16LE(1, 22);
-  header.writeUInt32LE(24000, 24);
-  header.writeUInt32LE(48000, 28);
+  header.writeUInt32LE(rate, 24);
+  header.writeUInt32LE(rate * 2, 28);
   header.writeUInt16LE(2, 32);
   header.writeUInt16LE(16, 34);
   header.write('data', 36);
   header.writeUInt32LE(pcm.length, 40);
-  const file = outJson.replace(/\.json$/, `.${rec.name.replace(/[^A-Za-z0-9_-]/g, '_')}.${sid.slice(-6)}.wav`);
-  writeFileSync(file, Buffer.concat([header, pcm]));
-  trackSummaries.push({ name: rec.name, file, voice: rec.voice });
+  return Buffer.concat([header, pcm]);
 }
-writeFileSync(outJson, JSON.stringify({ results, events, userSpeech, tracks: trackSummaries }, null, 2));
+
+const micFile = outJson.replace(/\.json$/, '.mic.wav');
+writeFileSync(micFile, wav(Buffer.concat(micBufs), 48000));
+const trackSummaries = [];
+for (const [sid, rec] of tracks) {
+  const pcm = Buffer.concat(rec.bufs);
+  const file = outJson.replace(/\.json$/, `.${rec.name.replace(/[^A-Za-z0-9_-]/g, '_')}.${sid.slice(-6)}.wav`);
+  writeFileSync(file, wav(pcm, 24000));
+  trackSummaries.push({ name: rec.name, file, voice: rec.voice, startT: rec.startT });
+}
+writeFileSync(outJson, JSON.stringify({ results, events, userSpeech, tracks: trackSummaries, mic: { file: micFile, startT: micStartT } }, null, 2));
 console.log(JSON.stringify(results));
 process.exit(0);

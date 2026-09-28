@@ -58,10 +58,16 @@ interface SessionEvents {
 export function attachTurnOpeningSound(
   session: SessionEvents,
   clips: { playClip: (text: string) => boolean; lastPlayedAt: () => number },
-  lastUserTranscript: () => string
+  lastUserTranscript: () => string,
+  /** Whether reply audio was produced at or after this time (TTS first frame). */
+  replyAudioSince: (since: number) => boolean = () => false
 ): () => void {
   let timer: NodeJS.Timeout | null = null;
   let playedLastTurn = false;
+  let userStartedAt = 0;
+  const onUserState = (ev: unknown): void => {
+    if ((ev as { newState?: string }).newState === 'speaking') userStartedAt = Date.now();
+  };
   const onState = (ev: unknown): void => {
     const state = (ev as { newState?: string }).newState;
     if (timer) {
@@ -71,6 +77,8 @@ export function attachTurnOpeningSound(
     if (state !== 'thinking') return;
     timer = setTimeout(() => {
       timer = null;
+      // The reply's audio exists already; its playback is about to start.
+      if (replyAudioSince(userStartedAt)) return;
       const text = turnOpeningClip({
         transcript: lastUserTranscript(),
         playedLastTurn,
@@ -81,8 +89,10 @@ export function attachTurnOpeningSound(
     }, TURN_OPENING.waitMs);
   };
   session.on('agent_state_changed', onState);
+  session.on('user_state_changed', onUserState);
   return () => {
     if (timer) clearTimeout(timer);
     session.off('agent_state_changed', onState);
+    session.off('user_state_changed', onUserState);
   };
 }
