@@ -208,7 +208,8 @@ const ARRIVING_BANTER: Record<string, string[]> = {
  * Most critical for latency - used during active listening.
  */
 const BACKCHANNELS: Record<string, string[]> = {
-  ferni: ['Mm', 'Yeah', 'Mhm', 'Right', 'I hear you', 'Mm-hmm', 'Oh'],
+  // 'Hmm' opens a reply to a question (turn-opening-sound.ts).
+  ferni: ['Mm', 'Hmm', 'Yeah', 'Mhm', 'Right', 'I hear you', 'Mm-hmm', 'Oh'],
   'maya-santos': ['Mm', 'Yeah', 'Mhm', 'Okay', 'I hear you', 'Oh', 'Right'],
   'peter-john': ['Mm', 'Yeah', 'Okay', 'Interesting', 'Oh!', 'Right'],
   'alex-chen': ['Mm', 'Yeah', 'Got it', 'Right', 'Okay', 'I see'],

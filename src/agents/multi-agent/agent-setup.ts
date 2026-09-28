@@ -1758,14 +1758,18 @@ Reference past context when relevant, but don't force it. Let the conversation f
     const onTranscript = (event: unknown) => {
       const evt = event as { transcript?: string; isFinal?: boolean };
       if (!evt.isFinal || !evt.transcript) return;
-      pusher.onFinalTranscript(evt.transcript).catch((error: unknown) =>
-        log.warn({ error: String(error) }, 'Realtime turn context failed')
-      );
+      pusher
+        .onFinalTranscript(evt.transcript)
+        .catch((error: unknown) =>
+          log.warn({ error: String(error) }, 'Realtime turn context failed')
+        );
     };
     const onAgentState = (event: unknown) => {
       pusher
         .onAgentState((event as { newState?: string }).newState)
-        .catch((error: unknown) => log.warn({ error: String(error) }, 'Realtime turn context push failed'));
+        .catch((error: unknown) =>
+          log.warn({ error: String(error) }, 'Realtime turn context push failed')
+        );
     };
     sessionWithEvents.on('user_input_transcribed', onTranscript);
     sessionWithEvents.on('agent_state_changed', onAgentState);
@@ -1932,7 +1936,31 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // detection and the prosody/audio processor.
         // =====================================================================
         let liveBackchannel: LiveBackchannelIntegration | null = null;
+        let lastUserFinalTranscript = '';
         try {
+          const { startBackchannelClips } = await import('../integrations/clip-player.js');
+          const { getCachedAudioForPersona } =
+            await import('../shared/conversational-audio-cache.js');
+          const clips = await startBackchannelClips(
+            room,
+            session as unknown as voice.AgentSession,
+            () => persona.id,
+            getCachedAudioForPersona
+          );
+          if (clips) {
+            cleanupFunctions.push(() => void clips.close());
+            const { attachTurnOpeningSound } =
+              await import('../integrations/turn-opening-sound.js');
+            if (process.env.TURN_OPENING_SOUND !== 'off') {
+              cleanupFunctions.push(
+                attachTurnOpeningSound(
+                  session as unknown as Parameters<typeof attachTurnOpeningSound>[0],
+                  clips,
+                  () => lastUserFinalTranscript
+                )
+              );
+            }
+          }
           liveBackchannel = initializeLiveBackchanneling(
             sessionId,
             persona.id,
@@ -1940,7 +1968,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
             () => conversationManager?.isAgentSpeaking() ?? false,
             // A native-audio model would turn a scripted "mm-hmm" into a full
             // reply while the user is still talking.
-            { enabled: !getModelProvider().speaksNatively?.() }
+            { enabled: !getModelProvider().speaksNatively?.(), playClip: clips?.playClip }
           );
           cleanupFunctions.push(() => liveBackchannel?.cleanup());
           log.info(
@@ -2043,7 +2071,11 @@ Reference past context when relevant, but don't force it. Let the conversation f
           const evt = event as { transcript?: string; isFinal?: boolean };
 
           // Track turn/emotion state for live backchanneling cooldown + context
+          if (!evt.isFinal && evt.transcript) {
+            liveBackchannel?.updateState({ partialTranscript: evt.transcript });
+          }
           if (evt.isFinal) {
+            lastUserFinalTranscript = evt.transcript ?? '';
             liveBackchannel?.onNewTurn();
             if (userData.lastEmotionAnalysis) {
               liveBackchannel?.updateState({ currentEmotion: userData.lastEmotionAnalysis });
