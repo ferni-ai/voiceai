@@ -20,6 +20,9 @@
  * @module agents/model-provider/cartesia-cascade
  */
 
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import { ThinkingLevel } from '@google/genai';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import * as google from '@livekit/agents-plugin-google';
@@ -45,11 +48,37 @@ export interface CascadeLLMOptions {
   thinkingConfig: { thinkingLevel: ThinkingLevel };
 }
 
+export interface InkTurnDetection {
+  startThreshold: number;
+  eagerEndThreshold: number;
+  endThreshold: number;
+  endTimeoutMs: number;
+}
+
 export interface CascadeSTTOptions {
   model: string;
   language: string;
   baseUrl?: string;
   keyterms?: string[];
+  turnDetection?: InkTurnDetection;
+}
+
+/**
+ * ink-2 turn-detection profiles from Cartesia's turns guide. Balanced (the
+ * server default) waits up to 5.6 s to end a turn; Responsive ends turns
+ * sooner and is Cartesia's pick for fast conversational back-and-forth. About
+ * 2.4 s of a ~3.5 s reply delay was ink deciding the caller had finished.
+ */
+export const INK_TURN_PROFILES: Record<'balanced' | 'responsive' | 'patient', InkTurnDetection> = {
+  balanced: { startThreshold: 0.8, eagerEndThreshold: 0.6, endThreshold: 0.3, endTimeoutMs: 5600 },
+  responsive: { startThreshold: 0.7, eagerEndThreshold: 0.6, endThreshold: 0.4, endTimeoutMs: 4500 },
+  patient: { startThreshold: 0.8, eagerEndThreshold: 0.3, endThreshold: 0.1, endTimeoutMs: 8000 },
+};
+
+/** CASCADE_TURN_PROFILE: responsive (default), balanced or patient. */
+export function inkTurnProfile(env: Env = process.env): InkTurnDetection {
+  const name = (env.CASCADE_TURN_PROFILE || 'responsive').toLowerCase();
+  return INK_TURN_PROFILES[name as keyof typeof INK_TURN_PROFILES] ?? INK_TURN_PROFILES.responsive;
 }
 
 /** First names of the team: made-up or uncommon names a general model has no prior for. */
@@ -120,6 +149,7 @@ export function buildCascadeSTTOptions(env: Env = process.env): CascadeSTTOption
     model: env.CASCADE_STT_MODEL || 'ink-2',
     language: env.CASCADE_STT_LANGUAGE || 'en',
     ...(env.CASCADE_STT_BASE_URL && { baseUrl: env.CASCADE_STT_BASE_URL }),
+    turnDetection: inkTurnProfile(env),
   };
 }
 
@@ -176,7 +206,14 @@ export class CartesiaCascadeProvider implements ModelProvider {
   createSTT(keyterms: string[] = []): unknown {
     const opts = { ...buildCascadeSTTOptions(), keyterms };
     log.info(
-      { model: opts.model, language: opts.language, keyterms: keyterms.length },
+      {
+        model: opts.model,
+        language: opts.language,
+        keyterms: keyterms.length,
+        turnDetection: opts.turnDetection,
+        // Keyterms and turn thresholds only reach ink if our plugin patch applied.
+        pluginPatched: cartesiaPluginPatched(),
+      },
       'Creating cascade Cartesia STT'
     );
     return new cartesia.STT(opts);
@@ -209,4 +246,20 @@ export class CartesiaCascadeProvider implements ModelProvider {
  */
 export function createProviderSTT(provider: { id: string }, keyterms: string[] = []): unknown {
   return provider instanceof CartesiaCascadeProvider ? provider.createSTT(keyterms) : undefined;
+}
+
+let pluginPatchedCache: boolean | undefined;
+
+/** True when the installed Cartesia plugin carries our keyterm + turn-threshold patch. */
+export function cartesiaPluginPatched(): boolean {
+  if (pluginPatchedCache !== undefined) return pluginPatchedCache;
+  try {
+    const require = createRequire(import.meta.url);
+    const entry = require.resolve('@livekit/agents-plugin-cartesia');
+    const stt = readFileSync(join(dirname(entry), 'stt.js'), 'utf8');
+    pluginPatchedCache = stt.includes('turn_eager_end_threshold') && stt.includes('keyterm');
+  } catch {
+    pluginPatchedCache = false;
+  }
+  return pluginPatchedCache;
 }

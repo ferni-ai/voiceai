@@ -64,7 +64,7 @@ describe('cascade thinking level', () => {
 
 describe('buildCascadeSTTOptions', () => {
   it('defaults to Cartesia ink-2 in English', () => {
-    expect(buildCascadeSTTOptions({})).toEqual({ model: 'ink-2', language: 'en' });
+    expect(buildCascadeSTTOptions({})).toMatchObject({ model: 'ink-2', language: 'en' });
   });
 
   it('honours CASCADE_STT_MODEL', () => {
@@ -156,5 +156,30 @@ describe('createProviderSTT', () => {
 
   it('returns undefined for realtime providers, which transcribe internally', () => {
     expect(createProviderSTT({ id: 'openai-realtime' })).toBeUndefined();
+  });
+});
+
+describe('ink-2 turn detection', () => {
+  it('defaults to the Responsive profile and honours CASCADE_TURN_PROFILE', async () => {
+    const { inkTurnProfile, INK_TURN_PROFILES, buildCascadeSTTOptions } = await import(
+      '../cartesia-cascade.js'
+    );
+    expect(inkTurnProfile({})).toEqual(INK_TURN_PROFILES.responsive);
+    expect(inkTurnProfile({ CASCADE_TURN_PROFILE: 'Patient' })).toEqual(INK_TURN_PROFILES.patient);
+    expect(inkTurnProfile({ CASCADE_TURN_PROFILE: 'nonsense' })).toEqual(INK_TURN_PROFILES.responsive);
+    expect(buildCascadeSTTOptions({}).turnDetection).toEqual(INK_TURN_PROFILES.responsive);
+  });
+
+  it('keeps each profile in the order ink requires (start > eager end > end)', async () => {
+    const { INK_TURN_PROFILES } = await import('../cartesia-cascade.js');
+    for (const p of Object.values(INK_TURN_PROFILES)) {
+      expect(p.startThreshold).toBeGreaterThan(p.eagerEndThreshold);
+      expect(p.eagerEndThreshold).toBeGreaterThan(p.endThreshold);
+    }
+  });
+
+  it('runs with the plugin patch applied, so keyterms and thresholds reach ink', async () => {
+    const { cartesiaPluginPatched } = await import('../cartesia-cascade.js');
+    expect(cartesiaPluginPatched()).toBe(true);
   });
 });
