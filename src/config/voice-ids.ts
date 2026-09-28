@@ -22,10 +22,17 @@ const log = createLogger({ module: 'VoiceIds' });
 // =============================================================================
 
 /**
- * Cartesia model from environment variable.
- * sonic-3.6 is the latest stable alias (snapshot 2026-08-27); a drop-in for sonic-3.
+ * Cartesia model (CARTESIA_MODEL). A dated Sonic snapshot never changes; the bare 'sonic-3.6' alias moves to
+ * each new stable snapshot, which can change Ferni's sound without a deploy.
+ * Cartesia recommends a dated snapshot in production.
  */
-export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3.6';
+export const CARTESIA_SNAPSHOT = 'sonic-3.6-2026-08-27';
+export const CARTESIA_MODEL = pinCartesiaModel(process.env.CARTESIA_MODEL);
+
+/** The bare sonic-3.6 alias (or nothing) becomes the dated snapshot; anything else is kept. */
+export function pinCartesiaModel(model: string | undefined): string {
+  return !model || model === 'sonic-3.6' ? CARTESIA_SNAPSHOT : model;
+}
 
 /**
  * Cartesia API version for all TTS requests
