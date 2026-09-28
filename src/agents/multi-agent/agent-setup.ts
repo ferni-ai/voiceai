@@ -1962,6 +1962,50 @@ Reference past context when relevant, but don't force it. Let the conversation f
           session.off(voice.AgentSessionEventTypes.UserStateChanged, paceStateHandler);
           clearPaceMatcher(sessionId);
         });
+        // Per-turn tool retrieval (TOOL_RETRIEVAL=shadow|live): embed the
+        // user's words while they talk, so the pick is ready at end of turn.
+        // The turn's text is its finals so far plus the current interim: Ink
+        // finalizes a segment at every pause, and the model sees the whole turn.
+        const { toolRetrievalMode, TurnToolRetrieval, setTurnToolRetrieval } =
+          await import('../../tools/retrieval/turn-tool-retrieval.js');
+        let toolRetrieval:
+          | import('../../tools/retrieval/turn-tool-retrieval.js').TurnToolRetrieval
+          | null = null;
+        const retrievalTurnFinals: string[] = [];
+        if (toolRetrievalMode() !== 'off') {
+          const { createVertexEmbedder, getSharedToolIndex, loadIntentManual } =
+            await import('../../tools/retrieval/dense-index.js');
+          const embedder = createVertexEmbedder();
+          const manual = loadIntentManual();
+          const retrieval = new TurnToolRetrieval({
+            sessionId,
+            embedder,
+            index: () => getSharedToolIndex(embedder),
+            domainOf: (tool) => manual.tools[tool]?.domain,
+          });
+          toolRetrieval = retrieval;
+          void getSharedToolIndex(embedder).catch((error: unknown) =>
+            log.warn({ error: String(error) }, 'tool index warm-up failed')
+          );
+          setTurnToolRetrieval(session, retrieval);
+          const toolsExecutedHandler = (ev: unknown): void => {
+            const calls = (ev as { functionCalls?: Array<{ name?: string }> }).functionCalls ?? [];
+            retrieval.onToolsExecuted(calls.map((c) => c.name ?? '').filter(Boolean));
+          };
+          const retrievalTurnHandler = (ev: unknown): void => {
+            if ((ev as { newState?: string }).newState !== 'speaking') return;
+            retrieval.newTurn();
+            retrievalTurnFinals.length = 0;
+          };
+          session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, toolsExecutedHandler);
+          session.on(voice.AgentSessionEventTypes.AgentStateChanged, retrievalTurnHandler);
+          cleanupFunctions.push(() => {
+            session.off(voice.AgentSessionEventTypes.FunctionToolsExecuted, toolsExecutedHandler);
+            session.off(voice.AgentSessionEventTypes.AgentStateChanged, retrievalTurnHandler);
+            setTurnToolRetrieval(session, null);
+          });
+          log.info({ sessionId, mode: toolRetrievalMode() }, 'tool retrieval on');
+        }
         try {
           const { startBackchannelClips } = await import('../integrations/clip-player.js');
           const { getCachedAudioForPersona } =
@@ -2109,6 +2153,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // Wire transcript events
         const transcriptEventHandler = (event: unknown) => {
           const evt = event as { transcript?: string; isFinal?: boolean };
+
+          if (toolRetrieval && evt.transcript) {
+            const turnText = [...retrievalTurnFinals, evt.transcript].join(' ');
+            if (evt.isFinal) retrievalTurnFinals.push(evt.transcript);
+            toolRetrieval.onTranscript(turnText, evt.isFinal === true);
+          }
 
           // Track turn/emotion state for live backchanneling cooldown + context
           if (!evt.isFinal && evt.transcript) {

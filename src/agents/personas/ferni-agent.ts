@@ -34,6 +34,14 @@ import { getModelProvider } from '../model-provider/index.js';
 import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js';
 import { filterCaptionStream } from './caption-filter.js';
 import { OpenerGate } from './opener-gate.js';
+import {
+  getTurnToolRetrieval,
+  latestUserText,
+  toolRetrievalMode,
+} from '../../tools/retrieval/turn-tool-retrieval.js';
+
+/** Live tool retrieval waits this long for the pick, then sends every tool. */
+const LIVE_PICK_WAIT_MS = 150;
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -715,9 +723,38 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
     const ctx = turnStyleReminderEnabled() ? withTurnStyleReminder(chatCtx) : chatCtx;
-    const stream = await super.llmNode(ctx, toolCtx, modelSettings);
+    const tools = await this.toolsForTurn(chatCtx, toolCtx);
+    const stream = await super.llmNode(ctx, tools, modelSettings);
     if (!stream || process.env.OPENER_GATE === 'off') return stream;
     return this.openerGate.wrap(stream as never) as unknown as typeof stream;
+  }
+
+  /**
+   * The tools this turn's request carries. Shadow mode only logs what would be
+   * picked (nothing awaited); live mode sends core + recent + retrieved tools,
+   * waiting at most LIVE_PICK_WAIT_MS and otherwise sending them all. See
+   * tools/retrieval/turn-tool-retrieval.ts.
+   */
+  private async toolsForTurn(
+    chatCtx: llm.ChatContext,
+    toolCtx: llm.ToolContext
+  ): Promise<llm.ToolContext> {
+    const mode = toolRetrievalMode();
+    if (mode === 'off') return toolCtx;
+    const retrieval = getTurnToolRetrieval(this.session as object);
+    const text = latestUserText(chatCtx);
+    if (!retrieval || !text) return toolCtx;
+    if (mode === 'shadow') {
+      retrieval.observe(text, toolCtx);
+      return toolCtx;
+    }
+    const pick = await Promise.race([
+      retrieval.pick(text),
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), LIVE_PICK_WAIT_MS);
+      }),
+    ]);
+    return pick ? retrieval.select(toolCtx, pick) : toolCtx;
   }
 
   /** Limits stock reaction-word openers across this agent's replies. See opener-gate.ts. */
