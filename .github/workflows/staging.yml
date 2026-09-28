@@ -184,6 +184,13 @@ jobs:
           pnpm install --no-frozen-lockfile
           node design-system/build.js
 
+      - name: Free runner disk space
+        # The ui image build ran out of disk (ERR_PNPM_ENOSPC) on ubuntu-latest.
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker system prune -af || true
+          df -h /
+
       - name: Build staging image
         run: |
           docker build \

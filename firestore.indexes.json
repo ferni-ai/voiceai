@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "outreach_triggers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "goals",
       "queryScope": "COLLECTION",
       "fields": [
@@ -596,6 +604,14 @@
     }
   ],
   "fieldOverrides": [
+    {
+      "collectionGroup": "scheduled_actions",
+      "fieldPath": "status",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
     {
       "collectionGroup": "google_watch_channels",
       "fieldPath": "expiration",

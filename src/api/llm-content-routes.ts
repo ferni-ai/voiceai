@@ -15,6 +15,7 @@ import {
   resetContentMetrics,
 } from '../services/llm-dynamic-content.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { verifySchedulerRequest } from './scheduled-jobs/scheduler-auth.js';
 
 const log = getLogger();
 
@@ -100,9 +101,23 @@ export async function handleLLMContentRoutes(
       return true;
     }
 
-    // POST /api/llm-content/reset - Reset metrics (admin only)
+    // Scheduler-only endpoints: reset changes state and prewarm spends LLM
+    // tokens, and both were open to any caller.
+    if (
+      (pathname === '/api/llm-content/reset' || pathname === '/api/llm-content/prewarm') &&
+      req.method === 'POST'
+    ) {
+      const auth = await verifySchedulerRequest(req, pathname);
+      if (!auth.ok) {
+        log.warn({ pathname, reason: auth.reason }, 'LLM content job request refused');
+        res.statusCode = 401;
+        res.end(JSON.stringify({ error: 'unauthorized' }));
+        return true;
+      }
+    }
+
+    // POST /api/llm-content/reset - Reset metrics (Cloud Scheduler)
     if (pathname === '/api/llm-content/reset' && req.method === 'POST') {
-      // In production, you'd want auth here
       resetContentMetrics();
       log.info('LLM content metrics reset via API');
 

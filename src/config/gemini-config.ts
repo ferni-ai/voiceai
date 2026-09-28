@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { applyThinkingDefaults } from './thinking-defaults.js';
 
 const log = createLogger({ module: 'GeminiConfig' });
 
@@ -339,6 +340,7 @@ async function initializeGeminiClient(): Promise<unknown | null> {
       log.info('🔶 Gemini client initialized with API key');
     }
 
+    applyThinkingDefaults(cachedClient);
     return cachedClient;
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to initialize Gemini client');

@@ -181,6 +181,28 @@ async function checkCartesia(): Promise<HealthCheckResult> {
 async function checkGemini(): Promise<HealthCheckResult> {
   const start = Date.now();
 
+  // On Vertex the agent never uses GOOGLE_API_KEY, so checking that key
+  // reported Gemini down (every check, with Slack alerts) while every reply
+  // was being served. Ask the client the agent actually uses for the model's
+  // metadata instead: no tokens spent.
+  if (process.env.USE_VERTEX_AI === 'true') {
+    try {
+      const { getGeminiClient, GEMINI_MODEL } = await import('../../config/gemini-config.js');
+      const client = (await getGeminiClient()) as {
+        models: { get(req: { model: string }): Promise<unknown> };
+      } | null;
+      if (!client) return { healthy: false, latencyMs: 0, error: 'Vertex client unavailable' };
+      await client.models.get({ model: GEMINI_MODEL });
+      return { healthy: true, latencyMs: Date.now() - start, details: 'Vertex model reachable' };
+    } catch (error) {
+      return {
+        healthy: false,
+        latencyMs: Date.now() - start,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
   try {
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {

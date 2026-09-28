@@ -67,8 +67,10 @@ RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --prefer-offline --no-frozen-lockfile
 
-# Copy build script (now in apps/cli/) and source
-COPY apps/cli/src/commands/build/build-fast.ts ./apps/cli/src/commands/build/
+# Copy build script (now in apps/cli/) and source. build-fast.ts imports
+# esbuild-target.ts; without it the esbuild step failed and the tsc fallback
+# cannot type the stubbed native packages, so every UI deploy failed.
+COPY apps/cli/src/commands/build/build-fast.ts apps/cli/src/commands/build/esbuild-target.ts ./apps/cli/src/commands/build/
 COPY src/ ./src/
 
 # Build with esbuild (falls back to tsc)
@@ -157,16 +159,20 @@ COPY --from=backend-builder /app/apps/async/package.json ./apps/async/
 COPY --from=backend-builder /app/apps/intelligence-worker/package.json ./apps/intelligence-worker/
 COPY --from=backend-builder /app/packages/shared-types/package.json ./packages/shared-types/
 
+# The install must be able to fail the build. It used to share one && / || true
+# chain with the cleanup, so an out-of-disk install (ERR_PNPM_ENOSPC on the CI
+# runner, 2026-09-27) was swallowed and the image shipped without dotenv. The
+# cleanup stays in the same layer (so it still shrinks the image) but runs in a
+# subshell whose failures cannot mask the install.
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --prefer-offline --prod --no-frozen-lockfile && \
-    # Remove unnecessary files from node_modules to reduce image size (~30% reduction)
-    find node_modules -name "*.md" -delete 2>/dev/null || true && \
-    find node_modules -name "*.map" -delete 2>/dev/null || true && \
-    find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true && \
-    find node_modules -name "CHANGELOG*" -delete 2>/dev/null || true && \
-    find node_modules -type d -name "test" -exec rm -rf {} + 2>/dev/null || true && \
-    find node_modules -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
-    find node_modules -type d -name "__tests__" -exec rm -rf {} + 2>/dev/null || true
+    test -f node_modules/dotenv/package.json && \
+    ( find node_modules -name "*.md" -delete; \
+      find node_modules -name "*.map" -delete; \
+      find node_modules -name "*.ts" ! -name "*.d.ts" -delete; \
+      find node_modules -name "CHANGELOG*" -delete; \
+      find node_modules -type d \( -name test -o -name tests -o -name __tests__ \) -prune -exec rm -rf {} +; \
+      true ) 2>/dev/null
 
 # UI server is compiled from TypeScript (src/servers/api/index.ts → dist/servers/api/index.js)
 
