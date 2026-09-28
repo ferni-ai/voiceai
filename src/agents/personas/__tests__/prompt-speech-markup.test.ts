@@ -20,20 +20,22 @@ async function promptsUnder(providerModule: string, className: string): Promise<
 }
 
 describe('speech markup in the live Ferni prompts', () => {
-  it('is reduced to one opening emotion tag under the Cartesia cascade', async () => {
+  it('gives one markup contract, in the model-level block, under the Cartesia cascade', async () => {
     const [base, system] = await promptsUnder(
       '../../model-provider/cartesia-cascade.js',
       'CartesiaCascadeProvider'
     );
     const both = `${base}\n${system}`;
     // Sonic paces itself from punctuation; stacked breaks make it hallucinate.
-    expect(both).not.toMatch(/<break|<speed|<volume/);
+    expect(both).not.toMatch(/<break|<volume/);
     // The persona files' tag tables and templated openers are gone...
-    expect(system).not.toMatch(/<emotion/);
+    expect(system).not.toMatch(/<emotion|<speed/);
     expect(system).not.toContain('Natural reactions: "Ha!"');
-    // ...replaced by one contract in the model-level block.
-    expect(base).toContain('ONE emotion tag');
-    expect(base.match(/<emotion value=/g)?.length).toBe(1);
+    // ...replaced by one contract: emotion where the feeling shifts, pace for
+    // tender or important moments (the voice sounded flat without them).
+    expect(base).toContain('where it genuinely shifts');
+    expect(base).toContain('<speed ratio="0.9"/>');
+    expect(base).toContain('[laughter]');
     expect(system.length).toBeGreaterThan(1000);
   }, 60_000);
 
@@ -46,8 +48,7 @@ describe('speech markup in the live Ferni prompts', () => {
     expect(base).toContain('contractions');
     expect(base).toMatch(/and.*so.*but/);
     expect(base).toContain("it's just, uh, frustrating");
-    // Big emotions swung Ferni's pitch range from 6.4 to 10.9 semitones between turns.
-    expect(base).not.toMatch(/excited|surprised|enthusiastic/);
+    expect(base).toContain('let your words agree with the tag');
     expect(`${base}\n${system}`).not.toContain('Short sentences — Creates natural pauses');
   }, 60_000);
 
