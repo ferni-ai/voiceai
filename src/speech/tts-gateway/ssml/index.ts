@@ -15,6 +15,7 @@ export {
   normalizeForCache,
   containsSSML,
   hasIncompleteSSML,
+  speakableText,
 } from './processor.js';
 
 // Re-export types from main types file

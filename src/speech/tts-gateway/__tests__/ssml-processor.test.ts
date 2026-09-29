@@ -138,10 +138,11 @@ describe('SSMLProcessor', () => {
   // ==========================================================================
 
   describe('break tag parsing', () => {
-    it('converts long break (500ms) to period', () => {
+    it('keeps a real pause (400ms+) as a native Sonic break', () => {
+      // As punctuation a 1 s break became a 270 ms gap; the tag gives 1.3 s.
       const result = processor.parse('Hello<break time="500ms"/>world');
 
-      expect(result.cleanText).toBe('Hello. world');
+      expect(result.cleanText).toBe('Hello<break time="500ms"/>world');
       expect(result.hadSSML).toBe(true);
     });
 
@@ -160,7 +161,7 @@ describe('SSMLProcessor', () => {
     it('handles break with seconds unit', () => {
       const result = processor.parse('Hello<break time="1s"/>world');
 
-      expect(result.cleanText).toBe('Hello. world'); // 1000ms = period
+      expect(result.cleanText).toBe('Hello<break time="1000ms"/>world');
     });
 
     it('handles break without unit (defaults to ms)', () => {
@@ -180,7 +181,7 @@ describe('SSMLProcessor', () => {
         'Hello<break time="500ms"/>world<break time="200ms"/>how are you'
       );
 
-      expect(result.cleanText).toBe('Hello. world, how are you');
+      expect(result.cleanText).toBe('Hello<break time="500ms"/>world, how are you');
     });
 
     it('does NOT speak break tag literally', () => {

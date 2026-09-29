@@ -100,6 +100,16 @@ const EMOTION_TAG_REGEX =
 /** Match <break time="Xms"/> or <break time="Xs"/> tags */
 const BREAK_TAG_REGEX = /<break\s+time=["']?(\d+)(ms|s)?["']?\s*\/?>/gi;
 
+/** A kept break, between the break conversion and the catch-all tag strip. */
+const BREAK_HOLD = '\u2983BREAK';
+const BREAK_HOLD_END = '\u2984';
+const BREAK_HOLD_REGEX = /\u2983BREAK(\d+)\u2984/g;
+
+/** Text as spoken: without the native break tags Sonic consumes. */
+export function speakableText(text: string): string {
+  return text.replace(/<break time="\d+ms"\/>/g, '');
+}
+
 /** Match closing prosody tags */
 const PROSODY_CLOSE_REGEX = /<\/(?:speed|volume|emotion|prosody)>/gi;
 
@@ -265,10 +275,13 @@ export class SSMLProcessor implements ISSMLProcessor {
         durationMs *= 1000;
       }
 
-      // Convert to punctuation based on duration
-      // Long pause = sentence break, short pause = comma
-      if (durationMs >= 500) {
-        return '. ';
+      // A deliberate pause stays a native Sonic break: as punctuation a 1 s
+      // break became ". ", a 270 ms gap, against 1.3 s for the tag (measured
+      // on Ferni's voice, sonic-3.6, 2026-09-29). Cartesia notes a break
+      // splits the generation, so only real pauses keep it.
+      if (durationMs >= 400) {
+        // Held as a placeholder past the catch-all tag strip below.
+        return `${BREAK_HOLD}${Math.min(durationMs, 3000)}${BREAK_HOLD_END}`;
       } else if (durationMs >= 200) {
         return ', ';
       } else if (durationMs >= 50) {
@@ -377,6 +390,9 @@ export class SSMLProcessor implements ISSMLProcessor {
 
     // Clean up whitespace and punctuation artifacts
     cleanText = this.cleanupText(cleanText);
+    cleanText = cleanText.replace(BREAK_HOLD_REGEX, (_m, ms: string) => `<break time="${ms}ms"/>`);
+    // Only pauses and punctuation left: nothing to say.
+    if (!speakableText(cleanText).replace(/[\s.,!?…-]/g, '')) cleanText = '';
 
     return {
       cleanText,
@@ -547,7 +563,7 @@ export function parseSSML(text: string): SSMLParseResult {
  * Strip SSML from text (convenience function)
  */
 export function stripSSML(text: string): string {
-  return getSSMLProcessor().parse(text).cleanText;
+  return speakableText(getSSMLProcessor().parse(text).cleanText).replace(/\s{2,}/g, ' ');
 }
 
 /**
