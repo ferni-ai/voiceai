@@ -310,9 +310,7 @@ class ToolGateway {
         // Step 2: Try to directly import and create the tool
         const musicTools = ['playMusic', 'musicControl', 'musicInfo', 'musicProvider'];
         const memoryTools = ['rememberAboutUser', 'recallFromMemory', 'rememberImportantFact'];
-        // Teammate handoffs depend on the user's unlocks and are built per
-        // session (tools/builder.ts); only the hand-back to Ferni is shared.
-        const handoffTools = ['handoffToFerni'];
+        const handoffTools = ['handoffToMaya', 'handoffToPeter', 'handoffToJordan', 'handoffToAlex', 'handoffToNayan', 'handoffToFerni'];
 
         let domainModule: string | null = null;
         if (musicTools.includes(toolId)) {

@@ -703,19 +703,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const loadHandoffToolsFast = async (): Promise<Record<string, unknown>> => {
     // TRY GATEWAY FIRST (instant, no async needed)
     const gatewayTools = loadToolsFromGateway();
-    if (gatewayTools) {
-      // The gateway's tools are shared by every session, so they can't know
-      // which teammates this user has unlocked: add this user's handoffs.
-      const subscriptionTier =
-        (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
-      const { tools: handoffTools } = await buildHandoffTools({
-        currentAgentId: persona.id,
-        userProfile: services.userProfile,
-        subscriptionTier,
-        services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },
-      });
-      return { ...gatewayTools, ...handoffTools };
-    }
+    if (gatewayTools) return gatewayTools;
 
     const fastStart = Date.now();
     try {

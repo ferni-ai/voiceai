@@ -24,6 +24,9 @@ import type { RetrievedTool } from './tool-retriever.js';
 
 const log = createLogger({ module: 'TurnToolRetrieval' });
 
+/** A fallback embedding must carry at least this share of the turn's words. */
+const FALLBACK_MIN_SHARE = 0.4;
+
 export type ToolRetrievalMode = 'off' | 'shadow' | 'live';
 
 export function toolRetrievalMode(
@@ -72,6 +75,22 @@ interface Pick {
   speculative: 'exact' | 'near' | 'none';
 }
 
+interface Embedding {
+  text: string;
+  words: Set<string>;
+  vector: Promise<Float32Array>;
+  /** Set once the embedding has arrived. */
+  ready?: Float32Array;
+  /** User turn it was requested in. */
+  turn: number;
+}
+
+/** What live mode sends: a pick for these words, a close one from this turn, or every tool. */
+export interface LiveChoice {
+  pick: Pick | null;
+  source: 'fresh' | 'fallback' | 'all';
+}
+
 /**
  * Key for matching a transcript to its precomputed embedding: final
  * transcripts gain punctuation and casing the interim one lacked.
@@ -90,10 +109,9 @@ export class TurnToolRetrieval {
   private readonly stickyTurns: number;
   private readonly nearCoverage: number;
   /** Embeddings by match key, oldest first; the last few only. */
-  private readonly embeddings = new Map<
-    string,
-    { words: Set<string>; vector: Promise<Float32Array> }
-  >();
+  private readonly embeddings = new Map<string, Embedding>();
+  /** The index, once loaded. */
+  private readyIndex: DenseToolIndex | null = null;
   private inFlight = false;
   private pending: string | null = null;
   private lastPick: Pick | null = null;
@@ -114,8 +132,14 @@ export class TurnToolRetrieval {
     const have = this.embeddings.get(key);
     if (have) return have.vector;
     const vector = this.opts.embedder.embed([text]).then((v) => v[0]);
-    vector.catch(() => this.embeddings.delete(key));
-    this.embeddings.set(key, { words: new Set(key.split(' ')), vector });
+    const entry: Embedding = { text, words: new Set(key.split(' ')), vector, turn: this.turn };
+    vector.then(
+      (v) => {
+        entry.ready = v;
+      },
+      () => this.embeddings.delete(key)
+    );
+    this.embeddings.set(key, entry);
     while (this.embeddings.size > 8) this.embeddings.delete(this.embeddings.keys().next().value!);
     return vector;
   }
@@ -174,7 +198,10 @@ export class TurnToolRetrieval {
       const speculative: Pick['speculative'] = exact ? 'exact' : near ? 'near' : 'none';
       try {
         const [index, vector] = await Promise.all([
-          this.opts.index(),
+          this.opts.index().then((i) => {
+            this.readyIndex = i;
+            return i;
+          }),
           exact ?? near ?? this.embed(text),
         ]);
         const pick = {
@@ -194,6 +221,65 @@ export class TurnToolRetrieval {
     this.picking.set(key, p);
     while (this.picking.size > 8) this.picking.delete(this.picking.keys().next().value!);
     return p;
+  }
+
+  /**
+   * Live mode: the pick for `text` if it's ready within `waitMs`. Otherwise a
+   * pick from the newest finished embedding of an earlier transcript of this
+   * same utterance: one made this turn whose words are mostly in `text` and
+   * that carries a fair share of it. The final transcript often adds words
+   * the last interim lacked, so its own embedding (~200 ms) is still in
+   * flight while the interim's is done. Failing that, null: send every tool
+   * rather than guess.
+   */
+  async pickLive(text: string, waitMs: number): Promise<LiveChoice> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const fresh = await Promise.race([
+      this.pick(text),
+      new Promise<'timeout'>((resolve) => {
+        timer = setTimeout(() => resolve('timeout'), waitMs);
+      }),
+    ]).finally(() => clearTimeout(timer));
+    if (fresh && fresh !== 'timeout') return { pick: fresh, source: 'fresh' };
+    const index = this.readyIndex;
+    if (!index) return { pick: null, source: 'all' };
+    const words = new Set(norm(text).split(' '));
+    for (const [, e] of [...this.embeddings].reverse()) {
+      if (!e.ready || e.turn !== this.turn) continue;
+      const inText = [...e.words].filter((w) => words.has(w)).length;
+      const contained = inText / e.words.size >= this.nearCoverage;
+      const substantial = inText >= Math.max(3, words.size * FALLBACK_MIN_SHARE);
+      if (!contained || !substantial) continue;
+      const pick: Pick = {
+        text: e.text,
+        tools: index.search(e.ready, this.k),
+        embedMs: 0,
+        speculative: 'near',
+      };
+      for (const t of pick.tools) this.sticky.set(t.tool, this.turn);
+      return { pick, source: 'fallback' };
+    }
+    return { pick: null, source: 'all' };
+  }
+
+  /** Live mode: the tools to send this request (see pickLive), logged. */
+  async selectLive(text: string, toolCtx: llm.ToolContext, waitMs: number): Promise<llm.ToolContext> {
+    const started = Date.now();
+    const { pick, source } = await this.pickLive(text, waitMs);
+    const sent = pick ? this.select(toolCtx, pick) : toolCtx;
+    log.info(
+      {
+        sessionId: this.opts.sessionId,
+        text: text.slice(0, 200),
+        source,
+        pickedFor: pick && source === 'fallback' ? pick.text.slice(0, 200) : undefined,
+        waitMs: Date.now() - started,
+        toolsNow: Object.keys(toolCtx.functionTools).length,
+        toolsSent: Object.keys(sent.functionTools).length,
+      },
+      'TOOL_RETRIEVAL_LIVE'
+    );
+    return sent;
   }
 
   isCore(tool: string): boolean {

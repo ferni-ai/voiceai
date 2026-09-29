@@ -39,8 +39,9 @@ import {
   latestUserText,
   toolRetrievalMode,
 } from '../../tools/retrieval/turn-tool-retrieval.js';
+import { withoutLockedHandoffs, type UnlockView } from '../../tools/handoff/locked-handoffs.js';
 
-/** Live tool retrieval waits this long for the pick, then sends every tool. */
+/** Live tool retrieval waits this long for the pick before falling back (see pickLive). */
 const LIVE_PICK_WAIT_MS = 150;
 
 const log = createLogger({ module: 'FerniAgent' });
@@ -723,16 +724,49 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
     const ctx = turnStyleReminderEnabled() ? withTurnStyleReminder(chatCtx) : chatCtx;
-    const tools = await this.toolsForTurn(chatCtx, toolCtx);
+    const unlocked = await withoutLockedHandoffs(toolCtx, this.unlockView()).catch(
+      (error: unknown) => {
+        log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
+        return toolCtx;
+      }
+    );
+    if (unlocked !== toolCtx && !this.loggedLockedHandoffs) {
+      this.loggedLockedHandoffs = true;
+      log.info(
+        {
+          removed: Object.keys(toolCtx.functionTools).filter((n) => !(n in unlocked.functionTools)),
+        },
+        'Handoffs to locked teammates kept out of the request'
+      );
+    }
+    const tools = await this.toolsForTurn(chatCtx, unlocked);
     const stream = await super.llmNode(ctx, tools, modelSettings);
     if (!stream || process.env.OPENER_GATE === 'off') return stream;
     return this.openerGate.wrap(stream as never) as unknown as typeof stream;
   }
 
+  private loggedLockedHandoffs = false;
+
+  /** Who this user has unlocked, read the way the handoff tool's runtime check reads it. */
+  private unlockView(): UnlockView {
+    const userData = this.session.userData as PersonaSessionData | undefined;
+    const services = userData?.services as
+      | { userProfile?: UserProfile | null; devMode?: { enabled?: boolean; bypassUnlocks?: boolean } }
+      | undefined;
+    const userProfile = services?.userProfile ?? userData?.userProfile ?? null;
+    const tier = (userProfile?.subscription?.tier as UnlockView['tier'] | undefined) ?? 'free';
+    return {
+      userProfile,
+      tier,
+      bypass: Boolean(services?.devMode?.enabled && services.devMode.bypassUnlocks),
+    };
+  }
+
   /**
    * The tools this turn's request carries. Shadow mode only logs what would be
    * picked (nothing awaited); live mode sends core + recent + retrieved tools,
-   * waiting at most LIVE_PICK_WAIT_MS and otherwise sending them all. See
+   * waiting at most LIVE_PICK_WAIT_MS for the pick, then using a close pick
+   * from this turn, and otherwise sending them all. See
    * tools/retrieval/turn-tool-retrieval.ts.
    */
   private async toolsForTurn(
@@ -748,13 +782,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
       retrieval.observe(text, toolCtx);
       return toolCtx;
     }
-    const pick = await Promise.race([
-      retrieval.pick(text),
-      new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), LIVE_PICK_WAIT_MS);
-      }),
-    ]);
-    return pick ? retrieval.select(toolCtx, pick) : toolCtx;
+    return retrieval.selectLive(text, toolCtx, LIVE_PICK_WAIT_MS);
   }
 
   /** Limits stock reaction-word openers across this agent's replies. See opener-gate.ts. */

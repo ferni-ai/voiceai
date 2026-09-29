@@ -18,6 +18,11 @@
         "musicProvider",
         "rememberAboutUser",
         "recallFromMemory",
+        "handoffToMaya",
+        "handoffToPeter",
+        "handoffToJordan",
+        "handoffToAlex",
+        "handoffToNayan",
         "handoffToFerni"
       ]
     },

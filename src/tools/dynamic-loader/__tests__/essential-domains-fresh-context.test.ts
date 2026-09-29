@@ -19,10 +19,7 @@ describe('loadEssentialDomains in a fresh job context', () => {
     // memory, handoff, music, and safety must reach the model on the first turn
     expect(names).toContain('recallFromMemory');
     expect(names).toContain('rememberAboutUser');
-    // Only the hand-back to Ferni is shared; callers add this user's
-    // teammate handoffs, filtered by what they've unlocked.
-    expect(names).toContain('handoffToFerni');
-    expect(names).not.toContain('handoffToMaya');
+    expect(names).toContain('handoffToMaya');
     expect(names).toContain('playMusic');
     expect(names).toContain('provideCrisisResources');
     expect(names).toContain('createSafetyPlan');
