@@ -1,7 +1,7 @@
 /**
  * Ferni Brand Personality Tokens
  * 
- * Auto-generated from design-system/tokens/personality.json.
+ * Auto-generated from design-system/content/personality.json.
  * DO NOT EDIT DIRECTLY.
  * 
  * Codified brand traits for consistent multi-modal expression.

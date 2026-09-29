@@ -2,12 +2,11 @@
 
 This directory contains all official Ferni logo files in various formats.
 
-## 🪨 Three Stones Concept
+## The Ferni Orb
 
-The Ferni logo represents "three stones" - concentric circles that symbolize:
-- **Outer stone (sage green)** - Grounding, stability, the earth
-- **Middle stone (white)** - Clarity, openness, presence
-- **Inner stone (iris/pupil)** - Awareness, wisdom, the soul
+The logo is the Ferni orb: a Ferni Sage circle with two opaque white eyes —
+no pupils, no iris (white catchlights are fine). Full rules, variants and
+sizes: [`design-system/LOGO.md`](../../LOGO.md).
 
 ## File Structure
 
@@ -16,9 +15,8 @@ logos/
 ├── ferni-logo.svg              # Primary logo (static, default)
 ├── ferni-logo-expressive.svg   # Animated logo with CSS expressions
 ├── ferni-logo.lottie.json      # Lottie animation for mobile apps
-├── logo-preview.html           # Interactive preview page
 ├── README.md                   # This file
-└── generated/                  # Generated PNG assets (various sizes)
+└── *.png                       # Generated PNG sizes (pnpm icons:regenerate)
 ```
 
 ## Logo Variants
@@ -26,18 +24,18 @@ logos/
 ### Static Logo (ferni-logo.svg)
 Use for: print, static web, favicons, app icons
 
-The default state shows three concentric circles - no mouth visible.
+The default state shows the orb with both eyes open - no mouth visible.
 
 ### Animated Logo (ferni-logo-expressive.svg)
 Use for: web UI, emotional feedback, interactive elements
 
 Supports CSS-triggered expressions:
 - zen - Default, peaceful state (no mouth)
-- happy - Eye up, smile appears
-- excited - Eye up more, bigger smile
-- curious - Eye looks around
+- happy - Eyes lift, smile appears
+- excited - Eyes lift more, bigger smile
+- curious - Eyes tilt
 - sad - Concerned expression
-- surprised - Wide eye, eyebrows up
+- surprised - Eyes widen
 - thinking - Contemplative look
 - speaking - Mouth animates
 - listening - Attentive look
@@ -47,7 +45,7 @@ Use for: iOS, Android, React Native, web (via lottie-web)
 
 A 3-second intro animation sequence:
 1. Logo scales in with spring bounce
-2. Eye "wakes up" and looks around
+2. Eyes "wake up" and look around
 3. Mouth briefly appears with smile
 4. Returns to zen state
 
@@ -55,11 +53,9 @@ A 3-second intro animation sequence:
 
 | Element | Color | Hex |
 |---------|-------|-----|
-| Outer stone | Sage green | #4a6741 |
-| Eye white | White | #ffffff |
-| Iris | Light sage | #5a8060 |
-| Pupil | Natural ink | #2c2520 |
-| Catchlight | White | #ffffff |
+| Orb | Ferni Sage | #4a6741 |
+| Eyes | White | #ffffff |
+| Catchlights | White | #ffffff |
 | Mouth stroke | White | #ffffff |
 
 ## Size Guidelines
@@ -74,17 +70,6 @@ A 3-second intro animation sequence:
 
 ## Generating Assets
 
-Run the logo PNG generator:
 ```bash
-node scripts/generate-logo-pngs.js
+pnpm icons:regenerate
 ```
-
-This generates all required sizes for:
-- Favicons (16, 32, 48, 180, 192, 512px)
-- App icons (iOS/Android/Electron)
-- Design system assets
-- Marketing materials
-
-## Preview
-
-Open logo-preview.html in a browser to see all logo states and expressions interactively.

@@ -1,7 +1,7 @@
 /**
  * Ferni Illustration System Tokens
  * 
- * Auto-generated from design-system/tokens/illustration.json.
+ * Auto-generated from design-system/content/illustration.json.
  * DO NOT EDIT DIRECTLY.
  * 
  * Ownable visual language parameters for consistent illustration style.

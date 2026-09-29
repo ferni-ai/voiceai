@@ -63,7 +63,7 @@
     "./sonic": "./dist/sonic.ts",
     "./illustration": "./dist/illustration.ts",
     "./brand-rules": "./api/brand-rules.ts",
-    "./content-templates": "./tokens/content-templates.json",
+    "./content-templates": "./content/content-templates.json",
     "./persona-kits": "./tokens/persona-kits.json",
     "./sequences": "./tokens/sequences.json",
     "./responsive": "./tokens/responsive.json",

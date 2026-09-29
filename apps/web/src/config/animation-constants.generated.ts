@@ -15,12 +15,15 @@
  */
 export const DURATION_GENERATED = {
   INSTANT: 0,
+  SUBLIMINAL: 40,
   FASTEST: 50,
+  MICRO: 80,
   FASTER: 100,
   FAST: 150,
   NORMAL: 200,
   SLOW: 300,
   SLOWER: 400,
+  MODERATE: 450,
   SLOWEST: 500,
   DELIBERATE: 700,
   DRAMATIC: 1000,
@@ -50,6 +53,11 @@ export const EASING_GENERATED = {
   DECELERATE: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
   GENTLE: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
   PLAYFUL: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+  STANDARD: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
+  ACCELERATE: 'cubic-bezier(0.4, 0.0, 1, 1)',
+  SHARP: 'cubic-bezier(0.4, 0.0, 0.6, 1)',
+  SPRING_HEAVY: 'cubic-bezier(0.34, 1.8, 0.64, 1)',
+  SPRING_GENTLE: 'cubic-bezier(0.34, 1.2, 0.64, 1)',
 } as const;
 
 /**

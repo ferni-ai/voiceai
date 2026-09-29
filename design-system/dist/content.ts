@@ -1,6 +1,6 @@
 /**
  * Ferni Content Tokens
- * Auto-generated from tokens/content.json - DO NOT EDIT DIRECTLY
+ * Auto-generated from content/content.json - DO NOT EDIT DIRECTLY
  * 
  * Usage:
  *   import { CONTENT, getContent, validateCopy } from '@design-system/content';

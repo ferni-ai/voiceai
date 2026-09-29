@@ -14,14 +14,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Load content tokens
 const content = JSON.parse(
-  fs.readFileSync(path.join(__dirname, 'tokens/content.json'), 'utf8')
+  fs.readFileSync(path.join(__dirname, 'content/content.json'), 'utf8')
 );
 
 // Generate TypeScript types and utilities
 function generateContentTypes() {
   const output = `/**
  * Ferni Content Tokens
- * Auto-generated from tokens/content.json - DO NOT EDIT DIRECTLY
+ * Auto-generated from content/content.json - DO NOT EDIT DIRECTLY
  * 
  * Usage:
  *   import { CONTENT, getContent, validateCopy } from '@design-system/content';

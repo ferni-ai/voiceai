@@ -240,7 +240,12 @@ export const EASINGS = {
   "anticipate": "cubic-bezier(0.38, -0.4, 0.88, 0.65)",
   "decelerate": "cubic-bezier(0.0, 0.0, 0.2, 1)",
   "gentle": "cubic-bezier(0.25, 0.1, 0.25, 1)",
-  "playful": "cubic-bezier(0.175, 0.885, 0.32, 1.275)"
+  "playful": "cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+  "standard": "cubic-bezier(0.4, 0.0, 0.2, 1)",
+  "accelerate": "cubic-bezier(0.4, 0.0, 1, 1)",
+  "sharp": "cubic-bezier(0.4, 0.0, 0.6, 1)",
+  "springHeavy": "cubic-bezier(0.34, 1.8, 0.64, 1)",
+  "springGentle": "cubic-bezier(0.34, 1.2, 0.64, 1)"
 };
 
 export type EasingName = keyof typeof EASINGS;

@@ -25,13 +25,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const TOKEN_FILES = [
   {
-    source: 'tokens/content-templates.json',
+    source: 'content/content-templates.json',
     output: 'dist/content-templates.ts',
     exportName: 'contentTemplates',
     description: 'Brand voice content templates',
   },
   {
-    source: 'tokens/brand-guardrails.json',
+    source: 'content/brand-guardrails.json',
     output: 'dist/brand-guardrails.ts',
     exportName: 'brandGuardrails',
     description: 'Machine-readable brand rules',

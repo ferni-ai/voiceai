@@ -238,7 +238,7 @@ export function shouldDisableHaptics(): boolean {
 // ============================================================================
 
 function generatePersonalityTokens() {
-  const tokenPath = path.join(__dirname, 'tokens/personality.json');
+  const tokenPath = path.join(__dirname, 'content/personality.json');
   if (!fs.existsSync(tokenPath)) {
     console.log('⚠️  personality.json not found, skipping');
     return;
@@ -250,7 +250,7 @@ function generatePersonalityTokens() {
   const ts = `/**
  * Ferni Brand Personality Tokens
  * 
- * Auto-generated from design-system/tokens/personality.json.
+ * Auto-generated from design-system/content/personality.json.
  * DO NOT EDIT DIRECTLY.
  * 
  * Codified brand traits for consistent multi-modal expression.
@@ -669,7 +669,7 @@ export function shouldDisableSounds(): boolean {
 // ============================================================================
 
 function generateIllustrationTokens() {
-  const tokenPath = path.join(__dirname, 'tokens/illustration.json');
+  const tokenPath = path.join(__dirname, 'content/illustration.json');
   if (!fs.existsSync(tokenPath)) {
     console.log('⚠️  illustration.json not found, skipping');
     return;
@@ -681,7 +681,7 @@ function generateIllustrationTokens() {
   const ts = `/**
  * Ferni Illustration System Tokens
  * 
- * Auto-generated from design-system/tokens/illustration.json.
+ * Auto-generated from design-system/content/illustration.json.
  * DO NOT EDIT DIRECTLY.
  * 
  * Ownable visual language parameters for consistent illustration style.

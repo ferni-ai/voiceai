@@ -3136,30 +3136,6 @@ function generateMotionCSS(motion) {
 
   lines.push(':root {');
 
-  // Easings from motion.json
-  lines.push('  /* Motion Easings - from ferni-alive.html */');
-  if (motion.easing) {
-    for (const [key, data] of Object.entries(motion.easing)) {
-      if (key.startsWith('_')) continue; // Skip comments
-      if (typeof data === 'object' && data.value) {
-        lines.push(`  --motion-ease-${camelToKebab(key)}: ${data.value};`);
-      }
-    }
-  }
-  lines.push('');
-
-  // Durations from motion.json
-  lines.push('  /* Motion Durations */');
-  if (motion.duration) {
-    for (const [key, data] of Object.entries(motion.duration)) {
-      if (key.startsWith('_')) continue;
-      if (typeof data === 'object' && data.value !== undefined) {
-        lines.push(`  --motion-duration-${camelToKebab(key)}: ${data.value}${data.unit || 'ms'};`);
-      }
-    }
-  }
-  lines.push('');
-
   // Breath cycle durations
   lines.push('  /* Breath Cycles */');
   if (motion.breathCycles) {

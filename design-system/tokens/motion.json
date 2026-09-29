@@ -19,144 +19,8 @@
     ]
   },
 
-  "duration": {
-    "_comment": "Timing categories from ferni-alive.html animation system",
-    "instant": {
-      "value": 40,
-      "unit": "ms",
-      "description": "Micro-expressions, subliminal (40-80ms)"
-    },
-    "micro": {
-      "value": 80,
-      "unit": "ms",
-      "description": "Micro-expressions upper bound"
-    },
-    "quick": {
-      "value": 100,
-      "unit": "ms",
-      "description": "Quick feedback (100-150ms)"
-    },
-    "fast": {
-      "value": 150,
-      "unit": "ms",
-      "description": "Blink duration from ferni-alive.html"
-    },
-    "normal": {
-      "value": 250,
-      "unit": "ms",
-      "description": "Standard UI transitions (250-400ms)"
-    },
-    "slow": {
-      "value": 400,
-      "unit": "ms",
-      "description": "Deliberate, noticeable moves (400-600ms)"
-    },
-    "moderate": {
-      "value": 450,
-      "unit": "ms",
-      "description": "Speaking pulse from ferni-alive.html"
-    },
-    "deliberate": {
-      "value": 600,
-      "unit": "ms",
-      "description": "Emphasis, sparkle rotation (600-1000ms)"
-    },
-    "dramatic": {
-      "value": 800,
-      "unit": "ms",
-      "description": "Eyes group transition from ferni-alive.html"
-    },
-    "celebration": {
-      "value": 1000,
-      "unit": "ms",
-      "description": "Contemplative transitions (1000ms+)"
-    },
-    "glacial": {
-      "value": 1500,
-      "unit": "ms",
-      "description": "Ambient, background effects"
-    }
-  },
+  "_scales": "UI durations, easings and staggers live in animation.json (durations/easings/stagger); presets below refer to those names.",
 
-  "easing": {
-    "_comment": "Exact values from ferni-alive.html CSS variables (lines 18-24)",
-    "standard": {
-      "value": "cubic-bezier(0.4, 0.0, 0.2, 1)",
-      "description": "Material standard deceleration"
-    },
-    "accelerate": {
-      "value": "cubic-bezier(0.4, 0.0, 1, 1)",
-      "description": "Elements leaving the screen"
-    },
-    "decelerate": {
-      "value": "cubic-bezier(0.0, 0.0, 0.2, 1)",
-      "description": "Elements entering the screen"
-    },
-    "sharp": {
-      "value": "cubic-bezier(0.4, 0.0, 0.6, 1)",
-      "description": "Quick, decisive movements"
-    },
-    "spring": {
-      "value": "cubic-bezier(0.34, 1.56, 0.64, 1)",
-      "description": "Expressive bounce with overshoot - FROM ferni-alive.html --ease-spring"
-    },
-    "springHeavy": {
-      "value": "cubic-bezier(0.34, 1.8, 0.64, 1)",
-      "description": "Stronger bounce - FROM ferni-alive.html --ease-spring-heavy"
-    },
-    "springGentle": {
-      "value": "cubic-bezier(0.34, 1.2, 0.64, 1)",
-      "description": "Subtle spring, less bounce"
-    },
-    "expoOut": {
-      "value": "cubic-bezier(0.16, 1, 0.3, 1)",
-      "description": "Dramatic exit deceleration"
-    },
-    "gentle": {
-      "value": "cubic-bezier(0.4, 0, 0.2, 1)",
-      "description": "FROM ferni-alive.html --ease-gentle"
-    },
-    "organic": {
-      "value": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-      "description": "FROM ferni-alive.html --ease-organic"
-    },
-    "anticipate": {
-      "value": "cubic-bezier(0.38, -0.4, 0.88, 0.65)",
-      "description": "Wind-up before action"
-    },
-    "bounce": {
-      "value": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-      "description": "FROM ferni-alive.html --ease-bounce"
-    },
-    "elastic": {
-      "value": "cubic-bezier(0.5, 1.8, 0.5, 0.8)",
-      "description": "Elastic snap effect"
-    }
-  },
-  
-  "stagger": {
-    "fast": {
-      "value": 30,
-      "unit": "ms",
-      "description": "Quick cascade, list items"
-    },
-    "normal": {
-      "value": 50,
-      "unit": "ms",
-      "description": "Standard stagger delay"
-    },
-    "slow": {
-      "value": 80,
-      "unit": "ms",
-      "description": "Deliberate cascade"
-    },
-    "dramatic": {
-      "value": 120,
-      "unit": "ms",
-      "description": "Pronounced reveal"
-    }
-  },
-  
   "presets": {
     "buttonPress": {
       "duration": "fast",
@@ -187,7 +51,7 @@
     },
     "slideInRight": {
       "duration": "moderate",
-      "easing": "expoOut",
+      "easing": "easeOutExpo",
       "translateX": { "from": "100%", "to": 0 }
     },
     "slideOutRight": {
@@ -218,7 +82,7 @@
       "opacity": { "from": 1, "to": 0 }
     },
     "celebration": {
-      "duration": "celebration",
+      "duration": "dramatic",
       "easing": "spring",
       "scale": { "from": 0.8, "to": 1 }
     },
@@ -246,7 +110,7 @@
     },
     "bounce": {
       "duration": "slow",
-      "easing": "bounce",
+      "easing": "springBouncy",
       "translateY": [0, -20, 0, -10, 0]
     }
   },
