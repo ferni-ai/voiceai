@@ -5,6 +5,7 @@
 import { Readable } from 'stream';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { FamilyCheckinSchedule } from '../../services/family/proactive-family-checkin.js';
 
 const auth = vi.hoisted(() => ({ userId: 'alice' as string | null }));
 vi.mock('../auth-middleware.js', async (orig) => ({
@@ -72,7 +73,7 @@ describe('family check-in control', () => {
     auth.userId = 'alice-rl';
     schedules.push({ ...schedules[0], id: 's2', sponsorUserId: 'alice-rl' });
     const { getCheckinSchedules } = await import('../../services/family/proactive-family-checkin.js');
-    vi.mocked(getCheckinSchedules).mockImplementation(async () => schedules);
+    vi.mocked(getCheckinSchedules).mockImplementation(async () => schedules as unknown as FamilyCheckinSchedule[]);
     const statuses = [];
     for (let i = 0; i < 4; i++) statuses.push((await hit('POST', '/api/family/checkin', { member: 'Linda' })).status);
     expect(statuses).toEqual([200, 200, 200, 429]);

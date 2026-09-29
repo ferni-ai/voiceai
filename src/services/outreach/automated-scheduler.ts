@@ -488,21 +488,18 @@ async function recordOutreachSent(
  *
  * Called by: Cloud Scheduler job hitting /api/outreach/scheduler/daily
  */
-export async function handleSchedulerTrigger(authHeader?: string): Promise<SchedulerResult> {
-  // Verify the request is from Cloud Scheduler
-  // In production, check for OIDC token or specific headers
-
-  const isCloudScheduler =
-    authHeader?.includes('Cloud-Scheduler') || process.env.ALLOW_MANUAL_SCHEDULER === 'true';
-
-  if (!isCloudScheduler && process.env.NODE_ENV === 'production') {
-    throw new Error('Unauthorized: Only Cloud Scheduler can trigger this endpoint');
-  }
-
+/**
+ * The scheduled daily run. Callers must have authenticated the request
+ * (outreach.routes.ts accepts Cloud Scheduler's OIDC token or an admin); a
+ * header check here was spoofable.
+ */
+export async function handleSchedulerTrigger(
+  opts: { dryRun?: boolean } = {}
+): Promise<SchedulerResult> {
   return runDailyOutreach({
     batchSize: 100,
     respectQuietHours: true,
-    dryRun: false,
+    dryRun: opts.dryRun === true,
   });
 }
 
