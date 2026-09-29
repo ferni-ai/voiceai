@@ -177,7 +177,10 @@ export function deepRemoveUndefined<T>(obj: T): T {
     return obj.map((item) => deepRemoveUndefined(item)) as T;
   }
 
-  if (typeof obj === 'object') {
+  // Only plain objects are walked: Dates, Timestamps, FieldValues (vectors,
+  // serverTimestamp) and references pass through as they are. Walking them
+  // turned each into an empty plain object.
+  if (typeof obj === 'object' && isPlainObject(obj)) {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       if (value !== undefined) {
@@ -188,6 +191,11 @@ export function deepRemoveUndefined<T>(obj: T): T {
   }
 
   return obj;
+}
+
+function isPlainObject(value: object): boolean {
+  const proto = Object.getPrototypeOf(value) as unknown;
+  return proto === Object.prototype || proto === null;
 }
 
 /**

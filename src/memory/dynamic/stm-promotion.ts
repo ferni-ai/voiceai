@@ -12,7 +12,7 @@
  * @module memory/dynamic/stm-promotion
  */
 
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { deepRemoveUndefined, getFirestoreDb } from '../../utils/firestore-utils.js';
 import { emitInfraEvent } from '../../utils/infra-events.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { extractHumanSignals } from '../human-signal-extractor.js';
@@ -418,7 +418,7 @@ async function doPromoteSessionToFirestore(
     // Write entities to Firestore
     for (const entity of entitiesToPromote) {
       const ref = db.collection('bogle_users').doc(userId).collection('promoted_entities').doc();
-      batch.set(ref, entity);
+      batch.set(ref, deepRemoveUndefined(entity));
     }
     result.entitiesPromoted = entitiesToPromote.length;
 
@@ -461,7 +461,9 @@ async function doPromoteSessionToFirestore(
           .doc(userId)
           .collection('emotional_arcs')
           .doc(sessionId);
-        batch.set(arcRef, emotionalArc);
+        // One undefined field (voiceTrajectory with <2 voice samples) failed the
+        // whole batch, so no entity, arc or topic from the session was saved.
+        batch.set(arcRef, deepRemoveUndefined(emotionalArc));
         result.emotionalArcPromoted = true;
       }
     }
@@ -489,7 +491,7 @@ async function doPromoteSessionToFirestore(
           .doc(userId)
           .collection('topic_patterns')
           .doc(sessionId);
-        batch.set(topicRef, topicPattern);
+        batch.set(topicRef, deepRemoveUndefined(topicPattern));
         result.topicPatternPromoted = true;
       }
     }

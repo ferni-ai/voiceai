@@ -6,7 +6,10 @@
  * @module utils/__tests__/firestore-utils.test
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// src/tests/setup.ts mocks this module for every test; test the real one.
+vi.unmock('../firestore-utils.js');
 import {
   removeUndefined,
   deepRemoveUndefined,
@@ -97,6 +100,18 @@ describe('Firestore Utils', () => {
 
     it('should handle null', () => {
       expect(deepRemoveUndefined(null)).toBeNull();
+    });
+
+    it('keeps Dates and other class instances (e.g. Firestore FieldValues) as they are', () => {
+      class Vector {
+        constructor(readonly values: number[]) {}
+      }
+      const when = new Date('2026-09-29T00:00:00Z');
+      const vector = new Vector([0.1, 0.2]);
+      const result = deepRemoveUndefined({ when, embedding: vector, meta: { a: undefined, b: 1 } });
+      expect(result.when).toBe(when);
+      expect(result.embedding).toBe(vector);
+      expect(result.meta).toEqual({ b: 1 });
     });
 
     it('should handle undefined', () => {

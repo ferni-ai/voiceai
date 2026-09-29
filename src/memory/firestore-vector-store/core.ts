@@ -8,7 +8,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { deepRemoveUndefined } from '../../utils/firestore-utils.js';
 import { getRequestCoalescer, hashContent } from '../../utils/request-coalescer.js';
 import { embed, embedBatch } from '../embeddings.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
@@ -303,7 +303,9 @@ export class FirestoreVectorStore implements VectorStoreContract {
       const { FieldValue } = await import('@google-cloud/firestore');
 
       // Store document even without embedding - mark for later retry
-      const docData = removeUndefined({
+      // Deep: metadata is caller-supplied and often has optional fields
+      // (e.g. a relationship without a strength), which Firestore rejects.
+      const docData = deepRemoveUndefined({
         text: doc.text,
         embedding: embedding ? FieldValue.vector(embedding) : null,
         metadata: doc.metadata,
