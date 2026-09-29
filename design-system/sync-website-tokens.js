@@ -13,6 +13,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { buildStamp } from './build/build-stamp.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -233,7 +234,7 @@ function build() {
     ' *',
     ' * 🎨 AUTO-GENERATED FROM design-system/tokens/',
     ' * Do not edit directly - run: npm run sync:promo',
-    ` * Generated: ${new Date().toISOString()}`,
+    ` * Generated: ${buildStamp()}`,
     ' */',
     '',
     ':root {',

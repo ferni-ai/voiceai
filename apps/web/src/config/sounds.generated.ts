@@ -4,7 +4,7 @@
  * Sound file paths generated from design-system/assets/sounds/
  * Regenerate with: npm run build:sounds
  *
- * Generated: 2026-02-23T11:35:47.711Z
+ * Generated: tokens v1.0.0
  */
 
 // ============================================================================

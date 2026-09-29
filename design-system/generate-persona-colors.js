@@ -13,6 +13,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { buildStamp } from './build/build-stamp.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -65,7 +66,7 @@ function generatePersonaColorsTS(personas) {
  * Persona colors generated from design-system/tokens/colors.json
  * Regenerate with: npm run build:persona-colors
  *
- * Generated: ${new Date().toISOString()}
+ * Generated: ${buildStamp()}
  */
 
 import type { PersonaColorConfig } from '../types/colors.js';

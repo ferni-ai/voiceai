@@ -13,6 +13,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { buildStamp } from './build/build-stamp.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -100,6 +101,8 @@ ${generateCSSVariables(flattened)}
 function generatePersonaCSS(personas) {
   const lines = [];
   for (const [personaId, personaColors] of Object.entries(personas)) {
+    // Skip metadata keys like _description / _textOnDarkNote
+    if (personaId.startsWith('_')) continue;
     const kebabId = camelToKebab(personaId);
     lines.push(`
 /* Persona: ${personaId} */
@@ -324,6 +327,7 @@ function generateTypographyCSS(typography) {
   lines.push('/* Font Families */');
   lines.push(':root {');
   for (const [key, value] of Object.entries(typography.fontFamilies)) {
+    if (key.startsWith('_')) continue; // metadata (e.g. _googleFontsImport)
     if (typeof value === 'object') {
       // Theme-specific fonts - use midnight as default
       lines.push(`  --font-${camelToKebab(key)}: ${value.midnight};`);
@@ -5236,7 +5240,7 @@ function build() {
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: ${new Date().toISOString()}
+ * Build: ${buildStamp()}
  */
 `);
 
@@ -5482,7 +5486,7 @@ function build() {
 
 function generateTypeScript() {
   const themeNames = Object.keys(colors.themes);
-  const personaIds = Object.keys(colors.personas);
+  const personaIds = Object.keys(colors.personas).filter((id) => !id.startsWith('_'));
 
   // Extract Pixar animation constants from animation.json
   const goldenRatioTiming = animation.goldenRatioTiming || {};
@@ -6515,7 +6519,7 @@ function generateAdaptiveTheming() {
  * 3. Persona Aura - Ambient persona presence
  * 4. Relationship Depth - UI that grows with you
  *
- * Generated: ${new Date().toISOString()}
+ * Generated: ${buildStamp()}
  */
 
 // =============================================================================
@@ -7300,7 +7304,7 @@ function validateAccessibility(strict = false) {
   console.log('═'.repeat(60));
 
   const report = {
-    timestamp: new Date().toISOString(),
+    timestamp: buildStamp(),
     passed: errors.length === 0,
     errors: errors.length,
     warnings: warnings.length,

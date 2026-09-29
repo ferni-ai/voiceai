@@ -13,6 +13,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { buildStamp } from './build/build-stamp.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -559,6 +560,7 @@ function generateTypographyVars(typography) {
   lines.push('     TYPOGRAPHY - Fonts');
   lines.push('     ============================================ */');
   for (const [key, value] of Object.entries(typography.fontFamilies)) {
+    if (key.startsWith('_')) continue; // metadata (e.g. _googleFontsImport)
     const font = typeof value === 'object' ? value.zen : value;
     lines.push(`  --font-${key}: ${font};`);
   }
@@ -666,7 +668,7 @@ function generateDarkThemeFile(colors, spacing, typography, animation, effects) 
     ' *',
     ' * 🎨 AUTO-GENERATED FROM design-system/tokens/',
     ' * Do not edit directly - run: pnpm tokens:sync',
-    ` * Generated: ${new Date().toISOString()}`,
+    ` * Generated: ${buildStamp()}`,
     ' */',
     '',
     ':root {',
@@ -763,7 +765,7 @@ function build() {
     ' *',
     ' * 🎨 AUTO-GENERATED FROM design-system/tokens/',
     ' * Do not edit directly - run: pnpm tokens:sync',
-    ` * Generated: ${new Date().toISOString()}`,
+    ` * Generated: ${buildStamp()}`,
     ' */',
     '',
     ':root {',

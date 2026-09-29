@@ -3,7 +3,7 @@
  * 
  * 🎬 AUTO-GENERATED FROM design-system/tokens/animation.json
  * Do not edit directly - run: npm run build:animation-constants
- * Generated: 2026-03-05T09:41:17.557Z
+ * Generated: tokens v1.0.0
  * 
  * This file contains the generated constants. The main animation-constants.ts
  * imports and re-exports these along with manual additions.
@@ -110,11 +110,6 @@ export const PERSONA_ANIMATION_PROFILES = {
  * Auto-generated from design-system/tokens/animation.json
  */
 export const PERSONA_WAVEFORM_PROFILES = {
-  '_documentation': {
-    energy: undefined,
-    smoothing: undefined,
-    speed: undefined,
-  },
   'ferni': {
     energy: 0.75,
     smoothing: 0.7,

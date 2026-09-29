@@ -13,6 +13,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { buildStamp } from './build/build-stamp.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -126,6 +127,7 @@ function generateWaveformProfiles(profiles) {
   lines.push('export const PERSONA_WAVEFORM_PROFILES = {');
   
   for (const [personaId, profile] of Object.entries(profiles)) {
+    if (personaId.startsWith('_')) continue; // metadata (e.g. _documentation)
     lines.push(`  '${personaId}': {`);
     lines.push(`    energy: ${profile.energy},`);
     lines.push(`    smoothing: ${profile.smoothing},`);
@@ -213,7 +215,7 @@ function build() {
     ' * ',
     ' * 🎬 AUTO-GENERATED FROM design-system/tokens/animation.json',
     ' * Do not edit directly - run: npm run build:animation-constants',
-    ` * Generated: ${new Date().toISOString()}`,
+    ` * Generated: ${buildStamp()}`,
     ' * ',
     ' * This file contains the generated constants. The main animation-constants.ts',
     ' * imports and re-exports these along with manual additions.',

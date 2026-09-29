@@ -17,6 +17,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { buildStamp } from './build/build-stamp.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -210,7 +211,7 @@ function generateTypeScript(data) {
  *
  * 🎭 AUTO-GENERATED FROM design-system/tokens/expressions.json
  * Do not edit directly - run: pnpm build:expressions
- * Generated: ${new Date().toISOString()}
+ * Generated: ${buildStamp()}
  *
  * 92 Luxo-style expressions organized into ${familyIds.length} families.
  * CSS transforms only - no pupils, opaque eyes with shape transforms.
@@ -683,7 +684,7 @@ function generateCSS(data) {
  *
  * 🎭 AUTO-GENERATED FROM design-system/tokens/expressions.json
  * Do not edit directly - run: pnpm build:expressions
- * Generated: ${new Date().toISOString()}
+ * Generated: ${buildStamp()}
  *
  * ${expressionCount} Luxo-style expression rules.
  * CSS transforms only - no pupils, opaque eyes with shape transforms.
@@ -775,7 +776,7 @@ function deriveIOSValues(expr) {
 function generateIOSJSON(data) {
   const iosData = {
     version: data.version,
-    generated: new Date().toISOString(),
+    generated: buildStamp(),
     expressions: {},
     families: data.families || {},
     microExpressions: data.microExpressions || {},

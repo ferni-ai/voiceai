@@ -22,7 +22,7 @@ This directory contains the centralized design token system that generates CSS, 
 ```bash
 # Build tokens (from project root)
 pnpm tokens:sync       # Build & sync all tokens
-pnpm tokens:check      # Validate no drift
+pnpm tokens:check      # Regenerate everything and fail if any committed output differs (content-based)
 pnpm tokens:watch      # Watch mode during development
 
 # Or via Ferni CLI
@@ -62,7 +62,9 @@ ferni tokens version patch "Fixed X"
 1. **Never edit** files in `dist/` or any `*.generated.*` files
 2. **Always use CSS variables** - never hardcode hex colors
 3. **Run `pnpm tokens:check`** before committing token changes
-4. **Brand colors are sacred** - see `docs/brand/FERNI-BRAND-GUIDELINES.md`
+4. **Generators must be deterministic** - no wall-clock timestamps in outputs (use `buildStamp()` from `build/build-stamp.js`); otherwise `tokens:check` reports drift on every run
+5. **Skip `_`-prefixed metadata keys** (`_description`, `_documentation`, …) when emitting tokens
+6. **Brand colors are sacred** - see `docs/brand/FERNI-BRAND-GUIDELINES.md`
 
 ## Related Documentation
 

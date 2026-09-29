@@ -16,6 +16,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { buildStamp } from './build/build-stamp.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -234,7 +235,7 @@ function build() {
     ' * ',
     ' * 🎨 AUTO-GENERATED FROM design-system/tokens/',
     ' * Do not edit directly - run: npm run build:tailwind-config',
-    ` * Generated: ${new Date().toISOString()}`,
+    ` * Generated: ${buildStamp()}`,
     ' * ',
     ' * IMPORTANT: This file uses CSS variable references (not hardcoded hex values)',
     ' * so colors automatically update when design-tokens.css is regenerated.',

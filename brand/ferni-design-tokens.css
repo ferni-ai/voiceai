@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-03-05T09:41:18.515Z
+ * Generated: tokens v1.0.0
  */
 
 :root {
@@ -436,12 +436,10 @@
   /* ============================================
      TYPOGRAPHY - Fonts
      ============================================ */
-  --font-_comment: All themes now use consistent brand fonts per FERNI-BRAND-GUIDELINES.md;
   --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
   --font-accent: 'Sora', 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-  --font-_googleFontsImport: undefined;
 
   /* ============================================
      TYPOGRAPHY - Sizes

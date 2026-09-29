@@ -15,6 +15,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { buildStamp } from './build/build-stamp.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -79,7 +80,7 @@ function generateTypeScript(tokenConfig) {
  * 
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  * Source: ${source}
- * Generated: ${new Date().toISOString()}
+ * Generated: ${buildStamp()}
  */
 
 export const ${exportName} = ${JSON.stringify(json, null, 2)} as const;
@@ -111,7 +112,7 @@ function generateContentTemplateUtils() {
  * Helper functions for working with brand voice templates
  * 
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
- * Generated: ${new Date().toISOString()}
+ * Generated: ${buildStamp()}
  */
 
 import { contentTemplates } from './content-templates.js';
@@ -262,7 +263,7 @@ function generatePersonaKitUtils() {
  * Helper functions for working with persona design kits
  * 
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
- * Generated: ${new Date().toISOString()}
+ * Generated: ${buildStamp()}
  */
 
 import { personaKits } from './persona-kits.js';
@@ -384,7 +385,7 @@ function generateSequenceUtils() {
  * Helper functions for working with choreographed animations
  * 
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
- * Generated: ${new Date().toISOString()}
+ * Generated: ${buildStamp()}
  */
 
 import { motionSequences } from './sequences.js';
@@ -509,7 +510,7 @@ function generateResponsiveUtils() {
  * Helper functions for responsive design patterns
  * 
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
- * Generated: ${new Date().toISOString()}
+ * Generated: ${buildStamp()}
  */
 
 import { responsiveTokens } from './responsive.js';

@@ -376,7 +376,7 @@ body {
      - Desktop-first defaults defined here
      - Media queries override these tokens per breakpoint
      - All panels/modals/containers use these tokens
-     - Breakpoints align with design-system/tokens/breakpoints.json:
+     - Breakpoints align with design-system/tokens/spacing.json (breakpoints):
        xs: 375px, sm: 640px, md: 768px, lg: 1024px, xl: 1280px, 2xl: 1536px
      ======================================================================== */
 

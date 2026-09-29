@@ -1,7 +1,9 @@
 # Token Drift Check
 # ===================
-# Validates that design tokens are in sync across all generated files.
-# Fails the build if tokens have drifted (need `pnpm tokens:sync`).
+# Regenerates every design-token output and fails if any committed file differs
+# (content-based — see design-system/check-drift.js). Covers CSS, TS, the
+# Tailwind config, iOS expressions JSON and the website token CSS.
+# Fix locally with: pnpm tokens:sync && git add -A
 
 name: Token Drift Check
 
@@ -10,18 +12,24 @@ on:
     paths:
       - 'design-system/tokens/**'
       - 'design-system/*.js'
-      - 'apps/web/src/config/**'
+      - 'design-system/build/**'
+      - 'design-system/dist/**'
+      - 'apps/web/src/config/*.generated.*'
       - 'apps/web/public/design-system/**'
+      - 'apps/ios-native/Ferni/Resources/expressions.json'
       - 'apps/website/ferni-website/css/**'
       - 'apps/website/ferni-website/src/css/**'
+      - 'apps/website/ferni-website/tailwind.config.generated.js'
       - 'apps/website/developers-portal/src/css/tokens.css'
       - 'apps/website/design-system-portal/src/css/tokens.css'
       - 'brand/**.css'
+      - '.github/workflows/token-check.yml'
   push:
     branches: [main]
     paths:
       - 'design-system/tokens/**'
       - 'design-system/*.js'
+      - 'design-system/build/**'
 
 jobs:
   token-drift-check:
@@ -38,93 +46,4 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Check token drift
-        id: drift-check
-        run: |
-          echo "🔍 Checking design token drift..."
-          pnpm tokens:check
-        continue-on-error: true
-
-      - name: Regenerate tokens (on failure)
-        if: steps.drift-check.outcome == 'failure'
-        run: |
-          echo "⚠️ Token drift detected! Regenerating..."
-          pnpm tokens:sync
-          
-          # Check if there are changes
-          if git diff --quiet; then
-            echo "✅ No actual drift - timestamps may have differed"
-          else
-            echo "❌ DRIFT DETECTED - Run 'pnpm tokens:sync' locally and commit"
-            echo ""
-            echo "Changed files:"
-            git diff --name-only
-            echo ""
-            echo "Diff preview:"
-            git diff --stat
-            exit 1
-          fi
-
-      - name: Success
-        if: steps.drift-check.outcome == 'success'
-        run: echo "✅ All tokens in sync!"
-
-  animation-constants-check:
-    name: Check Animation Constants
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js and pnpm
-        uses: ./.github/actions/setup-node-pnpm
-        with:
-          frozen-lockfile: 'false'
-
-      - name: Regenerate animation constants
-        run: pnpm build:animation-constants 2>/dev/null || true
-
-      - name: Check for changes
-        run: |
-          if [ -f "apps/web/src/config/animation-constants.generated.ts" ]; then
-            if git diff --quiet apps/web/src/config/animation-constants.generated.ts; then
-              echo "✅ Animation constants in sync"
-            else
-              echo "⚠️ Animation constants drifted"
-              echo "Run: pnpm build:animation-constants"
-              git diff apps/web/src/config/animation-constants.generated.ts
-            fi
-          else
-            echo "ℹ️ No generated animation constants file (first run needed)"
-          fi
-
-  tailwind-config-check:
-    name: Check Tailwind Config
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js and pnpm
-        uses: ./.github/actions/setup-node-pnpm
-        with:
-          frozen-lockfile: 'false'
-
-      - name: Regenerate Tailwind config
-        run: pnpm build:tailwind-config 2>/dev/null || true
-
-      - name: Check for changes
-        run: |
-          if [ -f "apps/website/ferni-website/tailwind.config.generated.js" ]; then
-            if git diff --quiet apps/website/ferni-website/tailwind.config.generated.js; then
-              echo "✅ Tailwind config in sync"
-            else
-              echo "⚠️ Tailwind config drifted"
-              echo "Run: pnpm build:tailwind-config"
-              git diff apps/website/ferni-website/tailwind.config.generated.js
-            fi
-          else
-            echo "ℹ️ No generated Tailwind config (first run needed)"
-          fi
-
+        run: pnpm tokens:check

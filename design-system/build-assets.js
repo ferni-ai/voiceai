@@ -13,6 +13,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { buildStamp } from './build/build-stamp.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -404,7 +405,7 @@ function generateManifest() {
   console.log('📋 Generating asset manifest...');
 
   const manifest = {
-    generated: new Date().toISOString(),
+    generated: buildStamp(),
     tokens: {
       css: 'tokens.css',
       ts: 'tokens.ts',
