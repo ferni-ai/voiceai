@@ -21,7 +21,7 @@ eleventyExcludeFromCollections: true
   <category term="Developer Tools"/>
   <category term="API"/>
   <category term="Tutorials"/>
-  {%- for post in collections.devPosts | reverse | slice(0, 20) %}
+  {%- for post in collections.devPosts | slice(0, 20) %}
   <entry>
     <title>{{ post.data.title | escape }}</title>
     <link href="https://developers.ferni.ai{{ post.url }}" rel="alternate" type="text/html"/>

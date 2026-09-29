@@ -13,14 +13,14 @@ on:
       - 'apps/web/src/ui/**/*.ts'
       - 'apps/web/src/app.ts'
       - 'apps/web/src/services/**/*.ts'
-      - 'promo/ferni-website/src/_data/i18n/**'
-      - 'promo/ferni-website/src/**/*.njk'
-      - 'promo/ferni-website/src/**/*.html'
+      - 'apps/website/ferni-website/src/_data/i18n/**'
+      - 'apps/website/ferni-website/src/**/*.njk'
+      - 'apps/website/ferni-website/src/**/*.html'
   push:
     branches: [main]
     paths:
       - 'apps/web/src/i18n/**'
-      - 'promo/ferni-website/src/_data/i18n/**'
+      - 'apps/website/ferni-website/src/_data/i18n/**'
 
 jobs:
   i18n-validation:

@@ -33,6 +33,27 @@ env:
 
 jobs:
   # ============================================================================
+  # CHANGE DETECTION — the landing site deploys on push only when it changed
+  # ============================================================================
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' }}
+    outputs:
+      landing: ${{ steps.filter.outputs.landing }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            landing:
+              - 'apps/website/ferni-website/**'
+              - 'design-system/tokens/**'
+              - 'design-system/sync-promo-tokens.js'
+              - 'design-system/generate-tailwind-config.js'
+
+  # ============================================================================
   # DEPLOY APP (ferni-prod + johnb-app)
   # ============================================================================
   deploy-app:
@@ -159,10 +180,12 @@ jobs:
   # ============================================================================
   # DEPLOY LANDING PAGE
   # ============================================================================
+  # Publishing = merging to main: new blog posts and site edits go live here.
   deploy-landing:
     name: Deploy Landing
     runs-on: ubuntu-latest
-    if: ${{ inputs.target == 'landing' || inputs.target == 'both' }}
+    needs: [changes]
+    if: ${{ always() && (needs.changes.outputs.landing == 'true' || inputs.target == 'landing' || inputs.target == 'both') }}
 
     steps:
       - name: Checkout
@@ -174,14 +197,12 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Install landing dependencies
-        run: |
-          cd promo/ferni-website
-          pnpm install --no-frozen-lockfile
+        working-directory: apps/website/ferni-website
+        run: npm ci --no-audit --no-fund
 
       - name: Build landing page
-        run: |
-          cd promo/ferni-website
-          pnpm build
+        working-directory: apps/website/ferni-website
+        run: npm run build:prod
 
       - name: Deploy landing to Firebase
         id: deploy-landing
@@ -191,8 +212,9 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
           channelId: live
+          # Only the landing site; firebase.json also lists ferni-prod (the app)
           target: ferni-landing
-          entryPoint: ./promo/ferni-website
+          entryPoint: ./apps/website/ferni-website
 
       - name: Health check landing page
         id: health
@@ -219,7 +241,7 @@ jobs:
         run: |
           echo "⚠️ Health check failed - initiating rollback"
           npm install -g firebase-tools
-          cd promo/ferni-website
+          cd apps/website/ferni-website
           firebase hosting:rollback --site ferni-landing --confirm || echo "Rollback failed"
           exit 1
         env:

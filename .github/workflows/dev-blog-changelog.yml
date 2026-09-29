@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   generate-blog-post:
@@ -89,30 +90,19 @@ jobs:
             --version "$VERSION" \
             --output apps/website/ferni-website/images/dev-blog/
 
-      - name: Commit and push
+      # A PR (not a push): release checkouts are detached, and posts get a human look first.
+      - name: Open review PR
         if: env.INPUT_DRY_RUN != 'true'
-        env:
-          VERSION: ${{ steps.version.outputs.VERSION }}
-        run: |
-          git config user.name "Ferni Bot"
-          git config user.email "bot@ferni.ai"
-
-          # Check if there are changes
-          if git diff --quiet apps/website/ferni-website/src/dev-blog/ apps/website/ferni-website/images/dev-blog/; then
-            echo "No changes to commit"
-            exit 0
-          fi
-
-          git add apps/website/ferni-website/src/dev-blog/*.md
-          git add apps/website/ferni-website/images/dev-blog/*.png || true
-
-          git commit -m "docs(dev-blog): add changelog post for $VERSION
-
-          Automatically generated changelog blog post from release.
-
-          Co-Authored-By: Ferni Bot <bot@ferni.ai>"
-
-          git push
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: content/changelog-${{ steps.version.outputs.VERSION }}
+          commit-message: 'docs(dev-blog): add changelog post for ${{ steps.version.outputs.VERSION }}'
+          title: 'Dev blog: changelog for ${{ steps.version.outputs.VERSION }}'
+          labels: content, blog
+          add-paths: |
+            apps/website/ferni-website/src/dev-blog/*.md
+            apps/website/ferni-website/images/dev-blog/*.png
+          body: Automatically generated changelog post. Review before merging.
 
       - name: Post to Slack
         if: env.INPUT_DRY_RUN != 'true' && success()

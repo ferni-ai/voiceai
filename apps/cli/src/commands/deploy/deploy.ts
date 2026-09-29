@@ -859,6 +859,7 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
 
   if (options.dryRun) {
     log.info('Would build frontend');
+    log.info('Would build (npm run build:prod)');
     log.info('Would deploy to preview channel');
     log.info('Would health check preview URL');
     log.info('Would promote to live if healthy');
@@ -931,6 +932,9 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
   return true;
 }
 
+/** Firebase Hosting site serving ferni.ai (see apps/website/ferni-website/firebase.json) */
+const LANDING_SITE = 'ferni-landing';
+
 async function deployLanding(options: DeployOptions): Promise<boolean> {
   log.step('DEPLOYING LANDING PAGE (BLUE-GREEN)');
 
@@ -948,6 +952,15 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
     return true;
   }
 
+  // Build fresh output — never ship a stale _site/ from disk
+  log.info('Building landing site (tokens → Eleventy → Tailwind)...');
+  try {
+    exec(`cd ${landingDir} && npm run build:prod`);
+  } catch (error) {
+    log.error(`Landing build failed: ${String(error)}`);
+    return false;
+  }
+
   // Try Firebase with blue-green
   if (checkCommand('firebase')) {
     // Step 1: Deploy to preview channel
@@ -957,7 +970,7 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
 
     try {
       const previewOutput = exec(
-        `cd ${landingDir} && firebase hosting:channel:deploy ${channelId} --project ${CONFIG.projectId} --json`,
+        `cd ${landingDir} && firebase hosting:channel:deploy ${channelId} --only ${LANDING_SITE} --project ${CONFIG.projectId} --json`,
         { silent: true }
       );
       const previewData = JSON.parse(previewOutput);
@@ -996,7 +1009,8 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
 
     // Step 3: Promote to live
     log.info('Step 3/3: Promoting to live...');
-    exec(`cd ${landingDir} && firebase deploy --only hosting --project ${CONFIG.projectId}`);
+    // Only the landing site: firebase.json also lists ferni-prod (the web app)
+    exec(`cd ${landingDir} && firebase deploy --only hosting:${LANDING_SITE} --project ${CONFIG.projectId}`);
 
     // Clean up preview channel
     if (previewUrl) {
