@@ -15,9 +15,10 @@
 import crypto from 'node:crypto';
 import { publicUrl } from '../../config/api-urls.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getRateLimiter } from '../../tools/rate-limiter.js';
+import type { OAuthTokens } from '../../utils/token-encryption.js';
+import * as linkedTokens from './google-calendar-linked-tokens.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -112,6 +113,11 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 let db: FirestoreType | null = null;
 // FIX: Promise-based singleton to prevent race condition
 let dbInitPromise: Promise<FirestoreType | null> | null = null;
+// Legacy plaintext store: google_calendar_tokens/{userId} (root collection).
+// The authoritative store is the encrypted per-user one the web OAuth flow
+// writes (bogle_users/{userId}/google_calendar_tokens/data, see
+// google-calendar-linked-tokens.ts). Legacy docs are read as a fallback and
+// migrate to the encrypted store on their next refresh.
 const OAUTH_TOKENS_COLLECTION = 'google_calendar_tokens';
 
 async function getFirestore(): Promise<FirestoreType | null> {
@@ -187,8 +193,28 @@ export function clearFailedTokenStatus(userId: string): void {
   failedTokenCache.delete(userId);
 }
 
+function fromLinkedTokens(tokens: OAuthTokens): GoogleTokens {
+  return {
+    access_token: tokens.access_token,
+    refresh_token: tokens.refresh_token || undefined,
+    expires_in: Math.max(0, Math.round((tokens.expires_at - Date.now()) / 1000)),
+    token_type: 'Bearer',
+    scope: tokens.scope,
+    expiry_date: tokens.expires_at,
+  };
+}
+
+function toLinkedTokens(tokens: GoogleTokens): OAuthTokens {
+  return {
+    access_token: tokens.access_token,
+    refresh_token: tokens.refresh_token ?? '',
+    expires_at: tokens.expiry_date ?? Date.now() + tokens.expires_in * 1000,
+    scope: tokens.scope,
+  };
+}
+
 /**
- * Store tokens for a user
+ * Store tokens for a user (in the encrypted per-user store)
  */
 export async function storeUserTokens(userId: string, tokens: GoogleTokens): Promise<void> {
   // Calculate expiry date if not present
@@ -197,44 +223,17 @@ export async function storeUserTokens(userId: string, tokens: GoogleTokens): Pro
   }
   userTokens.set(userId, tokens);
 
-  // Persist to Firestore
-  const firestore = await getFirestore();
-  if (firestore) {
-    try {
-      await firestore
-        .collection(OAUTH_TOKENS_COLLECTION)
-        .doc(userId)
-        .set(
-          removeUndefined({
-            ...tokens,
-            updatedAt: new Date(),
-          })
-        );
-      getLogger().info(
-        { userId, hasRefreshToken: !!tokens.refresh_token },
-        'Stored Google tokens in Firestore'
-      );
-    } catch (err) {
-      getLogger().warn({ err, userId }, 'Failed to persist Google tokens to Firestore');
-    }
-  } else {
-    getLogger().info(
-      { userId, hasRefreshToken: !!tokens.refresh_token },
-      'Stored Google tokens (in-memory only)'
-    );
-  }
+  await linkedTokens.saveTokens(userId, toLinkedTokens(tokens));
+  getLogger().info(
+    { userId, hasRefreshToken: !!tokens.refresh_token },
+    'Stored Google tokens (encrypted per-user store)'
+  );
 }
 
 /**
- * Get tokens for a user
+ * Read a legacy plaintext token doc (root google_calendar_tokens/{userId})
  */
-export async function getUserTokens(userId: string): Promise<GoogleTokens | undefined> {
-  // Check cache first
-  if (userTokens.has(userId)) {
-    return userTokens.get(userId);
-  }
-
-  // Try loading from Firestore
+async function getLegacyUserTokens(userId: string): Promise<GoogleTokens | undefined> {
   if (!loadedTokenUsers.has(userId)) {
     const firestore = await getFirestore();
     if (firestore) {
@@ -244,6 +243,7 @@ export async function getUserTokens(userId: string): Promise<GoogleTokens | unde
           const data = doc.data() as GoogleTokens;
           userTokens.set(userId, data);
           loadedTokenUsers.add(userId);
+          getLogger().info({ userId }, 'Using legacy Google Calendar tokens (root collection)');
           return data;
         }
       } catch (err) {
@@ -254,6 +254,19 @@ export async function getUserTokens(userId: string): Promise<GoogleTokens | unde
   }
 
   return userTokens.get(userId);
+}
+
+/**
+ * Get tokens for a user: the encrypted per-user store written by the web
+ * OAuth flow, else the legacy plaintext root collection.
+ */
+export async function getUserTokens(userId: string): Promise<GoogleTokens | undefined> {
+  const linked = await linkedTokens.getTokens(userId);
+  if (linked) {
+    return fromLinkedTokens(linked);
+  }
+
+  return getLegacyUserTokens(userId);
 }
 
 /**
@@ -391,7 +404,12 @@ export async function getValidAccessToken(userId: string): Promise<string | null
     return null;
   }
 
-  let tokens = await getUserTokens(userId);
+  // Linked in the web app: the encrypted store handles decrypt + refresh
+  if (await linkedTokens.getTokens(userId)) {
+    return linkedTokens.getValidToken(userId);
+  }
+
+  let tokens = await getLegacyUserTokens(userId);
   if (!tokens) {
     getLogger().debug({ userId }, 'No tokens found for user');
     return null;
@@ -730,11 +748,13 @@ export async function deleteUserTokens(userId: string): Promise<void> {
   userTokens.delete(userId);
   loadedTokenUsers.delete(userId);
 
-  // Remove from Firestore
+  await linkedTokens.removeTokens(userId);
+
+  // Remove the legacy plaintext doc too
   const firestore = await getFirestore();
   if (firestore) {
     try {
-      const docRef = firestore.collection('calendar_tokens').doc(userId);
+      const docRef = firestore.collection(OAUTH_TOKENS_COLLECTION).doc(userId);
       await docRef.delete();
       getLogger().info({ userId }, 'Calendar tokens deleted');
     } catch (error) {
@@ -756,14 +776,17 @@ export async function getAllCalendarUsers(): Promise<string[]> {
     userIds.push(userId);
   }
 
-  // Then check Firestore for any not in cache
+  // Then check Firestore for any not in cache. The collection group covers
+  // both the per-user store (bogle_users/{uid}/google_calendar_tokens/data)
+  // and legacy root docs (google_calendar_tokens/{uid}).
   const firestore = await getFirestore();
   if (firestore) {
     try {
-      const snapshot = await firestore.collection(OAUTH_TOKENS_COLLECTION).get();
+      const snapshot = await firestore.collectionGroup(OAUTH_TOKENS_COLLECTION).get();
       for (const doc of snapshot.docs) {
-        if (!userIds.includes(doc.id)) {
-          userIds.push(doc.id);
+        const userId = doc.ref.parent.parent?.id ?? doc.id;
+        if (!userIds.includes(userId)) {
+          userIds.push(userId);
         }
       }
     } catch (error) {

@@ -134,11 +134,10 @@ async function getUsersWithCalendarConnected(): Promise<string[]> {
       databaseId: process.env.FIRESTORE_DATABASE || '(default)',
     });
 
-    // Get users from Google Calendar tokens
-    const googleSnapshot = await db.collection('google_calendar_tokens').get();
+    // Get users from Google Calendar tokens (per-user web OAuth + legacy root store)
+    const { getAllCalendarUsers } = await import('../identity/google-calendar-oauth.js');
     const userIds = new Set<string>(
-      googleSnapshot.docs
-        .map((doc) => doc.id)
+      (await getAllCalendarUsers())
         // Filter out test users to avoid token refresh errors
         .filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'))
     );

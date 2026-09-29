@@ -77,7 +77,6 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 let db: FirestoreType | null = null;
 // FIX: Promise-based singleton to prevent race condition
 let dbInitPromise: Promise<FirestoreType | null> | null = null;
-const OAUTH_TOKENS_COLLECTION = 'google_calendar_tokens';
 
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
@@ -115,13 +114,10 @@ async function getAllUserIdsWithCalendar(): Promise<string[]> {
       return [];
     }
 
-    const snapshot = await firestore.collection(OAUTH_TOKENS_COLLECTION).get();
-    const userIds: string[] = [];
-
-    snapshot.forEach((doc) => {
-      // Document ID is the userId
-      userIds.push(doc.id);
-    });
+    // Per-user (web OAuth) and legacy root token stores
+    const { getAllCalendarUsers } =
+      await import('../../services/identity/google-calendar-oauth.js');
+    const userIds = await getAllCalendarUsers();
 
     // Filter out test users to avoid spamming logs with expired token errors
     // Test tokens are created during E2E testing and have invalid refresh tokens

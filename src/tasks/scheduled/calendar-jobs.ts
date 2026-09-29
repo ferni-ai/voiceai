@@ -107,17 +107,12 @@ export class WeeklyCalendarDigestJob extends ScheduledJob<WeeklyDigestConfig, We
 
   private async getCalendarUsers(): Promise<string[]> {
     try {
-      const { Firestore } = await import('@google-cloud/firestore');
-      const db = new Firestore({
-        projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-        databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-      });
-
-      const snapshot = await db.collection('google_calendar_tokens').get();
+      // Per-user (web OAuth) and legacy root token stores
+      const { getAllCalendarUsers } =
+        await import('../../services/identity/google-calendar-oauth.js');
+      const userIds = await getAllCalendarUsers();
       // Filter out test users to avoid token refresh errors
-      return snapshot.docs
-        .map((doc) => doc.id)
-        .filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'));
+      return userIds.filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'));
     } catch {
       log.warn('Could not fetch calendar users');
       return [];
@@ -206,17 +201,12 @@ export class PreMeetingNotificationsJob extends ScheduledJob<
 
   private async getCalendarUsers(): Promise<string[]> {
     try {
-      const { Firestore } = await import('@google-cloud/firestore');
-      const db = new Firestore({
-        projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-        databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-      });
-
-      const snapshot = await db.collection('google_calendar_tokens').get();
+      // Per-user (web OAuth) and legacy root token stores
+      const { getAllCalendarUsers } =
+        await import('../../services/identity/google-calendar-oauth.js');
+      const userIds = await getAllCalendarUsers();
       // Filter out test users to avoid token refresh errors
-      return snapshot.docs
-        .map((doc) => doc.id)
-        .filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'));
+      return userIds.filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'));
     } catch {
       log.warn('Could not fetch calendar users');
       return [];
@@ -310,17 +300,12 @@ export class MeetingFollowUpJob extends ScheduledJob<FollowUpAutomationConfig, F
 
   private async getCalendarUsers(): Promise<string[]> {
     try {
-      const { Firestore } = await import('@google-cloud/firestore');
-      const db = new Firestore({
-        projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-        databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-      });
-
-      const snapshot = await db.collection('google_calendar_tokens').get();
+      // Per-user (web OAuth) and legacy root token stores
+      const { getAllCalendarUsers } =
+        await import('../../services/identity/google-calendar-oauth.js');
+      const userIds = await getAllCalendarUsers();
       // Filter out test users to avoid token refresh errors
-      return snapshot.docs
-        .map((doc) => doc.id)
-        .filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'));
+      return userIds.filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'));
     } catch {
       log.warn('Could not fetch calendar users');
       return [];
