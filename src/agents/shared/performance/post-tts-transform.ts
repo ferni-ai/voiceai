@@ -594,6 +594,53 @@ export const DEFAULT_CONFIG: Required<PostTTSConfig> = {
   pharyngealAmount: 0.2, // Reduced from 0.3
 };
 
+/**
+ * POST_TTS_* switches that override the preset. The live path applies the
+ * betterThanHuman preset over DEFAULT_CONFIG, so the env defaults above were
+ * overwritten and setting e.g. POST_TTS_JITTER=true did nothing. These apply
+ * last, and only for variables that are actually set, so an unset variable
+ * leaves the preset alone.
+ */
+export const POST_TTS_ENV_SWITCHES: Readonly<Record<string, keyof PostTTSConfig>> = {
+  POST_TTS_BREATH: 'enableBreath',
+  POST_TTS_WARMTH: 'enableWarmth',
+  POST_TTS_COMPRESSION: 'enableCompression',
+  POST_TTS_PRESENCE: 'enablePresence',
+  POST_TTS_AMPLITUDE_JITTER: 'enableAmplitudeJitter',
+  POST_TTS_PITCH_DRIFT: 'enablePitchDrift',
+  POST_TTS_NOISE_FLOOR: 'enableNoiseFloor',
+  POST_TTS_SOLA_PITCH: 'useSolaPitch',
+  POST_TTS_EMOTION_PROSODY: 'enableEmotionProsody',
+  POST_TTS_MICRO_PITCH: 'enableMicroPitch',
+  POST_TTS_ADAPTIVE_PACING: 'enableAdaptivePacing',
+  POST_TTS_VOCAL_FRY: 'enableVocalFry',
+  POST_TTS_LIP_SMACKS: 'enableLipSmacks',
+  POST_TTS_TEMPO_VARIATION: 'enableTempoVariation',
+  POST_TTS_ONSET_SOFTENING: 'enableOnsetSoftening',
+  POST_TTS_JITTER: 'enableJitter',
+  POST_TTS_SHIMMER: 'enableShimmer',
+  POST_TTS_HNR_MODULATION: 'enableHnrModulation',
+  POST_TTS_SUBGLOTTAL: 'enableSubglottalResonance',
+  POST_TTS_SMILE_FORMANTS: 'enableSmileFormants',
+  POST_TTS_GLOTTALIZATION: 'enableGlottalization',
+  POST_TTS_HESITATION: 'enableHesitationSounds',
+  POST_TTS_LOMBARD: 'enableLombardEffect',
+  POST_TTS_REGISTER: 'enableRegisterTransitions',
+  POST_TTS_PHARYNGEAL: 'enablePharyngealConstriction',
+};
+
+export function postTtsEnvOverrides(
+  env: Record<string, string | undefined> = process.env
+): Partial<PostTTSConfig> {
+  const out: Partial<PostTTSConfig> = {};
+  for (const [name, key] of Object.entries(POST_TTS_ENV_SWITCHES)) {
+    const v = env[name]?.trim().toLowerCase();
+    if (v === 'true' || v === '1') (out as Record<string, boolean>)[key] = true;
+    else if (v === 'false' || v === '0') (out as Record<string, boolean>)[key] = false;
+  }
+  return out;
+}
+
 // ============================================================================
 // METRICS
 // ============================================================================
@@ -966,6 +1013,7 @@ export function createPostTTSTransform(
   let rust: RustAudioModule | null = null;
   let statefulProcessor: NativePostTTSProcessorInstance | null = null;
   let frameCount = 0;
+  let passThroughFormat = false;
   // Buffer the ORIGINAL (unprocessed) frame so we can process it with isLastFrame=true in flush
   // This prevents double-processing which causes audio artifacts
   let bufferedOriginalFrame: AudioFrame | null = null;
@@ -1099,7 +1147,9 @@ export function createPostTTSTransform(
               personaId: fullConfig.personaId,
               mode: 'stateful',
               features: {
-                crossfade: true,
+                // No crossfade: removed from the Rust chain in 09790a3b5 (it
+                // crackled at frame boundaries); soft edges shape the ends.
+                softEdges: fullConfig.enableSoftEdges,
                 splitbandDeesser: true,
                 limiter: true,
                 warmth: fullConfig.enableWarmth,
@@ -1158,6 +1208,28 @@ export function createPostTTSTransform(
     async transform(frame, controller) {
       frameCount++;
       const startTime = performance.now();
+
+      // The DSP is set up for one sample rate, mono, and every output frame
+      // is stamped with that format. A stream in any other format (checked
+      // on its first frame; formats do not change mid-stream) passes through
+      // untouched rather than being processed and mislabelled, which would
+      // play it at the wrong speed and pitch.
+      if (frameCount === 1 && (frame.sampleRate !== fullConfig.sampleRate || frame.channels !== 1)) {
+        passThroughFormat = true;
+        log.warn(
+          {
+            sessionId: fullConfig.sessionId,
+            frameSampleRate: frame.sampleRate,
+            frameChannels: frame.channels,
+            configuredSampleRate: fullConfig.sampleRate,
+          },
+          'Post-TTS: audio format differs from the configured one, passing through'
+        );
+      }
+      if (passThroughFormat) {
+        controller.enqueue(frame);
+        return;
+      }
 
       try {
         // NEW: Use stateful processor if available

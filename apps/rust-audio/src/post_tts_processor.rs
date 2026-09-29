@@ -6997,7 +6997,21 @@ mod live_chain_continuity {
             enable_lip_smacks: false,
             enable_tempo_variation: false,
             enable_onset_softening: false,
-            // Not sent by the TS glue: these keep the Rust defaults.
+            // The live preset (post-tts-transform.ts, betterThanHuman) also sends
+            // these as false. Several default to ON in Rust, so leaving them to
+            // the defaults tested a chain that never runs in production.
+            enable_jitter: false,
+            enable_shimmer: false,
+            enable_hnr_modulation: false,
+            enable_subglottal_resonance: false,
+            enable_smile_formants: false,
+            enable_glottalization: false,
+            enable_hesitation_sounds: false,
+            enable_lombard_effect: false,
+            enable_register_transitions: false,
+            enable_pharyngeal_constriction: false,
+            // Not sent by the TS glue (deesser/limiter thresholds, frequencies,
+            // makeup gain, adaptive breath): these keep the Rust defaults.
             ..ProcessorConfig::default()
         }
     }

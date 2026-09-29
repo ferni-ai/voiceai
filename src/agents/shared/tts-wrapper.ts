@@ -33,6 +33,7 @@ import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
 import {
   applyPostTTSEnhancement,
   PostTTSPresets,
+  postTtsEnvOverrides,
   type PostTTSConfig,
 } from './performance/post-tts-transform.js';
 import {
@@ -1201,6 +1202,7 @@ export async function wrappedTtsNode(
     const enhancementConfig = {
       ...PostTTSPresets.betterThanHuman,
       ...postTTSConfig,
+      ...postTtsEnvOverrides(),
       sessionId,
       personaId,
     };
