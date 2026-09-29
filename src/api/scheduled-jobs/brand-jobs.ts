@@ -26,6 +26,21 @@ import { sendJson, sendSlackMessage } from './helpers.js';
 
 const log = createLogger({ module: 'BrandJobs' });
 
+/**
+ * Without Firestore these jobs have nothing to read or write. Report that as a
+ * failure (503) so Cloud Scheduler records it, instead of a green "success"
+ * with zeroed stats.
+ */
+function sendFirestoreUnavailable(res: ServerResponse, job: string): void {
+  log.error({ job }, 'Firestore not available - brand job did not run');
+  sendJson(res, 503, {
+    success: false,
+    job,
+    error: 'Firestore not available',
+    timestamp: new Date().toISOString(),
+  });
+}
+
 export async function handleBrandAwardDeadlineCheck(res: ServerResponse): Promise<void> {
   const startTime = Date.now();
 
@@ -34,6 +49,10 @@ export async function handleBrandAwardDeadlineCheck(res: ServerResponse): Promis
 
     const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js');
     const db = getFirestoreDb();
+    if (!db) {
+      sendFirestoreUnavailable(res, 'brand-award-deadline-check');
+      return;
+    }
 
     let awards: BrandAward[] = [];
     if (db) {
@@ -93,6 +112,10 @@ export async function handleBrandStoryReviewReminder(res: ServerResponse): Promi
 
     const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js');
     const db = getFirestoreDb();
+    if (!db) {
+      sendFirestoreUnavailable(res, 'brand-story-review-reminder');
+      return;
+    }
 
     let stories: UserStory[] = [];
     if (db) {
@@ -136,6 +159,10 @@ export async function handleBrandWorkstreamProgress(res: ServerResponse): Promis
 
     const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js');
     const db = getFirestoreDb();
+    if (!db) {
+      sendFirestoreUnavailable(res, 'brand-workstream-progress');
+      return;
+    }
 
     let workstreams: BrandWorkstream[] = [];
     if (db) {
@@ -201,6 +228,10 @@ export async function handleBrandMilestoneCheck(res: ServerResponse): Promise<vo
 
     const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js');
     const db = getFirestoreDb();
+    if (!db) {
+      sendFirestoreUnavailable(res, 'brand-milestone-check');
+      return;
+    }
 
     let milestones: BrandMilestone[] = [];
     if (db) {
@@ -279,6 +310,10 @@ export async function handleBrandAmbassadorEngagement(res: ServerResponse): Prom
 
     const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js');
     const db = getFirestoreDb();
+    if (!db) {
+      sendFirestoreUnavailable(res, 'brand-ambassador-engagement');
+      return;
+    }
 
     let ambassadors: BrandAmbassador[] = [];
     if (db) {
@@ -348,16 +383,11 @@ export async function handleBrandMetricsCollection(res: ServerResponse): Promise
 
     const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js');
     const db = getFirestoreDb();
-
     if (!db) {
-      sendJson(res, 200, {
-        success: true,
-        job: 'brand-metrics-collection',
-        message: 'Firestore not available - metrics collection skipped',
-        timestamp: new Date().toISOString(),
-      });
+      sendFirestoreUnavailable(res, 'brand-metrics-collection');
       return;
     }
+
 
     const [awardsSnap, workstreamsSnap, storiesSnap, ambassadorsSnap] = await Promise.all([
       db.collection('brand_awards').get(),
@@ -422,6 +452,10 @@ export async function handleBrandWeeklyReport(res: ServerResponse): Promise<void
 
     const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js');
     const db = getFirestoreDb();
+    if (!db) {
+      sendFirestoreUnavailable(res, 'brand-weekly-report');
+      return;
+    }
 
     let awards: BrandAward[] = [];
     let workstreams: BrandWorkstream[] = [];
@@ -518,6 +552,10 @@ export async function handleBrandPublishStories(res: ServerResponse): Promise<vo
 
     const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js');
     const db = getFirestoreDb();
+    if (!db) {
+      sendFirestoreUnavailable(res, 'brand-publish-stories');
+      return;
+    }
 
     let stories: UserStoryDoc[] = [];
     if (db) {
