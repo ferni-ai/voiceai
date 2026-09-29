@@ -24,6 +24,9 @@ import type { RetrievedTool } from './tool-retriever.js';
 
 const log = createLogger({ module: 'TurnToolRetrieval' });
 
+/** Candidates ranked per sent slot, so unavailable tools don't leave slots empty. */
+const CANDIDATES_PER_SLOT = 4;
+
 /** A fallback embedding must carry at least this share of the turn's words. */
 const FALLBACK_MIN_SHARE = 0.4;
 
@@ -118,6 +121,8 @@ export class TurnToolRetrieval {
   private inFlight = false;
   private pending: string | null = null;
   private lastPick: Pick | null = null;
+  /** The retrieved tools last sent (or, in shadow mode, that would have been). */
+  private lastChosen = new Set<string>();
   private readonly picking = new Map<string, Promise<Pick | null>>();
   /** tool → turn it was last used or picked in. */
   private readonly sticky = new Map<string, number>();
@@ -209,12 +214,11 @@ export class TurnToolRetrieval {
         ]);
         const pick = {
           text,
-          tools: index.search(vector, this.k),
+          tools: index.search(vector, this.k * CANDIDATES_PER_SLOT),
           embedMs: Date.now() - started,
           speculative,
         };
         this.lastPick = pick;
-        for (const t of pick.tools) this.sticky.set(t.tool, this.turn);
         return pick;
       } catch (error) {
         log.warn({ sessionId: this.opts.sessionId, error: String(error) }, 'tool retrieval failed');
@@ -255,11 +259,10 @@ export class TurnToolRetrieval {
       if (!contained || !substantial) continue;
       const pick: Pick = {
         text: e.text,
-        tools: index.search(e.ready, this.k),
+        tools: index.search(e.ready, this.k * CANDIDATES_PER_SLOT),
         embedMs: 0,
         speculative: 'near',
       };
-      for (const t of pick.tools) this.sticky.set(t.tool, this.turn);
       return { pick, source: 'fallback' };
     }
     return { pick: null, source: 'all' };
@@ -283,6 +286,9 @@ export class TurnToolRetrieval {
         waitMs: Date.now() - started,
         toolsNow: Object.keys(toolCtx.functionTools).length,
         toolsSent: Object.keys(sent.functionTools).length,
+        pickedUnavailable: pick
+          ? pick.tools.slice(0, this.k).filter((t) => !(t.tool in toolCtx.functionTools)).length
+          : 0,
       },
       'TOOL_RETRIEVAL_LIVE'
     );
@@ -301,9 +307,28 @@ export class TurnToolRetrieval {
     return at !== undefined && this.turn - at < this.stickyTurns;
   }
 
+  /**
+   * The best k retrieved tools the agent has. The index covers the whole
+   * catalog, but only tools the agent has loaded can be sent or run: sending
+   * the top k regardless dropped the unavailable ones, and "keep an eye on
+   * the time" reached the model with no timer or reminder tool at all (dev
+   * A/B, 2026-09-29). These become sticky for the next few turns.
+   */
+  private choose(toolCtx: llm.ToolContext, pick: Pick): Set<string> {
+    const available = toolCtx.functionTools;
+    const chosen = new Set<string>();
+    for (const t of pick.tools) {
+      if (chosen.size >= this.k) break;
+      if (t.tool in available) chosen.add(t.tool);
+    }
+    for (const t of chosen) this.sticky.set(t, this.turn);
+    this.lastChosen = chosen;
+    return chosen;
+  }
+
   /** The tools to send: core + sticky + the pick, from what the agent has. */
   select(toolCtx: llm.ToolContext, pick: Pick): llm.ToolContext {
-    const picked = new Set(pick.tools.map((t) => t.tool));
+    const picked = this.choose(toolCtx, pick);
     const keep = Object.entries(toolCtx.functionTools)
       .filter(([name]) => picked.has(name) || this.isCore(name) || this.isSticky(name))
       .map(([, tool]) => tool);
@@ -317,14 +342,19 @@ export class TurnToolRetrieval {
       if (!p || this.logged.has(p)) return;
       this.logged.add(p);
       const available = toolCtx.functionTools;
+      const chosen = this.choose(toolCtx, p);
       const selected = Object.keys(available).filter(
-        (n) => p.tools.some((t) => t.tool === n) || this.isCore(n) || this.isSticky(n)
+        (n) => chosen.has(n) || this.isCore(n) || this.isSticky(n)
       ).length;
       log.info(
         {
           sessionId: this.opts.sessionId,
           text: text.slice(0, 200),
-          picked: p.tools.map((t) => t.tool),
+          picked: [...chosen],
+          unavailable: p.tools
+            .slice(0, this.k)
+            .filter((t) => !(t.tool in available))
+            .map((t) => t.tool),
           embedMs: p.embedMs,
           speculative: p.speculative,
           toolsNow: Object.keys(available).length,
@@ -340,14 +370,13 @@ export class TurnToolRetrieval {
     const pick = this.lastPick;
     return names.map((name) => {
       const rank = pick ? pick.tools.findIndex((t) => t.tool === name) : -1;
-      const via: ToolCoverage['via'] =
-        rank >= 0
-          ? 'retrieved'
-          : this.isCore(name)
-            ? 'core'
-            : this.isSticky(name)
-              ? 'sticky'
-              : 'missed';
+      const via: ToolCoverage['via'] = this.lastChosen.has(name)
+        ? 'retrieved'
+        : this.isCore(name)
+          ? 'core'
+          : this.isSticky(name)
+            ? 'sticky'
+            : 'missed';
       this.sticky.set(name, this.turn);
       const coverage: ToolCoverage = { tool: name, rank, via, covered: via !== 'missed' };
       log.info(

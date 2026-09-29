@@ -67,6 +67,30 @@ describe('TurnToolRetrieval', () => {
     expect(sent).toEqual(['getWeather', 'handoffToMaya']);
   });
 
+  it('fills its slots with the best tools the agent has, skipping ones it lacks', async () => {
+    const { r } = await setup();
+    // The agent has no setTimer (its domain isn't loaded), but has trackHabit.
+    const agentTools = new llm.ToolContext(['getWeather', 'handoffToMaya', 'trackHabit'].map(fn));
+    const pick = (await r.pick('set a timer for ten minutes'))!;
+    expect(pick.tools[0].tool).toBe('setTimer'); // best match overall
+    const sent = Object.keys(r.select(agentTools, pick).functionTools).sort();
+    expect(sent).toHaveLength(2); // k = 1 retrieved + the core handoff
+    expect(sent).toContain('handoffToMaya');
+    expect(sent).not.toContain('setTimer');
+  });
+
+  it('makes sticky only the tools it sent, not every candidate', async () => {
+    const { r, toolCtx } = await setup();
+    const pick = (await r.pick('will it rain today'))!;
+    r.select(toolCtx, pick);
+    r.newTurn();
+    const next = (await r.pick('I went for a run today'))!;
+    const sent = Object.keys(r.select(toolCtx, next).functionTools).sort();
+    // getWeather (sent last turn) stays; setTimer (a lower candidate) doesn't.
+    expect(sent).toContain('getWeather');
+    expect(sent).not.toContain('setTimer');
+  });
+
   it('keeps recently used tools for a few turns, then drops them', async () => {
     const { r, toolCtx } = await setup();
     r.onToolsExecuted(['trackHabit']);
@@ -80,9 +104,9 @@ describe('TurnToolRetrieval', () => {
   });
 
   it('reports whether each called tool was covered, and how', async () => {
-    const { r } = await setup();
+    const { r, toolCtx } = await setup();
     r.onToolsExecuted(['setTimer']); // used earlier: now recent
-    await r.pick('will it rain today');
+    r.select(toolCtx, (await r.pick('will it rain today'))!);
     const coverage = r.onToolsExecuted(['getWeather', 'handoffToMaya', 'setTimer', 'trackHabit']);
     expect(coverage.map((c) => [c.tool, c.via, c.covered])).toEqual([
       ['getWeather', 'retrieved', true],

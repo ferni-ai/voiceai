@@ -762,6 +762,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
       userProfile,
       tier,
       bypass: Boolean(services?.devMode?.enabled && services.devMode.bypassUnlocks),
+      currentAgentId: (userData?.personaId as string | undefined) ?? 'ferni',
     };
   }
 

@@ -48,6 +48,23 @@ describe('handoffs to locked teammates', () => {
     expect(sent).toBe(ctx);
   });
 
+  it('drops a handoff to the persona already speaking', async () => {
+    const locked = await lockedHandoffTools(['handoffToFerni', 'handoffToMaya'], {
+      userProfile: longtimeUser,
+      tier: 'partner',
+      currentAgentId: 'ferni',
+    });
+    expect(locked).toEqual(['handoffToFerni']);
+    // From Maya, the hand-back to Ferni stays.
+    expect(
+      await lockedHandoffTools(['handoffToFerni'], {
+        userProfile: longtimeUser,
+        tier: 'partner',
+        currentAgentId: 'maya-santos',
+      })
+    ).toEqual([]);
+  });
+
   it("keeps every handoff under the dev panel's unlock bypass", async () => {
     const ctx = toolCtx();
     const sent = await withoutLockedHandoffs(ctx, {

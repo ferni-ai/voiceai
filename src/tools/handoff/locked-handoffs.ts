@@ -25,7 +25,12 @@ export interface UnlockView {
   tier: 'free' | 'friend' | 'partner';
   /** Session dev-mode bypass from the app's dev panel. */
   bypass?: boolean;
+  /** The persona speaking: a handoff to itself is dropped too. */
+  currentAgentId?: string;
 }
+
+const same = (a: string, b: string): boolean =>
+  (isCoach(a) && isCoach(b)) || a.toLowerCase() === b.toLowerCase();
 
 /** Handoff tool name → the teammates it can target (two Peters share a name). */
 let targets: Promise<Map<string, string[]>> | null = null;
@@ -44,15 +49,22 @@ function handoffTargets(): Promise<Map<string, string[]>> {
   return targets;
 }
 
-/** Names of the handoff tools in `names` whose every target is locked for this user. */
+/**
+ * Names of the handoff tools in `names` that can't go anywhere: every target
+ * is locked for this user, or is the persona already speaking (with fewer
+ * tools in a request, Ferni called handoffToFerni on itself; dev A/B,
+ * 2026-09-29).
+ */
 export async function lockedHandoffTools(names: string[], view: UnlockView): Promise<string[]> {
-  if (view.bypass) return [];
   const byName = await handoffTargets();
+  const current = view.currentAgentId;
   return names.filter((name) => {
     const agents = byName.get(name);
     if (!agents) return false;
     return agents.every(
-      (id) => !isCoach(id) && !isTeamMemberUnlocked(id, view.userProfile, view.tier)
+      (id) =>
+        (current !== undefined && same(id, current)) ||
+        (!view.bypass && !isCoach(id) && !isTeamMemberUnlocked(id, view.userProfile, view.tier))
     );
   });
 }
