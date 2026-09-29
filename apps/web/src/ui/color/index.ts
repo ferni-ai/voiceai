@@ -12,6 +12,14 @@
  * @module color
  */
 
+import {
+  applyMoodPaletteToRoot,
+  adjustColorForMood,
+  getPersonaMoodPalette,
+} from './mood-palette.js';
+import { injectTimeFadingStyles, calculateTimeFading } from './time-fading.js';
+import { injectPersonaHarmonyStyles } from './persona-harmony.js';
+
 // ============================================================================
 // MOOD PALETTE - Emotional Color Intelligence
 // ============================================================================
@@ -133,13 +141,8 @@ export {
  * @param persona - Active persona for brand-aligned colors
  */
 export function initColorSystem(persona?: string): void {
-  // Import dynamically to avoid circular dependencies
-  const { applyMoodPaletteToRoot } = require('./mood-palette.js');
-  const { injectTimeFadingStyles } = require('./time-fading.js');
-  const { injectPersonaHarmonyStyles } = require('./persona-harmony.js');
-
   // Apply mood palette to root
-  applyMoodPaletteToRoot(persona || 'ferni', 'calm');
+  applyMoodPaletteToRoot(getPersonaMoodPalette(persona || 'ferni', 'calm'));
 
   // Inject time fading and persona harmony CSS
   injectTimeFadingStyles(undefined, persona);
@@ -184,7 +187,6 @@ export function getContextualColor(
 
   // Apply mood adjustment
   if (mood) {
-    const { adjustColorForMood } = require('./mood-palette.js');
     currentColor = adjustColorForMood(currentColor, mood, intensity);
     cssVars['--mood'] = mood;
     descriptions.push(`mood-adjusted (${mood})`);
@@ -192,7 +194,6 @@ export function getContextualColor(
 
   // Apply time fading
   if (timestamp) {
-    const { calculateTimeFading } = require('./time-fading.js');
     const fadeResult = calculateTimeFading({
       date: timestamp,
       baseColor: currentColor,

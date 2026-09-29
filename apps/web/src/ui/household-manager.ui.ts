@@ -1251,7 +1251,7 @@ async function handleCreateHousehold(): Promise<void> {
 
   if (household) {
     log.info('Household created:', household.name);
-    toast.success(t('toasts.householdnameCreated'));
+    toast.success(t('toasts.householdnameCreated', { name: household.name }));
   } else {
     toast.error("Couldn't create that. Try again?");
   }
@@ -1290,9 +1290,9 @@ async function handleAddMember(): Promise<void> {
 
     // Show success toast
     if (result.needsVoiceEnrollment) {
-      toast.success(t('toasts.displaynameAddedVoiceEnrollmentNeeded'));
+      toast.success(t('toasts.displaynameAddedVoiceEnrollmentNeeded', { name: displayName }));
     } else {
-      toast.success(t('toasts.displaynameAdded'));
+      toast.success(t('toasts.displaynameAdded', { name: displayName }));
     }
   } else {
     // Show error toast
@@ -1315,7 +1315,7 @@ async function handleRemoveMember(userId: string): Promise<void> {
     household.members = household.members.filter((m) => m.userId !== userId);
     callbacks.onMemberRemoved?.(userId);
     log.info('Member removed:', userId);
-    toast.success(t('toasts.membernameRemoved'));
+    toast.success(t('toasts.membernameRemoved', { name: memberName }));
   } else {
     toast.error("Couldn't remove them. Try again?");
   }

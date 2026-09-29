@@ -20,6 +20,20 @@
 
 // Import transcendent CSS utility classes (Vite handles bundling)
 import './transcendent.css';
+import { initBreathSync, destroyBreathSync, getBreathSync } from './breath-sync.js';
+import { getExpressionPlayer, destroyExpressionPlayer } from './expression-player.js';
+import { getMomentOrchestrator, destroyMomentOrchestrator, playRecognitionMoment, playBreakthroughMoment, enterHoldingSpace, playHandoffMoment } from './moment-orchestrator.js';
+import {
+  initEmotionalColor,
+  destroyEmotionalColor,
+  getEmotionalColor,
+  type EmotionCategory,
+} from './emotional-color.js';
+import { initStaggerObserver, destroyStaggerObserver } from './overlapping-action.js';
+import { autoBindSecondaryActions, clearCustomReactions } from './secondary-action.js';
+import { initContextualSpacing, destroyContextualSpacing } from './contextual-spacing.js';
+import { initVoiceTypography, destroyVoiceTypography } from './voice-typography.js';
+import { initImperfectionObserver } from './imperfection.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Re-exports - Core Systems
@@ -363,7 +377,6 @@ export function initTranscendentSystems(
 
   // Initialize breath sync (foundation for all animation timing)
   if (fullConfig.breathSync) {
-    const { initBreathSync } = require('./breath-sync.js');
     initBreathSync();
     if (fullConfig.debug) {
       console.log('[TranscendentSystems] Breath sync initialized');
@@ -372,7 +385,6 @@ export function initTranscendentSystems(
 
   // Initialize expression player
   if (fullConfig.expressions) {
-    const { getExpressionPlayer } = require('./expression-player.js');
     const player = getExpressionPlayer();
 
     // Bind to avatar container if provided
@@ -386,7 +398,6 @@ export function initTranscendentSystems(
 
   // Initialize moment orchestrator
   if (fullConfig.moments) {
-    const { getMomentOrchestrator } = require('./moment-orchestrator.js');
     getMomentOrchestrator();
     if (fullConfig.debug) {
       console.log('[TranscendentSystems] Moment orchestrator initialized');
@@ -395,7 +406,6 @@ export function initTranscendentSystems(
 
   // Initialize emotional color system
   if (fullConfig.emotionalColor) {
-    const { initEmotionalColor } = require('./emotional-color.js');
     initEmotionalColor();
     if (fullConfig.debug) {
       console.log('[TranscendentSystems] Emotional color system initialized');
@@ -404,7 +414,6 @@ export function initTranscendentSystems(
 
   // Initialize overlapping action observer (for automatic stagger on scroll-into-view)
   if (fullConfig.overlappingAction) {
-    const { initStaggerObserver } = require('./overlapping-action.js');
     initStaggerObserver();
     if (fullConfig.debug) {
       console.log('[TranscendentSystems] Overlapping action observer initialized');
@@ -413,7 +422,6 @@ export function initTranscendentSystems(
 
   // Auto-bind secondary actions to interactive elements in container
   if (fullConfig.secondaryAction && fullConfig.interactiveContainer) {
-    const { autoBindSecondaryActions } = require('./secondary-action.js');
     secondaryActionsCleanup = autoBindSecondaryActions(fullConfig.interactiveContainer);
     if (fullConfig.debug) {
       console.log('[TranscendentSystems] Secondary actions bound to interactive elements');
@@ -432,7 +440,6 @@ export function initTranscendentSystems(
   // Phase 2: Polish & Refinement Systems
   // Initialize contextual spacing (device-aware semantic spacing)
   if (fullConfig.contextualSpacing) {
-    const { initContextualSpacing } = require('./contextual-spacing.js');
     initContextualSpacing();
     if (fullConfig.debug) {
       console.log('[TranscendentSystems] Contextual spacing initialized');
@@ -441,7 +448,6 @@ export function initTranscendentSystems(
 
   // Initialize voice typography (speaking-state-aware typography)
   if (fullConfig.voiceTypography) {
-    const { initVoiceTypography } = require('./voice-typography.js');
     initVoiceTypography();
     if (fullConfig.debug) {
       console.log('[TranscendentSystems] Voice typography initialized');
@@ -450,7 +456,6 @@ export function initTranscendentSystems(
 
   // Initialize imperfection observer (auto-apply organic variation)
   if (fullConfig.imperfection) {
-    const { initImperfectionObserver } = require('./imperfection.js');
     initImperfectionObserver();
     if (fullConfig.debug) {
       console.log('[TranscendentSystems] Imperfection engine initialized');
@@ -478,10 +483,6 @@ export function destroyTranscendentSystems(): void {
   if (!initialized) return;
 
   // Core systems
-  const { destroyBreathSync } = require('./breath-sync.js');
-  const { destroyExpressionPlayer } = require('./expression-player.js');
-  const { destroyMomentOrchestrator } = require('./moment-orchestrator.js');
-  const { destroyEmotionalColor } = require('./emotional-color.js');
 
   destroyBreathSync();
   destroyExpressionPlayer();
@@ -489,8 +490,6 @@ export function destroyTranscendentSystems(): void {
   destroyEmotionalColor();
 
   // Physics & motion systems
-  const { destroyStaggerObserver } = require('./overlapping-action.js');
-  const { clearCustomReactions } = require('./secondary-action.js');
 
   destroyStaggerObserver();
   clearCustomReactions();
@@ -502,19 +501,17 @@ export function destroyTranscendentSystems(): void {
   }
 
   // Phase 2 systems
-  const { destroyContextualSpacing } = require('./contextual-spacing.js');
-  const { destroyVoiceTypography } = require('./voice-typography.js');
 
   destroyContextualSpacing();
   destroyVoiceTypography();
   // Note: Imperfection observer doesn't need explicit cleanup (mutation observer)
 
   initialized = false;
-  currentConfig = {};
 
   if (currentConfig.debug) {
     console.log('[TranscendentSystems] All systems destroyed');
   }
+  currentConfig = {};
 }
 
 /**
@@ -534,7 +531,6 @@ export function bindToAvatar(container: HTMLElement): void {
     return;
   }
 
-  const { getExpressionPlayer } = require('./expression-player.js');
   getExpressionPlayer().bindToAvatar(container);
 }
 
@@ -546,6 +542,21 @@ export function bindToAvatar(container: HTMLElement): void {
  * Handle emotion event from backend
  * This bridges the backend's emotion detection to our frontend systems.
  */
+const EMOTION_CATEGORIES: ReadonlySet<string> = new Set<EmotionCategory>([
+  'neutral',
+  'joy',
+  'calm',
+  'concern',
+  'excitement',
+  'tenderness',
+  'reflection',
+  'celebration',
+  'grief',
+  'anticipation',
+  'gratitude',
+  'vulnerability',
+]);
+
 export function handleEmotionEvent(event: {
   emotion: string;
   intensity?: number;
@@ -553,11 +564,8 @@ export function handleEmotionEvent(event: {
 }): void {
   if (!initialized) return;
 
-  const { getEmotionalColor } = require('./emotional-color.js');
-  const { getExpressionPlayer } = require('./expression-player.js');
-
   // Map backend emotion names to our categories
-  const emotionMap: Record<string, string> = {
+  const emotionMap: Record<string, EmotionCategory> = {
     happy: 'joy',
     sad: 'grief',
     anxious: 'concern',
@@ -571,13 +579,14 @@ export function handleEmotionEvent(event: {
     anticipating: 'anticipation',
   };
 
-  const mappedEmotion = emotionMap[event.emotion] || event.emotion;
+  const mappedEmotion: EmotionCategory | undefined =
+    emotionMap[event.emotion] ??
+    (EMOTION_CATEGORIES.has(event.emotion) ? (event.emotion as EmotionCategory) : undefined);
 
-  // Update emotional color
+  // Update emotional color (unknown emotions would leave the palette undefined)
   try {
-    const colorManager = getEmotionalColor();
-    if (typeof colorManager.setEmotion === 'function') {
-      colorManager.setEmotion(mappedEmotion, event.intensity);
+    if (mappedEmotion) {
+      getEmotionalColor().setEmotion(mappedEmotion, event.intensity);
     }
   } catch (e) {
     // Color system not available
@@ -594,7 +603,7 @@ export function handleEmotionEvent(event: {
       recognition: 'recognition',
     };
 
-    const expressionName = expressionMap[mappedEmotion];
+    const expressionName = mappedEmotion ? expressionMap[mappedEmotion] : undefined;
     if (expressionName && player.isReady()) {
       player.play(expressionName);
     }
@@ -609,12 +618,6 @@ export function handleEmotionEvent(event: {
 export function handleMomentTrigger(moment: 'recognition' | 'breakthrough' | 'holding_space' | 'handoff'): void {
   if (!initialized) return;
 
-  const {
-    playRecognitionMoment,
-    playBreakthroughMoment,
-    enterHoldingSpace,
-    playHandoffMoment,
-  } = require('./moment-orchestrator.js');
 
   switch (moment) {
     case 'recognition':
@@ -639,7 +642,6 @@ export function handleBreathDetection(phase: number, confidence: number): void {
   if (!initialized) return;
 
   try {
-    const { getBreathSync } = require('./breath-sync.js');
     getBreathSync().syncToDetected(phase, confidence);
   } catch (e) {
     // Breath sync not available

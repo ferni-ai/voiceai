@@ -807,7 +807,7 @@ async function generateSuggestions(): Promise<void> {
     render();
 
     if (state.suggestions.length > 0) {
-      toast.success(t('toasts.statesuggestionslengthIdeasFound'));
+      toast.success(t('toasts.statesuggestionslengthIdeasFound', { count: state.suggestions.length }));
     }
   } catch (error) {
     log.error('Failed to generate gift suggestions:', error);
@@ -827,7 +827,7 @@ async function generateSuggestions(): Promise<void> {
       state.isLoading = false;
       render();
       log.debug('Using mock gift suggestions');
-      toast.success(t('toasts.statesuggestionslengthIdeasFoundMock'));
+      toast.success(t('toasts.statesuggestionslengthIdeasFoundMock', { count: state.suggestions.length }));
       return;
     }
     

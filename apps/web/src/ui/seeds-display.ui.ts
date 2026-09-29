@@ -479,7 +479,9 @@ function handleDailyBonusClick(e: Event): void {
 
   const result = claimDailyBonus();
   if (result.claimed) {
-    moments.whisper(t('toasts.resultamountSeeds'), { type: 'success' });
+    moments.whisper(t('toasts.resultamountSeeds', { amount: result.amount ?? 0 }), {
+      type: 'success',
+    });
     updateSeedsDisplay();
 
     // Re-render the card to remove the bonus button

@@ -693,7 +693,7 @@ export class RoutineBuilder {
         fields = `
           <div class="rb-field">
             <label class="rb-field__label">${cfg.time.schedule}</label>
-            <input type="text" class="rb-input" id="rb-schedule" value="${this.triggerConfig.schedule || '7:00 AM'}" placeholder="${cfg.time.schedulePlaceholder}">
+            <input type="text" class="rb-input" id="rb-schedule" value="${this.escapeHtml(String(this.triggerConfig.schedule || '7:00 AM'))}" placeholder="${cfg.time.schedulePlaceholder}">
           </div>
         `;
         break;
@@ -701,7 +701,7 @@ export class RoutineBuilder {
         fields = `
           <div class="rb-field">
             <label class="rb-field__label">${cfg.phrase.phrase}</label>
-            <input type="text" class="rb-input" id="rb-phrase" value="${(this.triggerConfig.phrases as string[])?.[0] || ''}" placeholder="${cfg.phrase.phrasePlaceholder}">
+            <input type="text" class="rb-input" id="rb-phrase" value="${this.escapeHtml((this.triggerConfig.phrases as string[] | undefined)?.[0] || '')}" placeholder="${cfg.phrase.phrasePlaceholder}">
           </div>
         `;
         break;
@@ -709,7 +709,7 @@ export class RoutineBuilder {
         fields = `
           <div class="rb-field">
             <label class="rb-field__label">${cfg.location.name}</label>
-            <input type="text" class="rb-input" id="rb-location-name" value="${this.triggerConfig.locationName || ''}" placeholder="${cfg.location.namePlaceholder}">
+            <input type="text" class="rb-input" id="rb-location-name" value="${this.escapeHtml(String(this.triggerConfig.locationName || ''))}" placeholder="${cfg.location.namePlaceholder}">
           </div>
           <div class="rb-field">
             <label class="rb-field__label">${cfg.location.when}</label>
@@ -736,7 +736,7 @@ export class RoutineBuilder {
         <div class="rb-action-item__icon">${actionDef?.icon || '⚙️'}</div>
         <div class="rb-action-item__content">
           <div class="rb-action-item__name">${this.escapeHtml(action.name)}</div>
-          <div class="rb-action-item__hint">${this.getActionSummary(action)}</div>
+          <div class="rb-action-item__hint">${this.escapeHtml(this.getActionSummary(action))}</div>
         </div>
         <button class="rb-action-item__remove" data-action="remove-action" data-index="${index}">
           ${ICONS.remove}
@@ -747,8 +747,8 @@ export class RoutineBuilder {
 
   private getActionSummary(action: WorkflowAction): string {
     if (action.params.message) return `"${String(action.params.message).slice(0, 40)}..."`;
-    if (action.params.habitId) return `Track: ${action.params.habitId}`;
-    if (action.params.zone) return `${action.params.zone}`;
+    if (action.params.habitId) return `Track: ${String(action.params.habitId)}`;
+    if (action.params.zone) return String(action.params.zone);
     return action.type;
   }
 
@@ -789,7 +789,7 @@ export class RoutineBuilder {
             (v) => `
           <div class="rb-field">
             <label class="rb-field__label">${v.label}</label>
-            <input type="${v.type === 'number' ? 'number' : 'text'}" class="rb-input" id="rb-var-${v.name}" value="${this.variables[v.name] || v.defaultValue || ''}" placeholder="${v.description || ''}">
+            <input type="${v.type === 'number' ? 'number' : 'text'}" class="rb-input" id="rb-var-${v.name}" value="${this.escapeHtml(String(this.variables[v.name] || v.defaultValue || ''))}" placeholder="${v.description || ''}">
           </div>
         `
           )
@@ -955,10 +955,14 @@ export class RoutineBuilder {
     }
   }
 
+  // Escapes quotes too: most call sites interpolate into value="..." attributes
   private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 }
 

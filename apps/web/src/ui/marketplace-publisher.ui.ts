@@ -772,7 +772,7 @@ async function handleSubmission(form: HTMLFormElement): Promise<void> {
     const result = await response.json();
 
     if (response.ok && result.success) {
-      toast.success(t('toasts.nameSubmittedForReview'));
+      toast.success(t('toasts.nameSubmittedForReview', { name }));
       announceToScreenReader(`Successfully submitted ${name} for review`);
 
       // Reload data and switch to items

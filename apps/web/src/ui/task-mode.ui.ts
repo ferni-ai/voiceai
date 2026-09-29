@@ -809,7 +809,7 @@ function handleNext(): void {
       const missingRequired = template.inputs.find(i => i.required && !taskData.inputs[i.id]);
       if (missingRequired) {
         import('./whisper.ui.js').then(({ toast }) => {
-          toast.warning(t('toasts.pleaseFillInMissingrequiredlabel'));
+          toast.warning(t('toasts.pleaseFillInMissingrequiredlabel', { label: missingRequired.label }));
         });
         return;
       }

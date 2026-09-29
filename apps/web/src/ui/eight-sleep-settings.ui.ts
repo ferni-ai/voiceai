@@ -671,7 +671,7 @@ async function startAuthFlow(): Promise<void> {
 async function setTemperature(level: number): Promise<void> {
   try {
     await apiPut('/api/eight-sleep/temperature', { level });
-    toast.success(t('toasts.bedSetToLevelLevel'));
+    toast.success(t('toasts.bedSetToLevelLevel', { level }));
   } catch (error) {
     log.error('Failed to set temperature:', error);
     toast.error("Couldn't set temperature. Try again?");

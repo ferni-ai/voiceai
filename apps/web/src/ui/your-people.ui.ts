@@ -1095,7 +1095,7 @@ function bindEvents(): void {
     btn.addEventListener('click', () => {
       openImportContacts({
         onSuccess: (count) => {
-          toast.success(t('toasts.importedCountContacts'));
+          toast.success(t('toasts.importedCountContacts', { count }));
           loadPeopleData();
         },
       });

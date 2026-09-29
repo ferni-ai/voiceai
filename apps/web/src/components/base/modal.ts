@@ -313,11 +313,6 @@ export class Modal extends BaseComponent {
 // CSS STYLES
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _show = Modal.prototype.show;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _hide = Modal.prototype.hide;
-
 /**
  * Inject modal styles into the document.
  * Call this once during app initialization.

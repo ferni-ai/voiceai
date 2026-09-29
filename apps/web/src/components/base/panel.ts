@@ -292,11 +292,6 @@ export class Panel extends BaseComponent {
 // CSS STYLES
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _show = Panel.prototype.show;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _hide = Panel.prototype.hide;
-
 /**
  * Inject panel styles into the document.
  * Call this once during app initialization.

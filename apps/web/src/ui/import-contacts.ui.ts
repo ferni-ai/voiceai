@@ -808,7 +808,7 @@ async function startImport(): Promise<void> {
       render();
     }
 
-    toast.success(t('toasts.importedStateimportedContacts'));
+    toast.success(t('toasts.importedStateimportedContacts', { count: state.imported }));
     callbacks.onSuccess?.(state.imported);
     
     setTimeout(() => {

@@ -258,7 +258,7 @@ async function sendBatchedEvents(events: QueuedEvent[]): Promise<void> {
       // Convert interactions to the format backend expects
       const interactionStrings = interactions
         .slice(-10) // Last 10 interactions
-        .map((i) => `${i.payload.action} on ${i.payload.element}${i.payload.value ? `: ${i.payload.value}` : ''}`);
+        .map((i) => `${i.payload.action} on ${i.payload.element}${i.payload.value ? `: ${typeof i.payload.value === 'string' ? i.payload.value : JSON.stringify(i.payload.value)}` : ''}`);
 
       await apiPost('/api/context/browsing', {
         userId,

@@ -209,7 +209,7 @@ export class GroupConversationUI {
     this.renderParticipantGrid();
     
     // Celebration toast
-    toast.success(t('toasts.participantnameJoined'));
+    toast.success(t('toasts.participantnameJoined', { name: participant.name }));
   }
 
   /**
@@ -218,7 +218,7 @@ export class GroupConversationUI {
   removeParticipant(participantId: string): void {
     const participant = this.participants.get(participantId);
     if (participant) {
-      toast.info(t('toasts.participantnameLeft'));
+      toast.info(t('toasts.participantnameLeft', { name: participant.name }));
       this.participants.delete(participantId);
       this.renderParticipantGrid();
     }

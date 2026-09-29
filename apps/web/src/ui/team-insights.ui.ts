@@ -734,7 +734,7 @@ export function showInsightNotification(insight: TeamInsight): void {
   updateTriggerBadge();
 
   // Show toast notification
-  toast.info(t('toasts.capitalizeinsightsourceInsightsummary'));
+  toast.info(t('toasts.capitalizeinsightsourceInsightsummary', { source: capitalize(insight.source), summary: insight.summary }));
 
   log.info({ insightId: insight.id, source: insight.source }, 'Insight notification shown');
 }

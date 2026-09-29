@@ -717,7 +717,7 @@ async function generateStarters(): Promise<void> {
     render();
 
     if (state.starters.length > 0) {
-      toast.success(t('toasts.statestarterslengthIdeasReady'));
+      toast.success(t('toasts.statestarterslengthIdeasReady', { count: state.starters.length }));
     }
   } catch (error) {
     log.error('Failed to generate conversation starters:', error);
@@ -741,7 +741,7 @@ async function generateStarters(): Promise<void> {
       
       render();
       log.debug('Using mock conversation starters');
-      toast.success(t('toasts.statestarterslengthIdeasReadyMock'));
+      toast.success(t('toasts.statestarterslengthIdeasReadyMock', { count: state.starters.length }));
       return;
     }
     
