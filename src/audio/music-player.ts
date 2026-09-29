@@ -2343,13 +2343,31 @@ export function getMusicPlayer(): CallMusicPlayer {
  * Previously, dispose() was fire-and-forget which could cause issues if
  * getMusicPlayer() was called before dispose completed.
  */
-export async function resetMusicPlayer(): Promise<void> {
+export async function resetMusicPlayer(ownerSessionId?: string): Promise<void> {
+  // A worker process runs its calls one after another, and a call's cleanup
+  // can finish after the next call has set the player up: resetting then
+  // disposed the new call's player, so its music never played (dev evals,
+  // 2026-09-29). With an owner given, only that call's player is disposed.
+  if (musicPlayerInstance && !isMusicPlayerOwnedBy(ownerSessionId)) {
+    log.info(
+      { ownerSessionId, current: musicPlayerInstance.getSessionId() },
+      '🎵 Music player belongs to a newer session - not resetting'
+    );
+    return;
+  }
   if (musicPlayerInstance) {
     log.debug({ hadInstance: true }, '🎵 Resetting music player singleton');
     const instanceToDispose = musicPlayerInstance;
     musicPlayerInstance = null; // Clear first to prevent new calls from using it
     await instanceToDispose.dispose();
   }
+}
+
+/** True when there's no owner to check, or the player was set up for that session. */
+export function isMusicPlayerOwnedBy(sessionId?: string): boolean {
+  if (!sessionId || !musicPlayerInstance) return true;
+  const current = musicPlayerInstance.getSessionId();
+  return !current || current === sessionId;
 }
 
 /**

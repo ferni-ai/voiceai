@@ -1149,7 +1149,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     (async () => {
       if (musicCleanup) await musicCleanup();
       cleanupDJBooth();
-      await cleanupMusic();
+      await cleanupMusic(sessionId);
     })(),
 
     // Voice humanization cleanup
@@ -1688,15 +1688,17 @@ async function cleanupUtilities(utilitiesCleanup: () => Promise<void>): Promise<
   }
 }
 
-async function cleanupMusic(): Promise<void> {
+async function cleanupMusic(sessionId: string): Promise<void> {
   try {
     const { isMusicEnabled } = await import('../../config/environment.js');
-    if (isMusicEnabled()) {
+    const { isMusicPlayerOwnedBy } = await import('../../audio/index.js');
+    // The next call in this process may already own the shared music state.
+    if (isMusicEnabled() && isMusicPlayerOwnedBy(sessionId)) {
       const { shutdownSpotify } = await import('../../tools/domains/entertainment/spotify.js');
       shutdownSpotify();
       const { resetMusicPlayer } = await import('../../audio/index.js');
       // 🐛 FIX: Await the async resetMusicPlayer to prevent race conditions
-      await resetMusicPlayer();
+      await resetMusicPlayer(sessionId);
       diag.session('Spotify and music player reset');
     }
   } catch (e) {

@@ -40,6 +40,7 @@ import { getDJTimingEngine, resetDJTimingEngine } from '../../audio/dj-timing-en
 import {
   getMusicPlayer,
   initializeMusicPlayer,
+  isMusicPlayerOwnedBy,
   resetMusicPlayer,
   type MusicState,
   type MusicTrack,
@@ -103,7 +104,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
   // 🐛 FIX: Was checking isMusicAvailable() BEFORE init, which always returned false!
   // Now we just initialize directly - isMusicAvailable() is for AFTER init to check if it worked.
   try {
-    await initializeMusicPlayer(room);
+    await initializeMusicPlayer(room, undefined, sessionId);
     log.info({ sessionId }, '🎵 Music player initialized successfully');
   } catch (err) {
     log.warn(
@@ -490,6 +491,15 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
 
   const cleanup = (): void => {
     log.info({ sessionId }, 'Cleaning up Music Handler');
+    clearMusicContext(sessionId);
+
+    // The player, DJ controller and timing engine are shared by the process.
+    // If the next call already took them over, leave them alone (see
+    // resetMusicPlayer).
+    if (!isMusicPlayerOwnedBy(sessionId)) {
+      log.info({ sessionId }, '🎵 Music now belongs to a newer session - skipping shared reset');
+      return;
+    }
 
     // Remove DJ Controller event listeners to prevent memory leaks
     djController.removeAllListeners('state_changed');
@@ -503,11 +513,10 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     musicPlayer.setOnMusicStateChangeCallback(() => {});
     musicPlayer.setOnTrackEndedCallback(() => {});
 
-    clearMusicContext(sessionId);
     clearMusicFeedbackRecorder();
     resetDJController();
     resetDJTimingEngine();
-    resetMusicPlayer().catch((err) =>
+    resetMusicPlayer(sessionId).catch((err) =>
       log.warn({ error: String(err) }, 'Music player reset failed during cleanup')
     );
   };
