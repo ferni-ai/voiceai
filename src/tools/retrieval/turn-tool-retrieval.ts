@@ -52,7 +52,8 @@ export interface TurnToolRetrievalOptions {
   k?: number;
   /** User turns a used or picked tool stays in the set. */
   stickyTurns?: number;
-  debounceMs?: number;
+  /** A precomputed embedding counts when its words cover this share of the turn's. */
+  nearCoverage?: number;
 }
 
 export interface ToolCoverage {
@@ -67,7 +68,8 @@ interface Pick {
   text: string;
   tools: RetrievedTool[];
   embedMs: number;
-  speculative: boolean;
+  /** exact: embedded during speech; near: a slightly earlier transcript's; none: embedded now. */
+  speculative: 'exact' | 'near' | 'none';
 }
 
 /**
@@ -86,10 +88,14 @@ const norm = matchKey;
 export class TurnToolRetrieval {
   private readonly k: number;
   private readonly stickyTurns: number;
-  private readonly debounceMs: number;
-  /** Embeddings by normalised text; the last few only. */
-  private readonly embeddings = new Map<string, Promise<Float32Array>>();
-  private debounce: NodeJS.Timeout | null = null;
+  private readonly nearCoverage: number;
+  /** Embeddings by match key, oldest first; the last few only. */
+  private readonly embeddings = new Map<
+    string,
+    { words: Set<string>; vector: Promise<Float32Array> }
+  >();
+  private inFlight = false;
+  private pending: string | null = null;
   private lastPick: Pick | null = null;
   private readonly picking = new Map<string, Promise<Pick | null>>();
   /** tool → turn it was last used or picked in. */
@@ -100,19 +106,40 @@ export class TurnToolRetrieval {
   constructor(private readonly opts: TurnToolRetrievalOptions) {
     this.k = opts.k ?? 20;
     this.stickyTurns = opts.stickyTurns ?? 3;
-    this.debounceMs = opts.debounceMs ?? 250;
+    this.nearCoverage = opts.nearCoverage ?? 0.7;
   }
 
   private embed(text: string): Promise<Float32Array> {
     const key = norm(text);
-    let p = this.embeddings.get(key);
-    if (!p) {
-      p = this.opts.embedder.embed([text]).then((v) => v[0]);
-      p.catch(() => this.embeddings.delete(key));
-      this.embeddings.set(key, p);
-      while (this.embeddings.size > 8) this.embeddings.delete(this.embeddings.keys().next().value!);
+    const have = this.embeddings.get(key);
+    if (have) return have.vector;
+    const vector = this.opts.embedder.embed([text]).then((v) => v[0]);
+    vector.catch(() => this.embeddings.delete(key));
+    this.embeddings.set(key, { words: new Set(key.split(' ')), vector });
+    while (this.embeddings.size > 8) this.embeddings.delete(this.embeddings.keys().next().value!);
+    return vector;
+  }
+
+  /**
+   * Throttle, not debounce: embed at once when nothing is in flight, else keep
+   * only the newest text for when the current call returns. A debounce kept
+   * resetting while the user talked and rarely fired before the pick.
+   */
+  private schedule(text: string): void {
+    if (this.embeddings.has(norm(text))) return;
+    if (this.inFlight) {
+      this.pending = text;
+      return;
     }
-    return p;
+    this.inFlight = true;
+    void this.embed(text)
+      .catch(() => undefined)
+      .finally(() => {
+        this.inFlight = false;
+        const next = this.pending;
+        this.pending = null;
+        if (next) this.schedule(next);
+      });
   }
 
   /** A user turn ended (the agent took the floor): ages the sticky set. */
@@ -121,14 +148,18 @@ export class TurnToolRetrieval {
   }
 
   /** Interim and final user transcripts: embed ahead of the reply. */
-  onTranscript(text: string, isFinal: boolean): void {
-    if (!text.trim()) return;
-    if (this.debounce) clearTimeout(this.debounce);
-    if (isFinal) {
-      void this.embed(text).catch(() => undefined);
-      return;
+  onTranscript(text: string, _isFinal: boolean): void {
+    if (text.trim()) this.schedule(text);
+  }
+
+  /** The newest precomputed embedding whose words cover most of `key`'s. */
+  private near(key: string): Promise<Float32Array> | null {
+    const words = key.split(' ');
+    for (const [, e] of [...this.embeddings].reverse()) {
+      const covered = words.filter((w) => e.words.has(w)).length / words.length;
+      if (covered >= this.nearCoverage) return e.vector;
     }
-    this.debounce = setTimeout(() => void this.embed(text).catch(() => undefined), this.debounceMs);
+    return null;
   }
 
   /** Retrieve for the user's words (once per distinct text). */
@@ -138,9 +169,14 @@ export class TurnToolRetrieval {
     if (p) return p;
     p = (async (): Promise<Pick | null> => {
       const started = Date.now();
-      const speculative = this.embeddings.has(key);
+      const exact = this.embeddings.get(key)?.vector;
+      const near = exact ? null : this.near(key);
+      const speculative: Pick['speculative'] = exact ? 'exact' : near ? 'near' : 'none';
       try {
-        const [index, vector] = await Promise.all([this.opts.index(), this.embed(text)]);
+        const [index, vector] = await Promise.all([
+          this.opts.index(),
+          exact ?? near ?? this.embed(text),
+        ]);
         const pick = {
           text,
           tools: index.search(vector, this.k),

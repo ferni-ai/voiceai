@@ -55,7 +55,7 @@ describe('TurnToolRetrieval', () => {
     const before = embedder.calls;
     r.onTranscript('set a timer for ten minutes', true);
     const pick = await r.pick('set a timer for ten minutes');
-    expect(pick?.speculative).toBe(true);
+    expect(pick?.speculative).toBe('exact');
     expect(embedder.calls).toBe(before + 1);
     expect(pick?.tools[0].tool).toBe('setTimer');
   });
@@ -93,6 +93,55 @@ describe('TurnToolRetrieval', () => {
   });
 });
 
+describe('embedding while the user talks', () => {
+  it('uses the embedding of a slightly earlier interim when the final adds a word or two', async () => {
+    const { r, embedder } = await setup();
+    r.onTranscript('remind me to call my mom tomorrow at noon', false);
+    await new Promise((res) => setTimeout(res, 0));
+    const before = embedder.calls;
+    const pick = await r.pick('Remind me to call my mom tomorrow at noon, please.');
+    expect(pick?.speculative).toBe('near');
+    expect(embedder.calls).toBe(before);
+  });
+
+  it('does not reuse an unrelated earlier embedding', async () => {
+    const { r } = await setup();
+    r.onTranscript('will it rain today', false);
+    await new Promise((res) => setTimeout(res, 0));
+    const pick = await r.pick('set a timer for ten minutes');
+    expect(pick?.speculative).toBe('none');
+  });
+
+  it('throttles: one call in flight, then only the newest pending text', async () => {
+    let release: (() => void) | null = null;
+    const texts: string[] = [];
+    const slow = {
+      model: 'slow',
+      embed: (t: string[]) => {
+        texts.push(t[0]);
+        return new Promise<Float32Array[]>((res) => {
+          release = () => res([new Float32Array(4)]);
+        });
+      },
+    };
+    const r = new TurnToolRetrieval({
+      sessionId: 's',
+      embedder: slow,
+      index: async () => {
+        throw new Error('unused');
+      },
+      domainOf: () => undefined,
+    });
+    r.onTranscript('remind', false);
+    r.onTranscript('remind me', false);
+    r.onTranscript('remind me to call', false);
+    expect(texts).toEqual(['remind']);
+    release!();
+    await new Promise((res) => setTimeout(res, 0));
+    expect(texts).toEqual(['remind', 'remind me to call']);
+  });
+});
+
 describe('helpers', () => {
   it("takes the user's whole turn: every user message since the agent spoke", () => {
     const ctx = new llm.ChatContext();
@@ -110,7 +159,7 @@ describe('helpers', () => {
     r.onTranscript('whats the weathers supposed to be like tomorrow', true);
     const before = embedder.calls;
     const pick = await r.pick("What's the weather's supposed to be like tomorrow?");
-    expect(pick?.speculative).toBe(true);
+    expect(pick?.speculative).toBe('exact');
     expect(embedder.calls).toBe(before);
   });
 
