@@ -89,6 +89,7 @@ import { renewExpiringSubscriptions as startOutlookSubscriptionRenewal } from '.
 
 // Existing API route handlers (from dist/)
 import { handleEngagementRoutes } from '../../api/engagement-routes.js';
+import { handlePracticeRoutes } from '../../api/practice-routes.js';
 import { handleDiagnosticsRoutes } from '../../api/handoff-diagnostics.js';
 import { handleDashboardMetricsRoutes } from '../../api/dashboard-metrics-routes.js';
 import { handleDORARoutes } from '../../api/dora-routes.js';
@@ -458,6 +459,9 @@ const server = http.createServer(async (req, res) => {
   // ============================================================================
 
   try {
+    // Sanctuary practice chat (was never mounted; the web app fell back to canned text)
+    if (await handlePracticeRoutes(req, res, pathname)) return;
+
     // Engagement routes
     const engagementHandled = await handleEngagementRoutes(req, res, pathname, parsedUrl);
     if (engagementHandled) return;

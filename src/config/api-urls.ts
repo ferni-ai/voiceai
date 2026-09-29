@@ -27,10 +27,10 @@ export const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 // ADMIN / OPS (health checks, dashboards)
 // ============================================================================
 
-/** Voice agent health endpoint (GCE or Cloud Run) */
+/** Voice agent health endpoint (GCE; the Cloud Run voice agent was deleted 2026-02-24) */
 export const VOICE_AGENT_HEALTH_URL =
   process.env.VOICE_AGENT_HEALTH_URL ||
-  'https://voiceai-agent-1031920444452.us-central1.run.app/health';
+  'http://34.134.186.63:8080/health';
 
 /** UI server health endpoint (Cloud Run) */
 export const UI_SERVER_HEALTH_URL =

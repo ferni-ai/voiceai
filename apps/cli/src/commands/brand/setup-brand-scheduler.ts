@@ -28,7 +28,7 @@ const execAsync = promisify(exec);
 const PROJECT_ID = process.env.GCP_PROJECT_ID || 'johnb-2025';
 const REGION = 'us-central1';
 const UI_SERVER_URL =
-  process.env.UI_SERVER_URL || 'https://john-bogle-ui-784391336098.us-central1.run.app';
+  process.env.UI_SERVER_URL || 'https://john-bogle-ui-1031920444452.us-central1.run.app';
 
 // Brand-specific jobs
 const BRAND_JOBS = [

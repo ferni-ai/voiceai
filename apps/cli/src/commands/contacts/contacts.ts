@@ -243,7 +243,7 @@ async function handleSearch(query: string, options: ContactsArgs['options']): Pr
   console.log(colors.dim(`Searching for "${query}"...`));
 
   const limit = options.limit || 10;
-  const endpoint = `/api/contacts/search?query=${encodeURIComponent(query)}&limit=${limit}`;
+  const endpoint = `/api/contacts/search?q=${encodeURIComponent(query)}&limit=${limit}`;
 
   const result = await apiRequest(endpoint);
 
@@ -276,7 +276,7 @@ async function handleShow(name: string, options: ContactsArgs['options']): Promi
   console.log(colors.dim(`Looking up "${name}"...`));
 
   // First search for the contact
-  const endpoint = `/api/contacts/search?query=${encodeURIComponent(name)}&limit=1`;
+  const endpoint = `/api/contacts/search?q=${encodeURIComponent(name)}&limit=1`;
   const result = await apiRequest(endpoint);
 
   if (!result.success) {

@@ -193,8 +193,11 @@ class ConnectedLifeUI {
       
       // Check calendar status separately
       try {
-        const calendarResponse = await apiGet<{ providers?: Array<{ connected: boolean }> }>('/api/calendar/providers');
-        if (calendarResponse.ok && calendarResponse.data?.providers?.some(p => p.connected)) {
+        const calendarResponse = await apiGet<{ providers?: Record<string, { connected: boolean }> }>(
+          '/api/calendar/providers/status'
+        );
+        const providers = calendarResponse.data?.providers;
+        if (calendarResponse.ok && providers && Object.values(providers).some((p) => p.connected)) {
           this.integrationStatuses.googleCalendar = 'connected';
         }
       } catch {

@@ -1571,11 +1571,11 @@ async function connectEcobee(_apiKey: string): Promise<void> {
 
     // Poll for completion
     const checkInterval = setInterval(async () => {
-      const statusRes = await apiGet<{ authorized: boolean }>('/api/ecobee/link/status', {
+      const statusRes = await apiGet<{ status: string }>('/api/ecobee/link/status', {
         userId,
       });
 
-      if (statusRes.ok && statusRes.data?.authorized) {
+      if (statusRes.ok && statusRes.data?.status === 'connected') {
         clearInterval(checkInterval);
         toast.success(t('toasts.ecobeeConnected'));
         callbacks.onConnected?.('ecobee');

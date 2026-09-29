@@ -32,7 +32,7 @@ const VALID_CATEGORIES: ContentCategory[] = [
 // ============================================================================
 
 const UI_SERVER_URL =
-  process.env.UI_SERVER_URL || 'https://john-bogle-ui-784391336098.us-central1.run.app';
+  process.env.UI_SERVER_URL || 'https://john-bogle-ui-1031920444452.us-central1.run.app';
 
 // ============================================================================
 // STATUS COMMAND

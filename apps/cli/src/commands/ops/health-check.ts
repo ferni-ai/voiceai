@@ -18,7 +18,7 @@ config();
 const SERVICES = [
   {
     name: 'Voice Agent',
-    url: 'https://voiceai-agent-1031920444452.us-central1.run.app/health',
+    url: 'http://34.134.186.63:8080/health', // GCE voice agent
     critical: true,
   },
   {

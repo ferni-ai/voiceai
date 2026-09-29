@@ -27,12 +27,12 @@ const REGION = 'us-central1';
 
 // Service URLs (update these after deployment)
 const UI_SERVER_URL =
-  process.env.UI_SERVER_URL || 'https://john-bogle-ui-784391336098.us-central1.run.app';
+  process.env.UI_SERVER_URL || 'https://john-bogle-ui-1031920444452.us-central1.run.app';
 const ASYNC_WORKER_URL =
-  process.env.ASYNC_WORKER_URL || 'https://async-worker-784391336098.us-central1.run.app';
+  process.env.ASYNC_WORKER_URL || 'https://async-worker-1031920444452.us-central1.run.app';
 const INTELLIGENCE_WORKER_URL =
   process.env.INTELLIGENCE_WORKER_URL ||
-  'https://intelligence-worker-784391336098.us-central1.run.app';
+  'https://intelligence-worker-1031920444452.us-central1.run.app';
 
 // Service account for authenticated requests
 const SERVICE_ACCOUNT = `scheduler-invoker@${PROJECT_ID}.iam.gserviceaccount.com`;

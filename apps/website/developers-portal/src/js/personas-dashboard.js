@@ -8,7 +8,7 @@
 // API Base URL
 const PERSONA_API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:3002'
-  : 'https://john-bogle-ui-768716511401.us-central1.run.app';
+  : ''; // same origin: developers.ferni.ai rewrites /api/v1/** to the API
 
 // Wait for auth to be ready
 document.addEventListener('DOMContentLoaded', () => {

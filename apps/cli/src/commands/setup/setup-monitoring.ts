@@ -27,7 +27,8 @@ const PROJECT_ROOT = join(__dirname, '..', '..', '..', '..', '..');
 const CONFIG = {
   projectId: process.env.GCP_PROJECT || 'johnb-2025',
   region: 'us-central1',
-  agentUrl: 'voiceai-agent-1031920444452.us-central1.run.app',
+  // Voice agent runs on GCE (plain HTTP on 8080); the Cloud Run agent was deleted
+  agentUrl: '34.134.186.63',
   uiUrl: 'john-bogle-ui-1031920444452.us-central1.run.app',
   notificationEmail: process.env.ALERT_EMAIL || 'seth.ford@gmail.com',
   slackWebhook: process.env.SLACK_WEBHOOK_URL || '',
@@ -137,9 +138,9 @@ Budget: $${CONFIG.budgetAmount}/month
     },
     httpCheck: {
       path: '/health',
-      port: 443,
-      useSsl: true,
-      validateSsl: true,
+      port: 8080,
+      useSsl: false,
+      validateSsl: false,
       requestMethod: 'GET',
       acceptedResponseStatusCodes: [{ statusClass: 'STATUS_CLASS_2XX' }],
     },

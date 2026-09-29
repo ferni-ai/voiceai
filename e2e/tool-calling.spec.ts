@@ -16,7 +16,7 @@ import { expect, test } from '@playwright/test';
 
 const BASE_URL = process.env.TEST_BASE_URL || 'https://app.ferni.ai';
 const AGENT_URL =
-  process.env.AGENT_URL || 'https://voiceai-agent-1031920444452.us-central1.run.app';
+  process.env.AGENT_URL || 'http://34.134.186.63:8080';
 
 test.describe('Tool Calling - API Validation', () => {
   test('Voice agent is healthy and deployed', async ({ request }) => {

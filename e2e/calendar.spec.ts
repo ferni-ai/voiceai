@@ -336,7 +336,7 @@ test.describe('Calendar Settings UI', () => {
 
 test.describe('Calendar Voice Agent Integration', () => {
   const AGENT_URL =
-    process.env.AGENT_URL || 'https://voiceai-agent-1031920444452.us-central1.run.app';
+    process.env.AGENT_URL || 'http://34.134.186.63:8080';
 
   test('Voice agent health check - ready for calendar tools', async ({ request }) => {
     const response = await request.get(`${AGENT_URL}/health`);
