@@ -16,7 +16,7 @@ const MUST_KEEP = [
   'recallFromMemory',
   'rememberAboutUser',
   'recallPreviousConversation',
-  'handoffToMaya',
+  'handoffToFerni',
   'playMusic',
 ];
 
@@ -27,13 +27,17 @@ describe('initial tool cap', () => {
   });
 
   it('keeps safety, memory, handoff and music tools when capping the real essential set', async () => {
-    const all = await loadEssentialDomains('test-user', undefined);
+    // Teammate handoffs are added by the caller for the user's unlocked team.
+    const all = {
+      ...(await loadEssentialDomains('test-user', undefined)),
+      handoffToMaya: {},
+    };
     expect(Object.keys(all).length).toBeGreaterThan(DEFAULT_INITIAL_TOOL_LIMIT);
 
     const capped = capToolsToLimit(all, resolveInitialToolLimit(0));
     const names = Object.keys(capped);
 
-    for (const tool of MUST_KEEP) expect(names).toContain(tool);
+    for (const tool of [...MUST_KEEP, 'handoffToMaya']) expect(names).toContain(tool);
     expect(names.length).toBeLessThanOrEqual(DEFAULT_INITIAL_TOOL_LIMIT + 16);
     expect(names.length).toBeLessThan(Object.keys(all).length);
   }, 60_000);

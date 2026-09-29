@@ -519,6 +519,15 @@ export async function buildHandoffTools(
         });
 
         if (!result.success) {
+          if (result.locked) {
+            // Without a clear "stop", the model apologised and tried the same
+            // handoff again on the next turn (voice eval, 2026-09-28).
+            return {
+              unavailable: true,
+              message: result.error,
+              instruction: `${def.agentName} isn't available to this user. Don't retry this handoff or promise a transfer; keep helping them yourself.`,
+            };
+          }
           return { error: result.error, rateLimited: result.rateLimited };
         }
 

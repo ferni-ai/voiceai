@@ -80,6 +80,13 @@ describe('Handoff Domain Tools', () => {
       expect(Array.isArray(toolDefinitions)).toBe(true);
       expect(toolDefinitions.length).toBeGreaterThan(0);
     });
+    it('shares only the hand-back to Ferni, never a teammate handoff', () => {
+      // These definitions are built without a user profile and reach every
+      // session through the dynamic loader and the tool gateway; teammate
+      // handoffs must come from the per-session, unlock-filtered build.
+      const ids = toolDefinitions.map((t) => t.id);
+      expect(ids).toEqual(['handoffToFerni']);
+    });
     it('should have correct domain', () => {
       for (const tool of toolDefinitions) {
         expect(tool.domain).toBe('handoff');

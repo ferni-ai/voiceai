@@ -21,6 +21,7 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 // NOTE: Path is relative from tools/domains/handoff/ to tools/handoff/
 // FIX: Use buildHandoffTools which returns proper llm.tool() wrapped tools
 import { buildHandoffTools, createHandoffTools } from '../../handoff/index.js';
+import { isCoach } from '../../../personas/persona-ids.js';
 
 // ============================================================================
 // HANDOFF TOOLS
@@ -44,6 +45,15 @@ async function getHandoffToolDefinitionsAsync(): Promise<ToolDefinition[]> {
   const definitions: ToolDefinition[] = [];
 
   for (const toolDef of handoffToolSet.tools) {
+    // Teammate handoffs depend on who this user has unlocked, which only the
+    // per-session build (tools/builder.ts buildHandoffToolsForAgent) knows.
+    // These definitions are built once per process with no profile, so
+    // offering them here put locked teammates back in front of the model
+    // through the dynamic loader: it promised a handoff to Alex, was
+    // refused, and tried again (voice eval, 2026-09-28). Only the hand-back
+    // to the coordinator, who is always available, is shared.
+    if (!isCoach(toolDef.agentId)) continue;
+
     // Get the corresponding wrapped tool
     const wrappedTool = wrappedTools[toolDef.name];
 

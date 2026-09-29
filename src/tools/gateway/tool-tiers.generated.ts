@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT
  *
  * Generated from: tool-tiers.json
- * Generated at: 2026-03-01T17:46:10.530Z
+ * Generated at: 2026-09-29T08:03:01.920Z
  * Generator: scripts/generate-tool-tiers.js
  *
  * This file is imported directly - NO JSON parsing at runtime!
@@ -38,11 +38,6 @@ export const TIER_0_CRITICAL_TOOLS: readonly string[] = [
   'musicProvider',
   'rememberAboutUser',
   'recallFromMemory',
-  'handoffToMaya',
-  'handoffToPeter',
-  'handoffToJordan',
-  'handoffToAlex',
-  'handoffToNayan',
   'handoffToFerni',
 ] as const;
 

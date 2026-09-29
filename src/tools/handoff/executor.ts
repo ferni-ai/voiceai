@@ -334,6 +334,8 @@ export interface HandoffResult {
   instructions?: string;
   voiceId?: string;
   rateLimited?: boolean;
+  /** The target isn't unlocked for this user; retrying won't help. */
+  locked?: boolean;
   /** FIX: Indicates greeting was actually spoken by handler */
   greetingSpoken?: boolean;
   /** FIX: Indicates LLM instructions were updated by handler */
@@ -441,6 +443,7 @@ export async function executeHandoff(
           targetAgentName: targetName,
           previousAgent,
           greeting: '',
+          locked: true,
         };
       }
     } else {
@@ -460,6 +463,7 @@ export async function executeHandoff(
           targetAgentName: targetName,
           previousAgent,
           greeting: '',
+          locked: true,
         };
       }
     }
