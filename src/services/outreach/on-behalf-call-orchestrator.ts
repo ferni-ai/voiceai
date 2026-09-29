@@ -199,8 +199,10 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     const effectivePurpose = enrichedMessage?.message || request.purpose;
     const { script: scriptTemplate, type: scriptType } = selectScript(contact, effectivePurpose);
 
+    // The persona placing the call introduces itself by name (maya-santos -> Maya)
+    const personaName = (request.personaId || 'ferni').split('-')[0];
     const script = buildCallScript(scriptTemplate, {
-      agentName: 'Ferni',
+      agentName: personaName.charAt(0).toUpperCase() + personaName.slice(1),
       userName: request.userName,
       contactName: contact.name,
       purpose: effectivePurpose,
@@ -285,6 +287,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     // Store rich metadata for the agent
     const metadata = JSON.stringify({
       type: 'on_behalf_call',
+      persona_id: request.personaId || 'ferni',
       callId,
       originalSessionId: request.originalSessionId,
       userId: request.userId,
@@ -353,6 +356,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       await agentDispatch.createDispatch(roomName, agentName, {
         metadata: JSON.stringify({
           type: 'on_behalf_call',
+          persona_id: request.personaId || 'ferni',
           callId,
           originalSessionId: request.originalSessionId,
           userId: request.userId,
@@ -372,26 +376,10 @@ class OnBehalfCallOrchestrator extends EventEmitter {
 
       log.info({ roomName, callId, agentName }, '✅ On-behalf agent dispatched successfully');
     } catch (error) {
-      // Fall back to event emission for backwards compatibility
-      log.warn(
-        { error: String(error), callId },
-        '⚠️ AgentDispatchClient failed, falling back to event emission'
-      );
-
-      // Emit event for any external listeners (backwards compat)
-      this.emit('agent-join-requested', {
-        roomName,
-        callId,
-        agentType: 'on-behalf-caller',
-        userId: request.userId,
-        metadata: {
-          callId,
-          purpose: request.purpose,
-          callType: request.callType,
-          contactName: request.resolvedContact?.name,
-          script,
-        },
-      });
+      // Without an agent in the room the phone would ring into dead air, so
+      // the call must not be placed.
+      log.error({ error: String(error), callId }, 'Agent dispatch failed; not placing the call');
+      throw new Error(`Could not dispatch the voice agent: ${String(error)}`);
     }
   }
 
@@ -813,6 +801,12 @@ class OnBehalfCallOrchestrator extends EventEmitter {
    */
   getActiveCall(callId: string): OnBehalfCall | undefined {
     return activeCallsStore.get(callId);
+  }
+
+  /** Calls still ringing or in progress */
+  listActiveCalls(): OnBehalfCall[] {
+    const done = new Set<OnBehalfCallStatus>(['completed', 'voicemail', 'no_answer', 'busy', 'failed']);
+    return [...activeCallsStore.values()].filter((call) => !done.has(call.status));
   }
 
   /**

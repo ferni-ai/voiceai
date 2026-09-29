@@ -11,7 +11,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { validateTwilioSignature } from '../services/outreach/webhooks/twilio-webhooks.js';
+import { twilioSignedUrls,
+  validateTwilioSignature } from '../services/outreach/webhooks/twilio-webhooks.js';
 
 const log = createLogger({ module: 'FamilyCheckinWebhooks' });
 
@@ -410,10 +411,7 @@ function validateTwilioRequest(
     return false;
   }
 
-  const forwardedProto = req.headers['x-forwarded-proto'];
-  const protocol = typeof forwardedProto === 'string' ? forwardedProto : 'https';
-  const host = req.headers.host ?? '';
-  const fullUrl = `${protocol}://${host}${req.url}`;
+  const fullUrl = twilioSignedUrls(req.headers, req.url);
 
   const isValid = validateTwilioSignature(signature, fullUrl, body);
   if (!isValid) {

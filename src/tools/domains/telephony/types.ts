@@ -94,6 +94,9 @@ export interface OnBehalfCallRequest {
   // Compliance
   recordingConsent: boolean;
   requiresHIPAA?: boolean;
+
+  /** Which persona places the call (defaults to Ferni) */
+  personaId?: string;
 }
 
 export interface CallOutcome {

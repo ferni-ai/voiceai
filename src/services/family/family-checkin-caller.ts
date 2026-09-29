@@ -325,8 +325,10 @@ async function initiateViaLiveKitSip(
 
     await agentDispatch.createDispatch(roomName, agentName, {
       metadata: JSON.stringify({
-        type: 'family_checkin',
+        type: 'family_checkin', // normalised to on_behalf_call by the agent
         callId,
+        sponsorUserId: schedule.sponsorUserId,
+        persona_id: 'ferni',
         familyMemberName: schedule.familyMemberName,
         relationship: schedule.relationship,
         systemPrompt,

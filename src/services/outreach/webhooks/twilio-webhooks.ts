@@ -8,7 +8,8 @@
  * - Voicemail detection
  */
 
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
+import type { IncomingHttpHeaders } from 'http';
 import { getDefaultStore } from '../../../memory/in-memory-store.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { getLogger } from '../../../utils/safe-logger.js';
@@ -205,31 +206,46 @@ export function onInboundMessage(handler: InboundMessageHandler): void {
 // ============================================================================
 
 /**
- * Validate Twilio webhook signature
- * Uses HMAC-SHA1 as per Twilio's specification
+ * URLs Twilio may have signed for this request. Behind Firebase Hosting the
+ * Host header is the Cloud Run host, while Twilio signed the public URL
+ * (x-forwarded-host / PUBLIC_URL), so each candidate is tried.
+ */
+export function twilioSignedUrls(headers: IncomingHttpHeaders, path: string | undefined): string[] {
+  const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.split(',')[0]?.trim();
+  const proto = first(headers['x-forwarded-proto']) || 'https';
+  const hosts = [first(headers['x-forwarded-host']), first(headers.host)].filter(Boolean) as string[];
+  const urls = hosts.map((host) => `${proto}://${host}${path ?? ''}`);
+  if (process.env.PUBLIC_URL) urls.push(`${process.env.PUBLIC_URL.replace(/\/$/, '')}${path ?? ''}`);
+  return [...new Set(urls)];
+}
+
+/**
+ * Validate Twilio webhook signature (HMAC-SHA1 of URL + sorted params).
+ * Reads TWILIO_AUTH_TOKEN from the environment unless initialised explicitly,
+ * so webhooks work without the (disabled) outreach bootstrap.
  */
 export function validateTwilioSignature(
   signature: string,
-  url: string,
+  url: string | string[],
   params: Record<string, string>
 ): boolean {
-  if (!twilioAuthToken) {
-    log.warn('Cannot validate signature - auth token not set');
+  const token = twilioAuthToken ?? process.env.TWILIO_AUTH_TOKEN;
+  if (!token) {
+    log.warn('Cannot validate signature - TWILIO_AUTH_TOKEN not set');
     return false;
   }
 
   try {
-    // Build the data string: URL + sorted params concatenated
     const sortedKeys = Object.keys(params).sort();
-    let data = url;
-    for (const key of sortedKeys) {
-      data += key + params[key];
-    }
-
-    // Create HMAC-SHA1 signature
-    const expectedSignature = createHmac('sha1', twilioAuthToken).update(data).digest('base64');
-
-    return signature === expectedSignature;
+    const given = Buffer.from(signature);
+    return (Array.isArray(url) ? url : [url]).some((candidate) => {
+      let data = candidate;
+      for (const key of sortedKeys) {
+        data += key + params[key];
+      }
+      const expected = Buffer.from(createHmac('sha1', token).update(data).digest('base64'));
+      return expected.length === given.length && timingSafeEqual(expected, given);
+    });
   } catch (error) {
     log.error({ error }, 'Signature validation error');
     return false;
@@ -248,7 +264,7 @@ export function validateTwilioSignature(
 export async function handleSMSStatusWebhook(
   payload: TwilioSMSStatusPayload,
   signature?: string,
-  url?: string
+  url?: string | string[]
 ): Promise<{ success: boolean; twiml?: string }> {
   // ALWAYS validate Twilio signature (skip only in test environment with explicit flag)
   const skipValidation =
@@ -307,7 +323,7 @@ export async function handleSMSStatusWebhook(
 export async function handleInboundSMSWebhook(
   payload: TwilioInboundSMSPayload,
   signature?: string,
-  url?: string
+  url?: string | string[]
 ): Promise<{ success: boolean; twiml?: string }> {
   // ALWAYS validate Twilio signature (skip only in test environment with explicit flag)
   const skipValidation =
@@ -550,7 +566,7 @@ function calculateEngagement(text: string): 'high' | 'medium' | 'low' {
 export async function handleCallStatusWebhook(
   payload: TwilioCallStatusPayload,
   signature?: string,
-  url?: string
+  url?: string | string[]
 ): Promise<{ success: boolean; twiml?: string }> {
   // ALWAYS validate Twilio signature (skip only in test environment with explicit flag)
   const skipValidation =

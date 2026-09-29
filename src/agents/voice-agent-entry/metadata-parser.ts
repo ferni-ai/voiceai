@@ -7,6 +7,7 @@
  * @module agents/voice-agent-entry/metadata-parser
  */
 
+import { normalizeOutboundCallMetadata } from '../outbound-call-metadata.js';
 import type { JobContext } from '@livekit/agents';
 import type { ParsedMetadata } from './types.js';
 
@@ -45,6 +46,7 @@ export function parseJobMetadata(ctx: JobContext): ParsedMetadata {
     }
   }
 
+  metadata = normalizeOutboundCallMetadata(metadata);
   const callType = metadata.type as string | undefined;
   const personaId = (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
   const publisherId = (metadata.publisher_id as string) || undefined;

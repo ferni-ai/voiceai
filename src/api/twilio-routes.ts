@@ -12,7 +12,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { validateTwilioSignature } from '../services/outreach/webhooks/twilio-webhooks.js';
+import { twilioSignedUrls,
+  validateTwilioSignature } from '../services/outreach/webhooks/twilio-webhooks.js';
 import {
   getTwilioStreamBridge,
   generateStreamTwiml,
@@ -559,9 +560,7 @@ function validateTwilioRequest(
   }
 
   // Reconstruct the full URL that Twilio signed
-  const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const host = req.headers.host || '';
-  const fullUrl = `${protocol}://${host}${req.url}`;
+  const fullUrl = twilioSignedUrls(req.headers, req.url);
 
   const isValid = validateTwilioSignature(signature, fullUrl, body);
   if (!isValid) {

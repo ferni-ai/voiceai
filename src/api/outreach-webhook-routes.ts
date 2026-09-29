@@ -8,6 +8,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { twilioSignedUrls } from '../services/outreach/webhooks/twilio-webhooks.js';
 import {
   handleSMSStatusWebhook,
   handleInboundSMSWebhook,
@@ -128,7 +129,7 @@ export async function handleOutreachWebhookRoutes(
     if (webhookPath === '/twilio/sms-status' && method === 'POST') {
       const { body } = await parseBody(req);
       const signature = req.headers['x-twilio-signature'] as string;
-      const fullUrl = `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}${req.url}`;
+      const fullUrl = twilioSignedUrls(req.headers, req.url);
 
       const result = await handleSMSStatusWebhook(
         body as unknown as Parameters<typeof handleSMSStatusWebhook>[0],
@@ -148,7 +149,7 @@ export async function handleOutreachWebhookRoutes(
     if (webhookPath === '/twilio/sms-inbound' && method === 'POST') {
       const { body } = await parseBody(req);
       const signature = req.headers['x-twilio-signature'] as string;
-      const fullUrl = `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}${req.url}`;
+      const fullUrl = twilioSignedUrls(req.headers, req.url);
 
       const result = await handleInboundSMSWebhook(
         body as unknown as Parameters<typeof handleInboundSMSWebhook>[0],
@@ -169,7 +170,7 @@ export async function handleOutreachWebhookRoutes(
     if (webhookPath === '/twilio/call-status' && method === 'POST') {
       const { body } = await parseBody(req);
       const signature = req.headers['x-twilio-signature'] as string;
-      const fullUrl = `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}${req.url}`;
+      const fullUrl = twilioSignedUrls(req.headers, req.url);
 
       const result = await handleCallStatusWebhook(
         body as unknown as Parameters<typeof handleCallStatusWebhook>[0],

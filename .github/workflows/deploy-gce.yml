@@ -156,6 +156,9 @@ jobs:
           TWILIO_AUTH_TOKEN=$(gcloud secrets versions access latest --secret="twilio-auth-token")
           TWILIO_PHONE_NUMBER=$(gcloud secrets versions access latest --secret="twilio-phone-number")
           SENDGRID_API_KEY=$(gcloud secrets versions access latest --secret="sendgrid-api-key")
+          # SIP trunk makes outbound calls two-way conversations (optional; empty = TTS-only)
+          SIP_TRUNK_ID=$(gcloud secrets versions access latest --secret="sip-trunk-id" 2>/dev/null || echo "")
+          SIP_DOMAIN=$(gcloud secrets versions access latest --secret="sip-domain" 2>/dev/null || echo "")
 
           # Mask secrets in logs
           echo "::add-mask::$LIVEKIT_API_KEY"
@@ -168,6 +171,8 @@ jobs:
           echo "::add-mask::$TWILIO_AUTH_TOKEN"
           echo "::add-mask::$TWILIO_PHONE_NUMBER"
           echo "::add-mask::$SENDGRID_API_KEY"
+          [ -n "$SIP_TRUNK_ID" ] && echo "::add-mask::$SIP_TRUNK_ID"
+          [ -n "$SIP_TRUNK_ID" ] || echo "::warning::sip-trunk-id secret missing: outbound calls will be one-way messages"
 
           # Save to outputs (still masked)
           echo "livekit_api_key=$LIVEKIT_API_KEY" >> $GITHUB_OUTPUT
@@ -180,6 +185,8 @@ jobs:
           echo "twilio_auth_token=$TWILIO_AUTH_TOKEN" >> $GITHUB_OUTPUT
           echo "twilio_phone_number=$TWILIO_PHONE_NUMBER" >> $GITHUB_OUTPUT
           echo "sendgrid_api_key=$SENDGRID_API_KEY" >> $GITHUB_OUTPUT
+          echo "sip_trunk_id=$SIP_TRUNK_ID" >> $GITHUB_OUTPUT
+          echo "sip_domain=$SIP_DOMAIN" >> $GITHUB_OUTPUT
 
       - name: Detect current slot
         id: slot
@@ -243,6 +250,8 @@ jobs:
               -e TWILIO_AUTH_TOKEN='${{ steps.secrets.outputs.twilio_auth_token }}' \
               -e TWILIO_PHONE_NUMBER='${{ steps.secrets.outputs.twilio_phone_number }}' \
               -e SENDGRID_API_KEY='${{ steps.secrets.outputs.sendgrid_api_key }}' \
+              -e SIP_TRUNK_ID='${{ steps.secrets.outputs.sip_trunk_id }}' \
+              -e SIP_DOMAIN='${{ steps.secrets.outputs.sip_domain }}' \
               -e GCS_VOICE_BUCKET='${{ env.GCP_PROJECT_ID }}-voice-audio' \
               ${IMAGE}"
 

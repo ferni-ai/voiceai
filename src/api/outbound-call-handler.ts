@@ -1,125 +1,165 @@
 /**
  * Outbound Call Handler
  *
- * HTTP handler for outbound call routes that works with the raw http server.
- * Provides endpoints to initiate and manage conversational outbound calls.
+ * "Ferni, call my mom": places a two-way call to one of the signed-in user's
+ * own contacts (voice agent + LiveKit SIP via services/outreach/place-call).
+ *
+ * - POST /api/outbound-call/initiate  { contactId | contactName, purpose, personaId? }
+ *     Verified user. The phone number comes from the user's contacts, never
+ *     from the request (toll-fraud protection); admins may pass `phone`.
+ *     Limited to 5 calls/hour per user.
+ * - GET  /api/outbound-call/:callId   status of a call the caller placed
+ * - GET  /api/outbound-call/active    all active calls (admin)
+ * - GET  /api/outbound-call/health    configuration status
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../utils/safe-logger.js';
-import { requireAdmin } from './auth-middleware.js';
+import { checkRateLimitAsync, requireAdmin, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseRequestBody, sendJsonResponse } from './helpers.js';
-import {
-  getConversationalCallService,
-  makeConversationalCall,
-  isConversationalCallsConfigured,
-  type OutboundCallContext,
-  type CallResult,
-} from '../services/outreach/conversational-calls.js';
+import { getOnBehalfCallOrchestrator } from '../services/outreach/on-behalf-call-orchestrator.js';
+import { isTwoWayCallingConfigured, placeCallToContact } from '../services/outreach/place-call.js';
+import { getContact, searchContacts } from '../services/contacts/contact-relationship-service.js';
 
 const log = getLogger().child({ module: 'outbound-call-handler' });
 
-/**
- * Handle outbound call API routes
- * @returns true if route was handled
- */
+const CALLS_PER_HOUR = 5;
+
+interface InitiateBody {
+  contactId?: string;
+  contactName?: string;
+  /** Admin only: dial a number that isn't in the caller's contacts */
+  phone?: string;
+  name?: string;
+  purpose?: string;
+  message?: string;
+  personaId?: string;
+}
+
 export async function handleOutboundCallRoutes(
   req: IncomingMessage,
   res: ServerResponse,
   pathname: string
 ): Promise<boolean> {
-  // Only handle our routes
-  if (!pathname.startsWith('/api/outbound-call')) {
-    return false;
-  }
-
-  // Handle CORS preflight
-  if (handleCorsPreflightIfNeeded(req, res)) {
-    return true;
-  }
+  if (!pathname.startsWith('/api/outbound-call')) return false;
+  if (handleCorsPreflightIfNeeded(req, res)) return true;
 
   const method = req.method || 'GET';
 
   try {
-    // GET /api/outbound-call/health
     if (pathname === '/api/outbound-call/health' && method === 'GET') {
-      const configured = isConversationalCallsConfigured();
+      const orchestrator = getOnBehalfCallOrchestrator();
       sendJsonResponse(res, 200, {
-        status: configured ? 'ready' : 'not_configured',
-        conversationalCallsEnabled: configured,
+        status: orchestrator.isConfigured() ? 'ready' : 'not_configured',
+        twoWayConversation: isTwoWayCallingConfigured(),
         timestamp: new Date().toISOString(),
       });
       return true;
     }
 
-    // Everything except /health places real calls or exposes callers: admin only
-    if (pathname !== '/api/outbound-call/health') {
-      const auth = await requireAdmin(req, res);
-      if (!auth) return true; // 401/403 already sent
-    }
-
-    // POST /api/outbound-call/initiate - Initiate a conversational call
     if (pathname === '/api/outbound-call/initiate' && method === 'POST') {
-      const body = (await parseRequestBody(req)) as OutboundCallContext;
+      const auth = await requireAuth(req, res);
+      if (!auth) return true;
 
-      // Basic validation
-      if (!body.user?.phone || !body.user?.name) {
-        sendJsonResponse(res, 400, {
-          error: 'Missing required fields: user.phone and user.name',
+      const body = ((await parseRequestBody(req)) ?? {}) as InitiateBody;
+      const purpose = (body.purpose || body.message || '').trim();
+      if (!purpose) {
+        sendJsonResponse(res, 400, { error: 'What should Ferni say or ask? (purpose)' });
+        return true;
+      }
+
+      // Resolve who to call from the caller's own contacts
+      let contact: { id?: string; name: string; phone: string; relationship?: string } | null = null;
+      if (body.contactId) {
+        const found = await getContact(auth.userId, body.contactId);
+        if (found?.phone) contact = { id: found.id, name: found.name, phone: found.phone, relationship: found.relationship };
+      } else if (body.contactName) {
+        const [found] = await searchContacts(auth.userId, body.contactName);
+        if (found?.phone) contact = { id: found.id, name: found.name, phone: found.phone, relationship: found.relationship };
+      } else if (body.phone && auth.isAdmin) {
+        contact = { name: body.name || 'Contact', phone: body.phone };
+      }
+
+      if (!contact) {
+        sendJsonResponse(res, 404, {
+          error: body.phone
+            ? 'Only contacts you have saved can be called'
+            : "I couldn't find that contact with a phone number",
         });
         return true;
       }
 
-      if (!isConversationalCallsConfigured()) {
-        sendJsonResponse(res, 503, {
-          error: 'Conversational calls not configured',
-          hint: 'Check TWILIO_* and LIVEKIT_* environment variables',
-        });
+      const limit = await checkRateLimitAsync(`outbound-call:${auth.userId}`, CALLS_PER_HOUR, 60 * 60 * 1000);
+      if (!limit.allowed) {
+        sendJsonResponse(res, 429, { error: 'Too many calls this hour. Try again later?' });
         return true;
       }
 
-      try {
-        const call = await makeConversationalCall(body);
+      const result = await placeCallToContact({
+        userId: auth.userId,
+        userName: auth.email?.split('@')[0],
+        contact,
+        purpose,
+        personaId: body.personaId,
+      });
 
-        sendJsonResponse(res, 200, {
-          success: true,
-          callId: call.id,
-          status: call.status,
-          twilioCallSid: call.twilioCallSid,
-          livekitRoom: call.livekitRoomName,
-        });
-      } catch (error) {
-        log.error({ error }, 'Failed to initiate call');
-        sendJsonResponse(res, 500, { error: 'Failed to initiate call' });
+      if (!result.success) {
+        sendJsonResponse(res, 502, { success: false, error: "Couldn't place the call. Try again?" });
+        return true;
       }
+
+      log.info({ userId: auth.userId, callId: result.callId, mode: result.mode }, 'Outbound call placed');
+      sendJsonResponse(res, 200, {
+        success: true,
+        callId: result.callId,
+        mode: result.mode,
+        contact: { id: contact.id, name: contact.name },
+      });
       return true;
     }
 
-    // GET /api/outbound-call/active - Get all active calls
     if (pathname === '/api/outbound-call/active' && method === 'GET') {
-      const service = getConversationalCallService();
-      const calls: CallResult[] = service.getActiveCalls ? await service.getActiveCalls() : [];
-
+      const admin = await requireAdmin(req, res);
+      if (!admin) return true;
+      const calls = getOnBehalfCallOrchestrator().listActiveCalls();
       sendJsonResponse(res, 200, {
         count: calls.length,
         calls: calls.map((call) => ({
           id: call.id,
           status: call.status,
-          userId: call.context?.user?.id,
-          userName: call.context?.user?.name,
-          persona: call.context?.persona,
-          purpose: call.context?.trigger?.reason,
-          startedAt: call.initiatedAt,
+          userId: call.request.userId,
+          contact: call.request.resolvedContact?.name,
+          createdAt: call.createdAt,
         })),
       });
       return true;
     }
 
-    // Not found within our prefix
+    const statusMatch = pathname.match(/^\/api\/outbound-call\/([\w-]+)$/);
+    if (statusMatch && method === 'GET') {
+      const auth = await requireAuth(req, res);
+      if (!auth) return true;
+      const call = getOnBehalfCallOrchestrator().getActiveCall(statusMatch[1]);
+      if (!call || (call.request.userId !== auth.userId && !auth.isAdmin)) {
+        sendJsonResponse(res, 404, { error: 'Call not found' });
+        return true;
+      }
+      sendJsonResponse(res, 200, {
+        callId: call.id,
+        status: call.status,
+        contact: call.request.resolvedContact?.name,
+        createdAt: call.createdAt,
+        answeredAt: call.answeredAt,
+        completedAt: call.completedAt,
+        outcome: call.outcome,
+      });
+      return true;
+    }
+
     sendJsonResponse(res, 404, { error: 'Not found' });
     return true;
   } catch (error) {
-    log.error({ error, pathname }, 'Error handling outbound call route');
+    log.error({ error: String(error), pathname }, 'Error handling outbound call route');
     sendJsonResponse(res, 500, { error: 'Internal server error' });
     return true;
   }

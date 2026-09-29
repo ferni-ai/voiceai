@@ -583,87 +583,47 @@ async function execute(
     }
 
     try {
-      // Check if conversational calls are configured
-      const { isConversationalCallsConfigured, makeConversationalCall } =
-        await import('../../../services/outreach/conversational-calls.js');
-
-      if (!isConversationalCallsConfigured()) {
-        // Fallback: SIP not configured, offer alternative
-        log.warn('Conversational calls not configured - SIP trunk needed');
-        return `I'd love to call ${contactName || 'them'} and have a real conversation, but my voice calling system needs a bit more setup. Would you like me to:
-• Leave a voice message instead?
-• Send a text on your behalf?
-• Schedule a reminder for you to call them yourself?`;
-      }
-
-      // Resolve phone number from contact if needed
+      // Resolve the contact (and their number) from the user's own contacts
+      let resolvedName = contactName || 'them';
       let resolvedPhone = phoneNumber;
+      let relationship: string | undefined;
       if (!resolvedPhone && contactName) {
-        // Try to look up contact
-        const { getContact } =
+        const { searchContacts } =
           await import('../../../services/contacts/contact-relationship-service.js');
-        const contact = await getContact(userId, contactName);
-        if (contact?.phone) {
-          resolvedPhone = contact.phone;
+        const [found] = await searchContacts(userId, contactName);
+        if (found?.phone) {
+          resolvedPhone = found.phone;
+          resolvedName = found.name || contactName;
+          relationship = found.relationship;
         }
       }
 
       if (!resolvedPhone) {
         return `I don't have a phone number for ${contactName}. Can you give me their number?`;
       }
-
-      // Validate phone number
-      const cleanNumber = resolvedPhone.replace(/\D/g, '');
-      if (cleanNumber.length < 10) {
+      if (resolvedPhone.replace(/\D/g, '').length < 10) {
         return `That phone number doesn't look right. Can you double-check it?`;
       }
-      const e164Number = cleanNumber.startsWith('1') ? `+${cleanNumber}` : `+1${cleanNumber}`;
 
-      // Determine tone/approach
-      const approachTone =
-        tone === 'supportive'
-          ? 'supportive'
-          : tone === 'celebratory'
-            ? 'celebratory'
-            : tone === 'accountability'
-              ? 'accountability'
-              : 'casual';
-
-      // Initiate the conversational call
-      const call = await makeConversationalCall({
-        trigger: {
-          id: `check_in_${Date.now()}`,
-          type: 'check_in', // User-initiated calls are check-ins
-          reason: purpose,
-          urgency: 'medium',
-        },
-        user: {
-          id: `contact_${contactName?.replace(/\s+/g, '_') || 'unknown'}`,
-          name: contactName || 'your contact',
-          phone: e164Number,
-          relationshipStage: 'new',
-        },
-        context: {
-          lastConversationSummary: purpose,
-        },
-        approach: {
-          tone: approachTone,
-          primaryGoal: purpose,
-        },
-        persona: personaId as
-          | 'ferni'
-          | 'maya-santos'
-          | 'peter-john'
-          | 'alex-chen'
-          | 'jordan-taylor'
-          | 'nayan',
+      // Two-way call: voice agent (this persona) + LiveKit SIP dial-out
+      const { placeCallToContact } = await import('../../../services/outreach/place-call.js');
+      const result = await placeCallToContact({
+        userId,
+        contact: { name: resolvedName, phone: resolvedPhone, relationship },
+        purpose: tone === 'casual' ? purpose : `${purpose} (tone: ${tone})`,
+        personaId,
       });
 
-      log.info({ callId: call.id, status: call.status }, '🗣️ Conversational call initiated');
+      if (!result.success) {
+        log.warn({ error: result.error }, '🗣️ Conversational call could not be placed');
+        return `I couldn't get that call through right now. Want me to send ${resolvedName} a text instead?`;
+      }
 
-      // Return immediate response - the call is happening async
-      // The conversation summary will be stored and injected later
-      return `Okay! I'm calling ${contactName || 'them'} right now. I'll introduce myself and ${purpose}. Give me a few minutes - I'll let you know how the conversation went when I'm done!`;
+      log.info({ callId: result.callId, mode: result.mode }, '🗣️ Conversational call initiated');
+      if (result.mode === 'message_only') {
+        return `I'm calling ${resolvedName} now. My two-way calling isn't set up yet, so I'll leave them a warm message about ${purpose} rather than chat.`;
+      }
+      return `Okay! I'm calling ${resolvedName} right now to ${purpose}. I'll let you know how it went.`;
     } catch (err) {
       log.error({ error: String(err) }, '🗣️ Failed to initiate conversational call');
       return `I ran into a problem setting up that call. Would you like me to send a text to ${contactName || 'them'} instead?`;

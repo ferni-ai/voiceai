@@ -20,7 +20,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
-import { validateTwilioSignature } from '../../services/outreach/webhooks/twilio-webhooks.js';
+import { twilioSignedUrls,
+  validateTwilioSignature } from '../../services/outreach/webhooks/twilio-webhooks.js';
 import { lookupByPhone, recordCall } from '../../services/identity/sponsored-identity.js';
 import { identifyByPhone } from '../../services/identity/user-identification.js';
 import { sendJson, parseBody } from './helpers.js';
@@ -104,15 +105,14 @@ interface TwilioIncomingCallPayload {
 async function handleInboundCallWebhook(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const body = (await parseBody(req)) as unknown as TwilioIncomingCallPayload;
 
-  // Validate Twilio signature (skip in development)
+  // Validate Twilio signature (skip in development). A missing header is a
+  // rejection: otherwise anyone could POST a fake inbound call.
   if (process.env.NODE_ENV === 'production') {
-    const signature = req.headers['x-twilio-signature'] as string;
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers.host || '';
-    const fullUrl = `${protocol}://${host}${req.url}`;
+    const signature = req.headers['x-twilio-signature'];
+    const fullUrl = twilioSignedUrls(req.headers, req.url);
 
     if (
-      signature &&
+      typeof signature !== 'string' ||
       !validateTwilioSignature(signature, fullUrl, body as unknown as Record<string, string>)
     ) {
       log.warn({ url: req.url }, 'Invalid Twilio signature for inbound call');

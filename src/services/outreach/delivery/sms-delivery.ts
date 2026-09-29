@@ -122,7 +122,26 @@ export function initializeSMSDelivery(deliveryConfig: SMSDeliveryConfig): void {
  * Check if SMS delivery is available
  */
 export function isSMSDeliveryAvailable(): boolean {
+  if (config === null || twilioClient === null) initializeFromEnv();
   return config !== null && twilioClient !== null;
+}
+
+/**
+ * Self-initialise from TWILIO_* env when nobody called initializeSMSDelivery
+ * (the outreach bootstrap is disabled on the voice agent), so texts can be
+ * sent from any process that has the Twilio secrets.
+ */
+function initializeFromEnv(): void {
+  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } = process.env;
+  const from = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_FROM_NUMBER;
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !from) return;
+  const publicUrl = process.env.PUBLIC_URL || 'https://app.ferni.ai';
+  initializeSMSDelivery({
+    twilioAccountSid: TWILIO_ACCOUNT_SID,
+    twilioAuthToken: TWILIO_AUTH_TOKEN,
+    twilioPhoneNumber: from,
+    statusCallbackUrl: `${publicUrl.replace(/\/$/, '')}/api/outreach/webhooks/twilio/sms-status`,
+  });
 }
 
 /**

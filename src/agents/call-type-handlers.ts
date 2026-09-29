@@ -9,6 +9,7 @@
  * @module agents/call-type-handlers
  */
 
+import { normalizeOutboundCallMetadata } from './outbound-call-metadata.js';
 import type { ProactiveTriggerType } from '../intelligence/context-builders/external/proactive-session-context.js';
 
 // ============================================================================
@@ -299,6 +300,7 @@ export async function detectAndHandleCallType(
   sessionId: string,
   roomName?: string
 ): Promise<CallTypeResult> {
+  metadata = normalizeOutboundCallMetadata(metadata);
   const callType = metadata.type as string | undefined;
 
   if (callType === 'inbound_call') {

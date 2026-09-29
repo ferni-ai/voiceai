@@ -786,6 +786,26 @@ export async function makeConversationalCall(context: OutboundCallContext): Prom
     return { success: false, error: 'Missing required fields: userId, phoneNumber, or message' };
   }
 
+  // Two-way conversation (voice agent + LiveKit SIP) whenever the SIP trunk is
+  // configured; the TTS-only call below is just the fallback.
+  const { isTwoWayCallingConfigured, placeCallToContact } = await import('./place-call.js');
+  if (isTwoWayCallingConfigured()) {
+    const result = await placeCallToContact({
+      userId,
+      userName: context.user?.preferredName || context.user?.name,
+      contact: { name: context.user?.preferredName || context.user?.name || 'there', phone: phoneNumber },
+      purpose: message,
+      personaId: context.personaId || context.persona,
+    });
+    return {
+      success: result.success,
+      id: result.callId,
+      callId: result.callId,
+      status: result.success ? 'initiating' : 'failed',
+      error: result.error,
+    } as CallResult;
+  }
+
   return scheduleProactiveCall({
     userId,
     phoneNumber,

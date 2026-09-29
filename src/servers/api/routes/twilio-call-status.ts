@@ -17,7 +17,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { captureCallResult } from '../../../services/outreach/call-result-capture.js';
-import { validateTwilioSignature } from '../../../services/outreach/webhooks/twilio-webhooks.js';
+import { twilioSignedUrls,
+  validateTwilioSignature } from '../../../services/outreach/webhooks/twilio-webhooks.js';
 import type {
   CallOutcome,
 } from '../../../tools/domains/telephony/types.js';
@@ -201,9 +202,7 @@ export async function handleTwilioCallStatus(
         return true;
       }
 
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers.host || '';
-      const fullUrl = `${protocol}://${host}${req.url}`;
+      const fullUrl = twilioSignedUrls(req.headers, req.url);
       const params = payload as unknown as Record<string, string>;
 
       if (!validateTwilioSignature(signature, fullUrl, params)) {
