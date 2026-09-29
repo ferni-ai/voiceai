@@ -256,7 +256,8 @@ export async function handleBrandMilestoneCheck(res: ServerResponse): Promise<vo
       }
 
       try {
-        const { postMilestoneCelebration } = await import('../../services/social/social-service.js');
+        const { postMilestoneCelebration } =
+          await import('../../services/social/social-service.js');
         const socialResult = await postMilestoneCelebration({
           name: milestone.name,
           description: milestone.description,
@@ -387,7 +388,6 @@ export async function handleBrandMetricsCollection(res: ServerResponse): Promise
       sendFirestoreUnavailable(res, 'brand-metrics-collection');
       return;
     }
-
 
     const [awardsSnap, workstreamsSnap, storiesSnap, ambassadorsSnap] = await Promise.all([
       db.collection('brand_awards').get(),

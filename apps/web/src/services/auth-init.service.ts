@@ -102,7 +102,9 @@ async function requestMigration(deviceId: string, firebaseUid: string): Promise<
       localStorage.setItem('ferni_migrated_uid', firebaseUid);
       log.info('Migration successful');
     } else {
-      const error = (await response.json().catch(() => ({ error: 'Unknown' }))) as { error?: string };
+      const error = (await response.json().catch(() => ({ error: 'Unknown' }))) as {
+        error?: string;
+      };
       log.warn('Migration failed', { status: response.status, error });
     }
   } catch (error) {

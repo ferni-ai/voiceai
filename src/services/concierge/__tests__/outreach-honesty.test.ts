@@ -45,6 +45,15 @@ describe('SmsSender', () => {
   });
 });
 
+function fakeFetchResponse(status: number, body: string, headers: Record<string, string> = {}) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: { get: (name: string) => headers[name.toLowerCase()] ?? null },
+    text: async () => body,
+  };
+}
+
 describe('EmailSender', () => {
   const fetchMock = vi.fn();
 
@@ -70,16 +79,14 @@ describe('EmailSender', () => {
 
   it('sends through SendGrid and returns the real message id', async () => {
     vi.stubEnv('SENDGRID_API_KEY', 'SG.test');
-    fetchMock.mockResolvedValue(
-      new Response('', { status: 202, headers: { 'x-message-id': 'msg-42' } })
-    );
+    fetchMock.mockResolvedValue(fakeFetchResponse(202, '', { 'x-message-id': 'msg-42' }));
     const { EmailSender } = await import('../outreach/email-sender.js');
     const sender = new EmailSender({ userId: 'u1', userName: 'Sam', userEmail: 's@x.example' });
     const result = await sender.send({ target, domain: 'hotel', type: 'quote', requirements: {} });
 
     expect(result.success).toBe(true);
     expect(result.messageId).toBe('msg-42');
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, init] = fetchMock.mock.calls[0] as [string, { body?: unknown }];
     expect(url).toBe('https://api.sendgrid.com/v3/mail/send');
     const payload = JSON.parse(String(init.body)) as {
       personalizations: Array<{ to: Array<{ email: string }> }>;
@@ -91,7 +98,7 @@ describe('EmailSender', () => {
 
   it('reports failure when SendGrid rejects the send', async () => {
     vi.stubEnv('SENDGRID_API_KEY', 'SG.test');
-    fetchMock.mockResolvedValue(new Response('bad request', { status: 400 }));
+    fetchMock.mockResolvedValue(fakeFetchResponse(400, 'bad request'));
     const { EmailSender } = await import('../outreach/email-sender.js');
     const sender = new EmailSender({ userId: 'u1', userName: 'Sam', userEmail: 's@x.example' });
     const result = await sender.send({ target, domain: 'hotel', type: 'quote', requirements: {} });
@@ -118,7 +125,10 @@ describe('result notifier SMS', () => {
           doc: () => ({
             get: async () => ({
               exists: true,
-              data: () => ({ phone: '+15550001111', notificationPrefs: { preferredChannel: 'sms' } }),
+              data: () => ({
+                phone: '+15550001111',
+                notificationPrefs: { preferredChannel: 'sms' },
+              }),
             }),
           }),
         }),

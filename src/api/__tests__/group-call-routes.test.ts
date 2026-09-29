@@ -23,7 +23,9 @@ describe('POST /api/group/call/add', () => {
     app.use(express.json());
     app.use('/api/group', groupConversationRoutes);
     server = app.listen(0, '127.0.0.1');
-    await new Promise<void>((resolve) => server.once('listening', () => resolve()));
+    await new Promise<void>((resolve) => {
+      server.once('listening', () => resolve());
+    });
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
 
@@ -90,7 +92,9 @@ describe('group call Twilio webhooks', () => {
     await handleGroupCallWebhooks(
       fakeRequest({
         url: path,
-        headers: { 'x-twilio-signature': twilioSignature(TOKEN, `https://api.test${path}`, params) },
+        headers: {
+          'x-twilio-signature': twilioSignature(TOKEN, `https://api.test${path}`, params),
+        },
         body: new URLSearchParams(params).toString(),
       }),
       out.res,
@@ -100,7 +104,8 @@ describe('group call Twilio webhooks', () => {
   });
 
   it('serves escaped answer TwiML for a signed POST', async () => {
-    const url = '/api/group/call/answer?roomName=room1&name=Sam&intro=' +
+    const url =
+      '/api/group/call/answer?roomName=room1&name=Sam&intro=' +
       encodeURIComponent('Hi</Say><Dial>+19995550000</Dial><Say>');
     const params = { CallSid: 'CA2' };
     const out = fakeResponse();

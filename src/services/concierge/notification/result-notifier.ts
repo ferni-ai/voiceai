@@ -450,11 +450,19 @@ export async function registerNotifier(): Promise<void> {
 
     tracker.onEvent((event) => {
       // Get the request for this event
-      tracker.getRequest(event.requestId).then((request) => {
-        if (request) {
-          handleConciergeEvent(event, request);
-        }
-      });
+      tracker
+        .getRequest(event.requestId)
+        .then((request) => {
+          if (request) {
+            handleConciergeEvent(event, request);
+          }
+        })
+        .catch((err: unknown) => {
+          log.error(
+            { error: String(err), requestId: event.requestId },
+            'Concierge event lookup failed'
+          );
+        });
     });
 
     registered = true;

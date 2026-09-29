@@ -59,10 +59,9 @@ describe('communication tools respect unconfigured providers', () => {
       llm: { tool: (config: { execute: unknown }) => config },
     }));
     vi.doMock('../communication-service.js', async () => {
-      const actual =
-        await vi.importActual<typeof import('../communication-service.js')>(
-          '../communication-service.js'
-        );
+      const actual = await vi.importActual<typeof import('../communication-service.js')>(
+        '../communication-service.js'
+      );
       return {
         ...actual,
         sendSMS: vi.fn(async () => {

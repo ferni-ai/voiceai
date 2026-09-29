@@ -677,8 +677,7 @@ export function generateAnswerTwiml(params: {
 }): string {
   const { roomName, sipDomain, name, introduction } = params;
   // Values arrive via query string; escape so they can't inject TwiML verbs.
-  const xml = (s: string): string =>
-    s.replace(/[<>&'"]/g, (c) => `&#${c.charCodeAt(0)};`);
+  const xml = (s: string): string => s.replace(/[<>&'"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
   const greeting = xml(
     introduction ?? `Hi ${name}! You've been added to a conversation. Connecting you now.`

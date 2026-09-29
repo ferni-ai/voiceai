@@ -80,7 +80,11 @@ describe('POST /api/auth/migrate', () => {
     expect(out.status()).toBe(200);
     expect(mockVerify).toHaveBeenCalledWith('good');
     expect(mockMigrate).toHaveBeenCalledWith(
-      expect.objectContaining({ deviceId: 'device:abc', firebaseUid: 'alice', email: 'a@x.example' })
+      expect.objectContaining({
+        deviceId: 'device:abc',
+        firebaseUid: 'alice',
+        email: 'a@x.example',
+      })
     );
   });
 });

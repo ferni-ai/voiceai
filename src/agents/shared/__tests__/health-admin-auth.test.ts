@@ -38,9 +38,9 @@ describe('isHealthAdminAuthorized', () => {
 
   it('rejects remote callers when no token is configured', () => {
     expect(isHealthAdminAuthorized(req('198.51.100.7'))).toBe(false);
-    expect(
-      isHealthAdminAuthorized(req('198.51.100.7', { authorization: 'Bearer anything' }))
-    ).toBe(false);
+    expect(isHealthAdminAuthorized(req('198.51.100.7', { authorization: 'Bearer anything' }))).toBe(
+      false
+    );
   });
 
   it('requires the exact bearer token from remote callers', () => {

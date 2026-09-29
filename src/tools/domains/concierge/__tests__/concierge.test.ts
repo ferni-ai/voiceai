@@ -113,7 +113,10 @@ describe('Concierge Domain', () => {
 
   describe('when business calling is unavailable', () => {
     it.each([
-      ['requestHotelQuotes', { destination: 'Miami', checkIn: '2024-03-15', checkOut: '2024-03-18' }],
+      [
+        'requestHotelQuotes',
+        { destination: 'Miami', checkIn: '2024-03-15', checkOut: '2024-03-18' },
+      ],
       ['makeRestaurantReservation', { location: 'Austin', date: '2024-03-15', partySize: 2 }],
       ['scheduleHealthcareAppointment', { providerType: 'dentist', location: 'Austin' }],
       ['getServiceQuotes', { serviceType: 'plumber', description: 'leak', location: 'Austin' }],

@@ -49,7 +49,12 @@ describe('POST /api/landing/experiments/track/batch', () => {
 
   it('persists exposures and conversions', async () => {
     const out = await postBatch([
-      { experimentId: 'hero-headline', variantId: 'control', userId: 'anon_1', eventType: 'exposure' },
+      {
+        experimentId: 'hero-headline',
+        variantId: 'control',
+        userId: 'anon_1',
+        eventType: 'exposure',
+      },
       {
         experimentId: 'hero-cta',
         variantId: 'try_now',
