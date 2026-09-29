@@ -331,6 +331,9 @@ export interface PostTTSConfig {
   /** Warmth amount (0-1, 0.3 = subtle, 0.7 = very warm) */
   warmthAmount?: number;
 
+  /** Split-band de-esser (compresses 5 kHz+ at -20 dB, 4:1). Was always on. */
+  enableDeEsser?: boolean;
+
   /** Enable micro-pitch modulation for naturalness */
   enableMicroPitch?: boolean;
   /** Pitch modulation range in cents (±5-15 typical) */
@@ -530,6 +533,7 @@ export const DEFAULT_CONFIG: Required<PostTTSConfig> = {
   breathProbability: 0.15,
   enableWarmth: envEnabled('POST_TTS_WARMTH'),
   warmthAmount: 0.25, // Reduced from 0.35
+  enableDeEsser: true, // always on until 2026-09-29, when it became switchable
   enableCompression: envEnabled('POST_TTS_COMPRESSION'),
   compressionRatio: 1.5, // Reduced from 2.0
   compressionThresholdDb: -20, // Raised from -18 (less aggressive)
@@ -604,6 +608,7 @@ export const DEFAULT_CONFIG: Required<PostTTSConfig> = {
 export const POST_TTS_ENV_SWITCHES: Readonly<Record<string, keyof PostTTSConfig>> = {
   POST_TTS_BREATH: 'enableBreath',
   POST_TTS_WARMTH: 'enableWarmth',
+  POST_TTS_DEESSER: 'enableDeEsser',
   POST_TTS_COMPRESSION: 'enableCompression',
   POST_TTS_PRESENCE: 'enablePresence',
   POST_TTS_AMPLITUDE_JITTER: 'enableAmplitudeJitter',
@@ -1047,7 +1052,7 @@ export function createPostTTSTransform(
             enableDeesser: false,
             // Split-band de-esser: ENABLED - professional quality, only attenuates high frequencies
             // This is the same technique used in hardware de-essers like Empirical Labs DerrEsser
-            enableSplitbandDeesser: true,
+            enableSplitbandDeesser: fullConfig.enableDeEsser,
             splitbandCrossoverFreq: 5000, // Split at 5kHz
             splitbandThresholdDb: -20, // Moderate threshold
             splitbandRatio: 4, // 4:1 compression on high band only
