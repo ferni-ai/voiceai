@@ -30,13 +30,14 @@
  * - Predictions: /api/insights/predictions
  * - Wellbeing: /api/wellbeing/dashboard
  * - Team: /api/team-insights
- * - World: /api/engagement/profile + context
+ * - World: /api/rituals (engagement stats)
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 import { apiGet, getUserId } from '../utils/api.js';
+import { shouldUseDemoData } from '../utils/environment.js';
 import {
   createLifeSeasonsElement,
   createConversationRiverElement,
@@ -265,6 +266,8 @@ class InsightsHubUI {
   }
 
   setTab(tab: InsightTab): void {
+    // Stories has no backend yet; it only exists as a labelled demo
+    if (tab === 'stories' && !shouldUseDemoData()) tab = 'journey';
     this.activeTab = tab;
     void this.loadTabData(tab);
   }
@@ -317,8 +320,11 @@ class InsightsHubUI {
       { id: 'wellbeing', icon: ICONS.wellbeing, label: 'Wellbeing' },
       { id: 'team', icon: ICONS.team, label: 'Team' },
       { id: 'context', icon: ICONS.context, label: 'World' },
-      { id: 'stories', icon: ICONS.stories, label: 'Stories' },
     ];
+    // Stories has no backend yet: only offer it as a clearly labelled demo
+    if (shouldUseDemoData()) {
+      tabs.push({ id: 'stories', icon: ICONS.stories, label: 'Stories' });
+    }
 
     return tabs
       .map(
@@ -433,16 +439,23 @@ class InsightsHubUI {
   }
 
   private async loadContextData(): Promise<void> {
-    const result = await apiGet<Record<string, unknown>>('/api/engagement/profile');
+    // Engagement stats live on GET /api/rituals (src/api/routes/rituals.ts)
+    const result = await apiGet<{
+      stats?: { totalRitualDays?: number; totalSkyChecks?: number };
+    }>('/api/rituals');
     if (result.ok && result.data) {
-      this.dataCache.context = result.data;
+      const stats = result.data.stats ?? {};
+      this.dataCache.context = {
+        totalRitualDays: stats.totalRitualDays,
+        stats: { totalSkyChecks: stats.totalSkyChecks ?? 0 },
+      };
     }
   }
 
   private async loadStoriesData(): Promise<void> {
-    // Stories data comes from aggregating other sources
-    // In a real implementation, this would call a dedicated API
-    // For now, we generate sample data to demonstrate the visualizations
+    // There is no stories API yet. The sample data below is only ever shown in
+    // demo mode (shouldUseDemoData) and is labelled as sample data when rendered.
+    if (!shouldUseDemoData()) return;
     const now = new Date();
     const month = now.getMonth();
 
@@ -1039,6 +1052,10 @@ class InsightsHubUI {
           <p>What you notice, what I notice. Transforming metrics into meaning.</p>
         </div>
         <div class="insights-hub-panel-body insights-hub-stories-body">
+          <div class="stories-section">
+            <span class="stories-section__eyebrow">SAMPLE DATA</span>
+            <p class="stories-section__intro">This is a preview with example data, not your real story.</p>
+          </div>
           <div class="stories-section stories-section--two-pattern">
             <div class="stories-section__header">
               <span class="stories-section__eyebrow">THE TWO-PATTERN</span>
