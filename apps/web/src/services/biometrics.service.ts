@@ -3,7 +3,7 @@
  *
  * Manages OAuth connections to health/biometrics platforms:
  * - Apple Health (via iOS native only)
- * - Google Fit
+ * - Google Fit (not supported yet: no backend OAuth flow)
  * - Fitbit
  * - Oura Ring
  * - WHOOP
@@ -15,10 +15,22 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { apiGet, apiPost } from '../utils/api.js';
+import { apiDelete, apiGet, apiPost, getUserId } from '../utils/api.js';
 import { Capacitor } from '../stubs/capacitor-stub.js';
 
 const log = createLogger('BiometricsService');
+
+/** Backend routes live in src/api/v1/integrations/handler.ts */
+const BIOMETRICS_API = '/api/v1/integrations/biometrics';
+
+/** Backend platform ids (src/services/biometrics/types.ts) → client ids */
+const BACKEND_PLATFORM_MAP: Record<string, BiometricsPlatform> = {
+  healthkit: 'apple_health',
+  googlefit: 'google_fit',
+  fitbit: 'fitbit',
+  oura: 'oura',
+  whoop: 'whoop',
+};
 
 // ============================================================================
 // TYPES
@@ -54,7 +66,7 @@ export interface BiometricsData {
       deepSleep: number;
       remSleep: number;
     };
-    weekAvg: number;
+    weekAvg?: number;
   };
   activity?: {
     steps: number;
@@ -62,7 +74,7 @@ export interface BiometricsData {
     activeMinutes: number;
   };
   readiness?: number; // 0-100 score from Oura/WHOOP
-  stressLevel?: number; // Derived from HRV
+  stressLevel?: 'low' | 'moderate' | 'high' | 'elevated'; // Derived from HRV
 }
 
 // ============================================================================
@@ -71,6 +83,11 @@ export interface BiometricsData {
 
 interface PlatformConfig {
   name: string;
+  /**
+   * OAuth start URL. Wearables use /wearables/{provider}/login
+   * (src/servers/api/routes/wearables.ts); Eight Sleep fetches its URL from
+   * /api/eight-sleep/auth/url. Empty means no web OAuth flow exists.
+   */
   authUrl: string;
   scopes: string[];
   supportsNative: boolean;
@@ -87,42 +104,42 @@ const PLATFORM_CONFIGS: Record<BiometricsPlatform, PlatformConfig> = {
   },
   google_fit: {
     name: 'Google Fit',
-    authUrl: '/auth/google/fit',
+    authUrl: '', // No backend OAuth flow yet
     scopes: ['heart_rate', 'sleep', 'activity'],
-    supportsNative: true,
-    supportsWeb: true,
+    supportsNative: false,
+    supportsWeb: false,
   },
   fitbit: {
     name: 'Fitbit',
-    authUrl: '/auth/fitbit',
+    authUrl: '/wearables/fitbit/login',
     scopes: ['heartrate', 'sleep', 'activity', 'profile'],
     supportsNative: false,
     supportsWeb: true,
   },
   oura: {
     name: 'Oura Ring',
-    authUrl: '/auth/oura',
+    authUrl: '/wearables/oura/login',
     scopes: ['daily', 'heartrate', 'sleep', 'readiness', 'workout'],
     supportsNative: false,
     supportsWeb: true,
   },
   whoop: {
     name: 'WHOOP',
-    authUrl: '/auth/whoop',
+    authUrl: '/wearables/whoop/login',
     scopes: ['read:recovery', 'read:sleep', 'read:workout', 'read:cycles'],
     supportsNative: false,
     supportsWeb: true,
   },
   eight_sleep: {
     name: 'Eight Sleep',
-    authUrl: '/auth/eightsleep',
+    authUrl: '/api/eight-sleep/auth/url',
     scopes: ['sleep', 'health', 'device'],
     supportsNative: false,
     supportsWeb: true,
   },
   garmin: {
     name: 'Garmin',
-    authUrl: '/auth/garmin',
+    authUrl: '/wearables/garmin/login',
     scopes: ['activity', 'sleep', 'stress', 'heart_rate'],
     supportsNative: false,
     supportsWeb: true,
@@ -151,9 +168,21 @@ const statusListeners: Set<(status: BiometricsStatus) => void> = new Set();
  */
 export async function initBiometrics(): Promise<BiometricsStatus> {
   try {
-    const response = await apiGet<{ status: BiometricsStatus }>('/api/biometrics/status');
+    const response = await apiGet<{
+      connected: boolean;
+      platform: string | null;
+      lastSync: string | null;
+    }>(`${BIOMETRICS_API}/status`);
     if (response.ok && response.data) {
-      currentStatus = response.data.status;
+      const platform = response.data.platform
+        ? (BACKEND_PLATFORM_MAP[response.data.platform] ?? null)
+        : null;
+      currentStatus = {
+        platform,
+        connected: response.data.connected,
+        lastSync: response.data.lastSync,
+        scopes: platform ? PLATFORM_CONFIGS[platform].scopes : [],
+      };
       notifyListeners();
     }
   } catch (error) {
@@ -197,18 +226,30 @@ export async function connectBiometrics(
   }
 
   // Check if platform supports web OAuth
-  if (!config.supportsWeb) {
+  if (!config.supportsWeb || !config.authUrl) {
     return {
       success: false,
-      error: `${config.name} requires a native app connection`,
+      error: `${config.name} isn't supported yet`,
     };
   }
 
-  // Redirect to OAuth flow
-  const authUrl = `${config.authUrl}?userId=${userId}&scopes=${config.scopes.join(',')}`;
-  log.info('Initiating OAuth flow', { platform, authUrl });
+  // Eight Sleep: the backend builds the OAuth URL for the authenticated user
+  if (platform === 'eight_sleep') {
+    const response = await apiGet<{ url: string }>(config.authUrl);
+    if (!response.ok || !response.data?.url) {
+      return { success: false, error: "Couldn't connect to Eight Sleep. Try again?" };
+    }
+    window.location.href = response.data.url;
+    return { success: true };
+  }
 
-  // Open OAuth popup or redirect
+  // Wearables: /wearables/{provider}/login redirects to the provider's consent page.
+  // Prefer the Firebase UID so tokens are stored under the same id the API reads.
+  const uid = getUserId() ?? userId;
+  const params = new URLSearchParams({ user_id: uid, return_url: window.location.pathname });
+  const authUrl = `${config.authUrl}?${params}`;
+  log.info('Initiating OAuth flow', { platform });
+
   window.location.href = authUrl;
 
   return { success: true };
@@ -219,7 +260,7 @@ export async function connectBiometrics(
  */
 export async function disconnectBiometrics(): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await apiPost<{ success: boolean }>('/api/biometrics/disconnect', {});
+    const response = await apiDelete<{ success: boolean }>(`${BIOMETRICS_API}/disconnect`);
 
     if (response.ok) {
       currentStatus = {
@@ -247,9 +288,9 @@ export async function fetchBiometricsData(): Promise<BiometricsData | null> {
   }
 
   try {
-    const response = await apiGet<{ data: BiometricsData }>('/api/biometrics/data');
+    const response = await apiGet<BackendSnapshot>(`${BIOMETRICS_API}/data`);
     if (response.ok && response.data) {
-      return response.data.data;
+      return mapSnapshot(response.data);
     }
   } catch (error) {
     log.error('Failed to fetch biometrics data:', String(error));
@@ -267,13 +308,13 @@ export async function syncBiometrics(): Promise<{ success: boolean; error?: stri
   }
 
   try {
-    const response = await apiPost<{ success: boolean; lastSync: string }>(
-      '/api/biometrics/sync',
+    const response = await apiPost<{ success: boolean; timestamp: string }>(
+      `${BIOMETRICS_API}/sync`,
       {}
     );
 
-    if (response.ok && response.data) {
-      currentStatus.lastSync = response.data.lastSync;
+    if (response.ok && response.data?.success) {
+      currentStatus.lastSync = response.data.timestamp;
       notifyListeners();
       return { success: true };
     }
@@ -402,6 +443,48 @@ export function handleBiometricsCallback(params: URLSearchParams): void {
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+/** Shape of GET /api/v1/integrations/biometrics/data (BiometricSnapshot) */
+interface BackendSnapshot {
+  hrv: { current: number } | null;
+  sleep: {
+    duration: number;
+    deepSleepPercent: number;
+    remSleepPercent: number;
+    qualityScore: number;
+  } | null;
+  activity: { steps: number; activeMinutes: number; caloriesBurned: number } | null;
+  recovery: { score: number } | null;
+  stressLevel: BiometricsData['stressLevel'] | null;
+}
+
+function mapSnapshot(snapshot: BackendSnapshot): BiometricsData {
+  const { sleep, activity, recovery } = snapshot;
+  const quality = (score: number): 'poor' | 'fair' | 'good' | 'excellent' =>
+    score >= 85 ? 'excellent' : score >= 70 ? 'good' : score >= 50 ? 'fair' : 'poor';
+
+  return {
+    sleep: sleep
+      ? {
+          lastNight: {
+            duration: sleep.duration,
+            quality: quality(sleep.qualityScore),
+            deepSleep: (sleep.duration * sleep.deepSleepPercent) / 100,
+            remSleep: (sleep.duration * sleep.remSleepPercent) / 100,
+          },
+        }
+      : undefined,
+    activity: activity
+      ? {
+          steps: activity.steps,
+          calories: activity.caloriesBurned,
+          activeMinutes: activity.activeMinutes,
+        }
+      : undefined,
+    readiness: recovery?.score,
+    stressLevel: snapshot.stressLevel ?? undefined,
+  };
+}
 
 function notifyListeners(): void {
   for (const listener of statusListeners) {
