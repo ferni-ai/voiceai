@@ -1243,7 +1243,9 @@ Whenever you're ready.`,
         await import('../services/outreach/automated-scheduler.js');
 
       try {
-        const result = await handleSchedulerTrigger();
+        // {"dryRun": true} previews the run: who would get what, nothing sent.
+        const body = (await parseRequestBody(req).catch(() => ({}))) as { dryRun?: boolean };
+        const result = await handleSchedulerTrigger({ dryRun: body?.dryRun === true });
         sendJsonResponse(res, 200, { success: true, ...result });
       } catch (error) {
         log.error({ error: String(error) }, 'Scheduler trigger failed');

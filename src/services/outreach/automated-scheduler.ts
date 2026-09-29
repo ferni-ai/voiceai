@@ -493,11 +493,13 @@ async function recordOutreachSent(
  * (outreach.routes.ts accepts Cloud Scheduler's OIDC token or an admin); a
  * header check here was spoofable.
  */
-export async function handleSchedulerTrigger(): Promise<SchedulerResult> {
+export async function handleSchedulerTrigger(
+  opts: { dryRun?: boolean } = {}
+): Promise<SchedulerResult> {
   return runDailyOutreach({
     batchSize: 100,
     respectQuietHours: true,
-    dryRun: false,
+    dryRun: opts.dryRun === true,
   });
 }
 
