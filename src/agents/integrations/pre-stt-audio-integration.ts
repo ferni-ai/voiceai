@@ -30,6 +30,7 @@ import {
   PreSTTProcessor,
   PreSTTPresets,
   getOrCreateProcessor,
+  removeSessionProcessor,
   type PreSTTConfig,
 } from '../shared/performance/pre-stt-transform.js';
 
@@ -258,6 +259,9 @@ export async function initializePreSTTIntegration(
         },
         '🎤 Pre-STT audio analysis cleanup'
       );
+      // The processor lives in a per-session registry; nothing removed it,
+      // so every call left one behind for the life of the worker.
+      removeSessionProcessor(sessionId);
     },
   };
 }

@@ -2072,6 +2072,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
             audioProcessorStarted = true;
 
             const audioStream = new AudioStream(track, { sampleRate: 16000, numChannels: 1 });
+            // processAudioStream runs once per session and cancels a second
+            // stream (FerniAgent.sttNode may already be feeding it); the
+            // backchannel detector must keep getting frames either way.
+            let processorOpen = true;
             const processorStream = new ReadableStream<import('@livekit/rtc-node').AudioFrame>({
               async start(controller) {
                 try {
@@ -2080,12 +2084,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
                   >) {
                     if (audioProcessingCancelled) break;
                     liveBackchannel?.processAudioFrame(frame);
-                    controller.enqueue(frame);
+                    if (processorOpen) controller.enqueue(frame);
                   }
-                  controller.close();
+                  if (processorOpen) controller.close();
                 } catch (audioFrameError) {
-                  controller.error(audioFrameError);
+                  if (processorOpen) controller.error(audioFrameError);
                 }
+              },
+              cancel() {
+                processorOpen = false;
               },
             });
 

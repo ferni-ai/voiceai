@@ -690,15 +690,26 @@ pub struct PreSTTProcessor {
 }
 
 impl PreSTTProcessor {
+    /// The rate the filters, AGC and noise suppressor run at. Bandwidth
+    /// extension runs first, so for 8 kHz input with extension on they see
+    /// 16 kHz audio. Callers describe their input (TS sends sampleRate 8000
+    /// with inputIs8Khz for Twilio); building the filters at 8 kHz for 16 kHz
+    /// audio would double every cutoff and halve every time constant.
+    pub fn processing_rate(config: &PreSTTConfig) -> u32 {
+        if config.input_is_8khz {
+            if config.enable_bandwidth_extension { 16000 } else { 8000 }
+        } else {
+            config.sample_rate
+        }
+    }
+
     pub fn new(config: PreSTTConfig) -> Self {
-        // Note: sample_rate computed for potential 8kHz handling but components
-        // currently use config.sample_rate directly. Prefixed to suppress warning.
-        let _sample_rate = if config.input_is_8khz { 8000 } else { config.sample_rate };
+        let rate = Self::processing_rate(&config);
 
         Self {
-            agc: AutoGainControl::new(config.sample_rate),
-            noise_suppressor: NoiseSupressor::new(config.sample_rate),
-            highpass: HighPassFilter::new(config.highpass_cutoff_hz, config.sample_rate),
+            agc: AutoGainControl::new(rate),
+            noise_suppressor: NoiseSupressor::new(rate),
+            highpass: HighPassFilter::new(config.highpass_cutoff_hz, rate),
             bandwidth_extender: BandwidthExtender::new(),
             stats: PreSTTStats::default(),
             config,
@@ -803,6 +814,29 @@ impl PreSTTProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_twilio_config_as_sent_by_ts_matches_for_twilio() {
+        // TS describes Twilio input as 8 kHz; for_twilio() says 16 kHz (the
+        // rate after bandwidth extension). Both must build the same processor.
+        let from_ts = PreSTTConfig {
+            sample_rate: 8000,
+            enable_agc: true,
+            enable_noise_suppression: true,
+            enable_highpass: true,
+            highpass_cutoff_hz: 80.0,
+            enable_bandwidth_extension: true,
+            input_is_8khz: true,
+        };
+        let mut a = PreSTTProcessor::new(from_ts);
+        let mut b = PreSTTProcessor::for_twilio();
+        for k in 0..20 {
+            let frame: Vec<f32> = (0..160)
+                .map(|i| ((2.0 * PI * 300.0 * (k * 160 + i) as f32 / 8000.0).sin() * 0.3))
+                .collect();
+            assert_eq!(a.process(&frame, true), b.process(&frame, true));
+        }
+    }
 
     #[test]
     fn test_agc_boosts_quiet_signal() {

@@ -371,11 +371,11 @@ export class PreSTTProcessor {
           inputIs8Khz: this.config.inputIs8Khz,
         };
 
-        if (this.config.inputIs8Khz) {
-          this.rustProcessor = rust.NativePreSttProcessor.forTwilio();
-        } else {
-          this.rustProcessor = new rust.NativePreSttProcessor(rustConfig);
-        }
+        // One constructor for all inputs: forTwilio() ignored the per-feature
+        // flags in this config. The Rust side derives the processing rate from
+        // inputIs8Khz + bandwidth extension, so Twilio's config builds the same
+        // processor forTwilio() did (tested in pre_stt.rs).
+        this.rustProcessor = new rust.NativePreSttProcessor(rustConfig);
 
         log.info(
           {
