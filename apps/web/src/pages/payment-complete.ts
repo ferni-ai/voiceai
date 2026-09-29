@@ -10,6 +10,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('PaymentComplete');
 
@@ -354,6 +355,12 @@ function renderSuccessPage(type: string, params: URLSearchParams): string {
   `;
 }
 
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 function renderErrorPage(message?: string): string {
   return `
     <div class="payment-complete-page">
@@ -361,7 +368,7 @@ function renderErrorPage(message?: string): string {
         <div class="payment-complete-icon">${ERROR_ICON}</div>
         <h1 class="payment-complete-title">Something Went Wrong</h1>
         <p class="payment-complete-message">
-          ${message || "We couldn't verify your payment. Don't worry—if you were charged, we'll sort it out."}
+          ${escapeHtml(message || "We couldn't verify your payment. Don't worry—if you were charged, we'll sort it out.")}
         </p>
         <a href="/" class="payment-complete-btn">
           Return to Ferni
@@ -440,28 +447,22 @@ export async function initPaymentCompletePage(): Promise<void> {
     );
     log.warn({ type, redirectStatus }, 'Payment failed');
   } else if (paymentIntent) {
-    // Verify payment status via API
-    try {
-      const response = await fetch(
-        `/api/monetization/${type}/verify?payment_intent=${paymentIntent}`
-      );
-      const result = await response.json();
+    // Verify payment status via API (authenticated; owner-scoped on the server)
+    const response = await apiGet<{ success: boolean; message?: string }>(
+      `/api/monetization/${type}/verify`,
+      { payment_intent: paymentIntent }
+    );
 
-      if (result.success) {
-        root.innerHTML = renderSuccessPage(type, params);
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 5000);
-      } else {
-        root.innerHTML = renderErrorPage(result.message);
-      }
-    } catch (error) {
-      log.error({ error: String(error) }, 'Failed to verify payment');
-      // Assume success if we can't verify - user will see their account status
+    if (response.ok && response.data?.success) {
       root.innerHTML = renderSuccessPage(type, params);
       setTimeout(() => {
         window.location.href = '/';
       }, 5000);
+    } else {
+      // Error bodies aren't exposed by apiGet, so fall back to the friendly default
+      const message = response.data?.message;
+      log.warn({ type, status: response.status }, 'Payment could not be verified');
+      root.innerHTML = renderErrorPage(typeof message === 'string' ? message : undefined);
     }
   } else {
     // No payment info - show success anyway (they navigated here directly)
