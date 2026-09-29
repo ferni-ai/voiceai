@@ -207,7 +207,8 @@ async function handleStatus(options: FamilyArgs['options']): Promise<void> {
 async function handleSummary(options: FamilyArgs['options']): Promise<void> {
   console.log(colors.dim('Getting family wellness summary...'));
 
-  const result = await apiRequest('/api/family/summary');
+  // Summary = members + their last check-in (from /api/family/status)
+  const result = await apiRequest('/api/family/status');
 
   if (!result.success) {
     console.log(colors.red(`❌ ${result.error}`));
@@ -257,18 +258,11 @@ async function handleSummary(options: FamilyArgs['options']): Promise<void> {
 }
 
 async function handleMessage(member: string, message: string): Promise<void> {
-  console.log(colors.dim(`Sending message to ${member}...`));
-
-  const result = await apiRequest('/api/family/message', 'POST', {
-    member,
-    message,
-  });
-
-  if (result.success) {
-    console.log(colors.green(`✅ Message sent to ${member}`));
-  } else {
-    console.log(colors.red(`❌ ${result.error || "Couldn't send message"}`));
-  }
+  // There is no send-on-your-behalf SMS endpoint for the CLI: texts go through
+  // a voice session ("text my mom ...") so they come from the right persona
+  // and replies continue the thread.
+  console.log(colors.yellow(`To text ${member}, ask Ferni in a voice session:`));
+  console.log(colors.dim(`  "Text ${member}: ${message}"`));
 }
 
 async function handleMembers(options: FamilyArgs['options']): Promise<void> {

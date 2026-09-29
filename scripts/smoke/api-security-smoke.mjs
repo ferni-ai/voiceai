@@ -29,6 +29,13 @@ const probes = [
   { name: 'content generation needs scheduler/admin', method: 'POST', path: '/api/landing/generate-content', body: {}, expect: [401, 403] },
   { name: 'marketplace admin ignores x-admin-id', method: 'GET', path: '/api/admin/marketplace/queue', headers: { 'x-admin-id': 'attacker' }, expect: [401] },
 
+  // Outreach: calls, family, Twilio callbacks
+  { name: 'outbound calling reports its configuration', method: 'GET', path: '/api/outbound-call/health', expect: [200] },
+  { name: 'call status needs auth', method: 'GET', path: '/api/outbound-call/onbehalf_x', expect: [401] },
+  { name: 'family check-ins are mounted (auth required)', method: 'GET', path: '/api/family/status', expect: [401] },
+  { name: 'family approvals are mounted (auth required)', method: 'GET', path: '/api/family/pending', notExpect: [404] },
+  { name: 'forged Twilio call callback is rejected', method: 'POST', path: '/api/outreach/call/status/x', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': 'forged' }, rawBody: 'CallStatus=completed', expect: [403] },
+
   // Wiring that used to 404
   { name: 'practice chat is mounted', method: 'POST', path: '/api/practice/chat', body: {}, notExpect: [404] },
   { name: 'health summary sync is mounted (auth required)', method: 'POST', path: '/api/health/sync', body: { summary: {} }, expect: [401] },
@@ -42,7 +49,7 @@ for (const p of probes) {
     const res = await fetch(BASE + p.path, {
       method: p.method,
       headers: { 'content-type': 'application/json', ...(p.headers || {}) },
-      body: p.body ? JSON.stringify(p.body) : undefined,
+      body: p.rawBody ?? (p.body ? JSON.stringify(p.body) : undefined),
     });
     status = res.status;
   } catch (error) {

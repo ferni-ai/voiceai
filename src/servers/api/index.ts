@@ -90,6 +90,8 @@ import { renewExpiringSubscriptions as startOutlookSubscriptionRenewal } from '.
 // Existing API route handlers (from dist/)
 import { handleEngagementRoutes } from '../../api/engagement-routes.js';
 import { handlePracticeRoutes } from '../../api/practice-routes.js';
+import { familyRouter } from '../../api/routes/family.js';
+import { handleFamilyCheckinControl } from '../../api/routes/family-checkin-control.js';
 import { handleHealthSyncRoutes } from './routes/health-sync.js';
 import { handleDiagnosticsRoutes } from '../../api/handoff-diagnostics.js';
 import { handleDashboardMetricsRoutes } from '../../api/dashboard-metrics-routes.js';
@@ -465,6 +467,12 @@ const server = http.createServer(async (req, res) => {
   try {
     // Sanctuary practice chat (was never mounted; the web app fell back to canned text)
     if (await handlePracticeRoutes(req, res, pathname)) return;
+
+    // Family member approvals (web app family identities; was never mounted)
+    if (pathname.startsWith('/api/family/')) {
+      if (await handleFamilyCheckinControl(req, res, pathname)) return;
+      if (await familyRouter(req, res, pathname, parsedUrl)) return;
+    }
 
     // Engagement routes
     const engagementHandled = await handleEngagementRoutes(req, res, pathname, parsedUrl);
