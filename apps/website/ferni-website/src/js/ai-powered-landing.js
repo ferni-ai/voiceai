@@ -870,21 +870,17 @@
     async init() {
       if (!CONFIG.enableSocialProof) return;
 
-      // Find or create container
-      this.container = document.querySelector('.social-proof-dynamic');
-
-      if (!this.container) {
-        this.createContainer();
-      }
-
-      // Fetch snippets
+      // Fetch first; only add the band once there is something to show,
+      // otherwise an empty tinted strip sits under the stats bar.
       const result = await apiCall('/social-proof?count=5', { method: 'GET' });
+      if (!Array.isArray(result) || !result.length) return;
 
-      if (result && result.length) {
-        this.snippets = result;
-        this.render();
-        this.startRotation();
-      }
+      this.container = document.querySelector('.social-proof-dynamic');
+      if (!this.container) this.createContainer();
+
+      this.snippets = result;
+      this.render();
+      this.startRotation();
     },
 
     createContainer() {
@@ -903,10 +899,11 @@
         <div class="social-proof-dynamic__inner">
           <div class="social-proof-dynamic__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <div class="social-proof-dynamic__content">
-            <p class="social-proof-dynamic__text">${this.snippets[0].content}</p>
+            <p class="social-proof-dynamic__text"></p>
           </div>
         </div>
       `;
+      this.container.querySelector('.social-proof-dynamic__text').textContent = this.snippets[0].content;
     },
 
     startRotation() {
@@ -1246,7 +1243,8 @@
       
       #ferni-live-chat {
         position: fixed;
-        bottom: var(--space-6, 24px);
+        bottom: calc(var(--space-6, 24px) + var(--floating-offset, 0px));
+        transition: bottom var(--duration-slow, 0.3s) ease;
         right: var(--space-6, 24px);
         z-index: 9998;
         font-family: var(--font-display, 'Plus Jakarta Sans', -apple-system, sans-serif);
@@ -1650,6 +1648,9 @@
       
       .ferni-hover-preview {
         position: absolute;
+        /* Park at the origin until shown so it never extends the page height */
+        top: 0;
+        left: 0;
         z-index: 10000;
         display: flex;
         align-items: center;
@@ -1870,24 +1871,24 @@
         border: 1px solid rgba(74, 103, 65, 0.15);
       }
       
-      .memory-demo__try-it h4 {
+      .memory-demo__interactive .memory-demo__try-it h4 {
         margin: 0 0 var(--space-2, 8px);
         font-size: var(--text-lg, 18px);
         color: var(--color-text-primary, #2c2520);
       }
       
-      .memory-demo__try-it > p {
+      .memory-demo__interactive .memory-demo__try-it > p {
         margin: 0 0 var(--space-4, 16px);
         color: var(--color-text-muted, #70605a);
         font-size: var(--text-sm, 14px);
       }
       
-      .memory-demo__input-area {
+      .memory-demo__interactive .memory-demo__input-area {
         display: flex;
         gap: var(--space-3, 12px);
       }
       
-      .memory-demo__input {
+      .memory-demo__interactive .memory-demo__input {
         flex: 1;
         padding: var(--space-3, 14px) var(--space-5, 20px);
         border: 1px solid var(--color-border, rgba(44, 37, 32, 0.15));
@@ -1896,31 +1897,31 @@
         background: white;
       }
       
-      .memory-demo__input:focus {
+      .memory-demo__interactive .memory-demo__input:focus {
         outline: none;
         border-color: var(--color-ferni, #4a6741);
         box-shadow: 0 0 0 3px var(--color-accent-glow, rgba(61, 90, 69, 0.15));
       }
       
-      .memory-demo__result {
+      .memory-demo__interactive .memory-demo__result {
         margin-top: var(--space-6, 24px);
       }
       
-      .memory-demo__visualization {
+      .memory-demo__interactive .memory-demo__visualization {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: var(--space-5, 20px);
       }
       
-      .memory-demo__today,
-      .memory-demo__future {
+      .memory-demo__interactive .memory-demo__today,
+      .memory-demo__interactive .memory-demo__future {
         padding: var(--space-5, 20px);
         background: white;
         border-radius: var(--radius-lg, 16px);
         box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.05));
       }
       
-      .memory-demo__date {
+      .memory-demo__interactive .memory-demo__date {
         font-size: var(--text-2xs, 11px);
         text-transform: uppercase;
         letter-spacing: 1px;
@@ -1928,13 +1929,13 @@
         margin-bottom: var(--space-3, 12px);
       }
       
-      .memory-demo__card p {
+      .memory-demo__interactive .memory-demo__card p {
         margin: 0;
         font-style: italic;
         color: var(--color-text-primary, #2c2520);
       }
       
-      .memory-demo__emotion {
+      .memory-demo__interactive .memory-demo__emotion {
         display: inline-block;
         margin-top: var(--space-2, 10px);
         padding: var(--space-1, 4px) var(--space-2, 10px);
@@ -1944,7 +1945,7 @@
         color: var(--color-maya, #a67a6a);
       }
       
-      .memory-demo__card--ferni .memory-demo__speaker {
+      .memory-demo__interactive .memory-demo__card--ferni .memory-demo__speaker {
         display: flex;
         align-items: center;
         gap: var(--space-2, 8px);
@@ -1953,7 +1954,7 @@
         color: var(--color-ferni, #4a6741);
       }
       
-      .memory-demo__card--ferni .memory-demo__avatar {
+      .memory-demo__interactive .memory-demo__card--ferni .memory-demo__avatar {
         width: 28px;
         height: 28px;
         background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
@@ -1966,37 +1967,37 @@
         font-weight: 700;
       }
       
-      .memory-demo__insights {
+      .memory-demo__interactive .memory-demo__insights {
         margin: 0;
         padding: 0;
         list-style: none;
       }
       
-      .memory-demo__insights li {
+      .memory-demo__interactive .memory-demo__insights li {
         padding: var(--space-1_5, 6px) 0;
         font-size: var(--text-sm, 13px);
         color: var(--color-text-primary, #2c2520);
         border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
       }
       
-      .memory-demo__insights li:last-child {
+      .memory-demo__interactive .memory-demo__insights li:last-child {
         border-bottom: none;
       }
       
-      .memory-demo__connection {
+      .memory-demo__interactive .memory-demo__connection {
         grid-column: 1 / -1;
         text-align: center;
         padding: var(--space-4, 16px);
       }
       
-      .memory-demo__line {
+      .memory-demo__interactive .memory-demo__line {
         display: block;
         margin: 0 auto var(--space-2, 10px);
         width: 200px;
         color: var(--color-ferni, #4a6741);
       }
       
-      .memory-demo__connection span {
+      .memory-demo__interactive .memory-demo__connection span {
         font-size: var(--text-xs, 12px);
         color: var(--color-text-muted, #70605a);
         text-transform: uppercase;

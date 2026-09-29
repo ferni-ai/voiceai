@@ -397,11 +397,17 @@
     });
     
     // ========== COOKIE CONSENT ==========
+    // Floating UI (chat pill, toasts, sticky CTA) offsets itself by this.
+    function setFloatingOffset(px) {
+      document.documentElement.style.setProperty('--floating-offset', px + 'px');
+    }
+
     window.handleCookies = function(accepted) {
       localStorage.setItem('ferni_cookies', accepted ? 'accepted' : 'declined');
       var banner = document.getElementById('cookieBanner');
       banner.classList.remove('is-visible');
       banner.classList.add('is-hidden');
+      setFloatingOffset(0);
       
       if (accepted && typeof gtag === 'function') {
         gtag('consent', 'update', {
@@ -414,7 +420,12 @@
     const cookieChoice = localStorage.getItem('ferni_cookies');
     if (!cookieChoice) {
       setTimeout(() => {
-        document.getElementById('cookieBanner').classList.add('is-visible');
+        const banner = document.getElementById('cookieBanner');
+        banner.classList.add('is-visible');
+        setFloatingOffset(banner.offsetHeight);
+        window.addEventListener('resize', () => {
+          if (banner.classList.contains('is-visible')) setFloatingOffset(banner.offsetHeight);
+        }, { passive: true });
       }, 2000);
     }
     

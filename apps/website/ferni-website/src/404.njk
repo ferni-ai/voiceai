@@ -16,7 +16,15 @@ permalink: /404.html
           <div class="hero-ferni__ring hero-ferni__ring--outer"></div>
           <div class="hero-ferni__ring hero-ferni__ring--inner"></div>
           <div class="hero-ferni__orb">
-            <span class="hero-ferni__text">?</span>
+            {# Eyes glance left, right, then up — "hmm, where did that page go?" #}
+            <svg class="ferni-eyes-svg error-hero__eyes" viewBox="0 0 100 100">
+              <g class="error-hero__gaze">
+                <ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/>
+                <circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/>
+                <ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/>
+                <circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/>
+              </g>
+            </svg>
           </div>
         </div>
 
@@ -81,22 +89,46 @@ permalink: /404.html
   50% { transform: rotate(5deg); }
 }
 
-.error-hero .hero-ferni__text {
-  font-size: var(--text-h1);
+.error-hero__eyes {
+  width: 64%;
+  height: 64%;
+}
+
+.error-hero__gaze {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: error-gaze 6s ease-in-out infinite;
+}
+
+/* Look left, look right, glance up, blink — a curious search */
+@keyframes error-gaze {
+  0%, 12%   { transform: translate(0, 0) scaleY(1); }
+  18%, 30%  { transform: translate(-7px, 1px) scaleY(1); }
+  36%, 48%  { transform: translate(7px, 1px) scaleY(1); }
+  54%, 66%  { transform: translate(0, -5px) scaleY(1); }
+  70%       { transform: translate(0, -5px) scaleY(0.1); }
+  74%, 100% { transform: translate(0, 0) scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .error-hero .hero-ferni--confused,
+  .error-hero__gaze {
+    animation: none;
+  }
 }
 
 .error-hero__headline {
   font-family: var(--font-display);
   font-size: var(--text-display-sm);
   font-weight: 800;
-  color: var(--color-natural-ink);
+  color: var(--color-text-primary);
   margin-bottom: var(--space-4);
   letter-spacing: -0.02em;
 }
 
 .error-hero__subhead {
   font-size: var(--text-lg);
-  color: var(--color-stone);
+  color: var(--color-text-secondary);
   margin-bottom: var(--space-8);
   line-height: 1.6;
 }
@@ -111,12 +143,12 @@ permalink: /404.html
 
 .error-hero__suggestions {
   padding-top: var(--space-8);
-  border-top: 1px solid var(--color-sand);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .error-hero__suggestions-label {
   font-size: var(--text-sm);
-  color: var(--color-stone);
+  color: var(--color-text-secondary);
   margin-bottom: var(--space-4);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -130,14 +162,14 @@ permalink: /404.html
 }
 
 .error-hero__link {
-  color: var(--color-ferni-green);
+  color: var(--color-accent);
   font-weight: 500;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .error-hero__link:hover {
-  color: var(--color-forest-green);
+  color: var(--color-accent-hover);
   text-decoration: underline;
 }
 

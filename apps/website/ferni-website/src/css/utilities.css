@@ -117,35 +117,8 @@ code {
 }
 
 /* ============================================================================
-   CINEMATIC UTILITIES (Google Flow inspired)
+   VIDEO HERO
    ============================================================================ */
-
-/* Hero Typography */
-.text-hero {
-  font-size: var(--text-hero);
-  font-family: var(--font-display);
-  font-weight: 800;
-  line-height: var(--leading-hero);
-  letter-spacing: var(--tracking-hero);
-}
-
-.text-hero-sm {
-  font-size: var(--text-hero-sm);
-  font-family: var(--font-display);
-  font-weight: 700;
-  line-height: var(--leading-hero);
-  letter-spacing: var(--tracking-display);
-}
-
-/* Cinematic Backgrounds */
-.bg-cinematic {
-  background-color: var(--color-cinematic-black);
-  color: var(--color-cinematic-text);
-}
-
-.bg-cinematic-deep {
-  background-color: var(--color-cinematic-deep);
-}
 
 /* Video Hero */
 .hero-video-container {
@@ -168,110 +141,6 @@ code {
   inset: 0;
   background: var(--color-cinematic-overlay-vignette);
   pointer-events: none;
-}
-
-/* Glass Button (Google Flow style) */
-.btn-glass {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 16px 32px;
-  background: var(--glass-btn-bg);
-  backdrop-filter: blur(var(--glass-btn-blur)) saturate(120%);
-  -webkit-backdrop-filter: blur(var(--glass-btn-blur)) saturate(120%);
-  border: var(--glass-btn-border);
-  border-radius: var(--radius-full);
-  color: var(--color-cinematic-text);
-  font-family: var(--font-body);
-  font-size: var(--text-base);
-  font-weight: 500;
-  text-decoration: none;
-  box-shadow: var(--glass-btn-shadow);
-  transition: all var(--duration-normal) var(--ease-out);
-  cursor: pointer;
-}
-
-.btn-glass:hover {
-  background: var(--glass-btn-bg-hover);
-  border: var(--glass-btn-border-hover);
-  transform: translateY(-2px);
-}
-
-/* Text Gradient */
-.text-gradient-light {
-  background: linear-gradient(135deg, var(--color-text-inverse) 0%, rgba(255, 255, 255, 0.7) 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* Text Glow */
-.text-glow {
-  text-shadow: 
-    0 0 20px rgba(255, 255, 255, 0.3),
-    0 0 40px rgba(255, 255, 255, 0.1);
-}
-
-/* Portal Mask */
-.portal-mask {
-  clip-path: circle(25% at 50% 50%);
-  transition: clip-path 600ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.portal-mask:hover {
-  clip-path: circle(60% at 50% 50%);
-}
-
-/* Cinematic Section */
-.section-cinematic {
-  position: relative;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--color-cinematic-black);
-  color: var(--color-cinematic-text);
-}
-
-/* Minimal Navigation */
-.nav-minimal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--space-8);
-  background: transparent;
-  transition: all 300ms ease;
-}
-
-.nav-minimal.scrolled {
-  height: 56px;
-  background: rgba(10, 10, 10, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-
-/* Responsive Cinematic */
-@media (max-width: 768px) {
-  .text-hero {
-    font-size: clamp(2.5rem, 12vw, 8rem);
-  }
-  
-  .text-hero-sm {
-    font-size: clamp(1.75rem, 8vw, 4rem);
-  }
-  
-  .btn-glass {
-    padding: 14px 24px;
-    font-size: var(--text-sm);
-  }
 }
 
 /* ============================================================================

@@ -3528,7 +3528,7 @@ html {
 .mobile-cta {
   display: none;
   position: fixed;
-  bottom: 0;
+  bottom: var(--floating-offset, 0px);
   left: 0;
   right: 0;
   padding: var(--space-4);
@@ -4455,6 +4455,8 @@ html {
    COOKIE CONSENT BANNER
    ============================================ */
 
+/* While visible, the banner publishes its height as --floating-offset
+   (story-brand.njk) so the chat pill, toasts and sticky CTA sit above it. */
 .cookie-banner {
   position: fixed;
   bottom: 0;
@@ -6538,7 +6540,7 @@ body[data-time-of-day='early-morning'] {
 /* Floating toast messages (scroll love, idle messages) */
 .ferni-toast {
   position: fixed;
-  bottom: 100px;
+  bottom: calc(100px + var(--floating-offset, 0px));
   left: 50%;
   transform: translateX(-50%) translateY(20px);
   z-index: 9999;

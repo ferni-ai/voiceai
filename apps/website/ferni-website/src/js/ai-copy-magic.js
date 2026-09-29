@@ -869,6 +869,9 @@
     style.textContent = `
       .ai-hover-insight {
         position: absolute;
+        /* Park at the origin until shown so it never extends the page height */
+        top: 0;
+        left: 0;
         z-index: 10000;
         display: flex;
         align-items: center;

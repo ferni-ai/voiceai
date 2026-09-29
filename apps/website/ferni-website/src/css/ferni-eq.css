@@ -11,6 +11,19 @@
  * 5. Anticipatory Emotions (reading the future)
  */
 
+/* EQ easing roles → shared easing tokens (_tokens.css). Without these the
+   animation shorthands below were invalid and silently dropped. */
+:root {
+  --ease-micro-flash: var(--ease-sharp);
+  --ease-nod: var(--ease-gentle);
+  --ease-lean: var(--ease-gentle);
+  --ease-breathe: var(--ease-smooth);
+  --ease-concern: var(--ease-standard);
+  --ease-warmth: var(--ease-spring-gentle);
+  --ease-recognition: var(--ease-decelerate);
+  --ease-anticipate-emotion: var(--ease-organic);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    1. MICRO-EXPRESSIONS - Subliminal Trust Building
    Duration: 40-150ms (below conscious perception)

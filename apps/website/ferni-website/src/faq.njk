@@ -3,9 +3,12 @@ layout: layouts/story-brand.njk
 title: FAQ
 description: Questions people ask. Honest answers.
 permalink: /faq/
+styles:
+  - faq-page.css
+structuredData: '{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is this actually AI?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Ferni is powered by advanced AI. But we built it to feel human\u2014warm, present, and genuinely helpful. Not robotic. Not scripted. Just thoughtful."}}, {"@type": "Question", "name": "Is this therapy?", "acceptedAnswer": {"@type": "Answer", "text": "No. Ferni is a life coaching companion\u2014great for day-to-day support, goal-setting, habit building, and talking through decisions. For clinical mental health needs, please work with a licensed professional. Ferni complements professional help but isn''t a substitute for it."}}, {"@type": "Question", "name": "What about privacy?", "acceptedAnswer": {"@type": "Answer", "text": "Your conversations are yours. We use end-to-end encryption, don''t sell your data, and don''t use your conversations to train AI models. Your privacy isn''t a feature\u2014it''s a promise."}}, {"@type": "Question", "name": "Who are the \"team members\"?", "acceptedAnswer": {"@type": "Answer", "text": "Six AI specialists with distinct personalities and expertise. Ferni (Life Coach), Peter (Research), Alex (Communication), Maya (Habits), Jordan (Planning), and Nayan (Wisdom). They hand off naturally based on what you need."}}, {"@type": "Question", "name": "How is this different from ChatGPT?", "acceptedAnswer": {"@type": "Answer", "text": "ChatGPT is a general assistant. Ferni is purpose-built for personal growth conversations. We have persistent memory across all conversations, six specialized personas, voice-first design, and a relationship that deepens over time. We''re not trying to help you write emails\u2014we''re trying to help you grow."}}, {"@type": "Question", "name": "What if I want to take a break?", "acceptedAnswer": {"@type": "Answer", "text": "Take all the time you need. Ferni remembers everything when you come back. There are no contracts or commitments. We want you to stay because this relationship helps you grow, not because you''re locked in."}}, {"@type": "Question", "name": "Can I talk about anything?", "acceptedAnswer": {"@type": "Answer", "text": "Almost. Ferni is designed for personal growth, life decisions, stress, relationships, habits, and self-reflection. We''re not built for medical advice, legal counsel, or crisis intervention. If you''re in crisis, please reach out to professional services."}}]}'
 ---
 
-<main class="story-page faq-page">
+<main id="main-content" class="story-page faq-page">
 
   {# Hero #}
   <section class="story-page__hero" style="min-height: 40vh;">
@@ -19,69 +22,61 @@ permalink: /faq/
   <section class="faq-page__content">
     <div class="container container--narrow">
 
-      <div class="faq-page__item">
-        <h2 class="faq-page__question">Is this actually AI?</h2>
-        <p class="faq-page__answer">
-          Yes. Ferni is powered by advanced AI. But we built it to feel human—warm, present, 
-          and genuinely helpful. Not robotic. Not scripted. Just thoughtful.
-        </p>
-      </div>
+      <details class="faq-page__item" open>
+        <summary class="faq-page__question">
+          <span>Is this actually AI?</span>
+          <svg class="faq-page__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="faq-page__answer">Yes. Ferni is powered by advanced AI. But we built it to feel human—warm, present, and genuinely helpful. Not robotic. Not scripted. Just thoughtful.</p>
+      </details>
 
-      <div class="faq-page__item">
-        <h2 class="faq-page__question">Is this therapy?</h2>
-        <p class="faq-page__answer">
-          No. Ferni is a life coaching companion—great for day-to-day support, goal-setting, 
-          habit building, and talking through decisions. For clinical mental health needs, 
-          please work with a licensed professional. Ferni complements professional help 
-          but isn't a substitute for it.
-        </p>
-      </div>
+      <details class="faq-page__item">
+        <summary class="faq-page__question">
+          <span>Is this therapy?</span>
+          <svg class="faq-page__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="faq-page__answer">No. Ferni is a life coaching companion—great for day-to-day support, goal-setting, habit building, and talking through decisions. For clinical mental health needs, please work with a licensed professional. Ferni complements professional help but isn't a substitute for it.</p>
+      </details>
 
-      <div class="faq-page__item">
-        <h2 class="faq-page__question">What about privacy?</h2>
-        <p class="faq-page__answer">
-          Your conversations are yours. We use end-to-end encryption, don't sell your data, 
-          and don't use your conversations to train AI models. Your privacy isn't a feature—it's a promise.
-        </p>
-      </div>
+      <details class="faq-page__item">
+        <summary class="faq-page__question">
+          <span>What about privacy?</span>
+          <svg class="faq-page__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="faq-page__answer">Your conversations are yours. We use end-to-end encryption, don't sell your data, and don't use your conversations to train AI models. Your privacy isn't a feature—it's a promise.</p>
+      </details>
 
-      <div class="faq-page__item">
-        <h2 class="faq-page__question">Who are the "team members"?</h2>
-        <p class="faq-page__answer">
-          Six AI specialists with distinct personalities and expertise. <strong>Ferni</strong> (Life Coach), 
-          <strong>Peter</strong> (Research), <strong>Alex</strong> (Communication), 
-          <strong>Maya</strong> (Habits), <strong>Jordan</strong> (Planning), 
-          and <strong>Nayan</strong> (Wisdom). They hand off naturally based on what you need.
-        </p>
-      </div>
+      <details class="faq-page__item">
+        <summary class="faq-page__question">
+          <span>Who are the "team members"?</span>
+          <svg class="faq-page__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="faq-page__answer">Six AI specialists with distinct personalities and expertise. <strong>Ferni</strong> (Life Coach), <strong>Peter</strong> (Research), <strong>Alex</strong> (Communication), <strong>Maya</strong> (Habits), <strong>Jordan</strong> (Planning), and <strong>Nayan</strong> (Wisdom). They hand off naturally based on what you need.</p>
+      </details>
 
-      <div class="faq-page__item">
-        <h2 class="faq-page__question">How is this different from ChatGPT?</h2>
-        <p class="faq-page__answer">
-          ChatGPT is a general assistant. Ferni is purpose-built for personal growth conversations. 
-          We have persistent memory across all conversations, six specialized personas, 
-          voice-first design, and a relationship that deepens over time. We're not trying to 
-          help you write emails—we're trying to help you grow.
-        </p>
-      </div>
+      <details class="faq-page__item">
+        <summary class="faq-page__question">
+          <span>How is this different from ChatGPT?</span>
+          <svg class="faq-page__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="faq-page__answer">ChatGPT is a general assistant. Ferni is purpose-built for personal growth conversations. We have persistent memory across all conversations, six specialized personas, voice-first design, and a relationship that deepens over time. We're not trying to help you write emails—we're trying to help you grow.</p>
+      </details>
 
-      <div class="faq-page__item">
-        <h2 class="faq-page__question">What if I want to take a break?</h2>
-        <p class="faq-page__answer">
-          Take all the time you need. Ferni remembers everything when you come back. 
-          There are no contracts or commitments. We want you to stay because this 
-          relationship helps you grow, not because you're locked in.
-        </p>
-      </div>
+      <details class="faq-page__item">
+        <summary class="faq-page__question">
+          <span>What if I want to take a break?</span>
+          <svg class="faq-page__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="faq-page__answer">Take all the time you need. Ferni remembers everything when you come back. There are no contracts or commitments. We want you to stay because this relationship helps you grow, not because you're locked in.</p>
+      </details>
 
-      <div class="faq-page__item">
-        <h2 class="faq-page__question">Can I talk about anything?</h2>
-        <p class="faq-page__answer">
-          Almost. Ferni is designed for personal growth, life decisions, stress, relationships, 
-          habits, and self-reflection. We're not built for medical advice, legal counsel, 
-          or crisis intervention. If you're in crisis, please reach out to professional services.
-        </p>
-      </div>
+      <details class="faq-page__item">
+        <summary class="faq-page__question">
+          <span>Can I talk about anything?</span>
+          <svg class="faq-page__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="faq-page__answer">Almost. Ferni is designed for personal growth, life decisions, stress, relationships, habits, and self-reflection. We're not built for medical advice, legal counsel, or crisis intervention. If you're in crisis, please reach out to professional services.</p>
+      </details>
 
     </div>
   </section>
