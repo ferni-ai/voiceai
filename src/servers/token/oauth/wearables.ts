@@ -15,6 +15,7 @@
  */
 
 import crypto from 'crypto';
+import { publicUrl } from '../../../config/api-urls.js';
 import type { OAuthTokens } from '../../shared/types.js';
 import type { WearableProvider } from '../../../services/wearable-integration/types.js';
 import { encryptData, decryptData } from '../../shared/encryption.js';
@@ -78,7 +79,7 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     ],
     redirectUri:
       process.env.FITBIT_REDIRECT_URI ||
-      `http://localhost:${process.env.PORT || 3002}/wearables/fitbit/callback`,
+      publicUrl('/wearables/fitbit/callback'),
   },
   oura: {
     clientId: process.env.OURA_CLIENT_ID,
@@ -88,7 +89,7 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     scopes: ['daily', 'heartrate', 'session', 'sleep', 'workout', 'personal'],
     redirectUri:
       process.env.OURA_REDIRECT_URI ||
-      `http://localhost:${process.env.PORT || 3002}/wearables/oura/callback`,
+      publicUrl('/wearables/oura/callback'),
   },
   garmin: {
     clientId: process.env.GARMIN_CLIENT_ID,
@@ -100,7 +101,7 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     scopes: ['health_export', 'activity_export', 'sleep_export', 'heart_rate_export'],
     redirectUri:
       process.env.GARMIN_REDIRECT_URI ||
-      `http://localhost:${process.env.PORT || 3002}/wearables/garmin/callback`,
+      publicUrl('/wearables/garmin/callback'),
     // Note: Garmin Health API requires PKCE. The buildAuthUrl function handles this.
     usesPKCE: true,
   },
@@ -112,7 +113,7 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     scopes: ['read:profile', 'read:cycles', 'read:recovery', 'read:sleep', 'read:workout'],
     redirectUri:
       process.env.WHOOP_REDIRECT_URI ||
-      `http://localhost:${process.env.PORT || 3002}/wearables/whoop/callback`,
+      publicUrl('/wearables/whoop/callback'),
   },
   eight_sleep: {
     clientId: process.env.EIGHT_SLEEP_CLIENT_ID,
@@ -122,7 +123,7 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     scopes: ['user:read', 'sleep:read', 'bed:read'],
     redirectUri:
       process.env.EIGHT_SLEEP_REDIRECT_URI ||
-      `http://localhost:${process.env.PORT || 3002}/wearables/eight_sleep/callback`,
+      publicUrl('/wearables/eight_sleep/callback'),
   },
 };
 

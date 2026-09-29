@@ -6,6 +6,7 @@
  */
 
 import type { OAuthTokens } from '../../shared/types.js';
+import { publicUrl } from '../../../config/api-urls.js';
 import { encryptData, decryptData } from '../../shared/encryption.js';
 import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
@@ -17,8 +18,7 @@ const log = createLogger({ module: 'SpotifyOAuth' });
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const SPOTIFY_REDIRECT_URI =
-  process.env.SPOTIFY_REDIRECT_URI ||
-  `http://localhost:${process.env.PORT || 3002}/spotify/callback`;
+  process.env.SPOTIFY_REDIRECT_URI || publicUrl('/spotify/callback');
 
 /**
  * Spotify OAuth token response

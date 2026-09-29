@@ -13,6 +13,7 @@
  */
 
 import crypto from 'node:crypto';
+import { publicUrl } from '../../config/api-urls.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -25,7 +26,7 @@ import { getRateLimiter } from '../../tools/rate-limiter.js';
 const GOOGLE_OAUTH_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || '';
 const GOOGLE_OAUTH_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || '';
 const GOOGLE_OAUTH_REDIRECT_URI =
-  process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'http://localhost:3003/auth/google/callback';
+  process.env.GOOGLE_CALENDAR_REDIRECT_URI || publicUrl('/auth/google/callback');
 
 // Scopes needed for calendar and email operations
 // NOTE: Gmail scope is read-only for security

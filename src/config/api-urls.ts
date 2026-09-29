@@ -8,6 +8,25 @@
  */
 
 // ============================================================================
+// PUBLIC ORIGIN (OAuth redirects, webhooks)
+// ============================================================================
+
+/**
+ * Public origin that browsers and providers reach this API through
+ * (Firebase Hosting rewrites app.ferni.ai/{api,auth,spotify,wearables}/** to
+ * Cloud Run). Set PUBLIC_URL in deploys; production falls back to app.ferni.ai,
+ * everything else to the local UI server.
+ */
+export function publicUrl(path = ''): string {
+  const base =
+    process.env.PUBLIC_URL ||
+    (process.env.NODE_ENV === 'production'
+      ? 'https://app.ferni.ai'
+      : `http://localhost:${process.env.PORT || 3002}`);
+  return base.replace(/\/$/, '') + path;
+}
+
+// ============================================================================
 // MODEL PROVIDERS (local / pipeline servers)
 // ============================================================================
 

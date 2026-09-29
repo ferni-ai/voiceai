@@ -327,329 +327,6 @@ function spawnAsync(cmd: string, logFile: string): ChildProcess {
   return child;
 }
 
-async function deployAgent(options: DeployOptions): Promise<boolean> {
-  log.step('DEPLOYING VOICE AGENT (BLUE-GREEN)');
-
-  if (options.dryRun) {
-    log.info(`Would build: gcloud builds submit --config ${CONFIG.cloudbuildAgent} .`);
-    log.info(`Would deploy with --no-traffic --tag=green`);
-    log.info(`Would health check green revision`);
-    log.info(`Would shift 100% traffic if healthy`);
-    return true;
-  }
-
-  const serviceName = CONFIG.services.agent;
-
-  // Build secrets string
-  const secrets = [
-    'GOOGLE_API_KEY=google-api-key:latest',
-    'CARTESIA_API_KEY=cartesia-api-key:latest',
-    'LIVEKIT_URL=livekit-url:latest',
-    'LIVEKIT_API_KEY=livekit-api-key:latest',
-    'LIVEKIT_API_SECRET=livekit-api-secret:latest',
-    // Security secrets (required in production)
-    'ADMIN_KEY=admin-api-key:latest',
-    'LOG_HASH_SECRET=log-hash-secret:latest',
-    'EVALOPS_ADMIN_KEY=evalops-admin-key:latest',
-    // Redis for persistent rate limiting
-    'REDIS_URL=redis-url:latest',
-    // Spotify (for music playback)
-    'SPOTIFY_CLIENT_ID=spotify-client-id:latest',
-    'SPOTIFY_CLIENT_SECRET=spotify-client-secret:latest',
-    'SPOTIFY_REFRESH_TOKEN=spotify-refresh-token:latest',
-  ];
-
-  // Check for optional secrets (only in sync mode - async skips this)
-  if (!options.async) {
-    const optionalSecrets = [
-      ['alpha-vantage-key', 'ALPHA_VANTAGE_API_KEY'],
-      ['finnhub-api-key', 'FINNHUB_API_KEY'],
-      ['sendgrid-api-key', 'SENDGRID_API_KEY'],
-      ['fred-api-key', 'FRED_API_KEY'],
-    ];
-
-    for (const [secretName, envVar] of optionalSecrets) {
-      try {
-        exec(`gcloud secrets describe ${secretName}`, { silent: true });
-        secrets.push(`${envVar}=${secretName}:latest`);
-      } catch {
-        // Secret doesn't exist, skip
-      }
-    }
-  }
-
-  const buildCmd = `gcloud builds submit --config ${CONFIG.cloudbuildAgent} . --quiet`;
-
-  // Deploy with --no-traffic and --tag=green for blue-green
-  const deployCmd = [
-    `gcloud run deploy ${serviceName}`,
-    `--image gcr.io/${CONFIG.projectId}/ferni-voice-agent:latest`,
-    `--region ${CONFIG.region}`,
-    '--platform managed',
-    '--allow-unauthenticated',
-    '--memory 4Gi',
-    '--cpu 4',
-    '--cpu-boost',
-    '--timeout 3600',
-    '--concurrency 10',
-    '--min-instances 1',
-    '--max-instances 50',
-    '--vpc-connector ferni-redis-connector',
-    `--set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app,https://developers.ferni.ai,https://marketplace.ferni.ai,https://www.ferni.ai@BYPASS_TEAM_UNLOCKS=true"`,
-    `--set-secrets "${secrets.join(',')}"`,
-    '--no-traffic', // Blue-green: deploy without receiving traffic
-    '--tag green', // Tag for easy identification
-    '--quiet',
-  ].join(' ');
-
-  if (options.async) {
-    // Async mode: Build script that does full blue-green
-    const logFile = getLogFilePath('agent');
-    const secretsStr = secrets.join(',');
-    const blueGreenScript = `
-      set -e
-      echo "🔵 BLUE-GREEN DEPLOYMENT: ${serviceName}"
-      echo ""
-      echo "Step 1/5: Building container image..."
-      ${buildCmd}
-
-      echo ""
-      echo "Step 2/5: Deploying to Cloud Run (no traffic)..."
-      gcloud run deploy ${serviceName} \\
-        --image gcr.io/${CONFIG.projectId}/ferni-voice-agent:latest \\
-        --region ${CONFIG.region} \\
-        --platform managed \\
-        --execution-environment gen2 \\
-        --allow-unauthenticated \\
-        --memory 4Gi \\
-        --cpu 4 \\
-        --cpu-boost \\
-        --timeout 3600 \\
-        --concurrency 10 \\
-        --min-instances 1 \\
-        --max-instances 50 \\
-        --vpc-connector ferni-redis-connector \\
-        --set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app,https://developers.ferni.ai,https://marketplace.ferni.ai,https://www.ferni.ai@BYPASS_TEAM_UNLOCKS=true" \\
-        --set-secrets "${secretsStr}" \\
-        --no-traffic \\
-        --tag green \\
-        --quiet
-
-      echo ""
-      echo "Step 3/5: Liveness check (server responding)..."
-      REVISION=\$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --limit=1 --format='value(name)')
-      GREEN_URL="https://green---${serviceName}-1031920444452.${CONFIG.region}.run.app"
-
-      MAX_RETRIES=10
-      RETRY_DELAY=5
-
-      for i in \$(seq 1 \$MAX_RETRIES); do
-        echo "  Liveness check attempt \$i/\$MAX_RETRIES..."
-        HTTP_CODE=\$(curl -s -o /dev/null -w "%{http_code}" "\$GREEN_URL/health" --max-time 10 || echo "000")
-
-        if [ "\$HTTP_CODE" = "200" ]; then
-          echo "  ✅ Liveness check passed (HTTP \$HTTP_CODE)"
-          break
-        fi
-
-        if [ "\$i" = "\$MAX_RETRIES" ]; then
-          echo "  ❌ Liveness check failed after \$MAX_RETRIES attempts"
-          echo "  Keeping traffic on previous revision"
-          gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
-          exit 1
-        fi
-
-        echo "  ⏳ Waiting \$RETRY_DELAY seconds before retry (HTTP \$HTTP_CODE)..."
-        sleep \$RETRY_DELAY
-      done
-
-      echo ""
-      echo "Step 4/5: Worker readiness check (waiting for workers to accept calls)..."
-      echo "  This ensures zero-downtime - traffic shifts only when workers are ready"
-      
-      READY_MAX_RETRIES=30
-      READY_RETRY_DELAY=10
-      
-      for i in \$(seq 1 \$READY_MAX_RETRIES); do
-        echo "  Readiness check attempt \$i/\$READY_MAX_RETRIES..."
-        
-        # Get detailed readiness status
-        READY_RESPONSE=\$(curl -s "\$GREEN_URL/health/ready" --max-time 15 || echo '{"ready":false}')
-        
-        # Simple string check - if response contains "ready":true, we're good
-        if echo "\$READY_RESPONSE" | grep -q '"ready":true'; then
-          echo "  ✅ Workers ready!"
-          break
-        fi
-
-        if [ "\$i" = "\$READY_MAX_RETRIES" ]; then
-          echo "  ❌ Workers not ready after \$READY_MAX_RETRIES attempts (5 min timeout)"
-          echo "  Last response: \$READY_RESPONSE"
-          echo "  Keeping traffic on previous revision"
-          gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
-          exit 1
-        fi
-
-        echo "  ⏳ Workers initializing... (retry in \$READY_RETRY_DELAY s)"
-        sleep \$READY_RETRY_DELAY
-      done
-
-      echo ""
-      echo "Step 5/6: Shifting 100% traffic to ready revision..."
-      gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --to-revisions=\$REVISION=100 --quiet
-      SERVICE_URL=\$(gcloud run services describe ${serviceName} --region=${CONFIG.region} --format='value(status.url)')
-
-      # Clean up green tag
-      gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
-
-      echo ""
-      echo "Step 6/6: Cleaning up old revisions (CRITICAL for LiveKit voice agents)..."
-      echo "  ⚠️  Old revisions with min-instances>0 stay running even with 0% traffic"
-      echo "  ⚠️  They register with LiveKit but have stale WebSocket connections"
-      echo "  ⚠️  LiveKit dispatches jobs to ALL workers, including these zombies"
-      echo "  ⚠️  Result: Jobs fail because old workers can't actually process them"
-      echo ""
-      
-      # Wait a moment for traffic to fully shift
-      sleep 5
-      
-      # Get the current revision that has 100% traffic
-      CURRENT_REVISION=\$(gcloud run services describe ${serviceName} --region=${CONFIG.region} --format='value(status.traffic[0].revisionName)')
-      echo "  Current active revision: \$CURRENT_REVISION"
-      
-      # Delete ALL other revisions - we only want ONE revision running for voice agents
-      ALL_REVISIONS=\$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --format='value(name)')
-      DELETED_COUNT=0
-      
-      for rev in \$ALL_REVISIONS; do
-        if [ "\$rev" != "\$CURRENT_REVISION" ]; then
-          echo "  Deleting zombie revision: \$rev"
-          if gcloud run revisions delete \$rev --region=${CONFIG.region} --quiet 2>/dev/null; then
-            DELETED_COUNT=\$((DELETED_COUNT + 1))
-          else
-            echo "    (could not delete \$rev - may be the 'latest' revision marker)"
-          fi
-        fi
-      done
-      
-      if [ \$DELETED_COUNT -gt 0 ]; then
-        echo "  ✅ Deleted \$DELETED_COUNT zombie revision(s)"
-      else
-        echo "  ✅ No zombie revisions found"
-      fi
-      
-      # Verify only one revision is running
-      REVISION_COUNT=\$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --format='value(name)' | wc -l | tr -d ' ')
-      echo ""
-      echo "  📊 Revision count: \$REVISION_COUNT (should be 1-2)"
-      
-      if [ \$REVISION_COUNT -gt 2 ]; then
-        echo "  ⚠️  WARNING: Multiple revisions still running. May need manual cleanup:"
-        echo "     gcloud run revisions list --service=${serviceName} --region=${CONFIG.region}"
-      fi
-
-      echo ""
-      echo "🟢 ZERO-DOWNTIME DEPLOYMENT COMPLETE"
-      echo "  Revision: \$REVISION"
-      echo "  URL: \$SERVICE_URL"
-      echo "  Status: Workers verified ready before traffic shift"
-      echo "  Zombies: Cleaned up"
-    `;
-
-    log.info('Starting async blue-green deployment...');
-    spawnAsync(blueGreenScript, logFile);
-
-    console.log(`
-${colors.green}✓${colors.reset} Blue-green deployment started in background!
-
-${colors.bold}What's happening:${colors.reset}
-  1. Build container image
-  2. Deploy new revision (no traffic)
-  3. Liveness check (server responding)
-  4. Readiness check (workers accepting calls) ← NEW!
-  5. Shift traffic only when workers ready
-  6. Zero-downtime guaranteed!
-
-${colors.bold}Monitor progress:${colors.reset}
-  ${colors.cyan}tail -f ${logFile}${colors.reset}
-
-${colors.bold}Or check Cloud Build:${colors.reset}
-  ${colors.cyan}gcloud builds list --limit=1${colors.reset}
-`);
-    return true;
-  }
-
-  // Synchronous blue-green deployment
-  log.info('Building container image...');
-  exec(buildCmd);
-
-  log.info('Deploying to Cloud Run (no traffic)...');
-  exec(deployCmd);
-
-  // Get the new revision name
-  const newRevision = getLatestRevision(serviceName);
-  if (!newRevision) {
-    log.error('Failed to get new revision name');
-    return false;
-  }
-  log.info(`New revision: ${newRevision}`);
-
-  // Step 1: Liveness check - server is responding
-  log.info('Liveness check (server responding)...');
-  const greenUrl = getRevisionUrlByTag(serviceName, 'green');
-  const healthUrl = `${greenUrl}/health`;
-  log.info(`Checking: ${healthUrl}`);
-
-  const health = await healthCheck(healthUrl, { maxRetries: 10, retryDelay: 5000 });
-
-  if (!health.healthy) {
-    log.error(`Liveness check failed: ${health.error}`);
-    log.warn('Keeping traffic on previous revision');
-    removeTag(serviceName, 'green');
-    return false;
-  }
-
-  log.success(`Liveness check passed (HTTP ${health.statusCode})`);
-
-  // Step 2: Readiness check - workers can accept connections
-  log.info('Readiness check (waiting for workers to accept calls)...');
-  const readyUrl = `${greenUrl}/health/ready`;
-  log.info(`Checking: ${readyUrl}`);
-
-  // More retries for readiness - workers can take time to initialize
-  const readiness = await healthCheck(readyUrl, { maxRetries: 30, retryDelay: 10000 });
-
-  if (!readiness.healthy) {
-    log.error(`Readiness check failed: ${readiness.error}`);
-    log.warn('Workers not ready after 5 minutes - keeping traffic on previous revision');
-    removeTag(serviceName, 'green');
-    return false;
-  }
-
-  log.success('Workers ready to accept calls');
-
-  // Step 3: Shift traffic - only now that workers are verified ready
-  log.info('Shifting 100% traffic to ready revision...');
-  if (!shiftTraffic(serviceName, newRevision)) {
-    log.error('Failed to shift traffic');
-    return false;
-  }
-
-  // Clean up green tag
-  removeTag(serviceName, 'green');
-
-  // CRITICAL: Delete old revisions to prevent zombie LiveKit workers
-  // Old revisions with min-instances>0 keep running and stay registered with LiveKit
-  // but have stale WebSocket connections that can't actually process jobs
-  log.info('Cleaning up old revisions (prevents zombie LiveKit workers)...');
-  cleanupOldRevisions(serviceName, 2);
-
-  const url = getServiceUrl(serviceName);
-  log.success(`Zero-downtime deployment complete: ${url}`);
-  log.info('Workers verified ready before traffic shift - no connection issues!');
-  return true;
-}
-
 async function deployUi(options: DeployOptions): Promise<boolean> {
   log.step('DEPLOYING FRONTEND UI (BLUE-GREEN)');
 
@@ -679,8 +356,9 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
     '--min-instances 0',
     '--max-instances 10',
     '--vpc-connector ferni-redis-connector',
-    '--set-env-vars "^@^NODE_ENV=production@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app,https://developers.ferni.ai,https://marketplace.ferni.ai,https://www.ferni.ai@ALLOW_LEGACY_X_USER_ID_AUTH=true@TWILIO_STREAM_WEBHOOK_URL=wss://john-bogle-ui-bmopaivmsq-uc.a.run.app/stream"',
-    '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,REDIS_URL=redis-url:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,GOOGLE_API_KEY=google-api-key:latest,CARTESIA_API_KEY=cartesia-api-key:latest"',
+    // Env + secrets from infra/secrets/ui-service.json: mounts every catalog
+    // secret that exists (set-secrets replaces the whole set) and reports gaps
+    resolveUiServiceFlags(),
     '--no-traffic', // Blue-green: deploy without receiving traffic
     '--tag green', // Tag for easy identification
     '--quiet',
@@ -934,6 +612,19 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
 
 /** Firebase Hosting site serving ferni.ai (see apps/website/ferni-website/firebase.json) */
 const LANDING_SITE = 'ferni-landing';
+
+/**
+ * `--set-env-vars` / `--set-secrets` for john-bogle-ui, resolved from the
+ * secret catalog against what exists in Secret Manager.
+ */
+function resolveUiServiceFlags(): string {
+  const script = join(PROJECT_ROOT, 'scripts/deploy/resolve-secrets.mjs');
+  const report = exec(`node ${script} ui-service --check`, { silent: true });
+  for (const line of report.split('\n').filter((l) => l.includes('missing') || l.includes('MISSING'))) {
+    log.warn(line.trim());
+  }
+  return exec(`node ${script} ui-service --flags`, { silent: true }).trim();
+}
 
 async function deployLanding(options: DeployOptions): Promise<boolean> {
   log.step('DEPLOYING LANDING PAGE (BLUE-GREEN)');
@@ -1647,7 +1338,10 @@ ${colors.cyan}╚═════════════════════
       break;
 
     case 'agent':
-      success = await deployAgent(options);
+      // The voice agent runs on GCE only. A Cloud Run agent registers as a
+      // competing LiveKit worker and silently breaks calls (deleted 2026-02-24).
+      log.warn("'deploy agent' now deploys the voice agent to GCE");
+      success = await deployGce(options);
       break;
 
     case 'gce':
@@ -1686,7 +1380,7 @@ ${colors.cyan}╚═════════════════════
     case 'all':
       if (options.async) {
         // In async mode, start all deployments in parallel
-        await deployAgent(options);
+        await deployGce(options);
         await deployUi(options);
         await deployFrontend(options);
         await deployLanding(options);
@@ -1694,7 +1388,7 @@ ${colors.cyan}╚═════════════════════
         success = true;
       } else {
         success =
-          (await deployAgent(options)) &&
+          (await deployGce(options)) &&
           (await deployUi(options)) &&
           (await deployFrontend(options)) &&
           (await deployLanding(options));

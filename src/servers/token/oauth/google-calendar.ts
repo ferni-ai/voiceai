@@ -6,6 +6,7 @@
  */
 
 import type { OAuthTokens } from '../../shared/types.js';
+import { publicUrl } from '../../../config/api-urls.js';
 import { encryptData, decryptData } from '../../shared/encryption.js';
 import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
@@ -17,8 +18,7 @@ const log = createLogger({ module: 'GoogleCalendarOAuth' });
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI =
-  process.env.GOOGLE_CALENDAR_REDIRECT_URI ||
-  `http://localhost:${process.env.PORT || 3002}/auth/google/callback`;
+  process.env.GOOGLE_CALENDAR_REDIRECT_URI || publicUrl('/auth/google/callback');
 
 /**
  * Google OAuth token response
