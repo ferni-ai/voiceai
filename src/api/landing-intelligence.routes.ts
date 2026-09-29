@@ -39,6 +39,7 @@ import {
 } from '../services/landing-intelligence/lifecycle.js';
 import { getQuickOptimization } from '../services/landing-intelligence/orchestrator.js';
 import { rateLimitExpensive, requireAdmin } from './auth-middleware.js';
+import { handleLandingExperimentRoutes } from './landing-experiments.js';
 import { verifySchedulerRequest } from './scheduled-jobs/scheduler-auth.js';
 import { generateVisitorId } from '../services/landing-intelligence/returning-visitor.js';
 import { createLogger } from '../utils/safe-logger.js';
@@ -564,58 +565,9 @@ export async function handleLandingIntelligenceRoutes(
       return true;
     }
 
-    // ============================================================================
-    // GET /api/landing/experiments/:experimentId/variant - Get variant for experiment/flag
-    // Uses Firestore-backed feature flags (managed via admin dashboard)
-    // ============================================================================
-    if (pathname.match(/^\/api\/landing\/experiments\/[^/]+\/variant$/) && method === 'GET') {
-      const experimentId = pathname.split('/')[4];
-      const url = new URL(req.url || '', 'http://localhost');
-      const userId = url.searchParams.get('userId') || 'anonymous';
-
-      try {
-        // Import the feature flags service (Firestore-backed)
-        const { isEnabled, getFlag: getFlagConfig } = await import('../services/feature-flags.js');
-
-        // Check if flag is enabled for this user (handles percentage rollout internally)
-        const enabled = isEnabled(experimentId as Parameters<typeof isEnabled>[0], userId);
-        const config = getFlagConfig(experimentId as Parameters<typeof isEnabled>[0]);
-
-        sendJSON(res, {
-          variantId: enabled ? 'enabled' : 'control',
-          reason: enabled ? 'enabled_for_user' : 'not_in_rollout',
-          percentage: config.percentage,
-        });
-        return true;
-      } catch (err) {
-        log.warn({ err, experimentId }, 'Failed to check feature flag');
-        // Graceful fallback - default to control
-        sendJSON(res, { variantId: 'control', reason: 'error_fallback' });
-        return true;
-      }
-    }
-
-    // ============================================================================
-    // POST /api/landing/experiments/track/batch - Batch track experiment events
-    // ============================================================================
-    if (pathname === '/api/landing/experiments/track/batch' && method === 'POST') {
-      const { events } = await parseBody<{
-        events: Array<{
-          experimentId: string;
-          variantId: string;
-          userId: string;
-          eventType: string;
-          goalId?: string;
-          value?: number;
-        }>;
-      }>(req);
-
-      // Log events for analytics (stored in Firestore via analytics system)
-      log.info({ eventCount: events?.length || 0 }, 'Received experiment events batch');
-
-      // Just acknowledge for now - analytics system handles storage
-      sendJSON(res, { success: true, received: events?.length || 0 });
-      return true;
+    // Experiments: variant assignment + batch event tracking
+    if (pathname.startsWith('/api/landing/experiments/')) {
+      if (await handleLandingExperimentRoutes(req, res, pathname)) return true;
     }
 
     // ============================================================================

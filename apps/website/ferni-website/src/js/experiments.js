@@ -107,6 +107,8 @@
 
       const params = new URLSearchParams({
         userId: userId,
+        // The API's identity guard strips non-device `userId` params; visitorId is kept
+        visitorId: userId,
         isNewUser: Object.keys(cache).length === 0 ? 'true' : 'false',
         device: device,
       });
