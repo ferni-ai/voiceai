@@ -1,6 +1,7 @@
 # Design System & Brand Audit — September 2026
 
-> Status: **approved** (recommendations accepted, Sep 2026). Phases 1–2 done.
+> Status: **approved** (recommendations accepted, Sep 2026). In progress — see
+> [Progress](#progress) at the end.
 >
 > Correction to D3: Joel has a live persona bundle (`src/personas/bundles/joel-dickson`),
 > so Joel stays as a specialist persona. Only Jack is legacy.
@@ -158,3 +159,16 @@ Generated outputs (all from `design-system/build`, none hand-edited):
 7. **Assets and docs cleanup.** Deduplicate assets into `design-system/assets` and generate the copies at build time. Stop committing `dist/`, `public/design-system` and `_site`. Archive stale plans. Choose the docs site (D7). Update root CLAUDE.md.
 
 Phases 1–2 are independent of D6. Phases 3–7 depend on the D1–D8 answers.
+
+## Progress
+
+| Phase | Status | Notes |
+|---|---|---|
+| 1. Drift gate | ✅ Done | Content-based `tokens:check`; deterministic outputs; `undefined` CSS values fixed |
+| 2. Brand truth | ✅ Done | Logo/eyes/palette/roster docs aligned; `brand:check` enforces doc colors and no pupils |
+| 3. Token consolidation | ◐ Partial | `content/` + `specs/` split, orphans removed, one UI timing scale. **Open:** DTCG conversion + Style Dictionary for CSS; merge `glow-colors`, `responsive` typography/spacing, two breakpoint scales (`spacing.json` 640/768/1024/1280/1536 vs `responsive.json` 768/1024/1440) |
+| 4. Native generation | ✅ Done (unbuilt) | Swift + Kotlin/XML generated; hand copies replaced. **Needs a local Xcode/Gradle build** |
+| 5. Website consumers | ◐ Partial | Marketplace persona pages and ferni-website Tailwind use tokens. **Open (visual review needed):** ferni-website `src/css/tokens.css` (86 values differ from `_tokens.css`, used by the story/legal layouts incl. the homepage) and `brand/master-tokens.css` (~40 showcase pages) |
+| 6. apps/web colors | ◐ Partial | persona-harmony and persona-aura derive from generated tokens. **Open:** `config/semantic-colors.ts` and `mood-palette.ts`/`mood-weight.ts` should become token files (`color-emotional.json`, `typography-emotional.json`); 5,000+ `var()` fallbacks; one owner for theme/brand services |
+| 7. Assets & docs | ☐ Not started | Needs a decision on generating (not committing) `dist/`, `public/design-system` and `_site`, since deploys currently rely on the committed copies |
+
