@@ -63,9 +63,10 @@ A soft radiance that bleeds from the avatar:
 - **Pulse speed** — Faster for excitement, slower for calm
 - **Spread** — How far the glow extends
 
-### 4. Pupil Dilation
+### 4. Eye Openness
 
-The eyes respond unconsciously:
+The eyes respond unconsciously. Ferni's eyes have no pupils (Luxo style), so
+this is expressed through the size and shape of the white eye ellipses:
 - **Contracted** — Thinking, processing
 - **Neutral** — Baseline
 - **Interested** — Engagement

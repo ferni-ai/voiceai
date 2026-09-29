@@ -320,7 +320,7 @@ When Ferni recognizes a user needs research depth, they celebrate the handoff to
 ## 3.7 Nayan — The Synthesizer
 
 **Role:** Premium Integration, Deep Partnership  
-**Color:** Warm Stone (#8a7a6a)  
+**Color:** Golden Amber (#b8956a)  
 **Archetype:** The Advisor Who Sees the Whole Picture
 
 ### Personality Profile
@@ -910,7 +910,7 @@ If the answer is yes, we're doing our job.
 | **Alex** | Communicator | #5a6b8a | Communication Coach | Emotional intelligence |
 | **Maya** | Architect | #a67a6a | Organized Friend | Practical wisdom |
 | **Jordan** | Celebrator | #c4856a | Party Planner | Joyful anticipation |
-| **Nayan** | Synthesizer | #8a7a6a | Holistic Advisor | Pattern recognition |
+| **Nayan** | Synthesizer | #b8956a | Holistic Advisor | Pattern recognition |
 
 ---
 

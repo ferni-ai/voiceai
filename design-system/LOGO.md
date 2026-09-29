@@ -1,232 +1,93 @@
-# Ferni Logo Design System
+# Ferni Logo
 
-## Three Stones Logo 🪨
+The Ferni logo is the **Ferni orb**: a Ferni Sage circle with two Luxo-style
+eyes. It's the same character as the avatar, reduced to its essentials.
 
-The Ferni logo represents **balance, wisdom, and presence** through the metaphor of zen stacked stones.
+> The old "FE" monogram and the single-eye "Three Stones" mark (iris + pupil)
+> are **retired**. If you find either in docs, code or assets, replace it.
 
 ---
 
-## Logo Assets
+## Rules
 
-### SVG Sources (Canonical)
+1. **Eyes are opaque white ellipses. No pupils, no iris.** Expression comes
+   from the eye *shape* (scale/rotation), never from a pupil position.
+2. **Catchlights are allowed**: small white dots inside the eye.
+3. The orb is Ferni Sage `#4a6741` (`--persona-ferni-primary`), optionally
+   with a subtle gradient to a slightly darker sage and a faint outer ring.
+4. Don't recolor the orb outside the variants below, stretch it, rotate it, or
+   add shadows/glows beyond those in the shipped files.
 
-| File                                 | Description                           |
-| ------------------------------------ | ------------------------------------- |
-| `assets/logos/ferni-logo.svg`        | Primary logo with iris and catchlight |
-| `assets/logos/ferni-logo-simple.svg` | Simplified 3-circle version           |
-| `assets/logos/ferni-logo-dark.svg`   | Lighter variant for dark backgrounds  |
+`pnpm brand:check` fails if a logo or avatar SVG draws a pupil.
 
-### PNG Exports
+---
 
-All PNGs are generated from SVG sources at these sizes:
+## Canonical Files
 
-```
-16, 32, 48, 64, 96, 128, 180, 192, 256, 300, 512, 1024
-```
+All logo files live in `design-system/assets/logos/` — nowhere else is
+canonical (copies under `apps/*/public` are build outputs).
 
-Naming convention: `ferni-logo-{size}.png`, `ferni-logo-simple-{size}.png`, `ferni-logo-dark-{size}.png`
+| File                             | Use                                              |
+| -------------------------------- | ------------------------------------------------ |
+| `ferni-logo.svg`                 | **Primary** — orb with ring, gradient, catchlights |
+| `ferni-logo-simple.svg`          | No ring — small sizes, app icons                 |
+| `ferni-logo-dark.svg`            | For dark backgrounds                             |
+| `logo-monochrome-dark.svg`       | Single-color (Natural Ink) orb for light backgrounds |
+| `ferni-favicon.svg`              | Favicon, optimized for 16–32px                   |
+| `ferni-logo-expressive.svg`      | Animated, CSS-driven expressions                 |
+| `ferni-logo-animated.svg`        | Animated eyes on a solid base                    |
+| `ferni-logo.lottie.json`         | Lottie intro animation (iOS/Android/web)         |
+| `logo-wordmark-horizontal.svg`   | Orb + "Ferni" wordmark, side by side             |
+| `logo-wordmark-stacked.svg`      | Orb above wordmark                               |
+| `ferni-text-logo.svg`            | Wordmark only                                    |
+| `ferni-eyes-only.svg`            | Eyes without the orb, for custom backgrounds     |
+| `personas/*-avatar.svg`          | Per-persona avatars (same eye rules)             |
 
-### Regenerating PNGs
+`logo-primary.svg`, `logo-light-bg.svg` and `logo-dark-bg.svg` are older
+aliases of the primary/dark files and will be removed in the asset cleanup.
+
+### PNG exports
+
+PNGs (`ferni-logo-{size}.png`, `ferni-logo-simple-{size}.png`,
+`ferni-logo-dark-{size}.png` at 16–1024px) are generated from the SVGs:
 
 ```bash
-node scripts/generate-logo-pngs.js
+pnpm icons:regenerate
 ```
 
 ---
 
-## Logo Structure
+## Colors
 
-```svg
-<!-- Three Stones Logo -->
-<svg viewBox="0 0 100 100">
-  <!-- Outer Stone: Sage Green Body -->
-  <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-
-  <!-- Middle Stone: White Eye -->
-  <circle cx="50" cy="50" r="18" fill="white"/>
-
-  <!-- Iris: Light Sage (optional at small sizes) -->
-  <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-
-  <!-- Inner Stone: Dark Pupil -->
-  <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-
-  <!-- Catchlight: Life Spark (optional at small sizes) -->
-  <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
-</svg>
-```
-
----
-
-## Color Tokens
-
-| Element     | Color           | Token                       |
-| ----------- | --------------- | --------------------------- |
-| Outer Stone | `#4a6741`       | `--persona-ferni-primary`   |
-| Eye White   | `#FFFFFF`       | `white`                     |
-| Iris        | `#5a8060`       | `--persona-ferni-secondary` |
-| Pupil       | `#2c2520`       | `--color-ink`               |
-| Catchlight  | `#FFFFFF` @ 90% | `white`                     |
+| Element     | Color             | Token                     |
+| ----------- | ----------------- | ------------------------- |
+| Orb         | `#4a6741`         | `--persona-ferni-primary` |
+| Eyes        | `#ffffff`         | —                         |
+| Catchlights | `#ffffff`         | —                         |
+| Wordmark    | `#2c2520` (light) | `--color-text-primary`    |
 
 ---
 
 ## Size Guidelines
 
-| Size     | Use Case          | Simplification             |
-| -------- | ----------------- | -------------------------- |
-| 16-24px  | Favicon, tab icon | 3 circles only             |
-| 32-48px  | Small UI, lists   | May omit catchlight        |
-| 64-128px | App icons, cards  | Full detail                |
-| 192px+   | Hero, marketing   | Full detail with animation |
+| Size     | Use case          | File                                    |
+| -------- | ----------------- | --------------------------------------- |
+| 16–32px  | Favicon, tab icon | `ferni-favicon.svg` or generated PNGs   |
+| 24–48px  | Navigation, lists | `ferni-logo-simple.svg`                 |
+| 48–128px | Headers, cards    | `ferni-logo.svg`                        |
+| 120px+   | Splash, hero      | `ferni-logo.lottie.json` / expressive   |
+| 1024px   | App stores        | generated PNG                           |
+
+Minimum digital size: 16px (orb only), 120px wide (with wordmark).
 
 ---
 
-## Animated Logo (Expressive)
-
-For interactive contexts, the logo can show expressions by revealing a simple line mouth.
-
-### Expression Classes
-
-Add these classes to the SVG element:
-
-| Class        | Effect                          |
-| ------------ | ------------------------------- |
-| `.happy`     | Eye rises, smile appears        |
-| `.excited`   | Bouncy eye, wide grin           |
-| `.curious`   | Tilted eye, small smile         |
-| `.sad`       | Soft eye, frown (flipped smile) |
-| `.surprised` | Wide eye, small o mouth         |
-| `.thinking`  | Wandering eye, no mouth         |
-| `.chuckle`   | Squinty eye, wobbly smile       |
-| `.speaking`  | Animated mouth line             |
-| `.listening` | Gentle eye pulse                |
-
-### Animation CSS
-
-```css
-.ferni-logo {
-  --duration-normal: 400ms;
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.eye-group {
-  transform-origin: 50px 50px;
-  transition: transform var(--duration-normal) var(--ease-spring);
-}
-
-.mouth {
-  stroke: white;
-  stroke-width: 4;
-  stroke-linecap: round;
-  fill: none;
-  opacity: 0;
-  transition: opacity var(--duration-normal) ease;
-}
-
-.ferni-logo.happy .eye-group {
-  transform: translateY(-12px);
-}
-.ferni-logo.happy .mouth {
-  opacity: 1;
-}
-```
-
----
-
-## Usage Examples
-
-### HTML (Static Logo)
+## Usage
 
 ```html
-<img src="/logos/ferni-logo.svg" alt="Ferni" width="48" height="48" />
+<!-- Static -->
+<img src="/design-system/assets/logos/ferni-logo.svg" alt="Ferni" width="48" height="48" />
 ```
 
-### HTML (Inline SVG for Animation)
-
-```html
-<svg class="ferni-logo" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="45" fill="#4a6741" />
-  <g class="eye-group">
-    <circle cx="50" cy="50" r="18" fill="white" />
-    <circle cx="50" cy="50" r="12" fill="#5a8060" />
-    <circle cx="50" cy="50" r="6" fill="#2c2520" />
-    <circle cx="47" cy="47" r="2" fill="white" opacity="0.9" />
-  </g>
-  <path class="mouth" d="M 35 68 Q 50 78 65 68" />
-</svg>
-```
-
-### JavaScript (Toggle Expression)
-
-```javascript
-const logo = document.querySelector('.ferni-logo');
-
-// Set expression
-logo.classList.add('happy');
-
-// Clear expression (back to zen)
-logo.className = 'ferni-logo';
-```
-
----
-
-## Favicon
-
-Use the simplified version for favicons:
-
-```html
-<link
-  rel="icon"
-  type="image/svg+xml"
-  href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%234a6741'/><circle cx='50' cy='50' r='18' fill='white'/><circle cx='50' cy='50' r='8' fill='%232c2520'/></svg>"
-/>
-```
-
----
-
-## File Locations
-
-```
-brand/logos/
-├── ferni-logo.svg              # Primary SVG
-├── ferni-logo-simple.svg       # Simplified SVG
-├── ferni-logo-dark.svg         # Dark background variant
-├── ferni-logo-stones.svg       # Static three stones
-├── ferni-logo-expressive.svg   # Animated version with CSS
-├── ferni-logo-animated.svg     # Full animation system
-├── logo-preview.html           # Interactive preview
-└── *.png                       # Generated PNGs
-
-design-system/assets/logos/
-├── *.svg                       # SVG copies
-└── *.png                       # All size variants
-
-apps/web/public/
-├── logo.svg                    # App logo
-├── logo-icon.svg               # App icon
-└── icons/                      # Favicons & PWA icons
-```
-
----
-
-## Migration Notes
-
-### From Old "FE" Logo
-
-The previous logo used an "FE" monogram. When migrating:
-
-1. Replace all `FE` text references with the three stones SVG
-2. Update favicon data URIs to use the new inline SVG
-3. Regenerate all PNG assets using `generate-logo-pngs.js`
-4. Update any hardcoded logo dimensions (new logo is circular, not square)
-
-### Impact Areas
-
-- [x] Brand guidelines updated
-- [x] Design system logos updated
-- [x] Favicons updated
-- [x] iOS/Android app icons updated
-- [x] Electron app icons updated
-- [x] Landing page favicon updated
-- [ ] Frontend app animated logo component
-- [ ] Marketing materials review
+For expressions, inline `ferni-logo-expressive.svg` and toggle classes on its
+eye group; see the file's embedded CSS for the available states.

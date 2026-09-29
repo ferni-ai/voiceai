@@ -3,7 +3,11 @@
  * Brand Alignment Checker
  *
  * Validates that design tokens match brand guidelines defined in:
- * brand/FERNI-BRAND-GUIDELINES.md
+ * design-system/docs/brand/FERNI-BRAND-GUIDELINES.md
+ *
+ * Also checks that normative brand docs only quote token colors, that persona
+ * colors in brand docs match the tokens, and that logo SVGs draw no pupils
+ * (see checks/brand-docs.js).
  *
  * This prevents token drift from official brand spec.
  *
@@ -19,13 +23,14 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { checkNormativeDocHexes, checkPersonaColorsInDocs, checkNoPupils } from './checks/brand-docs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
 
 // ============================================================================
 // BRAND GUIDELINES - Source of Truth
-// From: brand/FERNI-BRAND-GUIDELINES.md
+// From: design-system/docs/brand/FERNI-BRAND-GUIDELINES.md
 // ============================================================================
 
 const BRAND_COLORS = {
@@ -38,9 +43,9 @@ const BRAND_COLORS = {
   },
   paperCream: {
     name: 'Paper Cream (Background)',
-    expected: '#F5F1E8',
-    tokenPath: null, // Not directly in tokens - styles.css uses this
-    critical: false,
+    expected: '#faf8f5',
+    tokenPath: 'themes.zen.background.primary',
+    critical: true,
   },
   naturalInk: {
     name: 'Natural Ink (Text)',
@@ -54,12 +59,6 @@ const BRAND_COLORS = {
     name: 'Ferni Sage',
     expected: '#4a6741',
     tokenPath: 'personas.ferni.primary',
-    critical: true,
-  },
-  jack: {
-    name: 'Jack Cedar',
-    expected: '#9a7b5a',
-    tokenPath: 'personas.jack.primary',
     critical: true,
   },
   peter: {
@@ -84,6 +83,12 @@ const BRAND_COLORS = {
     name: 'Jordan Sunset',
     expected: '#c4856a',
     tokenPath: 'personas.jordan.primary',
+    critical: true,
+  },
+  nayan: {
+    name: 'Nayan Golden Amber',
+    expected: '#b8956a',
+    tokenPath: 'personas.nayan.primary',
     critical: true,
   },
 };
@@ -327,6 +332,24 @@ function main() {
       console.log(`   ${issue.name}`);
       console.log(`     ${issue.message}`);
       console.log(`     ${issue.suggestion}\n`);
+    }
+  }
+
+  // Checks 4-6: brand docs and logo assets
+  const docChecks = [
+    ['Check 4: Normative Docs Use Token Colors', checkNormativeDocHexes(PROJECT_ROOT, colorsJson)],
+    ['Check 5: Persona Colors in Brand Docs', checkPersonaColorsInDocs(PROJECT_ROOT, colorsJson)],
+    ['Check 6: Logo Eyes Have No Pupils', checkNoPupils(PROJECT_ROOT)],
+  ];
+  for (const [title, issues] of docChecks) {
+    console.log(`📋 ${title}`);
+    console.log('─'.repeat(50));
+    if (issues.length === 0) {
+      console.log('✅ OK\n');
+    } else {
+      hasErrors = true;
+      issues.forEach((issue) => console.log(`❌ ${issue}`));
+      console.log('');
     }
   }
 

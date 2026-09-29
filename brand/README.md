@@ -2,51 +2,181 @@
 
 > **We believe in making AI human, and the decisions we make will reflect that.**
 
-This directory is the **interactive brand library** with HTML galleries and visual references.
-
-## Start Here
-
-| Need | Document |
-|------|----------|
-| **Find any doc** | [`INDEX.md`](./INDEX.md) - Complete navigation hub |
-| **AI agent rules** | [`CLAUDE.md`](./CLAUDE.md) - LUXO eyes, design rules |
-| **Growth strategy** | [`evolution/README.md`](./evolution/README.md) - 16 strategy docs |
-| **Canonical brand docs** | [`design-system/docs/brand/`](../design-system/docs/brand/README.md) |
-
-## Asset Consolidation Notice
-
-**Canonical asset locations have been consolidated to `design-system/assets/`**
-
-| Asset Type | Canonical Location | This Folder |
-|------------|-------------------|-------------|
-| Logos | `design-system/assets/logos/` | Originals (reference) |
-| Favicons | `design-system/assets/favicons/` | Originals (reference) |
-| Icons | `design-system/assets/icons/` | Originals (reference) |
-| Social Templates | `design-system/assets/social/` | Originals (reference) |
-| CSS Tokens | `design-system/dist/tokens.css` | Manual copy (deprecated) |
-
-See `design-system/ASSET-LOCATIONS.md` for the complete reference.
+The single index for Ferni brand material. Rules for AI agents (Luxo eyes,
+tokens, logo) are in [`CLAUDE.md`](./CLAUDE.md).
 
 ---
 
-## What's in This Folder
+## How Documentation is Organized
 
-### Interactive Galleries (HTML)
+| Location | Purpose | Content Type |
+|----------|---------|--------------|
+| **`design-system/docs/brand/`** | **Normative** brand guidelines | Core brand rules, design specs |
+| **`design-system/tokens/`** | **Source of truth** for every color, font, spacing and motion value | JSON → generated CSS/TS |
+| **`design-system/assets/`** | **Canonical** logos, favicons, icons, social, sounds | SVG/PNG/audio |
+| **`brand/`** (this folder) | Interactive showcases, character galleries, strategy | HTML galleries, visual references |
 
-| File | Purpose |
-|------|---------|
-| `index.html` | Brand library home page |
-| `brand-book.html` | Print-ready brand guidelines |
-| `icons.html` | Complete icon library (61 icons) |
+Sections 9–12 below are **non-normative** (strategy, marketing, explorations):
+they never override the guidelines or tokens.
+
+---
+
+## Start Here
+
+| Goal | Document | Location |
+|------|----------|----------|
+| **New to Ferni brand?** | Brand Guidelines | `design-system/docs/brand/FERNI-BRAND-GUIDELINES.md` |
+| **Building UI?** | Screen Guidelines | `design-system/docs/brand/FERNI-SCREEN-GUIDELINES.md` |
+| **Writing copy?** | Voice Guide | `design-system/docs/brand/BRAND-VOICE-GUIDE.md` |
+| **Working on avatars?** | CLAUDE.md | `brand/CLAUDE.md` (LUXO eyes!) |
+| **Building superhuman features?** | Better Than Human | `design-system/docs/brand/BETTER-THAN-HUMAN.md` |
+
+---
+
+## Complete Documentation Map
+
+### 1. Core Brand Identity
+
+| Document | Description | Location |
+|----------|-------------|----------|
+| Brand Guidelines | Colors, typography, logo usage | `design-system/docs/brand/FERNI-BRAND-GUIDELINES.md` |
+| Universe Bible | Brand universe, storytelling | `design-system/docs/brand/FERNI-UNIVERSE-BIBLE.md` |
+| Voice Guide | Tone, writing style | `design-system/docs/brand/BRAND-VOICE-GUIDE.md` |
+| Character Sheet | Ferni personality deep-dive | `design-system/docs/brand/FERNI-CHARACTER-SHEET.md` |
+| Persona Relationships | How personas interact | `design-system/docs/brand/PERSONA-RELATIONSHIPS.md` |
+
+### 2. Design System
+
+| Document | Description | Location |
+|----------|-------------|----------|
+| Screen Guidelines | Complete UI standards (40KB) | `design-system/docs/brand/FERNI-SCREEN-GUIDELINES.md` |
+| Component Decision Trees | When to use what | `design-system/docs/brand/COMPONENT-DECISION-TREES.md` |
+| Design Ops | Design workflow | `design-system/docs/brand/FERNI-DESIGN-OPS.md` |
+| Design Direction 2025 | Future design vision | `design-system/docs/brand/FERNI-2025-DESIGN-DIRECTION.md` |
+| Design Language | Visual language system | `brand/evolution/FERNI-DESIGN-LANGUAGE.md` |
+
+### 3. Superhuman Experience ("Better Than Human")
+
+| Document | Description | Location |
+|----------|-------------|----------|
+| **Better Than Human** | Core EQ specification | `design-system/docs/brand/BETTER-THAN-HUMAN.md` |
+| BTH Manifesto | Philosophy & principles | `brand/evolution/BETTER-THAN-HUMAN-MANIFESTO.md` |
+| Capabilities Overview | 19 superhuman capabilities | `brand/FERNI-CAPABILITIES.md` |
+| Rituals | Brand ceremonies | `design-system/docs/brand/FERNI-RITUALS.md` |
+| Signature Moments | Key interaction moments | `brand/evolution/SIGNATURE-MOMENTS.md` |
+
+### 4. Sensory Design
+
+| Document | Description | Location |
+|----------|-------------|----------|
+| Sonic Identity | Sound design, audio branding | `design-system/docs/brand/FERNI-SONIC-IDENTITY.md` |
+| Sound Asset Manifest | Sound file inventory | `design-system/docs/brand/SOUND-ASSET-MANIFEST.md` |
+| Sound Design Brief | Audio specs | `brand/specs/sound-design-brief.md` |
+| Haptics | Touch feedback design | `design-system/docs/brand/FERNI-HAPTICS.md` |
+| Synesthesia | Cross-sensory design | `design-system/docs/brand/FERNI-SYNESTHESIA.md` |
+| Speaking System | Voice interaction patterns | `design-system/docs/brand/SPEAKING-SYSTEM.md` |
+
+### 5. Visual Guidelines
+
+| Document | Description | Location |
+|----------|-------------|----------|
+| Illustration System | Illustration style | `design-system/docs/brand/FERNI-ILLUSTRATION-SYSTEM.md` |
+| Imagery Guidelines | Photography style | `design-system/docs/brand/FERNI-IMAGERY-GUIDELINES.md` |
+| Data Visualization | Charts, graphs | `design-system/docs/brand/FERNI-DATA-VISUALIZATION.md` |
+| Empty/Error States | Error UI patterns | `design-system/docs/brand/FERNI-EMPTY-ERROR-STATES.md` |
+| Design Inspiration Matrix | Reference inspirations | `design-system/docs/brand/DESIGN-INSPIRATION-MATRIX.md` |
+
+### 6. Motion & Animation
+
+| Document | Description | Location |
+|----------|-------------|----------|
+| Motion Storytelling | Animation principles | `brand/motion/MOTION-STORYTELLING.md` |
+| Handoff Choreography | Persona transition animations | `brand/motion/handoff-choreography.md` |
+| Motion README | Motion system overview | `brand/motion/README.md` |
+
+### 7. Character Personas
+
+Each persona has a README with design specs:
+
+| Persona | Color | README Location |
+|---------|-------|-----------------|
+| **Ferni** | #4a6741 | `brand/characters/ferni/README.md` |
+| **Maya** | #a67a6a | `brand/characters/maya/README.md` |
+| **Peter** | #3a6b73 | `brand/characters/peter/README.md` |
+| **Jordan** | #c4856a | `brand/characters/jordan/README.md` |
+| **Alex** | #5a6b8a | `brand/characters/alex/README.md` |
+| **Nayan** | #b8956a | `brand/characters/nayan/README.md` |
+
+### 8. Data Visualization
+
+| Document | Description | Location |
+|----------|-------------|----------|
+| BTH Visualization Plan | Superhuman viz strategy | `brand/visualizations/BETTER-THAN-HUMAN-VISUALIZATION-PLAN.md` |
+| Data Storytelling Plan | How to tell stories with data | `brand/visualizations/DATA-STORYTELLING-PLAN.md` |
+| Creating Visualizations | Implementation guide | `brand/visualizations/CREATING-VISUALIZATIONS.md` |
+| Visualization Audit | Current state assessment | `brand/visualizations/AUDIT-REPORT.md` |
+
+### 9. Growth & Strategy
+
+| Document | Description | Location |
+|----------|-------------|----------|
+| Community Playbook | Community building | `brand/evolution/COMMUNITY-PLAYBOOK.md` |
+| Discord Server Structure | Discord channel design | `brand/evolution/DISCORD-SERVER-STRUCTURE.md` |
+| Developer Ecosystem | Developer relations | `brand/evolution/DEVELOPER-ECOSYSTEM.md` |
+| International Strategy | Global expansion | `brand/evolution/INTERNATIONAL-STRATEGY.md` |
+| Pop Culture Playbook | Cultural relevance | `brand/evolution/POP-CULTURE-PLAYBOOK.md` |
+| Cultural Rituals | User rituals design | `brand/evolution/CULTURAL-RITUALS.md` |
+
+### 10. Marketing & Content
+
+| Document | Description | Location |
+|----------|-------------|----------|
+| Human vs Ferni | Comparison content | `brand/marketing/human-vs-ferni.md` |
+| Persona Matchmaker | Persona selection flow | `brand/marketing/persona-matchmaker.md` |
+| Video Storyboard | Video content planning | `brand/marketing/video-storyboard.md` |
+| Demo Reel Storyboard | Demo video spec | `design-system/docs/brand/DEMO-REEL-STORYBOARD.md` |
+| Developer Blog Plan | 365-day content strategy | `brand/docs/DEVELOPER-BLOG-365-PLAN.md` |
+| Content Calendar | Weekly content template | `brand/docs/CONTENT-CALENDAR-TEMPLATE.md` |
+
+### 11. Technical Specs
+
+| Document | Description | Location |
+|----------|-------------|----------|
+| iOS Widget Specs | Widget design specs | `brand/evolution/IOS-WIDGET-SPECS.md` |
+| Multi-Platform Brand | Cross-platform consistency | `brand/evolution/MULTI-PLATFORM-BRAND.md` |
+| Window Avatar Guide | Avatar in window chrome | `design-system/docs/brand/WINDOW-AVATAR-BRAND-GUIDE.md` |
+| AI Landing Guidelines | Landing page design | `design-system/docs/brand/AI-LANDING-GUIDELINES.md` |
+
+### 12. Special Topics
+
+| Document | Description | Location |
+|----------|-------------|----------|
+| Ethical AI Principles | AI ethics guidelines | `brand/evolution/ETHICAL-AI-PRINCIPLES.md` |
+| Easter Eggs (Deep) | Hidden features | `brand/evolution/EASTER-EGGS-DEEP.md` |
+| Public Origin Story | Founding narrative | `brand/evolution/PUBLIC-ORIGIN-STORY.md` |
+| Merchandise Concepts | Merch design | `brand/evolution/MERCHANDISE-CONCEPTS.md` |
+| Awards Tracker | Award submissions | `brand/evolution/AWARDS-SUBMISSION-TRACKER.md` |
+
+---
+
+## Interactive HTML Galleries
+
+Located in `brand/` - view with `python3 -m http.server 8000`:
+
+| Gallery | Description |
+|---------|-------------|
+| `index.html` | Brand library home |
+| `brand-book.html` | Print-ready brand book |
+| `universe-bible.html` | Interactive universe bible |
 | `components.html` | UI component gallery |
+| `icons.html` | Icon library (61 icons) |
 | `accessibility.html` | Accessibility standards |
 | `sound-design.html` | Sound design principles |
-| `universe-bible.html` | Interactive universe bible |
 
-### Character Expressions (`characters/`)
+### Character Expression Galleries
 
-| Persona | File |
-|---------|------|
+| Persona | Gallery |
+|---------|---------|
 | Ferni | `characters/ferni/expressions.html` |
 | Maya | `characters/maya/expressions.html` |
 | Peter | `characters/peter/expressions.html` |
@@ -54,91 +184,72 @@ See `design-system/ASSET-LOCATIONS.md` for the complete reference.
 | Alex | `characters/alex/expressions.html` |
 | Nayan | `characters/nayan/expressions.html` |
 
-### Motion System (`motion/`)
+### Motion & Visualization Demos
 
-- `demo.html` - Interactive motion demo
-- Animation documentation
+| Demo | Description |
+|------|-------------|
+| `motion/demo.html` | Motion principles demo |
+| `motion/pixar-principles.html` | Pixar animation principles |
+| `motion/micro-interactions-demo.html` | Micro-interaction showcase |
+| `visualizations/index.html` | Visualization gallery |
+| `visualizations/storytelling.html` | Data storytelling demo |
+| `visualizations/immersive.html` | Immersive data viz |
+| `visualizations/token-explorer.html` | Design token explorer |
 
-### Capabilities Showcase (`capabilities/`)
+### Marketing Pages
 
-- `index.html` - 19 superhuman capabilities
-- `gallery.html` - Visual capability gallery
+| Page | Description |
+|------|-------------|
+| `marketing/introducing-ferni.html` | Launch landing page |
+| `marketing/persona-picker.html` | Interactive persona selector |
+| `marketing/video-timeline.html` | Video timeline |
 
-### Marketing Pages (`marketing/`)
+### Capabilities
 
-- `introducing-ferni.html` - Launch landing page
-- `persona-picker.html` - Interactive persona selector
-- `video-timeline.html` - Video timeline demo
-
----
-
-## Quick Reference
-
-### Primary Colors (CSS Variables)
-
-```css
---color-ferni: #4a6741;     /* Primary brand */
---color-maya: #a67a6a;      /* Wellness */
---color-peter: #3a6b73;     /* Research */
---color-jordan: #c4856a;    /* Celebrations */
---color-alex: #5a6b8a;      /* Communications */
---color-nayan: #b8956a;     /* Wisdom */
-```
-
-### Typography
-
-- **Display**: Playfair Display
-- **Body**: Inter
-- **Mono**: Berkeley Mono
+| Page | Description |
+|------|-------------|
+| `capabilities/index.html` | 19 superhuman capabilities |
+| `capabilities/gallery.html` | Visual capability gallery |
 
 ---
 
-## Brand Documentation
+## Design Token Files
 
-All brand guidelines live in the design system:
+| File | Purpose | Location |
+|------|---------|----------|
+| **Source of Truth** | JSON tokens | `design-system/tokens/*.json` |
+| Generated CSS | Built from tokens | `design-system/dist/tokens.css` |
+| Brand CSS (legacy) | Hand-maintained layer used by the HTML galleries; being replaced by generated tokens — don't add values here | `brand/master-tokens.css` |
+| Components CSS (legacy) | Gallery components on top of `master-tokens.css` | `brand/brand-components.css` |
 
-| Document | Location |
-|----------|----------|
-| Brand Guidelines | `design-system/docs/brand/FERNI-BRAND-GUIDELINES.md` |
-| Better Than Human | `design-system/docs/brand/BETTER-THAN-HUMAN.md` |
-| Voice Guide | `design-system/docs/brand/BRAND-VOICE-GUIDE.md` |
-| All Docs | `design-system/docs/brand/` |
+**Always edit** `design-system/tokens/*.json` then run `pnpm tokens:sync`.
 
 ---
 
-## Development
-
-To view the brand library locally:
+## Quick Commands
 
 ```bash
-cd brand
-python3 -m http.server 8000
-# Open http://localhost:8000
-```
+# View brand gallery locally
+cd brand && python3 -m http.server 8000
 
-Or use the design-system dev server:
+# Sync design tokens
+pnpm tokens:sync
 
-```bash
-cd design-system
-npm run dev
-```
+# Check token alignment
+pnpm brand:check
 
----
-
-## Critical Design Rules
-
-### LUXO-STYLE EYES (MANDATORY)
-
-All Ferni avatar eyes are **opaque white ellipses with NO pupils**. Expression comes from eye SHAPE transforms, not pupils.
-
-```svg
-<!-- CORRECT -->
-<ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
-
-<!-- WRONG - Never add pupils -->
-<ellipse cx="36" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
+# Validate tokens
+pnpm tokens:check
 ```
 
 ---
 
-*See `CLAUDE.md` for complete design rules.*
+## See Also
+
+- `brand/CLAUDE.md` - AI agent design rules (LUXO eyes!)
+- `design-system/docs/brand/README.md` - Canonical brand docs overview
+- `design-system/CLAUDE.md` - Design system rules
+
+---
+
+*Last Updated: September 2026*

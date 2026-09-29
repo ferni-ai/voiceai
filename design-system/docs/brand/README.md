@@ -8,7 +8,7 @@ This is the **canonical location** for all Ferni brand guidelines and design sys
 
 | Resource | Location | Content |
 |----------|----------|---------|
-| **Full Doc Index** | [`brand/INDEX.md`](../../../brand/INDEX.md) | Navigation hub for ALL 80+ docs |
+| **Full Doc Index** | [`brand/README.md`](../../../brand/README.md) | Navigation hub for ALL 80+ docs |
 | **Brand Assets** | [`brand/`](../../../brand/README.md) | Logos, icons, favicons |
 | **Interactive Demos** | [`brand/*.html`](../../../brand/) | HTML galleries, expressions |
 | **Growth Strategy** | [`brand/evolution/`](../../../brand/evolution/README.md) | 16 strategy docs (~7K lines) |
@@ -21,20 +21,24 @@ This is the **canonical location** for all Ferni brand guidelines and design sys
 
 ### Primary Colors
 
+Source of truth: `design-system/tokens/colors.json`. Full palette and persona
+tiers: [`FERNI-BRAND-GUIDELINES.md`](./FERNI-BRAND-GUIDELINES.md).
+
 | Name | Hex | Use |
 |------|-----|-----|
 | Ferni Sage | `#4a6741` | Primary brand, Ferni persona |
-| Cedar Brown | `#9a7b5a` | Secondary, grounding |
 | Ocean Teal | `#3a6b73` | Peter (research) |
 | Slate Blue | `#5a6b8a` | Alex (communications) |
 | Rose | `#a67a6a` | Maya (wellness) |
 | Coral | `#c4856a` | Jordan (celebrations) |
-| Warm Gray | `#8a7a6a` | Nayan (wisdom) |
+| Golden Amber | `#b8956a` | Nayan (wisdom) |
 
 ### Typography
 
-- **Display**: Playfair Display (headings, quotes)
+- **Display**: Plus Jakarta Sans (headings)
 - **Body**: Inter (UI, body text)
+- **Accent**: Sora
+- **Mono**: JetBrains Mono
 
 ### Voice & Tone
 

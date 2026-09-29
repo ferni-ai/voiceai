@@ -1,6 +1,9 @@
 # Design System & Brand Audit — September 2026
 
-> Status: **proposal, awaiting approval**. Nothing described here has been changed yet.
+> Status: **approved** (recommendations accepted, Sep 2026). Phases 1–2 done.
+>
+> Correction to D3: Joel has a live persona bundle (`src/personas/bundles/joel-dickson`),
+> so Joel stays as a specialist persona. Only Jack is legacy.
 > Supersedes `docs/audits/DESIGN-SYSTEM-AUDIT.md` (Dec 2024), which CLAUDE.md still cites as current.
 
 ## TL;DR

@@ -2,8 +2,10 @@
 /**
  * Brand Compliance Check
  * 
- * Ensures NO purple/violet colors exist in the codebase.
- * Purple is NOT a Ferni color per FERNI-BRAND-GUIDELINES.md Section 3.
+ * Ensures no off-brand purple/violet UI colors exist in the codebase.
+ * Purple is not a Ferni UI color (FERNI-BRAND-GUIDELINES.md §3). The only
+ * allowed purples are persona identity colors from design-system tokens
+ * (Eli #6B5B95, Amara #7B6BA8), which this list deliberately doesn't match.
  * 
  * Run: node scripts/check-brand-compliance.js
  * 

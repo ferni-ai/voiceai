@@ -75,8 +75,16 @@ Our design draws from **Japanese zen aesthetics** and **Scandinavian warmth**:
 
 The Ferni logo consists of two elements:
 
-1. **Logomark**: "FE" monogram in a rounded square
+1. **Logomark**: the Ferni orb — a Ferni Sage (`#4a6741`) circle with two
+   Luxo-style eyes: **opaque white ellipses, no pupils, no iris**. Small white
+   catchlight dots inside the eyes are allowed; any dark pupil or colored iris
+   is not. (The old "FE" monogram and the "Three Stones" single-eye mark are
+   retired.)
 2. **Wordmark**: "Ferni" in Plus Jakarta Sans
+
+Canonical files live in `design-system/assets/logos/` (`ferni-logo.svg`,
+`ferni-logo-dark.svg`, `ferni-logo-simple.svg`, `logo-wordmark-*.svg`). See
+`design-system/LOGO.md` for the full asset list.
 
 ### Logo Versions
 
@@ -88,16 +96,15 @@ The Ferni logo consists of two elements:
 
 ### Logo Colors
 
-| Context               | Logomark BG           | Logomark Text | Wordmark              |
-| --------------------- | --------------------- | ------------- | --------------------- |
-| **Light backgrounds** | Ferni Sage (#4a6741)  | White         | Natural Ink (#2C2520) |
-| **Dark backgrounds**  | Ferni Sage (#4a6741)  | White         | Paper Cream (#F5F1E8) |
-| **Monochrome light**  | Natural Ink (#2C2520) | White         | Natural Ink (#2C2520) |
-| **Monochrome dark**   | Paper Cream (#F5F1E8) | Natural Ink   | Paper Cream (#F5F1E8) |
+| Context               | Orb                   | Eyes  | Wordmark              |
+| --------------------- | --------------------- | ----- | --------------------- |
+| **Light backgrounds** | Ferni Sage (#4a6741)  | White | Natural Ink (#2C2520) |
+| **Dark backgrounds**  | Ferni Sage (#4a6741)  | White | Paper Cream (#faf8f5) |
+| **Monochrome light**  | Natural Ink (#2C2520) | White | Natural Ink (#2C2520) |
 
 ### Clear Space
 
-Minimum clear space around logo = height of "F" in logomark
+Minimum clear space around logo = one eye's height
 
 ### Minimum Sizes
 
@@ -115,7 +122,8 @@ Minimum clear space around logo = height of "F" in logomark
 ❌ Don't add effects (shadows, glows)  
 ❌ Don't change colors outside system  
 ❌ Don't place on busy backgrounds  
-❌ Don't outline or stroke
+❌ Don't outline or stroke  
+❌ Don't add pupils, irises or colored eyes
 
 ---
 
@@ -125,27 +133,31 @@ Minimum clear space around logo = height of "F" in logomark
 
 ### Background Colors
 
-| Name            | Hex     | RGB           | Use                      |
-| --------------- | ------- | ------------- | ------------------------ |
-| **Paper Cream** | #F5F1E8 | 245, 241, 232 | Primary background       |
-| **Sand**        | #E8E0D5 | 232, 224, 213 | Secondary background     |
-| **Elevated**    | #FFFDFB | 255, 253, 251 | Cards, elevated surfaces |
+> Values below are the light (zen) theme in `design-system/tokens/colors.json`,
+> which is the source of truth. `pnpm brand:check` fails if they diverge.
+
+| Name            | Hex     | Token                          | Use                      |
+| --------------- | ------- | ------------------------------ | ------------------------ |
+| **Paper Cream** | #faf8f5 | `--color-background-primary`   | Primary background       |
+| **Sand**        | #f5f2ed | `--color-background-secondary` | Secondary background     |
+| **Elevated**    | #fffdfb | `--color-background-elevated`  | Cards, elevated surfaces |
 
 ### Text Colors
 
-| Name            | Hex     | RGB           | Use                     |
-| --------------- | ------- | ------------- | ----------------------- |
-| **Natural Ink** | #2C2520 | 44, 37, 32    | Primary text, headlines |
-| **Secondary**   | #5C544A | 92, 84, 74    | Body text               |
-| **Muted**       | #756A5E | 117, 106, 94  | Captions, hints         |
-| **Dimmed**      | #A89D90 | 168, 157, 144 | Disabled, placeholder   |
+| Name            | Hex     | Token                    | Use                     |
+| --------------- | ------- | ------------------------ | ----------------------- |
+| **Natural Ink** | #2C2520 | `--color-text-primary`   | Primary text, headlines |
+| **Secondary**   | #5c544a | `--color-text-secondary` | Body text               |
+| **Muted**       | #6b635a | `--color-text-muted`     | Captions, hints         |
+| **Dimmed**      | #756a5e | `--color-text-dimmed`    | Disabled, placeholder   |
 
 ### Accent Colors
 
-| Name             | Hex     | RGB           | Use                  |
-| ---------------- | ------- | ------------- | -------------------- |
-| **Forest Green** | #3D5A45 | 61, 90, 69    | Primary CTA, links   |
-| **Warm Amber**   | #C4A265 | 196, 162, 101 | Highlights, emphasis |
+| Name             | Hex     | Token                     | Use                  |
+| ---------------- | ------- | ------------------------- | -------------------- |
+| **Forest Green** | #3D5A45 | `--color-accent`          | Primary CTA, links   |
+| **Forest Hover** | #4a6b52 | `--color-accent-hover`    | Hover state          |
+| **Warm Amber**   | #a67c35 | `--color-natural-warm-amber` | Highlights, emphasis |
 
 ### Border Colors
 
@@ -157,24 +169,46 @@ Minimum clear space around logo = height of "F" in logomark
 
 ## Persona Colors
 
-Each AI specialist has a unique, earthy color:
+Each persona has a unique, earthy color (source: `personas` in
+`design-system/tokens/colors.json`).
+
+**Core team** (the six team members in the app):
 
 | Persona    | Primary | Secondary | Meaning                             |
 | ---------- | ------- | --------- | ----------------------------------- |
 | **Ferni**  | #4a6741 | #3d5a35   | Deep Sage - Grounding leader        |
-| **Jack**   | #9a7b5a | #7d6348   | Warm Cedar - Trusted mentor         |
 | **Peter**  | #3a6b73 | #2d5359   | Ocean Teal - Research depth         |
 | **Alex**   | #5a6b8a | #4a5a73   | Soft Indigo - Clear communication   |
 | **Maya**   | #a67a6a | #8a635a   | Dusty Terracotta - Nurturing warmth |
 | **Jordan** | #c4856a | #a86d55   | Warm Sunset - Celebration           |
+| **Nayan**  | #b8956a | #9a7a52   | Golden Amber - Wisdom and guidance  |
+
+**Specialists and marketplace personas:**
+
+| Persona    | Primary | Secondary | Meaning                                  |
+| ---------- | ------- | --------- | ---------------------------------------- |
+| **Joel**   | #9A0718 | #7A0514   | Vanguard Burgundy - Distinguished mentor |
+| **Eli**    | #6B5B95 | #4A4063   | Deep Purple - Focus (ADHD coach)         |
+| **Amara**  | #7B6BA8 | #5A4D80   | Soft Violet - Healing (chronic illness)  |
+| **Marcus** | #2D5A4A | #1E3D32   | Deep Forest - Stability (sobriety)       |
+| **Kenji**  | #2C3E50 | #1A252F   | Midnight Blue - Calm (sleep)             |
+| **Carmen** | #D4A373 | #A67B5B   | Warm Sand - Nurturing (parenting)        |
+| **Sasha**  | #E07B53 | #B85C3C   | Creative Coral - Inspiration             |
+| **Ray**    | #4A5568 | #2D3748   | Professional Slate - Strategy (career)   |
+
+**Legacy:** Jack (`#9a7b5a`, Warm Cedar) is no longer a persona. The `jack`
+entry in `colors.json` is kept only for old brand accents and is slated for
+removal; don't use it for new work (use the `--color-natural-cedar` tokens).
 
 ### Color Usage Rules
 
-1. **Background**: Always Paper Cream (#F5F1E8) or lighter
+1. **Background**: Always Paper Cream (#faf8f5) or lighter
 2. **Text**: Natural Ink (#2C2520) for headlines, Secondary for body
 3. **CTAs**: Forest Green (#3D5A45) - filled primary, outline secondary
 4. **Accents**: Use persona colors sparingly for identity
 5. **Never**: Use cool blues, neons, or saturated tech colors
+6. **Purple** is allowed only as a persona identity color (Eli, Amara) — never
+   for UI chrome, CTAs or backgrounds
 
 ### Accessibility
 
@@ -434,8 +468,8 @@ Based on 4px base unit:
 | ------------------- | ---------------------- |
 | **Default**         | Secondary (#5C544A)    |
 | **Active/Selected** | Forest Green (#3D5A45) |
-| **Muted**           | Dimmed (#A89D90)       |
-| **On dark**         | Paper Cream (#F5F1E8)  |
+| **Muted**           | Dimmed (#756a5e)       |
+| **On dark**         | Paper Cream (#faf8f5)  |
 
 ## Icon Set
 
@@ -464,7 +498,7 @@ font-size: 16px;
 transition: all 200ms ease;
 ```
 
-**Hover**: `background: #4a6d52; transform: translateY(-2px);`  
+**Hover**: `background: var(--color-accent-hover); /* #4a6b52 */ transform: translateY(-2px);`  
 **Active**: `transform: scale(0.98);`
 
 ### Secondary Button (Outline)
@@ -512,7 +546,7 @@ box-shadow: 0 12px 32px rgba(44, 37, 32, 0.08);
 ### Feature Card
 
 ```css
-background: linear-gradient(135deg, #f5f1e8 0%, #fffdfb 100%);
+background: linear-gradient(135deg, #f5f2ed 0%, #fffdfb 100%);
 border-radius: 24px;
 padding: 48px;
 ```

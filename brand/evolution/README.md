@@ -80,7 +80,7 @@ This folder contains 16 strategic documents (~7,000 lines) covering brand evolut
 | Core brand guidelines | `design-system/docs/brand/FERNI-BRAND-GUIDELINES.md` |
 | Better Than Human spec | `design-system/docs/brand/BETTER-THAN-HUMAN.md` |
 | Brand evolution plan | `brand/BRAND-EVOLUTION-PLAN.md` |
-| Full doc index | `brand/INDEX.md` |
+| Full doc index | `brand/README.md` |
 
 ---
 
