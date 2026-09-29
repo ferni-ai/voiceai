@@ -111,6 +111,7 @@ class ConnectionService {
 
   // Track intentional disconnects vs crashes
   private isDisconnecting = false;
+  private connectPromise: Promise<boolean> | null = null;
 
   // 🎚️ Music track identification
   // When we receive music_state: playing, we expect a music track soon
@@ -316,13 +317,26 @@ class ConnectionService {
 
   /**
    * Connect to a LiveKit room.
+   *
+   * Concurrent calls (double tap, check-in handler, auto-retry) share the
+   * in-flight attempt instead of creating a second Room.
    */
-  async connect(): Promise<boolean> {
+  connect(): Promise<boolean> {
     if (this.room?.state === 'connected') {
       log.warn('Already connected');
-      return true;
+      return Promise.resolve(true);
     }
+    if (this.connectPromise) {
+      log.debug('Connect already in progress');
+      return this.connectPromise;
+    }
+    this.connectPromise = this.doConnect().finally(() => {
+      this.connectPromise = null;
+    });
+    return this.connectPromise;
+  }
 
+  private async doConnect(): Promise<boolean> {
     try {
       this.updateState('connecting');
 
@@ -398,6 +412,24 @@ class ConnectionService {
       }
 
       this.useQwen3Omni = tokenResponse.useQwen3Omni === true;
+
+      // Tear down a room left over from a failed connect or an unexpected
+      // disconnect, otherwise its handlers and document listeners stack up.
+      // cleanup() must run before this.room is reassigned (its closures use it).
+      if (this.room) {
+        this.stopQualityMonitoring();
+        this.cleanup();
+        this.audioElements.forEach((audioEl) => {
+          audioEl.pause();
+          audioEl.remove();
+        });
+        this.audioElements.clear();
+        const staleRoom = this.room;
+        this.room = null;
+        void staleRoom.disconnect().catch((e: unknown) => {
+          log.debug({ error: String(e) }, 'Stale room disconnect failed');
+        });
+      }
 
       // Create and configure room using global LiveKit (iOS compatible)
       const LiveKit = getLiveKit();
@@ -676,10 +708,7 @@ class ConnectionService {
       log.info('🔄 Room reconnected - re-enabling microphone');
       try {
         // Check if mic should be enabled (user hasn't muted)
-        const isMuted =
-          (window as unknown as { appState?: { get?: (key: string) => unknown } }).appState?.get?.(
-            'isMuted'
-          ) ?? false;
+        const isMuted = appState.get('isMuted');
         if (!isMuted && this.room?.localParticipant) {
           await this.room.localParticipant.setMicrophoneEnabled(true);
           log.info('🎤 Microphone re-enabled after reconnection');
@@ -887,6 +916,14 @@ class ConnectionService {
 
         // Fire the voice track end callback
         this.callbacks.onAudioTrackEnd?.(participant.identity);
+
+        // Release the <audio> element created in onTrackSubscribed
+        const audioEl = this.audioElements.get(trackKey);
+        if (audioEl) {
+          audioEl.pause();
+          audioEl.remove();
+          this.audioElements.delete(trackKey);
+        }
       }
     };
     this.room.on('trackUnsubscribed', onTrackUnsubscribed);
@@ -1022,10 +1059,7 @@ class ConnectionService {
       if (document.visibilityState === 'visible' && this.room?.state === 'connected') {
         log.debug('📱 App became visible - checking microphone state');
         try {
-          const isMuted =
-            (
-              window as unknown as { appState?: { get?: (key: string) => unknown } }
-            ).appState?.get?.('isMuted') ?? false;
+          const isMuted = appState.get('isMuted');
           if (!isMuted && this.room?.localParticipant) {
             // Small delay to let audio context resume
             await new Promise((resolve) => setTimeout(resolve, 100));
@@ -1061,10 +1095,7 @@ class ConnectionService {
       if (isActive && this.room?.state === 'connected') {
         log.info('📱 Native app became active - restoring microphone');
         try {
-          const isMuted =
-            (
-              window as unknown as { appState?: { get?: (key: string) => unknown } }
-            ).appState?.get?.('isMuted') ?? false;
+          const isMuted = appState.get('isMuted');
           if (!isMuted && this.room?.localParticipant) {
             // Longer delay for native - iOS audio session needs time to restore
             await new Promise((resolve) => setTimeout(resolve, 300));

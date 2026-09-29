@@ -635,14 +635,14 @@ function renderPersonalityStep(): string {
           <div class="slider-group">
             <label class="slider-label">
               <span>Warmth</span>
-              <span class="slider-value">${Math.round((personality.warmth || 0.5) * 100)}%</span>
+              <span class="slider-value">${Math.round((personality.warmth ?? 0.5) * 100)}%</span>
             </label>
             <input 
               type="range" 
               class="personality-slider" 
               data-trait="warmth"
               min="0" max="100" 
-              value="${(personality.warmth || 0.5) * 100}"
+              value="${(personality.warmth ?? 0.5) * 100}"
             />
             <div class="slider-labels">
               <span>Professional</span>
@@ -653,14 +653,14 @@ function renderPersonalityStep(): string {
           <div class="slider-group">
             <label class="slider-label">
               <span>Humor</span>
-              <span class="slider-value">${Math.round((personality.humorLevel || 0.3) * 100)}%</span>
+              <span class="slider-value">${Math.round((personality.humorLevel ?? 0.3) * 100)}%</span>
             </label>
             <input 
               type="range" 
               class="personality-slider" 
               data-trait="humorLevel"
               min="0" max="100" 
-              value="${(personality.humorLevel || 0.3) * 100}"
+              value="${(personality.humorLevel ?? 0.3) * 100}"
             />
             <div class="slider-labels">
               <span>Serious</span>
@@ -671,14 +671,14 @@ function renderPersonalityStep(): string {
           <div class="slider-group">
             <label class="slider-label">
               <span>Directness</span>
-              <span class="slider-value">${Math.round((personality.directness || 0.5) * 100)}%</span>
+              <span class="slider-value">${Math.round((personality.directness ?? 0.5) * 100)}%</span>
             </label>
             <input 
               type="range" 
               class="personality-slider" 
               data-trait="directness"
               min="0" max="100" 
-              value="${(personality.directness || 0.5) * 100}"
+              value="${(personality.directness ?? 0.5) * 100}"
             />
             <div class="slider-labels">
               <span>Gentle</span>
@@ -689,14 +689,14 @@ function renderPersonalityStep(): string {
           <div class="slider-group">
             <label class="slider-label">
               <span>Energy</span>
-              <span class="slider-value">${Math.round((personality.energy || 0.5) * 100)}%</span>
+              <span class="slider-value">${Math.round((personality.energy ?? 0.5) * 100)}%</span>
             </label>
             <input 
               type="range" 
               class="personality-slider" 
               data-trait="energy"
               min="0" max="100" 
-              value="${(personality.energy || 0.5) * 100}"
+              value="${(personality.energy ?? 0.5) * 100}"
             />
             <div class="slider-labels">
               <span>Calm</span>

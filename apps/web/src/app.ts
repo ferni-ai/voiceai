@@ -460,6 +460,8 @@ import {
 class VoiceAIApp {
   private isInitialized = false;
   private audioCleanup: (() => void) | null = null;
+  private isConnecting = false;
+  private isDisconnecting = false;
   /** One automatic reconnect after mid-session errors; then honest retry copy */
   private autoReconnectAttempted = false;
 
@@ -637,6 +639,17 @@ class VoiceAIApp {
    * We check subscription limits but present them warmly.
    */
   async connect(): Promise<void> {
+    // Ignore re-entrant calls (double tap, check-in handler, auto-retry)
+    if (this.isConnecting) return;
+    this.isConnecting = true;
+    try {
+      await this.connectInternal();
+    } finally {
+      this.isConnecting = false;
+    }
+  }
+
+  private async connectInternal(): Promise<void> {
     // Cancel One-Tap if showing - never interrupt voice connection
     cancelOneTap();
 
@@ -678,6 +691,8 @@ class VoiceAIApp {
       if (AudioCtx) {
         const tempCtx = new AudioCtx();
         await tempCtx.resume();
+        // Only needed to unlock audio; iOS caps the number of live contexts
+        void tempCtx.close();
       }
     } catch (e) {
       log.debug('AudioContext pre-init:', e);
@@ -715,11 +730,24 @@ class VoiceAIApp {
       messageUI.show('Almost there...', 'info', 30000);
 
       const connectionPromise = connectionService.connect();
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
       const timeoutPromise = new Promise<boolean>((_, reject) => {
-        setTimeout(() => reject(new Error('Connection timeout')), CONNECTION_TIMEOUT);
+        timeoutId = setTimeout(() => {
+          // The attempt keeps running after we give up on it - tear it down
+          // once it settles so a late success doesn't leave a live mic behind
+          // (unless a retry has since adopted the same in-flight attempt)
+          void connectionPromise.then(() => {
+            if (!this.isConnecting) void connectionService.disconnect();
+          });
+          reject(new Error('Connection timeout'));
+        }, CONNECTION_TIMEOUT);
       });
 
-      success = await Promise.race([connectionPromise, timeoutPromise]);
+      try {
+        success = await Promise.race([connectionPromise, timeoutPromise]);
+      } finally {
+        clearTimeout(timeoutId);
+      }
     } catch (error) {
       log.error('Connection failed:', error);
       thinkingUI.hideProgress();
@@ -864,14 +892,22 @@ class VoiceAIApp {
    * Otherwise, performs immediate disconnect with standard sound.
    */
   async disconnect(): Promise<void> {
-    const isWrappingUp = appState.get('isWrappingUp');
+    // A second tap / conversation-end event would count and bill the call twice
+    if (this.isDisconnecting) return;
+    this.isDisconnecting = true;
 
-    // 🌅 GOODBYE CEREMONY - When agent has said goodbye, make it magical
-    if (isWrappingUp) {
-      await this.performGoodbyeCeremony();
-    } else {
-      // Standard disconnect (abrupt end - user didn't say goodbye)
-      await this.performStandardDisconnect();
+    try {
+      const isWrappingUp = appState.get('isWrappingUp');
+
+      // 🌅 GOODBYE CEREMONY - When agent has said goodbye, make it magical
+      if (isWrappingUp) {
+        await this.performGoodbyeCeremony();
+      } else {
+        // Standard disconnect (abrupt end - user didn't say goodbye)
+        await this.performStandardDisconnect();
+      }
+    } finally {
+      this.isDisconnecting = false;
     }
   }
 
@@ -973,17 +1009,19 @@ class VoiceAIApp {
     // This gates popups/celebrations until user has had 2+ conversations
     modalCoordinator.incrementConversationCount();
 
+    // Disconnect from LiveKit first so the mic and agent stop immediately,
+    // not after the network calls below
+    await connectionService.disconnect();
+
     // 📝 End conversation tracking and persist
     await conversationTracker.endSession();
 
     // 💰 Record conversation usage for subscription tracking
-    await this.recordConversationUsage();
+    // (statsUI.endSession() already cleared startTime, so pass the duration)
+    await this.recordConversationUsage(durationMinutes);
 
     // Pause Spotify if playing
     await spotifyService.pause();
-
-    // Disconnect from LiveKit
-    await connectionService.disconnect();
 
     hideDirectorTriggerButton();
 
@@ -1001,6 +1039,9 @@ class VoiceAIApp {
 
     // Reset wrap-up state (conversation is over)
     setWrappingUp(false);
+
+    // Next call starts unmuted (connect() enables the mic)
+    appState.set('isMuted', false);
 
     // Update delight state
     delightService.onDisconnect();
@@ -1538,7 +1579,8 @@ class VoiceAIApp {
         const { gesturesUI } = await import('./ui/gestures.ui.js');
         initMobileDelights({
           onConnectRequest: () => {
-            if (appState.get('connection') === 'disconnected') {
+            const state = appState.get('connection');
+            if (state === 'disconnected' || state === 'error') {
               void this.connect();
             }
           },
@@ -2589,7 +2631,8 @@ class VoiceAIApp {
 
     // 💚 Connection Heart - Listen for connect requests
     this.addTrackedListener(window, 'ferni:request-connect', () => {
-      if (appState.get('connection') === 'disconnected') {
+      const state = appState.get('connection');
+      if (state === 'disconnected' || state === 'error') {
         void this.connect();
       }
     });
@@ -2605,7 +2648,7 @@ class VoiceAIApp {
       const connectionState = appState.get('connection');
       if (connectionState === 'connected') {
         void this.disconnect();
-      } else if (connectionState === 'disconnected') {
+      } else if (connectionState === 'disconnected' || connectionState === 'error') {
         void this.connect();
       }
     });
@@ -2921,15 +2964,11 @@ class VoiceAIApp {
    * Record conversation usage for subscription tracking.
    * Called after each conversation ends.
    */
-  private async recordConversationUsage(): Promise<void> {
+  private async recordConversationUsage(durationMinutes: number): Promise<void> {
     const deviceId = appState.get('deviceId');
     if (!deviceId) return;
 
-    // Calculate session duration from stats
-    const stats = statsUI.getStats();
-    const startTime = stats?.startTime;
-    const durationMs = startTime ? Date.now() - startTime : 0;
-    const minutesTalked = Math.max(1, Math.round(durationMs / 60000));
+    const minutesTalked = Math.max(1, durationMinutes);
 
     // 🤝 Process any pending referral on first/early conversation
     // This ensures referrer gets credit after new user completes a meaningful conversation
