@@ -90,6 +90,7 @@ import { renewExpiringSubscriptions as startOutlookSubscriptionRenewal } from '.
 
 // Existing API route handlers (from dist/)
 import { handleEngagementRoutes } from '../../api/engagement-routes.js';
+import { handleGroupCallWebhooks } from '../../api/group-call-webhooks.js';
 import { handlePracticeRoutes } from '../../api/practice-routes.js';
 import { familyRouter } from '../../api/routes/family.js';
 import { handleFamilyCheckinControl } from '../../api/routes/family-checkin-control.js';
@@ -479,6 +480,10 @@ const server = http.createServer(async (req, res) => {
       if (await handleFamilyCheckinControl(req, res, pathname)) return;
       if (await familyRouter(req, res, pathname, parsedUrl)) return;
     }
+
+    // Group call Twilio webhooks: signature-checked, must run before the
+    // engagement routes (which own /api/group and 401 unauthenticated callers)
+    if (await handleGroupCallWebhooks(req, res, pathname)) return;
 
     // Engagement routes
     const engagementHandled = await handleEngagementRoutes(req, res, pathname, parsedUrl);
