@@ -69,11 +69,34 @@ dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
 const GCP_PROJECT = 'johnb-2025';
 const GCP_REGION = 'us-central1';
 
-// Service names
+// Cloud Run services. The voice agent is NOT here: it runs only on the GCE VM
+// below (the Cloud Run 'voiceai-agent' service was deleted 2026-02-24 and must
+// never be targeted - it steals LiveKit jobs it can't serve over UDP).
 const SERVICES = {
-  agent: 'voiceai-agent',
   ui: 'john-bogle-ui',
 };
+
+// GCE voice agent (blue-green containers voiceai-agent-{blue,green})
+const GCE_AGENT = {
+  instance: 'voiceai-agent-gce',
+  zone: 'us-central1-a',
+  containerFilter: 'voiceai-agent',
+};
+
+/**
+ * Remote shell snippet resolving the running voice agent container.
+ * `$` is escaped so it survives a local `sh -c` inside a double-quoted --command.
+ */
+const GCE_AGENT_CONTAINER = `\\$(docker ps --filter name=${GCE_AGENT.containerFilter} --format '{{.Names}}' | head -1)`;
+
+/** Explain how to do a voice-agent operation now that it lives on GCE. */
+function printGceAgentGuidance(action: string): void {
+  log.warn(`The voice agent runs on GCE (${GCE_AGENT.instance}), not Cloud Run - ${action} via:`);
+  console.log(`
+  ${colors.cyan}ferni deploy gce${colors.reset}      Blue-green redeploy (restart / canary)`);
+  console.log(`  ${colors.cyan}ferni rollback gce${colors.reset}    Roll back to the previous image`);
+  console.log(`  ${colors.cyan}ferni logs gce${colors.reset}        Container logs`);
+}
 
 // ============================================================================
 // COLORS & STYLING
@@ -526,20 +549,6 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni commands validate --all',
     ],
   },
-  api: {
-    name: 'API',
-    description: 'Manage and validate API endpoints (200+ routes)',
-    icon: '🌐',
-    handler: handleApi,
-    subcommands: ['list', 'call', 'validate'],
-    examples: [
-      'ferni api list',
-      'ferni api list --category calendar',
-      'ferni api call GET /api/health',
-      'ferni api call POST /api/habits --body \'{"name": "Morning run"}\'',
-      'ferni api validate --all',
-    ],
-  },
   ftis: {
     name: 'FTIS',
     description: 'Ferni Tool Intelligence System (ML-powered tool selection)',
@@ -668,26 +677,18 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni family message "mom" "Hi!"',
     ],
   },
-  brain: {
-    name: 'Brain',
+  memory: {
+    name: 'Memory',
     description: "Search and manage Ferni's memory of you",
     icon: '🧠',
     script: 'apps/cli/src/commands/memory/memory.ts',
     subcommands: ['summary', 'search', 'about', 'remember', 'insights', 'stats', 'recent'],
     examples: [
-      'ferni brain',
-      'ferni brain search "favorite restaurant"',
-      'ferni brain about "Jordan"',
-      'ferni brain remember "My dog is named Max"',
+      'ferni memory',
+      'ferni memory search "favorite restaurant"',
+      'ferni memory about "Jordan"',
+      'ferni memory remember "My dog is named Max"',
     ],
-  },
-  memory: {
-    name: 'Memory',
-    description: 'Alias for brain command',
-    icon: '🧠',
-    script: 'apps/cli/src/commands/memory/memory.ts',
-    subcommands: ['summary', 'search', 'about', 'remember', 'insights', 'stats', 'recent'],
-    examples: ['ferni memory search "birthday"'],
   },
   code: {
     name: 'Code',
@@ -1082,11 +1083,17 @@ const COMMANDS: Record<string, CliCommand> = {
   },
   api: {
     name: 'API',
-    description: 'API contract testing & docs',
+    description: 'API contracts, docs, and endpoint calls/validation',
     icon: '📡',
     handler: handleAPICmd,
-    subcommands: ['list', 'mock', 'diff', 'docs'],
-    examples: ['ferni api list', 'ferni api mock', 'ferni api diff'],
+    subcommands: ['list', 'mock', 'diff', 'docs', 'call', 'validate'],
+    examples: [
+      'ferni api list',
+      'ferni api mock',
+      'ferni api diff',
+      'ferni api call GET /api/health',
+      'ferni api validate --all',
+    ],
   },
   // Platform Oversight
   rollback: {
@@ -2184,9 +2191,16 @@ async function handleLogs(args: string[]): Promise<void> {
     return;
   }
 
+  // Voice agent logs live on the GCE VM
+  if (subcommand === 'agent') {
+    await handleLogsGCE(sinceArg, tail);
+    return;
+  }
+
   const services: string[] = [];
   if (subcommand === 'all') {
-    services.push(SERVICES.agent, SERVICES.ui);
+    await handleLogsGCE(sinceArg, false);
+    services.push(SERVICES.ui);
   } else if (subcommand === 'errors') {
     // Show errors from all services
     log.info('Fetching error logs from all services...\n');
@@ -2197,7 +2211,7 @@ async function handleLogs(args: string[]): Promise<void> {
     const service = SERVICES[subcommand as keyof typeof SERVICES];
     if (!service) {
       log.error(messages.unknownService(subcommand));
-      log.info(`Available: ${Object.keys(SERVICES).join(', ')}, all, errors, analyze, search, gce`);
+      log.info(`Available: agent, ${Object.keys(SERVICES).join(', ')}, all, errors, analyze, search, gce`);
       return;
     }
     services.push(service);
@@ -2231,6 +2245,13 @@ async function handleLogsAnalyze(args: string[], since: string): Promise<void> {
   spinner.start();
 
   // Fetch recent logs
+  if (service === 'agent') {
+    spinner.stop(false);
+    log.warn('AI analysis reads Cloud Run logs; the voice agent runs on GCE.');
+    console.log(`  Use ${colors.cyan}ferni logs gce --since=${since}${colors.reset} for agent logs.`);
+    return;
+  }
+
   let logQuery = 'resource.type=cloud_run_revision';
   if (service !== 'all') {
     const svcName = SERVICES[service as keyof typeof SERVICES] || service;
@@ -2347,7 +2368,7 @@ async function handleLogsGCE(since: string, tail: boolean): Promise<void> {
 
   if (tail) {
     log.info('Streaming GCE logs (Ctrl+C to stop)...\n');
-    const cmd = `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a --command="docker logs voiceai-agent -f --tail=100" 2>/dev/null`;
+    const cmd = `gcloud compute ssh sethford@${GCE_AGENT.instance} --zone=${GCE_AGENT.zone} --command="docker logs ${GCE_AGENT_CONTAINER} -f --tail=100" 2>/dev/null`;
     const child = spawn('sh', ['-c', cmd], { stdio: 'inherit' });
     await new Promise((resolve) => child.on('close', resolve));
     return;
@@ -2358,7 +2379,7 @@ async function handleLogsGCE(since: string, tail: boolean): Promise<void> {
 
   // Get logs from the last hour by default
   const sinceSeconds = since.includes('h') ? parseInt(since) * 3600 : parseInt(since) * 60;
-  const cmd = `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a --command="docker logs voiceai-agent --since=${sinceSeconds}s 2>&1 | tail -100" 2>/dev/null`;
+  const cmd = `gcloud compute ssh sethford@${GCE_AGENT.instance} --zone=${GCE_AGENT.zone} --command="docker logs ${GCE_AGENT_CONTAINER} --since=${sinceSeconds}s 2>&1 | tail -100" 2>/dev/null`;
 
   const logs = execCommand(cmd);
   spinner.stop(!!logs);
@@ -2716,18 +2737,19 @@ async function handleDb(args: string[]): Promise<void> {
   }
 
   if (subcommand === 'users') {
-    log.info('User statistics require running a query script.');
-    log.step('To get user stats, run:');
-    console.log(`\n  ${colors.cyan}npx tsx scripts/db-stats.ts${colors.reset}\n`);
+    log.info('User data lives in the users command:');
+    console.log(`\n  ${colors.cyan}ferni users list${colors.reset}         - List users`);
+    console.log(`  ${colors.cyan}ferni users show <id>${colors.reset}    - Inspect one user\n`);
   }
 
   if (subcommand === 'migrate') {
     log.info('Database migrations:');
+    console.log(`\n  ${colors.cyan}ferni migrate status${colors.reset} - Schema migration status`);
     console.log(
-      `\n  ${colors.cyan}npx tsx scripts/migrate-memories.ts${colors.reset} - Migrate memory format`
+      `  ${colors.cyan}npx tsx scripts/migrate-all-users.ts --status${colors.reset} - Entity store migration (all users)`
     );
     console.log(
-      `  ${colors.cyan}npx tsx scripts/migrate-users.ts${colors.reset} - Migrate user schema\n`
+      `  ${colors.cyan}npx tsx scripts/migrate-entity-store.ts --user=<id> --dry-run${colors.reset} - Entity store migration (one user)\n`
     );
   }
 
@@ -4148,7 +4170,7 @@ async function handleCosts(args: string[]): Promise<void> {
 
     // Show services
     console.log(`  ${colors.cyan}Estimated Cost Drivers:${colors.reset}`);
-    console.log(`    1. Cloud Run (voiceai-agent) - Compute + Memory`);
+    console.log(`    1. GCE VM (voiceai-agent-gce) - Voice agent compute`);
     console.log(`    2. Cloud Run (john-bogle-ui) - Compute + Memory`);
     console.log(`    3. Firestore - Document reads/writes`);
     console.log(`    4. Cloud Build - Build minutes`);
@@ -9142,9 +9164,13 @@ async function handleRestartService(args: string[]): Promise<void> {
     return;
   }
 
+  if (subcommand === 'agent') {
+    printGceAgentGuidance('restart it');
+    return;
+  }
+
   // Restart a specific service
-  const serviceName =
-    subcommand === 'agent' ? SERVICES.agent : subcommand === 'ui' ? SERVICES.ui : null;
+  const serviceName = subcommand === 'ui' ? SERVICES.ui : null;
 
   if (!serviceName) {
     log.error(`Unknown service: ${subcommand}`);
@@ -10518,6 +10544,11 @@ async function handleCostsAICmd(args: string[]): Promise<void> {
 }
 
 async function handleAPICmd(args: string[]): Promise<void> {
+  // `call` / `validate` live in the endpoint manager; the rest are contract tools.
+  if (args[0] === 'call' || args[0] === 'validate') {
+    await handleApi(args);
+    return;
+  }
   const { handleAPIContracts: handler } = await import('./features/dev/api-contracts.js');
   await handler(args);
 }
@@ -10604,8 +10635,13 @@ async function handleRollback(args: string[]): Promise<void> {
     return;
   }
 
-  if (subcommand === 'agent' || subcommand === 'ui') {
-    const service = subcommand === 'agent' ? SERVICES.agent : SERVICES.ui;
+  if (subcommand === 'agent') {
+    printGceAgentGuidance('roll it back');
+    return;
+  }
+
+  if (subcommand === 'ui') {
+    const service = SERVICES.ui;
     log.info(`Rolling back ${subcommand}...`);
 
     // Get previous revision
@@ -10946,8 +10982,12 @@ async function handleTraffic(args: string[]): Promise<void> {
 
   if (subcommand === 'canary') {
     const percent = parseInt(args[1] || '10', 10);
-    const service = args[2] || 'agent';
-    const serviceName = service === 'agent' ? SERVICES.agent : SERVICES.ui;
+    const service = args[2] || 'ui';
+    if (service === 'agent') {
+      printGceAgentGuidance('shift traffic');
+      return;
+    }
+    const serviceName = SERVICES.ui;
 
     console.log(`${colors.bold}Setting up ${percent}% canary for ${service}:${colors.reset}\n`);
 
