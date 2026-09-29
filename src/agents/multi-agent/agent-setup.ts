@@ -1262,6 +1262,23 @@ Reference past context when relevant, but don't force it. Let the conversation f
     },
   });
 
+  // What the barge-in model decided about each overlap (see interruption-config.ts).
+  session.on(voice.AgentSessionEventTypes.OverlappingSpeech, (ev) =>
+    log.info(
+      {
+        sessionId,
+        isInterruption: ev.isInterruption,
+        probability: Math.round(ev.probability * 100) / 100,
+        detectionDelayS: Math.round(ev.detectionDelayInS * 100) / 100,
+        overlapS: Math.round(ev.totalDurationInS * 100) / 100,
+      },
+      'BARGE_IN_DECISION'
+    )
+  );
+  session.on(voice.AgentSessionEventTypes.AgentFalseInterruption, (ev) =>
+    log.info({ sessionId, resumed: ev.resumed }, 'BARGE_IN_FALSE_INTERRUPTION')
+  );
+
   // Gemini native audio speaks for itself: scripted say() lines must come from
   // the model too, or the call alternates between Gemini's and Cartesia's voice.
   if (modelProvider.speaksNatively?.()) {

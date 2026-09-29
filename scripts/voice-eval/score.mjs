@@ -89,6 +89,7 @@ const score = {
     return {
       backchannels: bc.length,
       backchannelStoppedAgent: bc.filter((o) => o.stopped && o.stopLatencyMs < 1500).length,
+      interruptYieldedFast: it.filter((o) => o.stopped && o.stopLatencyMs < 1500).length,
       interrupts: it.length,
       interruptYielded: it.filter((o) => o.stopped).length,
       interruptStopMs: { p50: pct(it.filter((o) => o.stopped).map((o) => o.stopLatencyMs), 50) },
