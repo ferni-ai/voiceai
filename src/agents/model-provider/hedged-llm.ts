@@ -95,11 +95,11 @@ class HedgedLLMStream extends llm.LLMStream {
 
   private start(name: Candidate['name']): Candidate {
     const model = name === 'primary' ? this.hedged.primary : this.hedged.backup;
-    // Children don't retry on their own: the hedge fails over to the other
-    // model and this stream keeps the SDK's retries. A child we close (the
-    // loser, or both when the reply is cancelled) otherwise retried its
-    // aborted request 3 more times, 2 s apart, then rejected unhandled.
-    const stream = model.chat({ ...this.opts, connOptions: { ...this.connOptions, maxRetry: 0 } });
+    // Children keep the SDK's retries: Gemini sometimes returns an empty
+    // response, which a retry fixes; with no retries each one became an
+    // unhandled rejection (dev, 2026-09-29). A child we close no longer
+    // retries: the patched Google plugin ends a cancelled request quietly.
+    const stream = model.chat({ ...this.opts, connOptions: this.connOptions });
     this.children.push(stream);
     const cand: Candidate = { name, stream, buffered: [], next: undefined as never };
     cand.next = this.pull(cand);

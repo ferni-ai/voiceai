@@ -39,6 +39,9 @@ export function toolRetrievalMode(
 /** Never left to retrieval: handoffs and every safety tool. */
 export const CORE_DOMAINS = ['handoff', 'crisis', 'trauma-support', 'human-transfer'] as const;
 export const CORE_TOOLS = [
+  // Date, time and location: the model reaches for it before many requests
+  // (e.g. "weather tomorrow?"), whatever the topic (dev shadow run, 2026-09-29).
+  'getCurrentContext',
   'recallFromMemory',
   'rememberAboutUser',
   'rememberImportantFact',

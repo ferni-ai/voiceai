@@ -228,6 +228,11 @@ describe('helpers', () => {
     expect(embedder.calls).toBe(before);
   });
 
+  it('always keeps the date/time/location context tool', async () => {
+    const { r } = await setup();
+    expect(r.isCore('getCurrentContext')).toBe(true);
+  });
+
   it('is off unless TOOL_RETRIEVAL says shadow or live', () => {
     expect(toolRetrievalMode({})).toBe('off');
     expect(toolRetrievalMode({ TOOL_RETRIEVAL: 'shadow' })).toBe('shadow');

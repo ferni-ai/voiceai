@@ -147,19 +147,6 @@ describe('HedgedLLM', () => {
     expect(Date.now() - started).toBeLessThan(500);
   });
 
-  it("leaves retries to itself: children don't retry on their own", async () => {
-    const primary = new FakeLLM('primary', { chunks: [{ afterMs: 5, content: 'hi' }] });
-    const backup = new FakeLLM('backup', { chunks: [{ afterMs: 5, content: 'yo' }] });
-    const stream = new HedgedLLM(primary, backup, 1000).chat({
-      chatCtx: new llm.ChatContext(),
-      connOptions: { maxRetry: 3, retryIntervalMs: 0, timeoutMs: 5000 },
-    });
-    for await (const _ of stream) {
-      // drain
-    }
-    expect(primary.maxRetries).toEqual([0]);
-  });
-
   it('ends quietly when the reply is cancelled while the models are still working', async () => {
     const primary = new FakeLLM('primary', { chunks: [{ afterMs: 200, content: 'late' }] });
     const backup = new FakeLLM('backup', { chunks: [{ afterMs: 200, content: 'late too' }] });
