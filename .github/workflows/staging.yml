@@ -22,7 +22,14 @@ env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
   NODE_VERSION: '20'
+  # ferni-dev LiveKit project (see CLAUDE.md: dev vs production)
+  STAGING_LIVEKIT_URL: wss://dev-8sm1ba0z.livekit.cloud
   LIVEKIT_AGENTS_VERSION: '1.0.31'
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
 
 jobs:
   # ============================================================================
@@ -156,6 +163,19 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
+      - name: Check ferni-dev LiveKit secrets
+        # Staging uses the ferni-dev LiveKit project and dispatches voice-agent-dev,
+        # never production (a staging token must not reach production workers).
+        run: |
+          MISSING=""
+          for s in livekit-dev-api-key livekit-dev-api-secret; do
+            gcloud secrets describe "$s" --project "${{ env.GCP_PROJECT_ID }}" >/dev/null 2>&1 || MISSING="$MISSING $s"
+          done
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing Secret Manager secrets:$MISSING (ferni-dev LiveKit key and secret, from https://cloud.livekit.io/projects/p_1gcwootg9al/settings/keys). See docs/runbooks/GO-LIVE-OUTREACH-AND-INTEGRATIONS.md."
+            exit 1
+          fi
+
       - name: Configure Docker
         run: gcloud auth configure-docker gcr.io
 
@@ -219,7 +239,8 @@ jobs:
             --concurrency 20 \
             --min-instances 0 \
             --max-instances 2 \
-            --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }}"
+            --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }},LIVEKIT_URL=${{ env.STAGING_LIVEKIT_URL }},AGENT_NAME=voice-agent-dev" \
+            --set-secrets "LIVEKIT_API_KEY=livekit-dev-api-key:latest,LIVEKIT_API_SECRET=livekit-dev-api-secret:latest"
           
           URL=$(gcloud run services describe $SERVICE_NAME \
             --region=${{ env.GCP_REGION }} \

@@ -96,3 +96,23 @@ API_BASE=https://app.ferni.ai pnpm smoke:api   # 19 read-only/refused probes
 Run it only **after** this branch is deployed. Against the old code some probes, like the
 GDPR delete with a foreign `userId`, would actually go through. Against the fixed code every
 probe is read-only or refused.
+
+## 7. Staging previews (ferni-dev LiveKit)
+
+PR previews (`staging.yml`) run the UI server against the **ferni-dev** LiveKit project and
+dispatch `voice-agent-dev`, so a staging token can never reach production workers. They need two
+secrets in Secret Manager. Take the values from
+https://cloud.livekit.io/projects/p_1gcwootg9al/settings/keys:
+
+```bash
+printf %s "$DEV_KEY"    | gcloud secrets create livekit-dev-api-key    --data-file=- --project johnb-2025
+printf %s "$DEV_SECRET" | gcloud secrets create livekit-dev-api-secret --data-file=- --project johnb-2025
+# The Cloud Run runtime service account must be able to read them:
+for s in livekit-dev-api-key livekit-dev-api-secret; do
+  gcloud secrets add-iam-policy-binding $s --project johnb-2025 \
+    --member="serviceAccount:<runtime-sa>" --role=roles/secretmanager.secretAccessor
+done
+```
+
+The URL (`wss://dev-8sm1ba0z.livekit.cloud`) is set in the workflow. Until both secrets exist,
+the staging job fails early with a message naming the missing ones.
