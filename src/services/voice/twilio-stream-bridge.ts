@@ -446,11 +446,14 @@ export class TwilioStreamBridge extends EventEmitter {
     // Initialize Rust audio enhancer if enabled
     if (isExperimentalEnabled('preSTTAudioProcessing')) {
       try {
+        // AGC + high-pass only: with noise suppression and bandwidth extension
+        // too, Ink-2 got 83.8% of phone words wrong (2.2% raw). See
+        // twilio-audio-enhance.ts for the measurements.
         session.audioEnhancer = await getTwilioEnhancer({
           sessionId: callSid,
           enableAgc: true,
-          enableNoiseSuppression: true,
-          enableBandwidthExtension: true,
+          enableNoiseSuppression: false,
+          enableBandwidthExtension: false,
           enableHighpass: true,
         });
         log.info(

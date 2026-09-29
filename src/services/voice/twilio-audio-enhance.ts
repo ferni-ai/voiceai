@@ -81,11 +81,16 @@ const enhancers = new Map<string, { processor: PreSTTProcessor; initialized: boo
  * ```
  */
 export async function getTwilioEnhancer(config: TwilioEnhanceConfig): Promise<TwilioEnhancer> {
+  // Defaults measured against Cartesia Ink-2 (scripts/audio-eval/stt-accuracy.ts,
+  // 2026-09-29, 15 utterances): on 8 kHz phone audio every stage on gave 83.8%
+  // word errors vs 2.2% raw; noise suppression alone 51.1%, bandwidth
+  // extension alone 4.8%. AGC + high-pass matched raw (2.6%) and cut a quiet
+  // caller's errors from 36.7% to 3.1%. So: AGC + high-pass, nothing else.
   const {
     sessionId,
     enableAgc = true,
-    enableNoiseSuppression = true,
-    enableBandwidthExtension = true,
+    enableNoiseSuppression = false,
+    enableBandwidthExtension = false,
     enableHighpass = true,
   } = config;
 
@@ -125,8 +130,10 @@ export async function getTwilioEnhancer(config: TwilioEnhanceConfig): Promise<Tw
     enhanceFrame: (samples8kHz: Int16Array, isSpeech = true): TwilioEnhanceResult => {
       const startTime = performance.now();
 
-      // Process through Pre-STT pipeline (handles 8kHz → 16kHz internally)
-      const enhanced = processor.processFrameI16(samples8kHz, isSpeech);
+      // Bandwidth extension outputs 16 kHz; without it the processor stays at
+      // 8 kHz and is upsampled here, so callers always get 16 kHz.
+      const processed = processor.processFrameI16(samples8kHz, isSpeech);
+      const enhanced = enableBandwidthExtension ? processed : upsample2x(processed);
 
       const processingTimeMs = performance.now() - startTime;
 
@@ -163,6 +170,16 @@ export async function getTwilioEnhancer(config: TwilioEnhanceConfig): Promise<Tw
       enhancers.delete(sessionId);
     },
   };
+}
+
+/** 8 kHz → 16 kHz by linear interpolation (what the bridge's fallback does). */
+export function upsample2x(x: Float32Array): Float32Array {
+  const out = new Float32Array(x.length * 2);
+  for (let i = 0; i < x.length; i++) {
+    out[2 * i] = x[i];
+    out[2 * i + 1] = i + 1 < x.length ? (x[i] + x[i + 1]) / 2 : x[i];
+  }
+  return out;
 }
 
 /**

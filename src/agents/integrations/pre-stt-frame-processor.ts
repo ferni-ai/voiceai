@@ -1,13 +1,15 @@
 /**
  * Pre-STT Frame Processor for LiveKit
  *
- * Implements LiveKit's FrameProcessor<AudioFrame> so that AGC + noise suppression
- * (and optional bandwidth extension) are applied to user audio BEFORE it is sent
- * to the LLM/STT. When this processor is used as session inputOptions.noiseCancellation,
- * the enhanced audio is what the realtime model receives.
- *
- * Use with session.start({ inputOptions: { audioSampleRate: 16000, noiseCancellation: processor } })
- * so frames are 16kHz (Pre-STT preset). Twilio path already uses Pre-STT in twilio-stream-bridge.
+ * Implements LiveKit's FrameProcessor<AudioFrame> to process user audio before
+ * STT (use as session inputOptions.noiseCancellation). NOT WIRED: nothing
+ * uses it. Browser callers already get AGC/noise suppression from the browser,
+ * and server-side noise suppression measurably hurts Ink-2 (see
+ * pre-stt-audio-integration.ts). The one case it could help is callers with no
+ * browser processing, e.g. LiveKit SIP phone participants: AGC + high-pass cut
+ * a quiet caller's word errors from 36.7% to 3.1% without hurting normal
+ * speech. Wire it for those participants only, with the standard preset
+ * (AGC + high-pass; noise suppression off).
  *
  * @module agents/integrations/pre-stt-frame-processor
  */

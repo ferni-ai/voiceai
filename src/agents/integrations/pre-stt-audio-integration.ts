@@ -15,10 +15,16 @@
  * - Twilio 8kHz detection and bandwidth extension metrics
  * - Debugging and monitoring
  *
- * When Pre-STT is enabled via feature flag (preSTTAudioProcessing), the voice agent
- * uses PreSTTFrameProcessor as session inputOptions.noiseCancellation so enhanced
- * audio is fed to STT (see pre-stt-frame-processor.ts and voice-agent-entry.ts).
- * Twilio path uses Pre-STT in twilio-stream-bridge (enhanced audio → LiveKit).
+ * This integration only measures: its processed audio is not what STT hears.
+ * That is deliberate. Measured against Cartesia Ink-2
+ * (scripts/audio-eval/stt-accuracy.ts, 2026-09-29): noise suppression raised
+ * word errors on clean speech from 2.6% to 36.2% and on phone audio from 2.2%
+ * to 51.1%; AGC + high-pass matched raw audio and cut a quiet speaker's errors
+ * from 36.7% to 3.1%. Browser callers already get AGC, noise suppression and
+ * echo cancellation from the browser (LiveKit's capture defaults), so their
+ * audio goes to STT untouched. The Twilio bridge (twilio-stream-bridge.ts)
+ * applies AGC + high-pass to phone audio before it reaches LiveKit.
+ * PreSTTFrameProcessor (pre-stt-frame-processor.ts) is not wired anywhere.
  *
  * @module agents/integrations/pre-stt-audio-integration
  */
