@@ -53,7 +53,7 @@ function buildCallbackUrl(
   // Public Firebase Web API key: lets the CLI refresh the ID token directly
   // against securetoken.googleapis.com after it expires.
   const apiKey = getAuth().app.options.apiKey;
-  if (apiKey) url.searchParams.set('apiKey', apiKey);
+  if (typeof apiKey === 'string' && apiKey) url.searchParams.set('apiKey', apiKey);
   return url.toString();
 }
 
