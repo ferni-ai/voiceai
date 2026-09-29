@@ -14,6 +14,7 @@
  */
 
 import type { UserProfile } from '../../../types/user-profile.js';
+import { personaMoodCarryover } from '../../shared/persona-mood-carryover.js';
 
 // ============================================================================
 // TYPES
@@ -40,16 +41,6 @@ export interface UserAwarenessResult {
 // ============================================================================
 // MOOD CONTEXT MAPPINGS
 // ============================================================================
-
-const MOOD_CONTEXT: Record<string, string> = {
-  tired_but_present: 'Last time they seemed a bit tired - be gentle.',
-  reflective: 'Last time they were in a reflective mood.',
-  philosophical: 'Last time they were in a thoughtful, philosophical space.',
-  energized: 'Last time they were full of energy!',
-  grounded: 'Last time they seemed calm and grounded.',
-  playful: 'Last time they were in a playful mood.',
-  nostalgic: 'Last time they were feeling nostalgic.',
-};
 
 const RELATIONSHIP_STAGE_DESCRIPTIONS: Record<string, string> = {
   getting_to_know: "You're still getting to know each other.",
@@ -200,13 +191,11 @@ function addLastContactContext(
   }
 }
 
+/** The persona's own carried-over mood (lastMood is the persona's, not the user's). */
 function addEmotionalMemory(facts: string[], profile: UserProfile): void {
-  if (profile.humanizingState?.lastMood) {
-    const { lastMood } = profile.humanizingState;
-    const moodDescription = MOOD_CONTEXT[lastMood];
-    if (moodDescription) {
-      facts.push(moodDescription);
-    }
+  const carriedMood = personaMoodCarryover(profile.humanizingState?.lastMood);
+  if (carriedMood) {
+    facts.push(carriedMood);
   }
 }
 

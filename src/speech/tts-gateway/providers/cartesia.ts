@@ -13,6 +13,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { EXPRESSIVE_VOICE } from '../../expression/types.js';
 import {
   CARTESIA_MODEL,
   CARTESIA_API_VERSION,
@@ -74,6 +75,8 @@ export function prosodyTags(prosody?: SSMLProsodyConfig): string {
 
 export class CartesiaTTSProvider implements ITTSProvider {
   readonly name = 'cartesia';
+  /** Sonic renders emotion, speed/volume ratios and [laughter]. */
+  readonly voice = EXPRESSIVE_VOICE;
   private readonly socket = new CartesiaSocket(
     () => buildWebsocketUrl(process.env.CARTESIA_API_KEY ?? ''),
     WS_OPEN_TIMEOUT_MS

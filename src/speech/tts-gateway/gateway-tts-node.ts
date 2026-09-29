@@ -42,6 +42,8 @@ import { findChunkEnd } from './chunk-boundary.js';
 import { createContinuationTTS } from './continuation-tts.js';
 import { prosodyTags } from './providers/cartesia.js';
 import type { SSMLProsodyConfig } from './types.js';
+import { fitToVoice } from '../expression/voice-fit.js';
+import type { VocalDirection, VoiceCapabilities } from '../expression/types.js';
 
 // ============================================================================
 // JSON FUNCTION CALL FILTERING
@@ -143,6 +145,8 @@ export interface GatewayTTSNodeConfig {
   personaId?: string;
   /** Initial emotion hint */
   emotion?: string;
+  /** How this reply should sound (speech/expression); neutral when absent. */
+  direction?: VocalDirection;
   /** Sample rate for audio frames (default: 24000) */
   sampleRate?: number;
   /** Frame duration in ms (default: 20) */
@@ -325,17 +329,18 @@ const MIN_CHUNK = 15;
 
 function sanitizeChunkForTTS(
   chunk: string,
-  ssmlProcessor: ReturnType<typeof getSSMLProcessor>
+  ssmlProcessor: ReturnType<typeof getSSMLProcessor>,
+  voice: VoiceCapabilities
 ): { text: string; prosody: SSMLProsodyConfig } {
   if (isJsonFunctionCall(chunk)) return { text: '', prosody: {} };
   let text = chunk;
   if (containsInstructionBlocks(text)) text = stripInstructionBlocks(text);
   if (containsGuidanceBlocks(text)) text = stripGuidanceBlocks(text);
   const ssmlResult = ssmlProcessor.parse(text);
-  return {
-    text: ssmlResult.cleanText.trim(),
-    prosody: { ...ssmlResult.prosody },
-  };
+  return fitToVoice(
+    { text: ssmlResult.cleanText.trim(), prosody: { ...ssmlResult.prosody } },
+    voice
+  );
 }
 
 interface StreamingOverlapOptions {
@@ -344,6 +349,7 @@ interface StreamingOverlapOptions {
   sessionId?: string;
   personaId?: string;
   emotion?: string;
+  direction?: VocalDirection;
   sampleRate: number;
   frameDurationMs: number;
   enableCache: boolean;
@@ -395,6 +401,7 @@ async function createStreamingOverlapTTS(
     sessionId,
     personaId,
     emotion,
+    direction,
     sampleRate,
     frameDurationMs,
     enableCache,
@@ -412,9 +419,10 @@ async function createStreamingOverlapTTS(
     return createContinuationTTS({
       textStream,
       reply: provider.openReplyStream(voiceId),
-      sanitize: (chunk) => sanitizeChunkForTTS(chunk, ssmlProcessor),
+      sanitize: (chunk) => sanitizeChunkForTTS(chunk, ssmlProcessor, provider.voice),
       openingTags: prosodyTags,
       emotion,
+      direction,
       toFrames: (pcm) => splitIntoFrames(pcm, sampleRate, frameDurationMs),
       onFirstAudio: markFirstAudio,
       onError: (err, phase) =>
@@ -459,7 +467,11 @@ async function createStreamingOverlapTTS(
             if (done) break;
           }
 
-          const { text: fullText, prosody } = sanitizeChunkForTTS(buffer, ssmlProcessor);
+          const { text: fullText, prosody } = sanitizeChunkForTTS(
+            buffer,
+            ssmlProcessor,
+            provider.voice
+          );
           const prosodyWithEmotion: SSMLProsodyConfig = {
             ...prosody,
             emotion: prosody.emotion || emotion,
@@ -600,7 +612,7 @@ async function createStreamingOverlapTTS(
           }
 
           if (chunk) {
-            const { text, prosody } = sanitizeChunkForTTS(chunk, ssmlProcessor);
+            const { text, prosody } = sanitizeChunkForTTS(chunk, ssmlProcessor, provider.voice);
             const prosodyWithEmotion: SSMLProsodyConfig = {
               ...prosody,
               emotion: prosody.emotion || emotion,
@@ -648,7 +660,11 @@ async function createStreamingOverlapTTS(
               const nextEnd = findChunkEnd(buffer, MIN_CHUNK);
               if (nextEnd !== null) {
                 const nextRaw = buffer.slice(0, nextEnd);
-                const nextSanitized = sanitizeChunkForTTS(nextRaw, ssmlProcessor);
+                const nextSanitized = sanitizeChunkForTTS(
+                  nextRaw,
+                  ssmlProcessor,
+                  provider.voice
+                );
                 if (nextSanitized.text) {
                   const nextProsody: SSMLProsodyConfig = {
                     ...nextSanitized.prosody,
@@ -709,6 +725,7 @@ export function createGatewayTTSNode(
     sessionId,
     personaId,
     emotion,
+    direction,
     sampleRate = 24000,
     frameDurationMs = 20,
     enableCache = true,
@@ -741,6 +758,7 @@ export function createGatewayTTSNode(
         sessionId,
         personaId,
         emotion,
+        direction,
         sampleRate,
         frameDurationMs,
         enableCache,

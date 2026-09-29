@@ -24,6 +24,7 @@ import {
 import { createTTSCache, setTTSCache } from '../../../services/tts/tts-cache.js';
 import type { ITTSProvider } from '../types.js';
 import { perfBudget } from '../../../tests/perf-budget.js';
+import { EXPRESSIVE_VOICE } from '../../expression/types.js';
 
 // ==========================================================================
 // MOCKS
@@ -32,6 +33,7 @@ import { perfBudget } from '../../../tests/perf-budget.js';
 // Mock the Cartesia provider
 const mockProvider: ITTSProvider = {
   name: 'mock-cartesia',
+  voice: EXPRESSIVE_VOICE,
   synthesize: vi.fn().mockResolvedValue(new ArrayBuffer(4800)), // 100ms of 24kHz 16-bit mono
   synthesizeStream: vi.fn(),
   isAvailable: vi.fn().mockResolvedValue(true),

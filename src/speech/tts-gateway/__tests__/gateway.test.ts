@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTTSCache } from '../../../services/tts/tts-cache.js';
 import { TTSGateway, getTTSGateway, initTTSGateway, resetTTSGateway } from '../gateway.js';
 import type { ITTSCache, ITTSProvider } from '../types.js';
+import { EXPRESSIVE_VOICE } from '../../expression/types.js';
 
 // ==========================================================================
 // MOCK PROVIDER
@@ -16,6 +17,7 @@ import type { ITTSCache, ITTSProvider } from '../types.js';
 function createMockProvider(overrides?: Partial<ITTSProvider>): ITTSProvider {
   return {
     name: 'mock-provider',
+    voice: EXPRESSIVE_VOICE,
     synthesize: vi.fn().mockImplementation(async (text: string) => {
       // Generate fake audio: 1 byte per character, roughly
       const fakeAudio = new ArrayBuffer(text.length * 10);

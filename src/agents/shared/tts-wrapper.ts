@@ -27,6 +27,7 @@ import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic
 import { finops } from '../../services/observability/finops.js';
 import { markTurnCheckpoint } from '../../services/performance/turn-profiler.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
+import { sessionVocalDirection, type VocalDirection } from '../../speech/expression/index.js';
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
@@ -299,6 +300,8 @@ export interface TtsSessionContext {
   interruptType?: 'hard' | 'soft';
   /** Current emotional context (for cache-aware TTS) */
   emotion?: string;
+  /** How this reply should sound (speech/expression) */
+  vocalDirection?: VocalDirection;
   /** Current turn number for profiling checkpoints */
   turnNumber?: number;
   /** User's IP-detected location for weather, local content */
@@ -420,6 +423,7 @@ export async function wrappedTtsNode(
   const wasInterrupted = sessionContext?.wasInterrupted;
   const interruptType = sessionContext?.interruptType;
   const emotion = sessionContext?.emotion;
+  const vocalDirection = sessionContext?.vocalDirection;
   const userLocation = sessionContext?.userLocation;
   const turnNumber = sessionContext?.turnNumber;
 
@@ -1141,6 +1145,7 @@ export async function wrappedTtsNode(
       sessionId,
       personaId,
       emotion,
+      direction: vocalDirection,
       sampleRate: 24000,
       frameDurationMs: 20,
       enableCache: true,
@@ -1348,6 +1353,7 @@ export function extractTtsSessionContext(
     wasInterrupted: userData?.wasInterrupted as boolean | undefined,
     interruptType: userData?.interruptType as 'hard' | 'soft' | undefined,
     emotion: userData?.currentEmotion as string | undefined,
+    vocalDirection: sessionVocalDirection(userData),
     userLocation: userData?.userLocation as
       | { city?: string; regionCode?: string; countryCode?: string }
       | undefined,

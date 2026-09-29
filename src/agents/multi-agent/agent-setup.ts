@@ -104,6 +104,7 @@ import {
   type InitialToolPolicy,
 } from './initial-tools.js';
 import { composeAgentInstructions } from './agent-instructions.js';
+import { personaMoodCarryover } from '../shared/persona-mood-carryover.js';
 
 // Check if Tool Gateway is enabled (defaults to true)
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
@@ -410,25 +411,12 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       }
 
       // =========================================================================
-      // BETTER THAN HUMAN #2: Emotional Memory (via mood tracking)
-      // A human friend might not notice you were struggling last time
-      // Ferni remembers and checks in
+      // Inner life: the persona's OWN mood carries over from last time.
+      // humanizingState.lastMood is the persona's MoodState, never the caller's.
       // =========================================================================
-      if (userProfile.humanizingState?.lastMood) {
-        const { lastMood } = userProfile.humanizingState;
-        // Map moods to emotional context
-        const moodContext: Record<string, string> = {
-          tired_but_present: 'Last time they seemed a bit tired - be gentle.',
-          reflective: 'Last time they were in a reflective mood.',
-          philosophical: 'Last time they were in a thoughtful, philosophical space.',
-          energized: 'Last time they were full of energy!',
-          grounded: 'Last time they seemed calm and grounded.',
-          playful: 'Last time they were in a playful mood.',
-          nostalgic: 'Last time they were feeling nostalgic.',
-        };
-        if (moodContext[lastMood]) {
-          userAwareness.push(moodContext[lastMood]);
-        }
+      const carriedMood = personaMoodCarryover(userProfile.humanizingState?.lastMood);
+      if (carriedMood) {
+        userAwareness.push(carriedMood);
       }
 
       // =========================================================================

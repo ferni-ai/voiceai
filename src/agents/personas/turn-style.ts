@@ -33,6 +33,12 @@ export function turnStyleReminderEnabled(
   return env.TURN_STYLE_REMINDER !== 'off';
 }
 
+/** The reminder for this turn: the style rule (when on) plus any moment cues; null when empty. */
+export function composeTurnReminder(styleOn: boolean, cues: readonly string[]): string | null {
+  const parts = styleOn ? [TURN_STYLE_REMINDER, ...cues] : [...cues];
+  return parts.length > 0 ? parts.join(' ') : null;
+}
+
 /** A copy of `chatCtx` whose latest user message ends with the reminder. The input is not changed. */
 export function withTurnStyleReminder(
   chatCtx: llm.ChatContext,

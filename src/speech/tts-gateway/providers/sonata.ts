@@ -8,6 +8,7 @@
 
 import { createRequire } from 'module';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { PLAIN_VOICE } from '../../expression/types.js';
 import type { ITTSProvider, SSMLProsodyConfig } from '../types.js';
 import {
   resolveVoicePath,
@@ -73,6 +74,8 @@ const WORDS_PER_MINUTE = 150;
 
 export class SonataTTSProvider implements ITTSProvider {
   readonly name = 'sonata';
+  /** Plain text in, speech out: no prosody input, no nonverbal tokens. */
+  readonly voice = PLAIN_VOICE;
   private engine: SonataTTSInstance | null = null;
   private readonly hfRepo: string;
   private readonly nQ: number;

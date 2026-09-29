@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { llm } from '@livekit/agents';
 import {
+  composeTurnReminder,
   TURN_STYLE_REMINDER,
   turnStyleReminderEnabled,
   withTurnStyleReminder,
@@ -43,13 +44,27 @@ describe('withTurnStyleReminder', () => {
   it('leaves a context with no user message as it is', () => {
     const ctx = llm.ChatContext.empty();
     ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
-    expect(withTurnStyleReminder(ctx).items.map((i) => (i as llm.ChatMessage).textContent)).toEqual([
-      'You are Ferni.',
-    ]);
+    expect(withTurnStyleReminder(ctx).items.map((i) => (i as llm.ChatMessage).textContent)).toEqual(
+      ['You are Ferni.']
+    );
   });
 
   it('is on by default and off with TURN_STYLE_REMINDER=off', () => {
     expect(turnStyleReminderEnabled({})).toBe(true);
     expect(turnStyleReminderEnabled({ TURN_STYLE_REMINDER: 'off' })).toBe(false);
+  });
+});
+
+describe('composeTurnReminder', () => {
+  it('joins the style rule and moment cues', () => {
+    expect(composeTurnReminder(true, ['They just laughed.'])).toBe(
+      `${TURN_STYLE_REMINDER} They just laughed.`
+    );
+  });
+
+  it('still carries cues when the style rule is off, and is null when there is nothing', () => {
+    expect(composeTurnReminder(false, ['They just laughed.'])).toBe('They just laughed.');
+    expect(composeTurnReminder(false, [])).toBeNull();
+    expect(composeTurnReminder(true, [])).toBe(TURN_STYLE_REMINDER);
   });
 });

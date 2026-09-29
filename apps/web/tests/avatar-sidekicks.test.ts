@@ -398,12 +398,22 @@ describe('Event Integration', () => {
       expect(rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
     });
 
-    it('should show brain on ferni:thinking event', () => {
-      document.dispatchEvent(new CustomEvent('ferni:thinking'));
+    it('should show brain only when thinking runs long', () => {
+      document.dispatchEvent(new CustomEvent('ferni:thinking', { detail: { thinking: true } }));
       vi.runAllTimers();
       
       const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
       expect(rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
+    });
+
+    it('should not show brain for a quick think', () => {
+      document.dispatchEvent(new CustomEvent('ferni:thinking', { detail: { thinking: true } }));
+      vi.advanceTimersByTime(500);
+      document.dispatchEvent(new CustomEvent('ferni:thinking', { detail: { thinking: false } }));
+      vi.runAllTimers();
+      
+      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
+      expect(rightSlot?.querySelector('.sidekick-icon')).toBeFalsy();
     });
   });
 

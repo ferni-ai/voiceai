@@ -76,6 +76,8 @@ export interface ConnectionCallbacks {
   onStateChange?: (state: ConnectionState) => void;
   onAgentConnected?: (participantId: string) => void;
   onAgentDisconnected?: () => void;
+  /** Agent's LiveKit state (lk.agent.state): initializing, listening, thinking, speaking. */
+  onAgentState?: (state: string) => void;
   onDataMessage?: (message: DataMessage) => void;
   /** Called when agent audio track is available. Includes the audio element and track for visualization. */
   onAudioTrack?: (
@@ -713,6 +715,21 @@ class ConnectionService {
     this.room.on('participantDisconnected', onParticipantDisconnected);
     this.cleanupFunctions.push(() => {
       this.room?.off('participantDisconnected', onParticipantDisconnected);
+    });
+
+    // Agent state (lk.agent.state), published by the LiveKit agents SDK
+    const onAttributesChanged = (
+      changed: Record<string, string>,
+      participant: { isLocal?: boolean }
+    ) => {
+      const agentState = changed['lk.agent.state'];
+      if (agentState && !participant.isLocal) {
+        this.callbacks.onAgentState?.(agentState);
+      }
+    };
+    this.room.on('participantAttributesChanged', onAttributesChanged);
+    this.cleanupFunctions.push(() => {
+      this.room?.off('participantAttributesChanged', onAttributesChanged);
     });
 
     // Track subscribed (audio from agent) - use simple attach() like old frontend

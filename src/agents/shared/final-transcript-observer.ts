@@ -62,6 +62,8 @@ function applyTurnVoice(input: FinalTranscriptInput): DeliveryStyle | null {
     const reading = captureTurnVoiceEmotion(analyzer, userData) as UserVoiceReading | null;
     if (!isAdaptiveDeliveryEnabled(input.env)) return null;
     const style = deliveryStyleForUserVoice(reading);
+    // The TTS gateway reads it per reply (speech/expression); the LiveKit TTS takes it directly.
+    userData.deliveryStyle = style;
     const tts = (session as { tts?: { setDeliveryStyle?: (s: DeliveryStyle | null) => void } })
       ?.tts;
     tts?.setDeliveryStyle?.(style);

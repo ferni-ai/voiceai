@@ -603,6 +603,7 @@ async function processVoiceHumanization(
       );
       if (userData) {
         userData.detectedLaughter = laughterResult;
+        userData.detectedLaughterAt = Date.now();
       }
     }
 
@@ -756,6 +757,7 @@ async function processMultiSignalLaughter(
           : laughterResult.laughType;
 
       if (userData) {
+        userData.detectedLaughterAt = Date.now();
         userData.detectedLaughter = {
           isLaughing: true,
           confidence: laughterResult.confidence,

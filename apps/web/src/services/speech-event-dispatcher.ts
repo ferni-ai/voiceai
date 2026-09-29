@@ -49,6 +49,15 @@ const state: SpeechState = {
 };
 
 let isInitialized = false;
+let isThinking = false;
+
+/**
+ * Dispatch a ferni:* event on document. It bubbles, so listeners on window
+ * receive it too; consumers subscribe on either.
+ */
+function emit(name: string, detail?: unknown): void {
+  document.dispatchEvent(new CustomEvent(name, { detail, bubbles: true }));
+}
 
 // ============================================================================
 // EVENT DISPATCHERS
@@ -79,7 +88,7 @@ export function dispatchUserSpeechStart(): void {
   // 🎧 Notify MusicStateManager for ducking coordination
   getMusicStateManager().notifyUserSpeakingStart();
   
-  document.dispatchEvent(new CustomEvent('ferni:user-speech-start'));
+  emit('ferni:user-speech-start');
   log.debug('🎤 User speech started');
 }
 
@@ -101,7 +110,7 @@ export function dispatchUserSpeechEnd(): void {
   // 🎧 Notify MusicStateManager for unducking coordination
   getMusicStateManager().notifyUserSpeakingEnd();
   
-  document.dispatchEvent(new CustomEvent('ferni:user-speech-end'));
+  emit('ferni:user-speech-end');
   log.debug('🎤 User speech ended');
 }
 
@@ -123,9 +132,7 @@ export function dispatchUserSpeechPause(duration: number): void {
     state.pausePatterns.shift();
   }
   
-  document.dispatchEvent(new CustomEvent('ferni:user-speech-pause', {
-    detail: { duration }
-  }));
+  emit('ferni:user-speech-pause', { duration });
   log.debug('🎤 User speech pause:', duration + 'ms');
 }
 
@@ -144,7 +151,7 @@ export function dispatchAgentSpeechStart(): void {
   // 🎧 Notify MusicStateManager for ducking coordination
   getMusicStateManager().notifyAgentSpeakingStart();
   
-  document.dispatchEvent(new CustomEvent('ferni:agent-speech-start'));
+  emit('ferni:agent-speech-start');
   log.debug('🔊 Agent speech started');
 }
 
@@ -160,18 +167,23 @@ export function dispatchAgentSpeechEnd(): void {
   // 🎧 Notify MusicStateManager for unducking coordination
   getMusicStateManager().notifyAgentSpeakingEnd();
   
-  document.dispatchEvent(new CustomEvent('ferni:agent-speech-end'));
+  emit('ferni:agent-speech-end');
   log.debug('🔊 Agent speech ended');
 }
 
 /**
- * Dispatch thinking event
+ * Dispatch thinking event (only on change, so consumers see clean edges)
  */
-export function dispatchThinking(isThinking: boolean): void {
-  document.dispatchEvent(new CustomEvent('ferni:thinking', {
-    detail: { thinking: isThinking }
-  }));
-  log.debug('💭 Thinking:', isThinking);
+export function dispatchThinking(thinking: boolean): void {
+  if (thinking === isThinking) return;
+  isThinking = thinking;
+  emit('ferni:thinking', { thinking });
+  log.debug('💭 Thinking:', thinking);
+}
+
+/** Map LiveKit's agent state (lk.agent.state) onto the speech events. */
+export function updateFromAgentState(agentState: string): void {
+  dispatchThinking(agentState === 'thinking');
 }
 
 // ============================================================================
@@ -269,6 +281,7 @@ export function initSpeechEventDispatcher(): void {
   state.lastAgentSpeechTime = 0;
   state.pausePatterns = [];
   state.pauseStartTime = 0;
+  isThinking = false;
   
   isInitialized = true;
   log.info('✅ Speech event dispatcher initialized');
@@ -294,6 +307,7 @@ export const speechEvents = {
   agentSpeechStart: dispatchAgentSpeechStart,
   agentSpeechEnd: dispatchAgentSpeechEnd,
   thinking: dispatchThinking,
+  agentState: updateFromAgentState,
   
   // State
   isUserSpeaking,

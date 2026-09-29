@@ -8,6 +8,7 @@
  */
 
 import type { AudioFrame } from '@livekit/rtc-node';
+import type { VoiceCapabilities } from '../expression/types.js';
 import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type {
   TransformStream as NodeTransformStream,
@@ -185,6 +186,9 @@ export interface TranscriptResult {
 export interface ITTSProvider {
   /** Provider identifier */
   readonly name: string;
+
+  /** What this engine can render; anything else is stripped before synthesis. */
+  readonly voice: VoiceCapabilities;
 
   /** Open connections ahead of the first synthesis (optional, never throws). */
   prewarm?(): void;

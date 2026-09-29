@@ -31,7 +31,13 @@ import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
-import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js';
+import {
+  composeTurnReminder,
+  turnStyleReminderEnabled,
+  withTurnStyleReminder,
+} from './turn-style.js';
+import { nextReplyCues } from '../../speech/expression/index.js';
+import { getTTSProvider } from '../../speech/tts-gateway/providers/index.js';
 import { filterCaptionStream } from './caption-filter.js';
 import { OpenerGate } from './opener-gate.js';
 
@@ -707,14 +713,20 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
 
   /**
    * Every LLM request (preemptive or not) goes through here: add the
-   * turn-length reminder to a copy of the context. See turn-style.ts.
+   * turn-length reminder and this moment's expression cues (e.g. laughing
+   * along) to a copy of the context. See turn-style.ts, speech/expression.
    */
   async llmNode(
     chatCtx: llm.ChatContext,
     toolCtx: llm.ToolContext,
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
-    const ctx = turnStyleReminderEnabled() ? withTurnStyleReminder(chatCtx) : chatCtx;
+    const userData = this.session.userData as Record<string, unknown> | undefined;
+    const reminder = composeTurnReminder(
+      turnStyleReminderEnabled(),
+      nextReplyCues(userData, getTTSProvider().voice)
+    );
+    const ctx = reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
     const stream = await super.llmNode(ctx, toolCtx, modelSettings);
     if (!stream || process.env.OPENER_GATE === 'off') return stream;
     return this.openerGate.wrap(stream as never) as unknown as typeof stream;

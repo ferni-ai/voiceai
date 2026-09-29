@@ -127,6 +127,8 @@ const SOUL_TIMING = {
   SACCADE_MAX_INTERVAL: 5000,
   SACCADE_DURATION: 50,
   GLANCE_AWAY_DURATION: 800,
+  /** A reply ready this fast needs no visible thought. */
+  THINKING_GLANCE_DELAY: 350,
   RETURN_GAZE_DURATION: 400,
 
   // Shimmer
@@ -1565,11 +1567,15 @@ function setupEventListeners(): void {
     exitProtectiveMode();
   });
 
-  // Thinking state - responds to the existing ferni:thinking event
+  // Thinking state: people look away to think (gaze aversion under cognitive
+  // load), but not for a reply that is instantly ready. Glance only if the
+  // thought takes a beat.
+  let glanceTimer: ReturnType<typeof setTimeout> | null = null;
   document.addEventListener('ferni:thinking', ((e: CustomEvent) => {
-    const isThinking = e.detail?.isThinking;
-    if (isThinking) {
-      glanceAway();
+    if (glanceTimer) clearTimeout(glanceTimer);
+    glanceTimer = null;
+    if (e.detail?.thinking) {
+      glanceTimer = setTimeout(glanceAway, SOUL_TIMING.THINKING_GLANCE_DELAY);
       setPupilDilation('CONTRACTED', 'slow');
     } else {
       setPupilDilation('NEUTRAL', 'slow');

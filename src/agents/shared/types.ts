@@ -115,6 +115,8 @@ export interface UserData {
 
   // Voice humanization - laughter detection
   detectedLaughter?: LaughterDetectionResult;
+  /** When detectedLaughter was heard (epoch ms) */
+  detectedLaughterAt?: number;
 
   // Voice biomarkers - sub-lexical voice features for emotion enrichment
   /** Real-time raw voice biomarkers from Rust DSP pipeline */

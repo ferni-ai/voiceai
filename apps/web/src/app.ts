@@ -201,6 +201,7 @@ import {
   dispatchUserSpeechEnd,
   dispatchUserSpeechStart,
   disposeSpeechEventDispatcher,
+  updateFromAgentState,
 } from './services/speech-event-dispatcher.js';
 // I18n - Internationalization and localization
 import { initI18n } from './i18n/index.js';
@@ -3131,7 +3132,13 @@ class VoiceAIApp {
         document.dispatchEvent(new CustomEvent('ferni:connected'));
       },
 
+      onAgentState: (agentState) => {
+        // Per-turn thinking: Ferni glances away while the reply forms
+        updateFromAgentState(agentState);
+      },
+
       onAgentDisconnected: () => {
+        dispatchThinking(false);
         messageUI.show('See you next time!', 'info', 2000);
         presenceUI.setSpeaking(false);
 

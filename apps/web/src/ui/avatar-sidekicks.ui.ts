@@ -1233,9 +1233,14 @@ function setupEventListeners(): void {
   // CONVERSATION STATE SIGNALS
   // ─────────────────────────────────────────────────────────────────
   
-  document.addEventListener('ferni:thinking', () => {
-    showSidekick({ icon: 'brain', position: 'right', duration: 2000 });
-  }, { signal });
+  // Only a long think earns the prop; every-turn props read as a tic.
+  let longThinkTimer: ReturnType<typeof setTimeout> | null = null;
+  document.addEventListener('ferni:thinking', ((e: CustomEvent) => {
+    if (longThinkTimer) clearTimeout(longThinkTimer);
+    longThinkTimer = e.detail?.thinking
+      ? setTimeout(() => showSidekick({ icon: 'brain', position: 'right', duration: 2000 }), 1500)
+      : null;
+  }) as EventListener, { signal });
 
   // ferni:conversation-start is dispatched on window, not document
   window.addEventListener('ferni:conversation-start', () => {

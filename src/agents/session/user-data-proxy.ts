@@ -47,6 +47,8 @@ interface DirectFields {
 
   // Voice humanization - rapid changing state
   detectedLaughter?: LaughterDetectionResult;
+  /** When detectedLaughter was heard (epoch ms) */
+  detectedLaughterAt?: number;
   isInBreathPause?: boolean;
   currentSpeechDurationMs?: number;
   lastLiveBackchannelAt?: number;
@@ -153,6 +155,8 @@ export interface UserData {
 
   // Voice humanization
   detectedLaughter?: LaughterDetectionResult;
+  /** When detectedLaughter was heard (epoch ms) */
+  detectedLaughterAt?: number;
   isInBreathPause?: boolean;
   currentSpeechDurationMs?: number;
   lastLiveBackchannelAt?: number;

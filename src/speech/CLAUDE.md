@@ -16,6 +16,22 @@ This module is **production-ready** with:
 - 48+ subdirectories including `adaptive-ssml/` (50 files), `tts-gateway/` (17 files)
 - DDD bounded context organization (Feb 2026): 32 root files organized into 7 BCs with re-export shims
 
+## 🎙️ Vocal Expression (`expression/`) — live path
+
+The single place that decides how a live reply SOUNDS. Wired into the TTS
+gateway and the per-reply LLM hook; prefer extending it over adding another
+prosody module.
+
+| Module | Role |
+| --- | --- |
+| `vocal-direction.ts` | One policy per reply: reply's own tag > caller's voice (adaptive delivery). Calm emotions only, pace 0.88-1.08 |
+| `voice-fit.ts` | Strip what the active engine can't render (`ITTSProvider.voice`): Sonata never reads `[laughter]` aloud |
+| `laughter-reciprocity.ts` | Caller laughed → next reply laughs along (or smiles), once per laugh, 45s cooldown |
+| `session-expression.ts` | Adapter over `userData` (`deliveryStyle`, `detectedLaughter[At]`, `laughCue`) |
+
+Adaptive delivery (the caller's voice shaping Ferni's) stays behind
+`ADAPTIVE_DELIVERY=on` until a blind comparison; laughing along is always on.
+
 ## 🎭 Speech Orchestrator (NEW - Recommended Entry Point)
 
 The **SpeechOrchestrator** is the unified coordination layer for all speech humanization:

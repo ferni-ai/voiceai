@@ -5,6 +5,7 @@ import { createContinuationTTS } from '../continuation-tts.js';
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
 import { getSSMLProcessor } from '../ssml/processor.js';
+import type { VocalDirection } from '../../expression/types.js';
 
 /** A reply stream that records pushes and plays back scripted audio. */
 class FakeReply implements ReplyStream {
@@ -42,7 +43,7 @@ function textStream(pieces: string[]) {
 }
 
 const processor = getSSMLProcessor();
-function run(pieces: string[], reply: FakeReply, emotion?: string) {
+function run(pieces: string[], reply: FakeReply, emotion?: string, direction?: VocalDirection) {
   let firstAudio = 0;
   const errors: unknown[] = [];
   const stream = createContinuationTTS({
@@ -54,6 +55,7 @@ function run(pieces: string[], reply: FakeReply, emotion?: string) {
     },
     openingTags: prosodyTags,
     emotion,
+    direction,
     toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
     onFirstAudio: () => firstAudio++,
     onError: (e) => errors.push(e),
@@ -147,5 +149,52 @@ describe('createContinuationTTS', () => {
     await r.read();
     await r.cancel();
     expect(reply.cancelled).toBe(true);
+  });
+
+  describe('with a vocal direction', () => {
+    const sympathetic: VocalDirection = { emotion: 'sympathetic', speed: 0.92, volume: 1 };
+
+    it('sets the directed emotion and pace once and keeps it for the whole reply', async () => {
+      const reply = new FakeReply([8]);
+      const { stream } = run(
+        ['That sounds really hard. ', 'I am here.'],
+        reply,
+        undefined,
+        sympathetic
+      );
+      await drain(stream as unknown as ReadableStream<AudioFrame>);
+      expect(reply.pushes[0]).toContain('<speed ratio="0.92"/>');
+      expect(reply.pushes[0]).toContain('<emotion value="sympathetic"/>');
+      expect(reply.pushes.slice(1).join('')).not.toMatch(/ratio=/);
+    });
+
+    it("lets the reply's own emotion win over the direction", async () => {
+      const reply = new FakeReply([8]);
+      const { stream } = run(
+        ['<emotion value="curious"/>Wait, tell me more about that. ', 'What happened?'],
+        reply,
+        undefined,
+        sympathetic
+      );
+      await drain(stream as unknown as ReadableStream<AudioFrame>);
+      expect(reply.pushes[0]).toContain('<emotion value="curious"/>');
+      expect(reply.pushes.join('')).not.toContain('sympathetic');
+    });
+
+    it('returns to the directed pace, not the default, after a soft start', async () => {
+      const reply = new FakeReply([8]);
+      const { stream } = run(
+        [
+          '<volume ratio="0.76"/><speed ratio="0.88"/>Oh, go ahead. ',
+          'I was saying something else.',
+        ],
+        reply,
+        undefined,
+        sympathetic
+      );
+      await drain(stream as unknown as ReadableStream<AudioFrame>);
+      expect(reply.pushes[0]).toContain('<speed ratio="0.88"/>');
+      expect(reply.pushes[1].startsWith('<speed ratio="0.92"/><volume ratio="1"/>')).toBe(true);
+    });
   });
 });

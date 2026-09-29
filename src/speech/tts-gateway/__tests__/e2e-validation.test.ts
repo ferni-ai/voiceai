@@ -21,6 +21,7 @@ import { parseSSML, stripSSML, containsSSML, normalizeForCache } from '../ssml/i
 import { createTTSGateway, resetTTSGateway } from '../gateway.js';
 import { createTTSCache } from '../../../services/tts/tts-cache.js';
 import type { ITTSProvider, SSMLProsodyConfig } from '../types.js';
+import { EXPRESSIVE_VOICE } from '../../expression/types.js';
 
 // ============================================================================
 // TEST DATA: Real SSML patterns used in Ferni
@@ -83,6 +84,7 @@ const FORBIDDEN_LITERAL_OUTPUTS = [
 function createMockProvider(): ITTSProvider {
   return {
     name: 'mock-provider',
+    voice: EXPRESSIVE_VOICE,
     synthesize: async (text: string) => {
       // Return fake audio (1 byte per character)
       return new ArrayBuffer(text.length);
