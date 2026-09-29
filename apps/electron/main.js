@@ -7,7 +7,7 @@
 
 const { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeTheme } = require('electron');
 const path = require('path');
-const Store = require('electron-store');
+const { pathToFileURL } = require('url');
 
 // ============================================================================
 // SENTRY ERROR TRACKING
@@ -33,15 +33,36 @@ if (SENTRY_DSN) {
   console.log('ℹ️ Sentry DSN not configured - error tracking disabled');
 }
 
-// Initialize persistent store
-const store = new Store({
-  name: 'voiceai-settings',
-  defaults: {
-    windowBounds: { width: 1200, height: 800 },
-    alwaysOnTop: false,
-    startMinimized: false,
+// Persistent store. electron-store >= 9 is ESM-only, so it can't be require()d
+// from this CommonJS entry point; it's loaded via import() once the app is ready.
+let store = null;
+
+async function initStore() {
+  const { default: Store } = await import('electron-store');
+  store = new Store({
+    name: 'voiceai-settings',
+    defaults: {
+      windowBounds: { width: 1200, height: 800 },
+      alwaysOnTop: false,
+      startMinimized: false,
+    }
+  });
+}
+
+/**
+ * Open a URL in the system browser. Only http(s) is allowed: handing file:,
+ * smb: or custom-protocol URLs from the renderer to the OS can execute code.
+ */
+function openExternalSafe(url) {
+  try {
+    const { protocol } = new URL(url);
+    if (protocol === 'https:' || protocol === 'http:') {
+      shell.openExternal(url);
+    }
+  } catch {
+    // Malformed URL - ignore
   }
-});
+}
 
 // Keep references to prevent garbage collection
 let mainWindow = null;
@@ -72,6 +93,8 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
+      // The sandboxed preload can't read package.json / app.getVersion()
+      additionalArguments: [`--app-version=${app.getVersion()}`],
       // Enable Web Audio API and WebRTC
       webSecurity: true,
       allowRunningInsecureContent: false,
@@ -103,7 +126,7 @@ function createWindow() {
 
   // Handle external links
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    openExternalSafe(url);
     return { action: 'deny' };
   });
 
@@ -300,6 +323,14 @@ ipcMain.handle('set-store-value', (event, key, value) => {
   store.set(key, value);
 });
 
+// Renderer errors are forwarded here: the sandboxed preload can't load Sentry
+ipcMain.on('report-error', (event, error, context) => {
+  if (!SENTRY_DSN) return;
+  const err = new Error(error && error.message ? error.message : String(error));
+  if (error && error.stack) err.stack = error.stack;
+  Sentry.captureException(err, { extra: context });
+});
+
 // ============================================================================
 // APP LIFECYCLE
 // ============================================================================
@@ -312,13 +343,22 @@ if (!gotTheLock) {
   app.on('second-instance', () => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
+      // The window may be hidden (macOS close-to-tray, startMinimized)
+      mainWindow.show();
       mainWindow.focus();
     }
   });
+
+  // App ready (only for the primary instance - a second instance must not
+  // create its own window/tray before quitting)
+  app.whenReady().then(onReady).catch((error) => {
+    console.error('Failed to start Voice AI:', error);
+    app.quit();
+  });
 }
 
-// App ready
-app.whenReady().then(() => {
+async function onReady() {
+  await initStore();
   createWindow();
   createTray();
   createMenu();
@@ -336,10 +376,12 @@ app.whenReady().then(() => {
       );
     }
   });
-});
+}
 
 // macOS: Re-create window when dock icon clicked
 app.on('activate', () => {
+  // 'activate' can fire before the store is initialised on first launch
+  if (!store) return;
   if (mainWindow === null) {
     createWindow();
   } else {
@@ -362,12 +404,13 @@ app.on('before-quit', () => {
 // Security: Prevent new window creation
 app.on('web-contents-created', (event, contents) => {
   contents.on('will-navigate', (event, navigationUrl) => {
-    const parsedUrl = new URL(navigationUrl);
-    
     // Only allow navigation to the app's own pages
-    if (parsedUrl.origin !== 'http://localhost:3004' && !navigationUrl.startsWith('file://')) {
+    const appRoot = isDev
+      ? 'http://localhost:3004'
+      : pathToFileURL(path.join(__dirname, 'web')).href;
+    if (!navigationUrl.startsWith(appRoot)) {
       event.preventDefault();
-      shell.openExternal(navigationUrl);
+      openExternalSafe(navigationUrl);
     }
   });
 });

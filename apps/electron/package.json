@@ -11,8 +11,8 @@
   "scripts": {
     "start": "electron .",
     "dev": "npm run build:frontend && electron .",
-    "build:frontend": "cd ../../apps/web && npm run build && cp -r dist/* ../apps/electron/web/",
-    "build:frontend:win": "cd ..\\..\\apps/web && npm run build && xcopy dist\\* ..\\apps\\electron\\web\\ /E /Y",
+    "build:frontend": "cd ../web && npx vite build --base=./ && mkdir -p ../electron/web && cp -r dist/* ../electron/web/",
+    "build:frontend:win": "cd ..\\web && npx vite build --base=./ && xcopy dist\\* ..\\electron\\web\\ /E /Y /I",
     "build": "npm run build:frontend && electron-builder",
     "build:mac": "npm run build:frontend && electron-builder --mac",
     "build:win": "electron-builder --win",
@@ -103,14 +103,13 @@
       "shortcutName": "Voice AI",
       "installerIcon": "resources/icon.ico",
       "uninstallerIcon": "resources/icon.ico",
-      "installerHeaderIcon": "resources/icon.ico",
-      "license": "../../LICENSE"
+      "installerHeaderIcon": "resources/icon.ico"
     },
     "portable": {
       "artifactName": "${productName}-${version}-portable.${ext}"
     },
     "linux": {
-      "icon": "resources/icons",
+      "icon": "resources/icon.png",
       "category": "Utility",
       "target": [
         "AppImage",

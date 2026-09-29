@@ -58,7 +58,8 @@ interface ElectronAPI {
   isElectron: boolean;
   platform: string;
   getSystemTheme: () => Promise<'light' | 'dark'>;
-  onSystemThemeChange: (callback: (theme: 'light' | 'dark') => void) => void;
+  /** Returns an unsubscribe function (older desktop builds return nothing) */
+  onSystemThemeChange: (callback: (theme: 'light' | 'dark') => void) => (() => void) | void;
   store: {
     get: (key: string) => Promise<unknown>;
     set: (key: string, value: unknown) => Promise<void>;
@@ -315,9 +316,9 @@ export async function getSystemTheme(): Promise<'light' | 'dark'> {
  */
 export function onSystemThemeChange(callback: (theme: 'light' | 'dark') => void): () => void {
   if (isElectron() && window.electronAPI?.onSystemThemeChange) {
-    window.electronAPI.onSystemThemeChange(callback);
-    // Electron doesn't return a cleanup function, so return no-op
-    return () => {};
+    const unsubscribe = window.electronAPI.onSystemThemeChange(callback);
+    // Older desktop builds don't return a cleanup function
+    return typeof unsubscribe === 'function' ? unsubscribe : () => {};
   }
 
   // Web fallback - use media query listener

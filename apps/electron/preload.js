@@ -7,23 +7,11 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-// ============================================================================
-// SENTRY FOR RENDERER PROCESS
-// ============================================================================
-const Sentry = require('@sentry/electron/renderer');
+// Renderers are sandboxed (Electron >= 20), so this preload can only require
+// 'electron'. Error reporting is forwarded to the main process over IPC.
 
-const SENTRY_DSN = process.env.SENTRY_DSN || '';
-
-if (SENTRY_DSN) {
-  Sentry.init({
-    dsn: SENTRY_DSN,
-    // Renderer-specific config
-    integrations: [
-      Sentry.browserTracingIntegration(),
-    ],
-    tracesSampleRate: 0.2,
-  });
-}
+const versionArg = process.argv.find((arg) => arg.startsWith('--app-version='));
+const APP_VERSION = versionArg ? versionArg.slice('--app-version='.length) : '1.0.0';
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
@@ -35,7 +23,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Theme
   getSystemTheme: () => ipcRenderer.invoke('get-system-theme'),
   onSystemThemeChange: (callback) => {
-    ipcRenderer.on('system-theme-changed', (event, theme) => callback(theme));
+    const listener = (event, theme) => callback(theme);
+    ipcRenderer.on('system-theme-changed', listener);
+    return () => ipcRenderer.removeListener('system-theme-changed', listener);
   },
   
   // Persistent storage (alternative to localStorage for Electron)
@@ -45,13 +35,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   
   // App info
-  getVersion: () => process.env.npm_package_version || '1.0.0',
+  getVersion: () => APP_VERSION,
   
   // Error reporting
   reportError: (error, context) => {
-    if (SENTRY_DSN) {
-      Sentry.captureException(error, { extra: context });
-    }
+    const payload = error instanceof Error
+      ? { message: error.message, stack: error.stack }
+      : { message: String(error) };
+    ipcRenderer.send('report-error', payload, context);
   },
 });
 
