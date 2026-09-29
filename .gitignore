@@ -193,3 +193,18 @@ test_higgs_output.wav
 # (committed 0b3e276cf); untracked 2026-09-25. See the audit note in ci.yml.
 .env.linkedin
 **/.env.linkedin
+
+# ----------------------------------------------------------------------------
+# Generated design-system outputs (pnpm tokens:sync / apps/web prebuild)
+# Hand-authored files in apps/web/public/design-system (cinematic.css,
+# mobile.css, preview.html, TOKEN-MIGRATION.md, brand symlink) stay tracked.
+# ----------------------------------------------------------------------------
+design-system/dist/
+apps/web/public/design-system/assets/
+apps/web/public/design-system/sounds/
+apps/web/public/design-system/tokens.css
+apps/web/public/design-system/tokens.ts
+apps/web/public/design-system/components.css
+apps/web/public/design-system/app-components.css
+apps/web/public/design-system/manifest.json
+apps/website/*/_site/

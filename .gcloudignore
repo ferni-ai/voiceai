@@ -81,15 +81,12 @@ functions/
 
 design-system/.storybook/
 # design-system/assets/ - allow logos and favicons for UI build
-design-system/assets/icons/
 design-system/assets/social/
-design-system/assets/sounds/
 design-system/choreography/
 design-system/node_modules/
 design-system/preview/
 design-system/stories/
 design-system/tests/**
-design-system/tokens/
 design-system/playground/
 design-system/site/
 design-system/dashboard/
@@ -107,6 +104,10 @@ design-system/*.js
 design-system/*.ts
 design-system/*.json
 design-system/*.md
+# Needed by the UI image to regenerate design-system outputs (Dockerfile.ui)
+!design-system/package.json
+!design-system/build.js
+!design-system/build-assets.js
 
 # Test files (5.2MB) - not needed in production
 src/tests/

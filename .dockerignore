@@ -34,12 +34,13 @@ design-system/.storybook/
 design-system/assets/
 !design-system/assets/logos/
 !design-system/assets/favicons/
+!design-system/assets/icons/
+!design-system/assets/sounds/
 design-system/choreography/
 design-system/node_modules/
 design-system/preview/
 design-system/stories/
 design-system/tests/**
-design-system/tokens/
 design-system/playground/
 design-system/site/
 design-system/dashboard/
@@ -47,6 +48,10 @@ design-system/*.js
 design-system/*.ts
 design-system/*.json
 design-system/*.md
+# Needed by the UI image to regenerate design-system outputs (Dockerfile.ui)
+!design-system/package.json
+!design-system/build.js
+!design-system/build-assets.js
 # Brand - only keep logos and favicons (exclude 27MB of social media exports)
 # Note: logos/ and favicons/ must be INCLUDED for Dockerfile.ui COPY commands
 design-system/brand/exports/

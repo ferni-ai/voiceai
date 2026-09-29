@@ -26,6 +26,7 @@ const CONFIG = {
   // Source directories (design-system/)
   sourceAssets: path.join(__dirname, 'assets'),
   sourceDist: path.join(__dirname, 'dist'),
+  sourceComponents: path.join(__dirname, 'components'),
 
   // Target directory (apps/web/public/design-system/)
   targetDir: path.join(PROJECT_ROOT, 'apps/web/public/design-system'),
@@ -263,11 +264,18 @@ async function generateAppIconPngs() {
 function copyTokens() {
   console.log('📄 Copying design tokens...');
 
-  const files = ['tokens.css', 'tokens.ts', 'components.css', 'app-components.css'];
+  // Generated token files come from dist/; the component stylesheets are
+  // hand-authored sources in components/
+  const files = [
+    ['tokens.css', CONFIG.sourceDist],
+    ['tokens.ts', CONFIG.sourceDist],
+    ['components.css', CONFIG.sourceComponents],
+    ['app-components.css', CONFIG.sourceComponents],
+  ];
   let copied = 0;
 
-  for (const file of files) {
-    const src = path.join(CONFIG.sourceDist, file);
+  for (const [file, dir] of files) {
+    const src = path.join(dir, file);
     const dest = path.join(CONFIG.targetDir, file);
     if (fs.existsSync(src)) {
       copyFile(src, dest);

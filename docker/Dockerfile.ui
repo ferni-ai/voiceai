@@ -88,13 +88,18 @@ ARG VITE_ADMIN_API_KEY=""
 
 WORKDIR /app
 
-# Copy design-system dist (needed for @design-system imports)
-COPY design-system/dist ./design-system/dist/
-
-# Copy essential brand assets (logos, favicons) from design-system/assets/
-# Note: These are included via gcloudignore exceptions
+# Design-system sources. The build outputs (design-system/dist and
+# apps/web/public/design-system) are no longer committed; `npm run build`
+# regenerates them via apps/web/scripts/ensure-design-system.mjs.
+# These paths are allowed through .gcloudignore / .dockerignore exceptions.
+COPY design-system/package.json design-system/build.js design-system/build-assets.js ./design-system/
+COPY design-system/build ./design-system/build/
+COPY design-system/tokens ./design-system/tokens/
+COPY design-system/components ./design-system/components/
 COPY design-system/assets/logos ./design-system/assets/logos/
 COPY design-system/assets/favicons ./design-system/assets/favicons/
+COPY design-system/assets/icons ./design-system/assets/icons/
+COPY design-system/assets/sounds ./design-system/assets/sounds/
 
 # Copy frontend package files (npm-based)
 COPY apps/web/package.json apps/web/package-lock.json ./apps/web/

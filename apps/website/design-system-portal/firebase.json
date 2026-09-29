@@ -2,7 +2,11 @@
   "hosting": {
     "site": "ferni-design-system",
     "public": "_site",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "headers": [
       {
         "source": "**/*.@(js|css)",
@@ -39,6 +43,9 @@
         "source": "**",
         "destination": "/404.html"
       }
+    ],
+    "predeploy": [
+      "npx @11ty/eleventy"
     ]
   }
 }
