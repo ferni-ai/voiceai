@@ -16,6 +16,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { getGeneratedPersonaColors } from '../config/persona-colors.generated.js';
 
 const log = createLogger('PersonaAura');
 
@@ -38,56 +39,38 @@ export interface PersonaAuraConfig {
 // PERSONA CONFIGURATIONS
 // ============================================================================
 
-const PERSONA_AURAS: Record<PersonaId, PersonaAuraConfig> = {
-  ferni: {
-    id: 'ferni',
-    name: 'Ferni',
-    primary: '#4a6741',     // Sage green
-    secondary: '#3d5a35',
-    glow: 'rgba(74, 103, 65, 0.15)',
-    tint: 'rgba(74, 103, 65, 0.08)',
-  },
-  maya: {
-    id: 'maya',
-    name: 'Maya',
-    primary: '#a67a6a',     // Warm terracotta
-    secondary: '#8a635a',
-    glow: 'rgba(166, 122, 106, 0.15)',
-    tint: 'rgba(166, 122, 106, 0.08)',
-  },
-  alex: {
-    id: 'alex',
-    name: 'Alex',
-    primary: '#5a6b8a',     // Calm slate blue
-    secondary: '#4a5a73',
-    glow: 'rgba(90, 107, 138, 0.15)',
-    tint: 'rgba(90, 107, 138, 0.08)',
-  },
-  jordan: {
-    id: 'jordan',
-    name: 'Jordan',
-    primary: '#c4856a',     // Warm coral
-    secondary: '#a86d55',
-    glow: 'rgba(196, 133, 106, 0.15)',
-    tint: 'rgba(196, 133, 106, 0.08)',
-  },
-  peter: {
-    id: 'peter',
-    name: 'Peter',
-    primary: '#3a6b73',     // Deep teal
-    secondary: '#2d5359',
-    glow: 'rgba(58, 107, 115, 0.15)',
-    tint: 'rgba(58, 107, 115, 0.08)',
-  },
-  nayan: {
-    id: 'nayan',
-    name: 'Nayan',
-    primary: '#b8956a',     // Golden amber
-    secondary: '#9a7a52',
-    glow: 'rgba(184, 149, 106, 0.15)',
-    tint: 'rgba(184, 149, 106, 0.08)',
-  },
+const PERSONA_NAMES: Record<PersonaId, string> = {
+  ferni: 'Ferni',
+  maya: 'Maya',
+  alex: 'Alex',
+  jordan: 'Jordan',
+  peter: 'Peter',
+  nayan: 'Nayan',
 };
+
+/** rgba() of a #rrggbb color (auras use a softer glow/tint than the tokens) */
+function withAlpha(hex: string, alpha: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
+function auraFor(id: PersonaId): PersonaAuraConfig {
+  const colors = getGeneratedPersonaColors(id);
+  const primary = colors?.primary ?? '#4a6741';
+  return {
+    id,
+    name: PERSONA_NAMES[id],
+    primary,
+    secondary: colors?.secondary ?? primary,
+    glow: withAlpha(primary, 0.15),
+    tint: withAlpha(primary, 0.08),
+  };
+}
+
+// Colors come from the generated design tokens (colors.json)
+const PERSONA_AURAS = Object.fromEntries(
+  (Object.keys(PERSONA_NAMES) as PersonaId[]).map((id) => [id, auraFor(id)])
+) as Record<PersonaId, PersonaAuraConfig>;
 
 // ============================================================================
 // STATE

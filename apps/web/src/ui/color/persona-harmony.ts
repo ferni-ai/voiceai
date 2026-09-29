@@ -11,11 +11,18 @@
  * @module color/persona-harmony
  */
 
+import { getGeneratedPersonaColors } from '../../config/persona-colors.generated.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
 
 export type PersonaId = 'ferni' | 'maya' | 'peter' | 'jordan' | 'alex' | 'nayan';
+
+const CORE_PERSONA_IDS: readonly PersonaId[] = ['ferni', 'maya', 'peter', 'jordan', 'alex', 'nayan'];
+
+// Ferni sage, only used if a core persona were ever missing from the tokens
+const FALLBACK_PERSONA_COLOR = '#4a6741';
 
 /**
  * HSL color representation for precise color manipulation.
@@ -95,29 +102,19 @@ export interface ContrastEffect {
 // ============================================================================
 
 /**
- * Base persona colors (source of truth from design tokens).
- * These are the canonical colors for each persona.
+ * Base persona colors, read from the generated design tokens
+ * (design-system/tokens/colors.json → persona-colors.generated.ts).
  */
-export const PERSONA_COLORS: Record<PersonaId, string> = {
-  ferni: '#4a6741', // Sage green - grounding, natural
-  maya: '#a67a6a', // Warm terracotta - energetic, motivating
-  peter: '#3a6b73', // Teal - analytical, precise
-  jordan: '#c4856a', // Coral - celebratory, warm
-  alex: '#5a6b8a', // Slate blue - professional, clear
-  nayan: '#b8956a', // Golden bronze - wise, warm
-};
+export const PERSONA_COLORS: Record<PersonaId, string> = Object.fromEntries(
+  CORE_PERSONA_IDS.map((id) => [id, getGeneratedPersonaColors(id)?.primary ?? FALLBACK_PERSONA_COLOR])
+) as Record<PersonaId, string>;
 
 /**
- * Persona color in HSL for calculations.
+ * Persona color in HSL for calculations (derived from PERSONA_COLORS).
  */
-export const PERSONA_HSL: Record<PersonaId, HSLColor> = {
-  ferni: { h: 107, s: 23, l: 33 },
-  maya: { h: 16, s: 28, l: 53 },
-  peter: { h: 189, s: 33, l: 34 },
-  jordan: { h: 19, s: 47, l: 59 },
-  alex: { h: 220, s: 22, l: 45 },
-  nayan: { h: 37, s: 37, l: 57 },
-};
+export const PERSONA_HSL: Record<PersonaId, HSLColor> = Object.fromEntries(
+  CORE_PERSONA_IDS.map((id) => [id, hexToHSL(PERSONA_COLORS[id])])
+) as Record<PersonaId, HSLColor>;
 
 /**
  * Pre-calculated harmonic bridge colors for common transitions.
