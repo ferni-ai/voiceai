@@ -45,6 +45,15 @@ function loadJson(filepath) {
  * Generate colors using CSS variable references
  * This ensures Tailwind classes auto-update when design-tokens.css changes
  */
+/**
+ * Wrap a CSS variable so Tailwind opacity modifiers work (`bg-ferni/20`,
+ * `from-accent/10`). Tailwind substitutes <alpha-value>; a bare var() would
+ * silently drop the modifier.
+ */
+function cssVarColor(name) {
+  return `color-mix(in srgb, var(--${name}) calc(<alpha-value> * 100%), transparent)`;
+}
+
 function generateColors(colors) {
   const personas = colors.personas;
 
@@ -53,44 +62,44 @@ function generateColors(colors) {
   const colorObj = {
     // Paper/Background colors - reference CSS vars from design-tokens.css
     paper: {
-      DEFAULT: 'var(--color-bg-primary)',
-      cream: 'var(--color-bg-elevated)',
-      sand: 'var(--color-bg-secondary)',
-      warm: 'var(--color-bg-tertiary)',
+      DEFAULT: cssVarColor('color-bg-primary'),
+      cream: cssVarColor('color-bg-elevated'),
+      sand: cssVarColor('color-bg-secondary'),
+      warm: cssVarColor('color-bg-tertiary'),
     },
     // Ink/Text colors
     ink: {
-      DEFAULT: 'var(--color-text-primary)',
-      muted: 'var(--color-text-secondary)',
-      light: 'var(--color-text-muted)',
-      faded: 'var(--color-text-dimmed)',
+      DEFAULT: cssVarColor('color-text-primary'),
+      muted: cssVarColor('color-text-secondary'),
+      light: cssVarColor('color-text-muted'),
+      faded: cssVarColor('color-text-dimmed'),
     },
     // Accent colors (CTA buttons, links)
     accent: {
-      DEFAULT: 'var(--color-accent)',
-      hover: 'var(--color-accent-hover)',
-      pressed: 'var(--color-accent-pressed)',
-      glow: 'var(--color-accent-glow)',
-      subtle: 'var(--color-accent-subtle)',
+      DEFAULT: cssVarColor('color-accent'),
+      hover: cssVarColor('color-accent-hover'),
+      pressed: cssVarColor('color-accent-pressed'),
+      glow: cssVarColor('color-accent-glow'),
+      subtle: cssVarColor('color-accent-subtle'),
     },
     // Border colors
     border: {
-      subtle: 'var(--color-border-subtle)',
-      medium: 'var(--color-border-medium)',
-      strong: 'var(--color-border-strong)',
+      subtle: cssVarColor('color-border-subtle'),
+      medium: cssVarColor('color-border-medium'),
+      strong: cssVarColor('color-border-strong'),
     },
     // Semantic colors
     success: {
-      DEFAULT: 'var(--color-success)',
-      bg: 'var(--color-success-bg)',
+      DEFAULT: cssVarColor('color-success'),
+      bg: cssVarColor('color-success-bg'),
     },
     error: {
-      DEFAULT: 'var(--color-error)',
-      bg: 'var(--color-error-bg)',
+      DEFAULT: cssVarColor('color-error'),
+      bg: cssVarColor('color-error-bg'),
     },
     warning: {
-      DEFAULT: 'var(--color-warning)',
-      bg: 'var(--color-warning-bg)',
+      DEFAULT: cssVarColor('color-warning'),
+      bg: cssVarColor('color-warning-bg'),
     },
   };
 
@@ -99,9 +108,9 @@ function generateColors(colors) {
     if (personaId.startsWith('_')) continue;
     const shortId = personaId.split('-')[0]; // ferni, peter, alex, etc.
     colorObj[shortId] = {
-      DEFAULT: `var(--color-${shortId})`,
-      dark: `var(--color-${shortId}-secondary)`,
-      glow: `var(--color-${shortId}-glow)`,
+      DEFAULT: cssVarColor(`color-${shortId}`),
+      dark: cssVarColor(`color-${shortId}-secondary`),
+      glow: cssVarColor(`color-${shortId}-glow`),
     };
   }
 

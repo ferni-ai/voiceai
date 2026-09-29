@@ -6664,138 +6664,138 @@ body[data-time-of-day='early-morning'] {
    ============================================================================ */
 @media (prefers-color-scheme: dark) {
   /* Security Cards - Privacy/Trust Section */
-  .security-card {
+  :root:not([data-theme="light"]) .security-card {
     background: var(--color-ferni-cinematic-surface, var(--color-bg-dark-surface));
     border-color: rgba(255, 255, 255, 0.1);
   }
   
-  .security-card:hover {
+  :root:not([data-theme="light"]) .security-card:hover {
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
   }
   
-  .security-card__icon {
+  :root:not([data-theme="light"]) .security-card__icon {
     background: rgba(74, 103, 65, 0.25);
   }
   
-  .security-card__icon svg {
+  :root:not([data-theme="light"]) .security-card__icon svg {
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .security-card__title {
+  :root:not([data-theme="light"]) .security-card__title {
     color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
-  .security-card__description {
+  :root:not([data-theme="light"]) .security-card__description {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
   
   /* FAQ Section */
-  .faq-item {
+  :root:not([data-theme="light"]) .faq-item {
     background: var(--color-ferni-cinematic-surface, var(--color-bg-dark-surface));
     border-color: rgba(255, 255, 255, 0.1);
   }
   
-  .faq-item__question {
+  :root:not([data-theme="light"]) .faq-item__question {
     color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
-  .faq-item__answer {
+  :root:not([data-theme="light"]) .faq-item__answer {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
   
-  .faq-item__answer p {
+  :root:not([data-theme="light"]) .faq-item__answer p {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
   
   /* Story sections */
-  .story-block__eyebrow {
+  :root:not([data-theme="light"]) .story-block__eyebrow {
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .story-block__title {
+  :root:not([data-theme="light"]) .story-block__title {
     color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
-  .story-block__text {
+  :root:not([data-theme="light"]) .story-block__text {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
   
   /* Story Brand Hero */
-  .story-brand-hero__headline {
+  :root:not([data-theme="light"]) .story-brand-hero__headline {
     color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
-  .story-brand-hero__tagline {
+  :root:not([data-theme="light"]) .story-brand-hero__tagline {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
   
   /* Contact/Connect Options */
-  .connect-option {
+  :root:not([data-theme="light"]) .connect-option {
     background: var(--color-ferni-cinematic-surface, var(--color-bg-dark-surface));
     border-color: rgba(255, 255, 255, 0.1);
   }
   
-  .connect-option__title {
+  :root:not([data-theme="light"]) .connect-option__title {
     color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
-  .connect-option__detail {
+  :root:not([data-theme="light"]) .connect-option__detail {
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .connect-option__description {
+  :root:not([data-theme="light"]) .connect-option__description {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
   
   /* Voice First Section */
-  .voice-first__card {
+  :root:not([data-theme="light"]) .voice-first__card {
     background: var(--color-ferni-cinematic-surface, var(--color-bg-dark-surface));
   }
   
-  .voice-first__title {
+  :root:not([data-theme="light"]) .voice-first__title {
     color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
-  .voice-first__description {
+  :root:not([data-theme="light"]) .voice-first__description {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
   
   /* Team Section */
-  .team-member__name {
+  :root:not([data-theme="light"]) .team-member__name {
     color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
-  .team-member__role {
+  :root:not([data-theme="light"]) .team-member__role {
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .team-member__bio {
+  :root:not([data-theme="light"]) .team-member__bio {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
   
   /* CTA Section */
-  .cta-section {
+  :root:not([data-theme="light"]) .cta-section {
     background: var(--color-ferni-cinematic-dark, var(--color-text-primary));
   }
   
-  .cta-section__title {
+  :root:not([data-theme="light"]) .cta-section__title {
     color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
-  .cta-section__subtitle {
+  :root:not([data-theme="light"]) .cta-section__subtitle {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
   
   /* Konami reward */
-  .konami-reward__inner {
+  :root:not([data-theme="light"]) .konami-reward__inner {
     background: var(--color-ferni-cinematic-surface, var(--color-bg-dark-surface));
   }
 
-  .konami-reward__title {
+  :root:not([data-theme="light"]) .konami-reward__title {
     color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
 
-  .konami-reward__message {
+  :root:not([data-theme="light"]) .konami-reward__message {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
 
@@ -6803,69 +6803,69 @@ body[data-time-of-day='early-morning'] {
      FEATURE CARDS - Keep white bg with dark text
      Cards are "islands of light" in dark mode
      =========================================== */
-  .feature {
+  :root:not([data-theme="light"]) .feature {
     background: white !important;
     border-color: rgba(44, 37, 32, 0.1);
   }
 
-  .feature__title {
+  :root:not([data-theme="light"]) .feature__title {
     color: var(--color-text-primary) !important; /* Uses token: dark text on white cards */
   }
 
-  .feature__description {
+  :root:not([data-theme="light"]) .feature__description {
     color: var(--color-text-secondary) !important; /* Uses token: secondary text on white cards */
     opacity: 1 !important;
   }
 
-  .feature__icon {
+  :root:not([data-theme="light"]) .feature__icon {
     background: rgba(74, 103, 65, 0.1);
   }
 
-  .feature__icon svg {
+  :root:not([data-theme="light"]) .feature__icon svg {
     color: var(--color-ferni, var(--color-ferni));
   }
 
   /* ===========================================
      JOURNEY SECTION - Fix heading/timeline contrast
      =========================================== */
-  .journey .section__eyebrow {
+  :root:not([data-theme="light"]) .journey .section__eyebrow {
     color: var(--color-highlight, var(--color-stone-light)) !important;
   }
 
-  .journey .section__title {
+  :root:not([data-theme="light"]) .journey .section__title {
     color: var(--color-ferni-cinematic-text, var(--color-bg-primary)) !important;
   }
 
-  .journey .section__subtitle {
+  :root:not([data-theme="light"]) .journey .section__subtitle {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-tea-light)) !important;
   }
 
-  .journey__stage-title {
+  :root:not([data-theme="light"]) .journey__stage-title {
     color: var(--color-ferni-cinematic-text, var(--color-bg-primary)) !important;
   }
 
-  .journey__stage-description {
+  :root:not([data-theme="light"]) .journey__stage-description {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-tea-light)) !important;
   }
 
-  .journey__stage-badge {
+  :root:not([data-theme="light"]) .journey__stage-badge {
     background: var(--color-bg-dark-surface, var(--color-cedar-deep));
     color: var(--color-ferni-cinematic-text, var(--color-bg-primary));
   }
 
   /* Generic section headers in dark sections */
-  .section--dark .section__eyebrow,
-  [class*="dark"] .section__eyebrow {
+  :root:not([data-theme="light"]) .section--dark .section__eyebrow,
+  :root:not([data-theme="light"]) [class*="dark"] .section__eyebrow {
     color: var(--color-highlight, var(--color-stone-light)) !important;
   }
 
-  .section--dark .section__title,
-  [class*="dark"] .section__title {
+  :root:not([data-theme="light"]) .section--dark .section__title,
+  :root:not([data-theme="light"]) [class*="dark"] .section__title {
     color: var(--color-ferni-cinematic-text, var(--color-bg-primary)) !important;
   }
 
-  .section--dark .section__subtitle,
-  [class*="dark"] .section__subtitle {
+  :root:not([data-theme="light"]) .section--dark .section__subtitle,
+  :root:not([data-theme="light"]) [class*="dark"] .section__subtitle {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-tea-light)) !important;
   }
 }

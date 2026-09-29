@@ -43,6 +43,7 @@ const siteConfig = {
         'display-xl': ['clamp(3rem, 8vw, 6rem)', { lineHeight: '1', letterSpacing: '-0.03em', fontWeight: '700' }],
         'display-lg': ['clamp(2.25rem, 5vw, 4rem)', { lineHeight: '1.1', letterSpacing: '-0.02em', fontWeight: '700' }],
         'display-md': ['clamp(1.75rem, 4vw, 2.5rem)', { lineHeight: '1.2', letterSpacing: '-0.02em', fontWeight: '600' }],
+        'display-sm': ['clamp(1.5rem, 3vw, 2rem)', { lineHeight: '1.25', letterSpacing: '-0.015em', fontWeight: '600' }],
         'body-xl': ['1.375rem', { lineHeight: '1.6', fontWeight: '400' }],
         'body-lg': ['1.125rem', { lineHeight: '1.7', fontWeight: '400' }],
         'eyebrow': ['0.75rem', { lineHeight: '1', letterSpacing: '0.15em', fontWeight: '600' }],

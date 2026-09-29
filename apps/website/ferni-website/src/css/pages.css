@@ -1564,11 +1564,9 @@ section {
   flex-shrink: 0;
 }
 
-.team-member__avatar span {
-  font-family: var(--font-display);
-  font-size: var(--text-5xl);
-  font-weight: 700;
-  color: var(--color-text-inverse);
+.team-member__avatar .ferni-eyes-svg {
+  width: 64%;
+  height: 64%;
   position: relative;
   z-index: 1;
 }
@@ -1761,10 +1759,11 @@ section {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-display);
-  font-size: var(--text-base);
-  font-weight: 700;
-  color: var(--color-text-inverse);
+}
+
+.team-member__other-avatar .ferni-eyes-svg {
+  width: 66%;
+  height: 66%;
 }
 
 .team-member__other-name {

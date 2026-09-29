@@ -71,21 +71,21 @@ function generateColorVars(colors) {
   lines.push(`  --color-bg-elevated: ${zen.background.elevated};`);
   lines.push(`  --color-bg-glass: ${zen.background.glass};`);
   lines.push(`  --color-bg-overlay: ${zen.background.overlay};`);
-  // Aliases for common usage
-  lines.push(`  --color-bg: ${zen.background.primary};`);
-  lines.push(`  --color-bg-surface: ${zen.background.secondary};`);
+  // Aliases reference the primaries so the dark overrides flow through them
+  lines.push('  --color-bg: var(--color-bg-primary);');
+  lines.push('  --color-bg-surface: var(--color-bg-secondary);');
   lines.push(`  --color-bg-hover: rgba(44, 37, 32, 0.04);`);
-  lines.push(`  --color-bg-warm: ${zen.background.tertiary};`);
-  lines.push(`  --color-bg-code: #f5f2ed;`);
+  lines.push('  --color-bg-warm: var(--color-bg-tertiary);');
+  lines.push('  --color-bg-code: var(--color-bg-secondary);');
   lines.push(`  --color-bg-sage-subtle: rgba(61, 90, 69, 0.04);`);
-  lines.push(`  --color-background: ${zen.background.primary};`);
-  lines.push(`  --color-background-subtle: ${zen.background.secondary};`);
-  lines.push(`  --color-background-muted: ${zen.background.tertiary};`);
-  lines.push(`  --color-background-surface: ${zen.background.secondary};`);
-  lines.push(`  --color-background-elevated: ${zen.background.elevated};`);
+  lines.push('  --color-background: var(--color-bg-primary);');
+  lines.push('  --color-background-subtle: var(--color-bg-secondary);');
+  lines.push('  --color-background-muted: var(--color-bg-tertiary);');
+  lines.push('  --color-background-surface: var(--color-bg-secondary);');
+  lines.push('  --color-background-elevated: var(--color-bg-elevated);');
   lines.push(`  --color-background-hover: rgba(44, 37, 32, 0.04);`);
   lines.push(`  --color-background-deep: #2c2520;`);
-  lines.push(`  --color-elevated: ${zen.background.elevated};`);
+  lines.push('  --color-elevated: var(--color-bg-elevated);');
   lines.push('');
 
   // Text colors
@@ -98,11 +98,11 @@ function generateColorVars(colors) {
   lines.push(`  --color-text-dimmed: ${zen.text.dimmed};`);
   lines.push(`  --color-text-inverse: ${zen.text.inverse};`);
   // Aliases
-  lines.push(`  --color-text: ${zen.text.primary};`);
-  lines.push(`  --color-text-light: ${zen.text.muted};`);
+  lines.push('  --color-text: var(--color-text-primary);');
+  lines.push('  --color-text-light: var(--color-text-muted);');
   lines.push(`  --color-text-dark: ${zen.text.primary};`);
-  lines.push(`  --color-text-secondary-light: ${zen.text.secondary};`);
-  lines.push(`  --color-text-error: #b5453a;`);
+  lines.push('  --color-text-secondary-light: var(--color-text-secondary);');
+  lines.push(`  --color-text-error: ${zen.semantic.error};`);
   lines.push(`  --color-natural-ink: ${zen.natural.ink};`);
   lines.push('');
 

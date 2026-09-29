@@ -1,0 +1,155 @@
+/* ============================================================================
+   CONTENT PAGE STYLES
+   Content classes for the page.njk pages (use cases, marketplace, press,
+   cookies, accessibility), extracted from the legacy styles.css. Site chrome,
+   resets and design tokens come from the story-brand shell and _tokens.css.
+   ============================================================================ */
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--color-accent);
+  margin-bottom: var(--space-5);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.headline-xl {
+  font-family: var(--font-display);
+  font-size: clamp(56px, 12vw, 120px);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  color: var(--color-text);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+.headline-lg {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+.body-lg {
+  font-size: var(--text-xl);
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+.text-gradient {
+  /* High contrast green gradient - meets WCAG AA on light backgrounds */
+  background: linear-gradient(
+    135deg,
+    var(--color-ferni-secondary) 0%,
+    var(--color-ferni-secondary) 30%,
+    var(--color-ferni) 50%,
+    var(--color-ferni-secondary) 70%,
+    var(--color-ferni-secondary) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 8s linear infinite;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 0 center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+.btn-primary {
+  background: linear-gradient(
+    145deg,
+    var(--color-accent-hover) 0,
+    var(--color-accent) 50%,
+    var(--color-accent-pressed) 100%
+  );
+  background-size: 200% 200%;
+  background-position: 50% 50%;
+  color: var(--color-text-inverse);
+  box-shadow:
+    0 2px 8px rgba(45, 90, 61, 0.25),
+    0 4px 20px var(--color-accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition:
+    transform 0.4s var(--ease-out-expo),
+    box-shadow 0.4s var(--ease-apple),
+    background-position 0.6s var(--ease-apple);
+}
+.btn-primary:hover {
+  background-position: 0 0;
+  transform: translateY(-3px) scale(1.02);
+  box-shadow:
+    0 6px 20px rgba(45, 90, 61, 0.35),
+    0 12px 40px var(--color-accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.btn-primary:active {
+  transform: translateY(-1px) scale(0.98);
+  transition-duration: 0.1s;
+}
+.btn-ghost {
+  background: 0 0;
+  color: var(--color-text-secondary);
+  padding: var(--space-3_5) var(--space-6);
+}
+.btn-ghost:hover {
+  color: var(--color-accent);
+}
+.btn:hover .btn-arrow {
+  transform: translateX(4px);
+}
+.hero-buttons .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.hero-buttons .btn-ghost svg {
+  opacity: 0.7;
+}
+.hero-content-wrapper .eyebrow {
+  text-shadow:
+    0 2px 20px rgba(250, 248, 245, 0.9),
+    0 4px 40px rgba(250, 248, 245, 0.6);
+}
+.hero-content-wrapper .btn {
+  pointer-events: auto;
+}
+.section-header {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto var(--space-20);
+}
+.cta-content .headline-lg {
+  margin-bottom: var(--space-5);
+}
+.cta-content .body-lg {
+  margin-bottom: 40px;
+}
+.developers .section-header {
+  text-align: center;
+  margin-bottom: var(--space-16);
+}
+@media (max-width: 768px) {
+  .headline-xl {
+    font-size: clamp(36px, 10vw, 56px);
+    line-height: 1.08;
+  }
+  .headline-lg {
+    font-size: clamp(28px, 7vw, 48px);
+  }
+}
+@media (max-width: 640px) {
+  .form-group .btn {
+    width: 100%;
+  }
+}
+.ai-company .section-header {
+  text-align: center;
+  margin-bottom: var(--space-20);
+}

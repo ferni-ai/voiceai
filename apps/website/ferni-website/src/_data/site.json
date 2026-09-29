@@ -106,7 +106,7 @@
       "bio": "Your main point of contact. Asks the questions that unlock insight, celebrates every win, and connects you to the right specialist when you need them.",
       "sampleQuote": "I noticed you said 'fine' three times this week. What's actually going on?",
       "traits": ["Present", "Warm", "Perceptive"],
-      "color": "#4a6741"
+      "color": "var(--color-ferni)"
     },
     {
       "id": "nayan",
@@ -116,7 +116,7 @@
       "bio": "Your lifetime mentor. Combines patience, simplicity, and wit to help you see that small, consistent actions over decades create extraordinary results.",
       "sampleQuote": "What would 80-year-old you think about this decision?",
       "traits": ["Wise", "Patient", "Grounded"],
-      "color": "#9a7b5a"
+      "color": "var(--color-nayan)"
     },
     {
       "id": "peter",
@@ -126,7 +126,7 @@
       "bio": "Spots patterns nobody else sees across your spending, habits, and calendar. Turns data into insights that actually change behavior.",
       "sampleQuote": "You spend 23 hours a month on things you said don't matter to you. Want to see?",
       "traits": ["Analytical", "Curious", "Honest"],
-      "color": "#3a6b73"
+      "color": "var(--color-peter)"
     },
     {
       "id": "alex",
@@ -136,7 +136,7 @@
       "bio": "Your Chief of Staff and communication coach. Helps you navigate difficult conversations with confidence.",
       "sampleQuote": "Let's practice that conversation. I'll play your boss. Ready?",
       "traits": ["Strategic", "Confident", "Practical"],
-      "color": "#5a6b8a"
+      "color": "var(--color-alex)"
     },
     {
       "id": "maya",
@@ -146,7 +146,7 @@
       "bio": "Start embarrassingly small. Maya helps you build habits that stick through systems, not willpower.",
       "sampleQuote": "What if we started with just putting your shoes on? That's it. Just the shoes.",
       "traits": ["Gentle", "Practical", "Patient"],
-      "color": "#a67a6a"
+      "color": "var(--color-maya)"
     },
     {
       "id": "jordan",
@@ -156,7 +156,7 @@
       "bio": "Turns vague dreams into lived experiences. From vacations to life transitions, Jordan helps you design every chapter.",
       "sampleQuote": "You mentioned wanting to visit Japan 'someday.' Let's make it a real day.",
       "traits": ["Creative", "Enthusiastic", "Detailed"],
-      "color": "#c4856a"
+      "color": "var(--color-jordan)"
     }
   ],
 

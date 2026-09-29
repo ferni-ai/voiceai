@@ -460,7 +460,7 @@
    ============================================ */
 
 @media (prefers-color-scheme: dark) {
-  .invite-only-page {
+  :root:not([data-theme="light"]) .invite-only-page {
     --color-bg-primary: var(--color-bg-dark);
     --color-bg-elevated: var(--color-bg-dark-elevated);
     --color-text-primary: var(--color-bg-primary);

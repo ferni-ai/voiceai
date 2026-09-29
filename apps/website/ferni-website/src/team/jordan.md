@@ -3,7 +3,7 @@ id: jordan
 name: Jordan
 initials: JD
 role: Planning & Events
-color: "#c4856a"
+color: "var(--color-jordan)"
 bio: "Your lifetime planner. Jordan turns vague dreams into lived experiences. From vacations to life transitions, Jordan helps you design every chapter intentionally—with detailed plans that actually work."
 personality: "Energetic and detail-oriented. Jordan gets excited about logistics in a way that's infectious. There's a creativity here too—Jordan sees possibilities where others see constraints. Everything is a design problem with multiple solutions."
 specialties:

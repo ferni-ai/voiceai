@@ -255,6 +255,11 @@
 
   async function personalizeHero() {
     if (!CONFIG.enablePersonalizedHero || state.heroPersonalized) return;
+
+    // Only heroes that opt in (the homepage) are personalized. Other pages
+    // keep their own headlines.
+    const heroRoot = document.querySelector('[data-personalize-hero]');
+    if (!heroRoot) return;
     
     // Determine best variant
     let variantKey = 'default';
@@ -270,10 +275,10 @@
     const variant = HERO_VARIANTS[variantKey] || HERO_VARIANTS.default;
     
     // Apply with animation
-    const tagline = document.querySelector('.hero__tagline, .hero__eyebrow, [class*="eyebrow"]');
-    const headline = document.querySelector('.hero__headline, .hero__title, [class*="hero"] h1');
-    const subhead = document.querySelector('.hero__subhead, .hero__subtitle, [class*="hero"] p');
-    const ctaButton = document.querySelector('.hero__cta .btn--primary, .hero .btn--primary, [class*="hero"] .btn');
+    const tagline = heroRoot.querySelector('.hero__tagline, .hero__eyebrow');
+    const headline = heroRoot.querySelector('.hero__headline, .hero__title');
+    const subhead = heroRoot.querySelector('.hero__subhead, .hero__subtitle');
+    const ctaButton = heroRoot.querySelector('.hero__cta .btn--primary');
     
     // Fade out, update, fade in
     const elements = [tagline, headline, subhead, ctaButton].filter(Boolean);
@@ -318,10 +323,10 @@
         log('AI-enhanced hero received:', enhanced);
         
         // Apply AI-generated copy with subtle transition
-        const tagline = document.querySelector('.hero__tagline, .hero__eyebrow, [class*="eyebrow"]');
-        const headline = document.querySelector('.hero__headline, .hero__title, [class*="hero"] h1');
-        const subhead = document.querySelector('.hero__subhead, .hero__subtitle, [class*="hero"] p');
-        const ctaButton = document.querySelector('.hero__cta .btn--primary, .hero .btn--primary, [class*="hero"] .btn');
+        const tagline = heroRoot.querySelector('.hero__tagline, .hero__eyebrow');
+        const headline = heroRoot.querySelector('.hero__headline, .hero__title');
+        const subhead = heroRoot.querySelector('.hero__subhead, .hero__subtitle');
+        const ctaButton = heroRoot.querySelector('.hero__cta .btn--primary');
         
         // Smooth update
         const updateWithFade = async () => {
@@ -336,11 +341,11 @@
           await new Promise(resolve => setTimeout(resolve, 400));
           
           if (tagline && enhanced.tagline) tagline.textContent = enhanced.tagline.toUpperCase();
-          if (headline && enhanced.headline) headline.innerHTML = enhanced.headline;
+          if (headline && enhanced.headline) headline.textContent = enhanced.headline;
           if (subhead && enhanced.subhead) subhead.textContent = enhanced.subhead;
           if (ctaButton && enhanced.ctaText) {
             const icon = ctaButton.querySelector('svg');
-            ctaButton.innerHTML = enhanced.ctaText + ' ';
+            ctaButton.textContent = enhanced.ctaText + ' ';
             if (icon) ctaButton.appendChild(icon);
           }
           
@@ -425,25 +430,11 @@
     
     // Find or create social proof element
     let container = document.querySelector('.social-proof-dynamic, .social-proof-ticker');
-    
-    if (!container) {
-      // Create one after the hero section
-      const hero = document.querySelector('.hero, [class*="hero"]');
-      if (!hero) return;
-      
-      container = document.createElement('div');
-      container.className = 'social-proof-dynamic ai-social-proof';
-      container.innerHTML = `
-        <div class="social-proof-dynamic__inner">
-          <div class="social-proof-dynamic__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
-          <p class="social-proof-dynamic__text"></p>
-        </div>
-      `;
-      hero.after(container);
-      
-      // Add styles
-      injectSocialProofStyles();
-    }
+
+    // Only fill a container the page placed deliberately (the homepage).
+    // Auto-injecting one after any "*hero*" element put it below footers.
+    if (!container) return;
+
     
     const textEl = container.querySelector('.social-proof-dynamic__text, p');
     if (!textEl) return;
@@ -478,68 +469,6 @@
     socialProofInterval = setInterval(updateSocialProof, 8000);
     
     log('Social proof initialized');
-  }
-
-  function injectSocialProofStyles() {
-    if (document.getElementById('ai-social-proof-styles')) return;
-    
-    const style = document.createElement('style');
-    style.id = 'ai-social-proof-styles';
-    style.textContent = `
-      .ai-social-proof {
-        padding: 16px 0;
-        background: linear-gradient(
-          90deg, 
-          transparent 0%, 
-          rgba(74, 103, 65, 0.05) 20%, 
-          rgba(74, 103, 65, 0.05) 80%, 
-          transparent 100%
-        );
-        border-top: 1px solid rgba(74, 103, 65, 0.1);
-        border-bottom: 1px solid rgba(74, 103, 65, 0.1);
-        overflow: hidden;
-      }
-      
-      .ai-social-proof .social-proof-dynamic__inner {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 0 24px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-      }
-      
-      .ai-social-proof .social-proof-dynamic__avatar {
-        width: 40px;
-        height: 40px;
-        background: linear-gradient(135deg, #5a7751, #4a6741);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 12px;
-        font-weight: 700;
-        flex-shrink: 0;
-      }
-      
-      .ai-social-proof .social-proof-dynamic__text {
-        margin: 0;
-        font-size: 15px;
-        color: #2c2520;
-        line-height: 1.6;
-        font-style: italic;
-        transition: opacity 0.3s ease, transform 0.3s ease;
-      }
-      
-      @media (max-width: 768px) {
-        .ai-social-proof .social-proof-dynamic__inner {
-          flex-direction: column;
-          text-align: center;
-        }
-      }
-    `;
-    document.head.appendChild(style);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1078,9 +1007,10 @@
         // Show response
         const responseEl = document.createElement('div');
         responseEl.className = 'persona-voice-response';
-        responseEl.innerHTML = `
-          <blockquote>"${response?.response || PERSONA_VOICES[personaId].sample}"</blockquote>
-        `;
+        // AI text is untrusted: set it as text, never as HTML
+        const quote = document.createElement('blockquote');
+        quote.textContent = `"${response?.response || PERSONA_VOICES[personaId].sample}"`;
+        responseEl.appendChild(quote);
         
         inputContainer.replaceWith(responseEl);
         
@@ -1104,12 +1034,16 @@
 
   function inferPersonaFromCard(card) {
     const text = card.textContent.toLowerCase();
-    if (text.includes('ferni') || text.includes('life coach')) return 'ferni';
-    if (text.includes('maya') || text.includes('habit')) return 'maya';
-    if (text.includes('peter') || text.includes('research')) return 'peter';
-    if (text.includes('alex') || text.includes('communication')) return 'alex';
-    if (text.includes('jordan') || text.includes('plan')) return 'jordan';
-    if (text.includes('nayan') || text.includes('wisdom')) return 'nayan';
+    // Persona names win over topic keywords (Peter's card mentions habits)
+    const names = ['ferni', 'maya', 'peter', 'alex', 'jordan', 'nayan'];
+    const named = names.find((name) => new RegExp(`\\b${name}\\b`).test(text));
+    if (named) return named;
+    if (text.includes('life coach')) return 'ferni';
+    if (text.includes('habit')) return 'maya';
+    if (text.includes('research')) return 'peter';
+    if (text.includes('communication')) return 'alex';
+    if (text.includes('plan')) return 'jordan';
+    if (text.includes('wisdom')) return 'nayan';
     return null;
   }
 

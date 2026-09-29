@@ -90,7 +90,7 @@
 
 .footer__nav {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(24px, 4vw, 48px);
   padding: clamp(40px, 6vw, 64px) 0;
 }
@@ -247,7 +247,7 @@
 
 @media (max-width: 768px) {
   .footer__nav {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: clamp(28px, 5vw, 36px);
     text-align: center;
     padding: clamp(36px, 5vw, 48px) 0;
@@ -614,101 +614,101 @@
    ============================================================================ */
 
 @media (prefers-color-scheme: dark) {
-  .footer:not(.footer--bold) {
+  :root:not([data-theme="light"]) .footer:not(.footer--bold) {
     background: var(--color-dark-bg, var(--color-text-primary));
     border-top-color: rgba(255, 255, 255, 0.1);
   }
   
-  .footer:not(.footer--bold) .footer__hero {
+  :root:not([data-theme="light"]) .footer:not(.footer--bold) .footer__hero {
     border-bottom-color: rgba(255, 255, 255, 0.1);
   }
   
-  .footer:not(.footer--bold) .footer__headline {
+  :root:not([data-theme="light"]) .footer:not(.footer--bold) .footer__headline {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
-  .footer:not(.footer--bold) .footer__subline {
+  :root:not([data-theme="light"]) .footer:not(.footer--bold) .footer__subline {
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
-  .footer:not(.footer--bold) .footer__nav-title {
+  :root:not([data-theme="light"]) .footer:not(.footer--bold) .footer__nav-title {
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .footer:not(.footer--bold) .footer__nav-group a {
+  :root:not([data-theme="light"]) .footer:not(.footer--bold) .footer__nav-group a {
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
-  .footer:not(.footer--bold) .footer__nav-group a:hover {
+  :root:not([data-theme="light"]) .footer:not(.footer--bold) .footer__nav-group a:hover {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
-  .footer:not(.footer--bold) .footer__bottom {
+  :root:not([data-theme="light"]) .footer:not(.footer--bold) .footer__bottom {
     border-top-color: rgba(255, 255, 255, 0.1);
   }
   
-  .footer:not(.footer--bold) .footer__logo-text {
+  :root:not([data-theme="light"]) .footer:not(.footer--bold) .footer__logo-text {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
-  .footer:not(.footer--bold) .footer__motto {
+  :root:not([data-theme="light"]) .footer:not(.footer--bold) .footer__motto {
     color: var(--color-dark-text-muted, var(--color-text-muted));
     border-left-color: rgba(255, 255, 255, 0.15);
   }
   
-  .footer:not(.footer--bold) .footer__legal span,
-  .footer:not(.footer--bold) .footer__legal a {
+  :root:not([data-theme="light"]) .footer:not(.footer--bold) .footer__legal span,
+  :root:not([data-theme="light"]) .footer:not(.footer--bold) .footer__legal a {
     color: var(--color-dark-text-muted, var(--color-text-muted));
   }
   
-  .footer:not(.footer--bold) .footer__legal a:hover {
+  :root:not([data-theme="light"]) .footer:not(.footer--bold) .footer__legal a:hover {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
   /* Legacy dark mode support */
-  .footer-brand .footer-logo {
+  :root:not([data-theme="light"]) .footer-brand .footer-logo {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
-  .footer-tagline {
+  :root:not([data-theme="light"]) .footer-tagline {
     color: var(--color-dark-text-muted, var(--color-text-muted));
   }
   
-  .footer-column h4 {
+  :root:not([data-theme="light"]) .footer-column h4 {
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .footer-column a {
+  :root:not([data-theme="light"]) .footer-column a {
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
-  .footer-column a:hover {
+  :root:not([data-theme="light"]) .footer-column a:hover {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
-  .footer-bottom {
+  :root:not([data-theme="light"]) .footer-bottom {
     border-top-color: rgba(255, 255, 255, 0.1);
     color: var(--color-dark-text-muted, var(--color-text-muted));
   }
 
   /* Team section dark mode */
-  .footer-team {
+  :root:not([data-theme="light"]) .footer-team {
     border-bottom-color: rgba(255, 255, 255, 0.1);
   }
 
-  .footer-team__title {
+  :root:not([data-theme="light"]) .footer-team__title {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
 
-  .footer-team__subtitle {
+  :root:not([data-theme="light"]) .footer-team__subtitle {
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
 
-  .team-avatar__name {
+  :root:not([data-theme="light"]) .team-avatar__name {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
 
-  .team-avatar__role {
+  :root:not([data-theme="light"]) .team-avatar__role {
     color: var(--color-dark-text-muted, var(--color-text-muted));
   }
 }
@@ -807,20 +807,20 @@
 
 /* Dark mode for footer inner elements */
 @media (prefers-color-scheme: dark) {
-  .footer-logo {
+  :root:not([data-theme="light"]) .footer-logo {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
 
-  .footer-logo:hover {
+  :root:not([data-theme="light"]) .footer-logo:hover {
     color: var(--color-highlight, var(--color-nayan));
   }
 
-  .social-link {
+  :root:not([data-theme="light"]) .social-link {
     background: rgba(255, 255, 255, 0.08);
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
 
-  .social-link:hover {
+  :root:not([data-theme="light"]) .social-link:hover {
     background: var(--color-highlight, var(--color-nayan));
     color: var(--color-dark-bg, var(--color-text-primary));
   }

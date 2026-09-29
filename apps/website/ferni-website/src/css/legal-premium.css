@@ -381,6 +381,10 @@
   padding-left: var(--space-6);
 }
 
+.legal-article ul { list-style: disc; }
+.legal-article ol { list-style: decimal; }
+.legal-article ul ul { list-style: circle; }
+
 .legal-article li {
   margin-bottom: var(--space-2);
   padding-left: var(--space-2);
@@ -440,12 +444,26 @@
   font-weight: 700;
 }
 
-/* Data Table */
+/* Data Table — `.data-table` is either the <table> or a wrapper <div>.
+   The wrapper scrolls horizontally on narrow screens instead of squashing. */
 .legal-article .data-table {
   width: 100%;
   margin: var(--space-6) 0;
   border-collapse: collapse;
   font-size: var(--text-sm);
+}
+
+.legal-article div.data-table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.legal-article div.data-table table {
+  width: 100%;
+  min-width: 32rem;
+  border-collapse: collapse;
 }
 
 .legal-article .data-table th,
@@ -963,218 +981,218 @@
    ============================================================================ */
 
 @media (prefers-color-scheme: dark) {
-  .legal-hero__gradient {
+  :root:not([data-theme="light"]) .legal-hero__gradient {
     background: 
       radial-gradient(ellipse 80% 50% at 50% -20%, rgba(74, 103, 65, 0.15), transparent),
       linear-gradient(180deg, var(--color-text-primary) 0%, var(--color-cinematic-deep) 100%);
   }
   
-  .legal-hero__pattern {
+  :root:not([data-theme="light"]) .legal-hero__pattern {
     background-image: 
       radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
   }
   
-  .legal-back {
+  :root:not([data-theme="light"]) .legal-back {
     background: rgba(255, 255, 255, 0.08);
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
-  .legal-back:hover {
+  :root:not([data-theme="light"]) .legal-back:hover {
     background: rgba(74, 103, 65, 0.2);
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .legal-hero__badge {
+  :root:not([data-theme="light"]) .legal-hero__badge {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.1);
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .legal-hero__title {
+  :root:not([data-theme="light"]) .legal-hero__title {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
-  .legal-hero__subtitle {
+  :root:not([data-theme="light"]) .legal-hero__subtitle {
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
-  .legal-hero__meta {
+  :root:not([data-theme="light"]) .legal-hero__meta {
     color: var(--color-dark-text-muted, var(--color-text-muted));
   }
   
-  .legal-main {
+  :root:not([data-theme="light"]) .legal-main {
     background: var(--color-text-primary);
   }
   
-  .legal-toc__header {
+  :root:not([data-theme="light"]) .legal-toc__header {
     color: var(--color-highlight, var(--color-nayan));
     border-bottom-color: rgba(255, 255, 255, 0.1);
   }
   
-  .legal-toc__link {
+  :root:not([data-theme="light"]) .legal-toc__link {
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
-  .legal-toc__link:hover {
+  :root:not([data-theme="light"]) .legal-toc__link:hover {
     color: var(--color-bg-primary, var(--color-bg-elevated));
     background: rgba(255, 255, 255, 0.05);
   }
   
-  .legal-toc__link.active {
+  :root:not([data-theme="light"]) .legal-toc__link.active {
     color: var(--color-highlight, var(--color-nayan));
     background: rgba(196, 162, 101, 0.1);
     border-left-color: var(--color-highlight, var(--color-nayan));
   }
   
-  .legal-trust {
+  :root:not([data-theme="light"]) .legal-trust {
     background: rgba(255, 255, 255, 0.03);
   }
   
-  .legal-trust__item {
+  :root:not([data-theme="light"]) .legal-trust__item {
     background: rgba(255, 255, 255, 0.05);
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
   
-  .legal-article {
+  :root:not([data-theme="light"]) .legal-article {
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
-  .legal-article section {
+  :root:not([data-theme="light"]) .legal-article section {
     border-bottom-color: rgba(255, 255, 255, 0.08);
   }
   
-  .legal-article h2,
-  .legal-article h3 {
+  :root:not([data-theme="light"]) .legal-article h2,
+  :root:not([data-theme="light"]) .legal-article h3 {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
-  .legal-article h2 .section-icon {
+  :root:not([data-theme="light"]) .legal-article h2 .section-icon {
     background: rgba(74, 103, 65, 0.2);
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .legal-article li::marker {
+  :root:not([data-theme="light"]) .legal-article li::marker {
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .legal-article li strong {
+  :root:not([data-theme="light"]) .legal-article li strong {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
-  .legal-article a {
+  :root:not([data-theme="light"]) .legal-article a {
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .legal-article a:hover {
+  :root:not([data-theme="light"]) .legal-article a:hover {
     color: var(--color-highlight);
   }
   
-  .legal-article .callout {
+  :root:not([data-theme="light"]) .legal-article .callout {
     background: rgba(255, 255, 255, 0.03);
     border-color: rgba(255, 255, 255, 0.08);
   }
   
-  .legal-article .callout p {
+  :root:not([data-theme="light"]) .legal-article .callout p {
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
-  .legal-article .callout--crisis {
+  :root:not([data-theme="light"]) .legal-article .callout--crisis {
     background: rgba(220, 38, 38, 0.1);
   }
   
-  .legal-article .callout--success {
+  :root:not([data-theme="light"]) .legal-article .callout--success {
     background: rgba(74, 103, 65, 0.1);
   }
   
-  .legal-article .callout--info {
+  :root:not([data-theme="light"]) .legal-article .callout--info {
     background: rgba(59, 130, 246, 0.1);
   }
   
-  .legal-article .data-table th {
+  :root:not([data-theme="light"]) .legal-article .data-table th {
     background: rgba(255, 255, 255, 0.05);
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
-  .legal-article .data-table th,
-  .legal-article .data-table td {
+  :root:not([data-theme="light"]) .legal-article .data-table th,
+  :root:not([data-theme="light"]) .legal-article .data-table td {
     border-bottom-color: rgba(255, 255, 255, 0.08);
   }
   
-  .legal-article .data-table tr:hover td {
+  :root:not([data-theme="light"]) .legal-article .data-table tr:hover td {
     background: rgba(255, 255, 255, 0.03);
   }
   
-  .legal-contact {
+  :root:not([data-theme="light"]) .legal-contact {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.05));
     border-color: rgba(255, 255, 255, 0.08);
   }
   
-  .legal-contact__icon {
+  :root:not([data-theme="light"]) .legal-contact__icon {
     background: rgba(74, 103, 65, 0.15);
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .legal-contact__content h3 {
+  :root:not([data-theme="light"]) .legal-contact__content h3 {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
-  .legal-contact__content p {
+  :root:not([data-theme="light"]) .legal-contact__content p {
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
-  .legal-contact__btn {
+  :root:not([data-theme="light"]) .legal-contact__btn {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.1);
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
-  .legal-contact__btn:hover {
+  :root:not([data-theme="light"]) .legal-contact__btn:hover {
     background: rgba(255, 255, 255, 0.08);
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
-  .legal-contact__btn--primary {
+  :root:not([data-theme="light"]) .legal-contact__btn--primary {
     background: var(--color-ferni, var(--color-ferni));
     border-color: var(--color-ferni, var(--color-ferni));
     color: white;
   }
   
-  .legal-top {
+  :root:not([data-theme="light"]) .legal-top {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.1);
     color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
-  .legal-top:hover {
+  :root:not([data-theme="light"]) .legal-top:hover {
     background: var(--color-ferni, var(--color-ferni));
     border-color: var(--color-ferni, var(--color-ferni));
   }
   
-  .legal-footer-nav {
+  :root:not([data-theme="light"]) .legal-footer-nav {
     background: var(--color-bg-dark-elevated);
     border-top-color: rgba(255, 255, 255, 0.08);
   }
   
-  .legal-footer-nav__link {
+  :root:not([data-theme="light"]) .legal-footer-nav__link {
     background: rgba(255, 255, 255, 0.03);
     border-color: rgba(255, 255, 255, 0.08);
   }
   
-  .legal-footer-nav__link:hover {
+  :root:not([data-theme="light"]) .legal-footer-nav__link:hover {
     background: rgba(255, 255, 255, 0.06);
     border-color: rgba(255, 255, 255, 0.12);
   }
   
-  .legal-footer-nav__label {
+  :root:not([data-theme="light"]) .legal-footer-nav__label {
     color: var(--color-dark-text-muted, var(--color-text-muted));
   }
   
-  .legal-footer-nav__title {
+  :root:not([data-theme="light"]) .legal-footer-nav__title {
     color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
-  .legal-footer-nav__link svg {
+  :root:not([data-theme="light"]) .legal-footer-nav__link svg {
     color: var(--color-dark-text-muted, var(--color-text-muted));
   }
 }

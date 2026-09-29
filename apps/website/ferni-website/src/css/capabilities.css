@@ -2351,195 +2351,195 @@
    DARK MODE SUPPORT
    ============================================ */
 @media (prefers-color-scheme: dark) {
-  .capabilities-hero,
-  .capabilities-section {
+  :root:not([data-theme="light"]) .capabilities-hero,
+  :root:not([data-theme="light"]) .capabilities-section {
     background: transparent;
   }
 
-  .viz-card,
-  .capability-card {
+  :root:not([data-theme="light"]) .viz-card,
+  :root:not([data-theme="light"]) .capability-card {
     background: var(--color-bg-elevated);
     border-color: var(--color-border-subtle);
   }
 
-  .viz-card:hover,
-  .capability-card:hover {
+  :root:not([data-theme="light"]) .viz-card:hover,
+  :root:not([data-theme="light"]) .capability-card:hover {
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   }
 
   /* Constellation dark mode */
-  .constellation-svg {
+  :root:not([data-theme="light"]) .constellation-svg {
     background: radial-gradient(ellipse at center, rgba(60, 55, 50, 0.3) 0%, transparent 70%);
   }
 
-  .constellation-health {
+  :root:not([data-theme="light"]) .constellation-health {
     background: var(--color-bg-surface);
   }
 
-  .constellation-story {
+  :root:not([data-theme="light"]) .constellation-story {
     background: var(--color-bg-surface);
     border-color: var(--color-border-subtle);
   }
 
-  .constellation-story:hover {
+  :root:not([data-theme="light"]) .constellation-story:hover {
     background: var(--color-bg-elevated);
   }
 
-  .constellation-story--alert {
+  :root:not([data-theme="light"]) .constellation-story--alert {
     background: linear-gradient(135deg, rgba(196, 133, 106, 0.12) 0%, var(--color-bg-surface) 100%);
   }
 
-  .constellation-story-icon {
+  :root:not([data-theme="light"]) .constellation-story-icon {
     background: var(--color-bg-elevated);
   }
 
-  .constellation-whisper {
+  :root:not([data-theme="light"]) .constellation-whisper {
     background: linear-gradient(135deg, rgba(184, 149, 106, 0.15) 0%, var(--color-bg-surface) 100%);
     border-color: rgba(184, 149, 106, 0.4);
   }
 
   /* Values Alignment dark mode */
-  .values-legend-text {
+  :root:not([data-theme="light"]) .values-legend-text {
     color: var(--color-text-secondary);
   }
 
-  .values-story {
+  :root:not([data-theme="light"]) .values-story {
     background: var(--color-bg-surface);
     border-color: var(--color-border-subtle);
   }
 
-  .values-story:hover {
+  :root:not([data-theme="light"]) .values-story:hover {
     background: var(--color-bg-elevated);
   }
 
-  .values-story-bar-track {
+  :root:not([data-theme="light"]) .values-story-bar-track {
     background: var(--color-bg-elevated);
   }
 
-  .values-whisper {
+  :root:not([data-theme="light"]) .values-whisper {
     background: linear-gradient(135deg, rgba(58, 107, 115, 0.15) 0%, var(--color-bg-surface) 100%);
     border-color: rgba(58, 107, 115, 0.4);
   }
 
   /* Energy Patterns dark mode */
-  .energy-zone {
+  :root:not([data-theme="light"]) .energy-zone {
     background: var(--color-bg-surface);
   }
 
-  .energy-zone--peak {
+  :root:not([data-theme="light"]) .energy-zone--peak {
     background: rgba(74, 103, 65, 0.2);
   }
 
-  .energy-zone--recovery {
+  :root:not([data-theme="light"]) .energy-zone--recovery {
     background: rgba(196, 133, 106, 0.2);
   }
 
-  .energy-zone--creative {
+  :root:not([data-theme="light"]) .energy-zone--creative {
     background: rgba(184, 149, 106, 0.2);
   }
 
-  .energy-story {
+  :root:not([data-theme="light"]) .energy-story {
     background: var(--color-bg-surface);
   }
 
-  .energy-story:hover {
+  :root:not([data-theme="light"]) .energy-story:hover {
     background: var(--color-bg-elevated);
   }
 
-  .energy-story--insight {
+  :root:not([data-theme="light"]) .energy-story--insight {
     background: linear-gradient(135deg, rgba(74, 103, 65, 0.12) 0%, var(--color-bg-surface) 100%);
   }
 
-  .energy-story--warning {
+  :root:not([data-theme="light"]) .energy-story--warning {
     background: linear-gradient(135deg, rgba(196, 133, 106, 0.12) 0%, var(--color-bg-surface) 100%);
   }
 
-  .energy-story-icon {
+  :root:not([data-theme="light"]) .energy-story-icon {
     background: var(--color-bg-elevated);
   }
 
-  .energy-whisper {
+  :root:not([data-theme="light"]) .energy-whisper {
     background: linear-gradient(135deg, rgba(166, 122, 106, 0.15) 0%, var(--color-bg-surface) 100%);
     border-color: rgba(166, 122, 106, 0.4);
   }
 
   /* Life Seasons dark mode */
-  .seasons-story {
+  :root:not([data-theme="light"]) .seasons-story {
     background: var(--color-bg-surface);
   }
 
-  .seasons-story:hover {
+  :root:not([data-theme="light"]) .seasons-story:hover {
     background: var(--color-bg-elevated);
   }
 
-  .seasons-story-icon {
+  :root:not([data-theme="light"]) .seasons-story-icon {
     background: var(--color-bg-elevated);
   }
 
-  .seasons-whisper {
+  :root:not([data-theme="light"]) .seasons-whisper {
     background: linear-gradient(135deg, rgba(196, 133, 106, 0.15) 0%, var(--color-bg-surface) 100%);
     border-color: rgba(196, 133, 106, 0.4);
   }
 
-  .seasons-stat-value {
+  :root:not([data-theme="light"]) .seasons-stat-value {
     color: var(--color-text-primary);
   }
 
-  .season-slice--active {
+  :root:not([data-theme="light"]) .season-slice--active {
     filter: drop-shadow(0 0 12px rgba(196, 133, 106, 0.5));
   }
 
   /* Timeline / Commitment dark mode */
-  .timeline-node-dot {
+  :root:not([data-theme="light"]) .timeline-node-dot {
     background: var(--color-bg-surface);
   }
 
-  .timeline-node--upcoming .timeline-node-dot {
+  :root:not([data-theme="light"]) .timeline-node--upcoming .timeline-node-dot {
     background: var(--color-bg-surface);
   }
 
-  .commitment-story {
+  :root:not([data-theme="light"]) .commitment-story {
     background: var(--color-bg-surface);
   }
 
-  .commitment-story:hover {
+  :root:not([data-theme="light"]) .commitment-story:hover {
     background: var(--color-bg-elevated);
   }
 
-  .commitment-story--success {
+  :root:not([data-theme="light"]) .commitment-story--success {
     background: linear-gradient(135deg, rgba(74, 103, 65, 0.15) 0%, var(--color-bg-surface) 100%);
   }
 
-  .commitment-story--progress {
+  :root:not([data-theme="light"]) .commitment-story--progress {
     background: linear-gradient(135deg, rgba(90, 107, 138, 0.15) 0%, var(--color-bg-surface) 100%);
   }
 
-  .commitment-story--upcoming {
+  :root:not([data-theme="light"]) .commitment-story--upcoming {
     background: linear-gradient(135deg, rgba(166, 122, 106, 0.15) 0%, var(--color-bg-surface) 100%);
   }
 
-  .commitment-story-icon {
+  :root:not([data-theme="light"]) .commitment-story-icon {
     background: var(--color-bg-elevated);
   }
 
-  .commitment-whisper {
+  :root:not([data-theme="light"]) .commitment-whisper {
     background: linear-gradient(135deg, rgba(90, 107, 138, 0.15) 0%, var(--color-bg-surface) 100%);
     border-color: rgba(90, 107, 138, 0.4);
   }
 
-  .commitment-stat-value {
+  :root:not([data-theme="light"]) .commitment-stat-value {
     color: var(--color-text-primary);
   }
 
   /* Dream Garden dark mode */
-  .dream-garden-container {
+  :root:not([data-theme="light"]) .dream-garden-container {
     background: linear-gradient(180deg,
       var(--color-bg-surface) 0%,
       rgba(184, 149, 106, 0.15) 100%
     );
   }
 
-  .dream-garden-ground {
+  :root:not([data-theme="light"]) .dream-garden-ground {
     background: linear-gradient(180deg,
       var(--color-jack-secondary) 0%,
       var(--color-text-primary) 100%
@@ -2547,43 +2547,43 @@
   }
 
   /* Garden Stories dark mode */
-  .garden-story {
+  :root:not([data-theme="light"]) .garden-story {
     background: var(--color-bg-surface);
     border-color: var(--color-border-subtle);
   }
 
-  .garden-story:hover {
+  :root:not([data-theme="light"]) .garden-story:hover {
     background: var(--color-bg-elevated);
   }
 
-  .garden-story--success {
+  :root:not([data-theme="light"]) .garden-story--success {
     background: linear-gradient(135deg,
       rgba(74, 103, 65, 0.15) 0%,
       var(--color-bg-surface) 100%
     );
   }
 
-  .garden-story--growing {
+  :root:not([data-theme="light"]) .garden-story--growing {
     background: linear-gradient(135deg,
       rgba(196, 133, 106, 0.15) 0%,
       var(--color-bg-surface) 100%
     );
   }
 
-  .garden-story--warning {
+  :root:not([data-theme="light"]) .garden-story--warning {
     background: linear-gradient(135deg,
       rgba(166, 122, 106, 0.2) 0%,
       var(--color-bg-surface) 100%
     );
   }
 
-  .garden-story-icon {
+  :root:not([data-theme="light"]) .garden-story-icon {
     background: var(--color-bg-elevated);
     border-color: var(--color-border-subtle);
   }
 
   /* Garden Whisper dark mode */
-  .garden-whisper {
+  :root:not([data-theme="light"]) .garden-whisper {
     background: linear-gradient(135deg,
       rgba(184, 149, 106, 0.15) 0%,
       var(--color-bg-surface) 100%
@@ -2591,21 +2591,21 @@
     border-color: rgba(184, 149, 106, 0.4);
   }
 
-  .garden-legend-label {
+  :root:not([data-theme="light"]) .garden-legend-label {
     color: var(--color-text-dimmed);
   }
 
   /* Capacity Guardian dark mode */
-  .capacity-story {
+  :root:not([data-theme="light"]) .capacity-story {
     background: var(--color-bg-surface);
     border-color: var(--color-border-subtle);
   }
 
-  .capacity-story:hover {
+  :root:not([data-theme="light"]) .capacity-story:hover {
     background: var(--color-bg-elevated);
   }
 
-  .capacity-whisper {
+  :root:not([data-theme="light"]) .capacity-whisper {
     background: linear-gradient(135deg,
       rgba(58, 107, 115, 0.15) 0%,
       var(--color-bg-surface) 100%
@@ -2613,11 +2613,11 @@
     border-color: rgba(58, 107, 115, 0.4);
   }
 
-  .capacity-ring-bg {
+  :root:not([data-theme="light"]) .capacity-ring-bg {
     opacity: 0.2;
   }
 
-  .capacity-ring-glow {
+  :root:not([data-theme="light"]) .capacity-ring-glow {
     opacity: 0.4;
   }
 }

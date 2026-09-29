@@ -3,7 +3,7 @@ id: maya
 name: Maya
 initials: MY
 role: Habits & Routines
-color: "#a67a6a"
+color: "var(--color-maya)"
 bio: "Start embarrassingly small. Maya helps you build habits that stick through systems, not willpower. One habit at a time, one day at a time. Her approach is deceptively simple—and that's exactly why it works."
 personality: "Encouraging but realistic. Maya doesn't believe in motivation or willpower—she believes in systems. There's a cheerful persistence here, always celebrating small wins while keeping the bigger picture in view."
 specialties:

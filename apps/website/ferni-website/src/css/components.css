@@ -981,8 +981,8 @@ a.card:hover h3 {
    GARDEN DARK MODE - High Contrast for System Dark Theme
    ============================================================================ */
 @media (prefers-color-scheme: dark) {
-  .garden,
-  .garden--story {
+  :root:not([data-theme="light"]) .garden,
+  :root:not([data-theme="light"]) .garden--story {
     background: linear-gradient(
       180deg,
       var(--color-ferni-cinematic-dark, var(--color-text-primary)) 0%,
@@ -991,34 +991,34 @@ a.card:hover h3 {
     );
   }
   
-  .garden--story::before {
+  :root:not([data-theme="light"]) .garden--story::before {
     background-image: 
       radial-gradient(circle at 20% 30%, rgba(74, 103, 65, 0.2) 0%, transparent 50%),
       radial-gradient(circle at 80% 70%, rgba(74, 103, 65, 0.15) 0%, transparent 50%),
       radial-gradient(circle at 50% 50%, rgba(196, 162, 101, 0.08) 0%, transparent 60%);
   }
   
-  .garden__headline,
-  .garden__pillar-title,
-  .garden__card-title,
-  .garden__lead,
-  .garden--story .garden__promise {
+  :root:not([data-theme="light"]) .garden__headline,
+  :root:not([data-theme="light"]) .garden__pillar-title,
+  :root:not([data-theme="light"]) .garden__card-title,
+  :root:not([data-theme="light"]) .garden__lead,
+  :root:not([data-theme="light"]) .garden--story .garden__promise {
     color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
-  .garden__eyebrow {
+  :root:not([data-theme="light"]) .garden__eyebrow {
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .garden--story .garden__lead,
-  .garden__pillar-desc,
-  .garden__card-text,
-  .garden__text {
+  :root:not([data-theme="light"]) .garden--story .garden__lead,
+  :root:not([data-theme="light"]) .garden__pillar-desc,
+  :root:not([data-theme="light"]) .garden__card-text,
+  :root:not([data-theme="light"]) .garden__text {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
   
-  .garden__card,
-  .garden__pillar {
+  :root:not([data-theme="light"]) .garden__card,
+  :root:not([data-theme="light"]) .garden__pillar {
     background: var(--color-ferni-cinematic-surface, var(--color-bg-dark-surface));
     border-color: rgba(255, 255, 255, 0.08);
     box-shadow: 
@@ -1026,37 +1026,37 @@ a.card:hover h3 {
       0 8px 24px rgba(0, 0, 0, 0.3);
   }
   
-  .garden__card:hover,
-  .garden__pillar:hover {
+  :root:not([data-theme="light"]) .garden__card:hover,
+  :root:not([data-theme="light"]) .garden__pillar:hover {
     box-shadow: 
       0 4px 8px rgba(0, 0, 0, 0.3),
       0 20px 48px rgba(74, 103, 65, 0.25);
   }
   
-  .garden__card-icon {
+  :root:not([data-theme="light"]) .garden__card-icon {
     background: linear-gradient(135deg, rgba(74, 103, 65, 0.3), rgba(74, 103, 65, 0.15));
     color: var(--color-highlight, var(--color-nayan));
   }
   
-  .garden__card:hover .garden__card-icon {
+  :root:not([data-theme="light"]) .garden__card:hover .garden__card-icon {
     background: linear-gradient(135deg, rgba(74, 103, 65, 0.45), rgba(74, 103, 65, 0.25));
   }
   
-  .garden__pillar-icon {
+  :root:not([data-theme="light"]) .garden__pillar-icon {
     background: linear-gradient(135deg, rgba(74, 103, 65, 0.3), rgba(74, 103, 65, 0.15));
     color: var(--color-highlight, var(--color-nayan));
   }
   
   /* Garden CTA button in dark mode */
-  .btn--garden,
-  .btn--garden-animated {
+  :root:not([data-theme="light"]) .btn--garden,
+  :root:not([data-theme="light"]) .btn--garden-animated {
     background: linear-gradient(135deg, var(--color-ferni, var(--color-ferni)), var(--color-ferni-secondary, var(--color-ferni-secondary)));
     color: var(--color-text-inverse);
     border-color: rgba(74, 103, 65, 0.5);
   }
   
-  .btn--garden:hover,
-  .btn--garden-animated:hover {
+  :root:not([data-theme="light"]) .btn--garden:hover,
+  :root:not([data-theme="light"]) .btn--garden-animated:hover {
     box-shadow: 
       0 8px 32px rgba(74, 103, 65, 0.4),
       0 0 60px rgba(74, 103, 65, 0.2);

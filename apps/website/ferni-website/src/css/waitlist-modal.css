@@ -469,7 +469,7 @@
    ============================================ */
 
 @media (prefers-color-scheme: dark) {
-  .waitlist-modal__container {
+  :root:not([data-theme="light"]) .waitlist-modal__container {
     background: linear-gradient(145deg,
       rgba(30, 35, 30, 0.98),
       rgba(25, 30, 25, 0.98)
@@ -480,27 +480,27 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
-  .waitlist-modal__headline {
+  :root:not([data-theme="light"]) .waitlist-modal__headline {
     color: var(--color-text-dark, var(--color-paper-light));
   }
 
-  .waitlist-modal__close {
+  :root:not([data-theme="light"]) .waitlist-modal__close {
     background: rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.6);
   }
 
-  .waitlist-modal__close:hover {
+  :root:not([data-theme="light"]) .waitlist-modal__close:hover {
     background: rgba(255, 255, 255, 0.15);
     color: white;
   }
 
-  .waitlist-modal__field input {
+  :root:not([data-theme="light"]) .waitlist-modal__field input {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.15);
     color: white;
   }
 
-  .waitlist-modal__field input::placeholder {
+  :root:not([data-theme="light"]) .waitlist-modal__field input::placeholder {
     color: rgba(255, 255, 255, 0.4);
   }
 }

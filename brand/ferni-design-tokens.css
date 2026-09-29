@@ -17,20 +17,20 @@
   --color-bg-elevated: #fffdfb;
   --color-bg-glass: rgba(139, 119, 91, 0.03);
   --color-bg-overlay: rgba(250, 248, 245, 0.95);
-  --color-bg: #faf8f5;
-  --color-bg-surface: #f5f2ed;
+  --color-bg: var(--color-bg-primary);
+  --color-bg-surface: var(--color-bg-secondary);
   --color-bg-hover: rgba(44, 37, 32, 0.04);
-  --color-bg-warm: #ebe6df;
-  --color-bg-code: #f5f2ed;
+  --color-bg-warm: var(--color-bg-tertiary);
+  --color-bg-code: var(--color-bg-secondary);
   --color-bg-sage-subtle: rgba(61, 90, 69, 0.04);
-  --color-background: #faf8f5;
-  --color-background-subtle: #f5f2ed;
-  --color-background-muted: #ebe6df;
-  --color-background-surface: #f5f2ed;
-  --color-background-elevated: #fffdfb;
+  --color-background: var(--color-bg-primary);
+  --color-background-subtle: var(--color-bg-secondary);
+  --color-background-muted: var(--color-bg-tertiary);
+  --color-background-surface: var(--color-bg-secondary);
+  --color-background-elevated: var(--color-bg-elevated);
   --color-background-hover: rgba(44, 37, 32, 0.04);
   --color-background-deep: #2c2520;
-  --color-elevated: #fffdfb;
+  --color-elevated: var(--color-bg-elevated);
 
   /* ============================================
      COLORS - Text
@@ -40,10 +40,10 @@
   --color-text-muted: #6b635a;
   --color-text-dimmed: #756a5e;
   --color-text-inverse: #faf8f5;
-  --color-text: #2c2520;
-  --color-text-light: #6b635a;
+  --color-text: var(--color-text-primary);
+  --color-text-light: var(--color-text-muted);
   --color-text-dark: #2c2520;
-  --color-text-secondary-light: #5c544a;
+  --color-text-secondary-light: var(--color-text-secondary);
   --color-text-error: #b5453a;
   --color-natural-ink: #2c2520;
 

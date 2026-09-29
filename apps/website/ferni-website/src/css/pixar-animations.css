@@ -567,7 +567,7 @@ details summary:hover {
 
 @media (prefers-color-scheme: dark) {
   /* Glow effects are brighter in dark mode */
-  .hero-ferni__orb::after {
+  :root:not([data-theme="light"]) .hero-ferni__orb::after {
     opacity: 0.25;
   }
   
@@ -583,12 +583,12 @@ details summary:hover {
   }
   
   /* Dust particles more visible */
-  .section-2am::before {
+  :root:not([data-theme="light"]) .section-2am::before {
     opacity: 0.8;
   }
   
   /* Skeleton shimmer for dark mode */
-  .skeleton {
+  :root:not([data-theme="light"]) .skeleton {
     background: linear-gradient(
       90deg,
       rgba(58, 51, 46, 1) 0%,

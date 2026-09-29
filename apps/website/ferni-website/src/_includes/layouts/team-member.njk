@@ -1,12 +1,11 @@
 ---
-layout: layouts/base.njk
+layout: layouts/story-brand.njk
+styles:
+  - content-pages.css
+  - pages.css
 ---
-
-<link rel="stylesheet" href="/css/styles.css">
-<link rel="stylesheet" href="/css/pages.css">
-
-{% include "partials/home/nav.njk" %}
-
+{# Team member profile. Chrome comes from the story-brand shell. #}
+<main id="main-content">
 <article class="team-member" style="--member-color: {{ color }}">
   <header class="team-member__header">
     <div class="container container-narrow">
@@ -19,7 +18,7 @@ layout: layouts/base.njk
       
       <div class="team-member__hero">
         <div class="team-member__avatar" style="background: {{ color }}">
-          <span>{{ initials }}</span>
+          <svg class="ferni-eyes-svg" viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg>
           <div class="team-member__avatar-glow"></div>
         </div>
         
@@ -92,7 +91,7 @@ layout: layouts/base.njk
         {% if member.id != id %}
         <a href="/team/{{ member.id }}/" class="team-member__other-card">
           <div class="team-member__other-avatar" style="background: {{ member.color }}">
-            {{ member.initials }}
+            <svg class="ferni-eyes-svg" viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg>
           </div>
           <span class="team-member__other-name">{{ member.name }}</span>
         </a>
@@ -102,9 +101,5 @@ layout: layouts/base.njk
     </div>
   </section>
 </article>
-
-{% include "partials/home/footer.njk" %}
-{% include "cookie-banner.njk" %}
-
-<script src="/js/main.js"></script>
+</main>
 

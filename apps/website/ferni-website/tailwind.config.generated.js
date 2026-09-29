@@ -16,115 +16,115 @@
 module.exports = {
   "colors": {
     "paper": {
-      "DEFAULT": "var(--color-bg-primary)",
-      "cream": "var(--color-bg-elevated)",
-      "sand": "var(--color-bg-secondary)",
-      "warm": "var(--color-bg-tertiary)"
+      "DEFAULT": "color-mix(in srgb, var(--color-bg-primary) calc(<alpha-value> * 100%), transparent)",
+      "cream": "color-mix(in srgb, var(--color-bg-elevated) calc(<alpha-value> * 100%), transparent)",
+      "sand": "color-mix(in srgb, var(--color-bg-secondary) calc(<alpha-value> * 100%), transparent)",
+      "warm": "color-mix(in srgb, var(--color-bg-tertiary) calc(<alpha-value> * 100%), transparent)"
     },
     "ink": {
-      "DEFAULT": "var(--color-text-primary)",
-      "muted": "var(--color-text-secondary)",
-      "light": "var(--color-text-muted)",
-      "faded": "var(--color-text-dimmed)"
+      "DEFAULT": "color-mix(in srgb, var(--color-text-primary) calc(<alpha-value> * 100%), transparent)",
+      "muted": "color-mix(in srgb, var(--color-text-secondary) calc(<alpha-value> * 100%), transparent)",
+      "light": "color-mix(in srgb, var(--color-text-muted) calc(<alpha-value> * 100%), transparent)",
+      "faded": "color-mix(in srgb, var(--color-text-dimmed) calc(<alpha-value> * 100%), transparent)"
     },
     "accent": {
-      "DEFAULT": "var(--color-accent)",
-      "hover": "var(--color-accent-hover)",
-      "pressed": "var(--color-accent-pressed)",
-      "glow": "var(--color-accent-glow)",
-      "subtle": "var(--color-accent-subtle)"
+      "DEFAULT": "color-mix(in srgb, var(--color-accent) calc(<alpha-value> * 100%), transparent)",
+      "hover": "color-mix(in srgb, var(--color-accent-hover) calc(<alpha-value> * 100%), transparent)",
+      "pressed": "color-mix(in srgb, var(--color-accent-pressed) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-accent-glow) calc(<alpha-value> * 100%), transparent)",
+      "subtle": "color-mix(in srgb, var(--color-accent-subtle) calc(<alpha-value> * 100%), transparent)"
     },
     "border": {
-      "subtle": "var(--color-border-subtle)",
-      "medium": "var(--color-border-medium)",
-      "strong": "var(--color-border-strong)"
+      "subtle": "color-mix(in srgb, var(--color-border-subtle) calc(<alpha-value> * 100%), transparent)",
+      "medium": "color-mix(in srgb, var(--color-border-medium) calc(<alpha-value> * 100%), transparent)",
+      "strong": "color-mix(in srgb, var(--color-border-strong) calc(<alpha-value> * 100%), transparent)"
     },
     "success": {
-      "DEFAULT": "var(--color-success)",
-      "bg": "var(--color-success-bg)"
+      "DEFAULT": "color-mix(in srgb, var(--color-success) calc(<alpha-value> * 100%), transparent)",
+      "bg": "color-mix(in srgb, var(--color-success-bg) calc(<alpha-value> * 100%), transparent)"
     },
     "error": {
-      "DEFAULT": "var(--color-error)",
-      "bg": "var(--color-error-bg)"
+      "DEFAULT": "color-mix(in srgb, var(--color-error) calc(<alpha-value> * 100%), transparent)",
+      "bg": "color-mix(in srgb, var(--color-error-bg) calc(<alpha-value> * 100%), transparent)"
     },
     "warning": {
-      "DEFAULT": "var(--color-warning)",
-      "bg": "var(--color-warning-bg)"
+      "DEFAULT": "color-mix(in srgb, var(--color-warning) calc(<alpha-value> * 100%), transparent)",
+      "bg": "color-mix(in srgb, var(--color-warning-bg) calc(<alpha-value> * 100%), transparent)"
     },
     "ferni": {
-      "DEFAULT": "var(--color-ferni)",
-      "dark": "var(--color-ferni-secondary)",
-      "glow": "var(--color-ferni-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-ferni) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-ferni-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-ferni-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "jack": {
-      "DEFAULT": "var(--color-jack)",
-      "dark": "var(--color-jack-secondary)",
-      "glow": "var(--color-jack-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-jack) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-jack-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-jack-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "peter": {
-      "DEFAULT": "var(--color-peter)",
-      "dark": "var(--color-peter-secondary)",
-      "glow": "var(--color-peter-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-peter) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-peter-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-peter-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "alex": {
-      "DEFAULT": "var(--color-alex)",
-      "dark": "var(--color-alex-secondary)",
-      "glow": "var(--color-alex-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-alex) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-alex-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-alex-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "maya": {
-      "DEFAULT": "var(--color-maya)",
-      "dark": "var(--color-maya-secondary)",
-      "glow": "var(--color-maya-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-maya) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-maya-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-maya-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "jordan": {
-      "DEFAULT": "var(--color-jordan)",
-      "dark": "var(--color-jordan-secondary)",
-      "glow": "var(--color-jordan-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-jordan) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-jordan-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-jordan-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "nayan": {
-      "DEFAULT": "var(--color-nayan)",
-      "dark": "var(--color-nayan-secondary)",
-      "glow": "var(--color-nayan-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-nayan) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-nayan-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-nayan-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "joel": {
-      "DEFAULT": "var(--color-joel)",
-      "dark": "var(--color-joel-secondary)",
-      "glow": "var(--color-joel-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-joel) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-joel-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-joel-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "eli": {
-      "DEFAULT": "var(--color-eli)",
-      "dark": "var(--color-eli-secondary)",
-      "glow": "var(--color-eli-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-eli) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-eli-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-eli-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "marcus": {
-      "DEFAULT": "var(--color-marcus)",
-      "dark": "var(--color-marcus-secondary)",
-      "glow": "var(--color-marcus-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-marcus) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-marcus-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-marcus-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "kenji": {
-      "DEFAULT": "var(--color-kenji)",
-      "dark": "var(--color-kenji-secondary)",
-      "glow": "var(--color-kenji-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-kenji) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-kenji-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-kenji-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "carmen": {
-      "DEFAULT": "var(--color-carmen)",
-      "dark": "var(--color-carmen-secondary)",
-      "glow": "var(--color-carmen-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-carmen) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-carmen-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-carmen-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "amara": {
-      "DEFAULT": "var(--color-amara)",
-      "dark": "var(--color-amara-secondary)",
-      "glow": "var(--color-amara-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-amara) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-amara-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-amara-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "sasha": {
-      "DEFAULT": "var(--color-sasha)",
-      "dark": "var(--color-sasha-secondary)",
-      "glow": "var(--color-sasha-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-sasha) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-sasha-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-sasha-glow) calc(<alpha-value> * 100%), transparent)"
     },
     "ray": {
-      "DEFAULT": "var(--color-ray)",
-      "dark": "var(--color-ray-secondary)",
-      "glow": "var(--color-ray-glow)"
+      "DEFAULT": "color-mix(in srgb, var(--color-ray) calc(<alpha-value> * 100%), transparent)",
+      "dark": "color-mix(in srgb, var(--color-ray-secondary) calc(<alpha-value> * 100%), transparent)",
+      "glow": "color-mix(in srgb, var(--color-ray-glow) calc(<alpha-value> * 100%), transparent)"
     }
   },
   "spacing": {

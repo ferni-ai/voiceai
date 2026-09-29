@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title }} | Ferni</title>
-  <meta name="description" content="{{ description or site.tagline }}">
+  <title>{{ title }} | {{ titleSuffix or "Ferni" }}</title>
+  <meta name="description" content="{{ description or excerpt or site.tagline }}">
   
   {# ====== PRECONNECT (Performance) ====== #}
   <link rel="preconnect" href="https://www.googletagmanager.com">
@@ -36,13 +36,21 @@
   <link rel="stylesheet" href="/css/ferni-eq.css?v=20251231">
   <link rel="stylesheet" href="/css/ferni-showcase.css?v=20251230">
   <link rel="stylesheet" href="/css/waitlist-modal.css?v=20251225">
+  {# Page-specific stylesheets (front matter: styles: ["pages.css"]) #}
+  {% for sheet in styles %}<link rel="stylesheet" href="/css/{{ sheet }}">
+  {% endfor %}
+  {% for sheet in pageStyles %}<link rel="stylesheet" href="/css/{{ sheet }}">
+  {% endfor %}
+  {% if structuredData %}<script type="application/ld+json">{{ structuredData | safe }}</script>{% endif %}
+  {# Pages written with Tailwind utilities opt in (front matter: tailwind: true) #}
+  {% if tailwind %}<link rel="stylesheet" href="/css/tailwind.css">{% endif %}
   
   {# ====== OPEN GRAPH ====== #}
   <meta property="og:title" content="{{ title }} | Ferni">
   <meta property="og:description" content="{{ description or site.tagline }}">
-  <meta property="og:image" content="https://ferni.ai/images/og-image.jpg">
+  <meta property="og:image" content="https://ferni.ai{{ ogImage or '/images/og-image.jpg' }}">
   <meta property="og:url" content="https://ferni.ai{{ page.url }}">
-  <meta property="og:type" content="website">
+  <meta property="og:type" content="{{ ogType or 'website' }}">
   <meta property="og:site_name" content="Ferni">
   <meta property="og:locale" content="en_US">
   
@@ -52,7 +60,7 @@
   <meta name="twitter:creator" content="@ferniAI">
   <meta name="twitter:title" content="{{ title }} | Ferni">
   <meta name="twitter:description" content="{{ description or site.tagline }}">
-  <meta name="twitter:image" content="https://ferni.ai/images/og-image.jpg">
+  <meta name="twitter:image" content="https://ferni.ai{{ ogImage or '/images/og-image.jpg' }}">
   
   {# ====== ADDITIONAL SEO ====== #}
   <link rel="canonical" href="https://ferni.ai{{ page.url }}">
@@ -187,8 +195,13 @@
   </script>
   {% endif %}
 </head>
-<body>
+<body{% if bodyClass %} class="{{ bodyClass }}"{% endif %}>
+  {# Shared site chrome (opt out with chrome: false) #}
+  {% if chrome !== false %}{% include "partials/site-nav.njk" %}{% endif %}
+
   {{ content | safe }}
+
+  {% if chrome !== false %}{% include "partials/footer-premium.njk" %}{% endif %}
 
   {# ====== WAITLIST MODAL (Integrated Gate) ====== #}
   {% include "partials/home/waitlist-modal.njk" %}
