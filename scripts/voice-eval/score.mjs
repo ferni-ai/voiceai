@@ -30,16 +30,18 @@ const replies = [];
 let backchannels = 0;
 let interruptions = 0;
 let userSpeechMs = 0;
+const overlaps = []; // caller talking over the agent (converse.mjs @backchannel / @interrupt)
 
 for (const file of process.argv.slice(2)) {
   const run = JSON.parse(readFileSync(file, 'utf8'));
-  for (const r of run.results) if (r.replyDelayMs !== null) delays.push(r.replyDelayMs);
+  for (const r of run.results) if (typeof r.replyDelayMs === 'number') delays.push(r.replyDelayMs);
+  for (const r of run.results) if (r.mode) overlaps.push(r);
 
   // Side-track clips (backchannels, opening sounds) come from a track whose
   // name mentions "background"; the reply voice is the other agent track.
   const side = run.tracks.filter((t) => /background/i.test(t.name));
   for (const r of run.results) {
-    if (r.replyDelayMs === null) continue;
+    if (typeof r.replyDelayMs !== 'number') continue;
     const replyAt = r.userEndedAt + r.replyDelayMs;
     const clipStarts = side.flatMap((t) => t.voice.map(([vs]) => vs)).filter((vs) => vs >= r.userEndedAt && vs < replyAt);
     if (clipStarts.length) openingSounds++;
@@ -78,6 +80,21 @@ const score = {
   backchannelsPerMinuteOfUserSpeech: round(backchannels / Math.max(userSpeechMs / 60000, 1e-9), 1),
   backchannels,
   interruptions,
+  // A caller's "mm-hmm" while the agent talks should not stop it (a human
+  // keeps going); a real interruption should stop it fast (people yield
+  // within a few hundred ms).
+  talkOver: (() => {
+    const bc = overlaps.filter((o) => o.mode === 'backchannel' && o.agentTalking);
+    const it = overlaps.filter((o) => o.mode === 'interrupt' && o.agentTalking);
+    return {
+      backchannels: bc.length,
+      backchannelStoppedAgent: bc.filter((o) => o.stopped && o.stopLatencyMs < 1500).length,
+      interrupts: it.length,
+      interruptYielded: it.filter((o) => o.stopped).length,
+      interruptStopMs: { p50: pct(it.filter((o) => o.stopped).map((o) => o.stopLatencyMs), 50) },
+      notTalkingWhenOverlapped: overlaps.filter((o) => !o.agentTalking).length,
+    };
+  })(),
   replyTexts: replies,
 };
 console.log(JSON.stringify(score, null, 2));

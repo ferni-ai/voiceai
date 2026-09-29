@@ -2,7 +2,10 @@
 //
 // usage: node converse.mjs <wss-url> <token> <out.json> <turn1.pcm> [turn2.pcm ...]
 //
-// Each turn is 48 kHz mono s16le PCM, spoken after the agent finishes. The mic
+// Each turn is 48 kHz mono s16le PCM, spoken after the agent finishes. A turn
+// given as "<pcm>::backchannel::<ms>" or "<pcm>::interrupt::<ms>" is instead
+// spoken <ms> after the agent started its current reply, over it: a caller's
+// "mm-hmm" should not stop the agent; a real interruption should, quickly. The mic
 // streams continuous silence between turns, like a real microphone (ink-2 turn
 // detection needs continuous audio). Records the agent's transcribed words
 // (lk.transcription text streams), per-turn reply delay, when the user was
@@ -123,21 +126,72 @@ async function waitAgentDone(maxMs) {
   }
 }
 
+/** Until the agent has been quiet for 2 s (it may already be). */
+async function waitQuiet(maxMs) {
+  const start = now();
+  while (now() - start < maxMs && now() - mainVoiceLastAt < 2000) await sleep(100);
+}
+
+/** Talk over the agent's current reply; report whether and how fast it stopped. */
+async function overlap(path, mode, atMs, replyStartedAt) {
+  while (now() < replyStartedAt + atMs) await sleep(10);
+  const startedAt = now();
+  const agentTalking = now() - mainVoiceLastAt < 300;
+  const said = say(path);
+  // The agent has stopped when its voice has been silent for 700 ms; natural
+  // pauses between its sentences are shorter.
+  let stoppedAt = null;
+  while (now() - startedAt < 4000) {
+    if (now() - mainVoiceLastAt > 700) {
+      stoppedAt = mainVoiceLastAt;
+      break;
+    }
+    await sleep(20);
+  }
+  const endedAt = await said;
+  return {
+    turn: path.split('/').pop(),
+    mode,
+    overlapAt: atMs,
+    agentTalking,
+    stopped: stoppedAt !== null,
+    stopLatencyMs: stoppedAt !== null ? Math.max(0, stoppedAt - startedAt) : null,
+    userEndedAt: endedAt,
+  };
+}
+
 await waitAgentDone(20000); // greeting
 const results = [];
-for (const path of turns) {
+let replyStartedAt = 0;
+for (const arg of turns) {
+  const [path, mode, at] = arg.split('::');
+  if (mode) {
+    results.push(await overlap(path, mode, Number(at), replyStartedAt));
+    if (mode === 'interrupt') {
+      // The agent should now answer the interruption.
+      const before = mainVoiceLastAt;
+      const waitStart = now();
+      while (now() - waitStart < 15000 && mainVoiceLastAt <= before) await sleep(20);
+      results[results.length - 1].replyDelayMs =
+        mainVoiceLastAt > before ? mainVoiceStartedAt - results[results.length - 1].userEndedAt : null;
+      replyStartedAt = mainVoiceStartedAt;
+    }
+    continue;
+  }
+  await waitQuiet(30000);
   const endedAt = await say(path);
   const before = mainVoiceLastAt;
   const waitStart = now();
   while (now() - waitStart < 15000 && mainVoiceLastAt <= before) await sleep(20);
   const first = mainVoiceLastAt > before ? mainVoiceStartedAt : null;
+  if (first !== null) replyStartedAt = first;
   results.push({
     turn: path.split('/').pop(),
     userEndedAt: endedAt,
     replyDelayMs: first !== null ? first - endedAt : null,
   });
-  await waitAgentDone(30000);
 }
+await waitAgentDone(30000);
 await sleep(1500);
 stop = true;
 await pump;

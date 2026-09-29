@@ -18,12 +18,18 @@ turns=()
 i=0
 grep -v '^#' $HERE/scenarios/$scenario.txt | grep -v '^[[:space:]]*$' | while IFS= read -r line; do
   i=$((i+1))
+  # "@backchannel 1800 Mm-hmm." / "@interrupt 1500 Wait...": spoken that many ms
+  # after the agent starts its current reply, over it (see converse.mjs).
+  mode=turn; at=0
+  if [[ $line == @* ]]; then
+    mode=${${line%% *}#@}; rest=${line#* }; at=${rest%% *}; line=${rest#* }
+  fi
   pcm=$out/audio/$scenario/t$i.pcm
   if [[ ! -s $pcm || $HERE/scenarios/$scenario.txt -nt $pcm ]]; then
     say -v Samantha -o $out/audio/$scenario/t$i.aiff -- "$line"
     ffmpeg -loglevel error -y -i $out/audio/$scenario/t$i.aiff -ac 1 -ar 48000 -f s16le $pcm
   fi
-  print -r -- $pcm
+  if [[ $mode == turn ]]; then print -r -- $pcm; else print -r -- "$pcm::$mode::$at"; fi
 done > $out/audio/$scenario/turns.list
 turns=(${(f)"$(<$out/audio/$scenario/turns.list)"})
 room="eval-$scenario-$label-$(date +%H%M%S)"

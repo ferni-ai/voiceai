@@ -89,6 +89,7 @@ import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-
 // Tool loading - hoisted for faster initial agent startup
 import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
 import { buildHandoffTools } from '../../tools/handoff/handoff-factory.js';
+import { interruptionOverrides } from './interruption-config.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
   getToolsForAgent,
@@ -1247,6 +1248,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
     llm: llmModel,
     tts, // Cartesia TTS for both (OpenAI text-only mode outputs text)
     userData,
+    // Barge-in vs "mm-hmm": see interruption-config.ts. Overrides voiceOptions.
+    turnHandling: { interruption: interruptionOverrides() },
     voiceOptions: {
       allowInterruptions: true,
       // UPDATED Jan 2026: Ultra-tight delays for natural conversation

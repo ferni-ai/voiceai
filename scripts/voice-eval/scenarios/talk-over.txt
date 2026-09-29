@@ -1,0 +1,10 @@
+# Talking over Ferni. Backchannels ("mm-hmm") while Ferni talks should not stop
+# it; a real interruption should stop it quickly and get an answer.
+# "@<mode> <ms> <line>": spoken <ms> after Ferni starts its current reply.
+My sister's birthday is next week and I have no idea what to get her. She loves hiking and old movies. Can you give me a couple of ideas?
+@backchannel 2000 Mm-hmm.
+@backchannel 4500 Yeah.
+Okay, those are good. What about something we could do together that day?
+@interrupt 2000 Wait, sorry, hold on. She actually hates surprises, so it can't be a surprise.
+Right. So what would you do?
+@backchannel 2500 Uh-huh.
