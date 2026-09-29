@@ -7,14 +7,23 @@
  * @module api/admin-routes
  */
 
+import { timingSafeEqual } from 'crypto';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { parse as parseUrl } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'AdminAPI' });
 
-// Simple admin API key check (should use proper auth in production)
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'ferni-admin-2026';
+// Admin API key from the environment only. There is deliberately no default:
+// a key committed to the repo is a public key. Unset → admin API is disabled.
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || process.env.ADMIN_KEY || '';
+
+function isValidAdminKey(candidate: string | string[] | undefined): boolean {
+  if (!ADMIN_API_KEY || typeof candidate !== 'string') return false;
+  const a = Buffer.from(candidate);
+  const b = Buffer.from(ADMIN_API_KEY);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 // ============================================================================
 // ROUTE HANDLER
@@ -28,7 +37,10 @@ export async function handleAdminRoutes(
   // Check for admin API key
   const apiKey =
     req.headers['x-admin-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
-  if (apiKey !== ADMIN_API_KEY) {
+  if (!ADMIN_API_KEY) {
+    log.warn('ADMIN_API_KEY is not set; admin API disabled');
+  }
+  if (!isValidAdminKey(apiKey)) {
     sendJson(res, 401, { error: 'Unauthorized' });
     return true;
   }
