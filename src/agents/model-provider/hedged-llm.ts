@@ -89,13 +89,17 @@ class HedgedLLMStream extends llm.LLMStream {
   }
 
   close(): void {
+    super.close(); // mark cancelled before the children fail with abort errors
     for (const child of this.children) child.close();
-    super.close();
   }
 
   private start(name: Candidate['name']): Candidate {
     const model = name === 'primary' ? this.hedged.primary : this.hedged.backup;
-    const stream = model.chat({ ...this.opts, connOptions: this.connOptions });
+    // Children don't retry on their own: the hedge fails over to the other
+    // model and this stream keeps the SDK's retries. A child we close (the
+    // loser, or both when the reply is cancelled) otherwise retried its
+    // aborted request 3 more times, 2 s apart, then rejected unhandled.
+    const stream = model.chat({ ...this.opts, connOptions: { ...this.connOptions, maxRetry: 0 } });
     this.children.push(stream);
     const cand: Candidate = { name, stream, buffered: [], next: undefined as never };
     cand.next = this.pull(cand);
@@ -109,7 +113,22 @@ class HedgedLLMStream extends llm.LLMStream {
     );
   }
 
+  /** Closed by the caller (reply cancelled): children's abort errors are expected. */
+  private get cancelled(): boolean {
+    return this.abortController.signal.aborted;
+  }
+
   protected async run(): Promise<void> {
+    try {
+      await this.race();
+    } catch (error) {
+      // Rethrowing would send the SDK into retries of a reply nobody wants.
+      if (this.cancelled) return;
+      throw error;
+    }
+  }
+
+  private async race(): Promise<void> {
     const startedAt = Date.now();
     let timer: NodeJS.Timeout | undefined;
     const hedgeSignal = new Promise<Step>((resolve) => {

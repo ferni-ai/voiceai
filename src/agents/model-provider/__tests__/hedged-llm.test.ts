@@ -34,6 +34,7 @@ class FakeStream extends llm.LLMStream {
     }
     for (const c of chunks) {
       await sleep(c.afterMs);
+      // Like the Google plugin (patched): a cancelled request ends quietly.
       if (this.fake.closed) return;
       this.queue.put({
         id: this.fake.name,
@@ -45,6 +46,7 @@ class FakeStream extends llm.LLMStream {
 
 class FakeLLM extends llm.LLM {
   calls = 0;
+  maxRetries: number[] = [];
   closed = false;
   constructor(
     readonly name: string,
@@ -57,6 +59,7 @@ class FakeLLM extends llm.LLM {
   }
   chat(opts: Parameters<llm.LLM['chat']>[0]): llm.LLMStream {
     this.calls++;
+    this.maxRetries.push(opts.connOptions?.maxRetry ?? -1);
     return new FakeStream(this, opts);
   }
 }
@@ -142,5 +145,36 @@ describe('HedgedLLM', () => {
     const out = await reply(new HedgedLLM(primary, backup, 1000));
     expect(out.text).toBe('Recovered.');
     expect(Date.now() - started).toBeLessThan(500);
+  });
+
+  it("leaves retries to itself: children don't retry on their own", async () => {
+    const primary = new FakeLLM('primary', { chunks: [{ afterMs: 5, content: 'hi' }] });
+    const backup = new FakeLLM('backup', { chunks: [{ afterMs: 5, content: 'yo' }] });
+    const stream = new HedgedLLM(primary, backup, 1000).chat({
+      chatCtx: new llm.ChatContext(),
+      connOptions: { maxRetry: 3, retryIntervalMs: 0, timeoutMs: 5000 },
+    });
+    for await (const _ of stream) {
+      // drain
+    }
+    expect(primary.maxRetries).toEqual([0]);
+  });
+
+  it('ends quietly when the reply is cancelled while the models are still working', async () => {
+    const primary = new FakeLLM('primary', { chunks: [{ afterMs: 200, content: 'late' }] });
+    const backup = new FakeLLM('backup', { chunks: [{ afterMs: 200, content: 'late too' }] });
+    const hedged = new HedgedLLM(primary, backup, 20);
+    const errors: unknown[] = [];
+    hedged.on('error', (e) => errors.push(e));
+    const stream = hedged.chat({
+      chatCtx: new llm.ChatContext(),
+      connOptions: { maxRetry: 3, retryIntervalMs: 0, timeoutMs: 5000 },
+    });
+    await sleep(50); // backup has started too
+    stream.close();
+    await sleep(300);
+    expect(primary.closed && backup.closed).toBe(true);
+    expect(primary.calls + backup.calls).toBe(2); // nothing was retried
+    expect(errors).toEqual([]);
   });
 });

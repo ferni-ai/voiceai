@@ -22,7 +22,7 @@ patchedDependencies:
     hash: e8ee5068e5e8873fd624fea9585c9813baeaed6f1fbed9f247d469ef5726c42d
     path: patches/@livekit__agents-plugin-cartesia@1.5.1.patch
   '@livekit/agents-plugin-google@1.5.1':
-    hash: 600e63a6f4fb690164ed9f26f9498e85dee74b6eadb44c74ef810c34a0919dd7
+    hash: 0de21424e13107a1337281ed6de64913946c31c40975cf6ed645e84f0ffd5f67
     path: patches/@livekit__agents-plugin-google@1.5.1.patch
 
 importers:
@@ -67,7 +67,7 @@ importers:
         version: 1.5.1(patch_hash=e8ee5068e5e8873fd624fea9585c9813baeaed6f1fbed9f247d469ef5726c42d)(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)
       '@livekit/agents-plugin-google':
         specifier: 1.5.1
-        version: 1.5.1(patch_hash=600e63a6f4fb690164ed9f26f9498e85dee74b6eadb44c74ef810c34a0919dd7)(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))(ws@8.18.3)(zod@4.1.13)
+        version: 1.5.1(patch_hash=0de21424e13107a1337281ed6de64913946c31c40975cf6ed645e84f0ffd5f67)(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))(ws@8.18.3)(zod@4.1.13)
       '@livekit/agents-plugin-openai':
         specifier: 1.5.1
         version: 1.5.1(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)
@@ -8557,7 +8557,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents-plugin-google@1.5.1(patch_hash=600e63a6f4fb690164ed9f26f9498e85dee74b6eadb44c74ef810c34a0919dd7)(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))(ws@8.18.3)(zod@4.1.13)':
+  '@livekit/agents-plugin-google@1.5.1(patch_hash=0de21424e13107a1337281ed6de64913946c31c40975cf6ed645e84f0ffd5f67)(@livekit/agents@1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))(ws@8.18.3)(zod@4.1.13)':
     dependencies:
       '@google/genai': 1.52.0(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))
       '@livekit/agents': 1.5.1(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)
