@@ -33,10 +33,10 @@ pub struct AutoGainControl {
     max_gain: f32,
     /// Minimum gain (prevents crushing loud signals)
     min_gain: f32,
-    /// Attack coefficient (fast for loud signals)
-    attack_coeff: f32,
-    /// Release coefficient (slow for quiet signals)
-    release_coeff: f32,
+    /// Envelope attack time (ms): how fast a rise in level is tracked
+    attack_ms: f32,
+    /// Envelope release time (ms): how fast a fall in level is tracked
+    release_ms: f32,
     /// Envelope follower state
     envelope: f32,
     /// Sample rate for coefficient calculation
@@ -56,18 +56,26 @@ impl AutoGainControl {
             current_gain: 1.0,
             max_gain: 10.0,   // +20 dB max boost
             min_gain: 0.1,    // -20 dB max reduction
-            attack_coeff: Self::time_constant_to_coeff(attack_ms, sample_rate),
-            release_coeff: Self::time_constant_to_coeff(release_ms, sample_rate),
+            attack_ms,
+            release_ms,
             envelope: 0.0,
             sample_rate,
             gate_threshold: 0.001, // ~-60 dBFS noise gate
         }
     }
 
-    /// Convert time constant (ms) to exponential coefficient
-    fn time_constant_to_coeff(time_ms: f32, sample_rate: u32) -> f32 {
-        let samples = (time_ms * sample_rate as f32) / 1000.0;
-        (-2.2 / samples).exp() // -2.2 ≈ ln(0.1), reach 90% in time_ms
+    /// Gain turns down this fast when the level jumps (ms to ~90%).
+    const GAIN_ATTACK_MS: f32 = 50.0;
+    /// Gain turns up this gently when the level drops, to avoid audible pumping.
+    const GAIN_RELEASE_MS: f32 = 400.0;
+
+    /// Per-update smoothing coefficient for a time constant, given how much
+    /// audio one update covers. The state is updated once per frame, so the
+    /// coefficient must use the frame's duration: computing it per sample
+    /// (as before) and applying it per 20 ms frame stretched a 100 ms release
+    /// to ~32 s and left a caller's speech turned down long after a loud moment.
+    fn time_constant_to_coeff(time_ms: f32, update_ms: f32) -> f32 {
+        (-2.2 * update_ms / time_ms).exp() // -2.2 ≈ ln(0.1): ~90% of the way in time_ms
     }
 
     /// Process a frame of audio in-place
@@ -89,11 +97,13 @@ impl AutoGainControl {
             return;
         }
 
+        let frame_ms = samples.len() as f32 * 1000.0 / self.sample_rate as f32;
+
         // Envelope follower with attack/release
         let coeff = if rms > self.envelope {
-            self.attack_coeff
+            Self::time_constant_to_coeff(self.attack_ms, frame_ms)
         } else {
-            self.release_coeff
+            Self::time_constant_to_coeff(self.release_ms, frame_ms)
         };
         self.envelope = self.envelope * coeff + rms * (1.0 - coeff);
 
@@ -104,8 +114,15 @@ impl AutoGainControl {
             1.0
         };
 
-        // Smoothly adjust gain (use release coefficient for smoothness)
-        self.current_gain = self.current_gain * 0.99 + target_gain * 0.01;
+        // Move the gain toward the target: quickly down, gently up. (A fixed
+        // 0.99/0.01 blend per frame was a ~2 s time constant both ways.)
+        let gain_ms = if target_gain < self.current_gain {
+            Self::GAIN_ATTACK_MS
+        } else {
+            Self::GAIN_RELEASE_MS
+        };
+        let g = Self::time_constant_to_coeff(gain_ms, frame_ms);
+        self.current_gain = self.current_gain * g + target_gain * (1.0 - g);
 
         // Apply gain with SIMD
         self.apply_gain_simd(samples);
@@ -791,14 +808,14 @@ mod tests {
     fn test_agc_boosts_quiet_signal() {
         let mut agc = AutoGainControl::new(16000);
 
-        // Create quiet signal (-40 dBFS)
-        let mut samples: Vec<f32> = (0..320)
+        // Quiet signal (-40 dBFS): a fresh 20 ms frame each time
+        let quiet: Vec<f32> = (0..320)
             .map(|i| (2.0 * PI * 440.0 * i as f32 / 16000.0).sin() * 0.01)
             .collect();
 
-        // Process multiple frames to let AGC adapt
+        // 200 ms of quiet speech
         for _ in 0..10 {
-            agc.process(&mut samples);
+            agc.process(&mut quiet.clone());
         }
 
         // Gain should have increased
@@ -809,18 +826,43 @@ mod tests {
     fn test_agc_reduces_loud_signal() {
         let mut agc = AutoGainControl::new(16000);
 
-        // Create loud signal (-3 dBFS)
-        let mut samples: Vec<f32> = (0..320)
+        // Loud signal (-3 dBFS): a fresh 20 ms frame each time, as live audio arrives
+        let loud: Vec<f32> = (0..320)
             .map(|i| (2.0 * PI * 440.0 * i as f32 / 16000.0).sin() * 0.7)
             .collect();
 
-        // Process multiple frames
+        // 200 ms of loud speech
         for _ in 0..10 {
-            agc.process(&mut samples);
+            agc.process(&mut loud.clone());
         }
 
         // Gain should have decreased
         assert!(agc.current_gain() < 0.5, "AGC should reduce loud signal");
+    }
+
+    #[test]
+    fn test_agc_recovers_within_a_second_after_a_loud_moment() {
+        let mut agc = AutoGainControl::new(16000);
+        let tone = |amp: f32| -> Vec<f32> {
+            (0..320).map(|i| (2.0 * PI * 220.0 * i as f32 / 16000.0).sin() * amp).collect()
+        };
+        // Normal speech level, then a loud laugh, then normal speech again.
+        for _ in 0..50 {
+            agc.process(&mut tone(0.14));
+        }
+        let settled = agc.current_gain();
+        for _ in 0..15 {
+            agc.process(&mut tone(0.9));
+        }
+        assert!(agc.current_gain() < settled * 0.5, "the loud moment turns the gain down");
+        for _ in 0..50 {
+            agc.process(&mut tone(0.14)); // one second
+        }
+        assert!(
+            agc.current_gain() > settled * 0.8,
+            "gain back near {settled} within a second, got {}",
+            agc.current_gain()
+        );
     }
 
     #[test]

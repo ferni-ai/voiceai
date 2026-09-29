@@ -155,3 +155,10 @@ panic = "abort"
 [profile.release-with-debug]
 inherits = "release"
 debug = true
+
+# Exercises the Candle model pipeline, which needs the candle_models feature
+# (not built into the production binary). Without this, a plain `cargo test`
+# tried to compile it and failed.
+[[test]]
+name = "pipeline_integration"
+required-features = ["candle_models"]
