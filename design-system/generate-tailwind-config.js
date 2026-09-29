@@ -56,7 +56,7 @@ function generateColors(colors) {
       DEFAULT: 'var(--color-bg-primary)',
       cream: 'var(--color-bg-elevated)',
       sand: 'var(--color-bg-secondary)',
-      warm: 'var(--color-bg-glass)',
+      warm: 'var(--color-bg-tertiary)',
     },
     // Ink/Text colors
     ink: {

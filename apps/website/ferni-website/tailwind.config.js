@@ -1,110 +1,34 @@
+/**
+ * Tailwind config for ferni-website.
+ *
+ * Design tokens (colors, fonts, spacing scale, radii, durations, easings, and
+ * token keyframes/animations) come from tailwind.config.generated.js, which is
+ * generated from design-system/tokens (pnpm tokens:sync). This file adds only
+ * site-specific extensions on top; don't redefine token values here.
+ */
+const generatedTheme = require('./tailwind.config.generated.js');
+
+/** Deep-merge plain objects (site extras extend the generated theme). */
+function mergeTheme(base, extra) {
+  const out = { ...base };
+  for (const [key, value] of Object.entries(extra)) {
+    const isObject = value && typeof value === 'object' && !Array.isArray(value);
+    out[key] = isObject && base[key] && typeof base[key] === 'object' ? mergeTheme(base[key], value) : value;
+  }
+  return out;
+}
+
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+const siteConfig = {
   content: [
     './src/**/*.{html,njk,md,js}',
     './_site/**/*.html',
   ],
   theme: {
     extend: {
-      // Ferni Design System Colors - References CSS variables from design-tokens.css
-      // Note: Opacity modifiers (bg-ferni/50) won't work with CSS vars - use glow variants instead
+      // Token colors (paper, ink, accent, personas, semantic, borders) come from
+      // tailwind.config.generated.js. Only site-specific colors live here.
       colors: {
-        // Zen Theme (Light Mode) - Primary
-        paper: {
-          DEFAULT: 'var(--color-bg-primary)',
-          cream: 'var(--color-bg-elevated)',
-          sand: 'var(--color-bg-secondary)',
-          warm: '#ebe6df', // Not in tokens yet
-        },
-        ink: {
-          DEFAULT: 'var(--color-text-primary)',
-          muted: 'var(--color-text-secondary)',
-          light: 'var(--color-text-muted)',
-          faded: 'var(--color-text-dimmed)',
-        },
-        // Accent (CTA buttons, links)
-        accent: {
-          DEFAULT: 'var(--color-accent)',
-          hover: 'var(--color-accent-hover)',
-          pressed: 'var(--color-accent-pressed)',
-          glow: 'var(--color-accent-glow)',
-        },
-        // Persona Colors - Single source of truth from design-tokens.css
-        ferni: {
-          DEFAULT: 'var(--color-ferni)',
-          dark: 'var(--color-ferni-secondary)',
-          glow: 'var(--color-ferni-glow)',
-        },
-        jack: {
-          DEFAULT: 'var(--color-jack)',
-          dark: 'var(--color-jack-secondary)',
-          glow: 'var(--color-jack-glow)',
-        },
-        peter: {
-          DEFAULT: 'var(--color-peter)',
-          dark: 'var(--color-peter-secondary)',
-          glow: 'var(--color-peter-glow)',
-        },
-        alex: {
-          DEFAULT: 'var(--color-alex)',
-          dark: 'var(--color-alex-secondary)',
-          glow: 'var(--color-alex-glow)',
-        },
-        maya: {
-          DEFAULT: 'var(--color-maya)',
-          dark: 'var(--color-maya-secondary)',
-          glow: 'var(--color-maya-glow)',
-        },
-        jordan: {
-          DEFAULT: 'var(--color-jordan)',
-          dark: 'var(--color-jordan-secondary)',
-          glow: 'var(--color-jordan-glow)',
-        },
-        nayan: {
-          DEFAULT: 'var(--color-nayan)',
-          dark: 'var(--color-nayan-secondary)',
-          glow: 'var(--color-nayan-glow)',
-        },
-        // Marketplace personas
-        eli: {
-          DEFAULT: 'var(--color-eli)',
-          dark: 'var(--color-eli-secondary)',
-          glow: 'var(--color-eli-glow)',
-        },
-        marcus: {
-          DEFAULT: 'var(--color-marcus)',
-          dark: 'var(--color-marcus-secondary)',
-          glow: 'var(--color-marcus-glow)',
-        },
-        kenji: {
-          DEFAULT: 'var(--color-kenji)',
-          dark: 'var(--color-kenji-secondary)',
-          glow: 'var(--color-kenji-glow)',
-        },
-        carmen: {
-          DEFAULT: 'var(--color-carmen)',
-          dark: 'var(--color-carmen-secondary)',
-          glow: 'var(--color-carmen-glow)',
-        },
-        amara: {
-          DEFAULT: 'var(--color-amara)',
-          dark: 'var(--color-amara-secondary)',
-          glow: 'var(--color-amara-glow)',
-        },
-        sasha: {
-          DEFAULT: 'var(--color-sasha)',
-          dark: 'var(--color-sasha-secondary)',
-          glow: 'var(--color-sasha-glow)',
-        },
-        ray: {
-          DEFAULT: 'var(--color-ray)',
-          dark: 'var(--color-ray-secondary)',
-          glow: 'var(--color-ray-glow)',
-        },
-        // Semantic
-        success: 'var(--color-success)',
-        error: 'var(--color-error)',
-        warning: 'var(--color-warning)',
         // Night theme colors for dark sections
         night: {
           DEFAULT: '#1a1512',
@@ -112,14 +36,8 @@ module.exports = {
           warm: '#2a2420',
         },
       },
-      
-      // Typography
-      fontFamily: {
-        display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        body: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
-      },
-      
+
+      // Typography (font families come from the generated theme)
       fontSize: {
         'display-2xl': ['clamp(4rem, 12vw, 8rem)', { lineHeight: '0.95', letterSpacing: '-0.04em', fontWeight: '800' }],
         'display-xl': ['clamp(3rem, 8vw, 6rem)', { lineHeight: '1', letterSpacing: '-0.03em', fontWeight: '700' }],
@@ -147,16 +65,7 @@ module.exports = {
       
       // Border Radius
       borderRadius: {
-        'none': '0',
-        'xs': '0.25rem',
-        'sm': '0.5rem',
-        'md': '0.75rem',
-        'lg': '1rem',
-        'xl': '1.25rem',
-        '2xl': '1.5rem',
-        '3xl': '2rem',
         '4xl': '2.5rem',
-        'full': '9999px',
       },
       
       // Shadows (Zen theme)
@@ -275,8 +184,6 @@ module.exports = {
       
       // Transitions
       transitionTimingFunction: {
-        'spring': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-        'smooth': 'cubic-bezier(0.45, 0, 0.55, 1)',
         'expo-out': 'cubic-bezier(0.16, 1, 0.3, 1)',
         'expo-in-out': 'cubic-bezier(0.87, 0, 0.13, 1)',
         'back-out': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -332,3 +239,11 @@ module.exports = {
   },
   plugins: [],
 }
+
+module.exports = {
+  ...siteConfig,
+  theme: {
+    ...siteConfig.theme,
+    extend: mergeTheme(generatedTheme, siteConfig.theme.extend),
+  },
+};

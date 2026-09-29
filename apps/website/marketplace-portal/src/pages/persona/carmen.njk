@@ -2,14 +2,14 @@
 layout: layouts/base.njk
 title: Carmen - Parenting Partner
 description: Carmen is your village. Practical parenting support without the judgment—from toddler tantrums to teen drama, you've got a thoughtful co-pilot.
-personaColor: "#D4A373"
-personaSecondary: "#A67B5B"
+personaColor: "var(--persona-carmen-primary)"
+personaSecondary: "var(--persona-carmen-secondary)"
 ---
 
 {% from "partials/icons.njk" import play, plus, starFilled, star, verified, check %}
 
 <!-- Hero -->
-<section class="persona-detail-hero" style="--persona-color: #D4A373; --persona-secondary: #A67B5B;">
+<section class="persona-detail-hero" style="--persona-color: var(--persona-carmen-primary); --persona-secondary: var(--persona-carmen-secondary);">
   <div class="container">
     <div class="persona-detail-content">
       <div class="persona-detail-avatar">
@@ -17,8 +17,8 @@ personaSecondary: "#A67B5B"
         <svg viewBox="0 0 100 100" width="100%" height="100%">
           <defs>
             <linearGradient id="carmenDetailGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color: #D4A373"/>
-              <stop offset="100%" style="stop-color: #A67B5B"/>
+              <stop offset="0%" style="stop-color: var(--persona-carmen-primary)"/>
+              <stop offset="100%" style="stop-color: var(--persona-carmen-secondary)"/>
             </linearGradient>
           </defs>
           <circle cx="50" cy="50" r="45" fill="url(#carmenDetailGrad)"/>
@@ -117,7 +117,7 @@ personaSecondary: "#A67B5B"
             <div class="voice-waveform">
               <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 200 40">
                 <path d="M0 20 Q10 5 20 20 Q30 35 40 20 Q50 5 60 20 Q70 35 80 20 Q90 5 100 20 Q110 35 120 20 Q130 5 140 20 Q150 35 160 20 Q170 5 180 20 Q190 35 200 20"
-                      stroke="#D4A373" stroke-width="2" fill="none" opacity="0.5"/>
+                      style="stroke: var(--persona-carmen-primary)" stroke-width="2" fill="none" opacity="0.5"/>
               </svg>
             </div>
             <span class="voice-duration">0:26</span>
@@ -145,7 +145,7 @@ personaSecondary: "#A67B5B"
 
           <div class="review-card">
             <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #D4A373, #A67B5B); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">M</div>
+              <div class="review-avatar" style="background: linear-gradient(135deg, var(--persona-carmen-primary), var(--persona-carmen-secondary)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">M</div>
               <div>
                 <div class="review-author">Michelle T.</div>
                 <div class="review-date">3 days ago</div>
@@ -163,7 +163,7 @@ personaSecondary: "#A67B5B"
 
           <div class="review-card">
             <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #6B5B95, #4A4063); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">J</div>
+              <div class="review-avatar" style="background: linear-gradient(135deg, var(--persona-eli-primary), var(--persona-eli-secondary)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">J</div>
               <div>
                 <div class="review-author">James K.</div>
                 <div class="review-date">1 week ago</div>
@@ -181,7 +181,7 @@ personaSecondary: "#A67B5B"
 
           <div class="review-card">
             <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #2C3E50, #1A252F); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">S</div>
+              <div class="review-avatar" style="background: linear-gradient(135deg, var(--persona-kenji-primary), var(--persona-kenji-secondary)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">S</div>
               <div>
                 <div class="review-author">Sarah L.</div>
                 <div class="review-date">3 weeks ago</div>
@@ -206,12 +206,12 @@ personaSecondary: "#A67B5B"
           <h3 class="trait-radar-title">Personality Profile</h3>
           <div class="trait-list">
             <div class="trait-item">
-              <span class="trait-dot" style="background: #D4A373;"></span>
+              <span class="trait-dot" style="background: var(--persona-carmen-primary);"></span>
               <span class="trait-name">Warmth</span>
               <span class="trait-value">95%</span>
             </div>
             <div class="trait-item">
-              <span class="trait-dot" style="background: #A67B5B;"></span>
+              <span class="trait-dot" style="background: var(--persona-carmen-secondary);"></span>
               <span class="trait-name">Patience</span>
               <span class="trait-value">90%</span>
             </div>
@@ -262,12 +262,12 @@ personaSecondary: "#A67B5B"
         </div>
 
         <!-- CTA -->
-        <div style="background: linear-gradient(135deg, #D4A373, #A67B5B); border-radius: var(--radius-2xl); padding: var(--space-6); color: white; text-align: center;">
+        <div style="background: linear-gradient(135deg, var(--persona-carmen-primary), var(--persona-carmen-secondary)); border-radius: var(--radius-2xl); padding: var(--space-6); color: white; text-align: center;">
           <h3 style="margin-bottom: var(--space-2); color: white;">Ready to get started?</h3>
           <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
             Your village is waiting
           </p>
-          <button class="btn" style="background: white; color: #A67B5B; width: 100%;">
+          <button class="btn" style="background: white; color: var(--persona-carmen-secondary); width: 100%;">
             Add to Team - $7.99/mo
           </button>
         </div>
@@ -286,7 +286,7 @@ personaSecondary: "#A67B5B"
     </div>
 
     <div class="persona-grid" style="max-width: 900px; margin: 0 auto;">
-      <a href="/persona/eli/" class="persona-card" style="--persona-color: #6B5B95; --persona-secondary: #4A4063;">
+      <a href="/persona/eli/" class="persona-card" style="--persona-color: var(--persona-eli-primary); --persona-secondary: var(--persona-eli-secondary);">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">E</span>
@@ -308,7 +308,7 @@ personaSecondary: "#A67B5B"
         </div>
       </a>
 
-      <a href="/persona/kenji/" class="persona-card" style="--persona-color: #2C3E50; --persona-secondary: #1A252F;">
+      <a href="/persona/kenji/" class="persona-card" style="--persona-color: var(--persona-kenji-primary); --persona-secondary: var(--persona-kenji-secondary);">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">K</span>
@@ -330,7 +330,7 @@ personaSecondary: "#A67B5B"
         </div>
       </a>
 
-      <a href="/persona/sasha/" class="persona-card" style="--persona-color: #E07B53; --persona-secondary: #B85C3C;">
+      <a href="/persona/sasha/" class="persona-card" style="--persona-color: var(--persona-sasha-primary); --persona-secondary: var(--persona-sasha-secondary);">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">S</span>
