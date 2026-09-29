@@ -551,11 +551,42 @@ function adaptSpeechMarkup(prompt: string): string {
   return prompt;
 }
 
+/**
+ * PROMPT_MODE=character: a short character sheet (identity/character.md) in
+ * place of the ~57k-character assembled prompt, for personas that have one.
+ *
+ * The full prompt is full of example lines the model copies: "Ugh. That
+ * sounds exhausting.", "Wait wait wait. You did WHAT?! That's huge!", "Oh
+ * nice! What draws you to jazz?", and rules that contradict the per-turn
+ * reminder ("First word should be a reaction"). A founder test call came out
+ * hyped and therapist-like (2026-09-29). The character sheet says who Ferni
+ * is and how he talks, with no lines to repeat; per-turn nudges come from the
+ * director (see agents/personas/director-notes).
+ */
+export function promptMode(env: Record<string, string | undefined> = process.env): 'full' | 'character' {
+  return env.PROMPT_MODE === 'character' ? 'character' : 'full';
+}
+
 export async function loadSystemPrompt(
   personaId: string,
   mode: PromptMode = 'voice_agent'
 ): Promise<string> {
+  if (promptMode() === 'character' && mode === 'voice_agent') {
+    const character = await loadCharacterPrompt(personaId);
+    if (character) return adaptSpeechMarkup(character);
+  }
   return adaptSpeechMarkup(await loadSystemPromptForTTS(personaId, mode));
+}
+
+/** identity/character.md plus the persona's tool-usage guidance, or null if it has none. */
+async function loadCharacterPrompt(personaId: string): Promise<string | null> {
+  const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
+  const character = await loadFile(bundleDir, 'identity/character.md');
+  if (!character) return null;
+  const tools = await loadToolUsageGuidance(bundleDir);
+  const prompt = tools ? `${character}\n\n---\n\n${tools}` : character;
+  log.info({ personaId, length: prompt.length }, 'Loaded character prompt (PROMPT_MODE=character)');
+  return prompt;
 }
 
 async function loadSystemPromptForTTS(
@@ -835,8 +866,12 @@ export async function loadModelBaseInstructions(): Promise<string> {
 
     let baseContent: string;
 
-    // Check if provider uses minimal instructions (native function calling)
-    if (promptConfig.useMinimalInstructions) {
+    if (promptMode() === 'character') {
+      // Only what the call mechanics need; see promptMode().
+      baseContent = await fs.readFile(join(sharedDir, 'voice-base-character.md'), 'utf-8');
+      voiceOutputRules = '';
+      log.info({ length: baseContent.length }, 'Loaded character-mode base instructions');
+    } else if (promptConfig.useMinimalInstructions) {
       baseContent = provider.getMinimalInstructions();
       log.info(
         { providerId: provider.id, length: baseContent.length },

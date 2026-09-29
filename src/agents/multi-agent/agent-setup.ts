@@ -2026,6 +2026,28 @@ Reference past context when relevant, but don't force it. Let the conversation f
           });
           log.info({ sessionId, mode: toolRetrievalMode() }, 'tool retrieval on');
         }
+        // The director (DIRECTOR_NOTES=on): after each reply, notes that nudge
+        // the next one. See agents/personas/director-notes.ts.
+        const { directorNotesEnabled, Director, setDirector, linesFromChat } =
+          await import('../personas/director-notes.js');
+        if (directorNotesEnabled()) {
+          const director = new Director({ sessionId, userName: userData?.userName });
+          setDirector(session, director);
+          let spoke = false;
+          const directorHandler = (ev: unknown): void => {
+            const state = (ev as { newState?: string }).newState;
+            if (state === 'speaking') spoke = true;
+            if (state !== 'listening' || !spoke) return;
+            spoke = false;
+            void director.observe(linesFromChat(agent.chatCtx.items as never));
+          };
+          session.on(voice.AgentSessionEventTypes.AgentStateChanged, directorHandler);
+          cleanupFunctions.push(() => {
+            session.off(voice.AgentSessionEventTypes.AgentStateChanged, directorHandler);
+            setDirector(session, null);
+          });
+          log.info({ sessionId }, 'director notes on');
+        }
         try {
           const { startBackchannelClips } = await import('../integrations/clip-player.js');
           const { getCachedAudioForPersona } =

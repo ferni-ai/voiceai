@@ -31,7 +31,12 @@ import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
-import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js';
+import {
+  TURN_STYLE_REMINDER,
+  turnStyleReminderEnabled,
+  withTurnStyleReminder,
+} from './turn-style.js';
+import { formatNotes, getDirector } from './director-notes.js';
 import { filterCaptionStream } from './caption-filter.js';
 import { OpenerGate } from './opener-gate.js';
 import {
@@ -723,7 +728,12 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     toolCtx: llm.ToolContext,
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
-    const ctx = turnStyleReminderEnabled() ? withTurnStyleReminder(chatCtx) : chatCtx;
+    // The turn reminder, plus the director's notes for this reply if any.
+    const notes = formatNotes(getDirector(this.session as object)?.current() ?? []);
+    const reminder = [turnStyleReminderEnabled() ? TURN_STYLE_REMINDER : '', notes]
+      .filter(Boolean)
+      .join(' ');
+    const ctx = reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
     const unlocked = await withoutLockedHandoffs(toolCtx, this.unlockView()).catch(
       (error: unknown) => {
         log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
