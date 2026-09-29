@@ -124,21 +124,21 @@ export const colors = {
   jordan: '#c4856a',
   nayan: '#b8956a',
 
-  // Text
-  textPrimary: '#2C2520',
-  textSecondary: '#5C544A',
-  textMuted: '#8A847A',
+  // Text (themes.zen.text)
+  textPrimary: '#2c2520',
+  textSecondary: '#5c544a',
+  textMuted: '#6b635a',
 
-  // Backgrounds
-  background: '#FFFCF8',
-  backgroundElevated: '#FFFFFF',
-  backgroundSubtle: '#F5F1E8',
+  // Backgrounds (themes.zen.background)
+  background: '#faf8f5',
+  backgroundElevated: '#fffdfb',
+  backgroundSubtle: '#f5f2ed',
 
-  // Status
-  success: '#4a6741',
-  warning: '#a08054',
-  error: '#a05454',
-  info: '#546080',
+  // Status (themes.zen.semantic)
+  success: '#3d7a52',
+  warning: '#a67c35',
+  error: '#b5453a',
+  info: '#3a6b9c',
 
   // Borders
   border: 'rgba(44, 37, 32, 0.1)',

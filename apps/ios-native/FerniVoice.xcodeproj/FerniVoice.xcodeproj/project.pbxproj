@@ -21,7 +21,6 @@
 		35C03580BC88E4E8D27539EB /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76626BFFF99251B574EA46E0 /* HealthKitService.swift */; };
 		38E526878C1ED96B7D5BBB97 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7222CEC31033F22CD392C9 /* SplashView.swift */; };
 		3A5FB98442E72F8D2295C6AB /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7F58E1F2D8611AEA3CBDE1CF /* LiveKit */; };
-		4078804CAAF53E42D093BEF3 /* FerniColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F37C96354E4DC3C057391F /* FerniColors.swift */; };
 		42D2573C889B3D5EC1426B68 /* FerniWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98E497A52D1874327EA2C4E8 /* FerniWatchApp.swift */; };
 		4BB3AD21D871B1CED59D986B /* FerniWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B9381338280EB23E797FCCFF /* FerniWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4C29E322E47F2977BC20BD9A /* FerniWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A8805B6F5BFB5567F5C730 /* FerniWidgets.swift */; };
@@ -180,7 +179,6 @@
 		A87A7C7C965C1033A85462E9 /* MusicKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicKitService.swift; sourceTree = "<group>"; };
 		A8AF704CB96DE0ACBF0E9DA4 /* FerniVoiceTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FerniVoiceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A943E77BFDBA802900FA6014 /* HomeKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeKitService.swift; sourceTree = "<group>"; };
-		B2F37C96354E4DC3C057391F /* FerniColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniColors.swift; sourceTree = "<group>"; };
 		B6C6980AD2DD079FCE318E81 /* SharedItemsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedItemsService.swift; sourceTree = "<group>"; };
 		B9381338280EB23E797FCCFF /* FerniWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = FerniWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BBE5757EB868FB283604549B /* ProactiveNotificationsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveNotificationsService.swift; sourceTree = "<group>"; };
@@ -441,14 +439,6 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		D602141F8121BFA17D1E0615 /* Design */ = {
-			isa = PBXGroup;
-			children = (
-				B2F37C96354E4DC3C057391F /* FerniColors.swift */,
-			);
-			path = Design;
-			sourceTree = "<group>";
-		};
 		DB82DB430DC356FF7571A4A4 /* FerniWatchWidgets */ = {
 			isa = PBXGroup;
 			children = (
@@ -488,7 +478,6 @@
 			isa = PBXGroup;
 			children = (
 				97B8928333079A366582BB6F /* App */,
-				D602141F8121BFA17D1E0615 /* Design */,
 				E2073A04B2D5B2F9A8E60367 /* Services */,
 				12BF02DB87713224F5C8F13A /* Views */,
 			);
@@ -756,7 +745,6 @@
 				722784CB69BD446BD3EB1EAF /* ExpressionConfig.swift in Sources */,
 				97A4F6B283E21C21289930B6 /* ExpressionEventMapper.swift in Sources */,
 				1624863B6F46D82F39D1918E /* FerniCarPlaySceneDelegate.swift in Sources */,
-				4078804CAAF53E42D093BEF3 /* FerniColors.swift in Sources */,
 				2834B7417B33162D4A883F17 /* FerniSpeakingAvatar.swift in Sources */,
 				E8ABFBE1338A50A0953891D9 /* FerniVoiceApp.swift in Sources */,
 				EC8EF364A992CFCF0EEBED45 /* FerniWindowAvatar.swift in Sources */,

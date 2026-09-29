@@ -2,40 +2,40 @@ package com.ferni.voice.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Persona Colors from design-system/tokens/colors.json
+// Persona colors come from FerniTokens (generated from design-system/tokens/colors.json)
 object PersonaColors {
-    val Ferni = Color(0xFF4a6741)       // Sage Green
-    val FerniSecondary = Color(0xFF3d5a35)
+    val Ferni = FerniTokens.Persona.FerniPrimary
+    val FerniSecondary = FerniTokens.Persona.FerniSecondary
 
-    val Maya = Color(0xFFa67a6a)        // Rose/Terracotta
-    val MayaSecondary = Color(0xFF8a635a)
+    val Maya = FerniTokens.Persona.MayaPrimary
+    val MayaSecondary = FerniTokens.Persona.MayaSecondary
 
-    val Alex = Color(0xFF5a6b8a)        // Slate Blue
-    val AlexSecondary = Color(0xFF4a5a73)
+    val Alex = FerniTokens.Persona.AlexPrimary
+    val AlexSecondary = FerniTokens.Persona.AlexSecondary
 
-    val Jordan = Color(0xFFc4856a)      // Coral
-    val JordanSecondary = Color(0xFFa86d55)
+    val Jordan = FerniTokens.Persona.JordanPrimary
+    val JordanSecondary = FerniTokens.Persona.JordanSecondary
 
-    val Peter = Color(0xFF3a6b73)       // Ocean Teal
-    val PeterSecondary = Color(0xFF2d5359)
+    val Peter = FerniTokens.Persona.PeterPrimary
+    val PeterSecondary = FerniTokens.Persona.PeterSecondary
 
-    val Nayan = Color(0xFF9a7b5a)       // Warm Brown
-    val NayanSecondary = Color(0xFF7a5b3a)
+    val Nayan = FerniTokens.Persona.NayanPrimary
+    val NayanSecondary = FerniTokens.Persona.NayanSecondary
 }
 
 // Brand Colors
 object BrandColors {
-    val Accent = Color(0xFF3D5A45)      // CTA Buttons
-    val NaturalInk = Color(0xFF2C2520)  // Primary text
-    val Cream = Color(0xFFF5F1EB)       // Background
-    val WarmGold = Color(0xFFc4a265)    // Warmth, connection
+    val Accent = FerniTokens.Zen.Accent                 // CTA buttons
+    val NaturalInk = FerniTokens.Zen.TextPrimary        // Primary text
+    val Cream = FerniTokens.Zen.BackgroundPrimary       // Paper Cream background
+    val WarmGold = FerniTokens.Midnight.Accent          // Warmth, connection (dark-theme gold)
 }
 
 // System Colors
 val SurfaceDark = Color(0xFF1A1A1A)
-val SurfaceLight = Color(0xFFF5F1EB)
+val SurfaceLight = BrandColors.Cream
 val OnSurfaceDark = Color(0xFFFFFFFF)
-val OnSurfaceLight = Color(0xFF2C2520)
+val OnSurfaceLight = BrandColors.NaturalInk
 
 // Backdrop Colors
 val BackdropDark = Color(0x99000000)

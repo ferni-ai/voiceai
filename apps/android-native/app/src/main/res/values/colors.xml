@@ -1,20 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Token colors are generated into ferni_tokens.xml (from
+  design-system/tokens/colors.json). These names are kept as aliases so
+  existing references keep working; only non-token colors are literal here.
+-->
 <resources>
     <!-- Brand Colors -->
-    <color name="ferni_primary">#4a6741</color>
-    <color name="ferni_secondary">#3d5a35</color>
-    <color name="accent">#3D5A45</color>
+    <color name="ferni_primary">@color/persona_ferni_primary</color>
+    <color name="ferni_secondary">@color/persona_ferni_secondary</color>
+    <color name="accent">@color/zen_accent</color>
 
     <!-- Persona Colors -->
-    <color name="maya_primary">#a67a6a</color>
-    <color name="alex_primary">#5a6b8a</color>
-    <color name="jordan_primary">#c4856a</color>
-    <color name="peter_primary">#3a6b73</color>
-    <color name="nayan_primary">#9a7b5a</color>
+    <color name="maya_primary">@color/persona_maya_primary</color>
+    <color name="alex_primary">@color/persona_alex_primary</color>
+    <color name="jordan_primary">@color/persona_jordan_primary</color>
+    <color name="peter_primary">@color/persona_peter_primary</color>
+    <color name="nayan_primary">@color/persona_nayan_primary</color>
 
     <!-- System Colors -->
     <color name="surface_dark">#1A1A1A</color>
-    <color name="surface_light">#F5F1EB</color>
-    <color name="natural_ink">#2C2520</color>
-    <color name="warm_gold">#c4a265</color>
+    <color name="surface_light">@color/zen_background_primary</color>
+    <color name="natural_ink">@color/zen_text_primary</color>
+    <color name="warm_gold">@color/midnight_accent</color>
 </resources>

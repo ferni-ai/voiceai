@@ -40,15 +40,7 @@ public struct Persona: Identifiable, Equatable {
 
     /// The primary hex value for gradient generation
     public var primaryHex: String {
-        switch id {
-        case "ferni": return "#4a6741"
-        case "maya": return "#a67a6a"
-        case "alex": return "#5a6b8a"
-        case "jordan": return "#c4856a"
-        case "peter": return "#3a6b73"
-        case "nayan": return "#9a7b5a"
-        default: return "#4a6741"
-        }
+        FerniTokens.Persona.primaryHexString(for: id)
     }
 
     /// Short tagline for display (alias for role)
@@ -60,7 +52,7 @@ public struct Persona: Identifiable, Equatable {
 // MARK: - Persona Registry
 
 /// All available Ferni team personas
-/// Colors sourced from design-system/tokens/colors.json
+/// Colors come from FerniTokens (generated from design-system/tokens/colors.json)
 public enum PersonaRegistry {
 
     /// Ferni - CEO & Life Coach (Sage Green)
@@ -71,9 +63,9 @@ public enum PersonaRegistry {
         initials: "FE",
         role: "Life Coach",
         specialty: "Leadership, life direction, bringing in the right expert",
-        primaryColor: Color(hex: 0x4a6741),
-        secondaryColor: Color(hex: 0x3d5a35),
-        glowColor: Color(hex: 0x4a6741).opacity(0.4)
+        primaryColor: Color(hex: FerniTokens.Persona.ferniPrimary),
+        secondaryColor: Color(hex: FerniTokens.Persona.ferniSecondary),
+        glowColor: Color(hex: FerniTokens.Persona.ferniPrimary).opacity(0.4)
     )
 
     /// Maya Santos - Habits Coach (Rose/Terracotta)
@@ -84,9 +76,9 @@ public enum PersonaRegistry {
         initials: "MS",
         role: "Habits Coach",
         specialty: "Building habits, breaking bad ones, behavior change",
-        primaryColor: Color(hex: 0xa67a6a),
-        secondaryColor: Color(hex: 0x8a635a),
-        glowColor: Color(hex: 0xa67a6a).opacity(0.4)
+        primaryColor: Color(hex: FerniTokens.Persona.mayaPrimary),
+        secondaryColor: Color(hex: FerniTokens.Persona.mayaSecondary),
+        glowColor: Color(hex: FerniTokens.Persona.mayaPrimary).opacity(0.4)
     )
 
     /// Alex Chen - Communications Coach (Slate Blue)
@@ -97,9 +89,9 @@ public enum PersonaRegistry {
         initials: "AC",
         role: "Communications",
         specialty: "Difficult conversations, relationships, conflict resolution",
-        primaryColor: Color(hex: 0x5a6b8a),
-        secondaryColor: Color(hex: 0x4a5a73),
-        glowColor: Color(hex: 0x5a6b8a).opacity(0.4)
+        primaryColor: Color(hex: FerniTokens.Persona.alexPrimary),
+        secondaryColor: Color(hex: FerniTokens.Persona.alexSecondary),
+        glowColor: Color(hex: FerniTokens.Persona.alexPrimary).opacity(0.4)
     )
 
     /// Jordan Taylor - Life Planner (Coral)
@@ -110,9 +102,9 @@ public enum PersonaRegistry {
         initials: "JT",
         role: "Life Planner",
         specialty: "Goals, planning, productivity, time management",
-        primaryColor: Color(hex: 0xc4856a),
-        secondaryColor: Color(hex: 0xa86d55),
-        glowColor: Color(hex: 0xc4856a).opacity(0.4)
+        primaryColor: Color(hex: FerniTokens.Persona.jordanPrimary),
+        secondaryColor: Color(hex: FerniTokens.Persona.jordanSecondary),
+        glowColor: Color(hex: FerniTokens.Persona.jordanPrimary).opacity(0.4)
     )
 
     /// Peter John - Research Analyst (Ocean Teal)
@@ -123,9 +115,9 @@ public enum PersonaRegistry {
         initials: "PJ",
         role: "Research",
         specialty: "Deep research, analysis, finding answers",
-        primaryColor: Color(hex: 0x3a6b73),
-        secondaryColor: Color(hex: 0x2d5359),
-        glowColor: Color(hex: 0x3a6b73).opacity(0.4)
+        primaryColor: Color(hex: FerniTokens.Persona.peterPrimary),
+        secondaryColor: Color(hex: FerniTokens.Persona.peterSecondary),
+        glowColor: Color(hex: FerniTokens.Persona.peterPrimary).opacity(0.4)
     )
 
     /// Nayan Patel - Wisdom Sage (Warm Brown/Gold)
@@ -136,9 +128,9 @@ public enum PersonaRegistry {
         initials: "NP",
         role: "Wisdom",
         specialty: "Philosophy, mindfulness, deeper meaning",
-        primaryColor: Color(hex: 0x9a7b5a),
-        secondaryColor: Color(hex: 0x7a5b3a),
-        glowColor: Color(hex: 0xb8956a).opacity(0.4)
+        primaryColor: Color(hex: FerniTokens.Persona.nayanPrimary),
+        secondaryColor: Color(hex: FerniTokens.Persona.nayanSecondary),
+        glowColor: Color(hex: FerniTokens.Persona.nayanPrimary).opacity(0.4)
     )
 
     /// All personas in display order

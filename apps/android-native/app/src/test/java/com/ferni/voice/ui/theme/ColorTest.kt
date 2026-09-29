@@ -81,13 +81,13 @@ class PersonaColorsTest {
     // MARK: - Nayan Colors
 
     @Test
-    fun `nayan primary color is warm brown`() {
-        assertEquals(Color(0xFF9a7b5a), PersonaColors.Nayan)
+    fun `nayan primary color is golden amber`() {
+        assertEquals(Color(0xFFb8956a), PersonaColors.Nayan)
     }
 
     @Test
     fun `nayan secondary color is darker`() {
-        assertEquals(Color(0xFF7a5b3a), PersonaColors.NayanSecondary)
+        assertEquals(Color(0xFF9a7a52), PersonaColors.NayanSecondary)
     }
 
     // MARK: - Color Distinctness
@@ -129,12 +129,12 @@ class BrandColorsTest {
 
     @Test
     fun `cream is light for backgrounds`() {
-        assertEquals(Color(0xFFF5F1EB), BrandColors.Cream)
+        assertEquals(Color(0xFFfaf8f5), BrandColors.Cream)
     }
 
     @Test
     fun `warm gold has golden hue`() {
-        assertEquals(Color(0xFFc4a265), BrandColors.WarmGold)
+        assertEquals(Color(0xFFd4a84a), BrandColors.WarmGold)
     }
 
     @Test
@@ -164,7 +164,7 @@ class SurfaceColorsTest {
 
     @Test
     fun `surface light is warm cream`() {
-        assertEquals(Color(0xFFF5F1EB), SurfaceLight)
+        assertEquals(Color(0xFFfaf8f5), SurfaceLight)
     }
 
     @Test

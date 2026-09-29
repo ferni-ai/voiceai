@@ -2,7 +2,7 @@
 # ===================
 # Regenerates every design-token output and fails if any committed file differs
 # (content-based — see design-system/check-drift.js). Covers CSS, TS, the
-# Tailwind config, iOS expressions JSON and the website token CSS.
+# Tailwind config, Swift/Kotlin tokens, iOS expressions JSON and website CSS.
 # Fix locally with: pnpm tokens:sync && git add -A
 
 name: Token Drift Check
@@ -17,6 +17,9 @@ on:
       - 'apps/web/src/config/*.generated.*'
       - 'apps/web/public/design-system/**'
       - 'apps/ios-native/Ferni/Resources/expressions.json'
+      - 'apps/shared/Sources/FerniShared/Design/FerniTokens.generated.swift'
+      - 'apps/android-native/app/src/main/java/com/ferni/voice/ui/theme/FerniTokens.kt'
+      - 'apps/android-native/app/src/main/res/values/ferni_tokens.xml'
       - 'apps/website/ferni-website/css/**'
       - 'apps/website/ferni-website/src/css/**'
       - 'apps/website/ferni-website/tailwind.config.generated.js'

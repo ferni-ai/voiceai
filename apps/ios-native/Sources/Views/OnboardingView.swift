@@ -1,4 +1,5 @@
 import SwiftUI
+import FerniShared
 import AVFoundation
 
 #if os(macOS)

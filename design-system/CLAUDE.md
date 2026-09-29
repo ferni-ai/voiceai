@@ -41,6 +41,9 @@ ferni tokens version patch "Fixed X"
 | `build.js` | Main token compiler |
 | `generate-animation-constants.js` | Generates `animation-constants.generated.ts` |
 | `sync-promo-tokens.js` | Syncs tokens to landing page |
+| `generate-native-tokens.js` | Swift + Kotlin/XML color tokens for the native apps |
+| `content/` | Copy/rule data for generators (not visual tokens) |
+| `specs/` | Specs no generator reads (kept for reference) |
 
 ## Adding/Editing Tokens
 
@@ -56,6 +59,8 @@ ferni tokens version patch "Fixed X"
 | `animation-constants.generated.ts` | `apps/web/src/config/` | Frontend animations |
 | `tailwind.config.generated.js` | Website root | Landing page |
 | `design-tokens.css` | Promo website | Marketing site |
+| `FerniTokens.generated.swift` | `apps/shared/Sources/FerniShared/Design/` | iOS, widgets, macOS (via FerniShared) |
+| `FerniTokens.kt`, `ferni_tokens.xml` | `apps/android-native/app/src/main/` | Android |
 
 ## Rules
 

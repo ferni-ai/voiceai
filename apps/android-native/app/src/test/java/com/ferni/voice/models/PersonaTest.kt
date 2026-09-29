@@ -147,7 +147,7 @@ class PersonaTest {
 
     @Test
     fun `nayan has correct primary hex`() {
-        assertEquals("#9a7b5a", Persona.nayan.primaryHex)
+        assertEquals("#b8956a", Persona.nayan.primaryHex)
     }
 
     // MARK: - Companion Object Tests
