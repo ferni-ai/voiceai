@@ -187,28 +187,19 @@ function formatEmailResults(request: ConciergeRequest): { subject: string; body:
  * Send SMS notification via Twilio
  */
 async function sendSms(phone: string, message: string): Promise<NotificationResult> {
-  const TWILIO_SID = process.env.TWILIO_ACCOUNT_SID;
-  const TWILIO_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-  const TWILIO_NUMBER = process.env.TWILIO_PHONE_NUMBER;
-
-  if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_NUMBER) {
-    log.warn('Twilio not configured, simulating SMS');
-    log.info({ phone, messagePreview: message.slice(0, 100) }, 'Would send SMS');
-    return { success: true, channel: 'sms', messageId: `sim_${Date.now()}` };
-  }
-
   try {
-    // In production:
-    // const twilio = require('twilio')(TWILIO_SID, TWILIO_TOKEN);
-    // const msg = await twilio.messages.create({
-    //   body: message,
-    //   from: TWILIO_NUMBER,
-    //   to: phone,
-    // });
-    // return { success: true, channel: 'sms', messageId: msg.sid };
+    const { sendSMS, isTwilioConfigured } = await import('../../integrations/twilio-sms.js');
 
-    log.info({ phone }, 'SMS would be sent via Twilio');
-    return { success: true, channel: 'sms', messageId: `twilio_${Date.now()}` };
+    if (!isTwilioConfigured()) {
+      log.warn('Twilio not configured; concierge SMS not sent');
+      return { success: false, channel: 'sms', error: 'SMS is not configured' };
+    }
+
+    const messageSid = await sendSMS(phone, message);
+    if (!messageSid) {
+      return { success: false, channel: 'sms', error: 'SMS send failed' };
+    }
+    return { success: true, channel: 'sms', messageId: messageSid };
   } catch (error) {
     log.error({ error: String(error), phone }, 'Failed to send SMS');
     return { success: false, channel: 'sms', error: String(error) };
@@ -459,11 +450,19 @@ export async function registerNotifier(): Promise<void> {
 
     tracker.onEvent((event) => {
       // Get the request for this event
-      tracker.getRequest(event.requestId).then((request) => {
-        if (request) {
-          handleConciergeEvent(event, request);
-        }
-      });
+      tracker
+        .getRequest(event.requestId)
+        .then((request) => {
+          if (request) {
+            handleConciergeEvent(event, request);
+          }
+        })
+        .catch((err: unknown) => {
+          log.error(
+            { error: String(err), requestId: event.requestId },
+            'Concierge event lookup failed'
+          );
+        });
     });
 
     registered = true;

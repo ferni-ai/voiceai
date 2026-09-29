@@ -80,8 +80,8 @@ export class SmsSender {
     const message = customMessage || this.generateMessage(target, domain, type, requirements);
 
     if (!SmsSender.isConfigured()) {
-      log.warn('Twilio not configured, simulating SMS');
-      return this.simulateSms(target, message);
+      log.warn({ target: target.name }, 'Twilio not configured; SMS not sent');
+      return { success: false, error: 'SMS is not configured' };
     }
 
     try {
@@ -213,49 +213,11 @@ export class SmsSender {
    * Send SMS via Twilio
    */
   private async sendViaTwilio(to: string, body: string): Promise<{ messageSid: string }> {
-    // Production Twilio integration
-    /*
-    const twilio = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+    const twilio = (await import('twilio')).default(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+    const message = await twilio.messages.create({ to, from: TWILIO_PHONE_NUMBER, body });
 
-    const message = await twilio.messages.create({
-      to,
-      from: TWILIO_PHONE_NUMBER,
-      body,
-      statusCallback: `${process.env.API_BASE_URL}/api/concierge/sms-status`,
-    });
-
+    log.info({ messageSid: message.sid, bodyLength: body.length }, 'Concierge SMS sent');
     return { messageSid: message.sid };
-    */
-
-    log.info({ to, bodyLength: body.length }, 'Would send SMS via Twilio');
-    return { messageSid: `sim_${Date.now()}` };
-  }
-
-  /**
-   * Simulate SMS for development
-   */
-  private async simulateSms(target: ConciergeTarget, message: string): Promise<SmsResult> {
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 300);
-    });
-
-    log.info({ to: target.phone, messageLength: message.length }, 'Simulated SMS sent');
-
-    const result: ConciergeResult = {
-      id: `result_${Date.now()}`,
-      requestId: target.requestId,
-      targetId: target.id,
-      channel: 'sms',
-      attemptNumber: target.attempts + 1,
-      success: true,
-      summary: `SMS sent to ${target.name}`,
-      data: {
-        notes: 'Awaiting response',
-      },
-      timestamp: new Date(),
-    };
-
-    return { success: true, result, messageSid: `sim_${Date.now()}` };
   }
 
   /**

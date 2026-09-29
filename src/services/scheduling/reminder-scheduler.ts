@@ -917,7 +917,15 @@ export async function sendVoiceMessage(voiceMessageId: string, toPhone: string):
   }
 
   // Fallback to SMS with text
-  const result = await sendSMS(toPhone, `🎤 Voice message from Alex: "${voiceMessage.message}"`);
+  let result: string;
+  try {
+    result = await sendSMS(toPhone, `🎤 Voice message from Alex: "${voiceMessage.message}"`);
+  } catch (smsError) {
+    getLogger().warn({ error: String(smsError), voiceMessageId }, 'Voice message SMS not sent');
+    voiceMessage.status = 'failed';
+    voiceMessageStore.set(voiceMessageId, voiceMessage);
+    return "I couldn't send that voice message. Want me to try again later?";
+  }
 
   if (!result.includes('trouble') && !result.includes('error')) {
     voiceMessage.status = 'sent';

@@ -19,6 +19,7 @@ import {
   trackConversion,
   trackExposure,
 } from '../../../services/experiments/web-experiments.js';
+import { trackExperimentEvents } from '../../../services/experiments/experiment-event-batch.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody } from '../../helpers.js';
 
@@ -73,7 +74,9 @@ export async function handlePublicExperimentsRoutes(
     const variantMatch = pathname.match(/\/experiments\/([^\/]+)\/variant$/);
     if (variantMatch && method === 'GET') {
       const experimentId = variantMatch[1];
-      const userId = parsedUrl.searchParams.get('userId');
+      // `visitorId` survives the identity guard, which strips non-device `userId` params
+      const userId =
+        parsedUrl.searchParams.get('visitorId') || parsedUrl.searchParams.get('userId');
 
       if (!userId) {
         sendJson(res, 400, {
@@ -156,47 +159,18 @@ export async function handlePublicExperimentsRoutes(
 
     // POST /api/v1/public/experiments/track/batch
     if (pathname === `${BASE_PATH}/track/batch` && method === 'POST') {
-      const body = (await parseBody(req)) as {
-        events: Array<{
-          experimentId: string;
-          variantId: string;
-          userId: string;
-          eventType: 'exposure' | 'conversion';
-          goalId?: string;
-          value?: number;
-          metadata?: Record<string, unknown>;
-        }>;
-      };
+      const body = (await parseBody(req)) as { events?: unknown };
 
       if (!Array.isArray(body.events) || body.events.length === 0) {
         sendJson(res, 400, { error: 'events array is required' });
         return true;
       }
 
-      const results = await Promise.allSettled(
-        body.events.map(async (event) => {
-          if (event.eventType === 'exposure') {
-            await trackExposure(event.experimentId, event.variantId, event.userId, event.metadata);
-          } else if (event.eventType === 'conversion' && event.goalId) {
-            await trackConversion(
-              event.experimentId,
-              event.variantId,
-              event.userId,
-              event.goalId,
-              event.value,
-              event.metadata
-            );
-          }
-        })
-      );
+      const result = await trackExperimentEvents(body.events);
 
-      const succeeded = results.filter((r) => r.status === 'fulfilled').length;
-      const failed = results.filter((r) => r.status === 'rejected').length;
-
-      sendJson(res, 200, {
-        success: true,
-        tracked: succeeded,
-        failed,
+      sendJson(res, result.failed > 0 ? 500 : 200, {
+        success: result.failed === 0,
+        ...result,
       });
       return true;
     }

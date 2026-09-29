@@ -71,19 +71,15 @@ export async function handleMigrationRoutes(
  *
  * Migrate user data from device ID to Firebase UID.
  *
+ * Requires `Authorization: Bearer <Firebase ID token>`; the destination
+ * firebaseUid and email come from the verified token.
+ *
  * Body:
  * {
  *   deviceId: string,
- *   firebaseUid: string,
  *   displayName?: string,
- *   email?: string
+ *   firebaseUid?: string // optional; must equal the token's uid if sent
  * }
- *
- * OR if Authorization header is present, just:
- * {
- *   deviceId: string
- * }
- * And firebaseUid is extracted from the verified token.
  */
 async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise<void> {
   // Rate limit: 5 migrations per hour per IP
@@ -96,7 +92,6 @@ async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise
     device_id?: string;
     firebaseUid?: string;
     firebase_uid?: string;
-    email?: string;
     displayName?: string;
     display_name?: string;
   }
@@ -111,33 +106,31 @@ async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise
       return;
     }
 
-    // Get Firebase UID from token or body
-    let firebaseUid: string | undefined;
-    let email: string | undefined;
-    let displayName: string | undefined;
-
-    // Try to get Firebase UID from Authorization header
+    // SECURITY: the destination account comes only from a verified Firebase
+    // token. A body-supplied firebaseUid used to be accepted without a token,
+    // letting anyone move a device's data into any account.
     const authHeader = req.headers['authorization'];
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.slice(7);
-      const verified = await verifyFirebaseToken(token);
-      if (isVerifiedToken(verified)) {
-        firebaseUid = verified.uid;
-        email = verified.email;
-        // Note: displayName would need to be fetched from Firebase User record
-      }
+    const verified =
+      typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+        ? await verifyFirebaseToken(authHeader.slice(7))
+        : null;
+    if (!verified || !isVerifiedToken(verified)) {
+      sendError(res, 'Sign in to move your conversations over.', 401);
+      return;
     }
 
-    // Fall back to body if not in token
-    if (!firebaseUid) {
-      firebaseUid = body.firebaseUid || body.firebase_uid;
+    const firebaseUid = verified.uid;
+    const claimedUid = body.firebaseUid || body.firebase_uid;
+    if (claimedUid && claimedUid !== firebaseUid) {
+      log.warn('Migration rejected: body firebaseUid does not match token', {
+        deviceId: `${deviceId.substring(0, 15)}...`,
+      });
+      sendError(res, "That account doesn't match who's signed in.", 403);
+      return;
     }
-    if (!email && body.email) {
-      email = body.email;
-    }
-    if (body.displayName || body.display_name) {
-      displayName = body.displayName || body.display_name;
-    }
+
+    const email = verified.email;
+    const displayName = body.displayName || body.display_name;
 
     // Validate request
     const validation = validateMigrationRequest({ deviceId, firebaseUid });
@@ -149,12 +142,12 @@ async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise
     // Perform migration
     log.info('Migration requested', {
       deviceId: `${deviceId.substring(0, 15)}...`,
-      firebaseUid: `${firebaseUid!.substring(0, 8)}...`,
+      firebaseUid: `${firebaseUid.substring(0, 8)}...`,
     });
 
     const result = await migrateUserData({
       deviceId,
-      firebaseUid: firebaseUid!,
+      firebaseUid,
       displayName,
       email,
     });

@@ -25,7 +25,11 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { sendEmail, sendSMS } from '../../../services/communication-service.js';
+import {
+  isMessagingNotConfigured,
+  sendEmail,
+  sendSMS,
+} from '../../../services/communication-service.js';
 import {
   cancelReminder,
   createReminder,
@@ -150,7 +154,15 @@ async function sendApprovedEmailReal(to: string, subject: string, body: string):
     return `That email address doesn't look right: ${to}. Can you double-check it?`;
   }
 
-  const result = await sendEmail(validation.sanitized as string, subject, body);
+  let result: string;
+  try {
+    result = await sendEmail(validation.sanitized as string, subject, body);
+  } catch (error) {
+    getLogger().warn({ error: String(error) }, 'Approved email not sent');
+    return isMessagingNotConfigured(error)
+      ? "I can't send email right now, so that one didn't go out."
+      : "I couldn't send that email. Want me to try again?";
+  }
 
   // Find and update draft status if exists
   for (const [id, draft] of emailDrafts.entries()) {
@@ -177,7 +189,14 @@ async function sendTextReal(to: string, message: string): Promise<string> {
     return `I need a valid phone number to send a text. "${to}" doesn't look right. Can you provide a number like 555-123-4567?`;
   }
 
-  return sendSMS(validation.sanitized as string, message);
+  try {
+    return await sendSMS(validation.sanitized as string, message);
+  } catch (error) {
+    getLogger().warn({ error: String(error) }, 'Text message not sent');
+    return isMessagingNotConfigured(error)
+      ? "I can't send texts right now, so that message didn't go out."
+      : "I couldn't send that text. Want me to try again?";
+  }
 }
 
 // ============================================================================

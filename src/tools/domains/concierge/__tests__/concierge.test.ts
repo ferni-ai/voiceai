@@ -43,6 +43,7 @@ vi.mock('@livekit/agents', () => ({
 const mockRouteRequest = vi.fn();
 const mockGetRequest = vi.fn();
 const mockGetUserRequests = vi.fn();
+const mockIsCallingAvailable = vi.fn(() => true);
 
 vi.mock('../../../../services/concierge/index.js', () => ({
   createConciergeRouter: vi.fn(() => ({
@@ -56,9 +57,12 @@ vi.mock('../../../../services/concierge/index.js', () => ({
     addResult: vi.fn(),
     isRequestComplete: vi.fn(() => false),
   })),
-  PhoneCaller: vi.fn().mockImplementation(() => ({
-    call: vi.fn(() => Promise.resolve({ success: true, result: { price: '$200' } })),
-  })),
+  PhoneCaller: Object.assign(
+    vi.fn().mockImplementation(() => ({
+      call: vi.fn(() => Promise.resolve({ success: true, result: { price: '$200' } })),
+    })),
+    { isCallingAvailable: () => mockIsCallingAvailable() }
+  ),
   registerNotifier: vi.fn(() => Promise.resolve()),
 }));
 
@@ -104,6 +108,26 @@ describe('Concierge Domain', () => {
 
     mockGetRequest.mockResolvedValue(null);
     mockGetUserRequests.mockResolvedValue([]);
+    mockIsCallingAvailable.mockReturnValue(true);
+  });
+
+  describe('when business calling is unavailable', () => {
+    it.each([
+      [
+        'requestHotelQuotes',
+        { destination: 'Miami', checkIn: '2024-03-15', checkOut: '2024-03-18' },
+      ],
+      ['makeRestaurantReservation', { location: 'Austin', date: '2024-03-15', partySize: 2 }],
+      ['scheduleHealthcareAppointment', { providerType: 'dentist', location: 'Austin' }],
+      ['getServiceQuotes', { serviceType: 'plumber', description: 'leak', location: 'Austin' }],
+    ])('%s says so instead of claiming to call', async (id, params) => {
+      mockIsCallingAvailable.mockReturnValue(false);
+      const tool = toolDefinitions.find((t) => t.id === id)!.create(mockContext);
+      const result = String(await tool.execute(params));
+      expect(result).toMatch(/can't call businesses/);
+      expect(result).not.toMatch(/I'm (now )?calling|reaching out/);
+      expect(mockRouteRequest).not.toHaveBeenCalled();
+    });
   });
 
   afterEach(() => {

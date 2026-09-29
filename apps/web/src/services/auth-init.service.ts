@@ -21,6 +21,7 @@ import { getDeviceId, updateAuthState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import {
   getAuthState,
+  getAuthToken,
   initAuth,
   onAuthStateChange,
   type AuthState,
@@ -78,11 +79,17 @@ async function requestMigration(deviceId: string, firebaseUid: string): Promise<
   });
 
   try {
+    // The server takes the destination account from the verified ID token only
+    const token = await getAuthToken();
+    if (!token) {
+      log.warn('Migration skipped: no Firebase ID token yet');
+      return;
+    }
     const response = await fetch('/api/auth/migrate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-User-Id': `device:${deviceId}`, // Legacy auth for this request
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         deviceId,
@@ -95,7 +102,9 @@ async function requestMigration(deviceId: string, firebaseUid: string): Promise<
       localStorage.setItem('ferni_migrated_uid', firebaseUid);
       log.info('Migration successful');
     } else {
-      const error = (await response.json().catch(() => ({ error: 'Unknown' }))) as { error?: string };
+      const error = (await response.json().catch(() => ({ error: 'Unknown' }))) as {
+        error?: string;
+      };
       log.warn('Migration failed', { status: response.status, error });
     }
   } catch (error) {

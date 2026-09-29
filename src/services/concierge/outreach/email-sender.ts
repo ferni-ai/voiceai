@@ -82,13 +82,29 @@ export class EmailSender {
     const { subject, body } = this.generateEmailContent(target, domain, type, requirements);
 
     if (!EmailSender.isConfigured()) {
-      log.warn('SendGrid not configured, simulating email');
-      return this.simulateEmail(target, subject, body);
+      log.warn({ target: target.name }, 'SendGrid not configured; email not sent');
+      return { success: false, error: 'Email is not configured' };
     }
 
     try {
-      const result = await this.sendViaSendGrid(target.email, subject, body);
-      return result;
+      const messageId = await this.sendViaSendGrid(target.email, subject, body);
+
+      const result: ConciergeResult = {
+        id: `result_${Date.now()}`,
+        requestId: target.requestId,
+        targetId: target.id,
+        channel: 'email',
+        attemptNumber: target.attempts + 1,
+        success: true,
+        summary: `Email sent to ${target.name}`,
+        data: {
+          notes: 'Awaiting response',
+        },
+        timestamp: new Date(),
+        emailThreadId: messageId,
+      };
+
+      return { success: true, result, messageId };
     } catch (error) {
       log.error({ error: String(error), target: target.name }, 'Email failed');
       return { success: false, error: String(error) };
@@ -254,63 +270,38 @@ Reply directly to respond to this request.`;
   }
 
   /**
-   * Send email via SendGrid
+   * Send email via SendGrid. Throws on any non-2xx response.
+   * @returns SendGrid's x-message-id (if provided)
    */
-  private async sendViaSendGrid(to: string, subject: string, body: string): Promise<EmailResult> {
-    // Production SendGrid integration
-    /*
-    const sgMail = require('@sendgrid/mail');
-    sgMail.setApiKey(SENDGRID_API_KEY);
-
-    const msg = {
-      to,
-      from: { email: FROM_EMAIL, name: FROM_NAME },
-      replyTo: this.userEmail,
-      subject,
-      text: body,
-    };
-
-    const response = await sgMail.send(msg);
-    return {
-      success: true,
-      messageId: response[0].headers['x-message-id'],
-    };
-    */
-
-    log.info({ to, subject }, 'Would send email via SendGrid');
-    return this.simulateEmail({ email: to } as ConciergeTarget, subject, body);
-  }
-
-  /**
-   * Simulate email for development
-   */
-  private async simulateEmail(
-    target: ConciergeTarget,
+  private async sendViaSendGrid(
+    to: string,
     subject: string,
     body: string
-  ): Promise<EmailResult> {
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 500);
+  ): Promise<string | undefined> {
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: to }] }],
+        from: { email: FROM_EMAIL, name: FROM_NAME },
+        ...(this.userEmail ? { reply_to: { email: this.userEmail } } : {}),
+        subject,
+        content: [{ type: 'text/plain', value: body }],
+      }),
+      signal: AbortSignal.timeout(15000),
     });
 
-    log.info({ to: target.email, subject, bodyLength: body.length }, 'Simulated email sent');
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`SendGrid error: ${response.status} ${errorText.slice(0, 200)}`);
+    }
 
-    const result: ConciergeResult = {
-      id: `result_${Date.now()}`,
-      requestId: target.requestId,
-      targetId: target.id,
-      channel: 'email',
-      attemptNumber: target.attempts + 1,
-      success: true,
-      summary: `Email sent to ${target.name}`,
-      data: {
-        notes: 'Awaiting response',
-      },
-      timestamp: new Date(),
-      emailThreadId: `email_${Date.now()}`,
-    };
-
-    return { success: true, result, messageId: `sim_${Date.now()}` };
+    const messageId = response.headers.get('x-message-id') ?? undefined;
+    log.info({ to, subject, messageId }, 'Concierge email sent');
+    return messageId;
   }
 }
 

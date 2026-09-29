@@ -36,6 +36,23 @@ import {
 
 const PENDING_REQUESTS_COLLECTION = 'pending_appointment_requests';
 
+/**
+ * User notifications are best-effort: a failed or unconfigured send is logged
+ * (never reported as delivered) and must not break the appointment flow.
+ */
+async function notifyBestEffort(
+  channel: 'sms' | 'email',
+  send: () => Promise<string>
+): Promise<boolean> {
+  try {
+    await send();
+    return true;
+  } catch (error) {
+    getLogger().warn({ error: String(error), channel }, 'Appointment notification not sent');
+    return false;
+  }
+}
+
 function getFirestore(): admin.firestore.Firestore | null {
   try {
     return admin.firestore();
@@ -628,16 +645,18 @@ class AppointmentIntegrationService extends EventEmitter {
 
     if (request.notifyVia === 'sms' || request.notifyVia === 'both') {
       if (request.notifyContact) {
-        await sendSMS(request.notifyContact, message);
+        await notifyBestEffort('sms', () => sendSMS(request.notifyContact ?? '', message));
       }
     }
 
     if (request.notifyVia === 'email' || request.notifyVia === 'both') {
       if (request.notifyContact?.includes('@')) {
-        await sendEmail(
-          request.notifyContact,
-          `✅ Appointment Confirmed - ${request.businessName}`,
-          `${message}\n\n— Your Ferni assistant`
+        await notifyBestEffort('email', () =>
+          sendEmail(
+            request.notifyContact ?? '',
+            `✅ Appointment Confirmed - ${request.businessName}`,
+            `${message}\n\n— Your Ferni assistant`
+          )
         );
       }
     }
@@ -662,7 +681,7 @@ class AppointmentIntegrationService extends EventEmitter {
 
     if (request.notifyVia && request.notifyContact) {
       if (request.notifyVia === 'sms' || request.notifyVia === 'both') {
-        await sendSMS(request.notifyContact, message);
+        await notifyBestEffort('sms', () => sendSMS(request.notifyContact ?? '', message));
       }
     }
   }
@@ -678,7 +697,7 @@ class AppointmentIntegrationService extends EventEmitter {
 
     if (request.notifyVia && request.notifyContact) {
       if (request.notifyVia === 'sms' || request.notifyVia === 'both') {
-        await sendSMS(request.notifyContact, message);
+        await notifyBestEffort('sms', () => sendSMS(request.notifyContact ?? '', message));
       }
     }
   }

@@ -223,11 +223,7 @@ export class ConferenceCallManager extends EventEmitter {
       // Generate a unique call ID
       const callId = `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-      // In a real implementation, this would:
-      // 1. Use Twilio to dial out
-      // 2. Connect to LiveKit via SIP when answered
-      // For now, we simulate the call
-
+      // Dial out via Twilio; the answer TwiML bridges the callee into LiveKit via SIP.
       const result = await this.initiateCall(callId, e164, name, relationship, introduction);
 
       if (!result.success) {
@@ -527,8 +523,9 @@ export class ConferenceCallManager extends EventEmitter {
   ): Promise<{ success: boolean; callSid?: string; error?: string }> {
     // Check if Twilio is configured and client is available
     if (!this.config.twilio || !this.twilioClient) {
-      log.warn('📞 Twilio not configured - simulating call');
-      return this.simulateCall(callId, phoneNumber, name);
+      // Never fake "ringing/connected" for a call that was not placed.
+      log.warn({ callId }, '📞 Twilio not configured - call not placed');
+      return { success: false, error: "Phone calling isn't set up, so I couldn't dial them." };
     }
 
     try {
@@ -560,29 +557,6 @@ export class ConferenceCallManager extends EventEmitter {
       log.error({ error: String(error), callId, phoneNumber }, '📞 Failed to create Twilio call');
       return { success: false, error: String(error) };
     }
-  }
-
-  /**
-   * Simulate a call (for development/testing)
-   */
-  private async simulateCall(
-    callId: string,
-    phoneNumber: string,
-    name: string
-  ): Promise<{ success: boolean; callSid?: string; error?: string }> {
-    const callSid = `sim_${callId}`;
-
-    // Simulate ringing
-    setTimeout(() => {
-      this.handleCallStatusUpdate(callSid, 'ringing');
-    }, 500);
-
-    // Simulate answering
-    setTimeout(() => {
-      this.handleCallStatusUpdate(callSid, 'in-progress');
-    }, 2000);
-
-    return { success: true, callSid };
   }
 
   /**
@@ -702,10 +676,13 @@ export function generateAnswerTwiml(params: {
   introduction?: string;
 }): string {
   const { roomName, sipDomain, name, introduction } = params;
+  // Values arrive via query string; escape so they can't inject TwiML verbs.
+  const xml = (s: string): string => s.replace(/[<>&'"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
-  const greeting =
-    introduction ?? `Hi ${name}! You've been added to a conversation. Connecting you now.`;
-  const sipUri = `sip:${roomName}@${sipDomain}`;
+  const greeting = xml(
+    introduction ?? `Hi ${name}! You've been added to a conversation. Connecting you now.`
+  );
+  const sipUri = xml(`sip:${roomName}@${sipDomain}`);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>

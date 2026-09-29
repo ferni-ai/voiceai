@@ -14,11 +14,9 @@ import { getLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
 import type {
-  AddParticipantRequest,
   RoundtableConfig,
   GroupConversationSummary,
 } from '../agents/group-conversation/types.js';
-import { generateAnswerTwiml } from '../agents/group-conversation/conference-call-manager.js';
 
 const log = getLogger();
 const router = Router();
@@ -203,54 +201,19 @@ router.post('/roundtable/end', async (req: Request, res: Response) => {
 /**
  * Add a participant to a conference call
  * POST /api/group/call/add
+ *
+ * Not available over REST: outbound dialing lives in the voice agent
+ * (ConferenceCallManager, reached via the `group_call_add` data-channel message).
+ * This used to answer with a fake "dialing" status for a call that was never placed.
  */
-router.post('/call/add', async (req: Request, res: Response) => {
-  try {
-    const userId = getUserId(req);
-    if (!userId) {
-      return res.status(401).json({ success: false, error: 'Authentication required' });
-    }
-
-    const { sessionId, phoneNumber, name, relationship, introduction } =
-      req.body as AddParticipantRequest & {
-        sessionId?: string;
-      };
-
-    if (!phoneNumber || !name) {
-      return res.status(400).json({ success: false, error: 'Phone number and name required' });
-    }
-
-    // Validate phone number format
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      return res.status(400).json({ success: false, error: 'Invalid phone number' });
-    }
-
-    // Generate call ID
-    const callId = `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const targetSessionId = sessionId ?? `group_${Date.now()}`;
-
-    log.info(
-      { userId, callId, phoneNumber: `***${cleanPhone.slice(-4)}`, name },
-      '📞 Adding participant to call'
-    );
-
-    // In a real implementation, this would:
-    // 1. Initiate Twilio call
-    // 2. Bridge to LiveKit via SIP
-    // For now, return simulated success
-
-    return res.json({
-      success: true,
-      callId,
-      sessionId: targetSessionId,
-      participantId: `ext_${callId}`,
-      status: 'dialing',
-    });
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to add conference participant');
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+router.post('/call/add', (req: Request, res: Response) => {
+  if (!getUserId(req)) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
   }
+  return res.status(501).json({
+    success: false,
+    error: "Adding people by phone isn't available here yet.",
+  });
 });
 
 /**
@@ -281,40 +244,9 @@ router.post('/call/remove', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * TwiML webhook for when external participant answers
- * GET /api/group/call/answer
- */
-router.get('/call/answer', (req: Request, res: Response) => {
-  const { roomName, name, intro } = req.query;
-
-  const sipDomain = process.env.SIP_DOMAIN ?? 'sip.livekit.cloud';
-
-  const twiml = generateAnswerTwiml({
-    roomName: String(roomName ?? 'default'),
-    sipDomain,
-    name: String(name ?? 'Guest'),
-    introduction: intro ? String(intro) : undefined,
-  });
-
-  res.type('text/xml');
-  res.send(twiml);
-});
-
-/**
- * Twilio status callback webhook
- * POST /api/group/call/status
- */
-router.post('/call/status', (req: Request, res: Response) => {
-  const { CallSid, CallStatus } = req.body;
-
-  log.info({ callSid: CallSid, status: CallStatus }, '📞 Call status update');
-
-  // In a real implementation, this would update the call status
-  // and notify the ConferenceCallManager
-
-  res.sendStatus(200);
-});
+// GET|POST /api/group/call/answer and POST /api/group/call/status are Twilio
+// webhooks served (with signature validation) by ./group-call-webhooks.ts, which
+// is mounted before the authenticated engagement routes.
 
 // ============================================================================
 // SESSION MANAGEMENT ROUTES
