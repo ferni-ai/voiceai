@@ -2355,7 +2355,9 @@
       "step2": "Click \"Add Application\"",
       "step3": "Enter the PIN above",
       "pinExpires": "PIN expires in {minutes} minutes"
-    }
+    },
+    "linkSpotifyFirst": "Link Spotify first",
+    "openSpotify": "Open Spotify on a device first"
   },
   "ui": {
     "accountbutton": {
