@@ -123,7 +123,7 @@ describe('Spotify voice tools — per-user tokens', () => {
     // token in the background, so look for the user's call specifically)
     const refreshBodies = fetchMock.mock.calls
       .filter(([u]) => u === 'https://accounts.spotify.com/api/token')
-      .map(([, init]) => String((init as FetchInit).body));
+      .map(([, init]) => String((init as FetchInit)?.body));
     expect(refreshBodies.some((b) => b.includes('refresh_token=user-refresh'))).toBe(true);
 
     // Every Web API call carried the refreshed user token
@@ -132,7 +132,7 @@ describe('Spotify voice tools — per-user tokens', () => {
     );
     expect(playerCalls.length).toBeGreaterThan(0);
     for (const [, init] of playerCalls) {
-      expect((init as FetchInit).headers).toMatchObject({
+      expect((init as FetchInit)?.headers).toMatchObject({
         Authorization: 'Bearer fresh-user-token',
       });
     }
@@ -173,7 +173,7 @@ describe('Spotify voice tools — per-user tokens', () => {
     const playerCall = fetchMock.mock.calls.find(
       ([u]) => u === 'https://api.spotify.com/v1/me/player'
     );
-    expect((playerCall![1] as FetchInit).headers).toMatchObject({
+    expect((playerCall?.[1] as FetchInit)?.headers).toMatchObject({
       Authorization: 'Bearer global-access',
     });
     expect(logWarn).toHaveBeenCalledWith(
