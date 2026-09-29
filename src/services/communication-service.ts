@@ -24,6 +24,28 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
 
 // ============================================================================
+// ERRORS
+// ============================================================================
+
+/**
+ * Thrown when a message can't be sent because the provider isn't configured.
+ * Previously these calls returned "[DEV MODE] Would send..." strings that
+ * callers reported as sent. `simulated` mirrors the `{ simulated: true }`
+ * convention used elsewhere for "nothing actually went out".
+ */
+export class MessagingNotConfiguredError extends Error {
+  readonly simulated = true;
+  constructor(readonly channel: 'email' | 'sms') {
+    super(`${channel === 'email' ? 'Email' : 'SMS'} provider not configured - message not sent`);
+    this.name = 'MessagingNotConfiguredError';
+  }
+}
+
+export function isMessagingNotConfigured(error: unknown): error is MessagingNotConfiguredError {
+  return error instanceof MessagingNotConfiguredError;
+}
+
+// ============================================================================
 // RETRY UTILITY
 // ============================================================================
 
@@ -91,6 +113,7 @@ async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): P
  * @param subject - Email subject
  * @param body - Email body content
  * @param isHtml - Whether body is HTML (default: false)
+ * @throws MessagingNotConfiguredError when SendGrid isn't configured (nothing is sent)
  */
 export async function sendEmail(
   to: string,
@@ -107,7 +130,7 @@ export async function sendEmail(
   // Check API key
   if (!SENDGRID_API_KEY) {
     getLogger().warn('SendGrid API key not configured - email not sent');
-    return `[DEV MODE] Would send email to ${sanitizeEmailForLog(to)}: ${subject}`;
+    throw new MessagingNotConfiguredError('email');
   }
 
   const sanitizedBody = isHtml ? body : sanitizePlainText(body);
@@ -149,6 +172,8 @@ export async function sendEmail(
 
 /**
  * Send an SMS via Twilio
+ *
+ * @throws MessagingNotConfiguredError when Twilio isn't configured (nothing is sent)
  */
 export async function sendSMS(to: string, message: string): Promise<string> {
   // Validate phone number
@@ -160,7 +185,7 @@ export async function sendSMS(to: string, message: string): Promise<string> {
   // Check Twilio credentials
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
     getLogger().warn('Twilio credentials not configured - SMS not sent');
-    return `[DEV MODE] Would send SMS to ${sanitizePhoneForLog(to)}: ${message.slice(0, 50)}...`;
+    throw new MessagingNotConfiguredError('sms');
   }
 
   const sanitizedMessage = sanitizePlainText(message);
