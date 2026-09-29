@@ -52,6 +52,13 @@ registerNotifier().catch((err) => {
   log.warn({ error: String(err) }, 'Failed to register concierge notifier');
 });
 
+/**
+ * Spoken when autonomous business calling isn't available. Honest instead of
+ * claiming "I'm calling them now" when no call will be placed.
+ */
+const CALLS_UNAVAILABLE_REPLY =
+  "I can't call businesses for you just yet, so I haven't contacted anyone. I can help you find their numbers or draft what to say, if that helps.";
+
 // ============================================================================
 // TOOL: Request Hotel Quotes
 // ============================================================================
@@ -78,6 +85,7 @@ const requestHotelQuotesDef: ToolDefinition = {
       }),
       execute: async (params) => {
         try {
+          if (!PhoneCaller.isCallingAvailable()) return CALLS_UNAVAILABLE_REPLY;
           log.info(
             { destination: params.destination, userId: ctx.userId },
             'Requesting hotel quotes'
@@ -152,6 +160,7 @@ const makeRestaurantReservationDef: ToolDefinition = {
       }),
       execute: async (params) => {
         try {
+          if (!PhoneCaller.isCallingAvailable()) return CALLS_UNAVAILABLE_REPLY;
           log.info(
             { location: params.location, partySize: params.partySize },
             'Making restaurant reservation'
@@ -232,6 +241,7 @@ const scheduleAppointmentDef: ToolDefinition = {
       }),
       execute: async (params) => {
         try {
+          if (!PhoneCaller.isCallingAvailable()) return CALLS_UNAVAILABLE_REPLY;
           log.info(
             { providerType: params.providerType, location: params.location },
             'Scheduling appointment'
@@ -306,6 +316,7 @@ const getServiceQuotesDef: ToolDefinition = {
       }),
       execute: async (params) => {
         try {
+          if (!PhoneCaller.isCallingAvailable()) return CALLS_UNAVAILABLE_REPLY;
           log.info(
             { serviceType: params.serviceType, location: params.location },
             'Getting service quotes'
@@ -435,6 +446,11 @@ async function startConciergeOutreach(requestId: string, userId: string): Promis
       await tracker.addResult(requestId, result.result);
     } else {
       await tracker.updateTargetStatus(requestId, target.id, 'failed');
+      if (result.simulated) {
+        // No real call can be placed; don't pretend the request completed.
+        await tracker.updateStatus(requestId, 'failed', result.error ?? 'Calling unavailable');
+        return;
+      }
     }
 
     const updatedRequest = await tracker.getRequest(requestId);

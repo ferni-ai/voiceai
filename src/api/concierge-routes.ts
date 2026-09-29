@@ -9,7 +9,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { requireAuth, rateLimit } from './auth-middleware.js';
-import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError } from './helpers.js';
+import { handleCorsPreflightIfNeeded, sendJSON, sendError } from './helpers.js';
+import { readSignedSendGridBody, readSignedTwilioParams } from './webhook-signatures.js';
 import { getTaskTracker } from '../services/concierge/index.js';
 
 const log = createLogger({ module: 'concierge-routes' });
@@ -228,26 +229,60 @@ async function handleWebhooks(
   res: ServerResponse,
   pathname: string
 ): Promise<boolean> {
-  // Parse webhook body
-  const body = await parseBody<WebhookPayload>(req);
-
-  // POST /api/concierge/webhooks/call-status - Twilio call status
-  if (pathname === '/api/concierge/webhooks/call-status' && req.method === 'POST') {
-    return handleCallStatusWebhook(res, body);
+  if (req.method !== 'POST') {
+    sendError(res, 'Method not allowed', 405);
+    return true;
   }
 
-  // POST /api/concierge/webhooks/sms-reply - Inbound SMS from business
-  if (pathname === '/api/concierge/webhooks/sms-reply' && req.method === 'POST') {
-    return handleSmsReplyWebhook(res, body);
+  // Twilio callbacks: form-encoded, signed with X-Twilio-Signature
+  const isCallStatus = pathname === '/api/concierge/webhooks/call-status';
+  if (isCallStatus || pathname === '/api/concierge/webhooks/sms-reply') {
+    const params = await readSignedTwilioParams(req);
+    if (!params) {
+      sendError(res, 'Forbidden', 403);
+      return true;
+    }
+    // requestId/targetId travel in the callback URL's query string (also signed)
+    const query = new URL(req.url ?? '/', 'http://localhost').searchParams;
+    const body: WebhookPayload = {
+      requestId: params.requestId ?? query.get('requestId') ?? undefined,
+      targetId: params.targetId ?? query.get('targetId') ?? undefined,
+      status: params.CallStatus ?? params.status,
+      callSid: params.CallSid ?? params.callSid,
+      messageSid: params.MessageSid ?? params.messageSid,
+      from: params.From ?? params.from,
+      body: params.Body ?? params.body,
+    };
+    return isCallStatus ? handleCallStatusWebhook(res, body) : handleSmsReplyWebhook(res, body);
   }
 
-  // POST /api/concierge/webhooks/email-reply - Email response from business
-  if (pathname === '/api/concierge/webhooks/email-reply' && req.method === 'POST') {
-    return handleEmailReplyWebhook(res, body);
+  // POST /api/concierge/webhooks/email-reply - SendGrid (signature enforced when key set)
+  if (pathname === '/api/concierge/webhooks/email-reply') {
+    const check = await readSignedSendGridBody(req);
+    if (!check.ok) {
+      sendError(res, check.reason, check.status);
+      return true;
+    }
+    return handleEmailReplyWebhook(res, parseWebhookBody(check.rawBody));
   }
 
   sendError(res, 'Unknown webhook endpoint', 404);
   return true;
+}
+
+/** Accept JSON or form-encoded email webhook bodies. */
+function parseWebhookBody(raw: string): WebhookPayload {
+  const trimmed = raw.trim();
+  if (!trimmed) return {};
+  if (trimmed.startsWith('{')) {
+    try {
+      return JSON.parse(trimmed) as WebhookPayload;
+    } catch {
+      return {};
+    }
+  }
+  const params = Object.fromEntries(new URLSearchParams(trimmed));
+  return { ...params, body: params.body ?? params.text };
 }
 
 async function handleCallStatusWebhook(
