@@ -6,9 +6,13 @@
  *
  * Providers: fitbit, oura, garmin, whoop (plus apple_health for unlink)
  *
+ * status/token/unlink act only on the caller's own account (verified
+ * identity, or an anonymous device ID); login binds to the verified caller
+ * when the client fetches it with ?format=json, else to user_id.
+ *
  * Routes:
- *   GET  /wearables/status?user_id=X          → all provider statuses
- *   GET  /wearables/{provider}/login?user_id=X → start OAuth
+ *   GET  /wearables/status                    → caller's provider statuses
+ *   GET  /wearables/{provider}/login?user_id=X → start OAuth (&format=json → { url })
  *   GET  /wearables/{provider}/callback       → OAuth callback
  *   GET  /wearables/{provider}/token?user_id=X → get valid access token
  *   POST /wearables/{provider}/unlink?user_id=X → remove tokens
@@ -18,8 +22,14 @@ import crypto from 'crypto';
 import type { IncomingMessage, ServerResponse } from 'http';
 import * as wearables from '../../token/oauth/wearables.js';
 import type { WearableProvider } from '../../../services/wearable-integration/types.js';
-import { isValidId, sendInvalidIdError, getClientIp, sanitizeReturnUrl } from '../../token/validation.js';
+import {
+  isValidId,
+  sendInvalidIdError,
+  getClientIp,
+  sanitizeReturnUrl,
+} from '../../token/validation.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { isAnonymousIdentity, requestUserId } from '../../../api/identity-guard.js';
 
 const log = createLogger({ module: 'WearablesRoutes' });
 
@@ -44,6 +54,26 @@ function cleanExpiredOAuthStates(): void {
   }
 }
 
+/**
+ * The account a request may act on: the caller, or the `user_id` they name
+ * when it is theirs or an anonymous device identity. Null otherwise.
+ */
+function ownerId(req: IncomingMessage, parsedUrl: URL): string | null {
+  const caller = requestUserId(req);
+  const claimed = parsedUrl.searchParams.get('user_id');
+  if (!claimed) return caller;
+  return claimed === caller || isAnonymousIdentity(claimed) ? claimed : null;
+}
+
+/** 403 when user_id names someone else's account, else 400 */
+function sendOwnerError(res: ServerResponse, parsedUrl: URL): void {
+  const forbidden = !!parsedUrl.searchParams.get('user_id');
+  res.writeHead(forbidden ? 403 : 400, { 'Content-Type': 'application/json' });
+  res.end(
+    JSON.stringify({ error: forbidden ? 'Not allowed for this user' : 'user_id is required' })
+  );
+}
+
 const OAUTH_PROVIDERS_PATTERN = 'fitbit|oura|garmin|whoop';
 const UNLINK_PROVIDERS_PATTERN = 'fitbit|oura|garmin|whoop|apple_health';
 
@@ -60,11 +90,10 @@ export async function handleWearablesRoutes(
 
   // GET /wearables/status?user_id=X — all provider connection statuses
   if (pathname === '/wearables/status') {
-    const user_id = parsedUrl.searchParams.get('user_id');
+    const user_id = ownerId(req, parsedUrl);
 
     if (!user_id) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      sendOwnerError(res, parsedUrl);
       return true;
     }
 
@@ -78,7 +107,9 @@ export async function handleWearablesRoutes(
   const loginMatch = pathname.match(new RegExp(`^/wearables/(${OAUTH_PROVIDERS_PATTERN})/login$`));
   if (loginMatch) {
     const provider = loginMatch[1] as Exclude<WearableProvider, 'apple_health'>;
-    const user_id = parsedUrl.searchParams.get('user_id') ?? undefined;
+    // Verified caller when the client fetched this with auth headers; plain
+    // navigation falls back to the user_id query param
+    const user_id = requestUserId(req) ?? parsedUrl.searchParams.get('user_id') ?? undefined;
     const return_url = parsedUrl.searchParams.get('return_url') ?? undefined;
 
     if (!wearables.isProviderConfigured(provider)) {
@@ -92,7 +123,7 @@ export async function handleWearablesRoutes(
       return true;
     }
 
-    if (!user_id || !isValidId(user_id)) {
+    if (!user_id || !(isValidId(user_id) || isAnonymousIdentity(user_id))) {
       sendInvalidIdError(res, 'user_id');
       return true;
     }
@@ -118,6 +149,11 @@ export async function handleWearablesRoutes(
     }
 
     log.info({ userId: user_id, provider }, 'Starting wearable OAuth');
+    if (parsedUrl.searchParams.get('format') === 'json') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ url: authUrl }));
+      return true;
+    }
     res.writeHead(302, { Location: authUrl });
     res.end();
     return true;
@@ -180,16 +216,13 @@ export async function handleWearablesRoutes(
   }
 
   // GET /wearables/{provider}/token?user_id=X — get valid access token
-  const tokenMatch = pathname.match(
-    new RegExp(`^/wearables/(${OAUTH_PROVIDERS_PATTERN})/token$`)
-  );
+  const tokenMatch = pathname.match(new RegExp(`^/wearables/(${OAUTH_PROVIDERS_PATTERN})/token$`));
   if (tokenMatch) {
     const provider = tokenMatch[1] as Exclude<WearableProvider, 'apple_health'>;
-    const user_id = parsedUrl.searchParams.get('user_id');
+    const user_id = ownerId(req, parsedUrl);
 
     if (!user_id) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      sendOwnerError(res, parsedUrl);
       return true;
     }
 
@@ -217,11 +250,10 @@ export async function handleWearablesRoutes(
   );
   if (unlinkMatch) {
     const provider = unlinkMatch[1] as WearableProvider;
-    const user_id = parsedUrl.searchParams.get('user_id');
+    const user_id = ownerId(req, parsedUrl);
 
     if (!user_id) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      sendOwnerError(res, parsedUrl);
       return true;
     }
 

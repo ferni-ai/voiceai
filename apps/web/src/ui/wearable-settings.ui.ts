@@ -26,6 +26,10 @@ type WearableProvider = 'apple_health' | 'fitbit' | 'garmin' | 'oura' | 'whoop';
 
 interface WearableStatus {
   status: Record<string, 'connected' | 'disconnected' | 'pending'>;
+  /** Providers the server has OAuth credentials for (others show "Coming Soon") */
+  configured: Partial<Record<WearableProvider, boolean>>;
+  /** Where to start linking each provider (OAuth route or native deep link) */
+  loginUrls: Partial<Record<WearableProvider, string>>;
   enabledProviders: WearableProvider[];
   config: {
     syncIntervalMinutes: number;
@@ -35,6 +39,22 @@ interface WearableStatus {
     privacyMode: 'raw' | 'aggregated' | 'insights_only';
   };
 }
+
+/** One provider from GET /wearables/status (real OAuth token store) */
+interface ProviderConnection {
+  provider: WearableProvider;
+  configured: boolean;
+  linked: boolean;
+  login_url: string | null;
+}
+
+const DEFAULT_CONFIG: WearableStatus['config'] = {
+  syncIntervalMinutes: 15,
+  enableStressDetection: true,
+  enableSleepAnalysis: true,
+  enableActivityTracking: true,
+  privacyMode: 'aggregated',
+};
 
 interface WearableSettingsCallbacks {
   onClose?: () => void;
@@ -98,37 +118,16 @@ const ICONS = {
 // PROVIDER INFO
 // ============================================================================
 
-// Providers with backend API support (can actually connect)
-const _IMPLEMENTED_PROVIDERS: WearableProvider[] = ['apple_health', 'oura'];
-
+// Availability comes from the server (GET /wearables/status → configured)
 const PROVIDERS: Array<{
   id: WearableProvider;
   icon: string;
-  comingSoon?: boolean;
 }> = [
-  {
-    id: 'apple_health',
-    icon: ICONS.heartPulse,
-  },
-  {
-    id: 'fitbit',
-    icon: ICONS.watch,
-    comingSoon: true, // No backend API yet
-  },
-  {
-    id: 'garmin',
-    icon: ICONS.run,
-    comingSoon: true, // No backend API yet
-  },
-  {
-    id: 'oura',
-    icon: ICONS.ring,
-  },
-  {
-    id: 'whoop',
-    icon: ICONS.chartLine,
-    comingSoon: true, // No backend API yet
-  },
+  { id: 'apple_health', icon: ICONS.heartPulse },
+  { id: 'fitbit', icon: ICONS.watch },
+  { id: 'garmin', icon: ICONS.run },
+  { id: 'oura', icon: ICONS.ring },
+  { id: 'whoop', icon: ICONS.chartLine },
 ];
 
 // ============================================================================
@@ -209,29 +208,35 @@ class WearableSettingsUI {
   }
 
   private async loadStatus(): Promise<void> {
-    try {
-      const response = await apiGet<{ success: boolean } & WearableStatus>('/api/wearable/status');
+    // Link status from the real OAuth token store; feature toggles from the
+    // wearable preferences endpoint (optional)
+    const [connections, prefs] = await Promise.all([
+      apiGet<{ providers: ProviderConnection[] }>('/wearables/status'),
+      apiGet<{ success: boolean; config?: WearableStatus['config'] }>('/api/wearable/status'),
+    ]);
 
-      if (response.data?.success) {
-        this.status = response.data;
-        this.renderContent();
-      } else {
-        this.renderError(t('wearableSettings.errors.loadFailed'));
-      }
-    } catch {
-      this.status = {
-        status: {},
-        enabledProviders: [],
-        config: {
-          syncIntervalMinutes: 15,
-          enableStressDetection: true,
-          enableSleepAnalysis: true,
-          enableActivityTracking: true,
-          privacyMode: 'aggregated',
-        },
-      };
-      this.renderContent();
+    if (!connections.ok || !connections.data) {
+      this.renderError(t('wearableSettings.errors.loadFailed'));
+      return;
     }
+
+    const status: WearableStatus['status'] = {};
+    const configured: WearableStatus['configured'] = {};
+    const loginUrls: WearableStatus['loginUrls'] = {};
+    for (const p of connections.data.providers) {
+      status[p.provider] = p.linked ? 'connected' : 'disconnected';
+      configured[p.provider] = p.configured;
+      if (p.login_url) loginUrls[p.provider] = p.login_url;
+    }
+
+    this.status = {
+      status,
+      configured,
+      loginUrls,
+      enabledProviders: connections.data.providers.filter((p) => p.linked).map((p) => p.provider),
+      config: { ...DEFAULT_CONFIG, ...(prefs.ok ? prefs.data?.config : undefined) },
+    };
+    this.renderContent();
   }
 
   private renderLoading(): void {
@@ -258,7 +263,7 @@ class WearableSettingsUI {
     const providersList = PROVIDERS.map((provider) => {
       const connectionStatus = this.status?.status[provider.id] ?? 'disconnected';
       const isConnected = connectionStatus === 'connected';
-      const isComingSoon = provider.comingSoon ?? false;
+      const isComingSoon = !(this.status?.configured[provider.id] ?? false);
 
       return `
         <div class="wearable-settings__provider ${isConnected ? 'wearable-settings__provider--connected' : ''} ${isComingSoon ? 'wearable-settings__provider--coming-soon' : ''}">
@@ -396,13 +401,23 @@ class WearableSettingsUI {
 
   private async connectProvider(provider: WearableProvider): Promise<void> {
     try {
-      const response = await apiPost<{ success: boolean; authUrl?: string }>(
-        '/api/wearable/connect',
-        { provider }
-      );
+      if (provider === 'apple_health') {
+        // Native HealthKit permission (deep link into the iOS app)
+        const deepLink = this.status?.loginUrls.apple_health;
+        if (deepLink) window.location.href = deepLink;
+        return;
+      }
 
-      if (response.data?.success && response.data.authUrl) {
-        window.location.href = response.data.authUrl;
+      // Fetch the OAuth URL with auth headers so the link is bound to this
+      // account, then hand off to the provider
+      const returnUrl = window.location.origin + window.location.pathname;
+      const response = await apiGet<{ url?: string }>(
+        `/wearables/${provider}/login?format=json&return_url=${encodeURIComponent(returnUrl)}`
+      );
+      if (response.ok && response.data?.url) {
+        window.location.href = response.data.url;
+      } else {
+        log.error('Could not start wearable OAuth:', response.error);
       }
     } catch (error) {
       log.error('Failed to connect provider:', error);
@@ -411,7 +426,11 @@ class WearableSettingsUI {
 
   private async disconnectProvider(provider: WearableProvider): Promise<void> {
     try {
-      await apiPost('/api/wearable/disconnect', { provider });
+      const response = await apiPost(`/wearables/${provider}/unlink`, {});
+      if (!response.ok) {
+        log.error('Could not unlink wearable:', response.error);
+        return;
+      }
       await this.loadStatus();
       this.callbacks.onConnectionChange?.(provider, false);
     } catch (error) {

@@ -10,12 +10,18 @@
  * 3. Oura redirects with code
  * 4. Exchange code for tokens
  * 5. Store tokens in Firestore
+ *
+ * TOKEN STORES: the authoritative store is the encrypted per-user wearable
+ * store written by /wearables/oura/login (wearable-linked-tokens.ts), which is
+ * what the settings UI uses. This module's own root `oura_tokens` collection
+ * (the older /api/oura/auth flow) is kept as a fallback.
  */
 
 import crypto from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 import type { OuraTokens, OuraTokenResponse, OuraResult } from './oura-types.js';
+import * as wearableTokens from './wearable-linked-tokens.js';
 
 const log = createLogger({ module: 'oura-auth' });
 
@@ -53,9 +59,9 @@ export function isApiConfigured(): boolean {
 }
 
 export async function isOuraConfigured(userId: string): Promise<boolean> {
-  if (!isApiConfigured()) return false;
-
   try {
+    if (await wearableTokens.getTokens('oura', userId)) return true;
+    if (!isApiConfigured()) return false;
     const tokens = await getTokens(userId);
     return tokens !== null;
   } catch {
@@ -253,6 +259,11 @@ export async function refreshAccessToken(userId: string): Promise<OuraResult<Our
  */
 export async function getValidAccessToken(userId: string): Promise<string | null> {
   try {
+    // Linked in the settings UI (/wearables/oura): encrypted per-user store
+    if (await wearableTokens.getTokens('oura', userId)) {
+      return await wearableTokens.getValidToken('oura', userId);
+    }
+
     let tokens = await getTokens(userId);
     if (!tokens) return null;
 
