@@ -1,0 +1,980 @@
+/* ==========================================================================
+   HOME — "3:47 AM"
+   One night in seven chapters. The sky runs night → dawn → morning as you
+   scroll. Tokens only (colours, fonts, spacing, motion); scroll-driven
+   animations are progressive enhancement and honour reduced motion.
+   ========================================================================== */
+
+.home-3am {
+  /* Night palette, derived from brand tokens */
+  --night-0: var(--color-cinematic-black);
+  --night-1: var(--color-cinematic-deep);
+  --night-2: var(--color-cedar-deep);
+  --predawn: color-mix(in oklab, var(--color-alex) 38%, var(--color-cinematic-deep));
+  --dawn: color-mix(in oklab, var(--color-jordan) 55%, var(--color-bg-primary));
+  --lamp: var(--color-accent-gold);
+  --lamp-glow: var(--color-cinematic-glow-warm);
+  --on-night: var(--color-cinematic-text);
+  --on-night-soft: var(--color-cinematic-text-muted);
+  --on-night-faint: var(--color-cinematic-text-subtle);
+  --measure: 38rem;
+
+  background: var(--night-0);
+}
+
+/* The night-time nav: transparent with light text until the page scrolls */
+.home-3am .nav:not(.is-scrolled) {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+.home-3am .nav:not(.is-scrolled) .nav__logo-text {
+  background: none;
+  -webkit-text-fill-color: var(--on-night);
+  color: var(--on-night);
+}
+
+.home-3am .nav:not(.is-scrolled) .nav__link {
+  color: var(--on-night-soft);
+}
+
+.home-3am .nav:not(.is-scrolled) .nav__link:hover,
+.home-3am .nav:not(.is-scrolled) .nav__link:focus-visible {
+  color: var(--on-night);
+}
+
+.home-3am .nav:not(.is-scrolled) .nav__hamburger span {
+  background: var(--on-night);
+}
+
+/* ── Chapters ─────────────────────────────────────────────────────────────── */
+
+/* Headings take the chapter's colour (global h1-h3 are dark ink) */
+.chapter :is(h1, h2, h3) {
+  color: inherit;
+}
+
+.chapter {
+  position: relative;
+  isolation: isolate;
+  padding: clamp(6rem, 14vh, 10rem) var(--space-6);
+  color: var(--on-night);
+  overflow: hidden;
+}
+
+.chapter__inner {
+  position: relative;
+  z-index: 1;
+  max-width: 64rem;
+  margin: 0 auto;
+}
+
+.chapter__inner--split {
+  display: grid;
+  gap: var(--space-8);
+  align-items: end;
+}
+
+@media (min-width: 860px) {
+  .chapter__inner--split {
+    grid-template-columns: 1.1fr 1fr;
+  }
+}
+
+.timestamp {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-6);
+  font-family: var(--font-accent);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lamp);
+}
+
+.timestamp::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0.75rem currentColor;
+}
+
+.timestamp--day {
+  color: var(--color-accent);
+}
+
+.chapter__title {
+  max-width: 22ch;
+  margin: 0 0 var(--space-6);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.6vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.chapter__title--editorial,
+.chapter__title em {
+  font-family: var(--font-editorial);
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: -0.01em;
+  font-variation-settings: 'opsz' 144;
+}
+
+.chapter__lede {
+  max-width: var(--measure);
+  margin: 0 0 var(--space-6);
+  font-size: var(--text-lg);
+  line-height: var(--leading-relaxed);
+  color: inherit;
+  opacity: 0.82;
+  text-wrap: pretty;
+}
+
+/* ── Sky layers ───────────────────────────────────────────────────────────── */
+
+.sky {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.sky--stars {
+  background:
+    radial-gradient(1px 1px at 12% 18%, var(--on-night) 50%, transparent 51%),
+    radial-gradient(1px 1px at 28% 62%, var(--on-night-soft) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 44% 24%, var(--on-night) 50%, transparent 51%),
+    radial-gradient(1px 1px at 61% 12%, var(--on-night-faint) 50%, transparent 51%),
+    radial-gradient(1px 1px at 72% 48%, var(--on-night-soft) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 86% 22%, var(--on-night) 50%, transparent 51%),
+    radial-gradient(1px 1px at 92% 70%, var(--on-night-faint) 50%, transparent 51%),
+    radial-gradient(1px 1px at 8% 82%, var(--on-night-faint) 50%, transparent 51%),
+    radial-gradient(1px 1px at 52% 86%, var(--on-night-soft) 50%, transparent 51%);
+  opacity: 0.7;
+  animation: twinkle 7s ease-in-out infinite alternate;
+}
+
+@keyframes twinkle {
+  to { opacity: 0.35; }
+}
+
+.sky--sunrise {
+  background: radial-gradient(120% 70% at 50% 110%, var(--lamp-glow), transparent 70%);
+}
+
+/* ── 1 · Hero ─────────────────────────────────────────────────────────────── */
+
+.chapter--hero {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding-top: clamp(7rem, 16vh, 9rem);
+  text-align: center;
+  background:
+    radial-gradient(60% 45% at 50% 42%, color-mix(in oklab, var(--lamp) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--night-0), var(--night-1) 70%, var(--night-2));
+}
+
+.hero3 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero3__title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+  margin: 0 0 var(--space-8);
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 7.2vw, 5.75rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+}
+
+.hero3__line--editorial {
+  font-family: var(--font-editorial);
+  font-weight: 300;
+  font-style: italic;
+  letter-spacing: -0.015em;
+  font-variation-settings: 'opsz' 144;
+  color: var(--on-night-soft);
+}
+
+.hero3__line--glow {
+  color: var(--lamp);
+  text-shadow: 0 0 2.5rem var(--lamp-glow);
+}
+
+.hero3__lede {
+  max-width: var(--measure);
+  margin: var(--space-4) auto var(--space-8);
+  font-size: var(--text-lg);
+  line-height: var(--leading-relaxed);
+  color: var(--on-night-soft);
+  text-wrap: pretty;
+}
+
+.hero3__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  justify-content: center;
+  align-items: center;
+}
+
+/* Staggered entrance for the hero lines (skipped with reduced motion) */
+.hero3__line,
+.hero3 .voice,
+.hero3__lede,
+.hero3__actions {
+  animation: rise var(--duration-cinematic, 800ms) var(--ease-cinematic) both;
+}
+
+.hero3__line:nth-child(2) { animation-delay: 150ms; }
+.hero3__line:nth-child(3) { animation-delay: 300ms; }
+.hero3 .voice { animation-delay: 450ms; }
+.hero3__lede { animation-delay: 600ms; }
+.hero3__actions { animation-delay: 700ms; }
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+    filter: blur(6px);
+  }
+}
+
+/* ── Voice orb ────────────────────────────────────────────────────────────── */
+
+.voice {
+  --level: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.voice__orb {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--on-night);
+  cursor: pointer;
+  font: inherit;
+}
+
+.voice__face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(6.5rem, 14vw, 8.5rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--color-ferni) 70%, var(--on-night)), var(--color-ferni) 60%);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--on-night) 18%, transparent),
+    0 1.5rem 4rem color-mix(in oklab, var(--color-ferni) 45%, transparent);
+  transform: scale(calc(1 + var(--level) * 0.06));
+  transition: transform 90ms linear, box-shadow var(--duration-slow) var(--ease-out);
+  animation: breathe 5.5s var(--ease-smooth) infinite;
+}
+
+.voice__eyes {
+  width: 62%;
+  height: 62%;
+  transform-origin: center;
+  animation: blink 6s infinite;
+}
+
+.voice__halo {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: clamp(6.5rem, 14vw, 8.5rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translateX(-50%) scale(calc(1.25 + var(--level) * 0.5));
+  background: radial-gradient(circle, var(--lamp-glow), transparent 68%);
+  opacity: calc(0.55 + var(--level) * 0.45);
+  transition: transform 90ms linear;
+  pointer-events: none;
+}
+
+.voice__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid color-mix(in oklab, var(--on-night) 22%, transparent);
+  border-radius: var(--radius-full);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  background: color-mix(in oklab, var(--night-0) 50%, transparent);
+  transition: background var(--duration-normal) var(--ease-out), border-color var(--duration-normal) var(--ease-out);
+}
+
+.voice__label::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 0.5rem solid currentColor;
+  border-top: 0.32rem solid transparent;
+  border-bottom: 0.32rem solid transparent;
+}
+
+.voice__orb:hover .voice__label,
+.voice__orb:focus-visible .voice__label {
+  border-color: var(--lamp);
+  background: color-mix(in oklab, var(--lamp) 16%, transparent);
+}
+
+.voice__orb:focus-visible {
+  outline: none;
+}
+
+.voice__orb:focus-visible .voice__face {
+  box-shadow: 0 0 0 3px var(--night-0), 0 0 0 5px var(--lamp);
+}
+
+.voice__orb[aria-pressed='true'] .voice__label::before {
+  width: 0.55rem;
+  height: 0.6rem;
+  border: 0;
+  border-left: 0.18rem solid currentColor;
+  border-right: 0.18rem solid currentColor;
+}
+
+.voice__orb[aria-pressed='true'] .voice__face,
+.voice__orb[aria-pressed='true'] .voice__eyes {
+  animation: none;
+}
+
+.voice__bars {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  height: 0;
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-out), height var(--duration-normal) var(--ease-out);
+}
+
+.voice.is-speaking .voice__bars {
+  height: 1.75rem;
+  opacity: 1;
+}
+
+.voice__bars span {
+  width: 0.22rem;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--lamp);
+  transform: scaleY(calc(0.15 + var(--level) * var(--k, 1)));
+  transition: transform 80ms linear;
+}
+
+.voice__bars span:nth-child(1), .voice__bars span:nth-child(7) { --k: 0.45; }
+.voice__bars span:nth-child(2), .voice__bars span:nth-child(6) { --k: 0.7; }
+.voice__bars span:nth-child(3), .voice__bars span:nth-child(5) { --k: 0.9; }
+
+.voice__caption:empty {
+  display: none;
+}
+
+.voice__caption {
+  max-width: 30rem;
+  margin: 0;
+  font-family: var(--font-editorial);
+  font-size: var(--text-xl);
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--on-night);
+}
+
+.voice__caption .word {
+  opacity: 0.25;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.voice__caption .word.is-said {
+  opacity: 1;
+}
+
+.voice__caption small {
+  display: block;
+  margin-top: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-style: normal;
+  color: var(--on-night-faint);
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+
+@keyframes blink {
+  0%, 94%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.1); }
+}
+
+/* ── CTAs ─────────────────────────────────────────────────────────────────── */
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 3.25rem;
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-full);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--color-text-inverse, var(--on-night));
+  background: var(--color-accent);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--duration-normal) var(--ease-spring-gentle), box-shadow var(--duration-normal) var(--ease-out), background var(--duration-normal) var(--ease-out);
+}
+
+.cta:hover,
+.cta:focus-visible {
+  transform: translateY(-2px);
+  background: var(--color-accent-hover);
+  box-shadow: var(--shadow-lg);
+}
+
+.cta:focus-visible {
+  outline: 2px solid var(--lamp);
+  outline-offset: 3px;
+}
+
+.cta svg {
+  transition: transform var(--duration-normal) var(--ease-spring-gentle);
+}
+
+.cta:hover svg {
+  transform: translateX(3px);
+}
+
+.cta--glow {
+  color: var(--night-0);
+  background: var(--lamp);
+  box-shadow: 0 0.75rem 2.5rem var(--lamp-glow);
+}
+
+.cta--glow:hover,
+.cta--glow:focus-visible {
+  background: var(--color-accent-gold-hover);
+  box-shadow: 0 1rem 3rem var(--lamp-glow);
+}
+
+.cta--quiet {
+  min-height: auto;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  box-shadow: none;
+  color: var(--on-night-soft);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, currentColor 35%, transparent);
+  text-underline-offset: 0.25em;
+}
+
+.cta--quiet:hover,
+.cta--quiet:focus-visible {
+  transform: none;
+  background: none;
+  box-shadow: none;
+  color: var(--on-night);
+}
+
+.cta--ghost {
+  color: var(--color-text-primary);
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--color-border-strong);
+}
+
+.cta--ghost:hover,
+.cta--ghost:focus-visible {
+  background: var(--color-bg-secondary);
+  box-shadow: inset 0 0 0 1.5px var(--color-text-primary);
+}
+
+.scroll-cue {
+  position: absolute;
+  bottom: var(--space-8);
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+}
+
+.scroll-cue span {
+  width: 1px;
+  height: 2.25rem;
+  background: linear-gradient(var(--on-night-faint), transparent);
+  animation: drip 2.4s var(--ease-smooth) infinite;
+}
+
+@keyframes drip {
+  0% { transform: scaleY(0); transform-origin: top; }
+  50% { transform: scaleY(1); transform-origin: top; }
+  51% { transform: scaleY(1); transform-origin: bottom; }
+  100% { transform: scaleY(0); transform-origin: bottom; }
+}
+
+/* ── 2 · The moment ───────────────────────────────────────────────────────── */
+
+.chapter--moment {
+  background: linear-gradient(180deg, var(--night-2), var(--night-1));
+}
+
+.thought {
+  margin: 0 0 var(--space-6);
+  max-width: 24ch;
+  font-family: var(--font-editorial);
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  font-style: italic;
+  font-weight: 300;
+  line-height: 1.2;
+  color: var(--on-night-soft);
+}
+
+.thought p {
+  margin: 0;
+}
+
+.options {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-10) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 760px) {
+  .options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.option {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border: 1px solid color-mix(in oklab, var(--on-night) 10%, transparent);
+  border-radius: var(--radius-xl);
+  background: color-mix(in oklab, var(--on-night) 4%, transparent);
+}
+
+.option__who {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--on-night-faint);
+}
+
+.option__why {
+  font-size: var(--text-lg);
+  line-height: 1.5;
+  color: var(--on-night-soft);
+}
+
+.option:not(.option--ferni) .option__why {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklab, var(--on-night) 25%, transparent);
+  text-decoration-thickness: 1px;
+}
+
+.option--ferni {
+  border-color: color-mix(in oklab, var(--lamp) 45%, transparent);
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in oklab, var(--lamp) 16%, transparent), transparent 60%),
+    color-mix(in oklab, var(--on-night) 5%, transparent);
+  box-shadow: 0 1.5rem 3rem color-mix(in oklab, var(--night-0) 60%, transparent);
+}
+
+.option--ferni .option__who {
+  color: var(--lamp);
+}
+
+.option--ferni .option__why {
+  color: var(--on-night);
+}
+
+.mini-orb {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--color-ferni);
+  vertical-align: middle;
+}
+
+.mini-orb .ferni-eyes-svg {
+  width: 70%;
+  height: 70%;
+}
+
+/* ── 3 · Memory ───────────────────────────────────────────────────────────── */
+
+.chapter--memory {
+  background: linear-gradient(180deg, var(--night-1), var(--predawn));
+}
+
+.thread {
+  position: relative;
+  display: grid;
+  gap: var(--space-8);
+  max-width: 44rem;
+  margin: var(--space-10) 0 0;
+  padding: 0 0 0 var(--space-8);
+  list-style: none;
+}
+
+.thread::before {
+  content: '';
+  position: absolute;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  left: 0.3rem;
+  width: 2px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(var(--on-night-faint), var(--lamp));
+}
+
+.thread__moment {
+  position: relative;
+}
+
+.thread__moment::before {
+  content: '';
+  position: absolute;
+  top: 0.35rem;
+  left: calc(-1 * var(--space-8) + 0.05rem);
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: var(--night-1);
+  box-shadow: 0 0 0 2px var(--on-night-faint);
+}
+
+.thread__moment--now::before {
+  background: var(--lamp);
+  box-shadow: 0 0 0 2px var(--lamp), 0 0 1rem var(--lamp);
+}
+
+.thread__when {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-family: var(--font-accent);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--on-night-faint);
+}
+
+.thread__said {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: 1.55;
+}
+
+.thread__said--you {
+  color: var(--on-night-soft);
+}
+
+.thread__said--ferni {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-xl);
+  font-family: var(--font-editorial);
+  font-size: var(--text-xl);
+  font-style: italic;
+  color: var(--on-night);
+  background: color-mix(in oklab, var(--color-ferni) 55%, var(--night-1));
+  box-shadow: 0 1.5rem 3rem color-mix(in oklab, var(--color-ferni) 30%, transparent);
+}
+
+.thread__note {
+  margin: var(--space-8) 0 0;
+  font-size: var(--text-sm);
+  color: var(--on-night-faint);
+}
+
+/* ── 4 · Dawn — the team ──────────────────────────────────────────────────── */
+
+.chapter--dawn {
+  padding-top: clamp(10rem, 18vh, 12rem);
+  text-align: center;
+  /* Fixed-length stops: the sky is light before the title, on any screen */
+  background: linear-gradient(180deg, var(--predawn) 0, var(--dawn) 8rem, color-mix(in oklab, var(--dawn) 45%, var(--color-bg-primary)) 60%, var(--color-bg-primary));
+}
+
+.chapter--dawn .chapter__title,
+.chapter--dawn .chapter__lede {
+  margin-inline: auto;
+}
+
+.constellation {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6) var(--space-4);
+  max-width: 56rem;
+  margin: var(--space-12) auto 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 760px) {
+  .constellation {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1040px) {
+  .constellation {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  /* A gentle arc, like stars at the horizon */
+  .star:nth-child(1), .star:nth-child(6) { translate: 0 1.5rem; }
+  .star:nth-child(2), .star:nth-child(5) { translate: 0 0.5rem; }
+}
+
+.star__link {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-2);
+  border-radius: var(--radius-xl);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: transform var(--duration-normal) var(--ease-spring-gentle), background var(--duration-normal) var(--ease-out);
+}
+
+.star__link:hover,
+.star__link:focus-visible {
+  transform: translateY(-4px);
+  background: color-mix(in oklab, var(--persona) 12%, transparent);
+}
+
+.star__link:focus-visible {
+  outline: 2px solid var(--persona);
+  outline-offset: 2px;
+}
+
+.star__orb {
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--persona) 70%, var(--color-bg-primary)), var(--persona) 62%);
+  box-shadow: 0 0.75rem 2rem color-mix(in oklab, var(--persona) 40%, transparent);
+  animation: breathe 6s var(--ease-smooth) infinite;
+  animation-delay: calc(var(--i) * -0.9s);
+}
+
+.star__orb .ferni-eyes-svg {
+  width: 64%;
+  height: 64%;
+}
+
+.star__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-lg);
+}
+
+.star__role {
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+/* The dawn chapter text sits on a warm, light sky */
+.chapter--dawn .chapter__title,
+.chapter--dawn .chapter__lede {
+  color: var(--color-text-primary);
+}
+
+.chapter--dawn .timestamp {
+  color: color-mix(in oklab, var(--color-jordan) 55%, var(--color-text-primary));
+}
+
+/* ── 5–7 · Morning ────────────────────────────────────────────────────────── */
+
+.chapter--morning,
+.chapter--day,
+.chapter--begin {
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+}
+
+.chapter--day {
+  background: var(--color-bg-secondary);
+}
+
+.vows {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-10) 0 var(--space-8);
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 760px) {
+  .vows {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.vow {
+  padding: var(--space-6);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-elevated);
+}
+
+.vow svg {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--color-accent);
+}
+
+.vow h3 {
+  margin: var(--space-4) 0 var(--space-1);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.vow p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.care-note {
+  max-width: var(--measure);
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-secondary);
+}
+
+.care-note a,
+.text-link {
+  color: var(--color-accent);
+  font-weight: 600;
+  text-underline-offset: 0.2em;
+}
+
+.text-link {
+  display: inline-flex;
+  gap: var(--space-2);
+  text-decoration: none;
+}
+
+.text-link:hover span,
+.text-link:focus-visible span {
+  transform: translateX(3px);
+}
+
+.text-link span {
+  transition: transform var(--duration-normal) var(--ease-spring-gentle);
+}
+
+.begin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.begin__orb {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  aspect-ratio: 1;
+  margin-bottom: var(--space-6);
+  border-radius: 50%;
+  background: var(--color-ferni);
+  box-shadow: 0 1rem 2.5rem var(--color-ferni-glow);
+  animation: breathe 5.5s var(--ease-smooth) infinite;
+}
+
+.begin__orb .ferni-eyes-svg {
+  width: 64%;
+  height: 64%;
+}
+
+.begin__title {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-editorial);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  font-variation-settings: 'opsz' 144;
+}
+
+/* ── Scroll-driven reveals (native; no JS) ────────────────────────────────── */
+
+@supports (animation-timeline: view()) {
+  .reveal-on-scroll {
+    animation: surface linear both;
+    animation-timeline: view();
+    animation-range: entry 5% cover 28%;
+  }
+
+  @keyframes surface {
+    from {
+      opacity: 0;
+      transform: translateY(1.5rem);
+      filter: blur(4px);
+    }
+  }
+}
+
+/* ── Reduced motion: everything still, nothing hidden ─────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .home-3am *,
+  .home-3am *::before,
+  .home-3am *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

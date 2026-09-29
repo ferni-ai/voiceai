@@ -20,6 +20,7 @@
       "ferni": "'Sora', 'Plus Jakarta Sans', sans-serif"
     },
     "mono": "'JetBrains Mono', 'SF Mono', 'Fira Code', monospace",
+    "editorial": "'Fraunces', 'Iowan Old Style', Georgia, serif",
     
     "_googleFontsImport": {
       "_comment": "Single unified font import for all themes - matches brand guidelines",

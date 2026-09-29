@@ -7,6 +7,8 @@
    - Inter: 400 (body), 500 (medium), 600 (semibold)
    - Plus Jakarta Sans: 400 (regular headlines), 500 (medium), 600 (semibold), 
                         700 (bold), 800 (extrabold)
+   - Fraunces (variable, roman + italic, opsz 9-144, wght 300-600): editorial
+     chapter titles and quotes (--font-editorial)
    - JetBrains Mono: 400 (code), 500 (code medium) - only load when needed
    
    USAGE:
@@ -22,7 +24,7 @@
 
 {# Main fonts - Plus Jakarta Sans for display, Inter for body #}
 {% if includeMonoFont %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 {% else %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&display=swap" rel="stylesheet">
 {% endif %}

@@ -153,3 +153,29 @@ code {
    Use dark-mode.css for component-level dark mode styles.
    ============================================================================ */
 
+
+/* ============================================================================
+   PAGE TRANSITIONS — native cross-document View Transitions.
+   Elements sharing a view-transition-name (e.g. persona-maya) morph between
+   pages; everything else cross-fades. Off for reduced motion.
+   ============================================================================ */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration-slow);
+  animation-timing-function: var(--ease-out);
+}
+
+::view-transition-group(*) {
+  animation-duration: var(--duration-cinematic, 800ms);
+  animation-timing-function: var(--ease-cinematic);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}

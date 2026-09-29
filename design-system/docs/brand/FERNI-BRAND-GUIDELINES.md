@@ -260,6 +260,18 @@ font-family:
 font-family: 'Sora', sans-serif;
 ```
 
+### Editorial: Fraunces
+
+**Use for**: Story moments only: chapter titles, pull quotes, the "3:47 AM" narrative.
+Never for UI, buttons or body copy. Token: `var(--font-editorial)`.
+
+```css
+font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+```
+
+**Axes**: optical size 9–144, weight 300–600, roman + italic. Prefer light weights
+(300–400) at display sizes; the softness is the point.
+
 ### Monospace: JetBrains Mono
 
 **Use for**: Code, technical content
