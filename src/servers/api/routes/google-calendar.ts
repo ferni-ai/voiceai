@@ -90,6 +90,13 @@ export async function handleGoogleCalendarRoutes(
     const authUrl = googleCalendarService.buildAuthUrl(state);
 
     log.info({ userId }, 'Google Calendar OAuth: Redirecting user to Google');
+    // Clients fetch with auth headers + ?format=json so the link is bound to
+    // the verified account, then navigate to the returned URL.
+    if (parsedUrl.searchParams.get('format') === 'json') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ url: authUrl }));
+      return true;
+    }
     res.writeHead(302, { Location: authUrl });
     res.end();
     return true;

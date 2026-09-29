@@ -215,6 +215,7 @@ import {
 } from './services/engagement-demo-data.js';
 // Environment detection
 import { apiGet, apiPost } from './utils/api.js';
+import { startGoogleCalendarLink } from './services/calendar-providers.service.js';
 import { shouldUseDemoData } from './utils/environment.js';
 
 // New Feature UIs (v2)
@@ -2110,7 +2111,7 @@ class VoiceAIApp {
             onConnectCalendar: () => {
               // Redirect to Google OAuth flow
               const userId = appState.get('deviceId') || 'anonymous';
-              window.location.href = `/auth/google/calendar?userId=${userId}`;
+              void startGoogleCalendarLink(userId);
             },
           });
           void showCalendarView();
@@ -2263,7 +2264,7 @@ class VoiceAIApp {
         },
         onConnectCalendar: () => {
           const userId = appState.get('deviceId') || 'anonymous';
-          window.location.href = `/auth/google/calendar?userId=${userId}`;
+          void startGoogleCalendarLink(userId);
         },
         onConnectBiometrics: async (platform) => {
           const userId = appState.get('deviceId') || 'anonymous';
@@ -2355,7 +2356,7 @@ class VoiceAIApp {
       setCalendarViewCallbacks({
         onConnectCalendar: () => {
           const userId = appState.get('deviceId') || 'anonymous';
-          window.location.href = `/auth/google/calendar?userId=${userId}`;
+          void startGoogleCalendarLink(userId);
         },
       });
       void showCalendarView();

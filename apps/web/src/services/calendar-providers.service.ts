@@ -196,7 +196,9 @@ export async function connectProvider(
   const authUrl = `${config.authUrl}?user_id=${userId}&return_url=${returnUrl}`;
   log.info('Initiating calendar OAuth flow', { provider, authUrl });
 
-  window.location.href = authUrl;
+  // Fetch the provider URL with auth headers so the link is bound to this account
+  const res = await apiGet<{ url?: string }>(`${authUrl}&format=json`);
+  window.location.href = res.ok && res.data?.url ? res.data.url : authUrl;
 
   return { success: true };
 }
@@ -467,3 +469,14 @@ export const calendarProvidersService = {
 };
 
 export default calendarProvidersService;
+
+/**
+ * Start Google Calendar linking for the signed-in account. The OAuth URL is
+ * fetched with auth headers so the link is saved to this user (a bare
+ * navigation carries no token and would fall back to the query userId).
+ */
+export async function startGoogleCalendarLink(fallbackUserId: string): Promise<void> {
+  const loginPath = `/auth/google/calendar?userId=${encodeURIComponent(fallbackUserId)}`;
+  const res = await apiGet<{ url?: string }>(`${loginPath}&format=json`);
+  window.location.href = res.ok && res.data?.url ? res.data.url : loginPath;
+}
