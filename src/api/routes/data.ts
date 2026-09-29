@@ -49,8 +49,13 @@ export async function handleExportData(
     const body = await validateBody(req, res, ExportDataSchema);
     if (!body) return;
 
-    const userId = body.userId || requireUserId(req, res, parsedUrl);
+    // SECURITY: act only on the caller's own identity; body.userId is never trusted
+    const userId = requireUserId(req, res, parsedUrl);
     if (!userId) return;
+    if (body.userId && body.userId !== userId) {
+      sendError(res, 'You can only manage your own data', 403);
+      return;
+    }
 
     const { getDataExportService } = await import('../../services/data-export.js');
     const exportService = getDataExportService();
@@ -82,8 +87,13 @@ export async function handleDeleteAllData(
     const body = await validateBody(req, res, DeleteAllDataSchema);
     if (!body) return;
 
-    const userId = body.userId || requireUserId(req, res, parsedUrl);
+    // SECURITY: act only on the caller's own identity; body.userId is never trusted
+    const userId = requireUserId(req, res, parsedUrl);
     if (!userId) return;
+    if (body.userId && body.userId !== userId) {
+      sendError(res, 'You can only manage your own data', 403);
+      return;
+    }
 
     if (body.confirmDelete !== true) {
       sendError(res, API_ERRORS.DATA_DELETE_CONFIRMATION, 400);

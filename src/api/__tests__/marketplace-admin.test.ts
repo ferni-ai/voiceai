@@ -27,6 +27,14 @@ vi.mock('../../utils/safe-logger.js', () => {
 });
 
 // Mock marketplace modules
+// Stand-in for verified auth: a request carrying x-admin-id is treated as an
+// authenticated admin (the real code verifies Firebase admin claims / API keys)
+vi.mock('../auth-middleware.js', () => ({
+  optionalAuthAsync: vi.fn(async (req: { headers: Record<string, string | undefined> }) =>
+    req.headers['x-admin-id'] ? { userId: req.headers['x-admin-id'], isAdmin: true } : null
+  ),
+}));
+
 vi.mock('../../marketplace/index.js', () => ({
   getTool: vi.fn(),
   getAgent: vi.fn(),

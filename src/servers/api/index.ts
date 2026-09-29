@@ -24,6 +24,7 @@ import {
 } from '../../utils/ddos-protection.js';
 import { notifyDDoSAlert } from '../../services/slack-notifications.js';
 import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
+import { enforceVerifiedIdentity } from '../../api/identity-guard.js';
 import { parseRawBody } from '../../api/helpers.js';
 
 // Local routes
@@ -275,6 +276,10 @@ const server = http.createServer(async (req, res) => {
     handleCorsPreflightRequest(req, res);
     return;
   }
+
+  // SECURITY: identity comes only from verified credentials (or anonymous
+  // device IDs); strips client-claimed x-firebase-uid / x-user-id / ?userId
+  await enforceVerifiedIdentity(req);
 
   const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   let pathname = parsedUrl.pathname;
@@ -1404,11 +1409,12 @@ const server = http.createServer(async (req, res) => {
         }
 
         let body: unknown = undefined;
+        let rawBody: string | undefined;
 
         if (req.method === 'POST' || req.method === 'PUT') {
           // Use parseRawBody to avoid race condition with async auth check
           // Also adds timeout, max size limit, and proper error handling
-          const rawBody = await parseRawBody(req, { timeoutMs: 30000, maxBytes: 1024 * 1024 });
+          rawBody = await parseRawBody(req, { timeoutMs: 30000, maxBytes: 1024 * 1024 });
 
           if (isWebhook) {
             // Webhooks need raw body for signature verification
@@ -1427,6 +1433,8 @@ const server = http.createServer(async (req, res) => {
           pathname,
           query: Object.fromEntries(parsedUrl.searchParams),
           body,
+          // Exact bytes for Stripe webhook signature verification
+          rawBody,
           headers: req.headers,
           // SECURITY: Pass authenticated user to prevent IDOR attacks
           authUserId,

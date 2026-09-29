@@ -672,10 +672,11 @@ export async function canStartConversation(userId: string): Promise<{
  */
 export async function verifyWebhook(
   payload: string | Buffer,
-  signature: string
+  signature: string,
+  secret: string | undefined = process.env.STRIPE_WEBHOOK_SECRET
 ): Promise<StripeEvent> {
   const stripe = await getStripe();
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = secret;
 
   if (!webhookSecret) {
     throw new Error('STRIPE_WEBHOOK_SECRET not configured');

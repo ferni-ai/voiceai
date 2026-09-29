@@ -10,6 +10,7 @@
 
 import type http from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { isAnonymousIdentity } from './identity-guard.js';
 
 const log = createLogger({ module: 'insights-routes' });
 
@@ -82,6 +83,14 @@ export async function handleInsightsRoutes(
   const userIdMatch = pathname.match(/^\/api\/insights\/([^/]+)$/);
   if (userIdMatch && req.method === 'GET') {
     const userId = decodeURIComponent(userIdMatch[1]);
+    // SECURITY: only the verified owner (identity-guard sets x-firebase-uid) or an
+    // anonymous device identity may read these insights
+    const verified = req.headers['x-firebase-uid'];
+    if (userId !== verified && !isAnonymousIdentity(userId)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: "You can only view your own insights" }));
+      return true;
+    }
     return handleGetInsights(req, res, userId);
   }
 

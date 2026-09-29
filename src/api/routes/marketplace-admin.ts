@@ -39,6 +39,7 @@ import {
   submitReview,
 } from '../review-queue.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { optionalAuthAsync } from '../auth-middleware.js';
 import { parseBody, sendJSON } from '../helpers.js';
 import {
   sendEmail,
@@ -163,17 +164,17 @@ async function sendRejectionEmail(
 }
 
 /**
- * Verify admin authentication
+ * Verify admin authentication.
+ * SECURITY: identity comes from a verified credential (Firebase admin claim or
+ * admin API key), never from client-supplied x-admin-* headers.
  */
-function getAdmin(req: IncomingMessage): AdminSession | null {
-  const adminId = req.headers['x-admin-id'] as string;
-  const adminName = req.headers['x-admin-name'] as string;
-
-  if (!adminId) return null;
+async function getAdmin(req: IncomingMessage): Promise<AdminSession | null> {
+  const auth = await optionalAuthAsync(req);
+  if (!auth?.isAdmin) return null;
 
   return {
-    adminId,
-    adminName: adminName || 'Admin',
+    adminId: auth.userId,
+    adminName: auth.email ?? 'Admin',
     permissions: ['marketplace:review', 'marketplace:moderate'],
   };
 }
@@ -216,7 +217,7 @@ export async function handleMarketplaceAdminRoutes(
   const method = req.method || 'GET';
 
   // All admin routes require authentication
-  const admin = getAdmin(req);
+  const admin = await getAdmin(req);
   if (!admin) {
     sendJson(res, 401, { error: 'Admin authentication required' });
     return true;

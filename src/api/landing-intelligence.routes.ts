@@ -39,6 +39,7 @@ import {
 } from '../services/landing-intelligence/lifecycle.js';
 import { getQuickOptimization } from '../services/landing-intelligence/orchestrator.js';
 import { rateLimitExpensive, requireAdmin } from './auth-middleware.js';
+import { verifySchedulerRequest } from './scheduled-jobs/scheduler-auth.js';
 import { generateVisitorId } from '../services/landing-intelligence/returning-visitor.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { parseBody } from './helpers.js';
@@ -998,6 +999,12 @@ export async function handleLandingIntelligenceRoutes(
     // Called by Cloud Scheduler daily at 4am for cost optimization
     // ============================================================================
     if (pathname === '/api/landing/generate-content' && method === 'POST') {
+      // Spends LLM budget: Cloud Scheduler (OIDC) or an admin only
+      const scheduler = await verifySchedulerRequest(req, pathname);
+      if (!scheduler.ok) {
+        const admin = await requireAdmin(req, res);
+        if (!admin) return true; // 401/403 already sent
+      }
       const body = await parseBody<{
         action?: string;
         includeHeroes?: boolean;

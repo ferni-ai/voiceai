@@ -7,6 +7,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../utils/safe-logger.js';
+import { requireAdmin } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseRequestBody, sendJsonResponse } from './helpers.js';
 import {
   getConversationalCallService,
@@ -51,6 +52,12 @@ export async function handleOutboundCallRoutes(
       return true;
     }
 
+    // Everything except /health places real calls or exposes callers: admin only
+    if (pathname !== '/api/outbound-call/health') {
+      const auth = await requireAdmin(req, res);
+      if (!auth) return true; // 401/403 already sent
+    }
+
     // POST /api/outbound-call/initiate - Initiate a conversational call
     if (pathname === '/api/outbound-call/initiate' && method === 'POST') {
       const body = (await parseRequestBody(req)) as OutboundCallContext;
@@ -83,10 +90,7 @@ export async function handleOutboundCallRoutes(
         });
       } catch (error) {
         log.error({ error }, 'Failed to initiate call');
-        sendJsonResponse(res, 500, {
-          error: 'Failed to initiate call',
-          details: String(error),
-        });
+        sendJsonResponse(res, 500, { error: 'Failed to initiate call' });
       }
       return true;
     }

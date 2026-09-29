@@ -53,6 +53,8 @@ interface RequestContext {
   pathname: string;
   query: Record<string, string>;
   body?: unknown;
+  /** Raw request body (needed to verify Stripe webhook signatures) */
+  rawBody?: string;
   headers: Record<string, string | string[] | undefined>;
   /**
    * Authenticated user ID from Firebase auth (SECURITY: use this instead of query params)
@@ -995,15 +997,33 @@ async function handleStripeWebhook(ctx: RequestContext): Promise<ResponseContext
     };
   }
 
+  const webhookSecret =
+    process.env.STRIPE_MONETIZATION_WEBHOOK_SECRET ?? process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret || !ctx.rawBody) {
+    log.error({ hasSecret: Boolean(webhookSecret) }, 'Stripe webhook cannot be verified');
+    return {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Webhook verification not configured' },
+    };
+  }
+
+  let verified: unknown;
   try {
-    // Get raw body for signature verification
-    const rawBody = ctx.body as unknown;
+    // SECURITY: only signed events from Stripe are processed
+    const { verifyWebhook } = await import('../services/billing/stripe-subscription.js');
+    verified = await verifyWebhook(ctx.rawBody, signature, webhookSecret);
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Stripe webhook signature verification failed');
+    return {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Invalid signature' },
+    };
+  }
 
-    // In a real implementation, you would verify the webhook signature here
-    // using stripe.webhooks.constructEvent(rawBody, signature, webhookSecret)
-    // For now, we'll trust the payload if it has the right structure
-
-    const event = rawBody as {
+  try {
+    const event = verified as {
       type: string;
       data: {
         object: {
