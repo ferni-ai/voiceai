@@ -177,6 +177,11 @@
     }
 
     if (eventQueue.length === 0) return;
+    // No analytics consent: drop queued events rather than send them
+    if (!(window.ferniHasAnalyticsConsent && window.ferniHasAnalyticsConsent())) {
+      eventQueue = [];
+      return;
+    }
 
     const events = eventQueue.slice();
     eventQueue = [];
@@ -245,7 +250,7 @@
 
   // Flush on page unload
   window.addEventListener('beforeunload', function () {
-    if (eventQueue.length > 0) {
+    if (eventQueue.length > 0 && window.ferniHasAnalyticsConsent && window.ferniHasAnalyticsConsent()) {
       navigator.sendBeacon(API_BASE + '/track/batch', JSON.stringify({ events: eventQueue }));
     }
   });

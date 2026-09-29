@@ -71,7 +71,8 @@
         try {
           const variant = await window.FerniExperiments.getVariant(flagId, { skipExposure: true });
           // Variant is either the percentage bucket or 'control'/'enabled'
-          CONFIG[configKey] = variant !== 'control' && variant !== '0';
+          // Fail closed: null/undefined (lookup failed) must not switch a feature on
+          CONFIG[configKey] = typeof variant === 'string' && variant !== 'control' && variant !== '0';
           if (CONFIG.debugMode) {
             console.log(`[AI Landing] Flag ${flagId} = ${CONFIG[configKey]}`);
           }
@@ -105,6 +106,13 @@
   // UTILITIES
   // ═══════════════════════════════════════════════════════════════════════════
 
+  /** Model output and visitor input are untrusted: escape before any innerHTML. */
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = String(text ?? '');
+    return div.innerHTML;
+  }
+
   function getVisitorId() {
     let id = localStorage.getItem('ferni_visitor_id');
     if (!id) {
@@ -131,16 +139,9 @@
       cta: 'Begin a real conversation'
     }),
     '/persona-preview': (body) => ({
-      persona: body?.personaId || 'ferni',
-      greeting: getPersonaGreeting(body?.personaId || 'ferni'),
+      persona: body?.persona || 'ferni',
+      response: getPersonaGreeting(body?.persona || 'ferni'),
       traits: ['Empathetic', 'Present', 'Wise']
-    }),
-    '/social-proof': () => ({
-      stats: [
-        { label: 'Conversations this week', value: '2,847+' },
-        { label: 'People supported', value: '12k+' },
-        { label: 'Average session', value: '23 min' }
-      ]
     }),
     '/sentiment-copy': () => ({
       headline: 'We hear you.',
@@ -188,7 +189,7 @@
       return "Your privacy is sacred to us. All conversations are encrypted, and we never sell your data. You can delete your history anytime.";
     }
     if (lower.includes('cost') || lower.includes('price') || lower.includes('free')) {
-      return "You can start talking to Ferni for free. We have subscription plans for unlimited access and premium features.";
+      return "Ferni is free for everyone. The Give page explains how it's funded: ferni.ai/give.";
     }
     if (lower.includes('how') && lower.includes('work')) {
       return "Ferni is always available via phone call, text, or web app. Just reach out whenever you need support - we're here 24/7.";
@@ -451,11 +452,7 @@
       this.messagesContainer.appendChild(prompt);
     },
 
-    escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    },
+    escapeHtml,
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -620,10 +617,10 @@
       if (result) {
         responseArea.innerHTML = `
           <blockquote class="team-card__preview-quote">
-            <p>"${result.response}"</p>
+            <p>"${escapeHtml(result.response)}"</p>
           </blockquote>
           <div class="team-card__preview-traits">
-            ${result.traits.map((t) => `<span class="trait">${t}</span>`).join('')}
+            ${(result.traits || []).map((t) => `<span class="trait">${escapeHtml(t)}</span>`).join('')}
           </div>
         `;
       } else {
@@ -693,7 +690,7 @@
           <div class="memory-demo__today">
             <div class="memory-demo__date">TODAY</div>
             <div class="memory-demo__card">
-              <p>"${text}"</p>
+              <p>"${escapeHtml(text)}"</p>
               <span class="memory-demo__emotion">Current feeling</span>
             </div>
           </div>
@@ -1089,7 +1086,7 @@
       if (result) {
         responseEl.innerHTML = `
           <div class="smart-faq__answer">
-            <p>${result.answer}</p>
+            <p>${escapeHtml(result.answer)}</p>
             ${
               result.confidence < 0.7
                 ? '<p class="smart-faq__disclaimer">Not sure about this one? <a href="https://app.ferni.ai">Ask me directly in the app</a>.</p>'
@@ -1102,7 +1099,7 @@
             <div class="smart-faq__related">
               <p>Related questions:</p>
               <ul>
-                ${result.relatedQuestions.map((q) => `<li><button class="smart-faq__related-btn">${q}</button></li>`).join('')}
+                ${result.relatedQuestions.map((q) => `<li><button class="smart-faq__related-btn">${escapeHtml(q)}</button></li>`).join('')}
               </ul>
             </div>
           `

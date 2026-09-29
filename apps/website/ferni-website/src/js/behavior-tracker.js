@@ -297,6 +297,7 @@
   // ============================================================================
 
   function handleBeforeUnload() {
+    if (!window.ferniHasAnalyticsConsent?.()) return;
     const signals = collectBehaviorSignals();
     signals.converted = state.ctaClicked;
 

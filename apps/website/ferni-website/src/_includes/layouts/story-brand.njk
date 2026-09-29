@@ -181,12 +181,28 @@
   }
   </script>
   
-  {# ====== ANALYTICS ====== #}
+  {# ====== CONSENT (single source of truth for every tracker on the page) ====== #}
+  <script>
+    window.ferniHasAnalyticsConsent = function () {
+      try { return localStorage.getItem('ferni_cookies') === 'accepted'; } catch (e) { return false; }
+    };
+  </script>
+
+  {# ====== ANALYTICS (Consent Mode v2: denied until the visitor accepts) ====== #}
   {% if site.analytics.gaId %}
   <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.analytics.gaId }}"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
+    gtag('consent', 'default', {
+      analytics_storage: 'denied',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied'
+    });
+    if (window.ferniHasAnalyticsConsent()) {
+      gtag('consent', 'update', { analytics_storage: 'granted' });
+    }
     gtag('js', new Date());
     gtag('config', '{{ site.analytics.gaId }}', {
       page_title: '{{ title }}',
@@ -217,58 +233,32 @@
     </div>
   </div>
   
-  {# ====== ANIMATION SYSTEM ====== #}
+  {# ====== SITE-WIDE: character polish, EQ, experiments, chat, waitlist ====== #}
   <script src="/js/landing-animations.js"></script>
-  <script src="/js/memory-story-animations.js"></script>
-  <script src="/js/hero-sequence.js"></script>
-
-  {# ====== FERNI CHARACTER & POLISH ====== #}
   <script src="/js/ferni-character.js"></script>
-  
-  {# ====== FERNI AWAKENING SEQUENCE (Cinematic Intro) ====== #}
-  <script src="/js/ferni-awakens.js"></script>
-  
-  {# ====== FERNI EQ SYSTEM (Superhuman Emotional Intelligence) ====== #}
   <script src="/js/better-than-human.js"></script>
   <script src="/js/ferni-sentience.js"></script>
   <script src="/js/ferni-sounds.js"></script>
-  
-  {# ====== FERNI SHOWCASE (Landing Page Magic) ====== #}
-  <script src="/js/ferni-showcase.js"></script>
-  
-  {# ====== DEMO WIDGET DISABLED - user complained about floating box #}
-  {# <script src="/js/demo-widget.js"></script> #}
-  
-  {# ====== A/B TESTING & EXPERIMENTS ====== #}
+  {# Trackers send nothing without consent (window.ferniHasAnalyticsConsent) #}
   <script src="/js/experiments.js"></script>
-  <script src="/js/experiment-variants.js"></script>
   <script src="/js/conversion-tracking.js"></script>
-  
-  {# ====== LANDING INTELLIGENCE (Gemini-powered optimization) ====== #}
   <script src="/js/behavior-tracker.js"></script>
-  {# chat-widget.js removed - using demo-widget.js instead #}
-  <script src="/js/landing-intelligence.js"></script>
-  <script src="/js/superpowers-demo.js"></script>
-  
-  {# ====== AI-POWERED LANDING FEATURES ====== #}
-  {# Live chat, personalized hero, persona previews, smart FAQ, etc. #}
+  {# Live chat pill + smart FAQ (flag-gated, fails closed) #}
   <script src="/js/ai-powered-landing.js"></script>
-  <script src="/js/voice-samples.js"></script>
-  <script src="/js/persona-quiz.js"></script>
-  
-  {# ====== AI COPY MAGIC - Gemini-powered dynamic copy ====== #}
-  {# Time-aware hero, smart social proof, adaptive CTAs, hover insights #}
-  <script src="/js/ai-copy-magic.js"></script>
-  
-  {# ====== AI STORYTELLING - Superhuman narrative generation ====== #}
-  {# Memory timeline, showcase chat, use case voices, journey stories #}
-  <script src="/js/ai-storytelling.js"></script>
-  
-  {# ====== VOICE DEMO - Live AI Interaction ====== #}
-  <script src="/js/voice-demo.js"></script>
-
-  {# ====== WAITLIST MODAL (Integrated Gate) ====== #}
   <script src="/js/waitlist-modal.js"></script>
+
+  {# ====== HOME ONLY (front matter: landing: true) — these drive home sections ====== #}
+  {% if landing %}
+  <script src="/js/memory-story-animations.js"></script>
+  <script src="/js/hero-sequence.js"></script>
+  <script src="/js/ferni-awakens.js"></script>
+  <script src="/js/ferni-showcase.js"></script>
+  <script src="/js/experiment-variants.js"></script>
+  <script src="/js/landing-intelligence.js"></script>
+  <script src="/js/voice-samples.js"></script>
+  <script src="/js/ai-copy-magic.js"></script>
+  <script src="/js/ai-storytelling.js"></script>
+  {% endif %}
 
   <script>
   (function() {

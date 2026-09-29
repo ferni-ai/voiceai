@@ -38,6 +38,7 @@ import {
   setLandingIntelligenceFlags,
 } from '../services/landing-intelligence/lifecycle.js';
 import { getQuickOptimization } from '../services/landing-intelligence/orchestrator.js';
+import { rateLimitExpensive, requireAdmin } from './auth-middleware.js';
 import { generateVisitorId } from '../services/landing-intelligence/returning-visitor.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { parseBody } from './helpers.js';
@@ -335,6 +336,12 @@ export async function handleLandingIntelligenceRoutes(
     return true;
   }
 
+  // Public LLM/TTS endpoints cost money per call: cap them per IP per operation
+  const isPaidEndpoint = pathname.startsWith('/api/landing/ai/') || pathname === '/api/landing/tts';
+  if (method === 'POST' && isPaidEndpoint && rateLimitExpensive(req, res, pathname)) {
+    return true; // 429 already sent
+  }
+
   try {
     // ============================================================================
     // POST /api/landing/optimize - Main optimization endpoint
@@ -622,6 +629,9 @@ export async function handleLandingIntelligenceRoutes(
     // PUT /api/landing/flags - Update feature flags (admin)
     // ============================================================================
     if (pathname === '/api/landing/flags' && method === 'PUT') {
+      // Admin only: anyone could otherwise toggle landing features site-wide
+      const auth = await requireAdmin(req, res);
+      if (!auth) return true; // requireAdmin already sent 401/403
       const flags = await parseBody<Record<string, boolean>>(req);
       setLandingIntelligenceFlags(flags);
       sendJSON(res, getLandingIntelligenceFlags());
@@ -711,12 +721,13 @@ export async function handleLandingIntelligenceRoutes(
             'X-Cache-Status': 'HIT',
           });
           res.end(
+            // Same shape as a fresh PersonalizedHeroResponse so clients handle one contract
             JSON.stringify({
-              personalized: true,
-              eyebrow: cached.eyebrow,
+              tagline: cached.eyebrow,
               headline: cached.headline,
-              tagline: cached.subhead,
-              cta: cached.cta,
+              subhead: cached.subhead,
+              ctaText: cached.cta,
+              generationReason: 'cache',
               cached: true,
               cacheKey: `${timeBlock}-${visitorType}`,
             })
@@ -780,12 +791,8 @@ export async function handleLandingIntelligenceRoutes(
             'Access-Control-Allow-Origin': '*',
             'X-Cache-Status': 'HIT',
           });
-          res.end(
-            JSON.stringify({
-              messages: cached.map((m) => m.text),
-              cached: true,
-            })
-          );
+          // Same shape as a fresh SocialProofSnippet[] response
+          res.end(JSON.stringify(cached.map((m) => ({ type: 'moment', content: m.text }))));
           return true;
         }
       } catch (cacheError) {

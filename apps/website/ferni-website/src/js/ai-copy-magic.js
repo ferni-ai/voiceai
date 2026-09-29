@@ -1002,9 +1002,10 @@
         input.disabled = true;
         
         // Try AI response
+        // Matches the backend contract: { persona, question }
         const response = await fetchAI('/persona-preview', {
-          personaId,
-          userInput: question,
+          persona: personaId,
+          question,
         });
         
         // Show response

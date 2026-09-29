@@ -336,7 +336,7 @@
       var timeOnPage = Math.round((Date.now() - pageLoadTime) / 1000);
 
       // Final scroll depth
-      if (typeof window.FerniExperiments !== 'undefined') {
+      if (typeof window.FerniExperiments !== 'undefined' && window.ferniHasAnalyticsConsent && window.ferniHasAnalyticsConsent()) {
         // Use sendBeacon for reliability
         var events = [
           {

@@ -121,7 +121,7 @@
   }
 
   async function trackBehavior(signals, isEnd = false) {
-    if (!CONFIG.enableTracking) return;
+    if (!CONFIG.enableTracking || !window.ferniHasAnalyticsConsent?.()) return;
 
     try {
       const endpoint = isEnd ? '/track/end' : '/track';
