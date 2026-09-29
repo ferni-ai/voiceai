@@ -22,7 +22,11 @@ describe('ConferenceCallManager without Twilio', () => {
     manager.on('participant_calling', () => events.push('calling'));
     manager.on('participant_connected', () => events.push('connected'));
 
-    const result = await manager.addParticipant({ phoneNumber: '+15551234567', name: 'Sarah' });
+    const result = await manager.addParticipant({
+      phoneNumber: '+15551234567',
+      name: 'Sarah',
+      announceToRoom: false,
+    });
     await vi.advanceTimersByTimeAsync(5000);
 
     expect(result.success).toBe(false);
