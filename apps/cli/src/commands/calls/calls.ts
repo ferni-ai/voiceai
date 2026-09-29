@@ -123,31 +123,30 @@ async function initiateCall(options: {
         ...headers,
         'Content-Type': 'application/json',
       },
+      // Contract: the server looks the contact up in your contacts; `phone`
+      // is only honoured for admins (numbers not saved as contacts)
       body: JSON.stringify({
-        user: {
-          id: `cli-call-${Date.now()}`,
-          name: options.name,
-          phone: options.phone,
-        },
-        trigger: {
-          id: `cli-${Date.now()}`,
-          type: 'friend_checkin',
-          reason: options.reason || 'CLI initiated call',
-          urgency: 'medium',
-        },
-        personaId: options.personaId || 'ferni',
-        message:
+        contactName: options.name,
+        phone: options.phone,
+        purpose:
           options.message ||
-          `Hi ${options.name}! This is Ferni calling on behalf of ${user?.displayName || 'your friend'}. ${options.reason ? options.reason : 'Just wanted to check in and see how you are doing!'}`,
-        enableConversation: true,
-        voicemailFallback: true,
-        sponsorUserId: user?.userId,
+          options.reason ||
+          `Check in with ${options.name} on behalf of ${user?.displayName || 'your friend'}`,
+        personaId: options.personaId || 'ferni',
       }),
     });
 
-    const data = await response.json();
+    const data = (await response.json()) as {
+      success?: boolean;
+      callId?: string;
+      mode?: string;
+      error?: string;
+    };
 
     if (data.success) {
+      if (data.mode === 'message_only') {
+        console.log('Note: two-way calling (SIP trunk) is not configured; this call plays a message.');
+      }
       return { success: true, callId: data.callId };
     } else {
       return { success: false, error: data.error || 'Unknown error' };

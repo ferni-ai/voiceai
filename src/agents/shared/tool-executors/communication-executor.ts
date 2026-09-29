@@ -10,6 +10,11 @@
  * @module agents/shared/tool-executors/communication-executor
  */
 
+import {
+  firestoreThreadStore,
+  recordOutboundText,
+  toE164,
+} from '../../../services/outreach/contact-sms-conversation.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
@@ -204,7 +209,7 @@ async function execute(
             'Content-Type': 'application/x-www-form-urlencoded',
           },
           body: new URLSearchParams({
-            To: contact.phone,
+            To: toE164(contact.phone), // Twilio requires E.164
             From: fromNumber,
             Body: message,
           }),
@@ -219,6 +224,19 @@ async function execute(
 
       const smsData = (await response.json()) as { sid: string };
       log.info({ sid: smsData.sid, to: contact.phone }, '📱 SMS sent');
+
+      // Remember the thread so a reply from this number continues the conversation
+      const threadStore = firestoreThreadStore();
+      if (threadStore) {
+        await recordOutboundText(threadStore, {
+          phone: contact.phone,
+          userId: ctx.userId,
+          contactId: contact.id,
+          contactName: contact.name,
+          personaId: ctx.personaId,
+          body: message,
+        }).catch((e) => log.warn({ error: String(e) }, '📱 Could not record SMS thread'));
+      }
 
       return `I sent your message to ${contact.name}.`;
     } catch (err) {

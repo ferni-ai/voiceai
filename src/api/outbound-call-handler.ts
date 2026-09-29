@@ -70,14 +70,15 @@ export async function handleOutboundCallRoutes(
 
       // Resolve who to call from the caller's own contacts
       let contact: { id?: string; name: string; phone: string; relationship?: string } | null = null;
-      if (body.contactId) {
-        const found = await getContact(auth.userId, body.contactId);
-        if (found?.phone) contact = { id: found.id, name: found.name, phone: found.phone, relationship: found.relationship };
-      } else if (body.contactName) {
-        const [found] = await searchContacts(auth.userId, body.contactName);
-        if (found?.phone) contact = { id: found.id, name: found.name, phone: found.phone, relationship: found.relationship };
+      const found = body.contactId
+        ? await getContact(auth.userId, body.contactId)
+        : body.contactName
+          ? (await searchContacts(auth.userId, body.contactName))[0]
+          : null;
+      if (found?.phone) {
+        contact = { id: found.id, name: found.name, phone: found.phone, relationship: found.relationship };
       } else if (body.phone && auth.isAdmin) {
-        contact = { name: body.name || 'Contact', phone: body.phone };
+        contact = { name: body.contactName || body.name || 'Contact', phone: body.phone };
       }
 
       if (!contact) {

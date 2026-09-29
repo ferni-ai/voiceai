@@ -31,7 +31,16 @@ import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
-import { handleCorsPreflightIfNeeded, parseRequestBody, sendJsonResponse } from './helpers.js';
+import {
+  handleCorsPreflightIfNeeded,
+  parseRawBody,
+  parseRequestBody,
+  sendJsonResponse,
+} from './helpers.js';
+import {
+  twilioSignedUrls,
+  validateTwilioSignature,
+} from '../services/outreach/webhooks/twilio-webhooks.js';
 import { handleOutreachWebhookRoutes } from './outreach-webhook-routes.js';
 
 const log = getLogger().child({ module: 'outreach-handler' });
@@ -97,6 +106,129 @@ export async function handleOutreachRoutes(
     // Apply rate limiting
     if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
       return true;
+    }
+
+    // ========================================================================
+    // TWILIO WEBHOOKS (before user auth: Twilio signs requests instead)
+    // ========================================================================
+    const isTwilioCallback =
+      method === 'POST' && (route.startsWith('/call/status/') || route.startsWith('/call/machine/'));
+    let twilioParams: Record<string, string> = {};
+    if (isTwilioCallback) {
+      // Twilio posts application/x-www-form-urlencoded
+      twilioParams = Object.fromEntries(new URLSearchParams(await parseRawBody(req, { timeoutMs: 10000, maxBytes: 64 * 1024 })));
+      const signature = req.headers['x-twilio-signature'];
+      if (
+        typeof signature !== 'string' ||
+        !validateTwilioSignature(signature, twilioSignedUrls(req.headers, req.url), twilioParams)
+      ) {
+        res.writeHead(403);
+        res.end('Forbidden');
+        return true;
+      }
+    }
+
+    // POST /api/outreach/call/status/:callId
+    if (route.startsWith('/call/status/') && method === 'POST') {
+      const callId = route.replace('/call/status/', '');
+      const body = twilioParams;
+      const { CallStatus, AnsweredBy } = body as { CallStatus: string; AnsweredBy?: string };
+
+      log.debug({ callId, CallStatus, AnsweredBy }, 'Call status callback');
+
+      try {
+        const callService = getConversationalCallService();
+        if (callService.handleStatusCallback) {
+          await callService.handleStatusCallback(
+            callId,
+            CallStatus,
+            body as { callSid?: string; duration?: number; answeredBy?: string }
+          );
+        }
+
+        // Validate machine detection result
+        const validMachineResults = [
+          'human',
+          'machine_start',
+          'machine_end_beep',
+          'machine_end_silence',
+          'machine_end_other',
+          'fax',
+          'unknown',
+        ] as const;
+        type MachineResult = (typeof validMachineResults)[number];
+
+        if (AnsweredBy && AnsweredBy !== 'human') {
+          const machineResult = validMachineResults.includes(AnsweredBy as MachineResult)
+            ? (AnsweredBy as MachineResult)
+            : 'unknown';
+          const twiml = callService.handleMachineDetection
+            ? await callService.handleMachineDetection(callId, machineResult)
+            : undefined;
+          if (twiml) {
+            res.setHeader('Content-Type', 'text/xml');
+            res.writeHead(200);
+            res.end(twiml);
+            return true;
+          }
+        }
+
+        res.writeHead(200);
+        res.end('OK');
+        return true;
+      } catch (error) {
+        log.error({ error, callId }, 'Error handling call status');
+        res.writeHead(500);
+        res.end('Error');
+        return true;
+      }
+    }
+
+    // POST /api/outreach/call/machine/:callId
+    if (route.startsWith('/call/machine/') && method === 'POST') {
+      const callId = route.replace('/call/machine/', '');
+      const body = twilioParams;
+      const { AnsweredBy } = body as { AnsweredBy: string };
+
+      log.debug({ callId, AnsweredBy }, 'Machine detection callback');
+
+      try {
+        const callService = getConversationalCallService();
+
+        // Validate machine detection result
+        const validMachineResults = [
+          'human',
+          'machine_start',
+          'machine_end_beep',
+          'machine_end_silence',
+          'machine_end_other',
+          'fax',
+          'unknown',
+        ] as const;
+        type MachineResult = (typeof validMachineResults)[number];
+        const machineResult = validMachineResults.includes(AnsweredBy as MachineResult)
+          ? (AnsweredBy as MachineResult)
+          : 'unknown';
+
+        const twiml = callService.handleMachineDetection
+          ? await callService.handleMachineDetection(callId, machineResult)
+          : undefined;
+
+        if (twiml) {
+          res.setHeader('Content-Type', 'text/xml');
+          res.writeHead(200);
+          res.end(twiml);
+        } else {
+          res.writeHead(200);
+          res.end('OK');
+        }
+        return true;
+      } catch (error) {
+        log.error({ error, callId }, 'Error handling machine detection');
+        res.writeHead(500);
+        res.end('Error');
+        return true;
+      }
     }
 
     // Require authentication for all non-webhook routes
@@ -566,113 +698,6 @@ export async function handleOutreachRoutes(
       updateUserContext(userId, context);
       sendJsonResponse(res, 200, { success: true, message: 'Context updated' });
       return true;
-    }
-
-    // ========================================================================
-    // TWILIO WEBHOOKS
-    // ========================================================================
-
-    // POST /api/outreach/call/status/:callId
-    if (route.startsWith('/call/status/') && method === 'POST') {
-      const callId = route.replace('/call/status/', '');
-      const body = await parseRequestBody(req);
-      const { CallStatus, AnsweredBy } = body as { CallStatus: string; AnsweredBy?: string };
-
-      log.debug({ callId, CallStatus, AnsweredBy }, 'Call status callback');
-
-      try {
-        const callService = getConversationalCallService();
-        if (callService.handleStatusCallback) {
-          await callService.handleStatusCallback(
-            callId,
-            CallStatus,
-            body as { callSid?: string; duration?: number; answeredBy?: string }
-          );
-        }
-
-        // Validate machine detection result
-        const validMachineResults = [
-          'human',
-          'machine_start',
-          'machine_end_beep',
-          'machine_end_silence',
-          'machine_end_other',
-          'fax',
-          'unknown',
-        ] as const;
-        type MachineResult = (typeof validMachineResults)[number];
-
-        if (AnsweredBy && AnsweredBy !== 'human') {
-          const machineResult = validMachineResults.includes(AnsweredBy as MachineResult)
-            ? (AnsweredBy as MachineResult)
-            : 'unknown';
-          const twiml = callService.handleMachineDetection
-            ? await callService.handleMachineDetection(callId, machineResult)
-            : undefined;
-          if (twiml) {
-            res.setHeader('Content-Type', 'text/xml');
-            res.writeHead(200);
-            res.end(twiml);
-            return true;
-          }
-        }
-
-        res.writeHead(200);
-        res.end('OK');
-        return true;
-      } catch (error) {
-        log.error({ error, callId }, 'Error handling call status');
-        res.writeHead(500);
-        res.end('Error');
-        return true;
-      }
-    }
-
-    // POST /api/outreach/call/machine/:callId
-    if (route.startsWith('/call/machine/') && method === 'POST') {
-      const callId = route.replace('/call/machine/', '');
-      const body = await parseRequestBody(req);
-      const { AnsweredBy } = body as { AnsweredBy: string };
-
-      log.debug({ callId, AnsweredBy }, 'Machine detection callback');
-
-      try {
-        const callService = getConversationalCallService();
-
-        // Validate machine detection result
-        const validMachineResults = [
-          'human',
-          'machine_start',
-          'machine_end_beep',
-          'machine_end_silence',
-          'machine_end_other',
-          'fax',
-          'unknown',
-        ] as const;
-        type MachineResult = (typeof validMachineResults)[number];
-        const machineResult = validMachineResults.includes(AnsweredBy as MachineResult)
-          ? (AnsweredBy as MachineResult)
-          : 'unknown';
-
-        const twiml = callService.handleMachineDetection
-          ? await callService.handleMachineDetection(callId, machineResult)
-          : undefined;
-
-        if (twiml) {
-          res.setHeader('Content-Type', 'text/xml');
-          res.writeHead(200);
-          res.end(twiml);
-        } else {
-          res.writeHead(200);
-          res.end('OK');
-        }
-        return true;
-      } catch (error) {
-        log.error({ error, callId }, 'Error handling machine detection');
-        res.writeHead(500);
-        res.end('Error');
-        return true;
-      }
     }
 
     // ========================================================================

@@ -18,6 +18,11 @@ import { getOutreachDecisionEngine } from '../decision-engine.js';
 import { markResponded, updateDeliveryStatus } from '../delivery/delivery-tracker.js';
 import { handleSMSStatus } from '../delivery/sms-delivery.js';
 import { handleCallStatus, handleMachineDetection } from '../sip-bridge.js';
+import {
+  firestoreThreadStore,
+  geminiReplyGenerator,
+  handleContactReply,
+} from '../contact-sms-conversation.js';
 import { findContactByPhone, markContactResponded } from '../../contacts/optimal-timing.js';
 // Bidirectional engagement - route replies to the right agent
 import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/inbound-router.js';
@@ -471,6 +476,21 @@ export async function handleInboundSMSWebhook(
       { error: String(mlError), from: From },
       'Failed to update ML timing for contact response'
     );
+  }
+
+  // =========================================================================
+  // CONTACT CONVERSATION - a contact Ferni texted is replying (e.g. mom)
+  // =========================================================================
+  try {
+    const threadStore = firestoreThreadStore();
+    if (threadStore) {
+      const reply = await handleContactReply(threadStore, geminiReplyGenerator, From, Body);
+      if (reply) {
+        return { success: true, twiml: generateTwiML(reply) };
+      }
+    }
+  } catch (threadError) {
+    log.warn({ error: String(threadError) }, 'Contact SMS conversation failed');
   }
 
   // =========================================================================
