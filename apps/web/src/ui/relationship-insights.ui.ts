@@ -10,6 +10,7 @@
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
+import { shouldUseDemoData } from '../utils/environment.js';
 import { t } from '../i18n/index.js';
 
 const log = createLogger('RelationshipInsightsUI');
@@ -922,23 +923,118 @@ async function loadInsightsData(): Promise<void> {
   render();
 
   try {
-    const response = await apiFetch('/api/contacts/insights');
+    const [insightsResponse, contactsResponse] = await Promise.all([
+      apiFetch('/api/contacts/insights'),
+      apiFetch('/api/contacts'),
+    ]);
 
-    if (!response.ok) {
+    if (!insightsResponse.ok || !contactsResponse.ok) {
       throw new Error('Failed to load insights');
     }
 
-    state.data = await response.json();
-    state.isLoading = false;
-    render();
+    state.data = buildInsightsData(
+      (await insightsResponse.json()) as ContactsInsightsPayload,
+      (await contactsResponse.json()) as ContactsListPayload
+    );
   } catch (error) {
     log.error('Failed to load relationship insights:', error);
-    
-    // Use mock data for now
-    state.data = getMockData();
-    state.isLoading = false;
-    render();
+
+    if (shouldUseDemoData()) {
+      // Demo/dev only: sample data so the layout can be previewed
+      state.data = getMockData();
+    } else {
+      state.data = null;
+      state.error = "Couldn't load your relationship insights. Try again in a bit?";
+    }
   }
+
+  state.isLoading = false;
+  render();
+}
+
+// Backend shapes (src/api/contacts-routes.ts)
+interface ContactsInsightsPayload {
+  insights?: Array<{
+    contactId: string;
+    contactName: string;
+    insightType: 'overdue' | 'strengthening' | 'weakening' | 'follow-up' | 'pattern';
+    message: string;
+    priority: 'high' | 'medium' | 'low';
+    suggestedAction?: string;
+  }>;
+  needsAttention?: Array<{ id: string }>;
+}
+
+interface ContactsListPayload {
+  contacts?: Array<{
+    relationship?: string;
+    strengthScore?: number;
+    importantDates?: Array<{ date: string }>;
+  }>;
+}
+
+const INSIGHT_TYPE_MAP: Record<string, RelationshipInsight['type']> = {
+  overdue: 'nudge',
+  'follow-up': 'nudge',
+  strengthening: 'milestone',
+  weakening: 'warning',
+  pattern: 'pattern',
+};
+
+/** True if an MM-DD or YYYY-MM-DD date recurs within the next `days` days */
+function isUpcoming(date: string, days: number): boolean {
+  const parts = date.split('-').map(Number);
+  const [month, day] = parts.length === 3 ? parts.slice(1) : parts;
+  if (!month || !day) return false;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let next = new Date(today.getFullYear(), month - 1, day);
+  if (next < today) next = new Date(today.getFullYear() + 1, month - 1, day);
+  return next.getTime() - today.getTime() <= days * 24 * 60 * 60 * 1000;
+}
+
+/** Build the panel's view model from real contacts + insights data */
+function buildInsightsData(
+  insightsPayload: ContactsInsightsPayload,
+  contactsPayload: ContactsListPayload
+): RelationshipInsightsData {
+  const contacts = contactsPayload.contacts ?? [];
+  const count = (rel: string): number => contacts.filter((c) => c.relationship === rel).length;
+  const scores = contacts.map((c) => c.strengthScore ?? 0);
+  const pct = (n: number): number => (contacts.length ? Math.round((n / contacts.length) * 100) : 0);
+
+  return {
+    stats: {
+      totalPeople: contacts.length,
+      familyCount: count('family'),
+      friendCount: count('friend'),
+      colleagueCount: count('colleague'),
+      averageStrength: scores.length
+        ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+        : 0,
+      upcomingDates: contacts.filter((c) =>
+        (c.importantDates ?? []).some((d) => isUpcoming(d.date, 30))
+      ).length,
+      needsAttention: insightsPayload.needsAttention?.length ?? 0,
+    },
+    insights: (insightsPayload.insights ?? []).map((insight, i) => ({
+      id: `${insight.contactId}_${i}`,
+      type: INSIGHT_TYPE_MAP[insight.insightType] ?? 'pattern',
+      title: insight.contactName,
+      description: insight.message,
+      actionLabel: insight.suggestedAction,
+      contactId: insight.contactId,
+      contactName: insight.contactName,
+      priority: insight.priority,
+    })),
+    strengthDistribution: [
+      { label: 'Strong', value: pct(scores.filter((v) => v >= 70).length), color: 'var(--persona-primary)' },
+      { label: 'Good', value: pct(scores.filter((v) => v >= 40 && v < 70).length), color: 'var(--nayan-primary)' },
+      { label: 'Needs work', value: pct(scores.filter((v) => v < 40).length), color: 'var(--color-semantic-error)' },
+    ],
+    // No per-day interaction history endpoint yet; show an empty grid rather than invent one
+    recentActivity: [],
+  };
 }
 
 function getMockData(): RelationshipInsightsData {
