@@ -1086,7 +1086,8 @@ async function handleDisconnect(): Promise<void> {
   renderLoading();
 
   try {
-    await apiDelete('/api/apple-health/disconnect');
+    const response = await apiDelete('/api/apple-health/disconnect');
+    if (!response.ok) throw new Error(response.error || 'Disconnect failed');
     toast.success(t('toasts.appleHealthDisconnected'));
     callbacks.onDisconnected?.();
     renderNotConnected();

@@ -658,10 +658,12 @@ async function startAuthFlow(): Promise<void> {
   try {
     const response = await apiGet<{ url: string }>('/api/eight-sleep/auth/url');
 
-    if (response.data?.url) {
-      // Redirect to Eight Sleep OAuth
-      window.location.href = response.data.url;
+    if (!response.ok || !response.data?.url) {
+      throw new Error(response.error || 'Failed to get authorization URL');
     }
+
+    // Redirect to Eight Sleep OAuth
+    window.location.href = response.data.url;
   } catch (error) {
     log.error('Failed to start Eight Sleep auth:', error);
     toast.error("Couldn't connect to Eight Sleep. Try again?");
@@ -670,7 +672,8 @@ async function startAuthFlow(): Promise<void> {
 
 async function setTemperature(level: number): Promise<void> {
   try {
-    await apiPut('/api/eight-sleep/temperature', { level });
+    const response = await apiPut('/api/eight-sleep/temperature', { level });
+    if (!response.ok) throw new Error(response.error || 'Set temperature failed');
     toast.success(t('toasts.bedSetToLevelLevel'));
   } catch (error) {
     log.error('Failed to set temperature:', error);
@@ -680,7 +683,8 @@ async function setTemperature(level: number): Promise<void> {
 
 async function disconnect(): Promise<void> {
   try {
-    await apiDelete('/api/eight-sleep/disconnect');
+    const response = await apiDelete('/api/eight-sleep/disconnect');
+    if (!response.ok) throw new Error(response.error || 'Disconnect failed');
     toast.success(t('toasts.eightSleepDisconnected'));
     callbacks.onDisconnected?.();
     render({ connected: false });
