@@ -24,7 +24,8 @@
  * echo cancellation from the browser (LiveKit's capture defaults), so their
  * audio goes to STT untouched. The Twilio bridge (twilio-stream-bridge.ts)
  * applies AGC + high-pass to phone audio before it reaches LiveKit.
- * PreSTTFrameProcessor (pre-stt-frame-processor.ts) is not wired anywhere.
+ * LiveKit SIP callers get AGC + high-pass through PreSTTFrameProcessor
+ * (pre-stt-frame-processor.ts), attached when their session starts.
  *
  * @module agents/integrations/pre-stt-audio-integration
  */

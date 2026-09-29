@@ -1,30 +1,37 @@
 /**
- * Pre-STT Frame Processor for LiveKit
+ * Pre-STT Frame Processor for phone (LiveKit SIP) callers
  *
- * Implements LiveKit's FrameProcessor<AudioFrame> to process user audio before
- * STT (use as session inputOptions.noiseCancellation). NOT WIRED: nothing
- * uses it. Browser callers already get AGC/noise suppression from the browser,
- * and server-side noise suppression measurably hurts Ink-2 (see
- * pre-stt-audio-integration.ts). The one case it could help is callers with no
- * browser processing, e.g. LiveKit SIP phone participants: AGC + high-pass cut
- * a quiet caller's word errors from 36.7% to 3.1% without hurting normal
- * speech. Wire it for those participants only, with the standard preset
- * (AGC + high-pass; noise suppression off).
+ * A LiveKit FrameProcessor<AudioFrame> that runs the caller's audio through
+ * automatic gain control + high-pass before STT, attached as the session's
+ * inputOptions.noiseCancellation for SIP participants only.
+ *
+ * Why SIP only: browser callers already get AGC/noise suppression from the
+ * browser; phone audio arrives with none. Measured on Cartesia Ink-2 with
+ * phone-band audio as LiveKit SIP delivers it (60 utterances over 4 noise
+ * realizations, scripts/audio-eval/stt-accuracy.ts, 2026-09-29):
+ *
+ *   caller              raw     AGC + high-pass
+ *   normal line         2.2%    2.2%
+ *   quiet (-22 dB)      27%     2.7%
+ *   noisy (10 dB SNR)   9.2%    7.1%
+ *
+ * Noise suppression stays off: it hurts Ink-2 badly (see
+ * pre-stt-audio-integration.ts). The AGC is the native (Rust) one; the
+ * JavaScript fallback is a different design that was not measured, so
+ * without the native module audio passes through untouched.
  *
  * @module agents/integrations/pre-stt-frame-processor
  */
 
-import { AudioFrame, FrameProcessor } from '@livekit/rtc-node';
+import { AudioFrame, FrameProcessor, ParticipantKind } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
-import {
-  getOrCreateProcessor,
-  PreSTTPresets,
-  type PreSTTProcessor,
-} from '../shared/performance/pre-stt-transform.js';
+import { PreSTTPresets, PreSTTProcessor } from '../shared/performance/pre-stt-transform.js';
 
 const log = getLogger();
 
-/** Convert Float32 [-1,1] to Int16 for AudioFrame.data */
+/** The room input's audio rate unless the session sets another (LiveKit Agents default). */
+export const ROOM_INPUT_SAMPLE_RATE = 24_000;
+
 function float32ToInt16(f32: Float32Array): Int16Array {
   const out = new Int16Array(f32.length);
   for (let i = 0; i < f32.length; i++) {
@@ -34,30 +41,17 @@ function float32ToInt16(f32: Float32Array): Int16Array {
   return out;
 }
 
-/** Simple VAD: true if RMS above threshold */
-function isSpeech(int16: Int16Array, threshold = 0.02): boolean {
-  let sum = 0;
-  for (let i = 0; i < int16.length; i++) {
-    sum += int16[i]! * int16[i]!;
-  }
-  const rms = Math.sqrt(sum / int16.length) / 32768;
-  return rms > threshold;
-}
-
-/**
- * LiveKit FrameProcessor that runs each input frame through Pre-STT (AGC, noise suppression).
- * The returned frame is what gets sent to the LLM/STT.
- */
 export class PreSTTFrameProcessor extends FrameProcessor<AudioFrame> {
   private enabled = true;
-  private processor: PreSTTProcessor;
-  private sessionId: string;
   private closed = false;
+  private warnedRate = false;
 
-  constructor(processor: PreSTTProcessor, sessionId: string) {
+  constructor(
+    private readonly processor: PreSTTProcessor,
+    private readonly sampleRate: number,
+    private readonly sessionId: string
+  ) {
     super();
-    this.processor = processor;
-    this.sessionId = sessionId;
   }
 
   isEnabled(): boolean {
@@ -69,23 +63,25 @@ export class PreSTTFrameProcessor extends FrameProcessor<AudioFrame> {
   }
 
   process(frame: AudioFrame): AudioFrame {
-    if (this.closed || !this.enabled) {
+    if (!this.isEnabled() || frame.channels !== 1) return frame;
+    if (frame.sampleRate !== this.sampleRate) {
+      // The high-pass and AGC time constants are set for one rate.
+      if (!this.warnedRate) {
+        this.warnedRate = true;
+        log.warn(
+          { sessionId: this.sessionId, got: frame.sampleRate, expected: this.sampleRate },
+          'Pre-STT: unexpected input rate, passing audio through'
+        );
+      }
       return frame;
     }
     try {
-      // Pre-STT expects Int16Array; AudioFrame.data is Int16Array
-      const int16 = frame.data;
-      const speech = isSpeech(int16);
-      const enhancedF32 = this.processor.processFrameI16(int16, speech);
-      const enhancedInt16 = float32ToInt16(enhancedF32);
-      return new AudioFrame(
-        enhancedInt16,
-        frame.sampleRate,
-        frame.channels,
-        frame.samplesPerChannel
-      );
+      // The AGC finds speech itself (it tracks the noise floor), so the
+      // speech flag, used only by noise suppression, doesn't matter here.
+      const out = float32ToInt16(this.processor.processFrameI16(frame.data, true));
+      return new AudioFrame(out, frame.sampleRate, frame.channels, frame.samplesPerChannel);
     } catch (err) {
-      log.warn({ error: String(err), sessionId: this.sessionId }, 'Pre-STT frame process failed, passing through');
+      log.warn({ error: String(err), sessionId: this.sessionId }, 'Pre-STT frame failed, passing through');
       return frame;
     }
   }
@@ -93,31 +89,37 @@ export class PreSTTFrameProcessor extends FrameProcessor<AudioFrame> {
   close(): void {
     this.closed = true;
     this.enabled = false;
-    // Processor is session-scoped and cleaned up by removeSessionProcessor elsewhere
+    this.processor.reset();
   }
 }
 
+/** Phone callers reach the room as SIP participants. PRE_STT_SIP=off turns this off. */
+export function wantsPhonePreStt(
+  participant: { kind?: ParticipantKind } | undefined,
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return participant?.kind === ParticipantKind.SIP && env.PRE_STT_SIP !== 'off';
+}
+
 /**
- * Create a Pre-STT FrameProcessor for the given session.
- * Use as inputOptions.noiseCancellation when starting the session.
- * Session should use audioSampleRate: 16000 when using this (Pre-STT preset is 16k).
- *
- * @param sessionId - Session ID for processor caching
- * @returns PreSTTFrameProcessor instance, or null if Pre-STT unavailable
+ * The frame processor for a phone caller, or null when the native processor
+ * isn't available (audio then goes to STT as before).
  */
 export async function createPreSTTFrameProcessor(
-  sessionId: string
+  sessionId: string,
+  sampleRate = ROOM_INPUT_SAMPLE_RATE
 ): Promise<PreSTTFrameProcessor | null> {
   try {
-    const processor = await getOrCreateProcessor(sessionId, PreSTTPresets.standard);
-    const fp = new PreSTTFrameProcessor(processor, sessionId);
-    log.info(
-      { sessionId, usingRust: processor.isUsingRust() },
-      '🎤 Pre-STT FrameProcessor created (enhanced audio → STT)'
-    );
-    return fp;
+    const processor = new PreSTTProcessor({ ...PreSTTPresets.standard, sampleRate, sessionId });
+    await processor.initialize();
+    if (!processor.isUsingRust()) {
+      log.warn({ sessionId }, 'Pre-STT: native processor unavailable, phone audio left as is');
+      return null;
+    }
+    log.info({ sessionId, sampleRate }, 'Pre-STT: AGC + high-pass on phone caller audio');
+    return new PreSTTFrameProcessor(processor, sampleRate, sessionId);
   } catch (err) {
-    log.warn({ error: String(err), sessionId }, 'Pre-STT FrameProcessor not available');
+    log.warn({ error: String(err), sessionId }, 'Pre-STT frame processor not available');
     return null;
   }
 }
