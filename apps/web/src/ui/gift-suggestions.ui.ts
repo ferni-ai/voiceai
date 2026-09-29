@@ -101,6 +101,15 @@ const OCCASIONS = [
   { value: 'housewarming', label: 'Housewarming' },
 ];
 
+// Budget ranges sent to GET /api/gifts/:contactId/suggestions (minBudget/maxBudget)
+const BUDGET_RANGES: Record<string, { min: number; max: number }> = {
+  under_25: { min: 0, max: 25 },
+  '25_50': { min: 25, max: 50 },
+  '50_100': { min: 50, max: 100 },
+  '100_200': { min: 100, max: 200 },
+  over_200: { min: 200, max: 100000 },
+};
+
 // Budget options
 const BUDGETS = [
   { value: '', label: 'Any budget' },
@@ -788,20 +797,40 @@ async function generateSuggestions(): Promise<void> {
   render();
 
   try {
-    const response = await apiFetch(`/api/contacts/${state.contactId}/gift-suggestions`, {
-      method: 'POST',
-      body: JSON.stringify({
-        occasion: state.occasion || undefined,
-        budget: state.budget || undefined,
-      }),
-    });
+    const params = new URLSearchParams();
+    if (state.occasion) params.set('occasion', state.occasion);
+    const range = BUDGET_RANGES[state.budget];
+    if (range) {
+      params.set('minBudget', String(range.min));
+      params.set('maxBudget', String(range.max));
+    }
+
+    const response = await apiFetch(
+      `/api/gifts/${encodeURIComponent(state.contactId)}/suggestions?${params}`
+    );
 
     if (!response.ok) {
       throw new Error('Failed to generate suggestions');
     }
 
-    const data = await response.json();
-    state.suggestions = data.suggestions || [];
+    // Backend shape: src/services/contacts/gift-tracking-service.ts GiftSuggestion
+    const data = (await response.json()) as {
+      suggestions?: Array<{
+        idea: string;
+        description: string;
+        priceRange: string;
+        reasoning: string;
+        tags?: string[];
+      }>;
+    };
+    state.suggestions = (data.suggestions || []).map((s, i) => ({
+      id: `gift_${i}`,
+      name: s.idea,
+      description: s.description,
+      priceRange: s.priceRange,
+      reasoning: s.reasoning,
+      category: s.tags?.[0] ?? 'general',
+    }));
     state.hasGenerated = true;
     state.isLoading = false;
     render();

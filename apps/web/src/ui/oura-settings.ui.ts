@@ -834,7 +834,8 @@ async function handleDisconnect(): Promise<void> {
   renderLoadingState();
 
   try {
-    await apiDelete('/api/oura/disconnect');
+    const response = await apiDelete('/api/oura/disconnect');
+    if (!response.ok) throw new Error(response.error || 'Disconnect failed');
     toast.success(t('toasts.ouraDisconnected'));
     callbacks.onDisconnected?.();
     renderConnectState();

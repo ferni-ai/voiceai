@@ -1072,8 +1072,77 @@ async function handleStripeWebhook(ctx: RequestContext): Promise<ResponseContext
   }
 }
 
+// ============================================================================
+// PAYMENT VERIFICATION (payment-complete page)
+// ============================================================================
+
+const PAYMENT_INTENT_ID = /^pi_[A-Za-z0-9]+$/;
+
+function jsonResponse(status: number, body: unknown): ResponseContext {
+  return { status, headers: { 'Content-Type': 'application/json' }, body };
+}
+
+/**
+ * GET /api/monetization/{tip|fund|value}/verify?payment_intent=pi_...
+ * Look up a Stripe payment intent after the checkout redirect.
+ *
+ * SECURITY: Requires auth and only reveals payments made by the caller
+ * (payment intent metadata.ferni_user_id must match), unless admin.
+ */
+async function verifyPaymentStatus(ctx: RequestContext): Promise<ResponseContext> {
+  if (!ctx.authUserId) {
+    return jsonResponse(401, { success: false, message: 'Sign in to check your payment.' });
+  }
+
+  const paymentIntentId = ctx.query.payment_intent;
+  if (!paymentIntentId || !PAYMENT_INTENT_ID.test(paymentIntentId)) {
+    return jsonResponse(400, { success: false, message: 'Missing or invalid payment reference.' });
+  }
+
+  if (!isStripeConfigured()) {
+    return jsonResponse(503, {
+      success: false,
+      message: "We can't confirm payments right now. If you were charged, it'll show up soon.",
+    });
+  }
+
+  try {
+    const result = await verifyPayment(paymentIntentId);
+
+    // Treat someone else's payment exactly like a missing one (no enumeration)
+    if (result.userId !== ctx.authUserId && !ctx.isAdmin) {
+      log.warn({ authUserId: ctx.authUserId }, 'Payment verify for another user refused');
+      return jsonResponse(404, { success: false, message: "We couldn't find that payment." });
+    }
+
+    if (result.succeeded) {
+      return jsonResponse(200, {
+        success: true,
+        type: result.type,
+        amountCents: result.amountCents,
+      });
+    }
+
+    return jsonResponse(200, {
+      success: false,
+      message: "Your payment hasn't gone through yet. Check back in a moment.",
+    });
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to verify payment');
+    return jsonResponse(500, {
+      success: false,
+      message: "We couldn't verify your payment. If you were charged, we'll sort it out.",
+    });
+  }
+}
+
 const routes: Record<string, Record<string, RouteHandler>> = {
   GET: {
+    // Payment verification (redirect target after Stripe checkout)
+    '/api/monetization/tip/verify': verifyPaymentStatus,
+    '/api/monetization/fund/verify': verifyPaymentStatus,
+    '/api/monetization/value/verify': verifyPaymentStatus,
+
     // Tip Jar
     '/api/monetization/tip/config': getTipConfig,
 

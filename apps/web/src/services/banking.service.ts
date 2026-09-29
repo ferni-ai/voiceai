@@ -15,9 +15,12 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { apiGet, apiPost } from '../utils/api.js';
+import { apiDelete, apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('BankingService');
+
+/** Backend routes live in src/api/v1/integrations/handler.ts */
+const BANKING_API = '/api/v1/integrations/banking';
 
 // ============================================================================
 // TYPES
@@ -62,7 +65,8 @@ export interface SpendingInsights {
     percentage: number;
     trend: 'up' | 'down' | 'stable';
   }>;
-  savingsRate: number;
+  /** Not computed by the backend yet */
+  savingsRate: number | null;
   unusualActivity: Array<{
     description: string;
     amount: number;
@@ -148,9 +152,18 @@ async function loadPlaidScript(): Promise<void> {
  */
 export async function initBanking(): Promise<BankingStatus> {
   try {
-    const response = await apiGet<{ status: BankingStatus }>('/api/banking/status');
+    const response = await apiGet<{
+      connected: boolean;
+      institution: string | null;
+      linkedAt: string | null;
+    }>(`${BANKING_API}/status`);
     if (response.ok && response.data) {
-      currentStatus = response.data.status;
+      currentStatus = {
+        ...currentStatus,
+        connected: response.data.connected,
+        institution: response.data.institution,
+        lastSync: response.data.linkedAt,
+      };
       notifyListeners();
     }
   } catch (error) {
@@ -183,10 +196,9 @@ export async function connectBanking(userId: string): Promise<{
     }
 
     // Get link token from backend
-    const tokenResponse = await apiPost<{ linkToken: string }>(
-      '/api/banking/create-link-token',
-      { userId }
-    );
+    // Backend derives the user from the verified auth token
+    log.debug('Requesting Plaid link token', { userId });
+    const tokenResponse = await apiPost<{ linkToken: string }>(`${BANKING_API}/link-token`, {});
 
     if (!tokenResponse.ok || !tokenResponse.data) {
       return { success: false, error: 'Failed to get link token' };
@@ -200,13 +212,16 @@ export async function connectBanking(userId: string): Promise<{
           log.info('Plaid Link success', { metadata });
 
           // Exchange public token for access token
+          const meta = (metadata ?? {}) as {
+            institution?: { institution_id?: string; name?: string } | null;
+            accounts?: unknown[];
+          };
           const exchangeResponse = await apiPost<{
             success: boolean;
             institution: string;
-            accountCount: number;
-          }>('/api/banking/exchange-token', {
+          }>(`${BANKING_API}/exchange-token`, {
             publicToken,
-            userId,
+            institution: meta.institution ?? undefined,
           });
 
           if (exchangeResponse.ok && exchangeResponse.data?.success) {
@@ -215,7 +230,7 @@ export async function connectBanking(userId: string): Promise<{
               institution: exchangeResponse.data.institution,
               institutionLogo: null, // Would come from Plaid
               lastSync: new Date().toISOString(),
-              accountCount: exchangeResponse.data.accountCount,
+              accountCount: meta.accounts?.length ?? 0,
             };
             notifyListeners();
             resolve({ success: true });
@@ -251,10 +266,7 @@ export async function disconnectBanking(): Promise<{
   error?: string;
 }> {
   try {
-    const response = await apiPost<{ success: boolean }>(
-      '/api/banking/disconnect',
-      {}
-    );
+    const response = await apiDelete<{ success: boolean }>(`${BANKING_API}/disconnect`);
 
     if (response.ok && response.data?.success) {
       currentStatus = {
@@ -283,11 +295,34 @@ export async function getAccounts(): Promise<BankAccount[]> {
   }
 
   try {
-    const response = await apiGet<{ accounts: BankAccount[] }>(
-      '/api/banking/accounts'
-    );
+    const response = await apiGet<{
+      accounts: Array<{
+        accountId: string;
+        name: string;
+        type: string;
+        subtype?: string | null;
+        mask: string | null;
+        balances: {
+          current: number | null;
+          available: number | null;
+          iso_currency_code?: string | null;
+        };
+      }>;
+    }>(`${BANKING_API}/balances`);
     if (response.ok && response.data) {
-      return response.data.accounts;
+      const knownTypes: BankAccount['type'][] = ['checking', 'savings', 'credit', 'investment'];
+      return response.data.accounts.map((a) => ({
+        id: a.accountId,
+        name: a.name,
+        // Plaid reports checking/savings as type 'depository' with a subtype
+        type: [a.subtype, a.type].find((t): t is BankAccount['type'] =>
+          knownTypes.includes(t as BankAccount['type'])
+        ) ?? 'other',
+        mask: a.mask ?? '',
+        currentBalance: a.balances.current ?? 0,
+        availableBalance: a.balances.available ?? undefined,
+        currency: a.balances.iso_currency_code ?? 'USD',
+      }));
     }
   } catch (error) {
     log.error('Failed to fetch accounts:', String(error));
@@ -302,7 +337,6 @@ export async function getAccounts(): Promise<BankAccount[]> {
 export async function getTransactions(options?: {
   startDate?: string;
   endDate?: string;
-  accountId?: string;
   limit?: number;
 }): Promise<Transaction[]> {
   if (!currentStatus.connected) {
@@ -310,17 +344,39 @@ export async function getTransactions(options?: {
   }
 
   try {
-    const params = new URLSearchParams();
-    if (options?.startDate) params.set('startDate', options.startDate);
-    if (options?.endDate) params.set('endDate', options.endDate);
-    if (options?.accountId) params.set('accountId', options.accountId);
-    if (options?.limit) params.set('limit', String(options.limit));
+    // Backend supports a lookback window in days (ending today) plus a limit
+    const params: Record<string, string> = {};
+    if (options?.startDate) {
+      const days = Math.ceil((Date.now() - new Date(options.startDate).getTime()) / 86_400_000);
+      if (Number.isFinite(days) && days > 0) params.days = String(days);
+    }
+    if (options?.limit) params.limit = String(options.limit);
 
-    const response = await apiGet<{ transactions: Transaction[] }>(
-      `/api/banking/transactions?${params}`
-    );
+    const response = await apiGet<{
+      transactions: Array<{
+        id: string;
+        date: string;
+        name: string;
+        merchantName?: string | null;
+        amount: number;
+        category?: string[] | null;
+        pending: boolean;
+      }>;
+    }>(`${BANKING_API}/transactions`, params);
     if (response.ok && response.data) {
-      return response.data.transactions;
+      return response.data.transactions
+        .filter((t) => !options?.endDate || t.date <= options.endDate)
+        .map((t) => ({
+          id: t.id,
+          accountId: '', // Not returned by the backend
+          amount: t.amount,
+          currency: 'USD',
+          date: t.date,
+          name: t.name,
+          merchantName: t.merchantName ?? undefined,
+          category: t.category ?? [],
+          pending: t.pending,
+        }));
     }
   } catch (error) {
     log.error('Failed to fetch transactions:', String(error));
@@ -333,23 +389,30 @@ export async function getTransactions(options?: {
  * Get spending insights
  */
 export async function getSpendingInsights(options?: {
-  startDate?: string;
-  endDate?: string;
+  period?: 'week' | 'month' | 'quarter';
 }): Promise<SpendingInsights | null> {
   if (!currentStatus.connected) {
     return null;
   }
 
   try {
-    const params = new URLSearchParams();
-    if (options?.startDate) params.set('startDate', options.startDate);
-    if (options?.endDate) params.set('endDate', options.endDate);
-
-    const response = await apiGet<{ insights: SpendingInsights }>(
-      `/api/banking/insights?${params}`
-    );
+    const response = await apiGet<{
+      totalSpending: number;
+      byCategory: Record<string, { total: number; count: number }>;
+    }>(`${BANKING_API}/spending-analysis`, { period: options?.period ?? 'month' });
     if (response.ok && response.data) {
-      return response.data.insights;
+      const { totalSpending, byCategory } = response.data;
+      const topCategories = Object.entries(byCategory ?? {})
+        .map(([category, c]) => ({
+          category,
+          amount: c.total,
+          percentage: totalSpending > 0 ? Math.round((c.total / totalSpending) * 100) : 0,
+          // Backend doesn't compare periods yet, so no trend is claimed
+          trend: 'stable' as const,
+        }))
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 5);
+      return { totalSpending, topCategories, savingsRate: null, unusualActivity: [] };
     }
   } catch (error) {
     log.error('Failed to fetch spending insights:', String(error));
@@ -359,7 +422,10 @@ export async function getSpendingInsights(options?: {
 }
 
 /**
- * Sync latest transactions from bank
+ * Refresh banking status.
+ *
+ * The backend has no explicit sync endpoint: transactions and balances are
+ * fetched live from Plaid on every request, so "sync" just refreshes status.
  */
 export async function syncBanking(): Promise<{
   success: boolean;
@@ -370,26 +436,8 @@ export async function syncBanking(): Promise<{
     return { success: false, error: 'Not connected' };
   }
 
-  try {
-    const response = await apiPost<{
-      success: boolean;
-      newTransactions: number;
-      lastSync: string;
-    }>('/api/banking/sync', {});
-
-    if (response.ok && response.data?.success) {
-      currentStatus.lastSync = response.data.lastSync;
-      notifyListeners();
-      return {
-        success: true,
-        newTransactions: response.data.newTransactions,
-      };
-    }
-
-    return { success: false, error: 'Sync failed' };
-  } catch (error) {
-    return { success: false, error: String(error) };
-  }
+  const status = await initBanking();
+  return status.connected ? { success: true } : { success: false, error: 'Not connected' };
 }
 
 /**

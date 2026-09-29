@@ -11,6 +11,7 @@
  * Migration guide:
  * - GET /api/story/actions replaces GET /api/actions
  * - GET /api/story/stream replaces the old SSE endpoint
+ * - This panel polls GET /api/actions/pending while open (no SSE here)
  * - Your Story Dashboard shows actions alongside other insights
  *
  * @module ui/activity
@@ -53,6 +54,45 @@ interface FerniAction {
   };
   createdAt: string;
   updatedAt: string;
+}
+
+/** Shape of GET /api/actions/pending items (services/automation/trust-level-system.ts) */
+interface PendingActionPayload {
+  id: string;
+  userId: string;
+  actionType: string;
+  description: string;
+  preview?: { title?: string; summary?: string; affectedParties?: string[] };
+  createdAt: string;
+  expiresAt: string;
+}
+
+/** How often to check for new pending actions while the panel is open */
+const PENDING_POLL_INTERVAL_MS = 30_000;
+
+function pendingActionType(actionType: string): ActionType {
+  const t = actionType.toLowerCase();
+  if (t.includes('sms') || t.includes('text') || t.includes('message')) return 'text';
+  if (t.includes('email')) return 'email';
+  if (t.includes('call')) return 'call';
+  if (t.includes('calendar') || t.includes('event') || t.includes('meeting')) return 'calendar';
+  return 'reminder';
+}
+
+function pendingToFerniAction(pending: PendingActionPayload): FerniAction {
+  return {
+    id: pending.id,
+    userId: pending.userId,
+    type: pendingActionType(pending.actionType),
+    status: 'requested',
+    request: {
+      description: pending.preview?.title || pending.description,
+      target: pending.preview?.affectedParties?.[0],
+      requestedAt: pending.createdAt,
+    },
+    createdAt: pending.createdAt,
+    updatedAt: pending.createdAt,
+  };
 }
 
 interface ActionsResponse {
@@ -356,9 +396,8 @@ class ActivityUI {
   private activeFilter: ActionType | 'all' = 'all';
   private isVisible = false;
   private styleElement: HTMLStyleElement | null = null;
-  private eventSource: EventSource | null = null;
-  private reconnectAttempts = 0;
-  private reconnectTimeout: number | null = null;
+  private pollTimer: number | null = null;
+  private isPolling = false;
   private isOnline = navigator.onLine;
 
   /**
@@ -386,10 +425,10 @@ class ActivityUI {
     this.isVisible = true;
     this.panel?.classList.add('activity-panel--visible');
 
-    // Connect to SSE for real-time updates
-    this.connectSSE();
-
     await this.loadActions();
+
+    // Poll for pending actions while visible (merges into the loaded list)
+    if (this.isVisible) this.startPolling();
   }
 
   /**
@@ -399,8 +438,8 @@ class ActivityUI {
     this.isVisible = false;
     this.panel?.classList.remove('activity-panel--visible');
 
-    // Disconnect SSE to save resources when panel is hidden
-    this.disconnectSSE();
+    // Stop polling to save resources when panel is hidden
+    this.stopPolling();
   }
 
   /**
@@ -418,7 +457,7 @@ class ActivityUI {
    * Clean up resources
    */
   destroy(): void {
-    this.disconnectSSE();
+    this.stopPolling();
     this.panel?.remove();
     this.styleElement?.remove();
     this.panel = null;
@@ -427,118 +466,65 @@ class ActivityUI {
   }
 
   // ============================================================================
-  // SSE REAL-TIME UPDATES
+  // PENDING ACTION POLLING
   // ============================================================================
 
   /**
-   * Connect to the SSE stream for real-time action updates
+   * Start polling GET /api/actions/pending while the panel is visible.
+   * (There is no server-sent event stream for actions.)
    */
-  private connectSSE(): void {
-    // Don't connect if offline or already connected
-    if (!this.isOnline || this.eventSource) return;
+  private startPolling(): void {
+    if (!this.isOnline || this.pollTimer !== null) return;
 
-    try {
-      // Create EventSource with credentials for auth
-      this.eventSource = new EventSource('/api/actions/stream', {
-        withCredentials: true,
-      });
+    void this.pollPendingActions();
+    this.pollTimer = window.setInterval(() => {
+      void this.pollPendingActions();
+    }, PENDING_POLL_INTERVAL_MS);
+  }
 
-      this.eventSource.addEventListener('connected', () => {
-        log.debug({}, 'SSE connected');
-        this.reconnectAttempts = 0;
-      });
-
-      this.eventSource.addEventListener('action_created', (e) => {
-        this.handleActionEvent('created', e);
-      });
-
-      this.eventSource.addEventListener('action_updated', (e) => {
-        this.handleActionEvent('updated', e);
-      });
-
-      this.eventSource.addEventListener('action_completed', (e) => {
-        this.handleActionEvent('completed', e);
-      });
-
-      this.eventSource.addEventListener('action_failed', (e) => {
-        this.handleActionEvent('failed', e);
-      });
-
-      this.eventSource.onerror = () => {
-        log.warn({}, 'SSE connection error');
-        this.handleSSEError();
-      };
-    } catch (error) {
-      log.error({ error: String(error) }, 'Failed to create EventSource');
+  /**
+   * Stop polling (panel hidden, offline, or destroyed)
+   */
+  private stopPolling(): void {
+    if (this.pollTimer !== null) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
     }
   }
 
   /**
-   * Disconnect from SSE stream
+   * Fetch pending actions and merge them into the local list
    */
-  private disconnectSSE(): void {
-    if (this.reconnectTimeout !== null) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
-    }
-    if (this.eventSource) {
-      this.eventSource.close();
-      this.eventSource = null;
-      log.debug({}, 'SSE disconnected');
-    }
-  }
+  private async pollPendingActions(): Promise<void> {
+    if (this.isPolling) return;
+    this.isPolling = true;
 
-  /**
-   * Handle incoming action events from SSE
-   */
-  private handleActionEvent(type: string, event: MessageEvent): void {
     try {
-      const data = JSON.parse(event.data as string) as {
-        type: string;
-        action: FerniAction;
-        timestamp: string;
-      };
-
-      log.debug({ type, actionId: data.action.id }, 'Received SSE action event');
-
-      // Update local actions array
-      const existingIndex = this.actions.findIndex((a) => a.id === data.action.id);
-
-      if (existingIndex >= 0) {
-        // Update existing action
-        this.actions[existingIndex] = data.action;
-      } else if (type === 'created') {
-        // Add new action at the beginning
-        this.actions.unshift(data.action);
+      const response = await apiGet<{ actions: PendingActionPayload[] }>('/api/actions/pending');
+      if (!response.ok || !response.data) {
+        log.debug({ status: response.status }, 'Pending actions poll failed');
+        return;
       }
 
-      // Re-render if panel is visible
-      if (this.isVisible) {
+      let changed = false;
+      for (const pending of response.data.actions) {
+        const action = pendingToFerniAction(pending);
+        const existingIndex = this.actions.findIndex((a) => a.id === action.id);
+        if (existingIndex < 0) {
+          this.actions.unshift(action);
+          changed = true;
+        } else if (this.actions[existingIndex]?.updatedAt !== action.updatedAt) {
+          this.actions[existingIndex] = action;
+          changed = true;
+        }
+      }
+
+      if (changed && this.isVisible) {
         this.renderActions();
       }
-    } catch (error) {
-      log.error({ error: String(error) }, 'Failed to parse SSE event');
+    } finally {
+      this.isPolling = false;
     }
-  }
-
-  /**
-   * Handle SSE connection errors with exponential backoff
-   */
-  private handleSSEError(): void {
-    this.disconnectSSE();
-
-    // Only reconnect if online and panel is visible
-    if (!this.isOnline || !this.isVisible) return;
-
-    // Exponential backoff: 1s, 2s, 4s, 8s, max 30s
-    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-    this.reconnectAttempts++;
-
-    log.debug({ attempt: this.reconnectAttempts, delay }, 'Scheduling SSE reconnect');
-
-    this.reconnectTimeout = window.setTimeout(() => {
-      this.connectSSE();
-    }, delay);
   }
 
   /**
@@ -550,7 +536,7 @@ class ActivityUI {
       log.debug({}, 'Network: online');
       this.updateOfflineBanner();
       if (this.isVisible) {
-        this.connectSSE();
+        this.startPolling();
         // Refresh data in case we missed updates
         void this.loadActions();
       }
@@ -559,7 +545,7 @@ class ActivityUI {
     window.addEventListener('offline', () => {
       this.isOnline = false;
       log.debug({}, 'Network: offline');
-      this.disconnectSSE();
+      this.stopPolling();
       this.updateOfflineBanner();
     });
 

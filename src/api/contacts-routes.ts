@@ -14,6 +14,7 @@
  * - GET /api/contacts/:id - Get a contact
  * - PUT /api/contacts/:id - Update a contact
  * - POST /api/contacts/:id/important-dates - Add important date
+ * - DELETE /api/contacts/:id - Delete a contact (owner only)
  * - GET /api/contacts/groups - List groups
  * - POST /api/contacts/groups - Create group
  * - GET /api/contacts/nudges - Get outreach suggestions
@@ -35,6 +36,7 @@ import {
   getContacts,
   getContact,
   upsertContact,
+  deleteContact,
   recordInteraction,
   getContactsNeedingAttention,
   getRelationshipInsights,
@@ -229,6 +231,30 @@ async function updateContact(
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to update contact');
     sendError(res, 'Failed to update contact', 500);
+  }
+}
+
+/**
+ * DELETE /api/contacts/:id
+ *
+ * SECURITY: Uses the verified auth userId only (never a query/body userId),
+ * and the lookup is scoped to that user's own contacts.
+ */
+async function deleteContactHandler(
+  res: ServerResponse,
+  userId: string,
+  contactId: string
+): Promise<void> {
+  try {
+    const deleted = await deleteContact(userId, contactId);
+    if (!deleted) {
+      sendError(res, 'Contact not found', 404);
+      return;
+    }
+    sendJSON(res, { deleted: true });
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to delete contact');
+    sendError(res, "Couldn't remove that contact", 500);
   }
 }
 
@@ -753,6 +779,12 @@ export async function handleContactsRoutes(
     // PUT /api/contacts/:id
     if (method === 'PUT' && !subPath) {
       await updateContact(req, res, parsedUrl, contactId);
+      return true;
+    }
+
+    // DELETE /api/contacts/:id
+    if (method === 'DELETE' && !subPath) {
+      await deleteContactHandler(res, auth.userId, contactId);
       return true;
     }
 

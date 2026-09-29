@@ -306,6 +306,36 @@ export async function upsertContact(
 }
 
 /**
+ * Delete a contact owned by the user.
+ *
+ * Lookup is scoped to the user's own contacts, so another user's contact
+ * can never match. Returns false when the user has no such contact.
+ */
+export async function deleteContact(userId: string, identifier: string): Promise<boolean> {
+  const existing = await getContact(userId, identifier);
+  if (!existing || existing.userId !== userId) return false;
+
+  const firestore = await getFirestore();
+  if (firestore) {
+    await firestore.collection(CONTACTS_COLLECTION).doc(existing.id).delete();
+  }
+
+  const contacts = contactCache.get(userId) || [];
+  contactCache.set(userId, contacts.filter((c) => c.id !== existing.id));
+
+  // Remove from semantic memory index
+  onContactChange(
+    userId,
+    existing.id,
+    { name: existing.name, relationship: existing.relationship || 'contact' },
+    'delete'
+  );
+
+  log.info({ userId, contactId: existing.contactId }, 'Contact deleted');
+  return true;
+}
+
+/**
  * Interaction type weights for relationship strength
  * Higher weight = bigger impact on relationship score
  */
@@ -1190,6 +1220,7 @@ export default {
   getContacts,
   getContact,
   upsertContact,
+  deleteContact,
   recordInteraction,
   setFollowUp,
   completeFollowUp,

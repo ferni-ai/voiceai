@@ -695,17 +695,38 @@ async function generateStarters(): Promise<void> {
   render();
 
   try {
-    const response = await apiFetch(`/api/contacts/${state.contactId}/conversation-starters`, {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
+    // Topics this person cares about (src/api/contacts-routes.ts GET /:id/topics)
+    const response = await apiFetch(
+      `/api/contacts/${encodeURIComponent(state.contactId)}/topics`
+    );
 
     if (!response.ok) {
       throw new Error('Failed to generate starters');
     }
 
-    const data = await response.json();
-    state.starters = data.starters || [];
+    const data = (await response.json()) as {
+      topics?: Array<{
+        topic: string;
+        lastDiscussed: string;
+        sentiment: string;
+        suggestion: string;
+      }>;
+    };
+    const toneFor = (sentiment: string): ConversationStarter['tone'] =>
+      sentiment === 'negative'
+        ? 'supportive'
+        : sentiment === 'positive'
+          ? 'celebratory'
+          : 'curious';
+    state.starters = (data.topics || []).map((topic, i) => ({
+      id: `topic_${i}`,
+      topic: topic.topic,
+      opener: topic.suggestion,
+      context: topic.lastDiscussed
+        ? `Last came up ${new Date(topic.lastDiscussed).toLocaleDateString()}`
+        : '',
+      tone: toneFor(topic.sentiment),
+    }));
     state.hasGenerated = true;
     state.isLoading = false;
     
