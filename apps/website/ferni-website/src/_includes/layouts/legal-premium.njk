@@ -1,4 +1,6 @@
 {% extends "layouts/base.njk" %}
+{# Legal pages are designed light-only #}
+{% set lightOnly = true %}
 
 {# Override footer for legal pages - use premium footer without hero #}
 {% block footer %}
@@ -9,7 +11,7 @@
 
 {% block head %}
 {# Nav styles from main site #}
-<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/utilities.css">
 <link rel="stylesheet" href="/css/story-brand.css">
 <link rel="stylesheet" href="/css/legal-premium.css">
 <link rel="stylesheet" href="/css/sections/footer.css">

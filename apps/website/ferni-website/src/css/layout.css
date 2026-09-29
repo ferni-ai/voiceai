@@ -2,7 +2,7 @@
    FERNI LAYOUT
    ============================================================================
    Header, footer, navigation, and page structure.
-   All values reference tokens.css variables.
+   All values reference the generated token variables (_tokens.css).
    ============================================================================ */
 
 /* ============================================================================

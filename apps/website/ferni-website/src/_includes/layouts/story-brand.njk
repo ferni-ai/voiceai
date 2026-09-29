@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,8 +19,11 @@
   <meta name="theme-color" content="#4a6741">
   
   {# ====== STYLES (with cache-busting) ====== #}
-  {# CRITICAL: tokens.css MUST come first - defines all CSS variables #}
-  <link rel="stylesheet" href="/css/tokens.css?v=20260112">
+  {# CRITICAL: design tokens MUST come first - defines all CSS variables.
+     Generated from design-system/tokens (pnpm tokens:sync). This layout is
+     designed light-only, hence data-theme="light" on <html>. #}
+  <link rel="stylesheet" href="/css/_tokens.css">
+  <link rel="stylesheet" href="/css/utilities.css">
   <link rel="stylesheet" href="/css/story-brand.css?v=20260103">
   <link rel="stylesheet" href="/css/components.css?v=20251224">
   <link rel="stylesheet" href="/css/sections/footer.css?v=20251231">

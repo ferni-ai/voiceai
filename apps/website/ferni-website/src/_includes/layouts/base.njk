@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ locale or 'en' }}" dir="{{ 'rtl' if (locale == 'ar' or locale == 'he') else 'ltr' }}">
+<html lang="{{ locale or 'en' }}" dir="{{ 'rtl' if (locale == 'ar' or locale == 'he') else 'ltr' }}"{% if lightOnly %} data-theme="light"{% endif %}>
 <head>
   {% include "partials/head.njk" %}
   

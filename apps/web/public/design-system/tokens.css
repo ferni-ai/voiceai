@@ -986,6 +986,7 @@
   --duration-moderate: 450ms;
   --duration-slowest: 500ms;
   --duration-deliberate: 700ms;
+  --duration-cinematic: 800ms;
   --duration-dramatic: 1000ms;
   --duration-glacial: 1500ms;
   --duration-meditative: 3000ms;

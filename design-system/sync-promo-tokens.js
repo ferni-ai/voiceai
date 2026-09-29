@@ -395,8 +395,9 @@ function generateDarkThemeVars(colors) {
   lines.push('   All persona text colors are WCAG AA compliant (4.5:1+ contrast)');
   lines.push('   ============================================================================ */');
   lines.push('');
+  // Pages that are designed light-only opt out with <html data-theme="light">
   lines.push('@media (prefers-color-scheme: dark) {');
-  lines.push('  :root {');
+  lines.push('  :root:not([data-theme="light"]) {');
 
   // Background colors
   lines.push('    /* Background */');
@@ -549,6 +550,15 @@ function generateSpacingVars(spacing) {
   }
   lines.push('');
 
+  // Z-index scale
+  lines.push('  /* ============================================');
+  lines.push('     Z-INDEX');
+  lines.push('     ============================================ */');
+  for (const [key, value] of Object.entries(spacing.zIndex || {})) {
+    lines.push(`  --z-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value};`);
+  }
+  lines.push('');
+
   return lines;
 }
 
@@ -584,6 +594,15 @@ function generateTypographyVars(typography) {
   }
   lines.push('');
 
+  // Line heights
+  lines.push('  /* ============================================');
+  lines.push('     TYPOGRAPHY - Line Heights');
+  lines.push('     ============================================ */');
+  for (const [key, value] of Object.entries(typography.lineHeights || {})) {
+    lines.push(`  --leading-${key}: ${value};`);
+  }
+  lines.push('');
+
   return lines;
 }
 
@@ -598,6 +617,10 @@ function generateAnimationVars(animation) {
     const varName = key.replace(/([A-Z])/g, '-$1').toLowerCase();
     lines.push(`  --ease-${varName}: ${value};`);
   }
+  // Short aliases used by the website stylesheets
+  lines.push(`  --ease-out: ${animation.easings.easeOut};`);
+  lines.push(`  --ease-in-out: ${animation.easings.easeInOut};`);
+  lines.push(`  --ease-cinematic: ${animation.easings.easeOutExpo};`);
   lines.push('');
 
   // Durations

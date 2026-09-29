@@ -271,6 +271,7 @@
     "moderate": "450ms",
     "slowest": "500ms",
     "deliberate": "700ms",
+    "cinematic": "800ms",
     "dramatic": "1000ms",
     "glacial": "1500ms",
     "meditative": "3000ms",
