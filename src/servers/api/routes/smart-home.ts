@@ -11,6 +11,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { requestUserId } from '../../../api/identity-guard.js';
 import { getFirestore } from 'firebase-admin/firestore';
 import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
@@ -63,19 +64,8 @@ interface HomeKitConfig {
 // ============================================================================
 
 function getUserId(req: IncomingMessage): string | null {
-  // Check Authorization header
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.slice(7);
-  }
-
-  // Check X-User-ID header
-  const userIdHeader = req.headers['x-user-id'];
-  if (userIdHeader && typeof userIdHeader === 'string') {
-    return userIdHeader;
-  }
-
-  return null;
+  // Verified identity (set by the identity guard), never the raw Bearer string
+  return requestUserId(req);
 }
 
 function getQueryParam(url: URL, key: string): string | null {

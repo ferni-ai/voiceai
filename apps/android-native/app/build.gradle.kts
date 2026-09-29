@@ -26,6 +26,13 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // Public Firebase Web API key (project johnb-2025) for anonymous sign-in
+        // over REST; override with -PfirebaseApiKey=... or FERNI_FIREBASE_API_KEY
+        val firebaseApiKey = (project.findProperty("firebaseApiKey") as String?)
+            ?: System.getenv("FERNI_FIREBASE_API_KEY")
+            ?: "AIzaSyB9LIOA2jJvy22NAneOd9VLlpHPGy_kVhk"
+        buildConfigField("String", "FIREBASE_API_KEY", "\"$firebaseApiKey\"")
+
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -68,6 +75,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -118,6 +126,8 @@ dependencies {
 
     // Testing
     testImplementation("junit:junit:4.13.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.22")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2024.01.00"))

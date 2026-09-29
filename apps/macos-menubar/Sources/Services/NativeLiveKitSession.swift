@@ -1,4 +1,5 @@
 import Foundation
+import FerniShared
 import AVFoundation
 import Combine
 import os.log
@@ -136,7 +137,7 @@ class NativeLiveKitSession: ObservableObject {
     }
     
     private let cloudTokenServer = "https://app.ferni.ai"
-    private let localTokenServer = "http://localhost:3001"
+    private let localTokenServer = "http://localhost:3002"
     
     var tokenServer: String {
         useCloudMode ? cloudTokenServer : localTokenServer
@@ -168,6 +169,13 @@ class NativeLiveKitSession: ObservableObject {
         UserDefaults.standard.string(forKey: "selectedInputDevice") ?? ""
     }
     
+    /// Anonymous Firebase session for voice tokens. Public Web API key for
+    /// project johnb-2025 (same key as the iOS app's GoogleService-Info.plist).
+    private let firebaseAuth = FirebaseAnonymousAuth(
+        apiKey: "AIzaSyA09CVivkSuzklcZikQjmxSEls6kFV4SIc",
+        extraHeaders: ["X-Ios-Bundle-Identifier": Bundle.main.bundleIdentifier ?? "ai.ferni.voice"]
+    )
+
     // MARK: - Initialization
     
     init() {
@@ -412,7 +420,19 @@ class NativeLiveKitSession: ObservableObject {
         }
 
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            // /token requires a verified Firebase ID token (anonymous sign-in)
+            var request = URLRequest(url: url)
+            let idToken = try await firebaseAuth.idToken()
+            request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+            var (data, response) = try await URLSession.shared.data(for: request)
+
+            // A rejected cached token: sign in again and retry once
+            if (response as? HTTPURLResponse)?.statusCode == 401 {
+                await firebaseAuth.invalidate()
+                let freshToken = try await firebaseAuth.idToken()
+                request.setValue("Bearer \(freshToken)", forHTTPHeaderField: "Authorization")
+                (data, response) = try await URLSession.shared.data(for: request)
+            }
 
             if let httpResponse = response as? HTTPURLResponse {
                 sessionLog.debug("Token response status: \(httpResponse.statusCode)")

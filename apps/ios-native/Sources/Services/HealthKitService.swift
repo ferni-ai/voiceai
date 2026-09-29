@@ -417,7 +417,11 @@ class HealthKitService: ObservableObject {
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+        // The server identifies the user from a verified Firebase token
+        if let firebaseToken = await AuthService.shared.getOrCreateFirebaseToken() {
+            urlRequest.setValue("Bearer \(firebaseToken)", forHTTPHeaderField: "Authorization")
+        }
+
         let encoder = JSONEncoder()
         urlRequest.httpBody = try encoder.encode(request)
         

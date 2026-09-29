@@ -138,7 +138,7 @@ final class VoiceManagerTests: XCTestCase {
 
     func testTokenServerLocalMode() {
         sut.useCloudMode = false
-        XCTAssertEqual(sut.tokenServer, "http://localhost:3001")
+        XCTAssertEqual(sut.tokenServer, "http://localhost:3002")
     }
 
     // MARK: - Persona Tests
@@ -201,7 +201,7 @@ final class NativeLiveKitSessionTests: XCTestCase {
     func testTokenServerLocalMode() {
         let session = NativeLiveKitSession()
         session.useCloudMode = false
-        XCTAssertEqual(session.tokenServer, "http://localhost:3001")
+        XCTAssertEqual(session.tokenServer, "http://localhost:3002")
     }
 
     func testAudioLevelsCount() {

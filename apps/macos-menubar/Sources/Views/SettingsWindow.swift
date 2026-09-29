@@ -391,7 +391,7 @@ struct SettingsView: View {
                 
                 if !voiceManager.useCloudMode {
                     LabeledContent("Local Server") {
-                        Text("http://localhost:3001")
+                        Text("http://localhost:3002")
                             .font(.system(.body, design: .monospaced))
                             .foregroundColor(.secondary)
                     }

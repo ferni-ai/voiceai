@@ -5,6 +5,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { requestUserId } from '../../../api/identity-guard.js';
 import {
   createRoom,
   deleteRoom,
@@ -24,17 +25,8 @@ const log = createLogger({ module: 'spotify-rooms-routes' });
 // ============================================================================
 
 function getUserId(req: IncomingMessage): string | null {
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.slice(7);
-  }
-
-  const userIdHeader = req.headers['x-user-id'];
-  if (userIdHeader && typeof userIdHeader === 'string') {
-    return userIdHeader;
-  }
-
-  return null;
+  // Verified identity (set by the identity guard), never the raw Bearer string
+  return requestUserId(req);
 }
 
 async function parseBody<T>(req: IncomingMessage): Promise<T | null> {

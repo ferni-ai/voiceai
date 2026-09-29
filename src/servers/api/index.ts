@@ -90,6 +90,7 @@ import { renewExpiringSubscriptions as startOutlookSubscriptionRenewal } from '.
 // Existing API route handlers (from dist/)
 import { handleEngagementRoutes } from '../../api/engagement-routes.js';
 import { handlePracticeRoutes } from '../../api/practice-routes.js';
+import { handleHealthSyncRoutes } from './routes/health-sync.js';
 import { handleDiagnosticsRoutes } from '../../api/handoff-diagnostics.js';
 import { handleDashboardMetricsRoutes } from '../../api/dashboard-metrics-routes.js';
 import { handleDORARoutes } from '../../api/dora-routes.js';
@@ -385,6 +386,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Apple Health routes
+  // Health summaries from the mobile apps
+  if (await handleHealthSyncRoutes(req, res, pathname)) return;
+
   if (pathname.startsWith('/api/apple-health')) {
     if (await handleAppleHealthRoutes(req, res, pathname, parsedUrl)) return;
   }

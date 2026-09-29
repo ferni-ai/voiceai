@@ -70,7 +70,7 @@ class VoiceManager: ObservableObject {
     }
 
     var tokenServer: String {
-        useCloudMode ? "https://app.ferni.ai" : "http://localhost:3001"
+        useCloudMode ? "https://app.ferni.ai" : "http://localhost:3002"
     }
 
     // MARK: - Session Management

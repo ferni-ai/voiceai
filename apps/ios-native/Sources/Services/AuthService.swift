@@ -143,6 +143,23 @@ final class AuthService: NSObject, ObservableObject {
         }
     }
 
+    /// A Firebase ID token for voice sessions, signing in anonymously first when
+    /// nobody is signed in. `/token` requires a verified Firebase token; anonymous
+    /// users are the zero-friction path and can sign in with Apple later.
+    func getOrCreateFirebaseToken() async -> String? {
+        if let token = await getFirebaseToken() {
+            return token
+        }
+        do {
+            let result = try await Auth.auth().signInAnonymously()
+            logger.info("Signed in anonymously for voice")
+            return try await result.user.getIDToken()
+        } catch {
+            logger.error("Anonymous sign-in failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
     /// Check if the Apple ID credential is still valid
     func checkCredentialState() async -> Bool {
         guard let userId = keychain.get(.appleUserId) else {

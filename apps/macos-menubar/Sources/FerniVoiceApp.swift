@@ -539,7 +539,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             title: "Ferni Voice",
             message: voiceManager.useCloudMode
                 ? "Switched to Cloud Mode (app.ferni.ai)"
-                : "Switched to Local Mode (localhost:3001)"
+                : "Switched to Local Mode (localhost:3002)"
         )
     }
     

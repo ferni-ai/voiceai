@@ -91,3 +91,14 @@ export async function enforceVerifiedIdentity(req: IncomingMessage): Promise<str
 
   return verifiedId;
 }
+
+/**
+ * The caller's identity after enforceVerifiedIdentity has run: the verified
+ * user, else an anonymous device ID. Never the raw Authorization header.
+ */
+export function requestUserId(req: IncomingMessage): string | null {
+  const verified = headerValue(req, 'x-firebase-uid');
+  if (verified) return verified;
+  const claimed = headerValue(req, 'x-user-id');
+  return claimed && isAnonymousIdentity(claimed) ? claimed : null;
+}

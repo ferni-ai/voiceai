@@ -37,6 +37,7 @@
     "start:peter": "PERSONA_ID=peter-john node --max-old-space-size=3072 dist/agent.js start",
     "test": "vitest run",
     "secrets:check": "node scripts/deploy/resolve-secrets.mjs ui-service --check",
+    "smoke:api": "node scripts/smoke/api-security-smoke.mjs",
     "test:unit": "vitest run --config vitest.config.unit.ts",
     "test:frontend": "cd apps/web && vitest run",
     "test:cli:unit": "cd apps/cli && vitest run",

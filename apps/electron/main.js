@@ -18,6 +18,11 @@ const Sentry = require('@sentry/electron/main');
 // Get your DSN from: https://sentry.io/settings/projects/YOUR_PROJECT/keys/
 const SENTRY_DSN = process.env.SENTRY_DSN || '';
 
+// Production loads the hosted web app: its API calls are relative (/api, /token,
+// /spotify...) and Firebase Auth needs an authorised https origin, neither of
+// which works from file://. The bundled build is only an offline fallback.
+const APP_URL = process.env.FERNI_APP_URL || 'https://app.ferni.ai';
+
 if (SENTRY_DSN) {
   Sentry.init({
     dsn: SENTRY_DSN,
@@ -116,8 +121,13 @@ function createWindow() {
     // Open DevTools in development
     mainWindow.webContents.openDevTools();
   } else {
-    // In production, load from built files
-    mainWindow.loadFile(path.join(__dirname, 'web', 'index.html'));
+    mainWindow.loadURL(APP_URL);
+    // Offline: fall back to the bundled build once (it can't reach the API)
+    mainWindow.webContents.once('did-fail-load', (_event, errorCode, _desc, url) => {
+      if (url.startsWith(APP_URL) && errorCode !== -3 /* ERR_ABORTED */) {
+        mainWindow.loadFile(path.join(__dirname, 'web', 'index.html'));
+      }
+    });
   }
 
   // Save window bounds on resize/move
@@ -405,10 +415,10 @@ app.on('before-quit', () => {
 app.on('web-contents-created', (event, contents) => {
   contents.on('will-navigate', (event, navigationUrl) => {
     // Only allow navigation to the app's own pages
-    const appRoot = isDev
-      ? 'http://localhost:3004'
-      : pathToFileURL(path.join(__dirname, 'web')).href;
-    if (!navigationUrl.startsWith(appRoot)) {
+    const appRoots = isDev
+      ? ['http://localhost:3004']
+      : [`${new URL(APP_URL).origin}/`, pathToFileURL(path.join(__dirname, 'web')).href];
+    if (!appRoots.some((root) => navigationUrl.startsWith(root))) {
       event.preventDefault();
       openExternalSafe(navigationUrl);
     }

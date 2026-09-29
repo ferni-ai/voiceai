@@ -492,13 +492,12 @@ class IOSLiveKitSession: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
 
-        // Add Firebase token if user is signed in
-        if let firebaseToken = await AuthService.shared.getFirebaseToken() {
-            request.setValue("Bearer \(firebaseToken)", forHTTPHeaderField: "Authorization")
-            sessionLog.info("Token request with authentication")
-        } else {
-            sessionLog.debug("Token request without authentication (anonymous)")
+        // /token requires a verified Firebase token (anonymous sign-in if needed)
+        guard let firebaseToken = await AuthService.shared.getOrCreateFirebaseToken() else {
+            sessionLog.error("No Firebase token; cannot request a voice token")
+            return nil
         }
+        request.setValue("Bearer \(firebaseToken)", forHTTPHeaderField: "Authorization")
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)

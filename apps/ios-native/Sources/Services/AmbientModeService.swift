@@ -397,14 +397,17 @@ class AmbientModeService: NSObject, ObservableObject {
     }
     
     private func sendSyncRequest(_ request: AmbientSyncRequest) async throws -> AmbientSyncResponse {
-        guard let url = URL(string: "\(serverBaseUrl)/api/ambient/sync") else {
+        guard let url = URL(string: "\(serverBaseUrl)/api/ambient-mode/sync") else {
             throw AmbientModeError.invalidURL
         }
         
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+        if let firebaseToken = await AuthService.shared.getOrCreateFirebaseToken() {
+            urlRequest.setValue("Bearer \(firebaseToken)", forHTTPHeaderField: "Authorization")
+        }
+
         let encoder = JSONEncoder()
         urlRequest.httpBody = try encoder.encode(request)
         

@@ -56,6 +56,21 @@ async function verifyReceipt(ctx: RequestContext): Promise<ResponseContext> {
 
   const body = ctx.body as { receiptData?: string; userId?: string } | undefined;
 
+  // SECURITY: attach the receipt to the verified caller (identity guard sets
+  // x-firebase-uid); body.userId may only restate it
+  const verified = ctx.headers['x-firebase-uid'];
+  const verifiedId = typeof verified === 'string' ? verified : undefined;
+  if (body && verifiedId) {
+    if (body.userId && body.userId !== verifiedId) {
+      return {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+        body: { error: 'Receipt must belong to the signed-in user' },
+      };
+    }
+    body.userId = verifiedId;
+  }
+
   if (!body?.receiptData || !body?.userId) {
     return {
       status: 400,

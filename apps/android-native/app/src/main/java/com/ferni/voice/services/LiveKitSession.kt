@@ -2,6 +2,9 @@
 
 package com.ferni.voice.services
 
+import com.ferni.voice.BuildConfig
+import com.ferni.voice.services.auth.FirebaseAnonymousAuth
+import com.ferni.voice.services.auth.SharedPrefsAuthTokenStore
 import android.content.Context
 import android.util.Log
 import com.ferni.voice.models.EmotionHint
@@ -75,6 +78,13 @@ class LiveKitSession(private val context: Context) {
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(10, TimeUnit.SECONDS)
         .build()
+
+    private val firebaseAuth = FirebaseAnonymousAuth(
+        apiKey = BuildConfig.FIREBASE_API_KEY,
+        store = SharedPrefsAuthTokenStore(context),
+        http = httpClient,
+        extraHeaders = mapOf("X-Android-Package" to context.packageName),
+    )
 
     // JSON parser
     private val json = Json { ignoreUnknownKeys = true }
@@ -488,23 +498,32 @@ class LiveKitSession(private val context: Context) {
             val roomId = "ferni-android-${UUID.randomUUID().toString().take(8)}"
             val username = "android-${UUID.randomUUID().toString().take(8)}"
             val personaId = _currentPersonaId.value
-
             val url = "$tokenServer/token?room=$roomId&username=$username&persona_id=$personaId"
 
-            val request = Request.Builder()
-                .url(url)
-                .get()
-                .build()
+            // /token requires a verified Firebase ID token (anonymous sign-in).
+            // A 401 means our cached token was rejected: drop it and retry once.
+            for (attempt in 1..2) {
+                val request = Request.Builder()
+                    .url(url)
+                    .header("Authorization", "Bearer ${firebaseAuth.idToken()}")
+                    .get()
+                    .build()
 
-            val response = httpClient.newCall(request).execute()
-
-            if (!response.isSuccessful) {
-                Log.e(TAG, "Token request failed with status ${response.code}")
-                return@withContext null
+                httpClient.newCall(request).execute().use { response ->
+                    if (response.code == 401 && attempt == 1) {
+                        Log.w(TAG, "Voice token rejected; refreshing sign-in")
+                        firebaseAuth.invalidate()
+                        return@use
+                    }
+                    if (!response.isSuccessful) {
+                        Log.e(TAG, "Token request failed with status ${response.code}")
+                        return@withContext null
+                    }
+                    val body = response.body?.string() ?: return@withContext null
+                    return@withContext json.decodeFromString<TokenResponse>(body)
+                }
             }
-
-            val body = response.body?.string() ?: return@withContext null
-            json.decodeFromString<TokenResponse>(body)
+            null
         } catch (e: Exception) {
             Log.e(TAG, "Token fetch error: ${e.message}")
             null

@@ -351,7 +351,7 @@ final class SubscriptionService: ObservableObject {
             let receiptString = receiptData.base64EncodedString()
             
             // Send to backend
-            guard let url = URL(string: "\(serverBaseUrl)/api/subscription/verify-ios") else {
+            guard let url = URL(string: "\(serverBaseUrl)/api/apple/verify") else {
                 return
             }
             
@@ -359,10 +359,14 @@ final class SubscriptionService: ObservableObject {
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             
+            if let firebaseToken = await AuthService.shared.getOrCreateFirebaseToken() {
+                request.setValue("Bearer \(firebaseToken)", forHTTPHeaderField: "Authorization")
+            }
+
+            // Contract: POST /api/apple/verify { receiptData, userId }
             let body: [String: Any] = [
                 "userId": userId,
-                "receipt": receiptString,
-                "tier": currentTier.rawValue
+                "receiptData": receiptString
             ]
             
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
