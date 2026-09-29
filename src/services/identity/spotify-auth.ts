@@ -16,6 +16,11 @@ import * as path from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
+import {
+  getActiveUserAccessToken,
+  getSpotifyUser,
+  isSpotifyUserPossiblyLinked,
+} from './spotify-linked-tokens.js';
 
 // File to store tokens (gitignored)
 const TOKEN_FILE = path.join(process.cwd(), '.spotify-tokens.json');
@@ -37,6 +42,9 @@ interface TokenData {
 }
 
 let cachedTokens: TokenData | null = null;
+
+// Last user we logged a global-token fallback for (avoid log spam)
+let fallbackLoggedFor: string | null = null;
 
 // ============================================================================
 // MUTEX FOR THREAD-SAFE TOKEN REFRESH
@@ -177,6 +185,20 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenData | nul
  * @param forceRefresh - Force a token refresh even if current token appears valid
  */
 export async function getSpotifyAccessToken(forceRefresh = false): Promise<string | null> {
+  // Prefer the calling user's own linked account (see setSpotifyUser)
+  const userId = getSpotifyUser();
+  if (userId) {
+    const userToken = await getActiveUserAccessToken(forceRefresh);
+    if (userToken) return userToken;
+    if (fallbackLoggedFor !== userId) {
+      fallbackLoggedFor = userId;
+      getLogger().warn(
+        { userId: userId.substring(0, 8) },
+        '🎵 User has no linked Spotify account - falling back to the global Spotify token'
+      );
+    }
+  }
+
   // Check circuit breaker first
   if (!spotifyCircuitBreaker.canRequest()) {
     getLogger().warn('🎵 Spotify circuit breaker is OPEN - skipping request');
@@ -242,6 +264,11 @@ export async function getSpotifyAccessToken(forceRefresh = false): Promise<strin
 export function isSpotifyConfigured(): boolean {
   if (!CLIENT_ID || !CLIENT_SECRET) {
     return false;
+  }
+
+  // The calling user's linked account counts as configured
+  if (isSpotifyUserPossiblyLinked()) {
+    return true;
   }
 
   // Check for tokens in file or .env
@@ -450,7 +477,8 @@ export function getSpotifyHealthStatus(): SpotifyHealthStatus {
   const hasClientId = !!CLIENT_ID;
   const hasClientSecret = !!CLIENT_SECRET;
   const hasTokenFile = fs.existsSync(TOKEN_FILE);
-  const hasRefreshToken = hasTokenFile || !!process.env.SPOTIFY_REFRESH_TOKEN;
+  const hasRefreshToken =
+    hasTokenFile || !!process.env.SPOTIFY_REFRESH_TOKEN || isSpotifyUserPossiblyLinked();
 
   const tokenStatus = getSpotifyTokenStatus();
   const circuitStats = spotifyCircuitBreaker.getStats();

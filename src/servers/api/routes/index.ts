@@ -4,6 +4,7 @@
 
 export { handlePlaidRoutes } from './plaid.js';
 export { handleSpotifyRoutes } from './spotify.js';
+export { handleSpotifyPlaybackRoutes } from './spotify-playback.js';
 export { handleHealthRoutes } from './health.js';
 export { handleTokenRoutes } from './token.js';
 export { handleGoogleCalendarRoutes } from './google-calendar.js';

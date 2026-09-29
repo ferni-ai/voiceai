@@ -15,6 +15,7 @@
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, ExternalService } from '../../registry/types.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { setSpotifyUser } from '../../../services/identity/spotify-linked-tokens.js';
 
 // Import legacy tool creators
 import { createMusicTools } from './music.js';
@@ -595,9 +596,19 @@ log.info(
 // EXPORTS
 // ============================================================================
 
+// Tools are created per session/turn with the caller's context: bind that user
+// so Spotify calls use their own linked account (global token only as fallback).
+const userBoundEntertainmentTools: ToolDefinition[] = entertainmentTools.map((def) => ({
+  ...def,
+  create: (ctx: ToolContext) => {
+    void setSpotifyUser(ctx.userId);
+    return def.create(ctx);
+  },
+}));
+
 export const { getToolDefinitions, domain, definitions } = createDomainExport(
   'entertainment',
-  entertainmentTools
+  userBoundEntertainmentTools
 );
 
 export {

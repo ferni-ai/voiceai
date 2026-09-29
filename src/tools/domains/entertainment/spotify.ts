@@ -5,8 +5,10 @@
  *
  * Requirements:
  * - SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET in .env
- * - User must authenticate via OAuth (one-time)
- * - SPOTIFY_REFRESH_TOKEN after initial auth
+ * - The calling user links Spotify in the web app (per-user OAuth); the
+ *   domain binds them via setSpotifyUser() and every request below uses
+ *   their token. SPOTIFY_REFRESH_TOKEN / .spotify-tokens.json is only a
+ *   fallback for users with no linked account.
  *
  * @see https://developer.spotify.com/documentation/web-api
  */
@@ -27,6 +29,7 @@ import {
   startAutoRefresh,
   stopAutoRefresh,
 } from '../../../services/identity/spotify-auth.js';
+import { setSpotifyUser } from '../../../services/identity/spotify-linked-tokens.js';
 import { findTrack as findItunesTrack } from '../../../services/itunes.js';
 import { getMusicReaction, shouldReactToMusic } from '../../../speech/music-reactions.js';
 import { getLogger } from '../../../utils/safe-logger.js';
@@ -1791,6 +1794,7 @@ export function createSpotifyTools() {
  */
 export function shutdownSpotify(): void {
   stopAutoRefresh();
+  void setSpotifyUser(null);
   webPlayerDeviceId = null;
   streamIntoCall = false; // Reset for next session
   hasPremium = null; // Reset premium status cache
