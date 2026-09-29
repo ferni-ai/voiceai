@@ -537,6 +537,8 @@ export const DEFAULT_CONFIG: Required<PostTTSConfig> = {
   enableCompression: envEnabled('POST_TTS_COMPRESSION'),
   compressionRatio: 1.5, // Reduced from 2.0
   compressionThresholdDb: -20, // Raised from -18 (less aggressive)
+  // Note: the Rust compressor also applies +2 dB makeup gain (comp_makeup_db,
+  // not exposed here); the limiter keeps peaks at about -1 dBFS.
   enablePresence: envEnabled('POST_TTS_PRESENCE'),
   presenceBoostDb: 1.5, // Reduced from 2.0
   sessionId: 'unknown',
