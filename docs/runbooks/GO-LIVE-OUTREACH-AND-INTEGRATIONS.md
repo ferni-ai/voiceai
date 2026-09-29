@@ -32,6 +32,12 @@ these with each provider:
 - `/auth/microsoft/callback`
 - `/wearables/<provider>/callback`
 
+The GCE voice agent now plays music and reads calendars from **each user's own linked
+account**. It needs the same `OAUTH_ENCRYPTION_KEY` as the UI service, plus
+`SPOTIFY_CLIENT_ID`/`SECRET` and `GOOGLE_CALENDAR_CLIENT_ID`/`SECRET`, so it can decrypt and
+refresh those tokens. Users who linked Google before this change must relink to grant the
+Gmail read scope.
+
 ## 2. Two-way calls ("Ferni, call my mom")
 
 Calls are two-way only when a LiveKit **outbound** SIP trunk exists. Without one they fall
