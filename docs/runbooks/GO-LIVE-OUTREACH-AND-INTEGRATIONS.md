@@ -23,6 +23,7 @@ the rest, so a missing secret never fails a deploy. Priority order:
 | Calendar/mail | `microsoft-client-id`, `microsoft-client-secret` (Google Calendar is already set) |
 | Wearables | `oura-*`, `whoop-*`, `fitbit-*`, `garmin-*`, `eight-sleep-*` (client id and secret) |
 | Push | `vapid-public-key`, `vapid-private-key`, `vapid-subject`, `fcm-*` |
+| Concierge email replies | `sendgrid-webhook-key` (SendGrid signed-event public key; without it production rejects the webhook) |
 
 OAuth redirect URIs default to `https://app.ferni.ai/...` (from `PUBLIC_URL`). Register
 these with each provider:
@@ -37,6 +38,10 @@ account**. It needs the same `OAUTH_ENCRYPTION_KEY` as the UI service, plus
 `SPOTIFY_CLIENT_ID`/`SECRET` and `GOOGLE_CALENDAR_CLIENT_ID`/`SECRET`, so it can decrypt and
 refresh those tokens. Users who linked Google before this change must relink to grant the
 Gmail read scope.
+
+The GCE voice agent's `/api/memory/cleanup` and `/api/diagnostics/session*` now answer only
+loopback callers or `Authorization: Bearer $HEALTH_ADMIN_TOKEN`. Set `HEALTH_ADMIN_TOKEN` on the
+GCE container if you call them remotely (e.g. `pnpm ops:diagnose`).
 
 ## 2. Two-way calls ("Ferni, call my mom")
 
