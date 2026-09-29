@@ -68,7 +68,8 @@ function tts(text: string, i: number): Int16Array {
 }
 
 // ---------------------------------------------------------------- degradations
-let seed = 11;
+// SEED picks a different noise realization (default 11).
+let seed = Number(process.env.SEED ?? 11);
 const rnd = (): number => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32) * 2 - 1;
 function pink(n: number): Float32Array {
   // Paul Kellet's economy pink filter
@@ -107,7 +108,8 @@ function withNoise(x: Int16Array, snrDb: number, babble: Int16Array): Int16Array
   const bScale = s / 10 ** (snrDb / 20) / (rms(bSeg) || 1);
   return x.map((v, i) => clip16(v + p[i] * pScale + bSeg[i] * bScale));
 }
-const quiet = (x: Int16Array): Int16Array => x.map((v) => clip16(v * 10 ** (-22 / 20) + rnd() * 8));
+const quiet = (x: Int16Array, db = -22): Int16Array =>
+  x.map((v) => clip16(v * 10 ** (db / 20) + rnd() * 8));
 /** Phone band: 8 kHz (with a crude anti-alias average). */
 const to8k = (x: Int16Array): Int16Array =>
   Int16Array.from({ length: x.length >> 1 }, (_, i) => (x[2 * i] + x[2 * i + 1]) >> 1);
@@ -284,7 +286,29 @@ const conditions: Record<
     const p = to8k(x);
     return { raw: up16(p), input: p, phone: true };
   },
+  // A LiveKit SIP caller: phone-band audio already carried on a wideband
+  // track, so the agent processes it at the track rate (no 8 kHz input,
+  // no bandwidth extension), at a normal, soft and quiet line level.
+  sip: (x) => {
+    const p = up16(to8k(x));
+    return { raw: p, input: p, phone: false };
+  },
+  'sip-soft-12dB': (x) => {
+    const p = up16(to8k(quiet(x, -12)));
+    return { raw: p, input: p, phone: false };
+  },
+  'sip-quiet-22dB': (x) => {
+    const p = up16(to8k(quiet(x)));
+    return { raw: p, input: p, phone: false };
+  },
+  'sip-noise-10dB': (x, i) => {
+    const p = up16(to8k(withNoise(x, 10, babbleSrc.subarray((i * 7919) % 20000))));
+    return { raw: p, input: p, phone: false };
+  },
 };
+// CONDITIONS=sip,sip-quiet-22dB runs only those.
+const only = process.env.CONDITIONS?.split(',').map((c) => c.trim());
+if (only) for (const k of Object.keys(conditions)) if (!only.includes(k)) delete conditions[k];
 
 type Tally = { e: number; w: number };
 const results: Record<string, Record<string, Tally> & { samples?: never }> = {};
