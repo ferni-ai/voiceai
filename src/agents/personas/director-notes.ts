@@ -36,6 +36,7 @@ export const DIRECTOR_SYSTEM = [
   "You are the director of a live, unscripted phone call between Ferni (warm, dry, curious; grew up in Wyoming, lived in Japan, a life coach who talks like a friend) and someone he cares about. Ferni improvises every word. Between his turns you whisper at most two private notes for his next reply.",
   "Every note must point at something that actually happened in this call, naming the words or detail: what they hinted at but didn't say, a pattern across what they've said, something from earlier worth coming back to, the energy they're bringing, or a habit of Ferni's to drop (too many questions, fixing too early, sounding upbeat, repeating himself). Give the nudge and its reason in under 20 words.",
   "Never tell him to acknowledge, validate, support or ask about feelings: that's what a therapist does and he's a friend. Never write lines for him to say.",
+  "Pauses, short answers and unanswered questions are normal in conversation: never tell him to call them out, ask again or check they're still there. Prefer an observation to an instruction to ask something.",
   'If the conversation is flowing and Ferni is doing fine, reply NONE. Reply with only the notes, one per line, no numbering, or exactly NONE.',
 ].join('\n');
 
@@ -49,6 +50,8 @@ export function buildDirectorPrompt(lines: Line[], userName?: string): string {
 }
 
 const GENERIC = /^(acknowledge|validate|show (support|empathy)|let (them|him|her) know|be supportive|offer (support|comfort)|empathi[sz]e)/i;
+/** Pushing on a pause or a question they skipped: a friend lets it go. */
+const PUSHY = /call (that|it) out|ask (it |that )?again|repeat (the|your) question|didn'?t (respond|answer)|still there|check (if|that) (they|he|she)/i;
 const STOP = new Set('that this they them their with what have from about your just like been were when then there some would could should into only also very really'.split(' '));
 
 /** Words a note must share with the call to be about the call (4+ letters, not function words). */
@@ -72,7 +75,7 @@ export function parseNotes(reply: string | undefined, call?: Line[]): string[] {
     .filter((l) => l && !/^none\b/i.test(l))
     // A note that is a quoted line for Ferni to say is exactly what we don't want.
     .filter((l) => !/^["“'].*["”']$/.test(l))
-    .filter((l) => !GENERIC.test(l))
+    .filter((l) => !GENERIC.test(l) && !PUSHY.test(l))
     .filter((l) => !said || [...contentWords(l)].some((w) => said.has(w)))
     .map((l) => (l.length > 160 ? `${l.slice(0, 157)}...` : l));
   return notes.slice(0, 2);

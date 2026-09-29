@@ -33,6 +33,13 @@ describe('director notes', () => {
     ]);
   });
 
+  it('drops notes that push on a pause or a skipped question', () => {
+    // Seen on dev: "Sam didn't respond. Call that out." / "He didn't answer your question. Ask again."
+    expect(
+      parseNotes("Sam didn't respond about the deadline. Call that out.\nHe didn't answer about the manager. Ask again.", lines)
+    ).toEqual([]);
+  });
+
   it('shows the director the recent call with the names', () => {
     const prompt = buildDirectorPrompt(lines, 'Seth');
     expect(prompt).toContain('Seth: My manager moved the deadline up again.');
