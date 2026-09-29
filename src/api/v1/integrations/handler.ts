@@ -173,9 +173,9 @@ export async function handleIntegrationsRoutes(
     return true;
   }
 
-  // OAuth callback routes don't require auth (user is authenticating)
-  const isOAuthCallback =
-    subPath.includes('/callback') || subPath.includes('/connect') || subPath.includes('/auth');
+  // OAuth provider redirects carry no Bearer token; they're bound to the user
+  // by the signed state. Starting OAuth (/connect) needs the signed-in user.
+  const isOAuthCallback = subPath.endsWith('/callback') || subPath.includes('/callback/');
 
   // SECURITY: Require authentication for all non-OAuth routes
   let auth: AuthContext | null = null;
