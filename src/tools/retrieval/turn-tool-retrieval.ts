@@ -263,7 +263,11 @@ export class TurnToolRetrieval {
   }
 
   /** Live mode: the tools to send this request (see pickLive), logged. */
-  async selectLive(text: string, toolCtx: llm.ToolContext, waitMs: number): Promise<llm.ToolContext> {
+  async selectLive(
+    text: string,
+    toolCtx: llm.ToolContext,
+    waitMs: number
+  ): Promise<llm.ToolContext> {
     const started = Date.now();
     const { pick, source } = await this.pickLive(text, waitMs);
     const sent = pick ? this.select(toolCtx, pick) : toolCtx;

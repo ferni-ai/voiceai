@@ -751,7 +751,10 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   private unlockView(): UnlockView {
     const userData = this.session.userData as PersonaSessionData | undefined;
     const services = userData?.services as
-      | { userProfile?: UserProfile | null; devMode?: { enabled?: boolean; bypassUnlocks?: boolean } }
+      | {
+          userProfile?: UserProfile | null;
+          devMode?: { enabled?: boolean; bypassUnlocks?: boolean };
+        }
       | undefined;
     const userProfile = services?.userProfile ?? userData?.userProfile ?? null;
     const tier = (userProfile?.subscription?.tier as UnlockView['tier'] | undefined) ?? 'free';

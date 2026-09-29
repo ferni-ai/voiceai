@@ -81,7 +81,10 @@ export class PreSTTFrameProcessor extends FrameProcessor<AudioFrame> {
       const out = float32ToInt16(this.processor.processFrameI16(frame.data, true));
       return new AudioFrame(out, frame.sampleRate, frame.channels, frame.samplesPerChannel);
     } catch (err) {
-      log.warn({ error: String(err), sessionId: this.sessionId }, 'Pre-STT frame failed, passing through');
+      log.warn(
+        { error: String(err), sessionId: this.sessionId },
+        'Pre-STT frame failed, passing through'
+      );
       return frame;
     }
   }
