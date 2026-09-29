@@ -20,7 +20,10 @@
  * - GET /api/crash-analytics/history - Full crash event history
  * - GET /api/diagnostics - Latency summary and bottleneck analysis
  * - GET /api/diagnostics/pipeline - Pipeline stage breakdown with targets
- * - GET /api/diagnostics/session?sessionId=<id> - Per-session diagnostics
+ * - GET /api/diagnostics/session?sessionId=<id> - Per-session diagnostics (admin)
+ *
+ * "(admin)" endpoints and /api/memory/cleanup require loopback or
+ * `Authorization: Bearer $HEALTH_ADMIN_TOKEN` (see health-admin-auth.ts).
  *
  * Deploy Script Integration:
  * The deploy script checks /health/ready before shifting traffic.
@@ -29,6 +32,7 @@
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isHealthAdminAuthorized, isProtectedHealthPath } from './health-admin-auth.js';
 import {
   getReadinessState,
   markHealthServerReady,
@@ -1033,6 +1037,16 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
       // Cache stats API endpoints (SessionDataManager)
       if (url.startsWith('/api/cache')) {
         await handleCacheAPI(url, res);
+        return;
+      }
+
+      // Mutating / per-session endpoints: loopback or HEALTH_ADMIN_TOKEN only
+      if (isProtectedHealthPath(url) && !isHealthAdminAuthorized(req)) {
+        res.writeHead(401, {
+          'Content-Type': 'application/json',
+          'WWW-Authenticate': 'Bearer',
+        });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
         return;
       }
 
