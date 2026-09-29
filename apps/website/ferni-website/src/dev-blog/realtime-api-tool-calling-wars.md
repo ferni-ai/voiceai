@@ -423,4 +423,4 @@ The result? When you ask Ferni to play music, music plays. No filler. No perform
 
 ---
 
-*Read more about [FTIS V2 and how we trained 11 models](/dev-blog/ftis-v2-small-models-tool-selection) or our [half-cascade architecture](/dev-blog/half-cascade-architecture).*
+*Read more about [FTIS V2 and how we trained 11 models](/developers/blog/ftis-v2-small-models-tool-selection/) or our [half-cascade architecture](/developers/blog/half-cascade-architecture/).*

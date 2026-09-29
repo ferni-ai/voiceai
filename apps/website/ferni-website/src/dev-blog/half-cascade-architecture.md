@@ -411,4 +411,4 @@ But more than that: for AI that feels like someone who actually shows up for you
 
 ---
 
-*Learn more about our architecture in [The Movie Production Paradigm](/dev-blog/movie-production-paradigm) or how we handle [tool calling without LLMs](/dev-blog/ftis-v2-small-models-tool-selection).*
+*Learn more about our architecture in [The Movie Production Paradigm](/developers/blog/movie-production-paradigm/) or how we handle [tool calling without LLMs](/developers/blog/ftis-v2-small-models-tool-selection/).*

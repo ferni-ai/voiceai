@@ -6,24 +6,28 @@
  */
 
 // API Base URL
-const API_BASE = window.location.hostname === 'localhost'
+const PERSONA_API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:3002'
   : 'https://john-bogle-ui-768716511401.us-central1.run.app';
 
 // Wait for auth to be ready
 document.addEventListener('DOMContentLoaded', () => {
   // Check if auth module is loaded
+  // Sign-in may complete after page load (Firebase restores the session
+  // asynchronously), so always listen for the ready event as well
+  document.addEventListener('ferniAuthReady', initDashboard);
   if (typeof window.getAuthToken === 'function') {
     initDashboard();
-  } else {
-    // Wait for auth module to initialize
-    document.addEventListener('ferniAuthReady', initDashboard);
   }
 });
 
+let dashboardInitialized = false;
+
 async function initDashboard() {
+  if (dashboardInitialized) return;
   const token = await window.getAuthToken();
-  if (token) {
+  if (token && !dashboardInitialized) {
+    dashboardInitialized = true;
     document.getElementById('auth-gate').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
     loadPersonas();
@@ -51,7 +55,7 @@ async function loadPersonas() {
   const countEl = document.getElementById('personas-count');
 
   try {
-    const response = await fetch(`${API_BASE}/api/v1/developers/personas`, {
+    const response = await fetch(`${PERSONA_API_BASE}/api/v1/developers/personas`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -249,7 +253,7 @@ async function deletePersona(personaId) {
   if (!token) return;
 
   try {
-    const response = await fetch(`${API_BASE}/api/v1/developers/personas/${personaId}`, {
+    const response = await fetch(`${PERSONA_API_BASE}/api/v1/developers/personas/${personaId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,

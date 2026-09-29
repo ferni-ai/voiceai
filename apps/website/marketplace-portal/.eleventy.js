@@ -17,6 +17,10 @@ module.exports = function (eleventyConfig) {
   // Filters
   eleventyConfig.addFilter('year', () => new Date().getFullYear());
 
+  // Array slice (overrides Nunjucks' built-in slice, which splits into N groups
+  // and returns [] for slice(0, n))
+  eleventyConfig.addFilter('slice', (arr, start, end) => (arr || []).slice(start, end));
+
   // JSON stringify filter
   eleventyConfig.addFilter('jsonify', (value) => JSON.stringify(value, null, 2));
 

@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Ferni Design System Documentation Portal",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "npx @11ty/eleventy --serve --port 8083",
     "build": "npx @11ty/eleventy",

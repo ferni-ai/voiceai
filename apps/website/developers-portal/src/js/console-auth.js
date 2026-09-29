@@ -62,6 +62,8 @@ async function handleAuthStateChange(user) {
         const data = await response.json();
         currentSession = data.session;
         showDashboard(data);
+        // Let page scripts (personas dashboard, wizard) know auth is ready
+        document.dispatchEvent(new Event('ferniAuthReady'));
       } else {
         console.error('Backend verification failed');
         showAuthError('Failed to verify authentication. Please try again.');
@@ -138,6 +140,9 @@ async function getIdToken() {
   if (!firebaseAuth?.currentUser) return null;
   return firebaseAuth.currentUser.getIdToken();
 }
+
+// Page scripts (personas dashboard, persona wizard, voice preview) use this
+window.getAuthToken = getIdToken;
 
 /**
  * Make authenticated API call

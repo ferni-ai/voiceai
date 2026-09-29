@@ -6,7 +6,7 @@
  */
 
 // API Base URL
-const API_BASE = window.location.hostname === 'localhost'
+const PERSONA_API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:3002'
   : 'https://john-bogle-ui-768716511401.us-central1.run.app';
 
@@ -83,16 +83,20 @@ const PERSONALITY_PRESETS = {
 
 // Initialize wizard
 document.addEventListener('DOMContentLoaded', () => {
+  // Sign-in may complete after page load, so always listen for the ready event
+  document.addEventListener('ferniAuthReady', initWizard);
   if (typeof window.getAuthToken === 'function') {
     initWizard();
-  } else {
-    document.addEventListener('ferniAuthReady', initWizard);
   }
 });
 
+let wizardInitialized = false;
+
 async function initWizard() {
+  if (wizardInitialized) return;
   const token = await window.getAuthToken();
-  if (token) {
+  if (token && !wizardInitialized) {
+    wizardInitialized = true;
     document.getElementById('auth-gate').style.display = 'none';
     document.getElementById('wizard-section').style.display = 'block';
     setupWizard();
@@ -319,7 +323,7 @@ async function loadVoices() {
 
   try {
     const response = await fetch(
-      `${API_BASE}/api/v1/developers/voices?${params.toString()}`,
+      `${PERSONA_API_BASE}/api/v1/developers/voices?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -603,8 +607,8 @@ async function saveDraft() {
   try {
     const method = wizardState.personaId ? 'PUT' : 'POST';
     const url = wizardState.personaId
-      ? `${API_BASE}/api/v1/developers/personas/${wizardState.personaId}`
-      : `${API_BASE}/api/v1/developers/personas`;
+      ? `${PERSONA_API_BASE}/api/v1/developers/personas/${wizardState.personaId}`
+      : `${PERSONA_API_BASE}/api/v1/developers/personas`;
 
     const response = await fetch(url, {
       method,
@@ -642,7 +646,7 @@ async function createPersona() {
   try {
     // Validate
     const validateRes = await fetch(
-      `${API_BASE}/api/v1/developers/personas/${wizardState.personaId}/validate`,
+      `${PERSONA_API_BASE}/api/v1/developers/personas/${wizardState.personaId}/validate`,
       {
         method: 'POST',
         headers: {
@@ -729,7 +733,7 @@ async function loadExistingPersona(personaId) {
 
   try {
     const response = await fetch(
-      `${API_BASE}/api/v1/developers/personas/${personaId}`,
+      `${PERSONA_API_BASE}/api/v1/developers/personas/${personaId}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,

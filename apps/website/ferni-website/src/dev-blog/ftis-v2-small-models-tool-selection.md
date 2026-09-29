@@ -350,4 +350,4 @@ Every millisecond of latency is a moment where connection wavers. FTIS V2 gives 
 
 ---
 
-*Want to learn more about our voice AI architecture? Check out our posts on [half-cascade architecture](/dev-blog/half-cascade-architecture) and [the movie production paradigm](/dev-blog/movie-production-paradigm).*
+*Want to learn more about our voice AI architecture? Check out our posts on [half-cascade architecture](/developers/blog/half-cascade-architecture/) and [the movie production paradigm](/developers/blog/movie-production-paradigm/).*

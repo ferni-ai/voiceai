@@ -1,0 +1,66 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: personas.categories
+  size: 1
+  alias: category
+permalink: /category/{{ category.id }}/
+eleventyComputed:
+  title: "{{ category.name }}"
+  description: "{{ category.description }}"
+---
+
+{% from "partials/icons.njk" import starFilled, star %}
+
+<section class="hero" style="padding-bottom: var(--space-12);">
+  <div class="container">
+    <p class="hero-eyebrow"><a href="/categories/">All categories</a></p>
+    <h1>{{ category.name }}</h1>
+    <p class="hero-subtitle">{{ category.description }}</p>
+  </div>
+</section>
+
+<section class="section" style="padding-top: 0;">
+  <div class="container">
+    <div class="persona-grid">
+      {% for persona in personas.personas %}{% if persona.category == category.id %}
+      <a href="/persona/{{ persona.id }}/" class="persona-card" style="--persona-color: {{ persona.colors.primary }}; --persona-secondary: {{ persona.colors.secondary }};">
+        <div class="persona-header">
+          <div class="persona-avatar">
+            <span class="persona-initial">{{ persona.name | first }}</span>
+          </div>
+          <div class="persona-name">{{ persona.name }}</div>
+          <div class="persona-tagline">{{ persona.tagline }}</div>
+        </div>
+        <div class="persona-body">
+          <p class="persona-description">{{ persona.description }}</p>
+          <div class="persona-tags">
+            {% for tag in persona.tags | slice(0, 3) %}
+            <span class="persona-tag">{{ tag }}</span>
+            {% endfor %}
+          </div>
+          <div class="persona-footer">
+            <div class="persona-rating">
+              <span class="persona-stars" style="color: var(--warning);">
+                {% for i in range(5) %}
+                  {% if i < (persona.rating | round) %}{{ starFilled(14) }}{% else %}{{ star(14) }}{% endif %}
+                {% endfor %}
+              </span>
+              <span class="persona-rating-count">{{ persona.rating }}</span>
+            </div>
+            <span class="persona-price {% if persona.pricing.model == 'free' or persona.pricing.model == 'freemium' %}free{% endif %}">
+              {% if persona.pricing.model == 'free' %}
+                Free
+              {% elif persona.pricing.model == 'freemium' %}
+                Free+
+              {% else %}
+                ${{ persona.pricing.priceInCents / 100 }}/mo
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </a>
+      {% endif %}{% endfor %}
+    </div>
+  </div>
+</section>

@@ -122,7 +122,7 @@
       { url: '/examples/', title: 'Examples', tags: 'examples demo sample code' },
       { url: '/blog/', title: 'Developer Blog', tags: 'blog articles posts' },
       { url: '/community/', title: 'Community', tags: 'discord github support' },
-      { url: '/pages/api/explorer', title: 'API Explorer', tags: 'api test playground' },
+      { url: '/api/explorer/', title: 'API Explorer', tags: 'api test playground' },
     ];
 
     const lowerQuery = query.toLowerCase();

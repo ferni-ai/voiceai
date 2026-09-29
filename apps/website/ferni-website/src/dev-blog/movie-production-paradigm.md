@@ -465,4 +465,4 @@ Now go make your film.
 
 ---
 
-*Dive deeper into specific elements: [FTIS V2 (the props department)](/dev-blog/ftis-v2-small-models-tool-selection), [half-cascade architecture (the stage)](/dev-blog/half-cascade-architecture), or [our tool calling battles (why we needed this model)](/dev-blog/realtime-api-tool-calling-wars).*
+*Dive deeper into specific elements: [FTIS V2 (the props department)](/developers/blog/ftis-v2-small-models-tool-selection/), [half-cascade architecture (the stage)](/developers/blog/half-cascade-architecture/), or [our tool calling battles (why we needed this model)](/developers/blog/realtime-api-tool-calling-wars/).*

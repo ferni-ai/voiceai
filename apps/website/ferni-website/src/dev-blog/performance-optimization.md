@@ -370,7 +370,7 @@ Our target metrics for production deployments:
 ## Next Steps
 
 - [Scaling Guide](/developers/docs/scaling/)
-- [Monitoring & Observability](/developers/blog/monitoring-guide/)
+- [Monitoring & Observability](/developers/blog/monitoring-observability-voice-ai/)
 - [Infrastructure Patterns](/developers/docs/infrastructure/)
 
 Questions? Join us on [Discord](https://discord.gg/ferni).

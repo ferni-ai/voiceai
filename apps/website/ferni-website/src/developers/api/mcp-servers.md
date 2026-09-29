@@ -451,6 +451,6 @@ Secrets are stored encrypted and referenced using `{{secrets.KEY}}` syntax.
 
 ## Related
 
-- [MCP Integration Guide](/dev-blog/mcp-server-integration/) — Step-by-step tutorial
+- [MCP Integration Guide](/developers/blog/mcp-server-integration/) — Step-by-step tutorial
 - [Model Context Protocol](https://modelcontextprotocol.io) — MCP specification
 - [Custom Tools API](/developers/api/tools/) — Alternative to full MCP servers
