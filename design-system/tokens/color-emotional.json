@@ -1,86 +1,75 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
   "description": "Ferni Emotional Color Tokens - Colors that respond to mood and time",
-
   "_designPrinciples": {
     "moodResponsive": "Colors shift subtly based on emotional state",
     "timeFading": "Older memories desaturate (Gurney's atmospheric perspective)",
     "personaHarmony": "Smooth color transitions between personas (Albers)",
     "source": "Inspired by Josef Albers, James Gurney, and human color perception"
   },
-
   "moodPalettes": {
-    "_comment": "How base colors shift based on emotional state",
+    "_comment": "Mood color adjustments applied to persona palettes (generated into apps/web emotional-tokens.generated.ts).",
     "states": {
       "calm": {
         "hueShift": -5,
         "saturationMultiplier": 0.85,
-        "lightnessShift": 3,
-        "warmth": "cool",
-        "description": "Cooler, less saturated, slightly lighter"
+        "lightnessAdjustment": 3,
+        "temperatureShift": -5,
+        "character": "Cool, soft"
       },
       "joyful": {
         "hueShift": 10,
         "saturationMultiplier": 1.15,
-        "lightnessShift": 5,
-        "warmth": "warm",
-        "description": "Warmer, more saturated, brighter"
+        "lightnessAdjustment": 5,
+        "temperatureShift": 10,
+        "character": "Warm, bright"
       },
       "anxious": {
         "hueShift": 15,
         "saturationMultiplier": 0.9,
-        "lightnessShift": -5,
-        "warmth": "tense",
-        "description": "Shifted toward reds, muted, darker"
+        "lightnessAdjustment": -5,
+        "temperatureShift": 5,
+        "character": "Tense, muted"
       },
       "tired": {
         "hueShift": 0,
         "saturationMultiplier": 0.7,
-        "lightnessShift": -10,
-        "warmth": "neutral",
-        "description": "Desaturated, dimmed"
+        "lightnessAdjustment": -10,
+        "character": "Desaturated"
       },
       "focused": {
         "hueShift": -10,
         "saturationMultiplier": 1.1,
-        "lightnessShift": 0,
-        "warmth": "cool",
-        "description": "Cooler, slightly more saturated"
+        "lightnessAdjustment": 0,
+        "temperatureShift": -10,
+        "character": "Cool, clear"
       },
       "reflective": {
         "hueShift": -15,
         "saturationMultiplier": 0.8,
-        "lightnessShift": 5,
-        "warmth": "twilight",
-        "description": "Shifted toward purples, soft"
+        "lightnessAdjustment": 5,
+        "temperatureShift": -15,
+        "character": "Twilight, soft"
       },
       "stressed": {
         "hueShift": 5,
         "saturationMultiplier": 0.75,
-        "lightnessShift": -8,
-        "warmth": "muted",
-        "description": "Slightly warmer, but muted and darker"
+        "lightnessAdjustment": -8,
+        "character": "Muted, dim"
       },
       "energized": {
         "hueShift": 5,
         "saturationMultiplier": 1.2,
-        "lightnessShift": 8,
-        "warmth": "vibrant",
-        "description": "Warmer, more saturated, brighter"
+        "lightnessAdjustment": 8,
+        "temperatureShift": 15,
+        "character": "Vibrant"
       },
       "peaceful": {
         "hueShift": -20,
         "saturationMultiplier": 0.75,
-        "lightnessShift": 10,
-        "warmth": "serene",
-        "description": "Cooler, soft, lighter"
-      },
-      "uncertain": {
-        "hueShift": 0,
-        "saturationMultiplier": 0.85,
-        "lightnessShift": 0,
-        "warmth": "neutral",
-        "description": "Slightly desaturated, neutral"
+        "lightnessAdjustment": 10,
+        "temperatureShift": -20,
+        "character": "Serene"
       }
     },
     "transitions": {
@@ -89,69 +78,71 @@
       "stagger": "50ms"
     }
   },
-
   "timeFading": {
     "_comment": "Atmospheric perspective for memories - older = more faded (Gurney)",
     "periods": {
       "now": {
-        "saturation": 1.0,
-        "opacity": 1.0,
-        "blur": "0px",
-        "description": "Full saturation, fully present"
+        "saturation": 1,
+        "lightnessShift": 0,
+        "opacity": 1,
+        "hueShift": 0,
+        "blur": 0
       },
       "today": {
         "saturation": 0.95,
-        "opacity": 0.98,
-        "blur": "0px",
-        "description": "Nearly full, very recent"
+        "lightnessShift": 2,
+        "opacity": 1,
+        "hueShift": 0,
+        "blur": 0
       },
       "yesterday": {
-        "saturation": 0.9,
-        "opacity": 0.95,
-        "blur": "0.5px",
-        "description": "Slightly faded"
+        "saturation": 0.88,
+        "lightnessShift": 4,
+        "opacity": 0.97,
+        "hueShift": 2,
+        "blur": 0
       },
       "thisWeek": {
-        "saturation": 0.85,
-        "opacity": 0.9,
-        "blur": "0.5px",
-        "description": "Noticeably faded"
+        "saturation": 0.78,
+        "lightnessShift": 7,
+        "opacity": 0.94,
+        "hueShift": 5,
+        "blur": 0.5
       },
       "lastWeek": {
-        "saturation": 0.75,
-        "opacity": 0.85,
-        "blur": "1px",
-        "description": "Soft memory"
+        "saturation": 0.68,
+        "lightnessShift": 10,
+        "opacity": 0.9,
+        "hueShift": 8,
+        "blur": 0.75
       },
       "thisMonth": {
-        "saturation": 0.65,
-        "opacity": 0.8,
-        "blur": "1px",
-        "description": "Fading memory"
+        "saturation": 0.55,
+        "lightnessShift": 14,
+        "opacity": 0.85,
+        "hueShift": 12,
+        "blur": 1
       },
       "lastMonth": {
-        "saturation": 0.55,
-        "opacity": 0.75,
-        "blur": "1.5px",
-        "description": "Distant memory"
-      },
-      "thisQuarter": {
-        "saturation": 0.45,
-        "opacity": 0.7,
-        "blur": "2px",
-        "description": "Soft, atmospheric"
+        "saturation": 0.42,
+        "lightnessShift": 18,
+        "opacity": 0.78,
+        "hueShift": 16,
+        "blur": 1.25
       },
       "older": {
-        "saturation": 0.35,
-        "opacity": 0.6,
-        "blur": "2px",
-        "description": "Very faded, like old photographs"
+        "saturation": 0.3,
+        "lightnessShift": 22,
+        "opacity": 0.7,
+        "hueShift": 20,
+        "blur": 1.5
       },
       "ancient": {
-        "saturation": 0.25,
-        "opacity": 0.5,
-        "blur": "3px",
-        "description": "Nearly sepia, very distant"
+        "saturation": 0.18,
+        "lightnessShift": 26,
+        "opacity": 0.6,
+        "hueShift": 25,
+        "blur": 2
       }
     },
     "colorShiftByAge": {
@@ -161,7 +152,6 @@
       "ancientHueShift": 35
     }
   },
-
   "personaTransitions": {
     "_comment": "Albers-inspired harmonic color transitions between personas",
     "bridgeColors": {
@@ -235,7 +225,6 @@
       "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
     }
   },
-
   "simultaneousContrast": {
     "_comment": "Albers: colors change appearance based on neighbors",
     "rules": {
@@ -261,25 +250,71 @@
       }
     }
   },
-
   "emotionalColorMapping": {
     "_comment": "Direct mapping of emotions to color associations",
     "emotions": {
-      "love": { "hue": 350, "saturation": 75, "lightness": 60 },
-      "joy": { "hue": 45, "saturation": 85, "lightness": 65 },
-      "trust": { "hue": 200, "saturation": 60, "lightness": 50 },
-      "fear": { "hue": 270, "saturation": 40, "lightness": 35 },
-      "surprise": { "hue": 30, "saturation": 90, "lightness": 70 },
-      "sadness": { "hue": 220, "saturation": 35, "lightness": 40 },
-      "disgust": { "hue": 100, "saturation": 30, "lightness": 35 },
-      "anger": { "hue": 0, "saturation": 80, "lightness": 45 },
-      "anticipation": { "hue": 35, "saturation": 70, "lightness": 60 },
-      "hope": { "hue": 160, "saturation": 55, "lightness": 55 },
-      "gratitude": { "hue": 85, "saturation": 50, "lightness": 50 },
-      "contentment": { "hue": 140, "saturation": 40, "lightness": 55 }
+      "love": {
+        "hue": 350,
+        "saturation": 75,
+        "lightness": 60
+      },
+      "joy": {
+        "hue": 45,
+        "saturation": 85,
+        "lightness": 65
+      },
+      "trust": {
+        "hue": 200,
+        "saturation": 60,
+        "lightness": 50
+      },
+      "fear": {
+        "hue": 270,
+        "saturation": 40,
+        "lightness": 35
+      },
+      "surprise": {
+        "hue": 30,
+        "saturation": 90,
+        "lightness": 70
+      },
+      "sadness": {
+        "hue": 220,
+        "saturation": 35,
+        "lightness": 40
+      },
+      "disgust": {
+        "hue": 100,
+        "saturation": 30,
+        "lightness": 35
+      },
+      "anger": {
+        "hue": 0,
+        "saturation": 80,
+        "lightness": 45
+      },
+      "anticipation": {
+        "hue": 35,
+        "saturation": 70,
+        "lightness": 60
+      },
+      "hope": {
+        "hue": 160,
+        "saturation": 55,
+        "lightness": 55
+      },
+      "gratitude": {
+        "hue": 85,
+        "saturation": 50,
+        "lightness": 50
+      },
+      "contentment": {
+        "hue": 140,
+        "saturation": 40,
+        "lightness": 55
+      }
     }
   },
-
   "cssVariableMapping": {
     "_comment": "How these tokens map to CSS custom properties",
     "moodPalette": {
@@ -298,7 +333,6 @@
       "progressVar": "--persona-transition-progress"
     }
   },
-
   "accessibilityRequirements": {
     "_comment": "Ensure emotional colors meet accessibility standards",
     "contrastMinimum": {
@@ -314,6 +348,122 @@
     "reducedMotion": {
       "disableColorTransitions": false,
       "instantTransitions": true
+    }
+  },
+  "personaMoodBase": {
+    "_comment": "Per-persona accent and background tint for mood palettes; primary comes from colors.json personas.",
+    "ferni": {
+      "accent": "#3D5A45",
+      "background": "#F5F2EE"
+    },
+    "maya": {
+      "accent": "#8B5A4A",
+      "background": "#FBF8F5"
+    },
+    "peter": {
+      "accent": "#2A5B63",
+      "background": "#F5F8F9"
+    },
+    "jordan": {
+      "accent": "#A4654A",
+      "background": "#FFFAF5"
+    },
+    "alex": {
+      "accent": "#4A5B7A",
+      "background": "#F5F7FA"
+    },
+    "nayan": {
+      "accent": "#98754A",
+      "background": "#FAF8F5"
+    }
+  },
+  "semanticPalettes": {
+    "_comment": "Earthy semantic state palettes (alternatives to red/yellow/green).",
+    "error": {
+      "primary": "#7a5a52",
+      "secondary": "#5a4038",
+      "light": "#a67a6a",
+      "glow": "rgba(122, 90, 82, 0.35)",
+      "text": "#ffffff"
+    },
+    "warning": {
+      "primary": "#a6854a",
+      "secondary": "#8a6d3a",
+      "light": "#c4a265",
+      "glow": "rgba(166, 133, 74, 0.35)",
+      "text": "#ffffff"
+    },
+    "success": {
+      "primary": "#4a6741",
+      "secondary": "#3d5a35",
+      "light": "#5a7a51",
+      "glow": "rgba(74, 103, 65, 0.35)",
+      "text": "#ffffff"
+    },
+    "info": {
+      "primary": "#5a6b8a",
+      "secondary": "#4a5a73",
+      "light": "#7a8ba0",
+      "glow": "rgba(90, 107, 138, 0.35)",
+      "text": "#ffffff"
+    },
+    "neutral": {
+      "primary": "#5C544A",
+      "secondary": "#756A5E",
+      "light": "#A89D90",
+      "glow": "rgba(92, 84, 74, 0.25)",
+      "text": "#ffffff"
+    }
+  },
+  "holidayPalettes": {
+    "_comment": "Seasonal/holiday themes in the earthy brand palette.",
+    "valentines": {
+      "primary": "#a67a6a",
+      "secondary": "#8a635a",
+      "accent": "#c4856a",
+      "ambient": "rgba(166, 122, 106, 0.04)"
+    },
+    "spring": {
+      "primary": "#4a6741",
+      "secondary": "#5a7a51",
+      "accent": "#b8956a",
+      "ambient": "rgba(74, 103, 65, 0.03)"
+    },
+    "summer": {
+      "primary": "#c4a265",
+      "secondary": "#9a7b5a",
+      "accent": "#c4856a",
+      "ambient": "rgba(196, 162, 101, 0.04)"
+    },
+    "fall": {
+      "primary": "#a86d55",
+      "secondary": "#9a7b5a",
+      "accent": "#7a5a52",
+      "ambient": "rgba(168, 109, 85, 0.04)"
+    },
+    "halloween": {
+      "primary": "#c4856a",
+      "secondary": "#5a4038",
+      "accent": "#a86d55",
+      "ambient": "rgba(196, 133, 106, 0.05)"
+    },
+    "winter": {
+      "primary": "#5a6b8a",
+      "secondary": "#4a5a73",
+      "accent": "#b8956a",
+      "ambient": "rgba(90, 107, 138, 0.03)"
+    },
+    "christmas": {
+      "primary": "#3d5a35",
+      "secondary": "#7a5a52",
+      "accent": "#c4a265",
+      "ambient": "rgba(61, 90, 53, 0.04)"
+    },
+    "newYear": {
+      "primary": "#b8956a",
+      "secondary": "#5a6b8a",
+      "accent": "#c4a265",
+      "ambient": "rgba(184, 149, 106, 0.04)"
     }
   }
 }

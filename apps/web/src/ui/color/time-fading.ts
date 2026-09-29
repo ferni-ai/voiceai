@@ -11,6 +11,7 @@
  *
  * @module color/time-fading
  */
+import { TIME_FADING } from '../../config/emotional-tokens.generated.js';
 
 // ============================================================================
 // TYPES
@@ -95,71 +96,7 @@ export interface TimeFadingResult {
  * Fading parameters for each time period.
  * Based on Gurney's atmospheric perspective principles.
  */
-export const TIME_FADING_PARAMS: Record<TimePeriod, FadingParameters> = {
-  now: {
-    saturation: 1.0,
-    lightnessShift: 0,
-    opacity: 1.0,
-    hueShift: 0,
-    blur: 0,
-  },
-  today: {
-    saturation: 0.95,
-    lightnessShift: 2,
-    opacity: 1.0,
-    hueShift: 0,
-    blur: 0,
-  },
-  yesterday: {
-    saturation: 0.88,
-    lightnessShift: 4,
-    opacity: 0.97,
-    hueShift: 2,
-    blur: 0,
-  },
-  thisWeek: {
-    saturation: 0.78,
-    lightnessShift: 7,
-    opacity: 0.94,
-    hueShift: 5,
-    blur: 0.5,
-  },
-  lastWeek: {
-    saturation: 0.68,
-    lightnessShift: 10,
-    opacity: 0.90,
-    hueShift: 8,
-    blur: 0.75,
-  },
-  thisMonth: {
-    saturation: 0.55,
-    lightnessShift: 14,
-    opacity: 0.85,
-    hueShift: 12,
-    blur: 1,
-  },
-  lastMonth: {
-    saturation: 0.42,
-    lightnessShift: 18,
-    opacity: 0.78,
-    hueShift: 16,
-    blur: 1.25,
-  },
-  older: {
-    saturation: 0.30,
-    lightnessShift: 22,
-    opacity: 0.70,
-    hueShift: 20,
-    blur: 1.5,
-  },
-  ancient: {
-    saturation: 0.18,
-    lightnessShift: 26,
-    opacity: 0.60,
-    hueShift: 25,
-    blur: 2,
-  },
-};
+export const TIME_FADING_PARAMS: Record<TimePeriod, FadingParameters> = TIME_FADING;
 
 /**
  * Atmospheric colors per persona.

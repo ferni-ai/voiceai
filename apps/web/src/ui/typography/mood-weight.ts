@@ -13,6 +13,7 @@
  *
  * @module typography/mood-weight
  */
+import { MOOD_TYPOGRAPHY_TOKENS } from '../../config/emotional-tokens.generated.js';
 
 // ============================================================================
 // TYPES
@@ -72,7 +73,7 @@ export interface MoodTypographyElement {
 }
 
 // ============================================================================
-// CONSTANTS (from typography-emotional.json tokens)
+// CONSTANTS (generated from typography-emotional.json → config/emotional-tokens.generated.ts)
 // ============================================================================
 
 /**
@@ -83,77 +84,7 @@ export interface MoodTypographyElement {
  * - Letter spacing: positive = spacious, negative = tight
  * - Line height: higher = more breathing room
  */
-export const MOOD_TYPOGRAPHY: Record<TypographyMood, MoodTypography> = {
-  calm: {
-    headingWeight: 450,
-    bodyWeight: 350,
-    letterSpacing: 0.3,
-    lineHeight: 1.65,
-    wordSpacing: 0.5,
-    fontFeatures: '"calt" on, "liga" on',
-  },
-  joyful: {
-    headingWeight: 550,
-    bodyWeight: 400,
-    letterSpacing: 0.2,
-    lineHeight: 1.6,
-    wordSpacing: 0.3,
-    fontFeatures: '"calt" on, "liga" on, "ss01" on',
-  },
-  anxious: {
-    headingWeight: 420,
-    bodyWeight: 380,
-    letterSpacing: 0,
-    lineHeight: 1.55,
-    wordSpacing: 0,
-  },
-  tired: {
-    headingWeight: 380,
-    bodyWeight: 350,
-    letterSpacing: 0.4,
-    lineHeight: 1.7,
-    wordSpacing: 0.8,
-  },
-  focused: {
-    headingWeight: 500,
-    bodyWeight: 400,
-    letterSpacing: -0.2,
-    lineHeight: 1.5,
-    wordSpacing: -0.2,
-    fontFeatures: '"tnum" on, "calt" on',
-  },
-  reflective: {
-    headingWeight: 420,
-    bodyWeight: 360,
-    letterSpacing: 0.5,
-    lineHeight: 1.75,
-    wordSpacing: 1.0,
-    fontFeatures: '"calt" on, "liga" on, "onum" on',
-  },
-  stressed: {
-    headingWeight: 480,
-    bodyWeight: 400,
-    letterSpacing: 0,
-    lineHeight: 1.5,
-    wordSpacing: 0,
-  },
-  energized: {
-    headingWeight: 600,
-    bodyWeight: 420,
-    letterSpacing: -0.3,
-    lineHeight: 1.45,
-    wordSpacing: -0.3,
-    fontFeatures: '"calt" on, "ss01" on',
-  },
-  peaceful: {
-    headingWeight: 380,
-    bodyWeight: 340,
-    letterSpacing: 0.6,
-    lineHeight: 1.8,
-    wordSpacing: 1.2,
-    fontFeatures: '"calt" on, "liga" on',
-  },
-};
+export const MOOD_TYPOGRAPHY: Record<TypographyMood, MoodTypography> = MOOD_TYPOGRAPHY_TOKENS;
 
 /**
  * Default transition configuration.

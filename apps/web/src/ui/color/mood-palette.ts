@@ -13,6 +13,7 @@
  *
  * @module color/mood-palette
  */
+import { MOOD_COLOR_ADJUSTMENTS, PERSONA_MOOD_BASE_PALETTES } from '../../config/emotional-tokens.generated.js';
 
 // ============================================================================
 // TYPES
@@ -81,113 +82,20 @@ export interface PersonaPalette {
 }
 
 // ============================================================================
-// CONSTANTS (from color-emotional.json tokens)
+// CONSTANTS (generated from color-emotional.json → config/emotional-tokens.generated.ts)
 // ============================================================================
 
 /**
  * Mood color adjustments.
  * These values are tuned for subliminal effect.
  */
-export const MOOD_ADJUSTMENTS: Record<MoodState, MoodColorAdjustment> = {
-  calm: {
-    hueShift: -5,
-    saturationMultiplier: 0.85,
-    lightnessAdjustment: 3,
-    temperatureShift: -5,
-    character: 'Cool, soft',
-  },
-  joyful: {
-    hueShift: 10,
-    saturationMultiplier: 1.15,
-    lightnessAdjustment: 5,
-    temperatureShift: 10,
-    character: 'Warm, bright',
-  },
-  anxious: {
-    hueShift: 15,
-    saturationMultiplier: 0.9,
-    lightnessAdjustment: -5,
-    temperatureShift: 5,
-    character: 'Tense, muted',
-  },
-  tired: {
-    hueShift: 0,
-    saturationMultiplier: 0.7,
-    lightnessAdjustment: -10,
-    character: 'Desaturated',
-  },
-  focused: {
-    hueShift: -10,
-    saturationMultiplier: 1.1,
-    lightnessAdjustment: 0,
-    temperatureShift: -10,
-    character: 'Cool, clear',
-  },
-  reflective: {
-    hueShift: -15,
-    saturationMultiplier: 0.8,
-    lightnessAdjustment: 5,
-    temperatureShift: -15,
-    character: 'Twilight, soft',
-  },
-  stressed: {
-    hueShift: 5,
-    saturationMultiplier: 0.75,
-    lightnessAdjustment: -8,
-    character: 'Muted, dim',
-  },
-  energized: {
-    hueShift: 5,
-    saturationMultiplier: 1.2,
-    lightnessAdjustment: 8,
-    temperatureShift: 15,
-    character: 'Vibrant',
-  },
-  peaceful: {
-    hueShift: -20,
-    saturationMultiplier: 0.75,
-    lightnessAdjustment: 10,
-    temperatureShift: -20,
-    character: 'Serene',
-  },
-};
+export const MOOD_ADJUSTMENTS: Record<MoodState, MoodColorAdjustment> = MOOD_COLOR_ADJUSTMENTS;
 
 /**
  * Persona base palettes.
  * These are the source-of-truth colors before mood adjustment.
  */
-export const PERSONA_BASE_PALETTES: Record<string, PersonaPalette> = {
-  ferni: {
-    primary: '#4a6741',
-    accent: '#3D5A45',
-    background: '#F5F2EE',
-  },
-  maya: {
-    primary: '#a67a6a',
-    accent: '#8B5A4A',
-    background: '#FBF8F5',
-  },
-  peter: {
-    primary: '#3a6b73',
-    accent: '#2A5B63',
-    background: '#F5F8F9',
-  },
-  jordan: {
-    primary: '#c4856a',
-    accent: '#A4654A',
-    background: '#FFFAF5',
-  },
-  alex: {
-    primary: '#5a6b8a',
-    accent: '#4A5B7A',
-    background: '#F5F7FA',
-  },
-  nayan: {
-    primary: '#b8956a',
-    accent: '#98754A',
-    background: '#FAF8F5',
-  },
-};
+export const PERSONA_BASE_PALETTES: Record<string, PersonaPalette> = PERSONA_MOOD_BASE_PALETTES;
 
 // ============================================================================
 // COLOR CONVERSION UTILITIES
