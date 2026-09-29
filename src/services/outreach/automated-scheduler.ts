@@ -27,8 +27,13 @@ import {
 } from './llm-content-generator.js';
 import { getOnboardingState, getPendingCheckIns } from './intelligent-onboarding-arc.js';
 import { getOptimalOutreachTime, getPreferredChannel } from './engagement-tracking.js';
+import { allowedDeliveryChannels } from './outreach-consent.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
+
+const CANDIDATE_PAGE_SIZE = 200;
+/** Bound one run's reads; users past this are reached on later days. */
+const MAX_USERS_SCANNED = 5000;
 
 // ============================================================================
 // TYPES
@@ -67,8 +72,9 @@ interface UserOutreachCandidate {
   onboardingDay?: number;
   engagementLevel: 'high' | 'medium' | 'low' | 'silent';
   outreachPreferences?: {
-    enabled: boolean;
-    channels: DeliveryChannel[];
+    enabled?: boolean;
+    /** Channels the user opted into; unset means in-app only. */
+    channels?: DeliveryChannel[];
     quietHoursStart?: number;
     quietHoursEnd?: number;
     timezone?: string;
@@ -249,47 +255,53 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
   try {
-    // Query users who:
-    // 1. Have outreach enabled (or no preference set = default enabled)
-    // 2. Haven't received outreach in the last 24 hours
-    // 3. Are in the onboarding period or need re-engagement
+    // Everyone is a candidate unless they switched outreach off. A
+    // where('outreachPreferences.enabled', '!=', false) query can't express
+    // that: Firestore's != skips documents without the field, which made this
+    // opt-in only. So page through users and filter here.
+    let lastId: string | undefined;
+    let scanned = 0;
+    while (candidates.length < limit && scanned < MAX_USERS_SCANNED) {
+      let query = db.collection('bogle_users').orderBy('__name__').limit(CANDIDATE_PAGE_SIZE);
+      if (lastId) query = query.startAfter(lastId);
+      const page = await query.get();
+      if (page.empty) break;
+      scanned += page.size;
+      lastId = page.docs[page.docs.length - 1].id;
 
-    const usersSnapshot = await db
-      .collection('bogle_users')
-      .where('outreachPreferences.enabled', '!=', false)
-      .limit(limit * 2) // Get more to filter
-      .get();
+      for (const doc of page.docs) {
+        if (candidates.length >= limit) break;
 
-    for (const doc of usersSnapshot.docs) {
-      if (candidates.length >= limit) break;
+        const data = doc.data();
+        const userId = doc.id;
+        if (data.outreachPreferences?.enabled === false) continue;
 
-      const data = doc.data();
-      const userId = doc.id;
+        // Check last outreach date
+        const lastOutreach = data.lastOutreachDate?.toDate?.() || data.lastOutreachDate;
+        if (lastOutreach && new Date(lastOutreach) > oneDayAgo) {
+          continue; // Already contacted recently
+        }
 
-      // Check last outreach date
-      const lastOutreach = data.lastOutreachDate?.toDate?.() || data.lastOutreachDate;
-      if (lastOutreach && new Date(lastOutreach) > oneDayAgo) {
-        continue; // Already contacted recently
+        // Build candidate
+        const createdAt = data.createdAt?.toDate?.() || data.createdAt || now;
+        const daysSinceSignup = Math.floor(
+          (now.getTime() - new Date(createdAt).getTime()) / (24 * 60 * 60 * 1000)
+        );
+
+        candidates.push({
+          userId,
+          email: data.email,
+          phone: data.phone || data.phoneNumber,
+          name: data.displayName || data.name,
+          daysSinceSignup,
+          lastConversationDate: data.lastConversationDate?.toDate?.() || data.lastConversationDate,
+          lastOutreachDate: lastOutreach,
+          onboardingDay: data.onboardingDay,
+          engagementLevel: determineEngagementLevel(data),
+          outreachPreferences: data.outreachPreferences,
+        });
       }
-
-      // Build candidate
-      const createdAt = data.createdAt?.toDate?.() || data.createdAt || now;
-      const daysSinceSignup = Math.floor(
-        (now.getTime() - new Date(createdAt).getTime()) / (24 * 60 * 60 * 1000)
-      );
-
-      candidates.push({
-        userId,
-        email: data.email,
-        phone: data.phone || data.phoneNumber,
-        name: data.displayName || data.name,
-        daysSinceSignup,
-        lastConversationDate: data.lastConversationDate?.toDate?.() || data.lastConversationDate,
-        lastOutreachDate: lastOutreach,
-        onboardingDay: data.onboardingDay,
-        engagementLevel: determineEngagementLevel(data),
-        outreachPreferences: data.outreachPreferences,
-      });
+      if (page.size < CANDIDATE_PAGE_SIZE) break;
     }
 
     return candidates;
@@ -383,8 +395,8 @@ async function determineBestChannel(
 ): Promise<DeliveryChannel | null> {
   const { userId, email, phone, outreachPreferences } = candidate;
 
-  // Check user's preferred channels
-  const allowedChannels = outreachPreferences?.channels || ['email', 'sms', 'push', 'in_app'];
+  // In-app plus only the channels this user opted into (unset = in-app only)
+  const allowedChannels = allowedDeliveryChannels(outreachPreferences);
 
   // Check what channels are available
   const channelStatus = await getChannelStatus();
