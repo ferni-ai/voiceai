@@ -326,33 +326,18 @@ async function handleRemember(fact: string): Promise<void> {
   }
 }
 
-async function handleInsights(options: MemoryArgs['options']): Promise<void> {
-  console.log(colors.dim('Generating insights from memories...'));
+/**
+ * Print a clear message for subcommands whose backend route doesn't exist yet
+ * (instead of surfacing a raw 404).
+ */
+function printNotAvailable(feature: string, alternative: string): void {
+  console.log(colors.yellow(`${feature} isn't available from the CLI yet (no backend endpoint).`));
+  console.log(colors.dim(`  Try: ${alternative}`));
+}
 
-  const result = await apiRequest('/api/memory/insights');
-
-  if (!result.success) {
-    console.log(colors.red(`❌ ${result.error || "Couldn't generate insights"}`));
-    return;
-  }
-
-  if (options.json) {
-    console.log(JSON.stringify(result.data, null, 2));
-    return;
-  }
-
-  const insights = (result.data as { insights?: string[] })?.insights || [];
-
-  if (insights.length === 0) {
-    console.log(colors.yellow('No insights available yet. Chat more with Ferni to generate insights!'));
-    return;
-  }
-
-  console.log(colors.bold('\n💡 Personalized Insights\n'));
-  for (const insight of insights) {
-    console.log(`  • ${insight}`);
-  }
-  console.log('');
+async function handleInsights(_options: MemoryArgs['options']): Promise<void> {
+  // No /api/memory/insights route exists on the backend.
+  printNotAvailable('Memory insights', 'ferni memory summary');
 }
 
 async function handleStats(options: MemoryArgs['options']): Promise<void> {
@@ -390,33 +375,9 @@ async function handleStats(options: MemoryArgs['options']): Promise<void> {
   console.log('');
 }
 
-async function handleRecent(options: MemoryArgs['options']): Promise<void> {
-  console.log(colors.dim('Getting recently learned facts...'));
-
-  const result = await apiRequest(`/api/memory/recent?limit=${options.limit || 10}`);
-
-  if (!result.success) {
-    console.log(colors.red(`❌ ${result.error || "Couldn't get recent memories"}`));
-    return;
-  }
-
-  const memories = (result.data as { memories?: Memory[] })?.memories || [];
-
-  if (options.json) {
-    console.log(JSON.stringify(memories, null, 2));
-    return;
-  }
-
-  if (memories.length === 0) {
-    console.log(colors.yellow('No recent memories'));
-    return;
-  }
-
-  console.log(colors.bold(`\n🕐 Recently Learned (${memories.length})\n`));
-  for (const memory of memories) {
-    console.log(formatMemory(memory));
-  }
-  console.log('');
+async function handleRecent(_options: MemoryArgs['options']): Promise<void> {
+  // No /api/memory/recent route exists on the backend.
+  printNotAvailable('Recently learned facts', 'ferni memory search <topic>');
 }
 
 async function main(): Promise<void> {

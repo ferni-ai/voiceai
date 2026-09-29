@@ -57,6 +57,15 @@ async function apiRequest<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
   
+  // The UI server has no /api/rollouts routes yet, so every call 404s.
+  // Say so plainly instead of dumping a raw 404 page.
+  if (response.status === 404) {
+    throw new Error(
+      "Feature rollouts aren't available yet (the backend has no /api/rollouts endpoint).\n" +
+        '   For staged traffic shifts use `ferni traffic`; for deploys use `ferni deploy <target>`.'
+    );
+  }
+
   if (!response.ok) {
     const error = await response.text();
     throw new Error(`API error (${response.status}): ${error}`);

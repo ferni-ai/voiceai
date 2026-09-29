@@ -132,6 +132,17 @@ async function apiRequest(endpoint: string, method = 'GET', body?: unknown): Pro
       : `${API_BASE_URL}${endpoint}`;
 
     const response = await fetch(url, options);
+
+    // The backend has no /api/scheduled routes yet; say so instead of a raw 404.
+    if (response.status === 404) {
+      return {
+        success: false,
+        error:
+          "Scheduling from the CLI isn't available yet (no /api/scheduled endpoint). " +
+          'Ask Ferni in a conversation to schedule calls, messages or reminders.',
+      };
+    }
+
     const data = await response.json();
 
     if (!response.ok) {
