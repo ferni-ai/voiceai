@@ -1,9 +1,9 @@
 /**
  * Experiment CLI Commands Index
  *
- * Manages A/B tests, bandits, and auto-rollouts.
+ * Manages web experiments via the admin API.
  *
  * @module cli/commands/experiments
  */
 
-export { experimentsCommand } from './experiments.js';
+export { runExperiments } from './experiments.js';

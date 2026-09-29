@@ -69,11 +69,34 @@ dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
 const GCP_PROJECT = 'johnb-2025';
 const GCP_REGION = 'us-central1';
 
-// Service names
+// Cloud Run services. The voice agent is NOT here: it runs only on the GCE VM
+// below (the Cloud Run 'voiceai-agent' service was deleted 2026-02-24 and must
+// never be targeted - it steals LiveKit jobs it can't serve over UDP).
 const SERVICES = {
-  agent: 'voiceai-agent',
   ui: 'john-bogle-ui',
 };
+
+// GCE voice agent (blue-green containers voiceai-agent-{blue,green})
+const GCE_AGENT = {
+  instance: 'voiceai-agent-gce',
+  zone: 'us-central1-a',
+  containerFilter: 'voiceai-agent',
+};
+
+/**
+ * Remote shell snippet resolving the running voice agent container.
+ * `$` is escaped so it survives a local `sh -c` inside a double-quoted --command.
+ */
+const GCE_AGENT_CONTAINER = `\\$(docker ps --filter name=${GCE_AGENT.containerFilter} --format '{{.Names}}' | head -1)`;
+
+/** Explain how to do a voice-agent operation now that it lives on GCE. */
+function printGceAgentGuidance(action: string): void {
+  log.warn(`The voice agent runs on GCE (${GCE_AGENT.instance}), not Cloud Run - ${action} via:`);
+  console.log(`
+  ${colors.cyan}ferni deploy gce${colors.reset}      Blue-green redeploy (restart / canary)`);
+  console.log(`  ${colors.cyan}ferni rollback gce${colors.reset}    Roll back to the previous image`);
+  console.log(`  ${colors.cyan}ferni logs gce${colors.reset}        Container logs`);
+}
 
 // ============================================================================
 // COLORS & STYLING
@@ -526,20 +549,6 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni commands validate --all',
     ],
   },
-  api: {
-    name: 'API',
-    description: 'Manage and validate API endpoints (200+ routes)',
-    icon: '🌐',
-    handler: handleApi,
-    subcommands: ['list', 'call', 'validate'],
-    examples: [
-      'ferni api list',
-      'ferni api list --category calendar',
-      'ferni api call GET /api/health',
-      'ferni api call POST /api/habits --body \'{"name": "Morning run"}\'',
-      'ferni api validate --all',
-    ],
-  },
   ftis: {
     name: 'FTIS',
     description: 'Ferni Tool Intelligence System (ML-powered tool selection)',
@@ -668,26 +677,18 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni family message "mom" "Hi!"',
     ],
   },
-  brain: {
-    name: 'Brain',
+  memory: {
+    name: 'Memory',
     description: "Search and manage Ferni's memory of you",
     icon: '🧠',
     script: 'apps/cli/src/commands/memory/memory.ts',
     subcommands: ['summary', 'search', 'about', 'remember', 'insights', 'stats', 'recent'],
     examples: [
-      'ferni brain',
-      'ferni brain search "favorite restaurant"',
-      'ferni brain about "Jordan"',
-      'ferni brain remember "My dog is named Max"',
+      'ferni memory',
+      'ferni memory search "favorite restaurant"',
+      'ferni memory about "Jordan"',
+      'ferni memory remember "My dog is named Max"',
     ],
-  },
-  memory: {
-    name: 'Memory',
-    description: 'Alias for brain command',
-    icon: '🧠',
-    script: 'apps/cli/src/commands/memory/memory.ts',
-    subcommands: ['summary', 'search', 'about', 'remember', 'insights', 'stats', 'recent'],
-    examples: ['ferni memory search "birthday"'],
   },
   code: {
     name: 'Code',
@@ -1082,11 +1083,17 @@ const COMMANDS: Record<string, CliCommand> = {
   },
   api: {
     name: 'API',
-    description: 'API contract testing & docs',
+    description: 'API contracts, docs, and endpoint calls/validation',
     icon: '📡',
     handler: handleAPICmd,
-    subcommands: ['list', 'mock', 'diff', 'docs'],
-    examples: ['ferni api list', 'ferni api mock', 'ferni api diff'],
+    subcommands: ['list', 'mock', 'diff', 'docs', 'call', 'validate'],
+    examples: [
+      'ferni api list',
+      'ferni api mock',
+      'ferni api diff',
+      'ferni api call GET /api/health',
+      'ferni api validate --all',
+    ],
   },
   // Platform Oversight
   rollback: {
@@ -1171,7 +1178,7 @@ const COMMANDS: Record<string, CliCommand> = {
   },
   experiments: {
     name: 'Experiments',
-    description: 'A/B testing, bandits & auto-rollout experiments',
+    description: 'Web A/B experiments (admin API)',
     icon: '🧬',
     handler: handleExperiments,
     subcommands: [
@@ -1185,7 +1192,6 @@ const COMMANDS: Record<string, CliCommand> = {
       'resume',
       'complete',
       'promote',
-      'delete',
     ],
     examples: [
       'ferni experiments list',
@@ -2185,9 +2191,16 @@ async function handleLogs(args: string[]): Promise<void> {
     return;
   }
 
+  // Voice agent logs live on the GCE VM
+  if (subcommand === 'agent') {
+    await handleLogsGCE(sinceArg, tail);
+    return;
+  }
+
   const services: string[] = [];
   if (subcommand === 'all') {
-    services.push(SERVICES.agent, SERVICES.ui);
+    await handleLogsGCE(sinceArg, false);
+    services.push(SERVICES.ui);
   } else if (subcommand === 'errors') {
     // Show errors from all services
     log.info('Fetching error logs from all services...\n');
@@ -2198,7 +2211,7 @@ async function handleLogs(args: string[]): Promise<void> {
     const service = SERVICES[subcommand as keyof typeof SERVICES];
     if (!service) {
       log.error(messages.unknownService(subcommand));
-      log.info(`Available: ${Object.keys(SERVICES).join(', ')}, all, errors, analyze, search, gce`);
+      log.info(`Available: agent, ${Object.keys(SERVICES).join(', ')}, all, errors, analyze, search, gce`);
       return;
     }
     services.push(service);
@@ -2232,6 +2245,13 @@ async function handleLogsAnalyze(args: string[], since: string): Promise<void> {
   spinner.start();
 
   // Fetch recent logs
+  if (service === 'agent') {
+    spinner.stop(false);
+    log.warn('AI analysis reads Cloud Run logs; the voice agent runs on GCE.');
+    console.log(`  Use ${colors.cyan}ferni logs gce --since=${since}${colors.reset} for agent logs.`);
+    return;
+  }
+
   let logQuery = 'resource.type=cloud_run_revision';
   if (service !== 'all') {
     const svcName = SERVICES[service as keyof typeof SERVICES] || service;
@@ -2348,7 +2368,7 @@ async function handleLogsGCE(since: string, tail: boolean): Promise<void> {
 
   if (tail) {
     log.info('Streaming GCE logs (Ctrl+C to stop)...\n');
-    const cmd = `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a --command="docker logs voiceai-agent -f --tail=100" 2>/dev/null`;
+    const cmd = `gcloud compute ssh sethford@${GCE_AGENT.instance} --zone=${GCE_AGENT.zone} --command="docker logs ${GCE_AGENT_CONTAINER} -f --tail=100" 2>/dev/null`;
     const child = spawn('sh', ['-c', cmd], { stdio: 'inherit' });
     await new Promise((resolve) => child.on('close', resolve));
     return;
@@ -2359,7 +2379,7 @@ async function handleLogsGCE(since: string, tail: boolean): Promise<void> {
 
   // Get logs from the last hour by default
   const sinceSeconds = since.includes('h') ? parseInt(since) * 3600 : parseInt(since) * 60;
-  const cmd = `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a --command="docker logs voiceai-agent --since=${sinceSeconds}s 2>&1 | tail -100" 2>/dev/null`;
+  const cmd = `gcloud compute ssh sethford@${GCE_AGENT.instance} --zone=${GCE_AGENT.zone} --command="docker logs ${GCE_AGENT_CONTAINER} --since=${sinceSeconds}s 2>&1 | tail -100" 2>/dev/null`;
 
   const logs = execCommand(cmd);
   spinner.stop(!!logs);
@@ -2717,18 +2737,19 @@ async function handleDb(args: string[]): Promise<void> {
   }
 
   if (subcommand === 'users') {
-    log.info('User statistics require running a query script.');
-    log.step('To get user stats, run:');
-    console.log(`\n  ${colors.cyan}npx tsx scripts/db-stats.ts${colors.reset}\n`);
+    log.info('User data lives in the users command:');
+    console.log(`\n  ${colors.cyan}ferni users list${colors.reset}         - List users`);
+    console.log(`  ${colors.cyan}ferni users show <id>${colors.reset}    - Inspect one user\n`);
   }
 
   if (subcommand === 'migrate') {
     log.info('Database migrations:');
+    console.log(`\n  ${colors.cyan}ferni migrate status${colors.reset} - Schema migration status`);
     console.log(
-      `\n  ${colors.cyan}npx tsx scripts/migrate-memories.ts${colors.reset} - Migrate memory format`
+      `  ${colors.cyan}npx tsx scripts/migrate-all-users.ts --status${colors.reset} - Entity store migration (all users)`
     );
     console.log(
-      `  ${colors.cyan}npx tsx scripts/migrate-users.ts${colors.reset} - Migrate user schema\n`
+      `  ${colors.cyan}npx tsx scripts/migrate-entity-store.ts --user=<id> --dry-run${colors.reset} - Entity store migration (one user)\n`
     );
   }
 
@@ -4149,7 +4170,7 @@ async function handleCosts(args: string[]): Promise<void> {
 
     // Show services
     console.log(`  ${colors.cyan}Estimated Cost Drivers:${colors.reset}`);
-    console.log(`    1. Cloud Run (voiceai-agent) - Compute + Memory`);
+    console.log(`    1. GCE VM (voiceai-agent-gce) - Voice agent compute`);
     console.log(`    2. Cloud Run (john-bogle-ui) - Compute + Memory`);
     console.log(`    3. Firestore - Document reads/writes`);
     console.log(`    4. Cloud Build - Build minutes`);
@@ -9143,9 +9164,13 @@ async function handleRestartService(args: string[]): Promise<void> {
     return;
   }
 
+  if (subcommand === 'agent') {
+    printGceAgentGuidance('restart it');
+    return;
+  }
+
   // Restart a specific service
-  const serviceName =
-    subcommand === 'agent' ? SERVICES.agent : subcommand === 'ui' ? SERVICES.ui : null;
+  const serviceName = subcommand === 'ui' ? SERVICES.ui : null;
 
   if (!serviceName) {
     log.error(`Unknown service: ${subcommand}`);
@@ -10519,6 +10544,11 @@ async function handleCostsAICmd(args: string[]): Promise<void> {
 }
 
 async function handleAPICmd(args: string[]): Promise<void> {
+  // `call` / `validate` live in the endpoint manager; the rest are contract tools.
+  if (args[0] === 'call' || args[0] === 'validate') {
+    await handleApi(args);
+    return;
+  }
   const { handleAPIContracts: handler } = await import('./features/dev/api-contracts.js');
   await handler(args);
 }
@@ -10605,8 +10635,13 @@ async function handleRollback(args: string[]): Promise<void> {
     return;
   }
 
-  if (subcommand === 'agent' || subcommand === 'ui') {
-    const service = subcommand === 'agent' ? SERVICES.agent : SERVICES.ui;
+  if (subcommand === 'agent') {
+    printGceAgentGuidance('roll it back');
+    return;
+  }
+
+  if (subcommand === 'ui') {
+    const service = SERVICES.ui;
     log.info(`Rolling back ${subcommand}...`);
 
     // Get previous revision
@@ -10947,8 +10982,12 @@ async function handleTraffic(args: string[]): Promise<void> {
 
   if (subcommand === 'canary') {
     const percent = parseInt(args[1] || '10', 10);
-    const service = args[2] || 'agent';
-    const serviceName = service === 'agent' ? SERVICES.agent : SERVICES.ui;
+    const service = args[2] || 'ui';
+    if (service === 'agent') {
+      printGceAgentGuidance('shift traffic');
+      return;
+    }
+    const serviceName = SERVICES.ui;
 
     console.log(`${colors.bold}Setting up ${percent}% canary for ${service}:${colors.reset}\n`);
 
@@ -11357,425 +11396,9 @@ async function handleChaos(args: string[]): Promise<void> {
 }
 
 async function handleExperiments(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'list';
-  const API_BASE = 'http://localhost:3002/api/experiments';
-
-  log.header('🧬 A/B Experiments');
-
-  // Helper to get status icon
-  const getStatusIcon = (status: string): string => {
-    switch (status) {
-      case 'running':
-        return `${colors.green}●${colors.reset}`;
-      case 'paused':
-        return `${colors.yellow}●${colors.reset}`;
-      case 'completed':
-        return `${colors.dim}●${colors.reset}`;
-      case 'promoted':
-        return `${colors.green}✓${colors.reset}`;
-      case 'rolled_back':
-        return `${colors.red}✗${colors.reset}`;
-      default:
-        return `${colors.dim}○${colors.reset}`;
-    }
-  };
-
-  // Helper to get type icon
-  const getTypeIcon = (type: string): string => {
-    switch (type) {
-      case 'ab':
-        return `${colors.blue}[A/B]${colors.reset}`;
-      case 'bandit':
-        return `${colors.magenta}[MAB]${colors.reset}`;
-      case 'rollout':
-        return `${colors.cyan}[ROL]${colors.reset}`;
-      default:
-        return `${colors.dim}[???]${colors.reset}`;
-    }
-  };
-
-  try {
-    if (subcommand === 'list') {
-      const response = await fetch(API_BASE);
-      if (!response.ok) {
-        log.error(`API error: ${response.statusText}`);
-        return;
-      }
-      const data = (await response.json()) as {
-        experiments: Array<{
-          id: string;
-          name: string;
-          type: string;
-          status: string;
-          variants: number;
-          winner?: string;
-        }>;
-        count: number;
-      };
-
-      if (data.experiments.length === 0) {
-        console.log(`${colors.yellow}No experiments found.${colors.reset}`);
-        console.log(
-          `\n  Create one with: ${colors.cyan}ferni experiments create --help${colors.reset}`
-        );
-        return;
-      }
-
-      console.log(`${colors.bold}Active Experiments:${colors.reset}\n`);
-
-      for (const exp of data.experiments) {
-        console.log(
-          `  ${getStatusIcon(exp.status)} ${colors.cyan}${exp.id}${colors.reset} ${getTypeIcon(exp.type)} ${exp.name}`
-        );
-        console.log(`    ${colors.dim}${exp.variants} variants${colors.reset}`);
-        if (exp.winner) {
-          console.log(`    ${colors.green}Winner: ${exp.winner}${colors.reset}`);
-        }
-      }
-
-      console.log(`\n${colors.dim}Total: ${data.count} experiments${colors.reset}`);
-      return;
-    }
-
-    if (subcommand === 'status' || subcommand === 'summary') {
-      const response = await fetch(`${API_BASE}/summary`);
-      if (!response.ok) {
-        log.error(`API error: ${response.statusText}`);
-        return;
-      }
-      const data = (await response.json()) as {
-        total: number;
-        running: number;
-        paused: number;
-        completed: number;
-        byType: { ab: number; bandit: number; rollout: number };
-      };
-
-      console.log(`${colors.bold}Experiment Summary:${colors.reset}\n`);
-      console.log(`  Total:     ${colors.cyan}${data.total}${colors.reset}`);
-      console.log(`  Running:   ${colors.green}${data.running}${colors.reset}`);
-      console.log(`  Paused:    ${colors.yellow}${data.paused}${colors.reset}`);
-      console.log(`  Completed: ${colors.dim}${data.completed}${colors.reset}`);
-      console.log();
-      console.log(`  A/B Tests: ${data.byType.ab}`);
-      console.log(`  Bandits:   ${data.byType.bandit}`);
-      console.log(`  Rollouts:  ${data.byType.rollout}`);
-      return;
-    }
-
-    if (subcommand === 'show' || subcommand === 'results') {
-      const expId = args[1];
-      if (!expId) {
-        log.error('Experiment ID required');
-        console.log(
-          `\n  Usage: ${colors.cyan}ferni experiments show <experiment-id>${colors.reset}`
-        );
-        return;
-      }
-
-      const response = await fetch(`${API_BASE}/${expId}`);
-      if (!response.ok) {
-        log.error(`Experiment not found: ${expId}`);
-        return;
-      }
-      const data = (await response.json()) as {
-        experiment: {
-          config: {
-            id: string;
-            name: string;
-            type: string;
-            primaryMetric: string;
-            autoPromote: boolean;
-            autoRollback: boolean;
-            variants: Array<{ id: string; name: string; trafficPercent: number }>;
-          };
-          status: string;
-          createdAt: string;
-          startedAt?: string;
-          winner?: string;
-        };
-      };
-
-      const exp = data.experiment;
-      console.log(`${colors.bold}${exp.config.name}${colors.reset}\n`);
-      console.log(`  ID:          ${colors.cyan}${exp.config.id}${colors.reset}`);
-      console.log(`  Type:        ${getTypeIcon(exp.config.type)} ${exp.config.type}`);
-      console.log(`  Status:      ${getStatusIcon(exp.status)} ${exp.status}`);
-      console.log(`  Created:     ${new Date(exp.createdAt).toLocaleString()}`);
-      if (exp.startedAt) {
-        console.log(`  Started:     ${new Date(exp.startedAt).toLocaleString()}`);
-      }
-      if (exp.winner) {
-        console.log(`  ${colors.green}Winner: ${exp.winner}${colors.reset}`);
-      }
-      console.log(`\n${colors.bold}Variants:${colors.reset}`);
-      for (const v of exp.config.variants) {
-        console.log(`  - ${v.name} (${v.trafficPercent}%)`);
-      }
-      console.log(`\n  Primary Metric: ${exp.config.primaryMetric}`);
-      console.log(`  Auto-Promote:   ${exp.config.autoPromote ? 'Yes' : 'No'}`);
-      console.log(`  Auto-Rollback:  ${exp.config.autoRollback ? 'Yes' : 'No'}`);
-      return;
-    }
-
-    if (subcommand === 'health') {
-      const expId = args[1];
-      if (!expId) {
-        log.error('Experiment ID required');
-        return;
-      }
-
-      const response = await fetch(`${API_BASE}/${expId}/health`);
-      if (!response.ok) {
-        log.error(`Experiment not found: ${expId}`);
-        return;
-      }
-      const data = (await response.json()) as {
-        health: {
-          status: string;
-          lastCheck: string;
-          recommendations: string[];
-          typeStatus: {
-            ab?: { recommendation: string; pValue?: number };
-            bandit?: { estimatedBest: string; bestConfidence: number };
-            rollout?: { currentStage: number; percentage: number; confidence: number };
-            sequential?: { decision: string; samplesUsed: number };
-          };
-        };
-      };
-
-      const health = data.health;
-      const statusColor =
-        health.status === 'healthy'
-          ? colors.green
-          : health.status === 'warning'
-            ? colors.yellow
-            : colors.red;
-
-      console.log(`${colors.bold}Health: ${expId}${colors.reset}\n`);
-      console.log(`  Status:     ${statusColor}${health.status.toUpperCase()}${colors.reset}`);
-      console.log(`  Last Check: ${new Date(health.lastCheck).toLocaleString()}`);
-
-      if (health.recommendations.length > 0) {
-        console.log(`\n${colors.bold}Recommendations:${colors.reset}`);
-        for (const rec of health.recommendations) {
-          console.log(`  • ${rec}`);
-        }
-      }
-      return;
-    }
-
-    if (subcommand === 'create') {
-      console.log(`${colors.bold}Create New Experiment:${colors.reset}\n`);
-      console.log(`  ${colors.cyan}Usage:${colors.reset}`);
-      console.log(`    ferni experiments create -i <id> -n <name> -t <type> [-v <variants>]`);
-      console.log();
-      console.log(`  ${colors.cyan}Options:${colors.reset}`);
-      console.log(`    -i, --id <id>        Experiment ID (required)`);
-      console.log(`    -n, --name <name>    Experiment name (required)`);
-      console.log(`    -t, --type <type>    Type: ab, bandit, or rollout (required)`);
-      console.log(
-        `    -v, --variants       Comma-separated variant names (default: control,treatment)`
-      );
-      console.log(`    --auto-promote       Enable auto-promotion when winner detected`);
-      console.log(`    --dry-run            Preview without creating`);
-      console.log();
-      console.log(`  ${colors.cyan}Example:${colors.reset}`);
-      console.log(`    ferni experiments create -i voice-speed-v1 -n "Voice Speed Test" -t ab`);
-      console.log();
-      console.log(
-        `  ${colors.dim}For full CLI support, use the Commander-based command:${colors.reset}`
-      );
-      console.log(
-        `    ${colors.cyan}npx ts-node apps/cli/src/commands/experiments/experiments.ts create --help${colors.reset}`
-      );
-      return;
-    }
-
-    if (subcommand === 'start') {
-      const expId = args[1];
-      if (!expId) {
-        log.error('Experiment ID required');
-        return;
-      }
-
-      const spinner = new Spinner(`Starting ${expId}...`);
-      spinner.start();
-
-      const response = await fetch(`${API_BASE}/${expId}/start`, { method: 'POST' });
-      spinner.stop(response.ok);
-
-      if (!response.ok) {
-        const error = (await response.json()) as { error?: string };
-        log.error(error.error || response.statusText);
-        return;
-      }
-
-      log.success(`Experiment ${expId} started`);
-      return;
-    }
-
-    if (subcommand === 'pause' || subcommand === 'stop') {
-      const expId = args[1];
-      if (!expId) {
-        log.error('Experiment ID required');
-        return;
-      }
-
-      const spinner = new Spinner(`Pausing ${expId}...`);
-      spinner.start();
-
-      const response = await fetch(`${API_BASE}/${expId}/pause`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'Paused via CLI' }),
-      });
-      spinner.stop(response.ok);
-
-      if (!response.ok) {
-        const error = (await response.json()) as { error?: string };
-        log.error(error.error || response.statusText);
-        return;
-      }
-
-      log.success(`Experiment ${expId} paused`);
-      return;
-    }
-
-    if (subcommand === 'resume') {
-      const expId = args[1];
-      if (!expId) {
-        log.error('Experiment ID required');
-        return;
-      }
-
-      const spinner = new Spinner(`Resuming ${expId}...`);
-      spinner.start();
-
-      const response = await fetch(`${API_BASE}/${expId}/resume`, { method: 'POST' });
-      spinner.stop(response.ok);
-
-      if (!response.ok) {
-        const error = (await response.json()) as { error?: string };
-        log.error(error.error || response.statusText);
-        return;
-      }
-
-      log.success(`Experiment ${expId} resumed`);
-      return;
-    }
-
-    if (subcommand === 'complete' || subcommand === 'winner') {
-      const expId = args[1];
-      const winner = args[2];
-      if (!expId) {
-        log.error('Experiment ID required');
-        return;
-      }
-
-      const spinner = new Spinner(`Completing ${expId}...`);
-      spinner.start();
-
-      const response = await fetch(`${API_BASE}/${expId}/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ winner }),
-      });
-      spinner.stop(response.ok);
-
-      if (!response.ok) {
-        const error = (await response.json()) as { error?: string };
-        log.error(error.error || response.statusText);
-        return;
-      }
-
-      log.success(`Experiment ${expId} completed`);
-      if (winner) {
-        console.log(`  ${colors.green}Winner: ${winner}${colors.reset}`);
-      }
-      return;
-    }
-
-    if (subcommand === 'promote') {
-      const expId = args[1];
-      if (!expId) {
-        log.error('Experiment ID required');
-        return;
-      }
-
-      const spinner = new Spinner(`Checking promotion for ${expId}...`);
-      spinner.start();
-
-      const response = await fetch(`${API_BASE}/${expId}/promote`, { method: 'POST' });
-      spinner.stop(response.ok);
-
-      if (!response.ok) {
-        const error = (await response.json()) as { error?: string };
-        log.error(error.error || response.statusText);
-        return;
-      }
-
-      const data = (await response.json()) as {
-        success: boolean;
-        promotion: { winner?: string; reason?: string; blockingIssues?: string[] };
-      };
-      if (data.success) {
-        log.success(`Winner promoted: ${data.promotion.winner}`);
-      } else {
-        console.log(`${colors.yellow}Not ready to promote${colors.reset}`);
-        if (data.promotion.reason) {
-          console.log(`  ${colors.dim}Reason: ${data.promotion.reason}${colors.reset}`);
-        }
-        if (data.promotion.blockingIssues && data.promotion.blockingIssues.length > 0) {
-          console.log(`  ${colors.dim}Blocking issues:${colors.reset}`);
-          for (const issue of data.promotion.blockingIssues) {
-            console.log(`    - ${issue}`);
-          }
-        }
-      }
-      return;
-    }
-
-    if (subcommand === 'delete') {
-      const expId = args[1];
-      const force = args.includes('--force') || args.includes('-f');
-      if (!expId) {
-        log.error('Experiment ID required');
-        return;
-      }
-
-      if (!force) {
-        console.log(
-          `${colors.yellow}This will permanently delete experiment: ${expId}${colors.reset}`
-        );
-        console.log(`${colors.dim}Use --force to skip this confirmation.${colors.reset}`);
-        return;
-      }
-
-      const spinner = new Spinner(`Deleting ${expId}...`);
-      spinner.start();
-
-      const response = await fetch(`${API_BASE}/${expId}`, { method: 'DELETE' });
-      spinner.stop(response.ok);
-
-      if (!response.ok) {
-        const error = (await response.json()) as { error?: string };
-        log.error(error.error || response.statusText);
-        return;
-      }
-
-      log.success(`Experiment ${expId} deleted`);
-      return;
-    }
-
-    log.error(`Unknown experiments subcommand: ${subcommand}`);
-    console.log(
-      `\n  Available: list, status, show, health, create, start, pause, resume, complete, promote, delete`
-    );
-  } catch (error) {
-    log.error('Failed to connect to API. Is the UI server running?');
-    console.log(`${colors.dim}Run: pnpm ui-server${colors.reset}`);
-  }
+  log.header('🧬 Experiments');
+  const { runExperiments } = await import('./commands/experiments/experiments.js');
+  await runExperiments(args);
 }
 
 async function handleCache(args: string[]): Promise<void> {

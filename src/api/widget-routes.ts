@@ -14,6 +14,7 @@ import { registerInterval } from '../utils/interval-manager.js';
 import { sendError, sendJsonResponse, parseRequestBody } from './helpers.js';
 import { requireAuth, type AuthContext } from './auth-middleware.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { WIDGET_CONFIG_RESOLVER_JS } from './widget-embed-config.js';
 
 const log = createLogger({ module: 'WidgetRoutes' });
 
@@ -470,11 +471,11 @@ const EMBED_SCRIPT = `
 /**
  * Ferni Voice Agent - Embeddable Widget SDK
  *
- * Usage:
- *   <script>
- *     window.FerniWidget = { widgetId: 'YOUR_WIDGET_ID' };
- *   </script>
- *   <script src="https://your-domain.com/api/widget/embed.js" async></script>
+ * Usage (any one of):
+ *   <script>window.FerniWidget = { widgetId: 'YOUR_WIDGET_ID' };</script>
+ *   <script>window.FERNI_CONFIG = { agentId: 'YOUR_WIDGET_ID', apiUrl: '' };</script>
+ *   <script src="https://your-domain.com/api/widget/embed.js" data-widget-id="YOUR_WIDGET_ID" async></script>
+ * apiBase defaults to the origin this script was loaded from.
  */
 (function() {
   'use strict';
@@ -482,14 +483,17 @@ const EMBED_SCRIPT = `
   // Prevent multiple initializations
   if (window.FerniWidgetLoaded) return;
   window.FerniWidgetLoaded = true;
+  window.FerniWidget = window.FerniWidget || {};
 
-  const API_BASE = window.FerniWidget?.apiBase || '';
-  const WIDGET_ID = window.FerniWidget?.widgetId;
+  // Capture our own <script> now; currentScript is only set while executing.
+  const SCRIPT_EL = document.currentScript ||
+    document.querySelector('script[src*="/api/widget/embed.js"]');
 
-  if (!WIDGET_ID) {
-    if (window.FerniWidget?.debug) console.error('[Ferni] Widget ID not configured. Set window.FerniWidget.widgetId');
-    return;
-  }
+  ${WIDGET_CONFIG_RESOLVER_JS}
+
+  // Resolved in start(), after inline config scripts that follow an async tag have run
+  let API_BASE = '';
+  let WIDGET_ID;
 
   // State
   let config = null;
@@ -696,11 +700,22 @@ const EMBED_SCRIPT = `
   window.FerniWidget.close = close;
   window.FerniWidget.toggle = toggle;
 
+  function start() {
+    const resolved = resolveFerniWidgetConfig(window, SCRIPT_EL);
+    API_BASE = resolved.apiBase;
+    WIDGET_ID = resolved.widgetId;
+    if (!WIDGET_ID) {
+      if (window.FerniWidget.debug) console.error('[Ferni] Widget ID not configured. Set window.FerniWidget.widgetId, window.FERNI_CONFIG.agentId, or data-widget-id');
+      return;
+    }
+    init();
+  }
+
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', start);
   } else {
-    init();
+    start();
   }
 })();
 `;

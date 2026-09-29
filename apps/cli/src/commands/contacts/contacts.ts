@@ -337,39 +337,41 @@ async function handleNeedingAttention(options: ContactsArgs['options']): Promise
   console.log(colors.dim('Finding contacts needing attention...'));
 
   const limit = options.limit || 10;
-  const endpoint = `/api/contacts/needing-attention?limit=${limit}`;
-
-  const result = await apiRequest(endpoint);
+  // Backend exposes outreach suggestions at GET /api/contacts/nudges
+  // (there is no /api/contacts/needing-attention route).
+  const result = await apiRequest('/api/contacts/nudges');
 
   if (!result.success) {
     console.log(colors.red(`❌ ${result.error}`));
     return;
   }
 
-  const contacts = (result.data as { contacts?: Contact[] })?.contacts || [];
+  interface Nudge {
+    contactName: string;
+    relationship?: string;
+    reason: string;
+    priority?: 'high' | 'medium' | 'low';
+  }
+  const nudges = ((result.data as { nudges?: Nudge[] })?.nudges || []).slice(0, limit);
 
   if (options.json) {
-    console.log(JSON.stringify(contacts, null, 2));
+    console.log(JSON.stringify(nudges, null, 2));
     return;
   }
 
-  if (contacts.length === 0) {
+  if (nudges.length === 0) {
     console.log(colors.green('✨ All caught up! No contacts need immediate attention.'));
     return;
   }
 
-  console.log(colors.bold(`\n💭 Contacts Needing Attention (${contacts.length})\n`));
+  console.log(colors.bold(`\n💭 Contacts Needing Attention (${nudges.length})\n`));
 
-  for (const contact of contacts) {
-    let line = colors.bold(contact.name);
-    if (contact.relationship) {
-      line += colors.cyan(` · ${contact.relationship}`);
+  for (const nudge of nudges) {
+    let line = colors.bold(nudge.contactName);
+    if (nudge.relationship) {
+      line += colors.cyan(` · ${nudge.relationship}`);
     }
-    if (contact.lastContact) {
-      const lastDate = new Date(contact.lastContact);
-      const daysAgo = Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-      line += colors.yellow(` · ${daysAgo} days since contact`);
-    }
+    line += colors.yellow(` · ${nudge.reason}`);
     console.log(`  ${line}`);
   }
   console.log('');

@@ -147,7 +147,7 @@ async function executeTool(
     const headers = await getAuthHeaders();
     const user = getCurrentUser();
 
-    const response = await fetch(`${API_BASE_URL}/api/tools/execute`, {
+    const response = await fetch(`${API_BASE_URL}/api/chat/tool`, {
       method: 'POST',
       headers: {
         ...headers,
@@ -187,9 +187,8 @@ async function listTools(
     const headers = await getAuthHeaders();
     const user = getCurrentUser();
 
-    const url = query
-      ? `${API_BASE_URL}/api/tools/list?q=${encodeURIComponent(query)}&userId=${user?.userId}`
-      : `${API_BASE_URL}/api/tools/list?userId=${user?.userId}`;
+    // GET /api/chat/tools has no search param; filter client-side.
+    const url = `${API_BASE_URL}/api/chat/tools?userId=${user?.userId}`;
 
     const response = await fetch(url, { headers });
 
@@ -197,10 +196,16 @@ async function listTools(
       return { success: false, error: `API error: ${response.status}` };
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as {
+      tools?: Array<{ name: string; description: string; domain: string }>;
+    };
+    const q = query?.toLowerCase();
+    const tools = (data.tools || []).filter(
+      (t) => !q || t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+    );
     return {
       success: true,
-      tools: data.tools,
+      tools,
     };
   } catch (err) {
     return { success: false, error: String(err) };

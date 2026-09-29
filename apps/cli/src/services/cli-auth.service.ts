@@ -30,6 +30,11 @@ export interface AuthToken {
   firebaseToken: string;
   refreshToken: string;
   expiresAt: number; // Unix timestamp in milliseconds
+  /**
+   * Firebase Web API key (public) handed over by app.ferni.ai/cli-auth.
+   * Needed to exchange the refresh token with Google's Secure Token API.
+   */
+  firebaseApiKey?: string;
 }
 
 export interface CLIAuthConfig {
@@ -122,12 +127,13 @@ export function isTokenExpired(token: AuthToken): boolean {
 }
 
 /**
- * Check if user is authenticated with valid token
+ * Check if the user has a usable session: either a valid ID token, or an
+ * expired one that can be refreshed (getAuthToken() refreshes on demand).
  */
 export function isAuthenticated(): boolean {
   const token = readStoredToken();
   if (!token) return false;
-  return !isTokenExpired(token);
+  return !isTokenExpired(token) || Boolean(token.refreshToken);
 }
 
 /**
@@ -135,7 +141,7 @@ export function isAuthenticated(): boolean {
  */
 export function getCurrentUser(): { userId: string; email: string; displayName?: string } | null {
   const token = readStoredToken();
-  if (!token || isTokenExpired(token)) return null;
+  if (!token || !isAuthenticated()) return null;
   return {
     userId: token.userId,
     email: token.email,
@@ -147,39 +153,71 @@ export function getCurrentUser(): { userId: string; email: string; displayName?:
 // TOKEN REFRESH
 // ============================================================================
 
+/** Google Secure Token API (Firebase Auth refresh-token exchange). */
+export const FIREBASE_SECURE_TOKEN_URL = 'https://securetoken.googleapis.com/v1/token';
+
 /**
- * Refresh an expired token using the refresh token
+ * Resolve the Firebase Web API key used for token refresh.
+ * Env override first, then the key stored at login.
+ */
+export function resolveFirebaseApiKey(token: AuthToken): string | null {
+  return (
+    process.env.FERNI_FIREBASE_API_KEY ||
+    process.env.FIREBASE_API_KEY ||
+    process.env.VITE_FIREBASE_API_KEY ||
+    token.firebaseApiKey ||
+    null
+  );
+}
+
+/**
+ * Refresh an expired token using the refresh token.
+ *
+ * Exchanges the refresh token directly with Firebase
+ * (POST securetoken.googleapis.com/v1/token, form-encoded
+ * grant_type=refresh_token) — there is no Ferni backend refresh route.
  */
 export async function refreshToken(token: AuthToken): Promise<AuthToken | null> {
+  const apiKey = resolveFirebaseApiKey(token);
+  if (!apiKey || !token.refreshToken) {
+    return null;
+  }
+
   try {
-    const response = await fetch(`${DEFAULT_CONFIG.apiBaseUrl}/api/auth/refresh`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        refreshToken: token.refreshToken,
-      }),
-    });
+    const response = await fetch(
+      `${FIREBASE_SECURE_TOKEN_URL}?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: token.refreshToken,
+        }).toString(),
+      }
+    );
 
     if (!response.ok) {
       return null;
     }
 
     const data = (await response.json()) as {
-      token: string;
-      refreshToken: string;
-      expiresIn: number;
-      user: { uid: string; email: string; displayName?: string };
+      id_token?: string;
+      refresh_token?: string;
+      expires_in?: string | number;
+      user_id?: string;
     };
 
+    if (!data.id_token) {
+      return null;
+    }
+
+    const expiresInSec = Number(data.expires_in) || 3600;
     const newToken: AuthToken = {
-      userId: data.user.uid,
-      email: data.user.email,
-      displayName: data.user.displayName,
-      firebaseToken: data.token,
-      refreshToken: data.refreshToken,
-      expiresAt: Date.now() + data.expiresIn * 1000,
+      ...token,
+      userId: data.user_id || token.userId,
+      firebaseToken: data.id_token,
+      refreshToken: data.refresh_token || token.refreshToken,
+      expiresAt: Date.now() + expiresInSec * 1000,
     };
 
     storeToken(newToken);
@@ -247,6 +285,7 @@ export function startCallbackServer(): Promise<AuthToken> {
         const email = url.searchParams.get('email');
         const displayName = url.searchParams.get('displayName');
         const expiresIn = url.searchParams.get('expiresIn');
+        const firebaseApiKey = url.searchParams.get('apiKey');
         const error = url.searchParams.get('error');
 
         if (error) {
@@ -307,6 +346,7 @@ export function startCallbackServer(): Promise<AuthToken> {
           firebaseToken: token,
           refreshToken: refreshTokenParam,
           expiresAt: Date.now() + (parseInt(expiresIn || '3600', 10) * 1000),
+          firebaseApiKey: firebaseApiKey || undefined,
         };
 
         server.close();
@@ -346,24 +386,14 @@ export function getLoginUrl(): string {
 // ============================================================================
 
 /**
- * Log out the current user
+ * Log out the current user.
+ *
+ * This only clears local credentials (~/.ferni/auth.json). Firebase has no
+ * client-side endpoint to revoke a single refresh token; server-side
+ * revocation (admin.auth().revokeRefreshTokens) would sign the user out of
+ * every device, so the CLI intentionally does not do it.
  */
 export async function logout(): Promise<void> {
-  const token = readStoredToken();
-  if (token) {
-    // Optionally revoke the token on the server
-    try {
-      await fetch(`${DEFAULT_CONFIG.apiBaseUrl}/api/auth/revoke`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token.firebaseToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-    } catch {
-      // Ignore errors - token will be cleared locally regardless
-    }
-  }
   clearStoredToken();
 }
 
