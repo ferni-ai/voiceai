@@ -50,6 +50,17 @@ function getNestedValue(obj, path) {
 }
 
 module.exports = function (eleventyConfig) {
+  // Design prototypes stay local: never ship them to ferni.ai
+  if (process.env.ELEVENTY_ENV === 'production') {
+    [
+      'src/preview/**',
+      'src/preview-*.njk',
+      'src/pages/**',
+      'src/tailwind-landing.njk',
+      'src/story-brand.njk',
+    ].forEach((glob) => eleventyConfig.ignores.add(glob));
+  }
+
   // Syntax highlighting for code blocks
   eleventyConfig.addPlugin(syntaxHighlight);
 
