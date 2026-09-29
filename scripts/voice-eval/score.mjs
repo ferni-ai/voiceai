@@ -23,6 +23,11 @@ const pct = (xs, p) => {
 const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 const round = (x, d = 2) => (x === null ? null : Math.round(x * 10 ** d) / 10 ** d);
 
+const THERAPIST =
+  /how (does|did|do) (that|it|this) (feel|make you feel)|what's that like for you|what's underneath|that sounds (really |so |incredibly )?(exhausting|frustrating|hard|tough|overwhelming|stressful|difficult)|that's (so |incredibly |really )?(valid|frustrating|exhausting)|i hear you|thank you for (sharing|trusting)|i'm honored|i'm (right )?here (for you|if you)|sit (with|in) (that|the quiet)|be gentle with yourself|give yourself permission/i;
+const HUMAN_MARKERS =
+  /\b(i mean|honestly|kinda|sort of|kind of|you know|wait|actually|oh man|man,|haha|ha,|like,|anyway|i dunno|i guess|pretty much)\b|\[laughter\]/i;
+let greeting = null;
 const delays = [];
 const perceived = [];
 let openingSounds = 0;
@@ -51,6 +56,7 @@ for (const file of process.argv.slice(2)) {
   // Agent replies to the scripted turns (skip the greeting, before the first turn).
   const firstTurnAt = run.userSpeech[0]?.[0] ?? 0;
   for (const e of run.events) if (e.who === 'agent' && e.t > firstTurnAt) replies.push(e.text);
+  greeting ??= run.events.filter((e) => e.who === 'agent' && e.t <= firstTurnAt).map((e) => e.text).join(' ') || null;
 
   for (const [start, end] of run.userSpeech) {
     userSpeechMs += end - start;
@@ -96,6 +102,13 @@ const score = {
       notTalkingWhenOverlapped: overlaps.filter((o) => !o.agentTalking).length,
     };
   })(),
+  // Therapist / host register a friend wouldn't use (feelings probes, stock
+  // validation, performative gratitude), and hype.
+  therapistRate: round(replies.filter((t) => THERAPIST.test(t)).length / (replies.length || 1)),
+  // Spoken-language markers people use and written text doesn't.
+  humanMarkerRate: round(replies.filter((t) => HUMAN_MARKERS.test(t)).length / (replies.length || 1)),
+  exclamationRate: round(replies.filter((t) => /!/.test(t)).length / (replies.length || 1)),
+  greeting,
   replyTexts: replies,
 };
 console.log(JSON.stringify(score, null, 2));

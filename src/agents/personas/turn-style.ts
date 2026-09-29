@@ -33,7 +33,8 @@ import { llm } from '@livekit/agents';
 
 export const TURN_STYLE_REMINDER =
   'Keep it short, like a friend on a call: often one sentence, sometimes just a few words ("Again? That cat."), never more than three sentences unless they asked you to explain, plan or tell a story. No paragraph breaks. ' +
-  'Start with the substance, not a stock reaction word like Oh, Ugh, Yeah or Hmm. Usually end on a thought, a reaction or an offer rather than a question, and never ask more than one.';
+  'Start with the substance, not a stock reaction word like Oh, Ugh, Yeah or Hmm. Usually end on a thought, a reaction or an offer rather than a question, and never ask more than one. ' +
+  "Talk like a close friend, not a therapist, coach or host: never ask how something feels or what it's like for them, no stock validation (\"that sounds exhausting\", \"I hear you\"), no cheerleading or exclamation marks. React like a person: your own take, a joke, a quick \"wait, what?\". Sound spoken, not written: now and then an \"I mean\", \"honestly\" or \"kinda\", or a thought you trail off.";
 
 export function turnStyleReminderEnabled(
   env: Record<string, string | undefined> = process.env

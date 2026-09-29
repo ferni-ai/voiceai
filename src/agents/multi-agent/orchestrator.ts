@@ -129,6 +129,11 @@ export interface AgentCreationContext {
  *
  * Manages the lifecycle of multiple persona agents in a room.
  */
+/** A greeting without exclamation marks: they make the voice sound hyped. */
+export function calmGreeting(text: string): string {
+  return text.replace(/!+/g, '.').replace(/\.\s*\?/g, '?').replace(/\.{2,}/g, '.');
+}
+
 export class AgentOrchestrator {
   private readonly ctx: JobContext;
   private readonly room: Room;
@@ -255,14 +260,17 @@ export class AgentOrchestrator {
       const userName = (agent.userData as { userName?: string } | undefined)?.userName;
       const directed = await directedText(this.sessionId, {
         moment: 'greeting',
+        // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
+        // to hear your voice!" every call, and the exclamations made the voice
+        // sound hyped ("too happy to start the call", founder test, 2026-09-29).
         direction:
-          'They just connected for a voice call. Greet them like a friend picking up the phone: warm, short, and end with one easy opening. Do not list what you can do or introduce yourself at length.',
+          'They just called you. Answer like you would a friend calling: relaxed and low-key, one short sentence, maybe a quick easy question. No exclamation marks, no "so good to hear your voice", no cheer, do not list what you can do or introduce yourself.',
         facts: { 'time of day': partOfDay, ...(userName ? { 'their name': userName } : {}) },
         fallback: scripted,
         urgency: 'now',
         maxChars: 140,
       });
-      const greeting = directed.text;
+      const greeting = calmGreeting(directed.text);
 
       // ================================================================
       // GREETING AWARENESS: Store greeting so LLM knows what it said
