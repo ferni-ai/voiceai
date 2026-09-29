@@ -27,6 +27,7 @@ const THERAPIST =
   /how (does|did|do) (that|it|this) (feel|make you feel)|what's that like for you|what's underneath|that sounds (really |so |incredibly )?(exhausting|frustrating|hard|tough|overwhelming|stressful|difficult)|that's (so |incredibly |really )?(valid|frustrating|exhausting)|i hear you|thank you for (sharing|trusting)|i'm honored|i'm (right )?here (for you|if you)|sit (with|in) (that|the quiet)|be gentle with yourself|give yourself permission/i;
 const HUMAN_MARKERS =
   /\b(i mean|honestly|kinda|sort of|kind of|you know|wait|actually|oh man|man,|haha|ha,|like,|anyway|i dunno|i guess|pretty much)\b|\[laughter\]/i;
+const HUMAN_MARKERS_G = new RegExp(HUMAN_MARKERS.source, 'gi');
 let greeting = null;
 const delays = [];
 const perceived = [];
@@ -107,6 +108,17 @@ const score = {
   therapistRate: round(replies.filter((t) => THERAPIST.test(t)).length / (replies.length || 1)),
   // Spoken-language markers people use and written text doesn't.
   humanMarkerRate: round(replies.filter((t) => HUMAN_MARKERS.test(t)).length / (replies.length || 1)),
+  // A marker in too many replies is a tic, not a person ("honestly" in 10 of 26).
+  topMarkerRate: (() => {
+    const counts = new Map();
+    for (const t of replies) {
+      for (const m of new Set((t.toLowerCase().match(HUMAN_MARKERS_G) ?? []).map((x) => x.trim()))) {
+        counts.set(m, (counts.get(m) ?? 0) + 1);
+      }
+    }
+    const [word, n] = [...counts].sort((a, b) => b[1] - a[1])[0] ?? [null, 0];
+    return { word, rate: round(n / (replies.length || 1)) };
+  })(),
   exclamationRate: round(replies.filter((t) => /!/.test(t)).length / (replies.length || 1)),
   greeting,
   replyTexts: replies,
