@@ -40,7 +40,9 @@ steps:
       - '--image=gcr.io/$PROJECT_ID/ferni-async:$_IMAGE_TAG'
       - '--platform=managed'
       - '--region=us-central1'
-      - '--allow-unauthenticated'
+      # IAM only: the scheduler's service account is the sole invoker. Its
+      # routes' own checks (an X-CloudScheduler header) are spoofable.
+      - '--no-allow-unauthenticated'
       - '--memory=512Mi'
       - '--cpu=1'
       - '--min-instances=0'
