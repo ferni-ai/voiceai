@@ -7,6 +7,11 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createOAuthStateManager } from '../../../utils/ddos-protection.js';
 import * as googleCalendarService from '../../token/oauth/google-calendar.js';
+import { isAnonymousIdentity, requestUserId } from '../../../api/identity-guard.js';
+import {
+  deleteUserTokens,
+  getUserTokens,
+} from '../../../services/identity/google-calendar-oauth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import {
@@ -19,15 +24,22 @@ const log = createLogger({ module: 'GoogleCalendarRoutes' });
 // OAuth state manager (5 minute expiry)
 const googleOAuthStates = createOAuthStateManager(5 * 60 * 1000);
 
-// Configuration
-const GOOGLE_CALENDAR_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || '';
-const GOOGLE_CALENDAR_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || '';
-const GOOGLE_CALENDAR_REDIRECT_URI =
-  process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'https://app.ferni.ai/auth/google/callback';
-const GOOGLE_CALENDAR_SCOPES = [
-  'https://www.googleapis.com/auth/calendar',
-  'https://www.googleapis.com/auth/calendar.events',
-].join(' ');
+/**
+ * The account a token/status/unlink request may act on: the caller, or the
+ * `user_id` they name when it is theirs or an anonymous device identity.
+ * Null when the named account belongs to someone else.
+ */
+function ownerId(req: IncomingMessage, parsedUrl: URL): string | null {
+  const caller = requestUserId(req);
+  const claimed = parsedUrl.searchParams.get('user_id');
+  if (!claimed) return caller;
+  return claimed === caller || isAnonymousIdentity(claimed) ? claimed : null;
+}
+
+function sendForbidden(res: ServerResponse): void {
+  res.writeHead(403, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: 'Not allowed for this user' }));
+}
 
 /**
  * Handle Google Calendar OAuth routes
@@ -41,12 +53,16 @@ export async function handleGoogleCalendarRoutes(
   // Start Google Calendar OAuth flow
   // Support both /auth/google/login and /auth/google/calendar for flexibility
   if (pathname === '/auth/google/login' || pathname === '/auth/google/calendar') {
-    // Support both user_id and userId query params for flexibility
-    const userId = parsedUrl.searchParams.get('user_id') || parsedUrl.searchParams.get('userId');
+    // Prefer the verified caller; plain navigation (no auth header) falls back
+    // to the user_id / userId query param
+    const userId =
+      requestUserId(req) ||
+      parsedUrl.searchParams.get('user_id') ||
+      parsedUrl.searchParams.get('userId');
     const returnUrl =
       parsedUrl.searchParams.get('return_url') || parsedUrl.searchParams.get('redirect');
 
-    if (!GOOGLE_CALENDAR_CLIENT_ID || !GOOGLE_CALENDAR_CLIENT_SECRET) {
+    if (!googleCalendarService.isConfigured()) {
       res.writeHead(503, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
@@ -70,17 +86,11 @@ export async function handleGoogleCalendarRoutes(
       return true;
     }
 
-    const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-    authUrl.searchParams.set('client_id', GOOGLE_CALENDAR_CLIENT_ID);
-    authUrl.searchParams.set('redirect_uri', GOOGLE_CALENDAR_REDIRECT_URI);
-    authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('scope', GOOGLE_CALENDAR_SCOPES);
-    authUrl.searchParams.set('access_type', 'offline');
-    authUrl.searchParams.set('prompt', 'consent');
-    authUrl.searchParams.set('state', state);
+    // Same client, redirect URI (publicUrl) and scopes the token store uses
+    const authUrl = googleCalendarService.buildAuthUrl(state);
 
     log.info({ userId }, 'Google Calendar OAuth: Redirecting user to Google');
-    res.writeHead(302, { Location: authUrl.toString() });
+    res.writeHead(302, { Location: authUrl });
     res.end();
     return true;
   }
@@ -112,41 +122,17 @@ export async function handleGoogleCalendarRoutes(
 
     try {
       // Exchange code for tokens
-      const response = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          code: code || '',
-          client_id: GOOGLE_CALENDAR_CLIENT_ID,
-          client_secret: GOOGLE_CALENDAR_CLIENT_SECRET,
-          redirect_uri: GOOGLE_CALENDAR_REDIRECT_URI,
-          grant_type: 'authorization_code',
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        log.error({ error: errorText }, 'Google Calendar token exchange failed');
+      const tokens = await googleCalendarService.exchangeCode(code || '');
+      if (!tokens) {
         res.writeHead(302, { Location: '/?calendar_error=token_exchange_failed' });
         res.end();
         return true;
       }
 
-      const tokens = (await response.json()) as {
-        access_token: string;
-        refresh_token?: string;
-        expires_in: number;
-        scope: string;
-      };
-
-      // Save tokens for this user (async - uses Firestore)
+      // Save tokens for this user (encrypted, bogle_users/{uid}/google_calendar_tokens)
+      // — the same store voice calendar/Gmail tools read
       const userId = stateData.user_id ?? '';
-      await googleCalendarService.saveTokens(userId, {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token || '',
-        expires_at: Date.now() + tokens.expires_in * 1000,
-        scope: tokens.scope,
-      });
+      await googleCalendarService.saveTokens(userId, tokens);
 
       // Set up webhook watch channel for real-time sync
       if (userId) {
@@ -193,9 +179,13 @@ export async function handleGoogleCalendarRoutes(
 
   // Get Google Calendar access token for a user
   if (pathname === '/auth/google/token') {
-    const userId = parsedUrl.searchParams.get('user_id');
+    const userId = ownerId(req, parsedUrl);
 
     if (!userId) {
+      if (parsedUrl.searchParams.get('user_id')) {
+        sendForbidden(res);
+        return true;
+      }
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'user_id is required' }));
       return true;
@@ -226,23 +216,28 @@ export async function handleGoogleCalendarRoutes(
 
   // Check Google Calendar link status
   if (pathname === '/auth/google/status') {
-    const userId = parsedUrl.searchParams.get('user_id');
+    const userId = ownerId(req, parsedUrl);
 
     if (!userId) {
+      if (parsedUrl.searchParams.get('user_id')) {
+        sendForbidden(res);
+        return true;
+      }
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'user_id is required' }));
       return true;
     }
 
-    const userTokens = await googleCalendarService.getTokens(userId);
-    const googleConfigured = !!(GOOGLE_CALENDAR_CLIENT_ID && GOOGLE_CALENDAR_CLIENT_SECRET);
+    // Encrypted per-user store, else a legacy root-collection link
+    const userTokens = await getUserTokens(userId);
+    const googleConfigured = googleCalendarService.isConfigured();
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(
       JSON.stringify({
         google_calendar_configured: googleConfigured,
         linked: !!userTokens,
-        expires_at: userTokens?.expires_at || null,
+        expires_at: userTokens?.expiry_date || null,
         login_url: googleConfigured
           ? `/auth/google/login?user_id=${encodeURIComponent(userId)}`
           : null,
@@ -253,9 +248,13 @@ export async function handleGoogleCalendarRoutes(
 
   // Unlink Google Calendar for a user
   if (pathname === '/auth/google/unlink') {
-    const userId = parsedUrl.searchParams.get('user_id');
+    const userId = ownerId(req, parsedUrl);
 
     if (!userId) {
+      if (parsedUrl.searchParams.get('user_id')) {
+        sendForbidden(res);
+        return true;
+      }
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'user_id is required' }));
       return true;
@@ -272,7 +271,8 @@ export async function handleGoogleCalendarRoutes(
       );
     }
 
-    await googleCalendarService.removeTokens(userId);
+    // Both the encrypted store and any legacy root-collection doc
+    await deleteUserTokens(userId);
     log.info({ userId }, 'Google Calendar unlinked');
 
     res.writeHead(200, { 'Content-Type': 'application/json' });

@@ -41,6 +41,7 @@ import {
   handlePushRoutes,
   handleWebhookRoutes,
   handleSpotifyRoomsRoutes,
+  handleSpotifyPlaybackRoutes,
   handleEcobeeRoutes,
   handleSmartHomeRoutes,
   handleVibeRoutes,
@@ -409,6 +410,11 @@ const server = http.createServer(async (req, res) => {
   // Spotify Rooms routes (multi-room audio)
   if (pathname.startsWith('/api/spotify/rooms') || pathname.startsWith('/api/spotify/devices')) {
     if (await handleSpotifyRoomsRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // Spotify playback on the caller's own linked account (vibe controller)
+  if (pathname.startsWith('/api/spotify/')) {
+    if (await handleSpotifyPlaybackRoutes(req, res, pathname)) return;
   }
 
   // Ecobee thermostat routes

@@ -15,8 +15,8 @@ export const API = {
   TOKEN: '/token',
   SPOTIFY_TOKEN: '/spotify/token',
   SPOTIFY_STATUS: '/spotify/status',
-  SPOTIFY_PLAY: '/spotify/play',
-  SPOTIFY_PAUSE: '/spotify/pause',
+  SPOTIFY_PLAY: '/api/spotify/play',
+  SPOTIFY_PAUSE: '/api/spotify/pause',
 } as const;
 
 // ============================================================================

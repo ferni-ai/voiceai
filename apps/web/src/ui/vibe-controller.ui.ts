@@ -1804,9 +1804,16 @@ function render(): void {
 async function fetchState(): Promise<void> {
   try {
     // Fetch music state
-    const musicRes = await apiGet<{ playing: boolean; track?: string; artist?: string; volume: number }>('/api/spotify/status');
+    const musicRes = await apiGet<{ linked?: boolean; playing: boolean; track?: string; artist?: string; volume?: number }>('/api/spotify/status');
     if (musicRes.ok && musicRes.data) {
-      currentState.music = { ...currentState.music, ...musicRes.data };
+      const { playing, track, artist, volume } = musicRes.data;
+      currentState.music = {
+        ...currentState.music,
+        playing,
+        track,
+        artist,
+        volume: volume ?? currentState.music.volume,
+      };
     }
 
     // Fetch lights state via vibe API
@@ -1863,34 +1870,56 @@ async function activatePreset(preset: VibePresetUI): Promise<void> {
   }
 }
 
+/** Toast for a failed Spotify call (by HTTP status); state is left as it was */
+function showMusicError(status?: number): void {
+  if (status === 412) {
+    toast.warning(t('vibe.linkSpotifyFirst', 'Link Spotify first'));
+  } else if (status === 409) {
+    toast.warning(t('vibe.openSpotify', 'Open Spotify on a device first'));
+  } else {
+    toast.error(t('vibe.couldNotControlMusic', "Couldn't control music. Try again?"));
+  }
+}
+
 async function toggleMusic(): Promise<void> {
+  const wasPlaying = currentState.music.playing;
   try {
-    if (currentState.music.playing) {
-      await apiPost('/api/spotify/pause', {});
-      currentState.music.playing = false;
-    } else {
-      await apiPost('/api/spotify/play', {});
-      currentState.music.playing = true;
+    const res = await apiPost<{ success?: boolean; error?: string }>(
+      wasPlaying ? '/api/spotify/pause' : '/api/spotify/play',
+      {}
+    );
+    if (!res.ok) {
+      showMusicError(res.status);
+      return;
     }
+    currentState.music.playing = !wasPlaying;
     render();
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to toggle music:', error);
-    toast.error(t('vibe.couldNotControlMusic', "Couldn't control music. Try again?"));
+    showMusicError();
   }
 }
 
 async function skipTrack(): Promise<void> {
   try {
-    await apiPost('/api/spotify/skip', {});
+    const res = await apiPost<{ success?: boolean; error?: string }>('/api/spotify/skip', {});
+    if (!res.ok) {
+      showMusicError(res.status);
+      return;
+    }
     toast.info(t('vibe.skipped', 'Skipped'));
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to skip track:', error);
+    showMusicError();
   }
 }
 
 async function setMusicVolume(volume: number): Promise<void> {
   try {
-    await apiPost('/api/spotify/volume', { volume });
+    const res = await apiPost<{ success?: boolean; error?: string }>('/api/spotify/volume', { volume });
+    if (!res.ok) {
+      showMusicError(res.status);
+    }
   } catch (error) {
     if (import.meta.env?.DEV) console.debug('Failed to set volume:', error);
   }

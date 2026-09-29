@@ -5,6 +5,10 @@
  * - Spotify Web Playback SDK integration (server-side token, device registration)
  * - Spotify OAuth flows (login/callback/status/unlink per device_id)
  *
+ * Linked accounts are stored under the owner's user ID (verified identity or
+ * anonymous `device:` ID) so the voice agent can use them; the device_id copy
+ * is kept for older clients.
+ *
  * Route differentiation:
  *   /spotify/token?device_id=X  → per-device OAuth access token
  *   /spotify/token              → Web Playback SDK server token
@@ -15,6 +19,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import * as spotifyService from '../services/spotify.js';
 import * as spotifyOAuth from '../../token/oauth/spotify.js';
+import { requestUserId } from '../../../api/identity-guard.js';
 import { createOAuthStateManager } from '../../../utils/ddos-protection.js';
 import { isValidId, sendInvalidIdError, getClientIp, sanitizeReturnUrl } from '../../token/validation.js';
 import { createLogger } from '../../../utils/safe-logger.js';
@@ -24,6 +29,8 @@ const log = createLogger({ module: 'SpotifyRoutes' });
 // SECURITY: OAuth state bound to originating IP (5-minute expiry)
 interface SpotifyOAuthState {
   device_id: string;
+  /** Caller identity when login started (verified or anonymous device ID) */
+  owner_id?: string;
   return_url: string;
   client_ip: string;
 }
@@ -68,8 +75,10 @@ export async function handleSpotifyRoutes(
     }
 
     const clientIp = getClientIp(req);
+    const ownerId = requestUserId(req) ?? undefined;
     const state = oauthStates.create({
       device_id,
+      owner_id: ownerId,
       return_url: sanitizeReturnUrl(return_url, '/'),
       client_ip: clientIp,
     });
@@ -79,7 +88,16 @@ export async function handleSpotifyRoutes(
       return true;
     }
 
-    log.info({ deviceId: device_id }, 'Spotify OAuth started');
+    log.info({ deviceId: device_id, hasOwner: !!ownerId }, 'Spotify OAuth started');
+
+    // Authenticated clients fetch the URL (so the link is bound to their
+    // account) and navigate themselves; plain navigation still redirects.
+    if (parsedUrl.searchParams.get('format') === 'json') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ url: spotifyOAuth.buildAuthUrl(state) }));
+      return true;
+    }
+
     res.writeHead(302, { Location: spotifyOAuth.buildAuthUrl(state) });
     res.end();
     return true;
@@ -127,8 +145,11 @@ export async function handleSpotifyRoutes(
       return true;
     }
 
-    spotifyOAuth.saveTokens(stateData.device_id, tokens);
-    log.info('Spotify linked successfully');
+    await spotifyOAuth.saveTokens(stateData.device_id, tokens);
+    if (stateData.owner_id && stateData.owner_id !== stateData.device_id) {
+      await spotifyOAuth.saveTokens(stateData.owner_id, tokens);
+    }
+    log.info({ hasOwner: !!stateData.owner_id }, 'Spotify linked successfully');
     res.writeHead(302, { Location: stateData.return_url + '?spotify_linked=true' });
     res.end();
     return true;
@@ -145,6 +166,10 @@ export async function handleSpotifyRoutes(
     }
 
     await spotifyOAuth.removeTokens(device_id);
+    const ownerId = requestUserId(req);
+    if (ownerId && ownerId !== device_id) {
+      await spotifyOAuth.removeTokens(ownerId);
+    }
     log.info({ deviceId: device_id }, 'Spotify unlinked');
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -231,7 +256,19 @@ export async function handleSpotifyRoutes(
 
     if (device_id) {
       // OAuth link status for a specific device
-      const userTokens = await spotifyOAuth.getTokens(device_id);
+      const deviceTokens = await spotifyOAuth.getTokens(device_id);
+      const ownerId = requestUserId(req);
+      let ownerTokens = ownerId ? await spotifyOAuth.getTokens(ownerId) : null;
+
+      // Migrate a device-only link (made before links were bound to accounts)
+      // onto the caller so the voice agent can use it.
+      if (ownerId && !ownerTokens && deviceTokens) {
+        await spotifyOAuth.saveTokens(ownerId, deviceTokens);
+        ownerTokens = deviceTokens;
+        log.info({ deviceId: device_id }, 'Spotify device link bound to its owner');
+      }
+
+      const userTokens = ownerTokens ?? deviceTokens;
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({

@@ -9,6 +9,10 @@
  * - Oura Ring
  * - Whoop
  *
+ * Linking happens through the real OAuth flow (/wearables/{provider}/login,
+ * tokens in services/identity/wearable-linked-tokens.ts). This service never
+ * invents readings: with no ingested data it reports "no data".
+ *
  * This data enables Ferni to:
  * - Detect stress patterns from HRV
  * - Correlate sleep quality with mood
@@ -22,7 +26,6 @@ import { createLogger } from '../../utils/safe-logger.js';
 import type {
   ActivityData,
   HealthMetrics,
-  HeartRateData,
   SleepData,
   StressIndicators,
   WearableConfig,
@@ -68,21 +71,16 @@ export class WearableIntegrationService {
     error?: string;
   }> {
     try {
-      this.connectionStatus.set(provider, 'pending');
-
-      // In production, this would initiate OAuth flow for the provider
-      // For now, we simulate the connection
-
       log.info({ userId: this.userId, provider }, 'Initiating wearable connection');
 
-      // Return OAuth URL for the provider
+      // Start the real OAuth flow (server routes), or the native deep link
       const authUrls: Record<WearableProvider, string> = {
         apple_health: 'ferniapp://healthkit/authorize', // Deep link for iOS app
-        eight_sleep: `https://client-api.8slp.net/oauth/authorize?client_id=${process.env.EIGHT_SLEEP_CLIENT_ID}`,
-        fitbit: `https://www.fitbit.com/oauth2/authorize?client_id=${process.env.FITBIT_CLIENT_ID}`,
-        garmin: `https://connect.garmin.com/oauth2/authorize?client_id=${process.env.GARMIN_CLIENT_ID}`,
-        oura: `https://cloud.ouraring.com/oauth/authorize?client_id=${process.env.OURA_CLIENT_ID}`,
-        whoop: `https://api.prod.whoop.com/oauth/authorize?client_id=${process.env.WHOOP_CLIENT_ID}`,
+        eight_sleep: '/settings?connect=eight_sleep', // Linked via /api/eight-sleep
+        fitbit: `/wearables/fitbit/login?user_id=${encodeURIComponent(this.userId)}`,
+        garmin: `/wearables/garmin/login?user_id=${encodeURIComponent(this.userId)}`,
+        oura: `/wearables/oura/login?user_id=${encodeURIComponent(this.userId)}`,
+        whoop: `/wearables/whoop/login?user_id=${encodeURIComponent(this.userId)}`,
       };
 
       return {
@@ -101,25 +99,29 @@ export class WearableIntegrationService {
    */
   async completeConnection(
     provider: WearableProvider,
-    authCode: string
+    _authCode: string
   ): Promise<{ success: boolean; error?: string }> {
-    try {
-      // In production, exchange auth code for tokens and store them
-      // For now, we simulate successful connection
+    // The code exchange happens in GET /wearables/{provider}/callback, which
+    // stores the tokens. Never mark a provider connected without them.
+    log.warn(
+      { userId: this.userId, provider },
+      'completeConnection called; use the OAuth callback'
+    );
+    return {
+      success: false,
+      error: `Complete the ${provider} link via /wearables/${provider}/callback`,
+    };
+  }
 
-      this.connectionStatus.set(provider, 'connected');
-
-      if (!this.config.enabledProviders.includes(provider)) {
-        this.config.enabledProviders.push(provider);
-      }
-
-      log.info({ userId: this.userId, provider }, 'Wearable connected successfully');
-
-      return { success: true };
-    } catch (error) {
-      log.error({ error, userId: this.userId, provider }, 'Failed to complete wearable connection');
-      this.connectionStatus.set(provider, 'disconnected');
-      return { success: false, error: 'Failed to complete connection' };
+  /**
+   * Record real readings for a provider (e.g. from a provider API or a
+   * mobile health sync). Marks the provider connected.
+   */
+  recordData(data: WearableData): void {
+    this.latestData.set(data.provider, data);
+    this.connectionStatus.set(data.provider, 'connected');
+    if (!this.config.enabledProviders.includes(data.provider)) {
+      this.config.enabledProviders.push(data.provider);
     }
   }
 
@@ -167,30 +169,13 @@ export class WearableIntegrationService {
    * Sync data from a specific provider
    */
   async syncProvider(provider: WearableProvider): Promise<WearableData | null> {
-    try {
-      // In production, this would call the provider's API
-      // For now, we return simulated data
-
-      const data: WearableData = {
-        provider,
-        syncedAt: new Date(),
-        healthMetrics: this.generateSampleMetrics(),
-        sleepData: this.config.enableSleepAnalysis ? this.generateSampleSleep() : undefined,
-        activityData: this.config.enableActivityTracking
-          ? this.generateSampleActivity()
-          : undefined,
-        heartRateData: this.generateSampleHeartRate(),
-      };
-
-      this.latestData.set(provider, data);
-
-      log.debug({ userId: this.userId, provider }, 'Wearable data synced');
-
-      return data;
-    } catch (error) {
-      log.error({ error, userId: this.userId, provider }, 'Failed to sync wearable data');
-      return null;
+    // No provider API pull is wired here; return only data that was actually
+    // recorded (recordData), never simulated readings.
+    const data = this.latestData.get(provider) ?? null;
+    if (!data) {
+      log.debug({ userId: this.userId, provider }, 'No wearable data recorded for provider');
     }
+    return data;
   }
 
   // ==========================================================================
@@ -392,56 +377,6 @@ export class WearableIntegrationService {
   private average(numbers: (number | undefined)[]): number {
     const valid = numbers.filter((n): n is number => n !== undefined);
     return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : 0;
-  }
-
-  // Sample data generators (would be replaced by actual API calls in production)
-  private generateSampleMetrics(): HealthMetrics {
-    return {
-      restingHeartRate: 65 + Math.random() * 15,
-      heartRateVariability: 40 + Math.random() * 30,
-      respiratoryRate: 14 + Math.random() * 4,
-      bloodOxygenLevel: 96 + Math.random() * 3,
-      bodyTemperature: 97.5 + Math.random() * 1.5,
-    };
-  }
-
-  private generateSampleSleep(): SleepData {
-    return {
-      startTime: new Date(Date.now() - 8 * 60 * 60 * 1000),
-      endTime: new Date(),
-      totalMinutes: 400 + Math.random() * 100,
-      deepSleepMinutes: 60 + Math.random() * 40,
-      remSleepMinutes: 80 + Math.random() * 40,
-      lightSleepMinutes: 200 + Math.random() * 60,
-      awakeMinutes: 10 + Math.random() * 20,
-      efficiency: 0.8 + Math.random() * 0.15,
-    };
-  }
-
-  private generateSampleActivity(): ActivityData {
-    return {
-      steps: Math.floor(5000 + Math.random() * 10000),
-      distance: 3 + Math.random() * 5,
-      caloriesBurned: 1800 + Math.random() * 800,
-      activeMinutes: 20 + Math.random() * 60,
-      standHours: 8 + Math.random() * 6,
-      exerciseMinutes: Math.random() * 45,
-    };
-  }
-
-  private generateSampleHeartRate(): HeartRateData {
-    return {
-      current: 70 + Math.random() * 20,
-      min: 55 + Math.random() * 10,
-      max: 120 + Math.random() * 40,
-      average: 75 + Math.random() * 15,
-      zones: {
-        resting: 400,
-        fatBurn: 120,
-        cardio: 30,
-        peak: 10,
-      },
-    };
   }
 
   /**

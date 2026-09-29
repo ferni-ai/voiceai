@@ -140,9 +140,12 @@ async function handleLinkClick(): Promise<void> {
       log.error('Could not unlink Spotify:', e);
     }
   } else {
-    // Redirect to OAuth
-    const returnUrl = encodeURIComponent(window.location.origin + window.location.pathname);
-    window.location.href = `/spotify/login?device_id=${encodeURIComponent(deviceId)}&return_url=${returnUrl}`;
+    // Redirect to OAuth. Fetch the URL first (with auth headers) so the link is
+    // bound to this account and the voice agent can play from it.
+    const returnUrl = window.location.origin + window.location.pathname;
+    const loginPath = `/spotify/login?device_id=${encodeURIComponent(deviceId)}&return_url=${encodeURIComponent(returnUrl)}`;
+    const res = await apiGet<{ url?: string }>(`${loginPath}&format=json`);
+    window.location.href = res.ok && res.data?.url ? res.data.url : loginPath;
   }
 }
 

@@ -101,26 +101,8 @@ export interface RateLimitResult {
   sessionsRemaining?: number;
 }
 
-/**
- * Encrypted data payload
- */
-export interface EncryptedPayload {
-  encrypted: true;
-  iv: string;
-  authTag: string;
-  data: string;
-}
-
-/**
- * OAuth tokens (Spotify, Google, etc.)
- */
-export interface OAuthTokens {
-  access_token: string;
-  refresh_token: string;
-  expires_at: number;
-  scope?: string;
-  updated_at?: number;
-}
+// Encrypted payload and stored OAuth token shapes (shared with services)
+export type { EncryptedPayload, OAuthTokens } from '../../utils/token-encryption.js';
 
 /**
  * LiveKit room metadata — passed to both RoomServiceClient and AgentDispatchClient

@@ -234,7 +234,12 @@ export async function playMusicUnified(query: string): Promise<string> {
     return playAmbientMusic(query);
   }
 
-  // LISTENING INTENT: Try Spotify first, graceful fallback
+  // LISTENING INTENT: Try Spotify first, graceful fallback.
+  // Re-check when not linked: the config is detected before the caller is
+  // bound, so a user's own linked account only shows up here.
+  if (!musicConfig.spotifyLinked) {
+    musicConfig.spotifyLinked = await checkSpotifyAvailability();
+  }
   if (musicConfig.spotifyLinked) {
     log.info({ query }, '🎵 LISTENING mode: Trying Spotify...');
     const result = await playViaSpotify(query);
