@@ -59,9 +59,7 @@ import { resetProactiveMemoryEngine as _resetProactiveMemory } from './proactive
 import { resetQuestionPatternEngine as _resetQuestionPatterns } from './question-patterns/index.js';
 import { resetRelationshipEventsEngine as _resetRelationshipEvents } from './relationship-events.js';
 import { resetResponseDynamicsEngine as _resetResponseDynamics } from './response-dynamics.js';
-import { resetSessionIntelligence as _resetSessionIntelligence } from './session-intelligence.js';
 import { resetSilencePresenceEngine as _resetSilencePresence } from './silence-presence.js';
-import { resetSpeechNaturalizer as _resetSpeechNaturalizer } from './speech-naturalizer/index.js';
 import { resetStoryTimingEngine as _resetStoryTiming } from './story-timing.js';
 import { resetSubtextDetectionEngine as _resetSubtextDetection } from './subtext-detection.js';
 import { resetTemporalContextEngine as _resetTemporalContext } from './temporal-context/index.js';
@@ -149,10 +147,8 @@ export {
   generateGracefulUncertainty,
   generateSelfInterruption,
   generateThinkingOutLoud,
-  getSpeechNaturalizer,
   GRACEFUL_UNCERTAINTY,
   MID_THOUGHT_CORRECTIONS,
-  resetSpeechNaturalizer,
   SELF_INTERRUPTIONS,
   shouldApplyImperfection,
   SpeechNaturalizer,
@@ -237,18 +233,13 @@ export {
 // Single source of truth for all humanization probabilities and cooldowns
 export {
   DEFAULT_TUNING,
-  getEffectiveProbability,
-  getPersonaTuning,
   getTuningValue,
-  shouldFireFeature,
   TUNING_PRESETS,
   type HumanizationTuning,
 } from './humanization-tuning.js';
 
 // Deep Humanization - Clean architecture module
 export {
-  applyDeepHumanization,
-  getMoodTracker,
   resetDeepHumanization,
   resetMoodTracker,
   resetAllDeepHumanization,
@@ -260,12 +251,7 @@ export {
 } from './deep-humanization/index.js';
 
 // Detection utilities - exported from deep humanization for backward compatibility
-export {
-  classifyTopicWeight,
-  detectAdviceGiving,
-  detectBreakthrough,
-  detectEvidence,
-} from './utils/detection.js';
+export { classifyTopicWeight, detectAdviceGiving, detectBreakthrough } from './utils/detection.js';
 
 // Note: Humanization tuning already exported above
 
@@ -372,58 +358,6 @@ export {
   type UserBaseline,
   type VoiceStatePrediction,
 } from './predictive-anticipation/index.js';
-
-// Session Intelligence Orchestrator - Real-time within-session intelligence
-// (For cross-session relationship features, see superhuman/ module)
-export {
-  clearSessionIntelligence,
-  getSessionIntelligence,
-  resetSessionIntelligence,
-  SessionIntelligenceOrchestrator,
-  type ResponseGuidance,
-  type ResponseModification,
-  type SessionIntelligenceContext,
-  type SessionIntelligenceInsight,
-} from './session-intelligence.js';
-
-// ============================================================================
-// CONTENT DELIVERY PACING - Human-like reading of long content
-// ============================================================================
-
-export {
-  addSignposting,
-  analyzeContent,
-  applyDeliveryPacing,
-  detectContentType,
-  getSummaryIntro,
-  shouldApplyDeliveryPacing,
-  type ContentAnalysis,
-  type ContentSegment,
-  type ContentType,
-  type DeliveryOptions,
-  type SegmentPacing,
-} from './content-delivery-pacing.js';
-
-// ============================================================================
-// VOCAL HUMANIZATION - "Better Than Human" voice processing
-// ============================================================================
-
-export {
-  addIntakeBreath,
-  addMidSentenceReactions,
-  addPitchVariation,
-  applyEmotionBleeding,
-  detectEmotionalContent,
-  detectHeavyContent,
-  detectUserEnergy,
-  enforceContractions,
-  generateVocalProfile,
-  humanizeVocals,
-  type EnergyLevel,
-  type HumanizedVocals,
-  type VocalContext,
-  type VocalProfile,
-} from './vocal-humanization.js';
 
 // ============================================================================
 // SHARED DETECTION UTILITIES (additional exports not already available above)
@@ -655,7 +589,6 @@ export function resetAllConversationState(
   _resetInterruption();
   _resetTurnTaking();
   _resetStoryTiming();
-  _resetSpeechNaturalizer();
   _resetActiveListening();
   _resetConversationalMemory();
   _resetQuestionPatterns();
@@ -670,7 +603,6 @@ export function resetAllConversationState(
     _resetConcernDetection(sessionId);
     _resetProactiveMemory(sessionId);
     _resetPredictiveAnticipation(sessionId);
-    _resetSessionIntelligence(sessionId);
     // Advanced humanization (session-scoped)
     _resetSubtextDetection(sessionId);
     _resetEmotionalAftercare(sessionId);

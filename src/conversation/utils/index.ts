@@ -31,13 +31,10 @@ export {
   // Content detection
   detectEmotionalContent,
   detectEngagementLevel,
-  detectEvidence,
-  detectHeavyContent,
   detectHeavyContentKeywords,
   detectHesitation,
   detectHighEngagement,
   // Energy detection
-  detectUserEnergy,
   detectUserEnergyDetailed,
   type DetectionResult,
   // Types

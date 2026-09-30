@@ -293,70 +293,6 @@ export const HESITATION_PATTERNS = [
 // ============================================================================
 
 /**
- * Detect user's energy level from their message
- *
- * @param userMessage - The user's message to analyze
- * @returns The detected energy level
- *
- * @example
- * detectUserEnergy("This is AMAZING!!!") // 'high'
- * detectUserEnergy("I'm so tired...") // 'low'
- * detectUserEnergy("That sounds good") // 'medium'
- */
-export function detectUserEnergy(userMessage: string): EnergyLevel {
-  if (!userMessage) return 'medium';
-
-  const lower = userMessage.toLowerCase();
-
-  // Check for high energy signals
-  let highScore = 0;
-  const highSignals: string[] = [];
-  for (const pattern of HIGH_ENERGY_PATTERNS) {
-    if (pattern.test(userMessage)) {
-      highScore++;
-      highSignals.push(pattern.source);
-    }
-  }
-
-  // Check for low energy signals
-  let lowScore = 0;
-  const lowSignals: string[] = [];
-  for (const pattern of LOW_ENERGY_PATTERNS) {
-    if (pattern.test(lower)) {
-      lowScore++;
-      lowSignals.push(pattern.source);
-    }
-  }
-
-  // Word count and punctuation analysis
-  // 🦀 Rust-accelerated word counting
-  const wordCount = RUST_COUNTING_AVAILABLE
-    ? countWordsRust(userMessage)
-    : userMessage.split(/\s+/).length;
-  const exclamationCount = (userMessage.match(/!/g) || []).length;
-  const questionCount = (userMessage.match(/\?/g) || []).length;
-  const capsRatio = (userMessage.match(/[A-Z]/g) || []).length / Math.max(userMessage.length, 1);
-
-  // High energy: lots of exclamations, caps, short excited messages
-  if (exclamationCount >= 2 || capsRatio > 0.3) highScore++;
-  if (wordCount < 10 && exclamationCount > 0) highScore++;
-
-  // Low energy: short responses, trailing off
-  if (wordCount < 5 && !exclamationCount && !questionCount) lowScore++;
-  if (/\.{2,}$/.test(userMessage)) lowScore++;
-
-  // Determine energy level
-  if (highScore >= 2 || (highScore > 0 && lowScore === 0 && exclamationCount > 0)) {
-    return 'high';
-  }
-  if (lowScore >= 2 || (lowScore > 0 && highScore === 0)) {
-    return HEAVY_CONTENT_PATTERNS.some((p) => p.test(lower)) ? 'subdued' : 'low';
-  }
-
-  return 'medium';
-}
-
-/**
  * Detect user energy with detailed result
  */
 export function detectUserEnergyDetailed(userMessage: string): DetectionResult<EnergyLevel> {
@@ -462,13 +398,6 @@ export function detectEmotionalContent(text: string): boolean {
 }
 
 /**
- * Detect if content is heavy/serious
- */
-export function detectHeavyContent(text: string): boolean {
-  return HEAVY_CONTENT_PATTERNS.some((p) => p.test(text));
-}
-
-/**
  * Detect heavy content and return which keywords were found
  * Useful when you need to know *what* was detected, not just *if*
  *
@@ -490,13 +419,6 @@ export function detectHeavyContentKeywords(text: string): string[] {
   }
 
   return found;
-}
-
-/**
- * Detect if user presented evidence or counter-argument
- */
-export function detectEvidence(userMessage: string): boolean {
-  return EVIDENCE_PATTERNS.some((p) => p.test(userMessage));
 }
 
 /**
@@ -616,7 +538,6 @@ export function detectEngagementLevel(userMessage: string): DetectionResult<Enga
 
 export default {
   // Energy
-  detectUserEnergy,
   detectUserEnergyDetailed,
 
   // Topic weight
@@ -624,9 +545,7 @@ export default {
 
   // Content detection
   detectEmotionalContent,
-  detectHeavyContent,
   detectHeavyContentKeywords,
-  detectEvidence,
   detectBreakthrough,
   detectAdviceGiving,
 

@@ -96,12 +96,12 @@ The module also has many standalone root-level `.ts` files for specific conversa
 | **Cognitive** | `cognitive-questions.ts`, `self-awareness-loop.ts` |
 | **Emotional** | `emotional-aftercare.ts`, `emotional-journey-orchestrator.ts`, `hope-injection.ts` |
 | **Speech Flow** | `turn-taking.ts`, `turn-prediction.ts`, `interruption-handler.ts`, `silence-presence.ts` |
-| **Content** | `content-delivery-pacing.ts`, `narrative-arc.ts`, `story-timing.ts`, `mid-response-tangents.ts` |
-| **Humanization** | `vocal-humanization.ts`, `advanced-humanization.ts`, `humanization-tuning.ts`, `micro-affirmations.ts` |
+| **Content** | `narrative-arc.ts`, `story-timing.ts`, `mid-response-tangents.ts` |
+| **Humanization** | `advanced-humanization.ts`, `humanization-tuning.ts`, `micro-affirmations.ts` |
 | **Engagement** | `engagement-scoring.ts`, `curiosity-engine.ts`, `momentum-tracker.ts`, `proactive-starters.ts` |
 | **Analysis** | `subtext-detection.ts`, `response-dynamics.ts`, `energy-regulation.ts`, `awareness-metrics.ts` |
 | **Repair** | `conversational-repair.ts`, `paradoxical-intervention.ts`, `thinking-phrase-coordinator.ts` |
-| **Other** | `conversation-rhythm.ts`, `adaptive-endpointing.ts`, `session-intelligence.ts`, `relationship-events.ts` |
+| **Other** | `conversation-rhythm.ts`, `adaptive-endpointing.ts`, `relationship-events.ts` |
 
 ---
 

@@ -12,12 +12,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Speech Naturalizer
-import {
-  SpeechNaturalizer,
-  getSpeechNaturalizer,
-  resetSpeechNaturalizer,
-  generateFragment,
-} from '../conversation/speech-naturalizer/index.js';
+import { SpeechNaturalizer, generateFragment } from '../conversation/speech-naturalizer/index.js';
 
 // Active Listening
 import {
@@ -55,12 +50,7 @@ describe('SpeechNaturalizer', () => {
   let naturalizer: SpeechNaturalizer;
 
   beforeEach(() => {
-    resetSpeechNaturalizer();
-    naturalizer = getSpeechNaturalizer();
-  });
-
-  afterEach(() => {
-    resetSpeechNaturalizer();
+    naturalizer = new SpeechNaturalizer();
   });
 
   describe('naturalize()', () => {

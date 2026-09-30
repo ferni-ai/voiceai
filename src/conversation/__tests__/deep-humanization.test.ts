@@ -4,8 +4,7 @@
  * Tests for the clean architecture deep humanization system that creates
  * natural, human-like conversation features:
  * - Mood tracking and drift
- * - Humanization injection application
- * - Generator functions
+ * - Reset functions
  * - Detection utilities
  *
  * @module @ferni/conversation/deep-humanization/tests
@@ -15,18 +14,15 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // Import from the new clean architecture module
 import {
-  applyDeepHumanization,
-  getMoodTracker,
   resetDeepHumanization,
   resetAllDeepHumanization,
-  type HumanizationContext,
   type ConversationMood,
 } from '../deep-humanization/index.js';
+import { getMoodTracker } from '../deep-humanization/mood-tracker.js';
 
 // Detection utilities (now from utils)
 import {
   classifyTopicWeight,
-  detectEvidence,
   detectBreakthrough,
   detectAdviceGiving,
   detectDisengagement,
@@ -142,69 +138,6 @@ describe('Deep Humanization Module', () => {
   });
 
   // ==========================================================================
-  // APPLY DEEP HUMANIZATION TESTS
-  // ==========================================================================
-
-  describe('applyDeepHumanization', () => {
-    const baseContext: HumanizationContext = {
-      personaId: testPersonaId,
-      turnCount: 5,
-      sessionMinutes: 10,
-      currentHour: 14,
-      userMessage: 'Testing the humanization system',
-      recentTopics: ['testing'],
-      relationshipStage: 'acquaintance',
-    };
-
-    it('should return humanized text and applied effects', async () => {
-      const result = await applyDeepHumanization('Original response.', baseContext);
-
-      expect(result).toHaveProperty('text');
-      expect(result).toHaveProperty('appliedEffects');
-      expect(typeof result.text).toBe('string');
-      expect(Array.isArray(result.appliedEffects)).toBe(true);
-    });
-
-    it('should preserve original text when no effects applied', async () => {
-      // With low turn count and no strong signals, effects may not fire
-      const result = await applyDeepHumanization('Original response.', {
-        ...baseContext,
-        turnCount: 1,
-      });
-
-      // Text should at least contain the original
-      expect(result.text).toContain('Original');
-    });
-
-    it('should not exceed max effects per turn', async () => {
-      // Run multiple times and check effects count
-      for (let i = 0; i < 5; i++) {
-        const result = await applyDeepHumanization('Test response.', {
-          ...baseContext,
-          turnCount: i + 5,
-        });
-
-        // Max is 3 effects per turn (see DEFAULT_TUNING.global.maxEffectsPerResponse)
-        expect(result.appliedEffects.length).toBeLessThanOrEqual(3);
-      }
-    });
-
-    it('should update mood tracker during humanization', async () => {
-      const tracker = getMoodTracker(testPersonaId);
-      const initialMood = tracker.getMood();
-
-      await applyDeepHumanization('Response about difficult topic.', {
-        ...baseContext,
-        userMessage: 'Dealing with anxiety and depression',
-      });
-
-      const updatedMood = tracker.getMood();
-      // Mood should be updated based on context
-      expect(updatedMood).toBeDefined();
-    });
-  });
-
-  // ==========================================================================
   // RESET TESTS
   // ==========================================================================
 
@@ -274,20 +207,6 @@ describe('Detection helpers', () => {
     it('should use detected emotion', () => {
       expect(classifyTopicWeight('Something happened', 'sadness')).toBe('heavy');
       expect(classifyTopicWeight('Something happened', 'joy')).toBe('light');
-    });
-  });
-
-  describe('detectEvidence', () => {
-    it('should detect evidence patterns', () => {
-      expect(detectEvidence("Here's the thing")).toBe(true);
-      expect(detectEvidence('But actually')).toBe(true);
-      expect(detectEvidence('In my experience')).toBe(true);
-      expect(detectEvidence('I disagree')).toBe(true);
-    });
-
-    it('should return false for non-evidence', () => {
-      expect(detectEvidence('I agree with you')).toBe(false);
-      expect(detectEvidence('That makes sense')).toBe(false);
     });
   });
 

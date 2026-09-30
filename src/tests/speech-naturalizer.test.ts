@@ -10,11 +10,9 @@
  * @module tests/speech-naturalizer
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  getSpeechNaturalizer,
-  resetSpeechNaturalizer,
   SpeechNaturalizer,
   type SpeechNaturalizer as SpeechNaturalizerInstance,
 } from '../conversation/speech-naturalizer/index.js';
@@ -27,32 +25,7 @@ describe('SpeechNaturalizer', () => {
   let naturalizer: SpeechNaturalizerInstance;
 
   beforeEach(() => {
-    resetSpeechNaturalizer();
-    naturalizer = getSpeechNaturalizer();
-  });
-
-  afterEach(() => {
-    resetSpeechNaturalizer();
-  });
-
-  // --------------------------------------------------------------------------
-  // Singleton Pattern
-  // --------------------------------------------------------------------------
-
-  describe('Singleton Pattern', () => {
-    it('should return the same instance on multiple calls', () => {
-      const instance1 = getSpeechNaturalizer();
-      const instance2 = getSpeechNaturalizer();
-      expect(instance1).toBe(instance2);
-    });
-
-    it('should create new instance after reset', () => {
-      const instance1 = getSpeechNaturalizer();
-      resetSpeechNaturalizer();
-      const instance2 = getSpeechNaturalizer();
-      // After reset, may be a new instance but should still be valid
-      expect(instance2).toBeDefined();
-    });
+    naturalizer = new SpeechNaturalizer();
   });
 
   // --------------------------------------------------------------------------
