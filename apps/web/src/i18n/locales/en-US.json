@@ -2996,5 +2996,8 @@
       "install": "Add to Team",
       "uninstall": "Remove from Team"
     }
+  },
+  "patternInsights": {
+    "subtitle": "Insights from our conversations"
   }
 }

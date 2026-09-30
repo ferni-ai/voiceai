@@ -216,7 +216,7 @@ import { getSettingsMenuUI, initSettingsMenuUI } from './ui/settings-menu.ui.js'
 import { openGrowthJournal } from './ui/growth-journal.ui.js';
 import { openKnowledgeQuiz } from './ui/knowledge-quiz.ui.js';
 import { memoryLaneUI } from './ui/memory-lane.ui.js';
-import { patternInsightsUI } from './ui/pattern-insights.ui.js';
+import { openPatternInsights } from './ui/pattern-insights-modal.ui.js';
 // Services for feature persistence
 import {
   conversationTracker,
@@ -2200,13 +2200,7 @@ class VoiceAIApp {
         },
         // New feature callbacks
         onMemoryLaneClick: () => void memoryLaneUI.open(),
-        onPatternInsightsClick: () => {
-          // Show pattern insights in a modal container
-          const container = document.querySelector<HTMLElement>('.app-shell');
-          if (container) {
-            void patternInsightsUI.show(container);
-          }
-        },
+        onPatternInsightsClick: () => void openPatternInsights(),
         onConversationInsightsClick: async () => {
           // Show feedback insights panel (how conversations are resonating)
           const { openFeedbackInsightsPanel } = await import('./ui/feedback-insights-panel.ui.js');
@@ -2322,10 +2316,7 @@ class VoiceAIApp {
       void showConversationHistory();
     });
     this.addTrackedListener(window, 'ferni:open-patterns', () => {
-      const container = document.querySelector<HTMLElement>('.app-shell');
-      if (container) {
-        void patternInsightsUI.show(container);
-      }
+      void openPatternInsights();
     });
     this.addTrackedListener(window, 'ferni:open-quiz', () => {
       void openKnowledgeQuiz();

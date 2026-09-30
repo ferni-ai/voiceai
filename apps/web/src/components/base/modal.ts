@@ -145,6 +145,9 @@ export class Modal extends BaseComponent {
   }
 
   protected override afterMount(): void {
+    // The modal's own layout styles (idempotent; nothing else injects them)
+    injectModalStyles();
+
     // Close button
     const closeBtn = this.querySelector<HTMLButtonElement>('.ferni-modal__close');
     if (closeBtn) {
@@ -183,6 +186,9 @@ export class Modal extends BaseComponent {
     const card = this.querySelector<HTMLElement>('.ferni-modal__card');
 
     this.show();
+    // The shared engagement stylesheet keeps .ferni-modal hidden until it has
+    // this modifier, so without it an opened modal stayed invisible.
+    modal?.classList.add('ferni-modal--visible');
 
     if (modal && card) {
       // Backdrop fade in
@@ -257,6 +263,7 @@ export class Modal extends BaseComponent {
 
       // Hide after animation
       setTimeout(() => {
+        modal.classList.remove('ferni-modal--visible');
         this.hide();
       }, this.modalOptions.animationDuration! * 0.75);
     }

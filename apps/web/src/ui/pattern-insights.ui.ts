@@ -83,7 +83,20 @@ export function initPatternInsightsUI(): void {
 // CARD CREATION (called from settings or profile)
 // ============================================================================
 
-export async function showPatternInsightsCard(container: HTMLElement): Promise<void> {
+export interface PatternInsightsCardOptions {
+  /**
+   * Hosted inside a surface that already has a title and its own chrome
+   * (e.g. a modal): always expanded, no header or toggle, no card border.
+   */
+  embedded?: boolean;
+}
+
+export async function showPatternInsightsCard(
+  container: HTMLElement,
+  options: PatternInsightsCardOptions = {}
+): Promise<void> {
+  initPatternInsightsUI(); // styles (idempotent)
+
   if (insightsCard) {
     insightsCard.remove();
   }
@@ -92,7 +105,7 @@ export async function showPatternInsightsCard(container: HTMLElement): Promise<v
   await fetchInsights();
 
   // Create the card
-  insightsCard = createInsightsCard();
+  insightsCard = createInsightsCard(options);
   container.appendChild(insightsCard);
 
   // Animate in
@@ -175,7 +188,8 @@ function getDefaultInsights(): PatternInsight[] {
       id: 'welcome',
       type: 'growth',
       title: "I'm learning your rhythms",
-      description: 'After a few more conversations, I\'ll show you patterns that might surprise you.',
+      description:
+        "After a few more conversations, I'll show you patterns that might surprise you.",
       icon: '', // Will use SVG icon from getPatternInsightIcon
     },
   ];
@@ -185,11 +199,21 @@ function getDefaultInsights(): PatternInsight[] {
 // CARD CREATION
 // ============================================================================
 
-function createInsightsCard(): HTMLElement {
+function createInsightsCard({ embedded = false }: PatternInsightsCardOptions = {}): HTMLElement {
   const card = document.createElement('div');
   card.className = 'pattern-insights-card';
   card.setAttribute('role', 'region');
   card.setAttribute('aria-label', 'Pattern Insights');
+
+  if (embedded) {
+    card.classList.add('pattern-insights-card--embedded');
+    const content = document.createElement('div');
+    content.className = 'pattern-insights-card__content pattern-insights-card__content--expanded';
+    content.id = 'pattern-insights-content';
+    renderInsights(content);
+    card.appendChild(content);
+    return card;
+  }
 
   // Header
   const header = document.createElement('div');
@@ -307,7 +331,8 @@ function createInsightItem(insight: PatternInsight): HTMLElement {
     const trendIndicator = document.createElement('span');
     trendIndicator.className = `pattern-insights-item__trend pattern-insights-item__trend--${insight.trend}`;
     trendIndicator.setAttribute('aria-label', `Trend: ${insight.trend}`);
-    trendIndicator.textContent = insight.trend === 'up' ? '↑' : insight.trend === 'down' ? '↓' : '→';
+    trendIndicator.textContent =
+      insight.trend === 'up' ? '↑' : insight.trend === 'down' ? '↓' : '→';
     titleRow.appendChild(trendIndicator);
   }
 
@@ -365,6 +390,14 @@ function injectStyles(): void {
     .pattern-insights-card--visible {
       opacity: 1;
       transform: translateY(0);
+    }
+
+    .pattern-insights-card--embedded {
+      background: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: none;
+      border-radius: 0;
     }
 
     .pattern-insights-card__header {

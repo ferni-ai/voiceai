@@ -3001,5 +3001,8 @@
       "install": "[NEEDS_TRANSLATION] Add to Team",
       "uninstall": "[NEEDS_TRANSLATION] Remove from Team"
     }
+  },
+  "patternInsights": {
+    "subtitle": "[NEEDS_TRANSLATION] Insights from our conversations"
   }
 }
