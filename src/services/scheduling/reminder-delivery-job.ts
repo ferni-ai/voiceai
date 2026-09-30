@@ -13,13 +13,15 @@
  * sent, so overlapping runs can't send it twice. One found more than two hours
  * late is marked 'missed' rather than sent: "call your mom" is noise the next
  * morning. A reminder we can't reach by its chosen channel (no valid phone or
- * email) goes to the app's message panel instead of failing.
+ * email, or no Twilio/SendGrid credentials on this server) goes to the app's
+ * message panel instead of failing.
  *
  * @module services/scheduling/reminder-delivery-job
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
+import { getChannelStatus, type ChannelStatus } from '../outreach/unified-delivery.js';
 import {
   deliverReminder,
   reminderFromDoc,
@@ -39,13 +41,29 @@ function isPhone(address: string): boolean {
   return /^\+[1-9]\d{7,14}$/.test(digits) || /^1?\d{10}$/.test(digits);
 }
 
-/** The reminder's own channel when we can reach it there, otherwise in-app. */
-export function deliveryChannelFor(reminder: ScheduledReminder): ReminderDeliveryMethod {
+/** Whether this server can send on a channel (Twilio/SendGrid credentials present). */
+function channelUp(method: ReminderDeliveryMethod, status?: ChannelStatus): boolean {
+  if (!status) return true;
+  if (method === 'sms' || method === 'voice_message') return status.sms.available;
+  if (method === 'call') return status.voice_call.available;
+  if (method === 'email') return status.email.available;
+  return true;
+}
+
+/**
+ * The reminder's own channel when we can reach the user there, otherwise
+ * in-app: no usable phone/email, or this server can't send on that channel.
+ */
+export function deliveryChannelFor(
+  reminder: ScheduledReminder,
+  status?: ChannelStatus
+): ReminderDeliveryMethod {
   const address = reminder.deliveryAddress ?? '';
   if (PHONE_METHODS.includes(reminder.deliveryMethod) && !isPhone(address)) return 'in_app';
   if (reminder.deliveryMethod === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address)) {
     return 'in_app';
   }
+  if (!channelUp(reminder.deliveryMethod, status)) return 'in_app';
   return reminder.deliveryMethod;
 }
 
@@ -88,12 +106,13 @@ export async function deliverDueReminders(
     .limit(opts.limit ?? 50)
     .get();
   result.due = snapshot.size;
+  const channels = snapshot.size > 0 ? await getChannelStatus() : undefined;
 
   for (const doc of snapshot.docs) {
     const reminder = reminderFromDoc(doc.id, doc.data());
     if (!reminder.userId) reminder.userId = doc.ref.parent.parent?.id ?? '';
     const late = now.getTime() - reminder.scheduledFor.getTime() > MISSED_AFTER_MS;
-    const channel = deliveryChannelFor(reminder);
+    const channel = deliveryChannelFor(reminder, channels);
 
     if (dryRun) {
       if (late) result.missed++;
