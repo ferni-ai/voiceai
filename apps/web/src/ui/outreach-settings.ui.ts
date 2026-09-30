@@ -76,9 +76,10 @@ const ICONS = {
 
 let settingsPanel: HTMLElement | null = null;
 let isOpen = false;
-// OPT-OUT BY DEFAULT: Users must explicitly enable proactive outreach
+// In-app check-ins are on by default (users can switch them off); texts,
+// email and calls stay off until the user turns each one on.
 let currentPreferences: OutreachPreferences = {
-  enabled: false, // DISABLED by default - user must opt in
+  enabled: true,
   channels: {
     sms: false, // Disabled until user explicitly enables
     email: false, // Disabled until user explicitly enables
@@ -118,13 +119,13 @@ async function loadPreferences(): Promise<void> {
 
     if (response.ok && response.data?.success && response.data.preferences) {
       const data = response.data;
-      // Merge with defaults - OPT-OUT BY DEFAULT
+      // Merge with defaults: on unless switched off, no opt-in channels unless chosen
       currentPreferences = {
         ...currentPreferences,
-        enabled: data.outreachEnabled ?? false,
+        enabled: data.outreachEnabled ?? true,
         channels: {
-          sms: data.allowedChannels?.includes('sms') ?? true,
-          email: data.allowedChannels?.includes('email') ?? true,
+          sms: data.allowedChannels?.includes('sms') ?? false,
+          email: data.allowedChannels?.includes('email') ?? false,
           call: data.allowedChannels?.includes('call') ?? false,
         },
         quietHours: {
@@ -134,11 +135,19 @@ async function loadPreferences(): Promise<void> {
         },
         frequency: data.preferences?.frequency ?? 'balanced',
         triggerTypes: {
-          commitments: data.preferences?.triggerTypes?.commitments ?? currentPreferences.triggerTypes.commitments,
-          emotional: data.preferences?.triggerTypes?.emotional ?? currentPreferences.triggerTypes.emotional,
-          celebrations: data.preferences?.triggerTypes?.celebrations ?? currentPreferences.triggerTypes.celebrations,
-          thinkingOfYou: data.preferences?.triggerTypes?.thinkingOfYou ?? currentPreferences.triggerTypes.thinkingOfYou,
-          reminders: data.preferences?.triggerTypes?.reminders ?? currentPreferences.triggerTypes.reminders,
+          commitments:
+            data.preferences?.triggerTypes?.commitments ??
+            currentPreferences.triggerTypes.commitments,
+          emotional:
+            data.preferences?.triggerTypes?.emotional ?? currentPreferences.triggerTypes.emotional,
+          celebrations:
+            data.preferences?.triggerTypes?.celebrations ??
+            currentPreferences.triggerTypes.celebrations,
+          thinkingOfYou:
+            data.preferences?.triggerTypes?.thinkingOfYou ??
+            currentPreferences.triggerTypes.thinkingOfYou,
+          reminders:
+            data.preferences?.triggerTypes?.reminders ?? currentPreferences.triggerTypes.reminders,
         },
       };
     }
@@ -161,10 +170,18 @@ async function savePreferences(): Promise<void> {
         quietHours: currentPreferences.quietHours,
         frequency: currentPreferences.frequency,
         triggerTypes: currentPreferences.triggerTypes,
-        maxPerDay: currentPreferences.frequency === 'minimal' ? 1
-          : currentPreferences.frequency === 'balanced' ? 3 : 5,
-        maxPerWeek: currentPreferences.frequency === 'minimal' ? 3
-          : currentPreferences.frequency === 'balanced' ? 10 : 20,
+        maxPerDay:
+          currentPreferences.frequency === 'minimal'
+            ? 1
+            : currentPreferences.frequency === 'balanced'
+              ? 3
+              : 5,
+        maxPerWeek:
+          currentPreferences.frequency === 'minimal'
+            ? 3
+            : currentPreferences.frequency === 'balanced'
+              ? 10
+              : 20,
       },
     });
 
@@ -405,7 +422,10 @@ function setupEventListeners(panel: HTMLElement): void {
       const value = (radio as HTMLInputElement).value as OutreachPreferences['frequency'];
       currentPreferences.frequency = value;
       panel.querySelectorAll('.outreach-settings-frequency-option').forEach((opt) => {
-        opt.classList.toggle('selected', (opt.querySelector('input') as HTMLInputElement).value === value);
+        opt.classList.toggle(
+          'selected',
+          (opt.querySelector('input') as HTMLInputElement).value === value
+        );
       });
     });
   });
@@ -414,7 +434,9 @@ function setupEventListeners(panel: HTMLElement): void {
   const quietToggle = panel.querySelector('#quiet-hours-enabled') as HTMLInputElement;
   quietToggle?.addEventListener('change', () => {
     currentPreferences.quietHours.enabled = quietToggle.checked;
-    panel.querySelector('.outreach-settings-time-range')?.classList.toggle('disabled', !quietToggle.checked);
+    panel
+      .querySelector('.outreach-settings-time-range')
+      ?.classList.toggle('disabled', !quietToggle.checked);
   });
 
   const quietStart = panel.querySelector('#quiet-start') as HTMLInputElement;
@@ -972,4 +994,3 @@ export const outreachSettings = {
 };
 
 export default outreachSettings;
-

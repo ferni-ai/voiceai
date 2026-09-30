@@ -26,6 +26,12 @@ import {
   type ThinkingOfYouTrigger,
 } from '../services/outreach/index.js';
 import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js';
+import {
+  channelsFromSettings,
+  readOutreachConsent,
+  settingsFromChannels,
+  writeOutreachConsent,
+} from '../services/outreach/outreach-consent.js';
 import type { OutreachType, OutreachChannel } from '../services/outreach/llm-content-generator.js';
 import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
 import type { UserProfile } from '../types/user-profile.js';
@@ -133,12 +139,15 @@ export async function handleOutreachRoutes(
 
       const engine = getOutreachDecisionEngine();
       const state = engine.getUserState(userId);
+      // On/off and channels come from the stored consent the scheduler obeys,
+      // not the in-memory engine (which forgets on restart).
+      const consent = await readOutreachConsent(userId);
 
       sendJsonResponse(res, 200, {
         success: true,
         preferences: state.preferences,
-        allowedChannels: state.allowedChannels,
-        outreachEnabled: state.outreachEnabled,
+        allowedChannels: settingsFromChannels(consent.channels),
+        outreachEnabled: consent.enabled,
         relationshipStage: state.relationshipStage,
         counters: state.counters,
       });
@@ -150,6 +159,8 @@ export async function handleOutreachRoutes(
       const body = await parseRequestBody(req);
       const { preferences } = body as {
         preferences: {
+          enabled?: boolean;
+          allowedChannels?: Array<'sms' | 'email' | 'call'>;
           preferredChannel?: 'sms' | 'email' | 'call';
           disabledChannels?: Array<'sms' | 'email' | 'call'>;
           quietHours?: { start: number; end: number };
@@ -160,6 +171,12 @@ export async function handleOutreachRoutes(
       };
 
       // Use authenticated userId (ignore body.userId to prevent tampering)
+      await writeOutreachConsent(authenticatedUserId, {
+        enabled: preferences?.enabled,
+        channels: Array.isArray(preferences?.allowedChannels)
+          ? channelsFromSettings(preferences.allowedChannels)
+          : undefined,
+      });
       updateOutreachPreferences(authenticatedUserId, preferences);
       sendJsonResponse(res, 200, { success: true, message: 'Preferences updated' });
       return true;
@@ -173,6 +190,7 @@ export async function handleOutreachRoutes(
       // Use authenticated userId
       const userId = authenticatedUserId;
 
+      await writeOutreachConsent(userId, { enabled: false });
       const engine = getOutreachDecisionEngine();
       engine.updateUserState(userId, { outreachEnabled: false });
 
@@ -191,6 +209,7 @@ export async function handleOutreachRoutes(
       // Use authenticated userId
       const userId = authenticatedUserId;
 
+      await writeOutreachConsent(userId, { enabled: true });
       const engine = getOutreachDecisionEngine();
       engine.updateUserState(userId, { outreachEnabled: true });
 
@@ -1243,7 +1262,9 @@ Whenever you're ready.`,
         await import('../services/outreach/automated-scheduler.js');
 
       try {
-        const result = await handleSchedulerTrigger();
+        // {"dryRun": true} previews the run: who would get what, nothing sent.
+        const body = (await parseRequestBody(req).catch(() => ({}))) as { dryRun?: boolean };
+        const result = await handleSchedulerTrigger({ dryRun: body?.dryRun === true });
         sendJsonResponse(res, 200, { success: true, ...result });
       } catch (error) {
         log.error({ error: String(error) }, 'Scheduler trigger failed');

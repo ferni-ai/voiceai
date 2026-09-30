@@ -94,6 +94,18 @@ describe('outreach scheduler endpoints', () => {
     expect(requireAuth).not.toHaveBeenCalled();
   });
 
+  it('previews instead of sending when the scheduler asks for a dry run', async () => {
+    const auth = { authorization: 'Bearer valid-scheduler-token' };
+    await fetch(`${base}/api/outreach/scheduler/daily`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...auth },
+      body: JSON.stringify({ dryRun: true }),
+    });
+    expect(handleSchedulerTrigger).toHaveBeenLastCalledWith({ dryRun: true });
+    await post('/scheduler/daily', auth); // body {}: a real run
+    expect(handleSchedulerTrigger).toHaveBeenLastCalledWith({ dryRun: false });
+  });
+
   it('run for an admin', async () => {
     requireAuth.mockResolvedValue({
       userId: 'admin',
