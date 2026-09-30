@@ -320,7 +320,7 @@ export async function generateEconomicInsights(userId: string): Promise<QuantIns
     const { yieldCurve } = await getEconomicDashboard();
 
     // Yield curve inversion alert
-    if (yieldCurve.status === 'inverted') {
+    if (yieldCurve?.status === 'inverted') {
       insights.push({
         id: uuidv4(),
         date: new Date(),
@@ -383,7 +383,7 @@ export async function generateDailyBriefing(userId: string): Promise<DailyBriefi
   }
 
   // Economic alerts
-  if (economicDashboard.yieldCurve.status === 'inverted') {
+  if (economicDashboard.yieldCurve?.status === 'inverted') {
     briefing.economicAlerts.push('⚠️ Yield curve remains inverted');
   }
 
