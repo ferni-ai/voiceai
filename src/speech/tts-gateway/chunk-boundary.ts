@@ -109,3 +109,20 @@ export function findFirstChunkEnd(buffer: string, minLength: number): number | n
   }
   return findChunkEnd(buffer, minLength);
 }
+
+/**
+ * Where to cut the first piece when the model is slow to reach a clause break:
+ * after the last complete word, once at least `minSpoken` characters will be
+ * spoken, never inside markup. Dev, 2026-09-30: waiting for a clause held text
+ * already written for 148 ms at the median and 860 ms at p90 before any of it
+ * went to Cartesia, while the caller heard nothing.
+ */
+export function findFirstWordEnd(buffer: string, minSpoken: number): number | null {
+  for (let space = buffer.lastIndexOf(' '); space > 0; space = buffer.lastIndexOf(' ', space - 1)) {
+    const end = space + 1;
+    if (spokenLength(buffer.slice(0, end)) < minSpoken) return null;
+    const cut = markupSafeCut(buffer, end);
+    if (cut !== null && cut > 0 && spokenLength(buffer.slice(0, cut)) >= minSpoken) return cut;
+  }
+  return null;
+}

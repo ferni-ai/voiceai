@@ -115,6 +115,33 @@ describe('createContinuationTTS', () => {
     expect(stages).toEqual(['text', 'push']);
   });
 
+  it('sends the first words at a word boundary when no clause break comes soon', async () => {
+    const reply = new FakeReply([4]);
+    let pushedBeforeRest = '';
+    const slow = new ReadableStream<string>({
+      async start(c) {
+        c.enqueue('Honestly I think that the keyb');
+        await new Promise((r) => setTimeout(r, 120));
+        pushedBeforeRest = reply.pushes.join('');
+        c.enqueue('oard is gone for good. ');
+        c.close();
+      },
+    });
+    const stream = createContinuationTTS({
+      textStream: slow,
+      reply,
+      sanitize: (chunk) => ({ text: chunk.trim(), prosody: {} }),
+      openingTags: () => '',
+      toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
+      onFirstAudio: () => undefined,
+      onError: () => undefined,
+      firstChunkWaitMs: 20,
+    });
+    await drain(stream as unknown as ReadableStream<AudioFrame>);
+    expect(pushedBeforeRest).toBe('Honestly I think that the ');
+    expect(reply.pushes.join('')).toBe('Honestly I think that the keyboard is gone for good. ');
+  });
+
   it('falls back to the session emotion when the reply names none', async () => {
     const reply = new FakeReply([4]);
     const { stream } = run(['That sounds like a really long week.'], reply, 'sympathetic');

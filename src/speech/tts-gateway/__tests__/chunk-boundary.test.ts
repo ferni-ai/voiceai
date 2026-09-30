@@ -100,3 +100,24 @@ describe('findFirstChunkEnd', () => {
     );
   });
 });
+
+describe('findFirstWordEnd', () => {
+  it('cuts after the last complete word once enough will be spoken', async () => {
+    const { findFirstWordEnd } = await import('../chunk-boundary.js');
+    const text = 'Honestly I think that the keyb';
+    expect(text.slice(0, findFirstWordEnd(text, 12)!)).toBe('Honestly I think that the ');
+  });
+
+  it('waits when too little would be spoken, counting spoken text only', async () => {
+    const { findFirstWordEnd } = await import('../chunk-boundary.js');
+    expect(findFirstWordEnd('Oh no that ', 12)).toBeNull();
+    expect(findFirstWordEnd('<emotion value="sympathetic"/>Oh no that ', 12)).toBeNull();
+  });
+
+  it('never cuts inside markup', async () => {
+    const { findFirstWordEnd } = await import('../chunk-boundary.js');
+    const text = 'Well I guess that <speed ratio="0.9"/';
+    const cut = findFirstWordEnd(text, 12)!;
+    expect(text.slice(0, cut)).toBe('Well I guess that ');
+  });
+});

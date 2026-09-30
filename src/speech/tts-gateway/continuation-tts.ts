@@ -16,12 +16,18 @@ import type { AudioFrame } from '@livekit/rtc-node';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { ReadableStream } from 'node:stream/web';
 
-import { findChunkEnd, findFirstChunkEnd } from './chunk-boundary.js';
+import { findChunkEnd, findFirstChunkEnd, findFirstWordEnd } from './chunk-boundary.js';
 import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type { SSMLProsodyConfig } from './types.js';
 
 /** The first piece may be a clause (see findFirstChunkEnd): start talking sooner. */
 const MIN_FIRST_CHUNK = 12;
+/**
+ * How long the first piece may wait for a clause break once the model's text
+ * starts arriving, before it goes out cut at a word boundary instead.
+ */
+export const FIRST_CHUNK_WAIT_MS = 150;
+const WAIT_EXPIRED = Symbol('wait-expired');
 
 /** The voice settings in force on the Cartesia context. */
 interface VoiceState {
@@ -74,6 +80,8 @@ export interface ContinuationOptions {
   baseSpeed?: number;
   toFrames(pcm: ArrayBuffer): Iterable<AudioFrame>;
   onFirstAudio(): void;
+  /** Override FIRST_CHUNK_WAIT_MS (tests). */
+  firstChunkWaitMs?: number;
   /** Timing marks for the first-audio log: first LLM text in, first text sent. */
   onStage?(stage: 'text' | 'push'): void;
   onError(error: unknown, phase: 'text' | 'audio'): void;
@@ -140,12 +148,46 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
         opts.onStage?.('push');
       }
     };
+    const waitMs = opts.firstChunkWaitMs ?? FIRST_CHUNK_WAIT_MS;
+    let pending: Promise<{ done: boolean; value?: string }> | undefined;
+    let firstTextAt: number | undefined;
+    let waitExpired = false;
     try {
       while (!stopped) {
-        const { done, value } = await reader.read();
+        pending ??= reader.read();
+        let next: { done: boolean; value?: string } | typeof WAIT_EXPIRED;
+        if (first && buffer && firstTextAt !== undefined && !waitExpired) {
+          // The first words are written but no clause break yet: wait a moment
+          // for one, then send at a word boundary rather than hold them.
+          let timer: ReturnType<typeof setTimeout> | undefined;
+          next = await Promise.race([
+            pending,
+            new Promise<typeof WAIT_EXPIRED>((resolve) => {
+              timer = setTimeout(
+                () => resolve(WAIT_EXPIRED),
+                Math.max(0, waitMs - (Date.now() - firstTextAt!))
+              );
+            }),
+          ]);
+          clearTimeout(timer);
+        } else {
+          next = await pending;
+        }
+        if (next === WAIT_EXPIRED) {
+          waitExpired = true;
+          const end = findFirstWordEnd(buffer, MIN_FIRST_CHUNK);
+          if (end !== null) {
+            push(buffer.slice(0, end));
+            buffer = buffer.slice(end);
+          }
+          continue;
+        }
+        pending = undefined;
+        const { done, value } = next;
         if (value) {
           if (!heardText) {
             heardText = true;
+            firstTextAt = Date.now();
             opts.onStage?.('text');
           }
           buffer += value;
