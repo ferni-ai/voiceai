@@ -110,6 +110,14 @@ jobs:
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
+    # Job-level permissions replace the workflow's, so repeat them.
+    # actions: read lets the analyze step look up this workflow run (required
+    # on private repos; without it the upload fails with "Resource not
+    # accessible by integration").
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
 
     steps:
       - name: Checkout
