@@ -108,7 +108,7 @@ hook (`ferni-agent.ts` `llmNode`) or the recall note.
 
 | Module | What it does |
 |--------|--------------|
-| `memory-recall-hook.ts` | Facts the turn is about, open threads (with when they came up; closed once raised), one shared-laugh callback |
+| `memory-recall-hook.ts` | Facts the turn is about, open threads (with when they came up; closed once raised), one shared-laugh callback, the persona's stories they have already heard (never retold as new) |
 | `shared-laugh-recorder.ts` | Saves what made them laugh; learns which callbacks land |
 | `significant-dates-recorder.ts` | Birthdays, anniversaries, the day they lost someone: saved when mentioned; near one, the greeting and replies know |
 | `talk-preference-recorder.ts` | "Just listen", "give it to me straight": kept for the call, saved when said as lasting |

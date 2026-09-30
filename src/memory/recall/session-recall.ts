@@ -17,6 +17,7 @@
 
 import { followUpsFromSummaries, formatFollowUps, toMillis, type FollowUp } from './follow-ups.js';
 import type { SharedLaugh } from './shared-laughs.js';
+import type { ToldStory } from './told-stories.js';
 import { contentWords, mentions } from './words.js';
 
 export { contentWords, mentions };
@@ -36,6 +37,8 @@ export interface RecallSnapshot {
   laughs: SharedLaugh[];
   /** How the most recent call felt, from its summary ("started anxious, ended calmer"). */
   lastCall?: { at: number; arc: string };
+  /** Stories the personas have already told them (see told-stories.ts). */
+  toldStories?: ToldStory[];
 }
 
 export const EMPTY_SNAPSHOT: RecallSnapshot = { facts: [], followUps: [], laughs: [] };
@@ -117,6 +120,8 @@ export interface RecallStore {
   laughs?(userId: string): Promise<SharedLaugh[]>;
   /** Ids of threads already raised on an earlier call. Optional like laughs. */
   closedFollowUps?(userId: string): Promise<string[]>;
+  /** Stories already told, newest first. Optional like laughs. */
+  toldStories?(userId: string): Promise<ToldStory[]>;
 }
 
 const MAX_FACTS = 300;
@@ -126,11 +131,12 @@ export async function loadRecallSnapshot(
   store: RecallStore,
   userId: string
 ): Promise<RecallSnapshot> {
-  const [rawFacts, rawSummaries, laughs, closed] = await Promise.all([
+  const [rawFacts, rawSummaries, laughs, closed, toldStories] = await Promise.all([
     store.facts(userId).catch(() => []),
     store.summaries(userId).catch(() => []),
     store.laughs ? store.laughs(userId).catch(() => []) : Promise.resolve([]),
     store.closedFollowUps ? store.closedFollowUps(userId).catch(() => []) : Promise.resolve([]),
+    store.toldStories ? store.toldStories(userId).catch(() => []) : Promise.resolve([]),
   ]);
   const facts = dedupeFacts(
     rawFacts.slice(0, MAX_FACTS).map((d) => ({
@@ -141,7 +147,13 @@ export async function loadRecallSnapshot(
     }))
   );
   const followUps = followUpsFromSummaries(rawSummaries, new Set(closed));
-  return { facts, followUps, laughs, ...lastCallOf(rawSummaries) };
+  return {
+    facts,
+    followUps,
+    laughs,
+    ...lastCallOf(rawSummaries),
+    ...(toldStories.length > 0 ? { toldStories } : {}),
+  };
 }
 
 /** A last call older than this is not "last time" any more. */

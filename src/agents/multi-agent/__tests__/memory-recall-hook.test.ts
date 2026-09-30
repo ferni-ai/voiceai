@@ -77,6 +77,50 @@ describe('createMemoryRecall', () => {
     expect(await recall.openingFacts()).toEqual({});
   });
 
+  it("offers this persona's told stories once, and saves a new one only once", async () => {
+    const saved: string[] = [];
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      personaId: 'ferni',
+      saveStory: (s) => saved.push(s.gist),
+      store: {
+        facts: async () => [],
+        summaries: async () => [],
+        toldStories: async () => [
+          {
+            id: 'a',
+            personaId: 'ferni',
+            gist: 'My grandmother kept a tomato garden in Wyoming.',
+            at: 1,
+          },
+          {
+            id: 'b',
+            personaId: 'peter-john',
+            gist: 'I once met Jack Bogle at a conference.',
+            at: 1,
+          },
+        ],
+      },
+    });
+    await recall.ready;
+
+    const first = recall.noteFor('Hey there');
+    expect(first).toContain('- My grandmother kept a tomato garden in Wyoming.');
+    expect(first).not.toContain('Jack Bogle');
+    expect(recall.noteFor('Anyway')).toBeNull();
+
+    recall.agentSaid('Ha, my grandmother had a tomato garden in Wyoming, remember?');
+    recall.agentSaid(
+      'I remember the time I tried to bake sourdough bread and set off every alarm.'
+    );
+    recall.agentSaid(
+      'Like I said, I remember the time I tried baking sourdough bread and set off alarms.'
+    );
+    expect(saved).toEqual([
+      'I remember the time I tried to bake sourdough bread and set off every alarm.',
+    ]);
+  });
+
   it('recalls at most 4 facts per user turn across interim transcripts, then resets', async () => {
     const many = {
       facts: async () =>

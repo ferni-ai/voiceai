@@ -34,6 +34,13 @@ import {
 } from '../../memory/recall/session-recall.js';
 import { raisedIn, whenSaid, type FollowUp } from '../../memory/recall/follow-ups.js';
 import {
+  anecdoteIn,
+  formatToldStories,
+  sameStory,
+  storyId,
+  type ToldStory,
+} from '../../memory/recall/told-stories.js';
+import {
   callbackForTurn,
   formatCallback,
   fromInsideJoke,
@@ -75,6 +82,26 @@ export const firestoreRecallStore: RecallStore = {
       .get();
     return snap.docs.map((d) => d.data());
   },
+  async toldStories(userId) {
+    const db = getFirestoreDb();
+    if (!db) return [];
+    const snap = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection(TOLD_STORIES)
+      .orderBy('at', 'desc')
+      .limit(MAX_TOLD_STORIES)
+      .get();
+    return snap.docs
+      .map((d) => d.data())
+      .filter((d) => typeof d.gist === 'string' && typeof d.personaId === 'string')
+      .map((d) => ({
+        id: String(d.id ?? ''),
+        personaId: String(d.personaId),
+        gist: String(d.gist),
+        at: typeof d.at === 'number' ? d.at : 0,
+      }));
+  },
   async closedFollowUps(userId) {
     const db = getFirestoreDb();
     if (!db) return [];
@@ -106,6 +133,8 @@ export const firestoreRecallStore: RecallStore = {
 const SHARED_LAUGHS = 'shared_laughs';
 const MAX_LAUGHS = 30;
 const CLOSED_FOLLOW_UPS = 'closed_follow_ups';
+const TOLD_STORIES = 'told_stories';
+const MAX_TOLD_STORIES = 30;
 
 /**
  * Record how a callback went: landed (another laugh) or flat. Stored on the
@@ -158,6 +187,22 @@ export async function saveSharedLaugh(userId: string, laugh: SharedLaugh): Promi
   }
 }
 
+/** Remember a story the persona told, so it is never retold as new. Never throws. */
+export async function saveToldStory(userId: string, story: ToldStory): Promise<void> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return;
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection(TOLD_STORIES)
+      .doc(story.id)
+      .set(story);
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Told story not saved');
+  }
+}
+
 /** Remember that a thread was raised, so later calls do not ask again. Never throws. */
 export async function saveClosedFollowUp(userId: string, followUp: FollowUp): Promise<void> {
   try {
@@ -182,6 +227,10 @@ export interface MemoryRecallDeps {
   store?: RecallStore;
   /** A thread Ferni raised (see saveClosedFollowUp). */
   closeFollowUp?: (followUp: FollowUp) => void;
+  /** The persona on this agent: stories are its own. */
+  personaId?: string;
+  /** A story the persona just told (see saveToldStory). */
+  saveStory?: (story: ToldStory) => void;
 }
 
 export interface MemoryRecall {
@@ -217,12 +266,17 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let followUpsOffered = false;
   let openFollowUps: FollowUp[] = [];
   let factsThisTurn = 0;
+  let storiesOffered = false;
+  /** This persona's stories they have heard, from earlier calls and this one. */
+  let told: ToldStory[] = [];
   // One callback per call: a running joke lands because it is rare.
   let calledBack = false;
   let offered: SharedLaugh | null = null;
 
   const ready = loadRecallSnapshot(deps.store ?? firestoreRecallStore, deps.userId).then((s) => {
     snapshot = s;
+    const persona = deps.personaId ?? 'ferni';
+    told = (s.toldStories ?? []).filter((t) => t.personaId === persona);
     log.info(
       {
         facts: s.facts.length,
@@ -246,12 +300,14 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const notes = [
         formatRecall(facts, followUps, deps.userName, { timezone: deps.timezone }),
         laugh ? formatCallback(laugh, deps.userName) : null,
+        storiesOffered || told.length === 0 ? null : formatToldStories(told).join('\n'),
       ].filter((n): n is string => n !== null);
       if (notes.length === 0) return null;
       if (followUps.length > 0) {
         followUpsOffered = true;
         openFollowUps = [...followUps];
       }
+      storiesOffered = true;
       factsThisTurn += facts.length;
       for (const f of facts) surfaced.add(factId(f));
       if (laugh) {
@@ -296,6 +352,14 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       return facts;
     },
     agentSaid(text) {
+      const gist = anecdoteIn(text);
+      if (gist && !told.some((t) => sameStory(t.gist, gist))) {
+        const personaId = deps.personaId ?? 'ferni';
+        const story = { id: storyId(personaId, gist), personaId, gist, at: Date.now() };
+        told = [story, ...told];
+        deps.saveStory?.(story);
+        log.info({ personaId }, 'Story told');
+      }
       const raised = raisedIn(text, openFollowUps);
       if (raised.length === 0) return;
       openFollowUps = openFollowUps.filter((f) => !raised.includes(f));

@@ -88,6 +88,7 @@ import {
   createMemoryRecall,
   memoryRecallMode,
   saveClosedFollowUp,
+  saveToldStory,
   saveCallbackOutcome,
   saveSharedLaugh,
   type RecallAgent,
@@ -1762,6 +1763,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
       userName: userData.userName,
       timezone: userData.timezone,
       closeFollowUp: (followUp) => void saveClosedFollowUp(userId, followUp),
+      personaId: persona.id,
+      saveStory: (story) => void saveToldStory(userId, story),
     });
     // The greeting can open with the newest open thread, and knows how the
     // last call felt (orchestrator.ts)
