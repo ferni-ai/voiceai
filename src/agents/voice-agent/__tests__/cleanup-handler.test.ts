@@ -7,10 +7,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleSessionCleanup, type CleanupContext } from '../cleanup-handler.js';
-import {
-  clearSessionClosing,
-  isSessionClosing,
-} from '../../shared/session-closing-tracker.js';
+import { clearSessionClosing, isSessionClosing } from '../../shared/session-closing-tracker.js';
 import type { SessionServices } from '../../../services/types.js';
 import type { PersonaConfig } from '../../../personas/types.js';
 
@@ -41,10 +38,17 @@ describe('cleanup-handler', () => {
       autoOptimizer: { endSession: vi.fn() },
     };
 
-    const p = handleSessionCleanup(ctx, 5000);
+    // Cleanup lazily imports ~60 modules. In a live worker they are already
+    // loaded; in a fresh Vitest worker they load cold, which alone took >5s
+    // under parallel load and tripped the cleanup timeout before endSession()
+    // ran. This test is about the closing-tracker lifecycle, not cleanup speed,
+    // so give the cold imports room to finish.
+    const p = handleSessionCleanup(ctx, 50_000);
 
     // Shortly after start, session should be marked closing
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => {
+      setTimeout(r, 50);
+    });
     expect(isSessionClosing(sessionId)).toBe(true);
 
     await p;
@@ -52,5 +56,5 @@ describe('cleanup-handler', () => {
     // After cleanup completes, session should be cleared
     expect(isSessionClosing(sessionId)).toBe(false);
     expect(endSession).toHaveBeenCalled();
-  });
+  }, 60_000);
 });
