@@ -15,6 +15,8 @@
  * @module memory/recall/session-recall
  */
 
+import type { SharedLaugh } from './shared-laughs.js';
+
 export interface RecallFact {
   entity: string;
   key: string;
@@ -26,9 +28,11 @@ export interface RecallSnapshot {
   facts: RecallFact[];
   /** Open threads from recent sessions ("ask how the vet visit went"). */
   followUps: string[];
+  /** Moments they laughed at, for callbacks (see shared-laughs.ts). */
+  laughs: SharedLaugh[];
 }
 
-export const EMPTY_SNAPSHOT: RecallSnapshot = { facts: [], followUps: [] };
+export const EMPTY_SNAPSHOT: RecallSnapshot = { facts: [], followUps: [], laughs: [] };
 
 /** The entity the extractor uses for the caller themself. */
 const SELF_ENTITY = /^(speaker|user|me)$/i;
@@ -130,6 +134,8 @@ export function formatRecall(
 export interface RecallStore {
   facts(userId: string): Promise<Array<Record<string, unknown>>>;
   summaries(userId: string): Promise<Array<Record<string, unknown>>>;
+  /** Shared laughs and inside jokes, already normalized. Optional: older stores have none. */
+  laughs?(userId: string): Promise<SharedLaugh[]>;
 }
 
 const MAX_FACTS = 300;
@@ -140,9 +146,10 @@ export async function loadRecallSnapshot(
   store: RecallStore,
   userId: string
 ): Promise<RecallSnapshot> {
-  const [rawFacts, rawSummaries] = await Promise.all([
+  const [rawFacts, rawSummaries, laughs] = await Promise.all([
     store.facts(userId).catch(() => []),
     store.summaries(userId).catch(() => []),
+    store.laughs ? store.laughs(userId).catch(() => []) : Promise.resolve([]),
   ]);
   const facts = dedupeFacts(
     rawFacts.slice(0, MAX_FACTS).map((d) => ({
@@ -161,5 +168,5 @@ export async function loadRecallSnapshot(
     }
     if (followUps.length >= MAX_FOLLOW_UPS) break;
   }
-  return { facts, followUps };
+  return { facts, followUps, laughs };
 }

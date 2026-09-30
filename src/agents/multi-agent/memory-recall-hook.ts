@@ -17,6 +17,7 @@
  * before its first await, so calling it from the listener lands first.
  *
  * Follow-ups from recent sessions are offered once, with the first recall.
+ * A shared laugh the turn echoes is offered as a callback, once per call.
  *
  * @module agents/multi-agent/memory-recall-hook
  */
@@ -29,6 +30,13 @@ import {
   type RecallSnapshot,
   type RecallStore,
 } from '../../memory/recall/session-recall.js';
+import {
+  callbackForTurn,
+  formatCallback,
+  fromInsideJoke,
+  fromStoredLaugh,
+  type SharedLaugh,
+} from '../../memory/recall/shared-laughs.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -63,7 +71,40 @@ export const firestoreRecallStore: RecallStore = {
       .get();
     return snap.docs.map((d) => d.data());
   },
+  async laughs(userId) {
+    const db = getFirestoreDb();
+    if (!db) return [];
+    const user = db.collection('bogle_users').doc(userId);
+    const [laughs, jokes] = await Promise.all([
+      user.collection(SHARED_LAUGHS).orderBy('at', 'desc').limit(MAX_LAUGHS).get(),
+      user.collection('human_signals').doc('inside_jokes').get(),
+    ]);
+    const items = (jokes.data()?.items as Array<Record<string, unknown>> | undefined) ?? [];
+    return [
+      ...laughs.docs.map((d) => fromStoredLaugh({ id: d.id, ...d.data() })),
+      ...items.slice(-MAX_LAUGHS).map(fromInsideJoke),
+    ].filter((l): l is SharedLaugh => l !== null);
+  },
 };
+
+const SHARED_LAUGHS = 'shared_laughs';
+const MAX_LAUGHS = 30;
+
+/** Remember a shared laugh. Never throws. */
+export async function saveSharedLaugh(userId: string, laugh: SharedLaugh): Promise<void> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return;
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection(SHARED_LAUGHS)
+      .doc(laugh.id)
+      .set({ moment: laugh.moment, context: laugh.context, at: laugh.at, source: laugh.source });
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Shared laugh not saved');
+  }
+}
 
 export interface MemoryRecallDeps {
   userId: string;
@@ -93,11 +134,18 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const surfaced = new Set<string>();
   let followUpsOffered = false;
   let factsThisTurn = 0;
+  // One callback per call: a running joke lands because it is rare.
+  let calledBack = false;
 
   const ready = loadRecallSnapshot(deps.store ?? firestoreRecallStore, deps.userId).then((s) => {
     snapshot = s;
     log.info(
-      { facts: s.facts.length, followUps: s.followUps.length, ms: Date.now() - started },
+      {
+        facts: s.facts.length,
+        followUps: s.followUps.length,
+        laughs: s.laughs.length,
+        ms: Date.now() - started,
+      },
       'Recall snapshot loaded'
     );
   });
@@ -110,13 +158,24 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const budget = FACTS_PER_TURN - factsThisTurn;
       const facts = budget > 0 ? recallForTurn(snapshot, text, surfaced, budget) : [];
       const followUps = followUpsOffered ? [] : snapshot.followUps;
-      const note = formatRecall(facts, followUps, deps.userName);
-      if (!note) return null;
-      followUpsOffered = true;
+      const laugh = calledBack ? null : callbackForTurn(snapshot.laughs, text, surfaced);
+      const notes = [
+        formatRecall(facts, followUps, deps.userName),
+        laugh ? formatCallback(laugh, deps.userName) : null,
+      ].filter((n): n is string => n !== null);
+      if (notes.length === 0) return null;
+      if (followUps.length > 0) followUpsOffered = true;
       factsThisTurn += facts.length;
       for (const f of facts) surfaced.add(factId(f));
-      log.info({ facts: facts.length, followUps: followUps.length }, 'Recall added');
-      return note;
+      if (laugh) {
+        calledBack = true;
+        surfaced.add(laugh.id);
+      }
+      log.info(
+        { facts: facts.length, followUps: followUps.length, callback: laugh?.source ?? null },
+        'Recall added'
+      );
+      return notes.join('\n\n');
     },
     newTurn() {
       factsThisTurn = 0;

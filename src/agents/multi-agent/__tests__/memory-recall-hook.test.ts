@@ -87,3 +87,31 @@ describe('addRecallNote', () => {
     expect(last.textContent).toContain('golden retriever');
   });
 });
+
+describe('shared-laugh callbacks', () => {
+  const laughStore = {
+    facts: async () => [],
+    summaries: async () => [],
+    laughs: async () => [
+      {
+        id: 'laugh_1',
+        moment: 'Biscuit has clearly appointed himself head of shoe security',
+        context: 'my dog keeps stealing my shoes',
+        at: 1,
+        source: 'laugh' as const,
+      },
+    ],
+  };
+
+  it('calls back a shared laugh when the turn echoes it, once per call', async () => {
+    const recall = createMemoryRecall({ userId: 'u1', userName: 'Sam', store: laughStore });
+    await recall.ready;
+
+    expect(recall.noteFor('Work was busy today')).toBeNull();
+    const note = recall.noteFor('Biscuit took another shoe this morning');
+    expect(note).toContain('[A LAUGH YOU SHARED]');
+    expect(note).toContain('Sam laughed when you said');
+    recall.newTurn();
+    expect(recall.noteFor('Biscuit and the shoe again, honestly')).toBeNull();
+  });
+});

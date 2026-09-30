@@ -87,8 +87,10 @@ import {
   addRecallNote,
   createMemoryRecall,
   memoryRecallMode,
+  saveSharedLaugh,
   type RecallAgent,
 } from './memory-recall-hook.js';
+import { createSharedLaughRecorder, wireSharedLaughRecorder } from './shared-laugh-recorder.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
@@ -1753,6 +1755,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
       sessionWithEvents.off?.('user_input_transcribed', onRecallTranscript);
       sessionWithEvents.off?.('agent_state_changed', onRecallAgentState);
     });
+
+    // Remember what made them laugh, for a callback on a later call.
+    const laughRecorder = createSharedLaughRecorder({
+      userData: userData as unknown as Record<string, unknown>,
+      save: (laugh) => saveSharedLaugh(userId, laugh),
+    });
+    cleanupFunctions.push(wireSharedLaughRecorder(sessionWithEvents, laughRecorder));
   }
 
   if (backgroundTurns && sessionWithEvents.on) {

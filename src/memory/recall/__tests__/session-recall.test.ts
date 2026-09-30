@@ -23,6 +23,7 @@ const selfFact = { entity: 'Speaker', key: 'feeling', value: 'rough week, not sl
 const snapshot: RecallSnapshot = {
   facts: [biscuitBreed, biscuitShoes, austinJob, selfFact],
   followUps: ['Ask how the shoe situation with Biscuit is going'],
+  laughs: [],
 };
 
 describe('mentions', () => {
@@ -118,6 +119,6 @@ describe('loadRecallSnapshot', () => {
       },
       'u1'
     );
-    expect(snap).toEqual({ facts: [], followUps: [] });
+    expect(snap).toEqual({ facts: [], followUps: [], laughs: [] });
   });
 });
