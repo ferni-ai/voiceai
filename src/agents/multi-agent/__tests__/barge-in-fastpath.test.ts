@@ -84,11 +84,11 @@ describe('sustained speech over Ferni', () => {
     return { fp, interrupt, pending, elapse };
   }
 
-  it('stops Ferni when the caller keeps talking over him for 0.7 s', () => {
+  it('stops Ferni when the caller keeps talking over him for about a second', () => {
     const { fp, interrupt, pending, elapse } = withTimers();
     fp.onAgentState({ newState: 'speaking' });
     fp.onUserState({ newState: 'speaking' });
-    expect(pending[0].ms).toBe(700);
+    expect(pending[0].ms).toBe(950);
     elapse();
     expect(interrupt).toHaveBeenCalledTimes(1);
   });

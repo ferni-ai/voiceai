@@ -1,0 +1,38 @@
+diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
+index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..cf0382a2370db3f4457b31d4740c89d8d43583d9 100644
+--- a/dist/voice/agent_activity.cjs
++++ b/dist/voice/agent_activity.cjs
+@@ -1677,7 +1677,13 @@ class AgentActivity {
+     let speechHandle;
+     if (this._preemptiveGeneration !== void 0) {
+       const preemptive = this._preemptiveGeneration;
+-      if (preemptive.info.newTranscript === (userMessage == null ? void 0 : userMessage.textContent) && preemptive.chatCtx.isEquivalent(chatCtx) && preemptive.tools.equals(this.tools) && (0, import_tool_context.isSameToolChoice)(preemptive.toolChoice, this.toolChoice)) {
++      // PATCHED(ferni): log why a preemptive reply was kept or dropped
++      const __pSameText = preemptive.info.newTranscript === (userMessage == null ? void 0 : userMessage.textContent);
++      const __pSameCtx = preemptive.chatCtx.isEquivalent(chatCtx);
++      const __pSameTools = preemptive.tools.equals(this.tools);
++      const __pSameChoice = (0, import_tool_context.isSameToolChoice)(preemptive.toolChoice, this.toolChoice);
++      this.logger.info({ used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice, sameTranscript: __pSameText, sameChatCtx: __pSameCtx, sameTools: __pSameTools, sameToolChoice: __pSameChoice, leadMs: Date.now() - preemptive.createdAt, preflight: String(preemptive.info.newTranscript).slice(0, 60), final: String(userMessage == null ? void 0 : userMessage.textContent).slice(0, 60) }, 'PREEMPTIVE_DECISION');
++      if (__pSameText && __pSameCtx && __pSameTools && __pSameChoice) {
+         speechHandle = preemptive.speechHandle;
+         if (preemptive.userMessage && userMessage) {
+           preemptive.userMessage.metrics = userMetricsReport;
+diff --git a/dist/voice/agent_activity.js b/dist/voice/agent_activity.js
+index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..557e8624cc80c0d4520ab9ed5fe4e8cce040df56 100644
+--- a/dist/voice/agent_activity.js
++++ b/dist/voice/agent_activity.js
+@@ -1708,7 +1708,13 @@ class AgentActivity {
+     let speechHandle;
+     if (this._preemptiveGeneration !== void 0) {
+       const preemptive = this._preemptiveGeneration;
+-      if (preemptive.info.newTranscript === (userMessage == null ? void 0 : userMessage.textContent) && preemptive.chatCtx.isEquivalent(chatCtx) && preemptive.tools.equals(this.tools) && isSameToolChoice(preemptive.toolChoice, this.toolChoice)) {
++      // PATCHED(ferni): log why a preemptive reply was kept or dropped
++      const __pSameText = preemptive.info.newTranscript === (userMessage == null ? void 0 : userMessage.textContent);
++      const __pSameCtx = preemptive.chatCtx.isEquivalent(chatCtx);
++      const __pSameTools = preemptive.tools.equals(this.tools);
++      const __pSameChoice = isSameToolChoice(preemptive.toolChoice, this.toolChoice);
++      this.logger.info({ used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice, sameTranscript: __pSameText, sameChatCtx: __pSameCtx, sameTools: __pSameTools, sameToolChoice: __pSameChoice, leadMs: Date.now() - preemptive.createdAt, preflight: String(preemptive.info.newTranscript).slice(0, 60), final: String(userMessage == null ? void 0 : userMessage.textContent).slice(0, 60) }, 'PREEMPTIVE_DECISION');
++      if (__pSameText && __pSameCtx && __pSameTools && __pSameChoice) {
+         speechHandle = preemptive.speechHandle;
+         if (preemptive.userMessage && userMessage) {
+           preemptive.userMessage.metrics = userMetricsReport;

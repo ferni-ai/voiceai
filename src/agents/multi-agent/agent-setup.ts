@@ -1203,7 +1203,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
     try {
       const vadLoadStart = Date.now();
       const { VAD } = await import('@livekit/agents-plugin-silero');
-      vad = await VAD.load();
+      // 350 ms of silence ends the caller's speech (Silero's default is 550).
+      // The barge-in fast path reads speech length from these state changes;
+      // with 550 ms a 0.45 s "uh-huh" looked like a second of talk-over.
+      vad = await VAD.load({ minSilenceDuration: Number(process.env.VAD_MIN_SILENCE_MS) || 350 });
       log.info(
         {
           personaId: persona.id,

@@ -19,7 +19,7 @@
  * @module voice-agent/transcript-handler
  */
 
-import { log, type voice } from '@livekit/agents';
+import { log, voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { TextEncoder } from 'node:util';
 import {
@@ -265,6 +265,29 @@ const getLogger = () => log();
  * This function creates a handler for UserInputTranscribed events that processes
  * both partial and final transcripts with all the necessary processing steps.
  */
+/**
+ * Run `fn` once the agent starts speaking (or goes back to listening without
+ * speaking), whichever comes first, or after 8 s at the latest.
+ */
+function applyAfterReplyStarts(
+  session: voice.AgentSession<UserData>,
+  fn: () => Promise<void>
+): void {
+  let done = false;
+  const run = (): void => {
+    if (done) return;
+    done = true;
+    session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+    clearTimeout(fallback);
+    void fn();
+  };
+  const onState = (ev: { newState: string }): void => {
+    if (ev.newState === 'speaking' || ev.newState === 'listening') run();
+  };
+  const fallback = setTimeout(run, 8000);
+  session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+}
+
 export function createTranscriptHandler(ctx: TranscriptHandlerContext): TranscriptHandlerResult {
   const {
     room,
@@ -1701,26 +1724,35 @@ async function processFinalTranscript(
           // 🔧 MID-SESSION TOOL UPDATE: Register new tools with LLM
           // This is SAFE for OpenAI Realtime (isMidSessionToolUpdateSafe() returned true)
           if (supportsToolUpdates() && agent) {
-            try {
-              const newTools = dynamicToolLoader.getCurrentTools();
-              const updated = await updateAgentTools(agent, newTools, {
-                domains: loadedDomains,
-              });
-              if (updated) {
-                toolUpdaterLog.info(
-                  {
-                    loadedDomains,
-                    newToolCount: Object.keys(newTools).length,
-                  },
-                  '🔧 Agent tools updated mid-session'
+            const apply = async (): Promise<void> => {
+              try {
+                const newTools = dynamicToolLoader.getCurrentTools();
+                const updated = await updateAgentTools(agent, newTools, {
+                  domains: loadedDomains,
+                });
+                if (updated) {
+                  toolUpdaterLog.info(
+                    {
+                      loadedDomains,
+                      newToolCount: Object.keys(newTools).length,
+                    },
+                    '🔧 Agent tools updated mid-session'
+                  );
+                }
+              } catch (updateError) {
+                toolUpdaterLog.warn(
+                  { error: String(updateError) },
+                  'Failed to update agent tools mid-session'
                 );
               }
-            } catch (updateError) {
-              toolUpdaterLog.warn(
-                { error: String(updateError) },
-                'Failed to update agent tools mid-session'
-              );
-            }
+            };
+            // Changing the tool set as the turn ends voids LiveKit's preemptive
+            // reply (it's reused only if the tools are unchanged), so every
+            // reply waited the full LLM time after the caller stopped. Apply
+            // the new tools once this reply has started; they serve the next
+            // turn. DEFER_TOOL_UPDATES=off applies them at once.
+            if (process.env.DEFER_TOOL_UPDATES === 'off') await apply();
+            else applyAfterReplyStarts(session, apply);
           }
         }
       })

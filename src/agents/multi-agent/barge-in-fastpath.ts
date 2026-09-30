@@ -64,8 +64,13 @@ const BACKCHANNEL_WORDS = new Set([
 ]);
 
 export const MIN_INTERRUPT_WORDS = 3;
-/** Continuous caller speech over Ferni that counts as taking the floor. */
-export const SUSTAINED_SPEECH_MS = 700;
+/**
+ * Continuous caller speech over Ferni that counts as taking the floor, as
+ * the voice detector reports it: speech plus its 350 ms end-of-speech
+ * hangover (agent-setup.ts). Backchannels measured 0.40-0.52 s spoken
+ * (<= 0.87 s reported); at 700 ms a 0.45 s "uh-huh" fired (dev, 2026-09-30).
+ */
+export const SUSTAINED_SPEECH_MS = 950;
 
 export function words(text: string): string[] {
   return text
