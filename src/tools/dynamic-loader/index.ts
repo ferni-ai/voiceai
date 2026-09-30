@@ -13,7 +13,9 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { toolRegistry } from '../registry/index.js';
-import { loadToolDomain } from '../registry/loader.js';
+import { isDomainLoaded as isDomainRegistered, loadToolDomain } from '../registry/loader.js';
+import { getEssentialTools } from '../../config/tool-config.js';
+import { loadIntentManual } from '../retrieval/dense-index.js';
 import type { ToolDomain, ToolContext, Tool } from '../registry/types.js';
 import { ALL_TOOL_DOMAINS, EnvironmentServiceRegistry } from '../registry/types.js';
 
@@ -89,6 +91,7 @@ export class DynamicToolLoader {
     for (const domain of this.config.essentialDomains) {
       await this.loadDomain(domain, true);
     }
+    await this.registerEssentialTools();
 
     // Start auto-unload timer if enabled
     if (this.config.enableAutoUnload) {
@@ -195,6 +198,43 @@ export class DynamicToolLoader {
       getLogger().warn({ domain, error }, '🔄 Failed to load domain');
       return false;
     }
+  }
+
+  private essentialToolIds(): readonly string[] {
+    return this.config.essentialToolIds ?? getEssentialTools();
+  }
+
+  /**
+   * Register the definitions of the essential tools whose domains aren't
+   * loaded. quickTimer and quickAlarm were on the "must survive any cap" list,
+   * but their domain (simple-utilities) loads only on keywords, and tools a
+   * turn's words load reach the agent after that turn's reply starts: asked
+   * for a 20 s tea timer, Ferni had none and said "I can't set a timer
+   * directly" (dev, 2026-09-30).
+   */
+  private async registerEssentialTools(): Promise<void> {
+    let domainOf = this.config.domainOfTool;
+    if (!domainOf) {
+      let manual: ReturnType<typeof loadIntentManual> | null = null;
+      try {
+        manual = loadIntentManual(); // read once: it parses the whole catalog
+      } catch (error) {
+        getLogger().warn({ error: String(error) }, 'Could not read the tool manual');
+      }
+      domainOf = (id) => manual?.tools[id]?.domain as ToolDomain | undefined;
+    }
+    const domains = new Set<ToolDomain>();
+    for (const id of this.essentialToolIds()) {
+      const domain = domainOf(id);
+      if (domain && !isDomainRegistered(domain)) domains.add(domain);
+    }
+    await Promise.all(
+      [...domains].map((domain) =>
+        loadToolDomain(domain).catch((error: unknown) =>
+          getLogger().warn({ domain, error: String(error) }, 'Could not register essential tools')
+        )
+      )
+    );
   }
 
   /**
@@ -305,8 +345,11 @@ export class DynamicToolLoader {
 
     const loadedDomainList = Array.from(this.loadedDomains.keys());
 
-    // Build tools from loaded domains
-    const result = toolRegistry.buildToolSet({ domains: loadedDomainList }, this.toolContext);
+    // Build tools from loaded domains, plus the essential tools by id
+    const result = toolRegistry.buildToolSet(
+      { domains: loadedDomainList, optional: [...this.essentialToolIds()] },
+      this.toolContext
+    );
 
     return result.tools;
   }

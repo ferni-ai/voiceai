@@ -16,7 +16,8 @@ const unregister = vi.fn(() => true);
 vi.mock('../../registry/index.js', () => ({
   toolRegistry: { buildToolSet, unregister, getByDomain: () => [{ id: 'listRoutines', domain: 'routines' }] },
 }));
-vi.mock('../../registry/loader.js', () => ({ loadToolDomain: vi.fn(async () => 3) }));
+const loadToolDomain = vi.fn(async (_domain: string) => 3);
+vi.mock('../../registry/loader.js', () => ({ loadToolDomain, isDomainLoaded: (d: string) => d === 'memory' }));
 
 const { createSessionToolLoader } = await import('../index.js');
 
@@ -63,6 +64,23 @@ describe('per-session tool loader', () => {
     expect(loaded).toBe(4); // past maxLoadedDomains: nothing evicted
     expect(await a.unloadDomain('games' as never)).toBe(false);
     expect(a.getLoadedDomains()).toHaveLength(4);
+  });
+
+  it('every session has the essential tools, whatever domains its words loaded', async () => {
+    loadToolDomain.mockClear();
+    const a = createSessionToolLoader({
+      essentialDomains: [],
+      enableAutoUnload: false,
+      essentialToolIds: ['quickTimer', 'quickAlarm', 'recallFromMemory'],
+      domainOfTool: (id) => (id === 'recallFromMemory' ? 'memory' : 'simple-utilities') as never,
+    });
+    await a.initialize(session('caller-a') as never);
+    // simple-utilities is registered for its essential tools; memory already was.
+    expect(loadToolDomain.mock.calls.map((c) => c[0])).toEqual(['simple-utilities']);
+    expect(a.isDomainLoaded('simple-utilities' as never)).toBe(false); // not its other 80 tools
+    a.getCurrentTools();
+    const [spec] = buildToolSet.mock.calls.at(-1)!;
+    expect(spec).toEqual({ domains: [], optional: ['quickTimer', 'quickAlarm', 'recallFromMemory'] });
   });
 });
 
