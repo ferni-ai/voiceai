@@ -4,11 +4,25 @@
  * Tests that the team roster dynamically loads agents from the API.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, MOCK_AGENTS } from './fixtures';
+
+/** Persona members only: the roster also holds a "More" (marketplace) button. */
+const MEMBER = '.team-member[data-persona-id]';
 
 test.describe('Dynamic Team Roster', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to the app
+    // Maya is unlocked and added to the roster, so the mocked /api/agents data
+    // renders two persona members (coordinator + one team member).
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'ferni_team_unlock_state',
+        JSON.stringify({ unlockedMembers: ['maya-santos'], tier: 'free', almostThereShown: [], timestamp: Date.now() })
+      );
+      localStorage.setItem(
+        'ferni_roster_prefs',
+        JSON.stringify({ addedMembers: ['maya-santos'], showAllMembers: false, isFirstVisit: false, lastUpdated: Date.now() })
+      );
+    });
     await page.goto('/');
     // Wait for roster to load
     await page.waitForSelector('#teamRoster', { state: 'visible', timeout: 10000 });
@@ -30,20 +44,15 @@ test.describe('Dynamic Team Roster', () => {
   });
 
   test('should display team members from API', async ({ page }) => {
-    // Wait for team members to load
-    await page.waitForSelector('.team-member', { timeout: 10000 });
-
-    const teamMembers = page.locator('.team-member');
-    const count = await teamMembers.count();
-
-    // Should have at least 2 team members (coordinator + at least one team member)
-    expect(count).toBeGreaterThanOrEqual(2);
+    // Rendered from the mocked /api/agents response (see fixtures.ts)
+    await expect(page.locator(MEMBER)).toHaveCount(MOCK_AGENTS.length);
+    await expect(page.locator(`${MEMBER}[data-persona-id="maya-santos"] .team-name`)).toHaveText('Maya');
   });
 
   test('should display coordinator first', async ({ page }) => {
-    await page.waitForSelector('.team-member', { timeout: 10000 });
+    await page.waitForSelector(MEMBER, { timeout: 10000 });
 
-    const firstMember = page.locator('.team-member').first();
+    const firstMember = page.locator(MEMBER).first();
 
     // Coordinator should be first and have coach class or be Ferni
     const hasCoachClass = await firstMember.evaluate((el) => {
@@ -55,10 +64,11 @@ test.describe('Dynamic Team Roster', () => {
   });
 
   test('should have correct attributes on team members', async ({ page }) => {
-    await page.waitForSelector('.team-member', { timeout: 10000 });
+    await page.waitForSelector(MEMBER, { timeout: 10000 });
 
-    const teamMembers = page.locator('.team-member');
+    const teamMembers = page.locator(MEMBER);
     const count = await teamMembers.count();
+    expect(count).toBeGreaterThan(0);
 
     for (let i = 0; i < count; i++) {
       const member = teamMembers.nth(i);
@@ -81,27 +91,23 @@ test.describe('Dynamic Team Roster', () => {
     }
   });
 
-  test('should display avatar with initials', async ({ page }) => {
-    await page.waitForSelector('.team-member', { timeout: 10000 });
+  test('should display avatar with eyes', async ({ page }) => {
+    await page.waitForSelector(MEMBER, { timeout: 10000 });
 
-    const avatars = page.locator('.team-avatar');
+    // Every persona avatar carries the brand eyes (no initials, no pupils)
+    const avatars = page.locator(`${MEMBER} .team-avatar`);
     const count = await avatars.count();
-
     expect(count).toBeGreaterThan(0);
 
-    for (let i = 0; i < Math.min(count, 3); i++) {
-      const avatar = avatars.nth(i);
-      const text = await avatar.textContent();
-      // Should have 1-3 character initials
-      expect(text?.trim().length).toBeGreaterThanOrEqual(1);
-      expect(text?.trim().length).toBeLessThanOrEqual(3);
+    for (let i = 0; i < count; i++) {
+      await expect(avatars.nth(i).locator('svg')).toHaveCount(1);
     }
   });
 
   test('should display team member names', async ({ page }) => {
-    await page.waitForSelector('.team-member', { timeout: 10000 });
+    await page.waitForSelector(MEMBER, { timeout: 10000 });
 
-    const names = page.locator('.team-name');
+    const names = page.locator(`${MEMBER} .team-name`);
     const count = await names.count();
 
     expect(count).toBeGreaterThan(0);
@@ -115,9 +121,9 @@ test.describe('Dynamic Team Roster', () => {
   });
 
   test('should highlight clicked team member', async ({ page }) => {
-    await page.waitForSelector('.team-member', { timeout: 10000 });
+    await page.waitForSelector(MEMBER, { timeout: 10000 });
 
-    const teamMember = page.locator('.team-member').first();
+    const teamMember = page.locator(MEMBER).first();
 
     // Click the team member
     await teamMember.click();
@@ -139,9 +145,9 @@ test.describe('Dynamic Team Roster', () => {
   });
 
   test('should navigate with keyboard', async ({ page }) => {
-    await page.waitForSelector('.team-member', { timeout: 10000 });
+    await page.waitForSelector(MEMBER, { timeout: 10000 });
 
-    const firstMember = page.locator('.team-member').first();
+    const firstMember = page.locator(MEMBER).first();
 
     // Focus the first member
     await firstMember.focus();
@@ -159,41 +165,26 @@ test.describe('Dynamic Team Roster', () => {
   });
 
   test('should handle agent click for handoff', async ({ page }) => {
-    await page.waitForSelector('.team-member', { timeout: 10000 });
+    await page.waitForSelector(MEMBER, { timeout: 10000 });
+
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
 
     // Get a team member (not the coordinator)
-    const teamMembers = page.locator('.team-member:not(.team-member--coach)');
-    const count = await teamMembers.count();
+    const member = page.locator(`${MEMBER}:not(.team-member--coach)`).first();
+    await expect(member).toHaveAttribute('data-persona-id', 'maya-santos');
 
-    if (count > 0) {
-      const member = teamMembers.first();
-      const personaId = await member.getAttribute('data-persona-id');
-
-      // Click the member
-      await member.click();
-
-      // Should trigger some state change (switching feedback, etc.)
-      await page.waitForTimeout(200);
-
-      // Check for switching state class or feedback element
-      const hasSwitchingState = await page.evaluate(() => {
-        return (
-          document.querySelector('.switching') !== null ||
-          document.querySelector('.handoff-in-progress') !== null ||
-          document.body.classList.contains('transitioning')
-        );
-      });
-
-      // The exact behavior depends on connection state
-      // Just verify no errors occurred
-      expect(personaId).toBeTruthy();
-    }
+    // Disconnected: the click previews the persona instead of handing off.
+    // It must not throw.
+    await member.click();
+    await page.waitForTimeout(200);
+    expect(pageErrors).toEqual([]);
   });
 
   test('should apply persona-specific colors', async ({ page }) => {
-    await page.waitForSelector('.team-member', { timeout: 10000 });
+    await page.waitForSelector(MEMBER, { timeout: 10000 });
 
-    const avatar = page.locator('.team-avatar').first();
+    const avatar = page.locator(`${MEMBER} .team-avatar`).first();
 
     // Avatar should have a gradient or background color
     const style = await avatar.getAttribute('style');
@@ -204,39 +195,42 @@ test.describe('Dynamic Team Roster', () => {
 });
 
 test.describe('Dynamic Roster API', () => {
+  // The roster is driven by /api/agents. The UI server isn't running under
+  // Playwright, so these check how the app consumes that endpoint.
+
   test('should load agents from /api/agents', async ({ page }) => {
-    // Intercept the API call
-    const apiResponse = await page.request.get('/api/agents');
+    const agentsRequest = page.waitForRequest((req) => new URL(req.url()).pathname === '/api/agents');
+    await page.goto('/');
+    await agentsRequest;
 
-    expect(apiResponse.ok()).toBeTruthy();
-
-    const data = await apiResponse.json();
-
-    expect(data.agents).toBeDefined();
-    expect(Array.isArray(data.agents)).toBeTruthy();
-    expect(data.agents.length).toBeGreaterThan(0);
-
-    // Check agent structure
-    const agent = data.agents[0];
-    expect(agent.id).toBeDefined();
-    expect(agent.name).toBeDefined();
-    expect(agent.initials).toBeDefined();
+    const coach = page.locator(`${MEMBER}.team-member--coach`);
+    await expect(coach).toHaveAttribute('data-persona-id', 'ferni');
+    await expect(coach.locator('.team-name')).toHaveText('Ferni');
   });
 
-  test('should return coordinator in agents list', async ({ page }) => {
-    const apiResponse = await page.request.get('/api/agents');
-    const data = await apiResponse.json();
+  test('should render agent names from the API response', async ({ page }) => {
+    await page.route('**/api/agents', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          agents: [{ ...MOCK_AGENTS[0], name: 'Fern Test' }],
+          count: 1,
+          timestamp: new Date().toISOString(),
+        }),
+      })
+    );
+    await page.goto('/');
 
-    const coordinator = data.agents.find((a: any) => a.isCoordinator === true);
-    expect(coordinator).toBeDefined();
-    expect(coordinator.id).toBeTruthy();
+    // First name only in the roster
+    await expect(page.locator(`${MEMBER}.team-member--coach .team-name`)).toHaveText('Fern');
   });
 
-  test('should have proper cache headers', async ({ page }) => {
-    const apiResponse = await page.request.get('/api/agents');
+  test('should fall back to built-in personas when the API fails', async ({ page }) => {
+    await page.route('**/api/agents', (route) => route.fulfill({ status: 500, body: '' }));
+    await page.goto('/');
 
-    const cacheControl = apiResponse.headers()['cache-control'];
-    expect(cacheControl).toBeDefined();
+    const coach = page.locator(`${MEMBER}.team-member--coach`);
+    await expect(coach).toHaveAttribute('data-persona-id', 'ferni');
   });
 });
-

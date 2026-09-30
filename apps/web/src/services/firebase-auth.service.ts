@@ -27,6 +27,7 @@ import {
 } from 'firebase/auth';
 import { getFirebaseAuth, isFirebaseConfigured } from '../config/firebase.js';
 import { createLogger } from '../utils/logger.js';
+import { readDevAuthUser } from './dev-auth-user.js';
 
 const log = createLogger('FirebaseAuth');
 
@@ -148,6 +149,10 @@ export async function initAuth(): Promise<AuthState> {
 
     if (!auth) {
       log.warn('Firebase Auth not configured - using fallback auth');
+      if (import.meta.env.DEV) {
+        currentUser = readDevAuthUser();
+        if (currentUser) log.info('Signed in as dev auth user');
+      }
       isInitialized = true;
       return;
     }

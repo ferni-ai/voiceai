@@ -5,215 +5,167 @@
  * - Free tier limitations
  * - Upgrade prompts
  * - Subscription modal
- * - Payment flow (mocked)
  * - Tier changes
+ *
+ * Subscription status comes from /subscription/status on the UI server; it is
+ * mocked per test with page.route (see fixtures.ts for the shared mocks).
  */
 
-import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { test, expect } from './fixtures';
+
+/** Persona members only: the roster also holds a "More" (marketplace) button. */
+const MEMBER = '.team-member[data-persona-id]';
+const CORE_TEAM = ['maya-santos', 'peter-john', 'alex-chen', 'jordan-taylor'];
+
+type Tier = 'free' | 'friend' | 'partner';
+
+/**
+ * Seed a returning user: the subscription badge (the entry point to the
+ * upgrade modal) stays hidden during the very first conversation.
+ */
+async function seedReturningUser(
+  page: Page,
+  options: { tier: Tier; unlocked: string[]; roster: string[] }
+): Promise<void> {
+  await page.addInitScript(({ tier, unlocked, roster }) => {
+    localStorage.setItem('ferni:conversation_count', '3');
+    localStorage.setItem('ferni:onboarding:complete', 'true');
+    localStorage.setItem(
+      'ferni_team_unlock_state',
+      JSON.stringify({ unlockedMembers: unlocked, tier, almostThereShown: [], timestamp: Date.now() })
+    );
+    localStorage.setItem(
+      'ferni_roster_prefs',
+      JSON.stringify({ addedMembers: roster, showAllMembers: false, isFirstVisit: false, lastUpdated: Date.now() })
+    );
+  }, options);
+
+  await page.route('**/subscription/status**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        tier: options.tier,
+        status: 'active',
+        usage: { conversationsRemaining: null, canStartConversation: true },
+      }),
+    })
+  );
+}
+
+/** Load the app and wait until it has asked the (mocked) backend for the subscription status. */
+async function gotoApp(page: Page): Promise<void> {
+  await Promise.all([
+    page.waitForResponse((res) => new URL(res.url()).pathname === '/subscription/status', { timeout: 20000 }),
+    page.goto('/'),
+  ]);
+}
+
+async function openUpgradeModal(page: Page): Promise<void> {
+  const badge = page.locator('.subscription-badge');
+  await expect(badge).toBeVisible({ timeout: 10000 });
+  await badge.click();
+  await expect(page.locator('.subscription-modal--visible')).toBeVisible();
+}
 
 test.describe('Subscription Flow', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    // Wait for app to initialize
-    await page.waitForLoadState('networkidle');
-  });
-
   test.describe('Free Tier Experience', () => {
-    test('should show conversation limit warning', async ({ page }) => {
-      // Simulate approaching limit by setting localStorage
-      await page.evaluate(() => {
-        localStorage.setItem('ferni_conversation_count', '4');
-        localStorage.setItem('ferni_subscription_tier', 'free');
-      });
+    test('should invite free users to support without a usage limit', async ({ page }) => {
+      await seedReturningUser(page, { tier: 'free', unlocked: [], roster: [] });
+      await gotoApp(page);
 
-      // Reload to apply state
-      await page.reload();
-      await page.waitForLoadState('networkidle');
-
-      // Check for limit indicator (if visible)
-      const limitIndicator = page.locator('[data-testid="conversation-limit"]');
-      // Limit indicator may or may not be visible depending on UI state
+      // Founders Fund: Ferni is free forever, so there is no "N conversations left"
+      const badge = page.locator('.subscription-badge');
+      await expect(badge).toBeVisible({ timeout: 10000 });
+      await expect(badge).toHaveText(/Community/);
+      await expect(page.locator('[data-testid="conversation-limit"]')).toHaveCount(0);
     });
 
     test('should show locked team members', async ({ page }) => {
-      await page.evaluate(() => {
-        localStorage.setItem('ferni_subscription_tier', 'free');
-        localStorage.setItem('ferni_team_unlock_state', JSON.stringify({
-          unlockedMembers: ['ferni'],
-          tier: 'free',
-          timestamp: Date.now(),
-        }));
-      });
+      await seedReturningUser(page, { tier: 'free', unlocked: [], roster: ['maya-santos'] });
+      await gotoApp(page);
 
-      await page.reload();
-      await page.waitForSelector('.team-member', { timeout: 10000 });
-
-      // Some team members should be locked
-      const lockedMembers = page.locator('.team-member--locked');
-      const count = await lockedMembers.count();
-
-      // At least some members should be locked on free tier
-      expect(count).toBeGreaterThanOrEqual(0);
+      const maya = page.locator(`${MEMBER}[data-persona-id="maya-santos"]`);
+      await expect(maya).toHaveClass(/team-member--locked/, { timeout: 10000 });
+      await expect(maya).toHaveAttribute('data-locked', 'true');
+      // Ferni (coordinator) is never locked
+      await expect(page.locator(`${MEMBER}.team-member--coach`)).not.toHaveClass(/team-member--locked/);
     });
   });
 
   test.describe('Upgrade Modal', () => {
-    test('should open subscription modal from settings', async ({ page }) => {
-      // Open settings menu
-      const settingsButton = page.locator('[aria-label="Settings"]').or(page.locator('.settings-trigger'));
-      
-      if (await settingsButton.isVisible()) {
-        await settingsButton.click();
-        await page.waitForTimeout(300);
+    test.beforeEach(async ({ page }) => {
+      await seedReturningUser(page, { tier: 'free', unlocked: [], roster: [] });
+      await gotoApp(page);
+    });
 
-        // Look for subscription/upgrade option
-        const upgradeOption = page.locator('text=Upgrade').or(page.locator('text=Subscription'));
-        
-        if (await upgradeOption.isVisible()) {
-          await upgradeOption.click();
-          await page.waitForTimeout(300);
-
-          // Modal should be visible
-          const modal = page.locator('.subscription-modal').or(page.locator('[role="dialog"]'));
-          expect(await modal.isVisible()).toBeTruthy();
-        }
-      }
+    test('should open subscription modal from the badge', async ({ page }) => {
+      await openUpgradeModal(page);
+      await expect(page.locator('.subscription-modal--visible [role="radiogroup"]')).toBeVisible();
     });
 
     test('should display tier options', async ({ page }) => {
-      // Open subscription modal (if available)
-      await page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent('ferni:open-subscription'));
-      });
+      await openUpgradeModal(page);
 
-      await page.waitForTimeout(500);
-
-      // Check for tier cards
-      const tierCards = page.locator('.tier-card').or(page.locator('[data-tier]'));
-      const count = await tierCards.count();
-
-      // Should have at least free + one paid tier
-      // If modal didn't open, count will be 0
-      if (count > 0) {
-        expect(count).toBeGreaterThanOrEqual(2);
-      }
+      // At least free + one paid tier
+      const tierCards = page.locator('.subscription-modal--visible .tier-card');
+      expect(await tierCards.count()).toBeGreaterThanOrEqual(2);
     });
 
     test('should show correct pricing', async ({ page }) => {
-      await page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent('ferni:open-subscription'));
-      });
+      await openUpgradeModal(page);
 
-      await page.waitForTimeout(500);
-
-      // Check for price displays
-      const prices = page.locator('[data-price]').or(page.locator('.tier-price'));
-      
-      if (await prices.count() > 0) {
-        const firstPrice = await prices.first().textContent();
-        // Price should contain a currency symbol
-        expect(firstPrice).toMatch(/[$€£]/);
-      }
+      const prices = page.locator('.subscription-modal--visible .tier-price');
+      expect(await prices.count()).toBeGreaterThan(0);
+      await expect(prices.last()).toHaveText(/[$€£]/);
     });
 
     test('should close modal with escape key', async ({ page }) => {
-      await page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent('ferni:open-subscription'));
-      });
+      await openUpgradeModal(page);
 
-      await page.waitForTimeout(500);
-
-      const modal = page.locator('.subscription-modal').or(page.locator('[role="dialog"]'));
-      
-      if (await modal.isVisible()) {
-        await page.keyboard.press('Escape');
-        await page.waitForTimeout(300);
-
-        // Modal should be hidden
-        expect(await modal.isHidden()).toBeTruthy();
-      }
+      await page.keyboard.press('Escape');
+      await expect(page.locator('.subscription-modal--visible')).toHaveCount(0);
     });
 
     test('should close modal with close button', async ({ page }) => {
-      await page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent('ferni:open-subscription'));
-      });
+      await openUpgradeModal(page);
 
-      await page.waitForTimeout(500);
-
-      const closeButton = page.locator('.modal-close').or(page.locator('[aria-label="Close"]'));
-      
-      if (await closeButton.isVisible()) {
-        await closeButton.click();
-        await page.waitForTimeout(300);
-
-        const modal = page.locator('.subscription-modal').or(page.locator('[role="dialog"]'));
-        expect(await modal.isHidden()).toBeTruthy();
-      }
+      await page.locator('.subscription-modal--visible .subscription-close').click();
+      await expect(page.locator('.subscription-modal--visible')).toHaveCount(0);
     });
   });
 
   test.describe('Tier Benefits', () => {
     test('should unlock team members on upgrade', async ({ page }) => {
-      // Simulate Friend tier
-      await page.evaluate(() => {
-        localStorage.setItem('ferni_subscription_tier', 'friend');
-        localStorage.setItem('ferni_team_unlock_state', JSON.stringify({
-          unlockedMembers: ['ferni', 'maya-santos', 'peter-john', 'alex-chen', 'jordan-taylor'],
-          tier: 'friend',
-          timestamp: Date.now(),
-        }));
-      });
+      await seedReturningUser(page, { tier: 'friend', unlocked: CORE_TEAM, roster: CORE_TEAM });
+      // Use the built-in persona list so every core team member can render
+      await page.route('**/api/agents', (route) => route.fulfill({ status: 500, body: '' }));
+      await gotoApp(page);
 
-      await page.reload();
-      await page.waitForSelector('.team-member', { timeout: 10000 });
-
-      // Should have more unlocked members
-      const unlockedMembers = page.locator('.team-member--unlocked').or(
-        page.locator('.team-member:not(.team-member--locked)')
-      );
-      const count = await unlockedMembers.count();
-
-      // Friend tier unlocks most team members
-      expect(count).toBeGreaterThanOrEqual(4);
+      const members = page.locator(MEMBER);
+      await expect(members).toHaveCount(CORE_TEAM.length + 1, { timeout: 10000 });
+      await expect(page.locator(`${MEMBER}.team-member--locked`)).toHaveCount(0);
     });
 
     test('should show subscription badge', async ({ page }) => {
-      await page.evaluate(() => {
-        localStorage.setItem('ferni_subscription_tier', 'partner');
-      });
+      await seedReturningUser(page, { tier: 'partner', unlocked: CORE_TEAM, roster: [] });
+      await gotoApp(page);
 
-      await page.reload();
-      await page.waitForLoadState('networkidle');
-
-      // Look for subscription badge
-      const badge = page.locator('.subscription-badge').or(page.locator('[data-tier-badge]'));
-      
-      // Badge visibility depends on UI design
-      // Just verify no errors occurred
+      const badge = page.locator('.subscription-badge');
+      await expect(badge).toHaveClass(/subscription-badge--premium/, { timeout: 10000 });
+      await expect(badge).toHaveText(/Patron/);
     });
   });
 
   test.describe('Manage Subscription', () => {
     test('should show manage subscription option for subscribers', async ({ page }) => {
-      await page.evaluate(() => {
-        localStorage.setItem('ferni_subscription_tier', 'friend');
-      });
+      await seedReturningUser(page, { tier: 'friend', unlocked: CORE_TEAM, roster: [] });
+      await gotoApp(page);
 
-      await page.reload();
-
-      // Open settings
-      const settingsButton = page.locator('[aria-label="Settings"]').or(page.locator('.settings-trigger'));
-      
-      if (await settingsButton.isVisible()) {
-        await settingsButton.click();
-        await page.waitForTimeout(300);
-
-        // Look for manage subscription option
-        const manageOption = page.locator('text=Manage').or(page.locator('[data-action="manage-subscription"]'));
-        
-        // Visibility depends on tier and UI state
-      }
+      await page.getByRole('button', { name: 'Open settings' }).click();
+      // "Account & Billing" opens the manage-subscription modal
+      await expect(page.locator('[data-action="billing"]').first()).toBeVisible();
     });
   });
 });
@@ -221,39 +173,32 @@ test.describe('Subscription Flow', () => {
 test.describe('Dev Mode Subscription Testing', () => {
   test('should enable dev mode with URL parameter', async ({ page }) => {
     await page.goto('/?dev');
-    await page.waitForLoadState('networkidle');
 
-    // Dev badge should be visible
-    const devBadge = page.locator('.dev-badge').or(page.locator('[data-dev-mode]'));
-    
-    // Dev mode indicator varies by implementation
+    await expect(page.getByRole('button', { name: 'Open dev panel' })).toBeVisible({ timeout: 10000 });
   });
 
   test('should unlock all with dev shortcut', async ({ page }) => {
+    await seedReturningUser(page, { tier: 'free', unlocked: [], roster: ['maya-santos'] });
     await page.goto('/?dev');
-    await page.waitForLoadState('networkidle');
 
-    // Cmd/Ctrl+Shift+U should unlock all team members
-    await page.keyboard.press('Meta+Shift+U');
-    await page.waitForTimeout(300);
+    const maya = page.locator(`${MEMBER}[data-persona-id="maya-santos"]`);
+    await expect(maya).toHaveClass(/team-member--locked/, { timeout: 10000 });
 
-    // Check for team member unlock
-    const unlockedMembers = page.locator('.team-member--unlocked');
-    
-    // Behavior depends on dev mode being active
+    // Cmd/Ctrl+Shift+U unlocks every team member
+    await page.keyboard.press('Control+Shift+U');
+    await expect(maya).not.toHaveClass(/team-member--locked/);
   });
 
   test('should toggle dev panel with shortcut', async ({ page }) => {
     await page.goto('/?dev');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
-    // Cmd/Ctrl+Shift+D should toggle dev panel
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(300);
+    await expect(page.getByRole('button', { name: 'Open dev panel' })).toBeVisible({ timeout: 10000 });
 
-    // Dev panel should be visible
-    const devPanel = page.locator('.dev-panel');
-    
-    // Panel visibility depends on dev mode
+    await page.keyboard.press('Control+Shift+D');
+    await expect(page.locator('.dev-panel--visible')).toBeVisible();
+
+    await page.keyboard.press('Control+Shift+D');
+    await expect(page.locator('.dev-panel--visible')).toHaveCount(0);
   });
 });
