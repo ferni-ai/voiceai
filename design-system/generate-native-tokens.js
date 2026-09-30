@@ -11,6 +11,11 @@
  *   apps/android-native/.../ui/theme/FerniTokens.kt                     (Compose colors)
  *   apps/android-native/app/src/main/res/values/ferni_tokens.xml        (color resources)
  *
+ * Text colors (persona inks, accent text, on-accent, semantic text) come from
+ * utils/theme-inks.js, the same derivation build.js uses for the web, so every
+ * one meets WCAG AA (4.5:1) on its theme's surfaces. `textOnDark` is kept for
+ * existing call sites and equals the generated dark (midnight) ink.
+ *
  * Usage: node design-system/generate-native-tokens.js  (part of pnpm tokens:sync)
  */
 
@@ -18,6 +23,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildStamp } from './build/build-stamp.js';
+import { computePersonaInks, withReadableThemeText } from './utils/theme-inks.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.dirname(__dirname);
@@ -46,7 +52,18 @@ const THEME_COLORS = [
   ['error', 'semantic.error'],
   ['warning', 'semantic.warning'],
   ['info', 'semantic.info'],
+  // Generated text inks (utils/theme-inks.js): readable on every theme surface
+  ['accentText', 'accent.text'],
+  ['onAccent', 'text.onAccent'],
+  ['successText', 'semantic.successText'],
+  ['errorText', 'semantic.errorText'],
+  ['warningText', 'semantic.warningText'],
+  ['infoText', 'semantic.infoText'],
 ];
+
+// Native apps ship a light and a dark theme
+const LIGHT_THEME = 'zen';
+const DARK_THEME = 'midnight';
 
 // ============================================================================
 // DATA
@@ -72,20 +89,30 @@ function capitalize(s) {
   return s[0].toUpperCase() + s.slice(1);
 }
 
+const personaInks = computePersonaInks(colors.personas, colors.themes);
+const readableThemes = withReadableThemeText(colors.themes);
+
 const personas = Object.entries(colors.personas)
   .filter(([id]) => !id.startsWith('_'))
-  .map(([id, p]) => ({
-    id,
-    note: (p._note || '').replace(/\s+/g, ' ').trim(),
-    primary: hex6(p.primary, `${id}.primary`),
-    secondary: hex6(p.secondary, `${id}.secondary`),
-    textOnDark: hex6(p.textOnDark, `${id}.textOnDark`),
-    glowAlpha: alphaOf(p.glow, 0.28),
-  }));
+  .map(([id, p]) => {
+    const inkDark = hex6(personaInks[id][DARK_THEME], `${id} ${DARK_THEME} ink`);
+    return {
+      id,
+      note: (p._note || '').replace(/\s+/g, ' ').trim(),
+      primary: hex6(p.primary, `${id}.primary`),
+      secondary: hex6(p.secondary, `${id}.secondary`),
+      // Backward-compatible name; the hand-picked colors.json value failed AA
+      textOnDark: inkDark,
+      inkDark,
+      inkLight: hex6(personaInks[id][LIGHT_THEME], `${id} ${LIGHT_THEME} ink`),
+      onFill: hex6(personaInks[id].onFill, `${id} onFill`),
+      glowAlpha: alphaOf(p.glow, 0.28),
+    };
+  });
 
-const themes = ['zen', 'midnight'].map((name) => ({
+const themes = [LIGHT_THEME, DARK_THEME].map((name) => ({
   name,
-  colors: THEME_COLORS.map(([key, dotted]) => [key, hex6(get(colors.themes[name], dotted), `${name}.${dotted}`)]),
+  colors: THEME_COLORS.map(([key, dotted]) => [key, hex6(get(readableThemes[name], dotted), `${name}.${dotted}`)]),
 }));
 
 const header = (comment) =>
@@ -111,7 +138,14 @@ function swift({ access, withFerniColors }) {
     if (p.note) out.push(`        /// ${capitalize(p.id)}: ${p.note}`);
     out.push(`        ${pub}static let ${p.id}Primary: UInt = 0x${p.primary}`);
     out.push(`        ${pub}static let ${p.id}Secondary: UInt = 0x${p.secondary}`);
+    out.push(`        /// Same as ${p.id}InkDark (kept for existing call sites)`);
     out.push(`        ${pub}static let ${p.id}TextOnDark: UInt = 0x${p.textOnDark}`);
+    out.push(`        /// Text in ${capitalize(p.id)}'s color on dark (midnight) surfaces, WCAG AA`);
+    out.push(`        ${pub}static let ${p.id}InkDark: UInt = 0x${p.inkDark}`);
+    out.push(`        /// Text in ${capitalize(p.id)}'s color on light (zen) surfaces, WCAG AA`);
+    out.push(`        ${pub}static let ${p.id}InkLight: UInt = 0x${p.inkLight}`);
+    out.push(`        /// Text placed on the ${p.id}Primary fill`);
+    out.push(`        ${pub}static let ${p.id}OnFill: UInt = 0x${p.onFill}`);
   }
   out.push('');
   out.push('        /// Primary color as "#rrggbb" (Ferni for unknown ids)');
@@ -160,6 +194,9 @@ function swift({ access, withFerniColors }) {
     for (const key of ['success', 'error', 'warning', 'info']) {
       out.push(`        ${pub}static let ${key} = Color(hex: FerniTokens.Zen.${key})`);
       out.push(`        ${pub}static let ${key}Dark = Color(hex: FerniTokens.Midnight.${key})`);
+      out.push(`        /// ${capitalize(key)} as text (WCAG AA on the theme's surfaces)`);
+      out.push(`        ${pub}static let ${key}Text = Color(hex: FerniTokens.Zen.${key}Text)`);
+      out.push(`        ${pub}static let ${key}TextDark = Color(hex: FerniTokens.Midnight.${key}Text)`);
     }
     out.push('    }');
     out.push('');
@@ -188,7 +225,14 @@ function kotlin() {
     if (p.note) out.push(`        /** ${P}: ${p.note} */`);
     out.push(`        val ${P}Primary = Color(0xFF${p.primary})`);
     out.push(`        val ${P}Secondary = Color(0xFF${p.secondary})`);
+    out.push(`        /** Same as ${P}InkDark (kept for existing call sites) */`);
     out.push(`        val ${P}TextOnDark = Color(0xFF${p.textOnDark})`);
+    out.push(`        /** Text in ${P}'s color on dark (midnight) surfaces, WCAG AA */`);
+    out.push(`        val ${P}InkDark = Color(0xFF${p.inkDark})`);
+    out.push(`        /** Text in ${P}'s color on light (zen) surfaces, WCAG AA */`);
+    out.push(`        val ${P}InkLight = Color(0xFF${p.inkLight})`);
+    out.push(`        /** Text placed on the ${P}Primary fill */`);
+    out.push(`        val ${P}OnFill = Color(0xFF${p.onFill})`);
   }
   out.push('');
   out.push('        /** Primary color as "#rrggbb" (Ferni for unknown ids) */');
@@ -217,6 +261,9 @@ function androidXml() {
   for (const p of personas) {
     out.push(`    <color name="persona_${p.id}_primary">#${p.primary}</color>`);
     out.push(`    <color name="persona_${p.id}_secondary">#${p.secondary}</color>`);
+    out.push(`    <color name="persona_${p.id}_ink_dark">#${p.inkDark}</color>`);
+    out.push(`    <color name="persona_${p.id}_ink_light">#${p.inkLight}</color>`);
+    out.push(`    <color name="persona_${p.id}_on_fill">#${p.onFill}</color>`);
   }
   for (const theme of themes) {
     for (const [key, value] of theme.colors) out.push(`    <color name="${theme.name}_${snake(key)}">#${value}</color>`);

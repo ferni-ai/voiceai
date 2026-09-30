@@ -14,6 +14,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildStamp } from './build/build-stamp.js';
+import { computePersonaInks, themeTextInks } from './utils/theme-inks.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -143,7 +144,7 @@ function generateColorVars(colors) {
   lines.push('');
 
   // Success/Error extended
-  lines.push(`  --color-success-light: ${colors.personas.ferni.textOnDark || '#a5c99a'};`);
+  lines.push(`  --color-success-light: ${computePersonaInks(colors.personas, colors.themes).ferni.midnight};`);
   lines.push(`  --color-success-dark: #3d7a52;`);
   lines.push(`  --color-error-dark: #b5453a;`);
   lines.push(`  --color-error-muted: rgba(181, 69, 58, 0.5);`);
@@ -227,14 +228,15 @@ function generateColorVars(colors) {
   lines.push('     Theme-aware: --color-{persona}-text adapts');
   lines.push('     to light/dark mode for WCAG AA contrast');
   lines.push('     ============================================ */');
+  const personaInks = computePersonaInks(colors.personas, colors.themes);
   for (const [personaId, persona] of Object.entries(colors.personas)) {
     if (personaId.startsWith('_')) continue;
     const shortId = personaId.split('-')[0]; // ferni, jack, peter, etc.
     lines.push(`  --color-${shortId}: ${persona.primary};`);
     lines.push(`  --color-${shortId}-secondary: ${persona.secondary};`);
     lines.push(`  --color-${shortId}-glow: ${persona.glow};`);
-    // Theme-aware text color (defaults to primary for light mode)
-    lines.push(`  --color-${shortId}-text: ${persona.primary};`);
+    // Theme-aware text color: generated light-theme (zen) ink, WCAG AA
+    lines.push(`  --color-${shortId}-text: ${personaInks[personaId].zen};`);
     // Add subtle variant if present
     if (persona.subtle || persona.tint) {
       lines.push(`  --color-${shortId}-subtle: ${persona.subtle || persona.tint};`);
@@ -382,11 +384,13 @@ function generateColorVars(colors) {
 
 /**
  * Generate dark theme color overrides
- * Uses midnight theme values + textOnDark persona variants for WCAG AA contrast
+ * Uses midnight theme values + generated persona inks (utils/theme-inks.js) for WCAG AA contrast
  */
 function generateDarkThemeVars(colors) {
   const lines = [];
   const midnight = colors.themes.midnight;
+  // Generated midnight inks (utils/theme-inks.js), verified WCAG AA
+  const personaInks = computePersonaInks(colors.personas, colors.themes);
 
   lines.push('');
   lines.push('/* ============================================================================');
@@ -445,12 +449,10 @@ function generateDarkThemeVars(colors) {
 
   // Persona text colors (WCAG AA compliant on dark backgrounds)
   lines.push('    /* Persona Text Colors - WCAG AA on dark backgrounds */');
-  for (const [personaId, persona] of Object.entries(colors.personas)) {
+  for (const personaId of Object.keys(colors.personas)) {
     if (personaId.startsWith('_')) continue;
     const shortId = personaId.split('-')[0];
-    if (persona.textOnDark) {
-      lines.push(`    --color-${shortId}-text: ${persona.textOnDark};`);
-    }
+    lines.push(`    --color-${shortId}-text: ${personaInks[personaId].midnight};`);
   }
 
   lines.push('  }');
@@ -506,12 +508,10 @@ function generateDarkThemeVars(colors) {
 
   // Persona text colors
   lines.push('  /* Persona Text Colors - WCAG AA on dark backgrounds */');
-  for (const [personaId, persona] of Object.entries(colors.personas)) {
+  for (const personaId of Object.keys(colors.personas)) {
     if (personaId.startsWith('_')) continue;
     const shortId = personaId.split('-')[0];
-    if (persona.textOnDark) {
-      lines.push(`  --color-${shortId}-text: ${persona.textOnDark};`);
-    }
+    lines.push(`  --color-${shortId}-text: ${personaInks[personaId].midnight};`);
   }
 
   lines.push('}');
@@ -722,7 +722,7 @@ function generateDarkThemeFile(colors, spacing, typography, animation, effects) 
     `  --accent-pressed: ${midnight.accent.pressed};`,
     `  --accent-glow: ${midnight.accent.glow};`,
     `  --accent-subtle: ${midnight.accent.subtle};`,
-    '  --accent-text: #e8c870;',
+    `  --accent-text: ${themeTextInks(midnight).accentText};`,
     '',
     '  /* Borders */',
     `  --border-subtle: ${midnight.border.subtle};`,
