@@ -39,15 +39,8 @@ import {
   turnStyleReminderEnabled,
   withTurnStyleReminder,
 } from './turn-style.js';
-import { sessionRepairCue } from '../../conversation/repair-cue.js';
-import { leaveTakingCue } from '../../conversation/leave-taking.js';
-import { yieldingCue } from '../../conversation/yielding.js';
-import { NAME_WINDOW, nameRestCue } from '../../conversation/name-use.js';
-import {
-  formatTalkPreferences,
-  type TalkPreference,
-} from '../../conversation/talk-preferences.js';
-import { nextReplyCues } from '../../speech/expression/index.js';
+import { NAME_WINDOW } from '../../conversation/name-use.js';
+import { replyCues } from './reply-cues.js';
 import type { TurnNotesSource } from '../multi-agent/background-turn-intelligence.js';
 import { getTTSProvider } from '../../speech/tts-gateway/providers/index.js';
 import { filterCaptionStream } from './caption-filter.js';
@@ -748,30 +741,15 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const userData = this.session.userData as Record<string, unknown> | undefined;
     const exchange = lastExchange(chatCtx);
     const sessionId = (userData?.services as { sessionId?: string } | undefined)?.sessionId;
-    const repair = sessionRepairCue(userData, sessionId, exchange.user, exchange.agent);
-    const leaving = leaveTakingCue(exchange.user);
-    const yielding = yieldingCue(exchange.agentInterrupted, exchange.user);
-    const nameRest = nameRestCue(
-      userData?.userName as string | undefined,
-      recentAgentReplies(chatCtx, NAME_WINDOW)
-    );
-    const voiceToday = (userData?.voiceToday as { cue?: string | null } | undefined)?.cue;
-    const talk = formatTalkPreferences(
-      new Set((userData?.talkPreferences as TalkPreference[] | undefined) ?? [])
-    );
     const reminder = composeTurnReminder(
       turnStyleReminderEnabled(),
-      [
-        ...(talk ? [talk] : []),
-        ...(yielding ? [yielding] : []),
-        ...(typeof userData?.daysThatMatter === 'string' ? [userData.daysThatMatter] : []),
-        ...(typeof userData?.humorCue === 'string' ? [userData.humorCue] : []),
-        ...(repair ? [repair] : []),
-        ...nextReplyCues(userData, getTTSProvider().voice),
-        ...(voiceToday ? [voiceToday] : []),
-        ...(leaving ? [leaving] : []),
-        ...(nameRest ? [nameRest] : []),
-      ],
+      replyCues({
+        userData,
+        sessionId,
+        exchange,
+        recentReplies: recentAgentReplies(chatCtx, NAME_WINDOW),
+        voice: getTTSProvider().voice,
+      }),
       this.turnNotes?.notesForReply()
     );
     const ctx = reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
