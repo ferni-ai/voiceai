@@ -13,6 +13,9 @@ import { replyCues } from '../../personas/reply-cues.js';
 import { createMemoryRecall } from '../memory-recall-hook.js';
 import { createSignificantDatesRecorder } from '../significant-dates-recorder.js';
 import { createTalkPreferenceRecorder } from '../talk-preference-recorder.js';
+import { wireCommitmentRecorder } from '../commitment-recorder.js';
+import type { FollowUp } from '../../../memory/recall/follow-ups.js';
+import { EventEmitter } from 'node:events';
 
 const TZ = 'America/Denver';
 // Tuesday Sep 29 2026, 18:00 in Denver; Friday Oct 2, 18:00; Tuesday Oct 6, 18:00
@@ -27,7 +30,9 @@ function memoryStore() {
   const stories: ToldStory[] = [];
   const dates: SignificantDate[] = [];
   const talk = new Set<TalkPreference>();
+  const commitments: FollowUp[] = [];
   return {
+    commitments,
     summaries,
     closed,
     stories,
@@ -38,6 +43,7 @@ function memoryStore() {
       summaries: async () => [...summaries].reverse(),
       closedFollowUps: async () => [...closed],
       toldStories: async () => [...stories].reverse(),
+      commitments: async () => [...commitments].reverse(),
     },
   };
 }
@@ -64,6 +70,12 @@ async function startCall(store: ReturnType<typeof memoryStore>, now: Date) {
     save: (d) => store.dates.push(d),
     now: () => now,
   });
+  const events = new EventEmitter();
+  wireCommitmentRecorder(
+    { on: (e, h) => events.on(e, h), off: (e, h) => events.off(e, h) },
+    (plan) => store.commitments.push(plan),
+    () => now.getTime()
+  );
   await recall.ready;
   talk.loaded([...store.talk]);
   dates.loaded([...store.dates]);
@@ -73,6 +85,7 @@ async function startCall(store: ReturnType<typeof memoryStore>, now: Date) {
     recall,
     /** The caller says something (a committed turn). */
     hear(text: string) {
+      events.emit('conversation_item_added', { item: { role: 'user', textContent: text } });
       talk.heard(text);
       dates.heard(text);
       return recall.noteFor(text);
@@ -150,13 +163,20 @@ describe('three calls with one caller', () => {
     c2.say('My grandma had a tomato garden back in Wyoming, did I ever say?');
     expect(store.stories).toHaveLength(1);
 
+    // A plan with a when is kept for next time
+    c2.hear("I'm going to call my mom this weekend, it has been a while");
+    expect(store.commitments.map((c) => c.id)).toEqual(['call-mom-while']);
+
     // Leaving gets a friend's goodbye
     expect(c2.cues('I gotta run, talk soon').join('\n')).toMatch(/THEY ARE HEADING OFF/);
 
     // --- Call 3 (next Tuesday) -------------------------------------------
     const c3 = await startCall(store, CALL_3);
     const opening3 = await c3.recall.openingFacts();
-    expect(opening3['open thread from last time']).toBeUndefined();
+    expect(opening3['open thread from last time']).toMatch(/call my mom this weekend/);
+    c3.say('Hey you! Did you get to call your mom this weekend?');
+    expect(store.closed).toContain('call-mom-while');
+    expect(c3.hear('I did, it was really nice') ?? '').not.toContain('call my mom');
     expect(c3.userData.daysThatMatter).toBeNull();
     c3.userData.humorCue = humorCue({ calls: 5, laughs: 7 });
     expect(c3.cues('We had pizza tonight, it was great')).toContain(PLAYFUL_CUE);

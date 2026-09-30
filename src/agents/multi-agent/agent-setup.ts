@@ -102,6 +102,7 @@ import {
 } from './shared-laugh-recorder.js';
 import { humorCue } from '../../conversation/humor-fit.js';
 import { wireOverlapTracker } from './overlap-tracker.js';
+import { saveCommitment, wireCommitmentRecorder } from './commitment-recorder.js';
 import {
   createSignificantDatesRecorder,
   loadSignificantDates,
@@ -1810,6 +1811,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
     });
     void loadTalkPreferences(userId).then((stored) => talkRecorder.loaded(stored));
     cleanupFunctions.push(wireTalkPreferenceRecorder(sessionWithEvents, talkRecorder));
+
+    // What they said they would do ("call my mom this weekend"): asked
+    // about on a later call, once (memory/recall/commitments.ts)
+    cleanupFunctions.push(
+      wireCommitmentRecorder(sessionWithEvents, (plan) => void saveCommitment(userId, plan))
+    );
 
     // Birthdays, anniversaries, the day they lost someone: saved when
     // mentioned; near one, the greeting and replies know (significant-dates.ts)

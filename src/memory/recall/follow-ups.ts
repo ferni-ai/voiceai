@@ -42,10 +42,17 @@ const INSTRUCTION_WORDS = new Set([
   'whether',
   'next',
   'time',
-  'call',
   'user',
   'caller',
   'update',
+  // How a caller's own plan is quoted ("They said: \"I'll call...\"")
+  'said',
+  "i'll",
+  'gonna',
+  'need',
+  'plan',
+  'planning',
+  'promised',
   // When, not what: "Thursday" alone must never close the interview thread
   'monday',
   'tuesday',

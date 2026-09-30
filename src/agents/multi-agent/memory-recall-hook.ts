@@ -33,6 +33,7 @@ import {
   type RecallStore,
 } from '../../memory/recall/session-recall.js';
 import { raisedIn, whenSaid, type FollowUp } from '../../memory/recall/follow-ups.js';
+import { loadCommitments } from './commitment-recorder.js';
 import {
   anecdoteIn,
   formatToldStories,
@@ -59,6 +60,7 @@ export function memoryRecallMode(env: Record<string, string | undefined> = proce
 
 /** Reads the collections the live pipeline writes. Plain queries: no composite index needed. */
 export const firestoreRecallStore: RecallStore = {
+  commitments: (userId) => loadCommitments(userId),
   async facts(userId) {
     const db = getFirestoreDb();
     if (!db) return [];

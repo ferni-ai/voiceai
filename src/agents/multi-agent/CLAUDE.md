@@ -111,6 +111,8 @@ hook (`ferni-agent.ts` `llmNode`) or the recall note.
 | `memory-recall-hook.ts` | Facts the turn is about, open threads (with when they came up; closed once raised), one shared-laugh callback, the persona's stories they have already heard (never retold as new) |
 | `shared-laugh-recorder.ts` | Saves what made them laugh; learns which callbacks land; counts laughs per call so humor fits the person (`conversation/humor-fit.ts`) |
 | `significant-dates-recorder.ts` | Birthdays, anniversaries, the day they lost someone: saved when mentioned; near one, the greeting and replies know |
+| `commitment-recorder.ts` | Plans they said they'd do with a when ("call my mom this weekend"): asked about on a later call, once |
+| `overlap-tracker.ts` | The caller speaking over Ferni, so the next reply yields instead of restarting |
 | `talk-preference-recorder.ts` | "Just listen", "give it to me straight": kept for the call, saved when said as lasting |
 | `background-turn-intelligence.ts` | Emotion, relationship and mood notes off the reply path |
 

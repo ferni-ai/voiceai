@@ -140,6 +140,22 @@ describe('loadRecallSnapshot', () => {
     expect(old.lastCall).toBeUndefined();
   });
 
+  it("puts the caller's own plans first, leaving out closed ones", async () => {
+    const snap = await loadRecallSnapshot(
+      {
+        facts: async () => [],
+        summaries: async () => [{ followUpItems: ['Ask about the vet visit'] }],
+        commitments: async () => [
+          { id: 'mom', text: 'They said: "I\'ll call my mom this weekend"', at: 1 },
+          { id: 'boss', text: 'They said: "I need to talk to my boss on Monday"', at: 1 },
+        ],
+        closedFollowUps: async () => ['boss'],
+      },
+      'u1'
+    );
+    expect(snap.followUps.map((f) => f.id)).toEqual(['mom', 'vet-visit']);
+  });
+
   it('leaves out threads already raised on an earlier call', async () => {
     const snap = await loadRecallSnapshot(
       {

@@ -124,6 +124,8 @@ export interface RecallStore {
   closedFollowUps?(userId: string): Promise<string[]>;
   /** Stories already told, newest first. Optional like laughs. */
   toldStories?(userId: string): Promise<ToldStory[]>;
+  /** Plans the caller said they would do, newest first (commitments.ts). Optional. */
+  commitments?(userId: string): Promise<FollowUp[]>;
 }
 
 const MAX_FACTS = 300;
@@ -133,12 +135,13 @@ export async function loadRecallSnapshot(
   store: RecallStore,
   userId: string
 ): Promise<RecallSnapshot> {
-  const [rawFacts, rawSummaries, laughs, closed, toldStories] = await Promise.all([
+  const [rawFacts, rawSummaries, laughs, closed, toldStories, commitments] = await Promise.all([
     store.facts(userId).catch(() => []),
     store.summaries(userId).catch(() => []),
     store.laughs ? store.laughs(userId).catch(() => []) : Promise.resolve([]),
     store.closedFollowUps ? store.closedFollowUps(userId).catch(() => []) : Promise.resolve([]),
     store.toldStories ? store.toldStories(userId).catch(() => []) : Promise.resolve([]),
+    store.commitments ? store.commitments(userId).catch(() => []) : Promise.resolve([]),
   ]);
   const facts = dedupeFacts(
     rawFacts.slice(0, MAX_FACTS).map((d) => ({
@@ -148,7 +151,11 @@ export async function loadRecallSnapshot(
       confidence: typeof d.confidence === 'number' ? d.confidence : 0.5,
     }))
   );
-  const followUps = followUpsFromSummaries(rawSummaries, new Set(closed));
+  const closedIds = new Set(closed);
+  const followUps = mergeFollowUps(
+    commitments.filter((c) => !closedIds.has(c.id)),
+    followUpsFromSummaries(rawSummaries, closedIds)
+  );
   return {
     facts,
     followUps,
@@ -189,4 +196,20 @@ function recentArcsOf(
     .filter((a) => a.arc && a.at && now - a.at <= TREND_MAX_DAYS * 86_400_000)
     .reverse();
   return arcs.length >= TREND_MIN_CALLS ? { recentArcs: arcs } : {};
+}
+
+/** Threads offered at once: their own plans first, then the summaries'. */
+const MAX_OPEN_THREADS = 4;
+
+/** Their plans (in their words) before the summaries' threads, once each, newest first. */
+function mergeFollowUps(commitments: FollowUp[], fromSummaries: FollowUp[]): FollowUp[] {
+  const out: FollowUp[] = [];
+  const ids = new Set<string>();
+  for (const f of [...commitments, ...fromSummaries]) {
+    if (ids.has(f.id)) continue;
+    ids.add(f.id);
+    out.push(f);
+    if (out.length >= MAX_OPEN_THREADS) break;
+  }
+  return out;
 }
