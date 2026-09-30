@@ -209,8 +209,11 @@ async function loadQuotesFromBundle(bundlePath: string): Promise<string[]> {
       }
     }
     
-    // Dedupe and limit
-    return [...new Set(quotes)].slice(0, 5);
+    // UI text: drop SSML (<break/>) and stage cues ([laughter]), then dedupe and limit
+    const clean = quotes
+      .map((q) => q.replace(/<[^>]*>/g, '').replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+    return [...new Set(clean)].slice(0, 5);
   } catch {
     return [];
   }
@@ -436,9 +439,15 @@ async function generateFrontendConfig(): Promise<void> {
     coordinatorId,
   };
   
-  // Write to frontend
+  // Write to frontend, unless only the timestamp would change (keeps builds diff-free)
   const outputPath = join(projectRoot, 'apps/web', 'src', 'config', 'personas.generated.json');
-  await writeFile(outputPath, JSON.stringify(config, null, 2), 'utf-8');
+  const withoutTimestamp = (c: GeneratedConfig) => JSON.stringify({ ...c, _generated: { ...c._generated, timestamp: '' } });
+  const existing = await readFile(outputPath, 'utf-8').then((t) => JSON.parse(t) as GeneratedConfig).catch(() => null);
+  if (existing && withoutTimestamp(existing) === withoutTimestamp(config)) {
+    console.log(`\n✅ Up to date: ${outputPath}`);
+    return;
+  }
+  await writeFile(outputPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
   
   console.log(`\n✨ Generated: ${outputPath}`);
   console.log(`   Personas: ${Object.keys(personas).length}`);
