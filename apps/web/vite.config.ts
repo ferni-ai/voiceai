@@ -1,11 +1,69 @@
 import { resolve } from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import { stripUntranslatedI18n } from './vite-plugins/strip-untranslated-i18n';
+import { noChunkCycles } from './vite-plugins/no-chunk-cycles';
 
 // Stub for native Capacitor plugins that don't exist in web builds
 const capacitorStub = resolve(__dirname, 'src/stubs/capacitor-stub.ts');
 // Stub for Firebase when not configured (dev only)
 const firebaseStub = resolve(__dirname, 'src/stubs/firebase-stub.ts');
+
+/**
+ * Whether a module is loaded at startup: the entry imports it through a chain
+ * of static imports. Used to keep lazily imported code out of startup chunks.
+ */
+type ModuleInfoLookup = (
+  id: string
+) => { isEntry: boolean; importers: readonly string[]; importedIds: readonly string[] } | null;
+
+const startupCache = new Map<string, boolean>();
+function isStartupModule(id: string, getModuleInfo: ModuleInfoLookup): boolean {
+  const cached = startupCache.get(id);
+  if (cached !== undefined) return cached;
+  startupCache.set(id, false); // cycle guard
+  const info = getModuleInfo(id);
+  const result =
+    !!info &&
+    (info.isEntry || info.importers.some((importer) => isStartupModule(importer, getModuleInfo)));
+  startupCache.set(id, result);
+  return result;
+}
+
+/**
+ * Whether a startup module only (transitively) imports other such modules:
+ * utilities, config, tokens and other foundations. Modules in an import cycle
+ * are excluded, so the core chunk never needs anything outside itself.
+ */
+const coreCache = new Map<string, boolean>();
+function isCoreModule(id: string, getModuleInfo: ModuleInfoLookup): boolean {
+  const cached = coreCache.get(id);
+  if (cached !== undefined) return cached;
+  coreCache.set(id, false); // cycle: stay out of core
+  const info = getModuleInfo(id);
+  const result =
+    !!info &&
+    !info.isEntry &&
+    info.importedIds
+      .filter((dep) => !dep.includes('node_modules') && !dep.startsWith('\0'))
+      .every((dep) => isCoreModule(dep, getModuleInfo));
+  coreCache.set(id, result);
+  return result;
+}
+
+/** Longest chain of app-code imports below a core module (leaves are 0). */
+const heightCache = new Map<string, number>();
+function coreHeight(id: string, getModuleInfo: ModuleInfoLookup): number {
+  const cached = heightCache.get(id);
+  if (cached !== undefined) return cached;
+  const deps = (getModuleInfo(id)?.importedIds ?? []).filter(
+    (dep) => !dep.includes('node_modules') && !dep.startsWith('\0')
+  );
+  const height = deps.length
+    ? 1 + Math.max(...deps.map((dep) => coreHeight(dep, getModuleInfo)))
+    : 0;
+  heightCache.set(id, height);
+  return height;
+}
 
 export default defineConfig(({ mode }) => {
   // Load env vars to check if Firebase is configured
@@ -22,7 +80,7 @@ export default defineConfig(({ mode }) => {
   return {
     root: '.',
     publicDir: 'public',
-    plugins: [stripUntranslatedI18n()],
+    plugins: [stripUntranslatedI18n(), noChunkCycles()],
     resolve: {
       // Allow .js imports to resolve to .ts files (Node-style ESM imports)
       extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
@@ -142,8 +200,11 @@ export default defineConfig(({ mode }) => {
           globals: {
             gsap: 'gsap',
           },
+          // Fold tiny lazy chunks into their neighbours (fewer requests, better
+          // compression); Rollup only merges where load order stays the same.
+          experimentalMinChunkSize: 25_000,
           // Smart chunking strategy for optimal loading
-          manualChunks(id) {
+          manualChunks(id, { getModuleInfo }) {
             // Vendor libraries - separate chunks for parallel loading
             if (id.includes('node_modules')) {
               if (id.includes('@tsparticles')) return 'vendor-particles';
@@ -153,64 +214,24 @@ export default defineConfig(({ mode }) => {
               return 'vendor';
             }
 
-            // Admin portal - lazy loaded, separate chunk
-            if (id.includes('/admin/')) return 'admin';
-
-            // Dev panel - lazy loaded for 17KB gzipped savings
-            if (id.includes('dev-panel')) return 'dev-panel';
-
-            // Engagement features - heavy dashboards, lazy loaded
-            if (
-              id.includes('engagement') ||
-              id.includes('predictions') ||
-              id.includes('analytics-dashboard') ||
-              id.includes('prediction-tracker') ||
-              id.includes('team-huddle') ||
-              id.includes('cognitive-insights')
-            ) {
-              return 'ui-engagement';
+            // App code needed at startup is spread over a few chunks so none
+            // gets too large and they download in parallel. Only modules the
+            // entry reaches through static imports are grouped: grouping by
+            // path alone pulled lazy code (dev panel, admin, dashboards) into
+            // startup chunks. Everything else splits along its dynamic imports.
+            if (!isStartupModule(id, getModuleInfo)) return undefined;
+            // Shared foundations go in their own chunk; the entry keeps the rest.
+            // app-core only ever imports app-core, so the two can't form an
+            // import cycle (a cycle across chunks breaks module init order).
+            if (isCoreModule(id, getModuleInfo)) {
+              // Band core by dependency height: a module only imports lower
+              // heights, so lower bands never import higher ones (still acyclic)
+              const height = coreHeight(id, getModuleInfo);
+              if (height <= 3) return 'app-core-1';
+              if (height === 4) return 'app-core-2';
+              return 'app-core-3';
             }
-
-            // Premium effects - celebrations, particles, etc.
-            if (
-              id.includes('celebrations') ||
-              id.includes('easter-eggs') ||
-              id.includes('streak-celebrations') ||
-              id.includes('agent-particles') ||
-              id.includes('weather-effects')
-            ) {
-              return 'ui-premium';
-            }
-
-            // Secondary modals - lazy loaded
-            if (
-              id.includes('onboarding') ||
-              id.includes('conversation-history') ||
-              id.includes('ritual-builder') ||
-              id.includes('data-export') ||
-              id.includes('settings-menu') ||
-              id.includes('marketplace')
-            ) {
-              return 'ui-secondary';
-            }
-
-            // Animation systems
-            if (
-              id.includes('animation-orchestrator') ||
-              id.includes('micro-interactions') ||
-              id.includes('kinetic-typography') ||
-              id.includes('ambient-effects') ||
-              id.includes('loading-states') ||
-              id.includes('persona-transition')
-            ) {
-              return 'ui-animations';
-            }
-
-            // Services - split heavy from light
-            if (id.includes('/services/')) {
-              if (id.includes('spotify') || id.includes('music')) return 'services-music';
-              if (id.includes('engagement') || id.includes('ritual')) return 'services-engagement';
-            }
+            return undefined;
           },
         },
       },

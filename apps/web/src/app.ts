@@ -126,11 +126,8 @@ import { openAdminQueue as openMarketplaceAdmin } from './ui/marketplace-admin.u
 import { marketplaceUI, openMarketplace } from './ui/marketplace.ui.js';
 // 📔 Journal Capture - Auto-capture meaningful moments from conversations
 // Admin UI (legacy - kept for backward compatibility)
-import { initAdminDashboard, injectAdminStyles } from './ui/admin.ui.js';
 // CLI Authentication (for ferni auth login)
 import { initCLIAuth } from './ui/cli-auth.ui.js';
-// New Unified Admin Portal
-import { initAdminPortal } from './admin/index.js';
 // Engagement UI
 import { engagementTriggerUI, initEngagementTriggerUI } from './ui/engagement-trigger.ui.js';
 import { getEngagementUI } from './ui/engagement.ui.js';
@@ -1078,10 +1075,13 @@ class VoiceAIApp {
           ← Back to App
         </a>
       `;
+      // Admin code only loads on the admin route
+      const { initAdminDashboard, injectAdminStyles } = await import('./ui/admin.ui.js');
       injectAdminStyles();
       await initAdminDashboard();
     } else {
-      // New unified Admin Portal
+      // New unified Admin Portal (loaded only on the admin route)
+      const { initAdminPortal } = await import('./admin/index.js');
       await initAdminPortal();
     }
 
