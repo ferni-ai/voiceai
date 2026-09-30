@@ -1603,9 +1603,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
     if (process.env.TURN_KEEPER !== 'off') {
       const keeper = createTurnKeeper({
         session,
-        reply: () => {
+        reply: (userInput) => {
           try {
-            session.generateReply();
+            session.generateReply(userInput ? { userInput } : undefined);
           } catch (error) {
             log.warn({ sessionId, error: String(error) }, 'turn keeper: generateReply failed');
           }
@@ -1615,9 +1615,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
       const onState = () => keeper.onStateChange();
       sessionWithEvents.on('agent_state_changed', onState);
       sessionWithEvents.on('user_state_changed', onState);
+      sessionWithEvents.on('user_input_transcribed', keeper.onTranscript);
+      sessionWithEvents.on('conversation_item_added', keeper.onItemAdded);
       sessionEventHandlers.push(
         { event: 'agent_state_changed', handler: onState },
-        { event: 'user_state_changed', handler: onState }
+        { event: 'user_state_changed', handler: onState },
+        { event: 'user_input_transcribed', handler: keeper.onTranscript },
+        { event: 'conversation_item_added', handler: keeper.onItemAdded }
       );
       cleanupFunctions.push(() => keeper.stop());
     }

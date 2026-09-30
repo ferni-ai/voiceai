@@ -1,21 +1,21 @@
 /**
- * A caller turn left hanging gets an answer after a short grace period; a
- * turn that was answered, a backchannel, or a busy agent does not.
+ * The caller's last words get an answer: including when LiveKit cut Ferni's
+ * reply to the first half and never committed the second half as a turn.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { createTurnKeeper, unansweredUserTurn } from '../turn-keeper.js';
+import { createTurnKeeper, isRealAnswer, lastUserMessageIs } from '../turn-keeper.js';
 
-const msg = (role: string, textContent: string, id = `${role}-${textContent.length}`) => ({
+const msg = (role: string, textContent: string, interrupted = false) => ({
   type: 'message',
   role,
   textContent,
-  id,
+  interrupted,
 });
 
-function harness(items: unknown[], state = { agentState: 'listening', userState: 'listening' }) {
+function harness(items: unknown[] = []) {
   const timers: Array<() => void> = [];
   const reply = vi.fn();
-  const session = { ...state, history: { items } };
+  const session = { agentState: 'listening', userState: 'listening', history: { items } };
   const keeper = createTurnKeeper({
     session,
     reply,
@@ -25,59 +25,77 @@ function harness(items: unknown[], state = { agentState: 'listening', userState:
     },
     clearTimer: () => undefined,
   });
-  return { keeper, reply, session, fire: () => timers.splice(0).forEach((f) => f()) };
+  const fire = () => timers.splice(0).forEach((f) => f());
+  return { keeper, reply, session, fire };
 }
 
-describe('unansweredUserTurn', () => {
-  it('finds the caller turn after an interrupted reply (the Biscuit case)', () => {
-    const items = [
-      msg('user', 'Oh, and Biscuit chewed up my phone charger this morning.'),
-      msg('assistant', 'Biscuit'),
-      msg('user', 'So, that was fun.'),
-    ];
-    expect(unansweredUserTurn(items)?.textContent).toBe('So, that was fun.');
+describe('isRealAnswer', () => {
+  it('counts a finished reply, or a cut-off one that said something', () => {
+    expect(isRealAnswer(msg('assistant', 'Ha, yeah.'))).toBe(true);
+    expect(isRealAnswer(msg('assistant', 'Biscuit,', true))).toBe(false);
+    expect(
+      isRealAnswer(msg('assistant', 'Oh no, that cat, first the deadline and now this', true))
+    ).toBe(true);
+    expect(isRealAnswer(msg('user', 'hello there friend'))).toBe(false);
   });
+});
 
-  it('ignores answered turns, backchannels and tool items', () => {
-    expect(
-      unansweredUserTurn([msg('user', 'my day was long'), msg('assistant', 'Oh no')])
-    ).toBeUndefined();
-    expect(unansweredUserTurn([msg('assistant', 'So...'), msg('user', 'Yeah.')])).toBeUndefined();
-    expect(
-      unansweredUserTurn([
-        msg('user', 'play some jazz please'),
-        { type: 'function_call', name: 'playMusic' },
-      ])?.textContent
-    ).toBe('play some jazz please');
+describe('lastUserMessageIs', () => {
+  it('compares against the last user message only', () => {
+    const items = [msg('user', 'So, that was fun.'), msg('assistant', 'Ha')];
+    expect(lastUserMessageIs(items, 'So, that was fun.')).toBe(true);
+    expect(lastUserMessageIs([msg('user', 'Oh, and Biscuit...')], 'So, that was fun.')).toBe(false);
   });
 });
 
 describe('createTurnKeeper', () => {
-  it('answers a hanging caller turn once both sides are quiet', () => {
-    const h = harness([msg('assistant', 'Biscuit'), msg('user', 'So, that was fun.')]);
+  it('answers the Biscuit case, passing the words LiveKit never committed', () => {
+    const h = harness([
+      msg('user', 'Oh, and Biscuit chewed up my phone charger this morning.'),
+      msg('assistant', 'Biscuit,', true),
+    ]);
+    h.keeper.onTranscript({ transcript: 'So, that was fun.', isFinal: true });
+    h.keeper.onItemAdded({ item: msg('assistant', 'Biscuit,', true) }); // cut after one word
     h.keeper.onStateChange();
+    h.fire();
+    expect(h.reply).toHaveBeenCalledWith('So, that was fun.');
+  });
+
+  it('replies without repeating the words when they are in the history', () => {
+    const h = harness([msg('user', 'So, that was fun.')]);
+    h.keeper.onTranscript({ transcript: 'So, that was fun.', isFinal: true });
+    h.fire();
+    expect(h.reply).toHaveBeenCalledWith(undefined);
+  });
+
+  it('stays quiet once the turn was answered', () => {
+    const h = harness();
+    h.keeper.onTranscript({ transcript: 'My day was really long', isFinal: true });
+    h.keeper.onItemAdded({ item: msg('assistant', 'Oh no, what happened?') });
+    h.keeper.onStateChange();
+    h.fire();
+    expect(h.reply).not.toHaveBeenCalled();
+  });
+
+  it('ignores interim transcripts, backchannels, and a busy agent', () => {
+    const h = harness();
+    h.keeper.onTranscript({ transcript: 'So, that was fun.', isFinal: false });
+    h.keeper.onTranscript({ transcript: 'Yeah.', isFinal: true });
+    h.fire();
+    expect(h.reply).not.toHaveBeenCalled();
+
+    h.keeper.onTranscript({ transcript: 'So, that was fun.', isFinal: true });
+    (h.session as { agentState: string }).agentState = 'thinking';
+    h.fire();
+    expect(h.reply).not.toHaveBeenCalled();
+  });
+
+  it('recovers a given turn only once', () => {
+    const h = harness();
+    h.keeper.onTranscript({ transcript: 'So, that was fun.', isFinal: true });
+    h.fire();
+    h.keeper.onTranscript({ transcript: 'So, that was fun.', isFinal: true });
     h.fire();
     expect(h.reply).toHaveBeenCalledTimes(1);
-    h.keeper.onStateChange();
-    h.fire();
-    expect(h.reply).toHaveBeenCalledTimes(1); // once per caller turn
-  });
-
-  it('does nothing while Ferni is thinking or speaking', () => {
-    const h = harness([msg('user', 'So, that was fun.')], {
-      agentState: 'thinking',
-      userState: 'listening',
-    });
-    h.keeper.onStateChange();
-    h.fire();
-    expect(h.reply).not.toHaveBeenCalled();
-  });
-
-  it('does nothing if Ferni starts talking during the grace period', () => {
-    const h = harness([msg('user', 'So, that was fun.')]);
-    h.keeper.onStateChange();
-    (h.session as { agentState: string }).agentState = 'speaking';
-    h.fire();
-    expect(h.reply).not.toHaveBeenCalled();
   });
 });
