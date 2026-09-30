@@ -12,63 +12,168 @@ object FerniTokens {
         /** Ferni: Deep sage green - grounding, wise, natural leader */
         val FerniPrimary = Color(0xFF4a6741)
         val FerniSecondary = Color(0xFF3d5a35)
-        val FerniTextOnDark = Color(0xFFa5c99a)
+        /** Same as FerniInkDark (kept for existing call sites) */
+        val FerniTextOnDark = Color(0xFFc7e9bd)
+        /** Text in Ferni's color on dark (midnight) surfaces, WCAG AA */
+        val FerniInkDark = Color(0xFFc7e9bd)
+        /** Text in Ferni's color on light (zen) surfaces, WCAG AA */
+        val FerniInkLight = Color(0xFF4a6741)
+        /** Text placed on the FerniPrimary fill */
+        val FerniOnFill = Color(0xFFffffff)
         /** Jack: LEGACY: Warm cedar brown brand accent. NOT a persona - use for brand accents. Alias: --color-cedar */
         val JackPrimary = Color(0xFF9a7b5a)
         val JackSecondary = Color(0xFF7d6348)
-        val JackTextOnDark = Color(0xFFd4c4a8)
+        /** Same as JackInkDark (kept for existing call sites) */
+        val JackTextOnDark = Color(0xFFfcdab6)
+        /** Text in Jack's color on dark (midnight) surfaces, WCAG AA */
+        val JackInkDark = Color(0xFFfcdab6)
+        /** Text in Jack's color on light (zen) surfaces, WCAG AA */
+        val JackInkLight = Color(0xFF806242)
+        /** Text placed on the JackPrimary fill */
+        val JackOnFill = Color(0xFFffffff)
         /** Peter: Ocean teal - depth, discovery, research */
         val PeterPrimary = Color(0xFF3a6b73)
         val PeterSecondary = Color(0xFF2d5359)
-        val PeterTextOnDark = Color(0xFF8bc4cf)
+        /** Same as PeterInkDark (kept for existing call sites) */
+        val PeterTextOnDark = Color(0xFFb4e9f1)
+        /** Text in Peter's color on dark (midnight) surfaces, WCAG AA */
+        val PeterInkDark = Color(0xFFb4e9f1)
+        /** Text in Peter's color on light (zen) surfaces, WCAG AA */
+        val PeterInkLight = Color(0xFF3a6b73)
+        /** Text placed on the PeterPrimary fill */
+        val PeterOnFill = Color(0xFFffffff)
         /** Alex: Soft indigo - clarity, flow, communication */
         val AlexPrimary = Color(0xFF5a6b8a)
         val AlexSecondary = Color(0xFF4a5a73)
-        val AlexTextOnDark = Color(0xFFa8b8d8)
+        /** Same as AlexInkDark (kept for existing call sites) */
+        val AlexTextOnDark = Color(0xFFd0e1ff)
+        /** Text in Alex's color on dark (midnight) surfaces, WCAG AA */
+        val AlexInkDark = Color(0xFFd0e1ff)
+        /** Text in Alex's color on light (zen) surfaces, WCAG AA */
+        val AlexInkLight = Color(0xFF586887)
+        /** Text placed on the AlexPrimary fill */
+        val AlexOnFill = Color(0xFFffffff)
         /** Maya: Dusty terracotta - nurturing, warmth, habits */
         val MayaPrimary = Color(0xFFa67a6a)
         val MayaSecondary = Color(0xFF8a635a)
-        val MayaTextOnDark = Color(0xFFe0b8a8)
+        /** Same as MayaInkDark (kept for existing call sites) */
+        val MayaTextOnDark = Color(0xFFffd7c8)
+        /** Text in Maya's color on dark (midnight) surfaces, WCAG AA */
+        val MayaInkDark = Color(0xFFffd7c8)
+        /** Text in Maya's color on light (zen) surfaces, WCAG AA */
+        val MayaInkLight = Color(0xFF885e4e)
+        /** Text placed on the MayaPrimary fill */
+        val MayaOnFill = Color(0xFF2a2420)
         /** Jordan: Warm sunset coral - celebration, joy, events */
         val JordanPrimary = Color(0xFFc4856a)
         val JordanSecondary = Color(0xFFa86d55)
-        val JordanTextOnDark = Color(0xFFf0c0a0)
+        /** Same as JordanInkDark (kept for existing call sites) */
+        val JordanTextOnDark = Color(0xFFffd7c7)
+        /** Text in Jordan's color on dark (midnight) surfaces, WCAG AA */
+        val JordanInkDark = Color(0xFFffd7c7)
+        /** Text in Jordan's color on light (zen) surfaces, WCAG AA */
+        val JordanInkLight = Color(0xFF93593f)
+        /** Text placed on the JordanPrimary fill */
+        val JordanOnFill = Color(0xFF2a2420)
         /** Nayan: Golden Amber - wisdom, warmth, guidance */
         val NayanPrimary = Color(0xFFb8956a)
         val NayanSecondary = Color(0xFF9a7a52)
-        val NayanTextOnDark = Color(0xFFe8d0a8)
+        /** Same as NayanInkDark (kept for existing call sites) */
+        val NayanTextOnDark = Color(0xFFffdaac)
+        /** Text in Nayan's color on dark (midnight) surfaces, WCAG AA */
+        val NayanInkDark = Color(0xFFffdaac)
+        /** Text in Nayan's color on light (zen) surfaces, WCAG AA */
+        val NayanInkLight = Color(0xFF826238)
+        /** Text placed on the NayanPrimary fill */
+        val NayanOnFill = Color(0xFF2a2420)
         /** Joel: Vanguard burgundy red - distinguished, trustworthy, Stanford PhD mentor */
         val JoelPrimary = Color(0xFF9a0718)
         val JoelSecondary = Color(0xFF7a0514)
-        val JoelTextOnDark = Color(0xFFf0a8a8)
+        /** Same as JoelInkDark (kept for existing call sites) */
+        val JoelTextOnDark = Color(0xFFffd6d2)
+        /** Text in Joel's color on dark (midnight) surfaces, WCAG AA */
+        val JoelInkDark = Color(0xFFffd6d2)
+        /** Text in Joel's color on light (zen) surfaces, WCAG AA */
+        val JoelInkLight = Color(0xFF9a0718)
+        /** Text placed on the JoelPrimary fill */
+        val JoelOnFill = Color(0xFFffffff)
         /** Eli: Deep purple - focus, calm amidst chaos, ADHD coach */
         val EliPrimary = Color(0xFF6b5b95)
         val EliSecondary = Color(0xFF4a4063)
-        val EliTextOnDark = Color(0xFFb8a8d8)
+        /** Same as EliInkDark (kept for existing call sites) */
+        val EliTextOnDark = Color(0xFFe3dbff)
+        /** Text in Eli's color on dark (midnight) surfaces, WCAG AA */
+        val EliInkDark = Color(0xFFe3dbff)
+        /** Text in Eli's color on light (zen) surfaces, WCAG AA */
+        val EliInkLight = Color(0xFF6b5b95)
+        /** Text placed on the EliPrimary fill */
+        val EliOnFill = Color(0xFFffffff)
         /** Marcus: Deep forest green - grounding, stability, sobriety companion */
         val MarcusPrimary = Color(0xFF2d5a4a)
         val MarcusSecondary = Color(0xFF1e3d32)
-        val MarcusTextOnDark = Color(0xFF88c4a8)
+        /** Same as MarcusInkDark (kept for existing call sites) */
+        val MarcusTextOnDark = Color(0xFFb9ead6)
+        /** Text in Marcus's color on dark (midnight) surfaces, WCAG AA */
+        val MarcusInkDark = Color(0xFFb9ead6)
+        /** Text in Marcus's color on light (zen) surfaces, WCAG AA */
+        val MarcusInkLight = Color(0xFF2d5a4a)
+        /** Text placed on the MarcusPrimary fill */
+        val MarcusOnFill = Color(0xFFffffff)
         /** Kenji: Midnight blue - calm, sleep, peaceful nights */
         val KenjiPrimary = Color(0xFF2c3e50)
         val KenjiSecondary = Color(0xFF1a252f)
-        val KenjiTextOnDark = Color(0xFF90b0c8)
+        /** Same as KenjiInkDark (kept for existing call sites) */
+        val KenjiTextOnDark = Color(0xFFcce2f8)
+        /** Text in Kenji's color on dark (midnight) surfaces, WCAG AA */
+        val KenjiInkDark = Color(0xFFcce2f8)
+        /** Text in Kenji's color on light (zen) surfaces, WCAG AA */
+        val KenjiInkLight = Color(0xFF2c3e50)
+        /** Text placed on the KenjiPrimary fill */
+        val KenjiOnFill = Color(0xFFffffff)
         /** Carmen: Warm sand - nurturing, earthy, parenting partner */
         val CarmenPrimary = Color(0xFFd4a373)
         val CarmenSecondary = Color(0xFFa67b5b)
-        val CarmenTextOnDark = Color(0xFFf0d0a8)
+        /** Same as CarmenInkDark (kept for existing call sites) */
+        val CarmenTextOnDark = Color(0xFFffd9b4)
+        /** Text in Carmen's color on dark (midnight) surfaces, WCAG AA */
+        val CarmenInkDark = Color(0xFFffd9b4)
+        /** Text in Carmen's color on light (zen) surfaces, WCAG AA */
+        val CarmenInkLight = Color(0xFF8b5e2f)
+        /** Text placed on the CarmenPrimary fill */
+        val CarmenOnFill = Color(0xFF2a2420)
         /** Amara: Soft violet - healing, understanding, chronic illness ally */
         val AmaraPrimary = Color(0xFF7b6ba8)
         val AmaraSecondary = Color(0xFF5a4d80)
-        val AmaraTextOnDark = Color(0xFFc0b0d8)
+        /** Same as AmaraInkDark (kept for existing call sites) */
+        val AmaraTextOnDark = Color(0xFFe2dbff)
+        /** Text in Amara's color on dark (midnight) surfaces, WCAG AA */
+        val AmaraInkDark = Color(0xFFe2dbff)
+        /** Text in Amara's color on light (zen) surfaces, WCAG AA */
+        val AmaraInkLight = Color(0xFF6f5e9a)
+        /** Text placed on the AmaraPrimary fill */
+        val AmaraOnFill = Color(0xFFffffff)
         /** Sasha: Creative coral - inspiration, energy, creative catalyst */
         val SashaPrimary = Color(0xFFe07b53)
         val SashaSecondary = Color(0xFFb85c3c)
-        val SashaTextOnDark = Color(0xFFf8b898)
+        /** Same as SashaInkDark (kept for existing call sites) */
+        val SashaTextOnDark = Color(0xFFffd7c7)
+        /** Text in Sasha's color on dark (midnight) surfaces, WCAG AA */
+        val SashaInkDark = Color(0xFFffd7c7)
+        /** Text in Sasha's color on light (zen) surfaces, WCAG AA */
+        val SashaInkLight = Color(0xFFaa4b21)
+        /** Text placed on the SashaPrimary fill */
+        val SashaOnFill = Color(0xFF2a2420)
         /** Ray: Professional slate - strategic, grounded, career architect */
         val RayPrimary = Color(0xFF4a5568)
         val RaySecondary = Color(0xFF2d3748)
-        val RayTextOnDark = Color(0xFFa0b0c0)
+        /** Same as RayInkDark (kept for existing call sites) */
+        val RayTextOnDark = Color(0xFFd3e1f7)
+        /** Text in Ray's color on dark (midnight) surfaces, WCAG AA */
+        val RayInkDark = Color(0xFFd3e1f7)
+        /** Text in Ray's color on light (zen) surfaces, WCAG AA */
+        val RayInkLight = Color(0xFF4a5568)
+        /** Text placed on the RayPrimary fill */
+        val RayOnFill = Color(0xFFffffff)
 
         /** Primary color as "#rrggbb" (Ferni for unknown ids) */
         fun primaryHex(id: String): String = when (id.lowercase()) {
@@ -107,6 +212,12 @@ object FerniTokens {
         val Error = Color(0xFFb5453a)
         val Warning = Color(0xFFa67c35)
         val Info = Color(0xFF3a6b9c)
+        val AccentText = Color(0xFF3d5a45)
+        val OnAccent = Color(0xFFffffff)
+        val SuccessText = Color(0xFF36734c)
+        val ErrorText = Color(0xFFb24338)
+        val WarningText = Color(0xFF896012)
+        val InfoText = Color(0xFF3a6b9b)
     }
 
     /** Dark (midnight) theme */
@@ -125,5 +236,11 @@ object FerniTokens {
         val Error = Color(0xFFe07575)
         val Warning = Color(0xFFe0b860)
         val Info = Color(0xFF7da6cf)
+        val AccentText = Color(0xFFfddd84)
+        val OnAccent = Color(0xFF2a2420)
+        val SuccessText = Color(0xFF99f3bb)
+        val ErrorText = Color(0xFFffd6d4)
+        val WarningText = Color(0xFFffdc90)
+        val InfoText = Color(0xFFc7e3ff)
     }
 }

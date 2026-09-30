@@ -42,6 +42,7 @@ ferni tokens version patch "Fixed X"
 | `generate-animation-constants.js` | Generates `animation-constants.generated.ts` |
 | `sync-promo-tokens.js` | Syncs tokens to landing page |
 | `generate-native-tokens.js` | Swift + Kotlin/XML color tokens for the native apps |
+| `utils/theme-inks.js` | Contrast-verified text inks (persona, accent, semantic, on-fill) shared by build.js, native and promo generators |
 | `content/` | Copy/rule data for generators (not visual tokens) |
 | `specs/` | Specs no generator reads (kept for reference) |
 

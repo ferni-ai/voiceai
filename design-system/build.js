@@ -14,7 +14,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildStamp } from './build/build-stamp.js';
-import { textInk, contrastRatio } from './utils/text-ink.js';
+import { computePersonaInks, withReadableThemeText } from './utils/theme-inks.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -102,73 +102,8 @@ ${generateCSSVariables(flattened)}
 // ============================================================================
 // TEXT INKS (brand colors made readable as text, per theme)
 // ============================================================================
-
-/**
- * Opaque surfaces text sits on in a theme. Translucent chips/glass on top of
- * these are lighter still; components that put brand-colored text there
- * should use text-primary instead (Midnight's surfaces are mid-tone, so a
- * colored ink readable on them would wash out to near-white).
- */
-function themeTextSurfaces(theme) {
-  const { primary, secondary, tertiary, elevated } = theme.background;
-  const surfaces = [primary, secondary, tertiary, elevated];
-  // Light themes also put text on plain white cards
-  return theme.meta?.mode === 'light' ? [...surfaces, '#ffffff'] : surfaces;
-}
-
-/**
- * Persona colors are fill colors; as text they fail contrast on some themes
- * (Ferni green is ~1:1 on Midnight). Inks keep each persona's hue and adjust
- * lightness until they reach WCAG AA on every surface of the theme.
- * Returns { [personaId]: { [themeName]: ink } }.
- */
-function computePersonaInks(personas, themes) {
-  const inks = {};
-  for (const [personaId, personaColors] of Object.entries(personas)) {
-    if (personaId.startsWith('_')) continue;
-    inks[personaId] = { onFill: onFill(personaColors.primary) };
-    for (const [themeName, theme] of Object.entries(themes)) {
-      inks[personaId][themeName] = textInk(personaColors.primary, themeTextSurfaces(theme));
-    }
-  }
-  return inks;
-}
-
-/**
- * Derive theme text tokens that must stay readable: the accent as text, and
- * text placed on an accent-filled button. Mutates a copy of the themes.
- */
-function withReadableThemeText(themes) {
-  const out = {};
-  for (const [themeName, theme] of Object.entries(themes)) {
-    const surfaces = themeTextSurfaces(theme);
-    const accentText = textInk(theme.accent.text || theme.accent.primary, surfaces);
-    const onAccent =
-      theme.meta?.mode === 'light'
-        ? textInk('#ffffff', [theme.accent.primary])
-        : textInk(theme.text.inverse, [theme.accent.primary]);
-    // Status colors as text (errors, warnings, ...) also need to be readable
-    const semanticText = {};
-    for (const [name, value] of Object.entries(theme.semantic || {})) {
-      if (typeof value === 'string' && value.startsWith('#')) {
-        semanticText[`${name}Text`] = textInk(value, surfaces);
-      }
-    }
-    out[themeName] = {
-      ...theme,
-      accent: { ...theme.accent, text: accentText },
-      text: { ...theme.text, onAccent },
-      semantic: { ...theme.semantic, ...semanticText },
-    };
-  }
-  return out;
-}
-
-/** Ink for text on a persona fill: whichever of white or dark reads better. */
-const ON_FILL_DARK = '#2a2420';
-function onFill(fill) {
-  return contrastRatio('#ffffff', fill) >= contrastRatio(ON_FILL_DARK, fill) ? '#ffffff' : ON_FILL_DARK;
-}
+// Derivation (surfaces, persona inks, on-fill, accent/semantic text) lives in
+// utils/theme-inks.js, shared with the native and promo generators.
 
 /** Theme-level inks: the active persona's default and one per persona. */
 function generatePersonaInkThemeCSS(personaInks, themes) {

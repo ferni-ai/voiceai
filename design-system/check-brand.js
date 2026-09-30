@@ -7,7 +7,8 @@
  *
  * Also checks that normative brand docs only quote token colors, that persona
  * colors in brand docs match the tokens, and that logo SVGs draw no pupils
- * (see checks/brand-docs.js).
+ * (see checks/brand-docs.js), and that every text color the native and promo
+ * outputs emit reaches WCAG AA on its theme (see checks/text-ink-contrast.js).
  *
  * This prevents token drift from official brand spec.
  *
@@ -24,6 +25,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { checkNormativeDocHexes, checkPersonaColorsInDocs, checkNoPupils } from './checks/brand-docs.js';
+import { checkGeneratedTextInks } from './checks/text-ink-contrast.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -335,11 +337,12 @@ function main() {
     }
   }
 
-  // Checks 4-6: brand docs and logo assets
+  // Checks 4-7: brand docs, logo assets, generated text contrast
   const docChecks = [
     ['Check 4: Normative Docs Use Token Colors', checkNormativeDocHexes(PROJECT_ROOT, colorsJson)],
     ['Check 5: Persona Colors in Brand Docs', checkPersonaColorsInDocs(PROJECT_ROOT, colorsJson)],
     ['Check 6: Logo Eyes Have No Pupils', checkNoPupils(PROJECT_ROOT)],
+    ['Check 7: Native/Promo Text Inks Reach WCAG AA', checkGeneratedTextInks(PROJECT_ROOT, colorsJson)],
   ];
   for (const [title, issues] of docChecks) {
     console.log(`📋 ${title}`);
