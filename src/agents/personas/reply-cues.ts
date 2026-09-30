@@ -10,6 +10,7 @@ import { judgeCues, type Cue } from '../../conversation/cue-arbiter.js';
 import { PLAYFUL_CUE } from '../../conversation/humor-fit.js';
 import { leaveTakingCue } from '../../conversation/leave-taking.js';
 import { nameRestCue } from '../../conversation/name-use.js';
+import { formatTheirWords, type TheirWords } from '../../conversation/their-words.js';
 import { sessionRepairCue } from '../../conversation/repair-cue.js';
 import { formatTalkPreferences, type TalkPreference } from '../../conversation/talk-preferences.js';
 import { yieldingCue } from '../../conversation/yielding.js';
@@ -68,6 +69,7 @@ export function replyCues({
   add('humor', humor, { light: humor === PLAYFUL_CUE });
 
   add('name', nameRestCue(userData?.userName as string | undefined, recentReplies));
+  add('words', formatTheirWords((userData?.theirWords as TheirWords | undefined) ?? {}));
 
   // What they just said may itself be heavy ("my dad passed away")
   const analysis = userData?.lastEmotionAnalysis as

@@ -14,6 +14,8 @@ import { createMemoryRecall } from '../memory-recall-hook.js';
 import { createSignificantDatesRecorder } from '../significant-dates-recorder.js';
 import { createTalkPreferenceRecorder } from '../talk-preference-recorder.js';
 import { wireCommitmentRecorder } from '../commitment-recorder.js';
+import { applyStoredWords, wireTheirWordsRecorder } from '../their-words-recorder.js';
+import type { TheirWords } from '../../../conversation/their-words.js';
 import type { FollowUp } from '../../../memory/recall/follow-ups.js';
 import { EventEmitter } from 'node:events';
 
@@ -31,7 +33,9 @@ function memoryStore() {
   const dates: SignificantDate[] = [];
   const talk = new Set<TalkPreference>();
   const commitments: FollowUp[] = [];
+  const words: TheirWords = {};
   return {
+    words,
     commitments,
     summaries,
     closed,
@@ -76,6 +80,12 @@ async function startCall(store: ReturnType<typeof memoryStore>, now: Date) {
     (plan) => store.commitments.push(plan),
     () => now.getTime()
   );
+  wireTheirWordsRecorder(
+    { on: (e, h) => events.on(e, h), off: (e, h) => events.off(e, h) },
+    userData,
+    (heard) => Object.assign(store.words, heard)
+  );
+  applyStoredWords(userData, store.words);
   await recall.ready;
   talk.loaded([...store.talk]);
   dates.loaded([...store.dates]);
@@ -123,6 +133,7 @@ describe('three calls with one caller', () => {
       'When I was a kid, my grandmother kept a tomato garden in Wyoming. She said nerves mean you care.'
     );
     c1.hear('I never want advice, I just want to vent sometimes');
+    c1.hear('My person keeps telling me I will be great');
     c1.hear('My dad died on October 2nd, 2019, so this week is always strange');
     expect(c1.cues('ok')).toEqual(
       expect.arrayContaining([expect.stringContaining('listened to, not fixed')])
@@ -154,6 +165,7 @@ describe('three calls with one caller', () => {
     const cues = c2.cues('Hey. Long week.');
     expect(cues.join('\n')).toContain('anniversary of losing their dad (7 years)');
     expect(cues.join('\n')).toContain('listened to, not fixed');
+    expect(cues.join('\n')).toContain('"person" for their partner');
     expect(cues).not.toContain(PLAYFUL_CUE);
 
     // Ferni asks about the interview; it is closed for good

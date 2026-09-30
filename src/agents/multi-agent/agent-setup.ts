@@ -104,6 +104,13 @@ import { humorCue } from '../../conversation/humor-fit.js';
 import { wireOverlapTracker } from './overlap-tracker.js';
 import { saveCommitment, wireCommitmentRecorder } from './commitment-recorder.js';
 import {
+  applyStoredWords,
+  loadTheirWords,
+  saveTheirWords,
+  wireTheirWordsRecorder,
+} from './their-words-recorder.js';
+import type { TheirWords } from '../../conversation/their-words.js';
+import {
   createSignificantDatesRecorder,
   loadSignificantDates,
   saveSignificantDate,
@@ -1811,6 +1818,18 @@ Reference past context when relevant, but don't force it. Let the conversation f
     });
     void loadTalkPreferences(userId).then((stored) => talkRecorder.loaded(stored));
     cleanupFunctions.push(wireTalkPreferenceRecorder(sessionWithEvents, talkRecorder));
+
+    // Their words for the people in their life ("my person", "Nana"),
+    // used back to them (conversation/their-words.ts)
+    const wordsHolder = userData as unknown as { theirWords?: TheirWords };
+    cleanupFunctions.push(
+      wireTheirWordsRecorder(
+        sessionWithEvents,
+        wordsHolder,
+        (words) => void saveTheirWords(userId, words)
+      )
+    );
+    void loadTheirWords(userId).then((stored) => applyStoredWords(wordsHolder, stored));
 
     // What they said they would do ("call my mom this weekend"): asked
     // about on a later call, once (memory/recall/commitments.ts)

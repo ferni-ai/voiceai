@@ -113,6 +113,7 @@ hook (`ferni-agent.ts` `llmNode`) or the recall note.
 | `significant-dates-recorder.ts` | Birthdays, anniversaries, the day they lost someone: saved when mentioned; near one, the greeting and replies know |
 | `commitment-recorder.ts` | Plans they said they'd do with a when ("call my mom this weekend"): asked about on a later call, once |
 | `overlap-tracker.ts` | The caller speaking over Ferni, so the next reply yields instead of restarting |
+| `their-words-recorder.ts` | Their words for the people in their life ("my person", "Nana"), used back to them |
 | `talk-preference-recorder.ts` | "Just listen", "give it to me straight": kept for the call, saved when said as lasting |
 | `background-turn-intelligence.ts` | Emotion, relationship and mood notes off the reply path |
 

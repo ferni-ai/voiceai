@@ -27,7 +27,8 @@ export type CueKind =
   | 'voice'
   | 'laugh'
   | 'humor'
-  | 'name';
+  | 'name'
+  | 'words';
 
 export interface Cue {
   kind: CueKind;
@@ -49,6 +50,7 @@ const PRIORITY: Record<CueKind, number> = {
   laugh: 6,
   humor: 7,
   name: 8,
+  words: 9,
 };
 
 /** Enough for several notes; past this the reply starts losing the thread. */
