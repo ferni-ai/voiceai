@@ -44,6 +44,7 @@ export const JOB_PATHS: ReadonlySet<string> = new Set([
   '/api/jobs/memory-decay',
   '/api/jobs/memory-deduplication',
   '/api/jobs/memory-health-check',
+  '/api/jobs/deliver-reminders',
   '/api/jobs/deep-analysis',
   '/api/jobs/knowledge-graph-insights',
   '/api/jobs/knowledge-graph-consolidation',
@@ -107,6 +108,8 @@ import {
   handleTTLBackfill,
   handleDailyAdminReport,
 } from './maintenance-jobs.js';
+
+import { handleDeliverReminders } from './reminder-jobs.js';
 
 // Memory maintenance handlers
 import {
@@ -277,6 +280,10 @@ export async function handleScheduledJobsRoutes(
 
     case '/api/jobs/memory-health-check':
       await handleMemoryHealthCheck(res);
+      return true;
+
+    case '/api/jobs/deliver-reminders':
+      await handleDeliverReminders(req, res);
       return true;
 
     case '/api/jobs/deep-analysis':

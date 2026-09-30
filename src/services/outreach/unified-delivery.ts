@@ -469,11 +469,20 @@ async function deliverPush(
  *
  * This is the fallback for all channels and always works.
  */
-async function deliverInApp(
+/**
+ * Save a message for the app's proactive-messages panel
+ * (GET /api/outreach/pending-messages). Kept for 7 days.
+ */
+export async function saveInAppMessage(
   userId: string,
-  content: GeneratedContent,
-  outreachType: OutreachType,
-  triggerId?: string
+  message: {
+    type: string;
+    personaId: string;
+    text: string;
+    ssml?: string;
+    reason?: string;
+    triggerId?: string;
+  }
 ): Promise<DeliveryResult> {
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
@@ -486,33 +495,45 @@ async function deliverInApp(
     const messageId = `inapp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const now = new Date();
 
-    const message = {
-      id: messageId,
-      userId,
-      type: outreachType,
-      personaId: content.personaId,
-      text: content.text,
-      ssml: content.ssml,
-      reason: content.reason,
-      triggerId,
-      read: false,
-      createdAt: now.toISOString(),
-      expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-    };
-
     await db
       .collection('bogle_users')
       .doc(userId)
       .collection('pending_messages')
       .doc(messageId)
-      .set(cleanForFirestore(message));
+      .set(
+        cleanForFirestore({
+          id: messageId,
+          userId,
+          ...message,
+          ssml: message.ssml ?? message.text,
+          read: false,
+          createdAt: now.toISOString(),
+          expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+        })
+      );
 
-    log.info({ userId, messageId, type: outreachType }, 'In-app message saved');
+    log.info({ userId, messageId, type: message.type }, 'In-app message saved');
     return { success: true, channel: 'in_app', messageId };
   } catch (error) {
     log.error({ error: String(error), userId }, 'In-app delivery failed');
     return { success: false, channel: 'in_app', error: String(error) };
   }
+}
+
+async function deliverInApp(
+  userId: string,
+  content: GeneratedContent,
+  outreachType: OutreachType,
+  triggerId?: string
+): Promise<DeliveryResult> {
+  return saveInAppMessage(userId, {
+    type: outreachType,
+    personaId: content.personaId,
+    text: content.text,
+    ssml: content.ssml,
+    reason: content.reason,
+    triggerId,
+  });
 }
 
 // ============================================================================
