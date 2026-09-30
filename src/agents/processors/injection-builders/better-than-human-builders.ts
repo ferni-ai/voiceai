@@ -66,6 +66,8 @@ This shows you're paying attention to THEM, not just their words. A human friend
 Keep responses concise and clear for their noisy environment.`,
       priority: 79,
     });
+    // Offer once per session; later turns get the quieter context below.
+    userData.hasOfferedToPause = true;
 
     diag.info('🔊 Noisy environment detected', {
       environment,

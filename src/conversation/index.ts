@@ -24,15 +24,11 @@
  * // In voice-agent.ts
  * import {
  *   initConversationSession,
- *   humanizeAgentResponse,
  *   cleanupConversationSession,
  * } from './agents/integrations/conversation-session-integration.js';
  *
  * // At session start
  * initConversationSession({ sessionId, userId, personaId, ... });
- *
- * // For POST-LLM humanization
- * const result = await humanizeAgentResponse(sessionId, rawResponse, context);
  *
  * // At session end
  * cleanupConversationSession(sessionId);

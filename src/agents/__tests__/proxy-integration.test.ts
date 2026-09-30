@@ -207,12 +207,10 @@ describe('Proxy Integration', () => {
       userData.ambientEnvironment = 'coffee_shop';
       userData.ambientNoiseLevel = 0.65;
       userData.hasOfferedToPause = true;
-      userData.pendingAmbientAcknowledgment = 'Sounds like a busy place!';
 
       expect(userData.ambientEnvironment).toBe('coffee_shop');
       expect(userData.ambientNoiseLevel).toBe(0.65);
       expect(userData.hasOfferedToPause).toBe(true);
-      expect(userData.pendingAmbientAcknowledgment).toBe('Sounds like a busy place!');
     });
 
     it('should store voice insight state directly', () => {

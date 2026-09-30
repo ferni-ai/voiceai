@@ -11,26 +11,14 @@
  *     ↓
  * behavior-loader.ts (loads & caches)
  *     ↓
- * speech-humanizer.ts (orchestrates injection)
+ * speech-humanizer.ts (quickHumanizeSync)
  *     ↓
- * response-processor.ts (integration point)
+ * adaptive-ssml persona speech traits (alive-voice, greeting tagger)
  * ```
  *
- * ## Usage
- *
- * ```typescript
- * import { humanizeSpeech } from '../speech/humanization/index.js';
- *
- * const result = await humanizeSpeech(responseText, {
- *   personaId: 'maya-santos',
- *   emotional: { userEmotion: 'excited', agentTone: 'celebratory' },
- *   content: { isCelebration: true },
- *   turnNumber: 5,
- * });
- *
- * console.log(result.text); // Text with SSML humanization
- * console.log(result.features); // ['thinking-sounds:processing', 'speech-imperfections:celebration_overflow']
- * ```
+ * quickHumanizeSync only acts once profiles are cached, and nothing on the live
+ * path loads them today (preloadAllSpeechProfiles has no caller), so the
+ * greeting passes through unchanged.
  *
  * ## JSON File Structure
  *
@@ -43,13 +31,8 @@
  * @module speech/humanization
  */
 
-// Main humanization function
-export {
-  humanizeSpeech,
-  quickHumanize,
-  quickHumanizeSync,
-  getAvailableCategories,
-} from './speech-humanizer.js';
+// Sync humanization (preloaded profiles)
+export { quickHumanizeSync } from './speech-humanizer.js';
 
 // Callback detection
 export {
@@ -65,10 +48,6 @@ export {
   loadSpeechProfile,
   clearSpeechProfileCache,
   preloadAllSpeechProfiles,
-  selectImperfection,
-  selectThinkingSound,
-  selectBackchannel,
-  selectBreathSound,
   getInjectionConfig,
   // Sync accessors (for use after preloading)
   getSpeechProfileSync,
@@ -77,7 +56,6 @@ export {
   selectImperfectionSync,
   selectBreathSoundSync,
   // Laughter contagion
-  selectLaughterResponse,
   selectLaughterResponseSync,
   // Late night pacing
   isLateNightHours,
@@ -114,7 +92,6 @@ export type {
   ContentSelectionContext,
   // Results
   SelectedBehavior,
-  HumanizedSpeechResult,
   // Behavior schemas
   SpeechImperfectionsSchema,
   ThinkingSoundsSchema,

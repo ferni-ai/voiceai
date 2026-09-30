@@ -5,18 +5,10 @@
  * This is a facade that composes PreLlmProcessor and PostLlmProcessor.
  *
  * ⚠️ MIGRATION NOTICE:
- * For POST-LLM humanization in the voice agent, use the unified API instead:
+ * Nothing humanizes the reply text after the LLM on live calls; how a reply
+ * sounds is decided on the TTS path (src/speech/tts-gateway/).
  *
- * ```typescript
- * // New unified API (preferred for voice agent)
- * import {
- *   initConversationSession,
- *   humanizeAgentResponse,
- *   cleanupConversationSession,
- * } from './agents/integrations/conversation-session-integration.js';
- * ```
- *
- * This file is still used for:
+ * This file is used for:
  * - PRE-LLM context building (processUserMessage, getPreResponseActions)
  * - Context builders (conversation-humanizing.ts)
  * - Legacy integrations

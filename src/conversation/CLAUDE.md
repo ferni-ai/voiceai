@@ -167,7 +167,6 @@ module-name/
 // ✅ CORRECT - Use unified session API
 import {
   initConversationSession,
-  humanizeAgentResponse,
   cleanupConversationSession,
 } from './agents/integrations/conversation-session-integration.js';
 
@@ -179,11 +178,8 @@ await initConversationSession({
   voiceId,
 });
 
-// For each response
-const humanized = await humanizeAgentResponse(sessionId, rawResponse, {
-  emotionalContext,
-  turnCount,
-});
+// Nothing rewrites the reply after the LLM on live calls; the TTS path
+// decides how it sounds.
 
 // At session end
 await cleanupConversationSession(sessionId);

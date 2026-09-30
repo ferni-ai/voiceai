@@ -251,16 +251,3 @@ export async function cleanupAdvancedHumanizationSession(sessionId: string): Pro
     diag.debug('Failed to cleanup advanced humanization (non-fatal)', { error: String(error) });
   }
 }
-
-/**
- * Record that advice was given (for resistance tracking)
- */
-export async function recordAdviceGivenToSession(sessionId: string): Promise<void> {
-  try {
-    const { recordAdviceGiven } =
-      await import('../../../conversation/advanced-humanization-integration.js');
-    recordAdviceGiven(sessionId);
-  } catch {
-    // Non-fatal
-  }
-}

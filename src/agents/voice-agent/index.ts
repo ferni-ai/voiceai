@@ -156,13 +156,6 @@ export {
   type UserDataInit,
 } from './session-init-handler.js';
 
-// Response processor (post-LLM processing)
-export {
-  processResponse,
-  type ResponseProcessorContext,
-  type ResponseProcessorResult,
-} from './response-processor.js';
-
 // Daily check-in handler (emotional weather extraction)
 export {
   detectDailyCheckIn,
