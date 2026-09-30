@@ -38,7 +38,8 @@ export const IDENTITY_KEYS = {
 
 export const PREFERENCE_KEYS = {
   /** UI theme (light/dark/system) */
-  THEME: 'ferni_theme',
+  // Kept as 'voiceai-theme': the key users' saved light/dark choice lives under
+  THEME: 'voiceai-theme',
   /** Locale/language preference */
   LOCALE: 'ferni_locale',
   /** Notification settings */

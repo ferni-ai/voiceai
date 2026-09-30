@@ -6,6 +6,7 @@
  */
 
 import { type PersonaId, ALL_PERSONA_IDS } from '../types/persona.js';
+import { STORAGE_KEYS } from '../config/storage-keys.js';
 
 export type ThemeName = 'midnight' | 'zen';
 
@@ -36,7 +37,7 @@ export const THEMES: Record<ThemeName, ThemeMeta> = {
  */
 export const PERSONA_IDS: PersonaId[] = [...ALL_PERSONA_IDS];
 
-const STORAGE_KEY = 'voiceai-theme';
+const STORAGE_KEY = STORAGE_KEYS.THEME;
 
 // ============================================================================
 // THEME MANAGEMENT
