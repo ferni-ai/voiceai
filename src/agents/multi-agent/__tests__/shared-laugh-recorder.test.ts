@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createSharedLaughRecorder } from '../shared-laugh-recorder.js';
+import { createSharedLaughRecorder, humorIncrement } from '../shared-laugh-recorder.js';
 
 const msg = (role: 'user' | 'assistant', textContent: string) => ({
   type: 'message',
@@ -147,5 +147,30 @@ describe('shared laugh recorder', () => {
       t.recorder.onItem(msg('user', 'fine'));
       expect(t.onCallbackOutcome).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('humor tally', () => {
+  it('counts user turns and laughs at replies for the call', () => {
+    const { recorder, laughAt, tick } = setup();
+    recorder.onItem(msg('user', 'I named my sourdough starter Gerald'));
+    recorder.onItem(msg('assistant', 'Gerald has more of a social life than I do.'));
+    tick(500);
+    laughAt(1500);
+    recorder.onItem(msg('user', 'haha he really does'));
+    expect(recorder.tally()).toEqual({ turns: 2, laughs: 1 });
+  });
+
+  it('adds the call once and only new laughs, across a handoff', () => {
+    expect(humorIncrement({ turns: 1, laughs: 1 }, { call: false, laughs: 0 })).toBeNull();
+    expect(humorIncrement({ turns: 4, laughs: 2 }, { call: false, laughs: 0 })).toEqual({
+      calls: 1,
+      laughs: 2,
+    });
+    expect(humorIncrement({ turns: 6, laughs: 3 }, { call: true, laughs: 2 })).toEqual({
+      calls: 0,
+      laughs: 1,
+    });
+    expect(humorIncrement({ turns: 6, laughs: 3 }, { call: true, laughs: 3 })).toBeNull();
   });
 });

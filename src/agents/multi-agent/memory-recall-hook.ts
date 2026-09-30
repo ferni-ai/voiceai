@@ -172,6 +172,55 @@ export async function saveCallbackOutcome(
   }
 }
 
+/** How often this caller laughs across calls (conversation/humor-fit.ts). Never throws. */
+export async function loadHumorHistory(
+  userId: string
+): Promise<{ calls: number; laughs: number } | null> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return null;
+    const doc = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('human_signals')
+      .doc('humor')
+      .get();
+    const data = doc.data();
+    if (typeof data?.calls !== 'number') return null;
+    return { calls: data.calls, laughs: typeof data.laughs === 'number' ? data.laughs : 0 };
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Humor history not loaded');
+    return null;
+  }
+}
+
+/** Add this call's counts to the caller's humor history. Never throws. */
+export async function saveHumorIncrement(
+  userId: string,
+  inc: { calls: number; laughs: number }
+): Promise<void> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return;
+    const { FieldValue } = await import('firebase-admin/firestore');
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('human_signals')
+      .doc('humor')
+      .set(
+        {
+          calls: FieldValue.increment(inc.calls),
+          laughs: FieldValue.increment(inc.laughs),
+          updatedAt: Date.now(),
+        },
+        { merge: true }
+      );
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Humor history not saved');
+  }
+}
+
 /** Remember a shared laugh. Never throws. */
 export async function saveSharedLaugh(userId: string, laugh: SharedLaugh): Promise<void> {
   try {

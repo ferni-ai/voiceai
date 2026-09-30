@@ -51,6 +51,9 @@ export function createSharedLaughRecorder(deps: SharedLaughRecorderDeps) {
   let lastUserAt = now();
   let saved = 0;
   let armed: SharedLaugh | null = null;
+  // For fitting humor to the person across calls (conversation/humor-fit.ts)
+  let turns = 0;
+  let laughs = 0;
 
   return {
     /** A conversation item was committed (user or assistant). */
@@ -61,6 +64,7 @@ export function createSharedLaughRecorder(deps: SharedLaughRecorderDeps) {
         return;
       }
       if (item.role !== 'user') return;
+      turns++;
       const laugh = readUserLaugh(deps.userData);
       const laughedAtReply =
         lastAgent !== null &&
@@ -68,6 +72,8 @@ export function createSharedLaughRecorder(deps: SharedLaughRecorderDeps) {
         laugh.confidence >= MIN_CONFIDENCE &&
         laugh.suggestedResponse !== 'none' &&
         laugh.at > lastUserAt;
+
+      if (laughedAtReply) laughs++;
 
       // Judge last turn's callback, if the reply actually used it.
       let judged = false;
@@ -94,6 +100,10 @@ export function createSharedLaughRecorder(deps: SharedLaughRecorderDeps) {
       lastUser = item.textContent;
       lastUserAt = now();
     },
+    /** This call so far: user turns and laughs at Ferni's replies. */
+    tally(): { turns: number; laughs: number } {
+      return { turns, laughs };
+    },
   };
 }
 
@@ -105,4 +115,27 @@ export function wireSharedLaughRecorder(
   const onItem = (event: unknown) => recorder.onItem((event as { item?: ChatItem })?.item);
   session.on?.('conversation_item_added', onItem);
   return () => session.off?.('conversation_item_added', onItem);
+}
+
+/** Turns before a call counts toward the humor read (not a misdial). */
+const MIN_TURNS_FOR_HUMOR = 2;
+
+/** What has been saved for this call already (a handoff saves more than once). */
+export interface HumorSaved {
+  call: boolean;
+  laughs: number;
+}
+
+/**
+ * The increments to store for this call so far: the call once, and laughs
+ * heard since the last save. Null when there is nothing to add.
+ */
+export function humorIncrement(
+  tally: { turns: number; laughs: number },
+  saved: HumorSaved
+): { calls: number; laughs: number } | null {
+  if (tally.turns < MIN_TURNS_FOR_HUMOR) return null;
+  const calls = saved.call ? 0 : 1;
+  const laughs = Math.max(0, tally.laughs - saved.laughs);
+  return calls === 0 && laughs === 0 ? null : { calls, laughs };
 }

@@ -92,6 +92,10 @@ export interface UserData {
 
   /** Caller's IANA timezone, from the web client (see utils/local-clock.ts) */
   timezone?: string;
+  /** How much playfulness this caller welcomes, as a note (conversation/humor-fit.ts) */
+  humorCue?: string | null;
+  /** This session's call is already counted in the humor history */
+  humorCallCounted?: boolean;
   /** How they have asked to be talked to (conversation/talk-preferences.ts) */
   talkPreferences?: TalkPreference[];
   /** A birthday, anniversary or loss near today, as a note (significant-dates-recorder.ts) */

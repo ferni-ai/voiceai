@@ -87,13 +87,20 @@ import {
   addRecallNote,
   createMemoryRecall,
   memoryRecallMode,
+  loadHumorHistory,
   saveClosedFollowUp,
+  saveHumorIncrement,
   saveToldStory,
   saveCallbackOutcome,
   saveSharedLaugh,
   type RecallAgent,
 } from './memory-recall-hook.js';
-import { createSharedLaughRecorder, wireSharedLaughRecorder } from './shared-laugh-recorder.js';
+import {
+  createSharedLaughRecorder,
+  humorIncrement,
+  wireSharedLaughRecorder,
+} from './shared-laugh-recorder.js';
+import { humorCue } from '../../conversation/humor-fit.js';
 import {
   createSignificantDatesRecorder,
   loadSignificantDates,
@@ -1822,6 +1829,24 @@ Reference past context when relevant, but don't force it. Let the conversation f
       onCallbackOutcome: (laugh, landed) => void saveCallbackOutcome(userId, laugh, landed),
     });
     cleanupFunctions.push(wireSharedLaughRecorder(sessionWithEvents, laughRecorder));
+
+    // How much playfulness this caller welcomes, from laughs across calls
+    // (conversation/humor-fit.ts). The call counts once per session, even
+    // when a handoff runs this cleanup more than once.
+    void loadHumorHistory(userId).then((history) => {
+      userData.humorCue = humorCue(history);
+    });
+    let laughsSaved = 0;
+    cleanupFunctions.push(() => {
+      const inc = humorIncrement(laughRecorder.tally(), {
+        call: userData.humorCallCounted === true,
+        laughs: laughsSaved,
+      });
+      if (!inc) return;
+      if (inc.calls > 0) userData.humorCallCounted = true;
+      laughsSaved += inc.laughs;
+      void saveHumorIncrement(userId, inc);
+    });
   }
 
   if (backgroundTurns && sessionWithEvents.on) {
