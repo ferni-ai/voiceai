@@ -13,7 +13,7 @@
 
 import { llm, stt, voice } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
-import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { processAudioStream } from '../voice-agent/audio-processor.js';
 import { z } from 'zod';
 
@@ -37,7 +37,8 @@ import {
   withTurnStyleReminder,
 } from './turn-style.js';
 import { formatNotes, getDirector } from './director-notes.js';
-import { filterCaptionStream } from './caption-filter.js';
+import { filterCaptionStream, type Caption } from './caption-filter.js';
+import { getBargeInFastPath } from '../multi-agent/barge-in-fastpath.js';
 import { OpenerGate } from './opener-gate.js';
 import {
   getTurnToolRetrieval,
@@ -716,7 +717,19 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     text: Parameters<voice.Agent<PersonaSessionData>['transcriptionNode']>[0],
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['transcriptionNode']> {
-    return super.transcriptionNode(filterCaptionStream(text), modelSettings);
+    const fastPath = getBargeInFastPath(this.session as object);
+    const captions = filterCaptionStream(text);
+    if (!fastPath) return super.transcriptionNode(captions, modelSettings);
+    // What Ferni is saying, for the barge-in echo guard (barge-in-fastpath.ts).
+    const spoken = captions.pipeThrough(
+      new TransformStream<Caption, Caption>({
+        transform(chunk, controller) {
+          fastPath.onSpokenText(typeof chunk === 'string' ? chunk : chunk.text);
+          controller.enqueue(chunk);
+        },
+      })
+    );
+    return super.transcriptionNode(spoken, modelSettings);
   }
 
   /**

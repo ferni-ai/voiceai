@@ -34,6 +34,7 @@ import {
   stopAmbientMusic,
   type SilenceContext,
 } from '../../personas/meaningful-silence.js';
+import { promptMode } from '../personas/prompt-loader.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import {
   recordBargeInAgentStopped,
@@ -159,7 +160,16 @@ const getLogger = () => log();
  *
  * Returns the silenceContext which is shared with the transcript handler.
  */
+/**
+ * What Ferni is told when the caller has gone quiet (character mode). Plain,
+ * in the character's terms, and it may come to nothing.
+ */
+const CHARACTER_SILENCE_NOTE =
+  "[They've been quiet for a bit. If there's something small and natural to say, the way a friend on the phone would, say it in one short sentence. Don't ask how they feel, don't check they're still there, don't sum up.]";
+
 export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStateResult {
+  const characterSilence = promptMode() === 'character';
+  const turnKeeperOn = process.env.TURN_KEEPER !== 'off';
   const { session, sessionPersona, conversationManager, userData, sessionId, onIdleTimeout, room } =
     ctx;
 
@@ -1107,6 +1117,12 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
       earlyAckTimer = setTimeout(
         async () => {
+          // The turn keeper (multi-agent/turn-keeper.ts) answers a caller turn
+          // left hanging; this 3 s "soft acknowledgment" would talk over it.
+          if (turnKeeperOn) {
+            earlyAckTimer = null;
+            return;
+          }
           // CRITICAL: Check if session is closing before trying to speak
           // This prevents errors during handoffs when the old agent's session is draining
           const { isSessionClosing } = await import('../shared/session-closing-tracker.js');
@@ -1503,7 +1519,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         sdkIdle &&
         targetInterval &&
         silenceDurationSec >= targetInterval &&
-        Date.now() - lastSilenceResponseAt > SILENCE_THRESHOLDS.MIN_RESPONSE_INTERVAL
+        Date.now() - lastSilenceResponseAt > SILENCE_THRESHOLDS.MIN_RESPONSE_INTERVAL &&
+        // In character mode Ferni makes at most one remark into a silence.
+        (!characterSilence || silenceResponseCount === 0)
       ) {
         userData.userWentSilent = true;
 
@@ -1542,8 +1560,15 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           silenceContext.isMusicPlaying = false;
         }
 
-        // LLM-DRIVEN: Get instructions for natural, contextual silence response
-        const silenceInstructions = getLLMSilenceInstructions(sessionPersona, silenceContext);
+        // LLM-DRIVEN: Get instructions for natural, contextual silence response.
+        // In character mode: a plain note and no canned fallback. The fallback
+        // assembled template lines ("How did that feel?", "I noticed you paused
+        // there.") and was spoken whenever the model call failed; staying quiet
+        // is more human than a scripted line.
+        const templateInstructions = getLLMSilenceInstructions(sessionPersona, silenceContext);
+        const silenceInstructions = characterSilence
+          ? { ...templateInstructions, instructions: CHARACTER_SILENCE_NOTE, fallback: '' }
+          : templateInstructions;
 
         // PROMINENT LOG: Show silence response timing
         diag.state('🤫 [SILENCE] LLM response triggered', {

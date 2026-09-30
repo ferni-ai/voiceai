@@ -117,6 +117,8 @@ import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
 import { assistantTranscriptHandler } from './assistant-transcript.js';
+import { createBargeInFastPath, setBargeInFastPath } from './barge-in-fastpath.js';
+import { createTurnKeeper } from './turn-keeper.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
 // WAVE 2: Voice humanization (micro-interrupt/barge-in recovery) + live backchanneling
@@ -1570,6 +1572,51 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // Crisis guard in SHADOW + per-turn voice/delivery: same observers as the
     // single-agent path, so the live multi-agent path is not silently skipped.
     const crisisGuardMode = resolveCrisisGuardMode();
+    // Stop Ferni within ~a second of a clear interruption (barge-in-fastpath.ts);
+    // LiveKit's barge-in model still handles backchannels and short overlaps.
+    if (process.env.BARGE_IN_FASTPATH !== 'off') {
+      const bargeIn = createBargeInFastPath({
+        interrupt: () => {
+          try {
+            session.interrupt();
+          } catch (error) {
+            log.warn({ sessionId, error: String(error) }, 'barge-in fast path: interrupt failed');
+          }
+        },
+        log: (fields) => log.info({ sessionId, ...fields }, 'BARGE_IN_FASTPATH'),
+      });
+      setBargeInFastPath(session, bargeIn);
+      sessionWithEvents.on('user_input_transcribed', bargeIn.onTranscript);
+      sessionWithEvents.on('agent_state_changed', bargeIn.onAgentState);
+      sessionEventHandlers.push(
+        { event: 'user_input_transcribed', handler: bargeIn.onTranscript },
+        { event: 'agent_state_changed', handler: bargeIn.onAgentState }
+      );
+    }
+
+    // Answer a caller turn that was left hanging (turn-keeper.ts).
+    if (process.env.TURN_KEEPER !== 'off') {
+      const keeper = createTurnKeeper({
+        session,
+        reply: () => {
+          try {
+            session.generateReply();
+          } catch (error) {
+            log.warn({ sessionId, error: String(error) }, 'turn keeper: generateReply failed');
+          }
+        },
+        log: (fields) => log.info({ sessionId, ...fields }, 'TURN_KEEPER_RECOVERED'),
+      });
+      const onState = () => keeper.onStateChange();
+      sessionWithEvents.on('agent_state_changed', onState);
+      sessionWithEvents.on('user_state_changed', onState);
+      sessionEventHandlers.push(
+        { event: 'agent_state_changed', handler: onState },
+        { event: 'user_state_changed', handler: onState }
+      );
+      cleanupFunctions.push(() => keeper.stop());
+    }
+
     const userInputHandler = (event: unknown) => {
       const evt = event as { transcript?: string; isFinal?: boolean };
       process.stderr.write(

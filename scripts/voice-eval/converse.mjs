@@ -79,7 +79,11 @@ room.registerTextStreamHandler('lk.transcription', async (reader, info) => {
 });
 
 await room.connect(url, token, { autoSubscribe: true, dynacast: false });
-const source = new AudioSource(48000, 1);
+// A 40 ms queue keeps captureFrame() in step with the wire. The default
+// 1000 ms queue let the pump run up to a second ahead, so "caller finished"
+// was stamped before the audio was sent and every reply delay (and barge-in
+// timing) read up to a second long.
+const source = new AudioSource(48000, 1, 40);
 const mic = LocalAudioTrack.createAudioTrack('mic', source);
 const opts = new TrackPublishOptions();
 opts.source = TrackSource.SOURCE_MICROPHONE;
