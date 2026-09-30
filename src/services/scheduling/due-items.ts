@@ -19,6 +19,11 @@ import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 export interface DueItem {
   id: string;
   ref: DocumentReference;
+  /**
+   * Owner, from the document's path (bogle_users/{uid}/...). Never the
+   * document's own userId field: that is data a writer controls, and trusting
+   * it would let one user's document act on another user.
+   */
   userId: string;
   data: Record<string, unknown>;
 }
@@ -64,12 +69,14 @@ export async function claimDueItems(db: Firestore, opts: ClaimOptions): Promise<
 
   const result: ClaimResult = { due: snapshot.size, claimed: [], late: 0, skipped: 0 };
   for (const doc of snapshot.docs) {
+    const owner = doc.ref.parent.parent?.id;
+    if (!owner) continue; // not under bogle_users/{uid}
     const data = { ...doc.data() };
     const late = now.getTime() - dueTime(data[opts.dueField]) > opts.lateAfterMs;
     const item: DueItem = {
       id: doc.id,
       ref: doc.ref,
-      userId: String(data.userId ?? doc.ref.parent.parent?.id ?? ''),
+      userId: owner,
       data,
     };
 

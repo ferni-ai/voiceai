@@ -109,8 +109,12 @@ export async function deliverDueReminders(
   const channels = snapshot.size > 0 ? await getChannelStatus() : undefined;
 
   for (const doc of snapshot.docs) {
-    const reminder = reminderFromDoc(doc.id, doc.data());
-    if (!reminder.userId) reminder.userId = doc.ref.parent.parent?.id ?? '';
+    // Owner from the document's path (bogle_users/{uid}/reminders/{id}), never
+    // its userId field: that is data, and trusting it would let one user's
+    // reminder be delivered to, and recorded under, another user.
+    const owner = doc.ref.parent.parent?.id;
+    if (!owner) continue;
+    const reminder = { ...reminderFromDoc(doc.id, doc.data()), userId: owner };
     const late = now.getTime() - reminder.scheduledFor.getTime() > MISSED_AFTER_MS;
     const channel = deliveryChannelFor(reminder, channels);
 

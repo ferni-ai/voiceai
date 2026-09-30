@@ -64,6 +64,14 @@ describe('deliverDueScheduledActions', () => {
     expect(rows[0].data).toMatchObject({ status: 'delivered', attempts: 1 });
   });
 
+  it("delivers to the path's owner, not the document's userId field", async () => {
+    rows = [action('a1', 1)];
+    rows[0].data.userId = 'victim';
+    await deliverDueScheduledActions({ now: NOW });
+    expect(saveInAppMessage).toHaveBeenCalledWith('u1', expect.anything());
+    expect(saveInAppMessage).not.toHaveBeenCalledWith('victim', expect.anything());
+  });
+
   it('sends push when available', async () => {
     pushUp = true;
     rows = [action('a1', 1)];

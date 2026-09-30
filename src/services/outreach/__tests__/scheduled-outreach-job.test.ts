@@ -69,6 +69,19 @@ describe('executeDueScheduledOutreach', () => {
     );
   });
 
+  it("acts for the path's owner, not the document's userId field", async () => {
+    rows = [outreach('o1', 1)];
+    rows[0].data.userId = 'victim';
+    await executeDueScheduledOutreach({ now: NOW });
+    expect(sendSMS).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u1' }));
+    expect(updateOutreachStatus).not.toHaveBeenCalledWith(
+      'victim',
+      expect.anything(),
+      expect.anything(),
+      expect.anything()
+    );
+  });
+
   it('marks outreach found hours late as missed, without sending', async () => {
     rows = [outreach('o1', 5 * 60)];
     const result = await executeDueScheduledOutreach({ now: NOW });

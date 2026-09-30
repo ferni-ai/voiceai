@@ -139,6 +139,12 @@ describe('deliverDueReminders', () => {
     expect(deliverReminder.mock.calls[0][0]).toMatchObject({ deliveryMethod: 'in_app' });
   });
 
+  it("delivers to the path's owner, not the document's userId field", async () => {
+    rows = [reminder('forged', { scheduledFor: at(-60_000), userId: 'victim' })];
+    await deliverDueReminders({ now: NOW });
+    expect(deliverReminder.mock.calls[0][0]).toMatchObject({ userId: 'u1' });
+  });
+
   it('counts a failed delivery', async () => {
     deliverReminder.mockResolvedValueOnce(false);
     rows = [reminder('due', { scheduledFor: at(-60_000) })];
