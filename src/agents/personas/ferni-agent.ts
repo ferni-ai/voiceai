@@ -33,9 +33,11 @@ import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { getModelProvider } from '../model-provider/index.js';
 import {
   composeTurnReminder,
+  lastExchange,
   turnStyleReminderEnabled,
   withTurnStyleReminder,
 } from './turn-style.js';
+import { sessionRepairCue } from '../../conversation/repair-cue.js';
 import { nextReplyCues } from '../../speech/expression/index.js';
 import type { TurnNotesSource } from '../multi-agent/background-turn-intelligence.js';
 import { getTTSProvider } from '../../speech/tts-gateway/providers/index.js';
@@ -727,9 +729,12 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
     const userData = this.session.userData as Record<string, unknown> | undefined;
+    const exchange = lastExchange(chatCtx);
+    const sessionId = (userData?.services as { sessionId?: string } | undefined)?.sessionId;
+    const repair = sessionRepairCue(userData, sessionId, exchange.user, exchange.agent);
     const reminder = composeTurnReminder(
       turnStyleReminderEnabled(),
-      nextReplyCues(userData, getTTSProvider().voice),
+      [...(repair ? [repair] : []), ...nextReplyCues(userData, getTTSProvider().voice)],
       this.turnNotes?.notesForReply()
     );
     const ctx = reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { llm } from '@livekit/agents';
 import {
   composeTurnReminder,
+  lastExchange,
   TURN_STYLE_REMINDER,
   turnStyleReminderEnabled,
   withTurnStyleReminder,
@@ -75,5 +76,17 @@ describe('composeTurnReminder with background notes', () => {
     expect(reminder?.startsWith('Background for this reply')).toBe(true);
     expect(reminder).toContain('They sound tired tonight.');
     expect(reminder?.indexOf('They sound tired')).toBeLessThan(reminder!.indexOf(TURN_STYLE_REMINDER));
+  });
+});
+
+describe('lastExchange', () => {
+  it('returns the latest user message and the agent reply before it', () => {
+    const ctx = llm.ChatContext.empty();
+    ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
+    ctx.addMessage({ role: 'user', content: 'I moved to Boston' });
+    ctx.addMessage({ role: 'assistant', content: 'How is Austin treating you?' });
+    ctx.addMessage({ role: 'user', content: 'No, Boston' });
+    expect(lastExchange(ctx)).toEqual({ user: 'No, Boston', agent: 'How is Austin treating you?' });
+    expect(lastExchange(llm.ChatContext.empty())).toEqual({});
   });
 });

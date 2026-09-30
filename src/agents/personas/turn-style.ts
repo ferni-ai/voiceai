@@ -75,3 +75,21 @@ export function withTurnStyleReminder(
   ctx.items = items;
   return ctx;
 }
+
+/** The latest user message and the agent reply before it, as plain text. */
+export function lastExchange(chatCtx: llm.ChatContext): { user?: string; agent?: string } {
+  const items = chatCtx.items;
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    if (item.type !== 'message' || item.role !== 'user') continue;
+    for (let j = i - 1; j >= 0; j--) {
+      const prev = items[j];
+      if (prev.type === 'message' && prev.role === 'assistant') {
+        return { user: item.textContent, agent: prev.textContent };
+      }
+    }
+    return { user: item.textContent };
+  }
+  return {};
+}
+
