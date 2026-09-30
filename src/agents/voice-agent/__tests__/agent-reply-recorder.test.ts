@@ -23,7 +23,7 @@ import type { PersonaConfig } from '../../../personas/types.js';
 import type { ConversationManager } from '../../../services/conversation-manager.js';
 import type { SessionServices } from '../../../services/index.js';
 import type { UserData } from '../../shared/types.js';
-import { classifyAgentReply } from '../agent-reply-recorder.js';
+import { classifyAgentReply, registerAgentReplyRecorder } from '../agent-reply-recorder.js';
 import { setupSessionStateHandlers, type SessionStateContext } from '../session-state-handler.js';
 
 const ITEM_ADDED = voice.AgentSessionEventTypes.ConversationItemAdded;
@@ -178,6 +178,56 @@ describe('agent reply recording (conversation_item_added)', () => {
     expect(userData.lastResponseHadHumor).toBe(false);
     expect(userData.lastResponseHadStory).toBe(false);
     expect(services.humorCalibration.recordHumorAttempt).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('registerAgentReplyRecorder', () => {
+  it('records a greeting committed before deferred handlers are wired, exactly once', async () => {
+    // Multi-agent setup registers early; the greeting commits; then the
+    // deferred wiring runs setupSessionStateHandlers on the same session.
+    const session = new EventEmitter();
+    Object.assign(session, { say: vi.fn(), generateReply: vi.fn(), interrupt: vi.fn() });
+    const userData = {} as UserData;
+    const services = {
+      addTurn: vi.fn(),
+      humorCalibration: { recordHumorAttempt: vi.fn() },
+      storyPreference: { recordStory: vi.fn() },
+    };
+    const sessionId = `test-early-${Date.now()}`;
+    const ctx = {
+      sessionId,
+      services: services as unknown as SessionServices,
+      userData,
+    };
+
+    expect(registerAgentReplyRecorder(session as never, ctx)).toBe(true);
+    session.emit(ITEM_ADDED, {
+      type: 'conversation_item_added',
+      item: assistantItem('Hey, good morning! How did you sleep?'),
+    });
+    await vi.waitFor(() => expect(services.addTurn).toHaveBeenCalledTimes(1));
+    expect(userData.lastAgentResponse).toBe('Hey, good morning! How did you sleep?');
+
+    const { clearTimers } = setupSessionStateHandlers({
+      session: session as unknown as SessionStateContext['session'],
+      sessionPersona: { id: 'ferni', name: 'Ferni' } as PersonaConfig,
+      conversationManager: {} as ConversationManager,
+      userData,
+      sessionId,
+      services: services as unknown as SessionServices,
+    });
+    session.emit(ITEM_ADDED, {
+      type: 'conversation_item_added',
+      item: assistantItem('That sounds rough. What kept you up?'),
+    });
+    await vi.waitFor(() => expect(services.addTurn).toHaveBeenCalledTimes(2));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
+    clearTimers();
+
+    expect(services.addTurn).toHaveBeenCalledTimes(2);
+    expect(session.listenerCount(ITEM_ADDED)).toBe(1);
   });
 });
 

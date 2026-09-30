@@ -14,7 +14,7 @@
  * @module voice-agent/agent-reply-recorder
  */
 
-import type { llm } from '@livekit/agents';
+import { voice, type llm } from '@livekit/agents';
 import {
   recordAdviceGiven,
   recordAgentResponse,
@@ -139,5 +139,28 @@ export async function recordCommittedAgentReply(
     { sessionId, chars: text.length, interrupted: message.interrupted, ...signals },
     'Agent reply recorded'
   );
+  return true;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ReplySession = voice.AgentSession<any>;
+
+const recordingSessions = new WeakSet<object>();
+
+/**
+ * Start recording committed replies on a session. Safe to call more than once:
+ * multi-agent setup registers before the greeting (handlers are wired after
+ * it), and the session-state handlers register again later.
+ * Returns false when the session was already recording.
+ */
+export function registerAgentReplyRecorder(session: ReplySession, ctx: AgentReplyContext): boolean {
+  if (recordingSessions.has(session)) return false;
+  recordingSessions.add(session);
+
+  session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (event) => {
+    recordCommittedAgentReply(ctx, event.item).catch((error) => {
+      log.warn({ error: String(error), sessionId: ctx.sessionId }, 'Recording agent reply failed');
+    });
+  });
   return true;
 }

@@ -43,7 +43,7 @@ import type { ConversationManager } from '../../services/conversation-manager.js
 import type { SessionServices } from '../../services/index.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { isRealSilence, type SessionStates } from './dead-air.js';
-import { recordCommittedAgentReply } from './agent-reply-recorder.js';
+import { registerAgentReplyRecorder } from './agent-reply-recorder.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import {
@@ -659,11 +659,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // Fires once per committed reply (LLM, cached, greeting), with the text
   // truncated to what was spoken if the user interrupted.
   // ============================================================
-  session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (event) => {
-    recordCommittedAgentReply({ sessionId, services, userData }, event.item).catch((error) => {
-      diag.warn('Recording agent reply failed', { error: String(error), sessionId });
-    });
-  });
+  registerAgentReplyRecorder(session, { sessionId, services, userData });
 
   // ============================================================
   // AGENT STATE CHANGED HANDLER
