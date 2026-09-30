@@ -1575,6 +1575,27 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // Crisis guard in SHADOW + per-turn voice/delivery: same observers as the
     // single-agent path, so the live multi-agent path is not silently skipped.
     const crisisGuardMode = resolveCrisisGuardMode();
+    // Diagnostics (2026-09-30): every interrupt() our code makes also cancels
+    // LiveKit's preemptive reply, so log who calls it; and confirm the
+    // PREEMPTIVE_DECISION patch to @livekit/agents is in this build.
+    if (process.env.INTERRUPT_TRACE !== 'off') {
+      const original = session.interrupt.bind(session);
+      session.interrupt = ((options?: { force?: boolean }) => {
+        const caller = (new Error().stack ?? '').split('\n')[2]?.trim().slice(0, 160);
+        log.info({ sessionId, caller, agentState: session.agentState }, 'SESSION_INTERRUPT');
+        return original(options);
+      }) as typeof session.interrupt;
+      void import('node:fs/promises')
+        .then(async (fs) => {
+          const { createRequire } = await import('node:module');
+          const entry = createRequire(import.meta.url).resolve('@livekit/agents');
+          const file = entry.replace(/dist\/.*$/, 'dist/voice/agent_activity.js');
+          const src = await fs.readFile(file, 'utf8');
+          log.info({ patched: src.includes('PREEMPTIVE_DECISION') }, 'LK_PATCH_CHECK');
+        })
+        .catch((error: unknown) => log.warn({ error: String(error) }, 'LK_PATCH_CHECK failed'));
+    }
+
     // Stop Ferni within ~a second of a clear interruption (barge-in-fastpath.ts);
     // LiveKit's barge-in model still handles backchannels and short overlaps.
     if (process.env.BARGE_IN_FASTPATH !== 'off') {
