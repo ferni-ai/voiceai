@@ -540,7 +540,6 @@ export async function render(): Promise<string> {
         --critical: var(--color-semantic-error, #b54a4a);
         --success: var(--color-semantic-success, #4a6741);
         --border-subtle: rgba(255, 255, 255, 0.08);
-        --font-mono: var(--font-mono, 'JetBrains Mono', 'Fira Code', monospace);
       }
 
       .health-banner {

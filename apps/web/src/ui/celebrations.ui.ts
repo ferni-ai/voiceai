@@ -137,12 +137,14 @@ function injectCelebrationStyles(): void {
       animation: first-connect 2000ms var(--ease-gentle) forwards;
     }
 
+    /* A soft persona-tinted warmth. (Animating --color-background-primary in
+       terms of itself was a cycle that blanked every background mid-animation.) */
     @keyframes first-connect {
-      0%, 100% { 
-        --color-background-primary: var(--color-background-primary);
+      0%, 100% {
+        background-color: var(--color-background-primary);
       }
-      50% { 
-        --color-background-primary: color-mix(in srgb, var(--color-background-primary), var(--persona-tint) 10%);
+      50% {
+        background-color: color-mix(in srgb, var(--color-background-primary), var(--persona-tint) 10%);
       }
     }
 
