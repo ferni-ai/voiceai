@@ -314,7 +314,7 @@ Before going to production:
 ## Next Steps
 
 - [Webhook Security Guide](/developers/blog/webhook-security/)
-- [Multi-Tenant Architecture](/developers/docs/multi-tenant/)
-- [Voice Biometrics API](/developers/docs/voice-auth/)
+- [OAuth API](/developers/api/oauth/)
+- [API Reference](/developers/api/)
 
 Questions? Join us on [Discord](https://discord.gg/ferni).

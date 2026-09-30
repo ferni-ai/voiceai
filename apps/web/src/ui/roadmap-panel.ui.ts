@@ -166,7 +166,7 @@ class RoadmapPanelUI {
       <div class="roadmap-panel__card">
         <div class="roadmap-panel__loading">
           <div class="roadmap-panel__loading-icon">${ICONS.seed}</div>
-          <p class="roadmap-panel__loading-text">${t('roadmap.loading') || 'Loading...'}</p>
+          <p class="roadmap-panel__loading-text">${t('roadmap.loading', 'Loading...')}</p>
         </div>
       </div>
     `;
@@ -255,7 +255,7 @@ class RoadmapPanelUI {
             <div class="roadmap-panel__seed-balance" data-seeds-info>
               <span class="roadmap-panel__seed-icon">${ICONS.seed}</span>
               <span class="roadmap-panel__seed-count">${seedBalance}</span>
-              <span class="roadmap-panel__seed-info-trigger" role="button" tabindex="0" title="${t('roadmap.howSeedsWork.title') || 'How do seeds work?'}">?</span>
+              <span class="roadmap-panel__seed-info-trigger" role="button" tabindex="0" title="${t('roadmap.howSeedsWork.title', 'How do seeds work?')}">?</span>
             </div>
             ${this.renderStreakProgress()}
           </div>
@@ -282,8 +282,8 @@ class RoadmapPanelUI {
           <!-- Suggest a Feature Button -->
           <button aria-label=") || '5 seeds'}" class="roadmap-panel__suggest-btn" ${seedBalance < 5 ? 'disabled' : ''}>
             <span class="roadmap-panel__suggest-icon">${ICONS.lightbulb}</span>
-            <span class="roadmap-panel__suggest-text">${t('roadmap.plantNewSeed') || 'Plant a New Seed'}</span>
-            <span class="roadmap-panel__suggest-cost">${t('roadmap.costSeeds', { count: 5 }) || '5 seeds'}</span>
+            <span class="roadmap-panel__suggest-text">${t('roadmap.plantNewSeed', 'Plant a New Seed')}</span>
+            <span class="roadmap-panel__suggest-cost">${t('roadmap.costSeeds', { count: 5 }, '5 seeds')}</span>
           </button>
 
           <!-- Smart Recommendations (based on usage patterns) -->
@@ -319,7 +319,7 @@ class RoadmapPanelUI {
       return `
         <div class="roadmap-panel__streak-progress roadmap-panel__streak-progress--inactive">
           <span class="roadmap-panel__streak-icon">${ICONS.flame}</span>
-          <span class="roadmap-panel__streak-text">${t('roadmap.streak.startStreak') || 'Start a streak!'}</span>
+          <span class="roadmap-panel__streak-text">${t('roadmap.streak.startStreak', 'Start a streak!')}</span>
         </div>
       `;
     }
@@ -329,14 +329,14 @@ class RoadmapPanelUI {
     const daysToGo = nextMilestone ? nextMilestone - currentStreak : 0;
 
     return `
-      <div class="roadmap-panel__streak-progress" title="${t('roadmap.streak.tooltip', { days: currentStreak }) || `${currentStreak} day streak!`}">
+      <div class="roadmap-panel__streak-progress" title="${t('roadmap.streak.tooltip', { days: currentStreak }, `${currentStreak} day streak!`)}">
         <span class="roadmap-panel__streak-icon">${ICONS.flame}</span>
         <span class="roadmap-panel__streak-count">${currentStreak}</span>
         ${nextMilestone ? `
           <div class="roadmap-panel__streak-bar">
             <div class="roadmap-panel__streak-bar-fill" style="width: ${progress}%"></div>
           </div>
-          <span class="roadmap-panel__streak-next" title="${t('roadmap.streak.nextReward', { days: daysToGo }) || `${daysToGo} days to next reward`}">
+          <span class="roadmap-panel__streak-next" title="${t('roadmap.streak.nextReward', { days: daysToGo }, `${daysToGo} days to next reward`)}">
             ${nextMilestone}
           </span>
         ` : `
@@ -379,11 +379,11 @@ class RoadmapPanelUI {
         <div class="roadmap-panel__recommendations-header">
           <span class="roadmap-panel__recommendations-icon">${ICONS.sparkles}</span>
           <h3 class="roadmap-panel__recommendations-title">
-            ${t('roadmap.recommendedForYou') || 'Recommended for you'}
+            ${t('roadmap.recommendedForYou', 'Recommended for you')}
           </h3>
         </div>
         <p class="roadmap-panel__recommendations-subtitle">
-          ${t('roadmap.recommendedSubtitle') || 'Based on your conversations'}
+          ${t('roadmap.recommendedSubtitle', 'Based on your conversations')}
         </p>
         <div class="roadmap-panel__recommendations-list">
           ${topRecs.map((rec) => this.renderRecommendationCard(rec)).join('')}
@@ -412,14 +412,14 @@ class RoadmapPanelUI {
             <span class="roadmap-recommendation__headline">${rec.feature.headline}</span>
           </div>
           <p class="roadmap-recommendation__reason">
-            ${t('roadmap.youMentioned') || 'You\'ve mentioned'} "${triggerSample}"
+            ${t('roadmap.youMentioned', 'You\'ve mentioned')} "${triggerSample}"
           </p>
           <div class="roadmap-recommendation__meta">
             <span class="roadmap-recommendation__stage ${stageInfo.colorClass}">${stageInfo.label}</span>
-            <span class="roadmap-recommendation__cta">${t('roadmap.learnMore') || 'Learn more'} →</span>
+            <span class="roadmap-recommendation__cta">${t('roadmap.learnMore', 'Learn more')} →</span>
           </div>
         </div>
-        <button class="roadmap-recommendation__dismiss" data-dismiss="${rec.featureId}" aria-label="${t('common.dismiss') || 'Dismiss'}">
+        <button class="roadmap-recommendation__dismiss" data-dismiss="${rec.featureId}" aria-label="${t('common.dismiss', 'Dismiss')}">
           ×
         </button>
       </button>
@@ -456,7 +456,7 @@ class RoadmapPanelUI {
               ${ICONS.seed}
             </span>
             <span class="roadmap-card__count">
-              ${this.formatNumber(totalSeeds)}${seedsPlanted > 0 ? ` · ${seedsPlanted} ${t('roadmap.yours') || 'yours'}` : ''}
+              ${this.formatNumber(totalSeeds)}${seedsPlanted > 0 ? ` · ${seedsPlanted} ${t('roadmap.yours', 'yours')}` : ''}
             </span>
           </div>
         `
@@ -494,7 +494,7 @@ class RoadmapPanelUI {
             </p>
             <h2 class="roadmap-panel__title" id="roadmap-title">${feature.headline}</h2>
           </div>
-          <div class="roadmap-panel__seed-balance" title="${t('roadmap.seedBalanceTooltip') || 'Your seeds to plant on features'}">
+          <div class="roadmap-panel__seed-balance" title="${t('roadmap.seedBalanceTooltip', 'Your seeds to plant on features')}">
             <span class="roadmap-panel__seed-icon">${ICONS.seed}</span>
             <span class="roadmap-panel__seed-count">${seedBalance}</span>
           </div>
@@ -553,16 +553,16 @@ class RoadmapPanelUI {
                 <div class="roadmap-detail__seed-total">
                   <span class="roadmap-detail__seed-total-icon">${ICONS.seed}</span>
                   <span class="roadmap-detail__seed-total-count">${this.formatNumber(totalSeeds)}</span>
-                  <span class="roadmap-detail__seed-total-label">${t('roadmap.seedsPlanted') || 'seeds planted'}</span>
+                  <span class="roadmap-detail__seed-total-label">${t('roadmap.seedsPlanted', 'seeds planted')}</span>
                 </div>
                 <div class="roadmap-detail__seed-gardeners">
-                  ${t('roadmap.gardeners', { count: this.formatNumber(uniqueVoters) }) || `${this.formatNumber(uniqueVoters)} gardeners`}
+                  ${t('roadmap.gardeners', { count: this.formatNumber(uniqueVoters) }, `${this.formatNumber(uniqueVoters)} gardeners`)}
                 </div>
               </div>
 
               ${hasVoted ? `
                 <div class="roadmap-detail__your-seeds">
-                  <span class="roadmap-detail__your-seeds-label">${t('roadmap.yourSeeds') || 'Your seeds'}:</span>
+                  <span class="roadmap-detail__your-seeds-label">${t('roadmap.yourSeeds', 'Your seeds')}:</span>
                   <span class="roadmap-detail__your-seeds-count">${seedsPlanted}</span>
                 </div>
               ` : ''}
@@ -571,7 +571,7 @@ class RoadmapPanelUI {
               ${seedBalance > 0 ? `
                 <div class="roadmap-detail__allocator">
                   <label class="roadmap-detail__allocator-label">
-                    ${t('roadmap.plantSeeds') || 'Plant seeds on this feature'}
+                    ${t('roadmap.plantSeeds', 'Plant seeds on this feature')}
                   </label>
                   <div class="roadmap-detail__slider-row">
                     <button class="roadmap-detail__slider-btn" data-action="decrease" aria-label="${t('accessibility.decrease')}">−</button>
@@ -589,18 +589,18 @@ class RoadmapPanelUI {
                   <div class="roadmap-detail__slider-value">
                     <span class="roadmap-detail__slider-seeds">${ICONS.seed}</span>
                     <span class="roadmap-detail__slider-count">1</span>
-                    <span class="roadmap-detail__slider-label">${t('roadmap.seedsToPlant') || 'seed to plant'}</span>
+                    <span class="roadmap-detail__slider-label">${t('roadmap.seedsToPlant', 'seed to plant')}</span>
                   </div>
                   <button class="roadmap-detail__plant-btn"
                           data-action="plant-multiple"
                           data-feature="${feature.id}">
                     <span class="roadmap-detail__plant-btn-icon" role="button" tabindex="0">${ICONS.seed}</span>
-                    <span class="roadmap-detail__plant-btn-text" role="button" tabindex="0">${t('roadmap.plantNow') || 'Plant Now'}</span>
+                    <span class="roadmap-detail__plant-btn-text" role="button" tabindex="0">${t('roadmap.plantNow', 'Plant Now')}</span>
                   </button>
                 </div>
               ` : `
                 <p class="roadmap-detail__vote-hint roadmap-detail__vote-hint--empty">
-                  ${t('roadmap.noSeedsHint') || 'Have more conversations to earn seeds!'}
+                  ${t('roadmap.noSeedsHint', 'Have more conversations to earn seeds!')}
                 </p>
               `}
 
@@ -608,7 +608,7 @@ class RoadmapPanelUI {
                 <button aria-label="()" class="roadmap-detail__remove-btn"
                         data-action="unplant"
                         data-feature="${feature.id}">
-                  ${t('roadmap.removeSeeds') || 'Remove my seeds'} (${t('roadmap.refund50') || '50% refund'})
+                  ${t('roadmap.removeSeeds', 'Remove my seeds')} (${t('roadmap.refund50', '50% refund')})
                 </button>
               ` : ''}
             </div>
@@ -638,11 +638,11 @@ class RoadmapPanelUI {
           <div class="roadmap-panel__header-content">
             <p class="roadmap-panel__eyebrow">
               <span class="roadmap-panel__eyebrow-icon">${ICONS.lightbulb}</span>
-              ${t('roadmap.newIdea') || 'New Idea'}
+              ${t('roadmap.newIdea', 'New Idea')}
             </p>
-            <h2 class="roadmap-panel__title" id="roadmap-title">${t('roadmap.plantNewSeed') || 'Plant a New Seed'}</h2>
+            <h2 class="roadmap-panel__title" id="roadmap-title">${t('roadmap.plantNewSeed', 'Plant a New Seed')}</h2>
           </div>
-          <div class="roadmap-panel__seed-balance" title="${t('roadmap.seedBalanceTooltip') || 'Your seeds to plant on features'}">
+          <div class="roadmap-panel__seed-balance" title="${t('roadmap.seedBalanceTooltip', 'Your seeds to plant on features')}">
             <span class="roadmap-panel__seed-icon">${ICONS.seed}</span>
             <span class="roadmap-panel__seed-count">${seedBalance}</span>
           </div>
@@ -651,19 +651,19 @@ class RoadmapPanelUI {
 
         <div class="roadmap-panel__body">
           <p class="roadmap-suggestion__intro">
-            ${t('roadmap.suggestionIntro') || 'Have an idea for something Ferni should do? Plant a seed and let the community water it!'}
+            ${t('roadmap.suggestionIntro', 'Have an idea for something Ferni should do? Plant a seed and let the community water it!')}
           </p>
 
           <form class="roadmap-suggestion__form" id="suggestion-form">
             <div class="roadmap-suggestion__field">
               <label class="roadmap-suggestion__label" for="suggestion-title">
-                ${t('roadmap.suggestionTitle') || 'What should Ferni be able to do?'}
+                ${t('roadmap.suggestionTitle', 'What should Ferni be able to do?')}
               </label>
               <input
                 type="text"
                 id="suggestion-title"
                 class="roadmap-suggestion__input"
-                placeholder="${t('roadmap.suggestionTitlePlaceholder') || 'e.g., Remember my pet\'s name'}"
+                placeholder="${t('roadmap.suggestionTitlePlaceholder', 'e.g., Remember my pet\'s name')}"
                 maxlength="100"
                 required>
               <span class="roadmap-suggestion__char-count"><span id="title-count">0</span>/100</span>
@@ -671,12 +671,12 @@ class RoadmapPanelUI {
 
             <div class="roadmap-suggestion__field">
               <label class="roadmap-suggestion__label" for="suggestion-description">
-                ${t('roadmap.suggestionDescription') || 'Tell us more (optional)'}
+                ${t('roadmap.suggestionDescription', 'Tell us more (optional)')}
               </label>
               <textarea
                 id="suggestion-description"
                 class="roadmap-suggestion__textarea"
-                placeholder="${t('roadmap.suggestionDescriptionPlaceholder') || 'Why would this be helpful? How would you use it?'}"
+                placeholder="${t('roadmap.suggestionDescriptionPlaceholder', 'Why would this be helpful? How would you use it?')}"
                 maxlength="500"
                 rows="4"></textarea>
               <span class="roadmap-suggestion__char-count"><span id="desc-count">0</span>/500</span>
@@ -684,19 +684,19 @@ class RoadmapPanelUI {
 
             <div class="roadmap-suggestion__field">
               <label class="roadmap-suggestion__label" for="suggestion-category">
-                ${t('roadmap.suggestionCategory') || 'Category'}
+                ${t('roadmap.suggestionCategory', 'Category')}
               </label>
               <select id="suggestion-category" class="roadmap-suggestion__select" required>
-                <option value="connect">${t('roadmap.categories.connect') || 'Connect - Relationships & Communication'}</option>
-                <option value="personalize">${t('roadmap.categories.personalize') || 'Personalize - Make Ferni Yours'}</option>
-                <option value="platform">${t('roadmap.categories.platform') || 'Platform - New Capabilities'}</option>
+                <option value="connect">${t('roadmap.categories.connect', 'Connect - Relationships & Communication')}</option>
+                <option value="personalize">${t('roadmap.categories.personalize', 'Personalize - Make Ferni Yours')}</option>
+                <option value="platform">${t('roadmap.categories.platform', 'Platform - New Capabilities')}</option>
               </select>
             </div>
 
             <div class="roadmap-suggestion__cost-notice">
               <span class="roadmap-suggestion__cost-icon">${ICONS.seed}</span>
               <span class="roadmap-suggestion__cost-text">
-                ${t('roadmap.suggestionCost') || 'Submitting costs 5 seeds (shows commitment, prevents spam)'}
+                ${t('roadmap.suggestionCost', 'Submitting costs 5 seeds (shows commitment, prevents spam)')}
               </span>
             </div>
 
@@ -705,12 +705,12 @@ class RoadmapPanelUI {
               class="roadmap-suggestion__submit"
               ${seedBalance < 5 ? 'disabled' : ''}>
               <span class="roadmap-suggestion__submit-icon">${ICONS.seed}</span>
-              <span class="roadmap-suggestion__submit-text">${t('roadmap.submitSuggestion') || 'Plant This Seed'}</span>
+              <span class="roadmap-suggestion__submit-text">${t('roadmap.submitSuggestion', 'Plant This Seed')}</span>
             </button>
 
             ${seedBalance < 5 ? `
               <p class="roadmap-suggestion__warning">
-                ${t('roadmap.needMoreSeeds') || 'You need at least 5 seeds to submit a suggestion. Have more conversations to earn seeds!'}
+                ${t('roadmap.needMoreSeeds', 'You need at least 5 seeds to submit a suggestion. Have more conversations to earn seeds!')}
               </p>
             ` : ''}
           </form>
@@ -773,7 +773,7 @@ class RoadmapPanelUI {
         const submitBtn = form.querySelector('.roadmap-suggestion__submit') as HTMLButtonElement;
         if (submitBtn) {
           submitBtn.disabled = true;
-          submitBtn.innerHTML = `<span class="roadmap-suggestion__submit-text">${t('roadmap.submitting') || 'Planting...'}</span>`;
+          submitBtn.innerHTML = `<span class="roadmap-suggestion__submit-text">${t('roadmap.submitting', 'Planting...')}</span>`;
         }
 
         const result = await roadmapService.submitSuggestion(title, description, category);
@@ -787,7 +787,7 @@ class RoadmapPanelUI {
             submitBtn.disabled = false;
             submitBtn.innerHTML = `
               <span class="roadmap-suggestion__submit-icon">${ICONS.seed}</span>
-              <span class="roadmap-suggestion__submit-text">${t('roadmap.submitSuggestion') || 'Plant This Seed'}</span>
+              <span class="roadmap-suggestion__submit-text">${t('roadmap.submitSuggestion', 'Plant This Seed')}</span>
             `;
           }
           // Show error (could add toast notification here)
@@ -808,12 +808,12 @@ class RoadmapPanelUI {
       body.innerHTML = `
         <div class="roadmap-suggestion__success">
           <div class="roadmap-suggestion__success-icon">${ICONS.seed}</div>
-          <h3 class="roadmap-suggestion__success-title">${t('roadmap.suggestionPlanted') || 'Your seed has been planted!'}</h3>
+          <h3 class="roadmap-suggestion__success-title">${t('roadmap.suggestionPlanted', 'Your seed has been planted!')}</h3>
           <p class="roadmap-suggestion__success-text">
-            ${t('roadmap.suggestionThanks') || 'Thank you for sharing your idea. Others can now water it with their seeds!'}
+            ${t('roadmap.suggestionThanks', 'Thank you for sharing your idea. Others can now water it with their seeds!')}
           </p>
           <button class="roadmap-suggestion__success-btn" onclick="roadmapPanelUI.renderOverview()">
-            ${t('roadmap.backToRoadmap') || 'Back to Roadmap'}
+            ${t('roadmap.backToRoadmap', 'Back to Roadmap')}
           </button>
         </div>
       `;
@@ -913,32 +913,32 @@ class RoadmapPanelUI {
     tooltip.innerHTML = `
       <div class="roadmap-panel__seeds-tooltip-arrow"></div>
       <h4 class="roadmap-panel__seeds-tooltip-title">
-        ${t('roadmap.howSeedsWork.title') || 'How Seeds Work'}
+        ${t('roadmap.howSeedsWork.title', 'How Seeds Work')}
       </h4>
       <ul class="roadmap-panel__seeds-tooltip-list">
         <li>
           <span class="roadmap-panel__seeds-tooltip-icon">${ICONS.conversation}</span>
-          <span>${t('roadmap.howSeedsWork.conversation') || 'Have a conversation: +1 seed'}</span>
+          <span>${t('roadmap.howSeedsWork.conversation', 'Have a conversation: +1 seed')}</span>
         </li>
         <li>
           <span class="roadmap-panel__seeds-tooltip-icon">${ICONS.flame}</span>
-          <span>${t('roadmap.howSeedsWork.streak7') || '7-day streak: +5 seeds'}</span>
+          <span>${t('roadmap.howSeedsWork.streak7', '7-day streak: +5 seeds')}</span>
         </li>
         <li>
           <span class="roadmap-panel__seeds-tooltip-icon">${ICONS.star}</span>
-          <span>${t('roadmap.howSeedsWork.streak30') || '30-day streak: +15 seeds'}</span>
+          <span>${t('roadmap.howSeedsWork.streak30', '30-day streak: +15 seeds')}</span>
         </li>
         <li>
           <span class="roadmap-panel__seeds-tooltip-icon">${ICONS.lightbulb}</span>
-          <span>${t('roadmap.howSeedsWork.suggest') || 'Suggest a feature: -5 seeds'}</span>
+          <span>${t('roadmap.howSeedsWork.suggest', 'Suggest a feature: -5 seeds')}</span>
         </li>
         <li>
           <span class="roadmap-panel__seeds-tooltip-icon">${ICONS.vote}</span>
-          <span>${t('roadmap.howSeedsWork.vote') || 'Vote for features: 1-10 seeds'}</span>
+          <span>${t('roadmap.howSeedsWork.vote', 'Vote for features: 1-10 seeds')}</span>
         </li>
       </ul>
       <p class="roadmap-panel__seeds-tooltip-note">
-        ${t('roadmap.howSeedsWork.note') || 'Seeds help us prioritize what to build next!'}
+        ${t('roadmap.howSeedsWork.note', 'Seeds help us prioritize what to build next!')}
       </p>
     `;
 
@@ -994,8 +994,8 @@ class RoadmapPanelUI {
         sliderCount.textContent = String(value);
         if (sliderLabel) {
           sliderLabel.textContent = value === 1
-            ? (t('roadmap.seedToPlant') || 'seed to plant')
-            : (t('roadmap.seedsToPlant') || 'seeds to plant');
+            ? (t('roadmap.seedToPlant', 'seed to plant'))
+            : (t('roadmap.seedsToPlant', 'seeds to plant'));
         }
         // Update slider track fill
         const percent = ((value - 1) / (parseInt(slider.max) - 1)) * 100;

@@ -189,8 +189,8 @@ MindfulMoments is available at [mindfulmoments.app](https://mindfulmoments.app).
 Inspired to build something similar? Here's how to start:
 
 1. [Ferni Quick Start](/developers/getting-started/)
-2. [Emotion Detection API](/developers/docs/emotion/)
-3. [Building Wellness Apps](/developers/guides/wellness/)
+2. [API Reference](/developers/api/)
+3. [Example Apps](/developers/examples/)
 
 ---
 

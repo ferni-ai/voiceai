@@ -48,20 +48,17 @@ body {
   --color-bg-tertiary: var(--color-background-tertiary);
   --color-bg-elevated: var(--color-background-elevated);
   --color-bg-glass: var(--color-background-glass);
-  --color-border-subtle: var(--color-border-subtle);
-  --color-border-medium: var(--color-border-medium);
-
-  --color-text-primary: var(--color-text-primary);
-  --color-text-secondary: var(--color-text-secondary);
-  --color-text-muted: var(--color-text-muted);
-  --color-text-dimmed: var(--color-text-dimmed);
+  /*
+   * --color-border-*, --color-text-*, --color-accent-hover and --color-accent-glow
+   * come straight from tokens.css. Don't re-declare them here as
+   * `--x: var(--x)`: a self-referencing custom property is a cycle, which makes
+   * it invalid and wipes out the token for every theme.
+   */
 
   /* Ambient warmth - shifts based on time of day (set via JS) */
   --ambient-warmth: 0;
 
   --color-accent: var(--color-accent-primary);
-  --color-accent-hover: var(--color-accent-hover);
-  --color-accent-glow: var(--color-accent-glow);
 
   --color-success: var(--color-semantic-success);
   --color-error: var(--color-semantic-error);

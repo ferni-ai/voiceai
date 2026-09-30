@@ -369,8 +369,8 @@ Our target metrics for production deployments:
 
 ## Next Steps
 
-- [Scaling Guide](/developers/docs/scaling/)
+- [Production Deployment Checklist](/developers/blog/production-deployment-checklist/)
 - [Monitoring & Observability](/developers/blog/monitoring-observability-voice-ai/)
-- [Infrastructure Patterns](/developers/docs/infrastructure/)
+- [Half-Cascade Architecture](/developers/blog/half-cascade-architecture/)
 
 Questions? Join us on [Discord](https://discord.gg/ferni).

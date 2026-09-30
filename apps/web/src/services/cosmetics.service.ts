@@ -360,7 +360,7 @@ export function initCosmeticsService(): void {
   }
 
   // Apply equipped cosmetics
-  applyEquippedCosmetics();
+  applyEquippedCosmetics({ isStartup: true });
 
   log.info('Cosmetics service initialized');
 }
@@ -542,13 +542,16 @@ export function onCosmeticsChange(listener: (cosmetics: UserCosmetics) => void):
 /**
  * Apply equipped cosmetics to the UI
  */
-function applyEquippedCosmetics(): void {
+function applyEquippedCosmetics({ isStartup = false }: { isStartup?: boolean } = {}): void {
   // Apply UI theme
   const themeId = userCosmetics.equipped['ui-theme'];
   if (themeId) {
     const theme = COSMETICS_CATALOG.find((c) => c.id === themeId);
     if (theme?.config) {
-      applyThemeConfig(theme.config);
+      // At startup the default theme must not override the light/dark choice
+      // the user made in Theme settings (initTheme already restored it).
+      const keepUserTheme = isStartup && themeId === DEFAULT_UI_THEMES[0]?.id;
+      applyThemeConfig(keepUserTheme ? { ...theme.config, systemTheme: '' } : theme.config);
     }
   }
 

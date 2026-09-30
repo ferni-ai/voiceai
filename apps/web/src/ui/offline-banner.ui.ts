@@ -181,8 +181,8 @@ function createBanner(): void {
   
   bannerElement.innerHTML = `
     ${WIFI_OFF_ICON}
-    <span class="offline-banner__text">${t('common.offline') || 'You\'re offline'}</span>
-    <button class="offline-banner__retry" type="button">${t('common.retry') || 'Retry'}</button>
+    <span class="offline-banner__text">${t('common.offline', 'You\'re offline')}</span>
+    <button class="offline-banner__retry" type="button">${t('common.retry', 'Retry')}</button>
   `;
   
   // Add retry button handler

@@ -256,5 +256,5 @@ At Ferni, we're building for that future.
 ## Build Both
 
 - [Voice AI Quick Start](/developers/getting-started/)
-- [Hybrid Interface Patterns](/developers/guides/hybrid/)
-- [Modality Detection API](/developers/docs/modality/)
+- [Example Apps](/developers/examples/)
+- [API Reference](/developers/api/)

@@ -2982,12 +2982,19 @@
   },
   "marketplace": {
     "creations": {
-      "noDescription": "No description"
+      "noDescription": "No description",
+      "createButton": "Create an agent",
+      "emptyTitle": "Nothing here yet",
+      "emptyDescription": "Create your own agent: a mentor, a coach, or someone who understands you."
     },
     "empty": {
       "search": "No agents match that search",
       "installed": "You haven't added any agents yet",
       "browse": "No agents here yet. Check back soon!"
+    },
+    "agentCard": {
+      "install": "Add to Team",
+      "uninstall": "Remove from Team"
     }
   }
 }

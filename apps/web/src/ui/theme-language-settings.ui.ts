@@ -398,10 +398,10 @@ function render(): void {
     <div class="theme-language-settings__panel" role="dialog" aria-labelledby="tls-title" aria-modal="true">
       <header class="theme-language-settings__header">
         <div class="theme-language-settings__title-group">
-          <span class="theme-language-settings__eyebrow">${t('settings.preferences') || 'PREFERENCES'}</span>
-          <h2 id="tls-title" class="theme-language-settings__title">${t('menu.items.themeLanguage') || 'Theme & Language'}</h2>
+          <span class="theme-language-settings__eyebrow">${t('settings.preferences', 'PREFERENCES')}</span>
+          <h2 id="tls-title" class="theme-language-settings__title">${t('menu.items.themeLanguage', 'Theme & Language')}</h2>
         </div>
-        <button class="theme-language-settings__close" aria-label="${t('common.close') || 'Close'}" data-action="close">
+        <button class="theme-language-settings__close" aria-label="${t('common.close', 'Close')}" data-action="close">
           ${ICONS.close}
         </button>
       </header>
@@ -411,7 +411,7 @@ function render(): void {
         <section class="theme-language-settings__section">
           <div class="theme-language-settings__section-header">
             ${ICONS.sun}
-            <h3 class="theme-language-settings__section-title">${t('settings.appearance') || 'Appearance'}</h3>
+            <h3 class="theme-language-settings__section-title">${t('settings.appearance', 'Appearance')}</h3>
           </div>
           <div class="theme-language-settings__themes" role="radiogroup" aria-label="${t('accessibility.themeSelection')}">
             ${renderThemeOption('zen', currentTheme)}
@@ -423,7 +423,7 @@ function render(): void {
         <section class="theme-language-settings__section">
           <div class="theme-language-settings__section-header">
             ${ICONS.globe}
-            <h3 class="theme-language-settings__section-title">${t('settings.language') || 'Language'}</h3>
+            <h3 class="theme-language-settings__section-title">${t('settings.language', 'Language')}</h3>
           </div>
           <div class="theme-language-settings__languages" role="listbox" aria-label="${t('accessibility.languageSelection')}">
             ${SUPPORTED_LOCALES.map((locale) => renderLanguageOption(locale, currentLocale)).join('')}

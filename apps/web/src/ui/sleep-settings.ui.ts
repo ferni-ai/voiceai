@@ -444,10 +444,10 @@ function render(): string {
     <div class="sleep-settings__panel" role="dialog" aria-modal="true" aria-labelledby="sleep-settings-title">
       <header class="sleep-settings__header">
         <div class="sleep-settings__title-group">
-          <span class="sleep-settings__eyebrow">${t('sleepSettings.eyebrow') || 'Ambient Experience'}</span>
-          <h2 class="sleep-settings__title" id="sleep-settings-title">${t('sleepSettings.title') || 'Sleep Schedule'}</h2>
+          <span class="sleep-settings__eyebrow">${t('sleepSettings.eyebrow', 'Ambient Experience')}</span>
+          <h2 class="sleep-settings__title" id="sleep-settings-title">${t('sleepSettings.title', 'Sleep Schedule')}</h2>
         </div>
-        <button class="sleep-settings__close" aria-label="${t('common.close') || 'Close'}" data-action="close">
+        <button class="sleep-settings__close" aria-label="${t('common.close', 'Close')}" data-action="close">
           ${ICONS.close}
         </button>
       </header>
@@ -457,7 +457,7 @@ function render(): string {
         <div class="sleep-settings__preview" role="status" aria-live="polite">
           <span class="sleep-settings__preview-emoji" aria-hidden="true">${periodInfo.emoji}</span>
           <div class="sleep-settings__preview-info">
-            <p class="sleep-settings__preview-name">${t('sleepSettings.currentPeriod', { period: periodInfo.name }) || `Currently: ${periodInfo.name}`}</p>
+            <p class="sleep-settings__preview-name">${t('sleepSettings.currentPeriod', { period: periodInfo.name }, `Currently: ${periodInfo.name}`)}</p>
             <p class="sleep-settings__preview-desc">${periodInfo.description}</p>
           </div>
         </div>
@@ -466,7 +466,7 @@ function render(): string {
         <div class="sleep-settings__time-group">
           <label class="sleep-settings__time-label" for="wake-time-slider">
             ${ICONS.sunrise}
-            <span>${t('sleepSettings.wakeTime') || 'Wake Time'}</span>
+            <span>${t('sleepSettings.wakeTime', 'Wake Time')}</span>
           </label>
           <div class="sleep-settings__time-slider">
             <input 
@@ -490,7 +490,7 @@ function render(): string {
         <div class="sleep-settings__time-group">
           <label class="sleep-settings__time-label" for="sleep-time-slider">
             ${ICONS.sunset}
-            <span>${t('sleepSettings.sleepTime') || 'Sleep Time'}</span>
+            <span>${t('sleepSettings.sleepTime', 'Sleep Time')}</span>
           </label>
           <div class="sleep-settings__time-slider">
             <input 
@@ -511,19 +511,19 @@ function render(): string {
         </div>
 
         <!-- Toggles -->
-        <div class="sleep-settings__toggles" role="group" aria-label="${t('sleepSettings.description') || 'Sleep preferences'}">
+        <div class="sleep-settings__toggles" role="group" aria-label="${t('sleepSettings.description', 'Sleep preferences')}">
           <div 
             class="sleep-settings__toggle ${currentPattern.isNightOwl ? 'sleep-settings__toggle--active' : ''}" 
             data-toggle="nightOwl"
             role="switch"
             aria-checked="${currentPattern.isNightOwl}"
-            aria-label="${t('sleepSettings.nightOwl.title') || 'Night Owl'}"
+            aria-label="${t('sleepSettings.nightOwl.title', 'Night Owl')}"
             tabindex="0"
           >
             <div class="sleep-settings__toggle-icon" aria-hidden="true">${ICONS.owl}</div>
             <div class="sleep-settings__toggle-info">
-              <p class="sleep-settings__toggle-name">${t('sleepSettings.nightOwl.title') || 'Night Owl'}</p>
-              <p class="sleep-settings__toggle-desc">${t('sleepSettings.nightOwl.description') || "I'm more active late at night"}</p>
+              <p class="sleep-settings__toggle-name">${t('sleepSettings.nightOwl.title', 'Night Owl')}</p>
+              <p class="sleep-settings__toggle-desc">${t('sleepSettings.nightOwl.description', "I'm more active late at night")}</p>
             </div>
             <div class="sleep-settings__toggle-switch" aria-hidden="true"></div>
           </div>
@@ -533,13 +533,13 @@ function render(): string {
             data-toggle="earlyBird"
             role="switch"
             aria-checked="${currentPattern.isEarlyBird}"
-            aria-label="${t('sleepSettings.earlyBird.title') || 'Early Bird'}"
+            aria-label="${t('sleepSettings.earlyBird.title', 'Early Bird')}"
             tabindex="0"
           >
             <div class="sleep-settings__toggle-icon" aria-hidden="true">${ICONS.bird}</div>
             <div class="sleep-settings__toggle-info">
-              <p class="sleep-settings__toggle-name">${t('sleepSettings.earlyBird.title') || 'Early Bird'}</p>
-              <p class="sleep-settings__toggle-desc">${t('sleepSettings.earlyBird.description') || "I'm most productive in early morning"}</p>
+              <p class="sleep-settings__toggle-name">${t('sleepSettings.earlyBird.title', 'Early Bird')}</p>
+              <p class="sleep-settings__toggle-desc">${t('sleepSettings.earlyBird.description', "I'm most productive in early morning")}</p>
             </div>
             <div class="sleep-settings__toggle-switch" aria-hidden="true"></div>
           </div>
@@ -549,10 +549,10 @@ function render(): string {
         <div class="sleep-settings__actions">
           <button class="sleep-settings__btn sleep-settings__btn--secondary" data-action="auto-detect">
             ${ICONS.sparkles}
-            <span>${t('sleepSettings.autoDetect') || 'Auto-detect'}</span>
+            <span>${t('sleepSettings.autoDetect', 'Auto-detect')}</span>
           </button>
           <button class="sleep-settings__btn sleep-settings__btn--primary" data-action="save">
-            <span>${t('sleepSettings.save') || 'Save'}</span>
+            <span>${t('sleepSettings.save', 'Save')}</span>
           </button>
         </div>
       </div>
@@ -633,7 +633,7 @@ function setupEventHandlers(): void {
   autoDetectBtn?.addEventListener('click', async () => {
     const btn = autoDetectBtn as HTMLButtonElement;
     btn.disabled = true;
-    btn.innerHTML = `<span>${t('sleepSettings.detecting') || 'Detecting...'}</span>`;
+    btn.innerHTML = `<span>${t('sleepSettings.detecting', 'Detecting...')}</span>`;
     
     const inferred = await visualStorytellingService.autoInferSleepPattern();
     
@@ -642,13 +642,13 @@ function setupEventHandlers(): void {
       updateSliders();
       updateToggles();
       updatePreview();
-      toast.success(t('sleepSettings.patternDetected') || 'Pattern detected!');
+      toast.success(t('sleepSettings.patternDetected', 'Pattern detected!'));
     } else {
-      toast.info(t('sleepSettings.notEnoughData') || 'Not enough data yet');
+      toast.info(t('sleepSettings.notEnoughData', 'Not enough data yet'));
     }
     
     btn.disabled = false;
-    btn.innerHTML = `${ICONS.sparkles}<span>${t('sleepSettings.autoDetect') || 'Auto-detect'}</span>`;
+    btn.innerHTML = `${ICONS.sparkles}<span>${t('sleepSettings.autoDetect', 'Auto-detect')}</span>`;
   });
 
   // Save button
@@ -656,10 +656,10 @@ function setupEventHandlers(): void {
   saveBtn?.addEventListener('click', async () => {
     const success = await visualStorytellingService.updateSleepPattern(currentPattern);
     if (success) {
-      toast.success(t('sleepSettings.saved') || 'Saved!');
+      toast.success(t('sleepSettings.saved', 'Saved!'));
       hide();
     } else {
-      toast.error(t('sleepSettings.saveError') || "Couldn't save. Try again?");
+      toast.error(t('sleepSettings.saveError', "Couldn't save. Try again?"));
     }
   });
 
@@ -719,7 +719,7 @@ function updatePreview(): void {
   const desc = container.querySelector('.sleep-settings__preview-desc');
 
   if (emoji) emoji.textContent = periodInfo.emoji;
-  if (name) name.textContent = t('sleepSettings.currentPeriod', { period: periodInfo.name }) || `Currently: ${periodInfo.name}`;
+  if (name) name.textContent = t('sleepSettings.currentPeriod', { period: periodInfo.name }, `Currently: ${periodInfo.name}`);
   if (desc) desc.textContent = periodInfo.description;
 }
 

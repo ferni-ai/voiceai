@@ -73,17 +73,11 @@ export function getVisualizationStyles(): string {
       --viz-energy-mental: var(--persona-peter, #3a6b73);
       --viz-energy-physical: var(--persona-ferni, #4a6741);
 
-      /* Status tokens - sourced from design system */
-      --viz-status-thriving: var(--viz-status-thriving, #3d7a52);
-      --viz-status-balanced: var(--viz-status-balanced, #3D5A45);
-      --viz-status-stretched: var(--viz-status-stretched, #a67c35);
-      --viz-status-depleted: var(--viz-status-depleted, #c67840);
-      --viz-status-critical: var(--viz-status-critical, #b5453a);
-
-      /* Priority tokens - sourced from design system */
-      --viz-priority-high: var(--viz-priority-high, #b5453a);
-      --viz-priority-medium: var(--viz-priority-medium, #a67c35);
-      --viz-priority-low: var(--viz-priority-low, #756a5e);
+      /*
+       * Status (--viz-status-*) and priority (--viz-priority-*) tokens come
+       * from design-system tokens.css on :root. Re-declaring them here as
+       * var(--same-name, fallback) is a cycle that invalidates them.
+       */
 
       /* Mood tokens - sourced from design system (--viz-moods-*) */
       --viz-mood-calm: var(--viz-moods-calm, #3D5A45);

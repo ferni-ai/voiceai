@@ -17,8 +17,20 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
+/**
+ * Port the app is served on. Defaults to the Vite dev port (3004); override with
+ * PLAYWRIGHT_PORT to run next to an already-running dev server.
+ */
+const PORT = Number(process.env.PLAYWRIGHT_PORT ?? 3004);
+const BASE_URL = `http://localhost:${PORT}`;
+
 export default defineConfig({
   testDir: './tests/e2e',
+  /*
+   * Only *.spec.ts files are Playwright tests. The *.test.ts files in this
+   * folder are Vitest suites (they import from 'vitest') and run via `pnpm test`.
+   */
+  testMatch: '**/*.spec.ts',
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -35,7 +47,13 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:3004',
+    baseURL: BASE_URL,
+
+    /*
+     * The app registers a service worker; requests it makes bypass page.route,
+     * so mocked backend calls would intermittently hit the real network.
+     */
+    serviceWorkers: 'block',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -51,7 +69,11 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        // Optional: point at a preinstalled Chromium when the bundled revision isn't downloaded.
+        launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined },
+      },
     },
 
     {
@@ -77,8 +99,8 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3004',
+    command: `node scripts/ensure-design-system.mjs && npx vite --port ${PORT} --strictPort`,
+    url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },
