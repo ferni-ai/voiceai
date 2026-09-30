@@ -1,5 +1,5 @@
 diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
-index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..a8cf631b0d50dc2bc88628ac46e914e0a9a8593f 100644
+index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..23728ea310fef260b67c875c8ff76e160bd0f83a 100644
 --- a/dist/voice/agent_activity.cjs
 +++ b/dist/voice/agent_activity.cjs
 @@ -96,6 +96,12 @@ async function cleanupReusableResources(resources, logger) {
@@ -15,7 +15,20 @@ index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..a8cf631b0d50dc2bc88628ac46e914e0
  class AgentActivity {
    agent;
    agentSession;
-@@ -1095,13 +1101,22 @@ class AgentActivity {
+@@ -1081,6 +1087,12 @@ class AgentActivity {
+         );
+       }
+     }
++    // PATCHED(ferni): every final transcript cancelled the pause, interrupting the
++    // reply before onEndOfTurn could see it was only "mm-hmm". Keep it resumable.
++    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(ev.alternatives[0].text)) {
++      this.logger.info({ user_input: ev.alternatives[0].text }, "BACKCHANNEL_KEEPS_PAUSE");
++      return;
++    }
+     this.cancelSpeechPauseTask = this.cancelSpeechPause();
+   }
+   /** Forward audio EOT predictions up to the session so listeners (e.g.
+@@ -1095,13 +1107,22 @@ class AgentActivity {
      if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof import_llm2.LLM)) {
        return;
      }
@@ -39,7 +52,7 @@ index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..a8cf631b0d50dc2bc88628ac46e914e0
      this._preemptiveGenerationCount++;
      this.logger.info(
        {
-@@ -1262,6 +1277,16 @@ class AgentActivity {
+@@ -1262,6 +1283,16 @@ class AgentActivity {
        );
        return true;
      }
@@ -56,7 +69,7 @@ index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..a8cf631b0d50dc2bc88628ac46e914e0
      if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_b = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _b.minWords) > 0) {
        const wordCount = (0, import_word.splitWords)(info.newTranscript, true).length;
        if (wordCount < ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords)) {
-@@ -1677,7 +1702,13 @@ class AgentActivity {
+@@ -1677,7 +1708,13 @@ class AgentActivity {
      let speechHandle;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
@@ -72,7 +85,7 @@ index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..a8cf631b0d50dc2bc88628ac46e914e0
          if (preemptive.userMessage && userMessage) {
            preemptive.userMessage.metrics = userMetricsReport;
 diff --git a/dist/voice/agent_activity.js b/dist/voice/agent_activity.js
-index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..66f2fee5e23983fc5973fe2bb53b06bce9064a35 100644
+index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..559d494a5622431b8730e0c191f0fff682ca1e6c 100644
 --- a/dist/voice/agent_activity.js
 +++ b/dist/voice/agent_activity.js
 @@ -127,6 +127,12 @@ async function cleanupReusableResources(resources, logger) {
@@ -88,7 +101,20 @@ index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..66f2fee5e23983fc5973fe2bb53b06bc
  class AgentActivity {
    agent;
    agentSession;
-@@ -1126,13 +1132,22 @@ class AgentActivity {
+@@ -1112,6 +1118,12 @@ class AgentActivity {
+         );
+       }
+     }
++    // PATCHED(ferni): every final transcript cancelled the pause, interrupting the
++    // reply before onEndOfTurn could see it was only "mm-hmm". Keep it resumable.
++    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(ev.alternatives[0].text)) {
++      this.logger.info({ user_input: ev.alternatives[0].text }, "BACKCHANNEL_KEEPS_PAUSE");
++      return;
++    }
+     this.cancelSpeechPauseTask = this.cancelSpeechPause();
+   }
+   /** Forward audio EOT predictions up to the session so listeners (e.g.
+@@ -1126,13 +1138,22 @@ class AgentActivity {
      if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof LLM)) {
        return;
      }
@@ -112,7 +138,7 @@ index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..66f2fee5e23983fc5973fe2bb53b06bc
      this._preemptiveGenerationCount++;
      this.logger.info(
        {
-@@ -1293,6 +1308,16 @@ class AgentActivity {
+@@ -1293,6 +1314,16 @@ class AgentActivity {
        );
        return true;
      }
@@ -129,7 +155,7 @@ index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..66f2fee5e23983fc5973fe2bb53b06bc
      if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_b = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _b.minWords) > 0) {
        const wordCount = splitWords(info.newTranscript, true).length;
        if (wordCount < ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords)) {
-@@ -1708,7 +1733,13 @@ class AgentActivity {
+@@ -1708,7 +1739,13 @@ class AgentActivity {
      let speechHandle;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;

@@ -41,6 +41,42 @@ function activity(paused: boolean) {
   };
 }
 
+type OnFinalTranscript = (this: unknown, ev: unknown, speaking?: boolean) => void;
+
+async function onFinalTranscript(): Promise<OnFinalTranscript> {
+  const mod = (await import(pathToFileURL(join(agentsDist, 'voice/agent_activity.js')).href)) as {
+    AgentActivity: { prototype: { onFinalTranscript: OnFinalTranscript } };
+  };
+  return mod.AgentActivity.prototype.onFinalTranscript;
+}
+
+describe('LiveKit final transcript over a paused reply (patched)', () => {
+  // Round 9: every final transcript cancelled the pause (interrupting the reply)
+  // before onEndOfTurn ran, so the end-of-turn check never saw a paused reply.
+  it('keeps the reply paused for "mm-hmm" and cancels the pause for real words', async () => {
+    const fn = await onFinalTranscript();
+    for (const [said, cancels] of [
+      ['M M M.', false],
+      ['Yeah.', false],
+      ['Wait, hold on.', true],
+    ] as const) {
+      const a = {
+        ...activity(true),
+        agentSession: {
+          amd: undefined,
+          emit: vi.fn(),
+          sessionOptions: { turnHandling: { interruption: { falseInterruptionTimeout: 2000 } } },
+        },
+        audioRecognition: {},
+        interruptByAudioActivity: vi.fn(),
+        cancelSpeechPause: vi.fn(async () => undefined),
+      };
+      fn.call(a, { alternatives: [{ text: said, language: 'en' }] }, true);
+      expect(a.cancelSpeechPause).toHaveBeenCalledTimes(cancels ? 1 : 0);
+    }
+  });
+});
+
 describe('LiveKit backchannel over a paused reply (patched)', () => {
   it('drops "mm-hmm" and lets the paused reply resume', async () => {
     const fn = await onEndOfTurn();
