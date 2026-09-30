@@ -114,7 +114,7 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       background: rgba(44, 37, 32, 0.75);
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(var(--glass-blur-subtle, 8px));
     }
 
     .sleep-settings__panel {
@@ -127,7 +127,7 @@ function injectStyles(): void {
       background: var(--color-bg-elevated, #fffdfb);
       border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: var(--shadow-xl);
       transform: scale(0.95) translateY(10px);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
     }
@@ -266,7 +266,7 @@ function injectStyles(): void {
       border-radius: 50%;
       background: var(--persona-primary, #4a6741);
       border: 3px solid white;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--shadow-sm);
       cursor: grab;
       transition: transform ${DURATION.FAST}ms;
     }
@@ -364,7 +364,7 @@ function injectStyles(): void {
       height: 20px;
       border-radius: 50%;
       background: white;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--shadow-xs);
       transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
     }
 

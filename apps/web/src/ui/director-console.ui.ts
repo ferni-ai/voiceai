@@ -640,7 +640,7 @@ export class DirectorConsole {
         background: var(--color-background-elevated, #FFFDFB);
         border-radius: var(--radius-2xl, 16px);
         box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25));
-        z-index: 10000;
+        z-index: var(--z-tooltip);
         overflow: hidden;
         display: flex;
         flex-direction: column;

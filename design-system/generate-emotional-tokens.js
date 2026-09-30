@@ -5,7 +5,8 @@
  * Generates apps/web/src/config/emotional-tokens.generated.ts from
  * tokens/color-emotional.json, tokens/typography-emotional.json and the
  * persona colors in tokens/colors.json: mood color adjustments, persona mood
- * palettes, time fading, mood typography, and semantic/holiday palettes.
+ * palettes, mood background tints, time fading (+ atmospheric colors), persona
+ * bridge colors, mood typography, and semantic/holiday palettes.
  *
  * Usage: node design-system/generate-emotional-tokens.js  (part of pnpm tokens:sync)
  */
@@ -44,7 +45,11 @@ const personaBasePalettes = Object.fromEntries(
 const exportsList = [
   ['MOOD_COLOR_ADJUSTMENTS', 'Mood color adjustments (color-emotional.json → moodPalettes.states)', clean(colorEmotional.moodPalettes.states)],
   ['PERSONA_MOOD_BASE_PALETTES', 'Persona palettes for mood adjustment (colors.json primary + color-emotional.json → personaMoodBase)', personaBasePalettes],
+  ['MOOD_BACKGROUND_TINTS', 'Full-screen overlay tint per mood (color-emotional.json → moodPalettes.backgroundTints)', clean(colorEmotional.moodPalettes.backgroundTints)],
   ['TIME_FADING', 'Time-fading parameters by period (color-emotional.json → timeFading.periods)', clean(colorEmotional.timeFading.periods)],
+  ['TIME_FADING_ATMOSPHERIC_COLORS', 'Atmospheric colors old items fade toward (color-emotional.json → timeFading.atmosphericColors)', clean(colorEmotional.timeFading.atmosphericColors)],
+  ['PERSONA_BRIDGE_COLOR_OVERRIDES', 'Hand-tuned persona handoff bridge colors (color-emotional.json → personaTransitions.bridgeOverrides)', clean(colorEmotional.personaTransitions.bridgeOverrides)],
+  ['PERSONA_BRIDGE_FALLBACK_COLOR', 'Neutral bridge color when a transition cannot be computed (color-emotional.json → personaTransitions.fallbackBridgeColor)', colorEmotional.personaTransitions.fallbackBridgeColor],
   ['MOOD_TYPOGRAPHY_TOKENS', 'Typography per mood (typography-emotional.json → moodTypography)', clean(typographyEmotional.moodTypography)],
   ['SEMANTIC_PALETTES', 'Semantic state palettes (color-emotional.json → semanticPalettes)', clean(colorEmotional.semanticPalettes)],
   ['HOLIDAY_PALETTES', 'Holiday/seasonal palettes (color-emotional.json → holidayPalettes)', clean(colorEmotional.holidayPalettes)],

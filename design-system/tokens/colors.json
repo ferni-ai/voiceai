@@ -507,13 +507,16 @@
       "red": "#EA4335",
       "yellow": "#FBBC04",
       "green": "#34A853",
-      "_note": "Google brand colors"
+      "buttonBackground": "#FFFFFF",
+      "buttonText": "#1F1F1F",
+      "_note": "Google brand colors (button colors per Google Sign-In branding guidelines)"
     },
     "apple": {
       "primary": "#000000",
       "blue": "#2997ff",
       "gray": "#86868b",
-      "_note": "Apple brand colors"
+      "buttonText": "#FFFFFF",
+      "_note": "Apple brand colors (Sign in with Apple: black button, white text)"
     },
     "spotify": {
       "primary": "#1DB954",

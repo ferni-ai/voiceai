@@ -150,7 +150,7 @@ const styles = `
     position: absolute;
     inset: 0;
     background: rgba(44, 37, 32, 0.75);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(var(--glass-blur-subtle, 8px));
   }
 
   .family-modal {
@@ -161,7 +161,7 @@ const styles = `
     background: var(--color-bg-elevated, #FFFDFB);
     border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     border-radius: var(--radius-xl, 20px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-xl);
     overflow: hidden;
     transform: scale(0.95);
     transition: transform var(--duration-slow, ${DURATION.SLOW}ms) ${EASING.SPRING};
@@ -529,7 +529,7 @@ const styles = `
   .family-tab--active {
     background: white;
     color: var(--color-text-primary, #2c2520);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-xs);
   }
   
   .family-tab__badge {

@@ -104,6 +104,18 @@ export const PERSONA_MOOD_BASE_PALETTES = {
   }
 } as const;
 
+/** Full-screen overlay tint per mood (color-emotional.json → moodPalettes.backgroundTints) */
+export const MOOD_BACKGROUND_TINTS = {
+  "neutral": "rgba(255, 255, 255, 0)",
+  "happy": "rgba(255, 220, 100, 0.03)",
+  "excited": "rgba(255, 180, 120, 0.04)",
+  "calm": "rgba(180, 220, 255, 0.03)",
+  "thoughtful": "rgba(200, 180, 255, 0.03)",
+  "sad": "rgba(180, 200, 220, 0.03)",
+  "anxious": "rgba(200, 200, 220, 0.02)",
+  "supportive": "rgba(220, 255, 200, 0.03)"
+} as const;
+
 /** Time-fading parameters by period (color-emotional.json → timeFading.periods) */
 export const TIME_FADING = {
   "now": {
@@ -170,6 +182,36 @@ export const TIME_FADING = {
     "blur": 2
   }
 } as const;
+
+/** Atmospheric colors old items fade toward (color-emotional.json → timeFading.atmosphericColors) */
+export const TIME_FADING_ATMOSPHERIC_COLORS = {
+  "ferni": "#8fa89a",
+  "maya": "#c4a69a",
+  "peter": "#8a9fab",
+  "jordan": "#d4b09a",
+  "alex": "#9aa4b8",
+  "nayan": "#c8b08a",
+  "default": "#a8b0b8"
+} as const;
+
+/** Hand-tuned persona handoff bridge colors (color-emotional.json → personaTransitions.bridgeOverrides) */
+export const PERSONA_BRIDGE_COLOR_OVERRIDES = {
+  "ferni-maya": "#8a7a5a",
+  "maya-ferni": "#8a7a5a",
+  "ferni-peter": "#4a6a5a",
+  "peter-ferni": "#4a6a5a",
+  "ferni-nayan": "#7a8a5a",
+  "nayan-ferni": "#7a8a5a",
+  "maya-jordan": "#b87a6a",
+  "jordan-maya": "#b87a6a",
+  "peter-alex": "#4a6a7a",
+  "alex-peter": "#4a6a7a",
+  "alex-nayan": "#8a8a7a",
+  "nayan-alex": "#8a8a7a"
+} as const;
+
+/** Neutral bridge color when a transition cannot be computed (color-emotional.json → personaTransitions.fallbackBridgeColor) */
+export const PERSONA_BRIDGE_FALLBACK_COLOR = "#888888" as const;
 
 /** Typography per mood (typography-emotional.json → moodTypography) */
 export const MOOD_TYPOGRAPHY_TOKENS = {

@@ -11,7 +11,11 @@
  *
  * @module color/time-fading
  */
-import { TIME_FADING } from '../../config/emotional-tokens.generated.js';
+import {
+  PERSONA_MOOD_BASE_PALETTES,
+  TIME_FADING,
+  TIME_FADING_ATMOSPHERIC_COLORS,
+} from '../../config/emotional-tokens.generated.js';
 
 // ============================================================================
 // TYPES
@@ -100,17 +104,10 @@ export const TIME_FADING_PARAMS: Record<TimePeriod, FadingParameters> = TIME_FAD
 
 /**
  * Atmospheric colors per persona.
- * These are the colors that distant/old items shift toward.
+ * These are the colors that distant/old items shift toward
+ * (design-system/tokens/color-emotional.json → timeFading.atmosphericColors).
  */
-const PERSONA_ATMOSPHERIC_COLORS: Record<string, string> = {
-  ferni: '#8fa89a', // Soft sage mist
-  maya: '#c4a69a', // Warm desert haze
-  peter: '#8a9fab', // Cool analytical fog
-  jordan: '#d4b09a', // Golden sunset haze
-  alex: '#9aa4b8', // Professional blue mist
-  nayan: '#c8b08a', // Wisdom gold haze
-  default: '#a8b0b8', // Neutral atmospheric gray-blue
-};
+const PERSONA_ATMOSPHERIC_COLORS: Record<string, string> = TIME_FADING_ATMOSPHERIC_COLORS;
 
 /**
  * Time period thresholds in milliseconds.
@@ -339,7 +336,7 @@ export function calculateTimeFading(config: TimeFadingConfig): TimeFadingResult 
   const params = TIME_FADING_PARAMS[period];
 
   // Get atmospheric color for this persona (with fallback to default)
-  const defaultAtmosColor = '#a8b0b8'; // Neutral atmospheric gray-blue
+  const defaultAtmosColor = TIME_FADING_ATMOSPHERIC_COLORS.default; // Neutral atmospheric gray-blue
   const personaAtmos = PERSONA_ATMOSPHERIC_COLORS[persona];
   const atmosColor: string = atmosphericColor ?? personaAtmos ?? defaultAtmosColor;
 
@@ -644,7 +641,10 @@ export function applyTimeFadingToAll(
  * Create a CSS stylesheet for time-faded elements.
  * Injects into document head.
  */
-export function injectTimeFadingStyles(baseColor: string = '#4a6741', persona?: string): void {
+export function injectTimeFadingStyles(
+  baseColor: string = PERSONA_MOOD_BASE_PALETTES.ferni.primary,
+  persona?: string
+): void {
   const styleId = 'ferni-time-fading-styles';
 
   // Remove existing styles

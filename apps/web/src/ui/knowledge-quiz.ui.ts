@@ -505,8 +505,8 @@ function injectStyles(): void {
       position: fixed;
       inset: 0;
       background: var(--backdrop-overlay, rgba(44, 37, 32, 0.7));
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
       display: flex;
       align-items: center;
       justify-content: center;

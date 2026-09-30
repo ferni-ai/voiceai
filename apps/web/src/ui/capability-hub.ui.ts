@@ -631,14 +631,14 @@ function addStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: var(--z-dropdown);
     }
 
     .capability-modal__backdrop {
       position: absolute;
       inset: 0;
       background: rgba(44, 37, 32, 0.5);
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(var(--glass-blur-subtle, 8px));
     }
 
     .capability-modal__card {

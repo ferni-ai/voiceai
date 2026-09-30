@@ -1025,8 +1025,8 @@ class SanctuaryUI {
         align-items: center;
         justify-content: center;
         background: var(--color-utility-backdrop, rgba(20, 16, 14, 0.85));
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(var(--glass-blur-strong, 20px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-strong, 20px));
         overflow: hidden;
       }
 
@@ -1038,8 +1038,8 @@ class SanctuaryUI {
         margin: var(--space-lg, 24px);
         background: var(--color-bg-elevated, #fffdfb);
         border-radius: var(--radius-2xl, 20px);
-        box-shadow: 
-          0 32px 64px rgba(0, 0, 0, 0.25),
+        box-shadow:
+          var(--shadow-2xl),
           0 0 0 1px var(--color-border-subtle, rgba(44, 37, 32, 0.08));
         overflow: hidden;
         display: flex;

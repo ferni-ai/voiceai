@@ -16,6 +16,10 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import {
+  PERSONA_BRIDGE_FALLBACK_COLOR,
+  PERSONA_MOOD_BASE_PALETTES,
+} from '../config/emotional-tokens.generated.js';
 
 const log = createLogger('DesignSystem');
 
@@ -273,7 +277,7 @@ export async function applyTimeFading(
     const { applyTimeFading: apply } = await import('./color/time-fading.js');
     const cleanup = apply(element, {
       date: timestamp,
-      baseColor: options?.baseColor || '#4a6741',
+      baseColor: options?.baseColor || PERSONA_MOOD_BASE_PALETTES.ferni.primary,
       applyBlur: options?.applyBlur ?? !state.prefersReducedMotion,
       persona: state.persona,
       intensity: state.intensity,
@@ -330,7 +334,7 @@ export async function getPersonaTransitionColors(
     };
   } catch (error) {
     log.warn('Failed to get persona transition colors', { error });
-    return { bridgeColor: '#888888', duration: 400, steps: [] };
+    return { bridgeColor: PERSONA_BRIDGE_FALLBACK_COLOR, duration: 400, steps: [] };
   }
 }
 

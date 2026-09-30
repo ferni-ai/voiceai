@@ -134,6 +134,12 @@ function generateExternalBrandCSS(external) {
     if (brandColors.glow) {
       lines.push(`  --external-${kebabId}-glow: ${brandColors.glow};`);
     }
+    // Any other brand colors (e.g. google.red, apple.buttonText)
+    for (const [key, value] of Object.entries(brandColors)) {
+      if (key.startsWith('_') || ['primary', 'secondary', 'glow'].includes(key)) continue;
+      if (typeof value !== 'string') continue;
+      lines.push(`  --external-${kebabId}-${camelToKebab(key)}: ${value};`);
+    }
     // Generate gradient using primary and secondary (or darkened primary)
     if (brandColors.primary) {
       const secondary = brandColors.secondary || brandColors.primary;

@@ -257,7 +257,7 @@ export class MemoryFeedbackManager {
         display: flex;
         align-items: center;
         gap: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.15);
+        box-shadow: var(--shadow-lg);
         opacity: 0;
         z-index: var(--z-notification, 3000);
         transition: 

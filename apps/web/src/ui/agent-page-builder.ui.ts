@@ -87,7 +87,7 @@ const STYLES = `
     inset: 0;
     z-index: var(--z-modal-backdrop);
     background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(var(--glass-blur-subtle, 8px));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -924,7 +924,7 @@ export class AgentPageBuilder {
       type: 'text',
       id: 'color-hex',
       className: 'form-input',
-      placeholder: '#000000',
+      placeholder: '#RRGGBB',
       value: selectedColor,
     });
     hexInput.style.width = '120px';

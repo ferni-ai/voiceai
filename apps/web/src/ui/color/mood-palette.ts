@@ -372,7 +372,7 @@ export function generateAllMoodPalettesCSS(personaId: string): string {
 /* Colors that respond to emotional state */
 
 :root {
-  --mood-transition: 400ms ease-out;
+  --mood-transition: var(--duration-slower) ease-out;
 }
 
 .mood-palette-container {
