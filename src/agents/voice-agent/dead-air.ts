@@ -21,3 +21,50 @@ export function isRealSilence(session: SessionStates | null | undefined): boolea
   const userTalking = session.userState === 'speaking';
   return !agentBusy && !userTalking;
 }
+
+// ============================================================================
+// Comfortable silence
+// ============================================================================
+
+/** What the session knows about the moment the caller went quiet in. */
+export interface SilenceMoment {
+  lastUserText?: string;
+  /** 0-1 from text emotion analysis. */
+  distressLevel?: number;
+  /** Text or voice emotion label. */
+  emotion?: string;
+}
+
+const HEAVY_EMOTIONS = new Set([
+  'sad',
+  'sadness',
+  'grief',
+  'hurt',
+  'anxious',
+  'anxiety',
+  'fear',
+  'fearful',
+  'scared',
+  'lonely',
+  'overwhelmed',
+  'despair',
+  'distress',
+]);
+
+const HEAVY_WORDS =
+  /\b(died|dying|passed away|funeral|diagnos\w*|cancer|divorce|breakup|broke up|miscarriage|lost my|depress\w*|crying|cried|grief|grieving|scared|panic|afraid|hospital|laid off|fired)\b/i;
+
+/** After something heavy, a pause is them feeling or finding words, not dead air. */
+const HEAVY_HOLD = 3;
+
+/**
+ * How long to let a silence sit before a check-in, as a multiple of the
+ * usual wait. A friend does not rush in after "my dad died".
+ */
+export function silenceHold(moment: SilenceMoment): number {
+  const heavy =
+    (moment.distressLevel ?? 0) >= 0.5 ||
+    HEAVY_EMOTIONS.has((moment.emotion ?? '').toLowerCase()) ||
+    HEAVY_WORDS.test(moment.lastUserText ?? '');
+  return heavy ? HEAVY_HOLD : 1;
+}

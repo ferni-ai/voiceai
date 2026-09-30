@@ -41,7 +41,7 @@ import {
 } from '../../services/analytics/call-quality-monitor.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
-import { isRealSilence, type SessionStates } from './dead-air.js';
+import { isRealSilence, silenceHold, type SessionStates } from './dead-air.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import {
@@ -1089,6 +1089,13 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
       // DEAD AIR FIX: Early silence detection
       const userStoppedAt = Date.now();
+      // Comfortable silence: after something heavy, hold the pause much longer
+      const hold = silenceHold({
+        lastUserText: (userData.recentTranscripts ?? []).slice(-1)[0],
+        distressLevel: userData.lastEmotionAnalysis?.distressLevel,
+        emotion: userData.lastEmotionAnalysis?.primary ?? userData.voiceEmotion?.primary,
+      });
+      const earlyAckMs = SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 * hold;
 
       // Clear any existing early ack timers and handlers before creating new ones
       // This prevents MaxListenersExceededWarning memory leak
@@ -1156,7 +1163,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             isRealSilence(session as unknown as SessionStates)
           ) {
             const timeSinceStop = Date.now() - userStoppedAt;
-            if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
+            if (timeSinceStop >= earlyAckMs - 100) {
               // Dead air prevention: Use STRUCTURED commands (not conversational text)
               // CRITICAL: Conversational instructions can be echoed by Gemini!
               const lastTranscript = (userData.recentTranscripts ?? []).slice(-1)[0] ?? '';
@@ -1165,18 +1172,21 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
               // Build STRUCTURED meta-commands that cannot be mistaken for speech
               const contextParts = [
                 `[SITUATION: ${Math.round(timeSinceStop / 1000)}s silence]`,
-                '[TYPE: soft_acknowledgment]',
-                '[MAX: 8 words]',
+                hold > 1 ? '[TYPE: quiet_presence]' : '[TYPE: soft_acknowledgment]',
+                hold > 1 ? '[MAX: 6 words]' : '[MAX: 8 words]',
                 '[NO: questions]',
               ];
+              if (hold > 1) contextParts.push('[TONE: gentle, no pressure to speak]');
 
               // Add context reference if available
               if (lastTranscript && lastTranscript.length > 10) {
                 contextParts.push(`[CONTEXT: "${lastTranscript.slice(0, 80)}..."]`);
               }
 
-              // Tone based on conversation stage
-              if (turnCount < 3) {
+              // Tone based on conversation stage (a heavy moment already set it)
+              if (hold > 1) {
+                // keep the gentle tone
+              } else if (turnCount < 3) {
                 contextParts.push('[TONE: welcoming]');
               } else if (turnCount > 10) {
                 contextParts.push('[TONE: casual]');
@@ -1185,6 +1195,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
               // PROMINENT LOG: Show dead air timing
               diag.state('🎭 [DEAD AIR] Early acknowledgment', {
                 waitedSec: Math.round(timeSinceStop / 1000),
+                heldForHeavyMoment: hold > 1,
                 persona: sessionPersona.id,
                 turnCount,
                 hasContext: !!lastTranscript,
@@ -1212,7 +1223,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           earlyAckTimer = null;
           // HUMANIZATION FIX: Add ±25% randomization to early acknowledgment timing
         },
-        SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 * (0.75 + Math.random() * 0.5)
+        earlyAckMs * (0.75 + Math.random() * 0.5)
       );
 
       // Clean up timer if agent starts speaking
