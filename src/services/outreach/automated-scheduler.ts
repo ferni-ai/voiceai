@@ -40,6 +40,12 @@ const log = createLogger({ module: 'AutomatedScheduler' });
 const CANDIDATE_PAGE_SIZE = 200;
 /** Bound one run's reads; users past this are reached on later days. */
 const MAX_USERS_SCANNED = 5000;
+/**
+ * Accounts made by test harnesses (voice-eval callers, e2e runs, local
+ * devices). They share production Firestore and look active, so without this
+ * they'd be the main recipients of "thinking of you" messages.
+ */
+const SYNTHETIC_USER_ID = /^(voice-eval-|e2e-|device:(test|local-dev|debug))/;
 
 // ============================================================================
 // TYPES
@@ -284,6 +290,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         const data = doc.data();
         const userId = doc.id;
         if (data.outreachPreferences?.enabled === false) continue;
+        if (SYNTHETIC_USER_ID.test(userId)) continue;
 
         const lastOutreach = data.lastOutreachDate?.toDate?.() || data.lastOutreachDate;
         const engagementLevel = engagementLevelOf(data, now.getTime());

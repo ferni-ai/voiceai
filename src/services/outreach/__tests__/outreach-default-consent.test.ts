@@ -155,6 +155,17 @@ describe('daily outreach selection', () => {
     expect(result.details[0]).toMatchObject({ outreachType: 'reengagement_warmth' });
   });
 
+  it('leaves test-harness accounts out', async () => {
+    users = [
+      user('voice-eval-r1-story'),
+      user('e2e-memtest-1'),
+      user('device:debug-3'),
+      user('device:device-9f3a'),
+    ];
+    const result = await runDailyOutreach({ dryRun: true, respectQuietHours: false });
+    expect(result.details.map((d) => d.userId)).toEqual(['device:device-9f3a']);
+  });
+
   it('pages past the first 200 users', async () => {
     const recent = { lastOutreachDate: new Date().toISOString() };
     users = Array.from({ length: 201 }, (_, i) =>
