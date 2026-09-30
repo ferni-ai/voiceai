@@ -447,7 +447,7 @@ We use a **self-hosted GitHub Actions runner** on GCE to reduce CI billing and s
 | Property          | Value                                |
 | ----------------- | ------------------------------------ |
 | **VM Name**       | `github-runner`                      |
-| **IP**            | `136.112.254.245`                    |
+| **IP**            | Ephemeral (changes on VM restart); use `gcloud compute ssh github-runner --tunnel-through-iap` |
 | **Machine Type**  | `e2-standard-4` (~$97/mo)            |
 | **Zone**          | `us-central1-a`                      |
 | **Runner Labels** | `self-hosted`, `Linux`, `X64`, `gce` |
@@ -478,18 +478,22 @@ ferni runner ssh
 
 #### Workflows Using Self-Hosted Runner
 
-The following workflows run on the self-hosted runner:
-
-- `ci.yml` - All CI jobs (lint, test, build)
-- `deploy-gce.yml` - GCE deployments
-
-To use in a workflow:
+The runner is registered to this repo (not the org). PR/push CI workflows pick their runner from the
+`CI_RUNNER` repo variable, currently `["self-hosted","Linux","X64","gce"]`; unset it and they fall back to
+`ubuntu-latest`. `deploy-gce.yml` is always self-hosted.
 
 ```yaml
 jobs:
   build:
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
 ```
+
+**If the VM is stopped, unset `CI_RUNNER`** (`gh variable delete CI_RUNNER`). Queued jobs are not covered
+by `timeout-minutes`, so with no runner online every run waits 24h and is cancelled with no verdict.
+GitHub also deletes a runner registration after 14 days offline; re-register with a token from
+`gh api -X POST repos/ferni-ai/voiceai/actions/runners/registration-token`. The `runner` user has no
+sudo, so steps that need it (Playwright `--with-deps`, disk cleanup) run on hosted runners only;
+Chromium's system libraries are preinstalled on the VM.
 
 #### Security Considerations
 

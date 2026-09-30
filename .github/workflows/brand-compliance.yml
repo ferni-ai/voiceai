@@ -19,7 +19,7 @@ on:
 jobs:
   lint-brand:
     name: Brand Compliance Check
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
 
     steps:
       - name: Checkout
@@ -83,7 +83,7 @@ jobs:
 
   lint-tokens:
     name: Token Validation
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
 
     steps:
       - name: Checkout
@@ -109,7 +109,7 @@ jobs:
 
   visual-regression:
     name: Visual Regression
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     if: github.event_name == 'pull_request'
 
     steps:
@@ -122,7 +122,8 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Install Playwright
-        run: pnpm playwright install --with-deps chromium
+        # System deps need sudo; the self-hosted runner has them preinstalled.
+        run: pnpm playwright install ${{ runner.environment == 'github-hosted' && '--with-deps' || '' }} chromium
 
       - name: Build frontend
         run: |
@@ -148,7 +149,7 @@ jobs:
 
   accessibility:
     name: Accessibility Audit
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     if: github.event_name == 'pull_request'
 
     steps:
@@ -161,7 +162,8 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Install Playwright
-        run: pnpm playwright install --with-deps chromium
+        # System deps need sudo; the self-hosted runner has them preinstalled.
+        run: pnpm playwright install ${{ runner.environment == 'github-hosted' && '--with-deps' || '' }} chromium
 
       - name: Build frontend
         run: |

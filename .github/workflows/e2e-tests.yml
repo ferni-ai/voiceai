@@ -22,7 +22,7 @@ env:
 jobs:
   e2e:
     name: Playwright Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     # Only run on successful deployments or manual/PR triggers
     if: |
       github.event_name != 'deployment_status' ||
@@ -43,7 +43,8 @@ jobs:
       - name: Install Playwright
         run: |
           cd apps/web
-          pnpm playwright install --with-deps chromium
+          # System deps need sudo; the self-hosted runner has them preinstalled.
+          pnpm playwright install ${{ runner.environment == 'github-hosted' && '--with-deps' || '' }} chromium
 
       - name: Create E2E test file if not exists
         run: |

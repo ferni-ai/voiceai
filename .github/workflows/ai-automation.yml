@@ -67,7 +67,7 @@ jobs:
   pr-ai-review:
     name: 🤖 AI Code Review
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       pull-requests: write
       contents: read
@@ -124,7 +124,7 @@ jobs:
   pr-api-diff:
     name: 📡 API Contract Check
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -167,7 +167,7 @@ jobs:
   pr-bundle-check:
     name: 📦 Bundle Size Check
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -211,7 +211,7 @@ jobs:
   pr-brand-check:
     name: ✍️ Brand Voice Check
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -231,7 +231,7 @@ jobs:
   release-notes:
     name: 📝 Generate Release Notes
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       contents: write
     steps:
@@ -278,7 +278,7 @@ jobs:
   weekly-deps:
     name: 📦 Dependency Check
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'deps'))
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -315,7 +315,7 @@ jobs:
   weekly-flags:
     name: 🚩 Stale Flag Check
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'flags'))
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -331,7 +331,7 @@ jobs:
   weekly-refactor:
     name: 🔄 Refactoring Suggestions
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'refactor'))
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -352,7 +352,7 @@ jobs:
   weekly-translate:
     name: 🌍 Translation Scan
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'translate'))
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -372,7 +372,7 @@ jobs:
   cost-forecast:
     name: 💰 Cost Forecast
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 

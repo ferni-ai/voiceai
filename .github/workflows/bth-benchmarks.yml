@@ -34,7 +34,7 @@ env:
 jobs:
   benchmark:
     name: BTH Capability Benchmark
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
 
     outputs:
@@ -182,7 +182,7 @@ jobs:
   notify:
     name: Notify Results
     needs: benchmark
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.notify_on_success == 'true')
 
     steps:
@@ -311,7 +311,7 @@ jobs:
   store-history:
     name: Store Benchmark History
     needs: benchmark
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     if: github.event_name == 'schedule' && needs.benchmark.outputs.has_regressions != 'true'
 
     steps:

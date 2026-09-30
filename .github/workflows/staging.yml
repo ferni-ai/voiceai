@@ -30,7 +30,7 @@ jobs:
   # ============================================================================
   context:
     name: Determine Context
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     outputs:
       branch: ${{ steps.branch.outputs.name }}
       short_sha: ${{ steps.branch.outputs.short_sha }}
@@ -71,7 +71,7 @@ jobs:
   # ============================================================================
   build:
     name: Build & Test
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: context
     
     steps:
@@ -134,7 +134,7 @@ jobs:
   # ============================================================================
   deploy-staging:
     name: Deploy Staging
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: [context, build]
     environment:
       name: ${{ needs.context.outputs.env_name }}
@@ -186,6 +186,9 @@ jobs:
 
       - name: Free runner disk space
         # The ui image build ran out of disk (ERR_PNPM_ENOSPC) on ubuntu-latest.
+        # Hosted only: the self-hosted runner has no sudo, and pruning there would
+        # drop the image cache deploy-gce relies on.
+        if: runner.environment == 'github-hosted'
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           docker system prune -af || true
@@ -280,7 +283,7 @@ jobs:
   # ============================================================================
   smoke-tests:
     name: Smoke Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: [context, deploy-staging]
     
     steps:
@@ -319,7 +322,7 @@ jobs:
   # ============================================================================
   cleanup:
     name: Cleanup Old Staging
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     if: ${{ inputs.cleanup || (github.event_name == 'pull_request' && github.event.action == 'closed') }}
     
     steps:
