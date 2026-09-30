@@ -7,12 +7,14 @@
  * it took 1.5-2.9 s to decide on the real interruptions, so Ferni talked over
  * the caller for 2-3 s. A person stops within about half a second.
  *
- * This is the fast path people use: once the caller has said three words
- * that aren't backchannel words while Ferni is talking, it's an interruption.
- * Ink-2's live transcript gets there in well under a second. The model still
- * handles everything shorter. Echo guard: on a speakerphone the caller's mic
- * can pick up Ferni's own voice, so words that are mostly Ferni's current
- * words don't count.
+ * The fast path people use: someone who keeps talking over you for most of a
+ * second is taking the floor; "mm-hmm" and "yeah" are over in about half
+ * that. So while Ferni speaks, the caller's voice activity running
+ * continuously for SUSTAINED_SPEECH_MS interrupts. (A transcript rule was
+ * tried first: Ink-2's first interim word arrived only after the model had
+ * already decided, 1.6 s in, so it never fired. It stays as a backstop, with
+ * an echo guard: words that are mostly Ferni's own, picked up by a
+ * speakerphone mic, don't count.)
  *
  * @module agents/multi-agent/barge-in-fastpath
  */
@@ -62,6 +64,8 @@ const BACKCHANNEL_WORDS = new Set([
 ]);
 
 export const MIN_INTERRUPT_WORDS = 3;
+/** Continuous caller speech over Ferni that counts as taking the floor. */
+export const SUSTAINED_SPEECH_MS = 700;
 
 export function words(text: string): string[] {
   return text
@@ -100,6 +104,8 @@ export function shouldInterrupt(p: {
 export interface BargeInFastPath {
   onTranscript(event: unknown): void;
   onAgentState(event: unknown): void;
+  /** The caller's voice activity (user_state_changed). */
+  onUserState(event: unknown): void;
   /** Text as it is spoken (captions), for the echo guard. */
   onSpokenText(chunk: string): void;
 }
@@ -107,10 +113,36 @@ export interface BargeInFastPath {
 export function createBargeInFastPath(deps: {
   interrupt: () => void;
   log?: (fields: Record<string, unknown>) => void;
+  sustainedSpeechMs?: number;
+  setTimer?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
+  clearTimer?: (t: ReturnType<typeof setTimeout>) => void;
 }): BargeInFastPath {
+  const setTimer = deps.setTimer ?? setTimeout;
+  const clearTimer = deps.clearTimer ?? clearTimeout;
   let agentSpeaking = false;
+  let callerSpeaking = false;
   let spokenText = '';
   let firedThisReply = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const stopTimer = (): void => {
+    if (timer) clearTimer(timer);
+    timer = undefined;
+  };
+  const fire = (fields: Record<string, unknown>): void => {
+    if (firedThisReply) return;
+    firedThisReply = true;
+    stopTimer();
+    deps.log?.(fields);
+    deps.interrupt();
+  };
+  const armIfOverlapping = (): void => {
+    if (!agentSpeaking || !callerSpeaking || timer || firedThisReply) return;
+    const ms = deps.sustainedSpeechMs ?? SUSTAINED_SPEECH_MS;
+    timer = setTimer(() => {
+      timer = undefined;
+      if (agentSpeaking && callerSpeaking) fire({ reason: 'sustained-speech', ms });
+    }, ms);
+  };
   return {
     onAgentState(event) {
       const state = (event as { newState?: string })?.newState;
@@ -119,6 +151,13 @@ export function createBargeInFastPath(deps: {
         firedThisReply = false;
       }
       agentSpeaking = state === 'speaking';
+      if (agentSpeaking) armIfOverlapping();
+      else stopTimer();
+    },
+    onUserState(event) {
+      callerSpeaking = (event as { newState?: string })?.newState === 'speaking';
+      if (callerSpeaking) armIfOverlapping();
+      else stopTimer();
     },
     onSpokenText(chunk) {
       // Keep the recent tail: enough to recognize an echo, bounded in size.
@@ -128,9 +167,7 @@ export function createBargeInFastPath(deps: {
       if (firedThisReply) return;
       const transcript = (event as { transcript?: string })?.transcript ?? '';
       if (!shouldInterrupt({ transcript, agentSpeaking, spokenText })) return;
-      firedThisReply = true;
-      deps.log?.({ transcript, words: words(transcript).length });
-      deps.interrupt();
+      fire({ reason: 'transcript', transcript, words: words(transcript).length });
     },
   };
 }

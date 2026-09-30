@@ -63,3 +63,58 @@ describe('createBargeInFastPath', () => {
     expect(interrupt).not.toHaveBeenCalled();
   });
 });
+
+describe('sustained speech over Ferni', () => {
+  function withTimers() {
+    const pending: Array<{ fn: () => void; ms: number; cleared: boolean }> = [];
+    const interrupt = vi.fn();
+    const fp = createBargeInFastPath({
+      interrupt,
+      setTimer: (fn, ms) => {
+        const t = { fn, ms, cleared: false };
+        pending.push(t);
+        return t as unknown as ReturnType<typeof setTimeout>;
+      },
+      clearTimer: (t) => {
+        (t as unknown as { cleared: boolean }).cleared = true;
+      },
+    });
+    const elapse = () =>
+      pending.filter((t) => !t.cleared).forEach((t) => ((t.cleared = true), t.fn()));
+    return { fp, interrupt, pending, elapse };
+  }
+
+  it('stops Ferni when the caller keeps talking over him for 0.7 s', () => {
+    const { fp, interrupt, pending, elapse } = withTimers();
+    fp.onAgentState({ newState: 'speaking' });
+    fp.onUserState({ newState: 'speaking' });
+    expect(pending[0].ms).toBe(700);
+    elapse();
+    expect(interrupt).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a backchannel that ends sooner through', () => {
+    const { fp, interrupt, elapse } = withTimers();
+    fp.onAgentState({ newState: 'speaking' });
+    fp.onUserState({ newState: 'speaking' });
+    fp.onUserState({ newState: 'listening' }); // "mm-hmm" is over
+    elapse();
+    expect(interrupt).not.toHaveBeenCalled();
+  });
+
+  it('does nothing while Ferni is quiet', () => {
+    const { fp, interrupt, elapse } = withTimers();
+    fp.onAgentState({ newState: 'listening' });
+    fp.onUserState({ newState: 'speaking' });
+    elapse();
+    expect(interrupt).not.toHaveBeenCalled();
+  });
+
+  it('arms when Ferni starts talking over a caller who is already speaking', () => {
+    const { fp, interrupt, elapse } = withTimers();
+    fp.onUserState({ newState: 'speaking' });
+    fp.onAgentState({ newState: 'speaking' });
+    elapse();
+    expect(interrupt).toHaveBeenCalledTimes(1);
+  });
+});

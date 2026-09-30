@@ -1588,9 +1588,11 @@ Reference past context when relevant, but don't force it. Let the conversation f
       setBargeInFastPath(session, bargeIn);
       sessionWithEvents.on('user_input_transcribed', bargeIn.onTranscript);
       sessionWithEvents.on('agent_state_changed', bargeIn.onAgentState);
+      sessionWithEvents.on('user_state_changed', bargeIn.onUserState);
       sessionEventHandlers.push(
         { event: 'user_input_transcribed', handler: bargeIn.onTranscript },
-        { event: 'agent_state_changed', handler: bargeIn.onAgentState }
+        { event: 'agent_state_changed', handler: bargeIn.onAgentState },
+        { event: 'user_state_changed', handler: bargeIn.onUserState }
       );
     }
 

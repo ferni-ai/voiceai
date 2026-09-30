@@ -71,3 +71,41 @@ export function findChunkEnd(buffer: string, minLength: number): number | null {
 
   return null;
 }
+
+/** Characters that will be spoken: markup (<...>, [...]) removed. */
+function spokenLength(text: string): number {
+  return text.replace(/<[^>]*>|\[[^\]]*\]/g, '').trim().length;
+}
+
+/** A clause break inside a sentence: , ; : or a dash or ellipsis, then whitespace. */
+const CLAUSE_END = /(?<![0-9])(,|;|:|—|–|\.\.\.|…)\s/g;
+
+/**
+ * Where to cut the FIRST piece of a reply on a continuation context. Waiting
+ * for a full sentence held the first audio until the LLM had streamed the
+ * whole first sentence ("Friday? That's, what, forty-eight hours from now..."
+ * waits for "now..."); a clause is enough to start speaking, and the
+ * continuation keeps the pacing and intonation continuous across the cut.
+ * Takes the earliest sentence end, or clause break at or after minLength.
+ */
+export function findFirstChunkEnd(buffer: string, minLength: number): number | null {
+  if (buffer.length < minLength) return null;
+  const candidates: number[] = [];
+  const sentence = buffer.match(SENTENCE_END);
+  if (sentence?.index !== undefined) candidates.push(sentence.index + sentence[0].length);
+  for (const m of buffer.matchAll(CLAUSE_END)) {
+    const end = (m.index ?? 0) + m[0].length;
+    // Count spoken characters only: leading tags would let "Oh, " through.
+    if (spokenLength(buffer.slice(0, end)) >= minLength) {
+      candidates.push(end);
+      break;
+    }
+  }
+  // A short sentence may go first ("Friday? "); a clause must reach minLength
+  // (no "Oh, " fragments).
+  for (const end of candidates.sort((a, b) => a - b)) {
+    const cut = markupSafeCut(buffer, end);
+    if (cut !== null && cut > 0) return cut;
+  }
+  return findChunkEnd(buffer, minLength);
+}

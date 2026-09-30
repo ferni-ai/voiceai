@@ -16,11 +16,12 @@ import type { AudioFrame } from '@livekit/rtc-node';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { ReadableStream } from 'node:stream/web';
 
-import { findChunkEnd } from './chunk-boundary.js';
+import { findChunkEnd, findFirstChunkEnd } from './chunk-boundary.js';
 import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type { SSMLProsodyConfig } from './types.js';
 
-const MIN_FIRST_CHUNK = 20;
+/** The first piece may be a clause (see findFirstChunkEnd): start talking sooner. */
+const MIN_FIRST_CHUNK = 12;
 
 /** The voice settings in force on the Cartesia context. */
 interface VoiceState {
@@ -136,7 +137,11 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
         const { done, value } = await reader.read();
         if (value) buffer += value;
         let end: number | null;
-        while ((end = findChunkEnd(buffer, first ? MIN_FIRST_CHUNK : MIN_CHUNK)) !== null) {
+        while (
+          (end = first
+            ? findFirstChunkEnd(buffer, MIN_FIRST_CHUNK)
+            : findChunkEnd(buffer, MIN_CHUNK)) !== null
+        ) {
           push(buffer.slice(0, end));
           buffer = buffer.slice(end);
         }
