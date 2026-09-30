@@ -20,7 +20,7 @@ import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-met
 import { voice, type JobContext, llm } from '@livekit/agents';
 import { routeSayThroughModel } from '../shared/native-speech.js';
 import type { Room } from '@livekit/rtc-node';
-import type { PersonaConfig } from '../../personas/types.js';
+import type { PersonaConfig, PersonaId } from '../../personas/types.js';
 import { getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
@@ -116,6 +116,7 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
+import { assistantTranscriptHandler } from './assistant-transcript.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
 // WAVE 2: Voice humanization (micro-interrupt/barge-in recovery) + live backchanneling
@@ -2262,6 +2263,28 @@ Reference past context when relevant, but don't force it. Let the conversation f
         });
         handlersStatus.transcript = true;
         diag.entry(`🎭 [${persona.id}] Transcript handler wired`);
+
+        // Ferni's side of the conversation (user turns are recorded above).
+        const assistantHandler = assistantTranscriptHandler(
+          () => {
+            const ud = userData as { userId?: string; personaId?: string; threadId?: string };
+            return {
+              userId: ud.userId,
+              sessionId,
+              personaId: ud.personaId ?? persona.id,
+              threadId: ud.threadId,
+            };
+          },
+          async (o) => {
+            const { recordAgentMessage } =
+              await import('../../services/conversation-thread/thread-recorder.js');
+            await recordAgentMessage({ ...o, personaId: o.personaId as PersonaId });
+          }
+        );
+        session.on(voice.AgentSessionEventTypes.ConversationItemAdded, assistantHandler);
+        cleanupFunctions.push(() => {
+          session.off?.(voice.AgentSessionEventTypes.ConversationItemAdded, assistantHandler);
+        });
 
         // SESSION STATE HANDLERS
         const stateResult = setupSessionStateHandlers({
