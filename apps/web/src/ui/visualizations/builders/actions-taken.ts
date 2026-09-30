@@ -96,17 +96,6 @@ const CARE_TYPE_ICONS: Record<CareMomentType, string> = {
   kept_commitment: '✓',
 };
 
-/**
- * Labels for care moment types
- */
-const CARE_TYPE_LABELS: Record<CareMomentType, string> = {
-  called_for_you: 'Call',
-  messaged_for_you: 'Message',
-  remembered: 'Followed up',
-  protected_time: 'Calendar',
-  kept_commitment: 'Commitment',
-};
-
 // ============================================================================
 // HELPERS
 // ============================================================================

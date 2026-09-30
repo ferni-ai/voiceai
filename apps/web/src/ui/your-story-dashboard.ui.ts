@@ -20,7 +20,7 @@ import {
   injectVisualizationStyles,
   type YourStoryData,
 } from './visualizations/index.js';
-import { DURATION, EASING } from './visualizations/utils/dom.js';
+import { DURATION } from './visualizations/utils/dom.js';
 import {
   buildActionsTaken,
   injectActionsTakenStyles,

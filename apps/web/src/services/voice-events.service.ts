@@ -320,57 +320,6 @@ export function disconnectFromVoiceEvents(): void {
 // SSE + POLLING (Firebase Hosting fallback)
 // ============================================================================
 
-function startSSE(userId: string): boolean {
-  if (typeof EventSource === 'undefined') {
-    return false;
-  }
-
-  stopSSE();
-
-  try {
-    const url = `/api/user-events/stream?userId=${encodeURIComponent(userId)}`;
-    eventSource = new EventSource(url);
-
-    eventSource.onopen = () => {
-      log.info('Connected to voice events SSE');
-      reconnectAttempts = 0;
-      stopPolling();
-    };
-
-    eventSource.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data) as UserEvent;
-        processVoiceUserEvent(message);
-        if (message.timestamp) {
-          lastPollTimestamp = Math.max(lastPollTimestamp, Date.parse(message.timestamp) || 0);
-        }
-      } catch (err) {
-        log.warn({ error: String(err) }, 'Failed to parse SSE voice event');
-      }
-    };
-
-    eventSource.addEventListener('user_event', (event) => {
-      try {
-        const message = JSON.parse((event as MessageEvent).data) as UserEvent;
-        processVoiceUserEvent(message);
-      } catch (err) {
-        log.warn({ error: String(err) }, 'Failed to parse SSE user_event');
-      }
-    });
-
-    eventSource.onerror = () => {
-      log.warn('Voice events SSE error — falling back to polling');
-      stopSSE();
-      startPolling();
-    };
-
-    return true;
-  } catch (err) {
-    log.warn({ error: String(err) }, 'Failed to start voice events SSE');
-    return false;
-  }
-}
-
 function stopSSE(): void {
   if (eventSource) {
     eventSource.close();

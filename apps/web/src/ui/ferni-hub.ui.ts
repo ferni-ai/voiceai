@@ -17,7 +17,6 @@ import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
 import { soundUI } from './sound.ui.js';
-import { messageUI } from './message.ui.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
 import {
   PERSONA_ICONS,

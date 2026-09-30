@@ -12,7 +12,7 @@
  * @module ui/moments/migration
  */
 
-import { moments, toast, whisper } from './index.js';
+import { toast, whisper } from './index.js';
 
 // ============================================================================
 // MIGRATION MAPPING

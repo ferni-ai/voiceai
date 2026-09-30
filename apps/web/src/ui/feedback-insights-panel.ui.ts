@@ -18,7 +18,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { getAuthToken } from '../services/firebase-auth.service.js';
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION } from '../config/animation-constants.js';
 
 const log = createLogger('FeedbackInsightsPanel');
 

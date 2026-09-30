@@ -23,7 +23,7 @@ import { createLogger } from '../utils/logger.js';
 import { apiGet, apiPatch } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
-import { getMemoryMoodIcon, ANALYTICS_ICONS } from './icons/shared-icons.js';
+import { getMemoryMoodIcon } from './icons/shared-icons.js';
 import { createEmptyState } from './components/empty-state.js';
 
 const log = createLogger('MemoryLane');

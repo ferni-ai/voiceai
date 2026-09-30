@@ -129,7 +129,7 @@ function getCategoryIcon(category: string): string {
 let container: HTMLElement | null = null;
 let pendingActions: PendingAction[] = [];
 let callbacks: ActionConfirmationCallbacks = {};
-let countdownIntervals: Map<string, number> = new Map();
+const countdownIntervals: Map<string, number> = new Map();
 
 // ============================================================================
 // API & DATA CHANNEL

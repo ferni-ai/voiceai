@@ -12,7 +12,6 @@ import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { toast } from './whisper.ui.js';
 import { apiPost } from '../utils/api.js';
-import { escapeHtml, escapeAttr } from './engagement-components.js';
 
 const log = createLogger('AgentPageBuilder');
 
@@ -762,7 +761,7 @@ export class AgentPageBuilder {
   private buildProgress(): HTMLElement {
     const progress = createElement('div', { className: 'builder-progress' });
 
-    STEPS.forEach((step, index) => {
+    STEPS.forEach((step) => {
       const isActive = step === this.currentStep;
       const isCompleted = this.completedSteps.has(step);
       const classes = ['progress-step'];

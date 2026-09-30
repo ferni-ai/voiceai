@@ -188,6 +188,13 @@ export function getCurrentScreen(): ScreenName {
 }
 
 /**
+ * Get the voice session ID events are currently associated with.
+ */
+export function getCurrentSessionId(): string | null {
+  return currentSessionId;
+}
+
+/**
  * Clean up and stop tracking.
  */
 export function disposeAppContextTracking(): void {

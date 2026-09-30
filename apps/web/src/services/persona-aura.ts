@@ -281,7 +281,7 @@ export function initPersonaAura(): void {
   
   // Listen for persona changes from multiple event sources
   // Different parts of the app use different event names - we listen to all
-  const handlePersonaChange = (personaId: PersonaId | string) => {
+  const handlePersonaChange = (personaId: string) => {
     // Normalize persona ID (some events use 'alex-chen', we want 'alex')
     const normalized = (personaId?.toString() || 'ferni').split('-')[0] as PersonaId;
     if (PERSONA_AURAS[normalized]) {

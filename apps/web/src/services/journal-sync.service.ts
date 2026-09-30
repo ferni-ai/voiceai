@@ -8,7 +8,6 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { apiGet } from '../utils/api.js';
 
 const log = createLogger('JournalSync');

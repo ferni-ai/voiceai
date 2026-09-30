@@ -94,12 +94,6 @@ const RELATIONSHIP_OPTIONS = [
   { value: 'other', label: 'Other' },
 ];
 
-const ACCESS_LEVEL_OPTIONS = [
-  { value: 'full', label: 'Full Access', description: 'Can talk to all team members' },
-  { value: 'limited', label: 'Limited', description: 'Only Ferni' },
-  { value: 'supervised', label: 'Supervised', description: 'You get notified of calls' },
-];
-
 // ============================================================================
 // ICONS (Lucide-style SVGs - 2px stroke, rounded corners)
 // ============================================================================
@@ -576,13 +570,6 @@ function formatDate(dateStr?: string): string {
   if (!dateStr) return 'Never';
   const date = new Date(dateStr);
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-function formatMinutes(minutes: number): string {
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 }
 
 // ============================================================================

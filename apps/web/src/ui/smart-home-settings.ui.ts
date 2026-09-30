@@ -73,7 +73,6 @@ interface SmartHomeCallbacks {
 let container: HTMLElement | null = null;
 let styleElement: HTMLStyleElement | null = null;
 let callbacks: SmartHomeCallbacks = {};
-let isLoading = false;
 let currentSetupFlow: 'ecobee' | 'hue' | 'lifx' | 'sonos' | 'homekit' | null = null;
 let setupStep = 0;
 
@@ -81,10 +80,8 @@ let setupStep = 0;
 let hueBridgeIp = '';
 let hueUsername = '';
 
-// Sonos state (OAuth flow) - check URL params for pending/completion status
-// sonosAuthPending is set when user starts OAuth, but when they return,
-// the URL params tell us the result. We clean this up on page load.
-let sonosAuthPending = false;
+// Sonos OAuth flow - when the user returns from Sonos, the URL params tell us
+// the result. We clean them up on page load.
 
 // Check if we're returning from Sonos OAuth
 function checkSonosOAuthReturn(): 'success' | 'error' | null {
@@ -100,7 +97,6 @@ function checkSonosOAuthReturn(): 'success' | 'error' | null {
     newUrl.searchParams.delete('reason');
     window.history.replaceState({}, '', newUrl);
 
-    sonosAuthPending = false;
     return smartHomeStatus === 'success' ? 'success' : 'error';
   }
   return null;
@@ -1548,7 +1544,6 @@ function renderSuccessState(
 // ============================================================================
 
 async function connectEcobee(_apiKey: string): Promise<void> {
-  isLoading = true;
   renderLoadingState();
 
   try {
@@ -1589,13 +1584,11 @@ async function connectEcobee(_apiKey: string): Promise<void> {
       clearInterval(checkInterval);
     }, 300000);
 
-    isLoading = false;
     renderEcobeeWaitingState();
   } catch (error) {
     toast.error("Couldn't connect to Ecobee. Try again?");
     setupStep = 1;
     renderSetupStep();
-    isLoading = false;
   }
 }
 
@@ -1646,7 +1639,6 @@ function renderEcobeeWaitingState(): void {
 }
 
 async function pairHueBridge(): Promise<void> {
-  isLoading = true;
   renderLoadingState();
 
   try {
@@ -1693,12 +1685,10 @@ async function pairHueBridge(): Promise<void> {
     setupStep = 1;
     renderSetupStep();
   } finally {
-    isLoading = false;
   }
 }
 
 async function connectLifx(token: string): Promise<void> {
-  isLoading = true;
   renderLoadingState();
 
   try {
@@ -1729,7 +1719,6 @@ async function connectLifx(token: string): Promise<void> {
     setupStep = 1;
     renderSetupStep();
   } finally {
-    isLoading = false;
   }
 }
 
@@ -1743,7 +1732,6 @@ async function startSonosOAuth(): Promise<void> {
     });
 
     if (response.ok && response.data?.authUrl) {
-      sonosAuthPending = true;
       // Redirect to Sonos OAuth
       window.location.href = response.data.authUrl;
     } else {
@@ -1755,7 +1743,6 @@ async function startSonosOAuth(): Promise<void> {
 }
 
 async function disconnectIntegration(integration: string): Promise<void> {
-  isLoading = true;
   renderLoadingState();
 
   try {
@@ -1775,7 +1762,6 @@ async function disconnectIntegration(integration: string): Promise<void> {
     toast.error("Couldn't disconnect. Try again?");
     loadAndRenderStatus();
   } finally {
-    isLoading = false;
   }
 }
 
@@ -1790,7 +1776,6 @@ function showDisconnectConfirm(integration: string, name: string): void {
 // ============================================================================
 
 async function loadAndRenderStatus(): Promise<void> {
-  isLoading = true;
   renderLoadingState();
 
   // Failsafe timeout - never spin for more than 15 seconds total
@@ -1818,7 +1803,6 @@ async function loadAndRenderStatus(): Promise<void> {
       homeKit: { connected: false },
     });
   } finally {
-    isLoading = false;
   }
 }
 

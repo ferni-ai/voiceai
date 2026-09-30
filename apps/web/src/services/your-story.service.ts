@@ -419,20 +419,3 @@ function mapMoodType(
   };
   return moodMap[mood.toLowerCase()] ?? 'neutral';
 }
-
-/**
- * Format dimension keys into readable names.
- */
-function formatDimensionName(key: string): string {
-  const nameMap: Record<string, string> = {
-    'self-awareness': 'Self-Awareness',
-    'emotional-range': 'Emotional Range',
-    boundaries: 'Boundaries',
-    connection: 'Connection',
-    purpose: 'Purpose',
-    resilience: 'Resilience',
-    selfAwareness: 'Self-Awareness',
-    emotionalRange: 'Emotional Range',
-  };
-  return nameMap[key] ?? key.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}

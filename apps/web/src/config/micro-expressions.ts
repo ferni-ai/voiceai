@@ -8,7 +8,7 @@
  * Ferni's LUXO-style eyes (opaque white, no pupils - expression through shape).
  */
 
-import { DURATION, EASING } from './animation-constants.js';
+import { EASING } from './animation-constants.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

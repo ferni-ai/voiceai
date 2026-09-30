@@ -16,7 +16,6 @@
  * @module CapabilityHubUI
  */
 
-import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
@@ -24,7 +23,7 @@ import { apiGet } from '../utils/api.js';
 import { ANALYTICS_ICONS, EMOTION_ICONS, GROWTH_ICONS, QUIZ_ICONS } from './icons/shared-icons.js';
 
 const log = createLogger('CapabilityHubUI');
-const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
+const { clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 let escapeHandlerRef: ((e: KeyboardEvent) => void) | null = null;
 

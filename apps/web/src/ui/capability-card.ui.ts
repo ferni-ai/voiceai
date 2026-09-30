@@ -11,11 +11,7 @@
  *   - Consistent with Ferni's warm design language
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
 import type { Capability } from '../services/capability-registry.js';
-import { createLogger } from '../utils/logger.js';
-
-const log = createLogger('CapabilityCard');
 
 // ============================================================================
 // ICONS

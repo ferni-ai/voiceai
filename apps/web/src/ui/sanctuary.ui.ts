@@ -20,9 +20,8 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
-import { apiGet, apiPost } from '../utils/api.js';
+import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
-import { t } from '../i18n/index.js';
 import { escapeHtml } from './engagement-components.js';
 import { practiceExperienceUI } from './practice-experience.ui.js';
 import { connectionService } from '../services/connection.service.js';
@@ -742,8 +741,6 @@ class SanctuaryUI {
   }
 
   private renderInspiration(inspiration: Inspiration): string {
-    const isQuote = inspiration.type === 'quote';
-
     return `
       <blockquote class="sanctuary-quote ${inspiration.type}">
         <p class="sanctuary-quote-text">${escapeHtml(inspiration.content)}</p>

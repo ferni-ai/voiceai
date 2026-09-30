@@ -44,27 +44,6 @@ const STATUS_COLORS: Record<BurnoutGaugeData['status'], string> = {
   critical: DEFAULT_COLORS.status.critical,
 };
 
-/**
- * CSS variable references for DOM element styling.
- */
-const STATUS_CSS_VARS: Record<BurnoutGaugeData['status'], string> = {
-  thriving: CSS_COLOR_VARS.statusThriving,
-  balanced: CSS_COLOR_VARS.statusBalanced,
-  stretched: CSS_COLOR_VARS.statusStretched,
-  depleted: CSS_COLOR_VARS.statusDepleted,
-  critical: CSS_COLOR_VARS.statusCritical,
-};
-
-/**
- * Energy type colors for factor breakdown.
- * @design-tokens-ignore - SVG requires literal color values
- */
-const ENERGY_COLORS = {
-  emotional: DEFAULT_COLORS.energy.emotional,
-  mental: DEFAULT_COLORS.energy.mental,
-  physical: DEFAULT_COLORS.energy.physical,
-};
-
 // ============================================================================
 // WATCH BUILDER
 // ============================================================================
@@ -322,7 +301,6 @@ function buildTablet(
 ): VisualizationResult {
   container.replaceChildren();
   const statusColor = STATUS_COLORS[data.status];
-  const statusCssVar = STATUS_CSS_VARS[data.status];
 
   // Header with design system classes
   const header = createElement('div', 'viz-header');

@@ -111,25 +111,6 @@ import { getDirectorConsole, toggleDirectorConsole } from './ui/director-console
 
 const DIRECTOR_TRIGGER_ID = 'directorConsoleTrigger';
 
-function ensureDirectorTriggerButton(): void {
-  let el = document.getElementById(DIRECTOR_TRIGGER_ID);
-  if (el) {
-    el.style.display = 'flex';
-    return;
-  }
-  const controls = document.querySelector('.controls');
-  if (!controls) return;
-  const btn = document.createElement('button');
-  btn.id = DIRECTOR_TRIGGER_ID;
-  btn.type = 'button';
-  btn.className = 'btn btn-secondary anticipate-btn';
-  btn.setAttribute('aria-label', 'Open Director Console');
-  btn.textContent = 'Director';
-  btn.style.marginLeft = 'var(--space-2, 8px)';
-  btn.addEventListener('click', () => toggleDirectorConsole());
-  controls.appendChild(btn);
-}
-
 function hideDirectorTriggerButton(): void {
   const el = document.getElementById(DIRECTOR_TRIGGER_ID);
   if (el) el.style.display = 'none';
@@ -2221,7 +2202,7 @@ class VoiceAIApp {
         onMemoryLaneClick: () => void memoryLaneUI.open(),
         onPatternInsightsClick: () => {
           // Show pattern insights in a modal container
-          const container = document.querySelector('.app-shell') as HTMLElement | null;
+          const container = document.querySelector<HTMLElement>('.app-shell');
           if (container) {
             void patternInsightsUI.show(container);
           }
@@ -2341,7 +2322,7 @@ class VoiceAIApp {
       void showConversationHistory();
     });
     this.addTrackedListener(window, 'ferni:open-patterns', () => {
-      const container = document.querySelector('.app-shell') as HTMLElement | null;
+      const container = document.querySelector<HTMLElement>('.app-shell');
       if (container) {
         void patternInsightsUI.show(container);
       }

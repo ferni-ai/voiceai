@@ -1896,7 +1896,7 @@ export const EXPRESSION_FAMILIES: Record<ExpressionFamily, ExpressionFamilyMeta>
  * Get expression configuration by ID.
  * Returns neutral if expression not found.
  */
-export function getExpression(id: ExpressionId | string): ExpressionConfig {
+export function getExpression(id: string): ExpressionConfig {
   return EXPRESSIONS[id as ExpressionId] ?? EXPRESSIONS.neutral;
 }
 
@@ -1924,7 +1924,7 @@ export function getMicroExpression(id: string): MicroExpressionConfig | null {
 /**
  * Get iOS configuration for an expression.
  */
-export function getIOSConfig(id: ExpressionId | string): IOSExpressionConfig {
+export function getIOSConfig(id: string): IOSExpressionConfig {
   const expr = EXPRESSIONS[id as ExpressionId];
   return expr?.ios ?? EXPRESSIONS.neutral.ios;
 }

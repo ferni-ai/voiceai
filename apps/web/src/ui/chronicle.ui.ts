@@ -15,12 +15,10 @@
  * @module chronicle.ui
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { apiGet, apiPost, getUserId } from '../utils/api.js';
 import { connectionService } from '../services/connection.service.js';
-import { t } from '../i18n/index.js';
 
 const log = createLogger('ChronicleUI');
 
@@ -1276,7 +1274,7 @@ function render(): void {
   const content = container.querySelector('#chronicle-content');
   if (!content) return;
 
-  const { greeting, entries, insights, memories, streak, totalEntries } = state.data;
+  const { greeting, insights, memories, streak, totalEntries } = state.data;
 
   // If no entries yet, show empty state
   if (totalEntries === 0) {

@@ -25,8 +25,6 @@ import type {
   DeviceContext,
   VisualizationResult,
 } from '../types.js';
-import { CSS_COLOR_VARS } from '../types.js';
-import { t } from '../../../i18n/index.js';
 
 // ============================================================================
 // CONSTANTS - Using CSS Variables for brand consistency
@@ -36,12 +34,6 @@ const CONFIDENCE_COLORS = {
   high: getCssVar('--color-semantic-success', '#27ae60'),
   medium: getCssVar('--color-semantic-warning', '#f5a623'),
   low: getCssVar('--color-semantic-error-light', '#e67e22'),
-};
-
-const CONFIDENCE_CSS_VARS = {
-  high: CSS_COLOR_VARS.statusThriving,
-  medium: CSS_COLOR_VARS.statusStretched,
-  low: CSS_COLOR_VARS.statusDepleted,
 };
 
 // ============================================================================
@@ -920,14 +912,6 @@ function formatValue(value: number): string {
     return `${(value / 1000).toFixed(1)}k`;
   }
   return value.toFixed(value % 1 === 0 ? 0 : 1);
-}
-
-/**
- * Truncate text to max length.
- */
-function truncate(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength - 1) + '…';
 }
 
 // ============================================================================

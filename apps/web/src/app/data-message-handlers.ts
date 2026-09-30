@@ -493,6 +493,21 @@ export function handleDataMessage(message: DataMessage): void {
       handleVoiceBiomarkers(message);
       break;
 
+    case 'emotional_intervention':
+      // 🫂 High-stakes emotional moment (turn-handler) → EQ concern mode listeners
+      handleEmotionalIntervention(message);
+      break;
+
+    case 'crisis_detected':
+      // 🛟 Crisis signal (turn-handler) → gentle UI / protective presence listeners
+      handleCrisisDetected(message);
+      break;
+
+    case 'naturalness_adjustments':
+      // 🎚️ Pacing adjustments (turn-handler) → avatar animation timing listeners
+      handleNaturalnessAdjustments(message);
+      break;
+
     default:
   }
 }

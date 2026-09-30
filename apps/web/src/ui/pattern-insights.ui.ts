@@ -22,7 +22,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
-import { getPatternInsightIcon, ANALYTICS_ICONS, GROWTH_ICONS } from './icons/shared-icons.js';
+import { getPatternInsightIcon } from './icons/shared-icons.js';
 import { createEmptyState } from './components/empty-state.js';
 
 const log = createLogger('PatternInsights');

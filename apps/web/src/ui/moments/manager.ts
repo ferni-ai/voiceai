@@ -20,9 +20,6 @@ import { createTimeoutTracker } from '../../utils/tracked-timeout.js';
 import {
   MOMENT_DURATIONS,
   HAPTIC_MAP,
-  WHISPER_ANIMATION,
-  NOTICE_ANIMATION,
-  MILESTONE_ANIMATION,
   REDUCED_MOTION_DURATIONS,
 } from './constants.js';
 import { injectMomentStyles, removeMomentStyles } from './styles.js';
@@ -40,7 +37,6 @@ import type {
   MilestoneType,
   MomentEvents,
   MomentEventListener,
-  HapticPattern,
 } from './types.js';
 
 const log = createLogger('MomentsManager');
@@ -61,7 +57,7 @@ class MomentsManager {
   private queue: Array<{ id: string; config: WhisperConfig | NoticeConfig }> = [];
   private idCounter = 0;
   private haptics = getHapticsService();
-  private listeners: Map<string, Set<Function>> = new Map();
+  private listeners: Map<string, Set<(payload: never) => void>> = new Map();
   private initialized = false;
 
   // ==========================================================================
@@ -139,7 +135,7 @@ class MomentsManager {
     this.container.appendChild(element);
 
     // Play haptic
-    const hapticKey = `whisper:${type}` as keyof typeof HAPTIC_MAP;
+    const hapticKey = `whisper:${type}`;
     this.playHaptic(HAPTIC_MAP[hapticKey] ?? 'softTap');
 
     // Animate in
@@ -276,7 +272,7 @@ class MomentsManager {
     this.triggerAvatarPulse();
 
     // Play haptic
-    const hapticKey = `notice:${type}` as keyof typeof HAPTIC_MAP;
+    const hapticKey = `notice:${type}`;
     this.playHaptic(HAPTIC_MAP[hapticKey] ?? 'notification');
 
     // Animate in
@@ -676,7 +672,7 @@ class MomentsManager {
     }
   }
 
-  private playHaptic(pattern: HapticPattern | string): void {
+  private playHaptic(pattern: string): void {
     try {
       this.haptics.play(pattern);
     } catch (error) {

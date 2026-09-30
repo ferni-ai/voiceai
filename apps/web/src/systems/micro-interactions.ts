@@ -19,13 +19,9 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import {
-  calculatePhysicsAnimation,
   getPresetPhysics,
-  animateSpring,
-  type Mass,
-  type Material,
 } from './physics.js';
-import { triggerSecondaryActions, react } from './secondary-action.js';
+import { react } from './secondary-action.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

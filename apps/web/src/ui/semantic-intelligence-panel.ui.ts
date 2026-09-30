@@ -25,7 +25,7 @@
  * @module ui/semantic-intelligence-panel
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet, getUserId } from '../utils/api.js';
 import { t } from '../i18n/index.js';
@@ -1808,14 +1808,6 @@ function renderInsightsTab(): string {
   if (cachedInsights.length === 0) {
     return renderEmptyTeaser('insights');
   }
-
-  // Group insights by source persona for storytelling
-  const bySource = cachedInsights.reduce((acc, insight) => {
-    const source = insight.source.toLowerCase();
-    if (!acc[source]) acc[source] = [];
-    acc[source].push(insight);
-    return acc;
-  }, {} as Record<string, SemanticInsight[]>);
 
   return `
     <div class="semantic-insights-hero">

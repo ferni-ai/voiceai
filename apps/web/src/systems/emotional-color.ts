@@ -8,7 +8,7 @@
  * This goes beyond themes - it's real-time emotional modulation.
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION } from '../config/animation-constants.js';
 import { getBreathSync } from './breath-sync.js';
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -12,7 +12,6 @@ import {
   getExpressionForTrigger,
   interpolateKeyframes,
 } from '../config/micro-expressions.js';
-import { DURATION } from '../config/animation-constants.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

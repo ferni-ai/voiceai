@@ -640,7 +640,7 @@ export function analyzePersonaHarmony(
  */
 export function generateHarmonyMatrix(): Record<PersonaId, Record<PersonaId, number>> {
   const personas = Object.keys(PERSONA_COLORS) as PersonaId[];
-  const matrix: Record<PersonaId, Record<PersonaId, number>> = {} as any;
+  const matrix = {} as Record<PersonaId, Record<PersonaId, number>>;
 
   personas.forEach((from) => {
     matrix[from] = {} as Record<PersonaId, number>;

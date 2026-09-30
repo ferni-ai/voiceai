@@ -14,7 +14,6 @@
 
 import { getExpressionPlayer } from './expression-player.js';
 import { getBreathSync } from './breath-sync.js';
-import { DURATION, EASING } from '../config/animation-constants.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
