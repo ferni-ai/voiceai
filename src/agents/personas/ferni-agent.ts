@@ -11,10 +11,11 @@
  * @see https://docs.livekit.io/agents/build/agents-handoffs
  */
 
-import { llm, stt, voice } from '@livekit/agents';
+import { llm, type stt, voice } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
-import { processAudioStream } from '../voice-agent/audio-processor.js';
+import { processAudioStream, utteranceEndsOf } from '../voice-agent/audio-processor.js';
+import { loadVoiceBaseline } from '../../services/trust-systems/voice-prosody-learning.js';
 import { z } from 'zod';
 
 import type { ToolContext } from '../../tools/registry/types.js';
@@ -682,11 +683,19 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     };
 
     // Background audio processing — populates userData.voiceEmotion and userData.voiceBiomarkers
+    // The caller's own usual voice, to hear how they sound today against it
+    if (userId) {
+      void loadVoiceBaseline(userId).catch((e) =>
+        log.debug({ error: String(e) }, 'Voice baseline load (non-critical)')
+      );
+    }
+
     void processAudioStream(audioForProcessor, {
       sessionId,
       userId,
       userData,
       sendDataMessage,
+      utteranceEnds: utteranceEndsOf(this.session),
     }).catch((e) => log.debug({ error: String(e) }, 'Audio processor (non-critical)'));
 
     return voice.Agent.default.sttNode(this, audioForStt, modelSettings);
@@ -732,9 +741,14 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const exchange = lastExchange(chatCtx);
     const sessionId = (userData?.services as { sessionId?: string } | undefined)?.sessionId;
     const repair = sessionRepairCue(userData, sessionId, exchange.user, exchange.agent);
+    const voiceToday = (userData?.voiceToday as { cue?: string | null } | undefined)?.cue;
     const reminder = composeTurnReminder(
       turnStyleReminderEnabled(),
-      [...(repair ? [repair] : []), ...nextReplyCues(userData, getTTSProvider().voice)],
+      [
+        ...(repair ? [repair] : []),
+        ...nextReplyCues(userData, getTTSProvider().voice),
+        ...(voiceToday ? [voiceToday] : []),
+      ],
       this.turnNotes?.notesForReply()
     );
     const ctx = reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;

@@ -1976,7 +1976,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
             '🎤 Live backchanneling wired on multi-agent path'
           );
 
-          const { processAudioStream } = await import('../voice-agent/audio-processor.js');
+          const { processAudioStream, utteranceEndsOf } = await import(
+            '../voice-agent/audio-processor.js'
+          );
           const { AudioStream, TrackKind } = await import('@livekit/rtc-node');
           const { ReadableStream } = await import('node:stream/web');
           let audioProcessorStarted = false;
@@ -2010,6 +2012,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
               userId: userId ?? undefined,
               userData,
               sendDataMessage,
+              utteranceEnds: utteranceEndsOf(session),
             }).catch((audioProcessorError) => {
               log.warn(
                 { error: String(audioProcessorError), personaId: persona.id, sessionId },

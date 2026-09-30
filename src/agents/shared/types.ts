@@ -15,6 +15,7 @@ import type { ConversationStateManager } from '../../services/conversation-state
 import type { SessionServices } from '../../services/index.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { VoiceState } from '../../speech/voice-biomarkers/index.js';
+import type { VoiceMeasures } from '../../speech/expression/voice-today.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
 import type { LaughterDetectionResult } from '../../speech/voice-humanization.js';
 
@@ -112,6 +113,8 @@ export interface UserData {
   voiceEmotion?: VoiceEmotionResult;
   /** Voice biomarker state (stress, fatigue, anxiety, etc.) — from Cartesia path prosody */
   voiceBiomarkers?: VoiceState;
+  /** This call's recent voice measures and the note they add, if any (speech/expression/voice-today.ts) */
+  voiceToday?: { recent: VoiceMeasures[]; cue: string | null };
   emotionModulation?: VoiceEmotionModulation;
   /** Audio embedding result for LLM context (e.g. from audio-embedding-integration) */
   audioEmbedding?: unknown;

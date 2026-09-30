@@ -307,7 +307,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   // somatic presence, audio-native LLM context, voice-memory weighting).
   // =========================================================================
   try {
-    const { processAudioStream } = await import('../voice-agent/audio-processor.js');
+    const { processAudioStream, utteranceEndsOf } = await import('../voice-agent/audio-processor.js');
     const { AudioStream, TrackKind } = await import('@livekit/rtc-node');
 
     let audioProcessorStarted = false;
@@ -328,6 +328,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
         userId: userId ?? undefined,
         userData: userData as import('../shared/types.js').UserData,
         sendDataMessage,
+        utteranceEnds: utteranceEndsOf(session),
       }).catch((err) => {
         process.stderr.write(
           `[voice-agent-entry] ⚠️ Audio processor ended: ${err}\n`

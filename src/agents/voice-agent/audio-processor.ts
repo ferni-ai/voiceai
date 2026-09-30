@@ -15,7 +15,7 @@ declare global {
   var __ferniCurrentMood: string | undefined;
 }
 
-import { log } from '@livekit/agents';
+import { log, voice } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import type { ReadableStream } from 'node:stream/web';
 import { getDJController } from '../../audio/index.js';
@@ -37,7 +37,12 @@ import {
   clearSession as clearGeminiSession,
   startEmotionStream,
 } from '../../services/emotion-analysis/hume.js';
-import { recordVoiceSample } from '../../services/trust-systems/index.js';
+import { analyzeDeviation, recordVoiceSample } from '../../services/trust-systems/index.js';
+import {
+  averageMeasures,
+  rememberUtterance,
+  voiceTodayCue,
+} from '../../speech/expression/index.js';
 import { recordLaughterDetection } from '../../services/voice/voice-humanization-metrics.js';
 import { getSpeakerChangeDetector } from '../../services/voice/voice-speaker-change.js';
 import { getAmbientAwarenessService } from '../../speech/ambient-awareness.js';
@@ -82,10 +87,33 @@ export interface AudioProcessorContext {
   userData?: UserData;
   /** Function to send data messages to frontend */
   sendDataMessage: (type: string, payload: Record<string, unknown>) => Promise<void>;
+  /** Subscribe to the end of each user utterance; returns the unsubscribe */
+  utteranceEnds?: (onEnd: () => void) => () => void;
 }
 
 // Re-export the VoiceEmotionResult for consumers
 export type { VoiceEmotionResult };
+
+/** utteranceEnds for a LiveKit AgentSession: fires each time the caller stops speaking. */
+export function utteranceEndsOf<T>(
+  session: voice.AgentSession<T>
+): AudioProcessorContext['utteranceEnds'] {
+  return (onEnd) => {
+    const handler = (ev: voice.UserStateChangedEvent) => {
+      if (ev.oldState === 'speaking' && ev.newState !== 'speaking') onEnd();
+    };
+    session.on(voice.AgentSessionEventTypes.UserStateChanged, handler);
+    return () => session.off(voice.AgentSessionEventTypes.UserStateChanged, handler);
+  };
+}
+
+/**
+ * Sessions whose voice is already being analyzed. The STT tap and the
+ * subscribed-track tap can both start a processor for one session; they
+ * share the session's prosody analyzer, so a second one would feed every
+ * frame twice. The first owns the analysis; a second just drains its stream.
+ */
+const analyzingSessions = new Set<string>();
 
 // ============================================================================
 // MAIN PROCESSOR
@@ -106,6 +134,19 @@ export async function processAudioStream(
   const { sessionId, userId, userData, sendDataMessage } = ctx;
 
   const reader = audio.getReader();
+
+  if (sessionId && analyzingSessions.has(sessionId)) {
+    logger.debug({ sessionId }, 'Voice already analyzed for this session; draining duplicate tap');
+    try {
+      while (!(await reader.read()).done) {
+        // drain
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    return;
+  }
+  if (sessionId) analyzingSessions.add(sessionId);
 
   // Session-scoped prosody analyzer (batch - analyzes at utterance end)
   let prosodyAnalyzer: ReturnType<typeof getSessionAudioProsodyAnalyzer> | null = null;
@@ -132,6 +173,14 @@ export async function processAudioStream(
 
   // Frame counter for GC pressure sampling
   let frameCount = 0;
+
+  // The stream lives as long as the session, so voice emotion is analyzed
+  // at the end of each utterance, not when the stream ends (call end).
+  const analysisCtx = { sessionId, userId, userData, sendDataMessage, logger };
+  let analyzing: Promise<void> = Promise.resolve();
+  const unsubscribeUtteranceEnds = ctx.utteranceEnds?.(() => {
+    analyzing = analyzing.then(() => analyzeUtterance(prosodyAnalyzer, analysisCtx));
+  });
 
   try {
     while (true) {
@@ -418,42 +467,53 @@ export async function processAudioStream(
       integration.cleanup();
     }
 
-    // Analyze final prosody results
-    const voiceEmotion = prosodyAnalyzer?.analyze() ?? null;
-    if (voiceEmotion && userData) {
-      userData.voiceEmotion = voiceEmotion;
-
-      // voice-session-store removed during DDD cleanup
-
-      // 🧬 Voice biomarkers (Cartesia path): Map prosody → biomarker pipeline for stress, fatigue, anxiety
-      if (voiceEmotion.prosody) {
-        try {
-          const voiceFeatures = mapProsodyToVoiceFeatures(voiceEmotion.prosody);
-          if (voiceFeatures) {
-            const pipeline = getVoiceBiomarkerPipeline();
-            const biomarkerState = await pipeline.analyze(voiceFeatures);
-            userData.voiceBiomarkers = biomarkerState;
-          }
-        } catch (biomarkerError) {
-          logger.debug({ error: String(biomarkerError) }, 'Voice biomarker analysis skipped (non-critical)');
-        }
-      }
-
-      // Process emotion results
-      await processVoiceEmotion(voiceEmotion, {
-        sessionId,
-        userId,
-        userData,
-        sendDataMessage,
-        logger,
-      });
-    }
-
-    prosodyAnalyzer?.clearBuffers();
+    // Analyze whatever is left of the last utterance
+    unsubscribeUtteranceEnds?.();
+    await analyzing;
+    await analyzeUtterance(prosodyAnalyzer, analysisCtx);
   } catch (error) {
     logger.warn(`Audio processing error: ${error}`);
   } finally {
+    unsubscribeUtteranceEnds?.();
+    if (sessionId) analyzingSessions.delete(sessionId);
     reader.releaseLock();
+  }
+}
+
+/**
+ * Voice emotion, biomarkers and baseline learning for the utterance just
+ * heard (the analyzer keeps the last few seconds of audio).
+ */
+async function analyzeUtterance(
+  prosodyAnalyzer: ReturnType<typeof getSessionAudioProsodyAnalyzer> | null,
+  ctx: EmotionProcessingContext
+): Promise<void> {
+  const { userData, logger } = ctx;
+  try {
+    const voiceEmotion = prosodyAnalyzer?.analyze() ?? null;
+    if (!voiceEmotion || !userData) return;
+    userData.voiceEmotion = voiceEmotion;
+
+    // 🧬 Voice biomarkers (Cartesia path): Map prosody → biomarker pipeline for stress, fatigue, anxiety
+    if (voiceEmotion.prosody) {
+      try {
+        const voiceFeatures = mapProsodyToVoiceFeatures(voiceEmotion.prosody);
+        if (voiceFeatures) {
+          userData.voiceBiomarkers = await getVoiceBiomarkerPipeline().analyze(voiceFeatures);
+        }
+      } catch (biomarkerError) {
+        logger.debug(
+          { error: String(biomarkerError) },
+          'Voice biomarker analysis skipped (non-critical)'
+        );
+      }
+    }
+
+    await processVoiceEmotion(voiceEmotion, ctx);
+  } catch (error) {
+    logger.debug({ error: String(error) }, 'Utterance voice analysis skipped (non-critical)');
+  } finally {
+    prosodyAnalyzer?.clearBuffers();
   }
 }
 
@@ -819,6 +879,16 @@ async function recordVoiceBaseline(
       tension: voiceEmotion.stressLevel || 0.3,
       clarity: voiceEmotion.confidence || 0.7,
     };
+
+    // How they sound today next to their usual voice (speech/expression/voice-today.ts)
+    if (userData) {
+      const recent = rememberUtterance(userData.voiceToday?.recent ?? [], characteristics);
+      const avg = averageMeasures(recent);
+      userData.voiceToday = {
+        recent,
+        cue: avg ? voiceTodayCue(analyzeDeviation(userId, avg)) : null,
+      };
+    }
 
     recordVoiceSample(userId, characteristics, {
       detectedEmotion: voiceEmotion.primary,

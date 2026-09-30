@@ -27,7 +27,12 @@ prosody module.
 | `vocal-direction.ts` | One policy per reply: reply's own tag > caller's voice (adaptive delivery). Calm emotions only, pace 0.88-1.08 |
 | `voice-fit.ts` | Strip what the active engine can't render (`ITTSProvider.voice`): Sonata never reads `[laughter]` aloud |
 | `laughter-reciprocity.ts` | Caller laughed → next reply laughs along (or smiles), once per laugh, 45s cooldown |
+| `voice-today.ts` | Their voice today vs their own usual (baseline across calls): a sustained difference over the last 3-5 utterances becomes one quiet note for the reply |
 | `session-expression.ts` | Adapter over `userData` (`deliveryStyle`, `detectedLaughter[At]`, `laughCue`) |
+
+Voice analysis (`audio-prosody`) runs at the end of each caller utterance
+(`user_state_changed`), because the STT audio stream lives as long as the
+session; analyzing only at stream end meant voice emotion arrived after hang-up.
 
 Adaptive delivery (the caller's voice shaping Ferni's) stays behind
 `ADAPTIVE_DELIVERY=on` until a blind comparison; laughing along is always on.

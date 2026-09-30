@@ -181,9 +181,20 @@ function getPersistence(): PersistenceStore<UserVoiceProsodyData> {
   return persistence;
 }
 
-async function ensureUserLoaded(userId: string): Promise<void> {
-  if (loadedUsers.has(userId)) return;
+const loading = new Map<string, Promise<void>>();
 
+/** Load once per process, however many callers ask at the same time. */
+function ensureUserLoaded(userId: string): Promise<void> {
+  if (loadedUsers.has(userId)) return Promise.resolve();
+  let pending = loading.get(userId);
+  if (!pending) {
+    pending = loadUserData(userId).finally(() => loading.delete(userId));
+    loading.set(userId, pending);
+  }
+  return pending;
+}
+
+async function loadUserData(userId: string): Promise<void> {
   try {
     const data = await getPersistence().load(userId);
     if (data) {
@@ -227,6 +238,7 @@ export async function shutdownVoiceProsody(): Promise<void> {
   await flushVoiceProsodyPersistence();
   // Clear state for clean restart
   loadedUsers.clear();
+  loading.clear();
   userBaselines.clear();
   voiceSamples.clear();
   log.info('Voice prosody service shutdown complete');
@@ -248,6 +260,13 @@ export function recordVoiceSample(
     conversationContext?: string;
   }
 ): void {
+  // Saving before the stored history is loaded would overwrite it with this
+  // call's samples alone, so the first sample waits for the load.
+  if (!loadedUsers.has(userId)) {
+    void ensureUserLoaded(userId).then(() => recordVoiceSample(userId, characteristics, context));
+    return;
+  }
+
   // Store sample
   const samples = voiceSamples.get(userId) || [];
   samples.push({
@@ -766,6 +785,12 @@ function calculateVarianceScore(chars: VoiceCharacteristics[]): number {
  */
 export function getBaseline(userId: string): PersonalBaseline | null {
   return userBaselines.get(userId) || null;
+}
+
+/** Load the caller's voice baseline from storage (call at session start). */
+export async function loadVoiceBaseline(userId: string): Promise<PersonalBaseline | null> {
+  await ensureUserLoaded(userId);
+  return getBaseline(userId);
 }
 
 /**

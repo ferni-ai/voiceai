@@ -4,6 +4,7 @@
  * - vocal-direction: one policy for the emotion and pace of a reply
  * - voice-fit: strip what the active TTS engine cannot render
  * - laughter-reciprocity: laugh with the caller, sparingly
+ * - voice-today: how they sound today next to their usual voice
  * - session-expression: the live-call adapter over userData
  *
  * @module speech/expression
@@ -20,3 +21,10 @@ export {
   type LaughCueRecord,
 } from './laughter-reciprocity.js';
 export { nextReplyCues, readUserLaugh, sessionVocalDirection } from './session-expression.js';
+export {
+  averageMeasures,
+  rememberUtterance,
+  voiceTodayCue,
+  type VoiceComparison,
+  type VoiceMeasures,
+} from './voice-today.js';
