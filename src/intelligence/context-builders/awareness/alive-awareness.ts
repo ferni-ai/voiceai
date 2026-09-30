@@ -5,7 +5,6 @@
  * - Cross-agent memory sharing
  * - Physical state continuity
  * - Metacognitive moments
- * - Mood drift
  * - Temporal anchoring
  * - Genuine curiosity
  * - World awareness
@@ -25,7 +24,7 @@ import {
   getMetacognitiveComment,
   getTemporalAnchor,
 } from '../../../services/embodied-awareness.js';
-import { processMoodDrift, getMoodExpression, getMoodState } from '../../../services/mood-drift.js';
+import { localClock, localDate } from '../../../utils/local-clock.js';
 
 // ============================================================================
 // TYPES
@@ -43,13 +42,14 @@ interface AliveAwarenessInput extends ContextBuilderInput {
   askedQuestion?: boolean;
   toldStory?: boolean;
   lastConversationDate?: Date;
+  /** Caller's IANA timezone (utils/local-clock.ts) */
+  timezone?: string;
 }
 
 interface AliveAwarenessResult {
   injections: ContextInjection[];
   physicalComment?: string;
   metacognitiveComment?: string;
-  moodExpression?: string;
   temporalAnchor?: string;
   teamContext?: string;
   curiosityQuestion?: string;
@@ -68,12 +68,10 @@ interface WorldContext {
   specialDay?: string;
 }
 
-function getWorldContext(): WorldContext {
-  const now = new Date();
-  const hour = now.getHours();
-  const day = now.getDay();
-  const month = now.getMonth();
-  const date = now.getDate();
+/** The world as the caller has it: their hour, weekday and date, not the server's. */
+export function getWorldContext(timezone?: string, now: Date = new Date()): WorldContext {
+  const { hour, dayOfWeek: day } = localClock(timezone, now);
+  const { month, date } = localDate(timezone, now);
 
   // Time of day
   let timeOfDay: WorldContext['timeOfDay'];
@@ -206,17 +204,12 @@ export async function buildAliveAwarenessContext(
     providedEmotionalSupport: input.wasPersonalSharing,
   });
 
-  // 2. Process mood drift
-  const moodState = processMoodDrift(sessionId, personaId, {
-    topics: input.currentTopics || [],
-    userEmotion: input.userEmotion,
-    userEmotionIntensity: input.userEmotionIntensity,
-    wasPersonalSharing: input.wasPersonalSharing,
-    turnCount,
-  });
+  // 2. The persona's mood is owned by the humanizing builder (one mood per
+  // conversation, shifted by events); a second, drifting one here
+  // contradicted it.
 
   // 3. Get world context
-  const worldContext = getWorldContext();
+  const worldContext = getWorldContext(input.timezone);
   if (turnCount === 0 || turnCount % 20 === 0) {
     injections.push({
       id: `world_awareness_${turnCount}`,
@@ -270,20 +263,6 @@ export async function buildAliveAwarenessContext(
     summaryParts.push('Metacognitive reflection');
   }
 
-  // 7. Mood expression
-  const moodExpression = getMoodExpression(sessionId, personaId, turnCount);
-  let moodExpressionStr: string | undefined;
-  if (moodExpression?.canExpress && moodExpression.phrase) {
-    moodExpressionStr = moodExpression.phrase;
-    injections.push({
-      id: `mood_${turnCount}`,
-      content: `[EMOTIONAL STATE: Your mood has shifted to "${moodExpression.moodType}". You might express: "${moodExpression.phrase}"]`,
-      priority: 'standard',
-      source: 'mood_drift',
-    });
-    summaryParts.push(`Mood: ${moodExpression.moodType}`);
-  }
-
   // 8. Temporal anchor
   const temporalAnchor = getTemporalAnchor(sessionId, input.lastConversationDate, personaId);
   if (temporalAnchor) {
@@ -320,7 +299,6 @@ export async function buildAliveAwarenessContext(
     injections,
     physicalComment: physicalComment || undefined,
     metacognitiveComment: metacognitiveComment || undefined,
-    moodExpression: moodExpressionStr,
     temporalAnchor: temporalAnchor || undefined,
     teamContext: teamContextStr,
     curiosityQuestion: curiosityQuestion || undefined,
@@ -370,6 +348,7 @@ async function buildAliveAwarenessContextWrapper(
     userEmotion: input.analysis?.emotion?.primary,
     userEmotionIntensity: input.analysis?.emotion?.intensity,
     wasPersonalSharing: input.analysis?.emotion?.needsSupport,
+    timezone: input.userData?.timezone,
   } as AliveAwarenessInput);
 
   return result.injections;
@@ -378,7 +357,7 @@ async function buildAliveAwarenessContextWrapper(
 registerContextBuilder({
   name: 'alive_awareness',
   description:
-    'Cross-agent memory, physical state, mood drift, temporal anchoring, genuine curiosity',
+    'Cross-agent memory, physical state, temporal anchoring, genuine curiosity',
   priority: 50, // Run after core context builders
   build: buildAliveAwarenessContextWrapper,
 });

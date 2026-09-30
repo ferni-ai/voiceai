@@ -100,3 +100,18 @@ export function localWeekday(at: Date, timezone?: string): string {
     ...(isValidTimezone(timezone) ? { timeZone: timezone } : {}),
   }).format(at);
 }
+
+/** The caller's calendar date: month 0-11, date 1-31. */
+export function localDate(timezone?: string, now: Date = new Date()): { month: number; date: number } {
+  if (isValidTimezone(timezone)) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      month: 'numeric',
+      day: 'numeric',
+    }).formatToParts(now);
+    const month = Number(parts.find((p) => p.type === 'month')?.value) - 1;
+    const date = Number(parts.find((p) => p.type === 'day')?.value);
+    if (Number.isInteger(month) && Number.isInteger(date)) return { month, date };
+  }
+  return { month: now.getMonth(), date: now.getDate() };
+}

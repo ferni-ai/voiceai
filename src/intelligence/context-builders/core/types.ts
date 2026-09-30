@@ -191,6 +191,8 @@ export interface ExtractedDetail {
 
 export interface ContextUserData {
   userName?: string;
+  /** Caller's IANA timezone (utils/local-clock.ts) */
+  timezone?: string;
   name?: string;
   isReturningUser?: boolean;
   sessionDurationMs?: number;
