@@ -772,7 +772,7 @@ class SettingsMenuUI {
                   `
             ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
             ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
-            ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.whatsAhead') || "What's Ahead")}
+            ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.whatsAhead', "What's Ahead"))}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
           `
                 )
@@ -784,14 +784,14 @@ class SettingsMenuUI {
             this.isSectionVisible('understandingYou')
               ? this.renderCollapsibleSection(
                   'understandingYou',
-                  t('menu.sections.ourStory') || 'Our Story',
+                  t('menu.sections.ourStory', 'Our Story'),
                   expandedSections.has('understandingYou'),
                   `
-            ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory') || 'Your Story')}
-            ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane') || 'Memory Lane', t('common.new'))}
-            ${this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights') || 'Your Patterns')}
+            ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory', 'Your Story'))}
+            ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane', 'Memory Lane'), t('common.new'))}
+            ${this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights', 'Your Patterns'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
-            ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear') || 'Your Year with Ferni', t('common.new'))}
+            ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear', 'Your Year with Ferni'), t('common.new'))}
           `
                 )
               : ''
@@ -806,7 +806,7 @@ class SettingsMenuUI {
                   expandedSections.has('waysToConnect'),
                   `
             ${this.renderMenuItem('journal', ICONS.journal, t('menu.items.journaling'))}
-            ${this.renderMenuItemWithBadge('knowledge-quiz', ICONS.lightbulb, t('menu.items.knowledgeQuiz') || 'How Well Do You Know Me?', t('common.new'))}
+            ${this.renderMenuItemWithBadge('knowledge-quiz', ICONS.lightbulb, t('menu.items.knowledgeQuiz', 'How Well Do You Know Me?'), t('common.new'))}
             ${this.renderMenuItem('music-dashboard', ICONS.music, t('menu.items.musicalYou'))}
             ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
             ${this.renderMenuItem('vibe-controller', ICONS.sparkles, t('menu.items.setTheVibe'))}
@@ -843,10 +843,10 @@ class SettingsMenuUI {
                   `
             ${this.renderMenuItem('personal-settings', ICONS.palette, t('menu.items.personalize'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.themeLanguage'))}
-            ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript') || 'Show Transcript', transcriptUI.isEnabled())}
-            ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects') || 'Sound Effects', !soundUI.getMuted())}
+            ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript', 'Show Transcript'), transcriptUI.isEnabled())}
+            ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects', 'Sound Effects'), !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
-            ${connectionService.getRoomState().useQwen3Omni ? this.renderMenuItem('director-console', ICONS.layers, t('menu.items.directorConsole') || 'Director Console') : ''}
+            ${connectionService.getRoomState().useQwen3Omni ? this.renderMenuItem('director-console', ICONS.layers, t('menu.items.directorConsole', 'Director Console')) : ''}
             ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
@@ -1039,10 +1039,10 @@ class SettingsMenuUI {
       'all-connections': { icon: ICONS.link, label: t('menu.items.allConnections') },
       // Core items
       'what-i-do-for-you': { icon: ICONS.care, label: 'What I Do For You' },
-      'your-story': { icon: ICONS.heart, label: t('menu.items.yourStory') || 'Your Story' },
+      'your-story': { icon: ICONS.heart, label: t('menu.items.yourStory', 'Your Story') },
       'your-year': {
         icon: ICONS.sparkles,
-        label: t('menu.items.yourYear') || 'Your Year with Ferni',
+        label: t('menu.items.yourYear', 'Your Year with Ferni'),
       },
       'future-insights': { icon: ICONS.sparkles, label: t('menu.items.whatIllKnow') },
       analytics: { icon: ICONS.analytics, label: t('menu.items.progressAnalytics') },
@@ -1071,7 +1071,7 @@ class SettingsMenuUI {
       'linkedin-settings': { icon: ICONS.linkedin, label: t('menu.items.linkedin') },
       'calendar-settings': {
         icon: ICONS.calendar,
-        label: t('menu.items.whatsAhead') || "What's Ahead",
+        label: t('menu.items.whatsAhead', "What's Ahead"),
       },
       notifications: { icon: ICONS.bell, label: t('menu.items.notifications') },
       theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
