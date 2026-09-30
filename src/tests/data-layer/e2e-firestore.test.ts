@@ -409,19 +409,21 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
     it('should get TTL statistics', async () => {
       const { getTTLStatistics } = await import('../../services/data-layer/ttl-cleanup.js');
 
-      const stats = getTTLStatistics();
+      const stats = await getTTLStatistics();
 
-      expect(stats).toBeDefined();
-      expect(typeof stats).toBe('object');
-      // Should have entries for entity types with TTL
-      expect(Object.keys(stats).length).toBeGreaterThan(0);
+      // Should have an entry for every collection with a TTL
+      expect(stats.collections).toBeGreaterThan(0);
+      expect(stats.configured).toHaveLength(stats.collections);
     });
 
     it('should run cleanup without errors', async () => {
-      const { cleanupExpiredDocuments } = await import('../../services/data-layer/ttl-cleanup.js');
+      const { runTTLCleanup } = await import('../../services/data-layer/ttl-cleanup.js');
 
-      // Should complete without throwing (even if no docs to clean)
-      await expect(cleanupExpiredDocuments()).resolves.not.toThrow();
+      // Dry run: counts what would be deleted, even if there is nothing to clean
+      const report = await runTTLCleanup({ dryRun: true });
+
+      expect(report.results.length).toBeGreaterThan(0);
+      expect(report.totalDeleted).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -757,7 +759,8 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
       const results = await searchUserContext('non-existent-user', 'anything');
 
       // Should return empty results, not throw
-      expect(Array.isArray(results) || results === undefined).toBe(true);
+      expect(results.userId).toBe('non-existent-user');
+      expect(Array.isArray(results.relevantMemories)).toBe(true);
     });
 
     it('should handle malformed content gracefully', async () => {
@@ -906,16 +909,13 @@ describe('Semantic Data Layer Unit Tests (No Emulator)', () => {
     it('should return valid TTL statistics structure', async () => {
       const { getTTLStatistics } = await import('../../services/data-layer/ttl-cleanup.js');
 
-      const stats = getTTLStatistics();
+      const stats = await getTTLStatistics();
 
-      expect(stats).toBeDefined();
-      expect(typeof stats).toBe('object');
-
-      // Each entry should have ttlDays and expirationDate
-      for (const [entityType, data] of Object.entries(stats)) {
-        expect(typeof entityType).toBe('string');
-        expect(data).toHaveProperty('ttlDays');
-        expect(data).toHaveProperty('expirationDate');
+      expect(stats.configured.length).toBeGreaterThan(0);
+      // Each entry names its collection and a positive TTL
+      for (const entry of stats.configured) {
+        expect(typeof entry.path).toBe('string');
+        expect(entry.ttlDays).toBeGreaterThan(0);
       }
     });
   });

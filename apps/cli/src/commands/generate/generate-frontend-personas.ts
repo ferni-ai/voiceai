@@ -26,7 +26,7 @@ import { fileURLToPath } from 'url';
 // Get script directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const projectRoot = join(__dirname, '..');
+const projectRoot = join(__dirname, '..', '..', '..', '..', '..');
 
 // Types matching the persona manifest schema
 interface PersonaManifest {
@@ -35,7 +35,8 @@ interface PersonaManifest {
     id: string;
     name: string;
     display_name?: string;
-    description: string;
+    description?: string;
+    tagline?: string;
     aliases?: string[];
     initials?: string;
     self_reference?: string;
@@ -327,6 +328,8 @@ async function manifestToFrontendPersona(
 ): Promise<FrontendPersona> {
   const roleId = manifest.team?.role_id || manifest.role?.id || manifest.identity.id;
   const isCoordinator = manifest.team?.coordinator === true;
+  // Some bundles carry a tagline instead of a description
+  const summary = manifest.identity.description ?? manifest.identity.tagline ?? '';
   
   // Load quotes and entrance from bundle content
   const bundleQuotes = await loadQuotesFromBundle(bundlePath);
@@ -341,15 +344,15 @@ async function manifestToFrontendPersona(
     initials: manifest.identity.initials || generateInitials(manifest.identity.name),
     subtitle: manifest.team?.role_description?.split(' - ')[0] || roleSubtitles[roleId] || 'Team Member',
     role: isCoordinator ? 'coach' : 'team',
-    description: manifest.identity.description,
-    helperText: manifest.team?.role_description?.split(' - ')[0] || manifest.identity.description.split('.')[0],
+    description: summary,
+    helperText: manifest.team?.role_description?.split(' - ')[0] || summary.split('.')[0],
     skills: roleSkills[roleId] || [{ icon: '', name: 'Support' }],
     entrancePhrase: entrancePhrase || 
       (manifest.team?.handoff_phrases?.receive?.[0]) ||
       (manifest.handoff?.entrance_phrases?.[0]) ||
       `${manifest.identity.name} here. How can I help?`,
     quotes: bundleQuotes.length > 0 ? bundleQuotes : [
-      `"${manifest.identity.description.split('.')[0]}."`,
+      `"${summary.split('.')[0]}."`,
     ],
     traits: manifest.personality?.traits || [],
     domains: manifest.role?.domains || [],
