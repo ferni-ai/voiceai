@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { loadEssentialDomains } from '../index.js';
+import { perfBudget } from '../../../tests/perf-budget.js';
 
 describe('loadEssentialDomains in a fresh job context', () => {
   it('loads the essential domains itself instead of assuming a preloaded registry', async () => {
@@ -31,6 +32,7 @@ describe('loadEssentialDomains in a fresh job context', () => {
     const start = Date.now();
     const tools = await loadEssentialDomains('test-user', undefined);
     expect(Object.keys(tools).length).toBeGreaterThan(50);
-    expect(Date.now() - start).toBeLessThan(500);
+    // Machine-dependent wall-clock budget: scaled on CI like the rest of the suite.
+    expect(Date.now() - start).toBeLessThan(perfBudget(500));
   });
 });
