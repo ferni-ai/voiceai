@@ -18,92 +18,33 @@
  */
 
 import { EventEmitter } from 'events';
-import admin from 'firebase-admin';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getAppointmentFollowUpService, type TrackedAppointment } from './appointment-followup.js';
-import { sendEmail, sendSMS } from '../communication-service.js';
-import { createAppointmentEvent, isCalendarConfigured } from '../identity/google-calendar-oauth.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   generateAppointmentTwiML,
   getTwilioWebhookService,
   type CallTrackingEntry,
 } from '../twilio-webhooks.js';
+import type { AppointmentRequest, AppointmentResult } from './appointment-integration-types.js';
+import {
+  PENDING_REQUESTS_COLLECTION,
+  getFirestore,
+  removePendingRequest,
+  savePendingRequest,
+} from './appointment-integration-store.js';
+import {
+  analyzeTranscription,
+  createCalendarEventForAppointment,
+  getTwilioConfig,
+  isTwilioConfigured,
+  notifyUserOfConfirmation,
+  notifyUserOfDelay,
+  notifyUserOfFailure,
+  parseRequestedDateTime,
+} from './appointment-integration-helpers.js';
 
-// ============================================================================
-// FIRESTORE SETUP
-// ============================================================================
-
-const PENDING_REQUESTS_COLLECTION = 'pending_appointment_requests';
-
-/**
- * User notifications are best-effort: a failed or unconfigured send is logged
- * (never reported as delivered) and must not break the appointment flow.
- */
-async function notifyBestEffort(
-  channel: 'sms' | 'email',
-  send: () => Promise<string>
-): Promise<boolean> {
-  try {
-    await send();
-    return true;
-  } catch (error) {
-    getLogger().warn({ error: String(error), channel }, 'Appointment notification not sent');
-    return false;
-  }
-}
-
-function getFirestore(): admin.firestore.Firestore | null {
-  try {
-    return admin.firestore();
-  } catch {
-    return null;
-  }
-}
-
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-
-// Read at runtime for testability
-function getTwilioConfig() {
-  return {
-    accountSid: process.env.TWILIO_ACCOUNT_SID || '',
-    authToken: process.env.TWILIO_AUTH_TOKEN || '',
-    phoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
-    webhookBaseUrl: process.env.WEBHOOK_BASE_URL || 'https://api.ferni.ai/webhooks/twilio',
-  };
-}
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface AppointmentRequest {
-  userId: string;
-  businessName: string;
-  businessPhone: string;
-  appointmentType: 'doctor' | 'dentist' | 'salon' | 'restaurant' | 'service' | 'other';
-  requestedDate: string; // e.g., "next Tuesday"
-  requestedTime: string; // e.g., "around 2pm"
-  partySize?: number;
-  specialRequests?: string;
-  linkedMilestoneId?: string;
-  linkedEventName?: string;
-  notifyVia?: 'sms' | 'email' | 'both';
-  notifyContact?: string; // phone or email
-}
-
-export interface AppointmentResult {
-  success: boolean;
-  appointmentId: string;
-  status: 'calling' | 'confirmed' | 'failed' | 'needs_callback';
-  message: string;
-  callSid?: string;
-  confirmationNumber?: string;
-  confirmedDateTime?: Date;
-  calendarEventId?: string;
-}
+// Re-exports: moved to sibling modules, kept here for backward-compatible imports
+export type { AppointmentRequest, AppointmentResult } from './appointment-integration-types.js';
 
 // ============================================================================
 // APPOINTMENT INTEGRATION SERVICE
@@ -141,40 +82,6 @@ class AppointmentIntegrationService extends EventEmitter {
       }
     }
     this.initialized = true;
-  }
-
-  /**
-   * Save pending appointment request to Firestore
-   */
-  private async savePendingRequest(
-    appointmentId: string,
-    request: AppointmentRequest
-  ): Promise<void> {
-    const db = getFirestore();
-    if (!db) return;
-
-    try {
-      await db
-        .collection(PENDING_REQUESTS_COLLECTION)
-        .doc(appointmentId)
-        .set(cleanForFirestore(request));
-    } catch (error) {
-      getLogger().error({ error, appointmentId }, 'Failed to save pending request');
-    }
-  }
-
-  /**
-   * Remove pending appointment request from Firestore
-   */
-  private async removePendingRequest(appointmentId: string): Promise<void> {
-    const db = getFirestore();
-    if (!db) return;
-
-    try {
-      await db.collection(PENDING_REQUESTS_COLLECTION).doc(appointmentId).delete();
-    } catch (error) {
-      getLogger().error({ error, appointmentId }, 'Failed to remove pending request');
-    }
   }
 
   /**
@@ -216,7 +123,7 @@ class AppointmentIntegrationService extends EventEmitter {
 
     // Track the appointment
     const followUpService = getAppointmentFollowUpService();
-    const parsedDate = this.parseRequestedDateTime(request.requestedDate, request.requestedTime);
+    const parsedDate = parseRequestedDateTime(request.requestedDate, request.requestedTime);
 
     const _trackedAppointment = followUpService.trackAppointment({
       id: appointmentId,
@@ -237,10 +144,10 @@ class AppointmentIntegrationService extends EventEmitter {
     this.pendingAppointments.set(appointmentId, request);
 
     // Persist to Firestore
-    void this.savePendingRequest(appointmentId, request);
+    void savePendingRequest(appointmentId, request);
 
     // Check if Twilio is configured
-    if (!this.isTwilioConfigured()) {
+    if (!isTwilioConfigured()) {
       getLogger().warn('Twilio not configured - simulating appointment call');
       return this.simulateAppointmentCall(appointmentId, request);
     }
@@ -351,7 +258,7 @@ class AppointmentIntegrationService extends EventEmitter {
         try {
           // Simulate getting confirmation
           const confirmationNumber = `SIM-${Date.now().toString().slice(-6)}`;
-          const confirmedDate = this.parseRequestedDateTime(
+          const confirmedDate = parseRequestedDateTime(
             request.requestedDate,
             request.requestedTime
           );
@@ -368,17 +275,14 @@ class AppointmentIntegrationService extends EventEmitter {
           getLogger().info({ appointmentId, status: 'confirmed' }, '🎭 Simulation: Status updated');
 
           // Create calendar event (non-blocking)
-          this.createCalendarEventForAppointment(appointmentId, request, confirmedDate).catch(
-            (err) => getLogger().warn({ err, appointmentId }, 'Calendar event creation failed')
+          createCalendarEventForAppointment(appointmentId, request, confirmedDate).catch((err) =>
+            getLogger().warn({ err, appointmentId }, 'Calendar event creation failed')
           );
 
           // Notify user (non-blocking)
-          this.notifyUserOfConfirmation(
-            appointmentId,
-            request,
-            confirmationNumber,
-            confirmedDate
-          ).catch((err) => getLogger().warn({ err, appointmentId }, 'User notification failed'));
+          notifyUserOfConfirmation(appointmentId, request, confirmationNumber, confirmedDate).catch(
+            (err) => getLogger().warn({ err, appointmentId }, 'User notification failed')
+          );
 
           this.emit('appointment_confirmed', { appointmentId, confirmationNumber, confirmedDate });
         } catch (error) {
@@ -422,7 +326,7 @@ class AppointmentIntegrationService extends EventEmitter {
       // Notify user of delay if this isn't the first attempt
       const appointment = followUpService.getAppointment(entry.appointmentId);
       if (appointment && appointment.callAttempts > 1) {
-        await this.notifyUserOfDelay(entry.appointmentId, request, entry.status);
+        await notifyUserOfDelay(entry.appointmentId, request, entry.status);
       }
     } else if (entry.status === 'failed') {
       // Call failed - notify user
@@ -430,7 +334,7 @@ class AppointmentIntegrationService extends EventEmitter {
         note: `Call failed: ${entry.error?.message || 'Unknown error'}`,
       });
 
-      await this.notifyUserOfFailure(entry.appointmentId, request);
+      await notifyUserOfFailure(entry.appointmentId, request);
     }
   }
 
@@ -468,7 +372,7 @@ class AppointmentIntegrationService extends EventEmitter {
     );
 
     // Analyze the transcription to determine outcome
-    const outcome = this.analyzeTranscription(entry.transcription);
+    const outcome = analyzeTranscription(entry.transcription);
 
     const followUpService = getAppointmentFollowUpService();
 
@@ -476,7 +380,7 @@ class AppointmentIntegrationService extends EventEmitter {
       // Appointment confirmed!
       const confirmedDate =
         outcome.confirmedDateTime ||
-        this.parseRequestedDateTime(request.requestedDate, request.requestedTime);
+        parseRequestedDateTime(request.requestedDate, request.requestedTime);
 
       const confirmationNumber =
         outcome.confirmationNumber || `CONF-${Date.now().toString().slice(-6)}`;
@@ -488,10 +392,10 @@ class AppointmentIntegrationService extends EventEmitter {
       });
 
       // Create calendar event
-      await this.createCalendarEventForAppointment(entry.appointmentId, request, confirmedDate);
+      await createCalendarEventForAppointment(entry.appointmentId, request, confirmedDate);
 
       // Notify user
-      await this.notifyUserOfConfirmation(
+      await notifyUserOfConfirmation(
         entry.appointmentId,
         request,
         confirmationNumber,
@@ -517,245 +421,6 @@ class AppointmentIntegrationService extends EventEmitter {
   }
 
   /**
-   * Analyze transcription to determine appointment outcome
-   */
-  private analyzeTranscription(transcription: string): {
-    confirmed: boolean;
-    confirmedDateTime?: Date;
-    confirmationNumber?: string;
-    needsCallback: boolean;
-  } {
-    const lower = transcription.toLowerCase();
-
-    // Check for confirmation indicators
-    const confirmationPhrases = [
-      'confirmed',
-      'booked',
-      'see you',
-      'we have you down',
-      'all set',
-      'appointment is set',
-      "you're scheduled",
-    ];
-
-    const confirmed = confirmationPhrases.some((phrase) => lower.includes(phrase));
-
-    // Check for callback indicators
-    const callbackPhrases = [
-      'call you back',
-      "we'll call",
-      'give you a call',
-      'check and call',
-      'let you know',
-    ];
-
-    const needsCallback = callbackPhrases.some((phrase) => lower.includes(phrase));
-
-    // Try to extract time from transcription
-    let confirmedDateTime: Date | undefined;
-    const timePatterns = [
-      /(\d{1,2})\s*(am|pm)/i,
-      /(\d{1,2}):(\d{2})\s*(am|pm)?/i,
-      /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i,
-    ];
-
-    // Basic extraction - in production, use NLP
-    for (const pattern of timePatterns) {
-      const match = lower.match(pattern);
-      if (match) {
-        // Would parse properly in production
-        break;
-      }
-    }
-
-    // Try to extract confirmation number
-    let confirmationNumber: string | undefined;
-    const confMatch = transcription.match(
-      /(?:confirmation|reference|booking)\s*(?:number|#|:)?\s*(\w+)/i
-    );
-    if (confMatch) {
-      confirmationNumber = confMatch[1];
-    }
-
-    return {
-      confirmed,
-      confirmedDateTime,
-      confirmationNumber,
-      needsCallback: needsCallback && !confirmed,
-    };
-  }
-
-  /**
-   * Create calendar event for confirmed appointment
-   */
-  private async createCalendarEventForAppointment(
-    appointmentId: string,
-    request: AppointmentRequest,
-    confirmedDate: Date
-  ): Promise<string | null> {
-    if (!(await isCalendarConfigured(request.userId))) {
-      getLogger().debug({ userId: request.userId }, 'Calendar not configured for user');
-      return null;
-    }
-
-    try {
-      const event = await createAppointmentEvent(request.userId, {
-        title: `${request.appointmentType.charAt(0).toUpperCase() + request.appointmentType.slice(1)} at ${request.businessName}`,
-        description: request.specialRequests
-          ? `Special requests: ${request.specialRequests}\n\nScheduled by Ferni`
-          : 'Scheduled by Ferni',
-        location: request.businessName,
-        startTime: confirmedDate,
-        durationMinutes: request.appointmentType === 'restaurant' ? 90 : 60,
-        reminders: [
-          { method: 'popup', minutes: 60 },
-          { method: 'email', minutes: 24 * 60 }, // 1 day before
-        ],
-      });
-
-      if (event?.id) {
-        getLogger().info({ appointmentId, eventId: event.id }, '📅 Calendar event created');
-        return event.id;
-      }
-    } catch (error) {
-      getLogger().error({ appointmentId, error }, 'Failed to create calendar event');
-    }
-
-    return null;
-  }
-
-  /**
-   * Notify user of confirmation
-   */
-  private async notifyUserOfConfirmation(
-    appointmentId: string,
-    request: AppointmentRequest,
-    confirmationNumber: string,
-    confirmedDate: Date
-  ): Promise<void> {
-    const dateStr = confirmedDate.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-
-    const message = `✅ Your ${request.appointmentType} at ${request.businessName} is confirmed for ${dateStr}! Confirmation: ${confirmationNumber}`;
-
-    if (request.notifyVia === 'sms' || request.notifyVia === 'both') {
-      if (request.notifyContact) {
-        await notifyBestEffort('sms', () => sendSMS(request.notifyContact ?? '', message));
-      }
-    }
-
-    if (request.notifyVia === 'email' || request.notifyVia === 'both') {
-      if (request.notifyContact?.includes('@')) {
-        await notifyBestEffort('email', () =>
-          sendEmail(
-            request.notifyContact ?? '',
-            `✅ Appointment Confirmed - ${request.businessName}`,
-            `${message}\n\n— Your Ferni assistant`
-          )
-        );
-      }
-    }
-
-    getLogger().info(
-      { appointmentId, notifyVia: request.notifyVia },
-      'User notified of confirmation'
-    );
-  }
-
-  /**
-   * Notify user of delay
-   */
-  private async notifyUserOfDelay(
-    appointmentId: string,
-    request: AppointmentRequest,
-    reason: string
-  ): Promise<void> {
-    const message = `I'm still working on your ${request.appointmentType} appointment at ${request.businessName}. ${
-      reason === 'no-answer' ? 'No answer yet' : 'Line was busy'
-    } - I'll keep trying!`;
-
-    if (request.notifyVia && request.notifyContact) {
-      if (request.notifyVia === 'sms' || request.notifyVia === 'both') {
-        await notifyBestEffort('sms', () => sendSMS(request.notifyContact ?? '', message));
-      }
-    }
-  }
-
-  /**
-   * Notify user of failure
-   */
-  private async notifyUserOfFailure(
-    appointmentId: string,
-    request: AppointmentRequest
-  ): Promise<void> {
-    const message = `I wasn't able to reach ${request.businessName} for your ${request.appointmentType} appointment. Would you like me to try again or do you want to call them directly at ${request.businessPhone}?`;
-
-    if (request.notifyVia && request.notifyContact) {
-      if (request.notifyVia === 'sms' || request.notifyVia === 'both') {
-        await notifyBestEffort('sms', () => sendSMS(request.notifyContact ?? '', message));
-      }
-    }
-  }
-
-  /**
-   * Parse natural language date/time into Date object
-   */
-  private parseRequestedDateTime(dateStr: string, timeStr: string): Date {
-    const now = new Date();
-    const targetDate = new Date(now);
-
-    // Parse date
-    const dateLower = dateStr.toLowerCase();
-    if (dateLower.includes('tomorrow')) {
-      targetDate.setDate(now.getDate() + 1);
-    } else if (dateLower.includes('next week')) {
-      targetDate.setDate(now.getDate() + 7);
-    } else if (dateLower.includes('next')) {
-      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-      for (let i = 0; i < days.length; i++) {
-        if (dateLower.includes(days[i])) {
-          const currentDay = now.getDay();
-          const daysUntil = (i - currentDay + 7) % 7 || 7;
-          targetDate.setDate(now.getDate() + daysUntil);
-          break;
-        }
-      }
-    }
-
-    // Parse time
-    const timeLower = timeStr.toLowerCase();
-    const timeMatch = timeLower.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
-    if (timeMatch) {
-      let hours = parseInt(timeMatch[1], 10);
-      const minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
-      const ampm = timeMatch[3];
-
-      if (ampm === 'pm' && hours !== 12) hours += 12;
-      if (ampm === 'am' && hours === 12) hours = 0;
-
-      targetDate.setHours(hours, minutes, 0, 0);
-    } else {
-      // Default to noon
-      targetDate.setHours(12, 0, 0, 0);
-    }
-
-    return targetDate;
-  }
-
-  /**
-   * Check if Twilio is configured
-   */
-  private isTwilioConfigured(): boolean {
-    const config = getTwilioConfig();
-    return !!(config.accountSid && config.authToken && config.phoneNumber);
-  }
-
-  /**
    * Get appointment status
    */
   getAppointmentStatus(appointmentId: string): TrackedAppointment | undefined {
@@ -778,7 +443,7 @@ class AppointmentIntegrationService extends EventEmitter {
     this.pendingAppointments.delete(appointmentId);
 
     // Remove from Firestore
-    void this.removePendingRequest(appointmentId);
+    void removePendingRequest(appointmentId);
 
     getLogger().info({ appointmentId }, 'Appointment cancelled');
     return true;
