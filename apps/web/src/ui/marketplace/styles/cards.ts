@@ -456,6 +456,8 @@ export function getCardStyles(): string {
        ======================================== */
 
     .marketplace-agent--locked {
+      /* Contain the absolutely-positioned lock overlay to its own card */
+      position: relative;
       opacity: 0.7;
       pointer-events: none;
     }

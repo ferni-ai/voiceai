@@ -424,7 +424,7 @@ async function renderTeamLockedMessage(): Promise<void> {
 
     return `
       <div class="team-progress-member ${isUnlocked ? 'unlocked' : 'locked'}">
-        <div class="team-progress-avatar" data-persona="${member.id}">
+        <div class="team-progress-avatar" data-persona="${member.id}" style="background: ${getPersonaGradient(member.id)};">
           ${member.displayName.slice(0, 2).toUpperCase()}
         </div>
         <span class="team-progress-name">${member.displayName}</span>
