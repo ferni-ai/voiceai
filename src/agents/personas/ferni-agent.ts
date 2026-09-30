@@ -35,11 +35,13 @@ import { getModelProvider } from '../model-provider/index.js';
 import {
   composeTurnReminder,
   lastExchange,
+  recentAgentReplies,
   turnStyleReminderEnabled,
   withTurnStyleReminder,
 } from './turn-style.js';
 import { sessionRepairCue } from '../../conversation/repair-cue.js';
 import { leaveTakingCue } from '../../conversation/leave-taking.js';
+import { NAME_WINDOW, nameRestCue } from '../../conversation/name-use.js';
 import {
   formatTalkPreferences,
   type TalkPreference,
@@ -747,6 +749,10 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const sessionId = (userData?.services as { sessionId?: string } | undefined)?.sessionId;
     const repair = sessionRepairCue(userData, sessionId, exchange.user, exchange.agent);
     const leaving = leaveTakingCue(exchange.user);
+    const nameRest = nameRestCue(
+      userData?.userName as string | undefined,
+      recentAgentReplies(chatCtx, NAME_WINDOW)
+    );
     const voiceToday = (userData?.voiceToday as { cue?: string | null } | undefined)?.cue;
     const talk = formatTalkPreferences(
       new Set((userData?.talkPreferences as TalkPreference[] | undefined) ?? [])
@@ -760,6 +766,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
         ...nextReplyCues(userData, getTTSProvider().voice),
         ...(voiceToday ? [voiceToday] : []),
         ...(leaving ? [leaving] : []),
+        ...(nameRest ? [nameRest] : []),
       ],
       this.turnNotes?.notesForReply()
     );

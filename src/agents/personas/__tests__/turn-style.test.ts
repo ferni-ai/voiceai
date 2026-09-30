@@ -3,6 +3,7 @@ import { llm } from '@livekit/agents';
 import {
   composeTurnReminder,
   lastExchange,
+  recentAgentReplies,
   TURN_STYLE_REMINDER,
   turnStyleReminderEnabled,
   withTurnStyleReminder,
@@ -88,5 +89,18 @@ describe('lastExchange', () => {
     ctx.addMessage({ role: 'user', content: 'No, Boston' });
     expect(lastExchange(ctx)).toEqual({ user: 'No, Boston', agent: 'How is Austin treating you?' });
     expect(lastExchange(llm.ChatContext.empty())).toEqual({});
+  });
+});
+
+describe('recentAgentReplies', () => {
+  it('returns the last few agent replies, oldest first', () => {
+    const ctx = llm.ChatContext.empty();
+    ctx.addMessage({ role: 'assistant', content: 'Hey Sam!' });
+    ctx.addMessage({ role: 'user', content: 'Hi' });
+    ctx.addMessage({ role: 'assistant', content: 'How was the trip?' });
+    ctx.addMessage({ role: 'user', content: 'Long' });
+    ctx.addMessage({ role: 'assistant', content: 'Oh no.' });
+    expect(recentAgentReplies(ctx, 2)).toEqual(['How was the trip?', 'Oh no.']);
+    expect(recentAgentReplies(llm.ChatContext.empty())).toEqual([]);
   });
 });

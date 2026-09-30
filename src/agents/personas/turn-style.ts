@@ -93,7 +93,6 @@ export function lastExchange(chatCtx: llm.ChatContext): { user?: string; agent?:
   return {};
 }
 
-
 /** The last few agent replies, oldest first, as plain text. */
 export function recentAgentReplies(chatCtx: llm.ChatContext, count = 3): string[] {
   const out: string[] = [];
