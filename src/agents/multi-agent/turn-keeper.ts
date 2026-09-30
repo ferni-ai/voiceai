@@ -10,7 +10,9 @@
  *
  * So the keeper follows the caller's final transcripts itself. A final is
  * answered once an assistant message after it plays through, or is cut off
- * only after saying something real. When both sides have been quiet for a
+ * only after Ferni had been speaking a while. (Round 4: LiveKit records an
+ * interrupted reply with its full generated text, not the one word spoken,
+ * so a word count of the message can't tell; speaking time can.) When both sides have been quiet for a
  * short grace period and the latest final (a few words at least) is still
  * unanswered, Ferni answers it, passing the words along when LiveKit never
  * put them in the history.
@@ -20,8 +22,8 @@
 
 export const TURN_KEEPER_GRACE_MS = 2500;
 const MIN_WORDS = 3;
-/** A cut-off reply shorter than this didn't answer anything. */
-const MIN_ANSWER_WORDS = 6;
+/** A reply cut off within this much speaking time didn't answer anything. */
+export const MIN_ANSWER_SPEAKING_MS = 1500;
 
 interface ChatItemLike {
   id?: string;
@@ -34,10 +36,10 @@ interface ChatItemLike {
 const wordCount = (text: string | undefined): number =>
   (text ?? '').trim().split(/\s+/).filter(Boolean).length;
 
-/** Whether an assistant message counts as an answer. */
-export function isRealAnswer(item: ChatItemLike): boolean {
+/** Whether an assistant message counts as an answer, given how long Ferni spoke. */
+export function isRealAnswer(item: ChatItemLike, spokeMs: number): boolean {
   if (item.role !== 'assistant' || (item.type && item.type !== 'message')) return false;
-  return !item.interrupted || wordCount(item.textContent) >= MIN_ANSWER_WORDS;
+  return !item.interrupted || spokeMs >= MIN_ANSWER_SPEAKING_MS;
 }
 
 /** Whether `text` is already the last user message in the history. */
@@ -74,7 +76,11 @@ export function createTurnKeeper(deps: {
   log?: (fields: Record<string, unknown>) => void;
   setTimer?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
   clearTimer?: (t: ReturnType<typeof setTimeout>) => void;
+  now?: () => number;
 }): TurnKeeper {
+  const now = deps.now ?? Date.now;
+  let speakingSince: number | undefined;
+  let lastSpokeMs = 0;
   const setTimer = deps.setTimer ?? setTimeout;
   const clearTimer = deps.clearTimer ?? clearTimeout;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -100,7 +106,15 @@ export function createTurnKeeper(deps: {
   };
 
   return {
-    onStateChange: reschedule,
+    onStateChange() {
+      const speaking = deps.session.agentState === 'speaking';
+      if (speaking && speakingSince === undefined) speakingSince = now();
+      if (!speaking && speakingSince !== undefined) {
+        lastSpokeMs = now() - speakingSince;
+        speakingSince = undefined;
+      }
+      reschedule();
+    },
     onTranscript(event) {
       const ev = event as { transcript?: string; isFinal?: boolean };
       if (!ev?.isFinal) return;
@@ -110,7 +124,8 @@ export function createTurnKeeper(deps: {
     },
     onItemAdded(event) {
       const item = (event as { item?: ChatItemLike })?.item;
-      if (item && isRealAnswer(item)) pending = undefined;
+      const spokeMs = speakingSince !== undefined ? now() - speakingSince : lastSpokeMs;
+      if (item && isRealAnswer(item, spokeMs)) pending = undefined;
       reschedule();
     },
     stop() {

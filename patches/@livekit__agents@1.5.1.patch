@@ -1,8 +1,32 @@
 diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
-index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..cf0382a2370db3f4457b31d4740c89d8d43583d9 100644
+index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..60193e5ed6930c982735a6fc3a52cdaafcb6429b 100644
 --- a/dist/voice/agent_activity.cjs
 +++ b/dist/voice/agent_activity.cjs
-@@ -1677,7 +1677,13 @@ class AgentActivity {
+@@ -1095,13 +1095,22 @@ class AgentActivity {
+     if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof import_llm2.LLM)) {
+       return;
+     }
+-    this.cancelPreemptiveGeneration();
++    // PATCHED(ferni): the original cancelled the running preemptive reply
++    // first and then returned when maxRetries was reached, so Ink-2's repeated
++    // eager-end/final events left no preemptive reply at all by the end of
++    // the turn (0 of 51 dev turns reused one). Keep one whose transcript still
++    // matches, and cancel only when a replacement will actually start.
++    if (this._preemptiveGeneration !== void 0 && this._preemptiveGeneration.info.newTranscript === info.newTranscript) {
++      return;
++    }
+     if (info.startedSpeakingAt !== void 0 && Date.now() - info.startedSpeakingAt > preemptiveOpts.maxSpeechDuration) {
++      this.cancelPreemptiveGeneration();
+       return;
+     }
+     if (this._preemptiveGenerationCount >= preemptiveOpts.maxRetries) {
+       return;
+     }
++    this.cancelPreemptiveGeneration();
+     this._preemptiveGenerationCount++;
+     this.logger.info(
+       {
+@@ -1677,7 +1686,13 @@ class AgentActivity {
      let speechHandle;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
@@ -18,10 +42,34 @@ index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..cf0382a2370db3f4457b31d4740c89d8
          if (preemptive.userMessage && userMessage) {
            preemptive.userMessage.metrics = userMetricsReport;
 diff --git a/dist/voice/agent_activity.js b/dist/voice/agent_activity.js
-index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..557e8624cc80c0d4520ab9ed5fe4e8cce040df56 100644
+index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..f654210e9857e2f71bc25ba43852e07e03a6559e 100644
 --- a/dist/voice/agent_activity.js
 +++ b/dist/voice/agent_activity.js
-@@ -1708,7 +1708,13 @@ class AgentActivity {
+@@ -1126,13 +1126,22 @@ class AgentActivity {
+     if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof LLM)) {
+       return;
+     }
+-    this.cancelPreemptiveGeneration();
++    // PATCHED(ferni): the original cancelled the running preemptive reply
++    // first and then returned when maxRetries was reached, so Ink-2's repeated
++    // eager-end/final events left no preemptive reply at all by the end of
++    // the turn (0 of 51 dev turns reused one). Keep one whose transcript still
++    // matches, and cancel only when a replacement will actually start.
++    if (this._preemptiveGeneration !== void 0 && this._preemptiveGeneration.info.newTranscript === info.newTranscript) {
++      return;
++    }
+     if (info.startedSpeakingAt !== void 0 && Date.now() - info.startedSpeakingAt > preemptiveOpts.maxSpeechDuration) {
++      this.cancelPreemptiveGeneration();
+       return;
+     }
+     if (this._preemptiveGenerationCount >= preemptiveOpts.maxRetries) {
+       return;
+     }
++    this.cancelPreemptiveGeneration();
+     this._preemptiveGenerationCount++;
+     this.logger.info(
+       {
+@@ -1708,7 +1717,13 @@ class AgentActivity {
      let speechHandle;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;

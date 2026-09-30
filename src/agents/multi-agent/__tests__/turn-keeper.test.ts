@@ -16,9 +16,11 @@ function harness(items: unknown[] = []) {
   const timers: Array<() => void> = [];
   const reply = vi.fn();
   const session = { agentState: 'listening', userState: 'listening', history: { items } };
+  let clock = 0;
   const keeper = createTurnKeeper({
     session,
     reply,
+    now: () => clock,
     setTimer: (fn) => {
       timers.push(fn);
       return timers.length as unknown as ReturnType<typeof setTimeout>;
@@ -26,17 +28,25 @@ function harness(items: unknown[] = []) {
     clearTimer: () => undefined,
   });
   const fire = () => timers.splice(0).forEach((f) => f());
-  return { keeper, reply, session, fire };
+  /** Ferni speaks for `ms`, then goes quiet. */
+  const speak = (ms: number) => {
+    session.agentState = 'speaking';
+    keeper.onStateChange();
+    clock += ms;
+    session.agentState = 'listening';
+    keeper.onStateChange();
+  };
+  return { keeper, reply, session, fire, speak };
 }
 
 describe('isRealAnswer', () => {
-  it('counts a finished reply, or a cut-off one that said something', () => {
-    expect(isRealAnswer(msg('assistant', 'Ha, yeah.'))).toBe(true);
-    expect(isRealAnswer(msg('assistant', 'Biscuit,', true))).toBe(false);
-    expect(
-      isRealAnswer(msg('assistant', 'Oh no, that cat, first the deadline and now this', true))
-    ).toBe(true);
-    expect(isRealAnswer(msg('user', 'hello there friend'))).toBe(false);
+  it('counts a finished reply, or a cut-off one after real speaking time', () => {
+    expect(isRealAnswer(msg('assistant', 'Ha, yeah.'), 600)).toBe(true);
+    // LiveKit keeps the full generated text on an interrupted reply
+    const cut = msg('assistant', 'Biscuit, no... that little menace. First the deadline.', true);
+    expect(isRealAnswer(cut, 29)).toBe(false);
+    expect(isRealAnswer(cut, 4000)).toBe(true);
+    expect(isRealAnswer(msg('user', 'hello there friend'), 5000)).toBe(false);
   });
 });
 
@@ -55,8 +65,10 @@ describe('createTurnKeeper', () => {
       msg('assistant', 'Biscuit,', true),
     ]);
     h.keeper.onTranscript({ transcript: 'So, that was fun.', isFinal: true });
-    h.keeper.onItemAdded({ item: msg('assistant', 'Biscuit,', true) }); // cut after one word
-    h.keeper.onStateChange();
+    h.speak(29); // the stale reply to the first half, cut 29 ms in
+    h.keeper.onItemAdded({
+      item: msg('assistant', 'Biscuit, no... that little menace. First the deadline.', true),
+    });
     h.fire();
     expect(h.reply).toHaveBeenCalledWith('So, that was fun.');
   });
@@ -71,6 +83,7 @@ describe('createTurnKeeper', () => {
   it('stays quiet once the turn was answered', () => {
     const h = harness();
     h.keeper.onTranscript({ transcript: 'My day was really long', isFinal: true });
+    h.speak(1800);
     h.keeper.onItemAdded({ item: msg('assistant', 'Oh no, what happened?') });
     h.keeper.onStateChange();
     h.fire();
