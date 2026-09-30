@@ -64,17 +64,24 @@ export function clearKnowledgeCache(userId: string): void {
 // FIRESTORE ACCESS
 // ============================================================================
 
-async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
-  try {
-    const admin = (await import('firebase-admin')).default;
-    if (admin.apps.length === 0) {
-      admin.initializeApp();
+// Every aggregate* section asks for the db at once; share one lookup instead
+// of racing eleven dynamic imports and initializeApp checks.
+let firestoreDb: Promise<FirebaseFirestore.Firestore | null> | null = null;
+
+function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
+  firestoreDb ??= (async () => {
+    try {
+      const admin = (await import('firebase-admin')).default;
+      if (admin.apps.length === 0) {
+        admin.initializeApp();
+      }
+      return admin.firestore();
+    } catch (error) {
+      log.debug({ error: String(error) }, 'Firestore not available');
+      return null;
     }
-    return admin.firestore();
-  } catch (error) {
-    log.debug({ error: String(error) }, 'Firestore not available');
-    return null;
-  }
+  })();
+  return firestoreDb;
 }
 
 // ============================================================================

@@ -1274,6 +1274,30 @@ describe('authentic-thinking', () => {
 // AUDIO PROSODY TESTS
 // ============================================================================
 
+// Feature extraction needs the @ferni/audio Rust addon (no JS fallback by design),
+// which CI doesn't build. Stub that boundary so these tests cover the analyzer's
+// buffering, emotion mapping and metrics rather than the addon.
+vi.mock('../speech/audio-prosody/feature-extraction.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../speech/audio-prosody/feature-extraction.js')>()),
+  extractProsodyFeatures: vi.fn((samples: Float32Array, sampleRate: number) => ({
+    pitchMean: 220,
+    pitchVariance: 400,
+    pitchRange: 80,
+    pitchContour: 'flat' as const,
+    energyMean: 0.3,
+    energyVariance: 0.02,
+    energyPeaks: 12,
+    speechRate: 4,
+    pauseDuration: 250,
+    pauseFrequency: 2,
+    jitter: 0.01,
+    shimmer: 0.04,
+    breathiness: 0.2,
+    utteranceDuration: (samples.length / sampleRate) * 1000,
+    speakingRatio: 0.8,
+  })),
+}));
+
 describe('audio-prosody', () => {
   let audioProsody: typeof import('../speech/audio-prosody.js');
 

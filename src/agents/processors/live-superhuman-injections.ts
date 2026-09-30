@@ -38,6 +38,23 @@ import type { PersonaId } from '../../memory/cross-persona/index.js';
 
 const log = createLogger({ module: 'LiveSuperhumanInjections' });
 
+/**
+ * Callers give this whole builder ~50ms and discard everything on overrun, so the
+ * memory lookups run in parallel and each gets at most this long. A slow lookup
+ * drops only its own insight (and keeps warming its cache for the next turn);
+ * the instant text/voice detections always make it into the turn.
+ */
+const ASYNC_LOADER_BUDGET_MS = 35;
+
+function withinBudget<T>(work: Promise<T | null>): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const expired = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ASYNC_LOADER_BUDGET_MS);
+    timer.unref?.();
+  });
+  return Promise.race([work, expired]).finally(() => clearTimeout(timer));
+}
+
 // ============================================================================
 // PROACTIVE OUTREACH INTEGRATION (lazy loaded)
 // ============================================================================
@@ -482,10 +499,27 @@ export async function buildLiveSuperhumanInjections(
     predictiveInsight: false,
   };
 
+  // Start every memory lookup this turn needs now, so they overlap.
+  const hasHistory = (min: number) => (ctx.totalConversations ?? 0) > min;
+  const lookups = {
+    progress: withinBudget(loadCommitmentProgressAsync(ctx)),
+    semantic:
+      ctx.emotionalState.intensity > 0.7 && hasHistory(5)
+        ? withinBudget(loadSemanticInsightAsync(ctx.userId, ctx.currentTopic))
+        : null,
+    trajectory:
+      ctx.turnCount % 5 === 0 && hasHistory(3)
+        ? withinBudget(loadEmotionalTrajectoryAsync(ctx.userId, ctx.emotionalState.primary))
+        : null,
+    // Recall every 3 turns keeps the lookup cheap
+    recall: ctx.turnCount % 3 === 0 ? withinBudget(loadRecallTriggersAsync(ctx)) : null,
+    joy: ctx.emotionalState.intensity > 0.5 ? withinBudget(loadJoyAmplificationAsync(ctx)) : null,
+  };
+
   try {
     // 1. COMMITMENT DETECTION (Phase 13 E2E Enhanced)
     // First, check for progress on existing commitments
-    const progressResult = await loadCommitmentProgressAsync(ctx);
+    const progressResult = await lookups.progress;
     if (progressResult && progressResult.progressDetected) {
       signals.commitmentDetected = true;
 
@@ -583,13 +617,13 @@ Your superpower: You notice when their actions contradict their values.
     // Fire-and-forget: Persist detected value to Firestore
     if (values.detected && values.value) {
       void import('../../services/superhuman/values-alignment.js')
-        .then(m => {
+        .then((m) => {
           const detected = m.detectValue(ctx.userText);
           if (detected) {
             void m.recordValueMention(ctx.userId, detected);
           }
         })
-        .catch(e => log.debug({ error: String(e) }, 'Value recording skipped'));
+        .catch((e) => log.debug({ error: String(e) }, 'Value recording skipped'));
     }
 
     // 3. CAPACITY GUARDIAN
@@ -614,13 +648,15 @@ Your superpower: You catch burnout before it happens.
     // Fire-and-forget: Persist energy reading to Firestore
     if (capacity.level !== 'none') {
       void import('../../services/superhuman/capacity-guardian.js')
-        .then(m => {
-          const energyLevel = capacity.level === 'critical' ? 'depleted'
-            : capacity.level === 'high' ? 'low'
-            : 'moderate';
-          const energyScore = capacity.level === 'critical' ? 10
-            : capacity.level === 'high' ? 25
-            : 40;
+        .then((m) => {
+          const energyLevel =
+            capacity.level === 'critical'
+              ? 'depleted'
+              : capacity.level === 'high'
+                ? 'low'
+                : 'moderate';
+          const energyScore =
+            capacity.level === 'critical' ? 10 : capacity.level === 'high' ? 25 : 40;
           return m.recordEnergyReading(ctx.userId, {
             energyLevel: energyLevel as 'depleted' | 'low' | 'moderate',
             energyScore,
@@ -628,7 +664,7 @@ Your superpower: You catch burnout before it happens.
             indicators: capacity.signals,
           });
         })
-        .catch(e => log.debug({ error: String(e) }, 'Energy recording skipped'));
+        .catch((e) => log.debug({ error: String(e) }, 'Energy recording skipped'));
     }
 
     // 4. VOICE BIOMARKERS (Better Than Human - hearing what's not said)
@@ -684,13 +720,9 @@ Your superpower: You see patterns they can't see.
     }
 
     // 7. SEMANTIC INTELLIGENCE (if high emotional intensity)
-    if (
-      ctx.emotionalState.intensity > 0.7 &&
-      ctx.totalConversations &&
-      ctx.totalConversations > 5
-    ) {
+    if (lookups.semantic) {
       // Try to load cross-session insights
-      const semanticInsight = await loadSemanticInsightAsync(ctx.userId, ctx.currentTopic);
+      const semanticInsight = await lookups.semantic;
       if (semanticInsight) {
         injections.push({
           category: 'superhuman_semantic',
@@ -750,13 +782,13 @@ Your superpower: You remember everyone in their life.
 
       // Fire-and-forget: Extract and persist person mention
       void import('../../services/superhuman/relationship-network.js')
-        .then(m => {
+        .then((m) => {
           const person = m.extractPerson(ctx.userText);
           if (person) {
             void m.recordMention(ctx.userId, person);
           }
         })
-        .catch(e => log.debug({ error: String(e) }, 'Relationship recording skipped'));
+        .catch((e) => log.debug({ error: String(e) }, 'Relationship recording skipped'));
     }
 
     // 8c. DREAM KEEPER (Better Than Human - never forget aspirations)
@@ -779,13 +811,13 @@ Your superpower: You never forget what they dreamed of becoming.
 
       // Fire-and-forget: Detect and persist dream
       void import('../../services/superhuman/dream-keeper.js')
-        .then(m => {
+        .then((m) => {
           const dream = m.detectDream(ctx.userText);
           if (dream) {
             void m.recordDreamMention(ctx.userId, dream);
           }
         })
-        .catch(e => log.debug({ error: String(e) }, 'Dream recording skipped'));
+        .catch((e) => log.debug({ error: String(e) }, 'Dream recording skipped'));
     }
 
     // 8d. LIFE NARRATIVE (Better Than Human - remember every chapter)
@@ -808,7 +840,7 @@ Your superpower: You remember their WHOLE story.
 
       // Fire-and-forget: Detect and persist chapter moment
       void import('../../services/superhuman/life-narrative.js')
-        .then(m => {
+        .then((m) => {
           const chapter = m.detectChapterMoment(ctx.userText);
           if (chapter) {
             void m.createOrUpdateChapter(ctx.userId, {
@@ -818,7 +850,7 @@ Your superpower: You remember their WHOLE story.
             });
           }
         })
-        .catch(e => log.debug({ error: String(e) }, 'Life narrative recording skipped'));
+        .catch((e) => log.debug({ error: String(e) }, 'Life narrative recording skipped'));
     }
 
     // ========================================================================
@@ -828,11 +860,8 @@ Your superpower: You remember their WHOLE story.
 
     // 9. EMOTIONAL TRAJECTORY SURFACING (P1)
     // "You've been trending more positive this month"
-    if (ctx.turnCount % 5 === 0 && ctx.totalConversations && ctx.totalConversations > 3) {
-      const trajectoryInsight = await loadEmotionalTrajectoryAsync(
-        ctx.userId,
-        ctx.emotionalState.primary
-      );
+    if (lookups.trajectory) {
+      const trajectoryInsight = await lookups.trajectory;
       if (trajectoryInsight) {
         injections.push({
           category: 'superhuman_trajectory',
@@ -969,9 +998,8 @@ Your superpower: You recognize them by their voice, like a true friend.
 
     // 15. RECALL TRIGGERS (Phase 10) - Anniversaries, patterns, commitment reminders
     // "One year ago today..." / "Last time you felt this way..." / "You mentioned wanting to..."
-    if (ctx.turnCount % 3 === 0) {
-      // Check every 3 turns for performance
-      const recallResult = await loadRecallTriggersAsync(ctx);
+    if (lookups.recall) {
+      const recallResult = await lookups.recall;
       if (recallResult && recallResult.shouldSurface && recallResult.bestTrigger) {
         const trigger = recallResult.bestTrigger;
         injections.push({
@@ -994,8 +1022,8 @@ Your superpower: You remember what human friends forget.
 
     // 16. JOY AMPLIFICATION (Phase 14) - Surface positive memories when struggling
     // "Remember when you accomplished X?" when user is feeling down
-    if (ctx.emotionalState.intensity > 0.5) {
-      const joyResult = await loadJoyAmplificationAsync(ctx);
+    if (lookups.joy) {
+      const joyResult = await lookups.joy;
       if (joyResult && joyResult.shouldAmplify && joyResult.selectedMemory) {
         injections.push({
           category: 'superhuman_joy',
@@ -1066,9 +1094,8 @@ async function loadSemanticInsightAsync(
   currentTopic?: string
 ): Promise<string | null> {
   try {
-    const { crossSessionThreading } = await import(
-      '../../services/superhuman/semantic-intelligence/cross-session-threading.js'
-    );
+    const { crossSessionThreading } =
+      await import('../../services/superhuman/semantic-intelligence/cross-session-threading.js');
     const context = await crossSessionThreading.buildContext(userId, {
       topic: currentTopic,
     });

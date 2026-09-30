@@ -20,13 +20,43 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 // below happens to have a real sponsored identity. Stub the lookup so the test
 // is hermetic and actually tests the path it names.
 vi.mock('../services/identity/sponsored-identity.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../services/identity/sponsored-identity.js')>();
+  const actual =
+    await importOriginal<typeof import('../services/identity/sponsored-identity.js')>();
   return {
     ...actual,
     lookupByPhone: vi.fn(async () => ({ found: false })),
   };
 });
 
+// The in-memory vector fallback ranks with the @ferni/perf Rust addon, which CI
+// doesn't build. Swap in plain cosine top-K so these tests cover storage and
+// retrieval, not the addon (it has its own suite in memory/__tests__).
+vi.mock('../memory/vectors/rust-accelerator/index.js', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../memory/vectors/rust-accelerator/index.js')>();
+  const cosine = (a: number[], b: number[]) => {
+    let dot = 0;
+    let na = 0;
+    let nb = 0;
+    for (let i = 0; i < Math.min(a.length, b.length); i++) {
+      dot += a[i] * b[i];
+      na += a[i] * a[i];
+      nb += b[i] * b[i];
+    }
+    return na && nb ? dot / Math.sqrt(na * nb) : 0;
+  };
+  return {
+    ...actual,
+    topKSimilar: vi.fn((query: number[], candidates: number[][], k: number, minSimilarity = 0) => {
+      const ranked = candidates
+        .map((c, index) => ({ index, similarity: cosine(query, c) }))
+        .filter((r) => r.similarity >= minSimilarity)
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, k);
+      return { indices: ranked.map((r) => r.index), similarities: ranked.map((r) => r.similarity) };
+    }),
+  };
+});
 
 // ============================================================================
 // TEST CONFIGURATION

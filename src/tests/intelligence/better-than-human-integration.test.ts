@@ -13,8 +13,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock Firebase Admin before imports
 vi.mock('firebase-admin', () => {
+  // Real Firestore reads always resolve to a snapshot; an empty one here.
   const mockDoc = {
-    get: vi.fn(),
+    get: vi.fn().mockResolvedValue({ exists: false, data: () => undefined }),
     set: vi.fn().mockResolvedValue(undefined),
     update: vi.fn().mockResolvedValue(undefined),
     collection: vi.fn(),
@@ -22,7 +23,7 @@ vi.mock('firebase-admin', () => {
 
   const mockCollection = {
     doc: vi.fn(() => mockDoc),
-    get: vi.fn(),
+    get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
     add: vi.fn().mockResolvedValue({ id: 'test-id' }),
     where: vi.fn(() => ({
       get: vi.fn().mockResolvedValue({ docs: [] }),

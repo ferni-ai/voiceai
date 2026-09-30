@@ -356,6 +356,18 @@ export async function getRandomGameSongs(
     }
   }
 
+  // iTunes down or unreachable: top up from the built-in list so a game never
+  // runs out of rounds (the rounds after the first used to crash on undefined).
+  if (tracks.length < count) {
+    const have = new Set(tracks.map((t) => t.name));
+    const spare = FALLBACK_SONGS.filter((s) => !have.has(s.name)).sort(() => Math.random() - 0.5);
+    tracks.push(...spare.slice(0, count - tracks.length));
+    log.warn(
+      { count: tracks.length, requested: count },
+      '🎮 Topped up game songs from fallback list'
+    );
+  }
+
   log.info({ count: tracks.length, requested: count }, '🎮 Loaded game songs');
   return tracks;
 }

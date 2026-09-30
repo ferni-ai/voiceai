@@ -255,7 +255,12 @@ class NameThatTuneGame implements IGameImplementation {
 
     // Pick next song from our loaded bank
     this.currentSongIndex++;
-    const nextSong = this.songBank[this.currentSongIndex] || this.songBank[0];
+    const nextSong = this.songBank[this.currentSongIndex] ??
+      this.songBank[0] ?? {
+        name: data.currentSong?.name ?? '',
+        artist: data.currentSong?.artist ?? '',
+        previewUrl: '',
+      };
 
     // 🎵 ACTUALLY PLAY the next song!
     if (nextSong.previewUrl && isMusicAvailable()) {
