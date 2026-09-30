@@ -20,14 +20,13 @@
  */
 
 import { readdir, readFile, writeFile, stat } from 'fs/promises';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
+import { resolveProjectRoot } from '../../services/project-root.js';
 
-// Get script directory
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-// This file is apps/cli/src/commands/generate/: five levels up is the repo root
-const projectRoot = process.env.FERNI_PROJECT_ROOT || join(__dirname, '..', '..', '..', '..', '..');
+const projectRoot = resolveProjectRoot(import.meta.url);
+
+/** Only the in-app team appears in the frontend roster; other groups (e.g. financial-legends) don't. */
+const FRONTEND_TEAM = 'ferni-team';
 
 // Types matching the persona manifest schema
 interface PersonaManifest {
@@ -36,7 +35,9 @@ interface PersonaManifest {
     id: string;
     name: string;
     display_name?: string;
-    description: string;
+    description?: string;
+    /** Older manifests (financial-legends) use a tagline instead of a description */
+    tagline?: string;
     aliases?: string[];
     initials?: string;
     self_reference?: string;
@@ -327,6 +328,8 @@ async function manifestToFrontendPersona(
   bundlePath: string
 ): Promise<FrontendPersona> {
   const roleId = manifest.team?.role_id || manifest.role?.id || manifest.identity.id;
+  const description = manifest.identity.description || manifest.identity.tagline || '';
+  const firstSentence = description.split('.')[0];
   const isCoordinator = manifest.team?.coordinator === true;
   
   // Load quotes and entrance from bundle content
@@ -342,15 +345,15 @@ async function manifestToFrontendPersona(
     initials: manifest.identity.initials || generateInitials(manifest.identity.name),
     subtitle: manifest.team?.role_description?.split(' - ')[0] || roleSubtitles[roleId] || 'Team Member',
     role: isCoordinator ? 'coach' : 'team',
-    description: manifest.identity.description,
-    helperText: manifest.team?.role_description?.split(' - ')[0] || manifest.identity.description.split('.')[0],
+    description,
+    helperText: manifest.team?.role_description?.split(' - ')[0] || firstSentence,
     skills: roleSkills[roleId] || [{ icon: '', name: 'Support' }],
     entrancePhrase: entrancePhrase || 
       (manifest.team?.handoff_phrases?.receive?.[0]) ||
       (manifest.handoff?.entrance_phrases?.[0]) ||
       `${manifest.identity.name} here. How can I help?`,
     quotes: bundleQuotes.length > 0 ? bundleQuotes : [
-      `"${manifest.identity.description.split('.')[0]}."`,
+      `"${firstSentence}."`,
     ],
     traits: manifest.personality?.traits || [],
     domains: manifest.role?.domains || [],
@@ -406,6 +409,10 @@ async function generateFrontendConfig(): Promise<void> {
   let coordinatorId = 'ferni';
   
   for (const [bundleId, { manifest, path }] of bundles) {
+    if (manifest.team?.membership !== FRONTEND_TEAM) {
+      console.log(`⏭️  Skipped: ${bundleId} (team: ${manifest.team?.membership ?? 'none'})`);
+      continue;
+    }
     const frontendPersona = await manifestToFrontendPersona(manifest, path);
     personas[bundleId] = frontendPersona;
     
@@ -421,7 +428,7 @@ async function generateFrontendConfig(): Promise<void> {
   const config: GeneratedConfig = {
     _generated: {
       timestamp: new Date().toISOString(),
-      source: 'scripts/generate-frontend-personas.ts',
+      source: 'apps/cli/src/commands/generate/generate-frontend-personas.ts',
       version: '1.0.0',
     },
     personas,
