@@ -168,6 +168,9 @@ jobs:
     name: 📦 Bundle Size Check
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -177,36 +180,53 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Build frontend
-        run: pnpm build:frontend
-        continue-on-error: true
+        # apps/web's build script builds the design-system tokens first
+        run: pnpm --dir apps/web build
 
       - name: Check Bundle Budget
         id: bundle
+        # Gzipped JS budgets live in apps/cli/src/features/ops/perf.ts
         run: |
-          RESULT=$(pnpm tsx apps/cli/src/index.ts perf budget 2>&1)
-          echo "result<<EOF" >> $GITHUB_OUTPUT
-          echo "$RESULT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          RESULT=$(NO_COLOR=1 pnpm --silent tsx apps/cli/src/index.ts perf budget 2>&1 | grep -v '^{' | sed 's/\x1b\[[0-9;]*m//g')
+          echo "$RESULT"
+          {
+            echo "result<<EOF"
+            echo "$RESULT"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
           if echo "$RESULT" | grep -q "exceeded"; then
             echo "exceeded=true" >> $GITHUB_OUTPUT
-          else
+          elif echo "$RESULT" | grep -q "All bundle budgets passed"; then
             echo "exceeded=false" >> $GITHUB_OUTPUT
+          else
+            echo "::error::perf budget produced no result"
+            exit 1
           fi
 
       - name: Comment Bundle Size
+        # Advisory: a comment that can't be posted must not fail the job
+        continue-on-error: true
         uses: actions/github-script@v7
+        env:
+          RESULT: ${{ steps.bundle.outputs.result }}
         with:
           script: |
             const exceeded = '${{ steps.bundle.outputs.exceeded }}' === 'true';
             const emoji = exceeded ? '⚠️' : '✅';
 
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## ${emoji} Bundle Size Report\n\n\`\`\`\n${{ steps.bundle.outputs.result }}\n\`\`\``
+              body: `## ${emoji} Bundle Size Report\n\n\`\`\`\n${process.env.RESULT}\n\`\`\``
             });
+
+      - name: Fail if over budget
+        if: steps.bundle.outputs.exceeded == 'true'
+        run: |
+          echo "::error::Gzipped JS is over budget. See the Check Bundle Budget step."
+          exit 1
 
   pr-brand-check:
     name: ✍️ Brand Voice Check

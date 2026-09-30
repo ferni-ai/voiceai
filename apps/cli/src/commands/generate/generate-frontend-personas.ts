@@ -26,7 +26,8 @@ import { fileURLToPath } from 'url';
 // Get script directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const projectRoot = join(__dirname, '..');
+// This file is apps/cli/src/commands/generate/: five levels up is the repo root
+const projectRoot = process.env.FERNI_PROJECT_ROOT || join(__dirname, '..', '..', '..', '..', '..');
 
 // Types matching the persona manifest schema
 interface PersonaManifest {

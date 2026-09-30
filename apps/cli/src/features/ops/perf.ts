@@ -11,9 +11,11 @@ import { execSync, spawnSync } from 'child_process';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { gzipSync } from 'zlib';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = dirname(dirname(__dirname));
+// This file is apps/cli/src/features/ops/perf.ts: five levels up is the repo root
+const PROJECT_ROOT = process.env.FERNI_PROJECT_ROOT || join(__dirname, '..', '..', '..', '..', '..');
 
 // =============================================================================
 // COLORS
@@ -43,62 +45,47 @@ const log = {
 interface BundleBudget {
   maxTotalKB: number;
   maxChunkKB: number;
-  maxInitialKB: number;
 }
 
+/**
+ * Gzipped JavaScript budgets, matching .github/workflows/performance-budget.yml:
+ * the 2026-09-30 size (1902 KB total, 535 KB largest chunk) rounded up to the
+ * next 10 KB. Lower them as the bundle shrinks.
+ */
 const BUNDLE_BUDGET: BundleBudget = {
-  maxTotalKB: 2500,    // Total bundle size
-  maxChunkKB: 500,     // Max single chunk
-  maxInitialKB: 800,   // Initial load JS
+  maxTotalKB: 1910,
+  maxChunkKB: 540,
 };
 
-interface BundleStats {
-  totalKB: number;
-  initialKB: number;
-  chunks: { name: string; sizeKB: number }[];
-  gzipTotalKB: number;
+function listJsFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return listJsFiles(path);
+    return entry.name.endsWith('.js') ? [path] : [];
+  });
 }
 
 async function analyzeBundleSize(): Promise<void> {
-  console.log(`\n${colors.bold}${colors.cyan}📦 Bundle Size Analysis${colors.reset}\n`);
+  console.log(`\n${colors.bold}${colors.cyan}📦 Bundle Size Analysis (gzipped JS)${colors.reset}\n`);
 
-  const distDir = join(PROJECT_ROOT, 'apps/web/dist/assets');
-  
+  const distDir = join(PROJECT_ROOT, 'apps/web/dist');
+
   if (!existsSync(distDir)) {
     log.warn('No dist folder found. Building frontend...');
-    execSync('npm run build:frontend', { cwd: PROJECT_ROOT, stdio: 'inherit' });
+    execSync('pnpm --dir apps/web build', { cwd: PROJECT_ROOT, stdio: 'inherit' });
   }
 
-  const files = readdirSync(distDir).filter(f => f.endsWith('.js') || f.endsWith('.css'));
-  
-  const chunks: { name: string; sizeKB: number; gzipKB: number }[] = [];
-  let totalSize = 0;
-  let initialSize = 0;
-
-  for (const file of files) {
-    const filePath = join(distDir, file);
-    const stat = statSync(filePath);
-    const sizeKB = Math.round(stat.size / 1024 * 10) / 10;
-    
-    // Estimate gzip (typically 30-40% of original)
-    const gzipKB = Math.round(sizeKB * 0.35 * 10) / 10;
-    
-    chunks.push({ name: file, sizeKB, gzipKB });
-    totalSize += sizeKB;
-    
-    // Initial chunks (index, vendor)
-    if (file.includes('index') || file.includes('vendor')) {
-      initialSize += sizeKB;
-    }
-  }
-
-  // Sort by size
-  chunks.sort((a, b) => b.sizeKB - a.sizeKB);
+  // zlib reads ~0.3% larger than GNU gzip (used by performance-budget.yml)
+  const sized = listJsFiles(distDir).map((filePath) => ({
+    name: filePath.slice(distDir.length + 1),
+    bytes: gzipSync(readFileSync(filePath)).length,
+  }));
+  sized.sort((a, b) => b.bytes - a.bytes);
+  const chunks = sized.map(({ name, bytes }) => ({ name, sizeKB: Math.round(bytes / 1024) }));
+  const totalSize = Math.round(sized.reduce((sum, chunk) => sum + chunk.bytes, 0) / 1024);
 
   console.log(`${colors.bold}Bundle Summary:${colors.reset}\n`);
-  console.log(`  Total:   ${formatSize(totalSize, BUNDLE_BUDGET.maxTotalKB)}`);
-  console.log(`  Initial: ${formatSize(initialSize, BUNDLE_BUDGET.maxInitialKB)}`);
-  console.log(`  Gzip:    ${colors.dim}~${Math.round(totalSize * 0.35)}KB${colors.reset}\n`);
+  console.log(`  Total:   ${formatSize(totalSize, BUNDLE_BUDGET.maxTotalKB)} across ${chunks.length} files\n`);
 
   console.log(`${colors.bold}Largest chunks:${colors.reset}\n`);
   chunks.slice(0, 10).forEach(chunk => {
@@ -113,7 +100,6 @@ async function analyzeBundleSize(): Promise<void> {
   
   const budgetResults = [
     { name: 'Total', actual: totalSize, budget: BUNDLE_BUDGET.maxTotalKB },
-    { name: 'Initial', actual: initialSize, budget: BUNDLE_BUDGET.maxInitialKB },
     { name: 'Max Chunk', actual: chunks[0]?.sizeKB || 0, budget: BUNDLE_BUDGET.maxChunkKB },
   ];
 
@@ -274,7 +260,7 @@ async function recordPerformance(): Promise<void> {
   const distDir = join(PROJECT_ROOT, 'apps/web/dist/assets');
   if (!existsSync(distDir)) {
     log.info('Building frontend...');
-    execSync('npm run build:frontend', { cwd: PROJECT_ROOT, stdio: 'inherit' });
+    execSync('pnpm --dir apps/web build', { cwd: PROJECT_ROOT, stdio: 'inherit' });
   }
 
   // Calculate bundle size
