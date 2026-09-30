@@ -9,19 +9,19 @@
  * - GET /api/group-conversation/sessions - List user's group sessions
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-group-conversation-test-user';
 
-test.describe('Group Conversation API', () => {
+test.describe('Group Conversation API', { tag: '@needs-server' }, () => {
   let roundtableSessionId: string;
 
   test.describe('Team Roundtable', () => {
     test('POST /api/group-conversation/roundtable/start - starts a roundtable session', async ({
       request,
     }) => {
-      const response = await request.post(`${BASE_URL}/api/group-conversation/roundtable/start`, {
+      const response = await request.post(`${API_URL}/api/group-conversation/roundtable/start`, {
         headers: {
           'X-User-ID': TEST_USER_ID,
           'Content-Type': 'application/json',
@@ -49,7 +49,7 @@ test.describe('Group Conversation API', () => {
     test('POST /api/group-conversation/roundtable/start - requires personas array', async ({
       request,
     }) => {
-      const response = await request.post(`${BASE_URL}/api/group-conversation/roundtable/start`, {
+      const response = await request.post(`${API_URL}/api/group-conversation/roundtable/start`, {
         headers: {
           'X-User-ID': TEST_USER_ID,
           'Content-Type': 'application/json',
@@ -68,7 +68,7 @@ test.describe('Group Conversation API', () => {
     test('POST /api/group-conversation/roundtable/start - validates persona IDs', async ({
       request,
     }) => {
-      const response = await request.post(`${BASE_URL}/api/group-conversation/roundtable/start`, {
+      const response = await request.post(`${API_URL}/api/group-conversation/roundtable/start`, {
         headers: {
           'X-User-ID': TEST_USER_ID,
           'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ test.describe('Group Conversation API', () => {
       const modes = ['discussion', 'debate', 'brainstorm', 'interview'];
 
       for (const mode of modes) {
-        const response = await request.post(`${BASE_URL}/api/group-conversation/roundtable/start`, {
+        const response = await request.post(`${API_URL}/api/group-conversation/roundtable/start`, {
           headers: {
             'X-User-ID': TEST_USER_ID,
             'Content-Type': 'application/json',
@@ -114,7 +114,7 @@ test.describe('Group Conversation API', () => {
     }) => {
       // First create a session
       const createResponse = await request.post(
-        `${BASE_URL}/api/group-conversation/roundtable/start`,
+        `${API_URL}/api/group-conversation/roundtable/start`,
         {
           headers: {
             'X-User-ID': TEST_USER_ID,
@@ -131,7 +131,7 @@ test.describe('Group Conversation API', () => {
       const sessionToEnd = createData.sessionId;
 
       // Now end it
-      const response = await request.post(`${BASE_URL}/api/group-conversation/roundtable/end`, {
+      const response = await request.post(`${API_URL}/api/group-conversation/roundtable/end`, {
         headers: {
           'X-User-ID': TEST_USER_ID,
           'Content-Type': 'application/json',
@@ -151,7 +151,7 @@ test.describe('Group Conversation API', () => {
     test('POST /api/group-conversation/participant/add - validates phone number', async ({
       request,
     }) => {
-      const response = await request.post(`${BASE_URL}/api/group-conversation/participant/add`, {
+      const response = await request.post(`${API_URL}/api/group-conversation/participant/add`, {
         headers: {
           'X-User-ID': TEST_USER_ID,
           'Content-Type': 'application/json',
@@ -168,7 +168,7 @@ test.describe('Group Conversation API', () => {
     });
 
     test('POST /api/group-conversation/participant/add - requires name', async ({ request }) => {
-      const response = await request.post(`${BASE_URL}/api/group-conversation/participant/add`, {
+      const response = await request.post(`${API_URL}/api/group-conversation/participant/add`, {
         headers: {
           'X-User-ID': TEST_USER_ID,
           'Content-Type': 'application/json',
@@ -186,7 +186,7 @@ test.describe('Group Conversation API', () => {
     test('POST /api/group-conversation/participant/add - accepts valid request (mock mode)', async ({
       request,
     }) => {
-      const response = await request.post(`${BASE_URL}/api/group-conversation/participant/add`, {
+      const response = await request.post(`${API_URL}/api/group-conversation/participant/add`, {
         headers: {
           'X-User-ID': TEST_USER_ID,
           'Content-Type': 'application/json',
@@ -209,7 +209,7 @@ test.describe('Group Conversation API', () => {
     test('POST /api/group-conversation/participant/remove - requires participant ID', async ({
       request,
     }) => {
-      const response = await request.post(`${BASE_URL}/api/group-conversation/participant/remove`, {
+      const response = await request.post(`${API_URL}/api/group-conversation/participant/remove`, {
         headers: {
           'X-User-ID': TEST_USER_ID,
           'Content-Type': 'application/json',
@@ -227,7 +227,7 @@ test.describe('Group Conversation API', () => {
 
   test.describe('Session History', () => {
     test('GET /api/group-conversation/sessions - returns user sessions', async ({ request }) => {
-      const response = await request.get(`${BASE_URL}/api/group-conversation/sessions`, {
+      const response = await request.get(`${API_URL}/api/group-conversation/sessions`, {
         headers: {
           'X-User-ID': TEST_USER_ID,
         },
@@ -241,18 +241,18 @@ test.describe('Group Conversation API', () => {
     });
 
     test('GET /api/group-conversation/sessions - requires authentication', async ({ request }) => {
-      const response = await request.get(`${BASE_URL}/api/group-conversation/sessions`);
+      const response = await request.get(`${API_URL}/api/group-conversation/sessions`);
 
       expect(response.status()).toBe(401);
     });
   });
 });
 
-test.describe('Group Conversation Integration', () => {
+test.describe('Group Conversation Integration', { tag: '@needs-server' }, () => {
   test('Full roundtable flow: start -> discuss -> end', async ({ request }) => {
     // 1. Start roundtable with multiple personas
     const startResponse = await request.post(
-      `${BASE_URL}/api/group-conversation/roundtable/start`,
+      `${API_URL}/api/group-conversation/roundtable/start`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -273,7 +273,7 @@ test.describe('Group Conversation Integration', () => {
     const sessionId = startData.sessionId;
 
     // 2. Verify session appears in history
-    const historyResponse = await request.get(`${BASE_URL}/api/group-conversation/sessions`, {
+    const historyResponse = await request.get(`${API_URL}/api/group-conversation/sessions`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -286,7 +286,7 @@ test.describe('Group Conversation Integration', () => {
     );
 
     // 3. End the roundtable
-    const endResponse = await request.post(`${BASE_URL}/api/group-conversation/roundtable/end`, {
+    const endResponse = await request.post(`${API_URL}/api/group-conversation/roundtable/end`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',

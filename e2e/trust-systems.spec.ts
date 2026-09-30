@@ -16,9 +16,9 @@
  * - Accessibility features
  */
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-trust-test-user';
 const TEST_HEADERS = {
   'X-User-Id': TEST_USER_ID,
@@ -30,10 +30,10 @@ const TEST_HEADERS = {
 // TRUST JOURNEY API TESTS
 // ============================================================================
 
-test.describe('Trust Journey API', () => {
+test.describe('Trust Journey API', { tag: '@needs-server' }, () => {
   test('GET /api/trust-journey - returns journey data', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-journey?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust-journey?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -50,7 +50,7 @@ test.describe('Trust Journey API', () => {
 
   test('GET /api/trust-journey/summary - returns summary only', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-journey/summary?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust-journey/summary?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -65,7 +65,7 @@ test.describe('Trust Journey API', () => {
 
   test('GET /api/trust-journey/timeline - returns timeline only', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-journey/timeline?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust-journey/timeline?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -80,7 +80,7 @@ test.describe('Trust Journey API', () => {
 
   test('GET /api/trust-journey/metrics - returns metrics', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-journey/metrics?userId=${TEST_USER_ID}&days=30`,
+      `${API_URL}/api/trust-journey/metrics?userId=${TEST_USER_ID}&days=30`,
       { headers: TEST_HEADERS }
     );
 
@@ -95,7 +95,7 @@ test.describe('Trust Journey API', () => {
 
   test('trust journey requires authentication', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-journey?userId=${TEST_USER_ID}`
+      `${API_URL}/api/trust-journey?userId=${TEST_USER_ID}`
       // No auth headers
     );
 
@@ -105,7 +105,7 @@ test.describe('Trust Journey API', () => {
   test('admin can access another user data via query param', async ({ request }) => {
     // Dev mode auth grants admin access, so we can access other user data
     const response = await request.get(
-      `${BASE_URL}/api/trust-journey?userId=different-user`,
+      `${API_URL}/api/trust-journey?userId=different-user`,
       { headers: TEST_HEADERS }
     );
 
@@ -118,10 +118,10 @@ test.describe('Trust Journey API', () => {
 // TRUST EXPORT API TESTS
 // ============================================================================
 
-test.describe('Trust Export API', () => {
+test.describe('Trust Export API', { tag: '@needs-server' }, () => {
   test('GET /api/trust-export - returns export data', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-export?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust-export?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -139,7 +139,7 @@ test.describe('Trust Export API', () => {
 
   test('GET /api/trust-export/csv - returns CSV file', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-export/csv?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust-export/csv?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -155,7 +155,7 @@ test.describe('Trust Export API', () => {
 
   test('GET /api/trust-export/summary - returns text summary', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-export/summary?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust-export/summary?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -167,7 +167,7 @@ test.describe('Trust Export API', () => {
 
   test('trust export requires authentication', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-export?userId=${TEST_USER_ID}`
+      `${API_URL}/api/trust-export?userId=${TEST_USER_ID}`
       // No auth headers
     );
 
@@ -179,10 +179,10 @@ test.describe('Trust Export API', () => {
 // TRUST ROUTES API TESTS (actual routes at /api/trust/*)
 // ============================================================================
 
-test.describe('Trust Routes API', () => {
+test.describe('Trust Routes API', { tag: '@needs-server' }, () => {
   test('GET /api/trust/health - returns health data', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust/health?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust/health?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -196,7 +196,7 @@ test.describe('Trust Routes API', () => {
 
   test('GET /api/trust/momentum - returns momentum profile', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust/momentum?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust/momentum?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -210,7 +210,7 @@ test.describe('Trust Routes API', () => {
 
   test('GET /api/trust/sentiment - returns sentiment data', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust/sentiment?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust/sentiment?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -224,7 +224,7 @@ test.describe('Trust Routes API', () => {
 
   test('GET /api/trust/starters - returns conversation starters', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust/starters?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust/starters?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -241,7 +241,6 @@ test.describe('Trust Routes API', () => {
 // ============================================================================
 
 test.describe('Journey UI', () => {
-  const APP_URL = process.env.TEST_APP_URL || 'http://localhost:5173';
 
   /**
    * Helper to open the Journey modal from the settings menu.

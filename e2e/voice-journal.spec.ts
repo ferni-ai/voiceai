@@ -5,7 +5,7 @@
  * insights, and cross-device sync.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 test.describe('Voice Journal', () => {
   test.beforeEach(async ({ page }) => {

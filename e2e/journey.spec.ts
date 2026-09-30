@@ -9,18 +9,18 @@
  * - Memory timeline
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-journey-test-user';
 
 // ============================================================================
 // API TESTS
 // ============================================================================
 
-test.describe('Relationship Progress API', () => {
+test.describe('Relationship Progress API', { tag: '@needs-server' }, () => {
   test('GET /api/relationship/progress - returns progress data', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -39,7 +39,7 @@ test.describe('Relationship Progress API', () => {
   });
 
   test('progress data types are correct', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -58,7 +58,7 @@ test.describe('Relationship Progress API', () => {
   });
 
   test('stage values are valid', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -84,7 +84,7 @@ test.describe('Relationship Progress API', () => {
   });
 
   test('progress is a valid percentage', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -102,7 +102,7 @@ test.describe('Relationship Progress API', () => {
   test('returns default values for new users', async ({ request }) => {
     const newUserId = `new-journey-user-${Date.now()}`;
 
-    const response = await request.get(`${BASE_URL}/api/relationship/progress?userId=${newUserId}`, {
+    const response = await request.get(`${API_URL}/api/relationship/progress?userId=${newUserId}`, {
       headers: {
         'X-User-ID': newUserId,
       },
@@ -119,7 +119,7 @@ test.describe('Relationship Progress API', () => {
   });
 
   test('metrics include conversation and engagement data', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -140,7 +140,7 @@ test.describe('Relationship Progress API', () => {
   });
 
   test('POST /api/relationship/progress - syncs progress data', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
+    const response = await request.post(`${API_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -167,7 +167,7 @@ test.describe('Relationship Progress API', () => {
   });
 
   test('POST /api/relationship/progress - rejects invalid stage', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
+    const response = await request.post(`${API_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -194,7 +194,7 @@ test.describe('Relationship Progress API', () => {
 
 test.describe('Journey Modal UI', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Set up test user
     await page.evaluate((userId) => {
@@ -422,7 +422,7 @@ test.describe('Journey Modal UI', () => {
 // STAGE PROGRESSION TESTS
 // ============================================================================
 
-test.describe('Stage Progression', () => {
+test.describe('Stage Progression', { tag: '@needs-server' }, () => {
   test('stage is calculated correctly for new users', async ({ request }) => {
     // Unified stage system:
     // first-meeting: default, getting-started: 10 convos, building-trust: 15 convos + 5 days + 3 streak,
@@ -430,7 +430,7 @@ test.describe('Stage Progression', () => {
 
     const newUserId = `stage-test-${Date.now()}`;
     const response = await request.get(
-      `${BASE_URL}/api/relationship/progress?userId=${newUserId}`,
+      `${API_URL}/api/relationship/progress?userId=${newUserId}`,
       {
         headers: { 'X-User-ID': newUserId },
       }
@@ -447,7 +447,7 @@ test.describe('Stage Progression', () => {
 
   test('nextStage is set correctly based on current stage', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/relationship/progress?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/relationship/progress?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -468,7 +468,7 @@ test.describe('Stage Progression', () => {
 
   test('progress percentage is calculated correctly', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/relationship/progress?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/relationship/progress?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -489,7 +489,7 @@ test.describe('Stage Progression', () => {
 
 test.describe('Memory Timeline', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.evaluate((userId) => {
       localStorage.setItem('ferni_user_id', userId);
@@ -603,7 +603,7 @@ test.describe('Memory Timeline', () => {
 
 test.describe('Design System Compliance', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await page.waitForTimeout(1000);
   });
 
@@ -733,7 +733,7 @@ test.describe('Design System Compliance', () => {
 
 test.describe('Trust Insights Section', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.evaluate((userId) => {
       localStorage.setItem('ferni_user_id', userId);
@@ -875,9 +875,9 @@ test.describe('Trust Insights Section', () => {
 // TRUST JOURNEY API TESTS (Backend integration)
 // ============================================================================
 
-test.describe('Trust Journey API', () => {
+test.describe('Trust Journey API', { tag: '@needs-server' }, () => {
   test('GET /api/trust-journey returns journey data', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/trust-journey?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/trust-journey?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -900,7 +900,7 @@ test.describe('Trust Journey API', () => {
   });
 
   test('GET /api/trust-journey/summary returns summary only', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/trust-journey/summary?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/trust-journey/summary?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },

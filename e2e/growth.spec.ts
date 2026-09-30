@@ -10,14 +10,14 @@
  * - GET /api/growth/types - Get growth type definitions
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-growth-test-user';
 
-test.describe('Growth Insights API', () => {
+test.describe('Growth Insights API', { tag: '@needs-server' }, () => {
   test('GET /api/growth/types - returns growth type definitions', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/growth/types`, {
+    const response = await request.get(`${API_URL}/api/growth/types`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -49,7 +49,7 @@ test.describe('Growth Insights API', () => {
   });
 
   test('GET /api/growth/insights - returns insights for user', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/growth/insights`, {
+    const response = await request.get(`${API_URL}/api/growth/insights`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -80,7 +80,7 @@ test.describe('Growth Insights API', () => {
   });
 
   test('GET /api/growth/insights - supports type filter', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/growth/insights?type=self_awareness`, {
+    const response = await request.get(`${API_URL}/api/growth/insights?type=self_awareness`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -98,7 +98,7 @@ test.describe('Growth Insights API', () => {
   });
 
   test('GET /api/growth/insights - supports limit param', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/growth/insights?limit=5`, {
+    const response = await request.get(`${API_URL}/api/growth/insights?limit=5`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -111,7 +111,7 @@ test.describe('Growth Insights API', () => {
   });
 
   test('GET /api/growth/insights - requires authentication', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/growth/insights`, {
+    const response = await request.get(`${API_URL}/api/growth/insights`, {
       headers: {
         // Missing X-User-ID
       },
@@ -121,9 +121,9 @@ test.describe('Growth Insights API', () => {
   });
 });
 
-test.describe('Growth Summary API', () => {
+test.describe('Growth Summary API', { tag: '@needs-server' }, () => {
   test('GET /api/growth/summary - returns summary for user', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/growth/summary`, {
+    const response = await request.get(`${API_URL}/api/growth/summary`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -157,7 +157,7 @@ test.describe('Growth Summary API', () => {
   });
 
   test('GET /api/growth/summary - requires authentication', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/growth/summary`, {
+    const response = await request.get(`${API_URL}/api/growth/summary`, {
       headers: {
         // Missing X-User-ID
       },
@@ -167,9 +167,9 @@ test.describe('Growth Summary API', () => {
   });
 });
 
-test.describe('Growth Reflection API', () => {
+test.describe('Growth Reflection API', { tag: '@needs-server' }, () => {
   test('GET /api/growth/reflection - returns reflection or null', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/growth/reflection`, {
+    const response = await request.get(`${API_URL}/api/growth/reflection`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -197,7 +197,7 @@ test.describe('Growth Reflection API', () => {
 
   test('GET /api/growth/reflection - accepts context params', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/growth/reflection?topic=career&sessionStart=true`,
+      `${API_URL}/api/growth/reflection?topic=career&sessionStart=true`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -212,9 +212,9 @@ test.describe('Growth Reflection API', () => {
   });
 });
 
-test.describe('Growth Reaction API', () => {
+test.describe('Growth Reaction API', { tag: '@needs-server' }, () => {
   test('POST /api/growth/reaction - requires insightId and reaction', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/growth/reaction`, {
+    const response = await request.post(`${API_URL}/api/growth/reaction`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -228,7 +228,7 @@ test.describe('Growth Reaction API', () => {
   });
 
   test('POST /api/growth/reaction - validates reaction value', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/growth/reaction`, {
+    const response = await request.post(`${API_URL}/api/growth/reaction`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -246,7 +246,7 @@ test.describe('Growth Reaction API', () => {
     const validReactions = ['resonated', 'neutral', 'dismissed'];
 
     for (const reaction of validReactions) {
-      const response = await request.post(`${BASE_URL}/api/growth/reaction`, {
+      const response = await request.post(`${API_URL}/api/growth/reaction`, {
         headers: {
           'X-User-ID': TEST_USER_ID,
           'Content-Type': 'application/json',
@@ -264,9 +264,9 @@ test.describe('Growth Reaction API', () => {
   });
 });
 
-test.describe('Growth Snapshot API', () => {
+test.describe('Growth Snapshot API', { tag: '@needs-server' }, () => {
   test('POST /api/growth/snapshot - captures snapshot', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/growth/snapshot`, {
+    const response = await request.post(`${API_URL}/api/growth/snapshot`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -283,7 +283,7 @@ test.describe('Growth Snapshot API', () => {
   });
 
   test('POST /api/growth/snapshot - requires authentication', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/growth/snapshot`, {
+    const response = await request.post(`${API_URL}/api/growth/snapshot`, {
       headers: {
         'Content-Type': 'application/json',
         // Missing X-User-ID
@@ -295,10 +295,10 @@ test.describe('Growth Snapshot API', () => {
   });
 });
 
-test.describe('Growth Integration', () => {
+test.describe('Growth Integration', { tag: '@needs-server' }, () => {
   test('growth summary and insights are consistent', async ({ request }) => {
     // Get summary
-    const summaryResponse = await request.get(`${BASE_URL}/api/growth/summary`, {
+    const summaryResponse = await request.get(`${API_URL}/api/growth/summary`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -307,7 +307,7 @@ test.describe('Growth Integration', () => {
     const { summary } = await summaryResponse.json();
 
     // Get insights
-    const insightsResponse = await request.get(`${BASE_URL}/api/growth/insights`, {
+    const insightsResponse = await request.get(`${API_URL}/api/growth/insights`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -321,7 +321,7 @@ test.describe('Growth Integration', () => {
 
   test('growth workflow: snapshot -> detect -> get insights', async ({ request }) => {
     // 1. Capture snapshot
-    const snapshotResponse = await request.post(`${BASE_URL}/api/growth/snapshot`, {
+    const snapshotResponse = await request.post(`${API_URL}/api/growth/snapshot`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -331,7 +331,7 @@ test.describe('Growth Integration', () => {
     expect(snapshotResponse.status()).toBe(200);
 
     // 2. Get summary (includes detection)
-    const summaryResponse = await request.get(`${BASE_URL}/api/growth/summary`, {
+    const summaryResponse = await request.get(`${API_URL}/api/growth/summary`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -339,7 +339,7 @@ test.describe('Growth Integration', () => {
     expect(summaryResponse.status()).toBe(200);
 
     // 3. Get insights
-    const insightsResponse = await request.get(`${BASE_URL}/api/growth/insights`, {
+    const insightsResponse = await request.get(`${API_URL}/api/growth/insights`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },

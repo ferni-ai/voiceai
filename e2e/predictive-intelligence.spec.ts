@@ -9,9 +9,9 @@
  * - Anticipatory insights (seasonal, life stage)
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-predictive-test-user';
 const TEST_HEADERS = {
   'X-User-ID': TEST_USER_ID,
@@ -22,11 +22,11 @@ const TEST_HEADERS = {
 // PREDICTIVE INTELLIGENCE API TESTS
 // ============================================================================
 
-test.describe('Predictive Intelligence System', () => {
+test.describe('Predictive Intelligence System', { tag: '@needs-server' }, () => {
   test.describe('Pattern Detection API', () => {
     test('should detect temporal patterns in context', async ({ request }) => {
       // Test that the system can detect Sunday anxiety pattern
-      const response = await request.post(`${BASE_URL}/api/intelligence/analyze`, {
+      const response = await request.post(`${API_URL}/api/intelligence/analyze`, {
         headers: TEST_HEADERS,
         data: {
           userId: TEST_USER_ID,
@@ -64,7 +64,7 @@ test.describe('Predictive Intelligence System', () => {
     });
 
     test('should detect emotional patterns', async ({ request }) => {
-      const response = await request.post(`${BASE_URL}/api/intelligence/analyze`, {
+      const response = await request.post(`${API_URL}/api/intelligence/analyze`, {
         headers: TEST_HEADERS,
         data: {
           userId: TEST_USER_ID,
@@ -101,7 +101,7 @@ test.describe('Predictive Intelligence System', () => {
 
   test.describe('Concern Detection', () => {
     test('should detect hopelessness language immediately', async ({ request }) => {
-      const response = await request.post(`${BASE_URL}/api/intelligence/concerns`, {
+      const response = await request.post(`${API_URL}/api/intelligence/concerns`, {
         headers: TEST_HEADERS,
         data: {
           userId: TEST_USER_ID,
@@ -134,7 +134,7 @@ test.describe('Predictive Intelligence System', () => {
     });
 
     test('should detect isolation mentions', async ({ request }) => {
-      const response = await request.post(`${BASE_URL}/api/intelligence/concerns`, {
+      const response = await request.post(`${API_URL}/api/intelligence/concerns`, {
         headers: TEST_HEADERS,
         data: {
           userId: TEST_USER_ID,
@@ -164,7 +164,7 @@ test.describe('Predictive Intelligence System', () => {
     });
 
     test('should not flag neutral messages', async ({ request }) => {
-      const response = await request.post(`${BASE_URL}/api/intelligence/concerns`, {
+      const response = await request.post(`${API_URL}/api/intelligence/concerns`, {
         headers: TEST_HEADERS,
         data: {
           userId: TEST_USER_ID,
@@ -192,7 +192,7 @@ test.describe('Predictive Intelligence System', () => {
   test.describe('Anticipatory Insights', () => {
     test('should provide seasonal insights during relevant periods', async ({ request }) => {
       // Test New Year period (Dec 20 - Jan 15)
-      const response = await request.post(`${BASE_URL}/api/intelligence/insights`, {
+      const response = await request.post(`${API_URL}/api/intelligence/insights`, {
         headers: TEST_HEADERS,
         data: {
           userId: TEST_USER_ID,
@@ -225,7 +225,7 @@ test.describe('Predictive Intelligence System', () => {
 
   test.describe('Proactive Follow-ups', () => {
     test('should provide follow-up suggestions after vulnerability sharing', async ({ request }) => {
-      const response = await request.post(`${BASE_URL}/api/intelligence/follow-ups`, {
+      const response = await request.post(`${API_URL}/api/intelligence/follow-ups`, {
         headers: TEST_HEADERS,
         data: {
           userId: TEST_USER_ID,
@@ -256,7 +256,7 @@ test.describe('Predictive Intelligence System', () => {
 
   test.describe('Full Predictive Analysis', () => {
     test('should return comprehensive analysis', async ({ request }) => {
-      const response = await request.post(`${BASE_URL}/api/intelligence/full-analysis`, {
+      const response = await request.post(`${API_URL}/api/intelligence/full-analysis`, {
         headers: TEST_HEADERS,
         data: {
           userId: TEST_USER_ID,
@@ -310,14 +310,14 @@ test.describe('Predictive Intelligence System', () => {
 // PREDICTIVE INTELLIGENCE BUNDLE TESTS
 // ============================================================================
 
-test.describe('Predictive Intelligence Bundles', () => {
+test.describe('Predictive Intelligence Bundles', { tag: '@needs-server' }, () => {
   const PERSONAS = ['ferni', 'peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
 
   test('all personas should have predictive intelligence behavior', async ({ request }) => {
     console.log('\n📋 PREDICTIVE INTELLIGENCE BUNDLE CHECK\n');
 
     for (const personaId of PERSONAS) {
-      const response = await request.get(`${BASE_URL}/api/personas/${personaId}/behaviors`);
+      const response = await request.get(`${API_URL}/api/personas/${personaId}/behaviors`);
 
       if (response.status() === 404) {
         console.log(`${personaId}: Behaviors endpoint not available`);
@@ -333,7 +333,7 @@ test.describe('Predictive Intelligence Bundles', () => {
   });
 
   test('predictive intelligence should have all required sections', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/personas/ferni/behaviors`);
+    const response = await request.get(`${API_URL}/api/personas/ferni/behaviors`);
 
     if (response.status() === 404) {
       console.log('Behaviors endpoint not available - skipping');

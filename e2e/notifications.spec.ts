@@ -7,14 +7,14 @@
  * - Saving settings
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-notifications-test-user';
 
-test.describe('Notification Settings API', () => {
+test.describe('Notification Settings API', { tag: '@needs-server' }, () => {
   test('GET /api/notifications/settings - returns notification settings', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/notifications/settings`, {
+    const response = await request.get(`${API_URL}/api/notifications/settings`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -27,7 +27,7 @@ test.describe('Notification Settings API', () => {
   });
 
   test('PUT /api/notifications/settings - updates settings', async ({ request }) => {
-    const response = await request.put(`${BASE_URL}/api/notifications/settings`, {
+    const response = await request.put(`${API_URL}/api/notifications/settings`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -44,7 +44,7 @@ test.describe('Notification Settings API', () => {
 
 test.describe('Notification Settings UI', () => {
   test('opens notification settings from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -74,7 +74,7 @@ test.describe('Notification Settings UI', () => {
   });
 
   test('displays notification toggles', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -102,7 +102,7 @@ test.describe('Notification Settings UI', () => {
   });
 
   test('closes notification settings on close button click', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');

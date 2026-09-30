@@ -5,7 +5,7 @@
  * Covers the full wizard flow, API integration, and AI context injection.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 test.describe('Digital Twin Profile', () => {
   test.beforeEach(async ({ page }) => {
@@ -169,7 +169,7 @@ test.describe('Digital Twin Profile', () => {
     });
   });
 
-  test.describe('Profile API', () => {
+  test.describe('Profile API', { tag: '@needs-server' }, () => {
     test('GET /api/twin/profile returns empty for new users', async ({ request }) => {
       const response = await request.get('/api/twin/profile', {
         headers: { 'x-user-id': 'test-user-new' },

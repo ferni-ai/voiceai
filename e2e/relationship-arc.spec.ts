@@ -7,7 +7,7 @@
  * @module e2e/relationship-arc
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 test.describe('Relationship Arc System', () => {
   test.describe('First Meeting (Stranger Stage)', () => {
@@ -41,7 +41,7 @@ test.describe('Relationship Arc System', () => {
     });
   });
 
-  test.describe('Relationship Stage API', () => {
+  test.describe('Relationship Stage API', { tag: '@needs-server' }, () => {
     test('should return stranger stage for new user', async ({ request }) => {
       const response = await request.get('/api/relationship/stage?userId=test-new-user');
       
@@ -100,7 +100,7 @@ test.describe('Relationship Arc System', () => {
     });
   });
 
-  test.describe('Stage Transitions', () => {
+  test.describe('Stage Transitions', { tag: '@needs-server' }, () => {
     test('should progress from stranger to acquaintance after 2+ sessions', async ({ request }) => {
       const userId = `test-progression-${Date.now()}`;
       
@@ -127,7 +127,7 @@ test.describe('Relationship Arc System', () => {
     });
   });
 
-  test.describe('First Words Callback', () => {
+  test.describe('First Words Callback', { tag: '@needs-server' }, () => {
     test('should allow first-words callback after session 3', async ({ request }) => {
       const userId = `test-callback-${Date.now()}`;
       
@@ -188,7 +188,7 @@ test.describe('Relationship Arc System', () => {
     });
   });
 
-  test.describe('Persona-Aware Relationship', () => {
+  test.describe('Persona-Aware Relationship', { tag: '@needs-server' }, () => {
     test('should maintain separate relationship data per persona', async ({ request }) => {
       const userId = `test-persona-${Date.now()}`;
       

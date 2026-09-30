@@ -7,13 +7,13 @@
  * - Delete all data (GDPR)
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 // Test user ID for consistent testing
 const TEST_USER_ID = 'e2e-test-user-data-export';
 
 test.describe('Data Export Feature', () => {
-  test.describe('Categories API', () => {
+  test.describe('Categories API', { tag: '@needs-server' }, () => {
     test('GET /api/export/categories returns all categories', async ({ request }) => {
       const response = await request.get(`/api/export/categories?userId=${TEST_USER_ID}`);
 
@@ -49,7 +49,7 @@ test.describe('Data Export Feature', () => {
     });
   });
 
-  test.describe('Export API', () => {
+  test.describe('Export API', { tag: '@needs-server' }, () => {
     test('POST /api/export returns JSON data', async ({ request }) => {
       const response = await request.post('/api/export', {
         data: {
@@ -152,7 +152,7 @@ test.describe('Data Export Feature', () => {
     });
   });
 
-  test.describe('Delete API', () => {
+  test.describe('Delete API', { tag: '@needs-server' }, () => {
     test('DELETE /api/export/all requires confirmation', async ({ request }) => {
       // Without confirmDelete, should fail
       const response = await request.delete('/api/export/all', {
@@ -229,7 +229,7 @@ test.describe('Data Export Feature', () => {
   });
 });
 
-test.describe('GDPR Compliance', () => {
+test.describe('GDPR Compliance', { tag: '@needs-server' }, () => {
   test('Export includes all user data categories', async ({ request }) => {
     const response = await request.get(`/api/export/categories?userId=${TEST_USER_ID}`);
     const data = await response.json();

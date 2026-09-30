@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 /**
  * Onboarding Flow E2E Tests

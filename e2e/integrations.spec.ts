@@ -9,9 +9,9 @@
  * - GET /api/v1/integrations/social-graph/* - Social graph routes
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-integrations-test-user';
 const TEST_HEADERS = {
   'X-User-ID': TEST_USER_ID,
@@ -22,10 +22,10 @@ const TEST_HEADERS = {
 // INTEGRATIONS STATUS API TESTS
 // ============================================================================
 
-test.describe('Integrations Status API', () => {
+test.describe('Integrations Status API', { tag: '@needs-server' }, () => {
   test('GET /api/v1/integrations/status - returns all integration status', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/status?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/status?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -54,7 +54,7 @@ test.describe('Integrations Status API', () => {
 
   test('integrations status requires authentication', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/status?userId=${TEST_USER_ID}`
+      `${API_URL}/api/v1/integrations/status?userId=${TEST_USER_ID}`
       // No auth headers
     );
 
@@ -63,7 +63,7 @@ test.describe('Integrations Status API', () => {
 
   test('cannot access another user integration status', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/status?userId=different-user`,
+      `${API_URL}/api/v1/integrations/status?userId=different-user`,
       { headers: TEST_HEADERS }
     );
 
@@ -75,12 +75,12 @@ test.describe('Integrations Status API', () => {
 // BIOMETRICS API TESTS
 // ============================================================================
 
-test.describe('Biometrics API', () => {
+test.describe('Biometrics API', { tag: '@needs-server' }, () => {
   test('GET /api/v1/integrations/biometrics/status - returns biometrics status', async ({
     request,
   }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/biometrics/status?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/biometrics/status?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -101,7 +101,7 @@ test.describe('Biometrics API', () => {
 
     for (const platform of platforms) {
       const response = await request.get(
-        `${BASE_URL}/api/v1/integrations/biometrics/connect/${platform}?userId=${TEST_USER_ID}`,
+        `${API_URL}/api/v1/integrations/biometrics/connect/${platform}?userId=${TEST_USER_ID}`,
         { headers: TEST_HEADERS }
       );
 
@@ -116,7 +116,7 @@ test.describe('Biometrics API', () => {
 
   test('invalid biometrics platform returns 400', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/biometrics/connect/invalid_platform?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/biometrics/connect/invalid_platform?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -131,10 +131,10 @@ test.describe('Biometrics API', () => {
 // BANKING API TESTS
 // ============================================================================
 
-test.describe('Banking API', () => {
+test.describe('Banking API', { tag: '@needs-server' }, () => {
   test('GET /api/v1/integrations/banking/status - returns banking status', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/banking/status?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/banking/status?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -150,7 +150,7 @@ test.describe('Banking API', () => {
 
   test('POST /api/v1/integrations/banking/link-token - creates link token', async ({ request }) => {
     const response = await request.post(
-      `${BASE_URL}/api/v1/integrations/banking/link-token`,
+      `${API_URL}/api/v1/integrations/banking/link-token`,
       {
         headers: TEST_HEADERS,
         data: { userId: TEST_USER_ID },
@@ -183,7 +183,7 @@ test.describe('Banking API', () => {
 
     for (const endpoint of endpoints) {
       const response = await request.get(
-        `${BASE_URL}${endpoint}?userId=${TEST_USER_ID}`,
+        `${API_URL}${endpoint}?userId=${TEST_USER_ID}`,
         { headers: TEST_HEADERS }
       );
 
@@ -197,12 +197,12 @@ test.describe('Banking API', () => {
 // CALENDAR API TESTS
 // ============================================================================
 
-test.describe('Calendar API', () => {
+test.describe('Calendar API', { tag: '@needs-server' }, () => {
   test('GET /api/v1/integrations/calendar/status - returns calendar status', async ({
     request,
   }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/calendar/status?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/calendar/status?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -218,7 +218,7 @@ test.describe('Calendar API', () => {
 
   test('GET /api/v1/integrations/calendar/connect - returns auth URL', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/calendar/connect?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/calendar/connect?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -233,12 +233,12 @@ test.describe('Calendar API', () => {
 // SOCIAL GRAPH API TESTS
 // ============================================================================
 
-test.describe('Social Graph API', () => {
+test.describe('Social Graph API', { tag: '@needs-server' }, () => {
   test('GET /api/v1/integrations/social-graph/people - returns people list', async ({
     request,
   }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/social-graph/people?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/social-graph/people?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -254,7 +254,7 @@ test.describe('Social Graph API', () => {
     request,
   }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/social-graph/dates?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/social-graph/dates?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -270,7 +270,7 @@ test.describe('Social Graph API', () => {
     request,
   }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/social-graph/insights?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/social-graph/insights?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -287,7 +287,7 @@ test.describe('Social Graph API', () => {
   }) => {
     // Without confirm=true
     const response = await request.delete(
-      `${BASE_URL}/api/v1/integrations/social-graph/clear?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/social-graph/clear?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 

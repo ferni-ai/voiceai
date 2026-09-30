@@ -14,14 +14,14 @@
  * - POST /api/wearable/config
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-wearable-test-user';
 
-test.describe('Wearable Integration API', () => {
+test.describe('Wearable Integration API', { tag: '@needs-server' }, () => {
   test('GET /api/wearable/status - returns connection status', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/wearable/status`, {
+    const response = await request.get(`${API_URL}/api/wearable/status`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -44,7 +44,7 @@ test.describe('Wearable Integration API', () => {
     const providers = ['fitbit', 'garmin', 'oura', 'whoop'];
 
     for (const provider of providers) {
-      const response = await request.post(`${BASE_URL}/api/wearable/connect`, {
+      const response = await request.post(`${API_URL}/api/wearable/connect`, {
         headers: {
           'X-User-ID': TEST_USER_ID,
           'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ test.describe('Wearable Integration API', () => {
   });
 
   test('POST /api/wearable/connect - validates provider', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/wearable/connect`, {
+    const response = await request.post(`${API_URL}/api/wearable/connect`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ test.describe('Wearable Integration API', () => {
   });
 
   test('POST /api/wearable/connect - requires provider', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/wearable/connect`, {
+    const response = await request.post(`${API_URL}/api/wearable/connect`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ test.describe('Wearable Integration API', () => {
   });
 
   test('GET /api/wearable/data - returns aggregated metrics', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/wearable/data`, {
+    const response = await request.get(`${API_URL}/api/wearable/data`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -103,7 +103,7 @@ test.describe('Wearable Integration API', () => {
   });
 
   test('GET /api/wearable/stress - returns stress indicators', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/wearable/stress`, {
+    const response = await request.get(`${API_URL}/api/wearable/stress`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -121,7 +121,7 @@ test.describe('Wearable Integration API', () => {
   });
 
   test('GET /api/wearable/sleep - returns sleep analysis', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/wearable/sleep`, {
+    const response = await request.get(`${API_URL}/api/wearable/sleep`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -139,7 +139,7 @@ test.describe('Wearable Integration API', () => {
   });
 
   test('GET /api/wearable/activity - returns activity summary', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/wearable/activity`, {
+    const response = await request.get(`${API_URL}/api/wearable/activity`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -158,7 +158,7 @@ test.describe('Wearable Integration API', () => {
   });
 
   test('GET /api/wearable/coaching-context - returns context for coaching', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/wearable/coaching-context`, {
+    const response = await request.get(`${API_URL}/api/wearable/coaching-context`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -173,7 +173,7 @@ test.describe('Wearable Integration API', () => {
   });
 
   test('POST /api/wearable/sync - triggers data sync', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/wearable/sync`, {
+    const response = await request.post(`${API_URL}/api/wearable/sync`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -190,7 +190,7 @@ test.describe('Wearable Integration API', () => {
   });
 
   test('POST /api/wearable/config - updates configuration', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/wearable/config`, {
+    const response = await request.post(`${API_URL}/api/wearable/config`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -209,7 +209,7 @@ test.describe('Wearable Integration API', () => {
   });
 
   test('requires authentication', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/wearable/status`, {
+    const response = await request.get(`${API_URL}/api/wearable/status`, {
       headers: {
         // Missing X-User-ID
       },

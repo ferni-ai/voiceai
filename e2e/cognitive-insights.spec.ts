@@ -7,14 +7,14 @@
  * - GET /api/memories/growth - growth patterns and improvements
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-cognitive-test-user';
 
-test.describe('Cognitive Insights API', () => {
+test.describe('Cognitive Insights API', { tag: '@needs-server' }, () => {
   test('GET /api/memories/insights - returns user insights', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/memories/insights`, {
+    const response = await request.get(`${API_URL}/api/memories/insights`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -30,7 +30,7 @@ test.describe('Cognitive Insights API', () => {
   });
 
   test('GET /api/memories/themes - returns detected themes', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/memories/themes`, {
+    const response = await request.get(`${API_URL}/api/memories/themes`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -45,7 +45,7 @@ test.describe('Cognitive Insights API', () => {
   });
 
   test('GET /api/memories/growth - returns growth patterns', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/memories/growth`, {
+    const response = await request.get(`${API_URL}/api/memories/growth`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -56,7 +56,7 @@ test.describe('Cognitive Insights API', () => {
   });
 
   test('GET /api/memories/summary - returns memory summary', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/memories/summary`, {
+    const response = await request.get(`${API_URL}/api/memories/summary`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -69,7 +69,7 @@ test.describe('Cognitive Insights API', () => {
 
 test.describe('Cognitive Insights UI', () => {
   test('opens cognitive insights modal from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Wait for app to load
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
@@ -97,7 +97,7 @@ test.describe('Cognitive Insights UI', () => {
   });
 
   test('displays insight categories', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');

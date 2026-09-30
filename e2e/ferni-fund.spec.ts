@@ -7,14 +7,14 @@
  * - POST /api/garden/checkout - create Stripe checkout session
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-fund-test-user';
 
-test.describe('Ferni Fund API', () => {
+test.describe('Ferni Fund API', { tag: '@needs-server' }, () => {
   test('GET /api/garden/stats - returns fund statistics', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/garden/stats`, {
+    const response = await request.get(`${API_URL}/api/garden/stats`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -30,7 +30,7 @@ test.describe('Ferni Fund API', () => {
   });
 
   test('GET /api/garden/contributors - returns contributors list', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/garden/contributors`, {
+    const response = await request.get(`${API_URL}/api/garden/contributors`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -43,7 +43,7 @@ test.describe('Ferni Fund API', () => {
   });
 
   test('GET /api/garden/impact - returns impact metrics', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/garden/impact`, {
+    const response = await request.get(`${API_URL}/api/garden/impact`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -55,7 +55,7 @@ test.describe('Ferni Fund API', () => {
 
   test('POST /api/garden/checkout - validates required fields', async ({ request }) => {
     // Should fail without required amount
-    const response = await request.post(`${BASE_URL}/api/garden/checkout`, {
+    const response = await request.post(`${API_URL}/api/garden/checkout`, {
       headers: { 'X-User-ID': TEST_USER_ID },
       data: {},
     });
@@ -68,7 +68,7 @@ test.describe('Ferni Fund API', () => {
   });
 
   test('POST /api/garden/checkout - creates checkout session', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/garden/checkout`, {
+    const response = await request.post(`${API_URL}/api/garden/checkout`, {
       headers: { 'X-User-ID': TEST_USER_ID },
       data: {
         amount: 500, // $5.00 in cents
@@ -91,7 +91,7 @@ test.describe('Ferni Fund API', () => {
 
 test.describe('Support Ferni UI', () => {
   test('opens ferni fund modal from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -108,7 +108,7 @@ test.describe('Support Ferni UI', () => {
   });
 
   test('displays contribution options', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -127,7 +127,7 @@ test.describe('Support Ferni UI', () => {
   });
 
   test('shows impact statistics', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -146,7 +146,7 @@ test.describe('Support Ferni UI', () => {
   });
 
   test('closes modal on backdrop click', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');

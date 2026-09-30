@@ -12,14 +12,14 @@
  * 5. Voice Memos (list)
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'https://app.ferni.ai';
 const TEST_USER_ID = 'test-utilities-user';
 
-test.describe('Utilities API - Health Check', () => {
+test.describe('Utilities API - Health Check', { tag: '@needs-server' }, () => {
   test('utilities health endpoint returns status', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/utilities/health`);
+    const response = await request.get(`${API_URL}/api/utilities/health`);
 
     // Skip if endpoint doesn't exist yet
     if (response.status() === 404) {
@@ -37,9 +37,9 @@ test.describe('Utilities API - Health Check', () => {
   });
 });
 
-test.describe('Utilities API - Reminders', () => {
+test.describe('Utilities API - Reminders', { tag: '@needs-server' }, () => {
   test('GET /api/utilities/reminders requires userId', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/utilities/reminders`);
+    const response = await request.get(`${API_URL}/api/utilities/reminders`);
 
     if (response.status() === 404) {
       console.log('Reminders endpoint not deployed yet - skipping');
@@ -53,7 +53,7 @@ test.describe('Utilities API - Reminders', () => {
   });
 
   test('GET /api/utilities/reminders returns list for user', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/utilities/reminders?userId=${TEST_USER_ID}`);
+    const response = await request.get(`${API_URL}/api/utilities/reminders?userId=${TEST_USER_ID}`);
 
     if (response.status() === 404) {
       test.skip();
@@ -69,7 +69,7 @@ test.describe('Utilities API - Reminders', () => {
   });
 
   test('POST /api/utilities/reminders creates a reminder', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/utilities/reminders`, {
+    const response = await request.post(`${API_URL}/api/utilities/reminders`, {
       data: {
         userId: TEST_USER_ID,
         message: 'E2E test reminder - please ignore',
@@ -92,7 +92,7 @@ test.describe('Utilities API - Reminders', () => {
 
     // Clean up: cancel the reminder we just created
     const cancelResponse = await request.delete(
-      `${BASE_URL}/api/utilities/reminders/${data.reminder.id}`
+      `${API_URL}/api/utilities/reminders/${data.reminder.id}`
     );
     if (cancelResponse.status() === 200) {
       console.log(`✓ Cleaned up test reminder`);
@@ -100,7 +100,7 @@ test.describe('Utilities API - Reminders', () => {
   });
 
   test('POST /api/utilities/reminders validates required fields', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/utilities/reminders`, {
+    const response = await request.post(`${API_URL}/api/utilities/reminders`, {
       data: {
         userId: TEST_USER_ID,
         // Missing 'message' and 'when'
@@ -118,7 +118,7 @@ test.describe('Utilities API - Reminders', () => {
   });
 
   test('DELETE /api/utilities/reminders/:id returns 404 for non-existent', async ({ request }) => {
-    const response = await request.delete(`${BASE_URL}/api/utilities/reminders/non-existent-id-12345`);
+    const response = await request.delete(`${API_URL}/api/utilities/reminders/non-existent-id-12345`);
 
     if (response.status() === 404) {
       // Either endpoint not deployed or reminder not found - both valid
@@ -128,9 +128,9 @@ test.describe('Utilities API - Reminders', () => {
   });
 });
 
-test.describe('Utilities API - Lists', () => {
+test.describe('Utilities API - Lists', { tag: '@needs-server' }, () => {
   test('GET /api/utilities/lists requires userId', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/utilities/lists`);
+    const response = await request.get(`${API_URL}/api/utilities/lists`);
 
     if (response.status() === 404) {
       console.log('Lists endpoint not deployed yet - skipping');
@@ -144,7 +144,7 @@ test.describe('Utilities API - Lists', () => {
   });
 
   test('GET /api/utilities/lists returns lists for user', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/utilities/lists?userId=${TEST_USER_ID}`);
+    const response = await request.get(`${API_URL}/api/utilities/lists?userId=${TEST_USER_ID}`);
 
     if (response.status() === 404) {
       test.skip();
@@ -159,9 +159,9 @@ test.describe('Utilities API - Lists', () => {
   });
 });
 
-test.describe('Utilities API - Alarms', () => {
+test.describe('Utilities API - Alarms', { tag: '@needs-server' }, () => {
   test('GET /api/utilities/alarms requires userId', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/utilities/alarms`);
+    const response = await request.get(`${API_URL}/api/utilities/alarms`);
 
     if (response.status() === 404) {
       console.log('Alarms endpoint not deployed yet - skipping');
@@ -175,7 +175,7 @@ test.describe('Utilities API - Alarms', () => {
   });
 
   test('GET /api/utilities/alarms returns alarms for user', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/utilities/alarms?userId=${TEST_USER_ID}`);
+    const response = await request.get(`${API_URL}/api/utilities/alarms?userId=${TEST_USER_ID}`);
 
     if (response.status() === 404) {
       test.skip();
@@ -190,9 +190,9 @@ test.describe('Utilities API - Alarms', () => {
   });
 });
 
-test.describe('Utilities API - Voice Memos', () => {
+test.describe('Utilities API - Voice Memos', { tag: '@needs-server' }, () => {
   test('GET /api/utilities/voice-memos requires userId', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/utilities/voice-memos`);
+    const response = await request.get(`${API_URL}/api/utilities/voice-memos`);
 
     if (response.status() === 404) {
       console.log('Voice memos endpoint not deployed yet - skipping');
@@ -206,7 +206,7 @@ test.describe('Utilities API - Voice Memos', () => {
   });
 
   test('GET /api/utilities/voice-memos returns memos for user', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/utilities/voice-memos?userId=${TEST_USER_ID}`);
+    const response = await request.get(`${API_URL}/api/utilities/voice-memos?userId=${TEST_USER_ID}`);
 
     if (response.status() === 404) {
       test.skip();
@@ -221,12 +221,12 @@ test.describe('Utilities API - Voice Memos', () => {
   });
 });
 
-test.describe('Utilities - Integration Summary', () => {
+test.describe('Utilities - Integration Summary', { tag: '@needs-server' }, () => {
   test('SUMMARY: Utilities E2E verification', async ({ request }) => {
     console.log('\n📋 UTILITIES E2E TEST SUMMARY\n');
 
     // Check utilities health
-    const healthResponse = await request.get(`${BASE_URL}/api/utilities/health`);
+    const healthResponse = await request.get(`${API_URL}/api/utilities/health`);
     if (healthResponse.status() === 200) {
       const healthData = await healthResponse.json();
       console.log(`Utilities Health: ✅ ${healthData.status}`);

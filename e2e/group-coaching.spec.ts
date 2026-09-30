@@ -12,17 +12,17 @@
  * - POST /api/group/sessions/:id/goals - Add goal
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-group-coaching-test-user';
 const TEST_USER_2 = 'e2e-group-coaching-test-user-2';
 
-test.describe('Group Coaching API', () => {
+test.describe('Group Coaching API', { tag: '@needs-server' }, () => {
   let createdSessionId: string;
 
   test('POST /api/group/sessions - creates a new session', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/group/sessions`, {
+    const response = await request.post(`${API_URL}/api/group/sessions`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -47,7 +47,7 @@ test.describe('Group Coaching API', () => {
   });
 
   test('POST /api/group/sessions - validates session type', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/group/sessions`, {
+    const response = await request.post(`${API_URL}/api/group/sessions`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ test.describe('Group Coaching API', () => {
     const types = ['family', 'couple', 'team', 'peer_support'];
 
     for (const type of types) {
-      const response = await request.post(`${BASE_URL}/api/group/sessions`, {
+      const response = await request.post(`${API_URL}/api/group/sessions`, {
         headers: {
           'X-User-ID': TEST_USER_ID,
           'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ test.describe('Group Coaching API', () => {
   });
 
   test('GET /api/group/sessions - lists user sessions', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/group/sessions`, {
+    const response = await request.get(`${API_URL}/api/group/sessions`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -92,7 +92,7 @@ test.describe('Group Coaching API', () => {
 
   test('GET /api/group/sessions/:id - gets session details', async ({ request }) => {
     // First create a session
-    const createRes = await request.post(`${BASE_URL}/api/group/sessions`, {
+    const createRes = await request.post(`${API_URL}/api/group/sessions`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -101,7 +101,7 @@ test.describe('Group Coaching API', () => {
     });
     const { session } = await createRes.json();
 
-    const response = await request.get(`${BASE_URL}/api/group/sessions/${session.id}`, {
+    const response = await request.get(`${API_URL}/api/group/sessions/${session.id}`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -115,7 +115,7 @@ test.describe('Group Coaching API', () => {
 
   test('POST /api/group/sessions/:id/start - starts a session', async ({ request }) => {
     // Create session first
-    const createRes = await request.post(`${BASE_URL}/api/group/sessions`, {
+    const createRes = await request.post(`${API_URL}/api/group/sessions`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -124,7 +124,7 @@ test.describe('Group Coaching API', () => {
     });
     const { session } = await createRes.json();
 
-    const response = await request.post(`${BASE_URL}/api/group/sessions/${session.id}/start`, {
+    const response = await request.post(`${API_URL}/api/group/sessions/${session.id}/start`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ test.describe('Group Coaching API', () => {
 
   test('POST /api/group/sessions/:id/end - ends a session', async ({ request }) => {
     // Create and start session first
-    const createRes = await request.post(`${BASE_URL}/api/group/sessions`, {
+    const createRes = await request.post(`${API_URL}/api/group/sessions`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -151,7 +151,7 @@ test.describe('Group Coaching API', () => {
     });
     const { session } = await createRes.json();
 
-    await request.post(`${BASE_URL}/api/group/sessions/${session.id}/start`, {
+    await request.post(`${API_URL}/api/group/sessions/${session.id}/start`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ test.describe('Group Coaching API', () => {
       data: {},
     });
 
-    const response = await request.post(`${BASE_URL}/api/group/sessions/${session.id}/end`, {
+    const response = await request.post(`${API_URL}/api/group/sessions/${session.id}/end`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -176,7 +176,7 @@ test.describe('Group Coaching API', () => {
 
   test('POST /api/group/sessions/:id/topics - adds a topic', async ({ request }) => {
     // Create session first
-    const createRes = await request.post(`${BASE_URL}/api/group/sessions`, {
+    const createRes = await request.post(`${API_URL}/api/group/sessions`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -185,7 +185,7 @@ test.describe('Group Coaching API', () => {
     });
     const { session } = await createRes.json();
 
-    const response = await request.post(`${BASE_URL}/api/group/sessions/${session.id}/topics`, {
+    const response = await request.post(`${API_URL}/api/group/sessions/${session.id}/topics`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -202,7 +202,7 @@ test.describe('Group Coaching API', () => {
 
   test('POST /api/group/sessions/:id/goals - adds a shared goal', async ({ request }) => {
     // Create session first
-    const createRes = await request.post(`${BASE_URL}/api/group/sessions`, {
+    const createRes = await request.post(`${API_URL}/api/group/sessions`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -211,7 +211,7 @@ test.describe('Group Coaching API', () => {
     });
     const { session } = await createRes.json();
 
-    const response = await request.post(`${BASE_URL}/api/group/sessions/${session.id}/goals`, {
+    const response = await request.post(`${API_URL}/api/group/sessions/${session.id}/goals`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -227,7 +227,7 @@ test.describe('Group Coaching API', () => {
   });
 
   test('requires authentication', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/group/sessions`, {
+    const response = await request.get(`${API_URL}/api/group/sessions`, {
       headers: {
         // Missing X-User-ID
       },
@@ -237,7 +237,7 @@ test.describe('Group Coaching API', () => {
   });
 });
 
-test.describe('Group Coaching Workflow', () => {
+test.describe('Group Coaching Workflow', { tag: '@needs-server' }, () => {
   test('complete group session lifecycle', async ({ request }) => {
     const headers = {
       'X-User-ID': TEST_USER_ID,
@@ -245,7 +245,7 @@ test.describe('Group Coaching Workflow', () => {
     };
 
     // 1. Create a family session
-    const createRes = await request.post(`${BASE_URL}/api/group/sessions`, {
+    const createRes = await request.post(`${API_URL}/api/group/sessions`, {
       headers,
       data: { type: 'family' },
     });
@@ -254,35 +254,35 @@ test.describe('Group Coaching Workflow', () => {
     expect(joinLink).toBeTruthy();
 
     // 2. Add topics
-    const topicRes = await request.post(`${BASE_URL}/api/group/sessions/${session.id}/topics`, {
+    const topicRes = await request.post(`${API_URL}/api/group/sessions/${session.id}/topics`, {
       headers,
       data: { topic: 'Weekly family time' },
     });
     expect(topicRes.status()).toBe(200);
 
     // 3. Add goals
-    const goalRes = await request.post(`${BASE_URL}/api/group/sessions/${session.id}/goals`, {
+    const goalRes = await request.post(`${API_URL}/api/group/sessions/${session.id}/goals`, {
       headers,
       data: { goal: 'Have dinner together 3x per week' },
     });
     expect(goalRes.status()).toBe(200);
 
     // 4. Start the session
-    const startRes = await request.post(`${BASE_URL}/api/group/sessions/${session.id}/start`, {
+    const startRes = await request.post(`${API_URL}/api/group/sessions/${session.id}/start`, {
       headers,
       data: {},
     });
     expect(startRes.status()).toBe(200);
 
     // 5. Verify session is active
-    const verifyRes = await request.get(`${BASE_URL}/api/group/sessions/${session.id}`, {
+    const verifyRes = await request.get(`${API_URL}/api/group/sessions/${session.id}`, {
       headers,
     });
     const verifyData = await verifyRes.json();
     expect(verifyData.session.status).toBe('active');
 
     // 6. End the session
-    const endRes = await request.post(`${BASE_URL}/api/group/sessions/${session.id}/end`, {
+    const endRes = await request.post(`${API_URL}/api/group/sessions/${session.id}/end`, {
       headers,
       data: {},
     });

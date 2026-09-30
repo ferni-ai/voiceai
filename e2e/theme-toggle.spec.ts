@@ -7,13 +7,13 @@
  * - Visual changes
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 
 test.describe('Theme Toggle UI', () => {
   test('toggles theme from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
 
@@ -54,7 +54,7 @@ test.describe('Theme Toggle UI', () => {
   });
 
   test('theme persists after page reload', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -87,7 +87,7 @@ test.describe('Theme Toggle UI', () => {
   });
 
   test('dark theme applies correct styles', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
 
@@ -113,7 +113,7 @@ test.describe('Theme Toggle UI', () => {
   });
 
   test('light theme applies correct styles', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
 
@@ -131,7 +131,7 @@ test.describe('Theme Toggle UI', () => {
   });
 
   test('theme toggle button is accessible', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');

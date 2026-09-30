@@ -11,14 +11,14 @@
  * better than any human assistant could.
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-burnout-test-user';
 
-test.describe('Burnout Prevention - Calendar Load Analysis', () => {
+test.describe('Burnout Prevention - Calendar Load Analysis', { tag: '@needs-server' }, () => {
   test('GET /api/v1/calendar/load - returns load factors for user', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/v1/calendar/load?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/v1/calendar/load?userId=${TEST_USER_ID}`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -55,7 +55,7 @@ test.describe('Burnout Prevention - Calendar Load Analysis', () => {
 
   test('GET /api/v1/calendar/burnout-risk - returns burnout risk factors', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/calendar/burnout-risk?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/calendar/burnout-risk?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -84,9 +84,9 @@ test.describe('Burnout Prevention - Calendar Load Analysis', () => {
   });
 });
 
-test.describe('Burnout Prevention - Historical Pattern Storage', () => {
+test.describe('Burnout Prevention - Historical Pattern Storage', { tag: '@needs-server' }, () => {
   test('POST /api/v1/calendar/burnout-pattern - records a burnout period', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/v1/calendar/burnout-pattern`, {
+    const response = await request.post(`${API_URL}/api/v1/calendar/burnout-pattern`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ test.describe('Burnout Prevention - Historical Pattern Storage', () => {
     request,
   }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/calendar/burnout-patterns?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/calendar/burnout-patterns?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -130,7 +130,7 @@ test.describe('Burnout Prevention - Historical Pattern Storage', () => {
 
   test('GET /api/v1/calendar/pattern-match - checks for pattern match', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/calendar/pattern-match?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/calendar/pattern-match?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -152,10 +152,10 @@ test.describe('Burnout Prevention - Historical Pattern Storage', () => {
   });
 });
 
-test.describe('Burnout Prevention - Recovery Time Protection', () => {
+test.describe('Burnout Prevention - Recovery Time Protection', { tag: '@needs-server' }, () => {
   test('GET /api/v1/calendar/recovery-needs - detects recovery needs', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/calendar/recovery-needs?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/calendar/recovery-needs?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -180,7 +180,7 @@ test.describe('Burnout Prevention - Recovery Time Protection', () => {
 
   test('GET /api/v1/calendar/recovery-opportunities - finds recovery slots', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/calendar/recovery-opportunities?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/calendar/recovery-opportunities?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -208,7 +208,7 @@ test.describe('Burnout Prevention - Recovery Time Protection', () => {
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(14, 0, 0, 0);
 
-    const response = await request.post(`${BASE_URL}/api/v1/calendar/recovery-block`, {
+    const response = await request.post(`${API_URL}/api/v1/calendar/recovery-block`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -233,11 +233,11 @@ test.describe('Burnout Prevention - Recovery Time Protection', () => {
   });
 });
 
-test.describe('Burnout Prevention - Integration with Capacity Guardian', () => {
+test.describe('Burnout Prevention - Integration with Capacity Guardian', { tag: '@needs-server' }, () => {
   test('calendar load factors feed into Capacity Guardian', async ({ request }) => {
     // Get calendar load
     const loadResponse = await request.get(
-      `${BASE_URL}/api/v1/calendar/load?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/calendar/load?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -245,7 +245,7 @@ test.describe('Burnout Prevention - Integration with Capacity Guardian', () => {
 
     // Get capacity status (from superhuman services)
     const capacityResponse = await request.get(
-      `${BASE_URL}/api/v1/superhuman/capacity?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/superhuman/capacity?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -272,7 +272,7 @@ test.describe('Burnout Prevention - Integration with Capacity Guardian', () => {
   test('calendar context is available in voice conversations', async ({ request }) => {
     // This endpoint returns context that gets injected into voice conversations
     const response = await request.get(
-      `${BASE_URL}/api/v1/calendar/ambient-context?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/calendar/ambient-context?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -292,13 +292,13 @@ test.describe('Burnout Prevention - Integration with Capacity Guardian', () => {
   });
 });
 
-test.describe('Burnout Prevention - End-to-End Scenarios', () => {
+test.describe('Burnout Prevention - End-to-End Scenarios', { tag: '@needs-server' }, () => {
   test('detects approaching burnout from calendar patterns', async ({ request }) => {
     // This test verifies the full detection flow
 
     // Step 1: Get current calendar load
     const loadResponse = await request.get(
-      `${BASE_URL}/api/v1/calendar/load?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/calendar/load?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -313,7 +313,7 @@ test.describe('Burnout Prevention - End-to-End Scenarios', () => {
 
     // Step 2: Get burnout risk factors
     const riskResponse = await request.get(
-      `${BASE_URL}/api/v1/calendar/burnout-risk?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/calendar/burnout-risk?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -327,7 +327,7 @@ test.describe('Burnout Prevention - End-to-End Scenarios', () => {
 
     // Step 3: Check for historical pattern match
     const patternResponse = await request.get(
-      `${BASE_URL}/api/v1/calendar/pattern-match?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/calendar/pattern-match?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }

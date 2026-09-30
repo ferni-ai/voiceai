@@ -7,14 +7,14 @@
  * - Searching conversations
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-history-test-user';
 
-test.describe('Conversation History API', () => {
+test.describe('Conversation History API', { tag: '@needs-server' }, () => {
   test('GET /api/conversations - returns conversation list', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/conversations`, {
+    const response = await request.get(`${API_URL}/api/conversations`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -28,7 +28,7 @@ test.describe('Conversation History API', () => {
   });
 
   test('GET /api/conversations/:id - returns single conversation', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/conversations/test-id`, {
+    const response = await request.get(`${API_URL}/api/conversations/test-id`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -39,7 +39,7 @@ test.describe('Conversation History API', () => {
 
 test.describe('Conversation History UI', () => {
   test('opens conversation history from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -73,7 +73,7 @@ test.describe('Conversation History UI', () => {
   });
 
   test('displays empty state for new users', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -102,7 +102,7 @@ test.describe('Conversation History UI', () => {
   });
 
   test('closes history panel on close button click', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');

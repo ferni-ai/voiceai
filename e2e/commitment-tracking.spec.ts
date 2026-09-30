@@ -11,16 +11,16 @@
  * them against calendar reality - something no human assistant does.
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-commitment-test-user';
 
-test.describe('Commitment-Calendar Integration - Feasibility Validation', () => {
+test.describe('Commitment-Calendar Integration - Feasibility Validation', { tag: '@needs-server' }, () => {
   test('POST /api/v1/commitments/validate - validates commitment feasibility', async ({
     request,
   }) => {
-    const response = await request.post(`${BASE_URL}/api/v1/commitments/validate`, {
+    const response = await request.post(`${API_URL}/api/v1/commitments/validate`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ test.describe('Commitment-Calendar Integration - Feasibility Validation', () => 
   });
 
   test('validates commitment with time preference', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/v1/commitments/validate`, {
+    const response = await request.post(`${API_URL}/api/v1/commitments/validate`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ test.describe('Commitment-Calendar Integration - Feasibility Validation', () => 
 
   test('generates alternative when commitment is infeasible', async ({ request }) => {
     // Request an aggressive commitment that might not fit
-    const response = await request.post(`${BASE_URL}/api/v1/commitments/validate`, {
+    const response = await request.post(`${API_URL}/api/v1/commitments/validate`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -113,12 +113,12 @@ test.describe('Commitment-Calendar Integration - Feasibility Validation', () => 
   });
 });
 
-test.describe('Commitment-Calendar Integration - Calendar Blocks', () => {
+test.describe('Commitment-Calendar Integration - Calendar Blocks', { tag: '@needs-server' }, () => {
   test('POST /api/v1/commitments/block - creates calendar blocks for commitment', async ({
     request,
   }) => {
     // First get available slots
-    const slotsResponse = await request.post(`${BASE_URL}/api/v1/commitments/find-time`, {
+    const slotsResponse = await request.post(`${API_URL}/api/v1/commitments/find-time`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ test.describe('Commitment-Calendar Integration - Calendar Blocks', () => {
     }
 
     // Now create blocks
-    const response = await request.post(`${BASE_URL}/api/v1/commitments/block`, {
+    const response = await request.post(`${API_URL}/api/v1/commitments/block`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -175,7 +175,7 @@ test.describe('Commitment-Calendar Integration - Calendar Blocks', () => {
   });
 
   test('GET /api/v1/commitments/find-time - finds available slots', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/v1/commitments/find-time`, {
+    const response = await request.post(`${API_URL}/api/v1/commitments/find-time`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -206,9 +206,9 @@ test.describe('Commitment-Calendar Integration - Calendar Blocks', () => {
   });
 });
 
-test.describe('Commitment-Calendar Integration - Conflict Detection', () => {
+test.describe('Commitment-Calendar Integration - Conflict Detection', { tag: '@needs-server' }, () => {
   test('POST /api/v1/commitments/check-conflicts - detects conflicts', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/v1/commitments/check-conflicts`, {
+    const response = await request.post(`${API_URL}/api/v1/commitments/check-conflicts`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -248,7 +248,7 @@ test.describe('Commitment-Calendar Integration - Conflict Detection', () => {
 
   test('GET /api/v1/commitments/alerts - retrieves pending alerts', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/commitments/alerts?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/commitments/alerts?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -266,7 +266,7 @@ test.describe('Commitment-Calendar Integration - Conflict Detection', () => {
 
   test('webhook integration stores alerts for proactive mention', async ({ request }) => {
     // Simulate a calendar change that triggers conflict detection
-    const response = await request.post(`${BASE_URL}/api/v1/calendar/events`, {
+    const response = await request.post(`${API_URL}/api/v1/calendar/events`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -286,7 +286,7 @@ test.describe('Commitment-Calendar Integration - Conflict Detection', () => {
 
     // Check if any alerts were generated
     const alertsResponse = await request.get(
-      `${BASE_URL}/api/v1/commitments/alerts?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/commitments/alerts?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -298,9 +298,9 @@ test.describe('Commitment-Calendar Integration - Conflict Detection', () => {
   });
 });
 
-test.describe('Commitment-Calendar Integration - Context Building', () => {
+test.describe('Commitment-Calendar Integration - Context Building', { tag: '@needs-server' }, () => {
   test('GET /api/v1/commitments/context - builds LLM context', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/v1/commitments/context`, {
+    const response = await request.post(`${API_URL}/api/v1/commitments/context`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -327,11 +327,11 @@ test.describe('Commitment-Calendar Integration - Context Building', () => {
   });
 });
 
-test.describe('Commitment Tracking - Voice Integration', () => {
+test.describe('Commitment Tracking - Voice Integration', { tag: '@needs-server' }, () => {
   test('commitment context is available during voice conversations', async ({ request }) => {
     // This endpoint should provide commitment status for ambient awareness
     const response = await request.get(
-      `${BASE_URL}/api/v1/superhuman/commitment-status?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/superhuman/commitment-status?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -356,7 +356,7 @@ test.describe('Commitment Tracking - Voice Integration', () => {
   test('commitment alerts feed into conversation context', async ({ request }) => {
     // Get any pending commitment alerts that should be mentioned proactively
     const alertsResponse = await request.get(
-      `${BASE_URL}/api/v1/commitments/alerts?userId=${TEST_USER_ID}&acknowledged=false`,
+      `${API_URL}/api/v1/commitments/alerts?userId=${TEST_USER_ID}&acknowledged=false`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -377,7 +377,7 @@ test.describe('Commitment Tracking - Voice Integration', () => {
   });
 });
 
-test.describe('Commitment Tracking - End-to-End Flow', () => {
+test.describe('Commitment Tracking - End-to-End Flow', { tag: '@needs-server' }, () => {
   test('full commitment lifecycle with calendar validation', async ({ request }) => {
     console.log('\n📋 COMMITMENT LIFECYCLE TEST\n');
 
@@ -391,7 +391,7 @@ test.describe('Commitment Tracking - End-to-End Flow', () => {
 
     // Step 2: Validate against calendar
     console.log('2️⃣ Validating against calendar...');
-    const validateResponse = await request.post(`${BASE_URL}/api/v1/commitments/validate`, {
+    const validateResponse = await request.post(`${API_URL}/api/v1/commitments/validate`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -415,7 +415,7 @@ test.describe('Commitment Tracking - End-to-End Flow', () => {
 
     // Step 3: Find time slots
     console.log('3️⃣ Finding time slots...');
-    const slotsResponse = await request.post(`${BASE_URL}/api/v1/commitments/find-time`, {
+    const slotsResponse = await request.post(`${API_URL}/api/v1/commitments/find-time`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -433,7 +433,7 @@ test.describe('Commitment Tracking - End-to-End Flow', () => {
 
     // Step 4: Check for conflicts
     console.log('4️⃣ Checking for conflicts...');
-    const conflictResponse = await request.post(`${BASE_URL}/api/v1/commitments/check-conflicts`, {
+    const conflictResponse = await request.post(`${API_URL}/api/v1/commitments/check-conflicts`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',

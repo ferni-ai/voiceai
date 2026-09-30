@@ -9,14 +9,14 @@
  * - Prediction accuracy display
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-analytics-test-user';
 
-test.describe('Progress Analytics API', () => {
+test.describe('Progress Analytics API', { tag: '@needs-server' }, () => {
   test('GET /api/analytics/user - returns analytics data', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -39,7 +39,7 @@ test.describe('Progress Analytics API', () => {
   });
 
   test('analytics data types are correct', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -70,7 +70,7 @@ test.describe('Progress Analytics API', () => {
   });
 
   test('mood trends have correct structure', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -108,7 +108,7 @@ test.describe('Progress Analytics API', () => {
   test('returns default values for new users', async ({ request }) => {
     const newUserId = `new-user-${Date.now()}`;
 
-    const response = await request.get(`${BASE_URL}/api/analytics/user?userId=${newUserId}`, {
+    const response = await request.get(`${API_URL}/api/analytics/user?userId=${newUserId}`, {
       headers: {
         'X-User-ID': newUserId,
       },
@@ -126,7 +126,7 @@ test.describe('Progress Analytics API', () => {
   });
 
   test('average mood is within valid range', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -142,7 +142,7 @@ test.describe('Progress Analytics API', () => {
   });
 
   test('prediction accuracy is a percentage', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -162,7 +162,7 @@ test.describe('Progress Analytics API', () => {
 
 test.describe('Analytics Dashboard UI', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.evaluate((userId) => {
       localStorage.setItem('bogle_user_id', userId);
@@ -312,9 +312,9 @@ test.describe('Analytics Dashboard UI', () => {
   });
 });
 
-test.describe('Analytics Data Integration', () => {
+test.describe('Analytics Data Integration', { tag: '@needs-server' }, () => {
   test('analytics aggregates streak data correctly', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -332,7 +332,7 @@ test.describe('Analytics Data Integration', () => {
   });
 
   test('improvement areas are actionable strings', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -350,7 +350,7 @@ test.describe('Analytics Data Integration', () => {
   });
 
   test('best day is a valid weekday', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/analytics/user?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },

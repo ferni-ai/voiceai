@@ -10,9 +10,9 @@
  * - Keyboard navigation
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-practices-test-user';
 
 // ============================================================================
@@ -24,7 +24,7 @@ const TEST_USER_ID = 'e2e-practices-test-user';
  * Handles potential flakiness with proper waits and checks.
  */
 async function openCommandsPanel(page: import('@playwright/test').Page, waitForContent = true) {
-  await page.goto(BASE_URL);
+  await page.goto(APP_URL);
 
   // Wait for app to fully load with longer timeout
   await page.waitForSelector('.settings-trigger', { timeout: 15000 });
@@ -60,9 +60,9 @@ async function openCommandsPanel(page: import('@playwright/test').Page, waitForC
 // API TESTS
 // ============================================================================
 
-test.describe('Guided Practices API', () => {
+test.describe('Guided Practices API', { tag: '@needs-server' }, () => {
   test('GET /api/commands/:personaId - returns commands for Ferni', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/commands/ferni`, {
+    const response = await request.get(`${API_URL}/api/commands/ferni`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -89,7 +89,7 @@ test.describe('Guided Practices API', () => {
     const personas = ['peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
 
     for (const personaId of personas) {
-      const response = await request.get(`${BASE_URL}/api/commands/${personaId}`, {
+      const response = await request.get(`${API_URL}/api/commands/${personaId}`, {
         headers: { 'X-User-ID': TEST_USER_ID },
       });
 
@@ -104,7 +104,7 @@ test.describe('Guided Practices API', () => {
   test('GET /api/commands/:personaId/:commandId - returns specific command', async ({
     request,
   }) => {
-    const response = await request.get(`${BASE_URL}/api/commands/ferni/daily-check-in`, {
+    const response = await request.get(`${API_URL}/api/commands/ferni/daily-check-in`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -121,7 +121,7 @@ test.describe('Guided Practices API', () => {
   test('POST /api/commands/:personaId/:commandId/render - renders command prompt', async ({
     request,
   }) => {
-    const response = await request.post(`${BASE_URL}/api/commands/ferni/daily-check-in/render`, {
+    const response = await request.post(`${API_URL}/api/commands/ferni/daily-check-in/render`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -140,7 +140,7 @@ test.describe('Guided Practices API', () => {
   test('GET /api/commands/:personaId/:commandId - returns 404 for unknown command', async ({
     request,
   }) => {
-    const response = await request.get(`${BASE_URL}/api/commands/ferni/nonexistent-command`, {
+    const response = await request.get(`${API_URL}/api/commands/ferni/nonexistent-command`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -351,7 +351,7 @@ test.describe('Guided Practices UI - Selection', () => {
 // CONTENT VALIDATION TESTS
 // ============================================================================
 
-test.describe('Guided Practices Content Validation', () => {
+test.describe('Guided Practices Content Validation', { tag: '@needs-server' }, () => {
   test('all personas have practices with required fields', async ({ request }) => {
     const personas = [
       'ferni',
@@ -363,7 +363,7 @@ test.describe('Guided Practices Content Validation', () => {
     ];
 
     for (const personaId of personas) {
-      const response = await request.get(`${BASE_URL}/api/commands/${personaId}`);
+      const response = await request.get(`${API_URL}/api/commands/${personaId}`);
       expect(response.status()).toBe(200);
 
       const data = await response.json();
@@ -383,7 +383,7 @@ test.describe('Guided Practices Content Validation', () => {
   });
 
   test('Ferni has expected practice categories', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/commands/ferni`);
+    const response = await request.get(`${API_URL}/api/commands/ferni`);
     const data = await response.json();
 
     const categories = [...new Set(data.commands.map((c: { category: string }) => c.category))];
@@ -402,7 +402,7 @@ test.describe('Guided Practices Content Validation', () => {
     ];
 
     for (const tc of testCases) {
-      const response = await request.get(`${BASE_URL}/api/commands/${tc.persona}/${tc.command}`);
+      const response = await request.get(`${API_URL}/api/commands/${tc.persona}/${tc.command}`);
       expect(response.status()).toBe(200);
 
       const data = await response.json();

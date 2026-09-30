@@ -12,14 +12,14 @@
  * - DELETE /api/voice/profile - Delete profile
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = `e2e-voice-test-${Date.now()}`;
 
-test.describe('Voice Identity API - Enrollment', () => {
+test.describe('Voice Identity API - Enrollment', { tag: '@needs-server' }, () => {
   test('POST /api/voice/enroll/start - starts enrollment session', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/voice/enroll/start`, {
+    const response = await request.post(`${API_URL}/api/voice/enroll/start`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -42,7 +42,7 @@ test.describe('Voice Identity API - Enrollment', () => {
   });
 
   test('POST /api/voice/enroll/start - requires authentication', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/voice/enroll/start`, {
+    const response = await request.post(`${API_URL}/api/voice/enroll/start`, {
       headers: {
         'Content-Type': 'application/json',
         // Missing X-User-ID
@@ -56,7 +56,7 @@ test.describe('Voice Identity API - Enrollment', () => {
   test('POST /api/voice/enroll/sample - requires active session', async ({ request }) => {
     // Try to add sample without starting enrollment
     const newUserId = `no-session-${Date.now()}`;
-    const response = await request.post(`${BASE_URL}/api/voice/enroll/sample`, {
+    const response = await request.post(`${API_URL}/api/voice/enroll/sample`, {
       headers: {
         'X-User-ID': newUserId,
         'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ test.describe('Voice Identity API - Enrollment', () => {
 
   test('POST /api/voice/enroll/complete - requires active session', async ({ request }) => {
     const newUserId = `no-complete-session-${Date.now()}`;
-    const response = await request.post(`${BASE_URL}/api/voice/enroll/complete`, {
+    const response = await request.post(`${API_URL}/api/voice/enroll/complete`, {
       headers: {
         'X-User-ID': newUserId,
         'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ test.describe('Voice Identity API - Enrollment', () => {
     const userId = `cancel-test-${Date.now()}`;
 
     // Start enrollment first
-    await request.post(`${BASE_URL}/api/voice/enroll/start`, {
+    await request.post(`${API_URL}/api/voice/enroll/start`, {
       headers: {
         'X-User-ID': userId,
         'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ test.describe('Voice Identity API - Enrollment', () => {
     });
 
     // Cancel it
-    const response = await request.post(`${BASE_URL}/api/voice/enroll/cancel`, {
+    const response = await request.post(`${API_URL}/api/voice/enroll/cancel`, {
       headers: {
         'X-User-ID': userId,
         'Content-Type': 'application/json',
@@ -113,9 +113,9 @@ test.describe('Voice Identity API - Enrollment', () => {
   });
 });
 
-test.describe('Voice Identity API - Profile Management', () => {
+test.describe('Voice Identity API - Profile Management', { tag: '@needs-server' }, () => {
   test('GET /api/voice/profile - returns profile or not found', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/voice/profile`, {
+    const response = await request.get(`${API_URL}/api/voice/profile`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -134,7 +134,7 @@ test.describe('Voice Identity API - Profile Management', () => {
   });
 
   test('GET /api/voice/profile - requires authentication', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/voice/profile`, {
+    const response = await request.get(`${API_URL}/api/voice/profile`, {
       headers: {
         // Missing X-User-ID
       },
@@ -144,7 +144,7 @@ test.describe('Voice Identity API - Profile Management', () => {
   });
 
   test('DELETE /api/voice/profile - deletes profile', async ({ request }) => {
-    const response = await request.delete(`${BASE_URL}/api/voice/profile`, {
+    const response = await request.delete(`${API_URL}/api/voice/profile`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -155,7 +155,7 @@ test.describe('Voice Identity API - Profile Management', () => {
   });
 
   test('DELETE /api/voice/profile - requires authentication', async ({ request }) => {
-    const response = await request.delete(`${BASE_URL}/api/voice/profile`, {
+    const response = await request.delete(`${API_URL}/api/voice/profile`, {
       headers: {
         // Missing X-User-ID
       },
@@ -165,9 +165,9 @@ test.describe('Voice Identity API - Profile Management', () => {
   });
 });
 
-test.describe('Voice Identity API - Verification', () => {
+test.describe('Voice Identity API - Verification', { tag: '@needs-server' }, () => {
   test('POST /api/voice/verify - requires audio', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/voice/verify`, {
+    const response = await request.post(`${API_URL}/api/voice/verify`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -181,7 +181,7 @@ test.describe('Voice Identity API - Verification', () => {
   });
 
   test('POST /api/voice/identify - requires audio', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/voice/identify`, {
+    const response = await request.post(`${API_URL}/api/voice/identify`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -195,7 +195,7 @@ test.describe('Voice Identity API - Verification', () => {
   });
 
   test('GET /api/voice/capabilities - returns system capabilities', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/voice/capabilities`, {
+    const response = await request.get(`${API_URL}/api/voice/capabilities`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -214,7 +214,7 @@ test.describe('Voice Identity API - Verification', () => {
 
 test.describe('Voice Enrollment UI', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.evaluate((userId) => {
       localStorage.setItem('bogle_user_id', userId);
@@ -297,7 +297,7 @@ test.describe('Voice Enrollment UI', () => {
   });
 });
 
-test.describe('Voice Identity Security', () => {
+test.describe('Voice Identity Security', { tag: '@needs-server' }, () => {
   test('enrollment rate limited', async ({ request }) => {
     const userId = `rate-limit-test-${Date.now()}`;
 
@@ -306,7 +306,7 @@ test.describe('Voice Identity Security', () => {
       Array(10)
         .fill(null)
         .map(() =>
-          request.post(`${BASE_URL}/api/voice/enroll/start`, {
+          request.post(`${API_URL}/api/voice/enroll/start`, {
             headers: {
               'X-User-ID': userId,
               'Content-Type': 'application/json',
@@ -323,7 +323,7 @@ test.describe('Voice Identity Security', () => {
   });
 
   test('verification requires authentication', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/voice/verify`, {
+    const response = await request.post(`${API_URL}/api/voice/verify`, {
       headers: {
         'Content-Type': 'application/json',
         // Missing X-User-ID

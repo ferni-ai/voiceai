@@ -5,7 +5,7 @@
  * in a simulated conversation flow.
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 test.describe('Human Listening Pipeline', () => {
   test.beforeEach(async ({ page }) => {
@@ -87,7 +87,7 @@ test.describe('Human Listening Pipeline', () => {
   });
 });
 
-test.describe('Human Listening API Integration', () => {
+test.describe('Human Listening API Integration', { tag: '@needs-server' }, () => {
   test('health check endpoint works', async ({ request }) => {
     // Check that the app is running
     const response = await request.get('/health').catch(() => null);

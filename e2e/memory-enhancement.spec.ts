@@ -14,9 +14,9 @@
  * @module e2e/memory-enhancement.spec
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-memory-test-user';
 const TEST_HEADERS = {
   'X-User-Id': TEST_USER_ID,
@@ -28,9 +28,9 @@ const TEST_HEADERS = {
 // CURIOSITY MEMORY TESTS
 // ============================================================================
 
-test.describe('Curiosity Memory - Follow Up on Passing Mentions', () => {
+test.describe('Curiosity Memory - Follow Up on Passing Mentions', { tag: '@needs-server' }, () => {
   test('can record a curiosity mention for later follow-up', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/memory/curiosity`, {
+    const response = await request.post(`${API_URL}/api/memory/curiosity`, {
       headers: TEST_HEADERS,
       data: {
         userId: TEST_USER_ID,
@@ -48,7 +48,7 @@ test.describe('Curiosity Memory - Follow Up on Passing Mentions', () => {
 
   test('can retrieve follow-up eligible mentions', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/memory/curiosity?userId=${TEST_USER_ID}&followUpEligible=true`,
+      `${API_URL}/api/memory/curiosity?userId=${TEST_USER_ID}&followUpEligible=true`,
       { headers: TEST_HEADERS }
     );
 
@@ -63,7 +63,7 @@ test.describe('Curiosity Memory - Follow Up on Passing Mentions', () => {
 
   test('follows up on mention marks it as followed up', async ({ request }) => {
     // First create a mention
-    await request.post(`${BASE_URL}/api/memory/curiosity`, {
+    await request.post(`${API_URL}/api/memory/curiosity`, {
       headers: TEST_HEADERS,
       data: {
         userId: TEST_USER_ID,
@@ -75,7 +75,7 @@ test.describe('Curiosity Memory - Follow Up on Passing Mentions', () => {
     });
 
     // Then mark as followed up
-    const response = await request.patch(`${BASE_URL}/api/memory/curiosity/follow-up`, {
+    const response = await request.patch(`${API_URL}/api/memory/curiosity/follow-up`, {
       headers: TEST_HEADERS,
       data: {
         userId: TEST_USER_ID,
@@ -92,9 +92,9 @@ test.describe('Curiosity Memory - Follow Up on Passing Mentions', () => {
 // BETWEEN-SESSION THINKING TESTS
 // ============================================================================
 
-test.describe('Between-Session Thinking - Continuous Presence', () => {
+test.describe('Between-Session Thinking - Continuous Presence', { tag: '@needs-server' }, () => {
   test('can record a between-session reflection', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/memory/thinking`, {
+    const response = await request.post(`${API_URL}/api/memory/thinking`, {
       headers: TEST_HEADERS,
       data: {
         userId: TEST_USER_ID,
@@ -112,7 +112,7 @@ test.describe('Between-Session Thinking - Continuous Presence', () => {
 
   test('can retrieve unused thinking moments for session start', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/memory/thinking?userId=${TEST_USER_ID}&unused=true`,
+      `${API_URL}/api/memory/thinking?userId=${TEST_USER_ID}&unused=true`,
       { headers: TEST_HEADERS }
     );
 
@@ -127,7 +127,7 @@ test.describe('Between-Session Thinking - Continuous Presence', () => {
 
   test('marking thinking moment as used prevents reuse', async ({ request }) => {
     // Create a thinking moment
-    const createResponse = await request.post(`${BASE_URL}/api/memory/thinking`, {
+    const createResponse = await request.post(`${API_URL}/api/memory/thinking`, {
       headers: TEST_HEADERS,
       data: {
         userId: TEST_USER_ID,
@@ -142,7 +142,7 @@ test.describe('Between-Session Thinking - Continuous Presence', () => {
       const thinkingId = created.id;
 
       // Mark as used
-      const markResponse = await request.patch(`${BASE_URL}/api/memory/thinking/${thinkingId}/used`, {
+      const markResponse = await request.patch(`${API_URL}/api/memory/thinking/${thinkingId}/used`, {
         headers: TEST_HEADERS,
         data: { userId: TEST_USER_ID },
       });
@@ -156,9 +156,9 @@ test.describe('Between-Session Thinking - Continuous Presence', () => {
 // PERSONA GROWTH TESTS
 // ============================================================================
 
-test.describe('Persona Growth - Mutual Evolution', () => {
+test.describe('Persona Growth - Mutual Evolution', { tag: '@needs-server' }, () => {
   test('can record persona growth from user interaction', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/memory/persona-growth`, {
+    const response = await request.post(`${API_URL}/api/memory/persona-growth`, {
       headers: TEST_HEADERS,
       data: {
         userId: TEST_USER_ID,
@@ -175,7 +175,7 @@ test.describe('Persona Growth - Mutual Evolution', () => {
 
   test('can retrieve all persona growth moments', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/memory/persona-growth?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/memory/persona-growth?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -190,7 +190,7 @@ test.describe('Persona Growth - Mutual Evolution', () => {
 
   test('can retrieve growth by specific persona', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/memory/persona-growth?userId=${TEST_USER_ID}&personaId=ferni`,
+      `${API_URL}/api/memory/persona-growth?userId=${TEST_USER_ID}&personaId=ferni`,
       { headers: TEST_HEADERS }
     );
 
@@ -214,9 +214,9 @@ test.describe('Persona Growth - Mutual Evolution', () => {
 // TONAL MEMORY TESTS
 // ============================================================================
 
-test.describe('Tonal Memory - Voice Patterns Per Topic', () => {
+test.describe('Tonal Memory - Voice Patterns Per Topic', { tag: '@needs-server' }, () => {
   test('can record a tonal observation', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/memory/tonal`, {
+    const response = await request.post(`${API_URL}/api/memory/tonal`, {
       headers: TEST_HEADERS,
       data: {
         userId: TEST_USER_ID,
@@ -237,7 +237,7 @@ test.describe('Tonal Memory - Voice Patterns Per Topic', () => {
 
   test('can retrieve tonal patterns for a topic', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/memory/tonal?userId=${TEST_USER_ID}&topic=mother`,
+      `${API_URL}/api/memory/tonal?userId=${TEST_USER_ID}&topic=mother`,
       { headers: TEST_HEADERS }
     );
 
@@ -252,7 +252,7 @@ test.describe('Tonal Memory - Voice Patterns Per Topic', () => {
 
   test('can retrieve all tonal insights for user', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/memory/tonal/insights?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/memory/tonal/insights?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -270,11 +270,11 @@ test.describe('Tonal Memory - Voice Patterns Per Topic', () => {
 // MEMORY ENHANCEMENT CONTEXT BUILDER TESTS
 // ============================================================================
 
-test.describe('Memory Enhancement Context Builder Integration', () => {
+test.describe('Memory Enhancement Context Builder Integration', { tag: '@needs-server' }, () => {
   test('context builder surfaces tonal insight in context', async ({ request }) => {
     // This tests that the context builder is registered and working
     const response = await request.get(
-      `${BASE_URL}/api/context-builders?userId=${TEST_USER_ID}&builders=memory-enhancement`,
+      `${API_URL}/api/context-builders?userId=${TEST_USER_ID}&builders=memory-enhancement`,
       { headers: TEST_HEADERS }
     );
 
@@ -293,10 +293,10 @@ test.describe('Memory Enhancement Context Builder Integration', () => {
 // SEMANTIC DATA LAYER INTEGRATION TESTS
 // ============================================================================
 
-test.describe('Semantic Data Layer - Memory Enhancement Indexing', () => {
+test.describe('Semantic Data Layer - Memory Enhancement Indexing', { tag: '@needs-server' }, () => {
   test('curiosity mentions are searchable via semantic query', async ({ request }) => {
     // First create a mention
-    await request.post(`${BASE_URL}/api/memory/curiosity`, {
+    await request.post(`${API_URL}/api/memory/curiosity`, {
       headers: TEST_HEADERS,
       data: {
         userId: TEST_USER_ID,
@@ -311,7 +311,7 @@ test.describe('Semantic Data Layer - Memory Enhancement Indexing', () => {
     await new Promise((r) => setTimeout(r, 500));
 
     // Search via semantic query
-    const searchResponse = await request.post(`${BASE_URL}/api/semantic/search`, {
+    const searchResponse = await request.post(`${API_URL}/api/semantic/search`, {
       headers: TEST_HEADERS,
       data: {
         userId: TEST_USER_ID,
@@ -328,7 +328,7 @@ test.describe('Semantic Data Layer - Memory Enhancement Indexing', () => {
 
   test('between-session thinking is searchable via semantic query', async ({ request }) => {
     // Create a thinking moment
-    await request.post(`${BASE_URL}/api/memory/thinking`, {
+    await request.post(`${API_URL}/api/memory/thinking`, {
       headers: TEST_HEADERS,
       data: {
         userId: TEST_USER_ID,
@@ -343,7 +343,7 @@ test.describe('Semantic Data Layer - Memory Enhancement Indexing', () => {
     await new Promise((r) => setTimeout(r, 500));
 
     // Search via semantic query
-    const searchResponse = await request.post(`${BASE_URL}/api/semantic/search`, {
+    const searchResponse = await request.post(`${API_URL}/api/semantic/search`, {
       headers: TEST_HEADERS,
       data: {
         userId: TEST_USER_ID,
@@ -360,7 +360,7 @@ test.describe('Semantic Data Layer - Memory Enhancement Indexing', () => {
 
   test('persona growth is searchable via semantic query', async ({ request }) => {
     // Create a growth moment
-    await request.post(`${BASE_URL}/api/memory/persona-growth`, {
+    await request.post(`${API_URL}/api/memory/persona-growth`, {
       headers: TEST_HEADERS,
       data: {
         userId: TEST_USER_ID,
@@ -375,7 +375,7 @@ test.describe('Semantic Data Layer - Memory Enhancement Indexing', () => {
     await new Promise((r) => setTimeout(r, 500));
 
     // Search via semantic query
-    const searchResponse = await request.post(`${BASE_URL}/api/semantic/search`, {
+    const searchResponse = await request.post(`${API_URL}/api/semantic/search`, {
       headers: TEST_HEADERS,
       data: {
         userId: TEST_USER_ID,

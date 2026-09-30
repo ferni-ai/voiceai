@@ -12,14 +12,14 @@
  * - POST /api/video/config
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-video-test-user';
 
-test.describe('Video Sessions API', () => {
+test.describe('Video Sessions API', { tag: '@needs-server' }, () => {
   test('GET /api/video/capabilities - returns video capabilities', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/video/capabilities`, {
+    const response = await request.get(`${API_URL}/api/video/capabilities`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -36,7 +36,7 @@ test.describe('Video Sessions API', () => {
   });
 
   test('GET /api/video/state - returns session state', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/video/state`, {
+    const response = await request.get(`${API_URL}/api/video/state`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -54,7 +54,7 @@ test.describe('Video Sessions API', () => {
   });
 
   test('POST /api/video/enable - enables video', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/video/enable`, {
+    const response = await request.post(`${API_URL}/api/video/enable`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -70,7 +70,7 @@ test.describe('Video Sessions API', () => {
   });
 
   test('POST /api/video/disable - disables video', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/video/disable`, {
+    const response = await request.post(`${API_URL}/api/video/disable`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ test.describe('Video Sessions API', () => {
   });
 
   test('POST /api/video/screen-share/start - starts screen sharing', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/video/screen-share/start`, {
+    const response = await request.post(`${API_URL}/api/video/screen-share/start`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -101,7 +101,7 @@ test.describe('Video Sessions API', () => {
   });
 
   test('POST /api/video/screen-share/stop - stops screen sharing', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/video/screen-share/stop`, {
+    const response = await request.post(`${API_URL}/api/video/screen-share/stop`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -119,7 +119,7 @@ test.describe('Video Sessions API', () => {
     const validModes = ['avatar', 'video', 'hybrid'];
 
     for (const mode of validModes) {
-      const response = await request.post(`${BASE_URL}/api/video/mode`, {
+      const response = await request.post(`${API_URL}/api/video/mode`, {
         headers: {
           'X-User-ID': TEST_USER_ID,
           'Content-Type': 'application/json',
@@ -134,7 +134,7 @@ test.describe('Video Sessions API', () => {
   });
 
   test('POST /api/video/mode - rejects invalid mode', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/video/mode`, {
+    const response = await request.post(`${API_URL}/api/video/mode`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -146,7 +146,7 @@ test.describe('Video Sessions API', () => {
   });
 
   test('POST /api/video/config - updates configuration', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/video/config`, {
+    const response = await request.post(`${API_URL}/api/video/config`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -162,7 +162,7 @@ test.describe('Video Sessions API', () => {
   });
 
   test('requires authentication', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/video/state`, {
+    const response = await request.get(`${API_URL}/api/video/state`, {
       headers: {
         // Missing X-User-ID
       },
@@ -172,7 +172,7 @@ test.describe('Video Sessions API', () => {
   });
 });
 
-test.describe('Video Sessions Workflow', () => {
+test.describe('Video Sessions Workflow', { tag: '@needs-server' }, () => {
   test('complete video session workflow', async ({ request }) => {
     const headers = {
       'X-User-ID': TEST_USER_ID,
@@ -180,30 +180,30 @@ test.describe('Video Sessions Workflow', () => {
     };
 
     // 1. Get initial state
-    const stateRes = await request.get(`${BASE_URL}/api/video/state`, { headers });
+    const stateRes = await request.get(`${API_URL}/api/video/state`, { headers });
     expect(stateRes.status()).toBe(200);
 
     // 2. Enable video
-    const enableRes = await request.post(`${BASE_URL}/api/video/enable`, {
+    const enableRes = await request.post(`${API_URL}/api/video/enable`, {
       headers,
       data: {},
     });
     expect(enableRes.status()).toBe(200);
 
     // 3. Change mode to hybrid
-    const modeRes = await request.post(`${BASE_URL}/api/video/mode`, {
+    const modeRes = await request.post(`${API_URL}/api/video/mode`, {
       headers,
       data: { mode: 'hybrid' },
     });
     expect(modeRes.status()).toBe(200);
 
     // 4. Verify state reflects changes
-    const verifyRes = await request.get(`${BASE_URL}/api/video/state`, { headers });
+    const verifyRes = await request.get(`${API_URL}/api/video/state`, { headers });
     const verifyData = await verifyRes.json();
     expect(verifyData.state.isVideoEnabled).toBe(true);
 
     // 5. Disable video
-    const disableRes = await request.post(`${BASE_URL}/api/video/disable`, {
+    const disableRes = await request.post(`${API_URL}/api/video/disable`, {
       headers,
       data: {},
     });

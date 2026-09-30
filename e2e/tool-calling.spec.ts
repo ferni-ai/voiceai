@@ -12,14 +12,12 @@
  * 5. Games (startGame)
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL, AGENT_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'https://app.ferni.ai';
-const AGENT_URL =
-  process.env.AGENT_URL || 'http://34.134.186.63:8080';
 
-test.describe('Tool Calling - API Validation', () => {
-  test('Voice agent is healthy and deployed', async ({ request }) => {
+test.describe('Tool Calling - API Validation', { tag: '@needs-server' }, () => {
+  test('Voice agent is healthy and deployed', { tag: '@needs-agent' }, async ({ request }) => {
     const response = await request.get(`${AGENT_URL}/health`);
     expect(response.status()).toBe(200);
 
@@ -29,7 +27,7 @@ test.describe('Tool Calling - API Validation', () => {
   });
 
   test('UI backend is healthy', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/health`);
+    const response = await request.get(`${API_URL}/health`);
     expect(response.status()).toBe(200);
 
     const data = await response.json();
@@ -37,7 +35,7 @@ test.describe('Tool Calling - API Validation', () => {
   });
 
   test('Agents API returns available personas', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/agents`);
+    const response = await request.get(`${API_URL}/api/agents`);
 
     // Skip if endpoint doesn't exist
     if (response.status() === 404) {
@@ -62,7 +60,7 @@ test.describe('Tool Calling - App UI Smoke Tests', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'UI tests run on Chromium only');
 
   test('app loads and shows main interface', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     // Wait for either settings trigger or main content
     const settingsTrigger = page.locator('.settings-trigger');
@@ -84,7 +82,7 @@ test.describe('Tool Calling - App UI Smoke Tests', () => {
   });
 
   test('settings menu opens and shows team members', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     const settingsTrigger = page.locator('.settings-trigger');
     const isVisible = await settingsTrigger.isVisible().catch(() => false);
@@ -108,7 +106,7 @@ test.describe('Tool Calling - App UI Smoke Tests', () => {
   });
 
   test('music dashboard accessible from menu', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     const settingsTrigger = page.locator('.settings-trigger');
     const isVisible = await settingsTrigger.isVisible().catch(() => false);
@@ -129,7 +127,7 @@ test.describe('Tool Calling - App UI Smoke Tests', () => {
   });
 });
 
-test.describe('Tool Calling - Handoff Configuration', () => {
+test.describe('Tool Calling - Handoff Configuration', { tag: '@needs-server' }, () => {
   const handoffTests = [
     { trigger: 'budget', expectedTool: 'handoffToMaya', persona: 'maya-santos' },
     { trigger: 'calendar', expectedTool: 'handoffToAlex', persona: 'alex-chen' },
@@ -139,7 +137,7 @@ test.describe('Tool Calling - Handoff Configuration', () => {
   ];
 
   test('all team member personas are available via API', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/agents`);
+    const response = await request.get(`${API_URL}/api/agents`);
 
     if (response.status() !== 200) {
       test.skip();
@@ -160,7 +158,7 @@ test.describe('Tool Calling - Handoff Configuration', () => {
 
   for (const { trigger, expectedTool, persona } of handoffTests) {
     test(`persona ${persona} exists for ${trigger} handoffs`, async ({ request }) => {
-      const response = await request.get(`${BASE_URL}/api/agents`);
+      const response = await request.get(`${API_URL}/api/agents`);
 
       if (response.status() !== 200) {
         test.skip();
@@ -177,7 +175,7 @@ test.describe('Tool Calling - Handoff Configuration', () => {
   }
 });
 
-test.describe('Tool Calling - Cameos Configuration', () => {
+test.describe('Tool Calling - Cameos Configuration', { tag: '@needs-server' }, () => {
   const cameoPersonas = [
     { id: 'peter-john', domain: 'research' },
     { id: 'alex-chen', domain: 'scheduling' },
@@ -187,7 +185,7 @@ test.describe('Tool Calling - Cameos Configuration', () => {
   ];
 
   test('all cameo personas are available', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/agents`);
+    const response = await request.get(`${API_URL}/api/agents`);
 
     if (response.status() !== 200) {
       test.skip();
@@ -204,9 +202,9 @@ test.describe('Tool Calling - Cameos Configuration', () => {
   });
 });
 
-test.describe('Tool Documentation - Integration Tests', () => {
+test.describe('Tool Documentation - Integration Tests', { tag: '@needs-server' }, () => {
   test('Ferni persona is configured correctly', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/agents`);
+    const response = await request.get(`${API_URL}/api/agents`);
 
     if (response.status() !== 200) {
       test.skip();
@@ -222,7 +220,7 @@ test.describe('Tool Documentation - Integration Tests', () => {
   });
 
   test('team members are configured', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/agents`);
+    const response = await request.get(`${API_URL}/api/agents`);
 
     if (response.status() !== 200) {
       test.skip();
@@ -252,7 +250,7 @@ test.describe('Tool Documentation - Integration Tests', () => {
   });
 });
 
-test.describe('Tool Calling - Summary', () => {
+test.describe('Tool Calling - Summary', { tag: '@needs-agent' }, () => {
   test('SUMMARY: Tool calling configuration is complete', async ({ request }) => {
     console.log('\n📋 TOOL CALLING E2E TEST SUMMARY\n');
 
@@ -262,12 +260,12 @@ test.describe('Tool Calling - Summary', () => {
     console.log(`Voice Agent Health: ${agentOk ? '✅ OK' : '❌ FAILED'}`);
 
     // Check UI health
-    const uiHealth = await request.get(`${BASE_URL}/health`);
+    const uiHealth = await request.get(`${API_URL}/health`);
     const uiOk = uiHealth.status() === 200;
     console.log(`UI Backend Health: ${uiOk ? '✅ OK' : '❌ FAILED'}`);
 
     // Check agents API
-    const agentsResponse = await request.get(`${BASE_URL}/api/agents`);
+    const agentsResponse = await request.get(`${API_URL}/api/agents`);
     if (agentsResponse.status() === 200) {
       const data = await agentsResponse.json();
       const agentCount = data.agents?.length || 0;

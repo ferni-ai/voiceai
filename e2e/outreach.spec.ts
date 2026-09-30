@@ -9,14 +9,14 @@
  * - UI interactions for viewing and managing check-ins
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-outreach-test-user';
 
-test.describe('Upcoming Check-ins API', () => {
+test.describe('Upcoming Check-ins API', { tag: '@needs-server' }, () => {
   test('GET /api/outreach/upcoming - returns upcoming check-ins', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/outreach/upcoming`, {
+    const response = await request.get(`${API_URL}/api/outreach/upcoming`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -47,7 +47,7 @@ test.describe('Upcoming Check-ins API', () => {
   });
 
   test('GET /api/outreach/history - returns outreach history', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/outreach/history?limit=10`, {
+    const response = await request.get(`${API_URL}/api/outreach/history?limit=10`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -63,7 +63,7 @@ test.describe('Upcoming Check-ins API', () => {
   });
 
   test('GET /api/outreach/timing - returns timing preferences', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/outreach/timing`, {
+    const response = await request.get(`${API_URL}/api/outreach/timing`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -78,7 +78,7 @@ test.describe('Upcoming Check-ins API', () => {
   });
 
   test('GET /api/outreach/analytics - returns outreach analytics', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/outreach/analytics`, {
+    const response = await request.get(`${API_URL}/api/outreach/analytics`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -92,7 +92,7 @@ test.describe('Upcoming Check-ins API', () => {
   });
 
   test('POST /api/outreach/reschedule - requires triggerId and newTime', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/outreach/reschedule`, {
+    const response = await request.post(`${API_URL}/api/outreach/reschedule`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ test.describe('Upcoming Check-ins API', () => {
   test('DELETE /api/outreach/pending/:id - returns 404 for non-existent trigger', async ({
     request,
   }) => {
-    const response = await request.delete(`${BASE_URL}/api/outreach/pending/non-existent-id`, {
+    const response = await request.delete(`${API_URL}/api/outreach/pending/non-existent-id`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -121,7 +121,7 @@ test.describe('Upcoming Check-ins API', () => {
 test.describe('Upcoming Check-ins UI', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to app and set up user context
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Set user ID in localStorage for authenticated requests
     await page.evaluate((userId) => {
@@ -232,9 +232,9 @@ test.describe('Upcoming Check-ins UI', () => {
   });
 });
 
-test.describe('Outreach Scheduling Integration', () => {
+test.describe('Outreach Scheduling Integration', { tag: '@needs-server' }, () => {
   test('pending outreach returns correct structure', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/outreach/pending`, {
+    const response = await request.get(`${API_URL}/api/outreach/pending`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -249,7 +249,7 @@ test.describe('Outreach Scheduling Integration', () => {
   });
 
   test('channel stats endpoint works', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/outreach/channel-stats`, {
+    const response = await request.get(`${API_URL}/api/outreach/channel-stats`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },

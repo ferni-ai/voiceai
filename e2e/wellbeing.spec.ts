@@ -9,15 +9,15 @@
  * - Dashboard UI visualization
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-wellbeing-test-user';
 
-test.describe('Wellbeing Dashboard API', () => {
+test.describe('Wellbeing Dashboard API', { tag: '@needs-server' }, () => {
   test('GET /api/wellbeing/dashboard - returns dashboard data', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/wellbeing/dashboard?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/wellbeing/dashboard?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -40,7 +40,7 @@ test.describe('Wellbeing Dashboard API', () => {
 
   test('current state has all dimensions', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/wellbeing/dashboard?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/wellbeing/dashboard?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -70,7 +70,7 @@ test.describe('Wellbeing Dashboard API', () => {
 
   test('trends have correct structure', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/wellbeing/dashboard?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/wellbeing/dashboard?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -95,7 +95,7 @@ test.describe('Wellbeing Dashboard API', () => {
 
   test('GET /api/wellbeing/trends - returns trend data', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/wellbeing/trends?userId=${TEST_USER_ID}&period=week`,
+      `${API_URL}/api/wellbeing/trends?userId=${TEST_USER_ID}&period=week`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -119,7 +119,7 @@ test.describe('Wellbeing Dashboard API', () => {
 
     for (const period of periods) {
       const response = await request.get(
-        `${BASE_URL}/api/wellbeing/trends?userId=${TEST_USER_ID}&period=${period}`,
+        `${API_URL}/api/wellbeing/trends?userId=${TEST_USER_ID}&period=${period}`,
         {
           headers: {
             'X-User-ID': TEST_USER_ID,
@@ -136,7 +136,7 @@ test.describe('Wellbeing Dashboard API', () => {
 
   test('GET /api/wellbeing/insights - returns insights', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/wellbeing/insights?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/wellbeing/insights?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -163,7 +163,7 @@ test.describe('Wellbeing Dashboard API', () => {
   });
 
   test('POST /api/wellbeing/snapshot - creates a snapshot', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/wellbeing/snapshot`, {
+    const response = await request.post(`${API_URL}/api/wellbeing/snapshot`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -189,7 +189,7 @@ test.describe('Wellbeing Dashboard API', () => {
 
   test('warnings have correct structure', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/wellbeing/dashboard?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/wellbeing/dashboard?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -216,7 +216,7 @@ test.describe('Wellbeing Dashboard API', () => {
 
   test('streaks have correct structure', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/wellbeing/dashboard?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/wellbeing/dashboard?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -239,7 +239,7 @@ test.describe('Wellbeing Dashboard API', () => {
 
 test.describe('Wellbeing Dashboard UI', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.evaluate((userId) => {
       localStorage.setItem('bogle_user_id', userId);
@@ -401,11 +401,11 @@ test.describe('Wellbeing Dashboard UI', () => {
   });
 });
 
-test.describe('Wellbeing Data Integration', () => {
+test.describe('Wellbeing Data Integration', { tag: '@needs-server' }, () => {
   test('dashboard integrates with trends endpoint', async ({ request }) => {
     // Get dashboard
     const dashboardResponse = await request.get(
-      `${BASE_URL}/api/wellbeing/dashboard?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/wellbeing/dashboard?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -414,7 +414,7 @@ test.describe('Wellbeing Data Integration', () => {
 
     // Get trends
     const trendsResponse = await request.get(
-      `${BASE_URL}/api/wellbeing/trends?userId=${TEST_USER_ID}&period=week`,
+      `${API_URL}/api/wellbeing/trends?userId=${TEST_USER_ID}&period=week`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -430,7 +430,7 @@ test.describe('Wellbeing Data Integration', () => {
 
   test('averages are within valid range', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/wellbeing/trends?userId=${TEST_USER_ID}&period=week`,
+      `${API_URL}/api/wellbeing/trends?userId=${TEST_USER_ID}&period=week`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }

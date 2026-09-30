@@ -12,17 +12,17 @@
  * These tests verify the API structure works correctly.
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL, AGENT_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-calendar-test-user';
 
-test.describe('Calendar Integration API', () => {
+test.describe('Calendar Integration API', { tag: '@needs-server' }, () => {
   test('GET /api/v1/integrations/calendar/status - returns connection status', async ({
     request,
   }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/calendar/status?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/calendar/status?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -40,7 +40,7 @@ test.describe('Calendar Integration API', () => {
   });
 
   test('GET /api/v1/integrations/calendar/status - requires userId', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/v1/integrations/calendar/status`, {
+    const response = await request.get(`${API_URL}/api/v1/integrations/calendar/status`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -51,7 +51,7 @@ test.describe('Calendar Integration API', () => {
 
   test('GET /api/v1/integrations/calendar/connect - returns auth URL', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/calendar/connect?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/calendar/connect?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -69,7 +69,7 @@ test.describe('Calendar Integration API', () => {
   });
 
   test('GET /api/v1/integrations/calendar/connect - requires userId', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/v1/integrations/calendar/connect`, {
+    const response = await request.get(`${API_URL}/api/v1/integrations/calendar/connect`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -81,7 +81,7 @@ test.describe('Calendar Integration API', () => {
   test('GET /api/v1/integrations/calendar/events - requires connection', async ({ request }) => {
     // For a user without calendar connected, should return error
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/calendar/events?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/calendar/events?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -97,7 +97,7 @@ test.describe('Calendar Integration API', () => {
   });
 
   test('GET /api/v1/integrations/calendar/events - requires userId', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/v1/integrations/calendar/events`, {
+    const response = await request.get(`${API_URL}/api/v1/integrations/calendar/events`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -110,7 +110,7 @@ test.describe('Calendar Integration API', () => {
     request,
   }) => {
     const response = await request.delete(
-      `${BASE_URL}/api/v1/integrations/calendar/disconnect?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/calendar/disconnect?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -125,7 +125,7 @@ test.describe('Calendar Integration API', () => {
   });
 
   test('POST /api/v1/integrations/calendar/location - updates location', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/v1/integrations/calendar/location`, {
+    const response = await request.post(`${API_URL}/api/v1/integrations/calendar/location`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -148,7 +148,7 @@ test.describe('Calendar Integration API', () => {
   test('POST /api/v1/integrations/calendar/location - requires coordinates', async ({
     request,
   }) => {
-    const response = await request.post(`${BASE_URL}/api/v1/integrations/calendar/location`, {
+    const response = await request.post(`${API_URL}/api/v1/integrations/calendar/location`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -165,7 +165,7 @@ test.describe('Calendar Integration API', () => {
   test('POST /api/v1/integrations/calendar/location/save - saves named location', async ({
     request,
   }) => {
-    const response = await request.post(`${BASE_URL}/api/v1/integrations/calendar/location/save`, {
+    const response = await request.post(`${API_URL}/api/v1/integrations/calendar/location/save`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -188,7 +188,7 @@ test.describe('Calendar Integration API', () => {
   test('POST /api/v1/integrations/calendar/location/save - requires all fields', async ({
     request,
   }) => {
-    const response = await request.post(`${BASE_URL}/api/v1/integrations/calendar/location/save`, {
+    const response = await request.post(`${API_URL}/api/v1/integrations/calendar/location/save`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ test.describe('Calendar Integration API', () => {
 
 test.describe('Calendar Settings UI', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.evaluate((userId) => {
       localStorage.setItem('bogle_user_id', userId);
@@ -334,11 +334,9 @@ test.describe('Calendar Settings UI', () => {
   });
 });
 
-test.describe('Calendar Voice Agent Integration', () => {
-  const AGENT_URL =
-    process.env.AGENT_URL || 'http://34.134.186.63:8080';
+test.describe('Calendar Voice Agent Integration', { tag: '@needs-server' }, () => {
 
-  test('Voice agent health check - ready for calendar tools', async ({ request }) => {
+  test('Voice agent health check - ready for calendar tools', { tag: '@needs-agent' }, async ({ request }) => {
     const response = await request.get(`${AGENT_URL}/health`);
     expect(response.status()).toBe(200);
 
@@ -348,7 +346,7 @@ test.describe('Calendar Voice Agent Integration', () => {
   });
 
   test('Alex persona is available for calendar handoffs', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/agents`);
+    const response = await request.get(`${API_URL}/api/agents`);
 
     if (response.status() !== 200) {
       test.skip();
@@ -367,7 +365,7 @@ test.describe('Calendar Voice Agent Integration', () => {
   test('calendar status endpoint responds for voice context', async ({ request }) => {
     // The voice agent needs calendar status to provide ambient awareness
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/calendar/status?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/calendar/status?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -388,7 +386,7 @@ test.describe('Calendar Voice Agent Integration', () => {
   test('local calendar store works without Google connection', async ({ request }) => {
     // Test that local calendar (Firestore-backed) works independently
     const statusResponse = await request.get(
-      `${BASE_URL}/api/v1/integrations/calendar/status?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/calendar/status?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -407,7 +405,7 @@ test.describe('Calendar Voice Agent Integration', () => {
 
     // Daily briefing
     const briefingResponse = await request.get(
-      `${BASE_URL}/api/v1/integrations/calendar/briefing?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/calendar/briefing?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -418,7 +416,7 @@ test.describe('Calendar Voice Agent Integration', () => {
     console.log('✓ Calendar briefing endpoint accessible');
   });
 
-  test('SUMMARY: Calendar voice integration validated', async ({ request }) => {
+  test('SUMMARY: Calendar voice integration validated', { tag: '@needs-agent' }, async ({ request }) => {
     console.log('\n📅 CALENDAR VOICE INTEGRATION SUMMARY\n');
 
     // Voice agent health
@@ -427,12 +425,12 @@ test.describe('Calendar Voice Agent Integration', () => {
 
     // Calendar status
     const calStatus = await request.get(
-      `${BASE_URL}/api/v1/integrations/calendar/status?userId=${TEST_USER_ID}`
+      `${API_URL}/api/v1/integrations/calendar/status?userId=${TEST_USER_ID}`
     );
     console.log(`Calendar API: ${calStatus.status() === 200 ? '✅ OK' : '❌ DOWN'}`);
 
     // Agents API
-    const agentsResp = await request.get(`${BASE_URL}/api/agents`);
+    const agentsResp = await request.get(`${API_URL}/api/agents`);
     if (agentsResp.status() === 200) {
       const data = await agentsResp.json();
       const hasAlex = data.agents?.some((a: { id: string }) => a.id === 'alex-chen');
@@ -464,10 +462,10 @@ test.describe('Calendar Voice Agent Integration', () => {
   });
 });
 
-test.describe('Calendar Integration Flow', () => {
+test.describe('Calendar Integration Flow', { tag: '@needs-server' }, () => {
   test('OAuth flow generates valid auth URL', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/v1/integrations/calendar/connect?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/calendar/connect?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -485,7 +483,7 @@ test.describe('Calendar Integration Flow', () => {
   test('disconnect clears connection state', async ({ request }) => {
     // Disconnect
     const disconnectResponse = await request.delete(
-      `${BASE_URL}/api/v1/integrations/calendar/disconnect?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/calendar/disconnect?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -494,7 +492,7 @@ test.describe('Calendar Integration Flow', () => {
 
     // Verify disconnected
     const statusResponse = await request.get(
-      `${BASE_URL}/api/v1/integrations/calendar/status?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/v1/integrations/calendar/status?userId=${TEST_USER_ID}`,
       {
         headers: { 'X-User-ID': TEST_USER_ID },
       }
@@ -508,7 +506,7 @@ test.describe('Calendar Integration Flow', () => {
   test('location tracking works independently', async ({ request }) => {
     // Location tracking should work even without calendar connection
     const locationResponse = await request.post(
-      `${BASE_URL}/api/v1/integrations/calendar/location`,
+      `${API_URL}/api/v1/integrations/calendar/location`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,

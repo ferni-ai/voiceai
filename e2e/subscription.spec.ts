@@ -7,14 +7,14 @@
  * - Upgrade options
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-subscription-test-user';
 
-test.describe('Subscription API', () => {
+test.describe('Subscription API', { tag: '@needs-server' }, () => {
   test('GET /api/subscription - returns subscription status', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/subscription`, {
+    const response = await request.get(`${API_URL}/api/subscription`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -27,7 +27,7 @@ test.describe('Subscription API', () => {
   });
 
   test('GET /subscription/status - returns subscription info', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/subscription/status`, {
+    const response = await request.get(`${API_URL}/subscription/status`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -37,7 +37,7 @@ test.describe('Subscription API', () => {
 
 test.describe('Subscription UI', () => {
   test('opens subscription panel from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -63,7 +63,7 @@ test.describe('Subscription UI', () => {
   });
 
   test('displays current plan information', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -93,7 +93,7 @@ test.describe('Subscription UI', () => {
   });
 
   test('shows upgrade option for free users', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -117,7 +117,7 @@ test.describe('Subscription UI', () => {
   });
 
   test('closes subscription panel on close button click', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');

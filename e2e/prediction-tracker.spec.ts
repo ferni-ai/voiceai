@@ -8,14 +8,14 @@
  * - UI interactions for viewing and resolving predictions
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-prediction-test-user';
 
-test.describe('Prediction Tracker API', () => {
+test.describe('Prediction Tracker API', { tag: '@needs-server' }, () => {
   test('GET /api/predictions - returns predictions with stats', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/predictions?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/predictions?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -34,7 +34,7 @@ test.describe('Prediction Tracker API', () => {
 
   test('GET /api/predictions - respects limit parameter', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/predictions?userId=${TEST_USER_ID}&limit=5`,
+      `${API_URL}/api/predictions?userId=${TEST_USER_ID}&limit=5`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -52,7 +52,7 @@ test.describe('Prediction Tracker API', () => {
 
   test('GET /api/predictions - caps limit at 100', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/predictions?userId=${TEST_USER_ID}&limit=500`,
+      `${API_URL}/api/predictions?userId=${TEST_USER_ID}&limit=500`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -69,7 +69,7 @@ test.describe('Prediction Tracker API', () => {
   });
 
   test('POST /api/predictions/:id/actuals - requires body', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/predictions/test-prediction-id/actuals`, {
+    const response = await request.post(`${API_URL}/api/predictions/test-prediction-id/actuals`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ test.describe('Prediction Tracker API', () => {
     request,
   }) => {
     const response = await request.post(
-      `${BASE_URL}/api/predictions/non-existent-prediction/actuals`,
+      `${API_URL}/api/predictions/non-existent-prediction/actuals`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -102,7 +102,7 @@ test.describe('Prediction Tracker API', () => {
   });
 
   test('prediction stats structure is correct', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/predictions?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/predictions?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -123,7 +123,7 @@ test.describe('Prediction Tracker API', () => {
 
 test.describe('Prediction Tracker UI', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.evaluate((userId) => {
       localStorage.setItem('bogle_user_id', userId);
@@ -205,10 +205,10 @@ test.describe('Prediction Tracker UI', () => {
   });
 });
 
-test.describe('Prediction Accuracy Calculation', () => {
+test.describe('Prediction Accuracy Calculation', { tag: '@needs-server' }, () => {
   test('accuracy is calculated correctly from completed predictions', async ({ request }) => {
     // First get predictions to understand the baseline
-    const response = await request.get(`${BASE_URL}/api/predictions?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/predictions?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -236,7 +236,7 @@ test.describe('Prediction Accuracy Calculation', () => {
   });
 
   test('expired predictions are marked correctly', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/predictions?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/predictions?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },

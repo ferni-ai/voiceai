@@ -12,9 +12,9 @@
  * personality but in HOW they think and engage.
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-cognitive-test-user';
 const TEST_HEADERS = {
   'X-User-ID': TEST_USER_ID,
@@ -68,7 +68,7 @@ const PERSONA_PROFILES = {
 // COGNITIVE DIFFERENTIATION API TESTS
 // ============================================================================
 
-test.describe('Cognitive Differentiation - Profile Loading', () => {
+test.describe('Cognitive Differentiation - Profile Loading', { tag: '@needs-server' }, () => {
   test('should return different cognitive profiles for each persona', async ({ request }) => {
     const personas = Object.keys(PERSONA_PROFILES);
 
@@ -77,7 +77,7 @@ test.describe('Cognitive Differentiation - Profile Loading', () => {
     const profiles: Record<string, any> = {};
 
     for (const personaId of personas) {
-      const response = await request.get(`${BASE_URL}/api/personas/${personaId}/cognitive`);
+      const response = await request.get(`${API_URL}/api/personas/${personaId}/cognitive`);
 
       if (response.status() === 404) {
         console.log(`${personaId}: Cognitive endpoint not available`);
@@ -120,7 +120,7 @@ test.describe('Cognitive Differentiation - Profile Loading', () => {
     console.log('\n📋 COGNITIVE DIFFERENTIATION COMPLETENESS\n');
 
     for (const personaId of personas) {
-      const response = await request.get(`${BASE_URL}/api/personas/${personaId}/cognitive`);
+      const response = await request.get(`${API_URL}/api/personas/${personaId}/cognitive`);
 
       if (response.status() === 404) {
         console.log(`❌ ${personaId}: endpoint not available`);
@@ -142,9 +142,9 @@ test.describe('Cognitive Differentiation - Profile Loading', () => {
   });
 });
 
-test.describe('Cognitive Differentiation - Questioning Styles', () => {
+test.describe('Cognitive Differentiation - Questioning Styles', { tag: '@needs-server' }, () => {
   test('Ferni should ask feeling-focused questions', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/personas/ferni/question`, {
+    const response = await request.post(`${API_URL}/api/personas/ferni/question`, {
       headers: TEST_HEADERS,
       data: {
         type: 'deep_dive',
@@ -173,7 +173,7 @@ test.describe('Cognitive Differentiation - Questioning Styles', () => {
   });
 
   test('Peter should ask data-focused questions', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/personas/peter-john/question`, {
+    const response = await request.post(`${API_URL}/api/personas/peter-john/question`, {
       headers: TEST_HEADERS,
       data: {
         type: 'deep_dive',
@@ -207,7 +207,7 @@ test.describe('Cognitive Differentiation - Questioning Styles', () => {
     const questions: Record<string, string> = {};
 
     for (const personaId of ['ferni', 'peter-john', 'nayan-patel']) {
-      const response = await request.post(`${BASE_URL}/api/personas/${personaId}/question`, {
+      const response = await request.post(`${API_URL}/api/personas/${personaId}/question`, {
         headers: TEST_HEADERS,
         data: {
           type: 'deep_dive',
@@ -235,14 +235,14 @@ test.describe('Cognitive Differentiation - Questioning Styles', () => {
   });
 });
 
-test.describe('Cognitive Differentiation - Silence Handling', () => {
+test.describe('Cognitive Differentiation - Silence Handling', { tag: '@needs-server' }, () => {
   test('personas should have different silence interpretations', async ({ request }) => {
     console.log('\n📋 SILENCE INTERPRETATION BY PERSONA\n');
 
     const silenceInterpretations: Record<string, string> = {};
 
     for (const personaId of Object.keys(PERSONA_PROFILES)) {
-      const response = await request.get(`${BASE_URL}/api/personas/${personaId}/cognitive`);
+      const response = await request.get(`${API_URL}/api/personas/${personaId}/cognitive`);
 
       if (response.status() === 200) {
         const data = await response.json();
@@ -268,7 +268,7 @@ test.describe('Cognitive Differentiation - Silence Handling', () => {
     console.log('\n📋 SILENCE RESPONSE COMPARISON (5 seconds)\n');
 
     for (const personaId of ['ferni', 'peter-john', 'nayan-patel']) {
-      const response = await request.post(`${BASE_URL}/api/personas/${personaId}/silence-response`, {
+      const response = await request.post(`${API_URL}/api/personas/${personaId}/silence-response`, {
         headers: TEST_HEADERS,
         data: {
           silenceDurationMs: silenceDuration,
@@ -285,12 +285,12 @@ test.describe('Cognitive Differentiation - Silence Handling', () => {
   });
 });
 
-test.describe('Cognitive Differentiation - Disagreement Styles', () => {
+test.describe('Cognitive Differentiation - Disagreement Styles', { tag: '@needs-server' }, () => {
   test('personas should disagree differently', async ({ request }) => {
     console.log('\n📋 DISAGREEMENT STYLE COMPARISON\n');
 
     for (const personaId of ['ferni', 'peter-john', 'nayan-patel']) {
-      const response = await request.post(`${BASE_URL}/api/personas/${personaId}/disagreement`, {
+      const response = await request.post(`${API_URL}/api/personas/${personaId}/disagreement`, {
         headers: TEST_HEADERS,
         data: {
           intensity: 'mild',
@@ -320,7 +320,7 @@ test.describe('Cognitive Differentiation - Disagreement Styles', () => {
     };
 
     for (const [personaId, pattern] of Object.entries(expectedPatterns)) {
-      const response = await request.post(`${BASE_URL}/api/personas/${personaId}/disagreement`, {
+      const response = await request.post(`${API_URL}/api/personas/${personaId}/disagreement`, {
         headers: TEST_HEADERS,
         data: {
           intensity: 'strong',
@@ -339,7 +339,7 @@ test.describe('Cognitive Differentiation - Disagreement Styles', () => {
   });
 });
 
-test.describe('Cognitive Differentiation - Insight Framing', () => {
+test.describe('Cognitive Differentiation - Insight Framing', { tag: '@needs-server' }, () => {
   test('personas should frame insights differently', async ({ request }) => {
     console.log('\n📋 INSIGHT FRAMING COMPARISON\n');
 
@@ -351,7 +351,7 @@ test.describe('Cognitive Differentiation - Insight Framing', () => {
     };
 
     for (const [personaId, description] of Object.entries(framingDescriptions)) {
-      const response = await request.get(`${BASE_URL}/api/personas/${personaId}/cognitive`);
+      const response = await request.get(`${API_URL}/api/personas/${personaId}/cognitive`);
 
       if (response.status() === 200) {
         const data = await response.json();
@@ -365,7 +365,7 @@ test.describe('Cognitive Differentiation - Insight Framing', () => {
     console.log('\n📋 INSIGHT LEAD-IN SAMPLES\n');
 
     for (const personaId of ['ferni', 'peter-john', 'nayan-patel']) {
-      const response = await request.get(`${BASE_URL}/api/personas/${personaId}/insight-lead-in`);
+      const response = await request.get(`${API_URL}/api/personas/${personaId}/insight-lead-in`);
 
       if (response.status() === 200) {
         const data = await response.json();
@@ -381,7 +381,7 @@ test.describe('Cognitive Differentiation - Insight Framing', () => {
 // INTEGRATION TESTS - Real Conversation Flow
 // ============================================================================
 
-test.describe('Cognitive Differentiation - Real Response Comparison', () => {
+test.describe('Cognitive Differentiation - Real Response Comparison', { tag: '@needs-server' }, () => {
   test('same prompt should get different responses from different personas', async ({ request }) => {
     const prompt = "I'm not sure if I should take this job offer";
 
@@ -389,7 +389,7 @@ test.describe('Cognitive Differentiation - Real Response Comparison', () => {
     console.log(`  Prompt: "${prompt}"\n`);
 
     for (const personaId of ['ferni', 'peter-john', 'maya-santos', 'nayan-patel']) {
-      const response = await request.post(`${BASE_URL}/api/chat/generate-response`, {
+      const response = await request.post(`${API_URL}/api/chat/generate-response`, {
         headers: TEST_HEADERS,
         data: {
           personaId,

@@ -8,13 +8,13 @@
  * - RTL support
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 
 test.describe('Language Selector UI', () => {
   test('opens language selector from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -42,7 +42,7 @@ test.describe('Language Selector UI', () => {
   });
 
   test('displays available languages', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -69,7 +69,7 @@ test.describe('Language Selector UI', () => {
   });
 
   test('shows current language with checkmark', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -98,7 +98,7 @@ test.describe('Language Selector UI', () => {
   });
 
   test('changes language when option clicked', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -143,7 +143,7 @@ test.describe('Language Selector UI', () => {
   });
 
   test('language persists after page reload', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Set language via localStorage
     await page.evaluate(() => {
@@ -159,7 +159,7 @@ test.describe('Language Selector UI', () => {
   });
 
   test('RTL languages set correct direction', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Set Arabic language
     await page.evaluate(() => {
@@ -175,7 +175,7 @@ test.describe('Language Selector UI', () => {
   });
 
   test('Hebrew language sets RTL direction', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Set Hebrew language
     await page.evaluate(() => {
@@ -191,7 +191,7 @@ test.describe('Language Selector UI', () => {
   });
 
   test('language selector shows flag emoji', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');

@@ -12,9 +12,9 @@
  * - BUG 4: Voice handoff via conversation not working
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'https://app.ferni.ai';
 
 // All team member personas that should be available
 const TEAM_MEMBERS = [
@@ -26,9 +26,9 @@ const TEAM_MEMBERS = [
   { id: 'nayan-patel', name: 'Nayan', role: 'wisdom' },
 ];
 
-test.describe('Persona Configuration Validation', () => {
+test.describe('Persona Configuration Validation', { tag: '@needs-server' }, () => {
   test('all team member personas have required fields', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/agents`);
+    const response = await request.get(`${API_URL}/api/agents`);
 
     if (response.status() !== 200) {
       console.log('API not available - skipping');
@@ -53,7 +53,7 @@ test.describe('Persona Configuration Validation', () => {
 
   test('persona detail endpoint returns voice and prompt info', async ({ request }) => {
     for (const persona of ['ferni', 'peter-john', 'maya-santos']) {
-      const response = await request.get(`${BASE_URL}/api/agents/${persona}`);
+      const response = await request.get(`${API_URL}/api/agents/${persona}`);
 
       if (response.status() === 404) {
         console.log(`Persona detail endpoint not available for ${persona} - skipping`);
@@ -68,10 +68,10 @@ test.describe('Persona Configuration Validation', () => {
   });
 });
 
-test.describe('Team Unlock State Validation', () => {
+test.describe('Team Unlock State Validation', { tag: '@needs-server' }, () => {
   test('team unlock endpoint returns all members (with bypass)', async ({ request }) => {
     // This tests that BYPASS_TEAM_UNLOCKS=true is working
-    const response = await request.get(`${BASE_URL}/api/team/status`);
+    const response = await request.get(`${API_URL}/api/team/status`);
 
     if (response.status() === 404) {
       console.log('Team status endpoint not available - skipping');
@@ -104,7 +104,7 @@ test.describe('Marketplace UI Handoff Tests', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'UI tests run on Chromium only');
 
   test('app loads successfully', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     // Verify page loaded
     const title = await page.title();
@@ -113,7 +113,7 @@ test.describe('Marketplace UI Handoff Tests', () => {
   });
 
   test('settings menu opens', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     const settingsTrigger = page.locator('.settings-trigger');
     const isVisible = await settingsTrigger.isVisible().catch(() => false);
@@ -136,7 +136,7 @@ test.describe('Marketplace UI Handoff Tests', () => {
   });
 
   test('marketplace button exists in settings', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     const settingsTrigger = page.locator('.settings-trigger');
     const isVisible = await settingsTrigger.isVisible().catch(() => false);
@@ -162,7 +162,7 @@ test.describe('Marketplace UI Handoff Tests', () => {
   });
 
   test('team members visible in marketplace modal', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     // Try to open settings
     const settingsTrigger = page.locator('.settings-trigger');
@@ -207,7 +207,7 @@ test.describe('Marketplace UI Handoff Tests', () => {
   });
 
   test('clicking team member shows correct state', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     // Try to open settings and marketplace
     const settingsTrigger = page.locator('.settings-trigger');
@@ -268,7 +268,7 @@ test.describe('Marketplace UI Handoff Tests', () => {
   });
 });
 
-test.describe('Persona Handoff - Critical Bugs Validation', () => {
+test.describe('Persona Handoff - Critical Bugs Validation', { tag: '@needs-server' }, () => {
   /**
    * BUG 3 Validation: Voice vs Persona Mismatch
    *
@@ -279,7 +279,7 @@ test.describe('Persona Handoff - Critical Bugs Validation', () => {
   test('all personas have complete configuration (no Ferni fallback needed)', async ({
     request,
   }) => {
-    const response = await request.get(`${BASE_URL}/api/agents`);
+    const response = await request.get(`${API_URL}/api/agents`);
 
     if (response.status() !== 200) {
       console.log('API not available - skipping');
@@ -333,13 +333,13 @@ test.describe('Persona Handoff - Critical Bugs Validation', () => {
     console.log('\n📋 BUG 4 Validation: Team Unlock State\n');
 
     // Check if team status endpoint exists
-    const statusResponse = await request.get(`${BASE_URL}/api/team/status`);
+    const statusResponse = await request.get(`${API_URL}/api/team/status`);
 
     if (statusResponse.status() === 404) {
       console.log('Team status endpoint not available');
 
       // Fallback: check agents API to see if all are available
-      const agentsResponse = await request.get(`${BASE_URL}/api/agents`);
+      const agentsResponse = await request.get(`${API_URL}/api/agents`);
 
       if (agentsResponse.status() === 200) {
         const data = await agentsResponse.json();
@@ -389,12 +389,12 @@ test.describe('Persona Handoff - Critical Bugs Validation', () => {
   });
 });
 
-test.describe('Summary', () => {
+test.describe('Summary', { tag: '@needs-server' }, () => {
   test('SUMMARY: Persona handoff infrastructure validated', async ({ request }) => {
     console.log('\n📋 PERSONA HANDOFF E2E TEST SUMMARY\n');
 
     // Check agents API
-    const agentsResponse = await request.get(`${BASE_URL}/api/agents`);
+    const agentsResponse = await request.get(`${API_URL}/api/agents`);
 
     if (agentsResponse.status() === 200) {
       const data = await agentsResponse.json();

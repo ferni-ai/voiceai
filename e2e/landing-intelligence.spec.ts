@@ -10,14 +10,14 @@
  * - API endpoints
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 test.describe('Landing Intelligence', () => {
   // ============================================================================
   // API ENDPOINT TESTS
   // ============================================================================
 
-  test.describe('API Endpoints', () => {
+  test.describe('API Endpoints', { tag: '@needs-server' }, () => {
     test('GET /api/landing/health returns status', async ({ request }) => {
       const response = await request.get('/api/landing/health');
       expect(response.ok()).toBeTruthy();

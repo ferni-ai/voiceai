@@ -9,16 +9,16 @@
  * - DELETE /api/rituals/:id - delete ritual
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-ritual-test-user';
 
-test.describe('Rituals API', () => {
+test.describe('Rituals API', { tag: '@needs-server' }, () => {
   let createdRitualId: string | null = null;
 
   test('GET /api/rituals - returns user rituals', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/rituals`, {
+    const response = await request.get(`${API_URL}/api/rituals`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -46,7 +46,7 @@ test.describe('Rituals API', () => {
       },
     };
 
-    const response = await request.post(`${BASE_URL}/api/rituals`, {
+    const response = await request.post(`${API_URL}/api/rituals`, {
       headers: { 'X-User-ID': TEST_USER_ID },
       data: newRitual,
     });
@@ -63,7 +63,7 @@ test.describe('Rituals API', () => {
 
   test('GET /api/rituals/:id - returns specific ritual', async ({ request }) => {
     // First create a ritual to fetch
-    const createResponse = await request.post(`${BASE_URL}/api/rituals`, {
+    const createResponse = await request.post(`${API_URL}/api/rituals`, {
       headers: { 'X-User-ID': TEST_USER_ID },
       data: {
         name: 'E2E Fetch Test Ritual',
@@ -80,7 +80,7 @@ test.describe('Rituals API', () => {
       return;
     }
 
-    const response = await request.get(`${BASE_URL}/api/rituals/${ritualId}`, {
+    const response = await request.get(`${API_URL}/api/rituals/${ritualId}`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -94,7 +94,7 @@ test.describe('Rituals API', () => {
 
   test('PUT /api/rituals/:id - updates a ritual', async ({ request }) => {
     // First create a ritual to update
-    const createResponse = await request.post(`${BASE_URL}/api/rituals`, {
+    const createResponse = await request.post(`${API_URL}/api/rituals`, {
       headers: { 'X-User-ID': TEST_USER_ID },
       data: {
         name: 'E2E Update Test Ritual',
@@ -111,7 +111,7 @@ test.describe('Rituals API', () => {
       return;
     }
 
-    const response = await request.put(`${BASE_URL}/api/rituals/${ritualId}`, {
+    const response = await request.put(`${API_URL}/api/rituals/${ritualId}`, {
       headers: { 'X-User-ID': TEST_USER_ID },
       data: {
         name: 'E2E Updated Ritual Name',
@@ -127,7 +127,7 @@ test.describe('Rituals API', () => {
 
   test('DELETE /api/rituals/:id - deletes a ritual', async ({ request }) => {
     // First create a ritual to delete
-    const createResponse = await request.post(`${BASE_URL}/api/rituals`, {
+    const createResponse = await request.post(`${API_URL}/api/rituals`, {
       headers: { 'X-User-ID': TEST_USER_ID },
       data: {
         name: 'E2E Delete Test Ritual',
@@ -144,7 +144,7 @@ test.describe('Rituals API', () => {
       return;
     }
 
-    const response = await request.delete(`${BASE_URL}/api/rituals/${ritualId}`, {
+    const response = await request.delete(`${API_URL}/api/rituals/${ritualId}`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -157,7 +157,7 @@ test.describe('Rituals API', () => {
 
 test.describe('Ritual Builder UI', () => {
   test('opens ritual builder from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -180,7 +180,7 @@ test.describe('Ritual Builder UI', () => {
   });
 
   test('displays ritual type options', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
