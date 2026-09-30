@@ -26,6 +26,7 @@ export default defineConfig({
       'apps/**',
       'e2e/**',
       'design-system/**',
+      '.claude/**',
       // Exclude e2e tests
       '**/*.e2e.test.ts',
       '**/e2e/**',
@@ -38,5 +39,17 @@ export default defineConfig({
     testTimeout: 30000,
     hookTimeout: 30000,
     setupFiles: ['./src/tests/setup.ts'],
+    // No real services here (that's vitest.config.external.ts). With real
+    // keys, key-gated tests switch to live Gemini/LiveKit calls and the CI
+    // run stalled until its 30-minute timeout. Empty values keep them on
+    // their offline path; dotenv won't override an existing variable.
+    env: {
+      GOOGLE_API_KEY: '',
+      GEMINI_API_KEY: '',
+      OPENAI_API_KEY: '',
+      LIVEKIT_URL: '',
+      LIVEKIT_API_KEY: '',
+      LIVEKIT_API_SECRET: '',
+    },
   },
 });

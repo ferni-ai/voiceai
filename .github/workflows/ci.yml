@@ -259,15 +259,12 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Run integration tests
+        # Offline by design: real API keys made key-gated tests call live
+        # Gemini/LiveKit and the run stalled at the 30-minute timeout.
+        # Live-service tests run via test:external.
         run: pnpm test:integration -- --reporter=verbose
         env:
           NODE_ENV: test
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
-          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
-          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
-          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
         continue-on-error: true
 
       - name: Check coverage threshold

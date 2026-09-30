@@ -210,7 +210,7 @@ describe('Data Routes', () => {
         url: '/api/export',
       });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export?userId=test-user', 'http://localhost:3002');
 
       await handleExportData(req, res, parsedUrl);
 
@@ -235,7 +235,7 @@ describe('Data Routes', () => {
         url: '/api/export',
       });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export?userId=test-user', 'http://localhost:3002');
 
       await handleExportData(req, res, parsedUrl);
 
@@ -251,7 +251,7 @@ describe('Data Routes', () => {
 
       const req = createMockRequest({ method: 'POST', url: '/api/export' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export?userId=test-user', 'http://localhost:3002');
 
       await handleExportData(req, res, parsedUrl);
 
@@ -264,7 +264,7 @@ describe('Data Routes', () => {
 
       const req = createMockRequest({ method: 'POST', url: '/api/export' });
       const { res } = createMockResponse();
-      const parsedUrl = new URL('/api/export', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export?userId=test-user', 'http://localhost:3002');
 
       await handleExportData(req, res, parsedUrl);
 
@@ -280,11 +280,31 @@ describe('Data Routes', () => {
 
       const req = createMockRequest({ method: 'POST', url: '/api/export' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export?userId=test-user', 'http://localhost:3002');
 
       await handleExportData(req, res, parsedUrl);
 
       expect(getWrittenData().status).toBe(500);
+    });
+  });
+
+  describe('identity: the verified caller, never body.userId', () => {
+    it('refuses to export another user\'s data', async () => {
+      mockValidateBody.mockResolvedValue({ userId: 'someone-else', format: 'json' });
+      const req = createMockRequest({ method: 'POST', url: '/api/export' });
+      const { res, getWrittenData } = createMockResponse();
+      await handleExportData(req, res, new URL('/api/export?userId=test-user', 'http://localhost:3002'));
+      expect(getWrittenData().status).toBe(403);
+      expect(mockExportService.exportData).not.toHaveBeenCalled();
+    });
+
+    it('refuses to delete another user\'s data', async () => {
+      mockValidateBody.mockResolvedValue({ userId: 'someone-else', confirmDelete: true });
+      const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
+      const { res, getWrittenData } = createMockResponse();
+      await handleDeleteAllData(req, res, new URL('/api/export/all?userId=test-user', 'http://localhost:3002'));
+      expect(getWrittenData().status).toBe(403);
+      expect(mockExportService.deleteAllData).not.toHaveBeenCalled();
     });
   });
 
@@ -297,7 +317,7 @@ describe('Data Routes', () => {
 
       const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export/all', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export/all?userId=test-user', 'http://localhost:3002');
 
       await handleDeleteAllData(req, res, parsedUrl);
 
@@ -315,7 +335,7 @@ describe('Data Routes', () => {
 
       const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export/all', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export/all?userId=test-user', 'http://localhost:3002');
 
       await handleDeleteAllData(req, res, parsedUrl);
 
@@ -328,7 +348,7 @@ describe('Data Routes', () => {
 
       const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
       const { res } = createMockResponse();
-      const parsedUrl = new URL('/api/export/all', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export/all?userId=test-user', 'http://localhost:3002');
 
       await handleDeleteAllData(req, res, parsedUrl);
 
@@ -344,7 +364,7 @@ describe('Data Routes', () => {
 
       const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export/all', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export/all?userId=test-user', 'http://localhost:3002');
 
       await handleDeleteAllData(req, res, parsedUrl);
 
@@ -372,7 +392,7 @@ describe('Data Routes', () => {
 
       const req = createMockRequest({ method: 'POST', url: '/api/export' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export?userId=test-user', 'http://localhost:3002');
 
       const handled = await handleDataRoutes(req, res, '/api/export', parsedUrl);
 
@@ -388,7 +408,7 @@ describe('Data Routes', () => {
 
       const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export/all', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export/all?userId=test-user', 'http://localhost:3002');
 
       const handled = await handleDataRoutes(req, res, '/api/export/all', parsedUrl);
 
