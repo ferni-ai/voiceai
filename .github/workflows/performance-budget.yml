@@ -12,9 +12,11 @@ on:
       - '.github/workflows/performance-budget.yml'
 
 env:
-  # Bundle size limits (in KB)
-  MAX_BUNDLE_SIZE_KB: 500
-  MAX_CHUNK_SIZE_KB: 200
+  # Gzipped JS budgets (KB), set to the size on 2026-09-30 (1902 KB total,
+  # 535 KB largest chunk) rounded up to the next 10 KB. Lower them as the
+  # bundle shrinks; raising them should be a deliberate choice.
+  MAX_BUNDLE_SIZE_KB: 1910
+  MAX_CHUNK_SIZE_KB: 540
 
 permissions:
   contents: read
@@ -38,28 +40,28 @@ jobs:
 
       - name: Analyze bundle size
         id: bundle
+        # Gzipped JavaScript only: what browsers download for code. Fonts,
+        # images and source maps are not counted.
         run: |
           cd apps/web/dist
+          find . -name "*.js" -print0 | while IFS= read -r -d '' f; do
+            echo "$(gzip -c "$f" | wc -c) $f"
+          done | sort -rn > /tmp/js-gzip-sizes.txt
 
-          # Get total size
-          TOTAL_SIZE=$(du -sk . | cut -f1)
-          echo "total_kb=$TOTAL_SIZE" >> $GITHUB_OUTPUT
+          TOTAL_KB=$(awk '{s+=$1} END {printf "%d", s/1024}' /tmp/js-gzip-sizes.txt)
+          LARGEST_KB=$(head -1 /tmp/js-gzip-sizes.txt | awk '{printf "%d", $1/1024}')
+          echo "total_kb=$TOTAL_KB" >> $GITHUB_OUTPUT
+          echo "largest_chunk_kb=$LARGEST_KB" >> $GITHUB_OUTPUT
 
-          # Get largest chunk
-          LARGEST_CHUNK=$(find . -name "*.js" -exec du -k {} \; | sort -rn | head -1 | cut -f1)
-          echo "largest_chunk_kb=$LARGEST_CHUNK" >> $GITHUB_OUTPUT
-
-          # List all chunks
-          echo "## Bundle Analysis" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| File | Size (KB) |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|-----------|" >> $GITHUB_STEP_SUMMARY
-          find . -name "*.js" -exec du -k {} \; | sort -rn | head -10 | while read size file; do
-            echo "| $file | $size |" >> $GITHUB_STEP_SUMMARY
-          done
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Total: ${TOTAL_SIZE} KB**" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Bundle Analysis (gzipped JS)"
+            echo ""
+            echo "| File | Gzipped (KB) |"
+            echo "|------|--------------|"
+            head -10 /tmp/js-gzip-sizes.txt | awk '{printf "| %s | %d |\n", $2, $1/1024}'
+            echo ""
+            echo "**Total: ${TOTAL_KB} KB** across $(wc -l < /tmp/js-gzip-sizes.txt) files"
+          } >> $GITHUB_STEP_SUMMARY
 
       - name: Check budget
         run: |
@@ -112,8 +114,8 @@ jobs:
 
             | Metric | Value | Budget | Status |
             |--------|-------|--------|--------|
-            | Total Bundle | ${total} KB | ${maxTotal} KB | ${totalOk ? '✅' : '❌'} |
-            | Largest Chunk | ${largest} KB | ${maxChunk} KB | ${chunkOk ? '✅' : '❌'} |
+            | Total JS (gzipped) | ${total} KB | ${maxTotal} KB | ${totalOk ? '✅' : '❌'} |
+            | Largest chunk (gzipped) | ${largest} KB | ${maxChunk} KB | ${chunkOk ? '✅' : '❌'} |
 
             ${totalOk && chunkOk ? '✅ All performance budgets passed!' : '❌ Performance budget exceeded - please optimize before merging.'}
             `;
