@@ -39,8 +39,6 @@ import {
   getEconomicIndicator,
   getYieldCurve,
   getEconomicDashboard,
-  getMockFundamentals,
-  getMockEarnings,
   FRED_SERIES,
 } from '../external-apis.js';
 
@@ -57,13 +55,9 @@ describe('External APIs', () => {
   });
 
   describe('Alpha Vantage - Company Fundamentals', () => {
-    it('should return mock data when API key not set', async () => {
-      const fundamentals = await getCompanyFundamentals('AAPL');
-
-      expect(fundamentals).toBeDefined();
-      expect(fundamentals?.symbol).toBe('AAPL');
-      expect(fundamentals?.name).toBe('Apple Inc.');
-      expect(fundamentals?.sector).toBe('Technology');
+    it('returns null, not sample numbers, when the API key is not set', async () => {
+      expect(await getCompanyFundamentals('AAPL')).toBeNull();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('should fetch real data when API key is set', async () => {
@@ -90,7 +84,7 @@ describe('External APIs', () => {
       expect(fundamentals?.peRatio).toBe(28.5);
     });
 
-    it('should fallback to mock data on API error', async () => {
+    it('returns null when the free tier is rate limited', async () => {
       process.env.ALPHA_VANTAGE_API_KEY = 'test-key';
 
       mockFetch.mockResolvedValueOnce({
@@ -100,11 +94,16 @@ describe('External APIs', () => {
         }),
       });
 
-      const fundamentals = await getCompanyFundamentals('AAPL');
+      expect(await getCompanyFundamentals('AAPL')).toBeNull();
+    });
 
-      // Should return mock data as fallback
-      expect(fundamentals).toBeDefined();
-      expect(fundamentals?.symbol).toBe('AAPL');
+    it('returns null for the newer "Information" rate-limit response', async () => {
+      process.env.ALPHA_VANTAGE_API_KEY = 'test-key';
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ Information: 'Our standard API rate limit is 25 requests per day.' }),
+      });
+      expect(await getCompanyFundamentals('AAPL')).toBeNull();
     });
 
     it('should handle HTTP errors gracefully', async () => {
@@ -115,20 +114,13 @@ describe('External APIs', () => {
         status: 500,
       });
 
-      const fundamentals = await getCompanyFundamentals('AAPL');
-
-      // Should return mock data as fallback
-      expect(fundamentals).toBeDefined();
+      expect(await getCompanyFundamentals('AAPL')).toBeNull();
     });
   });
 
   describe('Alpha Vantage - Earnings History', () => {
-    it('should return mock earnings when API key not set', async () => {
-      const earnings = await getEarningsHistory('AAPL', 4);
-
-      expect(earnings).toHaveLength(4);
-      expect(earnings[0].symbol).toBe('AAPL');
-      expect(earnings[0].reportedEPS).toBeDefined();
+    it('returns no earnings, not sample ones, when the API key is not set', async () => {
+      expect(await getEarningsHistory('AAPL', 4)).toEqual([]);
     });
 
     it('should fetch real earnings when API key is set', async () => {
@@ -157,12 +149,34 @@ describe('External APIs', () => {
   });
 
   describe('FRED - Economic Indicators', () => {
-    it('should return mock data when API key not set', async () => {
-      const indicator = await getEconomicIndicator('fed_rate');
+    it('returns null, not a sample rate, when the API key is not set', async () => {
+      expect(await getEconomicIndicator('fed_rate')).toBeNull();
+    });
 
-      expect(indicator).toBeDefined();
-      expect(indicator?.name).toBe('Federal Funds Rate');
-      expect(indicator?.unit).toBe('%');
+    it('skips FRED "." placeholders and uses the latest real value', async () => {
+      process.env.FRED_API_KEY = 'test-key';
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          observations: [
+            { date: '2026-09-29', value: '.' },
+            { date: '2026-09-28', value: '4.10' },
+            { date: '2026-09-25', value: '4.05' },
+          ],
+        }),
+      });
+      const indicator = await getEconomicIndicator('yield_10y');
+      expect(indicator?.value).toBe(4.1);
+      expect(indicator?.previousValue).toBe(4.05);
+    });
+
+    it('returns null when FRED has no real values', async () => {
+      process.env.FRED_API_KEY = 'test-key';
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ observations: [{ date: '2026-09-29', value: '.' }] }),
+      });
+      expect(await getEconomicIndicator('yield_10y')).toBeNull();
     });
 
     it('should fetch real data when API key is set', async () => {
@@ -213,62 +227,31 @@ describe('External APIs', () => {
   });
 
   describe('Yield Curve', () => {
-    it('should calculate yield curve spread', async () => {
-      const yieldCurve = await getYieldCurve();
-
-      expect(yieldCurve.spread).toBeDefined();
-      expect(['normal', 'flat', 'inverted']).toContain(yieldCurve.status);
-      expect(yieldCurve.interpretation).toBeDefined();
+    it('is null, not a made-up "normal" curve, when yields are unavailable', async () => {
+      expect(await getYieldCurve()).toBeNull();
     });
 
-    it('should detect normal yield curve', async () => {
-      // Mock data will return normal spread
-      const yieldCurve = await getYieldCurve();
-
-      // With mock data, 10Y (4.2) - 2Y (4.1) = 0.1, which is flat
-      expect(['normal', 'flat']).toContain(yieldCurve.status);
+    it('computes the spread from real yields', async () => {
+      process.env.FRED_API_KEY = 'test-key';
+      const obs = (v: string) => ({
+        ok: true,
+        json: async () => ({ observations: [{ date: '2026-09-28', value: v }] }),
+      });
+      mockFetch.mockResolvedValueOnce(obs('4.00')).mockResolvedValueOnce(obs('4.50'));
+      const curve = await getYieldCurve();
+      expect(curve?.spread).toBeCloseTo(-0.5);
+      expect(curve?.status).toBe('inverted');
     });
   });
 
   describe('Economic Dashboard', () => {
-    it('should return comprehensive dashboard', async () => {
+    it('says the data is unavailable instead of inventing it', async () => {
       const dashboard = await getEconomicDashboard();
 
-      expect(dashboard.indicators).toBeDefined();
-      expect(dashboard.indicators.length).toBeGreaterThan(0);
-      expect(dashboard.yieldCurve).toBeDefined();
-      expect(dashboard.summary).toContain('Economic Dashboard');
-    });
-
-    it('should include key indicators in summary', async () => {
-      const dashboard = await getEconomicDashboard();
-
-      expect(dashboard.summary).toContain('Federal Funds Rate');
-      expect(dashboard.summary).toContain('Yield Curve');
-    });
-  });
-
-  describe('Mock Data Functions', () => {
-    it('should generate consistent mock fundamentals', () => {
-      const aapl = getMockFundamentals('AAPL');
-      const msft = getMockFundamentals('MSFT');
-      const unknown = getMockFundamentals('XYZ');
-
-      expect(aapl.name).toBe('Apple Inc.');
-      expect(msft.name).toBe('Microsoft Corporation');
-      expect(unknown.name).toBe('XYZ Company');
-    });
-
-    it('should generate mock earnings with correct structure', () => {
-      const earnings = getMockEarnings('AAPL', 4);
-
-      expect(earnings).toHaveLength(4);
-      for (const e of earnings) {
-        expect(e.symbol).toBe('AAPL');
-        expect(e.fiscalDateEnding).toBeDefined();
-        expect(e.reportedEPS).toBeGreaterThan(0);
-        expect(e.estimatedEPS).toBeGreaterThan(0);
-      }
+      expect(dashboard.indicators).toEqual([]);
+      expect(dashboard.yieldCurve).toBeNull();
+      expect(dashboard.summary).toBe("Current economic data isn't available right now.");
+      expect(dashboard.summary).not.toMatch(/\d/);
     });
   });
 });

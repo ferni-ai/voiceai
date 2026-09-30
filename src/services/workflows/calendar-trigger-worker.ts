@@ -336,24 +336,25 @@ function cleanupTriggeredEvents(): void {
 }
 
 /**
- * Main check loop
+ * Check calendars once. Pre-meeting push goes to every calendar-connected
+ * user only when this server can send push; otherwise only users with
+ * calendar workflows are checked, so no one's calendar is fetched for nothing.
  */
-async function checkAllCalendars(): Promise<void> {
-  if (!isRunning) return;
-
+async function checkAllCalendars(opts: { pushAvailable?: boolean } = {}): Promise<number> {
   try {
+    const pushAvailable = opts.pushAvailable ?? true;
     // Get users with calendar workflows (for workflow triggers)
     const workflowUserIds = await getUsersWithCalendarWorkflows();
 
-    // Get all users with calendar connected (for push notifications)
-    const calendarUserIds = await getUsersWithCalendarConnected();
+    // Users with a calendar connected (for push notifications)
+    const calendarUserIds = pushAvailable ? await getUsersWithCalendarConnected() : [];
 
     // Combine unique user IDs
     const allUserIds = new Set([...workflowUserIds, ...calendarUserIds]);
 
     if (allUserIds.size === 0) {
       log.debug('No users with calendars');
-      return;
+      return 0;
     }
 
     log.debug(
@@ -372,16 +373,30 @@ async function checkAllCalendars(): Promise<void> {
           // Send push notifications for all calendar users
           // Only trigger workflows for users with workflow configs
           const hasWorkflows = workflowUserIds.includes(userId);
-          return checkUserCalendar(userId, true); // Always try push notifications
+          return checkUserCalendar(userId, pushAvailable);
         })
       );
     }
 
     // Cleanup old triggers
     cleanupTriggeredEvents();
+    return allUserIds.size;
   } catch (error) {
     log.error({ error: String(error) }, 'Calendar trigger check failed');
+    throw error;
   }
+}
+
+/**
+ * One calendar check for Cloud Scheduler (POST /api/jobs/calendar-triggers,
+ * every 5 minutes). It used to run on an interval inside every voice-call
+ * process, each fetching every connected calendar every 5 minutes.
+ */
+export async function runCalendarTriggerCheck(): Promise<{ usersChecked: number; push: boolean }> {
+  const { getChannelStatus } = await import('../outreach/unified-delivery.js');
+  const push = (await getChannelStatus()).push.available;
+  const usersChecked = await checkAllCalendars({ pushAvailable: push });
+  return { usersChecked, push };
 }
 
 // ============================================================================
@@ -400,10 +415,10 @@ export function startCalendarTriggerWorker(): void {
   isRunning = true;
 
   // Run immediately, then on interval
-  void checkAllCalendars();
+  void checkAllCalendars().catch(() => undefined);
 
   workerInterval = setInterval(() => {
-    void checkAllCalendars();
+    void checkAllCalendars().catch(() => undefined);
   }, CHECK_INTERVAL_MS);
 
   log.info({ intervalMs: CHECK_INTERVAL_MS }, '📅 Calendar trigger worker started');
