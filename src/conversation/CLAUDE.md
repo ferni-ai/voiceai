@@ -41,10 +41,7 @@ conversation/
 │   ├── comfort-progression.ts        # Trust building over time
 │   └── voice-pattern-learning.ts     # Learn user preferences
 │
-├── deep-humanization/                # 🧠 Advanced behaviors (15 files)
-│   ├── mood-tracker.ts               # Track emotional state
-│   ├── behavior-loader.ts            # Load behavior configs
-│   └── generators/                   # Dynamic content generation
+├── deep-humanization/                # Types only (SessionMemory, used by humanizer/)
 │
 ├── superhuman/                       # ⭐ "Better than Human" features (40 files)
 │   ├── orchestrator/                 # Refactored orchestrator (5 files)
@@ -112,7 +109,6 @@ The module also has many standalone root-level `.ts` files for specific conversa
 | **Unified Integration** | `unified-integration.ts` | Session-based API (recommended) |
 | **Voice Agent Integration** | `humanization/voice-agent-integration/` | Connect to voice agent (10 files) |
 | **Humanizer** | `humanizer/` | Pre-LLM humanization guidance (5 files) |
-| **Mood Tracker** | `deep-humanization/mood-tracker.ts` | Emotional state tracking |
 | **Config** | `humanizing-config.ts` | All tunable parameters |
 | **Superhuman Orchestrator** | `superhuman/orchestrator/` | "Better than Human" features (5 files) |
 
@@ -234,9 +230,6 @@ pnpm vitest run src/conversation/__tests__/
 
 # Run humanization tests
 pnpm vitest run src/conversation/humanization/__tests__/
-
-# Run deep-humanization tests
-pnpm vitest run src/conversation/deep-humanization/__tests__/
 
 # Run superhuman tests
 pnpm vitest run src/conversation/superhuman/__tests__/

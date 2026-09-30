@@ -45,7 +45,6 @@ import { resetConversationRhythmTracker as _resetConversationRhythm } from './co
 import { resetConversationalMemory as _resetConversationalMemory } from './conversational-memory/index.js';
 import { resetConversationalRepairEngine as _resetConversationalRepair } from './conversational-repair.js';
 import { resetCuriosityEngine as _resetCuriosity } from './curiosity-engine.js';
-import { resetDeepHumanization as _resetDeepHumanization } from './deep-humanization/index.js';
 import { resetEmotionalAftercareEngine as _resetEmotionalAftercare } from './emotional-aftercare.js';
 import { resetEmotionalArcTracker as _resetEmotionalArc } from './emotional-arc.js';
 import { resetEnergyRegulationEngine as _resetEnergyRegulation } from './energy-regulation.js';
@@ -238,19 +237,7 @@ export {
   type HumanizationTuning,
 } from './humanization-tuning.js';
 
-// Deep Humanization - Clean architecture module
-export {
-  resetDeepHumanization,
-  resetMoodTracker,
-  resetAllDeepHumanization,
-  type ConversationMood,
-  type HumanizationContext as DeepHumanizationContext,
-  type HumanizationInjection,
-  type HumanizationType,
-  type SessionMemory,
-} from './deep-humanization/index.js';
-
-// Detection utilities - exported from deep humanization for backward compatibility
+// Detection utilities
 export { classifyTopicWeight, detectAdviceGiving, detectBreakthrough } from './utils/detection.js';
 
 // Note: Humanization tuning already exported above
@@ -578,9 +565,12 @@ export {
 
 /**
  * Reset all conversation tracking for a new session
+ *
+ * Nothing persona-scoped is reset here any more; the first parameter stays so
+ * sessionId and userId keep their positions.
  */
 export function resetAllConversationState(
-  personaId?: string,
+  _personaId?: string,
   sessionId?: string,
   userId?: string
 ): void {
@@ -595,9 +585,6 @@ export function resetAllConversationState(
   _resetHumanizer();
   _resetSilencePresence();
   _resetConversationRhythm();
-  if (personaId) {
-    _resetDeepHumanization(personaId);
-  }
   // Superhuman capabilities (session-scoped)
   if (sessionId) {
     _resetConcernDetection(sessionId);
