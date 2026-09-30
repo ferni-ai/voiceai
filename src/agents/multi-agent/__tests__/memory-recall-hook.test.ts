@@ -111,6 +111,8 @@ describe('shared-laugh callbacks', () => {
     const note = recall.noteFor('Biscuit took another shoe this morning');
     expect(note).toContain('[A LAUGH YOU SHARED]');
     expect(note).toContain('Sam laughed when you said');
+    expect(recall.takeOfferedCallback()?.id).toBe('laugh_1');
+    expect(recall.takeOfferedCallback()).toBeNull();
     recall.newTurn();
     expect(recall.noteFor('Biscuit and the shoe again, honestly')).toBeNull();
   });

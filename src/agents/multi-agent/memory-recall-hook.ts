@@ -35,6 +35,7 @@ import {
   formatCallback,
   fromInsideJoke,
   fromStoredLaugh,
+  mergeLaughs,
   type SharedLaugh,
 } from '../../memory/recall/shared-laughs.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
@@ -80,15 +81,51 @@ export const firestoreRecallStore: RecallStore = {
       user.collection('human_signals').doc('inside_jokes').get(),
     ]);
     const items = (jokes.data()?.items as Array<Record<string, unknown>> | undefined) ?? [];
-    return [
-      ...laughs.docs.map((d) => fromStoredLaugh({ id: d.id, ...d.data() })),
-      ...items.slice(-MAX_LAUGHS).map(fromInsideJoke),
-    ].filter((l): l is SharedLaugh => l !== null);
+    const isLaugh = (l: SharedLaugh | null): l is SharedLaugh => l !== null;
+    return mergeLaughs(
+      laughs.docs.map((d) => fromStoredLaugh({ id: d.id, ...d.data() })).filter(isLaugh),
+      items.slice(-MAX_LAUGHS).map(fromInsideJoke).filter(isLaugh)
+    );
   },
 };
 
 const SHARED_LAUGHS = 'shared_laughs';
 const MAX_LAUGHS = 30;
+
+/**
+ * Record how a callback went: landed (another laugh) or flat. Stored on the
+ * shared-laugh record (created for an extractor joke on its first callback).
+ * Never throws.
+ */
+export async function saveCallbackOutcome(
+  userId: string,
+  laugh: SharedLaugh,
+  landed: boolean
+): Promise<void> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return;
+    const { FieldValue } = await import('firebase-admin/firestore');
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection(SHARED_LAUGHS)
+      .doc(laugh.id)
+      .set(
+        {
+          moment: laugh.moment,
+          context: laugh.context,
+          at: laugh.at,
+          source: laugh.source,
+          [landed ? 'landed' : 'flat']: FieldValue.increment(1),
+          lastCalledBackAt: Date.now(),
+        },
+        { merge: true }
+      );
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Callback outcome not saved');
+  }
+}
 
 /** Remember a shared laugh. Never throws. */
 export async function saveSharedLaugh(userId: string, laugh: SharedLaugh): Promise<void> {
@@ -119,6 +156,8 @@ export interface MemoryRecall {
   noteFor(transcript: string): string | null;
   /** The agent started replying: the next transcript belongs to a new user turn. */
   newTurn(): void;
+  /** The callback offered since the last call, if any (to learn whether it landed). */
+  takeOfferedCallback(): SharedLaugh | null;
 }
 
 /**
@@ -136,6 +175,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let factsThisTurn = 0;
   // One callback per call: a running joke lands because it is rare.
   let calledBack = false;
+  let offered: SharedLaugh | null = null;
 
   const ready = loadRecallSnapshot(deps.store ?? firestoreRecallStore, deps.userId).then((s) => {
     snapshot = s;
@@ -169,6 +209,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       for (const f of facts) surfaced.add(factId(f));
       if (laugh) {
         calledBack = true;
+        offered = laugh;
         surfaced.add(laugh.id);
       }
       log.info(
@@ -179,6 +220,11 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     },
     newTurn() {
       factsThisTurn = 0;
+    },
+    takeOfferedCallback() {
+      const laugh = offered;
+      offered = null;
+      return laugh;
     },
   };
 }

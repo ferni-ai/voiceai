@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   callbackForTurn,
   captureLaugh,
+  echoes,
   formatCallback,
+  isRetired,
+  mergeLaughs,
   fromInsideJoke,
   fromStoredLaugh,
   type SharedLaugh,
@@ -36,7 +39,11 @@ describe('captureLaugh', () => {
 
   it('keeps nothing without a real line to anchor to, and clips long ones', () => {
     expect(captureLaugh({ agentLine: 'Ha!', userLine: 'x', at: 1 })).toBeNull();
-    const long = captureLaugh({ agentLine: 'the tiny stubborn printer jammed again '.repeat(10), userLine: '', at: 1 });
+    const long = captureLaugh({
+      agentLine: 'the tiny stubborn printer jammed again '.repeat(10),
+      userLine: '',
+      at: 1,
+    });
     expect(long!.moment.length).toBeLessThanOrEqual(160);
   });
 });
@@ -82,5 +89,36 @@ describe('formatCallback', () => {
     expect(note).toContain('Sam laughed when you said');
     expect(note).toContain('never explained');
     expect(note).toContain('Otherwise let it go');
+  });
+});
+
+describe('running jokes', () => {
+  it('lets a joke that keeps landing come back on a single echo', () => {
+    const running = laugh({ landed: 2 });
+    expect(callbackForTurn([laugh()], 'I baked sourdough')).toBeNull();
+    expect(callbackForTurn([running], 'I baked sourdough')?.id).toBe('l1');
+    expect(formatCallback(running)).toContain('running joke');
+  });
+
+  it('retires a joke that falls flat more than it lands', () => {
+    expect(isRetired(laugh({ flat: 2, landed: 0 }))).toBe(true);
+    expect(isRetired(laugh({ flat: 2, landed: 3 }))).toBe(false);
+    expect(callbackForTurn([laugh({ flat: 2 })], 'My sourdough starter is thriving')).toBeNull();
+  });
+
+  it('knows when a reply actually used the callback', () => {
+    expect(echoes("Ha, how is the starter's social life these days?", laugh())).toBe(true);
+    expect(echoes('That sounds like a lovely weekend.', laugh())).toBe(false);
+  });
+
+  it('prefers the stored record, which carries the counts, over the extractor copy', () => {
+    const merged = mergeLaughs(
+      [laugh({ id: 'j', landed: 1 })],
+      [laugh({ id: 'j' }), laugh({ id: 'k' })]
+    );
+    expect(merged.map((l) => [l.id, l.landed ?? 0])).toEqual([
+      ['j', 1],
+      ['k', 0],
+    ]);
   });
 });

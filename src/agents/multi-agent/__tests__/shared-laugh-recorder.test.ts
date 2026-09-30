@@ -73,4 +73,79 @@ describe('shared laugh recorder', () => {
     }
     expect(save).toHaveBeenCalledTimes(3);
   });
+
+  describe('callback outcomes', () => {
+    const joke = {
+      id: 'j1',
+      moment: 'Gerald the sourdough starter has a better social life than me',
+      context: 'baking',
+      at: 1,
+      source: 'laugh' as const,
+    };
+
+    function withCallback() {
+      let clock = 1000;
+      const userData: Record<string, unknown> = {};
+      const onCallbackOutcome = vi.fn();
+      let offered: typeof joke | null = null;
+      const save = vi.fn().mockResolvedValue(undefined);
+      const recorder = createSharedLaughRecorder({
+        userData,
+        save,
+        now: () => clock,
+        takeOfferedCallback: () => {
+          const o = offered;
+          offered = null;
+          return o;
+        },
+        onCallbackOutcome,
+      });
+      return {
+        recorder,
+        save,
+        onCallbackOutcome,
+        offer: () => (offered = joke),
+        laugh: () => {
+          userData.detectedLaughter = {
+            isLaughing: true,
+            confidence: 0.9,
+            suggestedResponse: 'join_in',
+          };
+          userData.detectedLaughterAt = clock + 1;
+          clock += 10;
+        },
+        tick: () => (clock += 100),
+      };
+    }
+
+    it('counts a used callback that got a laugh as landed, and does not save it as a new moment', () => {
+      const t = withCallback();
+      t.offer(); // recall offered it while they were talking
+      t.recorder.onItem(msg('user', 'Gerald is still going strong'));
+      t.tick();
+      t.recorder.onItem(msg('assistant', "Is Gerald's social life still better than mine?"));
+      t.laugh();
+      t.recorder.onItem(msg('user', 'haha always'));
+
+      expect(t.onCallbackOutcome).toHaveBeenCalledWith(joke, true);
+      expect(t.save).not.toHaveBeenCalled();
+    });
+
+    it('counts a used callback without a laugh as flat, and ignores one the reply never used', () => {
+      const t = withCallback();
+      t.offer();
+      t.recorder.onItem(msg('user', 'Gerald is still going strong'));
+      t.recorder.onItem(msg('assistant', 'Gerald and his social life, then.'));
+      t.tick();
+      t.recorder.onItem(msg('user', 'yeah'));
+      expect(t.onCallbackOutcome).toHaveBeenCalledWith(joke, false);
+
+      t.onCallbackOutcome.mockClear();
+      t.offer();
+      t.recorder.onItem(msg('user', 'Gerald again'));
+      t.recorder.onItem(msg('assistant', 'How was your week otherwise?'));
+      t.recorder.onItem(msg('user', 'fine'));
+      expect(t.onCallbackOutcome).not.toHaveBeenCalled();
+    });
+  });
 });

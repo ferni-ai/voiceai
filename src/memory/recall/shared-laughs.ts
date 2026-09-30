@@ -25,6 +25,10 @@ export interface SharedLaugh {
   /** Epoch ms. */
   at: number;
   source: 'laugh' | 'inside_joke';
+  /** Callbacks that got another laugh: a running joke. */
+  landed?: number;
+  /** Callbacks that fell flat. */
+  flat?: number;
 }
 
 const MAX_TEXT = 160;
@@ -77,11 +81,41 @@ export function fromStoredLaugh(doc: Record<string, unknown>): SharedLaugh | nul
     context: clip(String(doc.context ?? '')),
     at: typeof doc.at === 'number' ? doc.at : 0,
     source: doc.source === 'inside_joke' ? 'inside_joke' : 'laugh',
+    landed: typeof doc.landed === 'number' ? doc.landed : 0,
+    flat: typeof doc.flat === 'number' ? doc.flat : 0,
   };
+}
+
+/**
+ * Stored laughs and extractor jokes as one list: a stored record (which
+ * carries the running-joke counts) wins over the same joke from the extractor.
+ */
+export function mergeLaughs(
+  stored: readonly SharedLaugh[],
+  extracted: readonly SharedLaugh[]
+): SharedLaugh[] {
+  const ids = new Set(stored.map((l) => l.id));
+  return [...stored, ...extracted.filter((l) => !ids.has(l.id))];
+}
+
+/** A joke that fell flat twice, and more often than it landed, has run its course. */
+export function isRetired(laugh: SharedLaugh): boolean {
+  const flat = laugh.flat ?? 0;
+  return flat >= 2 && flat > (laugh.landed ?? 0);
+}
+
+/** True when a reply actually brought the moment back (not just had it on offer). */
+export function echoes(reply: string, laugh: SharedLaugh): boolean {
+  const said = contentWords(reply);
+  let overlap = 0;
+  for (const w of contentWords(laugh.moment)) if (said.has(w)) overlap++;
+  return overlap >= MIN_OVERLAP;
 }
 
 /** Words shared with the moment before a callback fits; one word is a coincidence. */
 const MIN_OVERLAP = 2;
+/** A joke that has landed this often is a running joke: one word is enough to bring it back. */
+const RUNNING_JOKE_LANDINGS = 2;
 
 /**
  * The shared laugh this turn echoes, best first, or null. It needs a real
@@ -96,14 +130,15 @@ export function callbackForTurn(
   const words = contentWords(userText);
   let best: { laugh: SharedLaugh; score: number } | null = null;
   for (const laugh of laughs) {
-    if (surfaced.has(laugh.id)) continue;
+    if (surfaced.has(laugh.id) || isRetired(laugh)) continue;
     let overlap = 0;
     for (const w of contentWords(`${laugh.moment} ${laugh.context}`)) {
       if (words.has(w)) overlap++;
     }
-    if (overlap < MIN_OVERLAP) continue;
-    // Prefer the stronger echo, then the more recent moment.
-    const score = overlap + laugh.at / 1e15;
+    const landed = laugh.landed ?? 0;
+    if (overlap < (landed >= RUNNING_JOKE_LANDINGS ? 1 : MIN_OVERLAP)) continue;
+    // Prefer the stronger echo, then jokes that keep landing, then the more recent.
+    const score = overlap + landed * 0.5 + laugh.at / 1e15;
     if (!best || score > best.score) best = { laugh, score };
   }
   return best?.laugh ?? null;
@@ -112,8 +147,10 @@ export function callbackForTurn(
 /** The context note for a callback. */
 export function formatCallback(laugh: SharedLaugh, userName?: string): string {
   const who = userName || 'they';
-  const what =
-    laugh.source === 'laugh'
+  const running = (laugh.landed ?? 0) >= RUNNING_JOKE_LANDINGS;
+  const what = running
+    ? `you have a running joke about: "${laugh.moment}" (it has landed ${laugh.landed} times)`
+    : laugh.source === 'laugh'
       ? `${who} laughed when you said: "${laugh.moment}"`
       : `you share a joke about: "${laugh.moment}"`;
   const about = laugh.context ? ` (you had been talking about: "${laugh.context}")` : '';

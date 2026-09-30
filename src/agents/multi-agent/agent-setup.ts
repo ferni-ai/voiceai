@@ -87,6 +87,7 @@ import {
   addRecallNote,
   createMemoryRecall,
   memoryRecallMode,
+  saveCallbackOutcome,
   saveSharedLaugh,
   type RecallAgent,
 } from './memory-recall-hook.js';
@@ -1764,6 +1765,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
     const laughRecorder = createSharedLaughRecorder({
       userData: userData as unknown as Record<string, unknown>,
       save: (laugh) => saveSharedLaugh(userId, laugh),
+      takeOfferedCallback: () => recall.takeOfferedCallback(),
+      onCallbackOutcome: (laugh, landed) => void saveCallbackOutcome(userId, laugh, landed),
     });
     cleanupFunctions.push(wireSharedLaughRecorder(sessionWithEvents, laughRecorder));
   }

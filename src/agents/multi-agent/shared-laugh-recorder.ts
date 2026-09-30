@@ -8,10 +8,15 @@
  * with what the caller had been talking about, for a later callback (see
  * memory/recall/shared-laughs.ts).
  *
+ * It also learns which callbacks work. A callback offered on one turn is
+ * judged at the caller's next turn: if Ferni's reply actually used it, a
+ * laugh means it landed (the joke grows into a running joke) and silence
+ * means it fell flat (twice, and it is retired).
+ *
  * @module agents/multi-agent/shared-laugh-recorder
  */
 
-import { captureLaugh, type SharedLaugh } from '../../memory/recall/shared-laughs.js';
+import { captureLaugh, echoes, type SharedLaugh } from '../../memory/recall/shared-laughs.js';
 import { readUserLaugh } from '../../speech/expression/session-expression.js';
 
 /** Enough to learn from without turning every chuckle into a "joke". */
@@ -32,6 +37,10 @@ interface SessionEvents {
 export interface SharedLaughRecorderDeps {
   userData: Record<string, unknown>;
   save: (laugh: SharedLaugh) => Promise<void>;
+  /** The callback recall offered during this user turn, if any. */
+  takeOfferedCallback?: () => SharedLaugh | null;
+  /** How a callback went, once Ferni has used it. */
+  onCallbackOutcome?: (laugh: SharedLaugh, landed: boolean) => void;
   now?: () => number;
 }
 
@@ -41,6 +50,7 @@ export function createSharedLaughRecorder(deps: SharedLaughRecorderDeps) {
   let lastUser: string | undefined;
   let lastUserAt = now();
   let saved = 0;
+  let armed: SharedLaugh | null = null;
 
   return {
     /** A conversation item was committed (user or assistant). */
@@ -58,7 +68,17 @@ export function createSharedLaughRecorder(deps: SharedLaughRecorderDeps) {
         laugh.confidence >= MIN_CONFIDENCE &&
         laugh.suggestedResponse !== 'none' &&
         laugh.at > lastUserAt;
-      if (laughedAtReply && lastAgent && saved < MAX_PER_CALL) {
+
+      // Judge last turn's callback, if the reply actually used it.
+      let judged = false;
+      if (armed && lastAgent && echoes(lastAgent, armed)) {
+        deps.onCallbackOutcome?.(armed, laughedAtReply);
+        judged = laughedAtReply;
+      }
+      armed = deps.takeOfferedCallback?.() ?? null;
+
+      // A laugh at a callback strengthens that joke; it is not a new moment.
+      if (laughedAtReply && !judged && lastAgent && saved < MAX_PER_CALL) {
         const shared = captureLaugh({
           agentLine: lastAgent,
           userLine: lastUser,
