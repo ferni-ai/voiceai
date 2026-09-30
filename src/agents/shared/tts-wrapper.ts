@@ -28,6 +28,7 @@ import { finops } from '../../services/observability/finops.js';
 import { markTurnCheckpoint } from '../../services/performance/turn-profiler.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import { sessionVocalDirection, type VocalDirection } from '../../speech/expression/index.js';
+import { localClock } from '../../utils/local-clock.js';
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
@@ -1252,12 +1253,10 @@ function getPersonaDisplayName(personaId?: string): string | undefined {
 }
 
 /**
- * Compute time context for time-aware responses
+ * Compute time context for time-aware responses, on the caller's clock
  */
-function computeTimeContext(): TtsSessionContext['timeContext'] {
-  const now = new Date();
-  const hour = now.getHours();
-  const day = now.getDay();
+function computeTimeContext(timezone?: string): TtsSessionContext['timeContext'] {
+  const { hour, dayOfWeek: day } = localClock(timezone);
 
   // Determine time of day
   let timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' | 'late-night';
@@ -1382,7 +1381,7 @@ export function extractTtsSessionContext(
         : undefined,
 
     // Time context for awareness
-    timeContext: computeTimeContext(),
+    timeContext: computeTimeContext(userData?.timezone as string | undefined),
 
     // Recent conversation topics for continuity (last 3)
     recentTopics: (userData?.recentTopics as string[] | undefined)?.slice(0, 3),

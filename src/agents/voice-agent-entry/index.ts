@@ -75,6 +75,7 @@ import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
 import { resolveSessionPath } from './session-path.js';
 import { devStage, MULTI_AGENT_MODE } from './constants.js';
 import type { FinOpsTier, SessionPhase } from './types.js';
+import { timezoneFromMetadata } from '../../utils/local-clock.js';
 
 // ============================================================================
 // MODULE-LEVEL SIDE EFFECTS (executed once at import)
@@ -436,6 +437,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // CRITICAL FIX: Set personaId on userData for TTS wrapper
     userData.personaId = sessionPersona.id;
+    // The caller's clock: greetings, mood and late-night tone follow it
+    userData.timezone = timezoneFromMetadata(ctx.job.metadata);
 
     // Minimal sync work required before greeting (handoff + FinOps).
     const customData = services.userProfile?.customData as Record<string, unknown> | undefined;

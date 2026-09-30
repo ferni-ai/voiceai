@@ -245,12 +245,15 @@ export class AgentOrchestrator {
       const userData = agent.userData as
         | {
             userName?: string;
+            timezone?: string;
             services?: { userProfile?: Parameters<typeof greetingFamiliarity>[0] };
           }
         | undefined;
+      const { localClock } = await import('../../utils/local-clock.js');
+      const clock = localClock(userData?.timezone);
       const familiarity = greetingFamiliarity(userData?.services?.userProfile);
       const ctx = {
-        hour: new Date().getHours(),
+        hour: clock.hour,
         isReturningUser: familiarity.isReturningUser,
         relationshipStage: familiarity.relationshipStage,
       };
@@ -259,8 +262,7 @@ export class AgentOrchestrator {
       // character say hello in their own words for this caller and hour.
       const scripted = generateWarmGreeting(agent.personaId, ctx);
       const { directedText } = await import('../../speech/direction/index.js');
-      const hour = ctx.hour;
-      const partOfDay = hour < 5 ? 'late night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 22 ? 'evening' : 'late evening';
+      const partOfDay = clock.partOfDay;
       const userName = userData?.userName;
       const directed = await directedText(this.sessionId, {
         moment: 'greeting',

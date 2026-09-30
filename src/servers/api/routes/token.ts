@@ -24,6 +24,7 @@ import {
 
 // Developer Platform: marketplace registry for persona→publisher lookup
 import { getAgentAsync } from '../../../marketplace/registry.js';
+import { isValidTimezone } from '../../../utils/local-clock.js';
 
 const log = createLogger({ module: 'TokenRoutes' });
 
@@ -537,6 +538,8 @@ export async function handleTokenRoutes(
     const device_id = parsedUrl.searchParams.get('device_id');
     const persona_id = parsedUrl.searchParams.get('persona_id');
     const preferred_accent = parsedUrl.searchParams.get('accent');
+    const tzParam = parsedUrl.searchParams.get('tz');
+    const timezone = isValidTimezone(tzParam) ? tzParam : undefined;
     // 🐛 FIX: Read firebase_uid from query params (frontend sends this!)
     const firebase_uid_param = parsedUrl.searchParams.get('firebase_uid');
     const user_email_param = parsedUrl.searchParams.get('user_email');
@@ -775,6 +778,7 @@ export async function handleTokenRoutes(
         // IP-detected location for weather, local content hints (TikTok-style)
         city: geoData.city,
         regionCode: geoData.regionCode,
+        timezone,
       };
 
       // Generate token with shared helper

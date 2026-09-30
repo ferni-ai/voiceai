@@ -577,6 +577,14 @@ class ConnectionService {
       params.set('firebase_uid', request.firebaseUid);
     }
 
+    // The caller's timezone: greetings, mood and late-night tone follow their clock, not the server's
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz) params.set('tz', tz);
+    } catch {
+      // No Intl timezone support: the agent falls back to server time.
+    }
+
     // Add user's preferred accent for voice localization (🌍 international accent support)
     if (request.preferredAccent) {
       params.set('accent', request.preferredAccent);

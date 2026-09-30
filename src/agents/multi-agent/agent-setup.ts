@@ -111,6 +111,7 @@ import {
 } from './initial-tools.js';
 import { composeAgentInstructions } from './agent-instructions.js';
 import { personaMoodCarryover } from '../shared/persona-mood-carryover.js';
+import { isValidTimezone } from '../../utils/local-clock.js';
 
 // Check if Tool Gateway is enabled (defaults to true)
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
@@ -317,14 +318,17 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // This is injected into model-level instructions so the agent knows
     // the date/time from the VERY FIRST MOMENT (including greeting)
     // =========================================================================
+    // In the caller's timezone: the server runs in UTC, so without it an
+    // evening call in Denver read as 2 AM.
     const now = new Date();
+    const callerTz = isValidTimezone(userData.timezone) ? userData.timezone : undefined;
     const dateTimeContext = `
 ---
 
 ## Current Date & Time
 
-Today is ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
-The current time is ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}.
+Today is ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: callerTz })}.
+The current time is ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: callerTz })}${callerTz ? ' where they are' : ''}.
 
 Use this awareness naturally - don't announce it unless asked, just BE present in the moment.
 If someone asks what day it is, what time it is, or what the date is, you know the answer.

@@ -144,6 +144,8 @@ export interface RoomMetadata {
   countryCode?: string;
   city?: string;
   regionCode?: string;
+  /** Caller's IANA timezone, validated (e.g. "America/Denver"). */
+  timezone?: string;
 }
 
 /**

@@ -27,6 +27,8 @@ import type { MoodState } from '../../../types/humanizing-types.js';
 // ============================================================================
 
 // Re-export from shared types for backwards compatibility
+import { localClock } from '../../../utils/local-clock.js';
+
 export type { MoodState } from '../../../types/humanizing-types.js';
 
 export interface PersonaMood {
@@ -665,11 +667,11 @@ function normalizePersonaId(id: string): string {
 export function getMoodContext(
   recentConversationCount = 0,
   lastMood?: MoodState,
-  hoursSinceLastMood?: number
+  hoursSinceLastMood?: number,
+  timezone?: string
 ): MoodContext {
-  const now = new Date();
-  const hour = now.getHours();
-  const dayOfWeek = now.getDay();
+  // The caller's clock: a persona is sleepy at their midnight, not the server's
+  const { hour, dayOfWeek } = localClock(timezone);
 
   let timeOfDay: MoodContext['timeOfDay'];
   if (hour >= 5 && hour < 12) {

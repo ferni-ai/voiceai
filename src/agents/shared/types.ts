@@ -88,6 +88,9 @@ export interface UserData {
   /** Preferred language for speech recognition validation (default: 'en') */
   preferredLanguage?: string;
 
+  /** Caller's IANA timezone, from the web client (see utils/local-clock.ts) */
+  timezone?: string;
+
   /** User's IP-detected location (for weather, local info personalization) */
   userLocation?: {
     city?: string;

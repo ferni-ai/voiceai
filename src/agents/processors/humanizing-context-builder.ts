@@ -84,6 +84,7 @@ export function buildHumanizingContextForTurn(
       currentMood: userData.lastMood,
       lastMood: services.userProfile?.humanizingState?.lastMood,
       hoursSinceLastMood: hoursSince(services.userProfile?.lastContact),
+      timezone: (userData as { timezone?: string }).timezone,
       // Personal theme tracking (prevents "always talks about Wyoming/Japan/book")
       mentionedPersonalThemes: userData.mentionedPersonalThemes || new Set<string>(),
     };

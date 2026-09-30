@@ -115,6 +115,8 @@ export interface HumanizingContext {
   lastMood?: MoodState;
   /** Hours since that previous conversation. */
   hoursSinceLastMood?: number;
+  /** The caller's IANA timezone, for time-of-day mood. */
+  timezone?: string;
 
   // Personal theme tracking (prevents "always talks about Wyoming")
   mentionedPersonalThemes?: Set<string>;
@@ -229,7 +231,12 @@ This should feel organic, not announced.`,
   // A mood is set once per conversation and held: re-rolling it every turn
   // made the persona swing between moods mid-sentence. It changes only when
   // something shifts it (the caller's builder records the shift).
-  const moodContext = getMoodContext(ctx.sessionCount, ctx.lastMood, ctx.hoursSinceLastMood);
+  const moodContext = getMoodContext(
+    ctx.sessionCount,
+    ctx.lastMood,
+    ctx.hoursSinceLastMood,
+    ctx.timezone
+  );
   const mood = ctx.currentMood
     ? personaMoodFor(ctx.persona, ctx.currentMood)
     : selectPersonaMood(ctx.persona, moodContext);

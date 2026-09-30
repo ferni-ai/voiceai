@@ -32,6 +32,7 @@ import {
 import { getToolGateway } from '../../tools/gateway/index.js';
 import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
 import { modelConfig } from '../../services/model-config.js';
+import { timezoneFromMetadata } from '../../utils/local-clock.js';
 
 // ============================================================================
 // VAD CACHING (Worker-Level Singleton)
@@ -291,6 +292,8 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   );
 
   userData.userLocation = userLocation;
+  // The caller's clock (validated by the token route; re-checked here)
+  userData.timezone = timezoneFromMetadata(metadata);
 
   // Set current active session for native tool location fallback
   const { setCurrentActiveSession } =
