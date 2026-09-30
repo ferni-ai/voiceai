@@ -77,6 +77,31 @@ describe('createMemoryRecall', () => {
     expect(await recall.openingFacts()).toEqual({});
   });
 
+  it('offers how recent calls felt once, oldest first, only with enough calls', async () => {
+    const day = 86_400_000;
+    const summaries = [
+      { timestamp: Date.now() - 2 * day, emotionalArc: 'lighter, joking about work' },
+      { timestamp: Date.now() - 9 * day, emotionalArc: 'tired but hopeful' },
+      { timestamp: Date.now() - 16 * day, emotionalArc: 'heavy, overwhelmed by the move' },
+    ];
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      store: { facts: async () => [], summaries: async () => summaries },
+    });
+    await recall.ready;
+    const note = recall.noteFor('Hi') ?? '';
+    expect(note).toContain('[HOW THEIR RECENT CALLS FELT]');
+    expect(note.indexOf('overwhelmed by the move')).toBeLessThan(note.indexOf('joking about work'));
+    expect(recall.noteFor('So anyway')).toBeNull();
+
+    const few = createMemoryRecall({
+      userId: 'u1',
+      store: { facts: async () => [], summaries: async () => summaries.slice(0, 2) },
+    });
+    await few.ready;
+    expect(few.noteFor('Hi') ?? '').not.toContain('RECENT CALLS');
+  });
+
   it("offers this persona's told stories once, and saves a new one only once", async () => {
     const saved: string[] = [];
     const recall = createMemoryRecall({

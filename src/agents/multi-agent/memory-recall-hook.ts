@@ -266,7 +266,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let followUpsOffered = false;
   let openFollowUps: FollowUp[] = [];
   let factsThisTurn = 0;
-  let storiesOffered = false;
+  let firstNoteOffered = false;
   /** This persona's stories they have heard, from earlier calls and this one. */
   let told: ToldStory[] = [];
   // One callback per call: a running joke lands because it is rare.
@@ -300,14 +300,15 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const notes = [
         formatRecall(facts, followUps, deps.userName, { timezone: deps.timezone }),
         laugh ? formatCallback(laugh, deps.userName) : null,
-        storiesOffered || told.length === 0 ? null : formatToldStories(told).join('\n'),
+        firstNoteOffered || told.length === 0 ? null : formatToldStories(told).join('\n'),
+        firstNoteOffered ? null : formatRecentArcs(snapshot.recentArcs, deps.timezone),
       ].filter((n): n is string => n !== null);
       if (notes.length === 0) return null;
       if (followUps.length > 0) {
         followUpsOffered = true;
         openFollowUps = [...followUps];
       }
-      storiesOffered = true;
+      firstNoteOffered = true;
       factsThisTurn += facts.length;
       for (const f of facts) surfaced.add(factId(f));
       if (laugh) {
@@ -367,6 +368,20 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       log.info({ raised: raised.length }, 'Follow-up raised');
     },
   };
+}
+
+/** How recent calls felt, for noticing a real change over time, or null. */
+export function formatRecentArcs(
+  arcs: ReadonlyArray<{ at: number; arc: string }> | undefined,
+  timezone?: string,
+  now: number = Date.now()
+): string | null {
+  if (!arcs || arcs.length === 0) return null;
+  return [
+    '[HOW THEIR RECENT CALLS FELT]',
+    ...arcs.map((a) => `- ${whenSaid(a.at, now, timezone)}: ${a.arc}`),
+    'If there is a real change over these calls (lighter, or heavier), you may notice it once, gently, when it fits, never as the first thing you say. If there is no clear change, say nothing about it.',
+  ].join('\n');
 }
 
 /** The slice of the SDK Agent this needs. */

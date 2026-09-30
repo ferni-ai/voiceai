@@ -39,6 +39,8 @@ export interface RecallSnapshot {
   lastCall?: { at: number; arc: string };
   /** Stories the personas have already told them (see told-stories.ts). */
   toldStories?: ToldStory[];
+  /** How recent calls felt, oldest first, for noticing change over time. */
+  recentArcs?: Array<{ at: number; arc: string }>;
 }
 
 export const EMPTY_SNAPSHOT: RecallSnapshot = { facts: [], followUps: [], laughs: [] };
@@ -152,6 +154,7 @@ export async function loadRecallSnapshot(
     followUps,
     laughs,
     ...lastCallOf(rawSummaries),
+    ...recentArcsOf(rawSummaries),
     ...(toldStories.length > 0 ? { toldStories } : {}),
   };
 }
@@ -169,4 +172,21 @@ function lastCallOf(
   const at = toMillis(newest?.timestamp);
   if (!arc || !at || now - at > LAST_CALL_MAX_DAYS * 86_400_000) return {};
   return { lastCall: { at, arc } };
+}
+
+/** Calls further back than this are a different chapter. */
+const TREND_MAX_DAYS = 60;
+/** A trend needs a few calls; one or two is just how things were. */
+const TREND_MIN_CALLS = 3;
+
+/** How the recent summarized calls felt, oldest first, when there are enough to show a trend. */
+function recentArcsOf(
+  summaries: ReadonlyArray<Record<string, unknown>>,
+  now: number = Date.now()
+): Pick<RecallSnapshot, 'recentArcs'> {
+  const arcs = summaries
+    .map((s) => ({ at: toMillis(s.timestamp), arc: String(s.emotionalArc ?? '').trim() }))
+    .filter((a) => a.arc && a.at && now - a.at <= TREND_MAX_DAYS * 86_400_000)
+    .reverse();
+  return arcs.length >= TREND_MIN_CALLS ? { recentArcs: arcs } : {};
 }
