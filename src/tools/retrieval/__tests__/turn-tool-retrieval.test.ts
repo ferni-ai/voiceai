@@ -2,7 +2,12 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { DenseToolIndex } from '../dense-index.js';
-import { TurnToolRetrieval, latestUserText, toolRetrievalMode } from '../turn-tool-retrieval.js';
+import {
+  ALL_TOOLS_LIMIT,
+  TurnToolRetrieval,
+  latestUserText,
+  toolRetrievalMode,
+} from '../turn-tool-retrieval.js';
 import { fakeEmbedder } from './fake-embedder.js';
 import type { IntentManual } from '../tool-retriever.js';
 
@@ -262,4 +267,42 @@ describe('helpers', () => {
     expect(toolRetrievalMode({ TOOL_RETRIEVAL: 'shadow' })).toBe('shadow');
     expect(toolRetrievalMode({ TOOL_RETRIEVAL: 'yes' })).toBe('off');
   });
+
+  it('findTools pins the best matches the agent has for the next request', async () => {
+    const { r, toolCtx } = await setup();
+    // A request retrieval ranked elsewhere: the model asks for a timer by name.
+    const pick = (await r.pick('will it rain today'))!;
+    expect(Object.keys(r.select(toolCtx, pick).functionTools)).not.toContain('setTimer');
+
+    const found = await r.find('set a timer for ten minutes', 1);
+    expect(found.map((f) => f.name)).toEqual(['setTimer']);
+    expect(found[0].description).toBe('setTimer');
+
+    // The model's next step in the same reply carries it.
+    expect(Object.keys(r.select(toolCtx, pick).functionTools)).toContain('setTimer');
+  });
+
+  it('findTools offers only tools the agent has', async () => {
+    const { r } = await setup();
+    const partial = new llm.ToolContext([fn('getWeather'), fn('handoffToMaya')]);
+    r.select(partial, (await r.pick('will it rain today'))!);
+    const found = await r.find('set a timer for ten minutes', 3);
+    expect(found.map((f) => f.name)).not.toContain('setTimer');
+  });
+
+  it('without a pick, sends a small set whole but only core and recent tools from the catalog', async () => {
+    const { r, toolCtx } = await setup();
+    expect(Object.keys(r.withoutPick(toolCtx).functionTools).sort()).toEqual(
+      Object.keys(toolCtx.functionTools).sort()
+    );
+    const catalog = new llm.ToolContext([
+      ...Object.keys(manual.tools).map(fn),
+      ...Array.from({ length: ALL_TOOLS_LIMIT }, (_, i) => fn(`extraTool${i}`)),
+    ]);
+    const sent = Object.keys(r.withoutPick(catalog).functionTools);
+    expect(sent).toContain('handoffToMaya'); // core domain
+    expect(sent).not.toContain('extraTool0');
+    expect(sent.length).toBeLessThan(10);
+  });
 });
+

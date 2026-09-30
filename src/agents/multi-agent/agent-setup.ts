@@ -110,6 +110,8 @@ import { composeAgentInstructions } from './agent-instructions.js';
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
+import { createFindToolsTool, FIND_TOOLS } from '../../tools/retrieval/find-tools-tool.js';
+import { toolRetrievalMode as retrievalModeNow } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { initializeFrontendPublisher } from '../realtime/index.js';
 import { setupMusicHandler } from '../voice-agent/music-handler.js';
@@ -1127,6 +1129,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
     }
   }
 
+  // Live tool retrieval sends each request only the tools its words point to;
+  // findTools lets the model reach one retrieval ranked too low.
+  if (retrievalModeNow() === 'live') {
+    finalTools = { ...finalTools, [FIND_TOOLS]: createFindToolsTool() } as typeof finalTools;
+  }
+
   // 🚨 CRITICAL WARNING: If tool count is suspiciously low, something is wrong!
   const finalToolNames = Object.keys(finalTools);
   const initialRegisteredToolCount = finalToolNames.length;
@@ -2115,6 +2123,31 @@ Reference past context when relevant, but don't force it. Let the conversation f
             setTurnToolRetrieval(session, null);
           });
           log.info({ sessionId, mode: toolRetrievalMode() }, 'tool retrieval on');
+          // Live tool retrieval can only send tools the agent has, so load the
+          // whole catalog in the background (the first call in a process also
+          // imports every domain, ~2 s) and hand it over once a reply has
+          // started, so the change can't void LiveKit's preemptive reply.
+          if (toolRetrievalMode() === 'live') {
+            const catalogStarted = Date.now();
+            void dynamicToolLoader
+              .loadAllDomains()
+              .then(async (domains) => {
+                const { updateAgentTools, applyAfterReplyStarts } = await import(
+                  '../shared/tool-updater.js'
+                );
+                const tools = dynamicToolLoader.getCurrentTools();
+                log.info(
+                  { sessionId, domains, tools: Object.keys(tools).length, ms: Date.now() - catalogStarted },
+                  'TOOL_CATALOG_LOADED'
+                );
+                applyAfterReplyStarts(session as never, async () => {
+                  await updateAgentTools(agent, tools, { silentMerge: true });
+                });
+              })
+              .catch((error: unknown) =>
+                log.warn({ sessionId, error: String(error) }, 'tool catalog load failed')
+              );
+          }
         }
         // The director (DIRECTOR_NOTES=on): after each reply, notes that nudge
         // the next one. See agents/personas/director-notes.ts.

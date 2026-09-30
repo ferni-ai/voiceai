@@ -27,6 +27,9 @@ const log = createLogger({ module: 'TurnToolRetrieval' });
 /** Candidates ranked per sent slot, so unavailable tools don't leave slots empty. */
 const CANDIDATES_PER_SLOT = 4;
 
+/** Largest tool set sent whole when there is no pick (see withoutPick). */
+export const ALL_TOOLS_LIMIT = 150;
+
 /** A fallback embedding must carry at least this share of the turn's words. */
 const FALLBACK_MIN_SHARE = 0.4;
 
@@ -50,6 +53,8 @@ export const CORE_TOOLS = [
   'rememberImportantFact',
   'playMusic',
   'musicControl',
+  // The fallback when retrieval ranked the right tool too low (find-tools-tool.ts).
+  'findTools',
 ] as const;
 
 export interface TurnToolRetrievalOptions {
@@ -128,6 +133,8 @@ export class TurnToolRetrieval {
   private readonly sticky = new Map<string, number>();
   private turn = 0;
   private readonly logged = new WeakSet<object>();
+  /** The agent's full tool set as of the last request (what findTools can offer). */
+  private available: Record<string, { description?: string }> | null = null;
 
   constructor(private readonly opts: TurnToolRetrievalOptions) {
     this.k = opts.k ?? 20;
@@ -276,7 +283,7 @@ export class TurnToolRetrieval {
   ): Promise<llm.ToolContext> {
     const started = Date.now();
     const { pick, source } = await this.pickLive(text, waitMs);
-    const sent = pick ? this.select(toolCtx, pick) : toolCtx;
+    const sent = pick ? this.select(toolCtx, pick) : this.withoutPick(toolCtx);
     log.info(
       {
         sessionId: this.opts.sessionId,
@@ -316,6 +323,7 @@ export class TurnToolRetrieval {
    */
   private choose(toolCtx: llm.ToolContext, pick: Pick): Set<string> {
     const available = toolCtx.functionTools;
+    this.available = available;
     const chosen = new Set<string>();
     for (const t of pick.tools) {
       if (chosen.size >= this.k) break;
@@ -326,6 +334,21 @@ export class TurnToolRetrieval {
     return chosen;
   }
 
+  /**
+   * No pick in time: send everything only while the agent's set is small.
+   * Once the whole catalog is loaded (~1,160 tools) that would take seconds
+   * to the first word (340 tools: 7.7 s, dev 2026-09-28), so send the core,
+   * the recent tools and findTools, which reaches the rest.
+   */
+  withoutPick(toolCtx: llm.ToolContext): llm.ToolContext {
+    this.available = toolCtx.functionTools;
+    if (Object.keys(toolCtx.functionTools).length <= ALL_TOOLS_LIMIT) return toolCtx;
+    const keep = Object.entries(toolCtx.functionTools)
+      .filter(([name]) => this.isCore(name) || this.isSticky(name))
+      .map(([, tool]) => tool);
+    return new llm.ToolContext([...keep, ...toolCtx.providerTools, ...toolCtx.toolsets]);
+  }
+
   /** The tools to send: core + sticky + the pick, from what the agent has. */
   select(toolCtx: llm.ToolContext, pick: Pick): llm.ToolContext {
     const picked = this.choose(toolCtx, pick);
@@ -333,6 +356,35 @@ export class TurnToolRetrieval {
       .filter(([name]) => picked.has(name) || this.isCore(name) || this.isSticky(name))
       .map(([, tool]) => tool);
     return new llm.ToolContext([...keep, ...toolCtx.providerTools, ...toolCtx.toolsets]);
+  }
+
+  /**
+   * findTools: search the whole index for what the model says it needs and
+   * make the best matches the agent has part of every request for the next
+   * few turns, starting with the model's next step in this same reply.
+   */
+  async find(need: string, n = 5): Promise<Array<{ name: string; description: string }>> {
+    const started = Date.now();
+    const [index, vector] = await Promise.all([this.opts.index(), this.embed(need)]);
+    const available = this.available;
+    const found: Array<{ name: string; description: string }> = [];
+    for (const t of index.search(vector, n * CANDIDATES_PER_SLOT * 2)) {
+      if (found.length >= n) break;
+      if (available && !(t.tool in available)) continue;
+      this.sticky.set(t.tool, this.turn);
+      const description = (available?.[t.tool]?.description ?? '').split(/(?<=[.!?])\s/)[0];
+      found.push({ name: t.tool, description: description.slice(0, 140) });
+    }
+    log.info(
+      {
+        sessionId: this.opts.sessionId,
+        need: need.slice(0, 200),
+        found: found.map((f) => f.name),
+        ms: Date.now() - started,
+      },
+      'TOOL_RETRIEVAL_FIND'
+    );
+    return found;
   }
 
   /** Shadow mode: pick and log without changing what the model gets. */

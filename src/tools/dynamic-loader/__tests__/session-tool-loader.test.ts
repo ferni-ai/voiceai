@@ -55,4 +55,14 @@ describe('per-session tool loader', () => {
     expect(a.isDomainLoaded('routines' as never)).toBe(false);
     expect(unregister).not.toHaveBeenCalled();
   });
+
+  it('loads the whole catalog for retrieval and never unloads it mid-session', async () => {
+    const a = createSessionToolLoader({ essentialDomains: [], enableAutoUnload: false, maxLoadedDomains: 2 });
+    await a.initialize(session('caller-a') as never);
+    const loaded = await a.loadAllDomains(['routines', 'games', 'music', 'weather'] as never);
+    expect(loaded).toBe(4); // past maxLoadedDomains: nothing evicted
+    expect(await a.unloadDomain('games' as never)).toBe(false);
+    expect(a.getLoadedDomains()).toHaveLength(4);
+  });
 });
+

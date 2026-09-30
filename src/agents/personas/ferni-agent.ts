@@ -803,8 +803,13 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const mode = toolRetrievalMode();
     if (mode === 'off') return toolCtx;
     const retrieval = getTurnToolRetrieval(this.session as object);
+    if (!retrieval) return toolCtx; // the full catalog is only loaded with retrieval
     const text = latestUserText(chatCtx);
-    if (!retrieval || !text) return toolCtx;
+    if (!text) {
+      // Greetings, check-ins, recovered turns: no words to retrieve for. In
+      // live mode the agent may hold the whole catalog; don't send all of it.
+      return mode === 'live' ? retrieval.withoutPick(toolCtx) : toolCtx;
+    }
     if (mode === 'shadow') {
       retrieval.observe(text, toolCtx);
       return toolCtx;

@@ -15,7 +15,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { toolRegistry } from '../registry/index.js';
 import { loadToolDomain } from '../registry/loader.js';
 import type { ToolDomain, ToolContext, Tool } from '../registry/types.js';
-import { EnvironmentServiceRegistry } from '../registry/types.js';
+import { ALL_TOOL_DOMAINS, EnvironmentServiceRegistry } from '../registry/types.js';
 
 import type {
   DynamicLoaderConfig,
@@ -195,6 +195,20 @@ export class DynamicToolLoader {
       getLogger().warn({ domain, error }, '🔄 Failed to load domain');
       return false;
     }
+  }
+
+  /**
+   * Load the whole catalog for this session, never unloaded. For per-turn
+   * tool retrieval, which sends each request only the tools its words need:
+   * retrieval can only send tools the agent has, and "keep an eye on the
+   * time" found setTimer and quickTimer but neither was loaded (dev,
+   * 2026-09-30). Building all ~1,160 tools takes ~50 ms and ~60 MB per
+   * session; the first session in a process also imports the domain modules
+   * (~2 s), so call this off the critical path.
+   */
+  async loadAllDomains(domains: readonly ToolDomain[] = ALL_TOOL_DOMAINS): Promise<number> {
+    const results = await Promise.all(domains.map((domain) => this.loadDomain(domain, true)));
+    return results.filter(Boolean).length;
   }
 
   /**

@@ -20,6 +20,7 @@
  */
 
 import { log, voice } from '@livekit/agents';
+import { applyAfterReplyStarts } from '../shared/tool-updater.js';
 import type { Room } from '@livekit/rtc-node';
 import { TextEncoder } from 'node:util';
 import {
@@ -265,29 +266,6 @@ const getLogger = () => log();
  * This function creates a handler for UserInputTranscribed events that processes
  * both partial and final transcripts with all the necessary processing steps.
  */
-/**
- * Run `fn` once the agent starts speaking (or goes back to listening without
- * speaking), whichever comes first, or after 8 s at the latest.
- */
-function applyAfterReplyStarts(
-  session: voice.AgentSession<UserData>,
-  fn: () => Promise<void>
-): void {
-  let done = false;
-  const run = (): void => {
-    if (done) return;
-    done = true;
-    session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
-    clearTimeout(fallback);
-    void fn();
-  };
-  const onState = (ev: { newState: string }): void => {
-    if (ev.newState === 'speaking' || ev.newState === 'listening') run();
-  };
-  const fallback = setTimeout(run, 8000);
-  session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
-}
-
 export function createTranscriptHandler(ctx: TranscriptHandlerContext): TranscriptHandlerResult {
   const {
     room,
