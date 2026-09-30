@@ -36,6 +36,13 @@ const n = Number(nArg || 100);
 const seed = Number(seedArg || 1);
 const MODEL = process.env.CASCADE_LLM_MODEL || 'gemini-3.5-flash';
 const CONCURRENCY = 6;
+const MAX_STEPS = 3;
+/** Look-up tools the model often calls before acting, with a plausible answer. */
+const LOOKUPS: Record<string, string> = {
+  getCurrentContext: 'It is Wednesday, September 30, 2026, 3:12 pm in Denver, Colorado. Weather: 64F, clear.',
+  recallFromMemory: 'No stored memories match that.',
+  [FIND_TOOLS]: '',
+};
 
 // The plugin's own conversion, so declarations match what a live call sends.
 const pluginDist = dirname(createRequire(import.meta.url).resolve('@livekit/agents-plugin-google'));
@@ -151,28 +158,31 @@ async function run(item: { query: string; tool: string }): Promise<Row> {
     row.sent = Object.keys(sent.functionTools).length;
     row.labelSent = item.tool in sent.functionTools;
     const contents: Content[] = [{ role: 'user', parts: [{ text: item.query }] }];
-    const r1 = await ask(contents, sent);
-    row.promptTokens = r1.usageMetadata?.promptTokenCount ?? 0;
-    const call = r1.functionCalls?.[0];
-    row.first = call?.name ?? null;
-    row.final = row.first;
-    if (call?.name === FIND_TOOLS) {
-      row.usedFind = true;
-      const need = String((call.args as { need?: string })?.need ?? item.query);
-      const found = await retrieval.find(need);
-      const output = found.length
-        ? `These tools are now available; call the one that fits: ${found.map((f) => f.name).join('; ')}`
-        : "No tool matches that. Tell the user plainly that you can't do it yet.";
-      const next = pick ? retrieval.select(catalog, pick) : retrieval.withoutPick(catalog);
-      const r2 = await ask(
-        [
-          ...contents,
-          { role: 'model', parts: [{ functionCall: call }] },
-          { role: 'user', parts: [{ functionResponse: { name: FIND_TOOLS, response: { output } } }] },
-        ],
-        next
+    // Follow the model's steps like the agent does: lookups (context, memory,
+    // findTools) get a plausible answer and the model goes on; the first
+    // action it takes is its choice. Up to MAX_STEPS model calls.
+    let tools = sent;
+    for (let step = 0; step < MAX_STEPS; step++) {
+      const r = await ask(contents, tools);
+      if (step === 0) row.promptTokens = r.usageMetadata?.promptTokenCount ?? 0;
+      const call = r.functionCalls?.[0];
+      if (step === 0) row.first = call?.name ?? null;
+      row.final = call?.name ?? null;
+      if (!call?.name || !(call.name in LOOKUPS)) break;
+      let output = LOOKUPS[call.name];
+      if (call.name === FIND_TOOLS) {
+        row.usedFind = true;
+        const need = String((call.args as { need?: string })?.need ?? item.query);
+        const found = await retrieval.find(need);
+        output = found.length
+          ? `These tools are now available; call the one that fits: ${found.map((f) => f.name).join('; ')}`
+          : "No tool matches that. Tell the user plainly that you can't do it yet.";
+        tools = pick ? retrieval.select(catalog, pick) : retrieval.withoutPick(catalog);
+      }
+      contents.push(
+        { role: 'model', parts: [{ functionCall: call }] },
+        { role: 'user', parts: [{ functionResponse: { name: call.name, response: { output } } }] }
       );
-      row.final = r2.functionCalls?.[0]?.name ?? null;
     }
     if (row.final && row.final !== item.tool && row.final !== FIND_TOOLS) {
       row.sufficient = await judge(item.query, item.tool, row.final);

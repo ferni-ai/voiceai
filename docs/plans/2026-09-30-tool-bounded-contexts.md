@@ -1,6 +1,6 @@
 # Tool bounded contexts: fewer, clearer tools behind domain facades
 
-2026-09-30. Status: planned; step 0 (measurement) in progress.
+2026-09-30. Status: planned; step 0 (measurement) done, results below.
 
 ## Why
 
@@ -76,6 +76,36 @@ tools. A context ships when, on its requests:
 - argument errors (facade validation failures) are under 2%;
 - first-token latency and prompt tokens are no worse;
 - the voice-eval tools scenario passes on dev (2 runs) with no missed tool.
+
+## Step 0 results (2026-09-30)
+
+Tool-choice harness (`scripts/tool-retrieval/eval-choice.ts`, gemini-3.5-flash,
+Ferni character prompt, 300 spoken requests x 2 samples, lookups followed):
+
+| | right tool sent | right or equivalent called |
+|---|---|---|
+| all requests | 83-86% | **82.1% / 82.7%** (same-sample rerun noise ~1 pt) |
+| functional (timers, messages, media...) | 95-96% | 81.5-83.5% |
+| coaching | 77-80% | 81.5-83.4% |
+
+- For functional requests retrieval works (right tool sent 96%), but the model
+  calls a lookalike ~13% of the time: `readSMS`->`checkEmailFrom`,
+  `activateScene`->`setVibe`, `recurringReminder`->`createHabit`,
+  `scheduleEventNatural`->`scheduleReminder`. This is the facade target.
+- The model never used `findTools` (0%), even when the right tool was not sent.
+- Replacing 228 placeholder descriptions ("Executes X...") did not help: 80.0-81.7%
+  vs 82.1-82.7% (not shipped; generator kept in `fill-descriptions.ts`).
+
+Live per-turn retrieval on dev (round 13) was **slower**, not faster: reply
+delay median 2.5 -> 2.9 s, p90 3.3 -> 4.5 s. The prompt shrank (12.9k -> 8.0k
+tokens) but first-token time did not improve: at ~130 tools gemini-3.5's first
+token barely depends on tool count, and live mode adds the pick wait (p50 150 ms)
+and a much heavier process (whole catalog: worker peak 616 -> 1,190 MB, EOU p90
+1.0 -> 2.2 s). Vertex reported no prompt caching either way
+(`cache-probe.ts`). Retrieval stays in shadow; its measured value is coverage
+(14/14 tool calls covered live, incl. the pasta timer), not latency.
+
+So the case for facades is correctness and clarity, not speed.
 
 ## Rollout
 
