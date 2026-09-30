@@ -131,6 +131,22 @@ describe('TurnTakingEngine', () => {
       expect(engine.shouldAgentSpeak('agent_ferni')).toBe(true);
     });
 
+    it('measures silence from the wall clock even when timer ticks are delayed', () => {
+      // A busy event loop delays interval ticks; silence must still be real time.
+      vi.useFakeTimers();
+      try {
+        engine.onSpeakingStart('user_1');
+        engine.onSpeakingEnd('user_1');
+
+        // Move the clock past the threshold without firing any timer tick
+        vi.setSystemTime(Date.now() + DEFAULT_TURN_TAKING_CONFIG.silenceThresholdMs + 100);
+
+        expect(engine.shouldAgentSpeak('agent_ferni')).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('should prevent agent dominance', () => {
       // Simulate 2 agent turns without human
       conversation.transcript.push({

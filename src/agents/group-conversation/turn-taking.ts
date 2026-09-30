@@ -51,7 +51,11 @@ export class TurnTakingEngine extends EventEmitter {
   private config: TurnTakingConfig;
   private state: TurnState;
   private conversation: GroupConversation;
-  private silenceTimer: ReturnType<typeof setTimeout> | null = null;
+  private silenceTimer: ReturnType<typeof setInterval> | null = null;
+  /** Wall-clock start of the current silence (null while someone is speaking). */
+  private silenceStartedAt: number | null = null;
+  /** Last whole second for which a 'silence' event was emitted. */
+  private lastSilenceSecondEmitted = 0;
   private lastActivity: number = Date.now();
 
   constructor(conversation: GroupConversation, config?: Partial<TurnTakingConfig>) {
@@ -134,7 +138,7 @@ export class TurnTakingEngine extends EventEmitter {
     }
 
     // Wait for sufficient silence
-    if (this.state.silenceDurationMs < this.config.silenceThresholdMs) {
+    if (this.refreshSilenceDuration() < this.config.silenceThresholdMs) {
       return false;
     }
 
@@ -308,7 +312,7 @@ export class TurnTakingEngine extends EventEmitter {
    */
   private needsModeration(): boolean {
     // Long silence
-    if (this.state.silenceDurationMs > 5000) {
+    if (this.refreshSilenceDuration() > 5000) {
       return true;
     }
 
@@ -328,15 +332,34 @@ export class TurnTakingEngine extends EventEmitter {
    */
   private startSilenceTimer(): void {
     this.clearSilenceTimer();
+    this.silenceStartedAt = Date.now();
+    this.lastSilenceSecondEmitted = 0;
+    this.state.silenceDurationMs = 0;
 
+    // The interval only drives event emission. Silence is measured from the
+    // wall clock: counting ticks (+100ms each) under-measured it whenever the
+    // event loop was busy and ticks fired late, so agents waited too long and
+    // 'silence' events were skipped.
     this.silenceTimer = setInterval(() => {
-      this.state.silenceDurationMs += 100;
+      const durationMs = this.refreshSilenceDuration();
 
-      // Emit silence event every second
-      if (this.state.silenceDurationMs % 1000 === 0) {
-        this.emit('silence', { durationMs: this.state.silenceDurationMs });
+      // Emit silence event once per elapsed second
+      const seconds = Math.floor(durationMs / 1000);
+      if (seconds > this.lastSilenceSecondEmitted) {
+        this.lastSilenceSecondEmitted = seconds;
+        this.emit('silence', { durationMs: seconds * 1000 });
       }
     }, 100);
+  }
+
+  /**
+   * Recompute the current silence duration from the wall clock.
+   */
+  private refreshSilenceDuration(): number {
+    if (this.silenceStartedAt !== null) {
+      this.state.silenceDurationMs = Date.now() - this.silenceStartedAt;
+    }
+    return this.state.silenceDurationMs;
   }
 
   /**
@@ -347,6 +370,7 @@ export class TurnTakingEngine extends EventEmitter {
       clearInterval(this.silenceTimer);
       this.silenceTimer = null;
     }
+    this.silenceStartedAt = null;
   }
 
   /**
