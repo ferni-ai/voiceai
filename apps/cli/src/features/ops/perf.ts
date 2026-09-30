@@ -12,10 +12,10 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from '
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { gzipSync } from 'zlib';
+import { resolveProjectRoot } from '../../services/project-root.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// This file is apps/cli/src/features/ops/perf.ts: five levels up is the repo root
-const PROJECT_ROOT = process.env.FERNI_PROJECT_ROOT || join(__dirname, '..', '..', '..', '..', '..');
+const PROJECT_ROOT = resolveProjectRoot(import.meta.url);
 
 // =============================================================================
 // COLORS

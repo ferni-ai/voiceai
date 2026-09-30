@@ -20,11 +20,12 @@ import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import * as yaml from 'yaml';
+import { resolveProjectRoot } from '../../services/project-root.js';
 
 const execAsync = promisify(exec);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, '..', '..', '..', '..', '..', '..');
+const PROJECT_ROOT = resolveProjectRoot(import.meta.url);
 
 // ============================================================================
 // CONFIGURATION

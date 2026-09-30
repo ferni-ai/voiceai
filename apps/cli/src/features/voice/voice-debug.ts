@@ -17,9 +17,10 @@ import { fileURLToPath } from 'url';
 import * as readline from 'readline';
 import { execSync, spawn } from 'child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { resolveProjectRoot } from '../../services/project-root.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = dirname(dirname(__dirname));
+const PROJECT_ROOT = resolveProjectRoot(import.meta.url);
 
 // Load environment
 dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
