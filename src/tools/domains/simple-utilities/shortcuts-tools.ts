@@ -179,7 +179,7 @@ const quickTimerDef: ToolDefinition = {
         duration: z.string().describe('Duration like "5 minutes", "30 seconds", "2 hours"'),
         label: z.string().optional().describe('What the timer is for'),
       }),
-      execute: async ({ duration, label }) => {
+      execute: async ({ duration, label }, opts) => {
         log.info({ userId: ctx.userId, duration, label }, 'Quick timer shortcut');
 
         trackCapabilityUsage(ctx.userId || 'anon', 'quickTimer');
@@ -199,11 +199,12 @@ const quickTimerDef: ToolDefinition = {
           }
 
           const tool = setTimerDef.create(ctx);
-          const result = await tool.execute({
-            minutes: parsed.minutes,
-            seconds: parsed.seconds,
-            label,
-          });
+          // Forward the SDK's second argument: setTimer reads the call's
+          // RunContext from it, and without it every quick timer threw.
+          const result = await tool.execute(
+            { minutes: parsed.minutes, seconds: parsed.seconds, label },
+            opts
+          );
 
           void persistAnalytics(ctx.userId || 'anon');
           return result;

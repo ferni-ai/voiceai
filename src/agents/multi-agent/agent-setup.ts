@@ -121,6 +121,8 @@ import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
 import { assistantTranscriptHandler } from './assistant-transcript.js';
 import { createBargeInFastPath, setBargeInFastPath } from './barge-in-fastpath.js';
 import { createTurnKeeper } from './turn-keeper.js';
+import { createCallAlertSpeaker } from '../shared/call-alerts.js';
+import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
 // WAVE 2: Voice humanization (micro-interrupt/barge-in recovery) + live backchanneling
@@ -1627,6 +1629,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
         { event: 'user_state_changed', handler: bargeIn.onUserState }
       );
     }
+
+    // Timers and other callbacks the caller asked for ring in this call, at a
+    // pause, in Ferni's words (call-alerts.ts). Nothing registered a handler
+    // before, so a finished timer was never announced.
+    cleanupFunctions.push(
+      registerVoiceCallbackHandler(
+        userId || sessionId,
+        createCallAlertSpeaker(session as never, { sessionId }),
+        session
+      )
+    );
 
     // Answer a caller turn that was left hanging (turn-keeper.ts).
     if (process.env.TURN_KEEPER !== 'off') {
