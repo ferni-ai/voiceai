@@ -83,7 +83,10 @@ function savePreferences(prefs: RosterPreferences): void {
 // STATE
 // ============================================================================
 
-let preferences: RosterPreferences = getDefaultPreferences();
+// Load saved preferences up front: nothing calls init() at startup, so starting
+// from defaults dropped the user's roster on every reload (and the next change
+// then overwrote what was saved).
+let preferences: RosterPreferences = loadPreferences();
 const changeListeners: Set<() => void> = new Set();
 
 // ============================================================================

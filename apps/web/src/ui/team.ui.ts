@@ -880,6 +880,10 @@ async function loadDynamicAgents(): Promise<void> {
       attachEventListenersToElement(element, agent.id as PersonaId, agent.name);
     }
 
+    // Freshly rendered members all start with aria-pressed="false"; restore the
+    // active persona so the roster (and screen readers) show who you're with.
+    setActiveTeamMember(appState.get('activePersona').id);
+
     // ➕ Render unlocked-but-not-in-roster members as addable
     renderAddableUnlockedMembers(agents);
 
