@@ -199,6 +199,12 @@ describe('ink-2 turn detection', () => {
       INK_TURN_PROFILES.responsive
     );
     expect(buildCascadeSTTOptions({}).turnDetection).toEqual(INK_TURN_PROFILES.responsive);
+    // CASCADE_TURN_EAGER overrides only the eager-end threshold, within (0, 1)
+    expect(inkTurnProfile({ CASCADE_TURN_EAGER: '0.35' })).toEqual({
+      ...INK_TURN_PROFILES.responsive,
+      eagerEndThreshold: 0.35,
+    });
+    expect(inkTurnProfile({ CASCADE_TURN_EAGER: '2' })).toEqual(INK_TURN_PROFILES.responsive);
   });
 
   it('keeps each profile in the order ink requires (start > eager end > end)', async () => {

@@ -81,10 +81,18 @@ export const INK_TURN_PROFILES: Record<'balanced' | 'responsive' | 'patient', In
   patient: { startThreshold: 0.8, eagerEndThreshold: 0.3, endThreshold: 0.1, endTimeoutMs: 8000 },
 };
 
-/** CASCADE_TURN_PROFILE: responsive (default), balanced or patient. */
+/**
+ * CASCADE_TURN_PROFILE: responsive (default), balanced or patient.
+ * CASCADE_TURN_EAGER overrides the eager-end threshold alone: LiveKit starts
+ * its preemptive reply on ink-2's eager end, which at 0.6 came only ~170 ms
+ * before the turn ended (dev, 2026-09-30), so it saved little.
+ */
 export function inkTurnProfile(env: Env = process.env): InkTurnDetection {
   const name = (env.CASCADE_TURN_PROFILE || 'responsive').toLowerCase();
-  return INK_TURN_PROFILES[name as keyof typeof INK_TURN_PROFILES] ?? INK_TURN_PROFILES.responsive;
+  const profile =
+    INK_TURN_PROFILES[name as keyof typeof INK_TURN_PROFILES] ?? INK_TURN_PROFILES.responsive;
+  const eager = Number(env.CASCADE_TURN_EAGER);
+  return eager > 0 && eager < 1 ? { ...profile, eagerEndThreshold: eager } : profile;
 }
 
 /** First names of the team: made-up or uncommon names a general model has no prior for. */
