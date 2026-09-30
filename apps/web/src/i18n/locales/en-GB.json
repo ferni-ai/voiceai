@@ -2987,12 +2987,19 @@
   },
   "marketplace": {
     "creations": {
-      "noDescription": "[NEEDS_TRANSLATION] No description"
+      "noDescription": "[NEEDS_TRANSLATION] No description",
+      "createButton": "[NEEDS_TRANSLATION] Create an agent",
+      "emptyTitle": "[NEEDS_TRANSLATION] Nothing here yet",
+      "emptyDescription": "[NEEDS_TRANSLATION] Create your own agent: a mentor, a coach, or someone who understands you."
     },
     "empty": {
       "search": "[NEEDS_TRANSLATION] No agents match that search",
       "installed": "[NEEDS_TRANSLATION] You haven't added any agents yet",
       "browse": "[NEEDS_TRANSLATION] No agents here yet. Check back soon!"
+    },
+    "agentCard": {
+      "install": "[NEEDS_TRANSLATION] Add to Team",
+      "uninstall": "[NEEDS_TRANSLATION] Remove from Team"
     }
   }
 }
