@@ -493,7 +493,6 @@ export class YourYearWithFerni {
         };
         const displayName =
           displayNames[personaId] ?? member.personaName.split('-')[0] ?? member.personaName;
-        const initial = displayName.charAt(0).toUpperCase();
 
         // Luxo-style SVG avatar with gradient and white eyes (NO pupils per brand CLAUDE.md)
         return `

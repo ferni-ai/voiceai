@@ -62,8 +62,8 @@ const PERIOD_EMOJI: Record<CircadianPeriod, string> = {
 
 function getPeriodInfo(period: CircadianPeriod): { name: string; description: string; emoji: string } {
   return {
-    name: (t(`sleepSettings.periods.${period}`) ?? period) as string,
-    description: (t(`sleepSettings.periodDescriptions.${period}`) ?? '') as string,
+    name: t(`sleepSettings.periods.${period}`) ?? period,
+    description: t(`sleepSettings.periodDescriptions.${period}`) ?? '',
     emoji: PERIOD_EMOJI[period] ?? '',
   };
 }
@@ -78,20 +78,6 @@ function formatTime(hour: number): string {
   const period = h >= 12 ? 'PM' : 'AM';
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
   return m > 0 ? `${displayHour}:${m.toString().padStart(2, '0')} ${period}` : `${displayHour} ${period}`;
-}
-
-function parseTime(timeStr: string | undefined): number {
-  const match = (timeStr ?? '').match(/^(\d+):?(\d+)?\s*(AM|PM)?$/i);
-  if (!match) return 7;
-  
-  let hour = parseInt(match[1] ?? '7', 10);
-  const minutes = match[2] ? parseInt(match[2], 10) : 0;
-  const period = match[3]?.toUpperCase();
-  
-  if (period === 'PM' && hour < 12) hour += 12;
-  if (period === 'AM' && hour === 12) hour = 0;
-  
-  return hour + minutes / 60;
 }
 
 // ============================================================================
@@ -128,7 +114,7 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       background: rgba(44, 37, 32, 0.75);
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(var(--glass-blur-subtle, 8px));
     }
 
     .sleep-settings__panel {
@@ -141,7 +127,7 @@ function injectStyles(): void {
       background: var(--color-bg-elevated, #fffdfb);
       border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: var(--shadow-xl);
       transform: scale(0.95) translateY(10px);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
     }
@@ -280,7 +266,7 @@ function injectStyles(): void {
       border-radius: 50%;
       background: var(--persona-primary, #4a6741);
       border: 3px solid white;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--shadow-sm);
       cursor: grab;
       transition: transform ${DURATION.FAST}ms;
     }
@@ -378,7 +364,7 @@ function injectStyles(): void {
       height: 20px;
       border-radius: 50%;
       background: white;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--shadow-xs);
       transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
     }
 

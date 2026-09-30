@@ -1,7 +1,7 @@
 /**
  * 🎨 GENERATED FILE - DO NOT EDIT DIRECTLY
  *
- * Persona colors generated from design-system/tokens/colors.json
+ * Persona colors (and custom-agent brand presets) generated from design-system/tokens/colors.json
  * Regenerate with: npm run build:persona-colors
  *
  * Generated: tokens v1.0.0
@@ -205,3 +205,34 @@ export function isGeneratedPersonaId(id: string): id is GeneratedPersonaId {
 export function getGeneratedPersonaColors(personaId: string): PersonaColorConfig | undefined {
   return GENERATED_PERSONA_COLORS[personaId.toLowerCase()];
 }
+
+/**
+ * Starter brand colors for custom agents (first = default).
+ * Source: colors.json → agentBrandPresets.presets
+ */
+export const AGENT_BRAND_PRESETS = [
+  {
+    "name": "Vanguard Red",
+    "value": "#96151D"
+  },
+  {
+    "name": "Forest Green",
+    "value": "#2D5A27"
+  },
+  {
+    "name": "Ocean Blue",
+    "value": "#1E4D8C"
+  },
+  {
+    "name": "Royal Purple",
+    "value": "#5B2C6F"
+  },
+  {
+    "name": "Sunset Orange",
+    "value": "#D35400"
+  },
+  {
+    "name": "Slate Gray",
+    "value": "#34495E"
+  }
+] as const;

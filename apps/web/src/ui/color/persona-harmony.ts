@@ -12,6 +12,10 @@
  */
 
 import { getGeneratedPersonaColors } from '../../config/persona-colors.generated.js';
+import {
+  PERSONA_BRIDGE_COLOR_OVERRIDES,
+  PERSONA_MOOD_BASE_PALETTES,
+} from '../../config/emotional-tokens.generated.js';
 
 // ============================================================================
 // TYPES
@@ -22,7 +26,7 @@ export type PersonaId = 'ferni' | 'maya' | 'peter' | 'jordan' | 'alex' | 'nayan'
 const CORE_PERSONA_IDS: readonly PersonaId[] = ['ferni', 'maya', 'peter', 'jordan', 'alex', 'nayan'];
 
 // Ferni sage, only used if a core persona were ever missing from the tokens
-const FALLBACK_PERSONA_COLOR = '#4a6741';
+const FALLBACK_PERSONA_COLOR: string = PERSONA_MOOD_BASE_PALETTES.ferni.primary;
 
 /**
  * HSL color representation for precise color manipulation.
@@ -118,22 +122,10 @@ export const PERSONA_HSL: Record<PersonaId, HSLColor> = Object.fromEntries(
 
 /**
  * Pre-calculated harmonic bridge colors for common transitions.
- * These are manually tuned for the most aesthetically pleasing handoffs.
+ * These are manually tuned for the most aesthetically pleasing handoffs
+ * (design-system/tokens/color-emotional.json → personaTransitions.bridgeOverrides).
  */
-const BRIDGE_COLOR_OVERRIDES: Partial<Record<string, string>> = {
-  'ferni-maya': '#8a7a5a', // Warm olive (blend of green and terracotta)
-  'maya-ferni': '#8a7a5a',
-  'ferni-peter': '#4a6a5a', // Teal-sage blend
-  'peter-ferni': '#4a6a5a',
-  'ferni-nayan': '#7a8a5a', // Golden sage
-  'nayan-ferni': '#7a8a5a',
-  'maya-jordan': '#b87a6a', // Warm coral
-  'jordan-maya': '#b87a6a',
-  'peter-alex': '#4a6a7a', // Cool professional blue
-  'alex-peter': '#4a6a7a',
-  'alex-nayan': '#8a8a7a', // Neutral warm gray
-  'nayan-alex': '#8a8a7a',
-};
+const BRIDGE_COLOR_OVERRIDES: Partial<Record<string, string>> = PERSONA_BRIDGE_COLOR_OVERRIDES;
 
 /**
  * Default transition configuration.
@@ -545,7 +537,7 @@ export function generatePersonaTransitionCSS(): string {
  */
 
 :root {
-  --persona-transition-duration: 400ms;
+  --persona-transition-duration: var(--duration-slower);
   --persona-transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -640,7 +632,7 @@ export function analyzePersonaHarmony(
  */
 export function generateHarmonyMatrix(): Record<PersonaId, Record<PersonaId, number>> {
   const personas = Object.keys(PERSONA_COLORS) as PersonaId[];
-  const matrix: Record<PersonaId, Record<PersonaId, number>> = {} as any;
+  const matrix = {} as Record<PersonaId, Record<PersonaId, number>>;
 
   personas.forEach((from) => {
     matrix[from] = {} as Record<PersonaId, number>;

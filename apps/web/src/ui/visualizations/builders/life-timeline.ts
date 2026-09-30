@@ -14,7 +14,6 @@ import {
   createElement,
   setStyles,
   createScreenReaderLabel,
-  getCssVar,
 } from '../utils/dom.js';
 import type {
   LifeTimelineData,
@@ -28,29 +27,6 @@ import { t } from '../../../i18n/index.js';
 // ============================================================================
 // CONSTANTS
 // ============================================================================
-
-/**
- * Literal color values for SVG and computed elements.
- * @design-tokens-ignore - Required for dynamic styling
- */
-const CHAPTER_TYPE_COLORS: Record<TimelineChapter['type'], string> = {
-  growth: getCssVar('--viz-accent', '#3D5A45'),
-  challenge: getCssVar('--color-semantic-error', '#e74c3c'),
-  transition: getCssVar('--color-semantic-warning', '#f5a623'),
-  celebration: getCssVar('--color-semantic-success', '#27ae60'),
-  reflection: getCssVar('--persona-eli-primary', '#8a7a9a'),
-};
-
-/**
- * CSS variable references for DOM styling.
- */
-const CHAPTER_CSS_VARS: Record<TimelineChapter['type'], string> = {
-  growth: 'var(--viz-accent)',
-  challenge: 'var(--viz-chapter-challenge)',
-  transition: 'var(--viz-chapter-transition)',
-  celebration: 'var(--viz-chapter-celebration)',
-  reflection: 'var(--viz-chapter-reflection)',
-};
 
 // ============================================================================
 // WATCH BUILDER

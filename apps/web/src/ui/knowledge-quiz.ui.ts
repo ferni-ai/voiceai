@@ -20,7 +20,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
-import { getQuizCategoryIcon, ANALYTICS_ICONS, GROWTH_ICONS, EMOTION_ICONS, QUIZ_ICONS } from './icons/shared-icons.js';
+import { getQuizCategoryIcon, ANALYTICS_ICONS, GROWTH_ICONS, EMOTION_ICONS } from './icons/shared-icons.js';
 
 const log = createLogger('KnowledgeQuiz');
 
@@ -505,8 +505,8 @@ function injectStyles(): void {
       position: fixed;
       inset: 0;
       background: var(--backdrop-overlay, rgba(44, 37, 32, 0.7));
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
       display: flex;
       align-items: center;
       justify-content: center;

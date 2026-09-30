@@ -17,6 +17,7 @@
 
 import { DURATION } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { MOOD_BACKGROUND_TINTS } from '../config/emotional-tokens.generated.js';
 
 const log = createLogger('MoodBackgrounds');
 
@@ -49,42 +50,42 @@ const STORAGE_KEY = 'ferni_mood_backgrounds_enabled';
 // Mood color configurations (very subtle tints)
 const MOOD_STYLES: Record<EmotionalMood, MoodStyle> = {
   neutral: {
-    tint: 'rgba(255, 255, 255, 0)',
+    tint: MOOD_BACKGROUND_TINTS.neutral,
     warmth: 0.5,
     saturation: 0.5,
   },
   happy: {
-    tint: 'rgba(255, 220, 100, 0.03)',
+    tint: MOOD_BACKGROUND_TINTS.happy,
     warmth: 0.7,
     saturation: 0.6,
   },
   excited: {
-    tint: 'rgba(255, 180, 120, 0.04)',
+    tint: MOOD_BACKGROUND_TINTS.excited,
     warmth: 0.8,
     saturation: 0.7,
   },
   calm: {
-    tint: 'rgba(180, 220, 255, 0.03)',
+    tint: MOOD_BACKGROUND_TINTS.calm,
     warmth: 0.3,
     saturation: 0.4,
   },
   thoughtful: {
-    tint: 'rgba(200, 180, 255, 0.03)',
+    tint: MOOD_BACKGROUND_TINTS.thoughtful,
     warmth: 0.4,
     saturation: 0.5,
   },
   sad: {
-    tint: 'rgba(180, 200, 220, 0.03)',
+    tint: MOOD_BACKGROUND_TINTS.sad,
     warmth: 0.3,
     saturation: 0.3,
   },
   anxious: {
-    tint: 'rgba(200, 200, 220, 0.02)',
+    tint: MOOD_BACKGROUND_TINTS.anxious,
     warmth: 0.4,
     saturation: 0.4,
   },
   supportive: {
-    tint: 'rgba(220, 255, 200, 0.03)',
+    tint: MOOD_BACKGROUND_TINTS.supportive,
     warmth: 0.6,
     saturation: 0.5,
   },

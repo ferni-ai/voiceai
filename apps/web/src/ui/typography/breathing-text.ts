@@ -14,8 +14,6 @@
  * @module typography/breathing-text
  */
 
-import type { MoodState } from '../color/mood-palette.js';
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -366,7 +364,7 @@ export function stopBreathing(element: HTMLElement): void {
 export function updateBreathingMood(
   element: HTMLElement,
   mood: BreathingMood,
-  transitionDuration: number = 500
+  _transitionDuration: number = 500
 ): void {
   const state = activeBreathing.get(element);
   if (!state) return;
@@ -390,7 +388,7 @@ export function updateBreathingMood(
  */
 export function syncBreathingToUser(
   element: HTMLElement,
-  signal: BreathingSignal
+  _signal: BreathingSignal
 ): void {
   const state = activeBreathing.get(element);
   if (!state) return;

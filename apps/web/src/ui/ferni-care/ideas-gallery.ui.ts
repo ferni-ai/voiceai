@@ -83,7 +83,7 @@ const styles = `
     position: absolute;
     inset: 0;
     background: rgba(44, 37, 32, 0.75);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(var(--glass-blur-subtle, 8px));
   }
   
   .ideas-gallery {
@@ -94,7 +94,7 @@ const styles = `
     background: var(--color-bg-elevated, #FFFDFB);
     border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     border-radius: var(--radius-xl, 20px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-xl);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -184,7 +184,7 @@ const styles = `
   .ideas-gallery__search input:focus {
     outline: none;
     border-color: var(--color-ferni, #4a6741);
-    box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
+    box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
   }
   
   .ideas-gallery__search svg {
@@ -265,7 +265,7 @@ const styles = `
     background: var(--color-background-hover, rgba(112, 96, 90, 0.06));
     border-color: var(--color-ferni, #4a6741);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-md);
   }
   
   .idea-card__header {

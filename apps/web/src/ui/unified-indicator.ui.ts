@@ -693,12 +693,12 @@ function injectStyles(): void {
       cursor: pointer;
       transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
       
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--shadow-sm);
     }
     
     .unified-indicator:hover {
       transform: scale(1.1);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--shadow-md);
     }
     
     .unified-indicator:active {
@@ -756,8 +756,8 @@ function injectStyles(): void {
     /* ===== MILESTONE STATE ===== */
     /* Gold sparkle - celebration! */
     .unified-indicator--milestone {
-      border-color: #f59e0b;
-      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border-color: var(--color-semantic-warning);
+      background: var(--color-semantic-warning);
     }
     
     .unified-indicator--milestone .unified-indicator__icon {

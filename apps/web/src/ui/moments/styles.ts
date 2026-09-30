@@ -374,17 +374,17 @@ const MOMENT_STYLES = `
   position: absolute;
   inset: 0;
   background: rgba(44, 37, 32, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--glass-blur-strong, 20px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong, 20px));
 }
 
 .moment-milestone__card {
   position: relative;
   background: var(--color-background-elevated, #FFFDFB);
   border-radius: var(--radius-2xl, 24px);
-  box-shadow: 
-    0 25px 50px -12px rgba(0, 0, 0, 0.25),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
+  box-shadow:
+    var(--shadow-2xl),
+    0 0 0 1px var(--color-border-subtle, rgba(255, 255, 255, 0.1));
   max-width: clamp(294px, 90vw, 420px);
   width: 100%;
   padding: var(--space-8, 32px);
@@ -633,8 +633,8 @@ const MOMENT_STYLES = `
   gap: var(--space-1, 4px);
   padding: var(--space-1, 4px) var(--space-2, 8px);
   background: var(--glass-background, rgba(255, 255, 255, 0.1));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+  -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
   border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
   border-radius: var(--radius-full, 9999px);
   cursor: pointer;

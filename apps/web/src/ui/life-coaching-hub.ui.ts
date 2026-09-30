@@ -11,14 +11,13 @@
  *   - "Better than Human" features highlighted
  */
 
-import { t } from '../i18n/index.js';
 import {
   CAPABILITIES,
   getCapabilitiesByCategory,
   searchCapabilities,
   type Capability,
 } from '../services/capability-registry.js';
-import { createCapabilityCard, createCapabilityGrid } from './capability-card.ui.js';
+import { createCapabilityCard } from './capability-card.ui.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('LifeCoachingHub');

@@ -14,7 +14,6 @@
  */
 
 import { DURATION } from '../config/animation-constants.js';
-import { calculateSpring, type SpringConfig, type Mass, type Material } from './physics.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -113,7 +112,7 @@ const PATTERN_FUNCTIONS: Record<StaggerPattern, (t: number, count: number) => nu
     return t + Math.sin(t * Math.PI * frequency) * decay * (1 - t);
   },
 
-  wave: (t, count) => {
+  wave: (t) => {
     // Sinusoidal wave pattern
     const amplitude = 0.2;
     return t + Math.sin(t * Math.PI * 2) * amplitude;

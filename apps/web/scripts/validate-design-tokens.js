@@ -31,7 +31,8 @@ const VIOLATIONS = {
     // Only flag fonts that don't use var() at all - the line must not contain 'var('
     pattern: /font-family:\s*['"]?([^;'"]+)['"]?;/g,
     message: 'Hardcoded font - use var(--font-*)',
-    exceptions: [],
+    // CSS-wide keywords are not hardcoded fonts
+    exceptions: ['inherit', 'initial', 'unset'],
     // Skip lines that contain var( - they're using CSS variables correctly
     skipIfContains: ['var('],
   },
@@ -344,7 +345,9 @@ function validateFile(filePath) {
       const skipPatterns = Array.isArray(rule.skipIfContains)
         ? rule.skipIfContains
         : rule.skipIfContains ? [rule.skipIfContains] : [];
-      if (skipPatterns.some(pattern => line.includes(pattern))) {
+      // Check the whole match too: a multi-line value (e.g. box-shadow spanning
+      // several lines) only has its first line in `line`.
+      if (skipPatterns.some(pattern => line.includes(pattern) || match[0].includes(pattern))) {
         continue;
       }
 

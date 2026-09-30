@@ -25,7 +25,6 @@ import type {
   DeviceContext,
   VisualizationResult,
 } from '../types.js';
-import { t } from '../../../i18n/index.js';
 
 // ============================================================================
 // DESIGN CONSTANTS - Warm, earthy Ferni palette
@@ -36,14 +35,6 @@ const ARC_TYPE_LABELS: Record<EmotionalArcsData['arcType'], string> = {
   'growth': 'Growth Arc',
   'recovery': 'Recovery Path',
   'discovery': 'Discovery Trail',
-};
-
-// Narrative subtitles for each arc type
-const ARC_TYPE_NARRATIVES: Record<EmotionalArcsData['arcType'], string> = {
-  'hero-journey': 'Every step forward is courage',
-  'growth': 'Becoming who you were meant to be',
-  'recovery': 'Finding your way back to yourself',
-  'discovery': 'The joy of uncovering what matters',
 };
 
 // Phase-specific colors - earthy and warm
@@ -265,7 +256,7 @@ function buildMobile(
   phaseRow.appendChild(line);
 
   // Phase dots
-  data.phases.forEach((phase, i) => {
+  data.phases.forEach((phase) => {
     const isCurrent = phase.name === data.currentPhase.name;
     const isPast = phase.position < data.currentPhase.position;
 
@@ -391,7 +382,7 @@ function buildTablet(
   pathGradient.setAttribute('y2', '0%');
   
   // Add gradient stops for each phase
-  data.phases.forEach((phase, i) => {
+  data.phases.forEach((phase) => {
     const stop = createSvgElement('stop');
     stop.setAttribute('offset', `${phase.position * 100}%`);
     stop.setAttribute('stop-color', getPhaseColor(phase.name));
@@ -450,7 +441,6 @@ function buildTablet(
     const progressX = startX + pathWidth * progress;
     // For a quadratic bezier M p0 Q p1 p2, point at t is: (1-t)²p0 + 2(1-t)t*p1 + t²p2
     const t = progress;
-    const controlX = startX + pathWidth * 0.5;
     const controlY = peakY;
     const progressY = Math.pow(1-t, 2) * baseY + 2 * (1-t) * t * controlY + Math.pow(t, 2) * baseY;
     
@@ -468,7 +458,7 @@ function buildTablet(
   }
 
   // Phase markers
-  data.phases.forEach((phase, i) => {
+  data.phases.forEach((phase) => {
     const t = phase.position;
     const controlX = startX + pathWidth * 0.5;
     const controlY = peakY;

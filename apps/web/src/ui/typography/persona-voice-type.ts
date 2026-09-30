@@ -449,7 +449,7 @@ export function generatePersonaTypographyCSS(): string {
 /* Each AI persona has a distinct typographic voice */
 
 :root {
-  --persona-transition-duration: 400ms;
+  --persona-transition-duration: var(--duration-slower);
   --persona-transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
 }
 

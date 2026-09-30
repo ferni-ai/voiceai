@@ -15,7 +15,6 @@ import { ferniExpressions } from '../../ui/ferni-expressions.ui.js';
 import { createLogger } from '../../utils/logger.js';
 import type { ConcernAnalysisInput, ConcernLevel, ConcernState } from '../types.js';
 import { getAvatarSoul } from '../utils/avatar-soul-loader.js';
-import { playMicroExpression } from './micro-expressions.js';
 
 const log = createLogger('ConcernDetection');
 

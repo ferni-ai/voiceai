@@ -15,7 +15,6 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { calculateSpring, type SpringConfig } from './physics.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

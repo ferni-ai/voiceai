@@ -9,9 +9,9 @@
  */
 
 import { apiGet, apiPut, apiPost } from '../utils/api.js';
-import { circadianManager, type SleepPattern } from './circadian-manager.js';
-import { warmthManager, type WarmthConfig } from './warmth-manager.js';
-import { relationshipStageService, type RelationshipStage } from './relationship-stage.service.js';
+import { circadianManager } from './circadian-manager.js';
+import { type WarmthConfig } from './warmth-manager.js';
+import { type RelationshipStage } from './relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('VisualStorytellingService');

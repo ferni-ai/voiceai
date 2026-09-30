@@ -12,7 +12,7 @@ import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { toast } from './whisper.ui.js';
 import { apiPost } from '../utils/api.js';
-import { escapeHtml, escapeAttr } from './engagement-components.js';
+import { AGENT_BRAND_PRESETS } from '../config/persona-colors.generated.js';
 
 const log = createLogger('AgentPageBuilder');
 
@@ -69,14 +69,9 @@ const STEP_DESCRIPTIONS: Record<BuilderStep, string> = {
   preview: 'Review and launch',
 };
 
-const PRESET_COLORS = [
-  { name: 'Vanguard Red', value: '#96151D' },
-  { name: 'Forest Green', value: '#2D5A27' },
-  { name: 'Ocean Blue', value: '#1E4D8C' },
-  { name: 'Royal Purple', value: '#5B2C6F' },
-  { name: 'Sunset Orange', value: '#D35400' },
-  { name: 'Slate Gray', value: '#34495E' },
-];
+// Starter brand colors (design-system/tokens/colors.json → agentBrandPresets)
+const PRESET_COLORS = AGENT_BRAND_PRESETS;
+const DEFAULT_BRAND_COLOR: string = AGENT_BRAND_PRESETS[0].value;
 
 // ============================================================================
 // STYLES
@@ -88,7 +83,7 @@ const STYLES = `
     inset: 0;
     z-index: var(--z-modal-backdrop);
     background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(var(--glass-blur-subtle, 8px));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -649,7 +644,7 @@ export class AgentPageBuilder {
       description: '',
     },
     brand: {
-      primary: PRESET_COLORS[0]?.value ?? '#96151D',
+      primary: DEFAULT_BRAND_COLOR,
     },
     theme: 'zen',
   };
@@ -762,7 +757,7 @@ export class AgentPageBuilder {
   private buildProgress(): HTMLElement {
     const progress = createElement('div', { className: 'builder-progress' });
 
-    STEPS.forEach((step, index) => {
+    STEPS.forEach((step) => {
       const isActive = step === this.currentStep;
       const isCompleted = this.completedSteps.has(step);
       const classes = ['progress-step'];
@@ -872,7 +867,7 @@ export class AgentPageBuilder {
   }
 
   private buildBrandStep(container: HTMLElement): void {
-    const defaultColor = PRESET_COLORS[0]?.value ?? '#96151D';
+    const defaultColor = DEFAULT_BRAND_COLOR;
     const brand = this.config.brand || { primary: defaultColor };
     const selectedColor = brand.primary || defaultColor;
 
@@ -925,7 +920,7 @@ export class AgentPageBuilder {
       type: 'text',
       id: 'color-hex',
       className: 'form-input',
-      placeholder: '#000000',
+      placeholder: '#RRGGBB',
       value: selectedColor,
     });
     hexInput.style.width = '120px';
@@ -1010,7 +1005,7 @@ export class AgentPageBuilder {
 
   private buildPreviewStep(container: HTMLElement): void {
     const agent = this.config.agent || { id: '', name: '', initials: '', tagline: '', description: '' };
-    const brand = this.config.brand || { primary: PRESET_COLORS[0]?.value ?? '#96151D' };
+    const brand = this.config.brand || { primary: DEFAULT_BRAND_COLOR };
     const subdomain = this.config.subdomain || this.generateSubdomain();
 
     // Preview card

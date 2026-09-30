@@ -17,7 +17,6 @@
  */
 
 import { EASING } from '../../config/animation-constants.js';
-import { emotionState } from '../../emotion/emotion-state.js';
 import type { EmotionalExpression } from '../../ui/ferni-expressions.ui.js';
 import { ferniExpressions } from '../../ui/ferni-expressions.ui.js';
 import { createLogger } from '../../utils/logger.js';
@@ -485,7 +484,7 @@ async function handleAnticipatoryPresenceSignal(signal: BetterThanHumanSignal): 
   }
 
   ferniExpressions.setExpression((config?.expression ?? 'present') as Parameters<typeof ferniExpressions.setExpression>[0], 400);
-  playMicroExpression((config?.microExpression ?? 'recognition') as Parameters<typeof playMicroExpression>[0]);
+  playMicroExpression(config?.microExpression ?? 'recognition');
 
   // Emit hint showing time awareness
   emitBthUIHint('anticipatory', timeContext, { intensity });

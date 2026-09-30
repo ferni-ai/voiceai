@@ -451,11 +451,9 @@ export class DirectorConsole {
   private renderSceneControls(): void {
     if (!this.state || !this.container) return;
 
-    const moodSelect = this.container.querySelector('#dc-mood-select') as HTMLSelectElement | null;
-    const intensitySlider = this.container.querySelector(
-      '#dc-intensity'
-    ) as HTMLInputElement | null;
-    const paceSelect = this.container.querySelector('#dc-pace-select') as HTMLSelectElement | null;
+    const moodSelect = this.container.querySelector<HTMLSelectElement>('#dc-mood-select');
+    const intensitySlider = this.container.querySelector<HTMLInputElement>('#dc-intensity');
+    const paceSelect = this.container.querySelector<HTMLSelectElement>('#dc-pace-select');
 
     if (moodSelect) moodSelect.value = this.state.scene.mood;
     if (intensitySlider)
@@ -642,7 +640,7 @@ export class DirectorConsole {
         background: var(--color-background-elevated, #FFFDFB);
         border-radius: var(--radius-2xl, 16px);
         box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25));
-        z-index: 10000;
+        z-index: var(--z-tooltip);
         overflow: hidden;
         display: flex;
         flex-direction: column;

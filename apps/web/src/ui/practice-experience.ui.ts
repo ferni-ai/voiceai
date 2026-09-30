@@ -380,8 +380,8 @@ const styles = `
     position: absolute;
     inset: 0;
     background: rgba(44, 37, 32, 0.6);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(var(--glass-blur-strong, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
   }
 
   .practice-experience-container {
@@ -392,7 +392,7 @@ const styles = `
     margin: var(--space-4);
     background: var(--color-background-elevated, #fffdfb);
     border-radius: var(--radius-2xl, 24px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--shadow-2xl);
     overflow: hidden;
     transform: scale(0.95) translateY(20px);
     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -518,7 +518,7 @@ const styles = `
     margin-bottom: var(--space-6);
     max-width: 85%;
     align-self: flex-start;
-    box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+    box-shadow: 0 4px 12px var(--color-utility-focus-ring);
   }
 
   /* Text input area */
@@ -540,7 +540,7 @@ const styles = `
   .practice-textarea:focus {
     outline: none;
     border-color: var(--color-accent, #3d5a45);
-    box-shadow: 0 0 0 4px rgba(61, 90, 69, 0.1);
+    box-shadow: 0 0 0 4px var(--color-utility-focus-ring-subtle);
   }
 
   .practice-textarea::placeholder {
@@ -700,7 +700,7 @@ const styles = `
     align-items: center;
     justify-content: center;
     transition: transform 4s ease-in-out;
-    box-shadow: 0 0 60px rgba(74, 103, 65, 0.4);
+    box-shadow: 0 0 60px var(--persona-aura-glow, var(--color-accent-glow));
   }
 
   .breathing-circle.inhale {

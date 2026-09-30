@@ -88,7 +88,6 @@ import {
   setAvatarContainer,
   startBreathSyncInterval,
   stopBreathSyncInterval,
-  isBreathSyncEnabled,
   startActiveListening,
   stopActiveListening,
   onUserSpeechPause,

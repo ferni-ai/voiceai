@@ -24,7 +24,6 @@ import {
   createSvg,
   createPath,
   createCircle,
-  createText,
   setStyles,
   createScreenReaderLabel,
 } from '../utils/dom.js';

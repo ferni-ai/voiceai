@@ -30,25 +30,6 @@ import { t } from '../../../i18n/index.js';
 // CONSTANTS
 // ============================================================================
 
-/**
- * Literal color values for SVG elements.
- * @design-tokens-ignore - SVG requires literal color values
- */
-const PRIORITY_COLORS: Record<OpenLoop['priority'], string> = {
-  high: getCssVar('--color-semantic-error', '#e74c3c'),
-  medium: getCssVar('--color-semantic-warning', '#f5a623'),
-  low: getCssVar('--color-text-muted', '#9a8f85'),
-};
-
-/**
- * CSS variable references for DOM element styling.
- */
-const PRIORITY_CSS_VARS: Record<OpenLoop['priority'], string> = {
-  high: 'var(--viz-priority-high)',
-  medium: 'var(--viz-priority-medium)',
-  low: 'var(--viz-priority-low)',
-};
-
 const CATEGORY_LABELS: Record<OpenLoop['category'], string> = {
   commitment: 'Commitment',
   question: 'Question',

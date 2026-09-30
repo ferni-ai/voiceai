@@ -85,32 +85,6 @@ export interface TypographyValues {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Base type scale (based on perfect fourth: 1.333)
- */
-const TYPE_SCALE = {
-  '-2': 0.563,    // 9px at 16px base
-  '-1': 0.75,     // 12px
-  '0': 1,         // 16px - base
-  '1': 1.333,     // 21px
-  '2': 1.777,     // 28px
-  '3': 2.369,     // 38px
-  '4': 3.157,     // 50px
-} as const;
-
-/**
- * Weight scale
- */
-const WEIGHT_SCALE = {
-  thin: 100,
-  light: 300,
-  normal: 400,
-  medium: 500,
-  semibold: 600,
-  bold: 700,
-  black: 900,
-} as const;
-
-/**
  * Speaking state adjustments
  */
 const SPEAKING_ADJUSTMENTS: Record<SpeakingState, Partial<TypographyValues>> = {

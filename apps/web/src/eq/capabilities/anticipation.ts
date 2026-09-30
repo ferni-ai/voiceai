@@ -13,13 +13,11 @@
 
 import type { EmotionId } from '../../emotion/emotion-state.js';
 import { ferniExpressions, type EmotionalExpression } from '../../ui/ferni-expressions.ui.js';
-import { createLogger } from '../../utils/logger.js';
 import { createTimeoutTracker } from '../../utils/tracked-timeout.js';
 import type { AnticipationInput } from '../types.js';
 import { getAvatarSoul } from '../utils/avatar-soul-loader.js';
 import { playMicroExpression } from './micro-expressions.js';
 
-const log = createLogger('Anticipation');
 const { trackedTimeout } = createTimeoutTracker();
 
 // ============================================================================

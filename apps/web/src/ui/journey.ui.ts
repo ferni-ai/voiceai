@@ -970,7 +970,6 @@ function renderJourneyMap(currentStage: string, progressPercent: number): string
           ${STAGE_ORDER.map((stage, index) => {
             const isPast = index < currentIndex;
             const isCurrent = index === currentIndex;
-            const isFuture = index > currentIndex;
             const stateClass = isPast ? 'journey-map__stage--past' : isCurrent ? 'journey-map__stage--current' : 'journey-map__stage--future';
             
             // Calculate connector fill

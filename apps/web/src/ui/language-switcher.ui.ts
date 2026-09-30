@@ -80,8 +80,8 @@ function injectStyles(): void {
       border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.15));
       border-radius: var(--radius-full, 50%);
       background: var(--color-bg-elevated, rgba(30, 30, 30, 0.9));
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(var(--blur-glass, 12px));
+      -webkit-backdrop-filter: blur(var(--blur-glass, 12px));
       color: inherit;
       font-size: 1.25rem;
       line-height: 1;
@@ -111,7 +111,7 @@ function injectStyles(): void {
       background: var(--color-bg-elevated, #fffdfb);
       border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-xl, 16px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: var(--shadow-xl);
       list-style: none;
       margin: 0;
       opacity: 0;

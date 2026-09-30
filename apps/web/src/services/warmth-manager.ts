@@ -420,7 +420,7 @@ export function getAdjustedAnimationConfig(baseDuration: number): {
   
   return {
     duration: getAdjustedDuration(baseDuration),
-    easing: easing as string,
+    easing,
   };
 }
 

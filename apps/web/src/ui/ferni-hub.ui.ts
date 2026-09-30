@@ -17,7 +17,6 @@ import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
 import { soundUI } from './sound.ui.js';
-import { messageUI } from './message.ui.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
 import {
   PERSONA_ICONS,
@@ -561,8 +560,8 @@ function addStyles(): void {
       position: absolute;
       inset: 0;
       background: rgba(44, 37, 32, 0.6);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(var(--glass-blur-strong, 20px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 20px));
     }
 
     .ferni-hub-panel {

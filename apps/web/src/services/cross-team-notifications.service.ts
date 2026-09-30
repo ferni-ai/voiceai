@@ -11,7 +11,6 @@
  */
 
 import { showOutreach, type ProactiveOutreachData } from '../ui/proactive-outreach.ui.js';
-import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 

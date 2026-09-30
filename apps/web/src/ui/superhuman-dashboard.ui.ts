@@ -15,9 +15,8 @@
  *   - Actionable next steps
  */
 
-import { t } from '../i18n/index.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
-import { getBetterThanHumanCapabilities, type Capability } from '../services/capability-registry.js';
+import { getBetterThanHumanCapabilities } from '../services/capability-registry.js';
 import { createCapabilityCard } from './capability-card.ui.js';
 import { createLogger } from '../utils/logger.js';
 

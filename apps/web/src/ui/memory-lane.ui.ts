@@ -23,7 +23,7 @@ import { createLogger } from '../utils/logger.js';
 import { apiGet, apiPatch } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
-import { getMemoryMoodIcon, ANALYTICS_ICONS } from './icons/shared-icons.js';
+import { getMemoryMoodIcon } from './icons/shared-icons.js';
 import { createEmptyState } from './components/empty-state.js';
 
 const log = createLogger('MemoryLane');
@@ -731,8 +731,8 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       background: rgba(44, 37, 32, 0.4);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(var(--glass-blur-strong, 20px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 20px));
     }
 
     .memory-lane-modal__card {

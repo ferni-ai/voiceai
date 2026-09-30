@@ -17,14 +17,11 @@ import {
   createSvgElement,
   createPath,
   createCircle,
-  createText,
   createScreenReaderLabel,
   setStyles,
   describeArc,
-  DURATION,
-  EASING,
 } from '../utils/dom.js';
-import type { DeviceContext, VisualizationResult, VisualizationType } from '../types.js';
+import type { DeviceContext, VisualizationResult } from '../types.js';
 import { DEFAULT_COLORS, CSS_COLOR_VARS } from '../types.js';
 import { t } from '../../../i18n/index.js';
 
@@ -66,7 +63,6 @@ export interface EnergyWaveData {
 // ============================================================================
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const DAY_LABELS_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 /**
  * Energy level colors for SVG.

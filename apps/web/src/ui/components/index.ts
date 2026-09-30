@@ -85,11 +85,9 @@ export {
 // App-Specific Extensions
 // =============================================================================
 
-import { 
-  Avatar as BaseAvatar, 
+import {
+  Avatar as BaseAvatar,
   type AvatarOptions as BaseAvatarOptions,
-  type AvatarState,
-  type MicroExpression,
 } from '@design-system/components';
 
 /**
