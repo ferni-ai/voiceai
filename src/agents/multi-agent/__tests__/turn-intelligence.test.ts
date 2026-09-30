@@ -20,10 +20,11 @@ const userData = { turnCount: 3 } as unknown as TurnIntelligenceDeps['userData']
 const userMessage = (text: string) => llm.ChatMessage.create({ role: 'user', content: text });
 
 describe('resolveTurnIntelligenceMode', () => {
-  it('is off unless TURN_INTELLIGENCE=on', () => {
-    expect(resolveTurnIntelligenceMode({})).toBe('off');
-    expect(resolveTurnIntelligenceMode({ TURN_INTELLIGENCE: 'true' })).toBe('off');
-    expect(resolveTurnIntelligenceMode({ TURN_INTELLIGENCE: 'on' })).toBe('on');
+  it('runs in the background unless told to block or turned off', () => {
+    expect(resolveTurnIntelligenceMode({})).toBe('background');
+    expect(resolveTurnIntelligenceMode({ TURN_INTELLIGENCE: 'on' })).toBe('background');
+    expect(resolveTurnIntelligenceMode({ TURN_INTELLIGENCE: 'blocking' })).toBe('blocking');
+    expect(resolveTurnIntelligenceMode({ TURN_INTELLIGENCE: 'OFF' })).toBe('off');
   });
 });
 
@@ -43,6 +44,25 @@ describe('createTurnIntelligenceHook', () => {
     expect(ctx.services).toBe(services);
     expect(ctx.userData.turnCount).toBe(3);
     expect(typeof ctx.sendDataMessage).toBe('function');
+  });
+
+  it("hands over the live session data, so the persona's mood and shared stories carry across turns", async () => {
+    const live = { turnCount: 4, lastMood: 'playful', usedShareTags: ['wyoming'] };
+    const handle = vi.fn().mockResolvedValue(undefined);
+    const hook = createTurnIntelligenceHook({
+      persona,
+      services,
+      userData: live as unknown as TurnIntelligenceDeps['userData'],
+      handle,
+      advisory: true,
+    });
+
+    await hook(llm.ChatContext.empty(), userMessage('Tell me something'));
+
+    const ctx = handle.mock.calls[0][0];
+    expect(ctx.userData).toBe(live);
+    expect(ctx.userData.lastMood).toBe('playful');
+    expect(ctx.advisory).toBe(true);
   });
 
   it('skips empty turns', async () => {

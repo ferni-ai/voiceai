@@ -200,6 +200,11 @@ export interface TurnHandlerContext {
   bundleRuntime?: BundleRuntimeEngine;
   /** Session services */
   services: SessionServices;
+  /**
+   * Advisory run (background turn intelligence): gather context only. The
+   * handler must not speak or start a reply; the agent's own reply is coming.
+   */
+  advisory?: boolean;
   /** User data (proxy to SessionStateManager) */
   userData: {
     turnCount?: number;
@@ -437,6 +442,34 @@ function detectBreathPattern(
 // ============================================================================
 
 /**
+ * The turn's timing side effects (latency profilers, turn-pace clock). An
+ * advisory run gets no-ops: it overlaps the agent's own reply.
+ */
+function turnTiming(sessionId: string, turnNumber: number, advisory: boolean) {
+  if (advisory) {
+    return {
+      startProfiling: () => undefined,
+      startProfile: () => undefined,
+      mark: (_checkpoint: Parameters<typeof markTurnCheckpoint>[2]) => undefined,
+      completeProfile: () => undefined,
+      completeProfiling: () => null,
+      recordTurnGap: () => 0,
+      recordTurnEnd: () => undefined,
+    };
+  }
+  return {
+    startProfiling: () => startTurnProfiling(sessionId, turnNumber),
+    startProfile: () => startTurnProfile(sessionId, turnNumber),
+    mark: (checkpoint: Parameters<typeof markTurnCheckpoint>[2]) =>
+      markTurnCheckpoint(sessionId, turnNumber, checkpoint),
+    completeProfile: () => completeTurnProfile(sessionId, turnNumber),
+    completeProfiling: () => completeTurnProfiling(sessionId, turnNumber),
+    recordTurnGap: () => calculateAndRecordTurnGap(sessionId),
+    recordTurnEnd: () => recordTurnEndTime(sessionId),
+  };
+}
+
+/**
  * Process a completed user turn.
  *
  * This is the main turn processing pipeline that orchestrates:
@@ -474,7 +507,10 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   // PERFORMANCE: Start turn profiling
   // ================================================================
   const turnNumber = userData.turnCount || 1;
-  startTurnProfiling(services.sessionId, turnNumber);
+  // An advisory run overlaps the agent's real reply: it must not touch that
+  // turn's latency profile or the turn-pace clock, or it would skew both.
+  const timing = turnTiming(services.sessionId, turnNumber, !!ctx.advisory);
+  timing.startProfiling();
 
   // ================================================================
   // 🏥 SESSION HEALTH MONITOR: Initialize on first turn
@@ -577,10 +613,10 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     // ADAPTIVE TIMING: Start profiling for "Better than Human" latency
     // ================================================================
     const turnStartTime = Date.now();
-    startTurnProfile(services.sessionId, turnNumber);
+    timing.startProfile();
 
     // Phase 3 BTH: Record turn gap for conversation pace detection
-    const turnGapMs = calculateAndRecordTurnGap(services.sessionId);
+    const turnGapMs = timing.recordTurnGap();
     if (turnGapMs > 0) {
       diag.debug('⏱️ Turn gap recorded', { sessionId: services.sessionId, turnGapMs, turnNumber });
     }
@@ -859,7 +895,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
         clearInterval(fillerCheckInterval);
       }
       // Record turn latency for future adaptive calculations
-      completeTurnProfile(services.sessionId, turnNumber);
+      timing.completeProfile();
     });
 
     // Get unified intelligence result (should be ready by now)
@@ -869,7 +905,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     const memoryRetrievalResult = await memoryRetrievalPromise;
 
     // Mark memory retrieval complete for profiling
-    markTurnCheckpoint(services.sessionId, turnNumber, 'memoryRetrievalComplete');
+    timing.mark('memoryRetrievalComplete');
 
     // ================================================================
     // 🧠 BETTER THAN HUMAN: Inject retrieved memories into context
@@ -938,7 +974,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     // ================================================================
     // PERFORMANCE: Mark analysis complete, trigger speculative TTS
     // ================================================================
-    markTurnCheckpoint(services.sessionId, turnNumber, 'analysisComplete');
+    timing.mark('analysisComplete');
 
     // Fire-and-forget: Speculative TTS pre-generation based on emotion/intent
     // This pre-warms the TTS cache with likely response starters
@@ -1387,7 +1423,7 @@ You are their lifeline right now. Be fully present.`,
     // we use generateReply with EPHEMERAL instructions that guide ONE response.
     // The instructions are NOT stored in chat history, so they can't leak.
     // ================================================================
-    if (result.semanticRouting?.bypassLLM && result.semanticRouting.toolResult) {
+    if (result.semanticRouting?.bypassLLM && result.semanticRouting.toolResult && !ctx.advisory) {
       const { toolResult, metrics, routingPath } = result.semanticRouting;
 
       diag.state('🎯 DIRECT TOOL: Using generateReply for natural response', {
@@ -1713,7 +1749,7 @@ You are their lifeline right now. Be fully present.`,
     // PERFORMANCE: Mark context building start
     // Context building includes: feedback, trust, personality, extensibility
     // ================================================================
-    markTurnCheckpoint(services.sessionId, turnNumber, 'contextBuildStart');
+    timing.mark('contextBuildStart');
 
     // ================================================================
     // 📊 CONTEXTUAL FEEDBACK INJECTION
@@ -1945,7 +1981,7 @@ You are their lifeline right now. Be fully present.`,
     // ================================================================
     // Note: Live superhuman injections are handled by the turn-processor pipeline
     // via src/agents/processors/live-superhuman-injections.ts which runs in Tier 2
-    markTurnCheckpoint(services.sessionId, turnNumber, 'contextBuildComplete');
+    timing.mark('contextBuildComplete');
 
     // ================================================================
     // 🧠 UNIFIED INTELLIGENCE: Inject proactive insight if ready
@@ -2046,7 +2082,7 @@ You are their lifeline right now. Be fully present.`,
     injectTurnContext(turnCtx, result);
 
     // Mark LLM start (LLM inference happens after this point)
-    markTurnCheckpoint(services.sessionId, turnNumber, 'llmStart');
+    timing.mark('llmStart');
 
     // ================================================================
     // EXTENSIBILITY HOOKS
@@ -2737,7 +2773,7 @@ IMPORTANT:
     // ================================================================
     // PERFORMANCE: Complete turn profiling
     // ================================================================
-    const turnMetrics = completeTurnProfiling(services.sessionId, turnNumber);
+    const turnMetrics = timing.completeProfiling();
     if (turnMetrics && (turnMetrics.tier === 'slow' || turnMetrics.tier === 'critical')) {
       diag.warn('Turn latency above threshold', {
         totalMs: turnMetrics.latencies.totalTurnMs,
@@ -2747,7 +2783,7 @@ IMPORTANT:
     }
 
     // Phase 3 BTH: Record turn end time for gap calculation on next turn
-    recordTurnEndTime(services.sessionId);
+    timing.recordTurnEnd();
 
     logger.info(
       {

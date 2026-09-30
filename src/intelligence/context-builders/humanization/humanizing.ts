@@ -42,6 +42,7 @@ import {
 
 import {
   selectPersonaMood,
+  personaMoodFor,
   formatMoodForPrompt,
   getMoodContext,
   shouldMoodShift,
@@ -108,7 +109,12 @@ export interface HumanizingContext {
   // Session state (for avoiding repetition)
   usedShareTags?: string[];
   spontaneousShareCount?: number;
+  /** This conversation's mood so far: held until something shifts it. */
+  currentMood?: MoodState;
+  /** The mood the persona ended the previous conversation in. */
   lastMood?: MoodState;
+  /** Hours since that previous conversation. */
+  hoursSinceLastMood?: number;
 
   // Personal theme tracking (prevents "always talks about Wyoming")
   mentionedPersonalThemes?: Set<string>;
@@ -220,9 +226,13 @@ This should feel organic, not announced.`,
   }
 
   // 2. PERSONA MOOD
-  const moodContext = getMoodContext(ctx.sessionCount, ctx.lastMood);
-
-  const mood = selectPersonaMood(ctx.persona, moodContext);
+  // A mood is set once per conversation and held: re-rolling it every turn
+  // made the persona swing between moods mid-sentence. It changes only when
+  // something shifts it (the caller's builder records the shift).
+  const moodContext = getMoodContext(ctx.sessionCount, ctx.lastMood, ctx.hoursSinceLastMood);
+  const mood = ctx.currentMood
+    ? personaMoodFor(ctx.persona, ctx.currentMood)
+    : selectPersonaMood(ctx.persona, moodContext);
 
   // Check if mood should shift based on user emotion
   const topicWeight = ctx.isVulnerableMoment ? 'heavy' : 'medium';

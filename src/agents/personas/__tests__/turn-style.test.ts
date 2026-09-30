@@ -68,3 +68,12 @@ describe('composeTurnReminder', () => {
     expect(composeTurnReminder(true, [])).toBe(TURN_STYLE_REMINDER);
   });
 });
+
+describe('composeTurnReminder with background notes', () => {
+  it('puts the notes first and labels them as the persona\'s own', () => {
+    const reminder = composeTurnReminder(true, [], 'They sound tired tonight.');
+    expect(reminder?.startsWith('Background for this reply')).toBe(true);
+    expect(reminder).toContain('They sound tired tonight.');
+    expect(reminder?.indexOf('They sound tired')).toBeLessThan(reminder!.indexOf(TURN_STYLE_REMINDER));
+  });
+});

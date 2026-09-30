@@ -79,7 +79,11 @@ export function buildHumanizingContextForTurn(
       previousRelationshipStage,
       usedShareTags: userData.usedShareTags || [],
       spontaneousShareCount: userData.spontaneousShareCount || 0,
-      lastMood: userData.lastMood,
+      // userData.lastMood is the live session's mood (written back below each
+      // turn); the profile holds how the persona left the previous conversation.
+      currentMood: userData.lastMood,
+      lastMood: services.userProfile?.humanizingState?.lastMood,
+      hoursSinceLastMood: hoursSince(services.userProfile?.lastContact),
       // Personal theme tracking (prevents "always talks about Wyoming/Japan/book")
       mentionedPersonalThemes: userData.mentionedPersonalThemes || new Set<string>(),
     };
@@ -145,4 +149,11 @@ export function buildHumanizingContextForTurn(
     ctx.logger.warn({ error: String(error) }, 'Humanizing context failed (non-fatal)');
     return null;
   }
+}
+
+/** Hours since a timestamp, or undefined when unknown. */
+function hoursSince(when: Date | string | undefined): number | undefined {
+  if (!when) return undefined;
+  const ms = Date.now() - new Date(when).getTime();
+  return Number.isFinite(ms) && ms >= 0 ? ms / 3_600_000 : undefined;
 }

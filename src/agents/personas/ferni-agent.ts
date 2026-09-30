@@ -37,6 +37,7 @@ import {
   withTurnStyleReminder,
 } from './turn-style.js';
 import { nextReplyCues } from '../../speech/expression/index.js';
+import type { TurnNotesSource } from '../multi-agent/background-turn-intelligence.js';
 import { getTTSProvider } from '../../speech/tts-gateway/providers/index.js';
 import { filterCaptionStream } from './caption-filter.js';
 import { OpenerGate } from './opener-gate.js';
@@ -111,6 +112,8 @@ export interface PersonaVoiceAgentOptions {
    * context (see agents/multi-agent/turn-intelligence.ts).
    */
   onUserTurn?: (turnCtx: llm.ChatContext, newMessage: llm.ChatMessage) => Promise<void>;
+  /** Background turn intelligence: notes for the next reply (never awaited). */
+  turnNotes?: TurnNotesSource;
 }
 
 // ============================================================================
@@ -464,6 +467,7 @@ function buildHandoffTools(): ToolSet {
 export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
   private skipGreeting: boolean;
   private readonly onUserTurn?: PersonaVoiceAgentOptions['onUserTurn'];
+  private readonly turnNotes?: TurnNotesSource;
 
   constructor(systemPrompt: string, options: PersonaVoiceAgentOptions = {}) {
     // TOKEN LIMIT - Defense-in-depth
@@ -558,6 +562,7 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
 
     this.skipGreeting = options.skipGreeting ?? false;
     this.onUserTurn = options.onUserTurn;
+    this.turnNotes = options.turnNotes;
 
     if (toolSource === 'orchestrator') {
       const toolNamesList = Object.keys(allTools);
@@ -724,7 +729,8 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const userData = this.session.userData as Record<string, unknown> | undefined;
     const reminder = composeTurnReminder(
       turnStyleReminderEnabled(),
-      nextReplyCues(userData, getTTSProvider().voice)
+      nextReplyCues(userData, getTTSProvider().voice),
+      this.turnNotes?.notesForReply()
     );
     const ctx = reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
     const stream = await super.llmNode(ctx, toolCtx, modelSettings);

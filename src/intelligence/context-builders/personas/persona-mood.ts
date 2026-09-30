@@ -70,8 +70,14 @@ export interface MoodContext {
   isWeekend: boolean;
   weatherMood?: 'sunny' | 'rainy' | 'stormy' | 'neutral';
   recentConversationCount: number; // How many conversations recently
+  /** The mood the persona ended the previous conversation in. */
   lastMood?: MoodState;
+  /** Hours since that conversation; a recent mood lingers, an old one gives way to variety. */
+  hoursSinceLastMood?: number;
 }
+
+/** A mood from a conversation this recent still colors the next one. */
+const MOOD_LINGER_HOURS = 12;
 
 // ============================================================================
 // MOOD DEFINITIONS
@@ -410,26 +416,16 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
  * Select a mood for the current session based on context
  */
 export function selectPersonaMood(persona: PersonaConfig, context: MoodContext): PersonaMood {
-  const personaId = normalizePersonaId(persona.id);
-
-  // Calculate mood probabilities based on context
+  // Calculate mood probabilities based on context, then pick by weight
   const probabilities = calculateMoodProbabilities(context, persona);
+  return personaMoodFor(persona, weightedRandomSelect(probabilities));
+}
 
-  // Select mood based on weighted random
-  const selectedMood = weightedRandomSelect(probabilities);
-
-  // Get mood definition
-  const definition = MOOD_DEFINITIONS[selectedMood];
-
-  // Get persona-specific phrases
-  const phrases =
-    MOOD_PHRASES[personaId]?.[selectedMood] || MOOD_PHRASES['ferni'][selectedMood] || [];
-
-  return {
-    state: selectedMood,
-    ...definition,
-    moodPhrases: phrases,
-  };
+/** The full mood (definition and this persona's phrases) for a known state. */
+export function personaMoodFor(persona: PersonaConfig, state: MoodState): PersonaMood {
+  const personaId = normalizePersonaId(persona.id);
+  const phrases = MOOD_PHRASES[personaId]?.[state] || MOOD_PHRASES['ferni'][state] || [];
+  return { state, ...MOOD_DEFINITIONS[state], moodPhrases: phrases };
 }
 
 /**
@@ -498,9 +494,12 @@ function calculateMoodProbabilities(
     probs.set('reflective', (probs.get('reflective') || 0) + 0.05);
   }
 
-  // Avoid same mood twice in a row (if known)
+  // Last conversation's mood: lingers if it was recent, otherwise give way to
+  // variety (the same mood every call reads as a fixed setting, not a mood)
   if (context.lastMood) {
-    probs.set(context.lastMood, (probs.get(context.lastMood) || 0) * 0.5);
+    const recent =
+      context.hoursSinceLastMood !== undefined && context.hoursSinceLastMood < MOOD_LINGER_HOURS;
+    probs.set(context.lastMood, (probs.get(context.lastMood) || 0) * (recent ? 1.6 : 0.5));
   }
 
   // Normalize probabilities
@@ -663,7 +662,11 @@ function normalizePersonaId(id: string): string {
 /**
  * Get mood context from current time
  */
-export function getMoodContext(recentConversationCount = 0, lastMood?: MoodState): MoodContext {
+export function getMoodContext(
+  recentConversationCount = 0,
+  lastMood?: MoodState,
+  hoursSinceLastMood?: number
+): MoodContext {
   const now = new Date();
   const hour = now.getHours();
   const dayOfWeek = now.getDay();
@@ -685,6 +688,7 @@ export function getMoodContext(recentConversationCount = 0, lastMood?: MoodState
     isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
     recentConversationCount,
     lastMood,
+    hoursSinceLastMood,
   };
 }
 

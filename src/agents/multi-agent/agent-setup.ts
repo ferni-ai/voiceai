@@ -80,6 +80,10 @@ import {
   usesServerTurnDetection,
 } from './turn-intelligence.js';
 import {
+  createBackgroundTurnIntelligence,
+  wireBackgroundTurnIntelligence,
+} from './background-turn-intelligence.js';
+import {
   addRecallNote,
   createMemoryRecall,
   memoryRecallMode,
@@ -1690,11 +1694,26 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
   // FerniAgent now hoisted to module level for faster startup
   // Per-turn intelligence (context builders, memory retrieval, emotional
-  // guidance) - see turn-intelligence.ts for why this is gated.
-  const onUserTurn =
-    resolveTurnIntelligenceMode() === 'on'
-      ? createTurnIntelligenceHook({ persona, services, userData, room })
+  // guidance, the persona's mood and inner world). Background by default so it
+  // never delays a reply; see turn-intelligence.ts for the modes.
+  const turnMode = resolveTurnIntelligenceMode();
+  const serverTurns = usesServerTurnDetection(session);
+  const turnHook =
+    turnMode === 'off'
+      ? undefined
+      : createTurnIntelligenceHook({
+          persona,
+          services,
+          userData,
+          room,
+          advisory: turnMode === 'background',
+        });
+  const onUserTurn = turnMode === 'blocking' ? turnHook : undefined;
+  const backgroundTurns =
+    turnMode === 'background' && turnHook && !serverTurns
+      ? createBackgroundTurnIntelligence(turnHook)
       : undefined;
+  log.info({ turnMode, serverTurns }, 'Turn intelligence mode');
 
   const agentInstructions = composeAgentInstructions(
     systemPrompt,
@@ -1705,6 +1724,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const agent = new FerniAgent(agentInstructions, {
     tools: finalTools as unknown as llm.ToolContext<UserData>,
     onUserTurn,
+    turnNotes: backgroundTurns,
     // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
     // function-calling instructions. This can confuse the model and break tool calls.
     // The model will greet naturally based on its system prompt.
@@ -1735,12 +1755,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
     });
   }
 
+  if (backgroundTurns && sessionWithEvents.on) {
+    cleanupFunctions.push(wireBackgroundTurnIntelligence(sessionWithEvents, backgroundTurns));
+  }
+
   // Realtime models that detect turns server-side never call
   // onUserTurnCompleted, so the same per-turn context is pushed into the
   // session between turns instead (informs the next reply).
-  if (onUserTurn && usesServerTurnDetection(session) && sessionWithEvents.on) {
+  if (turnHook && serverTurns && sessionWithEvents.on) {
     const pusher = createRealtimeTurnContextPusher(
-      onUserTurn,
+      turnHook,
       agent as unknown as Parameters<typeof createRealtimeTurnContextPusher>[1]
     );
     const onTranscript = (event: unknown) => {

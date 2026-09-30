@@ -157,6 +157,7 @@ MULTI_AGENT_MODE=true BYPASS_TEAM_UNLOCKS=all pnpm dev
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MULTI_AGENT_MODE` | `false` | Enable multi-agent system |
+| `TURN_INTELLIGENCE` | `background` | Per-turn context (emotion, relationship, the persona's mood and inner world). `background` runs off the reply path and informs the next LLM request (`background-turn-intelligence.ts`); `blocking` awaits it before each reply (+280-400 ms); `off` |
 
 ### Future: Feature Flag
 

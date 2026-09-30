@@ -33,9 +33,22 @@ export function turnStyleReminderEnabled(
   return env.TURN_STYLE_REMINDER !== 'off';
 }
 
-/** The reminder for this turn: the style rule (when on) plus any moment cues; null when empty. */
-export function composeTurnReminder(styleOn: boolean, cues: readonly string[]): string | null {
-  const parts = styleOn ? [TURN_STYLE_REMINDER, ...cues] : [...cues];
+/**
+ * The reminder for this turn, null when empty: background notes first, then
+ * the style rule (it works best last-but-close), then any moment cues.
+ */
+export function composeTurnReminder(
+  styleOn: boolean,
+  cues: readonly string[],
+  notes?: string | null
+): string | null {
+  const parts = [
+    ...(notes
+      ? [`Background for this reply (your own notes, not their words; never quote them): ${notes}`]
+      : []),
+    ...(styleOn ? [TURN_STYLE_REMINDER] : []),
+    ...cues,
+  ];
   return parts.length > 0 ? parts.join(' ') : null;
 }
 

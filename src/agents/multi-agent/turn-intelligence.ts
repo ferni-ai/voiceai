@@ -7,9 +7,13 @@
  * onUserTurnCompleted; when that class was deleted (12fdfcbcc, 2025-12-21) the
  * replacement PersonaVoiceAgent never got the hook, so no live call ran it.
  *
- * The SDK awaits onUserTurnCompleted before generating the reply, so this adds
- * its duration to every turn. It logs that duration and is gated by
- * TURN_INTELLIGENCE until it has been measured on real calls.
+ * Modes (TURN_INTELLIGENCE):
+ * - background (default, also "on"): runs off the reply's critical path in
+ *   advisory mode and informs the next LLM request. See
+ *   background-turn-intelligence.ts.
+ * - blocking: the SDK awaits it in onUserTurnCompleted, adding its duration
+ *   (measured 280-400 ms) to every reply.
+ * - off.
  *
  * Realtime models with server-side turn detection (Gemini native audio) never
  * get onUserTurnCompleted from the SDK; this hook only affects text-LLM
@@ -27,12 +31,14 @@ import type { TurnHandlerContext } from '../voice-agent/turn-handler.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
 
-export type TurnIntelligenceMode = 'on' | 'off';
+export type TurnIntelligenceMode = 'background' | 'blocking' | 'off';
 
 export function resolveTurnIntelligenceMode(
   env: Record<string, string | undefined> = process.env
 ): TurnIntelligenceMode {
-  return env.TURN_INTELLIGENCE === 'on' ? 'on' : 'off';
+  const mode = env.TURN_INTELLIGENCE?.trim().toLowerCase();
+  if (mode === 'off' || mode === 'blocking') return mode;
+  return 'background';
 }
 
 export type UserTurnHook = (turnCtx: llm.ChatContext, newMessage: llm.ChatMessage) => Promise<void>;
@@ -42,6 +48,8 @@ export interface TurnIntelligenceDeps {
   services: SessionServices;
   userData: UserData;
   room?: TurnHandlerContext['room'];
+  /** Gather context only: never speak or reply from inside the handler. */
+  advisory?: boolean;
   /** Injected for tests; defaults to the real turn handler. */
   handle?: (ctx: TurnHandlerContext) => Promise<void>;
 }
@@ -82,20 +90,25 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
         userData.userSpeakingStartTime && userData.lastAgentResponseTime
           ? Math.max(0, userData.userSpeakingStartTime - userData.lastAgentResponseTime)
           : 0;
+      // The handler reads and writes the LIVE session data (mood, stories and
+      // themes already shared, relationship stage): a fresh object each turn
+      // reset the persona's mood and let it repeat itself. Per-turn signals
+      // are layered on top.
+      Object.assign(userData, {
+        extensibilitySessionPrompt: state?.extensibility?.sessionPrompt,
+        pauseBeforeMs,
+        speechRateWPM: getAverageSpeechRate(deps.services.sessionId),
+        totalConversations: state?.user?.totalConversations,
+        sharedVulnerabilities: state?.user?.sharedVulnerabilities,
+      });
 
       await handle({
         turnCtx,
         userText,
         persona: deps.persona,
         services: deps.services,
-        userData: {
-          turnCount: userData.turnCount,
-          extensibilitySessionPrompt: state?.extensibility?.sessionPrompt,
-          pauseBeforeMs,
-          speechRateWPM: getAverageSpeechRate(deps.services.sessionId),
-          totalConversations: state?.user?.totalConversations,
-          sharedVulnerabilities: state?.user?.sharedVulnerabilities,
-        },
+        userData: userData as TurnHandlerContext['userData'],
+        advisory: deps.advisory,
         voiceEmotion: userData.voiceEmotion
           ? {
               primary: userData.voiceEmotion.primary,
@@ -109,7 +122,7 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
         sendDataMessage,
       });
       log.info(
-        { personaId: deps.persona.id, durationMs: Date.now() - start },
+        { personaId: deps.persona.id, durationMs: Date.now() - start, advisory: !!deps.advisory },
         'Turn intelligence applied'
       );
     } catch (error) {
@@ -133,8 +146,23 @@ export function usesServerTurnDetection(session: unknown): boolean {
   return model?.capabilities?.turnDetection === true;
 }
 
-/** Keeps a pushed context note from growing the realtime session's context unboundedly. */
-const MAX_PUSHED_CONTEXT_CHARS = 2000;
+/** Keeps a pushed context note from growing the model's context unboundedly. */
+export const MAX_TURN_NOTES_CHARS = 2000;
+
+/** Run the hook against a scratch context and return what it would have injected. */
+export async function collectTurnNotes(
+  hook: UserTurnHook,
+  transcript: string
+): Promise<string | null> {
+  if (!transcript.trim()) return null;
+  const { llm } = await import('@livekit/agents');
+  const scratch = llm.ChatContext.empty();
+  await hook(scratch, llm.ChatMessage.create({ role: 'user', content: transcript }));
+  const notes = scratch.items
+    .map((item) => (item as { textContent?: string }).textContent?.trim())
+    .filter((text): text is string => Boolean(text));
+  return notes.length > 0 ? notes.join('\n\n').slice(0, MAX_TURN_NOTES_CHARS) : null;
+}
 
 interface RealtimeContextAgent {
   readonly chatCtx: { copy(): { addMessage(msg: { role: 'user'; content: string }): unknown } };
@@ -155,14 +183,8 @@ export function createRealtimeTurnContextPusher(hook: UserTurnHook, agent: Realt
 
   return {
     async onFinalTranscript(transcript: string): Promise<void> {
-      if (!transcript.trim()) return;
-      const { llm } = await import('@livekit/agents');
-      const scratch = llm.ChatContext.empty();
-      await hook(scratch, llm.ChatMessage.create({ role: 'user', content: transcript }));
-      const notes = scratch.items
-        .map((item) => (item as { textContent?: string }).textContent?.trim())
-        .filter((text): text is string => Boolean(text));
-      if (notes.length > 0) pending = notes.join('\n\n').slice(0, MAX_PUSHED_CONTEXT_CHARS);
+      const notes = await collectTurnNotes(hook, transcript);
+      if (notes) pending = notes;
     },
 
     async onAgentState(newState: string | undefined): Promise<void> {
