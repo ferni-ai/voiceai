@@ -3,6 +3,6 @@
   "tags": "devPosts",
   "permalink": "/developers/blog/{{ page.fileSlug }}/",
   "eleventyComputed": {
-    "ogImage": "{{ '/images/dev-blog/' + (image or 'default-og.jpg') }}"
+    "ogImage": "{{ ('/images/dev-blog/' + image) if image else '/images/og-image.jpg' }}"
   }
 }

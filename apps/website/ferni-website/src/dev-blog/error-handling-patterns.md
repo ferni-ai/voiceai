@@ -315,5 +315,5 @@ class ConversationErrorBoundary {
 ## Next Steps
 
 - [Performance Optimization](/developers/blog/performance-optimization/)
-- [Monitoring Guide](/developers/docs/monitoring/)
-- [Testing Voice AI](/developers/guides/testing/)
+- [Monitoring & Observability](/developers/blog/monitoring-observability-voice-ai/)
+- [Testing Voice AI](/developers/testing/)
