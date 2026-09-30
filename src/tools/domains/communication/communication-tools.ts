@@ -334,14 +334,21 @@ async function scheduleReminderReal(params: {
   }
 
   // Validate contact if delivery method requires it
-  if (params.deliveryMethod && params.deliveryMethod !== 'call') {
+  if (
+    params.deliveryMethod &&
+    params.deliveryMethod !== 'call' &&
+    params.deliveryMethod !== 'in_app'
+  ) {
     if (!params.contact) {
       return `I need your ${params.deliveryMethod === 'email' ? 'email address' : 'phone number'} to send that reminder. What should I use?`;
     }
   }
 
   let deliveryAddress = params.contact || '';
-  const deliveryMethod: ReminderDeliveryMethod = params.deliveryMethod || 'sms';
+  // No channel or contact given: remind them in the app rather than promising a
+  // text to a number we don't have.
+  const deliveryMethod: ReminderDeliveryMethod =
+    params.deliveryMethod || (params.contact ? 'sms' : 'in_app');
 
   // Validate the contact
   if (deliveryMethod === 'email' && deliveryAddress) {
@@ -383,6 +390,7 @@ async function scheduleReminderReal(params: {
       email: 'email you',
       call: 'call you',
       voice_message: 'send you a voice message',
+      in_app: 'remind you here in the app',
     }[deliveryMethod];
 
     return `Got it! I'll ${methodDescription} ${formattedTime} about: "${params.message}". Reminder ID: ${reminder.id.slice(-6)}`;
@@ -562,9 +570,11 @@ export function createCommunicationTools() {
           .string()
           .describe('When to send (e.g., "tomorrow at 9am", "in 2 hours", "next Monday")'),
         deliveryMethod: z
-          .enum(['sms', 'email', 'call', 'voice_message'])
-          .default('sms')
-          .describe('How to deliver: sms, email, call, or voice_message'),
+          .enum(['in_app', 'sms', 'email', 'call', 'voice_message'])
+          .optional()
+          .describe(
+            'How to deliver: in_app, sms, email, call, or voice_message. Leave out unless the user asked for one: it texts them if their phone is on file, otherwise reminds them in the app.'
+          ),
         contact: z.string().optional().describe('Phone number or email for delivery'),
       }),
       execute: async ({ message, when, deliveryMethod, contact }, { ctx }) => {
