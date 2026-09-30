@@ -37,7 +37,7 @@ function generateGradient(primary, secondary) {
   return `linear-gradient(135deg, ${secondary} 0%, ${primary} 100%)`;
 }
 
-function generatePersonaColorsTS(personas) {
+function generatePersonaColorsTS(personas, agentBrandPresets) {
   const entries = [];
 
   for (const [personaId, colors] of Object.entries(personas)) {
@@ -63,7 +63,7 @@ function generatePersonaColorsTS(personas) {
   return `/**
  * 🎨 GENERATED FILE - DO NOT EDIT DIRECTLY
  *
- * Persona colors generated from design-system/tokens/colors.json
+ * Persona colors (and custom-agent brand presets) generated from design-system/tokens/colors.json
  * Regenerate with: npm run build:persona-colors
  *
  * Generated: ${buildStamp()}
@@ -103,6 +103,12 @@ export function isGeneratedPersonaId(id: string): id is GeneratedPersonaId {
 export function getGeneratedPersonaColors(personaId: string): PersonaColorConfig | undefined {
   return GENERATED_PERSONA_COLORS[personaId.toLowerCase()];
 }
+
+/**
+ * Starter brand colors for custom agents (first = default).
+ * Source: colors.json → agentBrandPresets.presets
+ */
+export const AGENT_BRAND_PRESETS = ${JSON.stringify(agentBrandPresets, null, 2)} as const;
 `;
 }
 
@@ -126,8 +132,14 @@ function build() {
   const personaCount = Object.keys(personas).filter(k => !k.startsWith('_')).length;
   console.log(`  Found ${personaCount} personas in colors.json`);
 
+  const agentBrandPresets = colorsJson.agentBrandPresets?.presets;
+  if (!Array.isArray(agentBrandPresets) || agentBrandPresets.length === 0) {
+    console.error('❌ No agentBrandPresets.presets found in colors.json');
+    process.exit(1);
+  }
+
   // Generate TypeScript
-  const tsContent = generatePersonaColorsTS(personas);
+  const tsContent = generatePersonaColorsTS(personas, agentBrandPresets);
 
   // Write output
   fs.writeFileSync(CONFIG.outputFile, tsContent);

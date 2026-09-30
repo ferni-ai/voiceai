@@ -793,5 +793,17 @@
       "tint": "rgba(138, 122, 106, 0.15)",
       "_note": "Warm gray - similar to Nayan (Wisdom)"
     }
+  },
+
+  "agentBrandPresets": {
+    "_description": "Starter brand colors offered in the custom agent page builder (first = default). Customers can pick any hex; these are just suggestions.",
+    "presets": [
+      { "name": "Vanguard Red", "value": "#96151D" },
+      { "name": "Forest Green", "value": "#2D5A27" },
+      { "name": "Ocean Blue", "value": "#1E4D8C" },
+      { "name": "Royal Purple", "value": "#5B2C6F" },
+      { "name": "Sunset Orange", "value": "#D35400" },
+      { "name": "Slate Gray", "value": "#34495E" }
+    ]
   }
 }
