@@ -478,7 +478,9 @@ ferni runner ssh
 
 #### Workflows Using Self-Hosted Runner
 
-The runner is registered to this repo (not the org). PR/push CI workflows pick their runner from the
+Two runner processes run on the VM, both registered to this repo (not the org): `github-runner-gce`
+(user `runner`, `/home/runner`) and `github-runner-gce-2` (user `runner2`, `/home/runner2`), so two jobs run
+at once. Each has its own user so pnpm/npm/Playwright caches in `$HOME` are not shared between concurrent jobs. PR/push CI workflows pick their runner from the
 `CI_RUNNER` repo variable, currently `["self-hosted","Linux","X64","gce"]`; unset it and they fall back to
 `ubuntu-latest`. `deploy-gce.yml` is always self-hosted.
 
