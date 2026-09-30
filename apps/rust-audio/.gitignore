@@ -1,0 +1,9 @@
+# Rust build artifacts are ignored at the repo root (apps/rust-audio/target/).
+
+# NAPI build artifacts: keep locally built binaries out of commits.
+# ferni-audio.darwin-arm64.node predates this rule and stays tracked,
+# so changes to it still show up in git status.
+*.node
+
+# OS files
+.DS_Store
