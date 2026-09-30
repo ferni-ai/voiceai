@@ -1763,8 +1763,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
       timezone: userData.timezone,
       closeFollowUp: (followUp) => void saveClosedFollowUp(userId, followUp),
     });
-    // The greeting can open with the newest open thread (orchestrator.ts)
-    userData.openingThread = () => recall.openingThread();
+    // The greeting can open with the newest open thread, and knows how the
+    // last call felt (orchestrator.ts)
+    userData.openingFacts = () => recall.openingFacts();
     const onRecallTranscript = (event: unknown) => {
       const evt = event as { transcript?: string };
       if (!evt.transcript) return;

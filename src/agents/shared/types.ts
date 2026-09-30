@@ -98,8 +98,8 @@ export interface UserData {
   daysThatMatter?: string | null;
   /** Resolves once the caller's dates are loaded and matched */
   daysThatMatterReady?: Promise<void>;
-  /** The newest open thread from earlier calls, for the greeting (memory-recall-hook.ts) */
-  openingThread?: () => Promise<string | null>;
+  /** Greeting facts from memory: the newest open thread, how the last call felt (memory-recall-hook.ts) */
+  openingFacts?: () => Promise<Record<string, string>>;
 
   /** User's IP-detected location (for weather, local info personalization) */
   userLocation?: {

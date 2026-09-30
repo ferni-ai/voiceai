@@ -15,7 +15,7 @@
  * @module memory/recall/session-recall
  */
 
-import { followUpsFromSummaries, formatFollowUps, type FollowUp } from './follow-ups.js';
+import { followUpsFromSummaries, formatFollowUps, toMillis, type FollowUp } from './follow-ups.js';
 import type { SharedLaugh } from './shared-laughs.js';
 import { contentWords, mentions } from './words.js';
 
@@ -34,6 +34,8 @@ export interface RecallSnapshot {
   followUps: FollowUp[];
   /** Moments they laughed at, for callbacks (see shared-laughs.ts). */
   laughs: SharedLaugh[];
+  /** How the most recent call felt, from its summary ("started anxious, ended calmer"). */
+  lastCall?: { at: number; arc: string };
 }
 
 export const EMPTY_SNAPSHOT: RecallSnapshot = { facts: [], followUps: [], laughs: [] };
@@ -139,5 +141,20 @@ export async function loadRecallSnapshot(
     }))
   );
   const followUps = followUpsFromSummaries(rawSummaries, new Set(closed));
-  return { facts, followUps, laughs };
+  return { facts, followUps, laughs, ...lastCallOf(rawSummaries) };
+}
+
+/** A last call older than this is not "last time" any more. */
+const LAST_CALL_MAX_DAYS = 21;
+
+/** How the newest summarized call felt, when it is recent enough to carry. */
+function lastCallOf(
+  summaries: ReadonlyArray<Record<string, unknown>>,
+  now: number = Date.now()
+): Pick<RecallSnapshot, 'lastCall'> {
+  const newest = summaries[0];
+  const arc = String(newest?.emotionalArc ?? '').trim();
+  const at = toMillis(newest?.timestamp);
+  if (!arc || !at || now - at > LAST_CALL_MAX_DAYS * 86_400_000) return {};
+  return { lastCall: { at, arc } };
 }

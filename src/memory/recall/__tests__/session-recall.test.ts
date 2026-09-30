@@ -121,6 +121,25 @@ describe('loadRecallSnapshot', () => {
     ]);
   });
 
+  it('keeps how the newest recent call felt, and not an old one', async () => {
+    const recent = await loadRecallSnapshot(
+      {
+        facts: async () => [],
+        summaries: async () => [{ timestamp: Date.now() - 86_400_000, emotionalArc: 'heavy' }],
+      },
+      'u1'
+    );
+    expect(recent.lastCall?.arc).toBe('heavy');
+    const old = await loadRecallSnapshot(
+      {
+        facts: async () => [],
+        summaries: async () => [{ timestamp: Date.now() - 60 * 86_400_000, emotionalArc: 'heavy' }],
+      },
+      'u1'
+    );
+    expect(old.lastCall).toBeUndefined();
+  });
+
   it('leaves out threads already raised on an earlier call', async () => {
     const snap = await loadRecallSnapshot(
       {

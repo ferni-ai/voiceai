@@ -246,7 +246,7 @@ export class AgentOrchestrator {
         | {
             userName?: string;
             timezone?: string;
-            openingThread?: () => Promise<string | null>;
+            openingFacts?: () => Promise<Record<string, string>>;
             daysThatMatter?: string | null;
             daysThatMatterReady?: Promise<void>;
             services?: { userProfile?: Parameters<typeof greetingFamiliarity>[0] };
@@ -269,8 +269,8 @@ export class AgentOrchestrator {
       const userName = userData?.userName;
       // Something they told you was coming up: a friend opens with it.
       // A birthday or a hard anniversary today shapes the hello too.
-      const [openThread] = await Promise.all([
-        userData?.openingThread?.().catch(() => null),
+      const [memoryFacts = {}] = await Promise.all([
+        userData?.openingFacts?.().catch((): Record<string, string> => ({})),
         Promise.race([
           userData?.daysThatMatterReady?.catch(() => undefined),
           new Promise<void>((resolve) => {
@@ -284,13 +284,16 @@ export class AgentOrchestrator {
         moment: 'greeting',
         direction:
           'They just connected for a voice call. Greet them like a friend picking up the phone: warm, short, and end with one easy opening. Do not list what you can do or introduce yourself at length.' +
-          (openThread
+          (memoryFacts['open thread from last time']
             ? ' If it fits, the opening can be the open thread from last time: work out from when it was said whether it has happened, and ask how it went or how it is going.'
+            : '') +
+          (memoryFacts['how your last call felt']
+            ? ' Let how the last call felt shape your hello: if it was heavy, open gently and check in on them first.'
             : ''),
         facts: {
           'time of day': partOfDay,
           ...(userName ? { 'their name': userName } : {}),
-          ...(openThread ? { 'open thread from last time': openThread } : {}),
+          ...memoryFacts,
           ...(dayThatMatters ? { 'a day that matters to them': dayThatMatters } : {}),
           ...familiarity.facts,
         },

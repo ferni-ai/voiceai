@@ -196,10 +196,11 @@ export interface MemoryRecall {
   /** Ferni said this: close any offered thread it raised. */
   agentSaid(text: string): void;
   /**
-   * The newest open thread, worded for the greeting ("Interview on Thursday,
-   * said 3 days ago (Tuesday)"), or null. Waits briefly for memory to load.
+   * Facts for the greeting: the newest open thread ("Interview on Thursday
+   * (said 3 days ago (Tuesday))") and how the last call felt. Waits briefly
+   * for memory to load; empty when nothing is known.
    */
-  openingThread(maxWaitMs?: number): Promise<string | null>;
+  openingFacts(maxWaitMs?: number): Promise<Record<string, string>>;
 }
 
 /**
@@ -272,18 +273,27 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       offered = null;
       return laugh;
     },
-    async openingThread(maxWaitMs = 300) {
+    async openingFacts(maxWaitMs = 300) {
       await Promise.race([
         ready,
         new Promise<void>((resolve) => {
           setTimeout(resolve, maxWaitMs);
         }),
       ]);
+      const facts: Record<string, string> = {};
+      const now = Date.now();
       const thread = snapshot?.followUps[0];
-      if (!thread) return null;
-      // Ferni may raise it in the greeting; saying it there closes it too
-      if (!openFollowUps.includes(thread)) openFollowUps = [...openFollowUps, thread];
-      return `${thread.text} (said ${whenSaid(thread.at, Date.now(), deps.timezone)})`;
+      if (thread) {
+        // Ferni may raise it in the greeting; saying it there closes it too
+        if (!openFollowUps.includes(thread)) openFollowUps = [...openFollowUps, thread];
+        facts['open thread from last time'] =
+          `${thread.text} (said ${whenSaid(thread.at, now, deps.timezone)})`;
+      }
+      const last = snapshot?.lastCall;
+      if (last) {
+        facts['how your last call felt'] = `${last.arc} (${whenSaid(last.at, now, deps.timezone)})`;
+      }
+      return facts;
     },
     agentSaid(text) {
       const raised = raisedIn(text, openFollowUps);

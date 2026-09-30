@@ -47,6 +47,36 @@ describe('createMemoryRecall', () => {
     expect(closed).toEqual(['biscuit-settling']);
   });
 
+  it('gives the greeting the newest open thread and how the last call felt', async () => {
+    const yesterday = Date.now() - 86_400_000;
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      store: {
+        facts: async () => [],
+        summaries: async () => [
+          {
+            timestamp: yesterday,
+            emotionalArc: 'started anxious about work, ended calmer',
+            followUpItems: ['Ask how the job interview went'],
+          },
+        ],
+      },
+    });
+    const facts = await recall.openingFacts();
+    expect(facts['open thread from last time']).toMatch(/^Ask how the job interview went \(said /);
+    expect(facts['how your last call felt']).toMatch(
+      /^started anxious about work, ended calmer \(/
+    );
+  });
+
+  it('carries nothing into the greeting when there is no memory', async () => {
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      store: { facts: async () => [], summaries: async () => [] },
+    });
+    expect(await recall.openingFacts()).toEqual({});
+  });
+
   it('recalls at most 4 facts per user turn across interim transcripts, then resets', async () => {
     const many = {
       facts: async () =>
