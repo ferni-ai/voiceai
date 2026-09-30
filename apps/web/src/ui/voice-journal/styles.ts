@@ -149,13 +149,13 @@ export function getJournalStyles(): string {
     
     .journal-tab--active {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .journal-tab--active:hover,
     .journal-tab--active:focus-visible {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
       filter: brightness(1.1);
     }
     
@@ -207,7 +207,7 @@ export function getJournalStyles(): string {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .prompt-difficulty {
@@ -216,15 +216,15 @@ export function getJournalStyles(): string {
     }
     
     .prompt-difficulty--gentle {
-      color: var(--color-semantic-success, #4a6741);
+      color: var(--color-semantic-success-text);
     }
     
     .prompt-difficulty--moderate {
-      color: var(--color-semantic-warning, #c4856a);
+      color: var(--color-semantic-warning-text);
     }
     
     .prompt-difficulty--deep {
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .prompt-text {
@@ -307,7 +307,7 @@ export function getJournalStyles(): string {
       background: var(--color-accent, #4a6741);
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: white;
+      color: var(--color-text-on-accent);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.95rem;
       font-weight: 500;
@@ -383,7 +383,7 @@ export function getJournalStyles(): string {
     }
     
     .mood-option--selected .mood-icon {
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
     }
     
     /* ========================================================================
@@ -415,7 +415,7 @@ export function getJournalStyles(): string {
     }
     
     .stat-icon--mood {
-      color: var(--color-accent);
+      color: var(--color-accent-text);
     }
     
     .stat-value {
@@ -537,7 +537,7 @@ export function getJournalStyles(): string {
     
     .calendar-day--today {
       font-weight: 600;
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .calendar-day--has-entry {
@@ -622,7 +622,7 @@ export function getJournalStyles(): string {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--color-accent, #3d5a45);
+      color: var(--color-accent-text);
       background: var(--color-accent-subtle, rgba(61, 90, 69, 0.15));
       padding: 2px 8px;
       border-radius: var(--radius-full, 9999px);
@@ -693,7 +693,7 @@ export function getJournalStyles(): string {
       background: var(--color-accent, #4a6741);
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: white;
+      color: var(--color-text-on-accent);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.9rem;
       font-weight: 500;
@@ -742,7 +742,7 @@ export function getJournalStyles(): string {
     
     .insight-icon {
       flex-shrink: 0;
-      color: var(--color-accent);
+      color: var(--color-accent-text);
     }
     
     .insight-content {
@@ -796,7 +796,7 @@ export function getJournalStyles(): string {
     .entry-delete:hover,
     .entry-delete:focus-visible {
       background: var(--color-semantic-error-subtle, rgba(220, 38, 38, 0.1));
-      color: var(--color-semantic-error, #dc2626);
+      color: var(--color-semantic-error-text);
     }
     
     /* ========================================================================
@@ -815,7 +815,7 @@ export function getJournalStyles(): string {
     
     .calendar-day--selected {
       background: var(--color-accent, #4a6741) !important;
-      color: white !important;
+      color: var(--color-text-on-accent) !important;
     }
     
     .calendar-day--selected .calendar-dot {
@@ -842,7 +842,7 @@ export function getJournalStyles(): string {
       gap: var(--space-2xs, 4px);
       background: none;
       border: none;
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
       cursor: pointer;
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.8rem;
@@ -865,7 +865,7 @@ export function getJournalStyles(): string {
       background: var(--color-accent, #4a6741);
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: white;
+      color: var(--color-text-on-accent);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.85rem;
       font-weight: 500;
@@ -945,7 +945,7 @@ export function getJournalStyles(): string {
     .entries-filter-clear-btn {
       background: none;
       border: none;
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
       cursor: pointer;
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.8rem;

@@ -525,7 +525,7 @@ export function injectStorytellingStyles(): void {
     }
 
     /* Tone variations */
-    .narrative-stat--warm .narrative-stat__value { color: var(--persona-primary, #4a6741); }
+    .narrative-stat--warm .narrative-stat__value { color: var(--persona-ink); }
     .narrative-stat--celebratory .narrative-stat__value { color: var(--color-maya, #a67a6a); }
     .narrative-stat--gentle .narrative-stat__value { color: var(--color-nayan, #b8956a); }
     .narrative-stat--curious .narrative-stat__value { color: var(--color-alex, #5a6b8a); }
@@ -584,7 +584,7 @@ export function injectStorytellingStyles(): void {
     }
 
     .temporal-story__frame--present .temporal-story__narrative {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 600;
     }
 
@@ -633,7 +633,7 @@ export function injectStorytellingStyles(): void {
     }
 
     .mirror-insight__deeper .mirror-insight__text {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 500;
     }
 

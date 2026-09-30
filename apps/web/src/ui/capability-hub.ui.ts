@@ -495,7 +495,7 @@ function addStyles(): void {
     .capability-hub__eyebrow {
       font-size: 0.75rem;
       letter-spacing: 0.1em;
-      color: var(--color-ferni);
+      color: var(--color-ferni-ink);
       text-transform: uppercase;
       font-weight: 600;
     }
@@ -587,7 +587,7 @@ function addStyles(): void {
     .capability-card__stats-value {
       font-size: 1.25rem;
       font-weight: 700;
-      color: var(--color-ferni);
+      color: var(--color-ferni-ink);
     }
 
     .capability-card__stats-label {
@@ -614,7 +614,7 @@ function addStyles(): void {
     }
 
     .capability-hub__active-icon {
-      color: var(--color-ferni);
+      color: var(--color-ferni-ink);
       display: inline-flex;
       align-items: center;
     }
@@ -730,7 +730,7 @@ function addStyles(): void {
     .capability-modal__stats-value {
       font-size: 2.5rem;
       font-weight: 700;
-      color: var(--color-ferni);
+      color: var(--color-ferni-ink);
     }
 
     .capability-modal__stats-label {
@@ -749,7 +749,7 @@ function addStyles(): void {
 
     .capability-modal__status--active {
       background: rgba(74, 103, 65, 0.1);
-      color: var(--color-ferni);
+      color: var(--color-ferni-ink);
     }
 
     .capability-modal__status-icon {

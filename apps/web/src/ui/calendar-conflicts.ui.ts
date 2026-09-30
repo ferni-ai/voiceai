@@ -551,7 +551,7 @@ class CalendarConflictsUI {
       .calendar-conflicts__icon {
         width: 24px;
         height: 24px;
-        color: var(--color-semantic-warning, #c4856a);
+        color: var(--color-semantic-warning-text);
       }
 
       .calendar-conflicts__icon svg {
@@ -634,7 +634,7 @@ class CalendarConflictsUI {
         width: 48px;
         height: 48px;
         margin: 0 auto var(--ma-breath, 13px);
-        color: var(--color-semantic-success, #4a6741);
+        color: var(--color-semantic-success-text);
       }
 
       .calendar-conflicts__empty-icon svg {
@@ -686,7 +686,7 @@ class CalendarConflictsUI {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-semantic-warning, #c4856a);
+        color: var(--color-semantic-warning-text);
         text-transform: uppercase;
         letter-spacing: 0.05em;
       }
@@ -721,7 +721,7 @@ class CalendarConflictsUI {
       }
 
       .calendar-conflicts__version--ferni .calendar-conflicts__version-label {
-        color: var(--color-ferni, #4a6741);
+        color: var(--color-ferni-ink);
       }
 
       .calendar-conflicts__event-title {
@@ -760,7 +760,7 @@ class CalendarConflictsUI {
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-md, 8px);
         cursor: pointer;

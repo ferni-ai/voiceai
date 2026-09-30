@@ -291,7 +291,7 @@ function renderStyles(): string {
 
       .bth-btn-primary {
         background: var(--color-accent-primary);
-        color: white;
+        color: var(--color-text-on-accent);
         border-color: var(--color-accent-primary);
       }
 
@@ -328,7 +328,7 @@ function renderStyles(): string {
       }
 
       .bth-tab.active {
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
         border-bottom-color: var(--color-accent-primary);
       }
 
@@ -374,9 +374,9 @@ function renderStyles(): string {
         margin-top: var(--space-xs);
       }
 
-      .bth-stat-positive { color: var(--color-semantic-success); }
+      .bth-stat-positive { color: var(--color-semantic-success-text); }
       .bth-stat-neutral { color: var(--color-text-muted); }
-      .bth-stat-negative { color: var(--color-semantic-error); }
+      .bth-stat-negative { color: var(--color-semantic-error-text); }
 
       .bth-table {
         width: 100%;
@@ -406,7 +406,7 @@ function renderStyles(): string {
       .bth-capability-name {
         font-weight: 500;
         cursor: pointer;
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
       }
 
       .bth-capability-name:hover {
@@ -440,12 +440,12 @@ function renderStyles(): string {
 
       .bth-trend-improving {
         background: rgba(var(--color-semantic-success-rgb), 0.15);
-        color: var(--color-semantic-success);
+        color: var(--color-semantic-success-text);
       }
 
       .bth-trend-declining {
         background: rgba(var(--color-semantic-error-rgb), 0.15);
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
       }
 
       .bth-trend-stable {
@@ -509,7 +509,7 @@ function renderStyles(): string {
         background: rgba(var(--color-semantic-error-rgb), 0.1);
         border: 1px solid var(--color-semantic-error);
         border-radius: var(--radius-md);
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
         text-align: center;
       }
 

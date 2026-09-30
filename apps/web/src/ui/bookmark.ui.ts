@@ -389,7 +389,7 @@ function injectStyles(): void {
       position: fixed;
       pointer-events: none;
       z-index: var(--z-notification, 3000);
-      color: var(--color-accent-primary, #4a6741);
+      color: var(--color-accent-text);
       animation: bookmarkFloat 1s ${EASING.EXPO_OUT} forwards;
       filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
     }

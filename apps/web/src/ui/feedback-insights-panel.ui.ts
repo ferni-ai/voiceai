@@ -238,7 +238,7 @@ function injectStyles(): void {
       flex-shrink: 0;
       width: 24px;
       height: 24px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .feedback-insights-panel__insight-text {
@@ -249,7 +249,7 @@ function injectStyles(): void {
     }
 
     .feedback-insights-panel__insight-text strong {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 600;
     }
 
@@ -343,7 +343,7 @@ function renderContent(): void {
   if (loadError) {
     content.innerHTML = `
       <div class="feedback-insights-panel__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, rgba(44, 37, 32, 0.5));">
-        Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
+        Couldn't load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
       </div>
     `;
     content.querySelector('button')?.addEventListener('click', () => {

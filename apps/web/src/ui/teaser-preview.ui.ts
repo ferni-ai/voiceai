@@ -606,7 +606,7 @@ export class TeaserPreviewUI {
       .teaser-badge-icon {
         width: 14px;
         height: 14px;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .teaser-badge-icon svg {
@@ -619,7 +619,7 @@ export class TeaserPreviewUI {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .teaser-title {
@@ -734,7 +734,7 @@ export class TeaserPreviewUI {
         transform: translate(-50%, -50%);
         font-size: 1.25rem;
         font-weight: 700;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .teaser-score-label {
@@ -858,7 +858,7 @@ export class TeaserPreviewUI {
         display: block;
         font-size: 1.5rem;
         font-weight: 700;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .teaser-trust-stat-label {
@@ -885,7 +885,7 @@ export class TeaserPreviewUI {
         background: var(--persona-tint, rgba(74, 103, 65, 0.1));
         border-radius: var(--radius-sm, 4px);
         font-size: 0.7rem;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       /* ==================== LIFE CONTEXT TEASER ==================== */
@@ -953,7 +953,7 @@ export class TeaserPreviewUI {
       .teaser-life-insight-icon {
         width: 16px;
         height: 16px;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         flex-shrink: 0;
       }
 
@@ -998,7 +998,7 @@ export class TeaserPreviewUI {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .teaser-prediction--pending .teaser-prediction-status {
@@ -1029,7 +1029,7 @@ export class TeaserPreviewUI {
       .teaser-prediction-accuracy-value {
         font-size: 1.5rem;
         font-weight: 700;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .teaser-prediction-accuracy-label {
@@ -1116,7 +1116,7 @@ export class TeaserPreviewUI {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         margin-left: var(--space-2);
       }
 
@@ -1196,7 +1196,7 @@ export class TeaserPreviewUI {
 
       .teaser-person-sentiment--positive {
         background: rgba(74, 103, 65, 0.1);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .teaser-person-sentiment--mixed {
@@ -1248,7 +1248,7 @@ export class TeaserPreviewUI {
         display: block;
         font-size: 1rem;
         font-weight: 700;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .teaser-analytics-stat-label {

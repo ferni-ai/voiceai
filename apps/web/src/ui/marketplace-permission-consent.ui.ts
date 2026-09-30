@@ -808,7 +808,7 @@ function injectStyles(): void {
       background: color-mix(in srgb, var(--color-semantic-warning) 10%, transparent);
       border-radius: var(--radius-lg);
       font-size: 0.875rem;
-      color: var(--color-semantic-warning);
+      color: var(--color-semantic-warning-text);
     }
 
     .warning-icon {
@@ -936,7 +936,7 @@ function injectStyles(): void {
       margin: 0 auto var(--space-3, 12px);
       background: var(--color-semantic-success-glow);
       border-radius: var(--radius-full);
-      color: var(--color-semantic-success);
+      color: var(--color-semantic-success-text);
     }
 
     .no-permissions-icon svg {

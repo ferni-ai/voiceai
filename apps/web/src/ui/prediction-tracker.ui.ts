@@ -398,7 +398,7 @@ class PredictionTrackerUI {
       .pred-tracker__category-icon {
         width: 20px;
         height: 20px;
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
       }
 
       .pred-tracker__category-icon svg { width: 100%; height: 100%; }
@@ -483,7 +483,7 @@ class PredictionTrackerUI {
 
       .pred-tracker__btn--primary {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .pred-tracker__btn--primary:hover { background: var(--color-accent-hover, #3a7050); }

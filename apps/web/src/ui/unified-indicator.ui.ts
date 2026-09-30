@@ -793,7 +793,7 @@ function injectStyles(): void {
     }
     
     .unified-indicator--connected .unified-indicator__icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
     
     .unified-indicator--connected .unified-indicator__icon svg {

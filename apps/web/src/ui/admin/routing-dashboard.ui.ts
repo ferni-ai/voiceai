@@ -596,7 +596,7 @@ export class RoutingDashboard {
       .refresh-btn {
         padding: var(--space-2) var(--space-4);
         background: var(--color-accent-primary);
-        color: var(--color-text-inverse);
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-md);
         cursor: pointer;
@@ -751,11 +751,11 @@ export class RoutingDashboard {
       }
 
       .tool-name.predicted {
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
       }
 
       .tool-name.actual {
-        color: var(--color-semantic-success);
+        color: var(--color-semantic-success-text);
       }
 
       .arrow {
@@ -763,9 +763,9 @@ export class RoutingDashboard {
         text-align: center;
       }
 
-      .success-high { color: var(--color-semantic-success); }
-      .success-medium { color: var(--color-semantic-warning); }
-      .success-low { color: var(--color-semantic-error); }
+      .success-high { color: var(--color-semantic-success-text); }
+      .success-medium { color: var(--color-semantic-warning-text); }
+      .success-low { color: var(--color-semantic-error-text); }
 
       /* Defense Stats */
       .defense-grid {
@@ -795,11 +795,11 @@ export class RoutingDashboard {
       }
 
       .defense-value.warning {
-        color: var(--color-semantic-warning);
+        color: var(--color-semantic-warning-text);
       }
 
       .defense-value.critical {
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
       }
 
       .threat-breakdown {
@@ -871,7 +871,7 @@ export class RoutingDashboard {
       }
 
       .learning-value.active {
-        color: var(--color-semantic-success);
+        color: var(--color-semantic-success-text);
       }
 
       .learning-value.inactive {
@@ -920,7 +920,7 @@ export class RoutingDashboard {
 
       .error-detail {
         font-size: var(--text-sm);
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
         margin: var(--space-2) 0 var(--space-4) 0;
       }
 

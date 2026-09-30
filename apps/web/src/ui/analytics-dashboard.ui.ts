@@ -879,7 +879,7 @@ class AnalyticsDashboardUI {
         width: 24px;
         height: 24px;
         margin: 0 auto var(--space-2, 8px);
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
       }
 
       .analytics__card-icon svg {
@@ -1044,13 +1044,13 @@ class AnalyticsDashboardUI {
         height: 32px;
         border-radius: var(--radius-md, 0.5rem);
         background: var(--color-background-secondary);
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
         flex-shrink: 0;
       }
 
       .analytics__insight-icon-wrapper--tip {
         background: var(--persona-tint, rgba(45, 90, 61, 0.1));
-        color: var(--color-semantic-warning);
+        color: var(--color-semantic-warning-text);
       }
 
       .analytics__insight-content {
@@ -1133,7 +1133,7 @@ class AnalyticsDashboardUI {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
         background: var(--persona-tint);
         padding: var(--space-1, 4px) var(--space-2, 8px);
         border-radius: var(--radius-full, 9999px);
@@ -1189,7 +1189,7 @@ class AnalyticsDashboardUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-xl, 1.25rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
       }
 
       .analytics__prediction-avg-label,
@@ -1341,7 +1341,7 @@ class AnalyticsDashboardUI {
       /* Dark Theme - Prediction Chart */
       [data-theme="midnight"] .analytics__accuracy-badge {
         background: var(--persona-tint);
-        color: var(--color-accent-secondary);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .analytics__prediction-area {
@@ -1358,7 +1358,7 @@ class AnalyticsDashboardUI {
       }
 
       [data-theme="midnight"] .analytics__prediction-avg-value {
-        color: var(--color-accent-secondary);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .analytics__prediction-range span:first-child {
@@ -1368,12 +1368,12 @@ class AnalyticsDashboardUI {
       /* Dark Theme - Insight Icons */
       [data-theme="midnight"] .analytics__insight-icon-wrapper {
         background: var(--color-background-secondary);
-        color: var(--color-accent-secondary);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .analytics__insight-icon-wrapper--tip {
         background: var(--persona-tint);
-        color: var(--color-semantic-warning);
+        color: var(--color-semantic-warning-text);
       }
 
       /* ========================================================================
@@ -1525,7 +1525,7 @@ class AnalyticsDashboardUI {
       }
 
       .analytics__growth-stat-icon {
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
         margin-bottom: var(--space-2, 8px);
       }
 
@@ -1600,7 +1600,7 @@ class AnalyticsDashboardUI {
         align-items: center;
         justify-content: center;
         background: var(--persona-tint, rgba(45, 90, 61, 0.1));
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
         border-radius: var(--radius-md, 0.5rem);
       }
 
@@ -1634,7 +1634,7 @@ class AnalyticsDashboardUI {
       }
 
       .analytics__growth-arrow {
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
         font-weight: bold;
       }
 
@@ -1647,7 +1647,7 @@ class AnalyticsDashboardUI {
         flex-shrink: 0;
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
         background: var(--persona-tint, rgba(45, 90, 61, 0.1));
         padding: var(--space-1, 4px) var(--space-2, 8px);
         border-radius: var(--radius-full, 9999px);
@@ -1682,16 +1682,16 @@ class AnalyticsDashboardUI {
 
       [data-theme="midnight"] .analytics__growth-insight-icon {
         background: var(--persona-tint);
-        color: var(--color-accent-secondary);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .analytics__growth-insight-confidence {
         background: var(--persona-tint);
-        color: var(--color-accent-secondary);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .analytics__growth-arrow {
-        color: var(--color-accent-secondary);
+        color: var(--color-ferni-ink);
       }
 
       /* ========================================================================

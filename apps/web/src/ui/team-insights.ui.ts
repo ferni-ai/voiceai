@@ -848,7 +848,7 @@ function injectStyles(): void {
     .team-insights-icon {
       width: 32px;
       height: 32px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
     
     .team-insights-eyebrow {
@@ -856,7 +856,7 @@ function injectStyles(): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin: 0 0 2px 0;
     }
     
@@ -1282,7 +1282,7 @@ function injectStyles(): void {
       display: block;
       font-size: 13px;
       font-weight: 600;
-      color: var(--persona-maya, #a67a6a);
+      color: var(--persona-maya-ink);
       margin-bottom: var(--space-xs, 4px);
     }
     
@@ -1309,7 +1309,7 @@ function injectStyles(): void {
     }
     
     .team-insights-empty__promise-icon {
-      color: var(--persona-ferni, #4a6741);
+      color: var(--persona-ferni-ink);
     }
     
     .team-insights-empty__promise-icon svg {

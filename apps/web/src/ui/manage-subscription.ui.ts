@@ -491,7 +491,7 @@ class ManageSubscriptionUI {
         padding: var(--space-4, 16px);
         background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.12)), transparent);
         border-radius: var(--radius-full, 9999px);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .manage-sub__icon--premium {
@@ -509,7 +509,7 @@ class ManageSubscriptionUI {
         font-family: var(--font-body);
         font-size: 0.6875rem;
         font-weight: 500;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         letter-spacing: 0.08em;
         margin-bottom: var(--space-2, 8px);
         opacity: 0.9;
@@ -699,7 +699,7 @@ class ManageSubscriptionUI {
 
       [data-theme="midnight"] .manage-sub__icon {
         background: linear-gradient(135deg, rgba(106, 138, 97, 0.2), transparent);
-        color: var(--persona-primary, #6a8a61);
+        color: var(--persona-ink);
       }
 
       [data-theme="midnight"] .manage-sub__icon--premium {

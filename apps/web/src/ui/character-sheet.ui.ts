@@ -139,7 +139,7 @@ const STYLES = `
   }
 
   .character-section-title svg {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .character-edit-btn {
@@ -147,7 +147,7 @@ const STYLES = `
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-lg);
     background: var(--color-accent);
-    color: white;
+    color: var(--color-text-on-accent);
     border: none;
     cursor: pointer;
     display: flex;
@@ -262,7 +262,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .character-relationship-info {
@@ -325,7 +325,7 @@ const STYLES = `
   .character-item-btn--delete:hover {
     background: color-mix(in srgb, var(--color-semantic-error, #ef4444) 10%, transparent);
     border-color: color-mix(in srgb, var(--color-semantic-error, #ef4444) 30%, transparent);
-    color: var(--color-semantic-error, #ef4444);
+    color: var(--color-semantic-error-text);
   }
 
   .character-quirk-tag {
@@ -348,7 +348,7 @@ const STYLES = `
   }
 
   .character-quirk-delete:hover {
-    color: var(--color-semantic-error, #ef4444);
+    color: var(--color-semantic-error-text);
   }
 
   /* Mobile Responsiveness */

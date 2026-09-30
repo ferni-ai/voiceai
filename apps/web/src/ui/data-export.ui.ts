@@ -338,7 +338,7 @@ class DataExportUI {
 
       .data-export__format-btn--active {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
         border-color: var(--color-accent-primary, #2d5a3d);
       }
 
@@ -362,14 +362,14 @@ class DataExportUI {
 
       .data-export__btn--primary {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .data-export__btn--primary:hover { background: var(--color-accent-hover, #3a7050); }
 
       .data-export__btn--danger {
         background: transparent;
-        color: var(--color-semantic-error, #b5453a);
+        color: var(--color-semantic-error-text);
       }
 
       .data-export__btn--danger:hover {

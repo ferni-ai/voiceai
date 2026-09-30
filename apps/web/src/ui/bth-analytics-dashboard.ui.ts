@@ -571,7 +571,7 @@ function injectStyles(): void {
     .bth-error {
       text-align: center;
       padding: var(--space-xl, 3rem);
-      color: var(--color-semantic-error, #ef4444);
+      color: var(--color-semantic-error-text);
     }
 
     .bth-error__detail {
@@ -635,7 +635,7 @@ function injectStyles(): void {
     .bth-top-card__score {
       font-size: 1.25rem;
       font-weight: 600;
-      color: var(--color-semantic-success, #22c55e);
+      color: var(--color-semantic-success-text);
     }
 
     .bth-table-container {
@@ -672,9 +672,9 @@ function injectStyles(): void {
       font-weight: 500;
     }
 
-    .bth-positive { color: var(--color-semantic-success, #22c55e); }
+    .bth-positive { color: var(--color-semantic-success-text); }
     .bth-neutral { color: var(--color-text-muted, rgba(255, 255, 255, 0.5)); }
-    .bth-negative { color: var(--color-semantic-error, #ef4444); }
+    .bth-negative { color: var(--color-semantic-error-text); }
 
     .bth-effectiveness {
       display: flex;

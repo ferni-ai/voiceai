@@ -565,12 +565,12 @@ function injectStyles(): void {
     .gift-seeds-tier-receive {
       font-size: var(--text-base, 1rem);
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .gift-seeds-tier-bonus {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       padding: 2px 6px;
       border-radius: var(--radius-full, 9999px);
@@ -587,7 +587,7 @@ function injectStyles(): void {
     }
 
     .gift-seeds-multiplier svg {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .gift-seeds-textarea {

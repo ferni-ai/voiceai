@@ -735,7 +735,7 @@ function injectStyles(): void {
       padding: var(--space-4, 16px);
       background: linear-gradient(135deg, var(--persona-tint), transparent);
       border-radius: var(--radius-full);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       animation: support-ferni-icon-breathe 4s ease-in-out infinite;
     }
 
@@ -749,7 +749,7 @@ function injectStyles(): void {
       font-size: 0.8125rem;
       font-weight: 500;
       letter-spacing: 0.04em;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-2, 8px);
       opacity: 0.85;
     }
@@ -1031,7 +1031,7 @@ function injectStyles(): void {
     }
 
     .support-ferni-cost-total .support-ferni-cost-value {
-      color: var(--persona-primary);
+      color: var(--persona-ink);
       font-size: 1rem;
       font-weight: 700;
     }
@@ -1233,7 +1233,7 @@ function injectStyles(): void {
       border-radius: var(--radius-xl, 16px);
       font-size: 0.9375rem;
       font-weight: 500;
-      color: var(--persona-primary);
+      color: var(--persona-ink);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.SPRING};
     }

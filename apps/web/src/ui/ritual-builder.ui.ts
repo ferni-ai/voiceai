@@ -1198,7 +1198,7 @@ class RitualBuilderUI {
       }
 
       .ritual-builder__maya-text em {
-        color: var(--persona-maya, #a67a6a);
+        color: var(--persona-maya-ink);
         font-style: normal;
         font-weight: var(--font-weight-medium, 500);
       }
@@ -1256,7 +1256,7 @@ class RitualBuilderUI {
         justify-content: center;
         background: var(--persona-tint, rgba(166, 122, 106, 0.1));
         border-radius: var(--radius-md);
-        color: var(--persona-maya, #a67a6a);
+        color: var(--persona-maya-ink);
         flex-shrink: 0;
       }
 
@@ -1289,7 +1289,7 @@ class RitualBuilderUI {
         border-radius: var(--radius-full);
         font-size: var(--text-2xs, 0.625rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--persona-maya, #a67a6a);
+        color: var(--persona-maya-ink);
         text-transform: uppercase;
         letter-spacing: 0.05em;
       }
@@ -1318,7 +1318,7 @@ class RitualBuilderUI {
       }
 
       .ritual-builder__science-icon {
-        color: var(--persona-peter, #3a6b73);
+        color: var(--persona-peter-ink);
         flex-shrink: 0;
         margin-top: 1px;
       }
@@ -1343,7 +1343,7 @@ class RitualBuilderUI {
         font-weight: var(--font-weight-semibold, 600);
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: var(--persona-maya, #a67a6a);
+        color: var(--persona-maya-ink);
         flex-shrink: 0;
       }
 
@@ -1721,7 +1721,7 @@ class RitualBuilderUI {
         border-radius: var(--radius-full);
         font-size: var(--text-2xs, 0.625rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--persona-maya, #a67a6a);
+        color: var(--persona-maya-ink);
         text-transform: uppercase;
         letter-spacing: 0.05em;
       }
@@ -1750,7 +1750,7 @@ class RitualBuilderUI {
         gap: 4px;
         font-size: var(--text-xs);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-semantic-success, #4caf50);
+        color: var(--color-semantic-success-text);
         background: rgba(76, 175, 80, 0.1);
         padding: 4px var(--ma-breath);
         border-radius: var(--radius-full);
@@ -1809,7 +1809,7 @@ class RitualBuilderUI {
       }
 
       .ritual-builder__habit-loop-title svg {
-        color: var(--persona-maya, #a67a6a);
+        color: var(--persona-maya-ink);
       }
 
       .ritual-builder__loop-steps {
@@ -1836,17 +1836,17 @@ class RitualBuilderUI {
 
       .ritual-builder__loop-badge--cue {
         background: rgba(58, 107, 115, 0.12);
-        color: var(--persona-peter, #3a6b73);
+        color: var(--persona-peter-ink);
       }
 
       .ritual-builder__loop-badge--routine {
         background: rgba(166, 122, 106, 0.12);
-        color: var(--persona-maya, #a67a6a);
+        color: var(--persona-maya-ink);
       }
 
       .ritual-builder__loop-badge--reward {
         background: rgba(196, 133, 106, 0.12);
-        color: var(--persona-jordan, #c4856a);
+        color: var(--persona-jordan-ink);
       }
 
       .ritual-builder__loop-text {
@@ -1899,7 +1899,7 @@ class RitualBuilderUI {
         font-weight: var(--font-weight-semibold, 600);
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: var(--persona-jordan, #c4856a);
+        color: var(--persona-jordan-ink);
       }
 
       .ritual-builder__outcome-text {

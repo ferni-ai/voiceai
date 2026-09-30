@@ -77,7 +77,7 @@ function injectSuggestionStyles(): void {
     .practice-suggestions__title-icon {
       width: 16px;
       height: 16px;
-      color: var(--persona-primary, var(--color-accent-primary));
+      color: var(--persona-ink);
     }
 
     .practice-suggestions__subtitle {
@@ -128,7 +128,7 @@ function injectSuggestionStyles(): void {
       font-family: var(--font-body);
       font-size: 10px;
       font-weight: var(--font-weight-medium, 500);
-      color: var(--persona-primary, var(--color-accent-primary));
+      color: var(--persona-ink);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       padding: 2px 6px;
       border-radius: var(--radius-sm);

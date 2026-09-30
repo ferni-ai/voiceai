@@ -803,7 +803,7 @@ const TROPHY_ROOM_STYLES = `
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
   margin-bottom: var(--space-2, 8px);
 }
 
@@ -902,7 +902,7 @@ const TROPHY_ROOM_STYLES = `
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
 }
 
 .trophy-room__badge-icon svg {
@@ -1011,7 +1011,7 @@ const TROPHY_ROOM_STYLES = `
   align-items: center;
   justify-content: center;
   margin-bottom: var(--space-4, 16px);
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
 }
 
 .trophy-room__detail-icon svg {
@@ -1048,7 +1048,7 @@ const TROPHY_ROOM_STYLES = `
   display: block;
   font-style: normal;
   font-weight: 600;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
   margin-top: var(--space-2, 8px);
 }
 

@@ -644,7 +644,7 @@ export class EngagementUI {
 
       /* Energy colors */
       .energy-high .engagement-weather__icon {
-        color: var(--color-semantic-success);
+        color: var(--color-semantic-success-text);
         background: var(--color-semantic-success-glow);
       }
 
@@ -742,7 +742,7 @@ export class EngagementUI {
       .engagement-streak__best {
         font-size: var(--text-2xs, 0.625rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-semantic-success);
+        color: var(--color-semantic-success-text);
         text-transform: uppercase;
         letter-spacing: var(--tracking-wider);
       }

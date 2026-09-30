@@ -490,7 +490,7 @@ class WearableSettingsUI {
       .wearable-settings__icon {
         width: 24px;
         height: 24px;
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
       }
 
       .wearable-settings__icon svg {
@@ -591,7 +591,7 @@ class WearableSettingsUI {
       }
 
       .wearable-settings__provider--connected .wearable-settings__provider-icon {
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .wearable-settings__provider-info {
@@ -620,7 +620,7 @@ class WearableSettingsUI {
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-md, 0.5rem);
         cursor: pointer;
@@ -639,7 +639,7 @@ class WearableSettingsUI {
 
       .wearable-settings__provider-btn--disconnect:hover {
         background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-semantic-error, #b5453a);
+        color: var(--color-semantic-error-text);
         border-color: var(--color-semantic-error, #b5453a);
       }
 
@@ -705,7 +705,7 @@ class WearableSettingsUI {
       .wearable-settings__privacy-icon {
         width: 20px;
         height: 20px;
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
         flex-shrink: 0;
       }
 
@@ -785,7 +785,7 @@ class WearableSettingsUI {
       }
 
       [data-theme="midnight"] .wearable-settings__provider--connected .wearable-settings__provider-icon {
-        color: var(--persona-primary, #6b9b5a);
+        color: var(--persona-ink);
       }
 
       @media (max-width: clamp(336px, 90vw, 480px)) {

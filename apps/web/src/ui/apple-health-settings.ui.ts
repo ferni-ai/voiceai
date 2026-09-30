@@ -562,7 +562,7 @@ function injectStyles(): void {
     .apple-health-settings__disconnect:hover {
       background: var(--color-semantic-error-bg, rgba(220, 53, 69, 0.1));
       border-color: var(--color-semantic-error);
-      color: var(--color-semantic-error);
+      color: var(--color-semantic-error-text);
     }
 
     .apple-health-settings__disconnect:focus-visible {

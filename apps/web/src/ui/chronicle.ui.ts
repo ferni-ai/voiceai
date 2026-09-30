@@ -189,7 +189,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--color-accent, #3d5a45);
+    color: var(--color-accent-text);
     margin-bottom: var(--space-1, 4px);
   }
   
@@ -266,7 +266,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-accent, #3d5a45);
+    color: var(--color-accent-text);
   }
   
   .chronicle-stat-value {
@@ -380,7 +380,7 @@ const styles = `
   }
   
   .chronicle-section-icon {
-    color: var(--color-accent, #3d5a45);
+    color: var(--color-accent-text);
   }
   
   .chronicle-section-title {
@@ -419,7 +419,7 @@ const styles = `
     justify-content: center;
     margin-bottom: var(--space-2, 8px);
     background: var(--color-accent-subtle, rgba(61, 90, 69, 0.1));
-    color: var(--color-accent, #3d5a45);
+    color: var(--color-accent-text);
   }
   
   .chronicle-insight-title {
@@ -457,7 +457,7 @@ const styles = `
     position: absolute;
     top: var(--space-4, 16px);
     right: var(--space-4, 16px);
-    color: var(--color-accent, #3d5a45);
+    color: var(--color-accent-text);
     opacity: 0.3;
   }
   
@@ -607,7 +607,7 @@ const styles = `
   .chronicle-voice-btn:hover,
   .chronicle-voice-btn:focus-visible {
     border-color: var(--color-accent, #3d5a45);
-    color: var(--color-accent, #3d5a45);
+    color: var(--color-accent-text);
   }
   
   .chronicle-save-btn {
@@ -809,7 +809,7 @@ const styles = `
     height: 48px;
     border: none;
     background: var(--color-accent, #3d5a45);
-    color: white;
+    color: var(--color-text-on-accent);
     border-radius: var(--radius-full, 9999px);
     cursor: pointer;
     display: flex;
@@ -857,7 +857,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-accent, #3d5a45);
+    color: var(--color-accent-text);
   }
   
   .chronicle-empty-title {

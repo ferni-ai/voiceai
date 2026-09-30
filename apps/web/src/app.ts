@@ -1074,7 +1074,7 @@ class VoiceAIApp {
       document.body.style.height = 'auto';
       appContent.innerHTML = `
         <div id="adminDashboard" style="min-height: 100vh; background: var(--color-background-surface, #0d0d1a); color: var(--color-text-primary, #fff); overflow-y: auto; padding-bottom: 2rem;"></div>
-        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: var(--color-ferni, #4a6741); text-decoration: none; font-size: 0.875rem; z-index: var(--z-dropdown);">
+        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: var(--color-ferni-ink); text-decoration: none; font-size: 0.875rem; z-index: var(--z-dropdown);">
           ← Back to App
         </a>
       `;

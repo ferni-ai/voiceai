@@ -201,7 +201,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
@@ -418,7 +418,7 @@ function injectStyles(): void {
     }
 
     .ep-relationship.selected .ep-relationship-icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .ep-relationship-icon svg {
@@ -433,7 +433,7 @@ function injectStyles(): void {
     }
 
     .ep-relationship.selected .ep-relationship-label {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 600;
     }
 
@@ -457,7 +457,7 @@ function injectStyles(): void {
       border: 1px solid var(--color-semantic-error-glow);
       border-radius: var(--radius-lg, 1rem);
       background: transparent;
-      color: var(--color-semantic-error, #c44);
+      color: var(--color-semantic-error-text);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
       cursor: pointer;
@@ -489,7 +489,7 @@ function injectStyles(): void {
       gap: var(--space-2, 0.5rem);
       font-weight: 600;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-semantic-error, #c44);
+      color: var(--color-semantic-error-text);
       margin-bottom: var(--space-2, 0.5rem);
     }
 

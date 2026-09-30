@@ -437,7 +437,7 @@ function injectStyles(): void {
     .subscription-badge__icon {
       width: 12px;
       height: 12px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
     
     .subscription-badge__icon svg {
@@ -464,18 +464,18 @@ function injectStyles(): void {
     .subscription-badge--premium {
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       border-color: var(--persona-primary, #4a6741);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
     
     /* Trial state - special "gift" styling */
     .subscription-badge--trial {
       background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(106, 138, 97, 0.15));
       border-color: var(--persona-primary, #4a6741);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
     
     .subscription-badge--trial .subscription-badge__icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
     
     /* Trial urgent state - last 30 seconds */
@@ -501,7 +501,7 @@ function injectStyles(): void {
     
     [data-theme="midnight"] .subscription-badge--low {
       background: rgba(224, 184, 96, 0.15);
-      color: var(--color-semantic-warning);
+      color: var(--color-semantic-warning-text);
     }
     
     [data-theme="midnight"] .subscription-badge--premium {

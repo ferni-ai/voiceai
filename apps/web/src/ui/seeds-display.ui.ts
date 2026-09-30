@@ -95,7 +95,7 @@ function injectStyles(): void {
     .seeds-balance-icon {
       width: 24px;
       height: 24px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .seeds-balance-amount {
@@ -123,7 +123,7 @@ function injectStyles(): void {
     .seeds-streak-icon {
       width: 20px;
       height: 20px;
-      color: var(--color-semantic-warning, #c4856a);
+      color: var(--color-semantic-warning-text);
     }
 
     .seeds-streak-count {
@@ -155,13 +155,13 @@ function injectStyles(): void {
     .seeds-daily-bonus-icon {
       width: 18px;
       height: 18px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .seeds-daily-bonus-text {
       font-size: 0.8125rem;
       font-weight: 500;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     /* Compact variant for header */
@@ -186,7 +186,7 @@ function injectStyles(): void {
 
     .seeds-balance-amount.animating {
       animation: seeds-pulse 400ms ${EASING.SPRING};
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     /* Settings menu embed variant */
@@ -305,7 +305,7 @@ function injectStyles(): void {
 
     .seeds-action-btn--primary {
       background: var(--persona-tint, rgba(74, 103, 65, 0.08));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .seeds-action-btn--primary:hover {
@@ -392,7 +392,7 @@ export function renderSeedsSettingsCard(): string {
 
       <div class="seeds-settings-row">
         <div class="seeds-settings-value">
-          <span style="color: var(--persona-primary, #4a6741)">${ICONS.seed}</span>
+          <span style="color: var(--persona-ink)">${ICONS.seed}</span>
           <span class="seeds-settings-value-text" data-seeds-amount>${balance.toLocaleString()}</span>
         </div>
         <span class="seeds-settings-info">seeds to share</span>
@@ -403,7 +403,7 @@ export function renderSeedsSettingsCard(): string {
           ? `
         <div class="seeds-settings-row">
           <div class="seeds-settings-value">
-            <span style="color: var(--color-semantic-warning)">${ICONS.flame}</span>
+            <span style="color: var(--color-semantic-warning-text)">${ICONS.flame}</span>
             <span class="seeds-settings-value-text">${streak}</span>
           </div>
           <span class="seeds-settings-info">days in a row</span>

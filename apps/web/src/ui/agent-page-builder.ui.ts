@@ -379,7 +379,7 @@ const STYLES = `
   .voice-file-remove {
     padding: var(--space-xs) var(--space-sm);
     font-size: var(--text-xs);
-    color: var(--color-semantic-error);
+    color: var(--color-semantic-error-text);
     background: transparent;
     border: 1px solid var(--color-semantic-error);
     border-radius: var(--radius-md);
@@ -520,7 +520,7 @@ const STYLES = `
   .btn-primary {
     background: var(--color-accent-primary);
     border: none;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .btn-primary:hover {

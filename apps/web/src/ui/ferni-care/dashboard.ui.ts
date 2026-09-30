@@ -308,7 +308,7 @@ const styles = `
   
   .ferni-routine__status--active {
     background: rgba(74, 103, 65, 0.1);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .ferni-routine__status--paused {
@@ -318,7 +318,7 @@ const styles = `
   
   .ferni-routine__status--error {
     background: rgba(196, 92, 92, 0.1);
-    color: var(--color-semantic-error, #c45c5c);
+    color: var(--color-semantic-error-text);
   }
   
   .ferni-routine__actions {
@@ -355,7 +355,7 @@ const styles = `
     width: 80px;
     height: 80px;
     margin: 0 auto var(--space-5, 20px);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
     opacity: 0.4;
   }
   
@@ -414,7 +414,7 @@ const styles = `
   
   .ferni-add-btn:hover {
     border-color: var(--color-ferni, #4a6741);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
     background: rgba(74, 103, 65, 0.02);
   }
   

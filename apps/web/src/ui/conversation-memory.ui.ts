@@ -482,7 +482,7 @@ const styles = `
   }
   
   .memory-conversation__verified {
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   /* Remembered Details */
@@ -509,7 +509,7 @@ const styles = `
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .memory-detail__content {

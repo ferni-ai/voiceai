@@ -163,7 +163,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--persona-primary, var(--color-ferni, #4a6741));
+    color: var(--persona-ink);
     margin-bottom: var(--space-1, 4px);
   }
   
@@ -329,7 +329,7 @@ const styles = `
   
   .household-member__btn--danger:hover {
     background: var(--color-semantic-error-glow, rgba(181, 69, 58, 0.1));
-    color: var(--color-semantic-error, #b5453a);
+    color: var(--color-semantic-error-text);
   }
   
   /* Empty State */
@@ -343,7 +343,7 @@ const styles = `
     width: 64px;
     height: 64px;
     margin: 0 auto var(--space-4, 16px);
-    color: var(--persona-primary, var(--color-ferni, #4a6741));
+    color: var(--persona-ink);
     opacity: 0.6;
   }
   
@@ -576,7 +576,7 @@ const styles = `
     width: 48px;
     height: 48px;
     margin: 0 auto var(--space-4, 16px);
-    color: var(--color-semantic-error, #b5453a);
+    color: var(--color-semantic-error-text);
     display: flex;
     align-items: center;
     justify-content: center;

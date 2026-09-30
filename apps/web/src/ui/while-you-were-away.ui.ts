@@ -334,7 +334,7 @@ function addStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-ink);
     }
 
     .wywa-icon svg {
@@ -435,7 +435,7 @@ function addStyles(): void {
       margin-top: var(--space-2, 8px);
       padding: var(--space-1, 4px) var(--space-2, 8px);
       background: var(--color-accent, #3d5a45);
-      color: white;
+      color: var(--color-text-on-accent);
       border-radius: var(--radius-full, 999px);
       font-size: 0.75rem;
       font-weight: 600;
@@ -450,7 +450,7 @@ function addStyles(): void {
     
     .wywa-dismiss {
       background: var(--color-accent, #3d5a45);
-      color: white;
+      color: var(--color-text-on-accent);
       border: none;
       border-radius: var(--radius-full, 999px);
       padding: var(--space-2, 8px) var(--space-6, 24px);

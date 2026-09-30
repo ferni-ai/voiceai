@@ -633,7 +633,7 @@ function injectStyles(): void {
     .knowledge-quiz-category-icon {
       width: 14px;
       height: 14px;
-      color: var(--color-accent-primary, #4a6741);
+      color: var(--color-accent-text);
     }
 
     .knowledge-quiz-category-icon svg {
@@ -724,7 +724,7 @@ function injectStyles(): void {
       width: 64px;
       height: 64px;
       margin: 0 auto var(--space-sm, 8px);
-      color: var(--color-accent-primary, #4a6741);
+      color: var(--color-accent-text);
       animation: celebratePop 0.6s ${EASING.SPRING};
     }
 
@@ -759,7 +759,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: 2.5rem;
       font-weight: 700;
-      color: var(--color-accent-primary, #4a6741);
+      color: var(--color-accent-text);
     }
 
     .knowledge-quiz-score-label {
@@ -780,7 +780,7 @@ function injectStyles(): void {
       background: var(--color-accent-primary, #4a6741);
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: white;
+      color: var(--color-text-on-accent);
       font-size: var(--font-size-sm, 0.875rem);
       font-weight: 600;
       cursor: pointer;

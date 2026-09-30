@@ -153,7 +153,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
@@ -239,7 +239,7 @@ function injectStyles(): void {
     }
 
     .sm-channel.selected .sm-channel-icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .sm-channel-label {
@@ -249,7 +249,7 @@ function injectStyles(): void {
     }
 
     .sm-channel.selected .sm-channel-label {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 600;
     }
 
@@ -329,7 +329,7 @@ function injectStyles(): void {
     }
 
     .sm-char-count.over {
-      color: var(--color-semantic-error, #c44);
+      color: var(--color-semantic-error-text);
     }
 
     /* =========================================================================
@@ -347,7 +347,7 @@ function injectStyles(): void {
       margin: 0 auto var(--space-4, 1rem);
       border-radius: var(--radius-full, 50%);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       display: flex;
       align-items: center;
       justify-content: center;

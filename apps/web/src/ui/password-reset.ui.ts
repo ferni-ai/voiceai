@@ -183,7 +183,7 @@ function applyResetStyles(overlay: HTMLElement): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 4px);
     }
     .password-reset-header h2 {
@@ -267,7 +267,7 @@ function applyResetStyles(overlay: HTMLElement): void {
       text-align: center;
     }
     .password-reset-success svg {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-4, 16px);
     }
     .password-reset-success h3 {

@@ -186,7 +186,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
@@ -321,7 +321,7 @@ function injectStyles(): void {
     }
 
     .ap-relationship.selected .ap-relationship-icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .ap-relationship-icon svg {
@@ -337,7 +337,7 @@ function injectStyles(): void {
     }
 
     .ap-relationship.selected .ap-relationship-label {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 600;
     }
 
@@ -359,7 +359,7 @@ function injectStyles(): void {
     }
 
     .ap-advanced-toggle:hover {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .ap-advanced-toggle svg {

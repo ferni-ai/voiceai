@@ -1519,7 +1519,7 @@ class SettingsMenuUI {
 
       .settings-trigger--active {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
         border-color: var(--color-accent-primary, #2d5a3d);
       }
 
@@ -1630,7 +1630,7 @@ class SettingsMenuUI {
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         opacity: 0.85;
       }
 
@@ -1760,7 +1760,7 @@ class SettingsMenuUI {
       }
 
       .settings-menu__section--expanded .settings-menu__section-header h3 {
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .settings-menu__section-chevron {
@@ -1784,7 +1784,7 @@ class SettingsMenuUI {
       .settings-menu__section--expanded .settings-menu__section-chevron {
         transform: rotate(90deg);
         background: var(--persona-tint, rgba(74, 103, 65, 0.12));
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .settings-menu__section-header:hover .settings-menu__section-chevron {
@@ -1946,7 +1946,7 @@ class SettingsMenuUI {
 
       .settings-menu__quick-actions .settings-menu__item:hover .settings-menu__icon {
         background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .settings-menu__quick-actions .settings-menu__label {
@@ -2110,7 +2110,7 @@ class SettingsMenuUI {
         justify-content: center;
         background: var(--persona-tint, rgba(74, 103, 65, 0.08));
         border-radius: var(--radius-md, 8px);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         transition: 
           background ${DURATION.FAST}ms ${EASING.STANDARD},
           color ${DURATION.FAST}ms ${EASING.STANDARD},
@@ -2152,12 +2152,12 @@ class SettingsMenuUI {
       }
 
       .settings-menu__item--active .settings-menu__icon {
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
       }
 
       .settings-menu__item--active .settings-menu__label::after {
         content: ' ✓';
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
         font-weight: var(--font-weight-semibold, 600);
       }
 
@@ -2308,7 +2308,7 @@ class SettingsMenuUI {
 
       .settings-menu__language-check {
         margin-left: auto;
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
         font-weight: var(--font-weight-semibold, 600);
       }
 
@@ -2405,13 +2405,13 @@ class SettingsMenuUI {
       }
 
       .settings-menu__item--roadmap .settings-menu__icon {
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .settings-menu__roadmap-hint {
         font-family: var(--font-body);
         font-size: var(--text-xs);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         font-weight: var(--font-weight-medium, 500);
       }
 
@@ -2438,11 +2438,11 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__item--roadmap .settings-menu__icon {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .settings-menu__roadmap-hint {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .settings-menu__roadmap-badge {
@@ -2512,7 +2512,7 @@ class SettingsMenuUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-lg, 1.125rem);
         font-weight: 700;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         letter-spacing: -0.01em;
       }
 
@@ -2580,7 +2580,7 @@ class SettingsMenuUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: 600;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .settings-menu__stage-max::before {
@@ -2635,7 +2635,7 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__header-eyebrow {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .settings-menu__header h2 {
@@ -2664,7 +2664,7 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__icon {
         background: var(--persona-tint, rgba(124, 179, 107, 0.12));
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .settings-menu__item:hover .settings-menu__icon {
@@ -2690,7 +2690,7 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__section--expanded .settings-menu__section-header h3 {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .settings-menu__section-chevron {
@@ -2700,7 +2700,7 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__section--expanded .settings-menu__section-chevron {
         background: var(--persona-tint, rgba(124, 179, 107, 0.15));
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       /* Subgroups */
@@ -2734,7 +2734,7 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__stage-name {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .settings-menu__stage-bar {
@@ -2753,7 +2753,7 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__stage-max {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       /* Badges */
@@ -2780,7 +2780,7 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__quick-actions .settings-menu__item:hover .settings-menu__icon {
         background: var(--persona-tint, rgba(124, 179, 107, 0.12));
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .settings-menu__quick-actions .settings-menu__label {
@@ -2825,7 +2825,7 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__item--active .settings-menu__label::after {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       /* Toggle items in dark theme */
@@ -2855,7 +2855,7 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__language-check {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       /* Roadmap items */
@@ -2869,11 +2869,11 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__item--roadmap .settings-menu__icon {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .settings-menu__roadmap-hint {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .settings-menu__roadmap-badge {

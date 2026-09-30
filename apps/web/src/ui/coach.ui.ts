@@ -352,6 +352,11 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
     elements.avatar.style.background = persona.colors.gradient;
     elements.avatarRing.style.borderColor = persona.colors.primary;
     elements.container.style.setProperty('--persona-primary', persona.colors.primary);
+    // Text in this persona's color stays readable in light and dark themes
+    elements.container.style.setProperty(
+      '--persona-ink',
+      `var(--persona-${persona.id}-ink, ${persona.colors.primary})`
+    );
     elements.container.style.setProperty('--persona-secondary', persona.colors.secondary);
     elements.container.style.setProperty('--persona-glow', persona.colors.glow);
   }

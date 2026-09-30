@@ -195,7 +195,7 @@ function getStyles(): string {
     .eightsleep-title svg {
       width: 24px;
       height: 24px;
-      color: var(--color-accent-primary, #4a9eff);
+      color: var(--color-accent-text);
     }
 
     .eightsleep-close {
@@ -322,7 +322,7 @@ function getStyles(): string {
     .eightsleep-temp-title svg {
       width: 20px;
       height: 20px;
-      color: var(--color-accent-primary, #4a9eff);
+      color: var(--color-accent-text);
     }
 
     .eightsleep-temp-status {
@@ -375,7 +375,7 @@ function getStyles(): string {
       width: 20px;
       height: 20px;
       margin: 0 auto var(--space-xs, 4px);
-      color: var(--color-accent-primary, #4a9eff);
+      color: var(--color-accent-text);
     }
 
     .eightsleep-biometric-value {
@@ -429,7 +429,7 @@ function getStyles(): string {
 
     .eightsleep-btn-primary {
       background: var(--color-accent-primary, #4a9eff);
-      color: white;
+      color: var(--color-text-on-accent);
       border: none;
     }
 
@@ -441,7 +441,7 @@ function getStyles(): string {
 
     .eightsleep-btn-danger {
       background: transparent;
-      color: var(--color-semantic-error, #ef4444);
+      color: var(--color-semantic-error-text);
       border: 1px solid currentColor;
     }
 

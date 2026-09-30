@@ -139,7 +139,7 @@ const STYLES = `
   }
 
   .mentor-section-title svg {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .mentor-add-btn {
@@ -147,7 +147,7 @@ const STYLES = `
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-lg);
     background: var(--color-accent);
-    color: white;
+    color: var(--color-text-on-accent);
     border: none;
     cursor: pointer;
     display: flex;
@@ -226,7 +226,7 @@ const STYLES = `
     left: var(--space-3);
     font-size: 3rem;
     font-family: var(--font-display);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     opacity: 0.3;
     line-height: 1;
   }
@@ -296,7 +296,7 @@ const STYLES = `
   .mentor-action-btn--delete:hover {
     background: color-mix(in srgb, var(--color-semantic-error, #ef4444) 10%, transparent);
     border-color: color-mix(in srgb, var(--color-semantic-error, #ef4444) 30%, transparent);
-    color: var(--color-semantic-error, #ef4444);
+    color: var(--color-semantic-error-text);
   }
 
   /* Mobile Responsiveness */

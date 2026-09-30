@@ -192,7 +192,7 @@ export async function render(): Promise<string> {
         align-items: center;
         justify-content: center;
         margin-bottom: var(--space-2, 0.5rem);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .evalops-stat-icon svg {
@@ -207,11 +207,11 @@ export async function render(): Promise<string> {
       }
 
       .evalops-stat-value--success {
-        color: var(--color-semantic-success, #4a6741);
+        color: var(--color-semantic-success-text);
       }
 
       .evalops-stat-value--warning {
-        color: var(--color-semantic-warning, #d4a84b);
+        color: var(--color-semantic-warning-text);
       }
 
       .evalops-stat-label {
@@ -263,9 +263,9 @@ export async function render(): Promise<string> {
         font-weight: 600;
       }
 
-      .dimension-score--high { color: var(--color-semantic-success, #4a6741); }
-      .dimension-score--medium { color: var(--color-semantic-warning, #d4a84b); }
-      .dimension-score--low { color: var(--color-semantic-error, #c44536); }
+      .dimension-score--high { color: var(--color-semantic-success-text); }
+      .dimension-score--medium { color: var(--color-semantic-warning-text); }
+      .dimension-score--low { color: var(--color-semantic-error-text); }
 
       .dimension-bar {
         height: 4px;
@@ -321,7 +321,7 @@ export async function render(): Promise<string> {
       .flagged-icon {
         display: flex;
         align-items: center;
-        color: var(--color-semantic-warning, #d4a84b);
+        color: var(--color-semantic-warning-text);
       }
 
       .flagged-icon svg {

@@ -307,7 +307,7 @@ const styles = `
 }
 
 .personalize-item-status.equipped {
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
 }
 
 .personalize-item-status.owned {
@@ -346,7 +346,7 @@ const styles = `
 .personalize-item-action.equipped {
   background: transparent;
   border: 1px solid var(--persona-primary, #4a6741);
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
 }
 
 /* Empty State */

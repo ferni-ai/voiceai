@@ -226,7 +226,7 @@ const BREATHING_STYLES = `
 
   .ferni-breathing-controls__button--primary {
     background: var(--color-accent, #4A7C59);
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .ferni-breathing-controls__button--secondary {

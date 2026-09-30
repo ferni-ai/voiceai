@@ -440,8 +440,8 @@ function renderStyles(): string {
         line-height: 1;
       }
 
-      .bth-stat-value--success { color: var(--color-semantic-success); }
-      .bth-stat-value--warning { color: var(--color-semantic-warning); }
+      .bth-stat-value--success { color: var(--color-semantic-success-text); }
+      .bth-stat-value--warning { color: var(--color-semantic-warning-text); }
       .bth-stat-value--neutral { color: var(--color-text-primary); }
 
       .bth-stat-label {
@@ -480,7 +480,7 @@ function renderStyles(): string {
       }
 
       .bth-tab--active {
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
         border-bottom-color: var(--color-accent-primary);
       }
 
@@ -515,14 +515,14 @@ function renderStyles(): string {
         font-weight: 500;
       }
 
-      .bth-f1--excellent { color: var(--color-semantic-success); }
-      .bth-f1--good { color: var(--color-accent-primary); }
-      .bth-f1--fair { color: var(--color-semantic-warning); }
-      .bth-f1--poor { color: var(--color-semantic-error); }
+      .bth-f1--excellent { color: var(--color-semantic-success-text); }
+      .bth-f1--good { color: var(--color-accent-text); }
+      .bth-f1--fair { color: var(--color-semantic-warning-text); }
+      .bth-f1--poor { color: var(--color-semantic-error-text); }
 
-      .bth-rate.success { color: var(--color-semantic-success); }
-      .bth-rate.warning { color: var(--color-semantic-warning); }
-      .bth-rate.error { color: var(--color-semantic-error); }
+      .bth-rate.success { color: var(--color-semantic-success-text); }
+      .bth-rate.warning { color: var(--color-semantic-warning-text); }
+      .bth-rate.error { color: var(--color-semantic-error-text); }
 
       .bth-timestamp {
         color: var(--color-text-muted);
@@ -551,7 +551,7 @@ function renderStyles(): string {
 
       .bth-gap-title {
         font-weight: 600;
-        color: var(--color-semantic-warning);
+        color: var(--color-semantic-warning-text);
       }
 
       .bth-gap-count {
@@ -584,8 +584,8 @@ function renderStyles(): string {
         font-family: monospace;
       }
 
-      .bth-gap-result.success { color: var(--color-semantic-success); }
-      .bth-gap-result.error { color: var(--color-semantic-error); }
+      .bth-gap-result.success { color: var(--color-semantic-success-text); }
+      .bth-gap-result.error { color: var(--color-semantic-error-text); }
 
       /* Telemetry */
       .bth-telemetry-period {

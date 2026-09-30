@@ -198,7 +198,7 @@ export async function render(): Promise<string> {
         align-items: center;
         justify-content: center;
         margin-bottom: var(--space-2, 0.5rem);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .trust-stat-icon svg {
@@ -210,7 +210,7 @@ export async function render(): Promise<string> {
         font-size: 2rem;
         font-weight: 700;
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .trust-stat-label {
@@ -349,7 +349,7 @@ export async function render(): Promise<string> {
       .event-icon {
         display: flex;
         align-items: center;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .event-icon svg {
@@ -474,7 +474,7 @@ export async function render(): Promise<string> {
       .warmth-stage-value {
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.75rem;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .warmth-stage-desc {
@@ -587,7 +587,7 @@ export async function render(): Promise<string> {
         font-size: 1.25rem;
         font-weight: 700;
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
     </style>
   `;

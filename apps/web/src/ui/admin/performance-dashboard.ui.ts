@@ -219,7 +219,7 @@ export class PerformanceDashboard {
         .refresh-btn {
           padding: var(--space-2) var(--space-4);
           background: var(--color-accent-primary);
-          color: var(--color-text-inverse);
+          color: var(--color-text-on-accent);
           border: none;
           border-radius: var(--radius-md);
           cursor: pointer;
@@ -352,12 +352,12 @@ export class PerformanceDashboard {
 
         .circuit-status.open {
           background: var(--color-semantic-error-glow);
-          color: var(--color-semantic-error);
+          color: var(--color-semantic-error-text);
         }
 
         .circuit-status.closed {
           background: var(--color-semantic-success-glow);
-          color: var(--color-semantic-success);
+          color: var(--color-semantic-success-text);
         }
 
         .loading-state, .error-state {
@@ -367,7 +367,7 @@ export class PerformanceDashboard {
         }
 
         .error-state {
-          color: var(--color-semantic-error);
+          color: var(--color-semantic-error-text);
         }
 
         .trigger-list {

@@ -104,7 +104,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .life-coaching-hub__close {
@@ -212,7 +212,7 @@ const styles = `
   
   .life-coaching-hub__tab.active {
     background: var(--color-ferni-tint, rgba(74, 103, 65, 0.1));
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .life-coaching-hub__tab svg {
@@ -248,7 +248,7 @@ const styles = `
   .life-coaching-hub__section-title svg {
     width: 18px;
     height: 18px;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .life-coaching-hub__grid {
@@ -283,7 +283,7 @@ const styles = `
     gap: var(--space-2, 8px);
     font-size: 15px;
     font-weight: 600;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .life-coaching-hub__cta-trigger svg {
@@ -320,7 +320,7 @@ const styles = `
   }
   
   .life-coaching-hub__intro-text strong {
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .life-coaching-hub__intro-stats {
@@ -336,7 +336,7 @@ const styles = `
   
   .life-coaching-hub__stat strong {
     font-weight: 700;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   /* Dark mode */

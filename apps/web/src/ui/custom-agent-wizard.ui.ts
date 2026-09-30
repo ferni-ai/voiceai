@@ -1657,11 +1657,11 @@ function getWizardStyles(): string {
     
     .type-icon {
       margin-bottom: var(--space-sm, 8px);
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .type-card--selected .type-icon {
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .type-name {
@@ -1695,7 +1695,7 @@ function getWizardStyles(): string {
       content: '•';
       position: absolute;
       left: 0;
-      color: var(--color-accent);
+      color: var(--color-accent-text);
     }
     
     .type-selected-indicator {
@@ -1709,7 +1709,7 @@ function getWizardStyles(): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-text-on-accent);
       opacity: 0;
       transform: scale(0.5);
       transition: all ${DURATION.NORMAL}ms ${EASING.SPRING};
@@ -1784,13 +1784,13 @@ function getWizardStyles(): string {
     
     .icon-option:hover {
       background: var(--color-bg-tertiary);
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .icon-option--selected {
       border-color: var(--color-accent);
       background: rgba(74, 103, 65, 0.2);
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
     }
     
     /* Voice Options */
@@ -1827,7 +1827,7 @@ function getWizardStyles(): string {
     }
     
     .voice-option--selected .voice-option-icon {
-      color: var(--color-accent);
+      color: var(--color-accent-text);
     }
     
     .voice-option-content h3 {
@@ -1876,7 +1876,7 @@ function getWizardStyles(): string {
     .recording-btn {
       padding: var(--space-sm, 12px) var(--space-lg, 24px);
       background: var(--color-accent);
-      color: white;
+      color: var(--color-text-on-accent);
       border: none;
       border-radius: var(--radius-full, 999px);
       font-size: 0.95rem;
@@ -1914,7 +1914,7 @@ function getWizardStyles(): string {
     .preview-action {
       background: none;
       border: none;
-      color: var(--color-accent);
+      color: var(--color-accent-text);
       font-size: 0.85rem;
       cursor: pointer;
     }
@@ -1946,7 +1946,7 @@ function getWizardStyles(): string {
     
     .upload-btn:hover {
       border-color: var(--color-accent);
-      color: var(--color-accent);
+      color: var(--color-accent-text);
     }
     
     /* Voice Library */
@@ -2033,7 +2033,7 @@ function getWizardStyles(): string {
     
     .voice-preview-btn:hover {
       background: var(--color-accent);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .voice-skip-message {
@@ -2063,7 +2063,7 @@ function getWizardStyles(): string {
     }
     
     .slider-value {
-      color: var(--color-accent);
+      color: var(--color-accent-text);
       font-weight: 500;
     }
     
@@ -2114,13 +2114,13 @@ function getWizardStyles(): string {
     
     .trait-chip:hover {
       border-color: var(--color-accent);
-      color: var(--color-accent);
+      color: var(--color-accent-text);
     }
     
     .trait-chip--selected {
       background: var(--color-accent);
       border-color: var(--color-accent);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     /* Profile Options */
@@ -2157,7 +2157,7 @@ function getWizardStyles(): string {
     }
     
     .profile-option--selected .profile-icon {
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .profile-name {
@@ -2217,7 +2217,7 @@ function getWizardStyles(): string {
       font-size: 0.65rem;
       padding: 2px 8px;
       background: var(--color-accent);
-      color: white;
+      color: var(--color-text-on-accent);
       border-radius: var(--radius-sm, 4px);
       text-transform: uppercase;
     }
@@ -2336,7 +2336,7 @@ function getWizardStyles(): string {
     .wizard-btn--primary {
       background: var(--color-accent, #4a6741);
       border: none;
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .wizard-btn--primary:hover:not(:disabled) {

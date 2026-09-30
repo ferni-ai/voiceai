@@ -357,12 +357,12 @@ export function getCardStyles(): string {
 
     .agent-badge.installed {
       background: var(--color-semantic-success-glow);
-      color: var(--color-semantic-success);
+      color: var(--color-semantic-success-text);
     }
 
     .agent-badge.coming-soon-badge {
       background: var(--color-semantic-warning-glow);
-      color: var(--color-semantic-warning);
+      color: var(--color-semantic-warning-text);
       border: 1px solid var(--color-semantic-warning-glow);
     }
 
@@ -447,7 +447,7 @@ export function getCardStyles(): string {
 
     .agent-action.uninstall:hover {
       border-color: var(--color-semantic-error-glow);
-      color: var(--color-semantic-error);
+      color: var(--color-semantic-error-text);
       background: var(--color-semantic-error-glow);
     }
 

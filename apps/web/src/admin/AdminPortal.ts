@@ -1044,7 +1044,7 @@ function injectAdminPortalStyles(): void {
     }
 
     .admin-error-icon {
-      color: var(--color-semantic-warning, #d4a84b);
+      color: var(--color-semantic-warning-text);
     }
 
     .admin-error-icon svg {
@@ -1054,7 +1054,7 @@ function injectAdminPortalStyles(): void {
 
     .admin-error h2 {
       font-size: 1.25rem;
-      color: var(--color-semantic-error, #c44536);
+      color: var(--color-semantic-error-text);
       margin: 0;
     }
 

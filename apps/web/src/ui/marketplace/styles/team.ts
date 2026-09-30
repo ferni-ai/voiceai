@@ -538,7 +538,7 @@ export function getTeamStyles(): string {
     }
 
     .team-progress-check {
-      color: var(--color-semantic-success);
+      color: var(--color-semantic-success-text);
     }
 
     .team-progress-percent {

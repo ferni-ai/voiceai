@@ -282,7 +282,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-xs, 4px);
       padding: var(--space-xs, 4px) var(--space-sm, 8px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-size: var(--font-size-sm, 0.875rem);
       font-weight: 500;
     }

@@ -135,7 +135,7 @@ const EMPTY_STATE_STYLES = `
   .ferni-empty-state__icon {
     width: 48px;
     height: 48px;
-    color: var(--color-accent, #3D5A45);
+    color: var(--color-accent-text);
     opacity: 0.6;
     margin-bottom: var(--space-2, 8px);
   }
@@ -169,7 +169,7 @@ const EMPTY_STATE_STYLES = `
     font-size: 0.8125rem;
     font-weight: 500;
     line-height: 1.4;
-    color: var(--color-accent, #3D5A45);
+    color: var(--color-accent-text);
     margin: 0;
     padding: var(--space-2, 8px) var(--space-4, 16px);
     background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));

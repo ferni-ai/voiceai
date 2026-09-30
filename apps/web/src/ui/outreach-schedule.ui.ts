@@ -336,17 +336,17 @@ const STYLES = `
 
 .outreach-item-priority.high {
   background: var(--color-semantic-error-glow, rgba(239, 68, 68, 0.1));
-  color: var(--color-semantic-error, #dc2626);
+  color: var(--color-semantic-error-text);
 }
 
 .outreach-item-priority.medium {
   background: var(--color-semantic-warning-glow, rgba(245, 158, 11, 0.1));
-  color: var(--color-semantic-warning, #d97706);
+  color: var(--color-semantic-warning-text);
 }
 
 .outreach-item-priority.low {
   background: var(--color-semantic-success-glow, rgba(34, 197, 94, 0.1));
-  color: var(--color-semantic-success, #16a34a);
+  color: var(--color-semantic-success-text);
 }
 
 .outreach-item-preview {
@@ -412,7 +412,7 @@ const STYLES = `
 
 .outreach-item-btn--cancel {
   background: var(--color-semantic-error-glow, rgba(239, 68, 68, 0.1));
-  color: var(--color-semantic-error, #dc2626);
+  color: var(--color-semantic-error-text);
 }
 
 .outreach-item-btn--cancel:hover {
@@ -431,22 +431,22 @@ const STYLES = `
 
 .outreach-item-status.delivered {
   background: var(--color-semantic-success-glow, rgba(34, 197, 94, 0.1));
-  color: var(--color-semantic-success, #16a34a);
+  color: var(--color-semantic-success-text);
 }
 
 .outreach-item-status.opened {
   background: var(--color-semantic-info-glow, rgba(59, 130, 246, 0.1));
-  color: var(--color-semantic-info, #2563eb);
+  color: var(--color-semantic-info-text);
 }
 
 .outreach-item-status.responded {
   background: var(--persona-glow, rgba(74, 103, 65, 0.1));
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
 }
 
 .outreach-item-status.failed {
   background: var(--color-semantic-error-glow, rgba(239, 68, 68, 0.1));
-  color: var(--color-semantic-error, #dc2626);
+  color: var(--color-semantic-error-text);
 }
 
 @media (prefers-color-scheme: dark) {

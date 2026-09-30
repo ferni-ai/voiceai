@@ -671,7 +671,7 @@ export class InsightsView {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--persona-ink);
         text-transform: uppercase;
         letter-spacing: var(--tracking-wider, 0.1em);
       }
@@ -768,12 +768,12 @@ export class InsightsView {
       }
 
       .insights-presence__icon.energy-high {
-        color: var(--color-semantic-success);
+        color: var(--color-semantic-success-text);
         background: var(--color-semantic-success-glow);
       }
 
       .insights-presence__icon.energy-medium {
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--persona-ink);
         background: var(--persona-tint, var(--color-accent-subtle));
       }
 
@@ -862,11 +862,11 @@ export class InsightsView {
         height: 16px;
       }
 
-      .insights-notice__icon--pattern { color: var(--persona-primary, var(--color-accent-primary)); }
-      .insights-notice__icon--growth { color: var(--color-semantic-success); }
-      .insights-notice__icon--concern { color: var(--color-semantic-warning); }
-      .insights-notice__icon--celebration { color: var(--color-semantic-success); }
-      .insights-notice__icon--memory { color: var(--persona-primary, var(--color-accent-primary)); }
+      .insights-notice__icon--pattern { color: var(--persona-ink); }
+      .insights-notice__icon--growth { color: var(--color-semantic-success-text); }
+      .insights-notice__icon--concern { color: var(--color-semantic-warning-text); }
+      .insights-notice__icon--celebration { color: var(--color-semantic-success-text); }
+      .insights-notice__icon--memory { color: var(--persona-ink); }
 
       .insights-notice__content {
         display: flex;
@@ -913,7 +913,7 @@ export class InsightsView {
       .insights-chapter__badge {
         font-size: var(--text-xs);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--persona-ink);
         background: var(--color-background-elevated);
         padding: 2px var(--space-2, 8px);
         border-radius: var(--radius-full);
@@ -977,13 +977,13 @@ export class InsightsView {
       }
 
       .insights-holding__bullet {
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--persona-ink);
         font-weight: var(--font-weight-bold, 700);
         flex-shrink: 0;
       }
 
       .insights-holding__item--dream .insights-holding__bullet {
-        color: var(--color-semantic-warning);
+        color: var(--color-semantic-warning-text);
       }
 
       .insights-holding__item--date .insights-holding__bullet {
@@ -1003,7 +1003,7 @@ export class InsightsView {
 
       .insights-holding__tag {
         font-size: var(--text-2xs, 0.625rem);
-        color: var(--color-semantic-warning);
+        color: var(--color-semantic-warning-text);
         background: var(--color-semantic-warning-glow);
         padding: 1px 6px;
         border-radius: var(--radius-full);
@@ -1031,7 +1031,7 @@ export class InsightsView {
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        color: var(--color-semantic-success);
+        color: var(--color-semantic-success-text);
       }
 
       .insights-growth__icon svg {
@@ -1077,7 +1077,7 @@ export class InsightsView {
         display: inline-block;
         font-size: var(--text-2xs, 0.625rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--persona-ink);
         text-transform: uppercase;
         letter-spacing: var(--tracking-wider, 0.1em);
         margin-bottom: var(--space-2, 8px);
@@ -1254,22 +1254,22 @@ export class InsightsView {
 
       .insights-empty__cap-icon--memory {
         background: linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(74, 103, 65, 0.05));
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .insights-empty__cap-icon--pattern {
         background: linear-gradient(135deg, rgba(58, 107, 115, 0.15), rgba(58, 107, 115, 0.05));
-        color: var(--persona-peter, #3a6b73);
+        color: var(--persona-peter-ink);
       }
 
       .insights-empty__cap-icon--growth {
         background: linear-gradient(135deg, rgba(166, 122, 106, 0.15), rgba(166, 122, 106, 0.05));
-        color: var(--persona-maya, #a67a6a);
+        color: var(--persona-maya-ink);
       }
 
       .insights-empty__cap-icon--concern {
         background: linear-gradient(135deg, rgba(196, 133, 106, 0.15), rgba(196, 133, 106, 0.05));
-        color: var(--persona-jordan, #c4856a);
+        color: var(--persona-jordan-ink);
       }
 
       .insights-empty__cap-content {
@@ -1359,7 +1359,7 @@ export class InsightsView {
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         opacity: 0.8;
       }
 
@@ -1412,7 +1412,7 @@ export class InsightsView {
         gap: var(--space-2, 8px);
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .insights-empty__invitation-icon {

@@ -215,7 +215,7 @@ const styles = `
   width: 64px;
   height: 64px;
   margin: 0 auto var(--space-3, 12px);
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
   animation: value-bounce 0.8s ${EASING.SPRING};
 }
 
@@ -260,7 +260,7 @@ const styles = `
 .value-capture-value-amount {
   font-size: 2.5rem;
   font-weight: 700;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
   font-family: var(--font-display);
 }
 
@@ -407,7 +407,7 @@ const styles = `
   width: 72px;
   height: 72px;
   margin: 0 auto var(--space-4, 16px);
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
   animation: value-bounce 0.8s ${EASING.SPRING};
 }
 

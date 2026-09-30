@@ -407,7 +407,7 @@ class VideoSettingsUI {
       .video-settings__icon {
         width: 24px;
         height: 24px;
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
       }
 
       .video-settings__icon svg { width: 100%; height: 100%; }
@@ -538,7 +538,7 @@ class VideoSettingsUI {
       }
 
       .video-settings__control--active .video-settings__control-icon {
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
       }
 
       .video-settings__control-icon svg { width: 100%; height: 100%; }
@@ -589,7 +589,7 @@ class VideoSettingsUI {
       }
 
       .video-settings__mode--active .video-settings__mode-icon {
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
       }
 
       .video-settings__mode-icon svg { width: 100%; height: 100%; }

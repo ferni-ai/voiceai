@@ -333,7 +333,7 @@ function addStyles(): void {
 
     .lang-option.active {
       background: var(--ferni-bg, rgba(74, 103, 65, 0.15));
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-ink);
     }
 
     /* Light theme adjustments */

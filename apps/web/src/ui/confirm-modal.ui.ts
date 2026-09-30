@@ -196,7 +196,7 @@ function ensureStylesExist(): void {
     
     .confirm-modal-btn--confirm {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .confirm-modal-btn--confirm:hover {

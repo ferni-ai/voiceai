@@ -429,7 +429,7 @@ class TeamHuddleUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
         text-transform: uppercase;
         letter-spacing: 0.05em;
       }

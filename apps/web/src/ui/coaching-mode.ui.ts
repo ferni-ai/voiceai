@@ -201,7 +201,7 @@ const STYLES = `
     width: 40px;
     height: 40px;
     margin: 0 auto var(--space-2);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .coaching-topic-name {
@@ -286,7 +286,7 @@ const STYLES = `
     width: 64px;
     height: 64px;
     margin: 0 auto var(--space-3);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .coaching-session-title {
@@ -366,7 +366,7 @@ const STYLES = `
   .coaching-btn--primary {
     background: var(--color-accent);
     border: none;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .coaching-btn--primary:hover {

@@ -621,7 +621,7 @@ const styles = `
     width: 56px;
     height: 56px;
     /* Ferni's warm sage green */
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
     /* Soft glow for warmth */
     filter: drop-shadow(0 0 16px rgba(74, 103, 65, 0.3));
     /* Organic heartbeat - alive and gentle */
@@ -961,7 +961,7 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-modal__eyebrow {
-    color: var(--color-accent-secondary);
+    color: var(--color-ferni-ink);
   }
 
   [data-theme="midnight"] .wellbeing-modal__title,
@@ -1115,7 +1115,7 @@ const styles = `
   }
   
   [data-theme="midnight"] .wellbeing-empty__preview-label {
-    color: var(--color-accent-secondary);
+    color: var(--color-ferni-ink);
   }
 
   [data-theme="midnight"] .wellbeing-modal__footer {
@@ -1133,7 +1133,7 @@ const styles = `
 
   [data-theme="midnight"] .wellbeing-btn--secondary {
     background: transparent;
-    color: var(--color-accent-secondary);
+    color: var(--color-ferni-ink);
     border-color: var(--color-accent-secondary);
   }
 
@@ -1142,21 +1142,21 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-score-trend--improving {
-    color: var(--color-accent-secondary);
+    color: var(--color-ferni-ink);
   }
 
   [data-theme="midnight"] .wellbeing-score-trend--declining {
-    color: var(--color-semantic-warning);
+    color: var(--color-semantic-warning-text);
   }
 
   [data-theme="midnight"] .wellbeing-dimension-card__trend--up {
     background: var(--persona-tint, rgba(124, 179, 107, 0.15));
-    color: var(--color-accent-secondary);
+    color: var(--color-ferni-ink);
   }
 
   [data-theme="midnight"] .wellbeing-dimension-card__trend--down {
     background: var(--color-maya-tint, rgba(201, 162, 85, 0.15));
-    color: var(--color-semantic-warning);
+    color: var(--color-semantic-warning-text);
   }
 
   [data-theme="midnight"] .wellbeing-prediction {
@@ -1165,11 +1165,11 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-prediction__factor-title--risk {
-    color: var(--color-semantic-warning);
+    color: var(--color-semantic-warning-text);
   }
 
   [data-theme="midnight"] .wellbeing-prediction__factor-title--protective {
-    color: var(--color-accent-secondary);
+    color: var(--color-ferni-ink);
   }
 
   /* Dark theme calendar cells */
@@ -1736,7 +1736,7 @@ function renderContent(): void {
   if (loadError) {
     content.innerHTML = `
       <div class="wellbeing-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
-        Couldn't load data. <button type="button" class="wellbeing-btn" style="margin-top: var(--space-4); color: var(--color-ferni);">Try again?</button>
+        Couldn't load data. <button type="button" class="wellbeing-btn" style="margin-top: var(--space-4); color: var(--color-ferni-ink);">Try again?</button>
       </div>
     `;
     content.querySelector('button')?.addEventListener('click', () => {

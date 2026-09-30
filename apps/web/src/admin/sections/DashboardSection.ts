@@ -355,8 +355,8 @@ export async function render(): Promise<string> {
         margin-top: var(--space-1, 0.25rem);
       }
 
-      .stat-change--up { color: var(--color-semantic-success, #4a6741); }
-      .stat-change--down { color: var(--color-semantic-error, #c44536); }
+      .stat-change--up { color: var(--color-semantic-success-text); }
+      .stat-change--down { color: var(--color-semantic-error-text); }
       .stat-change--neutral { color: var(--color-text-secondary, #a89a8c); }
 
       .stat-change svg {
@@ -460,8 +460,8 @@ export async function render(): Promise<string> {
         height: 16px;
       }
 
-      .activity-icon--warning { color: var(--color-semantic-warning, #d4a84b); }
-      .activity-icon--error { color: var(--color-semantic-error, #c44536); }
+      .activity-icon--warning { color: var(--color-semantic-warning-text); }
+      .activity-icon--error { color: var(--color-semantic-error-text); }
 
       .activity-text {
         flex: 1;

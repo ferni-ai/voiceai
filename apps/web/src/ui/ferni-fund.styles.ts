@@ -168,7 +168,7 @@ export const ferniFundStyles = `
 .ferni-fund-stat-value {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
 }
 
 .ferni-fund-stat-label {
@@ -334,7 +334,7 @@ export const ferniFundStyles = `
   padding: 4px 10px;
   background: var(--color-bg-secondary);
   border-radius: var(--radius-full, 100px);
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
 }
 
 .ferni-fund-monthly-btn.selected .tier-badge {
@@ -486,7 +486,7 @@ export const ferniFundStyles = `
 .ferni-fund-impact-number {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
 }
 
 .ferni-fund-impact-text {
@@ -556,7 +556,7 @@ export const ferniFundStyles = `
 .ferni-fund-impact-summary-value {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
 }
 
 /* Loading State */
@@ -618,7 +618,7 @@ export const ferniFundStyles = `
 
 .ferni-fund-stat-value--status {
   font-size: 1rem;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
 }
 
 .ferni-fund-stat--primary .ferni-fund-stat-value {
@@ -737,7 +737,7 @@ export const ferniFundStyles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
 }
 
 .ferni-fund-welcome-icon svg {

@@ -149,7 +149,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .superhuman-dashboard__eyebrow svg {
@@ -241,7 +241,7 @@ const styles = `
   .superhuman-dashboard__metric-icon svg {
     width: 16px;
     height: 16px;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .superhuman-dashboard__metric-label {
@@ -271,7 +271,7 @@ const styles = `
   }
   
   .superhuman-dashboard__metric-trend--up {
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .superhuman-dashboard__metric-trend--down {
@@ -305,7 +305,7 @@ const styles = `
   .superhuman-dashboard__section-icon {
     width: 24px;
     height: 24px;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .superhuman-dashboard__section-title {
@@ -339,7 +339,7 @@ const styles = `
   .superhuman-dashboard__list-icon {
     width: 20px;
     height: 20px;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
     flex-shrink: 0;
     margin-top: 2px;
   }
@@ -431,7 +431,7 @@ const styles = `
   .superhuman-dashboard__welcome-icon svg {
     width: 32px;
     height: 32px;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .superhuman-dashboard__welcome-title {
@@ -499,7 +499,7 @@ const styles = `
   .superhuman-dashboard__unlock-icon svg {
     width: 16px;
     height: 16px;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .superhuman-dashboard__unlock-item strong {

@@ -409,7 +409,7 @@ export function render(): string {
       .soul-status-item .status-value {
         font-size: 1rem;
         font-weight: 600;
-        color: var(--persona-primary, var(--color-ferni));
+        color: var(--persona-ink);
       }
 
       /* Control Cards */
@@ -441,7 +441,7 @@ export function render(): string {
       .control-header svg {
         width: 20px;
         height: 20px;
-        color: var(--persona-primary, var(--color-ferni));
+        color: var(--persona-ink);
       }
 
       .control-header h3 {
@@ -557,7 +557,7 @@ export function render(): string {
       }
 
       .soul-link {
-        color: var(--persona-primary, var(--color-ferni));
+        color: var(--persona-ink);
         text-decoration: none;
         font-size: 0.85rem;
         transition: opacity var(--duration-fast, 0.2s);

@@ -310,7 +310,7 @@ function injectStyles(): void {
     .semantic-panel-title svg {
       width: 24px;
       height: 24px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-panel-close {
@@ -384,7 +384,7 @@ function injectStyles(): void {
     }
 
     .semantic-tab.active {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 600;
     }
 
@@ -424,7 +424,7 @@ function injectStyles(): void {
     .semantic-loading__spinner svg {
       width: 100%;
       height: 100%;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-loading__text {
@@ -457,7 +457,7 @@ function injectStyles(): void {
     [class*="-hero__icon"] svg {
       width: 24px;
       height: 24px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     [class*="-hero__content"] {
@@ -530,7 +530,7 @@ function injectStyles(): void {
     .semantic-insight-card__persona-icon svg {
       width: 16px;
       height: 16px;
-      color: var(--persona-color, var(--persona-primary));
+      color: var(--persona-ink);
     }
 
     .semantic-insight-card__persona-name {
@@ -538,7 +538,7 @@ function injectStyles(): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--persona-color, var(--persona-primary));
+      color: var(--persona-ink);
     }
 
     .semantic-insight-card__body {
@@ -610,7 +610,7 @@ function injectStyles(): void {
     .semantic-loop-card__icon svg {
       width: 14px;
       height: 14px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-loop-card__type {
@@ -788,7 +788,7 @@ function injectStyles(): void {
     .semantic-relationship-card__icon svg {
       width: 16px;
       height: 16px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-relationship-card__label {
@@ -829,7 +829,7 @@ function injectStyles(): void {
     .semantic-relationships-note__icon svg {
       width: 100%;
       height: 100%;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-relationships-note__text {
@@ -862,7 +862,7 @@ function injectStyles(): void {
     .semantic-patterns-section__icon svg {
       width: 16px;
       height: 16px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-patterns-cards {
@@ -892,7 +892,7 @@ function injectStyles(): void {
     .semantic-pattern-card__visual svg {
       width: 20px;
       height: 20px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-pattern-card__label {
@@ -961,7 +961,7 @@ function injectStyles(): void {
     .semantic-emotional-baseline__percent {
       font-size: 0.875rem;
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-sabotage-patterns {
@@ -991,7 +991,7 @@ function injectStyles(): void {
     .semantic-sabotage-pattern__icon svg {
       width: 16px;
       height: 16px;
-      color: var(--color-semantic-warning);
+      color: var(--color-semantic-warning-text);
     }
 
     .semantic-sabotage-pattern__text {
@@ -1043,7 +1043,7 @@ function injectStyles(): void {
     .semantic-coaching-card__icon svg {
       width: 18px;
       height: 18px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-coaching-card__label {
@@ -1081,7 +1081,7 @@ function injectStyles(): void {
     .semantic-coaching-boundaries__icon svg {
       width: 16px;
       height: 16px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-coaching-boundaries__list {
@@ -1129,7 +1129,7 @@ function injectStyles(): void {
     .semantic-awareness-section__icon svg {
       width: 16px;
       height: 16px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-awareness-cards {
@@ -1245,7 +1245,7 @@ function injectStyles(): void {
     .semantic-deep-section__icon svg {
       width: 16px;
       height: 16px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-deep-insights {
@@ -1280,7 +1280,7 @@ function injectStyles(): void {
     .semantic-deep-insight__confidence-label {
       font-size: 0.75rem;
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-deep-insight__observation {
@@ -1334,7 +1334,7 @@ function injectStyles(): void {
     .semantic-deep-hypothesis__probability {
       font-size: 0.75rem;
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       padding: var(--space-1, 4px) var(--space-2, 8px);
       border-radius: var(--radius-sm, 4px);
@@ -1408,7 +1408,7 @@ function injectStyles(): void {
     .semantic-deep-outreach-card__timing {
       font-size: 0.75rem;
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       text-transform: capitalize;
     }
 
@@ -1437,7 +1437,7 @@ function injectStyles(): void {
     .semantic-deep-guidance-item__bullet svg {
       width: 14px;
       height: 14px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       flex-shrink: 0;
       margin-top: 2px;
     }
@@ -1461,7 +1461,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-1, 4px);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-size: 0.6875rem;
       font-weight: 600;
       text-transform: uppercase;
@@ -1495,7 +1495,7 @@ function injectStyles(): void {
     .semantic-teaser__icon svg {
       width: 28px;
       height: 28px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-teaser__title {
@@ -1539,7 +1539,7 @@ function injectStyles(): void {
     .semantic-teaser__item-icon svg {
       width: 100%;
       height: 100%;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .semantic-teaser__item-text {
@@ -1578,7 +1578,7 @@ function injectStyles(): void {
     }
 
     .semantic-teaser__unlock--soon .semantic-teaser__unlock-text {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 500;
     }
 
@@ -1841,6 +1841,8 @@ function renderInsightCard(insight: SemanticInsight, index: number): string {
   const sourceKey = insight.source.toLowerCase() as keyof typeof ICONS;
   const personaIcon = ICONS[sourceKey] || ICONS.ferni;
   const personaColor = PERSONA_COLORS[sourceKey] || PERSONA_COLORS.ferni;
+  // data-persona gives the name/icon that persona's theme-aware text ink
+  const personaAttr = sourceKey in PERSONA_COLORS ? sourceKey : 'ferni';
   
   const priorityIcon = insight.priority === 'critical' 
     ? ICONS.bellRing 
@@ -1850,7 +1852,7 @@ function renderInsightCard(insight: SemanticInsight, index: number): string {
 
   return `
     <div class="semantic-insight-card priority-${insight.priority}" style="animation-delay: ${index * 60}ms">
-      <div class="semantic-insight-card__persona" style="--persona-color: ${personaColor}">
+      <div class="semantic-insight-card__persona" data-persona="${personaAttr}" style="--persona-color: ${personaColor}">
         <span class="semantic-insight-card__persona-icon">${personaIcon}</span>
         <span class="semantic-insight-card__persona-name">${capitalize(insight.source)}</span>
       </div>

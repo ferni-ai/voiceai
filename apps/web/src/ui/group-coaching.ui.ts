@@ -629,7 +629,7 @@ class GroupCoachingUI {
       .group-coaching__icon {
         width: 24px;
         height: 24px;
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
       }
 
       .group-coaching__icon svg { width: 100%; height: 100%; }
@@ -706,7 +706,7 @@ class GroupCoachingUI {
 
       .group-coaching__create-btn {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .group-coaching__create-btn:hover {
@@ -756,7 +756,7 @@ class GroupCoachingUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--persona-primary, var(--color-accent-primary, #3D5A45));
+        color: var(--persona-ink);
       }
 
       .group-coaching__session-icon svg {
@@ -791,7 +791,7 @@ class GroupCoachingUI {
         font-size: var(--text-xs);
         font-weight: var(--font-weight-medium, 500);
         background: var(--color-accent-primary);
-        color: white;
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-md);
         cursor: pointer;
@@ -845,7 +845,7 @@ class GroupCoachingUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--persona-primary, var(--color-accent-primary, #3D5A45));
+        color: var(--persona-ink);
       }
 
       .group-coaching__type-icon svg {
@@ -892,7 +892,7 @@ class GroupCoachingUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--persona-primary, var(--color-accent-primary, #3D5A45));
+        color: var(--persona-ink);
       }
 
       .group-coaching__session-icon-lg svg {
@@ -959,7 +959,7 @@ class GroupCoachingUI {
         width: 36px;
         height: 36px;
         background: var(--color-accent-primary);
-        color: white;
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-md);
         cursor: pointer;
@@ -1012,7 +1012,7 @@ class GroupCoachingUI {
         font-size: var(--text-sm);
         font-weight: var(--font-weight-medium, 500);
         background: var(--color-accent-primary);
-        color: white;
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-lg);
         cursor: pointer;

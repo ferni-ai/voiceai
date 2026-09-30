@@ -1019,7 +1019,7 @@ export function injectStorytellingVisualizationStyles(): void {
     .life-seasons__insight {
       font-size: var(--text-sm, 0.875rem);
       font-style: italic;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       text-align: center;
       margin: 0;
     }
@@ -1099,7 +1099,7 @@ export function injectStorytellingVisualizationStyles(): void {
     }
 
     .the-mirror__text--insight {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 500;
     }
 
@@ -1216,7 +1216,7 @@ export function injectStorytellingVisualizationStyles(): void {
     .the-unsaid__prompt {
       font-size: var(--text-sm, 0.875rem);
       font-style: italic;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin: 0;
     }
 
@@ -1342,7 +1342,7 @@ export function injectStorytellingVisualizationStyles(): void {
     .values-alignment__insight {
       font-size: var(--text-sm, 0.875rem);
       font-style: italic;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin: 0 0 var(--space-2, 0.5rem);
     }
 
@@ -1424,7 +1424,7 @@ export function injectStorytellingVisualizationStyles(): void {
     .unfinished-stories__reminder {
       font-size: var(--text-sm, 0.875rem);
       font-style: italic;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin: 0;
     }
 

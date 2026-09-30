@@ -483,7 +483,7 @@ function injectStyles(): void {
       width: 20px;
       height: 20px;
       flex-shrink: 0;
-      color: var(--color-accent-primary, #4a6741);
+      color: var(--color-accent-text);
     }
 
     .pattern-insights-item__icon svg {
@@ -515,11 +515,11 @@ function injectStyles(): void {
     }
 
     .pattern-insights-item__trend--up {
-      color: var(--color-semantic-success, #4a6741);
+      color: var(--color-semantic-success-text);
     }
 
     .pattern-insights-item__trend--down {
-      color: var(--color-semantic-warning, #a6854a);
+      color: var(--color-semantic-warning-text);
     }
 
     .pattern-insights-item__trend--stable {
@@ -528,7 +528,7 @@ function injectStyles(): void {
 
     .pattern-insights-item__value {
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-accent-primary, #4a6741);
+      color: var(--color-accent-text);
       font-weight: 500;
       margin-left: auto;
     }

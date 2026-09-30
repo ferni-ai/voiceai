@@ -116,7 +116,7 @@ export function getFoundersJourneyStyles(): string {
       font-weight: 600;
       letter-spacing: 0.15em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-2, 8px);
     }
 
@@ -496,10 +496,10 @@ export function getFoundersJourneyStyles(): string {
       margin-bottom: var(--space-2, 8px);
     }
 
-    .founders-feature-stage--seed { background: var(--color-semantic-info-bg, #e8f4fd); color: var(--color-semantic-info, #2563eb); }
+    .founders-feature-stage--seed { background: var(--color-semantic-info-bg, #e8f4fd); color: var(--color-semantic-info-text); }
     .founders-feature-stage--sprout { background: var(--persona-tint); color: var(--persona-text); }
-    .founders-feature-stage--bud { background: var(--color-semantic-warning-bg, #fff8e6); color: var(--color-semantic-warning, #d97706); }
-    .founders-feature-stage--bloom { background: var(--color-semantic-success-bg, #ecfdf5); color: var(--color-semantic-success, #10b981); }
+    .founders-feature-stage--bud { background: var(--color-semantic-warning-bg, #fff8e6); color: var(--color-semantic-warning-text); }
+    .founders-feature-stage--bloom { background: var(--color-semantic-success-bg, #ecfdf5); color: var(--color-semantic-success-text); }
 
     .founders-feature-headline {
       font-size: 0.9375rem;
@@ -635,7 +635,7 @@ export function getImpactStyles(): string {
     }
 
     .founders-impact-stat-live--pulse {
-      color: var(--color-semantic-success);
+      color: var(--color-semantic-success-text);
       animation: livePulse 2s infinite;
     }
 
@@ -991,7 +991,7 @@ export function getFoundersWallStyles(): string {
       border-radius: var(--radius-full);
       font-size: 0.75rem;
       font-weight: 500;
-      color: var(--color-semantic-success);
+      color: var(--color-semantic-success-text);
     }
 
     .founders-achieved-icon {

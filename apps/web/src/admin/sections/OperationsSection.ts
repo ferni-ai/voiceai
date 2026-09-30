@@ -415,9 +415,9 @@ export async function render(): Promise<string> {
         font-weight: 600;
       }
 
-      .ops-error-value--good { color: var(--color-semantic-success, #4a6741); }
-      .ops-error-value--warning { color: var(--color-semantic-warning, #d4a84b); }
-      .ops-error-value--bad { color: var(--color-semantic-error, #c44536); }
+      .ops-error-value--good { color: var(--color-semantic-success-text); }
+      .ops-error-value--warning { color: var(--color-semantic-warning-text); }
+      .ops-error-value--bad { color: var(--color-semantic-error-text); }
 
       /* Bottom Row */
       .ops-bottom-row {

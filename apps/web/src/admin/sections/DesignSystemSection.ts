@@ -630,7 +630,7 @@ export function render(): string {
       .soul-feature-timing {
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.7rem;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .soul-feature-desc {
@@ -666,7 +666,7 @@ export function render(): string {
       }
 
       .soul-action-link {
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         text-decoration: none;
         font-size: 0.85rem;
         transition: opacity 0.2s;

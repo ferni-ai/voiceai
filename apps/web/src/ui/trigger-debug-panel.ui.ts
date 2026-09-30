@@ -121,11 +121,11 @@ const PANEL_STYLES = `
   }
 
   .trigger-debug-panel__stat-value--good {
-    color: var(--color-semantic-success, #4ade80);
+    color: var(--color-semantic-success-text);
   }
 
   .trigger-debug-panel__stat-value--warning {
-    color: var(--color-semantic-warning, #fbbf24);
+    color: var(--color-semantic-warning-text);
   }
 
   .trigger-debug-panel__stat-value--muted {

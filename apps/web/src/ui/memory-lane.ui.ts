@@ -768,7 +768,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
       margin-bottom: var(--space-xs, 4px);
     }
 
@@ -830,7 +830,7 @@ function injectStyles(): void {
     }
 
     .memory-lane-modal__tab--active {
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
       border-bottom-color: var(--color-accent, #3D5A45);
     }
 
@@ -933,7 +933,7 @@ function injectStyles(): void {
       right: var(--space-md, 16px);
       width: 20px;
       height: 20px;
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
       opacity: 0.7;
     }
 
@@ -985,12 +985,12 @@ function injectStyles(): void {
     .memory-lane-card__reaction--active {
       background: var(--color-accent-subtle, rgba(61, 90, 69, 0.1));
       border-color: var(--color-accent, #3D5A45);
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
     }
 
     .memory-lane-card__reaction--dismiss:hover {
       border-color: var(--color-semantic-error, #dc2626);
-      color: var(--color-semantic-error, #dc2626);
+      color: var(--color-semantic-error-text);
     }
 
     .memory-lane-card__reaction svg {
@@ -1086,7 +1086,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--color-accent-soft, rgba(61, 90, 69, 0.1));
       border-radius: var(--radius-full, 999px);
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
     }
 
     .anniversary-notification-icon svg {
@@ -1121,7 +1121,7 @@ function injectStyles(): void {
       flex-shrink: 0;
       font-size: var(--font-size-sm, 0.875rem);
       font-weight: 500;
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
     }
 
     /* Reduced motion */

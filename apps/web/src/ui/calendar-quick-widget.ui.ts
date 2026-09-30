@@ -130,7 +130,7 @@ function injectStyles(): void {
     .cqw-pill-icon {
       width: 20px;
       height: 20px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -145,7 +145,7 @@ function injectStyles(): void {
     .cqw-pill-countdown {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       padding: var(--space-0-5, 0.125rem) var(--space-2, 0.5rem);
       border-radius: var(--radius-full, 50%);
@@ -153,7 +153,7 @@ function injectStyles(): void {
 
     .cqw-pill-countdown.urgent {
       background: rgba(204, 68, 68, 0.1);
-      color: var(--color-semantic-error, #c44);
+      color: var(--color-semantic-error-text);
     }
 
     .cqw-pill-expand {
@@ -200,7 +200,7 @@ function injectStyles(): void {
     }
 
     .cqw-header-title svg {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .cqw-collapse-btn {
@@ -258,12 +258,12 @@ function injectStyles(): void {
     .cqw-countdown-large {
       font-size: var(--text-lg, 1.125rem);
       font-weight: 700;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-top: var(--space-2, 0.5rem);
     }
 
     .cqw-countdown-large.urgent {
-      color: var(--color-semantic-error, #c44);
+      color: var(--color-semantic-error-text);
     }
 
     .cqw-meeting-meta {
@@ -348,7 +348,7 @@ function injectStyles(): void {
 
     .cqw-action-btn:hover {
       border-color: var(--persona-primary, #4a6741);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       background: var(--persona-tint, rgba(74, 103, 65, 0.05));
     }
 

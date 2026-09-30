@@ -284,7 +284,7 @@ function getStyles(): string {
         justify-content: center;
         border-radius: var(--radius-full, 50%);
         background: var(--color-ferni-light, rgba(74, 103, 65, 0.1));
-        color: var(--color-ferni, #4a6741);
+        color: var(--color-ferni-ink);
         margin-bottom: var(--space-2, 8px);
       }
 
@@ -316,12 +316,12 @@ function getStyles(): string {
 
       /* Quality indicators */
       .quality--excellent { color: var(--color-success, #22c55e); }
-      .quality--good { color: var(--color-ferni, #4a6741); }
+      .quality--good { color: var(--color-ferni-ink); }
       .quality--fair { color: var(--color-warning, #eab308); }
       .quality--poor { color: var(--color-error, #ef4444); }
 
       .latency--excellent { color: var(--color-success, #22c55e); }
-      .latency--good { color: var(--color-ferni, #4a6741); }
+      .latency--good { color: var(--color-ferni-ink); }
       .latency--fair { color: var(--color-warning, #eab308); }
       .latency--poor { color: var(--color-error, #ef4444); }
 

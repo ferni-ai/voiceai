@@ -218,7 +218,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     flex-shrink: 0;
   }
 
@@ -260,7 +260,7 @@ const STYLES = `
   }
 
   .task-label .required {
-    color: var(--color-semantic-error);
+    color: var(--color-semantic-error-text);
   }
 
   .task-input,
@@ -320,7 +320,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .task-summary-title {
@@ -399,7 +399,7 @@ const STYLES = `
   .task-btn--primary {
     background: var(--color-accent);
     border: none;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .task-btn--primary:hover {

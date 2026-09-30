@@ -567,12 +567,12 @@ export async function render(): Promise<string> {
       }
 
       .soul-response-arrow {
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .soul-response-action {
         font-weight: 600;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         font-size: 0.875rem;
       }
 
@@ -585,7 +585,7 @@ export async function render(): Promise<string> {
       .soul-response-code {
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.625rem;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         opacity: 0.7;
       }
 
@@ -607,7 +607,7 @@ export async function render(): Promise<string> {
         font-size: 1.5rem;
         font-weight: 700;
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .soul-stat-value--pending {
@@ -631,7 +631,7 @@ export async function render(): Promise<string> {
 
       .soul-link {
         display: inline-block;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         text-decoration: none;
         font-size: 0.875rem;
         transition: opacity 0.2s;

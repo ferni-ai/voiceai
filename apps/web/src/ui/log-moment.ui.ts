@@ -223,7 +223,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
@@ -328,7 +328,7 @@ function injectStyles(): void {
     }
 
     .lm-type.selected .lm-type-icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .lm-type-icon svg {
@@ -344,7 +344,7 @@ function injectStyles(): void {
     }
 
     .lm-type.selected .lm-type-label {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 600;
     }
 
@@ -381,7 +381,7 @@ function injectStyles(): void {
     .lm-direction.selected {
       border-color: var(--persona-primary, #4a6741);
       background: var(--persona-tint, rgba(74, 103, 65, 0.08));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .lm-direction svg {
@@ -469,7 +469,7 @@ function injectStyles(): void {
     }
 
     .lm-advanced-toggle:hover {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .lm-advanced-toggle svg {
@@ -521,7 +521,7 @@ function injectStyles(): void {
 
     .lm-sentiment.positive.selected {
       border-color: var(--persona-primary, #4a6741);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .lm-sentiment.neutral.selected {
@@ -531,7 +531,7 @@ function injectStyles(): void {
 
     .lm-sentiment.negative.selected {
       border-color: var(--color-semantic-error, #c44);
-      color: var(--color-semantic-error, #c44);
+      color: var(--color-semantic-error-text);
     }
 
     /* =========================================================================

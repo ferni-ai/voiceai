@@ -1797,7 +1797,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-error h2 {
-      color: var(--color-semantic-error);
+      color: var(--color-semantic-error-text);
     }
 
     /* TTS Monitoring Section */
@@ -1809,7 +1809,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-tts-monitoring h2 {
-      color: var(--color-accent-primary);
+      color: var(--color-accent-text);
     }
 
     .admin-tts-stats {
@@ -1825,7 +1825,7 @@ export function injectAdminStyles(): void {
     .admin-tts-error {
       text-align: center;
       padding: 1rem;
-      color: var(--color-semantic-error);
+      color: var(--color-semantic-error-text);
       background: rgba(252, 129, 129, 0.1);
       border-radius: 8px;
     }
@@ -1901,7 +1901,7 @@ export function injectAdminStyles(): void {
       padding: 0.125rem 0.375rem;
       border-radius: 4px;
       font-size: 0.8rem;
-      color: var(--color-semantic-error);
+      color: var(--color-semantic-error-text);
     }
 
     .admin-tts-pattern-list .count {
@@ -1920,7 +1920,7 @@ export function injectAdminStyles(): void {
     .admin-tts-last-issue h4 {
       margin: 0 0 0.5rem;
       font-size: 0.875rem;
-      color: var(--color-semantic-error);
+      color: var(--color-semantic-error-text);
     }
 
     .admin-tts-issue-info {
@@ -1946,7 +1946,7 @@ export function injectAdminStyles(): void {
     .admin-tts-no-issues {
       text-align: center;
       padding: 1rem;
-      color: var(--color-semantic-success);
+      color: var(--color-semantic-success-text);
       background: rgba(72, 187, 120, 0.1);
       border-radius: 8px;
       margin-top: 1rem;

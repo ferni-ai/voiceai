@@ -769,11 +769,11 @@ class NowPlayingUI {
       }
 
       .now-playing__btn--favorite:hover {
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
       }
 
       .now-playing__btn--favorite.is-favorite {
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
       }
 
       .now-playing__btn--favorite.is-favorite svg {
@@ -781,11 +781,11 @@ class NowPlayingUI {
       }
 
       .now-playing__btn--skip:hover {
-        color: var(--persona-primary);
+        color: var(--persona-ink);
       }
 
       .now-playing__btn--history:hover {
-        color: var(--color-accent);
+        color: var(--color-accent-text);
       }
 
       /* Volume control */

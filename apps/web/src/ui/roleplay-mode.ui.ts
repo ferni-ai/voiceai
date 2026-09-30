@@ -142,7 +142,7 @@ const STYLES = `
     width: 64px;
     height: 64px;
     margin: 0 auto var(--space-3);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .roleplay-intro-title {
@@ -291,7 +291,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-weight: 600;
   }
 
@@ -342,7 +342,7 @@ const STYLES = `
   .roleplay-btn--primary {
     background: var(--color-accent);
     border: none;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .roleplay-btn--primary:hover {

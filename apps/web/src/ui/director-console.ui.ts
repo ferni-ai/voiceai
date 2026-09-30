@@ -660,7 +660,7 @@ export class DirectorConsole {
         font-size: 10px;
         font-weight: 600;
         letter-spacing: 0.1em;
-        color: var(--color-accent, #3D5A45);
+        color: var(--color-accent-text);
         width: 100%;
       }
 
@@ -731,7 +731,7 @@ export class DirectorConsole {
       .dc-persona-chip.dc-active {
         background: color-mix(in srgb, var(--persona-color) 15%, transparent);
         border-color: var(--persona-color);
-        color: var(--persona-color);
+        color: var(--persona-ink);
       }
 
       .dc-persona-chip.dc-inactive {

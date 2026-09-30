@@ -163,7 +163,7 @@ export function render(): string {
 
       .quick-link-icon {
         display: flex;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .quick-link-icon svg {
@@ -222,10 +222,10 @@ export function render(): string {
         text-align: center;
       }
 
-      .api-method--GET { background: var(--color-method-get-bg, rgba(74, 103, 65, 0.2)); color: var(--color-semantic-success, #4a6741); }
-      .api-method--POST { background: var(--color-method-post-bg, rgba(58, 107, 115, 0.2)); color: var(--persona-peter, #3a6b73); }
-      .api-method--PUT { background: var(--color-method-put-bg, rgba(212, 168, 75, 0.2)); color: var(--color-semantic-warning, #d4a84b); }
-      .api-method--DELETE { background: var(--color-method-delete-bg, rgba(196, 69, 54, 0.2)); color: var(--color-semantic-error, #c44536); }
+      .api-method--GET { background: var(--color-method-get-bg, rgba(74, 103, 65, 0.2)); color: var(--color-semantic-success-text); }
+      .api-method--POST { background: var(--color-method-post-bg, rgba(58, 107, 115, 0.2)); color: var(--persona-peter-ink); }
+      .api-method--PUT { background: var(--color-method-put-bg, rgba(212, 168, 75, 0.2)); color: var(--color-semantic-warning-text); }
+      .api-method--DELETE { background: var(--color-method-delete-bg, rgba(196, 69, 54, 0.2)); color: var(--color-semantic-error-text); }
 
       .api-path {
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
@@ -249,7 +249,7 @@ export function render(): string {
 
       .api-auth--admin {
         background: var(--color-method-delete-bg, rgba(196, 69, 54, 0.2));
-        color: var(--color-semantic-error, #c44536);
+        color: var(--color-semantic-error-text);
       }
 
       /* API Tester */
@@ -343,11 +343,11 @@ export function render(): string {
       }
 
       .tester-success {
-        color: var(--color-semantic-success, #4a6741);
+        color: var(--color-semantic-success-text);
       }
 
       .tester-error {
-        color: var(--color-semantic-error, #c44536);
+        color: var(--color-semantic-error-text);
       }
     </style>
   `;

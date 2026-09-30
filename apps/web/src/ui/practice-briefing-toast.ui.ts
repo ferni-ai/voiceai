@@ -205,7 +205,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--persona-primary, var(--color-accent-primary));
+      color: var(--persona-ink);
       flex-shrink: 0;
     }
 
@@ -268,7 +268,7 @@ function injectStyles(): void {
       gap: 4px;
       font-size: var(--text-xs);
       font-weight: var(--font-weight-medium, 500);
-      color: var(--color-semantic-success, #4caf50);
+      color: var(--color-semantic-success-text);
       background: rgba(76, 175, 80, 0.1);
       padding: 4px 8px;
       border-radius: var(--radius-full);
@@ -383,7 +383,7 @@ function injectStyles(): void {
     }
 
     .practice-briefing-toast__voice-btn--speaking {
-      color: var(--persona-primary, var(--color-accent-primary));
+      color: var(--persona-ink);
       animation: voice-pulse 1.5s ease-in-out infinite;
     }
 

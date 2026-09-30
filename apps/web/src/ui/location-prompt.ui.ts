@@ -309,7 +309,7 @@ function addStyles(): void {
 
     .ferni-location-prompt-btn--primary {
       background: var(--color-accent, #3d5a45);
-      color: white;
+      color: var(--color-text-on-accent);
     }
 
     .ferni-location-prompt-btn--primary:hover {

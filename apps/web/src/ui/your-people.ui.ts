@@ -197,7 +197,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
@@ -232,7 +232,7 @@ function injectStyles(): void {
 
     .yp-action-btn:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .yp-action-btn:focus-visible {
@@ -358,7 +358,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .yp-nudges-header svg {
@@ -437,14 +437,16 @@ function injectStyles(): void {
       letter-spacing: 0.03em;
     }
 
+    /* Outline chips: tinted fills sat lighter than the card and dropped the
+       text below readable contrast */
     .yp-nudge-badge.high {
-      background: rgba(204, 68, 68, 0.1);
-      color: var(--color-semantic-error, #c44);
+      border: 1px solid currentColor;
+      color: var(--color-semantic-error-text);
     }
 
     .yp-nudge-badge.medium {
-      background: rgba(184, 149, 106, 0.15);
-      color: var(--nayan-primary, #b8956a);
+      border: 1px solid currentColor;
+      color: var(--color-semantic-warning-text);
     }
 
     .yp-nudge-arrow {
@@ -540,8 +542,8 @@ function injectStyles(): void {
       align-items: center;
     }
 
-    .yp-person-trend.growing { color: var(--persona-primary, #4a6741); }
-    .yp-person-trend.fading { color: var(--color-semantic-error, #c44); }
+    .yp-person-trend.growing { color: var(--persona-ink); }
+    .yp-person-trend.fading { color: var(--color-semantic-error-text); }
 
     .yp-person-meta {
       font-size: var(--text-xs, 0.75rem);
@@ -561,7 +563,7 @@ function injectStyles(): void {
       border-radius: var(--radius-full, 50%);
       font-size: var(--text-xxs, 0.625rem);
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .yp-person-upcoming svg {
@@ -633,7 +635,7 @@ function injectStyles(): void {
 
     .yp-add-btn:hover {
       border-color: var(--persona-primary, #4a6741);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       background: var(--persona-tint, rgba(74, 103, 65, 0.03));
     }
 
@@ -697,7 +699,7 @@ function injectStyles(): void {
 
     .yp-error-retry {
       background: var(--color-accent, #3D5A45);
-      color: white;
+      color: var(--color-text-on-accent);
       border: none;
       border-radius: var(--radius-md, 0.5rem);
       padding: var(--space-2, 0.5rem) var(--space-4, 1rem);

@@ -249,7 +249,7 @@ export function getVisualizationStyles(): string {
     }
 
     .viz-metric__value--accent {
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
     }
 
     .viz-metric__value--sm {
@@ -321,7 +321,7 @@ export function getVisualizationStyles(): string {
 
     .viz-stat-row__value--accent {
       font-size: var(--viz-text-lg);
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
     }
 
     .viz-stat {
@@ -333,7 +333,7 @@ export function getVisualizationStyles(): string {
     .viz-stat__icon {
       width: 1.125rem;
       height: 1.125rem;
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
       opacity: 0.85;
     }
 
@@ -361,7 +361,7 @@ export function getVisualizationStyles(): string {
       gap: 0.375rem;
       padding: 0.25rem 0.625rem;
       background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-xs);
       font-weight: 600;
@@ -573,7 +573,7 @@ export function getVisualizationStyles(): string {
     }
 
     .viz-label--accent {
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
     }
 
     .viz-label--section {
@@ -758,7 +758,7 @@ export function getVisualizationStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--viz-text-lg);
       font-weight: 600;
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
       margin: var(--viz-space-breath) 0;
     }
 
@@ -958,7 +958,7 @@ export function getVisualizationStyles(): string {
     /* Category icon for loop categories */
     .viz-category-icon {
       font-size: var(--viz-text-md);
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
     }
 
     /* ========================================================================
@@ -982,7 +982,7 @@ export function getVisualizationStyles(): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-text-on-accent);
       font-weight: 600;
       font-size: var(--viz-text-md);
       box-shadow: 0 4px 12px rgba(61, 90, 69, 0.3);

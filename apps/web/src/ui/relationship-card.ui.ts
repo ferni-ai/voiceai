@@ -405,8 +405,8 @@ function injectStyles(): void {
       align-items: center;
     }
 
-    .rc-strength-trend.growing { color: var(--persona-primary, #4a6741); }
-    .rc-strength-trend.fading { color: var(--color-semantic-error, #c44); }
+    .rc-strength-trend.growing { color: var(--persona-ink); }
+    .rc-strength-trend.fading { color: var(--color-semantic-error-text); }
     .rc-strength-trend.stable { color: var(--color-text-muted, #70605a); }
 
     .rc-last-contact {
@@ -440,7 +440,7 @@ function injectStyles(): void {
 
     .rc-quick-action:hover {
       border-color: var(--persona-primary, #4a6741);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       background: var(--persona-tint, rgba(74, 103, 65, 0.05));
     }
 
@@ -473,7 +473,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .rc-notices-header svg {
@@ -495,7 +495,7 @@ function injectStyles(): void {
     .rc-notice-icon {
       width: 20px;
       height: 20px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       flex-shrink: 0;
       margin-top: 1px;
     }
@@ -510,7 +510,7 @@ function injectStyles(): void {
     .rc-notice-action {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       background: none;
       border: none;
       padding: 0;
@@ -520,7 +520,7 @@ function injectStyles(): void {
     }
 
     .rc-notice-action:hover {
-      color: var(--persona-secondary, #3d5a35);
+      color: var(--persona-ink);
     }
 
     /* =========================================================================
@@ -632,7 +632,7 @@ function injectStyles(): void {
 
     .rc-timeline-icon.outbound {
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .rc-timeline-icon.inbound {
@@ -690,7 +690,7 @@ function injectStyles(): void {
       background: var(--persona-tint, rgba(74, 103, 65, 0.08));
       border-radius: var(--radius-full, 50%);
       font-size: var(--text-xs, 0.75rem);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 500;
     }
 
@@ -730,7 +730,7 @@ function injectStyles(): void {
 
     .rc-gift-direction.given {
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .rc-gift-direction.received {
@@ -772,10 +772,10 @@ function injectStyles(): void {
       margin-top: var(--space-2, 0.5rem);
     }
 
-    .rc-gift-reaction.loved { color: var(--persona-primary, #4a6741); }
+    .rc-gift-reaction.loved { color: var(--persona-ink); }
     .rc-gift-reaction.liked { color: var(--alex-primary, #5a6b8a); }
     .rc-gift-reaction.neutral { color: var(--color-text-muted, #70605a); }
-    .rc-gift-reaction.disliked { color: var(--color-semantic-error, #c44); }
+    .rc-gift-reaction.disliked { color: var(--color-semantic-error-text); }
 
     /* =========================================================================
        EVENT ITEMS
@@ -817,7 +817,7 @@ function injectStyles(): void {
     .rc-date-badge {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       padding: var(--space-0-5, 0.125rem) var(--space-2, 0.5rem);
       border-radius: var(--radius-full, 9999px);
@@ -845,7 +845,7 @@ function injectStyles(): void {
       font-size: var(--text-xxs, 0.625rem);
       font-weight: 600;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .rc-event-date-day {
@@ -907,7 +907,7 @@ function injectStyles(): void {
       background: var(--persona-tint, rgba(74, 103, 65, 0.08));
       border-radius: var(--radius-full, 50%);
       font-size: var(--text-sm, 0.875rem);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 500;
     }
 
@@ -916,7 +916,7 @@ function injectStyles(): void {
       background: rgba(204, 68, 68, 0.08);
       border-radius: var(--radius-full, 50%);
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-semantic-error, #c44);
+      color: var(--color-semantic-error-text);
       font-weight: 500;
     }
 
@@ -975,7 +975,7 @@ function injectStyles(): void {
 
     .rc-add-btn:hover {
       border-color: var(--persona-primary, #4a6741);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       background: var(--persona-tint, rgba(74, 103, 65, 0.03));
     }
 

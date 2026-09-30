@@ -534,7 +534,7 @@ const STYLES = `
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--color-accent, #3d5a45);
+    color: var(--color-accent-text);
     margin-bottom: var(--space-2, 8px);
   }
 
@@ -670,7 +670,7 @@ const STYLES = `
     align-items: center;
     justify-content: center;
     background: var(--color-accent-subtle, rgba(61, 90, 69, 0.1));
-    color: var(--color-accent, #3d5a45);
+    color: var(--color-accent-text);
     border-radius: var(--radius-md, 8px);
   }
 
@@ -794,7 +794,7 @@ const STYLES = `
 
   .digital-twin-card__action {
     flex-shrink: 0;
-    color: var(--color-accent, #3d5a45);
+    color: var(--color-accent-text);
   }
 
   .digital-twin-card__action svg {
@@ -839,7 +839,7 @@ const STYLES = `
     gap: var(--space-2, 8px);
     padding: var(--space-3, 12px);
     background: transparent;
-    color: var(--color-accent, #3d5a45);
+    color: var(--color-accent-text);
     font-size: 14px;
     font-weight: 500;
     border: 1px dashed var(--color-accent, #3d5a45);
@@ -899,7 +899,7 @@ const STYLES = `
   .digital-twin-capture-title svg {
     width: 18px;
     height: 18px;
-    color: var(--color-accent, #3d5a45);
+    color: var(--color-accent-text);
   }
 
   .digital-twin-capture-title h4 {
@@ -984,7 +984,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .digital-twin-consent__icon svg {
@@ -1015,7 +1015,7 @@ const STYLES = `
     gap: var(--space-2, 8px);
     padding: var(--space-3, 12px) var(--space-5, 20px);
     background: var(--color-accent, #3d5a45);
-    color: white;
+    color: var(--color-text-on-accent);
     font-size: 14px;
     font-weight: 600;
     border: none;

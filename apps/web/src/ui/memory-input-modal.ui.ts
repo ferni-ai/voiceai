@@ -241,7 +241,7 @@ function ensureStylesExist(): void {
     }
     
     .memory-type-btn--selected .memory-type-icon {
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .memory-type-icon {
@@ -285,7 +285,7 @@ function ensureStylesExist(): void {
     
     .memory-field-label--required::after {
       content: ' *';
-      color: var(--color-semantic-error, #ef4444);
+      color: var(--color-semantic-error-text);
     }
     
     .memory-field-input,
@@ -333,13 +333,13 @@ function ensureStylesExist(): void {
     
     .memory-mood-pill:hover {
       border-color: var(--color-accent);
-      color: var(--color-accent);
+      color: var(--color-accent-text);
     }
     
     .memory-mood-pill--selected {
       background: var(--color-accent);
       border-color: var(--color-accent);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     /* Footer */
@@ -377,7 +377,7 @@ function ensureStylesExist(): void {
     
     .memory-input-btn--save {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .memory-input-btn--save:hover:not(:disabled) {

@@ -541,7 +541,7 @@ export function getGardenWidgetStyles(): string {
 
     .garden-widget__error-text {
       font-size: var(--font-size-xs);
-      color: var(--color-semantic-error);
+      color: var(--color-semantic-error-text);
     }
 
     /* Reduced motion */

@@ -371,7 +371,7 @@ function applyModalStyles(overlay: HTMLElement): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 4px);
     }
     .account-modal-header h2 {
@@ -514,7 +514,7 @@ function applyModalStyles(overlay: HTMLElement): void {
     .account-modal-success svg {
       width: 48px;
       height: 48px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-3, 12px);
     }
     .error-message {

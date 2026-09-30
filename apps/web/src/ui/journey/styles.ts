@@ -77,7 +77,7 @@ function getJourneyStyles(): string {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
       letter-spacing: 0.1em;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 4px);
     }
 
@@ -278,7 +278,7 @@ function getJourneyStyles(): string {
     /* "You are here" indicator */
     .journey-map__here {
       font-size: var(--text-2xs, 9px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 600;
       margin-top: var(--space-1, 4px);
     }
@@ -479,7 +479,7 @@ function getJourneyStyles(): string {
     }
     
     .journey-stat__value--enrolled {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .journey-next-stage {
@@ -493,7 +493,7 @@ function getJourneyStyles(): string {
       display: block;
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .journey-next-stage__req {
@@ -517,7 +517,7 @@ function getJourneyStyles(): string {
       height: 14px;
       vertical-align: middle;
       margin-left: var(--space-1, 4px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .journey-next-stage__icon svg {
@@ -874,7 +874,7 @@ function getJourneyStyles(): string {
 
     .journey-polaroid__persona {
       font-size: var(--text-2xs, 8px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .journey-polaroid__hint {
@@ -1088,11 +1088,11 @@ function getJourneyStyles(): string {
     }
 
     .journey-connection--connected .journey-connection__icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .journey-connection--connected .journey-connection__text {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     /* Connecting state - amber/warm */
@@ -1248,7 +1248,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-insights-title svg {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .journey-insights-toggle {
@@ -1318,7 +1318,7 @@ function getJourneyStyles(): string {
       height: 48px;
       border-radius: var(--radius-full, 9999px);
       background: color-mix(in srgb, var(--persona-primary, #4a6741) 12%, transparent);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-3, 12px);
     }
 
@@ -1363,7 +1363,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-trust-stat__icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-2, 8px);
     }
 
@@ -1412,7 +1412,7 @@ function getJourneyStyles(): string {
       gap: var(--space-1, 4px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
       background: color-mix(in srgb, var(--persona-primary, #4a6741) 10%, transparent);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       border-radius: var(--radius-full, 9999px);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
@@ -1535,7 +1535,7 @@ function getJourneyStyles(): string {
 
     [data-theme="midnight"] .journey-connection--connected .journey-connection__icon,
     [data-theme="midnight"] .journey-connection--connected .journey-connection__text {
-      color: var(--persona-primary, #6b8f5e);
+      color: var(--persona-ink);
     }
 
     [data-theme="midnight"] .journey-connection--disconnected {
@@ -1646,7 +1646,7 @@ function getJourneyStyles(): string {
 
     [data-theme="midnight"] .journey-growth-tag {
       background: rgba(107, 143, 94, 0.15);
-      color: var(--persona-primary, #6b8f5e);
+      color: var(--persona-ink);
     }
 
     [data-theme="midnight"] .journey-win-item {

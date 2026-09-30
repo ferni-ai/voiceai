@@ -801,7 +801,7 @@ class CommandsPanelUI {
         font-family: var(--font-display);
         font-size: var(--text-base);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
         margin: 0;
       }
 

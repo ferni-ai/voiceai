@@ -599,7 +599,7 @@ function renderStyles(): string {
       .worker-header-icon {
         width: 32px;
         height: 32px;
-        color: var(--color-accent);
+        color: var(--color-accent-text);
       }
 
       .worker-header-icon svg {
@@ -648,7 +648,7 @@ function renderStyles(): string {
       .worker-btn--primary {
         background: var(--color-accent);
         border-color: var(--color-accent);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .worker-btn--primary:hover {
@@ -658,7 +658,7 @@ function renderStyles(): string {
       .worker-btn--active {
         background: var(--color-accent);
         border-color: var(--color-accent);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .worker-btn--danger {
@@ -768,7 +768,7 @@ function renderStyles(): string {
       .worker-card-icon {
         width: 20px;
         height: 20px;
-        color: var(--color-accent);
+        color: var(--color-accent-text);
       }
 
       .worker-card-icon svg {

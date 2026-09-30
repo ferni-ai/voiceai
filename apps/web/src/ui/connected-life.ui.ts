@@ -538,7 +538,7 @@ const styles = `
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.1em;
-  color: var(--color-accent, #3D5A45);
+  color: var(--color-accent-text);
   text-transform: uppercase;
   margin-bottom: var(--space-1, 4px);
   display: block;
@@ -614,7 +614,7 @@ const styles = `
 
 .connected-life-tab.active {
   background: var(--color-accent, #3D5A45);
-  color: white;
+  color: var(--color-text-on-accent);
   border-color: transparent;
 }
 
@@ -699,7 +699,7 @@ const styles = `
   background: var(--color-accent, #3D5A45);
   border: none;
   border-radius: var(--radius-full, 9999px);
-  color: white;
+  color: var(--color-text-on-accent);
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
@@ -716,7 +716,7 @@ const styles = `
   align-items: center;
   gap: var(--space-1, 4px);
   font-size: 0.8rem;
-  color: var(--color-accent, #3D5A45);
+  color: var(--color-accent-text);
   font-weight: 500;
 }
 

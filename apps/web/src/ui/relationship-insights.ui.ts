@@ -181,7 +181,7 @@ function injectStyles(): void {
     }
 
     .ri-icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .ri-eyebrow {
@@ -189,7 +189,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
@@ -289,7 +289,7 @@ function injectStyles(): void {
 
     .ri-spinner {
       animation: ri-spin 1s linear infinite;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -339,7 +339,7 @@ function injectStyles(): void {
     }
 
     .ri-stat.highlight .ri-stat-value {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .ri-stat.warning {
@@ -347,7 +347,7 @@ function injectStyles(): void {
     }
 
     .ri-stat.warning .ri-stat-value {
-      color: var(--color-semantic-error, #c44);
+      color: var(--color-semantic-error-text);
     }
 
     /* =========================================================================
@@ -516,7 +516,7 @@ function injectStyles(): void {
 
     .ri-insight-contact {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 500;
       margin-top: var(--space-1, 0.25rem);
     }
@@ -605,7 +605,7 @@ function injectStyles(): void {
     .ri-error {
       text-align: center;
       padding: var(--space-8, 2rem);
-      color: var(--color-semantic-error, #c44);
+      color: var(--color-semantic-error-text);
     }
 
     /* =========================================================================

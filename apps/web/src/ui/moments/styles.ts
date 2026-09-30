@@ -325,7 +325,7 @@ const MOMENT_STYLES = `
   width: 48px;
   height: 48px;
   margin: 0 auto var(--space-3, 12px);
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
 }
 
 .moment-celebration__icon svg {
@@ -458,7 +458,7 @@ const MOMENT_STYLES = `
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
   margin-bottom: var(--space-2, 8px);
   opacity: 0;
 }
@@ -660,16 +660,16 @@ const MOMENT_STYLES = `
 }
 
 .moments-badge--streak .moments-badge__icon {
-  color: var(--color-semantic-warning, #f59e0b);
+  color: var(--color-semantic-warning-text);
   animation: flame-flicker 2s ease-in-out infinite;
 }
 
 .moments-badge--seeds .moments-badge__icon {
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
 }
 
 .moments-badge--achievements .moments-badge__icon {
-  color: var(--color-semantic-success, #4a8741);
+  color: var(--color-semantic-success-text);
 }
 
 .moments-badge--new::after {

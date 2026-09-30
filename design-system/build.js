@@ -14,6 +14,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildStamp } from './build/build-stamp.js';
+import { textInk, contrastRatio } from './utils/text-ink.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -98,21 +99,121 @@ ${generateCSSVariables(flattened)}
 `.trim();
 }
 
-function generatePersonaCSS(personas) {
+// ============================================================================
+// TEXT INKS (brand colors made readable as text, per theme)
+// ============================================================================
+
+/**
+ * Opaque surfaces text sits on in a theme. Translucent chips/glass on top of
+ * these are lighter still; components that put brand-colored text there
+ * should use text-primary instead (Midnight's surfaces are mid-tone, so a
+ * colored ink readable on them would wash out to near-white).
+ */
+function themeTextSurfaces(theme) {
+  const { primary, secondary, tertiary, elevated } = theme.background;
+  const surfaces = [primary, secondary, tertiary, elevated];
+  // Light themes also put text on plain white cards
+  return theme.meta?.mode === 'light' ? [...surfaces, '#ffffff'] : surfaces;
+}
+
+/**
+ * Persona colors are fill colors; as text they fail contrast on some themes
+ * (Ferni green is ~1:1 on Midnight). Inks keep each persona's hue and adjust
+ * lightness until they reach WCAG AA on every surface of the theme.
+ * Returns { [personaId]: { [themeName]: ink } }.
+ */
+function computePersonaInks(personas, themes) {
+  const inks = {};
+  for (const [personaId, personaColors] of Object.entries(personas)) {
+    if (personaId.startsWith('_')) continue;
+    inks[personaId] = { onFill: onFill(personaColors.primary) };
+    for (const [themeName, theme] of Object.entries(themes)) {
+      inks[personaId][themeName] = textInk(personaColors.primary, themeTextSurfaces(theme));
+    }
+  }
+  return inks;
+}
+
+/**
+ * Derive theme text tokens that must stay readable: the accent as text, and
+ * text placed on an accent-filled button. Mutates a copy of the themes.
+ */
+function withReadableThemeText(themes) {
+  const out = {};
+  for (const [themeName, theme] of Object.entries(themes)) {
+    const surfaces = themeTextSurfaces(theme);
+    const accentText = textInk(theme.accent.text || theme.accent.primary, surfaces);
+    const onAccent =
+      theme.meta?.mode === 'light'
+        ? textInk('#ffffff', [theme.accent.primary])
+        : textInk(theme.text.inverse, [theme.accent.primary]);
+    // Status colors as text (errors, warnings, ...) also need to be readable
+    const semanticText = {};
+    for (const [name, value] of Object.entries(theme.semantic || {})) {
+      if (typeof value === 'string' && value.startsWith('#')) {
+        semanticText[`${name}Text`] = textInk(value, surfaces);
+      }
+    }
+    out[themeName] = {
+      ...theme,
+      accent: { ...theme.accent, text: accentText },
+      text: { ...theme.text, onAccent },
+      semantic: { ...theme.semantic, ...semanticText },
+    };
+  }
+  return out;
+}
+
+/** Ink for text on a persona fill: whichever of white or dark reads better. */
+const ON_FILL_DARK = '#2a2420';
+function onFill(fill) {
+  return contrastRatio('#ffffff', fill) >= contrastRatio(ON_FILL_DARK, fill) ? '#ffffff' : ON_FILL_DARK;
+}
+
+/** Theme-level inks: the active persona's default and one per persona. */
+function generatePersonaInkThemeCSS(personaInks, themes) {
+  const blocks = [];
+  // :root defaults to Midnight, like the theme variables above
+  const order = ['midnight', ...Object.keys(themes).filter((t) => t !== 'midnight')];
+  for (const themeName of order) {
+    const selector = themeName === 'midnight' ? ':root,\n[data-theme="midnight"]' : `[data-theme="${themeName}"]`;
+    const lines = [`${selector} {`];
+    lines.push(`  --persona-ink: ${personaInks.ferni[themeName]};`);
+    lines.push(`  --color-ferni-ink: ${personaInks.ferni[themeName]};`);
+    for (const [personaId, byTheme] of Object.entries(personaInks)) {
+      lines.push(`  --persona-${camelToKebab(personaId)}-ink: ${byTheme[themeName]};`);
+      lines.push(`  --persona-${camelToKebab(personaId)}-on: ${byTheme.onFill};`);
+    }
+    lines.push('}');
+    blocks.push(lines.join('\n'));
+  }
+  return blocks.join('\n\n');
+}
+
+function generatePersonaCSS(personas, personaInks = {}) {
   const lines = [];
   for (const [personaId, personaColors] of Object.entries(personas)) {
     // Skip metadata keys like _description / _textOnDarkNote
     if (personaId.startsWith('_')) continue;
     const kebabId = camelToKebab(personaId);
+    const inks = personaInks[personaId] || {};
     lines.push(`
 /* Persona: ${personaId} */
 [data-persona="${kebabId}"] {
   --persona-primary: ${personaColors.primary};
   --persona-secondary: ${personaColors.secondary};
-  --persona-text: ${personaColors.text || '#ffffff'};
+  --persona-text: ${inks.onFill || personaColors.text || '#ffffff'};
+  --persona-ink: ${inks.zen || personaColors.primary};
   --persona-glow: ${personaColors.glow};
   --persona-tint: ${personaColors.tint};
 }`);
+    for (const [themeName, ink] of Object.entries(inks)) {
+      if (themeName === 'zen' || themeName === 'onFill') continue;
+      lines.push(`[data-theme="${themeName}"] [data-persona="${kebabId}"],
+[data-theme="${themeName}"][data-persona="${kebabId}"] {
+  --persona-ink: ${ink};
+}`);
+    }
   }
   return lines.join('\n');
 }
@@ -5231,7 +5332,10 @@ function build() {
   output.push('   DEFAULT THEME (Midnight)');
   output.push('   ======================================== */');
   output.push(':root {');
-  const { meta, ...defaultColors } = colors.themes.midnight;
+  // Accent-as-text and text-on-accent are derived so they stay readable
+  const readableThemes = withReadableThemeText(colors.themes);
+  const personaInks = computePersonaInks(colors.personas, colors.themes);
+  const { meta, ...defaultColors } = readableThemes.midnight;
   const flatDefault = flattenObject(defaultColors, 'color');
   output.push(generateCSSVariables(flatDefault));
   output.push('  color-scheme: dark;');
@@ -5242,16 +5346,25 @@ function build() {
   output.push('/* ========================================');
   output.push('   THEME VARIANTS');
   output.push('   ======================================== */');
-  for (const [themeName, theme] of Object.entries(colors.themes)) {
+  for (const [themeName, theme] of Object.entries(readableThemes)) {
     output.push(generateThemeCSS(themeName, theme));
     output.push('');
   }
+
+  // Persona colors as readable text, per theme
+  output.push('/* ========================================');
+  output.push('   PERSONA TEXT INKS');
+  output.push('   Persona colors for text: same hue, WCAG AA on the theme surfaces');
+  output.push('   (design-system/utils/text-ink.js)');
+  output.push('   ======================================== */');
+  output.push(generatePersonaInkThemeCSS(personaInks, colors.themes));
+  output.push('');
 
   // Persona colors
   output.push('/* ========================================');
   output.push('   PERSONA THEMES');
   output.push('   ======================================== */');
-  output.push(generatePersonaCSS(colors.personas));
+  output.push(generatePersonaCSS(colors.personas, personaInks));
   output.push('');
 
   // External brand colors (for marketplace)

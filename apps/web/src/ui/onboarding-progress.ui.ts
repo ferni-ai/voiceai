@@ -287,7 +287,7 @@ const styles = `
 
 .onboarding-milestone.reached .onboarding-milestone-icon svg,
 .onboarding-milestone.current .onboarding-milestone-icon svg {
-  color: var(--color-ferni, #4a6741);
+  color: var(--color-ferni-ink);
 }
 
 .onboarding-milestone-info {

@@ -178,10 +178,10 @@ export function createRoutingStatsPanel(): HTMLElement {
         color: var(--color-text-primary, #fff);
       }
       .routing-stat-value.good {
-        color: var(--color-semantic-success, #4ade80);
+        color: var(--color-semantic-success-text);
       }
       .routing-stat-value.warning {
-        color: var(--color-semantic-warning, #facc15);
+        color: var(--color-semantic-warning-text);
       }
       .routing-paths {
         margin-top: var(--space-sm, 8px);
@@ -213,7 +213,7 @@ export function createRoutingStatsPanel(): HTMLElement {
         font-size: 11px;
       }
       .routing-tool-name {
-        color: var(--color-accent-primary, #3d5a45);
+        color: var(--color-accent-text);
         font-family: monospace;
       }
       .no-data {

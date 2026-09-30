@@ -111,6 +111,9 @@ const STYLES = `
     gap: 8px;
     padding: 8px 12px;
     background: var(--color-background-elevated);
+    border: none;
+    color: inherit;
+    font: inherit;
     border-radius: var(--radius-full, 20px);
     box-shadow: var(--shadow-md);
     cursor: pointer;
@@ -126,6 +129,11 @@ const STYLES = `
 
   .service-health-indicator:hover {
     box-shadow: var(--shadow-lg);
+  }
+
+  .service-health-indicator:focus-visible {
+    outline: 2px solid var(--color-accent-primary);
+    outline-offset: 2px;
   }
 
   .service-health-dot {
@@ -250,15 +258,40 @@ const STYLES = `
     text-align: center;
   }
 
-  /* Hidden when healthy and not hovered */
+  /* Quiet when healthy: just the dot. Faded text would be unreadable, so the
+     label collapses instead (still read by screen readers) and returns on
+     hover or keyboard focus. */
+  .service-health-text {
+    display: inline-block;
+    max-width: 24ch;
+    overflow: hidden;
+    transition:
+      max-width ${DURATION.NORMAL}ms ${EASING.STANDARD},
+      opacity ${DURATION.NORMAL}ms ${EASING.STANDARD};
+  }
+
   .service-health-container.auto-hide .service-health-indicator {
-    opacity: 0.3;
+    opacity: 0.6;
+    gap: 0;
     transform: scale(0.9);
   }
 
-  .service-health-container.auto-hide:hover .service-health-indicator {
+  .service-health-container.auto-hide .service-health-text {
+    max-width: 0;
+    opacity: 0;
+  }
+
+  .service-health-container.auto-hide:hover .service-health-indicator,
+  .service-health-container.auto-hide:focus-within .service-health-indicator {
     opacity: 1;
+    gap: 8px;
     transform: scale(1);
+  }
+
+  .service-health-container.auto-hide:hover .service-health-text,
+  .service-health-container.auto-hide:focus-within .service-health-text {
+    max-width: 24ch;
+    opacity: 1;
   }
 
   /* Reduced motion */
@@ -299,10 +332,10 @@ function getStatusClass(state: string): string {
 function renderIndicator(): string {
   if (!state.data) {
     return `
-      <div class="service-health-indicator">
-        <div class="service-health-dot healthy"></div>
+      <button type="button" class="service-health-indicator" aria-expanded="${state.expanded}">
+        <span class="service-health-dot healthy"></span>
         <span class="service-health-text">Loading...</span>
-      </div>
+      </button>
     `;
   }
 
@@ -318,10 +351,14 @@ function renderIndicator(): string {
   }
 
   return `
-    <div class="service-health-indicator ${state.visible ? 'visible' : ''}">
-      <div class="service-health-dot ${statusClass}"></div>
+    <button
+      type="button"
+      class="service-health-indicator ${state.visible ? 'visible' : ''}"
+      aria-expanded="${state.expanded}"
+    >
+      <span class="service-health-dot ${statusClass}"></span>
       <span class="service-health-text">${text}</span>
-    </div>
+    </button>
   `;
 }
 

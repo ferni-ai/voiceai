@@ -107,7 +107,7 @@ const styles = `
   
   .speaker-change-indicator--changed .speaker-change-indicator__icon {
     background: rgba(74, 103, 65, 0.15);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .speaker-change-indicator--verifying .speaker-change-indicator__icon {

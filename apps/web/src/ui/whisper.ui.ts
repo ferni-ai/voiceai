@@ -222,7 +222,7 @@ function injectStyles(): void {
     /* Celebration amount styling */
     .whisper__amount {
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-right: 2px;
     }
 

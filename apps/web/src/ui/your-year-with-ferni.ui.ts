@@ -674,7 +674,7 @@ export class YourYearWithFerni {
         font-weight: var(--font-semibold, 600);
         letter-spacing: var(--tracking-widest, 0.1em);
         text-transform: uppercase;
-        color: var(--color-ferni, #4A6741);
+        color: var(--color-ferni-ink);
         margin-bottom: var(--space-2, 8px);
         display: block;
       }
@@ -736,7 +736,7 @@ export class YourYearWithFerni {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-xl, 1.5rem);
         font-weight: var(--font-bold, 700);
-        color: var(--color-ferni, #4A6741);
+        color: var(--color-ferni-ink);
         line-height: var(--leading-tight, 1.15);
       }
 
@@ -950,7 +950,7 @@ export class YourYearWithFerni {
       .dream-icon {
         width: 24px;
         height: 24px;
-        color: var(--color-ferni, #4A6741);
+        color: var(--color-ferni-ink);
         flex-shrink: 0;
       }
 

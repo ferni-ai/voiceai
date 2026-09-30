@@ -409,7 +409,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--color-background-elevated, white);
       border-radius: var(--radius-md, 8px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .earn-method-content {
@@ -435,7 +435,7 @@ function injectStyles(): void {
       flex-shrink: 0;
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       padding: var(--space-1, 4px) var(--space-2, 8px);
       border-radius: var(--radius-full, 9999px);

@@ -323,7 +323,7 @@ function injectStyles(): void {
       border-radius: 999px;
       font-size: 0.75rem;
       font-weight: 500;
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-ink);
     }
 
     .contact-settings-verified svg {
@@ -340,7 +340,7 @@ function injectStyles(): void {
       background: transparent;
       border: 2px solid var(--color-ferni, #4a6741);
       border-radius: 8px;
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-ink);
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -451,7 +451,7 @@ function injectStyles(): void {
     .contact-settings-btn--secondary {
       background: transparent;
       border: 2px solid var(--color-ferni, #4a6741);
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-ink);
     }
 
     .contact-settings-btn--secondary:hover {
@@ -490,7 +490,7 @@ function injectStyles(): void {
       background: rgba(74, 103, 65, 0.1);
       border-left: 4px solid var(--color-ferni, #4a6741);
       border-radius: 8px;
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-ink);
       font-size: 0.875rem;
       margin-bottom: 1rem;
       display: flex;

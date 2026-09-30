@@ -141,7 +141,7 @@ function injectStyles(): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 0.25rem);
     }
     
@@ -264,7 +264,7 @@ function injectStyles(): void {
     }
     
     .ic-drop-browse {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 600;
       cursor: pointer;
       text-decoration: underline;
@@ -314,7 +314,7 @@ function injectStyles(): void {
     
     .ic-select-all {
       font-size: 0.75rem;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       background: none;
       border: none;
       cursor: pointer;

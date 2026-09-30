@@ -204,7 +204,7 @@ class CognitiveInsightsUI {
     if (!this.panel) return;
     const content = this.panel.querySelector('#cognitive-content');
     if (content) {
-      content.innerHTML = '<div class="cognitive-insights__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn\'t load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>';
+      content.innerHTML = '<div class="cognitive-insights__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn\'t load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>';
       const retryBtn = content.querySelector('button');
       if (retryBtn && onRetry) {
         retryBtn.addEventListener('click', onRetry);
@@ -909,7 +909,7 @@ class CognitiveInsightsUI {
       }
 
       .cognitive-insights__memory-delete:hover {
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
       }
 
       .cognitive-insights__memory-delete svg {
@@ -941,7 +941,7 @@ class CognitiveInsightsUI {
       .cognitive-insights__superhuman-icon {
         width: 20px;
         height: 20px;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .cognitive-insights__superhuman-icon svg {
@@ -1004,7 +1004,7 @@ class CognitiveInsightsUI {
       .cognitive-insights__superhuman-insight-icon {
         width: 24px;
         height: 24px;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         flex-shrink: 0;
       }
 
@@ -1037,7 +1037,7 @@ class CognitiveInsightsUI {
         display: inline-flex;
         width: 16px;
         height: 16px;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .cognitive-insights__superhuman-insight-tone svg {
@@ -1174,7 +1174,7 @@ class CognitiveInsightsUI {
       }
 
       .cognitive-insights__pattern--medium .cognitive-insights__pattern-confidence {
-        color: var(--color-semantic-warning, #c49a6c);
+        color: var(--color-semantic-warning-text);
       }
 
       .cognitive-insights__pattern--low .cognitive-insights__pattern-confidence {
@@ -1305,15 +1305,15 @@ class CognitiveInsightsUI {
       }
 
       [data-theme="midnight"] .cognitive-insights__pattern-confidence {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .cognitive-insights__pattern--medium .cognitive-insights__pattern-confidence {
-        color: var(--color-semantic-warning, #c49a6c);
+        color: var(--color-semantic-warning-text);
       }
 
       [data-theme="midnight"] .cognitive-insights__patterns-hint {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       /* Responsive */

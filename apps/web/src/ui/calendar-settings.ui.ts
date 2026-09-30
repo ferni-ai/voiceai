@@ -1161,7 +1161,7 @@ class CalendarSettingsUI {
       .calendar-settings__icon {
         width: 24px;
         height: 24px;
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
       }
 
       .calendar-settings__icon svg {
@@ -1242,7 +1242,7 @@ class CalendarSettingsUI {
       }
 
       .calendar-settings__status--connected .calendar-settings__status-icon {
-        color: var(--color-semantic-success, #3d7a52);
+        color: var(--color-semantic-success-text);
       }
 
       .calendar-settings__status--disconnected .calendar-settings__status-icon {
@@ -1346,7 +1346,7 @@ class CalendarSettingsUI {
 
       .calendar-settings__service-status--active {
         background: var(--color-semantic-success-bg, rgba(74, 103, 65, 0.1));
-        color: var(--color-semantic-success, #4a6741);
+        color: var(--color-semantic-success-text);
       }
 
       /* ========================================================================
@@ -1450,7 +1450,7 @@ class CalendarSettingsUI {
       }
 
       .calendar-settings__status-icon--success {
-        color: var(--color-semantic-success, #4a6741);
+        color: var(--color-semantic-success-text);
       }
 
       /* ========================================================================
@@ -1558,7 +1558,7 @@ class CalendarSettingsUI {
 
       .calendar-settings__provider-badge--synced {
         background: var(--color-semantic-success-bg, rgba(74, 103, 65, 0.1));
-        color: var(--color-semantic-success, #4a6741);
+        color: var(--color-semantic-success-text);
       }
 
       .calendar-settings__provider-badge--soon {
@@ -1583,7 +1583,7 @@ class CalendarSettingsUI {
 
       .calendar-settings__btn--primary {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .calendar-settings__btn--primary:hover {
@@ -1601,7 +1601,7 @@ class CalendarSettingsUI {
 
       .calendar-settings__btn--danger {
         background: transparent;
-        color: var(--color-semantic-error, #b5453a);
+        color: var(--color-semantic-error-text);
         border: 1px solid var(--color-semantic-error, #b5453a);
       }
 
@@ -1793,7 +1793,7 @@ class CalendarSettingsUI {
 
       [data-theme="midnight"] .calendar-settings__service-status--active {
         background: var(--color-semantic-success-bg, rgba(74, 103, 65, 0.2));
-        color: var(--color-semantic-success, #7aaf70);
+        color: var(--color-semantic-success-text);
       }
 
       [data-theme="midnight"] .calendar-settings__btn--secondary {
@@ -1848,7 +1848,7 @@ class CalendarSettingsUI {
       }
 
       .calendar-settings__apple-steps a {
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
         text-decoration: none;
       }
 
@@ -1912,7 +1912,7 @@ class CalendarSettingsUI {
       .calendar-settings__error-message {
         padding: var(--space-3, 12px);
         background: var(--color-semantic-error-bg, rgba(181, 69, 58, 0.1));
-        color: var(--color-semantic-error, #b5453a);
+        color: var(--color-semantic-error-text);
         border-radius: var(--radius-md, 8px);
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);

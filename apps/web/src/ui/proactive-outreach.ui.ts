@@ -279,7 +279,7 @@ function injectStyles(): void {
       left: var(--space-md, 16px);
       width: 24px;
       height: 24px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .proactive-outreach__icon svg {
@@ -301,7 +301,7 @@ function injectStyles(): void {
 
     .proactive-outreach__persona {
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-size: 14px;
     }
 

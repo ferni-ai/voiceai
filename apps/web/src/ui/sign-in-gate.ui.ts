@@ -172,7 +172,7 @@ const STYLES = `
   padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
   background: var(--color-semantic-error-bg, rgba(239, 68, 68, 0.1));
   border-radius: var(--radius-md, 8px);
-  color: var(--color-semantic-error, #ef4444);
+  color: var(--color-semantic-error-text);
   font-size: 0.875rem;
   display: none;
 }
@@ -205,7 +205,7 @@ const STYLES = `
   width: 64px;
   height: 64px;
   margin: 0 auto var(--space-md, 1rem);
-  color: var(--color-accent-primary, #3D5A45);
+  color: var(--color-accent-text);
 }
 
 .sign-in-gate-waitlist-title {

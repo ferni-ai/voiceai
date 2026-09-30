@@ -284,7 +284,7 @@ const STYLES = `
   .vcr-progress-count {
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--color-accent, #4a6741);
+    color: var(--color-accent-text);
   }
 
   .vcr-progress-bar {
@@ -313,12 +313,12 @@ const STYLES = `
   }
 
   .vcr-progress-complete svg {
-    color: var(--color-accent, #4a6741);
+    color: var(--color-accent-text);
   }
 
   .vcr-progress-complete span {
     font-size: 0.85rem;
-    color: var(--color-accent, #4a6741);
+    color: var(--color-accent-text);
   }
 
   /* Prompt Card */
@@ -362,7 +362,7 @@ const STYLES = `
 
   .vcr-prompt-tip svg {
     flex-shrink: 0;
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   /* Recording Visualizer */
@@ -393,7 +393,7 @@ const STYLES = `
   }
 
   .vcr-recording-time.recording {
-    color: var(--color-semantic-error, #ef4444);
+    color: var(--color-semantic-error-text);
   }
 
   /* Controls */
@@ -489,7 +489,7 @@ const STYLES = `
 
   .vcr-nav-btn--primary {
     background: var(--color-accent, #4a6741);
-    color: white;
+    color: var(--color-text-on-accent);
     border: none;
   }
 
@@ -542,7 +542,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-text-on-accent);
     flex-shrink: 0;
     transition: all ${DURATION.FAST}ms ease;
   }
@@ -578,9 +578,9 @@ const STYLES = `
     gap: 2px;
   }
 
-  .vcr-sample-quality.excellent { color: var(--color-semantic-success, #22c55e); }
-  .vcr-sample-quality.good { color: var(--color-semantic-warning, #eab308); }
-  .vcr-sample-quality.poor { color: var(--color-semantic-error, #ef4444); }
+  .vcr-sample-quality.excellent { color: var(--color-semantic-success-text); }
+  .vcr-sample-quality.good { color: var(--color-semantic-warning-text); }
+  .vcr-sample-quality.poor { color: var(--color-semantic-error-text); }
 
   .vcr-sample-delete {
     width: 32px;
@@ -598,7 +598,7 @@ const STYLES = `
 
   .vcr-sample-delete:hover {
     background: color-mix(in srgb, var(--color-semantic-error, #ef4444) 10%, transparent);
-    color: var(--color-semantic-error, #ef4444);
+    color: var(--color-semantic-error-text);
   }
 
   /* Footer */
@@ -631,7 +631,7 @@ const STYLES = `
 
   .vcr-footer-btn--primary {
     background: var(--color-accent, #4a6741);
-    color: white;
+    color: var(--color-text-on-accent);
     border: none;
     display: flex;
     align-items: center;

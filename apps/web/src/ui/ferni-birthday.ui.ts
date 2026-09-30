@@ -272,7 +272,7 @@ function injectStyles(): void {
       position: fixed;
       pointer-events: none;
       z-index: var(--z-notification, 3000);
-      color: var(--color-semantic-warning, #f59e0b);
+      color: var(--color-semantic-warning-text);
       animation: cakeFloat 2s ${EASING.EXPO_OUT} forwards;
       filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
     }

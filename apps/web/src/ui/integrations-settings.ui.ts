@@ -721,7 +721,7 @@ class IntegrationsSettingsUI {
         justify-content: center;
         background: var(--color-background-secondary, #f5f2ed);
         border-radius: var(--radius-md, 0.5rem);
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
         flex-shrink: 0;
       }
 
@@ -769,7 +769,7 @@ class IntegrationsSettingsUI {
 
       .integrations-settings__status--connected {
         background: var(--color-semantic-success-bg, rgba(34, 139, 34, 0.1));
-        color: var(--color-semantic-success, #228b22);
+        color: var(--color-semantic-success-text);
       }
 
       .integrations-settings__status--disconnected {
@@ -822,7 +822,7 @@ class IntegrationsSettingsUI {
       .integrations-settings__disconnect-btn:hover {
         background: var(--color-semantic-error-bg, rgba(220, 53, 69, 0.1));
         border-color: var(--color-semantic-error, #dc3545);
-        color: var(--color-semantic-error, #dc3545);
+        color: var(--color-semantic-error-text);
       }
 
       .integrations-settings__disconnect-btn:focus-visible {
@@ -897,7 +897,7 @@ class IntegrationsSettingsUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
       }
 
       .integrations-settings__platform-icon svg {
@@ -929,7 +929,7 @@ class IntegrationsSettingsUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: white;
+        color: var(--color-text-on-accent);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
@@ -968,7 +968,7 @@ class IntegrationsSettingsUI {
         height: 14px;
         flex-shrink: 0;
         margin-top: 1px;
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
       }
 
       /* Capabilities List */
@@ -993,7 +993,7 @@ class IntegrationsSettingsUI {
 
       .integrations-settings__capability--active {
         background: var(--color-semantic-success-bg, rgba(34, 139, 34, 0.1));
-        color: var(--color-semantic-success, #228b22);
+        color: var(--color-semantic-success-text);
       }
 
       .integrations-settings__capability-icon {
@@ -1058,7 +1058,7 @@ class IntegrationsSettingsUI {
       }
 
       .integrations-settings__text-btn:hover {
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
       }
 
       .integrations-settings__text-btn:focus-visible {
@@ -1067,7 +1067,7 @@ class IntegrationsSettingsUI {
       }
 
       .integrations-settings__text-btn--danger {
-        color: var(--color-semantic-error, #dc3545);
+        color: var(--color-semantic-error-text);
       }
 
       .integrations-settings__text-btn--danger:hover {
@@ -1105,7 +1105,7 @@ class IntegrationsSettingsUI {
 
       [data-theme="midnight"] .integrations-settings__section-icon {
         background: var(--color-background-secondary, #60504a);
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .integrations-settings__section-info h3 {

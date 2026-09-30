@@ -162,11 +162,11 @@ export async function render(): Promise<string> {
       }
 
       .diagnostics-stat-value--success {
-        color: var(--color-semantic-success, #4a6741);
+        color: var(--color-semantic-success-text);
       }
 
       .diagnostics-stat-value--warning {
-        color: var(--color-semantic-warning, #d4a84b);
+        color: var(--color-semantic-warning-text);
       }
 
       .diagnostics-stat-label {
@@ -254,12 +254,12 @@ export async function render(): Promise<string> {
 
       .handoff-status--success {
         background: rgba(74, 103, 65, 0.2);
-        color: var(--color-semantic-success, #4a6741);
+        color: var(--color-semantic-success-text);
       }
 
       .handoff-status--failed {
         background: rgba(196, 69, 54, 0.2);
-        color: var(--color-semantic-error, #c44536);
+        color: var(--color-semantic-error-text);
       }
 
       .health-grid {

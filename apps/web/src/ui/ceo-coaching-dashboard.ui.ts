@@ -839,7 +839,7 @@ class CEOCoachingDashboardUI {
       .ceo-dashboard__card-subtext {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
         margin-top: var(--space-1, 4px);
       }
 
@@ -959,7 +959,7 @@ class CEOCoachingDashboardUI {
       }
 
       .ceo-dashboard__win-icon {
-        color: var(--color-semantic-success);
+        color: var(--color-semantic-success-text);
         font-weight: bold;
       }
 
@@ -1045,7 +1045,7 @@ class CEOCoachingDashboardUI {
         width: 20px;
         height: 20px;
         background: var(--color-accent-primary);
-        color: white;
+        color: var(--color-text-on-accent);
         font-family: var(--font-display);
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-bold, 700);

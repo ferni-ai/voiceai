@@ -1345,7 +1345,7 @@ const styles = `
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.1em;
-  color: var(--color-accent, #3D5A45);
+  color: var(--color-accent-text);
   text-transform: uppercase;
   margin-bottom: var(--space-1, 4px);
   display: block;
@@ -1416,7 +1416,7 @@ const styles = `
 
 .insights-hub-tab.active {
   background: var(--color-accent, #3D5A45);
-  color: white;
+  color: var(--color-text-on-accent);
 }
 
 .insights-hub-tab-icon svg {
@@ -1593,7 +1593,7 @@ const styles = `
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--color-accent, #3D5A45);
+  color: var(--color-accent-text);
 }
 
 .insights-card__icon svg {
@@ -1637,7 +1637,7 @@ const styles = `
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-accent, #3D5A45);
+  color: var(--color-accent-text);
   background: var(--color-accent-subtle, rgba(74, 103, 65, 0.1));
   padding: var(--space-1, 4px) var(--space-2, 8px);
   border-radius: var(--radius-full, 9999px);
@@ -1694,7 +1694,7 @@ const styles = `
   width: 20px;
   height: 20px;
   flex-shrink: 0;
-  color: var(--color-accent, #3D5A45);
+  color: var(--color-accent-text);
 }
 
 .insights-notice__icon svg {
@@ -1785,7 +1785,7 @@ const styles = `
 .insights-dimension__value {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--color-accent, #3D5A45);
+  color: var(--color-accent-text);
 }
 
 .insights-dimension__bar {
@@ -1834,7 +1834,7 @@ const styles = `
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-accent, #3D5A45);
+  color: var(--color-accent-text);
 }
 
 .insights-prediction__confidence {
@@ -1859,7 +1859,7 @@ const styles = `
 
 .insights-prediction__suggestion {
   font-size: 0.85rem;
-  color: var(--color-accent, #3D5A45);
+  color: var(--color-accent-text);
   font-style: italic;
   margin: var(--space-2, 8px) 0 0;
 }
@@ -1905,14 +1905,14 @@ const styles = `
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--persona-color, var(--color-accent));
+  color: var(--persona-ink);
 }
 
 .insights-team-insight__badge {
   font-size: 0.65rem;
   font-weight: 600;
   background: var(--color-accent, #3D5A45);
-  color: white;
+  color: var(--color-text-on-accent);
   padding: 2px 6px;
   border-radius: var(--radius-full, 9999px);
 }
@@ -1970,7 +1970,7 @@ const styles = `
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--color-accent, #3D5A45);
+  color: var(--color-accent-text);
   display: block;
   margin-bottom: var(--space-1, 4px);
 }

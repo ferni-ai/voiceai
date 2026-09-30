@@ -389,7 +389,7 @@ function injectStyles(): void {
     .team-obs-panel__title svg {
       width: 24px;
       height: 24px;
-      color: var(--color-accent-primary, #4a6741);
+      color: var(--color-accent-text);
     }
 
     .team-obs-panel__close {
@@ -549,7 +549,7 @@ function injectStyles(): void {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: var(--persona-color);
+      color: var(--persona-ink);
     }
 
     .team-obs-card__persona-icon svg {
@@ -601,7 +601,7 @@ function injectStyles(): void {
       padding-top: var(--space-sm, 8px);
       border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-accent-primary, #4a6741);
+      color: var(--color-accent-text);
       font-style: italic;
     }
 
@@ -643,7 +643,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-sm, 0.875rem);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-accent-primary, #4a6741);
+      color: var(--color-accent-text);
       margin-bottom: var(--space-sm, 8px);
     }
 
@@ -785,7 +785,7 @@ function injectStyles(): void {
 
     .team-obs-synthesis__recommendation-approach {
       font-style: italic;
-      color: var(--color-accent-primary, #4a6741) !important;
+      color: var(--color-accent-text) !important;
     }
 
     /* ========================================================================

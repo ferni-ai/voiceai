@@ -504,7 +504,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-ferni, #3D5A45);
+      color: var(--color-ferni-ink);
     }
 
     .vibe-header__title {
@@ -638,7 +638,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--color-ferni-tint, rgba(61, 90, 69, 0.1));
       border-radius: var(--radius-md, 8px);
-      color: var(--color-ferni, #3D5A45);
+      color: var(--color-ferni-ink);
     }
 
     .vibe-section__icon svg {
@@ -660,7 +660,7 @@ function injectStyles(): void {
     }
 
     .vibe-section__status--connected {
-      color: var(--color-semantic-success, #22c55e);
+      color: var(--color-semantic-success-text);
     }
 
     /* Controls */
@@ -735,7 +735,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-ferni, #3D5A45);
+      color: var(--color-ferni-ink);
     }
 
     .vibe-music__cover svg {
@@ -988,7 +988,7 @@ function injectStyles(): void {
     }
 
     .vibe-activity--active .vibe-activity__icon {
-      color: var(--color-ferni, #3D5A45);
+      color: var(--color-ferni-ink);
     }
 
     .vibe-activity__icon svg {
@@ -1004,7 +1004,7 @@ function injectStyles(): void {
     }
 
     .vibe-activity--active .vibe-activity__name {
-      color: var(--color-ferni, #3D5A45);
+      color: var(--color-ferni-ink);
     }
 
     /* Setup Flow */
@@ -1024,7 +1024,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-ferni, #3D5A45);
+      color: var(--color-ferni-ink);
     }
 
     .vibe-setup__icon svg {
@@ -1133,12 +1133,12 @@ function injectStyles(): void {
       background: var(--color-semantic-success-tint, rgba(34, 197, 94, 0.1));
       border-radius: var(--radius-full, 9999px);
       font-size: 0.75rem;
-      color: var(--color-semantic-success, #22c55e);
+      color: var(--color-semantic-success-text);
     }
 
     .vibe-connection-badge--warning {
       background: var(--color-semantic-warning-tint, rgba(245, 158, 11, 0.1));
-      color: var(--color-semantic-warning, #f59e0b);
+      color: var(--color-semantic-warning-text);
     }
 
     .vibe-connection-badge svg {
@@ -1210,7 +1210,7 @@ function injectStyles(): void {
       font-size: 2.5rem;
       font-weight: 700;
       letter-spacing: 0.5rem;
-      color: var(--color-ferni, #3D5A45);
+      color: var(--color-ferni-ink);
       padding: var(--space-md, 16px);
       background: var(--color-bg-secondary, rgba(44, 37, 32, 0.03));
       border-radius: var(--radius-lg, 12px);

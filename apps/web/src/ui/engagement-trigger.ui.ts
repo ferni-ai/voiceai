@@ -301,7 +301,7 @@ class EngagementTriggerUI {
         font-weight: var(--font-weight-bold, 700);
         line-height: 16px;
         text-align: center;
-        color: white;
+        color: var(--color-text-on-accent);
         background: var(--color-accent-primary, #2d5a3d);
         border-radius: var(--radius-full, 9999px);
         opacity: 0;

@@ -274,7 +274,7 @@ const styles = `
   }
   
   .rb-trigger.selected .rb-trigger__icon {
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .rb-trigger__label {
@@ -378,7 +378,7 @@ const styles = `
   
   .rb-action-item__remove:hover {
     background: rgba(196, 92, 92, 0.1);
-    color: var(--color-semantic-error, #c45c5c);
+    color: var(--color-semantic-error-text);
   }
   
   .rb-add-action {
@@ -400,7 +400,7 @@ const styles = `
   
   .rb-add-action:hover {
     border-color: var(--color-ferni, #4a6741);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
     background: rgba(74, 103, 65, 0.02);
   }
   
@@ -472,7 +472,7 @@ const styles = `
   }
   
   .rb-action-picker__item:hover .rb-action-picker__item-icon {
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .rb-action-picker__item-label {

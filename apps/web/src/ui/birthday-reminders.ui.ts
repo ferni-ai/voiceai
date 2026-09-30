@@ -150,7 +150,7 @@ function injectStyles(): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 0.25rem);
     }
     
@@ -212,7 +212,7 @@ function injectStyles(): void {
     }
     
     .br-section-title svg {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
     
     .br-setting {
@@ -324,7 +324,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       border-radius: var(--radius-md);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
     
     .br-date-info {
@@ -344,16 +344,16 @@ function injectStyles(): void {
     .br-date-countdown {
       font-size: 0.875rem;
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       white-space: nowrap;
     }
     
     .br-date-countdown.soon {
-      color: var(--color-semantic-warning, #c4856a);
+      color: var(--color-semantic-warning-text);
     }
     
     .br-date-countdown.today {
-      color: var(--color-semantic-error, #c44);
+      color: var(--color-semantic-error-text);
     }
     
     .br-footer {

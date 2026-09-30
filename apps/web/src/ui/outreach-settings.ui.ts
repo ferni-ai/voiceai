@@ -838,7 +838,7 @@ function getStyles(): string {
     .outreach-settings-type-icon {
       width: 20px;
       height: 20px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       flex-shrink: 0;
     }
 

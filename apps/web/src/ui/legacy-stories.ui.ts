@@ -139,7 +139,7 @@ const STYLES = `
   }
 
   .legacy-section-title svg {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .legacy-add-btn {
@@ -147,7 +147,7 @@ const STYLES = `
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-lg);
     background: var(--color-accent);
-    color: white;
+    color: var(--color-text-on-accent);
     border: none;
     cursor: pointer;
     display: flex;
@@ -261,7 +261,7 @@ const STYLES = `
   .legacy-action-btn--delete:hover {
     background: color-mix(in srgb, var(--color-semantic-error, #ef4444) 10%, transparent);
     border-color: color-mix(in srgb, var(--color-semantic-error, #ef4444) 30%, transparent);
-    color: var(--color-semantic-error, #ef4444);
+    color: var(--color-semantic-error-text);
   }
 
   .legacy-edit-form {
@@ -317,7 +317,7 @@ const STYLES = `
   .legacy-edit-btn--save {
     background: var(--color-accent);
     border: none;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .legacy-edit-btn--save:hover {

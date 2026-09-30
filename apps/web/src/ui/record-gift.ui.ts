@@ -215,7 +215,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
@@ -315,7 +315,7 @@ function injectStyles(): void {
     }
 
     .rg-direction.selected .rg-direction-icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .rg-direction-label {
@@ -325,7 +325,7 @@ function injectStyles(): void {
     }
 
     .rg-direction.selected .rg-direction-label {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 600;
     }
 
@@ -423,7 +423,7 @@ function injectStyles(): void {
     }
 
     .rg-reaction.selected .rg-reaction-icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .rg-reaction-icon svg {
@@ -438,7 +438,7 @@ function injectStyles(): void {
     }
 
     .rg-reaction.selected .rg-reaction-label {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     /* =========================================================================
@@ -459,7 +459,7 @@ function injectStyles(): void {
     }
 
     .rg-advanced-toggle:hover {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .rg-advanced-toggle svg {

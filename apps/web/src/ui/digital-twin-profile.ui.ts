@@ -1461,7 +1461,7 @@ function getProfileStyles(): string {
     
     .progress-step--complete {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .progress-step--current {
@@ -1496,7 +1496,7 @@ function getProfileStyles(): string {
     
     .profile-btn--primary {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
       border: none;
     }
     
@@ -1573,7 +1573,7 @@ function getProfileStyles(): string {
     }
     
     .intro-icon {
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
       margin-bottom: var(--space-md, 16px);
     }
     
@@ -1933,7 +1933,7 @@ function getProfileStyles(): string {
     .value-chip--selected {
       background: rgba(74, 103, 65, 0.2);
       border-color: var(--color-accent, #4a6741);
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .custom-value-input {
@@ -2000,7 +2000,7 @@ function getProfileStyles(): string {
       font-family: 'Plus Jakarta Sans', var(--font-display, sans-serif);
       font-size: 0.8rem;
       font-weight: 600;
-      color: var(--color-accent, #4a6741);
+      color: var(--color-accent-text);
       margin: 0 0 var(--space-xs, 4px);
       text-transform: uppercase;
       letter-spacing: 0.05em;

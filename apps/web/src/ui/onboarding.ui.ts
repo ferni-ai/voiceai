@@ -296,7 +296,7 @@ class OnboardingUI {
         width: 64px;
         height: 64px;
         margin: 0 auto var(--ma-rest, 21px);
-        color: var(--color-accent-primary, #2d5a3d);
+        color: var(--color-accent-text);
       }
       .onboarding__icon svg { width: 100%; height: 100%; }
 
@@ -348,7 +348,7 @@ class OnboardingUI {
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
-      .onboarding__btn--primary { background: var(--color-accent-primary, #2d5a3d); color: white; }
+      .onboarding__btn--primary { background: var(--color-accent-primary, #2d5a3d); color: var(--color-text-on-accent); }
       .onboarding__btn--primary:hover { background: var(--color-accent-hover, #3a7050); transform: translateY(-1px); }
       .onboarding__btn--secondary { background: transparent; color: var(--color-text-muted, #756a5e); }
       .onboarding__btn--secondary:hover { color: var(--color-text-primary, #2c2520); background: var(--color-background-secondary, #f5f2ed); }

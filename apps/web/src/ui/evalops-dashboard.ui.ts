@@ -1020,8 +1020,8 @@ function injectStyles(): void {
       padding: var(--space-1, 4px);
     }
     
-    .card-trend--up { color: var(--color-semantic-success); }
-    .card-trend--down { color: var(--color-semantic-error); }
+    .card-trend--up { color: var(--color-semantic-success-text); }
+    .card-trend--down { color: var(--color-semantic-error-text); }
     
     /* Persona Health Grid */
     .persona-health-grid {
@@ -1305,9 +1305,9 @@ function injectStyles(): void {
       border-radius: var(--radius-full, 999px);
     }
     
-    .persona-status--healthy { background: var(--color-semantic-success-glow); color: var(--color-semantic-success); }
-    .persona-status--warning { background: var(--color-semantic-warning-glow); color: var(--color-semantic-warning); }
-    .persona-status--critical { background: var(--color-semantic-error-glow); color: var(--color-semantic-error); }
+    .persona-status--healthy { background: var(--color-semantic-success-glow); color: var(--color-semantic-success-text); }
+    .persona-status--warning { background: var(--color-semantic-warning-glow); color: var(--color-semantic-warning-text); }
+    .persona-status--critical { background: var(--color-semantic-error-glow); color: var(--color-semantic-error-text); }
     
     .persona-metrics {
       margin-bottom: var(--space-4, 16px);
@@ -1348,7 +1348,7 @@ function injectStyles(): void {
     }
     
     .metric-value--warning {
-      color: var(--color-semantic-warning);
+      color: var(--color-semantic-warning-text);
     }
     
     .persona-actions {
@@ -1421,8 +1421,8 @@ function injectStyles(): void {
       background: var(--color-background-subtle);
     }
     
-    .scenario-item--passed .scenario-status { color: var(--color-semantic-success); }
-    .scenario-item--failed .scenario-status { color: var(--color-semantic-error); }
+    .scenario-item--passed .scenario-status { color: var(--color-semantic-success-text); }
+    .scenario-item--failed .scenario-status { color: var(--color-semantic-error-text); }
     
     .scenario-name {
       flex: 1;

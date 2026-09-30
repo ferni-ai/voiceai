@@ -128,7 +128,7 @@ const FORM_POLISH_STYLES = `
 }
 
 .form-field--error .form-field__label {
-  color: var(--color-semantic-error) !important;
+  color: var(--color-semantic-error-text) !important;
 }
 
 .form-field--error .form-field__input:focus {
@@ -144,7 +144,7 @@ const FORM_POLISH_STYLES = `
   gap: var(--space-1);
   margin-top: var(--space-1);
   padding: 0 var(--space-4);
-  color: var(--color-semantic-error);
+  color: var(--color-semantic-error-text);
   font-size: var(--text-sm);
   animation: formErrorSlideIn ${DURATION.NORMAL}ms ${EASING.SPRING};
 }
@@ -177,7 +177,7 @@ const FORM_POLISH_STYLES = `
 }
 
 .form-field--success .form-field__label {
-  color: var(--color-semantic-success) !important;
+  color: var(--color-semantic-success-text) !important;
 }
 
 .form-field__success-indicator {
@@ -185,7 +185,7 @@ const FORM_POLISH_STYLES = `
   right: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--color-semantic-success);
+  color: var(--color-semantic-success-text);
   animation: formSuccessCheck ${DURATION.SLOW}ms ${EASING.SPRING};
 }
 
@@ -214,11 +214,11 @@ const FORM_POLISH_STYLES = `
 }
 
 .form-field__counter--warning {
-  color: var(--color-semantic-warning);
+  color: var(--color-semantic-warning-text);
 }
 
 .form-field__counter--error {
-  color: var(--color-semantic-error);
+  color: var(--color-semantic-error-text);
 }
 
 /* Helper text */

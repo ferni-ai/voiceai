@@ -242,7 +242,7 @@ export function render(): string {
       }
 
       .category-header .admin-icon {
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .dashboard-grid {
@@ -293,7 +293,7 @@ export function render(): string {
         justify-content: center;
         background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
         border-radius: var(--radius-sm, 6px);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .dashboard-link-content {

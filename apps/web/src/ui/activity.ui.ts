@@ -371,7 +371,7 @@ const ACTIVITY_STYLES = `
   .activity-offline-banner__icon {
     width: 16px;
     height: 16px;
-    color: var(--color-semantic-warning, #ffc107);
+    color: var(--color-semantic-warning-text);
   }
 
   @media (prefers-reduced-motion: reduce) {

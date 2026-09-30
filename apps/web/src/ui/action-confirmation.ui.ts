@@ -452,7 +452,7 @@ function getStyles(): string {
       padding: var(--space-2);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       border-radius: var(--radius-lg);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       flex-shrink: 0;
     }
 

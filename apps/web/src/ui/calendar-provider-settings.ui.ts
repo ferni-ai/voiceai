@@ -251,7 +251,7 @@ function injectStyles(): void {
     }
 
     .provider-status.connected {
-      color: var(--color-semantic-success);
+      color: var(--color-semantic-success-text);
     }
 
     .provider-email {
@@ -363,7 +363,7 @@ function injectStyles(): void {
 
     .calendar-item .primary-badge {
       font-size: var(--text-xs);
-      color: var(--color-accent-primary);
+      color: var(--color-accent-text);
       background: var(--color-accent-primary-light, rgba(74, 103, 65, 0.1));
       padding: var(--space-2xs) var(--space-xs);
       border-radius: var(--radius-sm);

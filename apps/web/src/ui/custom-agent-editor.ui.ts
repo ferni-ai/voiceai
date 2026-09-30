@@ -976,7 +976,7 @@ function getEditorStyles(): string {
     
     .editor-status.status--active {
       background: var(--persona-tint, rgba(74, 103, 65, 0.2));
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-ink);
     }
     
     .editor-status.status--paused {
@@ -1170,7 +1170,7 @@ function getEditorStyles(): string {
     }
     
     .editor-slider-value {
-      color: var(--color-accent);
+      color: var(--color-accent-text);
       font-weight: 500;
     }
     
@@ -1221,13 +1221,13 @@ function getEditorStyles(): string {
     
     .editor-trait:hover {
       border-color: var(--color-accent);
-      color: var(--color-accent);
+      color: var(--color-accent-text);
     }
     
     .editor-trait--selected {
       background: var(--color-accent);
       border-color: var(--color-accent);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     /* Profiles */
@@ -1263,7 +1263,7 @@ function getEditorStyles(): string {
     }
     
     .editor-profile--selected .profile-icon {
-      color: var(--color-accent);
+      color: var(--color-accent-text);
     }
     
     .profile-name {
@@ -1366,7 +1366,7 @@ function getEditorStyles(): string {
       background: var(--color-accent);
       border: none;
       border-radius: var(--radius-md, 8px);
-      color: white;
+      color: var(--color-text-on-accent);
       font-size: 0.85rem;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
@@ -1413,7 +1413,7 @@ function getEditorStyles(): string {
       text-transform: uppercase;
     }
     
-    .memory-type-badge--stories { background: var(--persona-tint, rgba(74, 103, 65, 0.2)); color: var(--color-ferni, #4a6741); }
+    .memory-type-badge--stories { background: var(--persona-tint, rgba(74, 103, 65, 0.2)); color: var(--color-ferni-ink); }
     .memory-type-badge--wisdom { background: var(--color-nayan-tint, rgba(138, 122, 106, 0.2)); color: var(--color-nayan, #8a7a6a); }
     .memory-type-badge--sharedMoments { background: var(--color-maya-tint, rgba(166, 122, 106, 0.2)); color: var(--color-maya, #a67a6a); }
     .memory-type-badge--journalEntries { background: var(--color-alex-tint, rgba(90, 107, 138, 0.2)); color: var(--color-alex, #5a6b8a); }
@@ -1496,7 +1496,7 @@ function getEditorStyles(): string {
     
     .editor-btn--primary {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .editor-btn--primary:hover:not(:disabled) {

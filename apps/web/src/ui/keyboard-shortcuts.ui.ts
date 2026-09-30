@@ -261,7 +261,7 @@ function injectStyles(): void {
       height: 40px;
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       border-radius: var(--radius-lg, 12px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .shortcuts-panel__title {

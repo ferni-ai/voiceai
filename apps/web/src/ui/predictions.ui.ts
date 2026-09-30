@@ -760,7 +760,7 @@ export class PredictionsUI {
         font-family: var(--font-display);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         padding-bottom: var(--space-2, 8px);
         border-bottom: 1px solid var(--color-border-subtle);
         margin-bottom: var(--space-2, 8px);
@@ -1109,7 +1109,7 @@ export class PredictionsUI {
         );
         border-radius: var(--radius-full);
         margin: 0 auto var(--space-3, 12px);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         animation: iconFloat 3s ease-in-out infinite;
       }
 
@@ -1148,7 +1148,7 @@ export class PredictionsUI {
         background: var(--persona-tint, rgba(74, 103, 65, 0.1));
         border-radius: var(--radius-full);
         margin: 0 auto;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         font-size: var(--text-2xs, 0.625rem);
         font-weight: var(--font-weight-semibold, 600);
         text-transform: uppercase;
@@ -1200,7 +1200,7 @@ export class PredictionsUI {
         font-weight: var(--font-weight-semibold, 600);
         text-transform: uppercase;
         letter-spacing: var(--tracking-wide, 0.025em);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         margin-bottom: var(--space-1, 4px);
       }
 
@@ -1245,7 +1245,7 @@ export class PredictionsUI {
         font-family: var(--font-display);
         font-size: var(--text-3xl, 1.875rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         line-height: 1;
       }
 
@@ -1285,7 +1285,7 @@ export class PredictionsUI {
       }
 
       .predictions-empty__unlock-hint svg {
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         flex-shrink: 0;
       }
 

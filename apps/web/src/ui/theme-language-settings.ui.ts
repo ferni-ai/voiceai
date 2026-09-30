@@ -110,7 +110,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
     }
 
     .theme-language-settings__title {
@@ -264,7 +264,7 @@ function injectStyles(): void {
       height: 24px;
       border-radius: 50%;
       background: var(--color-accent, #3D5A45);
-      color: white;
+      color: var(--color-text-on-accent);
       display: none;
       align-items: center;
       justify-content: center;
@@ -338,7 +338,7 @@ function injectStyles(): void {
     .theme-language-settings__language-check {
       width: 20px;
       height: 20px;
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
       opacity: 0;
     }
 

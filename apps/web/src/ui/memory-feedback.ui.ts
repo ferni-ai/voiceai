@@ -331,12 +331,12 @@ export class MemoryFeedbackManager {
 
       .memory-feedback__btn--helpful:hover,
       .memory-feedback__btn--helpful:focus-visible {
-        color: var(--color-semantic-success, #4a6741);
+        color: var(--color-semantic-success-text);
       }
 
       .memory-feedback__btn--not-helpful:hover,
       .memory-feedback__btn--not-helpful:focus-visible {
-        color: var(--color-semantic-warning, #b8956a);
+        color: var(--color-semantic-warning-text);
       }
 
       .memory-feedback__btn--dismiss:hover,

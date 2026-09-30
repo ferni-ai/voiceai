@@ -316,8 +316,8 @@ export function render(): string {
         margin-top: var(--space-xs);
       }
 
-      .metric-trend.up { color: var(--color-semantic-success); }
-      .metric-trend.down { color: var(--color-semantic-error); }
+      .metric-trend.up { color: var(--color-semantic-success-text); }
+      .metric-trend.down { color: var(--color-semantic-error-text); }
 
       .subsection {
         margin-bottom: var(--space-lg);
@@ -464,12 +464,12 @@ export function render(): string {
         font-weight: 500;
       }
 
-      .event-type.subscribe { color: var(--color-semantic-success); }
-      .event-type.cancel { color: var(--color-semantic-error); }
-      .event-type.upgrade { color: var(--color-semantic-warning); }
+      .event-type.subscribe { color: var(--color-semantic-success-text); }
+      .event-type.cancel { color: var(--color-semantic-error-text); }
+      .event-type.upgrade { color: var(--color-semantic-warning-text); }
 
       .event-amount {
-        color: var(--color-semantic-success);
+        color: var(--color-semantic-success-text);
         font-weight: 500;
       }
 

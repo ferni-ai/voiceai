@@ -481,7 +481,7 @@ function getStyles(): string {
     .timeline-filter-tab--active {
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       border-color: var(--persona-primary, #4a6741);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
     
     .timeline-filter-tab--active:hover {
@@ -661,7 +661,7 @@ function getStyles(): string {
       margin: 0 auto var(--space-4, 16px);
       background: var(--color-semantic-error-tint, rgba(200, 100, 100, 0.1));
       border-radius: var(--radius-full, 9999px);
-      color: var(--color-semantic-error, #c46464);
+      color: var(--color-semantic-error-text);
     }
     
     .trust-journey-error-icon svg { width: 28px; height: 28px; }
@@ -710,7 +710,7 @@ function getStyles(): string {
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-4, 16px);
       background: var(--color-semantic-warning-tint, rgba(196, 154, 108, 0.1));
-      color: var(--color-semantic-warning, #9a7a5a);
+      color: var(--color-semantic-warning-text);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
       border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
@@ -767,7 +767,7 @@ function getStyles(): string {
     [data-theme="midnight"] .timeline-filter-tab--active {
       background: var(--persona-tint, rgba(74, 103, 65, 0.2));
       border-color: var(--persona-primary, #4a6741);
-      color: var(--persona-primary, #6a9761);
+      color: var(--persona-ink);
     }
     
     [data-theme="midnight"] .timeline-filter-count {

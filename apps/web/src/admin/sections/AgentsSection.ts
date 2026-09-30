@@ -300,7 +300,7 @@ export async function render(): Promise<string> {
         height: 48px;
         background: var(--admin-surface-active, rgba(255, 255, 255, 0.08));
         border-radius: var(--radius-md, 8px);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .template-icon svg {

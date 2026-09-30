@@ -240,7 +240,7 @@ function createMemberCard(member: TeamMemberInfo): string {
   return `
     <div class="team-member-card ${isLocked ? 'team-member-card--locked' : ''} ${isFerni ? 'team-member-card--ferni' : ''}"
          data-member="${member.id}"
-         style="--member-color: ${colors.primary}; --member-glow: ${colors.glow};">
+         style="--member-color: ${colors.primary}; --member-glow: ${colors.glow}; --member-ink: var(--persona-${member.id.split('-')[0]}-ink, ${colors.primary}); --member-on: var(--persona-${member.id.split('-')[0]}-on, #fff);">
       <div class="team-member-card__avatar">
         <div class="team-member-card__avatar-bg">${member.initials}</div>
         ${isLocked ? `<div class="team-member-card__lock">${ICONS.lock}</div>` : ''}
@@ -442,12 +442,12 @@ function injectTeamIntroStyles(): void {
       height: 100%;
       border-radius: var(--radius-full, 9999px);
       background: var(--member-color, var(--persona-primary));
-      color: white;
+      color: var(--member-on, var(--persona-text));
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 1.1rem;
+      font-size: 1.25rem;
       letter-spacing: 0.02em;
     }
     
@@ -500,7 +500,7 @@ function injectTeamIntroStyles(): void {
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--member-color, var(--persona-primary));
+      color: var(--member-ink, var(--persona-ink));
       margin: 0 0 var(--space-2, 8px);
     }
     

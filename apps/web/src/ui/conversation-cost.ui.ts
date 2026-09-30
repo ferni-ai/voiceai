@@ -103,7 +103,7 @@ function injectStyles(): void {
       font-family: var(--font-mono, 'JetBrains Mono', monospace);
       font-size: 1.5rem;
       font-weight: 700;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-xs, 4px);
     }
 
@@ -137,7 +137,7 @@ function injectStyles(): void {
       border-radius: var(--radius-full, 999px);
       border: 1px solid var(--persona-primary, #4a6741);
       background: transparent;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-size: 0.75rem;
       font-weight: 600;
       cursor: pointer;

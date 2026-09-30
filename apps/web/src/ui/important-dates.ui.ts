@@ -182,7 +182,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
@@ -244,7 +244,7 @@ function injectStyles(): void {
       height: 40px;
       border-radius: var(--radius-lg, 1rem);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -306,7 +306,7 @@ function injectStyles(): void {
     }
 
     .id-date-action.delete:hover {
-      color: var(--color-semantic-error, #c44);
+      color: var(--color-semantic-error-text);
       background: var(--color-semantic-error-tint);
     }
 
@@ -325,7 +325,7 @@ function injectStyles(): void {
     .id-form-title {
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -444,7 +444,7 @@ function injectStyles(): void {
 
     .id-add-btn:hover {
       border-color: var(--persona-primary, #4a6741);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       background: var(--persona-tint, rgba(74, 103, 65, 0.03));
     }
 

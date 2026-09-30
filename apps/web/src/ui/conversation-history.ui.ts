@@ -186,7 +186,7 @@ class ConversationHistoryUI {
             </svg>
           </button>
         </header>
-        <div class="history__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>
+        <div class="history__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn't load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>
       </div>
     `;
     this.panel.querySelector('.history__close')?.addEventListener('click', () => this.hide());
@@ -825,7 +825,7 @@ class ConversationHistoryUI {
       }
 
       [data-theme="midnight"] .history__favorite-icon {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .history__favorite-icon svg {
@@ -833,7 +833,7 @@ class ConversationHistoryUI {
       }
 
       [data-theme="midnight"] .history__favorite-name {
-        color: var(--color-accent-secondary, #7cb36b);
+        color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .history__session--favorite {

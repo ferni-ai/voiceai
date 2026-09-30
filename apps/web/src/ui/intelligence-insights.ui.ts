@@ -53,7 +53,7 @@ const STYLES = `
   .intelligence-insights__icon {
     width: 24px;
     height: 24px;
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .intelligence-insights__section {
@@ -86,7 +86,7 @@ const STYLES = `
 
   .intelligence-insights__tag--anticipated {
     background: var(--color-accent-subtle);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .intelligence-insights__suggestion {
@@ -110,7 +110,7 @@ const STYLES = `
 
   .intelligence-insights__suggestion-cta {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-text-on-accent);
     border: none;
     border-radius: var(--radius-md);
     padding: var(--space-2) var(--space-3);

@@ -544,7 +544,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
     
     .referral-bonus-icon svg {
@@ -559,7 +559,7 @@ function injectStyles(): void {
     }
 
     .referral-bonus-text strong {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-size: var(--text-sm, 0.875rem);
     }
 
@@ -586,7 +586,7 @@ function injectStyles(): void {
     }
 
     .referral-link-url {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 500;
       font-family: var(--font-mono, monospace);
     }
@@ -612,7 +612,7 @@ function injectStyles(): void {
     }
 
     .referral-garden-earned {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     /* Toast */

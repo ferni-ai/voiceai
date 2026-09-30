@@ -361,7 +361,7 @@ export function getDetailStyles(): string {
 
     .detail-action.uninstall:hover {
       border-color: var(--color-semantic-error-glow);
-      color: var(--color-semantic-error);
+      color: var(--color-semantic-error-text);
       background: var(--color-semantic-error-glow);
     }
 

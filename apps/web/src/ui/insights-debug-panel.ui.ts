@@ -122,15 +122,15 @@ const PANEL_STYLES = `
   }
 
   .insights-debug-panel__stat-value--good {
-    color: var(--color-semantic-success, #4ade80);
+    color: var(--color-semantic-success-text);
   }
 
   .insights-debug-panel__stat-value--warning {
-    color: var(--color-semantic-warning, #fbbf24);
+    color: var(--color-semantic-warning-text);
   }
 
   .insights-debug-panel__stat-value--error {
-    color: var(--color-semantic-error, #f87171);
+    color: var(--color-semantic-error-text);
   }
 
   .insights-debug-panel__insight-list {
@@ -205,7 +205,7 @@ const PANEL_STYLES = `
 
   .insights-debug-panel__btn--primary {
     background: var(--color-accent-primary, #4a6741);
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .insights-debug-panel__btn--primary:hover {

@@ -1290,7 +1290,7 @@ class MusicDashboardUI {
       }
 
       .music-dashboard__affinity--growth .music-dashboard__affinity-score {
-        color: var(--color-semantic-warning);
+        color: var(--color-semantic-warning-text);
       }
 
       .music-dashboard__affinity-bar {
@@ -1549,7 +1549,7 @@ class MusicDashboardUI {
         gap: var(--space-2);
         padding: var(--space-3);
         background: var(--persona-primary);
-        color: var(--color-text-inverse);
+        color: var(--persona-text);
         font-weight: var(--font-weight-semibold);
         font-size: var(--text-base);
         border: none;
@@ -1717,11 +1717,11 @@ class MusicDashboardUI {
       }
 
       .music-dashboard__social-change.up {
-        color: var(--color-semantic-success);
+        color: var(--color-semantic-success-text);
       }
 
       .music-dashboard__social-change.down {
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
       }
 
       .music-dashboard__leaderboard-btn {
@@ -1744,7 +1744,7 @@ class MusicDashboardUI {
 
       .music-dashboard__leaderboard-btn:hover {
         background: var(--persona-primary);
-        color: var(--color-text-inverse);
+        color: var(--persona-text);
       }
 
       .music-dashboard__leaderboard-btn svg {
@@ -1893,7 +1893,7 @@ class MusicDashboardUI {
       .music-dashboard__cta {
         padding: var(--space-3) var(--space-5);
         background: var(--persona-primary);
-        color: var(--color-text-inverse);
+        color: var(--persona-text);
         font-weight: var(--font-weight-semibold);
         font-size: var(--text-base);
         border: none;
@@ -1967,7 +1967,7 @@ class MusicDashboardUI {
       }
 
       .music-sources__icon--apple {
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
       }
 
       .music-sources__info {
@@ -2023,7 +2023,7 @@ class MusicDashboardUI {
 
       .music-sources__connect-btn:hover {
         background: var(--persona-primary);
-        color: var(--color-text-inverse);
+        color: var(--persona-text);
       }
 
       .music-sources__connect-btn svg {

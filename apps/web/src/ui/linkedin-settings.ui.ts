@@ -430,7 +430,7 @@ class LinkedInSettingsUI {
       .linkedin-settings__milestones-header svg {
         width: 18px;
         height: 18px;
-        color: var(--color-accent);
+        color: var(--color-accent-text);
       }
 
       .linkedin-settings__milestones-header h3 {
@@ -461,7 +461,7 @@ class LinkedInSettingsUI {
         align-items: center;
         justify-content: center;
         background: var(--color-accent-subtle);
-        color: var(--color-accent);
+        color: var(--color-accent-text);
         border-radius: var(--radius-lg);
         flex-shrink: 0;
       }
@@ -595,7 +595,7 @@ class LinkedInSettingsUI {
         align-items: center;
         justify-content: center;
         background: var(--color-accent-subtle);
-        color: var(--color-accent);
+        color: var(--color-accent-text);
         border-radius: var(--radius-md);
         flex-shrink: 0;
       }

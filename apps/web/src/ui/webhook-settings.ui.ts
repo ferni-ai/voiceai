@@ -730,7 +730,7 @@ class WebhookSettingsUI {
       }
 
       .webhook-settings__tab.active {
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
         border-bottom-color: var(--color-accent-primary);
       }
 
@@ -767,7 +767,7 @@ class WebhookSettingsUI {
         background: var(--color-accent-primary);
         border: none;
         border-radius: var(--radius-md);
-        color: white;
+        color: var(--color-text-on-accent);
         font-size: 0.875rem;
         cursor: pointer;
         transition: transform ${DURATION.FAST}ms, opacity ${DURATION.FAST}ms;
@@ -904,7 +904,7 @@ class WebhookSettingsUI {
         justify-content: center;
         background: var(--color-bg-primary);
         border-radius: var(--radius-md);
-        color: var(--color-accent-primary);
+        color: var(--color-accent-text);
       }
 
       .webhook-card__icon svg {
@@ -1014,7 +1014,7 @@ class WebhookSettingsUI {
 
       .webhook-card__btn--danger:hover,
       .webhook-card__btn--danger:focus-visible {
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
       }
 
       .webhook-card__btn svg {
@@ -1102,7 +1102,7 @@ class WebhookSettingsUI {
 
       .token-card__btn--danger:hover,
       .token-card__btn--danger:focus-visible {
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
       }
 
       .token-card__btn svg {

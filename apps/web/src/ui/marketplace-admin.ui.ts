@@ -299,7 +299,7 @@ function renderPanel(): void {
   if (state.loadError) {
     content.innerHTML = `
       <div class="admin-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
-        Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
+        Couldn't load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
       </div>
     `;
     content.querySelector('button')?.addEventListener('click', () => {
@@ -771,7 +771,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--color-semantic-success-glow);
       border-radius: var(--radius-full);
-      color: var(--color-semantic-success);
+      color: var(--color-semantic-success-text);
     }
 
     .empty-icon svg {
@@ -823,7 +823,7 @@ function injectStyles(): void {
 
     .item-icon.agent {
       background: color-mix(in srgb, var(--color-semantic-info) 15%, transparent);
-      color: var(--color-semantic-info);
+      color: var(--color-semantic-info-text);
     }
 
     .item-icon svg {
@@ -848,7 +848,7 @@ function injectStyles(): void {
     }
 
     .verified-badge {
-      color: var(--color-semantic-success);
+      color: var(--color-semantic-success-text);
       margin-left: var(--space-1, 4px);
     }
 
@@ -870,17 +870,17 @@ function injectStyles(): void {
 
     .item-trust[data-trust="verified"] {
       background: var(--color-semantic-success-glow);
-      color: var(--color-semantic-success);
+      color: var(--color-semantic-success-text);
     }
 
     .item-trust[data-trust="community"] {
       background: var(--color-semantic-warning-glow);
-      color: var(--color-semantic-warning);
+      color: var(--color-semantic-warning-text);
     }
 
     .item-trust[data-trust="unverified"] {
       background: var(--color-semantic-error-glow);
-      color: var(--color-semantic-error);
+      color: var(--color-semantic-error-text);
     }
 
     .item-description {
@@ -958,7 +958,7 @@ function injectStyles(): void {
 
     .action-btn--reject {
       background: transparent;
-      color: var(--color-semantic-error);
+      color: var(--color-semantic-error-text);
       border: 2px solid var(--color-semantic-error);
     }
 
@@ -974,7 +974,7 @@ function injectStyles(): void {
     }
 
     .review-rating {
-      color: var(--color-semantic-warning);
+      color: var(--color-semantic-warning-text);
     }
 
     .review-author {

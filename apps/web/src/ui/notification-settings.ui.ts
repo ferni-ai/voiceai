@@ -1199,7 +1199,7 @@ class NotificationSettingsUI {
 
       .notif-settings__btn--primary {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .notif-settings__btn--primary:hover { background: var(--color-accent-hover, #3a7050); }
@@ -1255,7 +1255,7 @@ class NotificationSettingsUI {
         justify-content: center;
         background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.12)), var(--persona-tint, rgba(74, 103, 65, 0.04)));
         border-radius: var(--radius-full);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .notif-settings__hero-icon svg {
@@ -1309,7 +1309,7 @@ class NotificationSettingsUI {
         font-weight: var(--font-weight-semibold, 600);
         text-transform: uppercase;
         letter-spacing: var(--tracking-wider, 0.05em);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       /* Capability Rows */
@@ -1342,47 +1342,47 @@ class NotificationSettingsUI {
 
       .notif-settings__capability-icon--guardian {
         background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .notif-settings__capability-icon--ritual {
         background: rgba(166, 122, 106, 0.1);
-        color: var(--persona-maya, #a67a6a);
+        color: var(--persona-maya-ink);
       }
 
       .notif-settings__capability-icon--streak {
         background: rgba(196, 133, 106, 0.1);
-        color: var(--persona-jordan, #c4856a);
+        color: var(--persona-jordan-ink);
       }
 
       .notif-settings__capability-icon--prediction {
         background: rgba(58, 107, 115, 0.1);
-        color: var(--persona-peter, #3a6b73);
+        color: var(--persona-peter-ink);
       }
 
       .notif-settings__capability-icon--team {
         background: rgba(90, 107, 138, 0.1);
-        color: var(--persona-alex, #5a6b8a);
+        color: var(--persona-alex-ink);
       }
 
       .notif-settings__capability-icon--email {
         background: rgba(90, 107, 138, 0.1);
-        color: var(--persona-alex, #5a6b8a);
+        color: var(--persona-alex-ink);
       }
 
       .notif-settings__capability-icon--sms {
         background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .notif-settings__capability-icon--milestone {
         background: rgba(184, 149, 106, 0.1);
-        color: var(--persona-nayan, #b8956a);
+        color: var(--persona-nayan-ink);
       }
 
       .notif-settings__capability-icon--recap {
         background: rgba(58, 107, 115, 0.1);
-        color: var(--persona-peter, #3a6b73);
+        color: var(--persona-peter-ink);
       }
 
       /* Row with icon */
@@ -1394,7 +1394,7 @@ class NotificationSettingsUI {
         justify-content: center;
         background: var(--persona-tint, rgba(74, 103, 65, 0.1));
         border-radius: var(--radius-lg, 12px);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         flex-shrink: 0;
       }
 
@@ -1419,7 +1419,7 @@ class NotificationSettingsUI {
       }
 
       .notif-settings__quiet-note svg {
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         flex-shrink: 0;
         margin-top: 2px;
       }
@@ -1475,7 +1475,7 @@ class NotificationSettingsUI {
         justify-content: center;
         background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.15)), var(--persona-tint, rgba(74, 103, 65, 0.05)));
         border-radius: 50%;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .notif-settings__guardian-icon svg {
@@ -1511,7 +1511,7 @@ class NotificationSettingsUI {
         background: var(--persona-tint, rgba(74, 103, 65, 0.1));
         border-radius: var(--radius-full);
         margin: var(--space-4, 16px) auto;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         font-size: 10px;
         font-weight: var(--font-weight-semibold, 600);
         text-transform: uppercase;
@@ -1617,7 +1617,7 @@ class NotificationSettingsUI {
         font-weight: var(--font-weight-medium, 500);
         text-transform: uppercase;
         letter-spacing: var(--tracking-wide, 0.025em);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         flex-shrink: 0;
         padding: var(--space-1, 4px) var(--space-2, 8px);
         background: var(--persona-tint, rgba(74, 103, 65, 0.1));
@@ -1660,7 +1660,7 @@ class NotificationSettingsUI {
         justify-content: center;
         background: var(--persona-tint, rgba(74, 103, 65, 0.15));
         border-radius: var(--radius-full);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         margin-bottom: var(--space-2, 8px);
       }
 
@@ -1714,7 +1714,7 @@ class NotificationSettingsUI {
       .notif-settings__empty-tip svg {
         width: 16px;
         height: 16px;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
         flex-shrink: 0;
       }
 
@@ -1728,7 +1728,7 @@ class NotificationSettingsUI {
         justify-content: center;
         background: var(--persona-tint, rgba(74, 103, 65, 0.1));
         border-radius: var(--radius-full);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-ink);
       }
 
       .notif-settings__upcoming-intro-icon svg {
@@ -1844,17 +1844,17 @@ class NotificationSettingsUI {
 
       .notif-settings__upcoming-priority--high {
         background: var(--color-semantic-error-glow, rgba(239, 68, 68, 0.1));
-        color: var(--color-semantic-error, #dc2626);
+        color: var(--color-semantic-error-text);
       }
 
       .notif-settings__upcoming-priority--medium {
         background: var(--color-semantic-warning-glow, rgba(245, 158, 11, 0.1));
-        color: var(--color-semantic-warning, #d97706);
+        color: var(--color-semantic-warning-text);
       }
 
       .notif-settings__upcoming-priority--low {
         background: var(--color-semantic-success-glow, rgba(34, 197, 94, 0.1));
-        color: var(--color-semantic-success, #16a34a);
+        color: var(--color-semantic-success-text);
       }
 
       .notif-settings__upcoming-preview {
@@ -1904,7 +1904,7 @@ class NotificationSettingsUI {
 
       .notif-settings__upcoming-btn--danger:hover {
         background: var(--color-semantic-error-glow);
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
       }
 
       /* Reschedule dialog */
@@ -2001,7 +2001,7 @@ class NotificationSettingsUI {
       /* Dark theme - New Better Than Human elements */
       [data-theme="midnight"] .notif-settings__hero-icon {
         background: linear-gradient(135deg, var(--persona-tint-dark, rgba(140, 179, 128, 0.2)), var(--persona-tint-dark, rgba(140, 179, 128, 0.08)));
-        color: var(--persona-primary-dark, #8cb380);
+        color: var(--persona-ink);
       }
       [data-theme="midnight"] .notif-settings__hero-title,
       [data-theme="midnight"] .notif-settings__empty-title,
@@ -2013,32 +2013,32 @@ class NotificationSettingsUI {
       [data-theme="midnight"] .notif-settings__sample-preview { color: var(--color-text-secondary, #f0ebe4); }
       [data-theme="midnight"] .notif-settings__section-badge {
         background: linear-gradient(135deg, var(--persona-tint-dark, rgba(140, 179, 128, 0.25)), var(--persona-tint-dark, rgba(140, 179, 128, 0.1)));
-        color: var(--persona-primary-dark, #8cb380);
+        color: var(--persona-ink);
       }
       [data-theme="midnight"] .notif-settings__capability-icon {
         background: var(--color-background-tertiary, #685852);
       }
-      [data-theme="midnight"] .notif-settings__capability-icon--guardian { color: var(--persona-primary-dark, #8cb380); }
+      [data-theme="midnight"] .notif-settings__capability-icon--guardian { color: var(--persona-ink); }
       [data-theme="midnight"] .notif-settings__capability-icon--ritual { color: #c9a99a; }
       [data-theme="midnight"] .notif-settings__capability-icon--streak { color: #daa88a; }
       [data-theme="midnight"] .notif-settings__capability-icon--prediction { color: #6a9ba3; }
       [data-theme="midnight"] .notif-settings__capability-icon--team { color: #8a9bba; }
       [data-theme="midnight"] .notif-settings__row-icon {
         background: var(--color-background-tertiary, #685852);
-        color: var(--persona-primary-dark, #8cb380);
+        color: var(--persona-ink);
       }
       [data-theme="midnight"] .notif-settings__quiet-note {
         background: var(--color-background-secondary, #60504a);
       }
-      [data-theme="midnight"] .notif-settings__quiet-note svg { color: var(--persona-primary-dark, #8cb380); }
+      [data-theme="midnight"] .notif-settings__quiet-note svg { color: var(--persona-ink); }
       [data-theme="midnight"] .notif-settings__guardian-ring { border-color: var(--persona-primary-dark, #8cb380); }
       [data-theme="midnight"] .notif-settings__guardian-icon {
         background: linear-gradient(135deg, var(--persona-tint-dark, rgba(140, 179, 128, 0.25)), var(--persona-tint-dark, rgba(140, 179, 128, 0.1)));
-        color: var(--persona-primary-dark, #8cb380);
+        color: var(--persona-ink);
       }
       [data-theme="midnight"] .notif-settings__preview-badge {
         background: var(--persona-tint-dark, rgba(140, 179, 128, 0.2));
-        color: var(--persona-primary-dark, #8cb380);
+        color: var(--persona-ink);
       }
       [data-theme="midnight"] .notif-settings__sample-checkin {
         background: var(--color-background-secondary, #60504a);
@@ -2048,18 +2048,18 @@ class NotificationSettingsUI {
       }
       [data-theme="midnight"] .notif-settings__sample-reason {
         background: var(--persona-tint-dark, rgba(140, 179, 128, 0.15));
-        color: var(--persona-primary-dark, #8cb380);
+        color: var(--persona-ink);
       }
       [data-theme="midnight"] .notif-settings__capability {
         background: var(--color-background-secondary, #60504a);
       }
       [data-theme="midnight"] .notif-settings__capability-badge {
         background: var(--persona-tint-dark, rgba(140, 179, 128, 0.2));
-        color: var(--persona-primary-dark, #8cb380);
+        color: var(--persona-ink);
       }
       [data-theme="midnight"] .notif-settings__upcoming-intro-icon {
         background: var(--persona-tint-dark, rgba(140, 179, 128, 0.2));
-        color: var(--persona-primary-dark, #8cb380);
+        color: var(--persona-ink);
       }
 
       @media (prefers-reduced-motion: reduce) {

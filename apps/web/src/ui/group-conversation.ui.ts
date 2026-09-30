@@ -659,7 +659,7 @@ const styles = `
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.1em;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   text-transform: uppercase;
 }
 
@@ -877,7 +877,7 @@ const styles = `
   border: none;
   border-radius: var(--radius-lg);
   background: var(--color-accent);
-  color: white;
+  color: var(--color-text-on-accent);
   font-weight: 500;
   cursor: pointer;
   transition: background ${DURATION.FAST}ms, transform ${DURATION.FAST}ms;

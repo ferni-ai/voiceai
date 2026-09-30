@@ -461,7 +461,7 @@ backdrop-filter: var(--glass-blur-subtle, blur(12px));
 }
 
 .health-chart-day.today {
-  color: var(--color-ferni, #4a6741);
+  color: var(--color-ferni-ink);
   font-weight: 600;
 }
 

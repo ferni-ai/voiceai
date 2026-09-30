@@ -94,22 +94,22 @@ body {
   --persona-text: var(--persona-primary);
 
   /* Individual persona text colors - default to primary */
-  --color-ferni-text: var(--color-ferni, #4a6741);
-  --color-peter-text: var(--color-peter, #3a6b73);
-  --color-alex-text: var(--color-alex, #5a6b8a);
-  --color-maya-text: var(--color-maya, #a67a6a);
-  --color-jordan-text: var(--color-jordan, #c4856a);
-  --color-nayan-text: var(--color-nayan, #b8956a);
-  --color-joel-text: var(--color-joel, #9A0718);
+  --color-ferni-text: var(--persona-ferni-ink, var(--color-ferni, #4a6741));
+  --color-peter-text: var(--persona-peter-ink, var(--color-peter, #3a6b73));
+  --color-alex-text: var(--persona-alex-ink, var(--color-alex, #5a6b8a));
+  --color-maya-text: var(--persona-maya-ink, var(--color-maya, #a67a6a));
+  --color-jordan-text: var(--persona-jordan-ink, var(--color-jordan, #c4856a));
+  --color-nayan-text: var(--persona-nayan-ink, var(--color-nayan, #b8956a));
+  --color-joel-text: var(--persona-joel-ink, var(--color-joel, #9A0718));
 
   /* Marketplace persona text colors */
-  --color-eli-text: var(--color-eli, #6B5B95);
-  --color-marcus-text: var(--color-marcus, #2D5A4A);
-  --color-kenji-text: var(--color-kenji, #2C3E50);
-  --color-carmen-text: var(--color-carmen, #D4A373);
-  --color-amara-text: var(--color-amara, #7B6BA8);
-  --color-sasha-text: var(--color-sasha, #E07B53);
-  --color-ray-text: var(--color-ray, #4A5568);
+  --color-eli-text: var(--persona-eli-ink, var(--color-eli, #6B5B95));
+  --color-marcus-text: var(--persona-marcus-ink, var(--color-marcus, #2D5A4A));
+  --color-kenji-text: var(--persona-kenji-ink, var(--color-kenji, #2C3E50));
+  --color-carmen-text: var(--persona-carmen-ink, var(--color-carmen, #D4A373));
+  --color-amara-text: var(--persona-amara-ink, var(--color-amara, #7B6BA8));
+  --color-sasha-text: var(--persona-sasha-ink, var(--color-sasha, #E07B53));
+  --color-ray-text: var(--persona-ray-ink, var(--color-ray, #4A5568));
 
   /* Sophisticated Gradients */
   --gradient-radial: radial-gradient(
@@ -5419,7 +5419,7 @@ body {
 }
 
 #handoffTargetName {
-  color: var(--persona-primary);
+  color: var(--persona-ink);
   font-weight: 600;
   gap: 8px;
 
@@ -7094,7 +7094,7 @@ body {
   position: absolute;
   top: -3px;
   inset-inline-end: -3px;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-ink);
   animation: almostHereSparkle 1s ease-in-out infinite;
 }
 
@@ -7492,7 +7492,7 @@ body {
 }
 
 .footer-link:focus-visible {
-  color: var(--persona-primary);
+  color: var(--persona-ink);
   outline: none;
 }
 
@@ -9690,7 +9690,7 @@ body {
 .transcript-text.typing::after {
   content: '▊';
   animation: cursorBlink 0.8s step-end infinite;
-  color: var(--persona-primary);
+  color: var(--persona-ink);
   margin-inline-start: 2px;
 }
 
@@ -13313,23 +13313,23 @@ body.ambient-aurora {
   /* Override theme-aware persona text colors with light variants */
   --persona-text: #a5c99a; /* Light sage green - matches Ferni's hue */
 
-  /* Individual persona text colors - WCAG AA compliant on dark backgrounds */
-  --color-ferni-text: #a5c99a;  /* 4.8:1 contrast */
-  --color-peter-text: #8bc4cf;  /* 4.9:1 contrast */
-  --color-alex-text: #a8b8d8;   /* 4.7:1 contrast */
-  --color-maya-text: #e0b8a8;   /* 5.2:1 contrast */
-  --color-jordan-text: #f0c0a0; /* 5.5:1 contrast */
-  --color-nayan-text: #e8d0a8;  /* 5.8:1 contrast */
-  --color-joel-text: #f0a8a8;   /* Warm burgundy text on dark */
+  /* Individual persona text colors: generated inks (WCAG AA on the theme surfaces) */
+  --color-ferni-text: var(--persona-ferni-ink, #a5c99a);
+  --color-peter-text: var(--persona-peter-ink, #8bc4cf);
+  --color-alex-text: var(--persona-alex-ink, #a8b8d8);
+  --color-maya-text: var(--persona-maya-ink, #e0b8a8);
+  --color-jordan-text: var(--persona-jordan-ink, #f0c0a0);
+  --color-nayan-text: var(--persona-nayan-ink, #e8d0a8);
+  --color-joel-text: var(--persona-joel-ink, #f0a8a8);
 
   /* Marketplace persona text colors */
-  --color-eli-text: #b8a8d8;    /* Light purple */
-  --color-marcus-text: #88c4a8; /* Light forest */
-  --color-kenji-text: #90b0c8;  /* Light midnight */
-  --color-carmen-text: #f0d0a8; /* Light sand */
-  --color-amara-text: #c0b0d8;  /* Light violet */
-  --color-sasha-text: #f8b898;  /* Light coral */
-  --color-ray-text: #a0b0c0;    /* Light slate */
+  --color-eli-text: var(--persona-eli-ink, #b8a8d8);
+  --color-marcus-text: var(--persona-marcus-ink, #88c4a8);
+  --color-kenji-text: var(--persona-kenji-ink, #90b0c8);
+  --color-carmen-text: var(--persona-carmen-ink, #f0d0a8);
+  --color-amara-text: var(--persona-amara-ink, #c0b0d8);
+  --color-sasha-text: var(--persona-sasha-ink, #f8b898);
+  --color-ray-text: var(--persona-ray-ink, #a0b0c0);
 }
 
 /* Global text color override for common eyebrow/label patterns */

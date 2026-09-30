@@ -199,7 +199,7 @@ function injectStyles(): void {
     }
 
     .gs-icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .gs-eyebrow {
@@ -207,7 +207,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
@@ -310,7 +310,7 @@ function injectStyles(): void {
     }
 
     .gs-loading-icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -343,7 +343,7 @@ function injectStyles(): void {
       margin: 0 auto var(--space-4, 1rem);
       border-radius: var(--radius-full, 50%);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -428,7 +428,7 @@ function injectStyles(): void {
     .gs-suggestion-price {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       padding: var(--space-0-5, 0.125rem) var(--space-2, 0.5rem);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       border-radius: var(--radius-full, 9999px);
@@ -476,7 +476,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
@@ -493,7 +493,7 @@ function injectStyles(): void {
     .gs-error {
       text-align: center;
       padding: var(--space-8, 2rem) var(--space-4, 1rem);
-      color: var(--color-semantic-error, #c44);
+      color: var(--color-semantic-error-text);
     }
 
     .gs-error-text {
@@ -554,7 +554,7 @@ function injectStyles(): void {
 
     .gs-regenerate-btn:hover {
       border-color: var(--persona-primary, #4a6741);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .gs-regenerate-btn svg {

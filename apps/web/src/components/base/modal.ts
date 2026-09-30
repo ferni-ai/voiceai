@@ -376,7 +376,7 @@ export function injectModalStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
       margin-bottom: var(--space-1, 4px);
     }
 

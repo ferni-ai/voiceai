@@ -326,7 +326,7 @@ export class CreativeYouDashboard {
     if (!body) return;
     body.innerHTML = `
       <div class="creative-dashboard-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
-        Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
+        Couldn't load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
       </div>
     `;
     body.querySelector('button')?.addEventListener('click', () => {
@@ -845,7 +845,7 @@ export class CreativeYouDashboard {
             width: 64px;
             height: 64px;
             background: var(--persona-primary);
-            color: var(--color-text-inverse);
+            color: var(--persona-text);
             border-radius: var(--radius-xl);
             display: flex;
             align-items: center;
@@ -1153,7 +1153,7 @@ export class CreativeYouDashboard {
           height: 36px;
           border-radius: var(--radius-full);
           background: var(--persona-primary);
-          color: var(--color-text-inverse);
+          color: var(--persona-text);
           border: none;
           cursor: pointer;
           display: flex;
@@ -1174,7 +1174,7 @@ export class CreativeYouDashboard {
           width: 100%;
           padding: var(--space-3-5);
           background: var(--persona-primary);
-          color: var(--color-text-inverse);
+          color: var(--persona-text);
           border: none;
           border-radius: var(--radius-lg);
           font-size: var(--text-base);
@@ -1595,7 +1595,7 @@ export class CreativeYouDashboard {
       .share-dna-btn:hover,
       .share-dna-btn:focus-visible {
         background: var(--persona-primary);
-        color: var(--color-text-inverse);
+        color: var(--persona-text);
       }
 
       .dna-stats {
@@ -1717,7 +1717,7 @@ export class CreativeYouDashboard {
 
       .start-track-btn {
         background: var(--persona-primary);
-        color: var(--color-text-inverse);
+        color: var(--persona-text);
         border: none;
         padding: var(--space-2) var(--space-4);
         border-radius: var(--radius-full);

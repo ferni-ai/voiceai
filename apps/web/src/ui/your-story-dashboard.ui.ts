@@ -591,7 +591,7 @@ class YourStoryUI {
   private showActionsError(): void {
     const container = this.panel?.querySelector('#viz-actions-taken');
     if (!container) return;
-    container.innerHTML = `<div class="error-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>`;
+    container.innerHTML = `<div class="error-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn't load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>`;
     container.querySelector('button')?.addEventListener('click', () => {
       container.innerHTML = '<div class="loading-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Loading...</div>';
       void this.fetchActionsData();
@@ -883,7 +883,7 @@ class YourStoryUI {
       .your-story__stat svg {
         width: 1.25rem;
         height: 1.25rem;
-        color: var(--color-accent, #3D5A45);
+        color: var(--color-accent-text);
         opacity: 0.9;
         transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
       }
@@ -948,7 +948,7 @@ class YourStoryUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 1rem; /* 16px */
         font-weight: 600;
-        color: var(--color-accent, #3D5A45);
+        color: var(--color-accent-text);
         letter-spacing: -0.01em;
       }
 
@@ -1058,7 +1058,7 @@ class YourStoryUI {
         gap: 0.375rem; /* 6px */
         padding: 0.375rem 0.75rem; /* 6px 12px */
         background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
-        color: var(--color-accent, #3D5A45);
+        color: var(--color-accent-text);
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 0.6875rem; /* label */
         font-weight: 600;
@@ -1117,7 +1117,7 @@ class YourStoryUI {
         flex-shrink: 0;
         width: 1.25rem;
         height: 1.25rem;
-        color: var(--color-accent, #3D5A45);
+        color: var(--color-accent-text);
         margin-top: 0.125rem;
       }
 
@@ -2054,7 +2054,7 @@ class YourStoryUI {
         align-items: center;
         padding: 0.25rem 0.625rem; /* 4px 10px */
         background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
-        color: var(--color-accent, #3D5A45);
+        color: var(--color-accent-text);
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 0.6875rem; /* label - 11px */
         font-weight: 600;
@@ -2242,14 +2242,14 @@ class YourStoryUI {
       }
 
       /* Value highlights - accent color */
-      .your-story__compact-viz span[style*="font-weight: 600"][style*="color: var(--color-accent)"] {
-        color: var(--color-accent, #3D5A45) !important;
+      .your-story__compact-viz span[style*="font-weight: 600"][style*="color: var(--color-accent-text)"] {
+        color: var(--color-accent-text) !important;
       }
 
       /* Trend indicators */
-      .your-story__compact-viz div[style*="color: var(--color-semantic-success)"],
+      .your-story__compact-viz div[style*="color: var(--color-semantic-success-text)"],
       .your-story__compact-viz span[style*="color"][style*="27ae60"] {
-        color: var(--color-semantic-success, #27ae60) !important;
+        color: var(--color-semantic-success-text) !important;
         font-weight: 600 !important;
       }
 

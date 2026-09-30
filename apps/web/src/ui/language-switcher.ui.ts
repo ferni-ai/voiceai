@@ -175,7 +175,7 @@ function injectStyles(): void {
       margin-inline-start: auto;
       width: 16px;
       height: 16px;
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
       opacity: 0;
     }
 

@@ -439,7 +439,7 @@ function injectStyles(): void {
       width: 48px;
       height: 48px;
       margin-bottom: var(--space-md, 16px);
-      color: var(--color-accent-primary, #4a6741);
+      color: var(--color-accent-text);
     }
 
     .growth-journal-empty-icon svg {
@@ -485,7 +485,7 @@ function injectStyles(): void {
     .growth-journal-entry-icon {
       width: 18px;
       height: 18px;
-      color: var(--color-accent-primary, #4a6741);
+      color: var(--color-accent-text);
     }
 
     .growth-journal-entry-icon svg {

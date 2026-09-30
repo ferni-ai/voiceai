@@ -114,7 +114,7 @@ export function initProactiveMessages(): void {
     .indicator-btn:hover {
       transform: translateY(-2px);
       box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0,0,0,0.1));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
     
     .indicator-dot {

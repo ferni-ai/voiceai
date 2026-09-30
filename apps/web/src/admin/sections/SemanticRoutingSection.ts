@@ -512,7 +512,7 @@ export function render(): string {
       }
 
       .correction-predicted {
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
         text-decoration: line-through;
       }
 
@@ -521,7 +521,7 @@ export function render(): string {
       }
 
       .correction-actual {
-        color: var(--color-semantic-success);
+        color: var(--color-semantic-success-text);
         font-weight: 500;
       }
 
@@ -590,11 +590,11 @@ export function render(): string {
 
       .threat-type-count {
         font-weight: 600;
-        color: var(--color-semantic-warning);
+        color: var(--color-semantic-warning-text);
       }
 
       .threat-type-count.high {
-        color: var(--color-semantic-error);
+        color: var(--color-semantic-error-text);
       }
 
       .threat-severity-row {

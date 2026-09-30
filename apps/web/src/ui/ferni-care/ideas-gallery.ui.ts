@@ -223,7 +223,7 @@ const styles = `
   
   .ideas-category:hover {
     border-color: var(--color-ferni, #4a6741);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
   }
   
   .ideas-category.active {
@@ -338,7 +338,7 @@ const styles = `
     border-radius: var(--radius-full, 9999px);
     font-size: 11px;
     font-weight: 600;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-ink);
     margin-right: var(--space-2, 8px);
   }
   

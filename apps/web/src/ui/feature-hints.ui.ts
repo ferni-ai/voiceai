@@ -774,7 +774,7 @@ function injectStyles(): void {
       margin: 0 auto var(--space-3, 12px);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       border-radius: var(--radius-full, 9999px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
     
     .hint-icon svg {

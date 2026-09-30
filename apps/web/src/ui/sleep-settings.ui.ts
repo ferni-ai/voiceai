@@ -155,7 +155,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text);
     }
 
     .sleep-settings__title {
@@ -240,7 +240,7 @@ function injectStyles(): void {
     .sleep-settings__time-label svg {
       width: 20px;
       height: 20px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .sleep-settings__time-slider {

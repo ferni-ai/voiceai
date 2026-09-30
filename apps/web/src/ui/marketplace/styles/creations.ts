@@ -104,7 +104,7 @@ export function getCreationsStyles(): string {
     }
     
     .creations-empty-illustration svg {
-      color: var(--persona-primary, var(--color-accent-primary));
+      color: var(--persona-ink);
     }
 
     .creations-empty-title {
@@ -212,7 +212,7 @@ export function getCreationsStyles(): string {
       /* Tinted background matching persona */
       background: var(--persona-tint, var(--color-accent-subtle));
       border-radius: 50%;
-      color: var(--persona-primary, var(--color-accent-primary));
+      color: var(--persona-ink);
     }
 
     .creation-type-name {
@@ -238,7 +238,7 @@ export function getCreationsStyles(): string {
       font-family: var(--font-body);
       font-size: 0.7rem;
       font-weight: 500;
-      color: var(--persona-primary, var(--color-accent-primary));
+      color: var(--persona-ink);
       opacity: 0;
       transform: translateY(4px);
       transition: all ${DURATION.FAST}ms ease;
@@ -345,13 +345,13 @@ export function getCreationsStyles(): string {
 
     .custom-agent-status.status--active {
       background: var(--color-semantic-success-glow);
-      color: var(--color-semantic-success);
+      color: var(--color-semantic-success-text);
       border-color: var(--color-semantic-success-glow);
     }
 
     .custom-agent-status.status--paused {
       background: var(--color-semantic-warning-glow);
-      color: var(--color-semantic-warning);
+      color: var(--color-semantic-warning-text);
       border-color: var(--color-semantic-warning-glow);
     }
 
@@ -447,7 +447,7 @@ export function getCreationsStyles(): string {
 
     .custom-agent-action--delete:hover {
       background: var(--color-semantic-error-glow);
-      color: var(--color-semantic-error);
+      color: var(--color-semantic-error-text);
     }
   `;
 }

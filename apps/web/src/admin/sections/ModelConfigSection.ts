@@ -350,12 +350,12 @@ export async function render(): Promise<string> {
 
       .status-message--success {
         background: rgba(74, 103, 65, 0.2);
-        color: var(--color-semantic-success, #4a6741);
+        color: var(--color-semantic-success-text);
       }
 
       .status-message--error {
         background: rgba(220, 53, 69, 0.2);
-        color: var(--color-semantic-error, #dc3545);
+        color: var(--color-semantic-error-text);
       }
 
       .empty-state {

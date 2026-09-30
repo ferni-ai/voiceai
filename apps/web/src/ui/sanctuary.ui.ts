@@ -1159,7 +1159,7 @@ class SanctuaryUI {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: var(--color-accent-primary, #3D5A45);
+        color: var(--color-accent-text);
         margin-bottom: var(--space-2xs, 4px);
       }
 
@@ -1212,7 +1212,7 @@ class SanctuaryUI {
         justify-content: center;
         background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-accent-primary, #3D5A45);
+        color: var(--color-accent-text);
       }
 
       .sanctuary-insight-content {
@@ -1293,8 +1293,11 @@ class SanctuaryUI {
         gap: var(--space-xs, 6px);
         padding: var(--space-xs, 6px) var(--space-sm, 10px);
         background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+        /* Sits on the highlighted card, lighter than the theme surfaces:
+           primary text stays readable, the accent carries on the outline */
+        border: 1px solid var(--color-accent-text);
         border-radius: var(--radius-full, 50px);
-        color: var(--color-accent-primary, #3D5A45);
+        color: var(--color-text-primary);
         font-size: 11px;
         font-weight: 600;
         margin-bottom: var(--space-sm, 12px);
@@ -1363,7 +1366,7 @@ class SanctuaryUI {
       .sanctuary-practice-reason {
         display: block;
         font-size: 11px;
-        color: var(--color-accent-primary, #3D5A45);
+        color: var(--color-accent-text);
         margin-top: var(--space-xs, 6px);
       }
 
@@ -1382,7 +1385,7 @@ class SanctuaryUI {
       .sanctuary-practice-start {
         padding: var(--space-xs, 6px) var(--space-md, 12px);
         background: var(--color-accent-primary, #3D5A45);
-        color: white;
+        color: var(--color-text-on-accent);
         font-size: 12px;
         font-weight: 600;
         border-radius: var(--radius-full, 50px);

@@ -761,7 +761,7 @@ function injectStyles(): void {
     }
 
     .unlimited {
-      color: var(--color-semantic-success);
+      color: var(--color-semantic-success-text);
       font-weight: 500;
     }
 

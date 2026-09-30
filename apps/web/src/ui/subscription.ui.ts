@@ -1107,7 +1107,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-2, 8px);
     }
     
@@ -1135,7 +1135,7 @@ function injectStyles(): void {
       padding: var(--space-4, 16px);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       border-radius: var(--radius-full, 9999px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
     
     .limit-icon svg {
@@ -1270,7 +1270,7 @@ function injectStyles(): void {
       width: 16px;
       height: 16px;
       min-width: 16px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       flex-shrink: 0;
     }
     
@@ -1281,7 +1281,7 @@ function injectStyles(): void {
       padding: var(--space-3, 12px) var(--space-4, 16px);
       border: 2px solid var(--persona-primary, #4a6741);
       background: transparent;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-size: 1rem;
       font-weight: 600;
       border-radius: var(--radius-lg, 12px);
@@ -1430,7 +1430,7 @@ function injectStyles(): void {
         var(--persona-tint, rgba(74, 103, 65, 0.05)) 100%
       );
       border-radius: var(--radius-full, 9999px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-4, 16px);
       animation: celebration-pulse 2s ease-in-out infinite;
     }
@@ -1600,7 +1600,7 @@ function injectStyles(): void {
       }
       
       .subscription-eyebrow {
-        color: var(--persona-primary, #6a8a61);
+        color: var(--persona-ink);
       }
       
       .subscription-close {

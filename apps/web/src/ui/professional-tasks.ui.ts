@@ -139,7 +139,7 @@ const STYLES = `
   }
 
   .professional-section-title svg {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .professional-add-btn {
@@ -147,7 +147,7 @@ const STYLES = `
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-lg);
     background: var(--color-accent);
-    color: white;
+    color: var(--color-text-on-accent);
     border: none;
     cursor: pointer;
     display: flex;
@@ -209,7 +209,7 @@ const STYLES = `
   .professional-skill-tag svg {
     width: 14px;
     height: 14px;
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .professional-skill-tag .skill-actions {
@@ -237,7 +237,7 @@ const STYLES = `
   }
 
   .professional-skill-tag .skill-action-btn.delete:hover {
-    color: var(--color-semantic-error);
+    color: var(--color-semantic-error-text);
   }
 
   .professional-domain-card {
@@ -291,7 +291,7 @@ const STYLES = `
   }
 
   .professional-domain-action-btn.delete:hover {
-    color: var(--color-semantic-error);
+    color: var(--color-semantic-error-text);
   }
 
   .professional-task-card {
@@ -319,7 +319,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     flex-shrink: 0;
   }
 
@@ -374,7 +374,7 @@ const STYLES = `
     width: 32px;
     height: 32px;
     margin: 0 auto var(--space-2);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .professional-quick-action-label {

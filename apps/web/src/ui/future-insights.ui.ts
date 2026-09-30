@@ -641,7 +641,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.15em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       margin-bottom: var(--space-1);
       display: block;
     }
@@ -707,7 +707,7 @@ function injectStyles(): void {
     .future-insights-intro__days {
       font-size: 1.75rem;
       font-weight: 700;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       line-height: 1;
     }
 
@@ -796,7 +796,7 @@ function injectStyles(): void {
     }
 
     .future-insights-timeline__node.unlocked .future-insights-timeline__icon svg {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .future-insights-timeline__label {
@@ -808,7 +808,7 @@ function injectStyles(): void {
     }
 
     .future-insights-timeline__node.active .future-insights-timeline__label {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       font-weight: 600;
     }
 
@@ -855,7 +855,7 @@ function injectStyles(): void {
 
     .future-insights-horizon__badge--unlocked {
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     /* Insight Cards */
@@ -906,7 +906,7 @@ function injectStyles(): void {
     .future-insights-card__icon svg {
       width: 18px;
       height: 18px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
     }
 
     .future-insights-card__content {
@@ -1011,7 +1011,7 @@ function injectStyles(): void {
     }
 
     .future-insights-footer__cta strong {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-ink);
       cursor: pointer;
     }
 

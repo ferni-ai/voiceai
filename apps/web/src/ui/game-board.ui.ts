@@ -244,7 +244,7 @@ const styles = `
   .game-board-title svg {
     width: 20px;
     height: 20px;
-    color: var(--color-accent-primary);
+    color: var(--color-accent-text);
   }
 
   .game-board-status {
@@ -304,11 +304,11 @@ const styles = `
   }
 
   .ttt-cell.x svg {
-    color: var(--color-accent-primary);
+    color: var(--color-accent-text);
   }
 
   .ttt-cell.o svg {
-    color: var(--color-semantic-warning);
+    color: var(--color-semantic-warning-text);
   }
 
   .ttt-cell.winning {
@@ -379,17 +379,17 @@ const styles = `
 
   .twenty-q-answer.yes {
     background: var(--color-semantic-success-bg);
-    color: var(--color-semantic-success);
+    color: var(--color-semantic-success-text);
   }
 
   .twenty-q-answer.no {
     background: var(--color-semantic-error-bg);
-    color: var(--color-semantic-error);
+    color: var(--color-semantic-error-text);
   }
 
   .twenty-q-answer.maybe {
     background: var(--color-semantic-warning-bg);
-    color: var(--color-semantic-warning);
+    color: var(--color-semantic-warning-text);
   }
 
   .twenty-q-answer svg {
@@ -424,7 +424,7 @@ const styles = `
 
   .word-chain-item.current {
     background: var(--color-accent-primary);
-    color: white;
+    color: var(--color-text-on-accent);
     font-weight: 600;
   }
 
@@ -478,7 +478,7 @@ const styles = `
   .story-progress svg {
     width: 16px;
     height: 16px;
-    color: var(--color-accent-primary);
+    color: var(--color-accent-text);
   }
 
   /* Would You Rather */
@@ -563,7 +563,7 @@ const styles = `
   .game-complete svg {
     width: 48px;
     height: 48px;
-    color: var(--color-semantic-success);
+    color: var(--color-semantic-success-text);
     margin-bottom: var(--space-sm);
   }
 
@@ -617,13 +617,13 @@ const styles = `
 
   .game-connection-banner--error {
     background: var(--color-semantic-error-bg, rgba(239, 68, 68, 0.1));
-    color: var(--color-semantic-error);
+    color: var(--color-semantic-error-text);
     border: 1px solid var(--color-semantic-error);
   }
 
   .game-connection-banner--warning {
     background: var(--color-semantic-warning-bg, rgba(245, 158, 11, 0.1));
-    color: var(--color-semantic-warning);
+    color: var(--color-semantic-warning-text);
     border: 1px solid var(--color-semantic-warning);
   }
 

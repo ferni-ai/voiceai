@@ -384,7 +384,7 @@ export function getCreativeYouStyles(): string {
     .share-dna-btn:hover,
     .share-dna-btn:focus-visible {
       background: var(--persona-primary);
-      color: var(--color-text-inverse);
+      color: var(--persona-text);
     }
 
     .dna-stats {
@@ -509,7 +509,7 @@ export function getCreativeYouStyles(): string {
 
     .start-track-btn {
       background: var(--persona-primary);
-      color: var(--color-text-inverse);
+      color: var(--persona-text);
       border: none;
       padding: var(--space-2) var(--space-4);
       border-radius: var(--radius-full);
