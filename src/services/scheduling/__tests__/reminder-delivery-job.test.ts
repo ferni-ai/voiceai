@@ -44,6 +44,16 @@ function fakeDb() {
 }
 
 vi.mock('../../superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => fakeDb() }));
+let smsUp = true;
+vi.mock('../../outreach/unified-delivery.js', () => ({
+  getChannelStatus: vi.fn(async () => ({
+    sms: { available: smsUp },
+    voice_call: { available: smsUp },
+    email: { available: true },
+    push: { available: false },
+    in_app: { available: true },
+  })),
+}));
 vi.mock('../reminder-scheduler.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../reminder-scheduler.js')>()),
   deliverReminder,
@@ -71,6 +81,7 @@ const reminder = (id: string, data: Record<string, unknown>): Row => ({
 
 beforeEach(() => {
   rows = [];
+  smsUp = true;
   deliverReminder.mockReset().mockResolvedValue(true);
 });
 
@@ -113,6 +124,15 @@ describe('deliverDueReminders', () => {
         deliveryAddress: '',
       }),
     ];
+    const result = await deliverDueReminders({ now: NOW });
+
+    expect(result).toMatchObject({ delivered: 1, rerouted: 1 });
+    expect(deliverReminder.mock.calls[0][0]).toMatchObject({ deliveryMethod: 'in_app' });
+  });
+
+  it('sends in-app when this server has no Twilio credentials', async () => {
+    smsUp = false;
+    rows = [reminder('texting', { scheduledFor: at(-60_000) })];
     const result = await deliverDueReminders({ now: NOW });
 
     expect(result).toMatchObject({ delivered: 1, rerouted: 1 });
