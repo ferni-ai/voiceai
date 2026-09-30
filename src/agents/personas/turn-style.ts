@@ -77,7 +77,12 @@ export function withTurnStyleReminder(
 }
 
 /** The latest user message and the agent reply before it, as plain text. */
-export function lastExchange(chatCtx: llm.ChatContext): { user?: string; agent?: string } {
+export function lastExchange(chatCtx: llm.ChatContext): {
+  user?: string;
+  agent?: string;
+  /** The caller spoke over that reply before it finished. */
+  agentInterrupted?: boolean;
+} {
   const items = chatCtx.items;
   for (let i = items.length - 1; i >= 0; i--) {
     const item = items[i];
@@ -85,7 +90,11 @@ export function lastExchange(chatCtx: llm.ChatContext): { user?: string; agent?:
     for (let j = i - 1; j >= 0; j--) {
       const prev = items[j];
       if (prev.type === 'message' && prev.role === 'assistant') {
-        return { user: item.textContent, agent: prev.textContent };
+        return {
+          user: item.textContent,
+          agent: prev.textContent,
+          ...(prev.interrupted ? { agentInterrupted: true } : {}),
+        };
       }
     }
     return { user: item.textContent };

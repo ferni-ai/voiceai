@@ -41,6 +41,7 @@ import {
 } from './turn-style.js';
 import { sessionRepairCue } from '../../conversation/repair-cue.js';
 import { leaveTakingCue } from '../../conversation/leave-taking.js';
+import { yieldingCue } from '../../conversation/yielding.js';
 import { NAME_WINDOW, nameRestCue } from '../../conversation/name-use.js';
 import {
   formatTalkPreferences,
@@ -749,6 +750,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const sessionId = (userData?.services as { sessionId?: string } | undefined)?.sessionId;
     const repair = sessionRepairCue(userData, sessionId, exchange.user, exchange.agent);
     const leaving = leaveTakingCue(exchange.user);
+    const yielding = yieldingCue(exchange.agentInterrupted, exchange.user);
     const nameRest = nameRestCue(
       userData?.userName as string | undefined,
       recentAgentReplies(chatCtx, NAME_WINDOW)
@@ -761,6 +763,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
       turnStyleReminderEnabled(),
       [
         ...(talk ? [talk] : []),
+        ...(yielding ? [yielding] : []),
         ...(typeof userData?.daysThatMatter === 'string' ? [userData.daysThatMatter] : []),
         ...(repair ? [repair] : []),
         ...nextReplyCues(userData, getTTSProvider().voice),

@@ -90,6 +90,17 @@ describe('lastExchange', () => {
     expect(lastExchange(ctx)).toEqual({ user: 'No, Boston', agent: 'How is Austin treating you?' });
     expect(lastExchange(llm.ChatContext.empty())).toEqual({});
   });
+
+  it('notes when the caller spoke over that reply', () => {
+    const ctx = llm.ChatContext.empty();
+    ctx.addMessage({ role: 'assistant', content: 'So what I think is', interrupted: true });
+    ctx.addMessage({ role: 'user', content: 'Wait, no' });
+    expect(lastExchange(ctx)).toEqual({
+      user: 'Wait, no',
+      agent: 'So what I think is',
+      agentInterrupted: true,
+    });
+  });
 });
 
 describe('recentAgentReplies', () => {
