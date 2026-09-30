@@ -207,8 +207,26 @@ describe('Voice Agent Entry - Resilience Module', () => {
 // ============================================================================
 
 describe('Voice Agent Entry - Helper Functions', () => {
+  // The helpers live in a leaf module: importing the voice-agent barrel loads
+  // every handler and took ~60s cold under parallel load, timing these out.
+  it('should keep re-exporting the helpers from the voice-agent barrel', async () => {
+    const fs = await import('fs/promises');
+    const barrel = await fs.readFile(path.resolve(__dirname, '../voice-agent/index.ts'), 'utf-8');
+    const reExport = barrel.slice(barrel.indexOf('export {\n  hasSsmlTags'));
+
+    expect(reExport).toContain("} from './helpers.js'");
+    for (const name of [
+      'hasSsmlTags',
+      'isRealUserName',
+      'parsePersonaFromMetadata',
+      'parseUserFromMetadata',
+    ]) {
+      expect(reExport).toContain(name);
+    }
+  });
+
   it('should parse persona from metadata correctly', async () => {
-    const { parsePersonaFromMetadata } = await import('../voice-agent/index.js');
+    const { parsePersonaFromMetadata } = await import('../voice-agent/helpers.js');
 
     expect(parsePersonaFromMetadata(JSON.stringify({ persona_id: 'ferni' }))).toBe('ferni');
     expect(parsePersonaFromMetadata(JSON.stringify({ personaId: 'peter-john' }))).toBe(
@@ -216,10 +234,10 @@ describe('Voice Agent Entry - Helper Functions', () => {
     );
     expect(parsePersonaFromMetadata(undefined)).toBeNull();
     expect(parsePersonaFromMetadata('invalid')).toBeNull();
-  }, 60000); // 60s timeout for heavy dynamic import under parallel test load
+  });
 
   it('should parse user from metadata correctly', async () => {
-    const { parseUserFromMetadata } = await import('../voice-agent/index.js');
+    const { parseUserFromMetadata } = await import('../voice-agent/helpers.js');
 
     const metadata = JSON.stringify({
       user_id: 'test-user-123',
@@ -233,7 +251,7 @@ describe('Voice Agent Entry - Helper Functions', () => {
   });
 
   it('should handle missing metadata gracefully', async () => {
-    const { parseUserFromMetadata } = await import('../voice-agent/index.js');
+    const { parseUserFromMetadata } = await import('../voice-agent/helpers.js');
 
     const result = parseUserFromMetadata(undefined);
     expect(result).toEqual({});
@@ -243,7 +261,7 @@ describe('Voice Agent Entry - Helper Functions', () => {
   });
 
   it('should detect SSML tags correctly', async () => {
-    const { hasSsmlTags } = await import('../voice-agent/index.js');
+    const { hasSsmlTags } = await import('../voice-agent/helpers.js');
 
     expect(hasSsmlTags('<speed rate="1.2">Hello</speed>')).toBe(true);
     expect(hasSsmlTags('<emotion name="happy">Hi!</emotion>')).toBe(true);
@@ -253,7 +271,7 @@ describe('Voice Agent Entry - Helper Functions', () => {
   });
 
   it('should filter real usernames correctly', async () => {
-    const { isRealUserName } = await import('../voice-agent/index.js');
+    const { isRealUserName } = await import('../voice-agent/helpers.js');
 
     // Real names
     expect(isRealUserName('John')).toBe(true);
