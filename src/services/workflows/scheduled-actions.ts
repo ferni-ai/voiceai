@@ -28,7 +28,8 @@ export interface ScheduledAction {
   title: string;
   body: string;
   personaId: string;
-  status: 'pending' | 'delivered' | 'failed' | 'cancelled';
+  /** 'sending' = claimed by the delivery job; 'missed' = found too late to be useful. */
+  status: 'pending' | 'sending' | 'delivered' | 'failed' | 'cancelled' | 'missed';
   attempts: number;
   createdAt: Date;
   deliveredAt?: Date;
@@ -83,6 +84,25 @@ async function persistAction(action: ScheduledAction): Promise<void> {
   }
 }
 
+/** Rebuild an action from its Firestore document (dates are stored as ISO strings). */
+export function actionFromDoc(data: Record<string, unknown>): ScheduledAction {
+  return {
+    id: String(data.id),
+    userId: String(data.userId),
+    workflowId: data.workflowId as string | undefined,
+    actionId: data.actionId as string | undefined,
+    scheduledFor: new Date(data.scheduledFor as string),
+    title: String(data.title ?? ''),
+    body: String(data.body ?? ''),
+    personaId: (data.personaId as string) || 'ferni',
+    status: data.status as ScheduledAction['status'],
+    attempts: Number(data.attempts ?? 0) || 0,
+    createdAt: new Date(data.createdAt as string),
+    deliveredAt: data.deliveredAt ? new Date(data.deliveredAt as string) : undefined,
+    error: data.error as string | undefined,
+  };
+}
+
 /**
  * Load all pending actions from Firestore on startup
  */
@@ -101,22 +121,7 @@ async function loadPendingActions(): Promise<number> {
 
     let loaded = 0;
     for (const doc of snapshot.docs) {
-      const data = doc.data();
-      const action: ScheduledAction = {
-        id: data.id,
-        userId: data.userId,
-        workflowId: data.workflowId,
-        actionId: data.actionId,
-        scheduledFor: new Date(data.scheduledFor),
-        title: data.title,
-        body: data.body,
-        personaId: data.personaId || 'ferni',
-        status: data.status,
-        attempts: data.attempts || 0,
-        createdAt: new Date(data.createdAt),
-        deliveredAt: data.deliveredAt ? new Date(data.deliveredAt) : undefined,
-        error: data.error,
-      };
+      const action = actionFromDoc(doc.data());
       scheduledActionsCache.set(action.id, action);
       loaded++;
     }
@@ -256,6 +261,92 @@ async function executeAction(action: ScheduledAction): Promise<boolean> {
     log.error({ actionId: action.id, error: String(error) }, 'Action execution failed');
     return false;
   }
+}
+
+export interface ScheduledActionsRunResult {
+  due: number;
+  delivered: number;
+  /** Push failed; left pending for the next run (up to 3 attempts). */
+  retrying: number;
+  failed: number;
+  missed: number;
+  skipped: number;
+  /** Delivered to the in-app panel because this server can't send push. */
+  inApp: number;
+  dryRun: boolean;
+}
+
+/**
+ * Deliver due scheduled actions straight from Firestore. Run by Cloud
+ * Scheduler (POST /api/jobs/deliver-scheduled-actions) every minute.
+ *
+ * The in-process worker only saw actions in its own process's cache and ran
+ * only inside voice-call processes, while actions are scheduled from the API
+ * server, so an action was delivered only if the process that happened to
+ * hold it was still alive when it came due.
+ */
+export async function deliverDueScheduledActions(
+  opts: { now?: Date; dryRun?: boolean; limit?: number } = {}
+): Promise<ScheduledActionsRunResult> {
+  const db = await getFirestoreDb();
+  if (!db) throw new Error('Firestore not available');
+  const { claimDueItems } = await import('../scheduling/due-items.js');
+  const claim = await claimDueItems(db, {
+    collection: 'scheduled_actions',
+    dueField: 'scheduledFor',
+    dueType: 'iso',
+    claimStatus: 'sending',
+    lateStatus: 'missed',
+    lateAfterMs: 2 * 60 * 60 * 1000,
+    now: opts.now,
+    limit: opts.limit,
+    dryRun: opts.dryRun,
+  });
+  const result: ScheduledActionsRunResult = {
+    due: claim.due,
+    delivered: 0,
+    retrying: 0,
+    failed: 0,
+    missed: claim.late,
+    skipped: claim.skipped,
+    inApp: 0,
+    dryRun: opts.dryRun === true,
+  };
+  if (opts.dryRun || claim.claimed.length === 0) return result;
+
+  const { getChannelStatus, saveInAppMessage } = await import('../outreach/unified-delivery.js');
+  const pushUp = (await getChannelStatus()).push.available;
+
+  for (const item of claim.claimed) {
+    // Claimed as 'sending'; a push that fails goes back to 'pending' so the
+    // next run retries it (executeAction gives up after 3 attempts).
+    const action: ScheduledAction = { ...actionFromDoc(item.data), status: 'pending' };
+    if (pushUp) {
+      await executeAction(action);
+    } else {
+      action.attempts++;
+      const saved = await saveInAppMessage(action.userId, {
+        type: 'scheduled_action',
+        personaId: action.personaId,
+        text: action.body ? `${action.title}: ${action.body}` : action.title,
+        reason: action.title,
+        triggerId: action.id,
+      });
+      action.status = saved.success ? 'delivered' : 'failed';
+      if (saved.success) {
+        action.deliveredAt = new Date();
+        result.inApp++;
+      } else {
+        action.error = saved.error;
+      }
+      await persistAction(action);
+    }
+    if (action.status === 'delivered') result.delivered++;
+    else if (action.status === 'failed') result.failed++;
+    else result.retrying++;
+  }
+  if (result.due > 0) log.info(result, 'Scheduled actions delivery run');
+  return result;
 }
 
 /**

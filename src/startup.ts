@@ -243,36 +243,46 @@ export async function startup(): Promise<AppConfig> {
   if (process.env.REMINDER_SCHEDULER_IN_PROCESS === 'on') {
     startReminderScheduler(60000); // Check every minute
   }
-  startProactiveScheduler({ checkIntervalMs: 300000 }); // Check every 5 minutes
+  // The polling schedulers below ran inside every voice-call process (startup()
+  // runs only there), each seeing only its own memory. Scheduled actions,
+  // scheduled outreach and calendar triggers now run once, from Cloud Scheduler
+  // (/api/jobs/deliver-scheduled-actions, /execute-scheduled-outreach,
+  // /calendar-triggers). The proactive scheduler checked only users registered
+  // in-process, and nothing registers any. IN_PROCESS_SCHEDULERS=on restores
+  // all of them for local development.
+  if (process.env.IN_PROCESS_SCHEDULERS === 'on') {
+    startProactiveScheduler({ checkIntervalMs: 300000 }); // Check every 5 minutes
 
-  // Start scheduled actions worker (for workflow routine reminders)
-  try {
-    const { startScheduledActionsWorker } =
-      await import('./services/workflows/scheduled-actions.js');
-    await startScheduledActionsWorker();
-    logger.info('📅 Scheduled actions worker started');
-  } catch (error) {
-    logger.warn({ error: String(error) }, 'Failed to start scheduled actions worker');
-  }
+    // Start scheduled actions worker (for workflow routine reminders)
+    try {
+      const { startScheduledActionsWorker } =
+        await import('./services/workflows/scheduled-actions.js');
+      await startScheduledActionsWorker();
+      logger.info('📅 Scheduled actions worker started');
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'Failed to start scheduled actions worker');
+    }
 
-  // Start calendar trigger worker (for calendar-based workflow triggers)
-  try {
-    const { startCalendarTriggerWorker } =
-      await import('./services/workflows/calendar-trigger-worker.js');
-    startCalendarTriggerWorker();
-    logger.info('📅 Calendar trigger worker started');
-  } catch (error) {
-    logger.warn({ error: String(error) }, 'Failed to start calendar trigger worker');
-  }
+    // Start calendar trigger worker (for calendar-based workflow triggers)
+    try {
+      const { startCalendarTriggerWorker } =
+        await import('./services/workflows/calendar-trigger-worker.js');
+      startCalendarTriggerWorker();
+      logger.info('📅 Calendar trigger worker started');
+    } catch (error) {
+      logger.warn({ error: String(error) }, 'Failed to start calendar trigger worker');
+    }
 
-  // Start scheduled outreach executor (for multiOutreach scheduled messages)
-  try {
-    const { startScheduledOutreachExecutor } =
-      await import('./services/outreach/scheduled-outreach-executor.js');
-    startScheduledOutreachExecutor({ pollIntervalMs: 60000 }); // Check every minute
-    logger.info('✓ Scheduled outreach executor running');
-  } catch (err) {
-    logger.warn(`Scheduled outreach executor failed to start (non-fatal): ${err}`);
+    // Start scheduled outreach executor (for multiOutreach scheduled messages)
+    try {
+      const { startScheduledOutreachExecutor } =
+        await import('./services/outreach/scheduled-outreach-executor.js');
+      startScheduledOutreachExecutor({ pollIntervalMs: 60000 }); // Check every minute
+      logger.info('✓ Scheduled outreach executor running');
+    } catch (err) {
+      logger.warn(`Scheduled outreach executor failed to start (non-fatal): ${err}`);
+    }
+
   }
 
   logger.info('✓ Schedulers running');
