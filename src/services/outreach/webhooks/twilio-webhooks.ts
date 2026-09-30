@@ -8,16 +8,10 @@
  * - Voicemail detection
  */
 
-import { createHmac, timingSafeEqual } from 'crypto';
-import type { IncomingHttpHeaders } from 'http';
-import { getDefaultStore } from '../../../memory/in-memory-store.js';
-import type { UserProfile } from '../../../types/user-profile.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { recordResponseEvent } from '../analytics.js';
-import { getOutreachDecisionEngine } from '../decision-engine.js';
 import { markResponded, updateDeliveryStatus } from '../delivery/delivery-tracker.js';
 import { handleSMSStatus } from '../delivery/sms-delivery.js';
-import { handleCallStatus, handleMachineDetection } from '../sip-bridge.js';
 import {
   firestoreThreadStore,
   geminiReplyGenerator,
@@ -26,235 +20,50 @@ import {
 import { findContactByPhone, markContactResponded } from '../../contacts/optimal-timing.js';
 // Bidirectional engagement - route replies to the right agent
 import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/inbound-router.js';
+import {
+  calculateEngagement,
+  detectSentiment,
+  findUserByPhone,
+  generateTwiML,
+  updateSmsOptStatus,
+} from './twilio-webhook-helpers.js';
+import { initializeTwilioWebhooks, validateTwilioSignature } from './twilio-signature.js';
+import { handleCallStatusWebhook, handleVoicemailWebhook } from './twilio-call-webhooks.js';
+import type {
+  InboundMessage,
+  InboundMessageHandler,
+  TwilioInboundSMSPayload,
+  TwilioSMSStatusPayload,
+} from './twilio-webhook-types.js';
+
+// Re-exports: moved to sibling modules, kept here for backward-compatible imports
+export type {
+  TwilioSMSStatusPayload,
+  TwilioInboundSMSPayload,
+  TwilioCallStatusPayload,
+  InboundMessage,
+} from './twilio-webhook-types.js';
+export {
+  initializeTwilioWebhooks,
+  twilioSignedUrls,
+  validateTwilioSignature,
+} from './twilio-signature.js';
+export { handleCallStatusWebhook, handleVoicemailWebhook } from './twilio-call-webhooks.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
-
-// ============================================================================
-// USER LOOKUP BY PHONE
-// ============================================================================
-
-/**
- * Find a user by their phone number
- * Searches all profiles for a matching phone in contactInfo
- */
-async function findUserByPhone(phone: string): Promise<UserProfile | null> {
-  try {
-    const store = getDefaultStore();
-    if (!store.isInitialized) {
-      await store.initialize();
-    }
-
-    // Normalize phone number (E.164 format)
-    const normalizedPhone = normalizePhoneNumber(phone);
-
-    // List profiles and find matching phone
-    // Note: In production, this should use a database index/query
-    const profiles = await store.listProfiles({ limit: 1000 });
-
-    for (const profile of profiles) {
-      if (profile.contactInfo?.phone === normalizedPhone) {
-        return profile;
-      }
-    }
-
-    return null;
-  } catch (error) {
-    log.error({ error, phone }, 'Error looking up user by phone');
-    return null;
-  }
-}
-
-/**
- * Normalize phone number to E.164 format
- */
-function normalizePhoneNumber(phone: string): string {
-  // Remove all non-digit characters except leading +
-  let normalized = phone.replace(/[^\d+]/g, '');
-
-  // Ensure it starts with + for international format
-  if (!normalized.startsWith('+')) {
-    // Assume US number if 10 digits
-    if (normalized.length === 10) {
-      normalized = `+1${normalized}`;
-    } else if (normalized.length === 11 && normalized.startsWith('1')) {
-      normalized = `+${normalized}`;
-    }
-  }
-
-  return normalized;
-}
-
-/**
- * Update user's SMS opt-out status in outreach preferences
- */
-async function updateSmsOptStatus(phone: string, optedIn: boolean): Promise<boolean> {
-  try {
-    const profile = await findUserByPhone(phone);
-
-    if (!profile) {
-      log.warn({ phone }, 'Cannot update SMS opt status - user not found by phone');
-      return false;
-    }
-
-    const engine = getOutreachDecisionEngine();
-    const state = engine.getUserState(profile.id);
-
-    // Update allowedChannels
-    let allowedChannels = state.allowedChannels || ['email', 'sms'];
-
-    if (optedIn) {
-      // Add SMS if not present
-      if (!allowedChannels.includes('sms')) {
-        allowedChannels = [...allowedChannels, 'sms'];
-      }
-    } else {
-      // Remove SMS
-      allowedChannels = allowedChannels.filter((c) => c !== 'sms');
-    }
-
-    engine.updateUserState(profile.id, { allowedChannels });
-
-    log.info(
-      {
-        userId: profile.id,
-        phone,
-        optedIn,
-        allowedChannels,
-      },
-      `📱 SMS opt-${optedIn ? 'in' : 'out'} status updated`
-    );
-
-    return true;
-  } catch (error) {
-    log.error({ error, phone, optedIn }, 'Error updating SMS opt status');
-    return false;
-  }
-}
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface TwilioSMSStatusPayload {
-  MessageSid: string;
-  MessageStatus: string;
-  To: string;
-  From: string;
-  ErrorCode?: string;
-  ErrorMessage?: string;
-  AccountSid: string;
-}
-
-export interface TwilioInboundSMSPayload {
-  MessageSid: string;
-  Body: string;
-  From: string;
-  To: string;
-  NumMedia: string;
-  MediaUrl0?: string;
-  MediaContentType0?: string;
-  AccountSid: string;
-}
-
-export interface TwilioCallStatusPayload {
-  CallSid: string;
-  CallStatus: string;
-  To: string;
-  From: string;
-  Direction: string;
-  CallDuration?: string;
-  AnsweredBy?: string; // 'human', 'machine_start', 'machine_end_beep', 'machine_end_silence', 'machine_end_other', 'fax', 'unknown'
-  AccountSid: string;
-}
-
-export interface InboundMessage {
-  id: string;
-  from: string;
-  body: string;
-  receivedAt: Date;
-  mediaUrls?: string[];
-  userId?: string;
-  conversationId?: string;
-}
-
-type InboundMessageHandler = (message: InboundMessage) => Promise<void>;
 
 // ============================================================================
 // STATE
 // ============================================================================
 
-let twilioAuthToken: string | null = null;
 const inboundHandlers: InboundMessageHandler[] = [];
 const recentInbound = new Map<string, InboundMessage>();
-
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-
-/**
- * Initialize webhook handlers with Twilio auth token
- */
-export function initializeTwilioWebhooks(authToken: string): void {
-  twilioAuthToken = authToken;
-  log.info('✅ Twilio webhook handlers initialized');
-}
 
 /**
  * Register handler for inbound messages
  */
 export function onInboundMessage(handler: InboundMessageHandler): void {
   inboundHandlers.push(handler);
-}
-
-// ============================================================================
-// SIGNATURE VALIDATION
-// ============================================================================
-
-/**
- * URLs Twilio may have signed for this request. Behind Firebase Hosting the
- * Host header is the Cloud Run host, while Twilio signed the public URL
- * (x-forwarded-host / PUBLIC_URL), so each candidate is tried.
- */
-export function twilioSignedUrls(headers: IncomingHttpHeaders, path: string | undefined): string[] {
-  const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.split(',')[0]?.trim();
-  const proto = first(headers['x-forwarded-proto']) || 'https';
-  const hosts = [first(headers['x-forwarded-host']), first(headers.host)].filter(Boolean) as string[];
-  const urls = hosts.map((host) => `${proto}://${host}${path ?? ''}`);
-  if (process.env.PUBLIC_URL) urls.push(`${process.env.PUBLIC_URL.replace(/\/$/, '')}${path ?? ''}`);
-  return [...new Set(urls)];
-}
-
-/**
- * Validate Twilio webhook signature (HMAC-SHA1 of URL + sorted params).
- * Reads TWILIO_AUTH_TOKEN from the environment unless initialised explicitly,
- * so webhooks work without the (disabled) outreach bootstrap.
- */
-export function validateTwilioSignature(
-  signature: string,
-  url: string | string[],
-  params: Record<string, string>
-): boolean {
-  const token = twilioAuthToken ?? process.env.TWILIO_AUTH_TOKEN;
-  if (!token) {
-    log.warn('Cannot validate signature - TWILIO_AUTH_TOKEN not set');
-    return false;
-  }
-
-  try {
-    const sortedKeys = Object.keys(params).sort();
-    const given = Buffer.from(signature);
-    return (Array.isArray(url) ? url : [url]).some((candidate) => {
-      let data = candidate;
-      for (const key of sortedKeys) {
-        data += key + params[key];
-      }
-      const expected = Buffer.from(createHmac('sha1', token).update(data).digest('base64'));
-      return expected.length === given.length && timingSafeEqual(expected, given);
-    });
-  } catch (error) {
-    log.error({ error }, 'Signature validation error');
-    return false;
-  }
 }
 
 // ============================================================================
@@ -527,178 +336,6 @@ export async function handleInboundSMSWebhook(
   // Auto-reply (optional)
   // For now, don't auto-reply to avoid confusion
   return { success: true };
-}
-
-/**
- * Generate TwiML response for SMS
- */
-function generateTwiML(message: string): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${escapeXml(message)}</Message>
-</Response>`;
-}
-
-/**
- * Escape XML special characters
- */
-function escapeXml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-/**
- * Simple sentiment detection
- */
-function detectSentiment(text: string): 'positive' | 'negative' | 'neutral' {
-  const positive =
-    /\b(thanks|thank|great|awesome|love|yes|sure|ok|okay|perfect|wonderful|amazing|good)\b/i;
-  const negative = /\b(no|stop|don't|hate|bad|terrible|awful|annoyed|angry|frustrated)\b/i;
-
-  if (positive.test(text)) return 'positive';
-  if (negative.test(text)) return 'negative';
-  return 'neutral';
-}
-
-/**
- * Calculate engagement level from message
- */
-function calculateEngagement(text: string): 'high' | 'medium' | 'low' {
-  // Longer, more detailed responses indicate higher engagement
-  if (text.length > 100) return 'high';
-  if (text.length > 30) return 'medium';
-  return 'low';
-}
-
-// ============================================================================
-// CALL STATUS WEBHOOK
-// ============================================================================
-
-/**
- * Handle call status webhook from Twilio
- *
- * Statuses: queued, initiated, ringing, in-progress, completed, busy, failed, no-answer, canceled
- */
-export async function handleCallStatusWebhook(
-  payload: TwilioCallStatusPayload,
-  signature?: string,
-  url?: string | string[]
-): Promise<{ success: boolean; twiml?: string }> {
-  // ALWAYS validate Twilio signature (skip only in test environment with explicit flag)
-  const skipValidation =
-    process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
-  if (!skipValidation) {
-    if (!signature || !url) {
-      log.warn({ callSid: payload.CallSid }, 'Missing Twilio signature or URL');
-      return { success: false };
-    }
-    const isValid = validateTwilioSignature(
-      signature,
-      url,
-      payload as unknown as Record<string, string>
-    );
-    if (!isValid) {
-      log.warn({ callSid: payload.CallSid }, 'Invalid Twilio signature');
-      return { success: false };
-    }
-  }
-
-  const { CallSid, CallStatus, CallDuration, AnsweredBy } = payload;
-
-  log.info({ CallSid, CallStatus, CallDuration, AnsweredBy }, '📞 Call status webhook');
-
-  // Update SIP bridge
-  handleCallStatus(CallSid, CallStatus);
-
-  // Handle machine detection
-  if (AnsweredBy) {
-    const isHuman = AnsweredBy === 'human';
-    handleMachineDetection(CallSid, isHuman ? 'human' : 'machine');
-  }
-
-  // Update delivery tracker
-  let deliveryStatus: 'sent' | 'delivered' | 'responded' | 'failed' = 'sent';
-  switch (CallStatus) {
-    case 'in-progress':
-      deliveryStatus = 'delivered'; // Call was answered
-      break;
-    case 'completed':
-      deliveryStatus = 'responded'; // Call was completed
-      break;
-    case 'busy':
-    case 'failed':
-    case 'no-answer':
-      deliveryStatus = 'failed';
-      break;
-  }
-
-  updateDeliveryStatus(CallSid, deliveryStatus);
-
-  // =========================================================================
-  // ML TIMING LEARNING - If call was answered/completed, it's a "response"
-  // =========================================================================
-  if (deliveryStatus === 'responded' || deliveryStatus === 'delivered') {
-    try {
-      const contactLookup = await findContactByPhone(payload.To);
-      if (contactLookup) {
-        const mlResult = await markContactResponded(
-          contactLookup.userId,
-          contactLookup.contactId,
-          new Date()
-        );
-
-        if (mlResult.updated) {
-          log.info(
-            {
-              contactId: contactLookup.contactId,
-              contactName: contactLookup.contactName,
-              callStatus: CallStatus,
-            },
-            '📊 ML timing model updated - contact answered call'
-          );
-        }
-      }
-    } catch (mlError) {
-      // Don't fail the webhook if ML tracking fails
-      log.warn(
-        { error: String(mlError), to: payload.To },
-        'Failed to update ML timing for call response'
-      );
-    }
-  }
-
-  return { success: true };
-}
-
-// ============================================================================
-// VOICEMAIL WEBHOOK
-// ============================================================================
-
-/**
- * Handle answering machine detection
- * Returns TwiML for leaving voicemail
- */
-export async function handleVoicemailWebhook(
-  payload: TwilioCallStatusPayload,
-  voicemailMessage: string
-): Promise<{ twiml: string }> {
-  const { CallSid, AnsweredBy } = payload;
-
-  log.info({ CallSid, AnsweredBy }, '📝 Voicemail detection');
-
-  // Generate TwiML for voicemail
-  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Pause length="1"/>
-  <Say voice="Polly.Joanna">${escapeXml(voicemailMessage)}</Say>
-  <Hangup/>
-</Response>`;
-
-  return { twiml };
 }
 
 // ============================================================================
