@@ -93,6 +93,12 @@ import {
   type RecallAgent,
 } from './memory-recall-hook.js';
 import { createSharedLaughRecorder, wireSharedLaughRecorder } from './shared-laugh-recorder.js';
+import {
+  createTalkPreferenceRecorder,
+  loadTalkPreferences,
+  saveTalkPreference,
+  wireTalkPreferenceRecorder,
+} from './talk-preference-recorder.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
@@ -1775,6 +1781,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
       sessionWithEvents.off?.('agent_state_changed', onRecallAgentState);
       sessionWithEvents.off?.('conversation_item_added', onRecallItem);
     });
+
+    // Keep to how they have asked to be talked to, this call and (when
+    // lasting) every later one (conversation/talk-preferences.ts)
+    const talkRecorder = createTalkPreferenceRecorder({
+      userData,
+      saveLasting: (preference) => void saveTalkPreference(userId, preference),
+    });
+    void loadTalkPreferences(userId).then((stored) => talkRecorder.loaded(stored));
+    cleanupFunctions.push(wireTalkPreferenceRecorder(sessionWithEvents, talkRecorder));
 
     // Remember what made them laugh, for a callback on a later call.
     const laughRecorder = createSharedLaughRecorder({

@@ -39,6 +39,10 @@ import {
   withTurnStyleReminder,
 } from './turn-style.js';
 import { sessionRepairCue } from '../../conversation/repair-cue.js';
+import {
+  formatTalkPreferences,
+  type TalkPreference,
+} from '../../conversation/talk-preferences.js';
 import { nextReplyCues } from '../../speech/expression/index.js';
 import type { TurnNotesSource } from '../multi-agent/background-turn-intelligence.js';
 import { getTTSProvider } from '../../speech/tts-gateway/providers/index.js';
@@ -742,9 +746,13 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const sessionId = (userData?.services as { sessionId?: string } | undefined)?.sessionId;
     const repair = sessionRepairCue(userData, sessionId, exchange.user, exchange.agent);
     const voiceToday = (userData?.voiceToday as { cue?: string | null } | undefined)?.cue;
+    const talk = formatTalkPreferences(
+      new Set((userData?.talkPreferences as TalkPreference[] | undefined) ?? [])
+    );
     const reminder = composeTurnReminder(
       turnStyleReminderEnabled(),
       [
+        ...(talk ? [talk] : []),
         ...(repair ? [repair] : []),
         ...nextReplyCues(userData, getTTSProvider().voice),
         ...(voiceToday ? [voiceToday] : []),

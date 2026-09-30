@@ -101,6 +101,18 @@ await orchestrator.handoff({
 | `multi-agent-entry.ts` | Entry point for multi-agent sessions |
 | `index.ts` | Exports |
 
+## Live-call memory and manner
+
+Wired in `agent-setup.ts`; each reads session events and feeds the per-reply
+hook (`ferni-agent.ts` `llmNode`) or the recall note.
+
+| Module | What it does |
+|--------|--------------|
+| `memory-recall-hook.ts` | Facts the turn is about, open threads (with when they came up; closed once raised), one shared-laugh callback |
+| `shared-laugh-recorder.ts` | Saves what made them laugh; learns which callbacks land |
+| `talk-preference-recorder.ts` | "Just listen", "give it to me straight": kept for the call, saved when said as lasting |
+| `background-turn-intelligence.ts` | Emotion, relationship and mood notes off the reply path |
+
 ## Integration Status
 
 ### ✅ Complete

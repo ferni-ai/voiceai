@@ -16,6 +16,7 @@ import type { SessionServices } from '../../services/index.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { VoiceState } from '../../speech/voice-biomarkers/index.js';
 import type { VoiceMeasures } from '../../speech/expression/voice-today.js';
+import type { TalkPreference } from '../../conversation/talk-preferences.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
 import type { LaughterDetectionResult } from '../../speech/voice-humanization.js';
 
@@ -91,6 +92,8 @@ export interface UserData {
 
   /** Caller's IANA timezone, from the web client (see utils/local-clock.ts) */
   timezone?: string;
+  /** How they have asked to be talked to (conversation/talk-preferences.ts) */
+  talkPreferences?: TalkPreference[];
   /** The newest open thread from earlier calls, for the greeting (memory-recall-hook.ts) */
   openingThread?: () => Promise<string | null>;
 
