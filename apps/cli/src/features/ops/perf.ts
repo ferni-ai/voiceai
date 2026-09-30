@@ -49,11 +49,11 @@ interface BundleBudget {
 
 /**
  * Gzipped JavaScript budgets, matching .github/workflows/performance-budget.yml:
- * the 2026-09-30 size (1902 KB total, 535 KB largest chunk) rounded up to the
- * next 10 KB. Lower them as the bundle shrinks.
+ * the 2026-09-30 size (1776 KB total, 537 KB largest chunk with zlib) rounded
+ * up to the next 10 KB. Lower them as the bundle shrinks.
  */
 const BUNDLE_BUDGET: BundleBudget = {
-  maxTotalKB: 1910,
+  maxTotalKB: 1780,
   maxChunkKB: 540,
 };
 

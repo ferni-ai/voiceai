@@ -1,5 +1,6 @@
 import { resolve } from 'path';
 import { defineConfig, loadEnv } from 'vite';
+import { stripUntranslatedI18n } from './vite-plugins/strip-untranslated-i18n';
 
 // Stub for native Capacitor plugins that don't exist in web builds
 const capacitorStub = resolve(__dirname, 'src/stubs/capacitor-stub.ts');
@@ -21,6 +22,7 @@ export default defineConfig(({ mode }) => {
   return {
     root: '.',
     publicDir: 'public',
+    plugins: [stripUntranslatedI18n()],
     resolve: {
       // Allow .js imports to resolve to .ts files (Node-style ESM imports)
       extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
