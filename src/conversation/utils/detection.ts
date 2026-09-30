@@ -11,11 +11,9 @@
  * @module @ferni/conversation/utils/detection
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
-const log = createLogger({ module: 'ConversationDetection' });
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
@@ -613,53 +611,6 @@ export function detectEngagementLevel(userMessage: string): DetectionResult<Enga
 }
 
 // ============================================================================
-// COMPOSITE DETECTION
-// ============================================================================
-
-/**
- * Combined analysis result for a user message
- */
-export interface MessageAnalysis {
-  energy: EnergyLevel;
-  topicWeight: TopicWeight;
-  engagement: EngagementLevel;
-  hasEvidence: boolean;
-  isBreakthrough: boolean;
-  hasHesitation: boolean;
-  isEmotional: boolean;
-  isHeavy: boolean;
-  confidence: number;
-}
-
-/**
- * Perform comprehensive analysis of a user message
- *
- * @param userMessage - The user's message to analyze
- * @param detectedEmotion - Optional detected emotion
- * @returns Complete message analysis
- */
-export function analyzeMessage(userMessage: string, detectedEmotion?: string): MessageAnalysis {
-  const energyResult = detectUserEnergyDetailed(userMessage);
-  const engagementResult = detectEngagementLevel(userMessage);
-
-  const analysis: MessageAnalysis = {
-    energy: energyResult.value!,
-    topicWeight: classifyTopicWeight(userMessage, detectedEmotion),
-    engagement: engagementResult.value!,
-    hasEvidence: detectEvidence(userMessage),
-    isBreakthrough: detectBreakthrough(userMessage),
-    hasHesitation: detectHesitation(userMessage),
-    isEmotional: detectEmotionalContent(userMessage),
-    isHeavy: detectHeavyContent(userMessage),
-    confidence: (energyResult.confidence + engagementResult.confidence) / 2,
-  };
-
-  log.debug({ analysis, messageLength: userMessage.length }, 'Message analyzed');
-
-  return analysis;
-}
-
-// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -684,9 +635,6 @@ export default {
   detectHighEngagement,
   detectHesitation,
   detectEngagementLevel,
-
-  // Composite
-  analyzeMessage,
 
   // Pattern constants (for testing/extension)
   HIGH_ENERGY_PATTERNS,

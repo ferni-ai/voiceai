@@ -34,13 +34,7 @@
  * cleanupConversationSession(sessionId);
  * ```
  *
- * For direct orchestrator access, use:
- * ```typescript
- * import { createConversationSession } from '../conversation/unified-integration.js';
- * ```
- *
- * @see unified-integration.ts for the main session API
- * @see orchestrator/ for the underlying ConversationOrchestrator
+ * @see unified-integration.ts for the session lifecycle
  */
 
 // Import reset functions for local use
@@ -252,44 +246,6 @@ export {
   type HumanizationTuning,
 } from './humanization-tuning.js';
 
-// ============================================================================
-// NEW: COMPOSABLE EFFECTS SYSTEM
-// ============================================================================
-
-// Clean architecture replacement for procedural humanization
-export {
-  // Core components
-  getEffectCoordinator,
-  getEffectTracker,
-  resetEffectCoordinator,
-  resetEffectTracker,
-  resetAllEffectCoordinators,
-  resetAllEffectTrackers,
-  // Effect factories
-  createBreathSoundEffect,
-  createFirstTurnNoticingEffect,
-  createExcitementInterruptionEffect,
-  createSpeechFillerEffect,
-  // Registration helpers
-  registerDefaultEffects,
-  createCoordinatorWithEffects,
-  buildEffectContext,
-  // Types
-  type AppliedEffect,
-  type EffectApplicationResult,
-  type EffectConfig,
-  type EffectContext,
-  type EffectCoordinator,
-  type EffectResult,
-  type EffectTracker,
-  type HumanizationCapability,
-  type HumanizationEffect,
-  type SkippedEffect as EffectSkipped,
-  type DetectedSignals as EffectDetectedSignals,
-  type SessionData as EffectSessionData,
-  type EffectPlacement,
-} from './effects/index.js';
-
 // Deep Humanization - Clean architecture module
 export {
   applyDeepHumanization,
@@ -475,8 +431,6 @@ export {
 // ============================================================================
 
 export {
-  // Composite analysis (new)
-  analyzeMessage,
   // Engagement detection (new)
   detectDisengagement,
   detectEngagementLevel,
@@ -486,7 +440,6 @@ export {
   detectUserEnergyDetailed,
   type EngagementLevel as DetectedEngagementLevel,
   type DetectionResult,
-  type MessageAnalysis,
   // Types (new - renamed to avoid conflict with engagement-scoring.ts)
   type TopicWeight,
 } from './utils/index.js';
@@ -682,11 +635,8 @@ export {
   endConversationSession,
   getActiveSessions,
   getConversationSession,
-  quickHumanize,
   type ConversationSession,
   type ConversationSessionConfig,
-  type TurnInput,
-  type TurnResult,
 } from './unified-integration.js';
 
 // ============================================================================
@@ -746,94 +696,3 @@ export function resetAllConversationState(
   // Reset thinking phrase coordinator (global singleton)
   _resetThinkingPhraseCoordinator();
 }
-
-// ============================================================================
-// UNIFIED ORCHESTRATOR
-// ============================================================================
-
-export {
-  // Performance optimizations
-  CircuitBreaker,
-  // Debug & Monitoring
-  clearABTests,
-  clearDetectionCache,
-  clearSessionRecords,
-  // Orchestrator
-  ConversationOrchestrator,
-  createABTest,
-  // Humanizer integration (drop-in replacement)
-  createHumanizer,
-  createOrchestratedHumanizer,
-  createProfiler,
-  DEFAULT_ORCHESTRATOR_CONFIG,
-  endABTest,
-  exportSession,
-  getABTestStats,
-  getABTestVariant,
-  // Metrics
-  getAggregatedMetrics,
-  getCircuitBreaker,
-  getCircuitBreakerStatus,
-  // Config adapter (unified feature toggles)
-  getConfigAdapter,
-  getConversationOrchestrator,
-  getDebugSnapshot,
-  getHealthStatus,
-  getMetricsCollector,
-  getOrchestratedHumanizer,
-  getOrComputeDetection,
-  getPerformanceStats,
-  getSessionRecords,
-  getSystemHealth,
-  logDebugSummary,
-  logFeatureStats,
-  logMetricsSummary,
-  logSlowOrchestration,
-  LRUCache,
-  orchestratorConfig,
-  orchestratorDebug,
-  profileOrchestration,
-  recordOrchestration,
-  resetAllCircuitBreakers,
-  resetAllMetrics,
-  resetAllOrchestratedHumanizers,
-  resetAllOrchestrators,
-  resetConfigAdapter,
-  resetConversationOrchestrator,
-  resetMetrics,
-  resetOrchestratedHumanizer,
-  resetPerformanceOptimizations,
-  withTimeout,
-  // Types
-  type ABTestConfig,
-  type AnalysisContext,
-  type AnalysisPhaseResult,
-  type AppliedFeature,
-  type CircuitBreakerConfig,
-  type CircuitState,
-  type DebugSnapshot,
-  type DetectedSignals,
-  type ExtendedHumanizationContext,
-  type ExtendedHumanizedResponse,
-  type FeatureMetrics,
-  type HealthIndicators,
-  type HumanizationPhaseResult,
-  type IntelligenceGuidance,
-  type IntelligencePhaseResult,
-  type MetricsCollector,
-  type MetricsSnapshot,
-  type OrchestratedHumanizer,
-  type OrchestrationRecord,
-  type OrchestratorConfig,
-  type OrchestratorConfigAdapter,
-  type OrchestratorInput,
-  type OrchestratorMetrics,
-  type OrchestratorOutput,
-  type OutputMetadata,
-  type PhaseMetrics,
-  type PriorityAction,
-  type ResponseAdditions,
-  type SkippedFeature,
-  type UnifiedFeatureState,
-  type UnifiedPreset,
-} from './orchestrator/index.js';

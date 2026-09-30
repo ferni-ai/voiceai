@@ -28,7 +28,6 @@ import {
   detectEngagementLevel,
 
   // Composite
-  analyzeMessage,
 } from '../utils/detection.js';
 
 // ============================================================================
@@ -445,45 +444,3 @@ describe('detectEngagementLevel', () => {
 // ============================================================================
 // COMPOSITE ANALYSIS TESTS
 // ============================================================================
-
-describe('analyzeMessage', () => {
-  it('should return comprehensive analysis', () => {
-    const analysis = analyzeMessage('I just realized something amazing!!');
-
-    expect(analysis.energy).toBeDefined();
-    expect(analysis.topicWeight).toBeDefined();
-    expect(analysis.engagement).toBeDefined();
-    expect(typeof analysis.hasEvidence).toBe('boolean');
-    expect(typeof analysis.isBreakthrough).toBe('boolean');
-    expect(typeof analysis.hasHesitation).toBe('boolean');
-    expect(typeof analysis.isEmotional).toBe('boolean');
-    expect(typeof analysis.isHeavy).toBe('boolean');
-    expect(analysis.confidence).toBeGreaterThan(0);
-  });
-
-  it('should detect breakthrough in message', () => {
-    const analysis = analyzeMessage('I finally realized what I need to do!');
-    expect(analysis.isBreakthrough).toBe(true);
-  });
-
-  it('should detect heavy content', () => {
-    const analysis = analyzeMessage('My father passed away yesterday');
-    expect(analysis.isHeavy).toBe(true);
-    expect(analysis.topicWeight).toBe('heavy');
-  });
-
-  it('should detect high energy', () => {
-    const analysis = analyzeMessage('This is AMAZING!!!');
-    expect(analysis.energy).toBe('high');
-  });
-
-  it('should incorporate detected emotion', () => {
-    const analysis = analyzeMessage('Something happened to me', 'fear');
-    expect(analysis.topicWeight).toBe('heavy');
-  });
-
-  it('should detect hesitation', () => {
-    const analysis = analyzeMessage("I'm fine, I guess");
-    expect(analysis.hasHesitation).toBe(true);
-  });
-});
