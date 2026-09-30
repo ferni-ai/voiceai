@@ -48,7 +48,7 @@ const exportsList = [
   ['MOOD_BACKGROUND_TINTS', 'Full-screen overlay tint per mood (color-emotional.json → moodPalettes.backgroundTints)', clean(colorEmotional.moodPalettes.backgroundTints)],
   ['TIME_FADING', 'Time-fading parameters by period (color-emotional.json → timeFading.periods)', clean(colorEmotional.timeFading.periods)],
   ['TIME_FADING_ATMOSPHERIC_COLORS', 'Atmospheric colors old items fade toward (color-emotional.json → timeFading.atmosphericColors)', clean(colorEmotional.timeFading.atmosphericColors)],
-  ['PERSONA_BRIDGE_COLOR_OVERRIDES', 'Hand-tuned persona handoff bridge colors (color-emotional.json → personaTransitions.bridgeOverrides)', clean(colorEmotional.personaTransitions.bridgeOverrides)],
+  ['PERSONA_BRIDGE_COLOR_OVERRIDES', 'Hand-tuned persona handoff bridge colors (color-emotional.json → personaTransitions.bridgeColors)', clean(colorEmotional.personaTransitions.bridgeColors)],
   ['PERSONA_BRIDGE_FALLBACK_COLOR', 'Neutral bridge color when a transition cannot be computed (color-emotional.json → personaTransitions.fallbackBridgeColor)', colorEmotional.personaTransitions.fallbackBridgeColor],
   ['MOOD_TYPOGRAPHY_TOKENS', 'Typography per mood (typography-emotional.json → moodTypography)', clean(typographyEmotional.moodTypography)],
   ['SEMANTIC_PALETTES', 'Semantic state palettes (color-emotional.json → semanticPalettes)', clean(colorEmotional.semanticPalettes)],

@@ -123,7 +123,7 @@ export const PERSONA_HSL: Record<PersonaId, HSLColor> = Object.fromEntries(
 /**
  * Pre-calculated harmonic bridge colors for common transitions.
  * These are manually tuned for the most aesthetically pleasing handoffs
- * (design-system/tokens/color-emotional.json → personaTransitions.bridgeOverrides).
+ * (design-system/tokens/color-emotional.json → personaTransitions.bridgeColors).
  */
 const BRIDGE_COLOR_OVERRIDES: Partial<Record<string, string>> = PERSONA_BRIDGE_COLOR_OVERRIDES;
 

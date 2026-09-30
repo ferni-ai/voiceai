@@ -110,9 +110,14 @@ Smooth color transitions when switching personas:
 Instead of abrupt changes, use harmonic bridge colors:
 
 ```
-Ferni (#4a6741) → Bridge (#7a8866) → Maya (#a67a6a)
-       Green         Sage           Terracotta
+Ferni (#4a6741) → Bridge (#8a7a5a) → Maya
+       Green         Olive          Terracotta
 ```
+
+Hand-tuned bridges live in `design-system/tokens/color-emotional.json` →
+`personaTransitions.bridgeColors` (keyed `from-to`, generated into
+`PERSONA_BRIDGE_COLOR_OVERRIDES`); other pairs are computed from the two
+persona colors.
 
 ### Transition Durations
 - Similar colors (Maya ↔ Jordan): 400ms

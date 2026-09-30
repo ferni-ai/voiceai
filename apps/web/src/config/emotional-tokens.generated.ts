@@ -194,7 +194,7 @@ export const TIME_FADING_ATMOSPHERIC_COLORS = {
   "default": "#a8b0b8"
 } as const;
 
-/** Hand-tuned persona handoff bridge colors (color-emotional.json → personaTransitions.bridgeOverrides) */
+/** Hand-tuned persona handoff bridge colors (color-emotional.json → personaTransitions.bridgeColors) */
 export const PERSONA_BRIDGE_COLOR_OVERRIDES = {
   "ferni-maya": "#8a7a5a",
   "maya-ferni": "#8a7a5a",

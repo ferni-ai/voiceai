@@ -176,77 +176,7 @@
   "personaTransitions": {
     "_comment": "Albers-inspired harmonic color transitions between personas",
     "bridgeColors": {
-      "ferni-to-maya": {
-        "from": "#4a6741",
-        "bridge": "#7a8866",
-        "to": "#a67a6a",
-        "steps": 5,
-        "duration": "800ms"
-      },
-      "ferni-to-peter": {
-        "from": "#4a6741",
-        "bridge": "#4a6959",
-        "to": "#3a6b73",
-        "steps": 4,
-        "duration": "600ms"
-      },
-      "ferni-to-jordan": {
-        "from": "#4a6741",
-        "bridge": "#8a7a55",
-        "to": "#c4856a",
-        "steps": 6,
-        "duration": "900ms"
-      },
-      "ferni-to-alex": {
-        "from": "#4a6741",
-        "bridge": "#4a6a64",
-        "to": "#5a6b8a",
-        "steps": 5,
-        "duration": "700ms"
-      },
-      "ferni-to-nayan": {
-        "from": "#4a6741",
-        "bridge": "#8a8a55",
-        "to": "#b8956a",
-        "steps": 5,
-        "duration": "800ms"
-      },
-      "maya-to-peter": {
-        "from": "#a67a6a",
-        "bridge": "#6a7a72",
-        "to": "#3a6b73",
-        "steps": 5,
-        "duration": "700ms"
-      },
-      "maya-to-jordan": {
-        "from": "#a67a6a",
-        "bridge": "#b5806a",
-        "to": "#c4856a",
-        "steps": 3,
-        "duration": "400ms"
-      },
-      "peter-to-alex": {
-        "from": "#3a6b73",
-        "bridge": "#4a6b80",
-        "to": "#5a6b8a",
-        "steps": 4,
-        "duration": "500ms"
-      },
-      "jordan-to-nayan": {
-        "from": "#c4856a",
-        "bridge": "#be8a6a",
-        "to": "#b8956a",
-        "steps": 3,
-        "duration": "400ms"
-      }
-    },
-    "defaultTransition": {
-      "steps": 5,
-      "duration": "700ms",
-      "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
-    },
-    "bridgeOverrides": {
-      "_comment": "Hand-tuned bridge colors used by apps/web color/persona-harmony for these handoffs (keyed from-to; other pairs are computed)",
+      "_comment": "Hand-tuned bridge colors for persona handoffs, keyed from-to (apps/web color/persona-harmony); other pairs are computed from the two persona colors",
       "ferni-maya": "#8a7a5a",
       "maya-ferni": "#8a7a5a",
       "ferni-peter": "#4a6a5a",
@@ -259,6 +189,11 @@
       "alex-peter": "#4a6a7a",
       "alex-nayan": "#8a8a7a",
       "nayan-alex": "#8a8a7a"
+    },
+    "defaultTransition": {
+      "steps": 5,
+      "duration": "700ms",
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
     },
     "fallbackBridgeColor": "#888888"
   },
