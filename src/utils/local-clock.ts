@@ -102,7 +102,10 @@ export function localWeekday(at: Date, timezone?: string): string {
 }
 
 /** The caller's calendar date: month 0-11, date 1-31. */
-export function localDate(timezone?: string, now: Date = new Date()): { month: number; date: number } {
+export function localDate(
+  timezone?: string,
+  now: Date = new Date()
+): { month: number; date: number } {
   if (isValidTimezone(timezone)) {
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,
@@ -114,4 +117,18 @@ export function localDate(timezone?: string, now: Date = new Date()): { month: n
     if (Number.isInteger(month) && Number.isInteger(date)) return { month, date };
   }
   return { month: now.getMonth(), date: now.getDate() };
+}
+
+/**
+ * The caller's calendar day, offsetDays from today, as year / month (0-11) /
+ * date. Steps whole calendar days, so a clock change never lands on the
+ * same day twice or skips one.
+ */
+export function localCalendarDay(
+  timezone?: string,
+  now: Date = new Date(),
+  offsetDays = 0
+): { year: number; month: number; date: number } {
+  const day = new Date((localDayNumber(now, timezone) + offsetDays) * 86_400_000);
+  return { year: day.getUTCFullYear(), month: day.getUTCMonth(), date: day.getUTCDate() };
 }

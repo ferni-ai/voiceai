@@ -111,7 +111,8 @@ export function utteranceEndsOf<T>(
  * Sessions whose voice is already being analyzed. The STT tap and the
  * subscribed-track tap can both start a processor for one session; they
  * share the session's prosody analyzer, so a second one would feed every
- * frame twice. The first owns the analysis; a second just drains its stream.
+ * frame twice. The first owns the analysis; another drains its frames and
+ * takes over when the owner's stream ends.
  */
 const analyzingSessions = new Set<string>();
 
@@ -135,18 +136,22 @@ export async function processAudioStream(
 
   const reader = audio.getReader();
 
-  if (sessionId && analyzingSessions.has(sessionId)) {
-    logger.debug({ sessionId }, 'Voice already analyzed for this session; draining duplicate tap');
-    try {
-      while (!(await reader.read()).done) {
-        // drain
-      }
-    } finally {
-      reader.releaseLock();
-    }
-    return;
-  }
-  if (sessionId) analyzingSessions.add(sessionId);
+  // One tap owns a session's analysis at a time (see analyzingSessions). A
+  // tap that finds it taken drains its frames and takes over as soon as the
+  // owner's stream ends (e.g. the caller's track was resubscribed).
+  let owner = false;
+  const owns = (): boolean => {
+    if (!sessionId || owner) return true;
+    if (analyzingSessions.has(sessionId)) return false;
+    analyzingSessions.add(sessionId);
+    owner = true;
+    logger.debug({ sessionId }, 'Audio processor owns voice analysis for this session');
+    return true;
+  };
+  const release = (): void => {
+    if (owner && sessionId) analyzingSessions.delete(sessionId);
+    owner = false;
+  };
 
   // Session-scoped prosody analyzer (batch - analyzes at utterance end)
   let prosodyAnalyzer: ReturnType<typeof getSessionAudioProsodyAnalyzer> | null = null;
@@ -179,6 +184,7 @@ export async function processAudioStream(
   const analysisCtx = { sessionId, userId, userData, sendDataMessage, logger };
   let analyzing: Promise<void> = Promise.resolve();
   const unsubscribeUtteranceEnds = ctx.utteranceEnds?.(() => {
+    if (sessionId && !owner) return;
     analyzing = analyzing.then(() => analyzeUtterance(prosodyAnalyzer, analysisCtx));
   });
 
@@ -186,6 +192,7 @@ export async function processAudioStream(
     while (true) {
       const { value: frame, done } = await reader.read();
       if (done) break;
+      if (!owns()) continue;
       frameCount++;
 
       if (frame && frame.data && frame.data.length > 0) {
@@ -467,15 +474,17 @@ export async function processAudioStream(
       integration.cleanup();
     }
 
-    // Analyze whatever is left of the last utterance
+    // Hand the session over at once, then analyze what is left of the last utterance
     unsubscribeUtteranceEnds?.();
+    const wasOwner = !sessionId || owner;
+    release();
     await analyzing;
-    await analyzeUtterance(prosodyAnalyzer, analysisCtx);
+    if (wasOwner) await analyzeUtterance(prosodyAnalyzer, analysisCtx);
   } catch (error) {
     logger.warn(`Audio processing error: ${error}`);
   } finally {
     unsubscribeUtteranceEnds?.();
-    if (sessionId) analyzingSessions.delete(sessionId);
+    release();
     reader.releaseLock();
   }
 }
@@ -491,6 +500,9 @@ async function analyzeUtterance(
   const { userData, logger } = ctx;
   try {
     const voiceEmotion = prosodyAnalyzer?.analyze() ?? null;
+    // Clear now, before any await: frames keep arriving during the work
+    // below, and they belong to the next utterance
+    prosodyAnalyzer?.clearBuffers();
     if (!voiceEmotion || !userData) return;
     userData.voiceEmotion = voiceEmotion;
 
@@ -512,8 +524,6 @@ async function analyzeUtterance(
     await processVoiceEmotion(voiceEmotion, ctx);
   } catch (error) {
     logger.debug({ error: String(error) }, 'Utterance voice analysis skipped (non-critical)');
-  } finally {
-    prosodyAnalyzer?.clearBuffers();
   }
 }
 

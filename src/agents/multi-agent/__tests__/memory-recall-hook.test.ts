@@ -69,6 +69,19 @@ describe('createMemoryRecall', () => {
     );
   });
 
+  it('does not offer a thread again once the greeting raised it', async () => {
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      store: {
+        facts: async () => [],
+        summaries: async () => [{ followUpItems: ['Ask how the job interview went'] }],
+      },
+    });
+    await recall.openingFacts();
+    recall.agentSaid('Hey you! How did the job interview go?');
+    expect(recall.noteFor('It went okay I think') ?? '').not.toContain('interview');
+  });
+
   it('carries nothing into the greeting when there is no memory', async () => {
     const recall = createMemoryRecall({
       userId: 'u1',

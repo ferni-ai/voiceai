@@ -77,4 +77,41 @@ describe('processAudioStream', () => {
     first.close();
     await firstDone;
   });
+
+  it('hands the session to the other tap when the owner stream ends', async () => {
+    analyzer.processAudioFrame.mockClear();
+    analyzer.analyze.mockClear();
+    let secondEnded = () => {};
+    const first = audioTap();
+    const second = audioTap();
+    const ctx = { sessionId: 'session-handover', sendDataMessage: async () => undefined };
+    const firstDone = processAudioStream(first.stream, ctx);
+    const secondDone = processAudioStream(second.stream, {
+      ...ctx,
+      utteranceEnds: (onEnd) => {
+        secondEnded = onEnd;
+        return () => undefined;
+      },
+    });
+
+    first.push();
+    second.push();
+    await tick();
+    secondEnded(); // not the owner yet: no analysis
+    await tick();
+    expect(analyzer.processAudioFrame).toHaveBeenCalledTimes(1);
+
+    first.close();
+    await firstDone;
+    const analyzedByFirst = analyzer.analyze.mock.calls.length;
+    second.push();
+    await tick();
+    expect(analyzer.processAudioFrame).toHaveBeenCalledTimes(2);
+    secondEnded();
+    await tick();
+    expect(analyzer.analyze.mock.calls.length).toBe(analyzedByFirst + 1);
+
+    second.close();
+    await secondDone;
+  });
 });

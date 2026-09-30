@@ -48,11 +48,40 @@ describe('detectSignificantDate', () => {
     expect(detect('Today is my birthday')).toMatchObject({ month: 9, day: 2 });
   });
 
+  it('takes a relative day only when it names the day of the thing', () => {
+    expect(detect("What should I get for my wife's birthday? I need it by tomorrow")).toBeNull();
+    expect(detect("It's not my birthday today")).toBeNull();
+    expect(detect('Our anniversary is tomorrow')).toMatchObject({ month: 9, day: 3 });
+  });
+
   it('does not mistake everyday sentences for a date that matters', () => {
     expect(detect('My phone died yesterday')).toBeNull();
     expect(detect('My son passed his exam on June 3')).toBeNull();
     expect(detect('My birthday is coming up')).toBeNull();
     expect(detect('The meeting is on March 3')).toBeNull();
+  });
+});
+
+describe('datesNear across the calendar', () => {
+  it('keeps a Feb 29 date on Feb 28 in other years', () => {
+    const leapDay: SignificantDate = { id: 'b', kind: 'birthday', who: 'self', month: 1, day: 29 };
+    const feb28 = new Date('2027-02-28T18:00:00Z');
+    expect(datesNear([leapDay], feb28, 'UTC').map((n) => n.when)).toEqual(['today']);
+  });
+
+  it('counts years from the caller\u2019s own year at New Year', () => {
+    const nye: SignificantDate = {
+      id: 'l',
+      kind: 'loss',
+      who: 'dad',
+      month: 11,
+      day: 31,
+      year: 2019,
+    };
+    // 16:00 UTC on Dec 31 2025 is already Jan 1 2026 in Tokyo
+    const now = new Date('2025-12-31T16:00:00Z');
+    const note = formatDatesNear(datesNear([nye], now, 'Asia/Tokyo'));
+    expect(note).toContain('Yesterday was the anniversary of losing their dad (6 years).');
   });
 });
 
@@ -83,10 +112,10 @@ describe('datesNear / formatDatesNear', () => {
   });
 
   it('is gentle about a loss and warm about a birthday', () => {
-    const note = formatDatesNear(datesNear([dad, birthday], now, tz), now);
+    const note = formatDatesNear(datesNear([dad, birthday], now, tz));
     expect(note).toContain('Today is the anniversary of losing their dad (7 years). Be gentle.');
     expect(note).toContain('Tomorrow is their birthday.');
     expect(note).toMatch(/never say you looked it up/);
-    expect(formatDatesNear([], now)).toBeNull();
+    expect(formatDatesNear([])).toBeNull();
   });
 });

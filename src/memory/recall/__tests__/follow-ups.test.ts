@@ -96,6 +96,15 @@ describe('raisedIn', () => {
     expect(raisedIn('How was the vet visit for Biscuit?', [interview, vet])).toEqual([vet]);
   });
 
+  it('is not closed by a shared day word alone', () => {
+    const thursday: FollowUp = {
+      id: 'job-interview',
+      text: 'Ask how the job interview on Thursday went',
+      at: 0,
+    };
+    expect(raisedIn('Got any plans for Thursday?', [thursday])).toEqual([]);
+  });
+
   it('does not count a passing word or the way the thread was phrased', () => {
     expect(raisedIn('Can I ask you something?', [interview, vet])).toEqual([]);
     expect(raisedIn('Did your visit go okay?', [interview, vet])).toEqual([]);

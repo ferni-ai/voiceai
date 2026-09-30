@@ -109,7 +109,8 @@ export const firestoreRecallStore: RecallStore = {
       .collection('bogle_users')
       .doc(userId)
       .collection(CLOSED_FOLLOW_UPS)
-      .limit(200)
+      .orderBy('raisedAt', 'desc')
+      .limit(500)
       .get();
     return snap.docs.map((d) => d.id);
   },
@@ -265,6 +266,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const surfaced = new Set<string>();
   let followUpsOffered = false;
   let openFollowUps: FollowUp[] = [];
+  /** Threads raised this call (the greeting included): never offered again. */
+  const raisedIds = new Set<string>();
   let factsThisTurn = 0;
   let firstNoteOffered = false;
   /** This persona's stories they have heard, from earlier calls and this one. */
@@ -295,7 +298,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       if (!snapshot || !text) return null;
       const budget = FACTS_PER_TURN - factsThisTurn;
       const facts = budget > 0 ? recallForTurn(snapshot, text, surfaced, budget) : [];
-      const followUps = followUpsOffered ? [] : snapshot.followUps;
+      const followUps = followUpsOffered
+        ? []
+        : snapshot.followUps.filter((f) => !raisedIds.has(f.id));
       const laugh = calledBack ? null : callbackForTurn(snapshot.laughs, text, surfaced);
       const notes = [
         formatRecall(facts, followUps, deps.userName, { timezone: deps.timezone }),
@@ -364,7 +369,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const raised = raisedIn(text, openFollowUps);
       if (raised.length === 0) return;
       openFollowUps = openFollowUps.filter((f) => !raised.includes(f));
-      for (const f of raised) deps.closeFollowUp?.(f);
+      for (const f of raised) {
+        raisedIds.add(f.id);
+        deps.closeFollowUp?.(f);
+      }
       log.info({ raised: raised.length }, 'Follow-up raised');
     },
   };

@@ -38,16 +38,23 @@ export interface TalkPreferenceRecorderDeps {
   userData: TalkPreferenceHolder;
   /** Save a lasting preference for later calls. */
   saveLasting?: (preference: TalkPreference) => void;
+  /** Forget a lasting preference they took back for good. */
+  removeLasting?: (preference: TalkPreference) => void;
 }
 
 export function createTalkPreferenceRecorder(deps: TalkPreferenceRecorderDeps) {
   const saved = new Set<TalkPreference>();
+  /** Taken back this call: a stored preference arriving later must not undo that. */
+  const takenBack = new Set<TalkPreference>();
   return {
     /** Preferences stored on earlier calls: in force from the start. */
     loaded(stored: readonly TalkPreference[]): void {
       for (const p of stored) saved.add(p);
       deps.userData.talkPreferences = [
-        ...new Set([...(deps.userData.talkPreferences ?? []), ...stored]),
+        ...new Set([
+          ...(deps.userData.talkPreferences ?? []),
+          ...stored.filter((p) => !takenBack.has(p)),
+        ]),
       ];
     },
     /** Something the caller said (interim or final). */
@@ -58,9 +65,15 @@ export function createTalkPreferenceRecorder(deps: TalkPreferenceRecorderDeps) {
       const after = applyTalkRequests(before, requests);
       deps.userData.talkPreferences = [...after];
       for (const r of requests) {
+        if (r.on) takenBack.delete(r.preference);
+        else takenBack.add(r.preference);
         if (r.on && r.lasting && !saved.has(r.preference)) {
           saved.add(r.preference);
           deps.saveLasting?.(r.preference);
+        }
+        if (!r.on && r.lasting) {
+          saved.delete(r.preference);
+          deps.removeLasting?.(r.preference);
         }
       }
       if (after.size !== before.size || [...after].some((p) => !before.has(p))) {
@@ -101,6 +114,26 @@ export async function loadTalkPreferences(userId: string): Promise<TalkPreferenc
   } catch (error) {
     log.warn({ error: String(error) }, 'Talk preferences not loaded');
     return [];
+  }
+}
+
+/** Forget a lasting preference they took back. Never throws. */
+export async function removeTalkPreference(
+  userId: string,
+  preference: TalkPreference
+): Promise<void> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return;
+    const { FieldValue } = await import('firebase-admin/firestore');
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('preferences')
+      .doc(TALK_DOC)
+      .set({ lasting: FieldValue.arrayRemove(preference), updatedAt: Date.now() }, { merge: true });
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Talk preference not removed');
   }
 }
 

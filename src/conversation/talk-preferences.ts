@@ -46,7 +46,7 @@ const ASKS: ReadonlyArray<{ preference: TalkPreference; pattern: RegExp }> = [
 
 /** Asking for advice takes back "just listen". */
 const WANTS_ADVICE =
-  /\b(what (do you think|should i do|would you do)|(give|want) (me )?(some |your )?advice|any advice)\b/i;
+  /\b(what do you think i should|what should i do|what would you do (if you were me|in my (place|shoes))|(give|want) (me )?(some |your )?advice|any advice for me|you can give me advice)\b/i;
 
 /** Marks a request as how they are rather than how they feel right now. */
 const LASTING =
@@ -61,7 +61,8 @@ export function detectTalkRequests(text: string): TalkRequest[] {
     lasting,
   }));
   if (!found.some((r) => r.preference === 'just_listen') && WANTS_ADVICE.test(text)) {
-    found.push({ preference: 'just_listen', on: false, lasting: false });
+    // "From now on you can give me advice" takes a lasting one back for good
+    found.push({ preference: 'just_listen', on: false, lasting });
   }
   return found;
 }

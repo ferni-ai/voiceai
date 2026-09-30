@@ -52,7 +52,7 @@ export function createSignificantDatesRecorder(deps: SignificantDatesRecorderDep
       for (const d of dates) known.add(d.id);
       const at = now();
       const near = datesNear(dates, at, deps.userData.timezone);
-      deps.userData.daysThatMatter = formatDatesNear(near, at);
+      deps.userData.daysThatMatter = formatDatesNear(near);
       if (near.length > 0) {
         log.info({ near: near.map((n) => `${n.date.kind}:${n.when}`) }, 'A day that matters');
       }

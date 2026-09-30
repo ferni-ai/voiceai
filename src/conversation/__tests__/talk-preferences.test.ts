@@ -23,6 +23,10 @@ describe('detectTalkRequests', () => {
     expect(prefs('My boss is so direct with everyone')).toEqual([]);
   });
 
+  it('does not take "just listen" back for a passing "what do you think"', () => {
+    expect(prefs('What do you think about this weather?')).toEqual([]);
+  });
+
   it('takes "just listen" back when they ask what to do', () => {
     expect(prefs('Okay, what do you think I should do?')).toEqual(['just_listen:false']);
   });

@@ -46,6 +46,24 @@ const INSTRUCTION_WORDS = new Set([
   'user',
   'caller',
   'update',
+  // When, not what: "Thursday" alone must never close the interview thread
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+  'weekend',
+  'today',
+  'tonight',
+  'tomorrow',
+  'yesterday',
+  'morning',
+  'afternoon',
+  'evening',
+  'week',
+  'month',
 ]);
 
 /** Epoch ms from a stored timestamp (Firestore Timestamp, Date, ISO string or number), or 0. */
@@ -69,7 +87,8 @@ function topicWords(text: string): string[] {
 
 /** A stable id for a thread: its topic words, in order. */
 export function followUpId(text: string): string {
-  return topicWords(text).join('-').slice(0, 120) || 'thread';
+  const topic = topicWords(text).join('-');
+  return (topic || text.toLowerCase().replace(/[^a-z0-9]+/g, '-')).slice(0, 120) || 'thread';
 }
 
 /**

@@ -103,6 +103,7 @@ import {
 import {
   createTalkPreferenceRecorder,
   loadTalkPreferences,
+  removeTalkPreference,
   saveTalkPreference,
   wireTalkPreferenceRecorder,
 } from './talk-preference-recorder.js';
@@ -1797,6 +1798,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     const talkRecorder = createTalkPreferenceRecorder({
       userData,
       saveLasting: (preference) => void saveTalkPreference(userId, preference),
+      removeLasting: (preference) => void removeTalkPreference(userId, preference),
     });
     void loadTalkPreferences(userId).then((stored) => talkRecorder.loaded(stored));
     cleanupFunctions.push(wireTalkPreferenceRecorder(sessionWithEvents, talkRecorder));

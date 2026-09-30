@@ -30,4 +30,19 @@ describe('createTalkPreferenceRecorder', () => {
     recorder.heard('I never want advice, I just want to vent');
     expect(saved).toEqual([]); // already stored
   });
+
+  it('lets a take-back heard before the load win, and forgets a lasting one taken back', () => {
+    const userData: { talkPreferences?: TalkPreference[] } = {};
+    const removed: TalkPreference[] = [];
+    const recorder = createTalkPreferenceRecorder({
+      userData,
+      removeLasting: (p) => removed.push(p),
+    });
+    recorder.heard('So what should I do about it?');
+    recorder.loaded(['just_listen']);
+    expect(userData.talkPreferences).toEqual([]);
+
+    recorder.heard('From now on you can give me advice');
+    expect(removed).toEqual(['just_listen']);
+  });
 });

@@ -15,7 +15,7 @@
  * @module memory/recall/significant-dates
  */
 
-import { localDate } from '../../utils/local-clock.js';
+import { localCalendarDay } from '../../utils/local-clock.js';
 
 export type DateKind = 'birthday' | 'anniversary' | 'loss';
 
@@ -52,11 +52,16 @@ const MONTH =
 const DAY = '(\\d{1,2})(?:st|nd|rd|th)?';
 const MONTH_DAY = new RegExp(`\\b${MONTH}\\.? ${DAY}\\b(?:,? (\\d{4}))?`, 'i');
 const DAY_OF_MONTH = new RegExp(`\\b${DAY} of ${MONTH}\\b(?:,? (\\d{4}))?`, 'i');
-const RELATIVE = /\b(today|tomorrow|yesterday)\b/i;
+/**
+ * A relative day only when it names the day of the thing ("today is my
+ * birthday", "our anniversary is tomorrow", "he died yesterday"), never a
+ * passing "I need it by tomorrow".
+ */
+const RELATIVE =
+  /\b(today|tomorrow|yesterday) (?:is|was|would have been|marks)\b|\b(?:is|was|'s) (today|tomorrow|yesterday)\b|\b(?:died|passed away|passed on) (today|yesterday)\b/i;
+const NEGATED = /\b(not|isn'?t|wasn'?t|never)\b/i;
 
 const monthIndex = (name: string): number => MONTHS[name.toLowerCase().slice(0, 3)] ?? -1;
-
-const DAY_MS = 86_400_000;
 
 /** The calendar date a sentence names, in the caller's calendar, or null. */
 export function dateIn(
@@ -68,10 +73,11 @@ export function dateIn(
   if (md) return valid(monthIndex(md[1]), Number(md[2]), md[3]);
   const dm = DAY_OF_MONTH.exec(text);
   if (dm) return valid(monthIndex(dm[2]), Number(dm[1]), dm[3]);
-  const rel = RELATIVE.exec(text)?.[1].toLowerCase();
+  const m = NEGATED.test(text) ? null : RELATIVE.exec(text);
+  const rel = (m?.[1] ?? m?.[2] ?? m?.[3])?.toLowerCase();
   if (rel) {
     const offset = rel === 'tomorrow' ? 1 : rel === 'yesterday' ? -1 : 0;
-    const { month, date } = localDate(timezone, new Date(now.getTime() + offset * DAY_MS));
+    const { month, date } = localCalendarDay(timezone, now, offset);
     return { month, day: date };
   }
   return null;
@@ -136,20 +142,25 @@ export function datesNear(
   dates: readonly SignificantDate[],
   now: Date,
   timezone?: string
-): Array<{ date: SignificantDate; when: Nearness }> {
-  const at = (offset: number) => localDate(timezone, new Date(now.getTime() + offset * DAY_MS));
-  const days: Array<[Nearness, { month: number; date: number }]> = [
-    ['today', at(0)],
-    ['tomorrow', at(1)],
-    ['yesterday', at(-1)],
+): Array<{ date: SignificantDate; when: Nearness; year: number }> {
+  const days: Array<[Nearness, { year: number; month: number; date: number }]> = [
+    ['today', localCalendarDay(timezone, now, 0)],
+    ['tomorrow', localCalendarDay(timezone, now, 1)],
+    ['yesterday', localCalendarDay(timezone, now, -1)],
   ];
-  const out: Array<{ date: SignificantDate; when: Nearness }> = [];
+  const out: Array<{ date: SignificantDate; when: Nearness; year: number }> = [];
   for (const d of dates) {
-    const hit = days.find(([, c]) => c.month === d.month && c.date === d.day);
-    if (hit) out.push({ date: d, when: hit[0] });
+    const hit = days.find(([, c]) => c.month === d.month && c.date === observedDay(d, c.year));
+    if (hit) out.push({ date: d, when: hit[0], year: hit[1].year });
   }
   const order: Nearness[] = ['today', 'tomorrow', 'yesterday'];
   return out.sort((a, b) => order.indexOf(a.when) - order.indexOf(b.when));
+}
+
+/** A Feb 29 date is kept on Feb 28 in other years. */
+function observedDay(d: SignificantDate, year: number): number {
+  const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  return d.month === 1 && d.day === 29 && !leap ? 28 : d.day;
 }
 
 function label(d: SignificantDate): string {
@@ -161,14 +172,12 @@ function label(d: SignificantDate): string {
 
 /** The note for the call, or null when no date that matters is near. */
 export function formatDatesNear(
-  near: ReadonlyArray<{ date: SignificantDate; when: Nearness }>,
-  now: Date
+  near: ReadonlyArray<{ date: SignificantDate; when: Nearness; year: number }>
 ): string | null {
   if (near.length === 0) return null;
   const lines = ['[A DAY THAT MATTERS TO THEM]'];
-  for (const { date, when } of near.slice(0, 2)) {
-    const years =
-      date.kind === 'loss' && date.year ? ` (${now.getFullYear() - date.year} years)` : '';
+  for (const { date, when, year } of near.slice(0, 2)) {
+    const years = date.kind === 'loss' && date.year ? ` (${year - date.year} years)` : '';
     const what = `${when === 'today' ? 'Today is' : when === 'tomorrow' ? 'Tomorrow is' : 'Yesterday was'} ${label(date)}${years}.`;
     const how =
       date.kind === 'loss'
