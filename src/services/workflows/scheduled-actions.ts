@@ -133,7 +133,9 @@ async function loadPendingActions(): Promise<number> {
     // Firestore collection group queries require a composite index. Missing index → FAILED_PRECONDITION (code 9).
     if (errStr.includes('FAILED_PRECONDITION') || errStr.includes('index')) {
       log.warn(
-        { hint: 'Create a Firestore composite index for collectionGroup scheduled_actions + status' },
+        {
+          hint: 'Create a Firestore composite index for collectionGroup scheduled_actions + status',
+        },
         'Pending scheduled actions: Firestore index missing (non-fatal, running with in-memory only)'
       );
     } else {
@@ -320,7 +322,13 @@ export async function deliverDueScheduledActions(
   for (const item of claim.claimed) {
     // Claimed as 'sending'; a push that fails goes back to 'pending' so the
     // next run retries it (executeAction gives up after 3 attempts).
-    const action: ScheduledAction = { ...actionFromDoc(item.data), status: 'pending' };
+    // Owner and id come from the document's path, not its fields.
+    const action: ScheduledAction = {
+      ...actionFromDoc(item.data),
+      id: item.id,
+      userId: item.userId,
+      status: 'pending',
+    };
     if (pushUp) {
       await executeAction(action);
     } else {

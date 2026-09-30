@@ -70,6 +70,12 @@ describe('claimDueItems', () => {
     expect(result).toMatchObject({ skipped: 1, claimed: [] });
   });
 
+  it("takes the owner from the document's path, not its userId field", async () => {
+    const rows = [row('forged', { scheduledFor: iso(-60_000), userId: 'victim' })];
+    const result = await claimDueItems(db(rows), opts());
+    expect(result.claimed[0].userId).toBe('u1');
+  });
+
   it('works with Timestamp/Date due fields', async () => {
     const rows = [
       row('due', { scheduledFor: new Date(NOW.getTime() - 60_000) }, 'scheduled_outreach'),

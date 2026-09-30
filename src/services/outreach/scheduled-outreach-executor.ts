@@ -266,7 +266,8 @@ export async function executeDueScheduledOutreach(
   if (opts.dryRun) return result;
   for (const item of claim.claimed) {
     // executeScheduledOutreach records completed/failed itself.
-    await executeScheduledOutreach(outreachFromDoc(item.id, item.data));
+    // Owner from the document's path, not its userId field.
+    await executeScheduledOutreach({ ...outreachFromDoc(item.id, item.data), userId: item.userId });
     result.executed++;
   }
   if (result.due > 0) log.info(result, 'Scheduled outreach run');
