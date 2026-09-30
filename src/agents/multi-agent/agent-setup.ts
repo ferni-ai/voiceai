@@ -109,7 +109,7 @@ import { composeAgentInstructions } from './agent-instructions.js';
 // Check if Tool Gateway is enabled (defaults to true)
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
-import { dynamicToolLoader } from '../../tools/dynamic-loader.js';
+import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { initializeFrontendPublisher } from '../realtime/index.js';
 import { setupMusicHandler } from '../voice-agent/music-handler.js';
@@ -1932,7 +1932,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
           lastUserMessage: undefined as string | undefined,
         };
 
-        // dynamicToolLoader and autoOptimizer now hoisted to module level
+        // This session's own tool loader: a shared one built tools bound to
+        // whichever caller initialized it last (see createSessionToolLoader).
+        const dynamicToolLoader = createSessionToolLoader({ enableAutoUnload: false });
+        cleanupFunctions.push(() => dynamicToolLoader.shutdown());
         // Initialize dynamic loader with essential domains (telephony, communication, etc.)
         // This MUST happen before first user message to prevent race conditions
         // NOTE: Pass undefined for services to use EnvironmentServiceRegistry (checks env vars)
