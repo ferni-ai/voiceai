@@ -85,14 +85,27 @@ export const INK_TURN_PROFILES: Record<'balanced' | 'responsive' | 'patient', In
  * CASCADE_TURN_PROFILE: responsive (default), balanced or patient.
  * CASCADE_TURN_EAGER overrides the eager-end threshold alone: LiveKit starts
  * its preemptive reply on ink-2's eager end, which at 0.6 came only ~170 ms
- * before the turn ended (dev, 2026-09-30), so it saved little.
+ * before the turn ended (dev, 2026-09-30), so it saved little. Ink ends a turn
+ * when its speech probability falls below a threshold, so a HIGHER eager value
+ * fires earlier. It must stay strictly between the end and start thresholds:
+ * ink closes the socket on anything else (1008 "Invalid turn thresholds"),
+ * which left every dev call deaf when 0.35 was tried. Out-of-range values are
+ * ignored.
  */
 export function inkTurnProfile(env: Env = process.env): InkTurnDetection {
   const name = (env.CASCADE_TURN_PROFILE || 'responsive').toLowerCase();
   const profile =
     INK_TURN_PROFILES[name as keyof typeof INK_TURN_PROFILES] ?? INK_TURN_PROFILES.responsive;
+  if (env.CASCADE_TURN_EAGER === undefined || env.CASCADE_TURN_EAGER === '') return profile;
   const eager = Number(env.CASCADE_TURN_EAGER);
-  return eager > 0 && eager < 1 ? { ...profile, eagerEndThreshold: eager } : profile;
+  if (eager > profile.endThreshold && eager < profile.startThreshold) {
+    return { ...profile, eagerEndThreshold: eager };
+  }
+  log.warn(
+    { eager: env.CASCADE_TURN_EAGER, end: profile.endThreshold, start: profile.startThreshold },
+    'CASCADE_TURN_EAGER ignored: must be between the end and start thresholds'
+  );
+  return profile;
 }
 
 /** First names of the team: made-up or uncommon names a general model has no prior for. */

@@ -1626,6 +1626,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
         session,
         reply: (userInput) => {
           try {
+            // Words LiveKit never committed are still in its pending user turn;
+            // clear them so they aren't prepended to the caller's next turn.
+            if (userInput) {
+              try {
+                session.clearUserTurn();
+              } catch (error) {
+                log.debug({ sessionId, error: String(error) }, 'turn keeper: clearUserTurn failed');
+              }
+            }
             session.generateReply(userInput ? { userInput } : undefined);
           } catch (error) {
             log.warn({ sessionId, error: String(error) }, 'turn keeper: generateReply failed');

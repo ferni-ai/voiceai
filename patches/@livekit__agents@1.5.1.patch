@@ -84,3 +84,63 @@ index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..f654210e9857e2f71bc25ba43852e07e
          speechHandle = preemptive.speechHandle;
          if (preemptive.userMessage && userMessage) {
            preemptive.userMessage.metrics = userMetricsReport;
+diff --git a/dist/voice/audio_recognition.cjs b/dist/voice/audio_recognition.cjs
+index 43d1ba26b8be1dc5b885bc41c06770331c5182f6..8ff66b32b98000d90dce0bd8f588c9ca786da45b 100644
+--- a/dist/voice/audio_recognition.cjs
++++ b/dist/voice/audio_recognition.cjs
+@@ -580,6 +580,10 @@ class AudioRecognition {
+       }
+     }
+     const eventsToEmit = emitFromIndex !== null && shouldFlush ? this.transcriptBuffer.slice(emitFromIndex) : [];
++    // PATCHED(ferni): make dropped held events visible (backchannels, or a lost turn)
++    if (eventsToEmit.length < this.transcriptBuffer.length) {
++      this.logger.info({ dropped: this.transcriptBuffer.slice(0, this.transcriptBuffer.length - eventsToEmit.length).map((e) => { var _a; return `${e.type}:${String(((_a = e.alternatives) == null ? void 0 : _a[0]) == null ? "" : e.alternatives[0].text).slice(0, 40)}`; }), audioTranscript: String(this.audioTranscript).slice(0, 60) }, "HELD_STT_DROPPED");
++    }
+     const prevIgnoreUserTranscriptUntil = this.ignoreUserTranscriptUntil;
+     const prevInputStartedAt = this.inputStartedAt;
+     this.resetInterruptionDetection();
+@@ -613,6 +617,14 @@ class AudioRecognition {
+     if (!this.isInterruptionEnabled) {
+       return false;
+     }
++    // PATCHED(ferni): an END_OF_SPEECH whose transcript already went through (the
++    // caller finished just as a reply started) must go through too. Held alone it
++    // carries no text, so flushHeldTranscripts can never re-emit it and the turn is
++    // never committed: the caller's words go unanswered.
++    if (ev.type === import_stt.SpeechEventType.END_OF_SPEECH && this.transcriptBuffer.length === 0 && this.audioTranscript) {
++      this.logger.info({ transcript: this.audioTranscript.slice(0, 60), agentSpeaking: this.isAgentSpeaking }, "END_OF_SPEECH_PASSTHROUGH");
++      return false;
++    }
+     if (this.isAgentSpeaking) {
+       return true;
+     }
+diff --git a/dist/voice/audio_recognition.js b/dist/voice/audio_recognition.js
+index c0bf4c2d54e705c52a29de9fbba6ddfdaa0913e4..7d87fcae608d7b06f2abccc146409eaff6098184 100644
+--- a/dist/voice/audio_recognition.js
++++ b/dist/voice/audio_recognition.js
+@@ -576,6 +576,10 @@ class AudioRecognition {
+       }
+     }
+     const eventsToEmit = emitFromIndex !== null && shouldFlush ? this.transcriptBuffer.slice(emitFromIndex) : [];
++    // PATCHED(ferni): make dropped held events visible (backchannels, or a lost turn)
++    if (eventsToEmit.length < this.transcriptBuffer.length) {
++      this.logger.info({ dropped: this.transcriptBuffer.slice(0, this.transcriptBuffer.length - eventsToEmit.length).map((e) => { var _a; return `${e.type}:${String(((_a = e.alternatives) == null ? void 0 : _a[0]) == null ? "" : e.alternatives[0].text).slice(0, 40)}`; }), audioTranscript: String(this.audioTranscript).slice(0, 60) }, "HELD_STT_DROPPED");
++    }
+     const prevIgnoreUserTranscriptUntil = this.ignoreUserTranscriptUntil;
+     const prevInputStartedAt = this.inputStartedAt;
+     this.resetInterruptionDetection();
+@@ -609,6 +613,14 @@ class AudioRecognition {
+     if (!this.isInterruptionEnabled) {
+       return false;
+     }
++    // PATCHED(ferni): an END_OF_SPEECH whose transcript already went through (the
++    // caller finished just as a reply started) must go through too. Held alone it
++    // carries no text, so flushHeldTranscripts can never re-emit it and the turn is
++    // never committed: the caller's words go unanswered.
++    if (ev.type === SpeechEventType.END_OF_SPEECH && this.transcriptBuffer.length === 0 && this.audioTranscript) {
++      this.logger.info({ transcript: this.audioTranscript.slice(0, 60), agentSpeaking: this.isAgentSpeaking }, "END_OF_SPEECH_PASSTHROUGH");
++      return false;
++    }
+     if (this.isAgentSpeaking) {
+       return true;
+     }
