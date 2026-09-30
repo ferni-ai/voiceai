@@ -11,6 +11,13 @@ describe('isLeaving', () => {
       'bye!',
       "That's all for today, thanks",
       'I better get going',
+      'Gotta go!',
+      'I have to go to work now, bye',
+      'Thanks so much, bye bye',
+      'Ok thanks, see ya',
+      "I'm heading to bed, night night",
+      'I have to go now, is that ok?',
+      'Alright, take care',
     ]) {
       expect(isLeaving(text), text).toBe(true);
     }
@@ -22,6 +29,13 @@ describe('isLeaving', () => {
       'I have to go to the dentist on Friday and I am dreading it',
       'We talked about it later that night',
       'My kid said bye to the dog and cried',
+      'I have to go back to school next week',
+      'I have to go through all these emails',
+      'I have to run the numbers first',
+      "I've got to run a marathon in May",
+      'Night shift is killing me',
+      "I'll let you go ahead and pick",
+      'My mom said goodnight and left',
       undefined,
     ]) {
       expect(isLeaving(text), String(text)).toBe(false);

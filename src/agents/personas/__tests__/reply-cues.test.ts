@@ -45,4 +45,23 @@ describe('replyCues', () => {
     expect(out[0]).toMatch(/THEY CUT IN/);
     expect(out.some((c) => /THEIR NAME/.test(c))).toBe(true);
   });
+
+  it('yields when the overlap tracker saw them speak over the reply', () => {
+    const out = replyCues({
+      ...base,
+      userData: { spokeOverReply: true },
+      exchange: { user: 'Actually wait' },
+    });
+    expect(out[0]).toMatch(/THEY CUT IN/);
+  });
+
+  it('does not start the laugh cooldown when the laugh cue is dropped', () => {
+    const now = Date.now();
+    const userData: Record<string, unknown> = {
+      detectedLaughter: { isLaughing: true, confidence: 0.9, suggestedResponse: 'join_in' },
+      detectedLaughterAt: now,
+    };
+    replyCues({ ...base, userData, exchange: { user: 'My dad passed away, haha, sorry' } });
+    expect(userData.laughCue).toBeUndefined();
+  });
 });

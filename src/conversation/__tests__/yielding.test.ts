@@ -8,9 +8,14 @@ describe('yieldingCue', () => {
   });
 
   it('carries on after a listening noise that happened to cut in', () => {
-    for (const text of ['yeah', 'Mm-hm.', 'right right', 'okay, go on', 'uh huh']) {
+    for (const text of ['yeah', 'Mm-hm.', 'yeah, go on', 'uh huh', 'mhm right']) {
       expect(yieldingCue(true, text), text).toBe(CARRY_ON_CUE);
     }
+  });
+
+  it('treats a cut-in "yes" or "sure" as an answer, not a listening noise', () => {
+    expect(yieldingCue(true, 'yes')).toBe(YIELD_CUE);
+    expect(yieldingCue(true, 'Sure.')).toBe(YIELD_CUE);
   });
 
   it('says nothing when the last reply was not interrupted', () => {

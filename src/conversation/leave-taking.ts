@@ -12,12 +12,28 @@
  * @module conversation/leave-taking
  */
 
+/** The end of a clause: the phrase is the point, not the start of a plan. */
+const END = '(?:\\s+now)?\\s*(?:[.!,;]|$|\\s+(?:bye|thanks|thank you|talk|love you))';
+
 /** The caller wrapping up ("I gotta run", "talk soon", "goodnight"). */
-const LEAVING =
-  /\b(i('ve)? (got|gotta|have|need) to (go|run|head out|get going|hop off|jump off)\b(?! to)|i gotta (go|run)\b(?! to)|i('d)? better (go|run|get going)|talk (to you )?(later|soon|tomorrow)|(good ?night|bye for now|see you (later|soon|tomorrow)|catch you later)|that'?s all for (now|today|tonight)|i('ll| will) let you go|(ok|okay|alright|all right),? (bye|night)\b|^\s*(bye|goodbye|night)\b)/i;
+const LEAVING = new RegExp(
+  [
+    `\\b(?:i(?:'ve)? )?(?:got|gotta|have|need) to (?:go|run|head out|get going|hop off|jump off)${END}`,
+    // "go pick up the kids", "go make dinner": leaving now to do it
+    `\\b(?:got|gotta|have|need) to go (?:pick|get|grab|make|start|feed|put|help|walk|cook|take|meet|catch)\\b`,
+    `\\bgotta (?:go|run|jet|bounce)${END}`,
+    `\\bi(?:'d)? better (?:go|run|get going)${END}`,
+    `\\bi(?:'ll| will) let you go${END}`,
+    `\\btalk (?:to you )?(?:later|soon|tomorrow)\\b`,
+    `\\b(?:that'?s all for (?:now|today|tonight)|bye for now|catch you later)\\b`,
+    `\\b(?:bye(?: bye)?|see ya|see you(?: later| soon| tomorrow)?|take care|good ?night|night night)[.! ]*$`,
+    `^\\s*(?:bye|goodbye|good ?night)\\b`,
+  ].join('|'),
+  'i'
+);
 
 /** Asked, not announced: "do I have to go to the party?" */
-const ASKING = /^\s*(do|does|should|would|can|could|will) i\b|\?\s*$/i;
+const ASKING = /^\s*(do|does|should|would|can|could|will) i\b/i;
 
 /** True when the caller sounds like they are ending the call. */
 export function isLeaving(text: string | undefined): boolean {

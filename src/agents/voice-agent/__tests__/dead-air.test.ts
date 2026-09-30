@@ -29,6 +29,18 @@ describe('silenceHold', () => {
     expect(silenceHold({ emotion: 'Sad' })).toBe(3);
   });
 
+  it('hears the heaviest things said plainly', () => {
+    for (const text of [
+      'I want to kill myself',
+      "I don't want to be here anymore",
+      'My friend killed himself last year',
+      'We lost the baby',
+      "I'm getting divorced",
+    ]) {
+      expect(silenceHold({ lastUserText: text }), text).toBe(3);
+    }
+  });
+
   it('keeps the usual wait for an ordinary moment', () => {
     expect(
       silenceHold({ lastUserText: 'We had pizza tonight', emotion: 'joy', distressLevel: 0.1 })

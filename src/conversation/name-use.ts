@@ -17,9 +17,20 @@ export const NAME_WINDOW = 3;
 export const NAME_REST_CUE =
   '[THEIR NAME] You used their name recently; leave it out of this reply. Friends use a name rarely.';
 
+/** Names that are also everyday words: only a capitalized use is the name. */
+const WORD_NAMES = new Set(
+  'will hope grace mark joy faith bill rose jack may june april dawn ray rob sky art sunny summer autumn'.split(
+    ' '
+  )
+);
+
 function saysName(text: string, name: string): boolean {
-  const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return escaped.length >= 2 && new RegExp(`\\b${escaped}\\b`, 'i').test(text);
+  // The first name is what people say ("Seth", not "Seth Smith")
+  const first = name.trim().split(/\s+/)[0] ?? '';
+  if (first.length < 2) return false;
+  const escaped = first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const flags = WORD_NAMES.has(first.toLowerCase()) ? 'u' : 'iu';
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, flags).test(text);
 }
 
 /**

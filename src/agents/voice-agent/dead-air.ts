@@ -52,7 +52,7 @@ const HEAVY_EMOTIONS = new Set([
 ]);
 
 const HEAVY_WORDS =
-  /\b(died|dying|passed away|funeral|diagnos\w*|cancer|divorce|breakup|broke up|miscarriage|lost my|depress\w*|crying|cried|grief|grieving|scared|panic|afraid|hospital|laid off|fired)\b/i;
+  /\b(died|dying|passed away|funeral|diagnos\w*|cancer|divorc\w*|breakup|broke up|miscarriage|lost my|lost the baby|depress\w*|crying|cried|grief|grieving|scared|panic|afraid|hospital|laid off|fired|suicid\w*|kill(ed|ing)? (my|him|her|them)sel(f|ves)|want to die|don'?t want to (be here|live|exist)|self[- ]harm)\b/i;
 
 /** After something heavy, a pause is them feeling or finding words, not dead air. */
 const HEAVY_HOLD = 3;

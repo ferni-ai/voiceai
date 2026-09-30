@@ -12,9 +12,12 @@
  * @module conversation/yielding
  */
 
-/** A listening noise, not a turn: "yeah", "mm-hm", "right", "okay go on". */
+/**
+ * A listening noise, not a turn: "mm-hm", "yeah", "uh-huh", "go on". Not
+ * "yes", "sure" or "okay": cutting in with those is often an answer.
+ */
 const BACKCHANNEL =
-  /^\s*(yeah|yes|yep|yup|mm+[- ]?hm+|mhm|uh[- ]?huh|right|ok(ay)?|sure|totally|true|go on|i see|got it|nice|wow)([ ,.!]+(yeah|yes|right|ok(ay)?|go on|sure|totally))*[ .!]*$/i;
+  /^\s*(yeah|mm+[- ]?hm+|mhm|uh[- ]?huh|go on|i see)([ ,.!]+(yeah|mm+[- ]?hm+|mhm|uh[- ]?huh|go on|right))*[ .!]*$/i;
 
 export const YIELD_CUE = [
   '[THEY CUT IN]',

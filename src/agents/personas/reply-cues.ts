@@ -43,7 +43,8 @@ export function replyCues({
     if (text) cues.push({ kind, text, ...extra });
   };
 
-  add('yielding', yieldingCue(exchange.agentInterrupted, exchange.user));
+  const spokeOver = exchange.agentInterrupted === true || userData?.spokeOverReply === true;
+  add('yielding', yieldingCue(spokeOver, exchange.user));
   add('repair', sessionRepairCue(userData, sessionId, exchange.user, exchange.agent));
   add(
     'talk',
@@ -59,6 +60,8 @@ export function replyCues({
   const voiceToday = (userData?.voiceToday as { cue?: string | null } | undefined)?.cue;
   add('voice', voiceToday, { heavy: !!voiceToday && SUBDUED_VOICE.test(voiceToday) });
 
+  // nextReplyCues records the cue (starting its cooldown); undone below if it is dropped
+  const laughRecordBefore = userData?.laughCue;
   for (const laugh of nextReplyCues(userData, voice)) add('laugh', laugh, { light: true });
 
   const humor = typeof userData?.humorCue === 'string' ? userData.humorCue : null;
@@ -78,6 +81,7 @@ export function replyCues({
     }) > 1;
 
   const { kept, dropped, heavy } = judgeCues(cues, undefined, heavyWords);
+  if (userData && dropped.some((d) => d.kind === 'laugh')) userData.laughCue = laughRecordBefore;
   // One line per reply: what shaped it, and what was held back (for live testing)
   if (cues.length > 0) {
     log.info(

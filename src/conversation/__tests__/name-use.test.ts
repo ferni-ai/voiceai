@@ -18,4 +18,11 @@ describe('nameRestCue', () => {
     expect(nameRestCue('Al', ['That is totally normal.'])).toBeNull();
     expect(nameRestCue(undefined, ['Hey Sam'])).toBeNull();
   });
+
+  it('matches the first name of a full name, accented names, and word-names only as names', () => {
+    expect(nameRestCue('Seth Smith', ['Seth! Good to hear you.'])).toMatch(/leave it out/);
+    expect(nameRestCue('José', ['Hola José, how are you?'])).toMatch(/leave it out/);
+    expect(nameRestCue('Will', ['I will think about that.'])).toBeNull();
+    expect(nameRestCue('Will', ['Will, that is huge!'])).toMatch(/leave it out/);
+  });
 });

@@ -101,6 +101,7 @@ import {
   wireSharedLaughRecorder,
 } from './shared-laugh-recorder.js';
 import { humorCue } from '../../conversation/humor-fit.js';
+import { wireOverlapTracker } from './overlap-tracker.js';
 import {
   createSignificantDatesRecorder,
   loadSignificantDates,
@@ -1847,6 +1848,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
       laughsSaved += inc.laughs;
       void saveHumorIncrement(userId, inc);
     });
+  }
+
+  // The caller speaking over Ferni, for yielding in the next reply
+  if (sessionWithEvents.on) {
+    cleanupFunctions.push(
+      wireOverlapTracker(sessionWithEvents, userData as unknown as { spokeOverReply?: boolean })
+    );
   }
 
   if (backgroundTurns && sessionWithEvents.on) {
