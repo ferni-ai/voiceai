@@ -121,6 +121,7 @@ import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
 import { assistantTranscriptHandler } from './assistant-transcript.js';
 import { createBargeInFastPath, setBargeInFastPath } from './barge-in-fastpath.js';
 import { createTurnKeeper } from './turn-keeper.js';
+import { timeContext } from '../shared/time-context.js';
 import { createCallAlertSpeaker } from '../shared/call-alerts.js';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 // Gateway for health ping callback
@@ -318,18 +319,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // This is injected into model-level instructions so the agent knows
     // the date/time from the VERY FIRST MOMENT (including greeting)
     // =========================================================================
-    const now = new Date();
-    const dateTimeContext = `
----
-
-## Current Date & Time
-
-Today is ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
-The current time is ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}.
-
-Use this awareness naturally - don't announce it unless asked, just BE present in the moment.
-If someone asks what day it is, what time it is, or what the date is, you know the answer.
-`;
+    // The caller's local time and part of day (time-context.ts); never the server's UTC clock.
+    const dateTimeContext = timeContext(new Date(), userData?.callerTimezone);
 
     // Append date/time to model base instructions (session-specific, not cached)
     modelBaseInstructions = baseInstructions + dateTimeContext;
@@ -341,7 +332,7 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     const { userProfile } = services;
     if (userProfile) {
       const userAwareness: string[] = [];
-      const sessionStartTime = now;
+      const sessionStartTime = new Date();
       const displayName = userProfile.preferredName || userProfile.name || userData?.userName;
 
       // User's name

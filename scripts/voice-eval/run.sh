@@ -34,7 +34,7 @@ done > $out/audio/$scenario/turns.list
 turns=(${(f)"$(<$out/audio/$scenario/turns.list)"})
 room="eval-$scenario-$label-$(date +%H%M%S)"
 tok=$(lk token create --project $project --join --room $room --identity eval-user --name Sam \
-  --agent $agent --job-metadata "{\"user_id\":\"$uid\",\"user_name\":\"Sam\"}" --valid-for 20m 2>/dev/null \
+  --agent $agent --job-metadata "{\"user_id\":\"$uid\",\"user_name\":\"Sam\",\"timezone\":\"${EVAL_TZ:-America/New_York}\"}" --valid-for 20m 2>/dev/null \
   | grep -Eo 'eyJ[A-Za-z0-9._-]+' | head -1)
 json=$out/$scenario-$label.json
 (cd $ROOT && node $HERE/converse.mjs $url "$tok" $json $turns)

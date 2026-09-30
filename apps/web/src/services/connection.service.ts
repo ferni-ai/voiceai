@@ -570,6 +570,14 @@ class ConnectionService {
       persona_id: request.personaId,
     });
 
+    // The caller's time zone, so Ferni knows their local time of day.
+    try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (timezone) params.set('timezone', timezone);
+    } catch {
+      // Not available: Ferni falls back to not assuming a time of day.
+    }
+
     // Add Firebase UID if available (Priority 2 for user identification)
     if (request.firebaseUid) {
       params.set('firebase_uid', request.firebaseUid);

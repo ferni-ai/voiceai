@@ -14,6 +14,7 @@
  * @module agents/voice-agent-entry
  */
 
+import { isValidTimeZone } from '../shared/time-context.js';
 import type { JobContext } from '@livekit/agents';
 import type { RemoteParticipant } from '@livekit/rtc-node';
 
@@ -428,6 +429,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     services = initResult.services;
     isReturningUser = initResult.isReturningUser;
     userData = initResult.userData;
+    // The caller's time zone (web client → token → dispatch metadata).
+    if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
     stopPeriodicSync = initResult.stopPeriodicSync ?? undefined;
 
     if (stopPeriodicSync) {

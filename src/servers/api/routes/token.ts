@@ -5,6 +5,7 @@
  * Uses shared rate limiting from src/servers/token/demo-rate-limit.ts
  */
 
+import { isValidTimeZone } from '../../../agents/shared/time-context.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { rateLimit } from '../../../api/auth-middleware.js';
 import { createToken, createRoomWithAgent, getLiveKitUrl } from '../../token/livekit.js';
@@ -537,6 +538,9 @@ export async function handleTokenRoutes(
     const device_id = parsedUrl.searchParams.get('device_id');
     const persona_id = parsedUrl.searchParams.get('persona_id');
     const preferred_accent = parsedUrl.searchParams.get('accent');
+    // The caller's IANA time zone from the browser, so Ferni knows their local time.
+    const timezoneParam = parsedUrl.searchParams.get('timezone');
+    const timezone = isValidTimeZone(timezoneParam) ? timezoneParam : undefined;
     // 🐛 FIX: Read firebase_uid from query params (frontend sends this!)
     const firebase_uid_param = parsedUrl.searchParams.get('firebase_uid');
     const user_email_param = parsedUrl.searchParams.get('user_email');
@@ -775,6 +779,7 @@ export async function handleTokenRoutes(
         // IP-detected location for weather, local content hints (TikTok-style)
         city: geoData.city,
         regionCode: geoData.regionCode,
+        timezone,
       };
 
       // Generate token with shared helper
