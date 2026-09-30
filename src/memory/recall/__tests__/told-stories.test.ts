@@ -17,6 +17,15 @@ describe('anecdoteIn', () => {
     ).toMatch(/^I remember the time/);
   });
 
+  it('keeps what the persona says about itself, to stay consistent', () => {
+    expect(anecdoteIn('Honestly? My favorite season is fall, the light is so soft.')).toBe(
+      'My favorite season is fall, the light is so soft.'
+    );
+    expect(anecdoteIn("I've never been to Japan, but it is high on my list.")).toMatch(
+      /^I've never been to Japan/
+    );
+  });
+
   it('ignores replies that are not a story', () => {
     expect(anecdoteIn('That sounds hard. How are you holding up?')).toBeNull();
     expect(anecdoteIn('I remember when.')).toBeNull();

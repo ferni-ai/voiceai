@@ -5,9 +5,10 @@
  * garden?"). A friend who never does, and who can say "like that summer I
  * told you about", is rarer. The persona's anecdotes come from its backstory
  * through the LLM, so nothing stopped it telling the same one as new on
- * every call. This spots an anecdote in the persona's own reply, keeps a
- * short gist, and on later calls lists what was already told: refer back to
- * it, never retell it as new.
+ * every call, or from saying its favorite season is fall one week and spring
+ * the next. This spots an anecdote or a self-disclosure in the persona's own
+ * reply, keeps a short gist, and on later calls lists what was already told:
+ * stay consistent with it, refer back to it, never retell it as new.
  *
  * Pure: detection, dedupe and wording. Storage lives with the recall store.
  *
@@ -27,6 +28,10 @@ export interface ToldStory {
 const ANECDOTE =
   /\b(i remember (when|once|the time|the day)|when i was (a kid|little|young|growing up|in school|a teenager|\d{1,2})|back when i|i once\b|years ago,? i|my (grand(ma|mother|pa|father)|mom|dad|mother|father|brother|sister|uncle|aunt)\b[^.!?]{0,80}\b(used to|would always|once|taught me|told me))/i;
 
+/** The persona saying something about itself it should stay consistent with. */
+const SELF_DISCLOSURE =
+  /\b(my (all-time )?favou?rite [a-z ]{2,30} (is|was|has to be)|i('ve| have) never (been|tried|seen|had)|i('ve| have) always (loved|hated|wanted)|i can'?t stand|i'?m (allergic|terrified|afraid) of)\b/i;
+
 const MAX_GIST = 160;
 /** Content words a new story shares with a known one before it is the same story. */
 const SAME_STORY_OVERLAP = 3;
@@ -43,7 +48,7 @@ function sentences(text: string): string[] {
 /** The gist of an anecdote in a reply (its opening sentence or two), or null. */
 export function anecdoteIn(reply: string): string | null {
   const all = sentences(reply);
-  const i = all.findIndex((s) => ANECDOTE.test(s));
+  const i = all.findIndex((s) => ANECDOTE.test(s) || SELF_DISCLOSURE.test(s));
   if (i < 0) return null;
   let gist = all[i];
   const next = all[i + 1];
@@ -70,7 +75,7 @@ export function storyId(personaId: string, gist: string): string {
 export function formatToldStories(stories: readonly ToldStory[]): string[] {
   if (stories.length === 0) return [];
   return [
-    'Stories of yours they have already heard (never retell one as new; you can refer back: "like I told you about..."):',
+    'Stories and things about yourself they have already heard from you. Stay consistent with them; never retell one as new; you can refer back ("like I told you about..."):',
     ...stories.map((s) => `- ${s.gist}`),
   ];
 }
