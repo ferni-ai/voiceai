@@ -74,6 +74,8 @@ export interface ContinuationOptions {
   baseSpeed?: number;
   toFrames(pcm: ArrayBuffer): Iterable<AudioFrame>;
   onFirstAudio(): void;
+  /** Timing marks for the first-audio log: first LLM text in, first text sent. */
+  onStage?(stage: 'text' | 'push'): void;
   onError(error: unknown, phase: 'text' | 'audio'): void;
 }
 
@@ -105,6 +107,8 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
     // with emotion cut to a calm list: the humanization layer's pacing, softer
     // volume and emotional colour were written and then thrown away.
     const base = opts.baseSpeed ?? 1;
+    let pushed = false;
+    let heardText = false;
     let state: VoiceState = { speed: base, volume: 1 };
     const push = (raw: string): void => {
       const { text, prosody } = sanitize(raw);
@@ -131,11 +135,21 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
       state = next;
       // Pieces are joined verbatim, so keep a space between sentences.
       current.push(`${tags}${text} `);
+      if (!pushed) {
+        pushed = true;
+        opts.onStage?.('push');
+      }
     };
     try {
       while (!stopped) {
         const { done, value } = await reader.read();
-        if (value) buffer += value;
+        if (value) {
+          if (!heardText) {
+            heardText = true;
+            opts.onStage?.('text');
+          }
+          buffer += value;
+        }
         let end: number | null;
         while (
           (end = first

@@ -46,7 +46,7 @@ export interface CascadeLLMOptions {
   project?: string;
   location: string;
   temperature?: number;
-  thinkingConfig: { thinkingLevel: ThinkingLevel };
+  thinkingConfig: { thinkingLevel: ThinkingLevel } | { thinkingBudget: number };
 }
 
 export interface InkTurnDetection {
@@ -152,10 +152,20 @@ export function buildCascadeLLMOptions(
     project: env.GOOGLE_CLOUD_PROJECT,
     location: env.CASCADE_LLM_LOCATION || 'global',
     temperature,
-    // Gemini 3.x thinks by default and the hidden tokens delay the first word.
-    // The plugin ignores thinkingBudget for Gemini 3; only the level applies.
-    thinkingConfig: { thinkingLevel: cascadeThinkingLevel(model, env) },
+    thinkingConfig: cascadeThinking(model, env),
   };
+}
+
+/**
+ * Gemini thinks by default and the hidden tokens delay the first word. Gemini 3
+ * takes a thinking level (the plugin ignores a budget); 2.5 and earlier take a
+ * budget and the plugin ignores a level, so a level alone left 2.5-flash
+ * thinking dynamically. Budget 0 turns thinking off on 2.x.
+ */
+export function cascadeThinking(model: string, env: Env = process.env): CascadeLLMOptions['thinkingConfig'] {
+  return /^gemini-[12]\./.test(model)
+    ? { thinkingBudget: 0 }
+    : { thinkingLevel: cascadeThinkingLevel(model, env) };
 }
 
 /**
@@ -192,7 +202,7 @@ export function buildCascadeHedge(
       ...primary,
       model,
       location: env.CASCADE_LLM_BACKUP_LOCATION || primary.location,
-      thinkingConfig: { thinkingLevel: cascadeThinkingLevel(model, env) },
+      thinkingConfig: cascadeThinking(model, env),
     },
   };
 }

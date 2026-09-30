@@ -98,7 +98,10 @@ function isTTSGatewayEnabled(): boolean {
 
 const log = createLogger({ module: 'GatewayTTSNode' });
 
-type FirstAudioObserver = () => void;
+type FirstAudioObserver = (() => void) & {
+  /** Record when the first LLM text arrived and when the first text went to the provider. */
+  stage(stage: 'text' | 'push'): void;
+};
 
 interface FirstAudioObserverOptions {
   sessionId?: string;
@@ -110,12 +113,14 @@ function createFirstAudioObserver({
   startTime,
 }: FirstAudioObserverOptions): FirstAudioObserver {
   let hasMarkedFirstAudio = false;
+  const stages: { textMs?: number; pushMs?: number } = {};
 
-  return (): void => {
+  const observe = (): void => {
     if (hasMarkedFirstAudio) return;
     hasMarkedFirstAudio = true;
     const ttfbMs = Date.now() - startTime;
-    log.info({ ttfbMs, sessionId }, `🔊 Gateway TTS TTFB: ${ttfbMs}ms`);
+    // Where the wait went: LLM text in (textMs), text sent (pushMs), audio back (ttfbMs).
+    log.info({ ttfbMs, ...stages, sessionId }, `🔊 Gateway TTS TTFB: ${ttfbMs}ms`);
     if (sessionId) {
       noteReplyAudio(sessionId);
       try {
@@ -131,6 +136,12 @@ function createFirstAudioObserver({
       }
     }
   };
+  return Object.assign(observe, {
+    stage(stage: 'text' | 'push'): void {
+      const key = stage === 'text' ? 'textMs' : 'pushMs';
+      stages[key] ??= Date.now() - startTime;
+    },
+  });
 }
 
 // ============================================================================
@@ -422,6 +433,7 @@ async function createStreamingOverlapTTS(
       baseSpeed: sessionSpeed(sessionId),
       toFrames: (pcm) => splitIntoFrames(pcm, sampleRate, frameDurationMs),
       onFirstAudio: markFirstAudio,
+      onStage: markFirstAudio.stage,
       onError: (err, phase) =>
         log.warn({ err: String(err), phase, sessionId, personaId }, 'Continuous reply TTS failed'),
     });

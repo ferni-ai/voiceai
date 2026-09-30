@@ -61,6 +61,14 @@ describe('cascade thinking level', () => {
     const opts = buildCascadeLLMOptions({ CASCADE_LLM_THINKING: 'medium' });
     expect(opts.thinkingConfig).toEqual({ thinkingLevel: 'MEDIUM' });
   });
+
+  it('turns thinking off with a zero budget on 2.x models, which ignore a level', () => {
+    for (const model of ['gemini-2.5-flash', 'gemini-2.5-flash-lite']) {
+      expect(buildCascadeLLMOptions({ CASCADE_LLM_MODEL: model }).thinkingConfig).toEqual({
+        thinkingBudget: 0,
+      });
+    }
+  });
 });
 
 describe('buildCascadeHedge', () => {

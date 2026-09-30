@@ -98,6 +98,23 @@ describe('createContinuationTTS', () => {
     expect(spoken).toContain("Guilty as charged. I guess that is my default state, isn't it?");
   });
 
+  it('marks the first LLM text and the first push once each, text first', async () => {
+    const stages: string[] = [];
+    const reply = new FakeReply([4]);
+    const stream = createContinuationTTS({
+      textStream: textStream(['Oh', ' no, not the keyboard again. ', 'Is it still working?']),
+      reply,
+      sanitize: (chunk) => ({ text: chunk.trim(), prosody: {} }),
+      openingTags: () => '',
+      toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
+      onFirstAudio: () => undefined,
+      onStage: (stage) => stages.push(stage),
+      onError: () => undefined,
+    });
+    await drain(stream as unknown as ReadableStream<AudioFrame>);
+    expect(stages).toEqual(['text', 'push']);
+  });
+
   it('falls back to the session emotion when the reply names none', async () => {
     const reply = new FakeReply([4]);
     const { stream } = run(['That sounds like a really long week.'], reply, 'sympathetic');
