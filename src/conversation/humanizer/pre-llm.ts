@@ -14,7 +14,6 @@ import { getConversationalMemory } from '../conversational-memory/index.js';
 import { getEmotionalArcTracker } from '../emotional-arc.js';
 import { getQuestionPatternEngine, type QuestionContext } from '../question-patterns/index.js';
 import { getResponseDynamicsEngine } from '../response-dynamics.js';
-import type { SessionIntelligenceInsight } from '../session-intelligence.js';
 
 import type { ContextGuidance, HumanizationContext, PreResponseActions } from './types.js';
 
@@ -124,10 +123,7 @@ export class PreLlmProcessor {
   /**
    * Generate context guidance for LLM prompt injection
    */
-  generateContextGuidance(
-    context: HumanizationContext,
-    sessionInsight: SessionIntelligenceInsight | null
-  ): ContextGuidance[] {
+  generateContextGuidance(context: HumanizationContext): ContextGuidance[] {
     const guidance: ContextGuidance[] = [];
     const topic = context.topic || this.memory.getCurrentTopic() || 'general';
     const shouldTrigger = createDeterministicTrigger(this.sessionId, this.personaId);
@@ -249,81 +245,7 @@ export class PreLlmProcessor {
       });
     }
 
-    // 10. Session intelligence guidance
-    this.addSessionIntelligenceGuidance(guidance, sessionInsight);
-
     return guidance;
-  }
-
-  /**
-   * Add session intelligence guidance to the list
-   */
-  private addSessionIntelligenceGuidance(
-    guidance: ContextGuidance[],
-    insight: SessionIntelligenceInsight | null
-  ): void {
-    if (!insight) return;
-
-    // Concern-based guidance (HIGH PRIORITY)
-    if (insight.concern.level === 'elevated' || insight.concern.level === 'crisis') {
-      guidance.push({
-        source: 'superhuman_concern',
-        content: `[⚠️ CONCERN DETECTED: ${insight.concern.level.toUpperCase()}] ${insight.concern.responseGuidance}`,
-        priority: 'high',
-      });
-    } else if (insight.concern.level === 'moderate') {
-      guidance.push({
-        source: 'superhuman_concern',
-        content: `[CONCERN DETECTED] ${insight.concern.responseGuidance}`,
-        priority: 'standard',
-      });
-    }
-
-    // Need prediction guidance
-    if (insight.predictions.need.confidence > 0.6) {
-      guidance.push({
-        source: 'superhuman_prediction',
-        content: `[PREDICTED NEED: ${insight.predictions.need.primaryNeed}] ${insight.predictions.need.responseGuidance}`,
-        priority: insight.predictions.need.confidence > 0.75 ? 'standard' : 'hint',
-      });
-    }
-
-    // Voice state guidance
-    if (
-      insight.predictions.voiceState.acknowledgment &&
-      insight.predictions.voiceState.confidence > 0.6
-    ) {
-      guidance.push({
-        source: 'superhuman_voice',
-        content: `[VOICE STATE: ${insight.predictions.voiceState.state}] Consider acknowledging: "${insight.predictions.voiceState.acknowledgment}"`,
-        priority: 'hint',
-      });
-    }
-
-    // Proactive memory suggestions
-    if (insight.memorySuggestions.length > 0) {
-      const topSuggestion = insight.memorySuggestions[0];
-      if (topSuggestion.priority > 0.5) {
-        guidance.push({
-          source: 'superhuman_memory',
-          content: `[PROACTIVE MEMORY] ${topSuggestion.reason}: "${topSuggestion.phrase}"`,
-          priority: topSuggestion.priority > 0.7 ? 'standard' : 'hint',
-        });
-      }
-    }
-
-    // Overall approach guidance
-    if (insight.responseGuidance.approach !== 'normal') {
-      const avoidStr =
-        insight.responseGuidance.avoid.length > 0
-          ? ` Avoid: ${insight.responseGuidance.avoid.join(', ')}.`
-          : '';
-      guidance.push({
-        source: 'superhuman_guidance',
-        content: `[APPROACH: ${insight.responseGuidance.approach}] Pacing: ${insight.responseGuidance.pacing}, Energy: ${insight.responseGuidance.energy}.${avoidStr}`,
-        priority: 'standard',
-      });
-    }
   }
 
   /**
