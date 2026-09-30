@@ -412,7 +412,9 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   const { autoOptimizer } = await import('../../tools/optimization/auto-optimizer.js');
   const { patternAnalyzer } = await import('../../tools/optimization/pattern-analyzer.js');
   const { feedbackCollector } = await import('../../tools/optimization/feedback-collector.js');
-  const { dynamicToolLoader } = await import('../../tools/dynamic-loader.js');
+  // One loader per session: a shared one built tools bound to another caller.
+  const { createSessionToolLoader } = await import('../../tools/dynamic-loader/index.js');
+  const dynamicToolLoader = createSessionToolLoader({ enableAutoUnload: false });
 
   await dynamicToolLoader.initialize({
     userId: userId || 'anonymous',
