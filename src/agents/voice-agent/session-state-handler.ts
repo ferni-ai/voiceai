@@ -41,7 +41,7 @@ import {
 } from '../../services/analytics/call-quality-monitor.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
-import { isRealSilence, silenceHold, type SessionStates } from './dead-air.js';
+import { checkInDelay, isRealSilence, silenceHold, type SessionStates } from './dead-air.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import {
@@ -1095,7 +1095,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         distressLevel: userData.lastEmotionAnalysis?.distressLevel,
         emotion: userData.lastEmotionAnalysis?.primary ?? userData.voiceEmotion?.primary,
       });
-      const earlyAckMs = SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 * hold;
+      // Jittered once: the timer and its elapsed-time gate must agree
+      const earlyAckMs = checkInDelay(SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 * hold);
 
       // Clear any existing early ack timers and handlers before creating new ones
       // This prevents MaxListenersExceededWarning memory leak
@@ -1221,9 +1222,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             }
           }
           earlyAckTimer = null;
-          // HUMANIZATION FIX: Add ±25% randomization to early acknowledgment timing
         },
-        earlyAckMs * (0.75 + Math.random() * 0.5)
+        earlyAckMs
       );
 
       // Clean up timer if agent starts speaking

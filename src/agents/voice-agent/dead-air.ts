@@ -68,3 +68,12 @@ export function silenceHold(moment: SilenceMoment): number {
     HEAVY_WORDS.test(moment.lastUserText ?? '');
   return heavy ? HEAVY_HOLD : 1;
 }
+
+/**
+ * The check-in delay, jittered ±25% so it never feels metronomic. The
+ * caller gates on this same value: gating on the unjittered wait silently
+ * dropped every check-in whose jitter came out early (about half of them).
+ */
+export function checkInDelay(baseMs: number, random: () => number = Math.random): number {
+  return Math.round(baseMs * (0.75 + random() * 0.5));
+}

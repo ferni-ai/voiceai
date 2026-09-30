@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isRealSilence, silenceHold } from '../dead-air.js';
+import { checkInDelay, isRealSilence, silenceHold } from '../dead-air.js';
 
 describe('isRealSilence', () => {
   it('is silence only when the agent is listening and the user is not talking', () => {
@@ -34,5 +34,13 @@ describe('silenceHold', () => {
       silenceHold({ lastUserText: 'We had pizza tonight', emotion: 'joy', distressLevel: 0.1 })
     ).toBe(1);
     expect(silenceHold({})).toBe(1);
+  });
+});
+
+describe('checkInDelay', () => {
+  it('jitters within ±25% of the base wait', () => {
+    expect(checkInDelay(4000, () => 0)).toBe(3000);
+    expect(checkInDelay(4000, () => 0.5)).toBe(4000);
+    expect(checkInDelay(4000, () => 0.999)).toBeLessThanOrEqual(5000);
   });
 });
