@@ -1,8 +1,21 @@
 diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
-index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..60193e5ed6930c982735a6fc3a52cdaafcb6429b 100644
+index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..a8cf631b0d50dc2bc88628ac46e914e0a9a8593f 100644
 --- a/dist/voice/agent_activity.cjs
 +++ b/dist/voice/agent_activity.cjs
-@@ -1095,13 +1095,22 @@ class AgentActivity {
+@@ -96,6 +96,12 @@ async function cleanupReusableResources(resources, logger) {
+     }
+   }
+ }
++// PATCHED(ferni): words that on their own say "go on", not "my turn"
++const __FERNI_BACKCHANNEL = new Set(["m", "mm", "mmm", "mhm", "mmhm", "mmhmm", "hmm", "hm", "uh", "huh", "uhhuh", "ah", "oh", "yeah", "yep", "yup", "yes", "ok", "okay", "right", "sure", "gotcha", "totally", "exactly", "wow", "cool", "nice", "true", "ha", "haha"]);
++function __ferniIsBackchannel(text) {
++  const words = String(text ?? "").toLowerCase().replace(/-/g, "").split(/[^a-z']+/).map((w) => w.replace(/'/g, "")).filter(Boolean);
++  return words.length > 0 && words.length <= 4 && words.every((w) => __FERNI_BACKCHANNEL.has(w));
++}
+ class AgentActivity {
+   agent;
+   agentSession;
+@@ -1095,13 +1101,22 @@ class AgentActivity {
      if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof import_llm2.LLM)) {
        return;
      }
@@ -26,7 +39,24 @@ index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..60193e5ed6930c982735a6fc3a52cdaa
      this._preemptiveGenerationCount++;
      this.logger.info(
        {
-@@ -1677,7 +1686,13 @@ class AgentActivity {
+@@ -1262,6 +1277,16 @@ class AgentActivity {
+       );
+       return true;
+     }
++    // PATCHED(ferni): "mm-hmm" over Ferni's reply paused it; the adaptive model
++    // already let it through as a backchannel, but ink still transcribed it and
++    // it was committed as a turn that cut the reply off mid-sentence (dev,
++    // 2026-09-30). Drop it and let the false-interruption timer resume the reply.
++    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(info.newTranscript)) {
++      this.cancelPreemptiveGeneration();
++      this.logger.info({ user_input: info.newTranscript }, "BACKCHANNEL_NOT_A_TURN");
++      this.startFalseInterruptionTimer(this.pausedSpeech.timeout);
++      return true;
++    }
+     if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_b = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _b.minWords) > 0) {
+       const wordCount = (0, import_word.splitWords)(info.newTranscript, true).length;
+       if (wordCount < ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords)) {
+@@ -1677,7 +1702,13 @@ class AgentActivity {
      let speechHandle;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
@@ -42,10 +72,23 @@ index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..60193e5ed6930c982735a6fc3a52cdaa
          if (preemptive.userMessage && userMessage) {
            preemptive.userMessage.metrics = userMetricsReport;
 diff --git a/dist/voice/agent_activity.js b/dist/voice/agent_activity.js
-index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..f654210e9857e2f71bc25ba43852e07e03a6559e 100644
+index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..66f2fee5e23983fc5973fe2bb53b06bce9064a35 100644
 --- a/dist/voice/agent_activity.js
 +++ b/dist/voice/agent_activity.js
-@@ -1126,13 +1126,22 @@ class AgentActivity {
+@@ -127,6 +127,12 @@ async function cleanupReusableResources(resources, logger) {
+     }
+   }
+ }
++// PATCHED(ferni): words that on their own say "go on", not "my turn"
++const __FERNI_BACKCHANNEL = new Set(["m", "mm", "mmm", "mhm", "mmhm", "mmhmm", "hmm", "hm", "uh", "huh", "uhhuh", "ah", "oh", "yeah", "yep", "yup", "yes", "ok", "okay", "right", "sure", "gotcha", "totally", "exactly", "wow", "cool", "nice", "true", "ha", "haha"]);
++function __ferniIsBackchannel(text) {
++  const words = String(text ?? "").toLowerCase().replace(/-/g, "").split(/[^a-z']+/).map((w) => w.replace(/'/g, "")).filter(Boolean);
++  return words.length > 0 && words.length <= 4 && words.every((w) => __FERNI_BACKCHANNEL.has(w));
++}
+ class AgentActivity {
+   agent;
+   agentSession;
+@@ -1126,13 +1132,22 @@ class AgentActivity {
      if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof LLM)) {
        return;
      }
@@ -69,7 +112,24 @@ index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..f654210e9857e2f71bc25ba43852e07e
      this._preemptiveGenerationCount++;
      this.logger.info(
        {
-@@ -1708,7 +1717,13 @@ class AgentActivity {
+@@ -1293,6 +1308,16 @@ class AgentActivity {
+       );
+       return true;
+     }
++    // PATCHED(ferni): "mm-hmm" over Ferni's reply paused it; the adaptive model
++    // already let it through as a backchannel, but ink still transcribed it and
++    // it was committed as a turn that cut the reply off mid-sentence (dev,
++    // 2026-09-30). Drop it and let the false-interruption timer resume the reply.
++    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(info.newTranscript)) {
++      this.cancelPreemptiveGeneration();
++      this.logger.info({ user_input: info.newTranscript }, "BACKCHANNEL_NOT_A_TURN");
++      this.startFalseInterruptionTimer(this.pausedSpeech.timeout);
++      return true;
++    }
+     if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_b = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _b.minWords) > 0) {
+       const wordCount = splitWords(info.newTranscript, true).length;
+       if (wordCount < ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords)) {
+@@ -1708,7 +1733,13 @@ class AgentActivity {
      let speechHandle;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
