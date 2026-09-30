@@ -132,6 +132,29 @@ describe('daily outreach selection', () => {
     expect(byUser['c-sms']).toMatchObject({ status: 'sent', channel: 'sms' });
   });
 
+  it('treats someone who talked yesterday as active, not someone to win back', async () => {
+    users = [user('active', { lastContact: new Date(Date.now() - 86_400_000).toISOString() })];
+    // Active users get an occasional "thinking of you" (a 30% draw; forced here).
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+    const result = await runDailyOutreach({ dryRun: true, respectQuietHours: false });
+    random.mockRestore();
+    expect(result.details).toHaveLength(1);
+    expect(result.details[0]).toMatchObject({ userId: 'active', outreachType: 'thinking_of_you' });
+  });
+
+  it('skips users who have not answered the last few messages', async () => {
+    users = [
+      user('gone-quiet', {
+        lastOutreachDate: new Date(Date.now() - 30 * 86_400_000).toISOString(),
+        outreachUnanswered: 3,
+      }),
+      user('due', { lastOutreachDate: new Date(Date.now() - 8 * 86_400_000).toISOString() }),
+    ];
+    const result = await runDailyOutreach({ dryRun: true, respectQuietHours: false });
+    expect(result.details.map((d) => d.userId)).toEqual(['due']);
+    expect(result.details[0]).toMatchObject({ outreachType: 'reengagement_warmth' });
+  });
+
   it('pages past the first 200 users', async () => {
     const recent = { lastOutreachDate: new Date().toISOString() };
     users = Array.from({ length: 201 }, (_, i) =>
