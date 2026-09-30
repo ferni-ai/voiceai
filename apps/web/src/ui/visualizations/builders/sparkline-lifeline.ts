@@ -587,10 +587,13 @@ function getAccessibleDescription(
     ? t(`visualizations.sparkline.trend.${data.trend}`, data.trend)
     : '';
 
-  return t(
-    'visualizations.sparkline.description',
-    `${data.title || 'Trend'}: current ${formatValue(current, data.unit)}, range ${formatValue(min, data.unit)} to ${formatValue(max, data.unit)}${trendText ? `, trending ${trendText}` : ''}`
-  );
+  return t('visualizations.sparkline.description', {
+    title: data.title || t('visualizations.sparkline.trend', 'Trend'),
+    current: formatValue(current, data.unit),
+    min: formatValue(min, data.unit),
+    max: formatValue(max, data.unit),
+    trend: trendText ? `, trending ${trendText}` : '',
+  });
 }
 
 // Types are already exported at their interface definitions

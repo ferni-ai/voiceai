@@ -571,11 +571,12 @@ function buildSmallMultiples(
         fontStyle: 'italic',
       });
 
-      const betterPeriod = diff > 0 ? labels[0] : labels[1];
-      insight.textContent = t(
-        'visualizations.moodCalendar.comparisonInsight',
-        `${betterPeriod} had ${Math.abs(diff)} more calm ${Math.abs(diff) === 1 ? 'day' : 'days'}.`
-      );
+      const betterPeriod = (diff > 0 ? labels[0] : labels[1]) ?? '';
+      insight.textContent = t('visualizations.moodCalendar.comparisonInsight', {
+        period: betterPeriod,
+        count: Math.abs(diff),
+        unit: Math.abs(diff) === 1 ? 'day' : 'days',
+      });
       container.appendChild(insight);
     }
   }
