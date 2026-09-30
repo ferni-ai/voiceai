@@ -94,6 +94,12 @@ import {
 } from './memory-recall-hook.js';
 import { createSharedLaughRecorder, wireSharedLaughRecorder } from './shared-laugh-recorder.js';
 import {
+  createSignificantDatesRecorder,
+  loadSignificantDates,
+  saveSignificantDate,
+  wireSignificantDatesRecorder,
+} from './significant-dates-recorder.js';
+import {
   createTalkPreferenceRecorder,
   loadTalkPreferences,
   saveTalkPreference,
@@ -1790,6 +1796,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
     });
     void loadTalkPreferences(userId).then((stored) => talkRecorder.loaded(stored));
     cleanupFunctions.push(wireTalkPreferenceRecorder(sessionWithEvents, talkRecorder));
+
+    // Birthdays, anniversaries, the day they lost someone: saved when
+    // mentioned; near one, the greeting and replies know (significant-dates.ts)
+    const datesRecorder = createSignificantDatesRecorder({
+      userData,
+      save: (date) => void saveSignificantDate(userId, date),
+    });
+    userData.daysThatMatterReady = loadSignificantDates(userId).then((dates) =>
+      datesRecorder.loaded(dates)
+    );
+    cleanupFunctions.push(wireSignificantDatesRecorder(sessionWithEvents, datesRecorder));
 
     // Remember what made them laugh, for a callback on a later call.
     const laughRecorder = createSharedLaughRecorder({

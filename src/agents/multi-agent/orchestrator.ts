@@ -247,6 +247,8 @@ export class AgentOrchestrator {
             userName?: string;
             timezone?: string;
             openingThread?: () => Promise<string | null>;
+            daysThatMatter?: string | null;
+            daysThatMatterReady?: Promise<void>;
             services?: { userProfile?: Parameters<typeof greetingFamiliarity>[0] };
           }
         | undefined;
@@ -265,8 +267,19 @@ export class AgentOrchestrator {
       const { directedText } = await import('../../speech/direction/index.js');
       const partOfDay = clock.partOfDay;
       const userName = userData?.userName;
-      // Something they told you was coming up: a friend opens with it
-      const openThread = await userData?.openingThread?.().catch(() => null);
+      // Something they told you was coming up: a friend opens with it.
+      // A birthday or a hard anniversary today shapes the hello too.
+      const [openThread] = await Promise.all([
+        userData?.openingThread?.().catch(() => null),
+        Promise.race([
+          userData?.daysThatMatterReady?.catch(() => undefined),
+          new Promise<void>((resolve) => {
+            setTimeout(resolve, 300);
+          }),
+        ]),
+      ]);
+      // The note's middle lines: what the day is and how to be about it
+      const dayThatMatters = userData?.daysThatMatter?.split('\n').slice(1, -1).join(' ');
       const directed = await directedText(this.sessionId, {
         moment: 'greeting',
         direction:
@@ -278,6 +291,7 @@ export class AgentOrchestrator {
           'time of day': partOfDay,
           ...(userName ? { 'their name': userName } : {}),
           ...(openThread ? { 'open thread from last time': openThread } : {}),
+          ...(dayThatMatters ? { 'a day that matters to them': dayThatMatters } : {}),
           ...familiarity.facts,
         },
         fallback: scripted,

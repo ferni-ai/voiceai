@@ -94,6 +94,10 @@ export interface UserData {
   timezone?: string;
   /** How they have asked to be talked to (conversation/talk-preferences.ts) */
   talkPreferences?: TalkPreference[];
+  /** A birthday, anniversary or loss near today, as a note (significant-dates-recorder.ts) */
+  daysThatMatter?: string | null;
+  /** Resolves once the caller's dates are loaded and matched */
+  daysThatMatterReady?: Promise<void>;
   /** The newest open thread from earlier calls, for the greeting (memory-recall-hook.ts) */
   openingThread?: () => Promise<string | null>;
 

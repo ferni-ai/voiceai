@@ -753,6 +753,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
       turnStyleReminderEnabled(),
       [
         ...(talk ? [talk] : []),
+        ...(typeof userData?.daysThatMatter === 'string' ? [userData.daysThatMatter] : []),
         ...(repair ? [repair] : []),
         ...nextReplyCues(userData, getTTSProvider().voice),
         ...(voiceToday ? [voiceToday] : []),
