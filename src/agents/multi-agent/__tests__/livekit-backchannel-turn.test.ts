@@ -84,7 +84,7 @@ describe('LiveKit backchannel over a paused reply (patched)', () => {
       const a = activity(true);
       expect(await fn.call(a, { newTranscript: said })).toBe(true);
       expect(a.createSpeechTask).not.toHaveBeenCalled();
-      expect(a.startFalseInterruptionTimer).toHaveBeenCalledWith(2000);
+      expect(a.startFalseInterruptionTimer).toHaveBeenCalledWith(0); // resume now, not in 2 s
     }
   });
 
