@@ -19,10 +19,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
-import {
-  relationshipStageService,
-  type RelationshipStage,
-} from './relationship-stage.service.js';
+import { relationshipStageService, type RelationshipStage } from './relationship-stage.service.js';
 
 const log = createLogger('WarmthManager');
 
@@ -116,20 +113,30 @@ export function applyWarmthTheme(
 ): void {
   const config = WARMTH_BY_STAGE[stage];
 
+  // The page-wide theme is the stage; keep JS timing (getAdjustedDuration) in
+  // step with the CSS, including when the dev panel previews a stage.
+  if (element === document.documentElement) {
+    currentStage = stage;
+  }
+
   // Set data attribute for CSS targeting
   element.setAttribute('data-relationship-stage', stage);
 
   // Set CSS custom properties
   element.style.setProperty('--relationship-warmth', String(config.colorTemperature));
-  element.style.setProperty('--relationship-animation-multiplier', String(config.animationMultiplier));
+  element.style.setProperty(
+    '--relationship-animation-multiplier',
+    String(config.animationMultiplier)
+  );
   element.style.setProperty('--relationship-glow-intensity', String(config.glowIntensity));
   element.style.setProperty('--relationship-ui-richness', String(config.uiRichness));
   element.style.setProperty('--relationship-saturation', String(config.saturation));
 
   // Calculate warmth filter (subtle sepia for warmth)
-  const warmthFilter = config.colorTemperature > 0
-    ? `sepia(${config.colorTemperature * 0.08}) saturate(${config.saturation})`
-    : 'none';
+  const warmthFilter =
+    config.colorTemperature > 0
+      ? `sepia(${config.colorTemperature * 0.08}) saturate(${config.saturation})`
+      : 'none';
   element.style.setProperty('--relationship-warmth-filter', warmthFilter);
 
   // Compute animation duration modifier for components that want to respect it
@@ -162,26 +169,26 @@ function getStageIndex(stage: RelationshipStage): number {
 /**
  * Update warmth when stage changes
  */
-function handleStageChange(event: { newStage: RelationshipStage; previousStage: RelationshipStage }): void {
+function handleStageChange(event: {
+  newStage: RelationshipStage;
+  previousStage: RelationshipStage;
+}): void {
   const { newStage, previousStage } = event;
 
   if (newStage !== currentStage) {
     const oldIndex = getStageIndex(previousStage);
     const newIndex = getStageIndex(newStage);
-    
+
     currentStage = newStage;
     applyWarmthTheme(newStage);
 
     if (newIndex > oldIndex) {
-      log.info(
-        { from: previousStage, to: newStage },
-        'Relationship deepened - increasing warmth'
-      );
-      
+      log.info({ from: previousStage, to: newStage }, 'Relationship deepened - increasing warmth');
+
       // Play warmth increase celebration
       playWarmthTransition(previousStage, newStage);
     }
-    
+
     // Dispatch event for any listening components
     dispatchWarmthChangeEvent(previousStage, newStage, newIndex > oldIndex);
   }
@@ -192,12 +199,12 @@ function handleStageChange(event: { newStage: RelationshipStage; previousStage: 
  * Components can listen to this for real-time updates
  */
 function dispatchWarmthChangeEvent(
-  previousStage: RelationshipStage, 
+  previousStage: RelationshipStage,
   newStage: RelationshipStage,
   isDeepening: boolean
 ): void {
   const config = WARMTH_BY_STAGE[newStage];
-  
+
   const event = new CustomEvent('ferni:warmth-change', {
     detail: {
       previousStage,
@@ -207,7 +214,7 @@ function dispatchWarmthChangeEvent(
       stageIndex: getStageIndex(newStage),
     },
   });
-  
+
   window.dispatchEvent(event);
   document.dispatchEvent(event);
 }
@@ -221,9 +228,9 @@ function playWarmthTransition(previousStage: RelationshipStage, newStage: Relati
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     return;
   }
-  
+
   const newConfig = WARMTH_BY_STAGE[newStage];
-  
+
   // Create celebration overlay
   const overlay = document.createElement('div');
   overlay.className = 'warmth-transition-celebration';
@@ -235,7 +242,7 @@ function playWarmthTransition(previousStage: RelationshipStage, newStage: Relati
     z-index: var(--z-modal, 9999);
     opacity: 0;
   `;
-  
+
   // Inner glow pulse
   const glow = document.createElement('div');
   glow.style.cssText = `
@@ -253,18 +260,13 @@ function playWarmthTransition(previousStage: RelationshipStage, newStage: Relati
       transparent 70%
     );
   `;
-  
+
   overlay.appendChild(glow);
   document.body.appendChild(overlay);
 
   // Store animations for cleanup on dispose
   const overlayAnimation = overlay.animate(
-    [
-      { opacity: 0 },
-      { opacity: 1, offset: 0.2 },
-      { opacity: 1, offset: 0.8 },
-      { opacity: 0 },
-    ],
+    [{ opacity: 0 }, { opacity: 1, offset: 0.2 }, { opacity: 1, offset: 0.8 }, { opacity: 0 }],
     { duration: DURATION.CELEBRATION, easing: EASING.GENTLE }
   );
 
@@ -285,11 +287,8 @@ function playWarmthTransition(previousStage: RelationshipStage, newStage: Relati
     if (gi >= 0) activeTransitionAnimations.splice(gi, 1);
     overlay.remove();
   };
-  
-  log.debug(
-    { from: previousStage, to: newStage }, 
-    'Warmth transition celebration played'
-  );
+
+  log.debug({ from: previousStage, to: newStage }, 'Warmth transition celebration played');
 }
 
 // ============================================================================
@@ -376,10 +375,10 @@ export function getAllWarmthConfigs(): Record<RelationshipStage, WarmthConfig> {
 /**
  * Get adjusted animation duration based on relationship stage
  * Deeper relationships = longer, more confident animations
- * 
+ *
  * @param baseDuration - Base duration in ms
  * @returns Adjusted duration considering relationship depth
- * 
+ *
  * @example
  * // Use in animations:
  * element.animate(keyframes, { duration: getAdjustedDuration(300) });
@@ -387,7 +386,7 @@ export function getAllWarmthConfigs(): Record<RelationshipStage, WarmthConfig> {
 export function getAdjustedDuration(baseDuration: number): number {
   const config = getCurrentWarmthConfig();
   if (!config) return baseDuration;
-  
+
   // Lower multiplier = longer duration (more confident/unhurried)
   // e.g., 0.85 multiplier → 1/0.85 = 1.18x duration
   return Math.round(baseDuration / config.animationMultiplier);
@@ -396,19 +395,19 @@ export function getAdjustedDuration(baseDuration: number): number {
 /**
  * Get adjusted animation configuration based on relationship stage
  * Convenience function that returns both duration and easing
- * 
+ *
  * @param baseDuration - Base duration in ms
  * @returns Animation config { duration, easing }
  */
-export function getAdjustedAnimationConfig(baseDuration: number): { 
-  duration: number; 
+export function getAdjustedAnimationConfig(baseDuration: number): {
+  duration: number;
   easing: string;
 } {
   const config = getCurrentWarmthConfig();
   if (!config) {
     return { duration: baseDuration, easing: EASING.STANDARD as string };
   }
-  
+
   // Choose easing based on relationship depth
   // Deeper relationships get gentler, more organic easing
   let easing: string = EASING.STANDARD;
@@ -417,7 +416,7 @@ export function getAdjustedAnimationConfig(baseDuration: number): {
   } else if (config.animationMultiplier <= 0.95) {
     easing = EASING.SPRING_GENTLE;
   }
-  
+
   return {
     duration: getAdjustedDuration(baseDuration),
     easing,
@@ -531,7 +530,7 @@ export function injectWarmthStyles(): void {
 
 /**
  * Subscribe to warmth change events
- * 
+ *
  * @example
  * const unsubscribe = onWarmthChange(({ newStage, isDeepening }) => {
  *   if (isDeepening) showCelebration();
@@ -550,9 +549,9 @@ export function onWarmthChange(
     const customEvent = e as CustomEvent;
     callback(customEvent.detail);
   };
-  
+
   window.addEventListener('ferni:warmth-change', handler);
-  
+
   return () => {
     window.removeEventListener('ferni:warmth-change', handler);
   };

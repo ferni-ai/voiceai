@@ -13,7 +13,7 @@
  * @module tests/ui/dev-panel.ui
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -80,6 +80,12 @@ document.dispatchEvent = vi.fn((event: Event) => {
   }
   return originalDispatchEvent(event);
 });
+
+// The dev panel is a large module; loading it once here keeps that one-off
+// cost (slow under a full parallel run) out of the first test's 5s budget.
+beforeAll(async () => {
+  await import('../../src/ui/dev-panel.ui.js');
+}, 60_000);
 
 describe('Dev Panel - Module Exports', () => {
   beforeEach(() => {
