@@ -311,6 +311,14 @@ function injectStyles(): void {
     .seeds-action-btn--primary:hover {
       background: var(--persona-glow, rgba(74, 103, 65, 0.15));
     }
+
+    /* Persona primary is too dark to read on the midnight theme; use the
+       WCAG AA light variant there. */
+    [data-theme="midnight"] .seeds-daily-bonus-icon,
+    [data-theme="midnight"] .seeds-daily-bonus-text,
+    [data-theme="midnight"] .seeds-action-btn--primary {
+      color: var(--persona-text);
+    }
   `;
   document.head.appendChild(style);
 }
