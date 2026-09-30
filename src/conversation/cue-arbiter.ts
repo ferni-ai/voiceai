@@ -54,22 +54,44 @@ const PRIORITY: Record<CueKind, number> = {
 /** Enough for several notes; past this the reply starts losing the thread. */
 export const CUE_BUDGET_CHARS = 1400;
 
+/** Why a note was left out of a reply. */
+export interface DroppedCue {
+  kind: CueKind;
+  reason: 'heavy_moment' | 'budget';
+}
+
+/** The notes kept for this reply, and the ones left out and why. */
+export function judgeCues(
+  cues: readonly Cue[],
+  budget: number = CUE_BUDGET_CHARS,
+  heavyMoment = false
+): { kept: Cue[]; dropped: DroppedCue[]; heavy: boolean } {
+  const heavy = heavyMoment || cues.some((c) => c.heavy);
+  const dropped: DroppedCue[] = [];
+  const candidates: Cue[] = [];
+  for (const c of cues) {
+    if (heavy && c.light) dropped.push({ kind: c.kind, reason: 'heavy_moment' });
+    else candidates.push(c);
+  }
+  candidates.sort((a, b) => PRIORITY[a.kind] - PRIORITY[b.kind]);
+  const kept: Cue[] = [];
+  let used = 0;
+  for (const c of candidates) {
+    if (used + c.text.length > budget && kept.length > 0) {
+      dropped.push({ kind: c.kind, reason: 'budget' });
+      continue;
+    }
+    kept.push(c);
+    used += c.text.length;
+  }
+  return { kept, dropped, heavy };
+}
+
 /** The notes for this reply: heavy moments first, light ones only when fitting, within budget. */
 export function arbitrateCues(
   cues: readonly Cue[],
   budget: number = CUE_BUDGET_CHARS,
   heavyMoment = false
 ): string[] {
-  const heavy = heavyMoment || cues.some((c) => c.heavy);
-  const kept = cues
-    .filter((c) => !(heavy && c.light))
-    .sort((a, b) => PRIORITY[a.kind] - PRIORITY[b.kind]);
-  const out: string[] = [];
-  let used = 0;
-  for (const c of kept) {
-    if (used + c.text.length > budget && out.length > 0) continue;
-    out.push(c.text);
-    used += c.text.length;
-  }
-  return out;
+  return judgeCues(cues, budget, heavyMoment).kept.map((c) => c.text);
 }

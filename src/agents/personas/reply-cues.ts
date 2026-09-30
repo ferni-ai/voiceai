@@ -6,7 +6,7 @@
  * @module agents/personas/reply-cues
  */
 
-import { arbitrateCues, type Cue } from '../../conversation/cue-arbiter.js';
+import { judgeCues, type Cue } from '../../conversation/cue-arbiter.js';
 import { PLAYFUL_CUE } from '../../conversation/humor-fit.js';
 import { leaveTakingCue } from '../../conversation/leave-taking.js';
 import { nameRestCue } from '../../conversation/name-use.js';
@@ -15,6 +15,9 @@ import { formatTalkPreferences, type TalkPreference } from '../../conversation/t
 import { yieldingCue } from '../../conversation/yielding.js';
 import { nextReplyCues, type VoiceCapabilities } from '../../speech/expression/index.js';
 import { silenceHold } from '../voice-agent/dead-air.js';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'ReplyCues' });
 
 export interface ReplyCueInput {
   userData: Record<string, unknown> | undefined;
@@ -74,5 +77,17 @@ export function replyCues({
       emotion: analysis?.primary,
     }) > 1;
 
-  return arbitrateCues(cues, undefined, heavyWords);
+  const { kept, dropped, heavy } = judgeCues(cues, undefined, heavyWords);
+  // One line per reply: what shaped it, and what was held back (for live testing)
+  if (cues.length > 0) {
+    log.info(
+      {
+        notes: kept.map((c) => c.kind),
+        ...(dropped.length > 0 ? { dropped } : {}),
+        ...(heavy ? { heavy } : {}),
+      },
+      'Reply notes'
+    );
+  }
+  return kept.map((c) => c.text);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { arbitrateCues, type Cue } from '../cue-arbiter.js';
+import { arbitrateCues, judgeCues, type Cue } from '../cue-arbiter.js';
 
 const cue = (kind: Cue['kind'], text: string, extra: Partial<Cue> = {}): Cue => ({
   kind,
@@ -36,5 +36,23 @@ describe('arbitrateCues', () => {
     const out = arbitrateCues([cue('name', 'x'.repeat(50)), cue('repair', 'y'.repeat(80))], 100);
     expect(out).toEqual(['y'.repeat(80)]);
     expect(arbitrateCues([cue('talk', 'z'.repeat(500))], 100)).toHaveLength(1);
+  });
+});
+
+describe('judgeCues', () => {
+  it('reports what was left out and why', () => {
+    const { dropped, heavy } = judgeCues(
+      [
+        cue('day', 'Loss today.', { heavy: true }),
+        cue('humor', 'Playful.', { light: true }),
+        cue('name', 'x'.repeat(200)),
+      ],
+      100
+    );
+    expect(heavy).toBe(true);
+    expect(dropped).toEqual([
+      { kind: 'humor', reason: 'heavy_moment' },
+      { kind: 'name', reason: 'budget' },
+    ]);
   });
 });
