@@ -44,7 +44,9 @@ jobs:
   # (github-runner VM). If that VM is stopped, UNSET the variable: a job waiting
   # for a runner is not covered by timeout-minutes, so with no runner online every
   # run sits in GitHub's 24h queue and is cancelled with no verdict (2026-07).
-  # deploy-gce.yml stays on self-hosted regardless: it deploys TO gce.
+  # Deploys never run on it: deploy-gce.yml is GitHub-hosted, because PR code on
+  # that VM has docker (root) access and must not share a host with deploy
+  # credentials. The VM's identity is github-runner-ci (log/metric write only).
   setup:
     name: Setup & Cache Dependencies
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}

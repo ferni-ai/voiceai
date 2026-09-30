@@ -482,7 +482,12 @@ Two runner processes run on the VM, both registered to this repo (not the org): 
 (user `runner`, `/home/runner`) and `github-runner-gce-2` (user `runner2`, `/home/runner2`), so two jobs run
 at once. Each has its own user so pnpm/npm/Playwright caches in `$HOME` are not shared between concurrent jobs. PR/push CI workflows pick their runner from the
 `CI_RUNNER` repo variable, currently `["self-hosted","Linux","X64","gce"]`; unset it and they fall back to
-`ubuntu-latest`. `deploy-gce.yml` is always self-hosted.
+`ubuntu-latest`.
+
+**Deploys never run on this VM.** PR code runs there, and the runner users are in the `docker` group
+(root-equivalent), so `deploy-gce.yml` (which uses `GCP_SA_KEY` and production secrets) is GitHub-hosted.
+The VM runs as `github-runner-ci@johnb-2025.iam.gserviceaccount.com`, which can only write logs and
+metrics; don't give it project roles, and don't add a deploy runner to this VM.
 
 ```yaml
 jobs:
