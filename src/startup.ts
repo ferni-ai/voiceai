@@ -236,7 +236,13 @@ export async function startup(): Promise<AppConfig> {
 
   // Start schedulers (synchronous, just sets up intervals)
   logger.info('Starting schedulers...');
-  startReminderScheduler(60000); // Check every minute
+  // startup() runs inside voice-call processes. Due reminders are delivered by
+  // the deliver-reminders job (Cloud Scheduler → /api/jobs/deliver-reminders)
+  // from Firestore; this in-memory interval only saw reminders created in the
+  // same process and would double-send alongside the job. Local dev only.
+  if (process.env.REMINDER_SCHEDULER_IN_PROCESS === 'on') {
+    startReminderScheduler(60000); // Check every minute
+  }
   startProactiveScheduler({ checkIntervalMs: 300000 }); // Check every 5 minutes
 
   // Start scheduled actions worker (for workflow routine reminders)
@@ -315,14 +321,20 @@ export async function startup(): Promise<AppConfig> {
   }
 
   // Start Calendar Briefing Job (Morning notifications for users with calendars)
-  // Alex delivers personalized morning briefings about upcoming meetings
-  logger.info('Starting Calendar Briefing Job...');
-  try {
-    const { startCalendarBriefingJob } = await import('./tasks/scheduled/calendar-briefing-job.js');
-    startCalendarBriefingJob();
-    logger.info('✓ Calendar Briefing Job running (15min intervals)');
-  } catch (briefingErr) {
-    logger.warn(`Calendar Briefing Job startup failed (non-fatal): ${briefingErr}`);
+  // Alex delivers personalized morning briefings about upcoming meetings.
+  // Off by default: each voice-call process would run its own copy and track
+  // "already sent today" in its own memory, so briefings would be duplicated.
+  // It needs a single scheduled runner before it's turned on.
+  if (process.env.CALENDAR_BRIEFING_IN_PROCESS === 'on') {
+    try {
+      logger.info('Starting Calendar Briefing Job...');
+      const { startCalendarBriefingJob } =
+        await import('./tasks/scheduled/calendar-briefing-job.js');
+      startCalendarBriefingJob();
+      logger.info('✓ Calendar Briefing Job running (15min intervals)');
+    } catch (briefingErr) {
+      logger.warn(`Calendar Briefing Job startup failed (non-fatal): ${briefingErr}`);
+    }
   }
 
   // ============================================================================
