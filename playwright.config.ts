@@ -20,7 +20,8 @@ export default defineConfig({
   ],
   
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3003',
+    // Must match the webServer below (it used to point at :3003, where nothing is served)
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
