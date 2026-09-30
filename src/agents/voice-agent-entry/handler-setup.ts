@@ -393,7 +393,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
 
   // Session state handlers
   const { silenceContext } = setupSessionStateHandlers({
-    session, sessionPersona, conversationManager, userData, sessionId,
+    session, sessionPersona, conversationManager, userData, sessionId, services,
     room: ctx.room,
     onIdleTimeout: () => {
       void (async () => {

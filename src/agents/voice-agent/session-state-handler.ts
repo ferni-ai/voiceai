@@ -40,8 +40,10 @@ import {
   recordBargeInDetected,
 } from '../../services/analytics/call-quality-monitor.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
+import type { SessionServices } from '../../services/index.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { isRealSilence, type SessionStates } from './dead-air.js';
+import { recordCommittedAgentReply } from './agent-reply-recorder.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import {
@@ -134,6 +136,8 @@ export interface SessionStateContext {
    * hasn't joined yet (fixes "no response from Ferni" issue).
    */
   room?: { remoteParticipants?: Map<string, unknown> };
+  /** Session services, for recording committed agent replies as turns */
+  services?: SessionServices | null;
 }
 
 export interface SessionStateResult {
@@ -160,8 +164,16 @@ const getLogger = () => log();
  * Returns the silenceContext which is shared with the transcript handler.
  */
 export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStateResult {
-  const { session, sessionPersona, conversationManager, userData, sessionId, onIdleTimeout, room } =
-    ctx;
+  const {
+    session,
+    sessionPersona,
+    conversationManager,
+    userData,
+    sessionId,
+    onIdleTimeout,
+    room,
+    services,
+  } = ctx;
 
   // ============================================================
   // INTERRUPT-AWARE SPEECH HELPER
@@ -640,6 +652,17 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       onGenerationStarted(sessionId, 'sdk-auto-response');
       diag.state('📡 [SPEECH] SDK auto-response detected - orchestrator tracking');
     }
+  });
+
+  // ============================================================
+  // CONVERSATION ITEM ADDED - Record what the agent actually said
+  // Fires once per committed reply (LLM, cached, greeting), with the text
+  // truncated to what was spoken if the user interrupted.
+  // ============================================================
+  session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (event) => {
+    recordCommittedAgentReply({ sessionId, services, userData }, event.item).catch((error) => {
+      diag.warn('Recording agent reply failed', { error: String(error), sessionId });
+    });
   });
 
   // ============================================================
