@@ -91,6 +91,8 @@ export interface UserData {
 
   /** Caller's IANA timezone, from the web client (see utils/local-clock.ts) */
   timezone?: string;
+  /** The newest open thread from earlier calls, for the greeting (memory-recall-hook.ts) */
+  openingThread?: () => Promise<string | null>;
 
   /** User's IP-detected location (for weather, local info personalization) */
   userLocation?: {

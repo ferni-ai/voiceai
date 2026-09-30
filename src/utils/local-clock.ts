@@ -73,3 +73,30 @@ export function timezoneFromMetadata(metadata: unknown): string | undefined {
   const tz = (parsed as { timezone?: unknown } | null)?.timezone;
   return isValidTimezone(tz) ? tz : undefined;
 }
+
+/**
+ * The calendar day of a moment in the caller's timezone, as days since
+ * 1970-01-01 (so two moments' difference is how many days apart they felt).
+ */
+export function localDayNumber(at: Date, timezone?: string): number {
+  if (isValidTimezone(timezone)) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    }).formatToParts(at);
+    const part = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+    const [y, m, d] = [part('year'), part('month'), part('day')];
+    if ([y, m, d].every(Number.isInteger)) return Date.UTC(y, m - 1, d) / 86_400_000;
+  }
+  return Date.UTC(at.getFullYear(), at.getMonth(), at.getDate()) / 86_400_000;
+}
+
+/** The weekday name of a moment in the caller's timezone ("Tuesday"). */
+export function localWeekday(at: Date, timezone?: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    ...(isValidTimezone(timezone) ? { timeZone: timezone } : {}),
+  }).format(at);
+}

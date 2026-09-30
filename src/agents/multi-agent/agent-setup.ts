@@ -87,6 +87,7 @@ import {
   addRecallNote,
   createMemoryRecall,
   memoryRecallMode,
+  saveClosedFollowUp,
   saveCallbackOutcome,
   saveSharedLaugh,
   type RecallAgent,
@@ -1744,7 +1745,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // Interim events count: with STT turn detection the SDK starts preemptive
   // generation from the preflight transcript, which arrives as an interim.
   if (userId && userId !== 'anonymous' && memoryRecallMode() && sessionWithEvents.on) {
-    const recall = createMemoryRecall({ userId, userName: userData.userName });
+    const recall = createMemoryRecall({
+      userId,
+      userName: userData.userName,
+      timezone: userData.timezone,
+      closeFollowUp: (followUp) => void saveClosedFollowUp(userId, followUp),
+    });
+    // The greeting can open with the newest open thread (orchestrator.ts)
+    userData.openingThread = () => recall.openingThread();
     const onRecallTranscript = (event: unknown) => {
       const evt = event as { transcript?: string };
       if (!evt.transcript) return;
@@ -1754,11 +1762,18 @@ Reference past context when relevant, but don't force it. Let the conversation f
     const onRecallAgentState = (event: unknown) => {
       if ((event as { newState?: string }).newState === 'speaking') recall.newTurn();
     };
+    // Ferni's committed replies: a follow-up it raised is closed for good
+    const onRecallItem = (event: unknown) => {
+      const item = (event as { item?: { role?: string; textContent?: string } }).item;
+      if (item?.role === 'assistant' && item.textContent) recall.agentSaid(item.textContent);
+    };
     sessionWithEvents.on('user_input_transcribed', onRecallTranscript);
     sessionWithEvents.on('agent_state_changed', onRecallAgentState);
+    sessionWithEvents.on('conversation_item_added', onRecallItem);
     cleanupFunctions.push(() => {
       sessionWithEvents.off?.('user_input_transcribed', onRecallTranscript);
       sessionWithEvents.off?.('agent_state_changed', onRecallAgentState);
+      sessionWithEvents.off?.('conversation_item_added', onRecallItem);
     });
 
     // Remember what made them laugh, for a callback on a later call.

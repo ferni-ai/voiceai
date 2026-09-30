@@ -29,6 +29,24 @@ describe('createMemoryRecall', () => {
     expect(recall.noteFor('Biscuit is asleep now')).toBeNull();
   });
 
+  it('closes a follow-up once Ferni raises it, and only an offered one', async () => {
+    const closed: string[] = [];
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      store,
+      closeFollowUp: (f) => closed.push(f.id),
+    });
+    await recall.ready;
+
+    recall.agentSaid('How is Biscuit settling in?');
+    expect(closed).toEqual([]); // not offered yet
+
+    recall.noteFor('Hey, how are you?');
+    recall.agentSaid('Good to hear you! How is Biscuit settling in at the new place?');
+    recall.agentSaid('And Biscuit is settling in okay?');
+    expect(closed).toEqual(['biscuit-settling']);
+  });
+
   it('recalls at most 4 facts per user turn across interim transcripts, then resets', async () => {
     const many = {
       facts: async () =>
@@ -77,7 +95,10 @@ describe('addRecallNote', () => {
     const agent = new voice.Agent({ instructions: 'You are Ferni.' });
     const before = agent.chatCtx.items.length;
 
-    addRecallNote(agent as unknown as RecallAgent, '[WHAT YOU REMEMBER] Biscuit is a golden retriever');
+    addRecallNote(
+      agent as unknown as RecallAgent,
+      '[WHAT YOU REMEMBER] Biscuit is a golden retriever'
+    );
 
     // Synchronous: preemptive generation copies the context in the same tick.
     const items = agent.chatCtx.items;

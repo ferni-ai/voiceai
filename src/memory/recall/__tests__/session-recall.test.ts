@@ -17,12 +17,24 @@ const biscuitShoes = {
   value: "chewed through 2 of Speaker's shoes",
   confidence: 0.9,
 };
-const austinJob = { entity: 'Austin', key: 'job_offer', value: 'new job in Austin', confidence: 0.8 };
-const selfFact = { entity: 'Speaker', key: 'feeling', value: 'rough week, not sleeping', confidence: 0.7 };
+const austinJob = {
+  entity: 'Austin',
+  key: 'job_offer',
+  value: 'new job in Austin',
+  confidence: 0.8,
+};
+const selfFact = {
+  entity: 'Speaker',
+  key: 'feeling',
+  value: 'rough week, not sleeping',
+  confidence: 0.7,
+};
 
 const snapshot: RecallSnapshot = {
   facts: [biscuitBreed, biscuitShoes, austinJob, selfFact],
-  followUps: ['Ask how the shoe situation with Biscuit is going'],
+  followUps: [
+    { id: 'shoe-biscuit', text: 'Ask how the shoe situation with Biscuit is going', at: 0 },
+  ],
   laughs: [],
 };
 
@@ -76,7 +88,9 @@ describe('formatRecall', () => {
     expect(note).toContain('[WHAT YOU REMEMBER ABOUT SAM]');
     expect(note).toContain('- Biscuit: breed = golden retriever');
     expect(note).toContain('- Sam: feeling = rough week, not sleeping');
-    expect(note).toContain('- Ask how the shoe situation with Biscuit is going');
+    expect(note).toContain(
+      '- Ask how the shoe situation with Biscuit is going [said on an earlier call]'
+    );
   });
 
   it('returns null when there is nothing to recall', () => {
@@ -100,11 +114,23 @@ describe('loadRecallSnapshot', () => {
       'u1'
     );
     expect(snap.facts).toEqual([biscuitBreed]);
-    expect(snap.followUps).toEqual([
+    expect(snap.followUps.map((f) => f.text)).toEqual([
       'Ask about the vet visit',
       'Ask about the shoes',
       'Ask about Austin',
     ]);
+  });
+
+  it('leaves out threads already raised on an earlier call', async () => {
+    const snap = await loadRecallSnapshot(
+      {
+        facts: async () => [],
+        summaries: async () => [{ followUpItems: ['Ask about the vet visit', 'Ask about Austin'] }],
+        closedFollowUps: async () => ['vet-visit'],
+      },
+      'u1'
+    );
+    expect(snap.followUps.map((f) => f.text)).toEqual(['Ask about Austin']);
   });
 
   it('returns an empty snapshot when the store fails', async () => {

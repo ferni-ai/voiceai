@@ -14,7 +14,7 @@
  * @module memory/recall/shared-laughs
  */
 
-import { contentWords } from './session-recall.js';
+import { contentWords } from './words.js';
 
 export interface SharedLaugh {
   id: string;

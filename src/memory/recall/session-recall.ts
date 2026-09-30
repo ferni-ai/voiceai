@@ -15,7 +15,11 @@
  * @module memory/recall/session-recall
  */
 
+import { followUpsFromSummaries, formatFollowUps, type FollowUp } from './follow-ups.js';
 import type { SharedLaugh } from './shared-laughs.js';
+import { contentWords, mentions } from './words.js';
+
+export { contentWords, mentions };
 
 export interface RecallFact {
   entity: string;
@@ -26,8 +30,8 @@ export interface RecallFact {
 
 export interface RecallSnapshot {
   facts: RecallFact[];
-  /** Open threads from recent sessions ("ask how the vet visit went"). */
-  followUps: string[];
+  /** Open threads from recent sessions ("ask how the vet visit went"), with when. */
+  followUps: FollowUp[];
   /** Moments they laughed at, for callbacks (see shared-laughs.ts). */
   laughs: SharedLaugh[];
 }
@@ -36,31 +40,6 @@ export const EMPTY_SNAPSHOT: RecallSnapshot = { facts: [], followUps: [], laughs
 
 /** The entity the extractor uses for the caller themself. */
 const SELF_ENTITY = /^(speaker|user|me)$/i;
-
-const STOPWORDS = new Set(
-  'the and but for with that this was are you your have has had not just about what when where how who why can could would should will from they them their there then than into onto been being its it\'s i\'m im my our out get got going really very some like know think well yeah okay also'.split(
-    ' '
-  )
-);
-
-/** Content words: lowercase, 3+ letters, not stopwords, plural "s" dropped ("shoes" = "shoe"). */
-export function contentWords(text: string): Set<string> {
-  const words = text.toLowerCase().match(/[a-z][a-z']{2,}/g) ?? [];
-  return new Set(
-    words
-      .map((w) => w.replace(/'s$/, ''))
-      .filter((w) => !STOPWORDS.has(w))
-      .map((w) => (w.length > 3 && /[^s]s$/.test(w) ? w.slice(0, -1) : w))
-  );
-}
-
-/** True when `phrase` appears in `text` as whole words (so "Austin" never matches "exhausting"). */
-export function mentions(text: string, phrase: string): boolean {
-  const p = phrase.trim().toLowerCase();
-  if (p.length < 2) return false;
-  const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
-  return new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`, 'i').test(text);
-}
 
 /** Same fact extracted in several sessions counts once, at its highest confidence. */
 export function dedupeFacts(facts: RecallFact[]): RecallFact[] {
@@ -110,8 +89,9 @@ export function recallForTurn(
 /** A context note for the LLM, or null when there is nothing to recall. */
 export function formatRecall(
   facts: RecallFact[],
-  followUps: string[],
-  userName?: string
+  followUps: FollowUp[],
+  userName?: string,
+  clock: { now?: number; timezone?: string } = {}
 ): string | null {
   if (facts.length === 0 && followUps.length === 0) return null;
   const who = userName || 'them';
@@ -120,10 +100,7 @@ export function formatRecall(
     const subject = SELF_ENTITY.test(f.entity) ? who : f.entity;
     lines.push(`- ${subject}: ${f.key.replace(/_/g, ' ')} = ${f.value}`);
   }
-  if (followUps.length > 0) {
-    lines.push('Open threads from last time:');
-    for (const item of followUps) lines.push(`- ${item}`);
-  }
+  lines.push(...formatFollowUps(followUps, clock.now ?? Date.now(), clock.timezone));
   lines.push(
     'Use at most one of these, and only if it fits naturally, the way a friend who remembers would. Never list them or say you looked it up.'
   );
@@ -136,20 +113,22 @@ export interface RecallStore {
   summaries(userId: string): Promise<Array<Record<string, unknown>>>;
   /** Shared laughs and inside jokes, already normalized. Optional: older stores have none. */
   laughs?(userId: string): Promise<SharedLaugh[]>;
+  /** Ids of threads already raised on an earlier call. Optional like laughs. */
+  closedFollowUps?(userId: string): Promise<string[]>;
 }
 
 const MAX_FACTS = 300;
-const MAX_FOLLOW_UPS = 3;
 
 /** Load a user's recall snapshot. Never throws; an unreachable store yields an empty snapshot. */
 export async function loadRecallSnapshot(
   store: RecallStore,
   userId: string
 ): Promise<RecallSnapshot> {
-  const [rawFacts, rawSummaries, laughs] = await Promise.all([
+  const [rawFacts, rawSummaries, laughs, closed] = await Promise.all([
     store.facts(userId).catch(() => []),
     store.summaries(userId).catch(() => []),
     store.laughs ? store.laughs(userId).catch(() => []) : Promise.resolve([]),
+    store.closedFollowUps ? store.closedFollowUps(userId).catch(() => []) : Promise.resolve([]),
   ]);
   const facts = dedupeFacts(
     rawFacts.slice(0, MAX_FACTS).map((d) => ({
@@ -159,14 +138,6 @@ export async function loadRecallSnapshot(
       confidence: typeof d.confidence === 'number' ? d.confidence : 0.5,
     }))
   );
-  const followUps: string[] = [];
-  for (const s of rawSummaries) {
-    for (const item of Array.isArray(s.followUpItems) ? s.followUpItems : []) {
-      const text = String(item).trim();
-      if (text && !followUps.includes(text)) followUps.push(text);
-      if (followUps.length >= MAX_FOLLOW_UPS) break;
-    }
-    if (followUps.length >= MAX_FOLLOW_UPS) break;
-  }
+  const followUps = followUpsFromSummaries(rawSummaries, new Set(closed));
   return { facts, followUps, laughs };
 }

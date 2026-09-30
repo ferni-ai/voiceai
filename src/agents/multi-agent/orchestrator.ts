@@ -246,6 +246,7 @@ export class AgentOrchestrator {
         | {
             userName?: string;
             timezone?: string;
+            openingThread?: () => Promise<string | null>;
             services?: { userProfile?: Parameters<typeof greetingFamiliarity>[0] };
           }
         | undefined;
@@ -264,13 +265,19 @@ export class AgentOrchestrator {
       const { directedText } = await import('../../speech/direction/index.js');
       const partOfDay = clock.partOfDay;
       const userName = userData?.userName;
+      // Something they told you was coming up: a friend opens with it
+      const openThread = await userData?.openingThread?.().catch(() => null);
       const directed = await directedText(this.sessionId, {
         moment: 'greeting',
         direction:
-          'They just connected for a voice call. Greet them like a friend picking up the phone: warm, short, and end with one easy opening. Do not list what you can do or introduce yourself at length.',
+          'They just connected for a voice call. Greet them like a friend picking up the phone: warm, short, and end with one easy opening. Do not list what you can do or introduce yourself at length.' +
+          (openThread
+            ? ' If it fits, the opening can be the open thread from last time: work out from when it was said whether it has happened, and ask how it went or how it is going.'
+            : ''),
         facts: {
           'time of day': partOfDay,
           ...(userName ? { 'their name': userName } : {}),
+          ...(openThread ? { 'open thread from last time': openThread } : {}),
           ...familiarity.facts,
         },
         fallback: scripted,

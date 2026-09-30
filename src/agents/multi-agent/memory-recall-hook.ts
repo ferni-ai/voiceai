@@ -16,7 +16,9 @@
  * onUserTurnCompleted"). Agent.updateChatCtx sets the context synchronously
  * before its first await, so calling it from the listener lands first.
  *
- * Follow-ups from recent sessions are offered once, with the first recall.
+ * Follow-ups from recent sessions are offered once, with the first recall,
+ * with when each came up. One that Ferni's reply actually raises is closed
+ * for good, so it is never asked about twice.
  * A shared laugh the turn echoes is offered as a callback, once per call.
  *
  * @module agents/multi-agent/memory-recall-hook
@@ -30,6 +32,7 @@ import {
   type RecallSnapshot,
   type RecallStore,
 } from '../../memory/recall/session-recall.js';
+import { raisedIn, whenSaid, type FollowUp } from '../../memory/recall/follow-ups.js';
 import {
   callbackForTurn,
   formatCallback,
@@ -72,6 +75,17 @@ export const firestoreRecallStore: RecallStore = {
       .get();
     return snap.docs.map((d) => d.data());
   },
+  async closedFollowUps(userId) {
+    const db = getFirestoreDb();
+    if (!db) return [];
+    const snap = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection(CLOSED_FOLLOW_UPS)
+      .limit(200)
+      .get();
+    return snap.docs.map((d) => d.id);
+  },
   async laughs(userId) {
     const db = getFirestoreDb();
     if (!db) return [];
@@ -91,6 +105,7 @@ export const firestoreRecallStore: RecallStore = {
 
 const SHARED_LAUGHS = 'shared_laughs';
 const MAX_LAUGHS = 30;
+const CLOSED_FOLLOW_UPS = 'closed_follow_ups';
 
 /**
  * Record how a callback went: landed (another laugh) or flat. Stored on the
@@ -143,10 +158,30 @@ export async function saveSharedLaugh(userId: string, laugh: SharedLaugh): Promi
   }
 }
 
+/** Remember that a thread was raised, so later calls do not ask again. Never throws. */
+export async function saveClosedFollowUp(userId: string, followUp: FollowUp): Promise<void> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return;
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection(CLOSED_FOLLOW_UPS)
+      .doc(followUp.id)
+      .set({ text: followUp.text, saidAt: followUp.at, raisedAt: Date.now() });
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Closed follow-up not saved');
+  }
+}
+
 export interface MemoryRecallDeps {
   userId: string;
   userName?: string;
+  /** The caller's IANA timezone, for "yesterday" in their calendar. */
+  timezone?: string;
   store?: RecallStore;
+  /** A thread Ferni raised (see saveClosedFollowUp). */
+  closeFollowUp?: (followUp: FollowUp) => void;
 }
 
 export interface MemoryRecall {
@@ -158,6 +193,13 @@ export interface MemoryRecall {
   newTurn(): void;
   /** The callback offered since the last call, if any (to learn whether it landed). */
   takeOfferedCallback(): SharedLaugh | null;
+  /** Ferni said this: close any offered thread it raised. */
+  agentSaid(text: string): void;
+  /**
+   * The newest open thread, worded for the greeting ("Interview on Thursday,
+   * said 3 days ago (Tuesday)"), or null. Waits briefly for memory to load.
+   */
+  openingThread(maxWaitMs?: number): Promise<string | null>;
 }
 
 /**
@@ -172,6 +214,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let snapshot: RecallSnapshot | undefined;
   const surfaced = new Set<string>();
   let followUpsOffered = false;
+  let openFollowUps: FollowUp[] = [];
   let factsThisTurn = 0;
   // One callback per call: a running joke lands because it is rare.
   let calledBack = false;
@@ -200,11 +243,14 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const followUps = followUpsOffered ? [] : snapshot.followUps;
       const laugh = calledBack ? null : callbackForTurn(snapshot.laughs, text, surfaced);
       const notes = [
-        formatRecall(facts, followUps, deps.userName),
+        formatRecall(facts, followUps, deps.userName, { timezone: deps.timezone }),
         laugh ? formatCallback(laugh, deps.userName) : null,
       ].filter((n): n is string => n !== null);
       if (notes.length === 0) return null;
-      if (followUps.length > 0) followUpsOffered = true;
+      if (followUps.length > 0) {
+        followUpsOffered = true;
+        openFollowUps = [...followUps];
+      }
       factsThisTurn += facts.length;
       for (const f of facts) surfaced.add(factId(f));
       if (laugh) {
@@ -225,6 +271,26 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const laugh = offered;
       offered = null;
       return laugh;
+    },
+    async openingThread(maxWaitMs = 300) {
+      await Promise.race([
+        ready,
+        new Promise<void>((resolve) => {
+          setTimeout(resolve, maxWaitMs);
+        }),
+      ]);
+      const thread = snapshot?.followUps[0];
+      if (!thread) return null;
+      // Ferni may raise it in the greeting; saying it there closes it too
+      if (!openFollowUps.includes(thread)) openFollowUps = [...openFollowUps, thread];
+      return `${thread.text} (said ${whenSaid(thread.at, Date.now(), deps.timezone)})`;
+    },
+    agentSaid(text) {
+      const raised = raisedIn(text, openFollowUps);
+      if (raised.length === 0) return;
+      openFollowUps = openFollowUps.filter((f) => !raised.includes(f));
+      for (const f of raised) deps.closeFollowUp?.(f);
+      log.info({ raised: raised.length }, 'Follow-up raised');
     },
   };
 }
