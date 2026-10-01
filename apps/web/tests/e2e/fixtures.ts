@@ -6,9 +6,10 @@
  *
  * - A dev auth user is seeded in localStorage (read only in development builds
  *   when Firebase isn't configured, see src/services/dev-auth-user.ts).
- * - Backend routes the Vite dev server would proxy to the UI server are
- *   answered with page.route, so nothing leaves the machine.
- * - GSAP, normally loaded from cdnjs, is served from node_modules.
+ * - Backend routes and WebSockets the Vite dev server would proxy to the UI
+ *   server are answered in the page, so nothing leaves the machine.
+ * - GSAP, normally loaded from cdnjs, is served from node_modules; every other
+ *   off-machine request is aborted.
  *
  * Tests can override any route by calling page.route again: the most recently
  * registered handler wins.
@@ -51,9 +52,15 @@ export const MOCK_AGENTS = [
   },
 ];
 
-/** Backend paths the Vite dev server proxies to the UI server. */
+/** Backend paths the Vite dev server proxies to the UI server (vite.config.ts server.proxy). */
 const BACKEND_ROUTE =
-  /^https?:\/\/[^/]+\/(api|token|subscription|spotify|wearables|health)(\/|\?|$)/;
+  /^https?:\/\/[^/]+\/(api|token|token-url|demo-token|auth|calendar|subscription|usage|spotify|wearables|health)(\/|\?|$)/;
+
+/** Any http(s) request that isn't to this machine. */
+const EXTERNAL_REQUEST = /^https?:\/\/(?!(localhost|127\.0\.0\.1)[:/])/;
+
+/** Proxied WebSockets (/ws/insights, /ws/life-context, /ws/director). */
+const BACKEND_SOCKET = /^wss?:\/\/[^/]+\/ws\//;
 
 const gsapSource = (() => {
   try {
@@ -70,7 +77,11 @@ function fulfillJson(route: Route, body: unknown, status = 200): Promise<void> {
 
 /** Answer backend calls locally so the app runs without the UI server. */
 export async function mockBackend(page: Page): Promise<void> {
-  await page.route(BACKEND_ROUTE, (route) => {
+  // Registered first, so every route below (and any a test adds) wins over it:
+  // nothing third-party (Spotify SDK, Google, fonts, analytics) is fetched.
+  await page.context().route(EXTERNAL_REQUEST, (route) => route.abort('blockedbyclient'));
+
+  await page.context().route(BACKEND_ROUTE, (route) => {
     const url = new URL(route.request().url());
     if (url.pathname === '/api/agents') {
       return fulfillJson(route, {
@@ -83,6 +94,10 @@ export async function mockBackend(page: Page): Promise<void> {
     // the app must tolerate.
     return fulfillJson(route, { error: 'Not found' }, 404);
   });
+
+  // Accept the socket and never reply, like a quiet server. Not calling
+  // connectToServer keeps it off the (absent) UI server.
+  await page.context().routeWebSocket(BACKEND_SOCKET, () => {});
 
   if (gsapSource) {
     await page.route(/cdnjs\.cloudflare\.com\/ajax\/libs\/gsap\//, (route) =>

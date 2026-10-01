@@ -18,10 +18,11 @@ import { defineConfig, devices } from '@playwright/test';
  * See https://playwright.dev/docs/test-configuration.
  */
 /**
- * Port the app is served on. Defaults to the Vite dev port (3004); override with
- * PLAYWRIGHT_PORT to run next to an already-running dev server.
+ * Port the app is served on. Not the dev port (3004), so a local run never
+ * reuses a developer's dev server, whose proxy reaches their real UI server.
+ * Override with PLAYWRIGHT_PORT.
  */
-const PORT = Number(process.env.PLAYWRIGHT_PORT ?? 3004);
+const PORT = Number(process.env.PLAYWRIGHT_PORT ?? 3014);
 const BASE_URL = `http://localhost:${PORT}`;
 
 export default defineConfig({
@@ -40,10 +41,7 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: [
-    ['html', { open: 'never' }],
-    ['list'],
-  ],
+  reporter: [['html', { open: 'never' }], ['list']],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -103,6 +101,10 @@ export default defineConfig({
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
+    // No backend proxy: tests mock the backend in the page (tests/e2e/fixtures.ts),
+    // and a request that outlives its page gets a local 404 instead of reaching
+    // a UI server on 3002.
+    env: { FERNI_E2E_OFFLINE: '1' },
   },
 
   /* Global test timeout */

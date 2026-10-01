@@ -135,53 +135,58 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3004,
-      proxy: {
-        // UI server handles EVERYTHING (tokens, OAuth, APIs)
-        // Run with: PORT=3002 node ui-server.js
-        '/token': 'http://localhost:3002',
-        '/token-url': 'http://localhost:3002',
-        '/demo-token': 'http://localhost:3002',
-        '/spotify': 'http://localhost:3002',
-        '/wearables': 'http://localhost:3002',
-        '/auth': 'http://localhost:3002',
-        '/api': 'http://localhost:3002',
-        '/calendar': 'http://localhost:3002', // Calendar provider routes (Apple, Outlook)
-        '/subscription': 'http://localhost:3002',
-        '/usage': 'http://localhost:3002',
-        '/health': 'http://localhost:3002',
-        // WebSocket for real-time team insights
-        // Note: WebSocket proxy can be flaky in dev - failures are non-critical
-        '/ws/insights': {
-          target: 'http://localhost:3002',
-          ws: true,
-          changeOrigin: true,
-          configure: (proxy) => {
-            proxy.on('error', () => {
-              // Silently handle proxy errors - WS reconnects automatically
-            });
-          },
-        },
-        '/ws/life-context': {
-          target: 'http://localhost:3002',
-          ws: true,
-          changeOrigin: true,
-          configure: (proxy) => {
-            proxy.on('error', () => {
-              // Silently handle proxy errors - WS reconnects automatically
-            });
-          },
-        },
-        '/ws/director': {
-          target: 'http://localhost:3002',
-          ws: true,
-          changeOrigin: true,
-          configure: (proxy) => {
-            proxy.on('error', () => {
-              // Silently handle proxy errors - WS reconnects automatically
-            });
-          },
-        },
-      },
+      // The offline E2E suite (playwright.config.ts) mocks the backend and must
+      // never reach a real UI server.
+      proxy:
+        process.env.FERNI_E2E_OFFLINE === '1'
+          ? undefined
+          : {
+              // UI server handles EVERYTHING (tokens, OAuth, APIs)
+              // Run with: PORT=3002 node ui-server.js
+              '/token': 'http://localhost:3002',
+              '/token-url': 'http://localhost:3002',
+              '/demo-token': 'http://localhost:3002',
+              '/spotify': 'http://localhost:3002',
+              '/wearables': 'http://localhost:3002',
+              '/auth': 'http://localhost:3002',
+              '/api': 'http://localhost:3002',
+              '/calendar': 'http://localhost:3002', // Calendar provider routes (Apple, Outlook)
+              '/subscription': 'http://localhost:3002',
+              '/usage': 'http://localhost:3002',
+              '/health': 'http://localhost:3002',
+              // WebSocket for real-time team insights
+              // Note: WebSocket proxy can be flaky in dev - failures are non-critical
+              '/ws/insights': {
+                target: 'http://localhost:3002',
+                ws: true,
+                changeOrigin: true,
+                configure: (proxy) => {
+                  proxy.on('error', () => {
+                    // Silently handle proxy errors - WS reconnects automatically
+                  });
+                },
+              },
+              '/ws/life-context': {
+                target: 'http://localhost:3002',
+                ws: true,
+                changeOrigin: true,
+                configure: (proxy) => {
+                  proxy.on('error', () => {
+                    // Silently handle proxy errors - WS reconnects automatically
+                  });
+                },
+              },
+              '/ws/director': {
+                target: 'http://localhost:3002',
+                ws: true,
+                changeOrigin: true,
+                configure: (proxy) => {
+                  proxy.on('error', () => {
+                    // Silently handle proxy errors - WS reconnects automatically
+                  });
+                },
+              },
+            },
     },
     build: {
       outDir: 'dist',
