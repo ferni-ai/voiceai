@@ -9,6 +9,9 @@ dotenv.config({ path: '.env.test' });
 // server for credentials and waits out its retries on CI runners, which
 // stretches some suites to minutes.
 process.env.METADATA_SERVER_DETECTION ??= 'none';
+// Some clients (an unmocked Firestore looking up its project) query the
+// metadata server directly; point them at a closed port so they fail at once.
+process.env.GCE_METADATA_HOST ??= '127.0.0.1:1';
 
 // ============================================================================
 // GLOBAL FIRESTORE MOCKS
