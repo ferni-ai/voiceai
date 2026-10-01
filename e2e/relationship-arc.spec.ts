@@ -174,7 +174,9 @@ test.describe('Relationship Arc System', () => {
       await page.goto('/?dev');
       await page.waitForLoadState('networkidle');
 
-      // Open dev panel with keyboard shortcut
+      // Open dev panel with keyboard shortcut (its listener is attached
+      // together with the DEV badge)
+      await page.waitForSelector('.dev-indicator');
       await page.keyboard.press('Meta+Shift+D');
       await page.waitForTimeout(500);
 

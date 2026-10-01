@@ -11,7 +11,7 @@
  * - Dashboard links
  */
 
-import { expect, test } from './support/fixtures';
+import { expect, test, type Page } from './support/fixtures';
 import { APP_URL } from './support/env';
 import { seedRelationship } from './support/app';
 
@@ -22,6 +22,17 @@ const DEV_KEY = process.env.DEV_PANEL_KEY || 'ferni2024';
 test.beforeEach(async ({ page }) => {
   await seedRelationship(page);
 });
+
+/**
+ * Open the panel with Cmd/Ctrl+Shift+D. The shortcut listener is attached
+ * together with the DEV badge (initDevPanel in ui/dev-panel.ui.ts), so wait
+ * for the badge first; pressing earlier is silently ignored.
+ */
+async function openPanelWithShortcut(page: Page): Promise<void> {
+  await page.waitForSelector('.dev-indicator');
+  await page.keyboard.press('Meta+Shift+D');
+  await page.waitForSelector('.dev-panel--visible');
+}
 
 test.describe('Dev Panel - Initialization', () => {
   test('shows DEV badge with ?dev param in dev environment', async ({ page }) => {
@@ -41,6 +52,8 @@ test.describe('Dev Panel - Initialization', () => {
     await page.waitForTimeout(1000);
 
     // Use keyboard shortcut
+    // The shortcut listener is attached together with the DEV badge
+    await page.waitForSelector('.dev-indicator');
     await page.keyboard.press('Meta+Shift+D');
 
     // Panel should appear
@@ -67,6 +80,8 @@ test.describe('Dev Panel - Initialization', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
 
+    // The shortcut listener is attached together with the DEV badge
+    await page.waitForSelector('.dev-indicator');
     await page.keyboard.press('Meta+Shift+D');
     await page.waitForTimeout(500);
 
@@ -83,8 +98,7 @@ test.describe('Dev Panel - Tier Switching', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('switches to Free tier', async ({ page }) => {
@@ -111,8 +125,7 @@ test.describe('Dev Panel - Stage Override', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('switches to first-meeting stage', async ({ page }) => {
@@ -139,8 +152,7 @@ test.describe('Dev Panel - Quick Actions', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('unlock all sets Partner tier', async ({ page }) => {
@@ -179,8 +191,7 @@ test.describe('Dev Panel - Team Members', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('displays all team members', async ({ page }) => {
@@ -204,8 +215,7 @@ test.describe('Dev Panel - Avatar Animations', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('triggers bounce animation', async ({ page }) => {
@@ -238,8 +248,7 @@ test.describe('Dev Panel - Ferni EQ', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('triggers micro-expression', async ({ page }) => {
@@ -272,8 +281,7 @@ test.describe('Dev Panel - Modal Triggers', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('triggers upgrade modal', async ({ page }) => {
@@ -310,8 +318,7 @@ test.describe('Dev Panel - Toast Notifications', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('triggers success toast', async ({ page }) => {
@@ -364,8 +371,7 @@ test.describe('Dev Panel - FTUE Controls', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('reset FTUE shows toast', async ({ page }) => {
@@ -394,8 +400,7 @@ test.describe('Dev Panel - Subscription Controls', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('bypass toggle works', async ({ page }) => {
@@ -422,8 +427,7 @@ test.describe('Dev Panel - Connection States', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('triggers connecting state', async ({ page }) => {
@@ -456,8 +460,7 @@ test.describe('Dev Panel - Time Override', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('sets morning time', async ({ page }) => {
@@ -502,8 +505,7 @@ test.describe('Dev Panel - Easter Eggs', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('triggers confetti', async ({ page }) => {
@@ -537,8 +539,7 @@ test.describe('Dev Panel - Storage Actions', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('view storage logs to console', async ({ page }) => {
@@ -571,8 +572,7 @@ test.describe('Dev Panel - Waveform States', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('sets idle waveform', async ({ page }) => {
@@ -605,8 +605,7 @@ test.describe('Dev Panel - Network Simulation', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('sets excellent network', async ({ page }) => {
@@ -639,8 +638,7 @@ test.describe('Dev Panel - Streak Celebrations', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('triggers 7-day streak celebration', async ({ page }) => {
@@ -673,8 +671,7 @@ test.describe('Dev Panel - Narrative System', () => {
     await page.goto(`${APP_URL}/?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
-    await page.keyboard.press('Meta+Shift+D');
-    await page.waitForTimeout(500);
+    await openPanelWithShortcut(page);
   });
 
   test('triggers first_launch beat', async ({ page }) => {
@@ -739,6 +736,8 @@ test.describe('Dev Panel - Keyboard Shortcuts', () => {
     await page.waitForTimeout(500);
 
     // Open panel to verify
+    // The shortcut listener is attached together with the DEV badge
+    await page.waitForSelector('.dev-indicator');
     await page.keyboard.press('Meta+Shift+D');
     await page.waitForTimeout(500);
 
@@ -761,6 +760,8 @@ test.describe('Dev Panel - Keyboard Shortcuts', () => {
     await page.waitForTimeout(500);
 
     // Open panel to verify
+    // The shortcut listener is attached together with the DEV badge
+    await page.waitForSelector('.dev-indicator');
     await page.keyboard.press('Meta+Shift+D');
     await page.waitForTimeout(500);
 
