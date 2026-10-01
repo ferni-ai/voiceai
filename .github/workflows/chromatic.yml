@@ -18,6 +18,10 @@ jobs:
   chromatic:
     name: Visual Regression Tests
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # The repo's default token is read-only; this job's PR comment step needs write.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:

@@ -134,7 +134,13 @@ jobs:
   # ============================================================================
   deploy-staging:
     name: Deploy Staging
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # GitHub-hosted on purpose: this job holds GCP_SA_KEY, and the self-hosted CI
+    # runner runs PR code with docker (root) access. See ci.yml.
+    runs-on: ubuntu-latest
+    # The repo's default token is read-only; this job's PR comment step needs write.
+    permissions:
+      contents: read
+      pull-requests: write
     needs: [context, build]
     environment:
       name: ${{ needs.context.outputs.env_name }}
@@ -322,7 +328,9 @@ jobs:
   # ============================================================================
   cleanup:
     name: Cleanup Old Staging
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # GitHub-hosted on purpose: this job holds GCP_SA_KEY, and the self-hosted CI
+    # runner runs PR code with docker (root) access. See ci.yml.
+    runs-on: ubuntu-latest
     if: ${{ inputs.cleanup || (github.event_name == 'pull_request' && github.event.action == 'closed') }}
     
     steps:

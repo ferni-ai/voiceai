@@ -488,6 +488,16 @@ at once. Each has its own user so pnpm/npm/Playwright caches in `$HOME` are not 
 (root-equivalent), so `deploy-gce.yml` (which uses `GCP_SA_KEY` and production secrets) is GitHub-hosted.
 The VM runs as `github-runner-ci@johnb-2025.iam.gserviceaccount.com`, which can only write logs and
 metrics; don't give it project roles, and don't add a deploy runner to this VM.
+Jobs that hold deploy or publish credentials (`deploy-gce.yml`, `staging.yml` deploy/cleanup with `GCP_SA_KEY`,
+`design-system.yml` publish with `NPM_TOKEN`) are pinned to `ubuntu-latest` for the same reason.
+
+VM-side config (not in the repo, re-create it if the VM is rebuilt):
+- **Workspace hook:** each runner's `.env` sets `ACTIONS_RUNNER_HOOK_JOB_STARTED=/opt/runner-hooks/reclaim-workspace.sh`,
+  which hands root-owned files left by container actions (e.g. TruffleHog) back to the runner user before checkout;
+  without it the next checkout fails with `EACCES`.
+- **Memory guard:** 8 GB `/swapfile` (in `/etc/fstab`) and `earlyoom` (`/etc/default/earlyoom`: prefers killing
+  node/codeql/java/cargo/…, avoids the runner listeners, sshd, systemd, docker). Two heavy jobs at once (CodeQL + an
+  image build) once exhausted the 15 GB and hung the VM until it was hard-reset.
 
 ```yaml
 jobs:

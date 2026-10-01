@@ -27,7 +27,7 @@ import { spawn, execSync, ChildProcess } from 'child_process';
 import { existsSync, mkdirSync, writeFileSync, readFileSync, unlinkSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = dirname(dirname(__dirname));
+const PROJECT_ROOT = join(__dirname, '..', '..', '..', '..', '..');
 
 // Load environment
 dotenvConfig({ path: join(PROJECT_ROOT, '.env') });

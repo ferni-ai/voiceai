@@ -23,6 +23,10 @@ jobs:
   e2e:
     name: Playwright Tests
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # The repo's default token is read-only; this job's PR comment step needs write.
+    permissions:
+      contents: read
+      pull-requests: write
     # Only run on successful deployments or manual/PR triggers
     if: |
       github.event_name != 'deployment_status' ||
