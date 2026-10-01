@@ -226,12 +226,18 @@ function getBreathingDuration(): number {
  */
 function startBreathingAnimation(): void {
   if (!avatarContainer) return;
-  
+
   // Cancel existing animations
   if (breathingAnimation) {
     breathingAnimation.cancel();
   }
-  
+
+  // Respect reduced motion, like the other presence animations
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    breathingAnimation = null;
+    return;
+  }
+
   const p = getCharacterParams();
   const duration = getBreathingDuration();
   

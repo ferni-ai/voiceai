@@ -318,33 +318,44 @@ test.describe('Dev Panel - Toast Notifications', () => {
     const successBtn = page.locator('[data-toast="success"]');
     await successBtn.click();
 
-    // Toast should appear
-    const toast = page.locator('.whisper');
-    await expect(toast).toBeVisible({ timeout: 3000 });
+    // Toast should appear: the dev toasts use the status whisper under the
+    // avatar (ui/avatar-feedback.ui.ts), which fades in via opacity
+    const toast = page.locator('#statusWhisper');
+    await expect(toast).toHaveText('Great job!', { timeout: 3000 });
+    await expect(toast).toHaveCSS('opacity', '1');
   });
 
   test('triggers error toast', async ({ page }) => {
     const errorBtn = page.locator('[data-toast="error"]');
     await errorBtn.click();
 
-    const toast = page.locator('.whisper');
-    await expect(toast).toBeVisible({ timeout: 3000 });
+    // Toast should appear: the dev toasts use the status whisper under the
+    // avatar (ui/avatar-feedback.ui.ts), which fades in via opacity
+    const toast = page.locator('#statusWhisper');
+    await expect(toast).toHaveText('Something went wrong.', { timeout: 3000 });
+    await expect(toast).toHaveCSS('opacity', '1');
   });
 
   test('triggers info toast', async ({ page }) => {
     const infoBtn = page.locator('[data-toast="info"]');
     await infoBtn.click();
 
-    const toast = page.locator('.whisper');
-    await expect(toast).toBeVisible({ timeout: 3000 });
+    // Toast should appear: the dev toasts use the status whisper under the
+    // avatar (ui/avatar-feedback.ui.ts), which fades in via opacity
+    const toast = page.locator('#statusWhisper');
+    await expect(toast).toHaveText("Here's some info.", { timeout: 3000 });
+    await expect(toast).toHaveCSS('opacity', '1');
   });
 
   test('triggers warning toast', async ({ page }) => {
     const warningBtn = page.locator('[data-toast="warning"]');
     await warningBtn.click();
 
-    const toast = page.locator('.whisper');
-    await expect(toast).toBeVisible({ timeout: 3000 });
+    // Toast should appear: the dev toasts use the status whisper under the
+    // avatar (ui/avatar-feedback.ui.ts), which fades in via opacity
+    const toast = page.locator('#statusWhisper');
+    await expect(toast).toHaveText('Please check your input.', { timeout: 3000 });
+    await expect(toast).toHaveCSS('opacity', '1');
   });
 });
 
@@ -450,7 +461,7 @@ test.describe('Dev Panel - Time Override', () => {
   });
 
   test('sets morning time', async ({ page }) => {
-    const morningBtn = page.locator('[data-time="morning"]');
+    const morningBtn = page.locator('button[data-time="morning"]');
     if (await morningBtn.isVisible()) {
       await morningBtn.click();
       // Check data-time attribute on html element
@@ -461,7 +472,7 @@ test.describe('Dev Panel - Time Override', () => {
   });
 
   test('sets night time', async ({ page }) => {
-    const nightBtn = page.locator('[data-time="night"]');
+    const nightBtn = page.locator('button[data-time="night"]');
     if (await nightBtn.isVisible()) {
       await nightBtn.click();
       await expect(page.locator('html')).toHaveAttribute('data-time', 'night', {
@@ -471,13 +482,13 @@ test.describe('Dev Panel - Time Override', () => {
   });
 
   test('resets to real time', async ({ page }) => {
-    const morningBtn = page.locator('[data-time="morning"]');
+    const morningBtn = page.locator('button[data-time="morning"]');
     if (await morningBtn.isVisible()) {
       await morningBtn.click();
       await page.waitForTimeout(300);
     }
 
-    const resetBtn = page.locator('[data-time="reset"]');
+    const resetBtn = page.locator('button[data-time="reset"]');
     if (await resetBtn.isVisible()) {
       await resetBtn.click();
       // data-time should be removed
