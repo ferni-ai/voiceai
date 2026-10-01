@@ -5,63 +5,13 @@
  * Handles token fetching, room creation, and connection lifecycle.
  */
 
-// Use global LiveKit from UMD script (better iOS compatibility)
-// The UMD script is loaded in index.html before this module
-declare global {
-  interface Window {
-    LiveKit: {
-      Room: new (options?: Record<string, unknown>) => LiveKitRoom;
-      RoomEvent: typeof RoomEventEnum;
-      Track: { Kind: { Audio: string; Video: string } };
-    };
-  }
-}
-
-// LiveKit types from global - use 'any' for flexibility with event handlers
-/* eslint-disable @typescript-eslint/no-explicit-any */
-interface LiveKitRoom {
-  state: string;
-  name: string;
-  localParticipant: {
-    identity: string;
-    setMicrophoneEnabled(enabled: boolean): Promise<void>;
-    getTrackPublications(): any[];
-    publishData(data: Uint8Array, options?: any): Promise<void>;
-  };
-  remoteParticipants: Map<string, any>;
-  connect(url: string, token: string, options?: Record<string, unknown>): Promise<void>;
-  disconnect(): Promise<void>;
-  on(event: string, callback: (...args: any[]) => void): LiveKitRoom;
-  off(event: string, callback: (...args: any[]) => void): LiveKitRoom;
-}
-/* eslint-enable @typescript-eslint/no-explicit-any */
-
-const RoomEventEnum = {
-  Connected: 'connected',
-  Disconnected: 'disconnected',
-  ConnectionStateChanged: 'connectionStateChanged',
-  TrackSubscribed: 'trackSubscribed',
-  DataReceived: 'dataReceived',
-  ParticipantConnected: 'participantConnected',
-  ParticipantDisconnected: 'participantDisconnected',
-} as const;
-
-// Get LiveKit from global (loaded via UMD script in index.html)
-const getLiveKit = () => {
-  const liveKit = typeof window !== 'undefined' ? window.LiveKit : undefined;
-  if (liveKit) {
-    return liveKit;
-  }
-  throw new Error('LiveKit not loaded. Make sure the UMD script is included.');
-};
-
-import { API } from '../config/index.js';
 import { appState, setConnectionState } from '../state/app.state.js';
 import type { ConnectionState, DataMessage } from '../types/events.js';
-import type { RoomState, TokenRequest, TokenResponse } from '../types/livekit.js';
-import { isValidTokenResponse } from '../types/livekit.js';
+import type { RoomState, TokenRequest } from '../types/livekit.js';
 import { createLogger } from '../utils/logger.js';
 import { spotifyService } from './spotify.service.js';
+import { getLiveKit, type LiveKitRoom } from './connection-livekit.js';
+import { fetchToken, mapConnectionState } from './connection-helpers.js';
 
 const log = createLogger('Connection');
 
@@ -403,7 +353,7 @@ class ConnectionService {
       // Fetch token
       let tokenResponse;
       try {
-        tokenResponse = await this.fetchToken(tokenRequest);
+        tokenResponse = await fetchToken(tokenRequest);
       } catch (tokenError) {
         log.error('Token fetch failed:', tokenError);
         throw new Error(
@@ -592,90 +542,6 @@ class ConnectionService {
   // ============================================================================
 
   /**
-   * Fetch token from server.
-   */
-  private async fetchToken(request: TokenRequest): Promise<TokenResponse> {
-    const params = new URLSearchParams({
-      room: request.room,
-      username: request.username,
-      device_id: request.deviceId,
-      persona_id: request.personaId,
-    });
-
-    // Add Firebase UID if available (Priority 2 for user identification)
-    if (request.firebaseUid) {
-      params.set('firebase_uid', request.firebaseUid);
-    }
-
-    // Add user's preferred accent for voice localization (🌍 international accent support)
-    if (request.preferredAccent) {
-      params.set('accent', request.preferredAccent);
-    }
-
-    // Add claimed demo conversation if available (Better than human)
-    if (request.claimedDemoConversation) {
-      params.set('claimed_demo', JSON.stringify(request.claimedDemoConversation));
-    }
-
-    const url = `${API.TOKEN}?${params.toString()}`;
-
-    // 🔐 CRITICAL FIX: Include Firebase Auth Bearer token for user identification
-    // Without this, the server can't verify who you are and conversations
-    // get saved under anonymous device IDs instead of your profile!
-    const headers: Record<string, string> = {
-      Accept: 'application/json',
-    };
-
-    try {
-      const { getAuthToken } = await import('./firebase-auth.service.js');
-      const authToken = await getAuthToken();
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-        log.debug('Including Firebase auth token in token request');
-      }
-    } catch (authError) {
-      // Auth service not available or not signed in - continue without
-      log.debug('No Firebase auth token available:', authError);
-    }
-
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        method: 'GET',
-        headers,
-        // iOS sometimes needs explicit cache control
-        cache: 'no-cache',
-      });
-    } catch (fetchError) {
-      log.error('Fetch error:', fetchError);
-      throw new Error(
-        `Network error: ${fetchError instanceof Error ? fetchError.message : 'Failed to connect'}`
-      );
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      log.error('Token error response:', errorText);
-      throw new Error(`Token request failed: ${response.status} - ${errorText.slice(0, 100)}`);
-    }
-
-    let data: unknown;
-    try {
-      data = await response.json();
-    } catch (jsonError) {
-      log.error('JSON parse error:', jsonError);
-      throw new Error('Invalid response format from server');
-    }
-
-    if (!isValidTokenResponse(data)) {
-      log.error('Invalid token response:', data);
-      throw new Error('Invalid token response from server');
-    }
-
-    return data;
-  }
-
-  /**
    * Set up room event handlers.
    */
   private setupRoomHandlers(): void {
@@ -683,7 +549,7 @@ class ConnectionService {
 
     // Connection state changes
     const onConnectionStateChange = async (state: string) => {
-      const mapped = this.mapConnectionState(state);
+      const mapped = mapConnectionState(state);
       this.updateState(mapped);
 
       // Update crash reporter context
@@ -1137,24 +1003,6 @@ class ConnectionService {
     this.musicTrackIds.clear();
     this.voiceTrackId = null;
     this.expectingMusicTrack = false;
-  }
-
-  /**
-   * Map LiveKit connection state to our connection state.
-   */
-  private mapConnectionState(lkState: string): ConnectionState {
-    switch (lkState) {
-      case 'connected':
-        return 'connected';
-      case 'connecting':
-        return 'connecting';
-      case 'reconnecting':
-        return 'reconnecting';
-      case 'disconnected':
-        return 'disconnected';
-      default:
-        return 'disconnected';
-    }
   }
 
   /**

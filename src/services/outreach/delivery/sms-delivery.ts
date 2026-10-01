@@ -14,56 +14,36 @@ import type { MessageListInstanceCreateOptions } from 'twilio/lib/rest/api/v2010
 import { getLogger } from '../../../utils/safe-logger.js';
 import { validateSmsContent } from '../../brand/index.js';
 import { MAX_RETRIES as RESILIENCE_MAX_RETRIES } from '../../../config/resilience-config.js';
+import type {
+  DeliveryRecord,
+  SMSDeliveryConfig,
+  SMSDeliveryResult,
+  SMSMessage,
+} from './sms-delivery-types.js';
+import {
+  cancelPendingRetry,
+  clearOldRecords,
+  deliveryRecords,
+  enforceMaxSize,
+  getDeliveryRecord,
+  getUserDeliveryRecords,
+  handleSMSStatus,
+  pendingRetries,
+} from './sms-delivery-records.js';
+import { formatSMSMessage } from './sms-formatting.js';
+
+// Re-exports: moved to sibling modules, kept here for backward-compatible imports
+export type * from './sms-delivery-types.js';
+export {
+  handleSMSStatus,
+  getDeliveryRecord,
+  getUserDeliveryRecords,
+  cancelPendingRetry,
+  clearOldRecords,
+} from './sms-delivery-records.js';
+export { formatSMSMessage } from './sms-formatting.js';
 
 const log = getLogger().child({ module: 'sms-delivery' });
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface SMSDeliveryConfig {
-  twilioAccountSid: string;
-  twilioAuthToken: string;
-  twilioPhoneNumber: string;
-  statusCallbackUrl?: string;
-  trackingDomain?: string;
-}
-
-export interface SMSMessage {
-  to: string;
-  body: string;
-  personaId: string;
-  userId: string;
-  outreachId: string;
-  mediaUrl?: string;
-  scheduleSend?: Date;
-}
-
-export interface SMSDeliveryResult {
-  success: boolean;
-  messageSid?: string;
-  status?: string;
-  error?: string;
-  segments?: number;
-  price?: number;
-}
-
-export interface DeliveryRecord {
-  messageSid: string;
-  userId: string;
-  outreachId: string;
-  personaId: string;
-  to: string;
-  status: 'queued' | 'sending' | 'sent' | 'delivered' | 'failed' | 'undelivered';
-  statusDetails?: string;
-  sentAt: Date;
-  deliveredAt?: Date;
-  errorCode?: string;
-  errorMessage?: string;
-  price?: number;
-  segments: number;
-  retryCount: number;
-}
 
 // ============================================================================
 // STATE
@@ -71,20 +51,12 @@ export interface DeliveryRecord {
 
 let config: SMSDeliveryConfig | null = null;
 let twilioClient: Twilio.Twilio | null = null;
-const deliveryRecords = new Map<string, DeliveryRecord>();
-const pendingRetries = new Map<string, NodeJS.Timeout>();
-
-// SMS character limits
-const SMS_CHAR_LIMIT = 160;
-const SMS_CONCAT_LIMIT = 1600; // 10 segments max
 
 // Retry configuration (from centralized resilience-config)
 const MAX_RETRIES = RESILIENCE_MAX_RETRIES;
 const RETRY_DELAYS = [30_000, 60_000, 180_000]; // 30s, 1m, 3m
 
 // Cleanup configuration - prevent unbounded memory growth
-const MAX_DELIVERY_RECORDS = 10_000; // Max records to keep in memory
-const RECORD_TTL_HOURS = 24; // Records older than this are cleaned up
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // Run cleanup every hour
 let cleanupInterval: NodeJS.Timeout | null = null;
 
@@ -154,43 +126,6 @@ export function getTwilioClient(): Twilio.Twilio | null {
 // ============================================================================
 // MESSAGE FORMATTING
 // ============================================================================
-
-/**
- * Format message for SMS delivery
- * Handles character limits, emoji optimization, and link shortening
- */
-export function formatSMSMessage(
-  body: string,
-  options: {
-    includeOptOut?: boolean;
-    shortenLinks?: boolean;
-    maxSegments?: number;
-  } = {}
-): { body: string; segments: number; truncated: boolean } {
-  let formattedBody = body;
-  const maxSegments = options.maxSegments ?? 3;
-  const maxChars = maxSegments * SMS_CHAR_LIMIT;
-
-  // Optional opt-out footer
-  if (options.includeOptOut) {
-    formattedBody += '\n\nReply STOP to opt out';
-  }
-
-  // Check if truncation needed
-  let truncated = false;
-  if (formattedBody.length > maxChars) {
-    formattedBody = `${formattedBody.slice(0, maxChars - 3)}...`;
-    truncated = true;
-  }
-
-  // Calculate segments (SMS uses GSM-7 encoding, but emojis use UCS-2)
-  // eslint-disable-next-line no-control-regex -- Intentional: detecting non-ASCII chars
-  const hasUnicode = /[^\u0000-\u007F]/.test(formattedBody);
-  const charsPerSegment = hasUnicode ? 70 : 160;
-  const segments = Math.ceil(formattedBody.length / charsPerSegment);
-
-  return { body: formattedBody, segments, truncated };
-}
 
 /**
  * Shorten URLs in message using tracking domain
@@ -410,121 +345,6 @@ export async function sendBulkSMS(messages: SMSMessage[]): Promise<Map<string, S
   }
 
   return results;
-}
-
-// ============================================================================
-// STATUS HANDLING
-// ============================================================================
-
-/**
- * Handle Twilio status webhook
- */
-export function handleSMSStatus(
-  messageSid: string,
-  status: string,
-  errorCode?: string,
-  errorMessage?: string
-): void {
-  const record = deliveryRecords.get(messageSid);
-  if (!record) {
-    log.warn({ messageSid }, 'Received status for unknown message');
-    return;
-  }
-
-  // Update record
-  record.status = status as DeliveryRecord['status'];
-
-  if (status === 'delivered') {
-    record.deliveredAt = new Date();
-    log.info({ messageSid, userId: record.userId }, '✅ SMS delivered');
-  } else if (status === 'failed' || status === 'undelivered') {
-    record.errorCode = errorCode;
-    record.errorMessage = errorMessage;
-    log.warn(
-      { messageSid, userId: record.userId, errorCode, errorMessage },
-      '❌ SMS delivery failed'
-    );
-  }
-
-  deliveryRecords.set(messageSid, record);
-}
-
-/**
- * Get delivery record
- */
-export function getDeliveryRecord(messageSid: string): DeliveryRecord | undefined {
-  return deliveryRecords.get(messageSid);
-}
-
-/**
- * Get all delivery records for a user
- */
-export function getUserDeliveryRecords(userId: string): DeliveryRecord[] {
-  return Array.from(deliveryRecords.values()).filter((r) => r.userId === userId);
-}
-
-// ============================================================================
-// CLEANUP
-// ============================================================================
-
-/**
- * Cancel pending retry
- */
-export function cancelPendingRetry(outreachId: string): boolean {
-  const timeout = pendingRetries.get(outreachId);
-  if (timeout) {
-    clearTimeout(timeout);
-    pendingRetries.delete(outreachId);
-    return true;
-  }
-  return false;
-}
-
-/**
- * Clear old delivery records
- */
-export function clearOldRecords(maxAgeHours = RECORD_TTL_HOURS): number {
-  const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
-
-  let cleared = 0;
-  for (const [sid, record] of deliveryRecords) {
-    if (record.sentAt < cutoff) {
-      deliveryRecords.delete(sid);
-      cleared++;
-    }
-  }
-
-  if (cleared > 0) {
-    log.info({ cleared, maxAgeHours }, 'Cleared old SMS delivery records');
-  }
-
-  return cleared;
-}
-
-/**
- * Enforce max size limit by removing oldest records
- */
-function enforceMaxSize(): number {
-  if (deliveryRecords.size <= MAX_DELIVERY_RECORDS) {
-    return 0;
-  }
-
-  // Sort by sentAt and keep only the newest MAX_DELIVERY_RECORDS
-  const sorted = Array.from(deliveryRecords.entries()).sort(
-    ([, a], [, b]) => b.sentAt.getTime() - a.sentAt.getTime()
-  );
-
-  const toRemove = sorted.slice(MAX_DELIVERY_RECORDS);
-  for (const [sid] of toRemove) {
-    deliveryRecords.delete(sid);
-  }
-
-  log.info(
-    { removed: toRemove.length, remaining: deliveryRecords.size },
-    'Enforced max delivery records limit'
-  );
-
-  return toRemove.length;
 }
 
 /**

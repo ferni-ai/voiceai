@@ -13,280 +13,66 @@
  */
 
 import crypto from 'node:crypto';
-import { publicUrl } from '../../config/api-urls.js';
-import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { getRateLimiter } from '../../tools/rate-limiter.js';
-import type { OAuthTokens } from '../../utils/token-encryption.js';
 import * as linkedTokens from './google-calendar-linked-tokens.js';
+import {
+  CALENDAR_SCOPES,
+  GOOGLE_OAUTH_CLIENT_ID,
+  GOOGLE_OAUTH_CLIENT_SECRET,
+  GOOGLE_OAUTH_REDIRECT_URI,
+} from './google-calendar-config.js';
+import {
+  TokenPermanentlyInvalidError,
+  type CalendarEvent,
+  type GoogleTokens,
+} from './google-calendar-types.js';
+import {
+  clearFailedTokenStatus,
+  deleteUserTokens,
+  getAllCalendarUsers,
+  getLegacyUserTokens,
+  getUserTokens,
+  isCalendarConfigured,
+  isTokenPermanentlyFailed,
+  markTokenAsFailed,
+  storeUserTokens,
+  areTokensExpired,
+} from './google-calendar-token-store.js';
+import {
+  createEvent,
+  deleteEvent,
+  getEvents,
+  getFreeBusy,
+  getServiceAccountToken,
+  listCalendars,
+  updateEvent,
+} from './google-calendar-api.js';
 
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-
-const GOOGLE_OAUTH_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || '';
-const GOOGLE_OAUTH_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || '';
-const GOOGLE_OAUTH_REDIRECT_URI =
-  process.env.GOOGLE_CALENDAR_REDIRECT_URI || publicUrl('/auth/google/callback');
-
-// Scopes needed for calendar and email operations
-// NOTE: Gmail scope is read-only for security
-const GOOGLE_API_SCOPES = [
-  // Calendar (full access for scheduling)
-  'https://www.googleapis.com/auth/calendar',
-  'https://www.googleapis.com/auth/calendar.events',
-  // Gmail (read-only for inbox triage)
-  'https://www.googleapis.com/auth/gmail.readonly',
-];
-
-// Legacy alias for compatibility
-const CALENDAR_SCOPES = GOOGLE_API_SCOPES;
-
-// Circuit breaker for Google APIs - prevents hammering a failing service
-const googleCalendarCircuitBreaker = getCircuitBreaker('google-calendar', {
-  failureThreshold: 5, // Open circuit after 5 failures
-  resetTimeout: 30_000, // Try again after 30s
-  successThreshold: 2, // Need 2 successes to close
-});
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface GoogleTokens {
-  access_token: string;
-  refresh_token?: string;
-  expires_in: number;
-  token_type: string;
-  scope?: string;
-  expiry_date?: number;
-}
-
-export interface CalendarEvent {
-  id?: string;
-  summary: string;
-  description?: string;
-  location?: string;
-  start: {
-    dateTime?: string;
-    date?: string;
-    timeZone?: string;
-  };
-  end: {
-    dateTime?: string;
-    date?: string;
-    timeZone?: string;
-  };
-  attendees?: Array<{ email: string; displayName?: string }>;
-  reminders?: {
-    useDefault: boolean;
-    overrides?: Array<{ method: 'email' | 'popup'; minutes: number }>;
-  };
-  colorId?: string;
-  status?: 'confirmed' | 'tentative' | 'cancelled';
-}
-
-export interface CalendarListEntry {
-  id: string;
-  summary: string;
-  primary?: boolean;
-  accessRole: 'freeBusyReader' | 'reader' | 'writer' | 'owner';
-}
-
-/**
- * Error thrown when an OAuth token is permanently invalid (e.g., user revoked access).
- * These errors should NOT be retried - the user needs to re-authenticate.
- */
-export class TokenPermanentlyInvalidError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'TokenPermanentlyInvalidError';
-  }
-}
-
-// ============================================================================
-// FIRESTORE SETUP
-// ============================================================================
-
-import type { Firestore as FirestoreType } from '@google-cloud/firestore';
-
-let db: FirestoreType | null = null;
-// FIX: Promise-based singleton to prevent race condition
-let dbInitPromise: Promise<FirestoreType | null> | null = null;
-// Legacy plaintext store: google_calendar_tokens/{userId} (root collection).
-// The authoritative store is the encrypted per-user one the web OAuth flow
-// writes (bogle_users/{userId}/google_calendar_tokens/data, see
-// google-calendar-linked-tokens.ts). Legacy docs are read as a fallback and
-// migrate to the encrypted store on their next refresh.
-const OAUTH_TOKENS_COLLECTION = 'google_calendar_tokens';
-
-async function getFirestore(): Promise<FirestoreType | null> {
-  if (db) return db;
-  if (dbInitPromise) return dbInitPromise;
-
-  dbInitPromise = initializeFirestore();
-  return dbInitPromise;
-}
-
-async function initializeFirestore(): Promise<FirestoreType | null> {
-  try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-    });
-    getLogger().info('Google Calendar OAuth Firestore initialized');
-    return db;
-  } catch (error) {
-    getLogger().warn({ error }, 'Firestore not available for OAuth tokens, using in-memory only');
-    dbInitPromise = null; // Allow retry
-    return null;
-  }
-}
-
-// ============================================================================
-// TOKEN STORAGE (In-memory cache with Firestore persistence)
-// ============================================================================
-
-const userTokens = new Map<string, GoogleTokens>();
-const loadedTokenUsers = new Set<string>();
-
-// ============================================================================
-// FAILED TOKEN TRACKING - Prevents spam when tokens are permanently invalid
-// ============================================================================
-
-/**
- * Cache of tokens that failed with permanent errors (like invalid_grant).
- * Maps userId -> timestamp when they failed. We won't retry for 1 hour.
- */
-const failedTokenCache = new Map<string, number>();
-const FAILED_TOKEN_RETRY_MS = 60 * 60 * 1000; // 1 hour before retry
-
-/**
- * Check if a user's token recently failed with a permanent error
- */
-export function isTokenPermanentlyFailed(userId: string): boolean {
-  const failedAt = failedTokenCache.get(userId);
-  if (!failedAt) return false;
-
-  // Allow retry after FAILED_TOKEN_RETRY_MS
-  if (Date.now() - failedAt > FAILED_TOKEN_RETRY_MS) {
-    failedTokenCache.delete(userId);
-    return false;
-  }
-
-  return true;
-}
-
-/**
- * Mark a token as permanently failed (e.g., invalid_grant)
- */
-export function markTokenAsFailed(userId: string): void {
-  failedTokenCache.set(userId, Date.now());
-  getLogger().warn({ userId }, 'Marked OAuth token as failed - will not retry for 1 hour');
-}
-
-/**
- * Clear the failed token status for a user (e.g., after successful re-auth)
- */
-export function clearFailedTokenStatus(userId: string): void {
-  failedTokenCache.delete(userId);
-}
-
-function fromLinkedTokens(tokens: OAuthTokens): GoogleTokens {
-  return {
-    access_token: tokens.access_token,
-    refresh_token: tokens.refresh_token || undefined,
-    expires_in: Math.max(0, Math.round((tokens.expires_at - Date.now()) / 1000)),
-    token_type: 'Bearer',
-    scope: tokens.scope,
-    expiry_date: tokens.expires_at,
-  };
-}
-
-function toLinkedTokens(tokens: GoogleTokens): OAuthTokens {
-  return {
-    access_token: tokens.access_token,
-    refresh_token: tokens.refresh_token ?? '',
-    expires_at: tokens.expiry_date ?? Date.now() + tokens.expires_in * 1000,
-    scope: tokens.scope,
-  };
-}
-
-/**
- * Store tokens for a user (in the encrypted per-user store)
- */
-export async function storeUserTokens(userId: string, tokens: GoogleTokens): Promise<void> {
-  // Calculate expiry date if not present
-  if (!tokens.expiry_date && tokens.expires_in) {
-    tokens.expiry_date = Date.now() + tokens.expires_in * 1000;
-  }
-  userTokens.set(userId, tokens);
-
-  await linkedTokens.saveTokens(userId, toLinkedTokens(tokens));
-  getLogger().info(
-    { userId, hasRefreshToken: !!tokens.refresh_token },
-    'Stored Google tokens (encrypted per-user store)'
-  );
-}
-
-/**
- * Read a legacy plaintext token doc (root google_calendar_tokens/{userId})
- */
-async function getLegacyUserTokens(userId: string): Promise<GoogleTokens | undefined> {
-  if (!loadedTokenUsers.has(userId)) {
-    const firestore = await getFirestore();
-    if (firestore) {
-      try {
-        const doc = await firestore.collection(OAUTH_TOKENS_COLLECTION).doc(userId).get();
-        if (doc.exists) {
-          const data = doc.data() as GoogleTokens;
-          userTokens.set(userId, data);
-          loadedTokenUsers.add(userId);
-          getLogger().info({ userId }, 'Using legacy Google Calendar tokens (root collection)');
-          return data;
-        }
-      } catch (err) {
-        getLogger().warn({ err, userId }, 'Failed to load Google tokens from Firestore');
-      }
-    }
-    loadedTokenUsers.add(userId);
-  }
-
-  return userTokens.get(userId);
-}
-
-/**
- * Get tokens for a user: the encrypted per-user store written by the web
- * OAuth flow, else the legacy plaintext root collection.
- */
-export async function getUserTokens(userId: string): Promise<GoogleTokens | undefined> {
-  const linked = await linkedTokens.getTokens(userId);
-  if (linked) {
-    return fromLinkedTokens(linked);
-  }
-
-  return getLegacyUserTokens(userId);
-}
-
-/**
- * Get tokens synchronously (returns cached value only)
- * Use getUserTokens for guaranteed data
- */
-export function getUserTokensSync(userId: string): GoogleTokens | undefined {
-  // Trigger async load in background
-  void getUserTokens(userId);
-  return userTokens.get(userId);
-}
-
-/**
- * Check if tokens are expired
- */
-export function areTokensExpired(tokens: GoogleTokens): boolean {
-  if (!tokens.expiry_date) return false;
-  // Consider expired 5 minutes before actual expiry
-  return Date.now() >= tokens.expiry_date - 5 * 60 * 1000;
-}
+// Re-exports: moved to sibling modules, kept here for backward-compatible imports
+export type { GoogleTokens, CalendarEvent, CalendarListEntry } from './google-calendar-types.js';
+export { TokenPermanentlyInvalidError } from './google-calendar-types.js';
+export {
+  isTokenPermanentlyFailed,
+  markTokenAsFailed,
+  clearFailedTokenStatus,
+  storeUserTokens,
+  getUserTokens,
+  getUserTokensSync,
+  areTokensExpired,
+  isCalendarConfigured,
+  isCalendarConfiguredSync,
+  deleteUserTokens,
+  getAllCalendarUsers,
+} from './google-calendar-token-store.js';
+export {
+  listCalendars,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  getEvents,
+  getFreeBusy,
+  getServiceAccountToken,
+} from './google-calendar-api.js';
 
 // ============================================================================
 // OAUTH FLOW
@@ -443,216 +229,6 @@ export async function getValidAccessToken(userId: string): Promise<string | null
 }
 
 // ============================================================================
-// CALENDAR OPERATIONS
-// ============================================================================
-
-/**
- * List user's calendars (with rate limiting and circuit breaker protection)
- */
-export async function listCalendars(accessToken: string): Promise<CalendarListEntry[]> {
-  const rateLimiter = getRateLimiter('google-calendar');
-  if (!rateLimiter.tryAcquire()) {
-    getLogger().warn('Google Calendar API rate limited');
-    return [];
-  }
-
-  return googleCalendarCircuitBreaker.execute(async () => {
-    const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to list calendars: ${error}`);
-    }
-
-    const data = (await response.json()) as { items: CalendarListEntry[] };
-    return data.items || [];
-  });
-}
-
-/**
- * Create a calendar event (with rate limiting and circuit breaker protection)
- */
-export async function createEvent(
-  accessToken: string,
-  calendarId: string,
-  event: CalendarEvent
-): Promise<CalendarEvent> {
-  const rateLimiter = getRateLimiter('google-calendar');
-  if (!rateLimiter.tryAcquire()) {
-    getLogger().warn('Google Calendar API rate limited');
-    throw new Error('Rate limited - try again shortly');
-  }
-
-  return googleCalendarCircuitBreaker.execute(async () => {
-    const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(event),
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to create event: ${error}`);
-    }
-
-    const created = (await response.json()) as CalendarEvent;
-    getLogger().info({ eventId: created.id, summary: event.summary }, 'Calendar event created');
-    return created;
-  });
-}
-
-/**
- * Update a calendar event (with rate limiting)
- */
-export async function updateEvent(
-  accessToken: string,
-  calendarId: string,
-  eventId: string,
-  event: Partial<CalendarEvent>
-): Promise<CalendarEvent> {
-  const rateLimiter = getRateLimiter('google-calendar');
-  if (!rateLimiter.tryAcquire()) {
-    getLogger().warn('Google Calendar API rate limited');
-    throw new Error('Rate limited - try again shortly');
-  }
-
-  const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
-    {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(event),
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to update event: ${error}`);
-  }
-
-  return (await response.json()) as CalendarEvent;
-}
-
-/**
- * Delete a calendar event (with rate limiting)
- */
-export async function deleteEvent(
-  accessToken: string,
-  calendarId: string,
-  eventId: string
-): Promise<void> {
-  const rateLimiter = getRateLimiter('google-calendar');
-  if (!rateLimiter.tryAcquire()) {
-    getLogger().warn('Google Calendar API rate limited');
-    throw new Error('Rate limited - try again shortly');
-  }
-
-  const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
-    {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
-  );
-
-  if (!response.ok && response.status !== 404) {
-    const error = await response.text();
-    throw new Error(`Failed to delete event: ${error}`);
-  }
-
-  getLogger().info({ eventId }, 'Calendar event deleted');
-}
-
-/**
- * Get events in a time range (with rate limiting)
- */
-export async function getEvents(
-  accessToken: string,
-  calendarId: string,
-  timeMin: Date,
-  timeMax: Date,
-  maxResults = 50
-): Promise<CalendarEvent[]> {
-  const rateLimiter = getRateLimiter('google-calendar');
-  if (!rateLimiter.tryAcquire()) {
-    getLogger().warn('Google Calendar API rate limited');
-    return [];
-  }
-
-  const params = new URLSearchParams({
-    timeMin: timeMin.toISOString(),
-    timeMax: timeMax.toISOString(),
-    maxResults: maxResults.toString(),
-    singleEvents: 'true',
-    orderBy: 'startTime',
-  });
-
-  const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to get events: ${error}`);
-  }
-
-  const data = (await response.json()) as { items: CalendarEvent[] };
-  return data.items || [];
-}
-
-/**
- * Find free/busy times
- */
-export async function getFreeBusy(
-  accessToken: string,
-  calendarIds: string[],
-  timeMin: Date,
-  timeMax: Date
-): Promise<Record<string, Array<{ start: string; end: string }>>> {
-  const response = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      timeMin: timeMin.toISOString(),
-      timeMax: timeMax.toISOString(),
-      items: calendarIds.map((id) => ({ id })),
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to get free/busy: ${error}`);
-  }
-
-  const data = (await response.json()) as {
-    calendars: Record<string, { busy: Array<{ start: string; end: string }> }>;
-  };
-
-  const result: Record<string, Array<{ start: string; end: string }>> = {};
-  for (const [calId, cal] of Object.entries(data.calendars)) {
-    result[calId] = cal.busy || [];
-  }
-  return result;
-}
-
-// ============================================================================
 // CONVENIENCE FUNCTIONS
 // ============================================================================
 
@@ -719,142 +295,10 @@ export async function createAppointmentEvent(
 }
 
 /**
- * Check if calendar is configured for a user
- */
-export async function isCalendarConfigured(userId: string): Promise<boolean> {
-  const tokens = await getUserTokens(userId);
-  return !!tokens;
-}
-
-/**
- * Check if calendar is configured (sync version, may return false until loaded)
- */
-export function isCalendarConfiguredSync(userId: string): boolean {
-  return !!getUserTokensSync(userId);
-}
-
-/**
  * Check if OAuth is configured (for the application)
  */
 export function isOAuthConfigured(): boolean {
   return !!(GOOGLE_OAUTH_CLIENT_ID && GOOGLE_OAUTH_CLIENT_SECRET);
-}
-
-/**
- * Delete user tokens (for disconnect)
- */
-export async function deleteUserTokens(userId: string): Promise<void> {
-  // Remove from cache
-  userTokens.delete(userId);
-  loadedTokenUsers.delete(userId);
-
-  await linkedTokens.removeTokens(userId);
-
-  // Remove the legacy plaintext doc too
-  const firestore = await getFirestore();
-  if (firestore) {
-    try {
-      const docRef = firestore.collection(OAUTH_TOKENS_COLLECTION).doc(userId);
-      await docRef.delete();
-      getLogger().info({ userId }, 'Calendar tokens deleted');
-    } catch (error) {
-      getLogger().warn({ error, userId }, 'Failed to delete calendar tokens from Firestore');
-    }
-  }
-}
-
-/**
- * Get all users with connected Google Calendar
- *
- * Used by maintenance scheduler to sync calendar events for outreach timing.
- */
-export async function getAllCalendarUsers(): Promise<string[]> {
-  const userIds: string[] = [];
-
-  // First add all cached users
-  for (const userId of userTokens.keys()) {
-    userIds.push(userId);
-  }
-
-  // Then check Firestore for any not in cache. The collection group covers
-  // both the per-user store (bogle_users/{uid}/google_calendar_tokens/data)
-  // and legacy root docs (google_calendar_tokens/{uid}).
-  const firestore = await getFirestore();
-  if (firestore) {
-    try {
-      const snapshot = await firestore.collectionGroup(OAUTH_TOKENS_COLLECTION).get();
-      for (const doc of snapshot.docs) {
-        const userId = doc.ref.parent.parent?.id ?? doc.id;
-        if (!userIds.includes(userId)) {
-          userIds.push(userId);
-        }
-      }
-    } catch (error) {
-      getLogger().warn({ error }, 'Failed to get calendar users from Firestore');
-    }
-  }
-
-  return userIds;
-}
-
-// ============================================================================
-// SERVICE ACCOUNT SUPPORT
-// ============================================================================
-
-/**
- * Get access token using service account credentials
- */
-export async function getServiceAccountToken(credentials: {
-  client_email: string;
-  private_key: string;
-}): Promise<string | null> {
-  try {
-    const now = Math.floor(Date.now() / 1000);
-
-    // Create JWT header
-    const header = { alg: 'RS256', typ: 'JWT' };
-    const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
-
-    // Create JWT payload
-    const payload = {
-      iss: credentials.client_email,
-      scope: CALENDAR_SCOPES.join(' '),
-      aud: 'https://oauth2.googleapis.com/token',
-      iat: now,
-      exp: now + 3600,
-    };
-    const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
-
-    // Sign the JWT
-    const signatureInput = `${encodedHeader}.${encodedPayload}`;
-    const sign = crypto.createSign('RSA-SHA256');
-    sign.update(signatureInput);
-    const signature = sign.sign(credentials.private_key, 'base64url');
-
-    const jwt = `${signatureInput}.${signature}`;
-
-    // Exchange JWT for access token
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-        assertion: jwt,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      getLogger().error({ error }, 'Service account token exchange failed');
-      return null;
-    }
-
-    const tokens = (await response.json()) as { access_token: string };
-    return tokens.access_token;
-  } catch (error) {
-    getLogger().error({ error }, 'Failed to get service account token');
-    return null;
-  }
 }
 
 export default {
