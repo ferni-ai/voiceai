@@ -29,7 +29,7 @@ public enum FerniTokens {
         /// Text in Jack's color on light (zen) surfaces, WCAG AA
         public static let jackInkLight: UInt = 0x806242
         /// Text placed on the jackPrimary fill
-        public static let jackOnFill: UInt = 0xffffff
+        public static let jackOnFill: UInt = 0x1d1714
         /// Peter: Ocean teal - depth, discovery, research
         public static let peterPrimary: UInt = 0x3a6b73
         public static let peterSecondary: UInt = 0x2d5359
@@ -62,7 +62,7 @@ public enum FerniTokens {
         /// Text in Maya's color on light (zen) surfaces, WCAG AA
         public static let mayaInkLight: UInt = 0x885e4e
         /// Text placed on the mayaPrimary fill
-        public static let mayaOnFill: UInt = 0x2a2420
+        public static let mayaOnFill: UInt = 0x221c18
         /// Jordan: Warm sunset coral - celebration, joy, events
         public static let jordanPrimary: UInt = 0xc4856a
         public static let jordanSecondary: UInt = 0xa86d55

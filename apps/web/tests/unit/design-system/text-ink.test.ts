@@ -90,6 +90,20 @@ describe('generated tokens.css inks', () => {
     expect(failures).toEqual([]);
   });
 
+  it.runIf(css)('text on every persona fill reaches WCAG AA', () => {
+    const vars = block('[data-theme="zen"]');
+    const failures: string[] = [];
+    for (const [id, persona] of Object.entries(colors.personas) as Array<
+      [string, { primary: string }]
+    >) {
+      if (id.startsWith('_')) continue;
+      const on = vars[`--persona-${id.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}-on`];
+      const ratio = contrastRatio(on, persona.primary) as number;
+      if (!(ratio >= 4.5)) failures.push(`${id} ${on} on ${persona.primary} ${ratio.toFixed(2)}`);
+    }
+    expect(failures).toEqual([]);
+  });
+
   it.runIf(css)('text on accent buttons reaches WCAG AA', () => {
     for (const theme of ['zen', 'midnight'] as const) {
       const vars = block(`[data-theme="${theme}"]`);

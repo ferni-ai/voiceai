@@ -26,10 +26,17 @@ export function themeTextSurfaces(theme) {
   return theme.meta?.mode === 'light' ? [...surfaces, '#ffffff'] : surfaces;
 }
 
-/** Ink for text on a persona fill: whichever of white or dark reads better. */
+/**
+ * Ink for text on a persona fill: white or the warm dark, whichever reads
+ * better. Mid-tone fills (Jack, Maya) fall short with both, so the dark ink is
+ * deepened until it reaches AA.
+ */
 export const ON_FILL_DARK = '#2a2420';
 export function onFill(fill) {
-  return contrastRatio('#ffffff', fill) >= contrastRatio(ON_FILL_DARK, fill) ? '#ffffff' : ON_FILL_DARK;
+  const white = contrastRatio('#ffffff', fill);
+  const dark = contrastRatio(ON_FILL_DARK, fill);
+  if (Math.max(white, dark) >= TEXT_INK_TARGET) return white >= dark ? '#ffffff' : ON_FILL_DARK;
+  return textInk(ON_FILL_DARK, [fill], { target: TEXT_INK_TARGET });
 }
 
 /**

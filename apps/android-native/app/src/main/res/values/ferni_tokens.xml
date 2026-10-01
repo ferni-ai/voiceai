@@ -13,7 +13,7 @@
     <color name="persona_jack_secondary">#7d6348</color>
     <color name="persona_jack_ink_dark">#fcdab6</color>
     <color name="persona_jack_ink_light">#806242</color>
-    <color name="persona_jack_on_fill">#ffffff</color>
+    <color name="persona_jack_on_fill">#1d1714</color>
     <color name="persona_peter_primary">#3a6b73</color>
     <color name="persona_peter_secondary">#2d5359</color>
     <color name="persona_peter_ink_dark">#b4e9f1</color>
@@ -28,7 +28,7 @@
     <color name="persona_maya_secondary">#8a635a</color>
     <color name="persona_maya_ink_dark">#ffd7c8</color>
     <color name="persona_maya_ink_light">#885e4e</color>
-    <color name="persona_maya_on_fill">#2a2420</color>
+    <color name="persona_maya_on_fill">#221c18</color>
     <color name="persona_jordan_primary">#c4856a</color>
     <color name="persona_jordan_secondary">#a86d55</color>
     <color name="persona_jordan_ink_dark">#ffd7c7</color>

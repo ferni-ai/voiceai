@@ -103,7 +103,8 @@ function generateColorVars(colors) {
   lines.push('  --color-text-light: var(--color-text-muted);');
   lines.push(`  --color-text-dark: ${zen.text.primary};`);
   lines.push('  --color-text-secondary-light: var(--color-text-secondary);');
-  lines.push(`  --color-text-error: ${zen.semantic.error};`);
+  // Generated error ink (utils/theme-inks.js), WCAG AA on zen surfaces
+  lines.push(`  --color-text-error: ${themeTextInks(zen).semanticText.errorText};`);
   lines.push(`  --color-natural-ink: ${zen.natural.ink};`);
   lines.push('');
 
@@ -419,6 +420,7 @@ function generateDarkThemeVars(colors) {
   lines.push(`    --color-text-muted: ${midnight.text.muted};`);
   lines.push(`    --color-text-dimmed: ${midnight.text.dimmed};`);
   lines.push(`    --color-text-inverse: ${midnight.text.inverse};`);
+  lines.push(`    --color-text-error: ${themeTextInks(midnight).semanticText.errorText};`);
   lines.push('');
 
   // Accent colors
@@ -478,6 +480,7 @@ function generateDarkThemeVars(colors) {
   lines.push(`  --color-text-muted: ${midnight.text.muted};`);
   lines.push(`  --color-text-dimmed: ${midnight.text.dimmed};`);
   lines.push(`  --color-text-inverse: ${midnight.text.inverse};`);
+  lines.push(`  --color-text-error: ${themeTextInks(midnight).semanticText.errorText};`);
   lines.push('');
 
   // Accent colors

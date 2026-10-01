@@ -30,7 +30,7 @@ object FerniTokens {
         /** Text in Jack's color on light (zen) surfaces, WCAG AA */
         val JackInkLight = Color(0xFF806242)
         /** Text placed on the JackPrimary fill */
-        val JackOnFill = Color(0xFFffffff)
+        val JackOnFill = Color(0xFF1d1714)
         /** Peter: Ocean teal - depth, discovery, research */
         val PeterPrimary = Color(0xFF3a6b73)
         val PeterSecondary = Color(0xFF2d5359)
@@ -63,7 +63,7 @@ object FerniTokens {
         /** Text in Maya's color on light (zen) surfaces, WCAG AA */
         val MayaInkLight = Color(0xFF885e4e)
         /** Text placed on the MayaPrimary fill */
-        val MayaOnFill = Color(0xFF2a2420)
+        val MayaOnFill = Color(0xFF221c18)
         /** Jordan: Warm sunset coral - celebration, joy, events */
         val JordanPrimary = Color(0xFFc4856a)
         val JordanSecondary = Color(0xFFa86d55)
