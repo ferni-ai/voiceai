@@ -74,8 +74,24 @@ export function isSpannerReady(): boolean {
  * Initialize Spanner connection
  * Call this at startup to verify connectivity
  */
+/**
+ * Spanner Graph (L3) is opt-in: SPANNER_ENABLED=true once a ferni-memory
+ * instance is provisioned (or SPANNER_EMULATOR_HOST for local work).
+ */
+export function isSpannerConfigured(): boolean {
+  return process.env.SPANNER_ENABLED === 'true' || !!process.env.SPANNER_EMULATOR_HOST;
+}
+
 export async function initializeSpanner(): Promise<boolean> {
   if (initialized) return true;
+
+  // Without an instance, don't create a client at all: opening a database
+  // starts a background session pool whose failed gRPC calls reject where no
+  // caller can catch them (unhandled rejections, and credential lookups).
+  if (!isSpannerConfigured()) {
+    log.debug('Spanner not enabled (SPANNER_ENABLED!=true) - using Firestore fallback');
+    return false;
+  }
 
   try {
     const db = getDatabase();
