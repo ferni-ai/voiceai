@@ -20,6 +20,7 @@ export default defineConfig({
     ],
     exclude: [
       'node_modules/**',
+      '.claude/**', // agent worktrees hold other checkouts of this repo
       '**/node_modules/**',
       'dist/**',
       // Frontend tests have their own config (apps/web/vitest.config.ts)

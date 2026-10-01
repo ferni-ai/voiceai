@@ -8,6 +8,7 @@ export default defineConfig({
     // Exclude design-system and e2e - they use Playwright, not Vitest
     exclude: [
       'node_modules/**',
+      '.claude/**', // agent worktrees hold other checkouts of this repo
       '**/node_modules/**',
       'dist/**',
       'frontend-orb/**',
