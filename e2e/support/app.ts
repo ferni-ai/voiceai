@@ -5,10 +5,22 @@
  * the components they name.
  */
 
-import type { Page, Route } from '@playwright/test';
+import { expect, type Locator, type Page, type Route } from '@playwright/test';
 
 /** Set on <body> once the main app has booted (apps/web/src/app.ts). */
 export const APP_LOADED = 'body.app-loaded';
+
+/**
+ * Dispatch a `ferni:open-*` window event until `opened` is visible. app.ts
+ * registers those listeners late in its boot, so an event sent right after
+ * the page loads can arrive before anyone listens.
+ */
+export async function openViaEvent(page: Page, eventName: string, opened: Locator): Promise<void> {
+  await expect(async () => {
+    await page.evaluate((name) => window.dispatchEvent(new CustomEvent(name)), eventName);
+    await expect(opened).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15000 });
+}
 
 /** Open the settings menu from the floating trigger (ui/settings-menu.ui.ts). */
 export async function openSettingsMenu(page: Page): Promise<void> {

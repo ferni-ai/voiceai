@@ -11,7 +11,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
-import { openSettingsMenu, pinMenuItems, seedRelationship } from './support/app';
+import { openSettingsMenu, openViaEvent, pinMenuItems, seedRelationship } from './support/app';
 
 const TEST_USER_ID = 'e2e-analytics-test-user';
 
@@ -269,23 +269,15 @@ test.describe('Analytics Dashboard UI', () => {
   });
 
   test('can close dashboard', async ({ page }) => {
-    const opened = await page.evaluate(async () => {
-      const event = new CustomEvent('ferni:open-analytics');
-      window.dispatchEvent(event);
-      return true;
-    });
+    // The dashboard panel (ui/analytics-dashboard.ui.ts) opens on ferni:open-analytics
+    const dashboard = page.locator('.analytics.analytics--visible');
+    await openViaEvent(page, 'ferni:open-analytics', dashboard);
 
-    if (opened) {
-      // The dashboard panel (ui/analytics-dashboard.ui.ts) opens on ferni:open-analytics
-      const dashboard = page.locator('.analytics.analytics--visible');
-      await expect(dashboard).toBeVisible();
+    const closeButton = dashboard.locator('.analytics__close');
+    await closeButton.click();
 
-      const closeButton = dashboard.locator('.analytics__close');
-      await closeButton.click();
-
-      // Dashboard should be closed
-      await expect(page.locator('.analytics--visible')).toHaveCount(0);
-    }
+    // Dashboard should be closed
+    await expect(page.locator('.analytics--visible')).toHaveCount(0);
   });
 });
 

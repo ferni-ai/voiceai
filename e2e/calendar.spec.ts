@@ -14,7 +14,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL, AGENT_URL } from './support/env';
-import { clickMenuItem } from './support/app';
+import { clickMenuItem, openViaEvent } from './support/app';
 
 const TEST_USER_ID = 'e2e-calendar-test-user';
 
@@ -291,20 +291,12 @@ test.describe('Calendar Settings UI', () => {
   });
 
   test('can close calendar settings', async ({ page }) => {
-    const opened = await page.evaluate(() => {
-      const event = new CustomEvent('ferni:open-calendar');
-      window.dispatchEvent(event);
-      return true;
-    });
+    // ferni:open-calendar opens the calendar view (ui/calendar-view.ui.ts)
+    const calendar = page.locator('.calendar-view.calendar-view--visible');
+    await openViaEvent(page, 'ferni:open-calendar', calendar);
 
-    if (opened) {
-      // ferni:open-calendar opens the calendar view (ui/calendar-view.ui.ts)
-      const calendar = page.locator('.calendar-view.calendar-view--visible');
-      await expect(calendar).toBeVisible();
-
-      await calendar.locator('.calendar-view__close').click();
-      await expect(page.locator('.calendar-view--visible')).toHaveCount(0);
-    }
+    await calendar.locator('.calendar-view__close').click();
+    await expect(page.locator('.calendar-view--visible')).toHaveCount(0);
   });
 });
 

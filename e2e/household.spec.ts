@@ -12,7 +12,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
-import { openSettingsMenu, pinMenuItems } from './support/app';
+import { openSettingsMenu, openViaEvent, pinMenuItems } from './support/app';
 
 const TEST_USER_ID = 'e2e-household-test-user';
 const TEST_DEVICE_ID = `e2e-test-device-${Date.now()}`;
@@ -368,20 +368,12 @@ test.describe('Household Manager UI', () => {
   });
 
   test('can close household manager', async ({ page }) => {
-    const opened = await page.evaluate(() => {
-      const event = new CustomEvent('ferni:open-household');
-      window.dispatchEvent(event);
-      return true;
-    });
+    // ferni:open-household opens the household manager (ui/household-manager.ui.ts)
+    const modal = page.locator('.household-modal-overlay.visible');
+    await openViaEvent(page, 'ferni:open-household', modal);
 
-    if (opened) {
-      // ferni:open-household opens the household manager (ui/household-manager.ui.ts)
-      const modal = page.locator('.household-modal-overlay.visible');
-      await expect(modal).toBeVisible();
-
-      await modal.locator('.household-modal__close').click();
-      await expect(page.locator('.household-modal-overlay.visible')).toHaveCount(0);
-    }
+    await modal.locator('.household-modal__close').click();
+    await expect(page.locator('.household-modal-overlay.visible')).toHaveCount(0);
   });
 });
 
