@@ -5,36 +5,42 @@
  * Covers the full wizard flow, API integration, and AI context injection.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { APP_LOADED, TWIN_AGENT, mockTwinAgent, openMyCreations, openTwinProfile } from './support/app';
+
+// The profile wizard belongs to a Digital Twin custom agent. Tests open it the
+// way a user does: roster "More" -> marketplace "My Creations" -> the twin's
+// Profile button (ui/marketplace.ui.ts). The twin comes from a mocked
+// /api/custom-agents (see support/app.ts).
 
 test.describe('Digital Twin Profile', () => {
   test.beforeEach(async ({ page }) => {
     // Login and navigate to a Digital Twin agent
+    await mockTwinAgent(page);
     await page.goto('/');
-    await page.waitForSelector('[data-testid="app-loaded"]', { timeout: 10000 });
+    await page.waitForSelector(APP_LOADED, { timeout: 10000 });
   });
 
   test.describe('Profile Wizard', () => {
     test('opens profile wizard for Digital Twin agent', async ({ page }) => {
-      // Find a Digital Twin agent or create one
-      await page.click('[data-testid="open-custom-agents"]');
-      await page.waitForSelector('.custom-agent-list');
+      // Find the Digital Twin agent in My Creations
+      await openMyCreations(page);
 
-      // Click on a twin agent's edit profile button
-      const twinAgent = page.locator('[data-agent-type="twin"]').first();
-      if (await twinAgent.isVisible()) {
-        await twinAgent.locator('[data-action="edit-profile"]').click();
-        await expect(page.locator('.twin-profile-overlay')).toBeVisible();
-      }
+      // Click on the twin agent's profile button
+      const twinAgent = page.locator(`.custom-agent-card[data-agent-id="${TWIN_AGENT.id}"]`);
+      await expect(twinAgent).toBeVisible();
+      await twinAgent.locator('[data-action="open-profile"]').click();
+      await expect(page.locator('.twin-profile-overlay')).toBeVisible();
     });
 
     test('navigates through all wizard sections', async ({ page }) => {
       // Open profile wizard
-      await page.click('[data-testid="open-twin-profile"]');
+      await openTwinProfile(page);
       await page.waitForSelector('.twin-profile-overlay.open');
 
       // Check intro section is first
-      expect(await page.locator('.profile-content h3').textContent()).toContain('Your Story');
+      await expect(page.locator('.profile-content .section--intro')).toBeVisible();
+      expect(await page.locator('.profile-content h3').textContent()).toContain("Let's capture the real you");
 
       // Navigate through sections
       const sections = ['intro', 'background', 'mannerisms', 'communication', 'values', 'interests', 'review'];
@@ -45,11 +51,12 @@ test.describe('Digital Twin Profile', () => {
       }
 
       // Should be on review section
-      expect(await page.locator('.profile-content').textContent()).toContain('review');
+      await expect(page.locator('.profile-content .section--review')).toBeVisible();
+      expect(await page.locator('.profile-content h3').textContent()).toContain('Your Digital Twin Profile');
     });
 
     test('saves life chapters in background section', async ({ page }) => {
-      await page.click('[data-testid="open-twin-profile"]');
+      await openTwinProfile(page);
       await page.waitForSelector('.twin-profile-overlay.open');
 
       // Navigate to background section
@@ -74,7 +81,7 @@ test.describe('Digital Twin Profile', () => {
     });
 
     test('saves signature phrases in mannerisms section', async ({ page }) => {
-      await page.click('[data-testid="open-twin-profile"]');
+      await openTwinProfile(page);
       await page.waitForSelector('.twin-profile-overlay.open');
 
       // Navigate to mannerisms (skip intro, background)
@@ -100,7 +107,7 @@ test.describe('Digital Twin Profile', () => {
     });
 
     test('saves communication style preferences', async ({ page }) => {
-      await page.click('[data-testid="open-twin-profile"]');
+      await openTwinProfile(page);
       await page.waitForSelector('.twin-profile-overlay.open');
 
       // Navigate to communication section (skip intro, background, mannerisms)
@@ -120,7 +127,7 @@ test.describe('Digital Twin Profile', () => {
     });
 
     test('allows value selection in values section', async ({ page }) => {
-      await page.click('[data-testid="open-twin-profile"]');
+      await openTwinProfile(page);
       await page.waitForSelector('.twin-profile-overlay.open');
 
       // Navigate to values section
@@ -129,13 +136,13 @@ test.describe('Digital Twin Profile', () => {
         await page.waitForTimeout(200);
       }
 
-      // Select some values
-      await page.click('[data-value="authenticity"]');
-      await page.click('[data-value="growth"]');
-      await page.click('[data-value="compassion"]');
+      // Select some values (chips use the display names, e.g. "Authenticity")
+      await page.click('[data-value="Authenticity"]');
+      await page.click('[data-value="Growth"]');
+      await page.click('[data-value="Kindness"]');
 
       // Verify values are selected
-      expect(await page.locator('[data-value="authenticity"]').getAttribute('class')).toContain('selected');
+      expect(await page.locator('[data-value="Authenticity"]').getAttribute('class')).toContain('selected');
 
       // Add a custom value
       await page.fill('#custom-value', 'Adventure');
@@ -148,7 +155,7 @@ test.describe('Digital Twin Profile', () => {
         response.url().includes('/api/twin/profile') && response.request().method() === 'POST'
       );
 
-      await page.click('[data-testid="open-twin-profile"]');
+      await openTwinProfile(page);
       await page.waitForSelector('.twin-profile-overlay.open');
 
       // Fill minimal required data and navigate to review
@@ -164,12 +171,12 @@ test.describe('Digital Twin Profile', () => {
       const response = await savePromise;
       expect(response.ok()).toBe(true);
 
-      // Verify success toast appears
-      await expect(page.locator('.ferni-toast')).toContainText('saved');
+      // Verify success toast appears (toasts render as whispers, ui/whisper.ui.ts)
+      await expect(page.locator('.whisper')).toContainText('saved');
     });
   });
 
-  test.describe('Profile API', () => {
+  test.describe('Profile API', { tag: '@needs-server' }, () => {
     test('GET /api/twin/profile returns empty for new users', async ({ request }) => {
       const response = await request.get('/api/twin/profile', {
         headers: { 'x-user-id': 'test-user-new' },
@@ -243,7 +250,8 @@ test.describe('Digital Twin Profile', () => {
   });
 
   test.describe('AI Context Integration', () => {
-    test('twin profile influences AI responses', async ({ page }) => {
+    // Needs the UI server (profile storage) and a live agent (AI reply).
+    test('twin profile influences AI responses', { tag: ['@needs-server', '@needs-agent'] }, async ({ page }) => {
       // This test requires a saved profile with specific phrases
       // Then verifies the AI uses those phrases in responses
 
@@ -275,7 +283,7 @@ test.describe('Digital Twin Profile', () => {
 
   test.describe('Accessibility', () => {
     test('profile wizard is keyboard navigable', async ({ page }) => {
-      await page.click('[data-testid="open-twin-profile"]');
+      await openTwinProfile(page);
       await page.waitForSelector('.twin-profile-overlay.open');
 
       // Tab through elements
@@ -289,16 +297,16 @@ test.describe('Digital Twin Profile', () => {
     });
 
     test('profile wizard has proper ARIA labels', async ({ page }) => {
-      await page.click('[data-testid="open-twin-profile"]');
+      await openTwinProfile(page);
       await page.waitForSelector('.twin-profile-overlay.open');
 
       // Check dialog role
-      const dialog = page.locator('[role="dialog"]');
+      const dialog = page.locator('.twin-profile-overlay [role="dialog"]');
       await expect(dialog).toBeVisible();
       expect(await dialog.getAttribute('aria-modal')).toBe('true');
 
       // Check close button has label
-      const closeBtn = page.locator('[data-action="close"][aria-label]');
+      const closeBtn = page.locator('.twin-profile-overlay [data-action="close"][aria-label]');
       await expect(closeBtn).toBeVisible();
     });
   });

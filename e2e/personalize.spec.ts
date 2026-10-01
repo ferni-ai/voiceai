@@ -9,14 +9,15 @@
  * - POST /api/cosmetics/purchase - purchase a cosmetic with seeds
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
+import { pinMenuItems } from './support/app';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-personalize-test-user';
 
-test.describe('Personalize / Cosmetics API', () => {
+test.describe('Personalize / Cosmetics API', { tag: '@needs-server' }, () => {
   test('GET /api/cosmetics/catalog - returns available cosmetics', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/cosmetics/catalog`, {
+    const response = await request.get(`${API_URL}/api/cosmetics/catalog`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -38,7 +39,7 @@ test.describe('Personalize / Cosmetics API', () => {
   });
 
   test('GET /api/cosmetics/owned - returns user owned cosmetics', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/cosmetics/owned`, {
+    const response = await request.get(`${API_URL}/api/cosmetics/owned`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -51,7 +52,7 @@ test.describe('Personalize / Cosmetics API', () => {
   });
 
   test('GET /api/cosmetics/equipped - returns equipped cosmetics', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/cosmetics/equipped`, {
+    const response = await request.get(`${API_URL}/api/cosmetics/equipped`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -65,7 +66,7 @@ test.describe('Personalize / Cosmetics API', () => {
 
   test('POST /api/cosmetics/equip - equips a default cosmetic', async ({ request }) => {
     // First get catalog to find a default (free) cosmetic
-    const catalogResponse = await request.get(`${BASE_URL}/api/cosmetics/catalog`, {
+    const catalogResponse = await request.get(`${API_URL}/api/cosmetics/catalog`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -79,7 +80,7 @@ test.describe('Personalize / Cosmetics API', () => {
       return;
     }
 
-    const response = await request.post(`${BASE_URL}/api/cosmetics/equip`, {
+    const response = await request.post(`${API_URL}/api/cosmetics/equip`, {
       headers: { 'X-User-ID': TEST_USER_ID },
       data: { itemId: defaultItem.id },
     });
@@ -92,7 +93,7 @@ test.describe('Personalize / Cosmetics API', () => {
 
   test('POST /api/cosmetics/equip - fails for non-owned paid cosmetic', async ({ request }) => {
     // First get catalog to find a paid cosmetic
-    const catalogResponse = await request.get(`${BASE_URL}/api/cosmetics/catalog`, {
+    const catalogResponse = await request.get(`${API_URL}/api/cosmetics/catalog`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -106,7 +107,7 @@ test.describe('Personalize / Cosmetics API', () => {
       return;
     }
 
-    const response = await request.post(`${BASE_URL}/api/cosmetics/equip`, {
+    const response = await request.post(`${API_URL}/api/cosmetics/equip`, {
       headers: { 'X-User-ID': TEST_USER_ID },
       data: { itemId: paidItem.id },
     });
@@ -120,8 +121,15 @@ test.describe('Personalize / Cosmetics API', () => {
 });
 
 test.describe('Personalize UI', () => {
+  // Personalize is a roadmap feature, which the menu sections hide (it is shown
+  // in "What's Growing"); the menu still lists it as a pinned favorite. See
+  // renderMenuItem and renderPinnedItems in ui/settings-menu.ui.ts.
+  test.beforeEach(async ({ page }) => {
+    await pinMenuItems(page, ['personalize']);
+  });
+
   test('opens personalize modal from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Wait for app to load
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
@@ -148,7 +156,7 @@ test.describe('Personalize UI', () => {
   });
 
   test('displays category tabs', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Open personalize modal (via direct method if available or through menu)
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
@@ -173,7 +181,7 @@ test.describe('Personalize UI', () => {
   });
 
   test('closes modal on backdrop click', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -190,8 +198,8 @@ test.describe('Personalize UI', () => {
 
     await page.waitForSelector('.personalize-overlay.open');
 
-    // Click backdrop to close
-    await page.click('.personalize-backdrop');
+    // Click the backdrop outside the card (its center is covered by the card)
+    await page.click('.personalize-backdrop', { position: { x: 5, y: 5 } });
 
     // Modal should close
     await expect(page.locator('.personalize-overlay.open')).not.toBeVisible({ timeout: 2000 });

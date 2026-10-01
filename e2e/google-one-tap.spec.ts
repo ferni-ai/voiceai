@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { APP_URL } from './support/env';
 
 /**
  * Google One-Tap E2E Tests
@@ -13,12 +14,11 @@ import { test, expect } from '@playwright/test';
  * but we can verify our integration points work correctly.
  */
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3004';
 
 test.describe('Google One-Tap Integration', () => {
   test.beforeEach(async ({ page }) => {
     // Clear localStorage before each test
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await page.evaluate(() => localStorage.clear());
   });
 
@@ -27,7 +27,7 @@ test.describe('Google One-Tap Integration', () => {
   // ============================================================================
 
   test('GIS script is loaded in the page', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await page.waitForLoadState('domcontentloaded');
 
     // Check that the Google Identity Services script tag exists
@@ -40,7 +40,7 @@ test.describe('Google One-Tap Integration', () => {
   // ============================================================================
 
   test('dev utilities are available in development mode', async ({ page }) => {
-    await page.goto(`${BASE_URL}?dev`);
+    await page.goto(`${APP_URL}?dev`);
     await page.waitForLoadState('networkidle');
 
     // Wait for app to initialize
@@ -55,7 +55,7 @@ test.describe('Google One-Tap Integration', () => {
   });
 
   test('clearCooldown function works', async ({ page }) => {
-    await page.goto(`${BASE_URL}?dev`);
+    await page.goto(`${APP_URL}?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
@@ -101,7 +101,7 @@ test.describe('Google One-Tap Integration', () => {
   // ============================================================================
 
   test('cooldown persists across page reloads', async ({ page }) => {
-    await page.goto(`${BASE_URL}?dev`);
+    await page.goto(`${APP_URL}?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
@@ -135,12 +135,13 @@ test.describe('Google One-Tap Integration', () => {
   // ============================================================================
 
   test('success event triggers toast', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
     // Listen for toast to appear
-    const toastPromise = page.waitForSelector('.toast', { timeout: 5000 });
+    // Toasts render as whispers (ui/whisper.ui.ts)
+    const toastPromise = page.waitForSelector('.whisper', { timeout: 5000 });
 
     // Dispatch success event
     await page.evaluate(() => {
@@ -157,12 +158,13 @@ test.describe('Google One-Tap Integration', () => {
   });
 
   test('error event triggers error toast', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
     // Listen for toast to appear
-    const toastPromise = page.waitForSelector('.toast', { timeout: 5000 });
+    // Toasts render as whispers (ui/whisper.ui.ts)
+    const toastPromise = page.waitForSelector('.whisper', { timeout: 5000 });
 
     // Dispatch error event
     await page.evaluate(() => {
@@ -183,7 +185,7 @@ test.describe('Google One-Tap Integration', () => {
   // ============================================================================
 
   test('uses correct localStorage keys', async ({ page }) => {
-    await page.goto(`${BASE_URL}?dev`);
+    await page.goto(`${APP_URL}?dev`);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
@@ -219,7 +221,7 @@ test.describe('Google One-Tap Integration', () => {
 
 test.describe('Account Button One-Tap Integration', () => {
   test('account button exists and is clickable', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 

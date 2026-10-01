@@ -7,14 +7,15 @@
  * - UI interaction
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
+import { pinMenuItems } from './support/app';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3003';
 const TEST_USER_ID = process.env.TEST_USER_ID || 'e2e-test-user';
 
-test.describe('Contact Settings API', () => {
+test.describe('Contact Settings API', { tag: '@needs-server' }, () => {
   test('POST /api/user/contact - saves contact info', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/user/contact`, {
+    const response = await request.post(`${API_URL}/api/user/contact`, {
       headers: {
         'Content-Type': 'application/json',
         'X-User-ID': TEST_USER_ID,
@@ -37,7 +38,7 @@ test.describe('Contact Settings API', () => {
   });
 
   test('GET /api/user/contact - returns contact info', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/user/contact`, {
+    const response = await request.get(`${API_URL}/api/user/contact`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -51,7 +52,7 @@ test.describe('Contact Settings API', () => {
   });
 
   test('GET /api/user/contact - returns 401 without user ID', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/user/contact`);
+    const response = await request.get(`${API_URL}/api/user/contact`);
 
     // Should return 401 or empty response
     const status = response.status();
@@ -59,7 +60,7 @@ test.describe('Contact Settings API', () => {
   });
 
   test('POST /api/user/preferences - saves quiet hours', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/user/preferences`, {
+    const response = await request.post(`${API_URL}/api/user/preferences`, {
       headers: {
         'Content-Type': 'application/json',
         'X-User-ID': TEST_USER_ID,
@@ -78,7 +79,7 @@ test.describe('Contact Settings API', () => {
   });
 
   test('GET /api/user/preferences - returns preferences', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/user/preferences?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/user/preferences?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -93,8 +94,12 @@ test.describe('Contact Settings API', () => {
 
 test.describe('Contact Settings UI', () => {
   test.beforeEach(async ({ page }) => {
+    // The menu lists Contact Info only as a pinned favorite (it is not in a
+    // menu section; see renderPinnedItems in ui/settings-menu.ui.ts)
+    await pinMenuItems(page, ['contact-settings']);
+
     // Navigate to the app
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await page.waitForLoadState('networkidle');
   });
 
@@ -141,6 +146,15 @@ test.describe('Contact Settings UI', () => {
 
     await contactItem.click();
     await page.waitForSelector('.contact-settings-overlay.open');
+
+    // Saving posts to the UI server (mocked here, as the server answers)
+    await page.route(
+      (url) => ['/api/user/contact', '/api/user/preferences'].includes(url.pathname),
+      (route) =>
+        route.request().method() === 'POST'
+          ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) })
+          : route.fallback()
+    );
 
     // Fill in contact info
     const phoneInput = page.locator('#phone-input');

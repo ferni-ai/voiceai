@@ -7,14 +7,14 @@
  * - Managing payment methods
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-billing-test-user';
 
-test.describe('Billing API', () => {
+test.describe('Billing API', { tag: '@needs-server' }, () => {
   test('GET /api/billing/portal - returns portal URL or error', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/billing/portal`, {
+    const response = await request.get(`${API_URL}/api/billing/portal`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -23,7 +23,7 @@ test.describe('Billing API', () => {
   });
 
   test('GET /subscription/manage - returns billing portal link', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/subscription/manage`, {
+    const response = await request.get(`${API_URL}/subscription/manage`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -34,7 +34,7 @@ test.describe('Billing API', () => {
 
 test.describe('Billing UI', () => {
   test('opens billing from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -71,7 +71,7 @@ test.describe('Billing UI', () => {
   });
 
   test('billing requires subscription for portal access', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');

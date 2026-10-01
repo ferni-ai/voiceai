@@ -7,14 +7,15 @@
  * - Upgrade options
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
+import { openSettingsMenu, pinMenuItems } from './support/app';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-subscription-test-user';
 
-test.describe('Subscription API', () => {
+test.describe('Subscription API', { tag: '@needs-server' }, () => {
   test('GET /api/subscription - returns subscription status', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/subscription`, {
+    const response = await request.get(`${API_URL}/api/subscription`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -27,7 +28,7 @@ test.describe('Subscription API', () => {
   });
 
   test('GET /subscription/status - returns subscription info', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/subscription/status`, {
+    const response = await request.get(`${API_URL}/subscription/status`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -35,115 +36,54 @@ test.describe('Subscription API', () => {
   });
 });
 
+// The plan panel is the Support Ferni sheet (ui/support-ferni.ui.ts): the app
+// opens it for both the `subscription` and `support-ferni` menu actions. The
+// menu lists it as the pinned favorite "Support Ferni" (no "Your Plan" item is
+// rendered any more; see renderPinnedItems in ui/settings-menu.ui.ts).
+const PLAN_PANEL = '.support-ferni-overlay.support-ferni-overlay--open';
+
+async function openPlanPanel(page: Page): Promise<void> {
+  await page.goto(APP_URL);
+  await openSettingsMenu(page);
+  await page.locator('.settings-menu [data-action="support-ferni"]').click();
+  await expect(page.locator(PLAN_PANEL)).toBeVisible({ timeout: 5000 });
+}
+
 test.describe('Subscription UI', () => {
+  test.beforeEach(async ({ page }) => {
+    await pinMenuItems(page, ['support-ferni']);
+  });
+
   test('opens subscription panel from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    // Find and click Your Plan (in Account section)
-    const subscriptionButton = page.locator('[data-action="subscription"]');
-    if (!(await subscriptionButton.isVisible())) {
-      // Expand Account section if collapsed
-      const accountHeader = page.locator('.settings-menu__section-header:has-text("Account")');
-      if (await accountHeader.isVisible()) {
-        await accountHeader.click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    await subscriptionButton.click();
+    await openPlanPanel(page);
 
     // Verify subscription panel opened
-    await expect(
-      page.locator('.subscription-overlay, .subscription-panel, [data-panel="subscription"]')
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.locator(PLAN_PANEL)).toHaveAttribute('role', 'dialog');
+    await expect(page.locator(`${PLAN_PANEL} .support-ferni-title`)).toBeVisible();
   });
 
   test('displays current plan information', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    const subscriptionButton = page.locator('[data-action="subscription"]');
-    if (!(await subscriptionButton.isVisible())) {
-      const accountHeader = page.locator('.settings-menu__section-header:has-text("Account")');
-      if (await accountHeader.isVisible()) {
-        await accountHeader.click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    await subscriptionButton.click();
-    await page.waitForSelector('.subscription-overlay, .subscription-panel', { timeout: 5000 });
-
-    // Should show plan details
-    const panel = page.locator('.subscription-overlay, .subscription-panel');
-    await expect(panel).toBeVisible();
+    await openPlanPanel(page);
 
     // Should show plan name or free tier info
-    const planInfo = page.locator(
-      'text=Free, text=Friend, text=Partner, text=Your Plan, text=Current'
-    );
-    await expect(planInfo.first()).toBeVisible({ timeout: 3000 });
+    const planInfo = page.locator(`${PLAN_PANEL} .support-ferni-current .support-ferni-tier-badge`);
+    await expect(planInfo).toBeVisible({ timeout: 3000 });
+    expect((await planInfo.textContent())?.trim()).toBeTruthy();
   });
 
   test('shows upgrade option for free users', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await openPlanPanel(page);
 
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    const subscriptionButton = page.locator('[data-action="subscription"]');
-    if (!(await subscriptionButton.isVisible())) {
-      const accountHeader = page.locator('.settings-menu__section-header:has-text("Account")');
-      if (await accountHeader.isVisible()) {
-        await accountHeader.click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    await subscriptionButton.click();
-    await page.waitForSelector('.subscription-overlay, .subscription-panel', { timeout: 5000 });
-
-    // Panel should be visible
-    const panel = page.locator('.subscription-overlay, .subscription-panel');
-    await expect(panel).toBeVisible();
+    // Free users see the ways to upgrade
+    const upgrade = page.locator(`${PLAN_PANEL} .support-ferni-upgrade [data-upgrade-tier]`);
+    await expect(upgrade.first()).toBeVisible();
   });
 
   test('closes subscription panel on close button click', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    const subscriptionButton = page.locator('[data-action="subscription"]');
-    if (!(await subscriptionButton.isVisible())) {
-      const accountHeader = page.locator('.settings-menu__section-header:has-text("Account")');
-      if (await accountHeader.isVisible()) {
-        await accountHeader.click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    await subscriptionButton.click();
-    await page.waitForSelector('.subscription-overlay, .subscription-panel', { timeout: 5000 });
+    await openPlanPanel(page);
 
     // Click close button
-    const closeButton = page.locator(
-      '.subscription-close, .subscription-panel [aria-label="Close"], .subscription-overlay [aria-label="Close"]'
-    );
-    if (await closeButton.isVisible()) {
-      await closeButton.click();
-      await expect(
-        page.locator('.subscription-overlay.open, .subscription-panel--visible')
-      ).not.toBeVisible({ timeout: 2000 });
-    }
+    await page.locator(`${PLAN_PANEL} .support-ferni-close`).click();
+    await expect(page.locator(PLAN_PANEL)).not.toBeVisible({ timeout: 2000 });
   });
 });

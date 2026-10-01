@@ -77,7 +77,7 @@ function ensureModalExists(): HTMLElement {
   modal.className = 'voice-journal-overlay';
   modal.innerHTML = `
     <div class="journal-backdrop" data-action="close" role="button" tabindex="0" aria-label="${t('accessibility.closeJournal')}"></div>
-    <div class="journal-container" role="dialog" aria-modal="true" aria-labelledby="journal-title">
+    <div class="journal-container" role="dialog" aria-modal="true" aria-labelledby="journal-title" tabindex="-1">
       <header class="journal-header">
         <div class="journal-header-content">
           <h2 class="journal-title" id="journal-title">Voice Journal</h2>
@@ -460,6 +460,9 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
     // Show modal
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
+
+    // Move focus into the dialog so the keyboard (Tab, Escape) works in it
+    modal.querySelector<HTMLElement>('.journal-container')?.focus();
 
     soundUI.play('switch');
   } catch (error) {

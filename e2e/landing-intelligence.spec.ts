@@ -8,16 +8,20 @@
  * - Returning visitor personalization
  * - Layout optimization
  * - API endpoints
+ *
+ * The page tests run against the marketing site (apps/website/ferni-website),
+ * not the web app: they are tagged @needs-landing and use E2E_LANDING_URL as
+ * their base URL (landing suite). The API tests need the UI server.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 test.describe('Landing Intelligence', () => {
   // ============================================================================
   // API ENDPOINT TESTS
   // ============================================================================
 
-  test.describe('API Endpoints', () => {
+  test.describe('API Endpoints', { tag: '@needs-server' }, () => {
     test('GET /api/landing/health returns status', async ({ request }) => {
       const response = await request.get('/api/landing/health');
       expect(response.ok()).toBeTruthy();
@@ -146,7 +150,7 @@ test.describe('Landing Intelligence', () => {
   // FRONTEND INTEGRATION TESTS
   // ============================================================================
 
-  test.describe('Frontend Integration', () => {
+  test.describe('Frontend Integration', { tag: '@needs-landing' }, () => {
     test.beforeEach(async ({ page }) => {
       await page.goto('/');
     });
@@ -219,7 +223,7 @@ test.describe('Landing Intelligence', () => {
   // TIME-AWARE CONTENT TESTS
   // ============================================================================
 
-  test.describe('Time-Aware Content', () => {
+  test.describe('Time-Aware Content', { tag: '@needs-landing' }, () => {
     test('late night mode applies correct classes', async ({ page }) => {
       // Mock the hour to be 2am
       await page.addInitScript(() => {
@@ -255,7 +259,7 @@ test.describe('Landing Intelligence', () => {
   // CHAT WIDGET TESTS
   // ============================================================================
 
-  test.describe('Chat Widget', () => {
+  test.describe('Chat Widget', { tag: '@needs-landing' }, () => {
     test('chat widget becomes visible after scroll', async ({ page }) => {
       await page.goto('/');
 
@@ -304,7 +308,7 @@ test.describe('Landing Intelligence', () => {
   // BEHAVIOR TRACKING TESTS
   // ============================================================================
 
-  test.describe('Behavior Tracking', () => {
+  test.describe('Behavior Tracking', { tag: '@needs-landing' }, () => {
     test('tracks scroll depth', async ({ page }) => {
       await page.goto('/');
 
@@ -374,7 +378,7 @@ test.describe('Landing Intelligence', () => {
   // RETURNING VISITOR TESTS
   // ============================================================================
 
-  test.describe('Returning Visitor', () => {
+  test.describe('Returning Visitor', { tag: '@needs-landing' }, () => {
     test('detects returning visitor', async ({ page }) => {
       await page.goto('/');
 
@@ -401,7 +405,7 @@ test.describe('Landing Intelligence', () => {
   // ACCESSIBILITY TESTS
   // ============================================================================
 
-  test.describe('Accessibility', () => {
+  test.describe('Accessibility', { tag: '@needs-landing' }, () => {
     test('chat widget has proper ARIA attributes', async ({ page }) => {
       await page.goto('/');
 

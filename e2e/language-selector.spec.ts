@@ -8,142 +8,75 @@
  * - RTL support
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from './support/fixtures';
+import { APP_URL } from './support/env';
+import { clickMenuItem } from './support/app';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
+// Language lives in the Theme & Language panel (ui/theme-language-settings.ui.ts),
+// opened from the menu's "Theme & Language" item.
+const PANEL = '.theme-language-settings .theme-language-settings__panel';
+
+async function openThemeLanguage(page: Page): Promise<void> {
+  await page.goto(APP_URL);
+  await clickMenuItem(page, 'theme');
+  await expect(page.locator(PANEL)).toBeVisible();
+}
 
 test.describe('Language Selector UI', () => {
   test('opens language selector from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    // Find and click Language toggle (in Personalize section)
-    const languageButton = page.locator('[data-action="toggle-language"]');
-    if (!(await languageButton.isVisible())) {
-      // Expand Personalize section if collapsed
-      const personalizeHeader = page.locator(
-        '.settings-menu__section-header:has-text("Make It Yours"), .settings-menu__section-header:has-text("Personalize")'
-      );
-      if (await personalizeHeader.first().isVisible()) {
-        await personalizeHeader.first().click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    await languageButton.click();
-    await page.waitForTimeout(300);
+    await openThemeLanguage(page);
 
     // Language list should be visible
-    const languageList = page.locator('.settings-menu__language-list[data-expanded="true"]');
+    const languageList = page.locator(`${PANEL} .theme-language-settings__languages[role="listbox"]`);
     await expect(languageList).toBeVisible();
   });
 
   test('displays available languages', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    const languageButton = page.locator('[data-action="toggle-language"]');
-    if (!(await languageButton.isVisible())) {
-      const personalizeHeader = page.locator(
-        '.settings-menu__section-header:has-text("Make It Yours"), .settings-menu__section-header:has-text("Personalize")'
-      );
-      if (await personalizeHeader.first().isVisible()) {
-        await personalizeHeader.first().click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    await languageButton.click();
-    await page.waitForTimeout(300);
+    await openThemeLanguage(page);
 
     // Should show multiple language options
-    const languageOptions = page.locator('.settings-menu__language-option');
+    const languageOptions = page.locator(`${PANEL} .theme-language-settings__language-option`);
     const count = await languageOptions.count();
     expect(count).toBeGreaterThan(1);
   });
 
   test('shows current language with checkmark', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    const languageButton = page.locator('[data-action="toggle-language"]');
-    if (!(await languageButton.isVisible())) {
-      const personalizeHeader = page.locator(
-        '.settings-menu__section-header:has-text("Make It Yours"), .settings-menu__section-header:has-text("Personalize")'
-      );
-      if (await personalizeHeader.first().isVisible()) {
-        await personalizeHeader.first().click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    await languageButton.click();
-    await page.waitForTimeout(300);
+    await openThemeLanguage(page);
 
     // Active language should have checkmark
-    const activeOption = page.locator('.settings-menu__language-option--active');
+    const activeOption = page.locator(`${PANEL} .theme-language-settings__language-option--active`);
     await expect(activeOption).toBeVisible();
+    await expect(activeOption).toHaveAttribute('aria-selected', 'true');
 
-    const checkmark = activeOption.locator('.settings-menu__language-check');
+    const checkmark = activeOption.locator('.theme-language-settings__language-check');
     await expect(checkmark).toBeVisible();
   });
 
   test('changes language when option clicked', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    const languageButton = page.locator('[data-action="toggle-language"]');
-    if (!(await languageButton.isVisible())) {
-      const personalizeHeader = page.locator(
-        '.settings-menu__section-header:has-text("Make It Yours"), .settings-menu__section-header:has-text("Personalize")'
-      );
-      if (await personalizeHeader.first().isVisible()) {
-        await personalizeHeader.first().click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    await languageButton.click();
-    await page.waitForTimeout(300);
+    await openThemeLanguage(page);
 
     // Get current language
-    const currentOption = page.locator('.settings-menu__language-option--active');
+    const currentOption = page.locator(`${PANEL} .theme-language-settings__language-option--active`);
     const currentLocale = await currentOption.getAttribute('data-locale');
 
-    // Find a different language option
-    const otherOptions = page.locator(
-      `.settings-menu__language-option:not([data-locale="${currentLocale}"])`
-    );
-    if ((await otherOptions.count()) > 0) {
-      const newLocale = await otherOptions.first().getAttribute('data-locale');
-      await otherOptions.first().click();
+    // Pick a different language
+    const otherOption = page
+      .locator(`${PANEL} .theme-language-settings__language-option:not([data-locale="${currentLocale}"])`)
+      .first();
+    const newLocale = await otherOption.getAttribute('data-locale');
+    expect(newLocale).toBeTruthy();
 
-      await page.waitForTimeout(500);
+    // Changing the locale reloads the app
+    await Promise.all([page.waitForEvent('load'), otherOption.click()]);
+    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
 
-      // Menu should re-render with new language
-      await page.click('.settings-trigger');
-      await page.waitForSelector('.settings-menu--visible');
-
-      // HTML lang attribute should update
-      const htmlLang = await page.getAttribute('html', 'lang');
-      expect(htmlLang).toBe(newLocale);
-    }
+    // HTML lang attribute should update
+    const htmlLang = await page.getAttribute('html', 'lang');
+    expect(htmlLang).toBe(newLocale);
   });
 
   test('language persists after page reload', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Set language via localStorage
     await page.evaluate(() => {
@@ -159,7 +92,7 @@ test.describe('Language Selector UI', () => {
   });
 
   test('RTL languages set correct direction', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Set Arabic language
     await page.evaluate(() => {
@@ -175,7 +108,7 @@ test.describe('Language Selector UI', () => {
   });
 
   test('Hebrew language sets RTL direction', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Set Hebrew language
     await page.evaluate(() => {
@@ -191,25 +124,12 @@ test.describe('Language Selector UI', () => {
   });
 
   test('language selector shows flag emoji', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    const languageButton = page.locator('[data-action="toggle-language"]');
-    if (!(await languageButton.isVisible())) {
-      const personalizeHeader = page.locator(
-        '.settings-menu__section-header:has-text("Make It Yours"), .settings-menu__section-header:has-text("Personalize")'
-      );
-      if (await personalizeHeader.first().isVisible()) {
-        await personalizeHeader.first().click();
-        await page.waitForTimeout(300);
-      }
-    }
+    await openThemeLanguage(page);
 
     // Current language flag should be visible
-    const currentFlag = languageButton.locator('.settings-menu__language-flag');
+    const currentFlag = page.locator(
+      `${PANEL} .theme-language-settings__language-option--active .theme-language-settings__language-flag`
+    );
     await expect(currentFlag).toBeVisible();
 
     // Flag should contain emoji

@@ -151,7 +151,7 @@ function ensureModalExists(): HTMLElement {
   profileModal.className = 'twin-profile-overlay';
   profileModal.innerHTML = `
     <div class="profile-backdrop" data-action="close" role="button" tabindex="0"></div>
-    <div class="profile-container" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+    <div class="profile-container" role="dialog" aria-modal="true" aria-labelledby="profile-title" tabindex="-1">
       <header class="profile-header">
         <div class="profile-header-content">
           <h2 class="profile-title" id="profile-title">Build Your Digital Twin</h2>
@@ -239,6 +239,9 @@ export async function openTwinProfile(agentId: string): Promise<void> {
 
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
+
+    // Move focus into the dialog so the keyboard (Tab, Escape) works in it
+    modal.querySelector<HTMLElement>('.profile-container')?.focus();
 
     soundUI.play('switch');
   } catch (error) {
@@ -982,10 +985,11 @@ function saveBackgroundData(): void {
       .filter((s) => s);
   }
 
-  // Life chapters and relationships are saved on add/remove
+  syncListRows();
 }
 
 function saveMannerismsData(): void {
+  syncListRows();
   const greetingInput = profileModal?.querySelector('#greeting-style') as HTMLInputElement;
   const farewellInput = profileModal?.querySelector('#farewell-style') as HTMLInputElement;
 
@@ -1120,7 +1124,41 @@ function saveInterestsData(): void {
 // ADD/REMOVE HELPERS
 // ============================================================================
 
+/**
+ * Copy what the user typed into the list rows (life chapters, relationships,
+ * signature phrases) back into the profile. Adding/removing a row re-renders
+ * the section, and so does moving between sections, so this must run first or
+ * the typed text is lost.
+ */
+function syncListRows(): void {
+  const field = (row: Element, name: string): string | undefined =>
+    row.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[data-field="${name}"]`)?.value;
+
+  profileModal?.querySelectorAll<HTMLElement>('.chapter-card').forEach((row) => {
+    const chapter = profile.lifeChapters[Number(row.dataset.index)];
+    if (!chapter) return;
+    chapter.title = field(row, 'title') ?? chapter.title;
+    chapter.years = field(row, 'years') ?? chapter.years;
+    chapter.description = field(row, 'description') ?? chapter.description;
+  });
+
+  profileModal?.querySelectorAll<HTMLElement>('.relationship-row').forEach((row) => {
+    const rel = profile.keyRelationships[Number(row.dataset.index)];
+    if (!rel) return;
+    rel.name = field(row, 'name') ?? rel.name;
+    rel.relationship = field(row, 'relationship') ?? rel.relationship;
+  });
+
+  profileModal?.querySelectorAll<HTMLElement>('.phrase-row').forEach((row) => {
+    const phrase = profile.signaturePhrases[Number(row.dataset.index)];
+    if (!phrase) return;
+    phrase.phrase = field(row, 'phrase') ?? phrase.phrase;
+    phrase.context = field(row, 'context') ?? phrase.context;
+  });
+}
+
 function addLifeChapter(): void {
+  syncListRows();
   profile.lifeChapters.push({
     id: `chapter-${Date.now()}`,
     title: '',
@@ -1133,24 +1171,28 @@ function addLifeChapter(): void {
 }
 
 function removeLifeChapter(index: number): void {
+  syncListRows();
   profile.lifeChapters.splice(index, 1);
   renderSection();
   soundUI.play('click');
 }
 
 function addRelationship(): void {
+  syncListRows();
   profile.keyRelationships.push({ name: '', relationship: '', importance: '' });
   renderSection();
   soundUI.play('click');
 }
 
 function removeRelationshipItem(index: number): void {
+  syncListRows();
   profile.keyRelationships.splice(index, 1);
   renderSection();
   soundUI.play('click');
 }
 
 function addPhrase(): void {
+  syncListRows();
   profile.signaturePhrases.push({
     id: `phrase-${Date.now()}`,
     phrase: '',
@@ -1161,6 +1203,7 @@ function addPhrase(): void {
 }
 
 function removePhraseItem(index: number): void {
+  syncListRows();
   profile.signaturePhrases.splice(index, 1);
   renderSection();
   soundUI.play('click');

@@ -21,19 +21,24 @@ All test files are `.spec.ts` files in this directory (~65 test files).
 
 ## Running Tests
 
+See `README.md` for suites, tags, the localhost guard and the inventory.
+
 ```bash
-# Run all E2E tests
-pnpm test:e2e
+# Offline suite (default): Vite + mocked backend, no credentials, localhost only
+pnpm test:e2e:offline
 
-# Run specific test file
-pnpm test:e2e auth.spec.ts
+# Suites that need real services (tagged @needs-server / @needs-agent / @needs-landing)
+pnpm test:e2e:server      # pnpm ui-server on :3002
+pnpm test:e2e:agent       # voice agent + UI server
+pnpm test:e2e:landing     # E2E_LANDING_URL
 
-# Run with UI
-pnpm test:e2e --ui
-
-# Run headed (visible browser)
-pnpm test:e2e --headed
+# One file, headed or with the UI
+pnpm test:e2e:offline e2e/dashboard.spec.ts --headed
+pnpm test:e2e:offline --ui
 ```
+
+Import `test`/`expect` from `./support/fixtures` and URLs from `./support/env`;
+never hard-code a host (non-localhost targets fail unless `E2E_ALLOW_REMOTE=1`).
 
 ## Key Test Files
 

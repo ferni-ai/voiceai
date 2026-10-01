@@ -14,13 +14,14 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+// Localhost by default; see e2e/support/env.ts (E2E_API_URL, E2E_ALLOW_REMOTE).
+import { API_URL as API_BASE } from './support/env';
 
 // ============================================================================
 // TEST SETUP
 // ============================================================================
 
 const TEST_USER_ID = `e2e-test-user-${Date.now()}`;
-const API_BASE = process.env.TEST_API_URL || 'http://localhost:3002';
 
 // Helper to make API calls
 async function apiCall<T>(
@@ -215,8 +216,9 @@ describe('Multi-Channel Delivery', () => {
       `/api/outreach/pending-messages?userId=${TEST_USER_ID}`
     );
 
-    if (messagesResponse.ok && messagesResponse.data?.messages?.length > 0) {
-      const messageId = messagesResponse.data.messages[0].id;
+    const firstMessage = messagesResponse.ok ? messagesResponse.data?.messages?.[0] : undefined;
+    if (firstMessage) {
+      const messageId = firstMessage.id;
 
       // Mark as read
       const readResponse = await apiCall(

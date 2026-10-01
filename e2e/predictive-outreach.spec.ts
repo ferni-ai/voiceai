@@ -11,9 +11,10 @@
  */
 
 import { test, expect, describe, beforeAll, afterAll } from 'vitest';
+// Localhost by default; see e2e/support/env.ts (E2E_API_URL, E2E_ALLOW_REMOTE).
+import { API_URL as API_BASE } from './support/env';
 
 // Test configuration
-const API_BASE = process.env.TEST_API_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-predictive-test-user';
 const ADMIN_KEY = 'dev-mode';
 

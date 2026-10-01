@@ -9,6 +9,8 @@ import { checkAndClaimDemoSession, hasPendingClaim } from '../services/demo-clai
 import { getAuthToken } from '../services/firebase-auth.service.js';
 import { getLocation } from '../services/geolocation.service.js';
 import { initGoogleOneTap } from '../services/google-one-tap.service.js';
+import { t } from '../i18n/index.js';
+import { addTrackedListener } from './init-helpers.js';
 import { audioService, moodService, spotifyService } from '../services/index.js';
 import { detectAndSyncTimezone } from '../services/timezone.service.js';
 import { toast } from '../ui/whisper.ui.js';
@@ -108,6 +110,16 @@ export async function initializeServices(): Promise<void> {
   // 🔐 Google One-Tap Sign-In - Gentle prompt for anonymous users
   // Shows after 8 seconds, respects dismissals with progressive cooldown
   initGoogleOneTap();
+
+  // The One-Tap service only dispatches events; confirm the outcome warmly.
+  addTrackedListener(window, 'ferni:one-tap-success', () => {
+    toast.success(t('auth.rememberSuccess', "Got it! I'll remember you now."));
+  });
+  addTrackedListener(window, 'ferni:one-tap-error', (event) => {
+    const detail = (event as CustomEvent<{ error?: string }>).detail;
+    log.warn('One-Tap sign-in failed:', detail?.error);
+    toast.error(detail?.error ?? t('auth.somethingWentWrong', 'Something went wrong'));
+  });
 
   // 🧠 Better Than Human: Voice ↔ App Sync
   // Track user activity in the app so voice agent knows context

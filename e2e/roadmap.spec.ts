@@ -10,18 +10,18 @@
  * - Voting interaction
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_EMAIL = 'e2e-roadmap-test@example.com';
 
 // ============================================================================
 // API TESTS
 // ============================================================================
 
-test.describe('Waitlist API', () => {
+test.describe('Waitlist API', { tag: '@needs-server' }, () => {
   test('POST /api/waitlist - accepts valid email signup', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/waitlist`, {
+    const response = await request.post(`${API_URL}/api/waitlist`, {
       data: {
         email: TEST_EMAIL,
         source: 'marketplace',
@@ -36,7 +36,7 @@ test.describe('Waitlist API', () => {
   });
 
   test('POST /api/waitlist - rejects invalid email', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/waitlist`, {
+    const response = await request.post(`${API_URL}/api/waitlist`, {
       data: {
         email: 'not-an-email',
         source: 'marketplace',
@@ -50,7 +50,7 @@ test.describe('Waitlist API', () => {
   });
 
   test('POST /api/waitlist - accepts developer source', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/waitlist`, {
+    const response = await request.post(`${API_URL}/api/waitlist`, {
       data: {
         email: 'developer-test@example.com',
         source: 'developer',
@@ -64,7 +64,7 @@ test.describe('Waitlist API', () => {
   });
 
   test('POST /api/waitlist - defaults to marketplace source', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/waitlist`, {
+    const response = await request.post(`${API_URL}/api/waitlist`, {
       data: {
         email: 'default-source@example.com',
       },
@@ -77,11 +77,11 @@ test.describe('Waitlist API', () => {
   });
 });
 
-test.describe('Feature Voting API', () => {
+test.describe('Feature Voting API', { tag: '@needs-server' }, () => {
   const testFeatureId = 'e2e-test-feature';
 
   test('POST /api/waitlist/vote - records a vote', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/waitlist/vote`, {
+    const response = await request.post(`${API_URL}/api/waitlist/vote`, {
       data: {
         featureId: testFeatureId,
       },
@@ -96,7 +96,7 @@ test.describe('Feature Voting API', () => {
   });
 
   test('POST /api/waitlist/vote - rejects missing featureId', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/waitlist/vote`, {
+    const response = await request.post(`${API_URL}/api/waitlist/vote`, {
       data: {},
     });
 
@@ -108,12 +108,12 @@ test.describe('Feature Voting API', () => {
 
   test('GET /api/waitlist/votes/:featureId - returns vote count', async ({ request }) => {
     // First, add a vote
-    await request.post(`${BASE_URL}/api/waitlist/vote`, {
+    await request.post(`${API_URL}/api/waitlist/vote`, {
       data: { featureId: testFeatureId },
     });
 
     // Then check the count
-    const response = await request.get(`${BASE_URL}/api/waitlist/votes/${testFeatureId}`);
+    const response = await request.get(`${API_URL}/api/waitlist/votes/${testFeatureId}`);
 
     expect(response.status()).toBe(200);
 
@@ -126,7 +126,7 @@ test.describe('Feature Voting API', () => {
   test('GET /api/waitlist/votes/:featureId - returns 0 for unknown feature', async ({
     request,
   }) => {
-    const response = await request.get(`${BASE_URL}/api/waitlist/votes/unknown-feature-xyz`);
+    const response = await request.get(`${API_URL}/api/waitlist/votes/unknown-feature-xyz`);
 
     expect(response.status()).toBe(200);
 
@@ -142,7 +142,7 @@ test.describe('Feature Voting API', () => {
 test.describe('Roadmap Panel UI', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the app
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Wait for app to load
     await page.waitForLoadState('networkidle');
@@ -265,7 +265,7 @@ test.describe('Roadmap Panel UI', () => {
 
 test.describe('Roadmap Menu Items', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await page.waitForLoadState('networkidle');
   });
 
@@ -315,7 +315,7 @@ test.describe('Roadmap Menu Items', () => {
 
 test.describe('Roadmap Accessibility', () => {
   test('roadmap panel has proper ARIA attributes', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await page.waitForLoadState('networkidle');
 
     // Open settings menu
@@ -344,7 +344,7 @@ test.describe('Roadmap Accessibility', () => {
   });
 
   test('close button is keyboard accessible', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await page.waitForLoadState('networkidle');
 
     // Open settings menu

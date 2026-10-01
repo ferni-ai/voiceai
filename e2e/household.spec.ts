@@ -10,15 +10,16 @@
  * - Also tests /api/household/:userId CRUD endpoints
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
+import { openSettingsMenu, openViaEvent, pinMenuItems } from './support/app';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-household-test-user';
 const TEST_DEVICE_ID = `e2e-test-device-${Date.now()}`;
 
-test.describe('Household API (Voice Routes)', () => {
+test.describe('Household API (Voice Routes)', { tag: '@needs-server' }, () => {
   test('GET /api/voice/household - returns household or 404', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/voice/household`, {
+    const response = await request.get(`${API_URL}/api/voice/household`, {
       headers: {
         'X-Device-ID': TEST_DEVICE_ID,
         'X-User-ID': TEST_USER_ID,
@@ -35,7 +36,7 @@ test.describe('Household API (Voice Routes)', () => {
   });
 
   test('GET /api/voice/household - requires device ID', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/voice/household`, {
+    const response = await request.get(`${API_URL}/api/voice/household`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         // Missing X-Device-ID
@@ -48,7 +49,7 @@ test.describe('Household API (Voice Routes)', () => {
   test('POST /api/voice/household - creates household', async ({ request }) => {
     const uniqueDeviceId = `test-device-${Date.now()}`;
 
-    const response = await request.post(`${BASE_URL}/api/voice/household`, {
+    const response = await request.post(`${API_URL}/api/voice/household`, {
       headers: {
         'X-Device-ID': uniqueDeviceId,
         'X-User-ID': TEST_USER_ID,
@@ -68,7 +69,7 @@ test.describe('Household API (Voice Routes)', () => {
   });
 
   test('POST /api/voice/household - requires user and device ID', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/voice/household`, {
+    const response = await request.post(`${API_URL}/api/voice/household`, {
       headers: {
         'Content-Type': 'application/json',
         // Missing required headers
@@ -82,7 +83,7 @@ test.describe('Household API (Voice Routes)', () => {
   test('POST /api/voice/household/members - adds member', async ({ request }) => {
     // First create a household
     const uniqueDeviceId = `test-device-member-${Date.now()}`;
-    await request.post(`${BASE_URL}/api/voice/household`, {
+    await request.post(`${API_URL}/api/voice/household`, {
       headers: {
         'X-Device-ID': uniqueDeviceId,
         'X-User-ID': TEST_USER_ID,
@@ -92,7 +93,7 @@ test.describe('Household API (Voice Routes)', () => {
     });
 
     // Now add a member
-    const response = await request.post(`${BASE_URL}/api/voice/household/members`, {
+    const response = await request.post(`${API_URL}/api/voice/household/members`, {
       headers: {
         'X-Device-ID': uniqueDeviceId,
         'Content-Type': 'application/json',
@@ -112,7 +113,7 @@ test.describe('Household API (Voice Routes)', () => {
   });
 
   test('POST /api/voice/household/members - requires device ID', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/voice/household/members`, {
+    const response = await request.post(`${API_URL}/api/voice/household/members`, {
       headers: {
         'Content-Type': 'application/json',
         // Missing X-Device-ID
@@ -130,7 +131,7 @@ test.describe('Household API (Voice Routes)', () => {
   test('DELETE /api/voice/household/members/:id - removes member', async ({ request }) => {
     // First create household with member
     const uniqueDeviceId = `test-device-delete-${Date.now()}`;
-    await request.post(`${BASE_URL}/api/voice/household`, {
+    await request.post(`${API_URL}/api/voice/household`, {
       headers: {
         'X-Device-ID': uniqueDeviceId,
         'X-User-ID': TEST_USER_ID,
@@ -140,7 +141,7 @@ test.describe('Household API (Voice Routes)', () => {
     });
 
     const memberId = `member-delete-${Date.now()}`;
-    await request.post(`${BASE_URL}/api/voice/household/members`, {
+    await request.post(`${API_URL}/api/voice/household/members`, {
       headers: {
         'X-Device-ID': uniqueDeviceId,
         'Content-Type': 'application/json',
@@ -153,7 +154,7 @@ test.describe('Household API (Voice Routes)', () => {
     });
 
     // Delete the member
-    const response = await request.delete(`${BASE_URL}/api/voice/household/members/${memberId}`, {
+    const response = await request.delete(`${API_URL}/api/voice/household/members/${memberId}`, {
       headers: {
         'X-Device-ID': uniqueDeviceId,
       },
@@ -164,7 +165,7 @@ test.describe('Household API (Voice Routes)', () => {
   });
 
   test('POST /api/voice/household/identify - requires device ID', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/voice/household/identify`, {
+    const response = await request.post(`${API_URL}/api/voice/household/identify`, {
       headers: {
         'Content-Type': 'application/json',
         // Missing X-Device-ID
@@ -178,9 +179,9 @@ test.describe('Household API (Voice Routes)', () => {
   });
 });
 
-test.describe('Household API (User Routes)', () => {
+test.describe('Household API (User Routes)', { tag: '@needs-server' }, () => {
   test('GET /api/household/:userId - returns household data', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/household/${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/household/${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -196,7 +197,7 @@ test.describe('Household API (User Routes)', () => {
   });
 
   test('PUT /api/household/:userId - updates household', async ({ request }) => {
-    const response = await request.put(`${BASE_URL}/api/household/${TEST_USER_ID}`, {
+    const response = await request.put(`${API_URL}/api/household/${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -226,7 +227,7 @@ test.describe('Household API (User Routes)', () => {
   });
 
   test('PATCH /api/household/:userId/settings - updates settings only', async ({ request }) => {
-    const response = await request.patch(`${BASE_URL}/api/household/${TEST_USER_ID}/settings`, {
+    const response = await request.patch(`${API_URL}/api/household/${TEST_USER_ID}/settings`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -244,7 +245,7 @@ test.describe('Household API (User Routes)', () => {
   });
 
   test('POST /api/household/:userId/members - adds member', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/household/${TEST_USER_ID}/members`, {
+    const response = await request.post(`${API_URL}/api/household/${TEST_USER_ID}/members`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -266,7 +267,7 @@ test.describe('Household API (User Routes)', () => {
   });
 
   test('settings structure is correct', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/household/${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/household/${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -294,7 +295,8 @@ test.describe('Household API (User Routes)', () => {
 
 test.describe('Household Manager UI', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
+    await pinMenuItems(page, ['household']);
+    await page.goto(APP_URL);
 
     await page.evaluate(
       ({ userId, deviceId }) => {
@@ -309,33 +311,14 @@ test.describe('Household Manager UI', () => {
   });
 
   test('can open household manager from settings', async ({ page }) => {
-    // Open settings menu
-    const settingsButton = page.locator('[aria-label="Settings"]').or(page.locator('.menu-toggle'));
-    if (await settingsButton.isVisible()) {
-      await settingsButton.click();
-      await page.waitForTimeout(500);
+    // Household is a roadmap feature, hidden from the menu sections; the menu
+    // lists it as the pinned favorite "household" (renderPinnedItems in
+    // ui/settings-menu.ui.ts)
+    await openSettingsMenu(page);
+    await page.locator('.settings-menu [data-action="household"]').click();
 
-      // Look for household option
-      const householdOption = page
-        .locator('text=Household')
-        .or(page.locator('text=Family'))
-        .or(page.locator('[data-action="household"]'));
-
-      if (await householdOption.isVisible()) {
-        await householdOption.click();
-        await page.waitForTimeout(500);
-
-        // Verify modal opened
-        const modal = page
-          .locator('.household-manager')
-          .or(page.locator('.household-modal'))
-          .or(page.locator('[data-panel="household"]'));
-
-        if (await modal.isVisible()) {
-          expect(await modal.isVisible()).toBe(true);
-        }
-      }
-    }
+    // Verify the household manager (ui/household-manager.ui.ts) opened
+    await expect(page.locator('.household-modal-overlay.visible')).toBeVisible({ timeout: 5000 });
   });
 
   test('displays household settings', async ({ page }) => {
@@ -385,34 +368,21 @@ test.describe('Household Manager UI', () => {
   });
 
   test('can close household manager', async ({ page }) => {
-    const opened = await page.evaluate(() => {
-      const event = new CustomEvent('ferni:open-household');
-      window.dispatchEvent(event);
-      return true;
-    });
+    // ferni:open-household opens the household manager (ui/household-manager.ui.ts)
+    const modal = page.locator('.household-modal-overlay.visible');
+    await openViaEvent(page, 'ferni:open-household', modal);
 
-    if (opened) {
-      await page.waitForTimeout(500);
-
-      const closeButton = page
-        .locator('.household-close')
-        .or(page.locator('[aria-label="Close"]'))
-        .or(page.locator('.close-btn'));
-
-      if (await closeButton.isVisible()) {
-        await closeButton.click();
-        await page.waitForTimeout(300);
-      }
-    }
+    await modal.locator('.household-modal__close').click();
+    await expect(page.locator('.household-modal-overlay.visible')).toHaveCount(0);
   });
 });
 
-test.describe('Household Data Integration', () => {
+test.describe('Household Data Integration', { tag: '@needs-server' }, () => {
   test('household persists members correctly', async ({ request }) => {
     const testUserId = `integration-test-${Date.now()}`;
 
     // Add a member
-    const addResponse = await request.post(`${BASE_URL}/api/household/${testUserId}/members`, {
+    const addResponse = await request.post(`${API_URL}/api/household/${testUserId}/members`, {
       headers: {
         'X-User-ID': testUserId,
         'Content-Type': 'application/json',
@@ -427,7 +397,7 @@ test.describe('Household Data Integration', () => {
     expect([200, 201]).toContain(addResponse.status());
 
     // Verify member persisted
-    const getResponse = await request.get(`${BASE_URL}/api/household/${testUserId}`, {
+    const getResponse = await request.get(`${API_URL}/api/household/${testUserId}`, {
       headers: {
         'X-User-ID': testUserId,
       },
@@ -445,7 +415,7 @@ test.describe('Household Data Integration', () => {
   test('default household has correct structure', async ({ request }) => {
     const newUserId = `new-household-user-${Date.now()}`;
 
-    const response = await request.get(`${BASE_URL}/api/household/${newUserId}`, {
+    const response = await request.get(`${API_URL}/api/household/${newUserId}`, {
       headers: {
         'X-User-ID': newUserId,
       },

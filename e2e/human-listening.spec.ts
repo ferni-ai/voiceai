@@ -5,18 +5,16 @@
  * in a simulated conversation flow.
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { APP_LOADED } from './support/app';
 
 test.describe('Human Listening Pipeline', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the app
     await page.goto('/');
 
-    // Wait for app to load
-    await page.waitForSelector('[data-testid="app-loaded"]', { timeout: 10000 }).catch(() => {
-      // Fallback: wait for any main content
-      return page.waitForSelector('main', { timeout: 10000 });
-    });
+    // Wait for app to load (app.ts marks <body> once booted)
+    await page.waitForSelector(APP_LOADED, { timeout: 10000 });
   });
 
   test('detects self-soothing language and adjusts response', async ({ page }) => {
@@ -87,7 +85,7 @@ test.describe('Human Listening Pipeline', () => {
   });
 });
 
-test.describe('Human Listening API Integration', () => {
+test.describe('Human Listening API Integration', { tag: '@needs-server' }, () => {
   test('health check endpoint works', async ({ request }) => {
     // Check that the app is running
     const response = await request.get('/health').catch(() => null);

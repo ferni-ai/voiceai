@@ -523,6 +523,10 @@ class CommandsPanelUI {
       .ferni-commands--visible {
         opacity: 1;
         visibility: visible;
+        /* Become visible at once (only the opacity fades), so the first
+           practice can take focus as soon as the list renders; a transition
+           on visibility would keep it hidden, and unfocusable, for a frame. */
+        transition: opacity var(--duration-slow) var(--ease-standard);
       }
 
       /* Hide settings trigger when commands panel is open */

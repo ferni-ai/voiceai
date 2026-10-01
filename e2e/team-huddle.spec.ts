@@ -9,14 +9,14 @@
  * - POST /api/huddles/:id/complete - Complete huddle
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-huddle-test-user';
 
-test.describe('Team Huddles API', () => {
+test.describe('Team Huddles API', { tag: '@needs-server' }, () => {
   test('GET /api/huddles - returns user huddles', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/huddles?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/huddles?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -34,7 +34,7 @@ test.describe('Team Huddles API', () => {
   });
 
   test('GET /api/huddles - returns available personas', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/huddles?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/huddles?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -54,7 +54,7 @@ test.describe('Team Huddles API', () => {
   });
 
   test('POST /api/huddles/start - starts a new huddle', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/huddles/start`, {
+    const response = await request.post(`${API_URL}/api/huddles/start`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -80,7 +80,7 @@ test.describe('Team Huddles API', () => {
 
   test('POST /api/huddles/start - selects relevant personas', async ({ request }) => {
     // Test habit-related topic
-    const habitResponse = await request.post(`${BASE_URL}/api/huddles/start`, {
+    const habitResponse = await request.post(`${API_URL}/api/huddles/start`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ test.describe('Team Huddles API', () => {
     expect(participantIds).toContain('maya-santos');
 
     // Test stress-related topic
-    const stressResponse = await request.post(`${BASE_URL}/api/huddles/start`, {
+    const stressResponse = await request.post(`${API_URL}/api/huddles/start`, {
       headers: {
         'X-User-ID': `${TEST_USER_ID}-stress`,
         'Content-Type': 'application/json',
@@ -121,7 +121,7 @@ test.describe('Team Huddles API', () => {
 
   test('GET /api/huddles/:id - returns specific huddle', async ({ request }) => {
     // First start a huddle
-    const startResponse = await request.post(`${BASE_URL}/api/huddles/start`, {
+    const startResponse = await request.post(`${API_URL}/api/huddles/start`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -135,7 +135,7 @@ test.describe('Team Huddles API', () => {
     const huddleId = startData.huddle.id;
 
     // Get the huddle
-    const response = await request.get(`${BASE_URL}/api/huddles/${huddleId}`, {
+    const response = await request.get(`${API_URL}/api/huddles/${huddleId}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -150,7 +150,7 @@ test.describe('Team Huddles API', () => {
   });
 
   test('GET /api/huddles/:id - returns 404 for non-existent', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/huddles/non-existent-huddle-id`, {
+    const response = await request.get(`${API_URL}/api/huddles/non-existent-huddle-id`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -161,7 +161,7 @@ test.describe('Team Huddles API', () => {
 
   test('GET /api/huddles/:id/participants - returns participants', async ({ request }) => {
     // First start a huddle
-    const startResponse = await request.post(`${BASE_URL}/api/huddles/start`, {
+    const startResponse = await request.post(`${API_URL}/api/huddles/start`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -175,7 +175,7 @@ test.describe('Team Huddles API', () => {
     const huddleId = startData.huddle.id;
 
     // Get participants
-    const response = await request.get(`${BASE_URL}/api/huddles/${huddleId}/participants`, {
+    const response = await request.get(`${API_URL}/api/huddles/${huddleId}/participants`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -202,7 +202,7 @@ test.describe('Team Huddles API', () => {
     request,
   }) => {
     // First start a huddle
-    const startResponse = await request.post(`${BASE_URL}/api/huddles/start`, {
+    const startResponse = await request.post(`${API_URL}/api/huddles/start`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -216,7 +216,7 @@ test.describe('Team Huddles API', () => {
     const huddleId = startData.huddle.id;
 
     // Complete the huddle
-    const response = await request.post(`${BASE_URL}/api/huddles/${huddleId}/complete`, {
+    const response = await request.post(`${API_URL}/api/huddles/${huddleId}/complete`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -238,7 +238,7 @@ test.describe('Team Huddles API', () => {
 
   test('complete huddle - generates relevant recommendations', async ({ request }) => {
     // Start a huddle with specific topic
-    const startResponse = await request.post(`${BASE_URL}/api/huddles/start`, {
+    const startResponse = await request.post(`${API_URL}/api/huddles/start`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -252,7 +252,7 @@ test.describe('Team Huddles API', () => {
     const huddleId = startData.huddle.id;
 
     // Complete it
-    const completeResponse = await request.post(`${BASE_URL}/api/huddles/${huddleId}/complete`, {
+    const completeResponse = await request.post(`${API_URL}/api/huddles/${huddleId}/complete`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -275,7 +275,7 @@ test.describe('Team Huddles API', () => {
 
 test.describe('Team Huddles UI', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.evaluate((userId) => {
       localStorage.setItem('bogle_user_id', userId);
@@ -305,7 +305,8 @@ test.describe('Team Huddles UI', () => {
     }
   });
 
-  test('huddles endpoint is accessible', async ({ page }) => {
+  // These two call the UI server API from the page and assert on its data
+  test('huddles endpoint is accessible', { tag: '@needs-server' }, async ({ page }) => {
     const result = await page.evaluate(async () => {
       try {
         const response = await fetch('/api/huddles?userId=test');
@@ -323,7 +324,7 @@ test.describe('Team Huddles UI', () => {
     expect(result.hasPersonas).toBe(true);
   });
 
-  test('can start huddle via API from browser', async ({ page }) => {
+  test('can start huddle via API from browser', { tag: '@needs-server' }, async ({ page }) => {
     const result = await page.evaluate(async () => {
       try {
         const response = await fetch('/api/huddles/start', {
@@ -351,18 +352,18 @@ test.describe('Team Huddles UI', () => {
   });
 });
 
-test.describe('Team Huddles Integration', () => {
+test.describe('Team Huddles Integration', { tag: '@needs-server' }, () => {
   test('full huddle flow works end-to-end', async ({ request }) => {
     const userId = `e2e-full-flow-${Date.now()}`;
 
     // 1. Check initial state
-    const initialResponse = await request.get(`${BASE_URL}/api/huddles?userId=${userId}`, {
+    const initialResponse = await request.get(`${API_URL}/api/huddles?userId=${userId}`, {
       headers: { 'X-User-ID': userId },
     });
     expect(initialResponse.status()).toBe(200);
 
     // 2. Start a huddle
-    const startResponse = await request.post(`${BASE_URL}/api/huddles/start`, {
+    const startResponse = await request.post(`${API_URL}/api/huddles/start`, {
       headers: {
         'X-User-ID': userId,
         'Content-Type': 'application/json',
@@ -376,14 +377,14 @@ test.describe('Team Huddles Integration', () => {
     const huddleId = startData.huddle.id;
 
     // 3. Get huddle details
-    const detailsResponse = await request.get(`${BASE_URL}/api/huddles/${huddleId}`, {
+    const detailsResponse = await request.get(`${API_URL}/api/huddles/${huddleId}`, {
       headers: { 'X-User-ID': userId },
     });
     expect(detailsResponse.status()).toBe(200);
 
     // 4. Get participants
     const participantsResponse = await request.get(
-      `${BASE_URL}/api/huddles/${huddleId}/participants`,
+      `${API_URL}/api/huddles/${huddleId}/participants`,
       {
         headers: { 'X-User-ID': userId },
       }
@@ -391,7 +392,7 @@ test.describe('Team Huddles Integration', () => {
     expect(participantsResponse.status()).toBe(200);
 
     // 5. Complete the huddle
-    const completeResponse = await request.post(`${BASE_URL}/api/huddles/${huddleId}/complete`, {
+    const completeResponse = await request.post(`${API_URL}/api/huddles/${huddleId}/complete`, {
       headers: {
         'X-User-ID': userId,
         'Content-Type': 'application/json',
@@ -404,7 +405,7 @@ test.describe('Team Huddles Integration', () => {
     expect(completeData.huddle.recommendations.length).toBeGreaterThan(0);
 
     // 6. Verify it shows in recent huddles
-    const finalResponse = await request.get(`${BASE_URL}/api/huddles?userId=${userId}`, {
+    const finalResponse = await request.get(`${API_URL}/api/huddles?userId=${userId}`, {
       headers: { 'X-User-ID': userId },
     });
     expect(finalResponse.status()).toBe(200);

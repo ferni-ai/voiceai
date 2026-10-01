@@ -21,16 +21,16 @@
  * - Pending outreach (thinking of you, etc.)
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-practice-view-test-user';
 
-test.describe('Practice View API', () => {
+test.describe('Practice View API', { tag: '@needs-server' }, () => {
   test.describe('GET /api/practice-view', () => {
     test('returns a valid practice view response', async ({ request }) => {
       const response = await request.get(
-        `${BASE_URL}/api/practice-view?userId=${TEST_USER_ID}`,
+        `${API_URL}/api/practice-view?userId=${TEST_USER_ID}`,
         {
           headers: {
             'X-User-ID': TEST_USER_ID,
@@ -54,7 +54,7 @@ test.describe('Practice View API', () => {
 
     test('returns week data with 7 days', async ({ request }) => {
       const response = await request.get(
-        `${BASE_URL}/api/practice-view?userId=${TEST_USER_ID}`,
+        `${API_URL}/api/practice-view?userId=${TEST_USER_ID}`,
         {
           headers: {
             'X-User-ID': TEST_USER_ID,
@@ -83,7 +83,7 @@ test.describe('Practice View API', () => {
 
     test('returns stats with valid values', async ({ request }) => {
       const response = await request.get(
-        `${BASE_URL}/api/practice-view?userId=${TEST_USER_ID}`,
+        `${API_URL}/api/practice-view?userId=${TEST_USER_ID}`,
         {
           headers: {
             'X-User-ID': TEST_USER_ID,
@@ -106,7 +106,7 @@ test.describe('Practice View API', () => {
 
     test('includes intentions with correct structure', async ({ request }) => {
       const response = await request.get(
-        `${BASE_URL}/api/practice-view?userId=${TEST_USER_ID}`,
+        `${API_URL}/api/practice-view?userId=${TEST_USER_ID}`,
         {
           headers: {
             'X-User-ID': TEST_USER_ID,
@@ -128,7 +128,7 @@ test.describe('Practice View API', () => {
 
     test('returns Maya pattern notice when patterns exist', async ({ request }) => {
       const response = await request.get(
-        `${BASE_URL}/api/practice-view?userId=${TEST_USER_ID}`,
+        `${API_URL}/api/practice-view?userId=${TEST_USER_ID}`,
         {
           headers: {
             'X-User-ID': TEST_USER_ID,
@@ -149,7 +149,7 @@ test.describe('Practice View API', () => {
     });
 
     test('requires userId parameter', async ({ request }) => {
-      const response = await request.get(`${BASE_URL}/api/practice-view`);
+      const response = await request.get(`${API_URL}/api/practice-view`);
       expect(response.status()).toBe(401);
     });
   });
@@ -158,7 +158,7 @@ test.describe('Practice View API', () => {
     test('marks an intention as complete', async ({ request }) => {
       // First, get intentions to find one to complete
       const getResponse = await request.get(
-        `${BASE_URL}/api/practice-view?userId=${TEST_USER_ID}`,
+        `${API_URL}/api/practice-view?userId=${TEST_USER_ID}`,
         {
           headers: {
             'X-User-ID': TEST_USER_ID,
@@ -172,7 +172,7 @@ test.describe('Practice View API', () => {
         const intentionId = getData.intentions[0].id;
 
         const response = await request.post(
-          `${BASE_URL}/api/practice-view/intentions/${intentionId}/complete?userId=${TEST_USER_ID}`,
+          `${API_URL}/api/practice-view/intentions/${intentionId}/complete?userId=${TEST_USER_ID}`,
           {
             headers: {
               'X-User-ID': TEST_USER_ID,
@@ -189,7 +189,7 @@ test.describe('Practice View API', () => {
 
     test('handles invalid intention IDs gracefully', async ({ request }) => {
       const response = await request.post(
-        `${BASE_URL}/api/practice-view/intentions/nonexistent_id/complete?userId=${TEST_USER_ID}`,
+        `${API_URL}/api/practice-view/intentions/nonexistent_id/complete?userId=${TEST_USER_ID}`,
         {
           headers: {
             'X-User-ID': TEST_USER_ID,
@@ -205,7 +205,7 @@ test.describe('Practice View API', () => {
   test.describe('GET /api/practice-view/patterns', () => {
     test('returns Maya pattern data', async ({ request }) => {
       const response = await request.get(
-        `${BASE_URL}/api/practice-view/patterns?userId=${TEST_USER_ID}`,
+        `${API_URL}/api/practice-view/patterns?userId=${TEST_USER_ID}`,
         {
           headers: {
             'X-User-ID': TEST_USER_ID,
@@ -224,10 +224,10 @@ test.describe('Practice View API', () => {
   });
 });
 
-test.describe('Practice View Data Integration', () => {
+test.describe('Practice View Data Integration', { tag: '@needs-server' }, () => {
   test('cross-persona insights have valid structure', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/practice-view?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/practice-view?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -253,7 +253,7 @@ test.describe('Practice View Data Integration', () => {
 
   test('events may have emotional context', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/practice-view?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/practice-view?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -277,7 +277,7 @@ test.describe('Practice View Data Integration', () => {
 
   test('returns empty arrays for new users', async ({ request }) => {
     const newUserId = `new_user_${Date.now()}`;
-    const response = await request.get(`${BASE_URL}/api/practice-view?userId=${newUserId}`, {
+    const response = await request.get(`${API_URL}/api/practice-view?userId=${newUserId}`, {
       headers: {
         'X-User-ID': newUserId,
       },
@@ -292,10 +292,10 @@ test.describe('Practice View Data Integration', () => {
   });
 });
 
-test.describe('Predictions API Integration', () => {
+test.describe('Predictions API Integration', { tag: '@needs-server' }, () => {
   test('GET /api/predictions returns prediction data', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/predictions?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/predictions?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -313,7 +313,7 @@ test.describe('Predictions API Integration', () => {
 
   test('practice view includes predictions', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/practice-view?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/practice-view?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -338,10 +338,10 @@ test.describe('Predictions API Integration', () => {
   });
 });
 
-test.describe('Semantic Intelligence API', () => {
+test.describe('Semantic Intelligence API', { tag: '@needs-server' }, () => {
   test('GET /api/semantic-intelligence/summary returns overview', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/semantic-intelligence/summary?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/semantic-intelligence/summary?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -356,7 +356,7 @@ test.describe('Semantic Intelligence API', () => {
 
   test('GET /api/semantic-intelligence/insights returns proactive insights', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/semantic-intelligence/insights?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/semantic-intelligence/insights?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -374,7 +374,7 @@ test.describe('Semantic Intelligence API', () => {
 
   test('GET /api/semantic-intelligence/open-loops returns open loops', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/semantic-intelligence/open-loops?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/semantic-intelligence/open-loops?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -390,7 +390,7 @@ test.describe('Semantic Intelligence API', () => {
 
   test('GET /api/semantic-intelligence/commitments returns Ferni commitments', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/semantic-intelligence/commitments?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/semantic-intelligence/commitments?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -404,10 +404,10 @@ test.describe('Semantic Intelligence API', () => {
   });
 });
 
-test.describe('Outreach Integration', () => {
+test.describe('Outreach Integration', { tag: '@needs-server' }, () => {
   test('practice view includes pending outreach', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/practice-view?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/practice-view?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -433,7 +433,7 @@ test.describe('Outreach Integration', () => {
 test.describe('Practice View UI Integration', () => {
   test('practice view page loads correctly', async ({ page }) => {
     // Navigate to the app
-    await page.goto(`${BASE_URL.replace('3002', '3004')}`);
+    await page.goto(APP_URL);
 
     // Wait for the app to load
     await page.waitForLoadState('networkidle');
@@ -446,7 +446,7 @@ test.describe('Practice View UI Integration', () => {
   test('can toggle to practice view in settings', async ({ page }) => {
     // This test requires the frontend to be running
     // Navigate to settings menu if it exists
-    await page.goto(`${BASE_URL.replace('3002', '3004')}`);
+    await page.goto(APP_URL);
     await page.waitForLoadState('networkidle');
 
     // Look for calendar/practice view trigger
@@ -461,7 +461,7 @@ test.describe('Practice View UI Integration', () => {
   });
 });
 
-test.describe('Full E2E Data Flow', () => {
+test.describe('Full E2E Data Flow', { tag: '@needs-server' }, () => {
   test('complete practice view data pipeline works', async ({ request }) => {
     // This test verifies the full data flow from:
     // 1. Calendar events
@@ -473,7 +473,7 @@ test.describe('Full E2E Data Flow', () => {
     // 7. Maya pattern notices
 
     const response = await request.get(
-      `${BASE_URL}/api/practice-view?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/practice-view?userId=${TEST_USER_ID}`,
       {
         headers: {
           'X-User-ID': TEST_USER_ID,
@@ -503,10 +503,10 @@ test.describe('Full E2E Data Flow', () => {
   test('semantic intelligence powers practice view insights', async ({ request }) => {
     // Verify semantic intelligence is feeding into cross-persona insights
     const [practiceResponse, semanticResponse] = await Promise.all([
-      request.get(`${BASE_URL}/api/practice-view?userId=${TEST_USER_ID}`, {
+      request.get(`${API_URL}/api/practice-view?userId=${TEST_USER_ID}`, {
         headers: { 'X-User-ID': TEST_USER_ID },
       }),
-      request.get(`${BASE_URL}/api/semantic-intelligence/summary?userId=${TEST_USER_ID}`, {
+      request.get(`${API_URL}/api/semantic-intelligence/summary?userId=${TEST_USER_ID}`, {
         headers: { 'X-User-ID': TEST_USER_ID },
       }),
     ]);

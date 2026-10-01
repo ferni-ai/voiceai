@@ -16,9 +16,9 @@
  * - Accessibility features
  */
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-trust-test-user';
 const TEST_HEADERS = {
   'X-User-Id': TEST_USER_ID,
@@ -30,10 +30,10 @@ const TEST_HEADERS = {
 // TRUST JOURNEY API TESTS
 // ============================================================================
 
-test.describe('Trust Journey API', () => {
+test.describe('Trust Journey API', { tag: '@needs-server' }, () => {
   test('GET /api/trust-journey - returns journey data', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-journey?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust-journey?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -50,7 +50,7 @@ test.describe('Trust Journey API', () => {
 
   test('GET /api/trust-journey/summary - returns summary only', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-journey/summary?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust-journey/summary?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -65,7 +65,7 @@ test.describe('Trust Journey API', () => {
 
   test('GET /api/trust-journey/timeline - returns timeline only', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-journey/timeline?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust-journey/timeline?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -80,7 +80,7 @@ test.describe('Trust Journey API', () => {
 
   test('GET /api/trust-journey/metrics - returns metrics', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-journey/metrics?userId=${TEST_USER_ID}&days=30`,
+      `${API_URL}/api/trust-journey/metrics?userId=${TEST_USER_ID}&days=30`,
       { headers: TEST_HEADERS }
     );
 
@@ -95,7 +95,7 @@ test.describe('Trust Journey API', () => {
 
   test('trust journey requires authentication', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-journey?userId=${TEST_USER_ID}`
+      `${API_URL}/api/trust-journey?userId=${TEST_USER_ID}`
       // No auth headers
     );
 
@@ -105,7 +105,7 @@ test.describe('Trust Journey API', () => {
   test('admin can access another user data via query param', async ({ request }) => {
     // Dev mode auth grants admin access, so we can access other user data
     const response = await request.get(
-      `${BASE_URL}/api/trust-journey?userId=different-user`,
+      `${API_URL}/api/trust-journey?userId=different-user`,
       { headers: TEST_HEADERS }
     );
 
@@ -118,10 +118,10 @@ test.describe('Trust Journey API', () => {
 // TRUST EXPORT API TESTS
 // ============================================================================
 
-test.describe('Trust Export API', () => {
+test.describe('Trust Export API', { tag: '@needs-server' }, () => {
   test('GET /api/trust-export - returns export data', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-export?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust-export?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -139,7 +139,7 @@ test.describe('Trust Export API', () => {
 
   test('GET /api/trust-export/csv - returns CSV file', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-export/csv?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust-export/csv?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -155,7 +155,7 @@ test.describe('Trust Export API', () => {
 
   test('GET /api/trust-export/summary - returns text summary', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-export/summary?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust-export/summary?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -167,7 +167,7 @@ test.describe('Trust Export API', () => {
 
   test('trust export requires authentication', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust-export?userId=${TEST_USER_ID}`
+      `${API_URL}/api/trust-export?userId=${TEST_USER_ID}`
       // No auth headers
     );
 
@@ -179,10 +179,10 @@ test.describe('Trust Export API', () => {
 // TRUST ROUTES API TESTS (actual routes at /api/trust/*)
 // ============================================================================
 
-test.describe('Trust Routes API', () => {
+test.describe('Trust Routes API', { tag: '@needs-server' }, () => {
   test('GET /api/trust/health - returns health data', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust/health?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust/health?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -196,7 +196,7 @@ test.describe('Trust Routes API', () => {
 
   test('GET /api/trust/momentum - returns momentum profile', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust/momentum?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust/momentum?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -210,7 +210,7 @@ test.describe('Trust Routes API', () => {
 
   test('GET /api/trust/sentiment - returns sentiment data', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust/sentiment?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust/sentiment?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -224,7 +224,7 @@ test.describe('Trust Routes API', () => {
 
   test('GET /api/trust/starters - returns conversation starters', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/trust/starters?userId=${TEST_USER_ID}`,
+      `${API_URL}/api/trust/starters?userId=${TEST_USER_ID}`,
       { headers: TEST_HEADERS }
     );
 
@@ -241,35 +241,17 @@ test.describe('Trust Routes API', () => {
 // ============================================================================
 
 test.describe('Journey UI', () => {
-  const APP_URL = process.env.TEST_APP_URL || 'http://localhost:5173';
+  // The journey indicator on Ferni's avatar animates continuously, so it never
+  // passes Playwright's "stable" check; with reduced motion it holds still.
+  test.use({ contextOptions: { reducedMotion: 'reduce' } });
 
   /**
-   * Helper to open the Journey modal from the settings menu.
-   * Handles expanding the "Grow" section if it's collapsed.
+   * Helper to open the Journey modal. The settings menu no longer has a
+   * "Your Journey" item; the journey opens from the indicator on Ferni's
+   * avatar ("View your journey with Ferni", ui/unified-indicator.ui.ts).
    */
   async function openJourneyModal(page: Page): Promise<void> {
-    // Click settings trigger
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu', { state: 'visible', timeout: 5000 });
-
-    // The "Your Journey" item is inside the "Grow" collapsible section
-    const journeyBtn = page.locator('[data-action="your-journey"]');
-
-    // Check if button is visible
-    const isVisible = await journeyBtn.isVisible().catch(() => false);
-
-    if (!isVisible) {
-      // Expand the "Grow" section
-      const growSection = page.locator('[data-section="grow"]');
-      if (await growSection.isVisible()) {
-        await growSection.click();
-        await page.waitForSelector('[data-action="your-journey"]', {
-          state: 'visible',
-          timeout: 3000,
-        });
-      }
-    }
-
+    const journeyBtn = page.getByRole('button', { name: 'View your journey with Ferni' });
     await journeyBtn.click();
 
     // Wait for modal to appear (journey.ui.ts uses .journey-modal)
@@ -309,7 +291,7 @@ test.describe('Journey UI', () => {
     await page.waitForTimeout(1000);
   });
 
-  test('modal opens from settings menu', async ({ page }) => {
+  test('modal opens from the journey indicator', async ({ page }) => {
     await openJourneyModal(page);
 
     // Verify modal is visible
@@ -371,15 +353,15 @@ test.describe('Journey UI', () => {
     // Verify progress overview is displayed
     await expect(page.locator('.journey-progress-overview')).toBeVisible();
 
-    // Verify progress ring is displayed
-    await expect(page.locator('.journey-progress-ring')).toBeVisible();
+    // Verify the journey map (which replaced the progress ring) is displayed
+    await expect(page.locator('.journey-map')).toBeVisible();
 
     // Verify stage name is displayed
     await expect(page.locator('.journey-stage-name')).toBeVisible();
 
-    // Verify stats row is displayed
+    // Verify stats row is displayed: conversations, days together, streak, voice ID
     await expect(page.locator('.journey-stats-row')).toBeVisible();
-    await expect(page.locator('.journey-stat')).toHaveCount(3);
+    await expect(page.locator('.journey-stats-row > .journey-stat')).toHaveCount(4);
   });
 
   test('displays trust insights section', async ({ page }) => {

@@ -7,14 +7,14 @@
  * - POST /api/referral/track - track referral click/signup
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-referral-test-user';
 
-test.describe('Referral API', () => {
+test.describe('Referral API', { tag: '@needs-server' }, () => {
   test('GET /api/referral/code - returns referral code', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/referral/code`, {
+    const response = await request.get(`${API_URL}/api/referral/code`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -28,7 +28,7 @@ test.describe('Referral API', () => {
   });
 
   test('GET /api/referral/stats - returns referral statistics', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/referral/stats`, {
+    const response = await request.get(`${API_URL}/api/referral/stats`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -44,7 +44,7 @@ test.describe('Referral API', () => {
   });
 
   test('GET /api/referral/link - returns shareable link', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/referral/link`, {
+    const response = await request.get(`${API_URL}/api/referral/link`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -57,7 +57,7 @@ test.describe('Referral API', () => {
   });
 
   test('POST /api/referral/track - tracks referral', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/referral/track`, {
+    const response = await request.post(`${API_URL}/api/referral/track`, {
       headers: { 'X-User-ID': TEST_USER_ID },
       data: {
         event: 'link_shared',
@@ -74,7 +74,7 @@ test.describe('Referral API', () => {
 
 test.describe('Share Ferni UI', () => {
   test('opens share/referral modal from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -91,7 +91,7 @@ test.describe('Share Ferni UI', () => {
   });
 
   test('displays referral code', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -112,7 +112,7 @@ test.describe('Share Ferni UI', () => {
   });
 
   test('has copy to clipboard functionality', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -135,7 +135,7 @@ test.describe('Share Ferni UI', () => {
   });
 
   test('has social share options', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');

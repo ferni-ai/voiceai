@@ -7,16 +7,17 @@
  * - Conversation context endpoint
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
+import { pinMenuItems, seedRelationship } from './support/app';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3003';
 
 // Test user ID - should have some conversation data
 const TEST_USER_ID = process.env.TEST_USER_ID || 'e2e-test-user';
 
-test.describe('Memory Browser API', () => {
+test.describe('Memory Browser API', { tag: '@needs-server' }, () => {
   test('GET /api/voice/memory - returns memory summary', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/voice/memory`, {
+    const response = await request.get(`${API_URL}/api/voice/memory`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -37,13 +38,13 @@ test.describe('Memory Browser API', () => {
   });
 
   test('GET /api/voice/memory - returns 401 without user ID', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/voice/memory`);
+    const response = await request.get(`${API_URL}/api/voice/memory`);
 
     expect(response.status()).toBe(401);
   });
 
   test('GET /api/voice/memory/conversations - returns conversation list', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/voice/memory/conversations?limit=5`, {
+    const response = await request.get(`${API_URL}/api/voice/memory/conversations?limit=5`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -66,7 +67,7 @@ test.describe('Memory Browser API', () => {
   });
 
   test('GET /api/voice/memory/context - returns conversation context', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/voice/memory/context`, {
+    const response = await request.get(`${API_URL}/api/voice/memory/context`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
       },
@@ -91,8 +92,14 @@ test.describe('Memory Browser API', () => {
 
 test.describe('Memory Browser UI', () => {
   test.beforeEach(async ({ page }) => {
+    // The Memory Browser unlocks at Building Trust and the menu lists it as a
+    // pinned favorite (see FEATURE_LOCK_MAP / renderPinnedItems in
+    // ui/settings-menu.ui.ts)
+    await seedRelationship(page, { stage: 'building-trust', totalConversations: 15 });
+    await pinMenuItems(page, ['conversation-memory']);
+
     // Navigate to the app
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Wait for app to load
     await page.waitForLoadState('networkidle');

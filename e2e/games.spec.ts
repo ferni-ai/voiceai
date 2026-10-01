@@ -9,9 +9,9 @@
  * - Closing the picker
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-games-test-user';
 
 // ============================================================================
@@ -45,9 +45,9 @@ async function openGamePicker(page: import('@playwright/test').Page): Promise<vo
 // API TESTS
 // ============================================================================
 
-test.describe('Games API', () => {
+test.describe('Games API', { tag: '@needs-server' }, () => {
   test('GET /api/games - returns available games list', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/games`);
+    const response = await request.get(`${API_URL}/api/games`);
 
     expect(response.status()).toBe(200);
 
@@ -68,7 +68,7 @@ test.describe('Games API', () => {
   });
 
   test('GET /api/games?category=music - returns only music games', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/games?category=music`);
+    const response = await request.get(`${API_URL}/api/games?category=music`);
 
     expect(response.status()).toBe(200);
 
@@ -78,7 +78,7 @@ test.describe('Games API', () => {
   });
 
   test('GET /api/games?category=text - returns only text games', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/games?category=text`);
+    const response = await request.get(`${API_URL}/api/games?category=text`);
 
     expect(response.status()).toBe(200);
 
@@ -88,7 +88,7 @@ test.describe('Games API', () => {
   });
 
   test('GET /api/games?category=library - returns only library games', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/games?category=library`);
+    const response = await request.get(`${API_URL}/api/games?category=library`);
 
     expect(response.status()).toBe(200);
 
@@ -102,7 +102,7 @@ test.describe('Games API', () => {
   });
 
   test('GET /api/games verifies specific games exist', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/games`);
+    const response = await request.get(`${API_URL}/api/games`);
 
     expect(response.status()).toBe(200);
 
@@ -131,7 +131,7 @@ test.describe('Games API', () => {
   });
 
   test('GET /api/games/stats - returns user game stats (requires auth)', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/games/stats?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/games/stats?userId=${TEST_USER_ID}`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -145,7 +145,7 @@ test.describe('Games API', () => {
   });
 
   test('GET /api/games/suggestion - returns game suggestion', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/games/suggestion?userId=${TEST_USER_ID}`, {
+    const response = await request.get(`${API_URL}/api/games/suggestion?userId=${TEST_USER_ID}`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -163,7 +163,7 @@ test.describe('Games API', () => {
 
 test.describe('Game Picker UI', () => {
   test('opens game picker from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await openGamePicker(page);
 
     // Verify game picker is visible
@@ -175,19 +175,20 @@ test.describe('Game Picker UI', () => {
   });
 
   test('displays category tabs', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await openGamePicker(page);
 
-    // Verify all category tabs exist
+    // Verify all category tabs exist: Music, Fun, Reflect, Your Library
     const tabs = page.locator('.game-picker__tab');
-    await expect(tabs).toHaveCount(3);
+    await expect(tabs).toHaveCount(4);
+    await expect(page.locator('.game-picker__tab[data-category="reflection"]')).toBeVisible();
 
     // Music tab should be active by default
     await expect(page.locator('.game-picker__tab--active')).toContainText('Music');
   });
 
   test('switches between category tabs', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await openGamePicker(page);
 
     // Click Fun (text games) tab
@@ -210,7 +211,7 @@ test.describe('Game Picker UI', () => {
   });
 
   test('displays game cards with correct structure', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await openGamePicker(page);
 
     // Verify game cards exist
@@ -226,7 +227,7 @@ test.describe('Game Picker UI', () => {
   });
 
   test('Name That Tune game is available', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await openGamePicker(page);
 
     // Look for Name That Tune game card
@@ -236,7 +237,7 @@ test.describe('Game Picker UI', () => {
   });
 
   test('shows NEW badge on new games', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await openGamePicker(page);
 
     // Finish the Lyric and Decade Challenge should have NEW badges
@@ -248,7 +249,7 @@ test.describe('Game Picker UI', () => {
   });
 
   test('library games show Spotify badge', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await openGamePicker(page);
 
     // Switch to library tab
@@ -260,7 +261,7 @@ test.describe('Game Picker UI', () => {
   });
 
   test('closes game picker on close button click', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await openGamePicker(page);
 
     // Click close button
@@ -274,11 +275,11 @@ test.describe('Game Picker UI', () => {
   });
 
   test('closes game picker on backdrop click', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await openGamePicker(page);
 
-    // Click backdrop
-    await page.locator('.game-picker__backdrop').click();
+    // Click the backdrop outside the picker card (its center is covered by the card)
+    await page.locator('.game-picker__backdrop').click({ position: { x: 5, y: 5 } });
 
     // Wait for animation
     await page.waitForTimeout(400);
@@ -288,7 +289,7 @@ test.describe('Game Picker UI', () => {
   });
 
   test('closes game picker on Escape key', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await openGamePicker(page);
 
     // Press Escape
@@ -302,7 +303,7 @@ test.describe('Game Picker UI', () => {
   });
 
   test('help button opens help modal', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
     await openGamePicker(page);
 
     // Click help button

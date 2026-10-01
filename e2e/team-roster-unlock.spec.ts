@@ -19,9 +19,9 @@
  * This test suite validates the correct unlock behavior.
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'https://app.ferni.ai';
 
 // Team unlock stages and requirements (CAMEO UNLOCK thresholds - Dec 2024)
 // These are higher than before to allow for natural topic-based introductions
@@ -40,7 +40,7 @@ test.describe('Team Roster Unlock State', () => {
   test.describe('New User Initial State', () => {
     test('new user roster should ONLY show Ferni initially', async ({ page }) => {
       // Clear localStorage to simulate new user
-      await page.goto(BASE_URL);
+      await page.goto(APP_URL);
       await page.evaluate(() => {
         localStorage.clear();
         sessionStorage.clear();
@@ -113,7 +113,7 @@ test.describe('Team Roster Unlock State', () => {
 
     test('roster preferences should be empty for new users', async ({ page }) => {
       // Clear storage
-      await page.goto(BASE_URL);
+      await page.goto(APP_URL);
       await page.evaluate(() => localStorage.clear());
       await page.reload();
 
@@ -141,7 +141,7 @@ test.describe('Team Roster Unlock State', () => {
 
     test('relationship stage should be first-meeting for new users', async ({ page }) => {
       // Clear storage
-      await page.goto(BASE_URL);
+      await page.goto(APP_URL);
       await page.evaluate(() => localStorage.clear());
       await page.reload();
       await page.waitForLoadState('networkidle');
@@ -169,7 +169,7 @@ test.describe('Team Roster Unlock State', () => {
 
   test.describe('Unlock Counter Accuracy', () => {
     test('"N left" counter should match actual unlock state', async ({ page }) => {
-      await page.goto(BASE_URL);
+      await page.goto(APP_URL);
       await page.waitForLoadState('networkidle');
 
       // Look for the "N left" indicator in the roster
@@ -204,9 +204,9 @@ test.describe('Team Roster Unlock State', () => {
     });
   });
 
-  test.describe('Team Unlock API Validation', () => {
+  test.describe('Team Unlock API Validation', { tag: '@needs-server' }, () => {
     test('team status endpoint returns correct unlock state', async ({ request }) => {
-      const response = await request.get(`${BASE_URL}/api/team/status`);
+      const response = await request.get(`${API_URL}/api/team/status`);
 
       console.log('\n📋 TEAM STATUS API AUDIT:');
 
@@ -233,7 +233,7 @@ test.describe('Team Roster Unlock State', () => {
     });
 
     test('all team members registered in agent registry', async ({ request }) => {
-      const response = await request.get(`${BASE_URL}/api/agents`);
+      const response = await request.get(`${API_URL}/api/agents`);
 
       if (response.status() !== 200) {
         console.log('Agents API not available');
@@ -260,7 +260,7 @@ test.describe('Team Roster Unlock State', () => {
     test('Maya should require 10 conversations to unlock (CAMEO UNLOCK threshold)', async ({
       page,
     }) => {
-      await page.goto(BASE_URL);
+      await page.goto(APP_URL);
 
       const MAYA_THRESHOLD = UNLOCK_REQUIREMENTS['maya-santos'].conversations; // 10
 
@@ -316,7 +316,7 @@ test.describe('Team Roster Unlock State', () => {
 
   test.describe('Roster Persistence Bug Investigation', () => {
     test('check for stale roster preferences', async ({ page }) => {
-      await page.goto(BASE_URL);
+      await page.goto(APP_URL);
       await page.waitForLoadState('networkidle');
 
       console.log('\n📋 ROSTER PERSISTENCE AUDIT:');
@@ -360,7 +360,7 @@ test.describe('Team Roster Unlock State', () => {
     });
 
     test('clearing storage should reset roster to Ferni-only', async ({ page }) => {
-      await page.goto(BASE_URL);
+      await page.goto(APP_URL);
 
       // Clear all storage
       await page.evaluate(() => {

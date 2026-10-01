@@ -7,14 +7,15 @@
  * - POST /api/voice/accent - set accent preference
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
+import { pinMenuItems } from './support/app';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-accent-test-user';
 
-test.describe('Accent Settings API', () => {
+test.describe('Accent Settings API', { tag: '@needs-server' }, () => {
   test('GET /api/voice/accents - returns available accents', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/voice/accents`, {
+    const response = await request.get(`${API_URL}/api/voice/accents`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -35,7 +36,7 @@ test.describe('Accent Settings API', () => {
   });
 
   test('GET /api/voice/accent - returns current accent', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/voice/accent`, {
+    const response = await request.get(`${API_URL}/api/voice/accent`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -48,7 +49,7 @@ test.describe('Accent Settings API', () => {
 
   test('POST /api/voice/accent - sets accent preference', async ({ request }) => {
     // First get available accents
-    const accentsResponse = await request.get(`${BASE_URL}/api/voice/accents`, {
+    const accentsResponse = await request.get(`${API_URL}/api/voice/accents`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -60,7 +61,7 @@ test.describe('Accent Settings API', () => {
       return;
     }
 
-    const response = await request.post(`${BASE_URL}/api/voice/accent`, {
+    const response = await request.post(`${API_URL}/api/voice/accent`, {
       headers: { 'X-User-ID': TEST_USER_ID },
       data: { accentId: firstAccent.id },
     });
@@ -72,7 +73,7 @@ test.describe('Accent Settings API', () => {
   });
 
   test('POST /api/voice/accent - validates accent ID', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/voice/accent`, {
+    const response = await request.post(`${API_URL}/api/voice/accent`, {
       headers: { 'X-User-ID': TEST_USER_ID },
       data: { accentId: 'invalid-accent-id-that-does-not-exist' },
     });
@@ -86,8 +87,14 @@ test.describe('Accent Settings API', () => {
 });
 
 test.describe('Accent Settings UI', () => {
+  // The menu lists Voice Accent only as a pinned favorite (it has no place in
+  // the menu's sections; see renderPinnedItems in ui/settings-menu.ui.ts).
+  test.beforeEach(async ({ page }) => {
+    await pinMenuItems(page, ['accent-settings']);
+  });
+
   test('opens accent settings from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -110,7 +117,7 @@ test.describe('Accent Settings UI', () => {
   });
 
   test('displays accent options', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -133,7 +140,7 @@ test.describe('Accent Settings UI', () => {
   });
 
   test('allows previewing accent voice', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');

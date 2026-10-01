@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 /**
  * Comprehensive Admin Dashboard E2E Tests
@@ -61,8 +61,9 @@ test.describe('Admin Dashboard - All Sections', () => {
       // Title should update
       await expect(page.locator('#adminSectionTitle')).toHaveText('Business Metrics');
 
-      // Metrics grid should render
-      await expect(page.locator('.metrics-grid')).toBeVisible();
+      // Key metrics grid should render (the section also has a smaller
+      // subscription grid with the same class)
+      await expect(page.locator('.metrics-grid[aria-label="Key metrics"]')).toBeVisible();
     });
 
     test('fetches analytics API', async ({ page }) => {
@@ -421,8 +422,9 @@ test.describe('Admin Dashboard - All Sections', () => {
     });
 
     test('shows fallback UI when data unavailable', async ({ page }) => {
-      // Block all admin APIs
-      await page.route('**/api/**', (route) =>
+      // Block all backend APIs. Match on the path prefix: a '**/api/**' glob
+      // would also catch dev-server modules such as /src/api/*.ts.
+      await page.route((url) => url.pathname.startsWith('/api/'), (route) =>
         route.fulfill({ status: 500, body: 'Error' })
       );
 

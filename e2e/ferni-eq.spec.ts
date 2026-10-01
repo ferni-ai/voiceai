@@ -11,9 +11,9 @@
  * Reference: design-system/docs/brand/BETTER-THAN-HUMAN.md
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'https://app.ferni.ai';
 
 // ============================================================================
 // FERNI EQ FRONTEND TESTS (Better Than Human Features)
@@ -23,7 +23,7 @@ test.describe('Ferni EQ - Micro-Expressions', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'UI tests run on Chromium only');
 
   test('micro-expression durations should be subliminal (40-150ms)', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     // Check if animation constants are properly defined
     const animationDurations = await page.evaluate(() => {
@@ -47,7 +47,7 @@ test.describe('Ferni EQ - Micro-Expressions', () => {
   });
 
   test('avatar should have expression capabilities', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     // Wait for app to load
     await page.waitForTimeout(2000);
@@ -76,7 +76,7 @@ test.describe('Ferni EQ - Active Listening', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'UI tests run on Chromium only');
 
   test('should have active listening event handlers', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     // Check if active listening events are set up
     const hasListeningEvents = await page.evaluate(() => {
@@ -103,7 +103,7 @@ test.describe('Ferni EQ - Active Listening', () => {
   });
 
   test('should have micro-nod animation capability', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
     await page.waitForTimeout(2000);
 
     // Check for CSS keyframes for nodding animations
@@ -137,7 +137,7 @@ test.describe('Ferni EQ - Breath Synchronization', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'UI tests run on Chromium only');
 
   test('should have breath animation elements', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
     await page.waitForTimeout(2000);
 
     // Check for breath-related animations in avatar
@@ -169,7 +169,7 @@ test.describe('Ferni EQ - Breath Synchronization', () => {
 
 test.describe('Ferni EQ - Concern Detection', () => {
   test('concern signals should dispatch to frontend', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     // Set up listener for concern detection events
     const concernEvents: string[] = [];
@@ -200,7 +200,7 @@ test.describe('Ferni EQ - Concern Detection', () => {
 
 test.describe('Ferni EQ - Emotion Anticipation', () => {
   test('should have anticipation event handlers', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     // Check for anticipation-related event handlers
     const hasAnticipation = await page.evaluate(() => {
@@ -223,10 +223,10 @@ test.describe('Ferni EQ - Emotion Anticipation', () => {
 // BACKEND INTEGRATION TESTS
 // ============================================================================
 
-test.describe('Ferni EQ - Backend Events', () => {
+test.describe('Ferni EQ - Backend Events', { tag: '@needs-server' }, () => {
   test('humanization signals should be available in API', async ({ request }) => {
     // Check if the emotion dispatcher endpoint exists
-    const response = await request.get(`${BASE_URL}/api/health`);
+    const response = await request.get(`${API_URL}/api/health`);
 
     if (response.status() === 200) {
       console.log('\n📋 BACKEND HEALTH: ✅');
@@ -243,7 +243,7 @@ test.describe('Ferni EQ - Backend Events', () => {
 
 test.describe('Ferni EQ - Design Tokens', () => {
   test('motion tokens should be defined for EQ animations', async ({ page }) => {
-    await page.goto(BASE_URL, { timeout: 30000 });
+    await page.goto(APP_URL, { timeout: 30000 });
 
     const tokens = await page.evaluate(() => {
       const root = getComputedStyle(document.documentElement);

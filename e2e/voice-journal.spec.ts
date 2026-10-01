@@ -5,26 +5,29 @@
  * insights, and cross-device sync.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { APP_LOADED, mockTwinAgent, openTwinJournal } from './support/app';
+
+// The voice journal belongs to a Digital Twin custom agent. Tests open it the
+// way a user does: roster "More" -> marketplace "My Creations" -> the twin's
+// Journal button (ui/marketplace.ui.ts). The twin comes from a mocked
+// /api/custom-agents.
 
 test.describe('Voice Journal', () => {
   test.beforeEach(async ({ page }) => {
+    await mockTwinAgent(page);
     await page.goto('/');
-    await page.waitForSelector('[data-testid="app-loaded"]', { timeout: 10000 });
+    await page.waitForSelector(APP_LOADED, { timeout: 10000 });
 
     // Grant microphone permission if needed
     await page.context().grantPermissions(['microphone']);
   });
 
   test.describe('Journal Modal', () => {
-    test('opens journal modal from settings menu', async ({ page }) => {
-      // Open settings
-      await page.click('[data-testid="settings-btn"]');
-      await page.waitForSelector('.settings-menu');
-
-      // Click on Voice Journal option
-      await page.click('[data-action="voice-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+    // The settings menu has no voice journal entry (its "Journaling" item
+    // opens Chronicle); the journal is reached from the twin's card.
+    test('opens journal modal from the Digital Twin card', async ({ page }) => {
+      await openTwinJournal(page);
 
       // Verify modal is visible
       await expect(page.locator('.journal-container')).toBeVisible();
@@ -32,8 +35,7 @@ test.describe('Voice Journal', () => {
     });
 
     test('shows three tabs: Record, History, Insights', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       // Check tabs exist
       await expect(page.locator('[data-tab="record"]')).toBeVisible();
@@ -45,8 +47,7 @@ test.describe('Voice Journal', () => {
     });
 
     test('switches between tabs', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       // Click History tab
       await page.click('[data-tab="history"]');
@@ -62,49 +63,44 @@ test.describe('Voice Journal', () => {
     });
 
     test('closes with Escape key', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       await page.keyboard.press('Escape');
       await expect(page.locator('.voice-journal-overlay.open')).not.toBeVisible();
     });
 
     test('closes with close button', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
-      await page.click('[data-action="close"]');
+      await page.click('.voice-journal-overlay .journal-close');
       await expect(page.locator('.voice-journal-overlay.open')).not.toBeVisible();
     });
 
     test('closes when clicking backdrop', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
-      await page.click('.journal-backdrop');
+      // Click the backdrop outside the journal card (its center is covered by the card)
+      await page.click('.journal-backdrop', { position: { x: 5, y: 5 } });
       await expect(page.locator('.voice-journal-overlay.open')).not.toBeVisible();
     });
   });
 
   test.describe('Recording', () => {
     test('shows record button on Record tab', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       await expect(page.locator('#record-btn')).toBeVisible();
       await expect(page.locator('#record-btn')).toContainText('Start Recording');
     });
 
     test('shows recording visualizer canvas', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       await expect(page.locator('#journal-visualizer')).toBeVisible();
     });
 
     test('starts recording when record button clicked', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       await page.click('#record-btn');
 
@@ -117,8 +113,7 @@ test.describe('Voice Journal', () => {
     });
 
     test('stops recording and shows save options', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       // Start recording
       await page.click('#record-btn');
@@ -135,16 +130,14 @@ test.describe('Voice Journal', () => {
 
   test.describe('Mood Selection', () => {
     test('shows mood options', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
-      await expect(page.locator('.mood-options')).toBeVisible();
-      await expect(page.locator('.mood-option')).toHaveCount(5); // 5 mood options
+      await expect(page.locator('.voice-journal-overlay .mood-options')).toBeVisible();
+      await expect(page.locator('.voice-journal-overlay .mood-option')).toHaveCount(12); // 12 moods (MOODS in mood-icons.ts)
     });
 
     test('allows selecting a mood', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       // Click first mood option
       await page.click('.mood-option:first-child');
@@ -154,8 +147,7 @@ test.describe('Voice Journal', () => {
     });
 
     test('only allows one mood selection at a time', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       // Select first mood
       await page.click('.mood-option:first-child');
@@ -171,8 +163,7 @@ test.describe('Voice Journal', () => {
 
   test.describe('History Tab', () => {
     test('shows search input', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       await page.click('[data-tab="history"]');
 
@@ -180,8 +171,7 @@ test.describe('Voice Journal', () => {
     });
 
     test('shows calendar view', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       await page.click('[data-tab="history"]');
 
@@ -189,8 +179,7 @@ test.describe('Voice Journal', () => {
     });
 
     test('shows stats bar', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       await page.click('[data-tab="history"]');
 
@@ -198,8 +187,7 @@ test.describe('Voice Journal', () => {
     });
 
     test('calendar navigation works', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       await page.click('[data-tab="history"]');
       await page.waitForSelector('#journal-calendar');
@@ -217,8 +205,7 @@ test.describe('Voice Journal', () => {
     });
 
     test('search filters entries', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       await page.click('[data-tab="history"]');
 
@@ -234,8 +221,7 @@ test.describe('Voice Journal', () => {
 
   test.describe('Insights Tab', () => {
     test('shows insights content', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       await page.click('[data-tab="insights"]');
 
@@ -243,8 +229,7 @@ test.describe('Voice Journal', () => {
     });
 
     test('shows mood trends visualization', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       await page.click('[data-tab="insights"]');
 
@@ -255,32 +240,28 @@ test.describe('Voice Journal', () => {
 
   test.describe('Export & Share', () => {
     test('shows export button', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
-      await expect(page.locator('[data-action="export"]')).toBeVisible();
+      await expect(page.locator('.voice-journal-overlay [data-action="export"]')).toBeVisible();
     });
 
     test('shows share button', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
-      await expect(page.locator('[data-action="share"]')).toBeVisible();
+      await expect(page.locator('.voice-journal-overlay [data-action="share"]')).toBeVisible();
     });
   });
 
   test.describe('Prompts', () => {
     test('shows journaling prompt on Record tab', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       // Prompt section should be visible
       await expect(page.locator('#prompt-section')).toBeVisible();
     });
 
     test('shuffle prompt button changes prompt', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       // Get initial prompt
       const initialPrompt = await page.locator('.prompt-text').textContent();
@@ -296,37 +277,33 @@ test.describe('Voice Journal', () => {
 
   test.describe('Accessibility', () => {
     test('journal modal has proper ARIA attributes', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
-      const dialog = page.locator('[role="dialog"]');
+      const dialog = page.locator('.voice-journal-overlay [role="dialog"]');
       await expect(dialog).toBeVisible();
       expect(await dialog.getAttribute('aria-modal')).toBe('true');
       expect(await dialog.getAttribute('aria-labelledby')).toBe('journal-title');
     });
 
     test('tabs have proper role and aria-selected', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
-      const tabs = page.locator('[role="tab"]');
+      const tabs = page.locator('.voice-journal-overlay [role="tab"]');
       await expect(tabs).toHaveCount(3);
 
-      const activeTab = page.locator('[role="tab"][aria-selected="true"]');
+      const activeTab = page.locator('.voice-journal-overlay [role="tab"][aria-selected="true"]');
       await expect(activeTab).toBeVisible();
     });
 
     test('record button has aria-label', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       const recordBtn = page.locator('#record-btn');
       expect(await recordBtn.getAttribute('aria-label')).toBeTruthy();
     });
 
     test('search input has aria-label', async ({ page }) => {
-      await page.click('[data-testid="open-journal"]');
-      await page.waitForSelector('.voice-journal-overlay.open');
+      await openTwinJournal(page);
 
       await page.click('[data-tab="history"]');
 
@@ -336,28 +313,34 @@ test.describe('Voice Journal', () => {
   });
 
   test.describe('Real-time Sync', () => {
-    test('journal entries sync across devices', async ({ browser }) => {
-      // Create two browser contexts to simulate two devices
-      const context1 = await browser.newContext();
-      const context2 = await browser.newContext();
+    test('journal entries sync across devices', async ({ browser, baseURL, prepareContext }) => {
+      // Loads the app three times (this page plus two "devices")
+      test.slow();
+
+      // Create two browser contexts to simulate two devices (with the same
+      // network guard, mocks and signed-in user as the default context)
+      const context1 = await prepareContext(await browser.newContext({ baseURL }));
+      const context2 = await prepareContext(await browser.newContext({ baseURL }));
 
       const page1 = await context1.newPage();
       const page2 = await context2.newPage();
 
       try {
         // Both login as same user
+        await mockTwinAgent(page1);
+        await mockTwinAgent(page2);
         await page1.goto('/');
         await page2.goto('/');
+        await page1.waitForSelector(APP_LOADED, { timeout: 10000 });
+        await page2.waitForSelector(APP_LOADED, { timeout: 10000 });
 
         // Page 1 creates an entry
-        await page1.click('[data-testid="open-journal"]');
-        await page1.waitForSelector('.voice-journal-overlay.open');
+        await openTwinJournal(page1);
 
         // (Would record and save an entry here)
 
         // Page 2 should see the new entry after sync
-        await page2.click('[data-testid="open-journal"]');
-        await page2.waitForSelector('.voice-journal-overlay.open');
+        await openTwinJournal(page2);
         await page2.click('[data-tab="history"]');
 
         // Wait for sync notification

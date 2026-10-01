@@ -7,14 +7,15 @@
  * - GET /api/memories/growth - growth patterns and improvements
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL, APP_URL } from './support/env';
+import { pinMenuItems, seedRelationship } from './support/app';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-cognitive-test-user';
 
-test.describe('Cognitive Insights API', () => {
+test.describe('Cognitive Insights API', { tag: '@needs-server' }, () => {
   test('GET /api/memories/insights - returns user insights', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/memories/insights`, {
+    const response = await request.get(`${API_URL}/api/memories/insights`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -30,7 +31,7 @@ test.describe('Cognitive Insights API', () => {
   });
 
   test('GET /api/memories/themes - returns detected themes', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/memories/themes`, {
+    const response = await request.get(`${API_URL}/api/memories/themes`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -45,7 +46,7 @@ test.describe('Cognitive Insights API', () => {
   });
 
   test('GET /api/memories/growth - returns growth patterns', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/memories/growth`, {
+    const response = await request.get(`${API_URL}/api/memories/growth`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -56,7 +57,7 @@ test.describe('Cognitive Insights API', () => {
   });
 
   test('GET /api/memories/summary - returns memory summary', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/memories/summary`, {
+    const response = await request.get(`${API_URL}/api/memories/summary`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -68,8 +69,16 @@ test.describe('Cognitive Insights API', () => {
 });
 
 test.describe('Cognitive Insights UI', () => {
+  // "What I've Learned" unlocks at the Established stage and the menu lists it
+  // as a pinned favorite (it is not in a menu section; see FEATURE_LOCK_MAP and
+  // renderPinnedItems in ui/settings-menu.ui.ts).
+  test.beforeEach(async ({ page }) => {
+    await seedRelationship(page, { stage: 'established', totalConversations: 30 });
+    await pinMenuItems(page, ['cognitive']);
+  });
+
   test('opens cognitive insights modal from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     // Wait for app to load
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
@@ -91,13 +100,13 @@ test.describe('Cognitive Insights UI', () => {
     await cognitiveButton.click();
 
     // Verify cognitive insights panel opened
-    await expect(page.locator('.cognitive-insights-overlay, .cognitive-panel')).toBeVisible({
+    await expect(page.locator('.cognitive-insights.cognitive-insights--visible')).toBeVisible({
       timeout: 5000,
     });
   });
 
   test('displays insight categories', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
     await page.click('.settings-trigger');
@@ -113,10 +122,10 @@ test.describe('Cognitive Insights UI', () => {
     await cognitiveButton.click();
 
     // Wait for panel to appear
-    await page.waitForSelector('.cognitive-insights-overlay, .cognitive-panel', { timeout: 5000 });
+    await page.waitForSelector('.cognitive-insights.cognitive-insights--visible', { timeout: 5000 });
 
     // Should show some insight content
-    const panelContent = page.locator('.cognitive-insights-overlay, .cognitive-panel');
+    const panelContent = page.locator('.cognitive-insights.cognitive-insights--visible');
     await expect(panelContent).toBeVisible();
   });
 });

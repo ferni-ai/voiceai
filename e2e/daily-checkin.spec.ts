@@ -13,15 +13,15 @@
  * 4. History being retrievable
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-daily-checkin-test-user';
 
-test.describe('Daily Check-in API', () => {
+test.describe('Daily Check-in API', { tag: '@needs-server' }, () => {
   test.describe('Sky Check Recording', () => {
     test('POST /api/sky-check - records emotional weather', async ({ request }) => {
-      const response = await request.post(`${BASE_URL}/api/sky-check`, {
+      const response = await request.post(`${API_URL}/api/sky-check`, {
         headers: { 'X-User-ID': TEST_USER_ID },
         data: {
           weather: {
@@ -42,7 +42,7 @@ test.describe('Daily Check-in API', () => {
     });
 
     test('POST /api/sky-check - validates weather primary', async ({ request }) => {
-      const response = await request.post(`${BASE_URL}/api/sky-check`, {
+      const response = await request.post(`${API_URL}/api/sky-check`, {
         headers: { 'X-User-ID': TEST_USER_ID },
         data: {
           weather: {
@@ -56,7 +56,7 @@ test.describe('Daily Check-in API', () => {
     });
 
     test('POST /api/sky-check - validates energy level', async ({ request }) => {
-      const response = await request.post(`${BASE_URL}/api/sky-check`, {
+      const response = await request.post(`${API_URL}/api/sky-check`, {
         headers: { 'X-User-ID': TEST_USER_ID },
         data: {
           weather: {
@@ -71,14 +71,14 @@ test.describe('Daily Check-in API', () => {
 
     test('GET /api/sky-check/history - returns weather history', async ({ request }) => {
       // First record some weather
-      await request.post(`${BASE_URL}/api/sky-check`, {
+      await request.post(`${API_URL}/api/sky-check`, {
         headers: { 'X-User-ID': TEST_USER_ID },
         data: {
           weather: { primary: 'cloudy', energy: 'medium' },
         },
       });
 
-      const response = await request.get(`${BASE_URL}/api/sky-check/history`, {
+      const response = await request.get(`${API_URL}/api/sky-check/history`, {
         headers: { 'X-User-ID': TEST_USER_ID },
       });
 
@@ -94,7 +94,7 @@ test.describe('Daily Check-in API', () => {
     test('POST /api/rituals/ferni-sky-check/complete - completes daily check-in', async ({
       request,
     }) => {
-      const response = await request.post(`${BASE_URL}/api/rituals/ferni-sky-check/complete`, {
+      const response = await request.post(`${API_URL}/api/rituals/ferni-sky-check/complete`, {
         headers: { 'X-User-ID': TEST_USER_ID },
         data: {
           weather: {
@@ -115,7 +115,7 @@ test.describe('Daily Check-in API', () => {
 
     test('completes ritual and returns new streak count', async ({ request }) => {
       // Complete once - should be streak 1 (or continue existing)
-      const response = await request.post(`${BASE_URL}/api/rituals/ferni-sky-check/complete`, {
+      const response = await request.post(`${API_URL}/api/rituals/ferni-sky-check/complete`, {
         headers: { 'X-User-ID': `${TEST_USER_ID}-streak-test` },
         data: {
           weather: { primary: 'sunny', energy: 'high' },
@@ -132,14 +132,14 @@ test.describe('Daily Check-in API', () => {
       const userId = `${TEST_USER_ID}-same-day-${Date.now()}`;
 
       // First completion
-      const first = await request.post(`${BASE_URL}/api/rituals/ferni-sky-check/complete`, {
+      const first = await request.post(`${API_URL}/api/rituals/ferni-sky-check/complete`, {
         headers: { 'X-User-ID': userId },
         data: { weather: { primary: 'sunny', energy: 'high' } },
       });
       expect(first.status()).toBe(200);
 
       // Second completion same day
-      const second = await request.post(`${BASE_URL}/api/rituals/ferni-sky-check/complete`, {
+      const second = await request.post(`${API_URL}/api/rituals/ferni-sky-check/complete`, {
         headers: { 'X-User-ID': userId },
         data: { weather: { primary: 'cloudy', energy: 'low' } },
       });
@@ -152,7 +152,7 @@ test.describe('Daily Check-in API', () => {
     test('celebration returned for milestone streaks', async ({ request }) => {
       // Note: This test validates the structure - actual milestone would require
       // building up streak over multiple days which isn't practical in e2e
-      const response = await request.post(`${BASE_URL}/api/rituals/ferni-sky-check/complete`, {
+      const response = await request.post(`${API_URL}/api/rituals/ferni-sky-check/complete`, {
         headers: { 'X-User-ID': TEST_USER_ID },
         data: { weather: { primary: 'rainbow', energy: 'high' } },
       });
@@ -179,7 +179,7 @@ test.describe('Daily Check-in API', () => {
 
     for (const weather of weatherTypes) {
       test(`accepts ${weather} weather type`, async ({ request }) => {
-        const response = await request.post(`${BASE_URL}/api/sky-check`, {
+        const response = await request.post(`${API_URL}/api/sky-check`, {
           headers: { 'X-User-ID': TEST_USER_ID },
           data: {
             weather: {
@@ -202,7 +202,7 @@ test.describe('Daily Check-in API', () => {
 
     for (const energy of energyLevels) {
       test(`accepts ${energy} energy level`, async ({ request }) => {
-        const response = await request.post(`${BASE_URL}/api/sky-check`, {
+        const response = await request.post(`${API_URL}/api/sky-check`, {
           headers: { 'X-User-ID': TEST_USER_ID },
           data: {
             weather: {
@@ -221,9 +221,9 @@ test.describe('Daily Check-in API', () => {
   });
 });
 
-test.describe('GET /api/rituals - Ritual Stats', () => {
+test.describe('GET /api/rituals - Ritual Stats', { tag: '@needs-server' }, () => {
   test('returns ritual streaks and stats', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/rituals`, {
+    const response = await request.get(`${API_URL}/api/rituals`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 
@@ -243,12 +243,12 @@ test.describe('GET /api/rituals - Ritual Stats', () => {
 
   test('returns weather history in response', async ({ request }) => {
     // First record some weather
-    await request.post(`${BASE_URL}/api/sky-check`, {
+    await request.post(`${API_URL}/api/sky-check`, {
       headers: { 'X-User-ID': TEST_USER_ID },
       data: { weather: { primary: 'sunny', energy: 'high' } },
     });
 
-    const response = await request.get(`${BASE_URL}/api/rituals`, {
+    const response = await request.get(`${API_URL}/api/rituals`, {
       headers: { 'X-User-ID': TEST_USER_ID },
     });
 

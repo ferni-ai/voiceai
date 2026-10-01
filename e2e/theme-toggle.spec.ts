@@ -7,73 +7,55 @@
  * - Visual changes
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from './support/fixtures';
+import { APP_URL } from './support/env';
+import { clickMenuItem, openSettingsMenu } from './support/app';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
+// The menu's "Theme & Language" item opens a panel (ui/theme-language-settings.ui.ts)
+// whose Appearance section switches between the light (zen) and dark
+// (midnight) themes.
+const PANEL = '.theme-language-settings .theme-language-settings__panel';
+
+async function openThemePanel(page: Page): Promise<void> {
+  await page.waitForSelector('.settings-trigger', { timeout: 10000 });
+  await clickMenuItem(page, 'theme');
+  await expect(page.locator(PANEL)).toBeVisible();
+}
+
+/** The theme option that is not currently active. */
+function otherThemeOption(page: Page, current: string | null) {
+  return page.locator(`${PANEL} [data-action="set-theme"]:not([data-theme="${current}"])`);
+}
 
 test.describe('Theme Toggle UI', () => {
   test('toggles theme from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
+    await page.goto(APP_URL);
 
     // Get initial theme
     const initialTheme = await page.getAttribute('html', 'data-theme');
 
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    // Find and click Light/Dark toggle (in Personalize section)
-    const themeButton = page.locator('[data-action="theme"]');
-    if (!(await themeButton.isVisible())) {
-      // Expand Personalize section if collapsed
-      const personalizeHeader = page.locator(
-        '.settings-menu__section-header:has-text("Make It Yours"), .settings-menu__section-header:has-text("Personalize")'
-      );
-      if (await personalizeHeader.first().isVisible()) {
-        await personalizeHeader.first().click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    await themeButton.click();
-    await page.waitForTimeout(500);
-
-    // Theme should have changed
-    const newTheme = await page.getAttribute('html', 'data-theme');
+    await openThemePanel(page);
+    await otherThemeOption(page, initialTheme).click();
 
     // If initial was zen (light), should now be midnight (dark), or vice versa
     if (initialTheme === 'zen') {
-      expect(newTheme).toBe('midnight');
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'midnight');
     } else if (initialTheme === 'midnight') {
-      expect(newTheme).toBe('zen');
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'zen');
     } else {
       // Theme changed in some way
-      expect(newTheme).not.toBe(initialTheme);
+      await expect(page.locator('html')).not.toHaveAttribute('data-theme', initialTheme ?? '');
     }
   });
 
   test('theme persists after page reload', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    const themeButton = page.locator('[data-action="theme"]');
-    if (!(await themeButton.isVisible())) {
-      const personalizeHeader = page.locator(
-        '.settings-menu__section-header:has-text("Make It Yours"), .settings-menu__section-header:has-text("Personalize")'
-      );
-      if (await personalizeHeader.first().isVisible()) {
-        await personalizeHeader.first().click();
-        await page.waitForTimeout(300);
-      }
-    }
+    await page.goto(APP_URL);
+    const initialTheme = await page.getAttribute('html', 'data-theme');
 
     // Toggle theme
-    await themeButton.click();
-    await page.waitForTimeout(500);
+    await openThemePanel(page);
+    await otherThemeOption(page, initialTheme).click();
+    await expect(page.locator('html')).not.toHaveAttribute('data-theme', initialTheme ?? '');
 
     const themeAfterToggle = await page.getAttribute('html', 'data-theme');
 
@@ -87,7 +69,7 @@ test.describe('Theme Toggle UI', () => {
   });
 
   test('dark theme applies correct styles', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
 
@@ -113,7 +95,7 @@ test.describe('Theme Toggle UI', () => {
   });
 
   test('light theme applies correct styles', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
 
     await page.waitForSelector('.settings-trigger', { timeout: 10000 });
 
@@ -129,24 +111,12 @@ test.describe('Theme Toggle UI', () => {
     const html = page.locator('html');
     await expect(html).toHaveAttribute('data-theme', 'zen');
   });
-
   test('theme toggle button is accessible', async ({ page }) => {
-    await page.goto(BASE_URL);
+    await page.goto(APP_URL);
+    const initialTheme = await page.getAttribute('html', 'data-theme');
 
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    const themeButton = page.locator('[data-action="theme"]');
-    if (!(await themeButton.isVisible())) {
-      const personalizeHeader = page.locator(
-        '.settings-menu__section-header:has-text("Make It Yours"), .settings-menu__section-header:has-text("Personalize")'
-      );
-      if (await personalizeHeader.first().isVisible()) {
-        await personalizeHeader.first().click();
-        await page.waitForTimeout(300);
-      }
-    }
+    await openSettingsMenu(page);
+    const themeButton = page.locator('.settings-menu [data-action="theme"]');
 
     // Button should be focusable
     await themeButton.focus();
@@ -154,10 +124,15 @@ test.describe('Theme Toggle UI', () => {
 
     // Should be clickable via keyboard
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(500);
+    await expect(page.locator(PANEL)).toBeVisible();
+
+    // The theme options are buttons, usable from the keyboard too
+    const option = otherThemeOption(page, initialTheme);
+    await option.focus();
+    await expect(option).toBeFocused();
+    await page.keyboard.press('Enter');
 
     // Theme should have changed
-    const theme = await page.getAttribute('html', 'data-theme');
-    expect(theme).toBeTruthy();
+    await expect(page.locator('html')).not.toHaveAttribute('data-theme', initialTheme ?? '');
   });
 });

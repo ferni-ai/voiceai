@@ -10,9 +10,9 @@
  * @module e2e/custom-agent
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
+import { API_URL } from './support/env';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = `e2e-custom-agent-${Date.now()}`;
 
 // Store created agent ID for cleanup
@@ -22,9 +22,9 @@ let createdAgentId: string | null = null;
 // AGENT CRUD TESTS
 // ============================================================================
 
-test.describe('Custom Agent CRUD', () => {
+test.describe('Custom Agent CRUD', { tag: '@needs-server' }, () => {
   test('POST /api/custom-agents - creates a new agent', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/custom-agents`, {
+    const response = await request.post(`${API_URL}/api/custom-agents`, {
       headers: {
         'X-Firebase-UID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -49,7 +49,7 @@ test.describe('Custom Agent CRUD', () => {
   });
 
   test('POST /api/custom-agents - requires name', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/custom-agents`, {
+    const response = await request.post(`${API_URL}/api/custom-agents`, {
       headers: {
         'X-Firebase-UID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ test.describe('Custom Agent CRUD', () => {
   });
 
   test('POST /api/custom-agents - requires valid type', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/custom-agents`, {
+    const response = await request.post(`${API_URL}/api/custom-agents`, {
       headers: {
         'X-Firebase-UID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ test.describe('Custom Agent CRUD', () => {
   });
 
   test('POST /api/custom-agents - returns 401 without auth', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/custom-agents`, {
+    const response = await request.post(`${API_URL}/api/custom-agents`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -99,7 +99,7 @@ test.describe('Custom Agent CRUD', () => {
   });
 
   test('GET /api/custom-agents - lists user agents', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/custom-agents`, {
+    const response = await request.get(`${API_URL}/api/custom-agents`, {
       headers: {
         'X-Firebase-UID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ test.describe('Custom Agent CRUD', () => {
       return;
     }
 
-    const response = await request.get(`${BASE_URL}/api/custom-agents/${createdAgentId}`, {
+    const response = await request.get(`${API_URL}/api/custom-agents/${createdAgentId}`, {
       headers: {
         'X-Firebase-UID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -138,7 +138,7 @@ test.describe('Custom Agent CRUD', () => {
   });
 
   test('GET /api/custom-agents/:id - returns 404 for non-existent agent', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/custom-agents/non-existent-id`, {
+    const response = await request.get(`${API_URL}/api/custom-agents/non-existent-id`, {
       headers: {
         'X-Firebase-UID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -154,7 +154,7 @@ test.describe('Custom Agent CRUD', () => {
       return;
     }
 
-    const response = await request.put(`${BASE_URL}/api/custom-agents/${createdAgentId}`, {
+    const response = await request.put(`${API_URL}/api/custom-agents/${createdAgentId}`, {
       headers: {
         'X-Firebase-UID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -176,14 +176,14 @@ test.describe('Custom Agent CRUD', () => {
 // AGENT STATUS TESTS
 // ============================================================================
 
-test.describe('Custom Agent Status', () => {
+test.describe('Custom Agent Status', { tag: '@needs-server' }, () => {
   test('PUT /api/custom-agents/:id/status - cannot activate without voice', async ({ request }) => {
     if (!createdAgentId) {
       test.skip();
       return;
     }
 
-    const response = await request.put(`${BASE_URL}/api/custom-agents/${createdAgentId}/status`, {
+    const response = await request.put(`${API_URL}/api/custom-agents/${createdAgentId}/status`, {
       headers: {
         'X-Firebase-UID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -205,7 +205,7 @@ test.describe('Custom Agent Status', () => {
       return;
     }
 
-    const response = await request.put(`${BASE_URL}/api/custom-agents/${createdAgentId}/status`, {
+    const response = await request.put(`${API_URL}/api/custom-agents/${createdAgentId}/status`, {
       headers: {
         'X-Firebase-UID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -226,7 +226,7 @@ test.describe('Custom Agent Status', () => {
       return;
     }
 
-    const response = await request.put(`${BASE_URL}/api/custom-agents/${createdAgentId}/status`, {
+    const response = await request.put(`${API_URL}/api/custom-agents/${createdAgentId}/status`, {
       headers: {
         'X-Firebase-UID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -244,7 +244,7 @@ test.describe('Custom Agent Status', () => {
 // VOICE TESTS
 // ============================================================================
 
-test.describe('Custom Agent Voice', () => {
+test.describe('Custom Agent Voice', { tag: '@needs-server' }, () => {
   test('PUT /api/custom-agents/:id/voice/select-premade - selects pre-made voice', async ({
     request,
   }) => {
@@ -254,7 +254,7 @@ test.describe('Custom Agent Voice', () => {
     }
 
     const response = await request.put(
-      `${BASE_URL}/api/custom-agents/${createdAgentId}/voice/select-premade`,
+      `${API_URL}/api/custom-agents/${createdAgentId}/voice/select-premade`,
       {
         headers: {
           'X-Firebase-UID': TEST_USER_ID,
@@ -281,7 +281,7 @@ test.describe('Custom Agent Voice', () => {
     }
 
     const response = await request.get(
-      `${BASE_URL}/api/custom-agents/${createdAgentId}/voice/status`,
+      `${API_URL}/api/custom-agents/${createdAgentId}/voice/status`,
       {
         headers: {
           'X-Firebase-UID': TEST_USER_ID,
@@ -307,7 +307,7 @@ test.describe('Custom Agent Voice', () => {
     }
 
     const response = await request.put(
-      `${BASE_URL}/api/custom-agents/${createdAgentId}/voice/select-premade`,
+      `${API_URL}/api/custom-agents/${createdAgentId}/voice/select-premade`,
       {
         headers: {
           'X-Firebase-UID': TEST_USER_ID,
@@ -327,7 +327,7 @@ test.describe('Custom Agent Voice', () => {
 // MEMORY TESTS
 // ============================================================================
 
-test.describe('Custom Agent Memory', () => {
+test.describe('Custom Agent Memory', { tag: '@needs-server' }, () => {
   test('POST /api/custom-agents/:id/memories - adds memory', async ({ request }) => {
     if (!createdAgentId) {
       test.skip();
@@ -335,7 +335,7 @@ test.describe('Custom Agent Memory', () => {
     }
 
     const response = await request.post(
-      `${BASE_URL}/api/custom-agents/${createdAgentId}/memories`,
+      `${API_URL}/api/custom-agents/${createdAgentId}/memories`,
       {
         headers: {
           'X-Firebase-UID': TEST_USER_ID,
@@ -364,7 +364,7 @@ test.describe('Custom Agent Memory', () => {
     }
 
     const response = await request.post(
-      `${BASE_URL}/api/custom-agents/${createdAgentId}/memories`,
+      `${API_URL}/api/custom-agents/${createdAgentId}/memories`,
       {
         headers: {
           'X-Firebase-UID': TEST_USER_ID,
@@ -386,7 +386,7 @@ test.describe('Custom Agent Memory', () => {
     }
 
     const response = await request.post(
-      `${BASE_URL}/api/custom-agents/${createdAgentId}/memories`,
+      `${API_URL}/api/custom-agents/${createdAgentId}/memories`,
       {
         headers: {
           'X-Firebase-UID': TEST_USER_ID,
@@ -411,7 +411,7 @@ test.describe('Custom Agent Memory', () => {
     }
 
     const response = await request.get(
-      `${BASE_URL}/api/custom-agents/${createdAgentId}/memories`,
+      `${API_URL}/api/custom-agents/${createdAgentId}/memories`,
       {
         headers: {
           'X-Firebase-UID': TEST_USER_ID,
@@ -433,7 +433,7 @@ test.describe('Custom Agent Memory', () => {
     }
 
     const response = await request.get(
-      `${BASE_URL}/api/custom-agents/${createdAgentId}/memories?type=story`,
+      `${API_URL}/api/custom-agents/${createdAgentId}/memories?type=story`,
       {
         headers: {
           'X-Firebase-UID': TEST_USER_ID,
@@ -453,7 +453,7 @@ test.describe('Custom Agent Memory', () => {
 // PROMPT GENERATION TESTS
 // ============================================================================
 
-test.describe('Custom Agent Prompt Generation', () => {
+test.describe('Custom Agent Prompt Generation', { tag: '@needs-server' }, () => {
   test('POST /api/custom-agents/:id/generate-prompt - generates system prompt', async ({
     request,
   }) => {
@@ -463,7 +463,7 @@ test.describe('Custom Agent Prompt Generation', () => {
     }
 
     const response = await request.post(
-      `${BASE_URL}/api/custom-agents/${createdAgentId}/generate-prompt`,
+      `${API_URL}/api/custom-agents/${createdAgentId}/generate-prompt`,
       {
         headers: {
           'X-Firebase-UID': TEST_USER_ID,
@@ -485,7 +485,7 @@ test.describe('Custom Agent Prompt Generation', () => {
 // ACTIVATION FLOW TESTS
 // ============================================================================
 
-test.describe('Custom Agent Activation Flow', () => {
+test.describe('Custom Agent Activation Flow', { tag: '@needs-server' }, () => {
   test('POST /api/custom-agents/:id/activate - activates agent with voice ready', async ({
     request,
   }) => {
@@ -495,7 +495,7 @@ test.describe('Custom Agent Activation Flow', () => {
     }
 
     // First ensure voice is set up
-    await request.put(`${BASE_URL}/api/custom-agents/${createdAgentId}/voice/select-premade`, {
+    await request.put(`${API_URL}/api/custom-agents/${createdAgentId}/voice/select-premade`, {
       headers: {
         'X-Firebase-UID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -507,7 +507,7 @@ test.describe('Custom Agent Activation Flow', () => {
 
     // Now try to activate
     const response = await request.post(
-      `${BASE_URL}/api/custom-agents/${createdAgentId}/activate`,
+      `${API_URL}/api/custom-agents/${createdAgentId}/activate`,
       {
         headers: {
           'X-Firebase-UID': TEST_USER_ID,
@@ -528,14 +528,14 @@ test.describe('Custom Agent Activation Flow', () => {
 // CLEANUP
 // ============================================================================
 
-test.describe('Custom Agent Cleanup', () => {
+test.describe('Custom Agent Cleanup', { tag: '@needs-server' }, () => {
   test('DELETE /api/custom-agents/:id - deletes agent', async ({ request }) => {
     if (!createdAgentId) {
       test.skip();
       return;
     }
 
-    const response = await request.delete(`${BASE_URL}/api/custom-agents/${createdAgentId}`, {
+    const response = await request.delete(`${API_URL}/api/custom-agents/${createdAgentId}`, {
       headers: {
         'X-Firebase-UID': TEST_USER_ID,
         'Content-Type': 'application/json',
@@ -545,7 +545,7 @@ test.describe('Custom Agent Cleanup', () => {
     expect(response.status()).toBe(204);
 
     // Verify deletion
-    const getResponse = await request.get(`${BASE_URL}/api/custom-agents/${createdAgentId}`, {
+    const getResponse = await request.get(`${API_URL}/api/custom-agents/${createdAgentId}`, {
       headers: {
         'X-Firebase-UID': TEST_USER_ID,
         'Content-Type': 'application/json',
