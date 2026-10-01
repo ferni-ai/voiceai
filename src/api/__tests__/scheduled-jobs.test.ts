@@ -9,6 +9,13 @@ import { EventEmitter } from 'events';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 // Mock outreach services
+// cleanup-sessions only reads the active session count; the real module pulls
+// in the whole session stack (~24s cold), which timed this test out.
+const sessions = vi.hoisted(() => ({ active: 3 }));
+vi.mock('../../services/session-manager.js', () => ({
+  getActiveSessionCount: () => sessions.active,
+}));
+
 vi.mock('../../services/outreach/index.js', () => ({
   runDailyOutreach: vi.fn().mockResolvedValue({ sent: 10, skipped: 5 }),
   evaluateThinkingOfYou: vi.fn().mockResolvedValue({ evaluated: 50, triggered: 5 }),
@@ -36,9 +43,8 @@ vi.mock('../../intelligence/capability-learning.js', async (importOriginal) => {
 
 // handleRollupPersonaMetrics
 vi.mock('../../services/analytics/humanization-analytics.js', async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import('../../services/analytics/humanization-analytics.js')
-  >();
+  const actual =
+    await importOriginal<typeof import('../../services/analytics/humanization-analytics.js')>();
   return {
     ...actual,
     getHumanizationAnalytics: vi.fn(() => ({
@@ -50,9 +56,8 @@ vi.mock('../../services/analytics/humanization-analytics.js', async (importOrigi
 
 // handleSyncTrustProfiles
 vi.mock('../../services/trust-systems/unified-persistence.js', async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import('../../services/trust-systems/unified-persistence.js')
-  >();
+  const actual =
+    await importOriginal<typeof import('../../services/trust-systems/unified-persistence.js')>();
   return {
     ...actual,
     flushPendingChanges: vi.fn().mockResolvedValue({ synced: 50 }),
@@ -75,17 +80,15 @@ vi.mock('../../tasks/scheduled/memory-jobs.js', async (importOriginal) => {
 
 // handleRunDeepAnalysis
 vi.mock('../../tasks/scheduled/deep-analysis-job.js', async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import('../../tasks/scheduled/deep-analysis-job.js')
-  >();
+  const actual =
+    await importOriginal<typeof import('../../tasks/scheduled/deep-analysis-job.js')>();
   return { ...actual, runDeepAnalysis: vi.fn().mockResolvedValue({ analyzed: 10 }) };
 });
 
 // handleRunPredictiveAnalysis
 vi.mock('../../services/predictive-insights/index.js', async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import('../../services/predictive-insights/index.js')
-  >();
+  const actual =
+    await importOriginal<typeof import('../../services/predictive-insights/index.js')>();
   return { ...actual, runPredictiveAnalysis: vi.fn().mockResolvedValue({ predictions: 25 }) };
 });
 
@@ -199,6 +202,12 @@ describe('Scheduled Jobs Routes API', () => {
       const handled = await handleScheduledJobsRoutes(req, res, '/api/jobs/cleanup-sessions');
 
       expect(handled).toBe(true);
+      expect(res._statusCode).toBe(200);
+      expect(JSON.parse(res._data)).toMatchObject({
+        success: true,
+        job: 'cleanup-sessions',
+        activeSessions: 3,
+      });
     });
   });
 
