@@ -24,20 +24,29 @@ describe('getRandomGameSongs', () => {
   });
 
   it('only fills the gap when iTunes returns some songs', async () => {
-    itunes.findTrack.mockImplementation(async (query: string) =>
-      query.startsWith('Bohemian')
+    // iTunes finds the first two lookups (queries are picked at random)
+    let found = 0;
+    itunes.findTrack.mockImplementation(async () => {
+      found++;
+      return found <= 2
         ? {
             found: true,
-            track: { name: 'Bohemian Rhapsody', artist: 'Queen', previewUrl: 'https://p/1.m4a' },
+            track: {
+              name: `Live Song ${found}`,
+              artist: 'Band',
+              previewUrl: `https://p/${found}.m4a`,
+            },
           }
-        : { found: false }
-    );
+        : { found: false };
+    });
 
     const songs = await getRandomGameSongs(5);
 
     expect(songs).toHaveLength(5);
-    const names = songs.map((s) => s.name);
-    expect(names.filter((n) => n === 'Bohemian Rhapsody')).toHaveLength(1);
-    expect(songs.find((s) => s.name === 'Bohemian Rhapsody')?.previewUrl).toBe('https://p/1.m4a');
+    expect(new Set(songs.map((s) => s.name)).size).toBe(5);
+    expect(songs.filter((s) => s.name.startsWith('Live Song'))).toEqual([
+      expect.objectContaining({ name: 'Live Song 1', previewUrl: 'https://p/1.m4a' }),
+      expect.objectContaining({ name: 'Live Song 2', previewUrl: 'https://p/2.m4a' }),
+    ]);
   });
 });
