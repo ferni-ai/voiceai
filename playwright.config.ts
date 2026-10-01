@@ -137,6 +137,10 @@ export default defineConfig({
         url: DEFAULT_APP_URL,
         reuseExistingServer: !process.env.CI,
         timeout: 120000,
+        // Offline-only runs don't need the backend proxy: a request that
+        // outlives its page then gets a local 404 instead of reaching a UI
+        // server on 3002 (apps/web/vite.config.ts reads this).
+        env: SUITES.every((suite) => suite === 'offline') ? { FERNI_E2E_OFFLINE: '1' } : {},
       }
     : undefined,
 });

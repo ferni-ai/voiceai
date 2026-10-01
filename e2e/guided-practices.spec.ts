@@ -350,22 +350,21 @@ test.describe('Guided Practices UI - Selection', () => {
     await expect(firstItem).toHaveClass(/ferni-commands__item--active/);
   });
 
-  // Skip the toast test as it's too flaky without a real voice connection
-  // The toast selector matches other role="alert" elements in the page
-  test.skip('shows info message when not connected to agent', async ({ page }) => {
+  test('shows info message when not connected to agent', async ({ page }) => {
+    // Selecting a practice renders its prompt, then needs a live call
+    await page.route(/\/api\/commands\/[^/]+\/[^/]+\/render/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ commandId: 'x', renderedPrompt: 'Guide me through a practice.' }),
+      })
+    );
     await openCommandsPanel(page);
 
-    // Click a practice (we're not connected to the agent)
-    const firstItem = page.locator('.ferni-commands__item').first();
-    await firstItem.click();
+    await page.locator('.ferni-commands__item').first().click();
 
-    // Should show a toast/message about needing to connect first
-    // Wait a bit for the message to appear
-    await page.waitForTimeout(1000);
-
-    // Check for Ferni-specific toast
-    const toast = page.locator('.ferni-toast');
-    await expect(toast).toBeVisible({ timeout: 5000 });
+    // ui-feature-init.ts: not connected, so Ferni asks to connect first
+    await expect(page.getByText('Connect to Ferni first to start a practice')).toBeVisible();
   });
 });
 

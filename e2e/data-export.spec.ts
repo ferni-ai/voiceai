@@ -8,6 +8,7 @@
  */
 
 import { expect, test } from './support/fixtures';
+import { APP_LOADED, clickMenuItem, pinMenuItems } from './support/app';
 
 // Test user ID for consistent testing
 const TEST_USER_ID = 'e2e-test-user-data-export';
@@ -195,36 +196,34 @@ test.describe('Data Export Feature', () => {
   });
 
   test.describe('UI Integration', () => {
-    test.skip('Data Export modal shows all categories', async ({ page }) => {
-      // Navigate to app
+    test('Data Export modal shows all categories', async ({ page }) => {
+      const categories = [
+        { category: 'Conversations', description: 'Transcripts', itemCount: 12, exportable: true },
+        { category: 'Insights', description: 'What Ferni learned', itemCount: 4, exportable: true },
+        { category: 'Habits', description: 'Habit history', itemCount: 3, exportable: true },
+      ];
+      await page.route('**/api/export/categories**', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ categories }) })
+      );
+      // getExportableCategories() only asks the API for a known user
+      await page.addInitScript(() => localStorage.setItem('ferni_user_id', 'e2e-user'));
+
+      await pinMenuItems(page, ['export']);
+
       await page.goto('/');
+      await page.waitForSelector(APP_LOADED);
+      await clickMenuItem(page, 'export');
 
-      // Wait for app to load
-      await page.waitForSelector('[data-testid="settings-button"]', { timeout: 10000 });
+      const modal = page.locator('.data-export');
+      await expect(modal).toBeVisible();
+      await expect(modal.locator('.data-export__category')).toHaveCount(categories.length);
+      await expect(modal.locator('[data-format="json"]')).toBeVisible();
+      await expect(modal.locator('[data-format="csv"]')).toBeVisible();
+      await expect(modal.locator('.data-export__btn--primary')).toBeVisible();
+      await expect(modal.locator('.data-export__btn--danger')).toBeVisible();
 
-      // Open settings
-      await page.click('[data-testid="settings-button"]');
-
-      // Click on "Download Your Story" / Export option
-      await page.click('text=Your Data');
-
-      // Verify modal opens
-      await expect(page.locator('.data-export')).toBeVisible();
-
-      // Verify categories are shown
-      await expect(page.locator('.data-export__category')).toHaveCount(11);
-
-      // Verify format options
-      await expect(page.locator('[data-format="json"]')).toBeVisible();
-      await expect(page.locator('[data-format="csv"]')).toBeVisible();
-
-      // Verify action buttons
-      await expect(page.locator('.data-export__btn--primary')).toBeVisible();
-      await expect(page.locator('.data-export__btn--danger')).toBeVisible();
-
-      // Close modal
       await page.click('.data-export__close');
-      await expect(page.locator('.data-export')).not.toBeVisible();
+      await expect(modal).not.toBeVisible();
     });
   });
 });
