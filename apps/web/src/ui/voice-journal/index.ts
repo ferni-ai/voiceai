@@ -461,9 +461,8 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
 
-    // Move focus into the dialog so the keyboard (Tab, Escape) works in it.
-    // Next frame: the overlay fades in from visibility: hidden.
-    requestAnimationFrame(() => modal.querySelector<HTMLElement>('.journal-container')?.focus());
+    // Move focus into the dialog so the keyboard (Tab, Escape) works in it
+    modal.querySelector<HTMLElement>('.journal-container')?.focus();
 
     soundUI.play('switch');
   } catch (error) {

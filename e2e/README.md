@@ -116,9 +116,77 @@ Every spec, classified by what it needs:
   `@needs-landing`)
 
 Counts are Playwright tests (parameterized tests expanded) in the Chromium
-project.
+project: **916 tests in 63 files**: 390 offline (a), 494 `@needs-server` (b),
+5 `@needs-agent` (c; these need the UI server too), 27 `@needs-landing`. Seven
+files used to default to a remote host (d). A file can mix classes, typically
+"X API" tests (b) next to "X UI" tests (a).
 
-<!-- inventory-table -->
+| Spec | Class | Offline (a) | `@needs-server` (b) | `@needs-agent` (c) | `@needs-landing` | Used to default to |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| `accent-settings.spec.ts` | a, b | 3 | 4 |  |  |  |
+| `accessibility.spec.ts` | a | 8 |  |  |  |  |
+| `action-confirmation.spec.ts` | b |  | 8 |  |  |  |
+| `admin-dashboard-comprehensive.spec.ts` | a | 40 |  |  |  |  |
+| `admin-portal.spec.ts` | a, b | 14 | 9 |  |  |  |
+| `analytics.spec.ts` | a, b | 4 | 9 |  |  |  |
+| `auth.spec.ts` | b |  | 17 |  |  |  |
+| `billing.spec.ts` | a, b | 2 | 2 |  |  |  |
+| `burnout-prevention.spec.ts` | b |  | 12 |  |  |  |
+| `calendar.spec.ts` | a, b, c, d | 4 | 18 | 2 |  | http://34.134.186.63:8080 (agent tests) |
+| `cognitive-differentiation.spec.ts` | a, b | 1 | 12 |  |  |  |
+| `cognitive-insights.spec.ts` | a, b | 2 | 4 |  |  |  |
+| `commitment-tracking.spec.ts` | b |  | 13 |  |  |  |
+| `contact-settings.spec.ts` | a, b | 4 | 5 |  |  |  |
+| `conversation-history.spec.ts` | a, b | 4 | 2 |  |  |  |
+| `custom-agent.spec.ts` | b |  | 22 |  |  |  |
+| `daily-checkin.spec.ts` | b |  | 20 |  |  |  |
+| `dashboard.spec.ts` | a | 9 |  |  |  |  |
+| `data-export.spec.ts` | a, b | 1 | 9 |  |  |  |
+| `dev-panel.spec.ts` | a | 76 |  |  |  |  |
+| `digital-twin.spec.ts` | a, b, c | 9 | 3 | 1 |  |  |
+| `ferni-eq.spec.ts` | a, b, d | 9 | 1 |  |  | https://app.ferni.ai |
+| `ferni-fund.spec.ts` | a, b | 4 | 5 |  |  |  |
+| `games.spec.ts` | a, b | 11 | 7 |  |  |  |
+| `google-one-tap.spec.ts` | a | 8 |  |  |  |  |
+| `group-coaching.spec.ts` | b |  | 11 |  |  |  |
+| `group-conversation.spec.ts` | b |  | 12 |  |  |  |
+| `growth.spec.ts` | b |  | 16 |  |  |  |
+| `guided-practices.spec.ts` | a, b | 11 | 8 |  |  |  |
+| `household.spec.ts` | a, b | 4 | 15 |  |  |  |
+| `human-listening.spec.ts` | a, b | 4 | 1 |  |  |  |
+| `integrations.spec.ts` | b |  | 15 |  |  |  |
+| `journey.spec.ts` | a, b | 15 | 13 |  |  |  |
+| `landing-accessibility.spec.ts` | d |  |  |  | 13 | https://ferni.ai |
+| `landing-intelligence.spec.ts` | b, d |  | 9 |  | 14 |  |
+| `language-selector.spec.ts` | a | 8 |  |  |  |  |
+| `memory-browser.spec.ts` | a, b | 3 | 4 |  |  |  |
+| `memory-enhancement.spec.ts` | a, b | 7 | 16 |  |  |  |
+| `music-dashboard.spec.ts` | a, b | 4 | 6 |  |  |  |
+| `notifications.spec.ts` | a, b | 3 | 2 |  |  |  |
+| `onboarding.spec.ts` | a | 7 |  |  |  |  |
+| `outreach.spec.ts` | a, b | 3 | 8 |  |  |  |
+| `persona-handoff.spec.ts` | a, b, d | 5 | 6 |  |  | https://app.ferni.ai |
+| `personalize.spec.ts` | a, b | 3 | 5 |  |  |  |
+| `practice-view.spec.ts` | a, b | 2 | 21 |  |  |  |
+| `prediction-tracker.spec.ts` | a, b | 2 | 9 |  |  |  |
+| `predictive-intelligence.spec.ts` | a, b | 1 | 10 |  |  |  |
+| `referral.spec.ts` | a, b | 4 | 4 |  |  |  |
+| `relationship-arc.spec.ts` | a, b | 3 | 6 |  |  |  |
+| `ritual-builder.spec.ts` | a, b | 2 | 5 |  |  |  |
+| `roadmap.spec.ts` | a, b | 9 | 8 |  |  |  |
+| `subscription.spec.ts` | a, b | 4 | 2 |  |  |  |
+| `team-huddle.spec.ts` | a, b | 1 | 12 |  |  |  |
+| `team-roster-unlock.spec.ts` | a, b, d | 8 | 2 |  |  | https://app.ferni.ai |
+| `theme-toggle.spec.ts` | a | 5 |  |  |  |  |
+| `tool-calling.spec.ts` | a, b, c, d | 3 | 11 | 2 |  | https://app.ferni.ai + http://34.134.186.63:8080 |
+| `trust-systems.spec.ts` | a, b | 20 | 14 |  |  |  |
+| `utilities.spec.ts` | b, d |  | 13 |  |  | https://app.ferni.ai |
+| `video-sessions.spec.ts` | b |  | 11 |  |  |  |
+| `voice-identity.spec.ts` | a, b | 3 | 14 |  |  |  |
+| `voice-journal.spec.ts` | a | 29 |  |  |  |  |
+| `wearable.spec.ts` | b |  | 12 |  |  |  |
+| `wellbeing.spec.ts` | a, b | 4 | 11 |  |  |  |
+| **Total** | | **390** | **494** | **5** | **27** | |
 
 Not run by Playwright:
 

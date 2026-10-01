@@ -12,7 +12,7 @@
  * - BUG 4: Voice handoff via conversation not working
  */
 
-import { expect, test } from './support/fixtures';
+import { expect, test, type Page } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
 
 
@@ -103,6 +103,11 @@ test.describe('Team Unlock State Validation', { tag: '@needs-server' }, () => {
 test.describe('Marketplace UI Handoff Tests', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'UI tests run on Chromium only');
 
+  async function openMarketplace(page: Page): Promise<void> {
+    await page.locator('#marketplaceBtn').click();
+    await expect(page.locator('#marketplaceModal.open')).toBeVisible({ timeout: 5000 });
+  }
+
   test('app loads successfully', async ({ page }) => {
     await page.goto(APP_URL, { timeout: 30000 });
 
@@ -115,14 +120,9 @@ test.describe('Marketplace UI Handoff Tests', () => {
   test('settings menu opens', async ({ page }) => {
     await page.goto(APP_URL, { timeout: 30000 });
 
+    // The trigger renders once the app has booted
     const settingsTrigger = page.locator('.settings-trigger');
-    const isVisible = await settingsTrigger.isVisible().catch(() => false);
-
-    if (!isVisible) {
-      console.log('Settings trigger not visible - skipping');
-      test.skip();
-      return;
-    }
+    await expect(settingsTrigger).toBeVisible({ timeout: 10000 });
 
     await settingsTrigger.click();
 
@@ -138,14 +138,9 @@ test.describe('Marketplace UI Handoff Tests', () => {
   test('marketplace button exists in settings', async ({ page }) => {
     await page.goto(APP_URL, { timeout: 30000 });
 
+    // The trigger renders once the app has booted
     const settingsTrigger = page.locator('.settings-trigger');
-    const isVisible = await settingsTrigger.isVisible().catch(() => false);
-
-    if (!isVisible) {
-      console.log('Settings trigger not visible - skipping');
-      test.skip();
-      return;
-    }
+    await expect(settingsTrigger).toBeVisible({ timeout: 10000 });
 
     await settingsTrigger.click();
     await page.waitForSelector('.settings-menu--visible', { timeout: 5000 }).catch(() => null);
@@ -164,33 +159,10 @@ test.describe('Marketplace UI Handoff Tests', () => {
   test('team members visible in marketplace modal', async ({ page }) => {
     await page.goto(APP_URL, { timeout: 30000 });
 
-    // Try to open settings
-    const settingsTrigger = page.locator('.settings-trigger');
-    const isVisible = await settingsTrigger.isVisible().catch(() => false);
-
-    if (!isVisible) {
-      console.log('Settings trigger not visible - skipping');
-      test.skip();
-      return;
-    }
-
-    await settingsTrigger.click();
-    await page.waitForSelector('.settings-menu--visible', { timeout: 5000 }).catch(() => null);
-
-    // Try to open marketplace
-    const marketplaceBtn = page.locator('[data-action="marketplace"]');
-    const hasMarketplace = await marketplaceBtn.isVisible().catch(() => false);
-
-    if (!hasMarketplace) {
-      console.log('Marketplace button not found - skipping');
-      test.skip();
-      return;
-    }
-
-    await marketplaceBtn.click();
-
-    // Wait for marketplace modal
-    await page.waitForTimeout(500);
+    // Open the marketplace from the roster's "Add more agents" button
+    // (ui/team.ui.ts); the settings menu shows it only once the full team is
+    // unlocked
+    await openMarketplace(page);
 
     // Check for employee cards
     const employeeCards = page.locator('.employee-card');
@@ -209,30 +181,10 @@ test.describe('Marketplace UI Handoff Tests', () => {
   test('clicking team member shows correct state', async ({ page }) => {
     await page.goto(APP_URL, { timeout: 30000 });
 
-    // Try to open settings and marketplace
-    const settingsTrigger = page.locator('.settings-trigger');
-    const isVisible = await settingsTrigger.isVisible().catch(() => false);
-
-    if (!isVisible) {
-      console.log('Settings trigger not visible - skipping');
-      test.skip();
-      return;
-    }
-
-    await settingsTrigger.click();
-    await page.waitForSelector('.settings-menu--visible', { timeout: 5000 }).catch(() => null);
-
-    const marketplaceBtn = page.locator('[data-action="marketplace"]');
-    const hasMarketplace = await marketplaceBtn.isVisible().catch(() => false);
-
-    if (!hasMarketplace) {
-      console.log('Marketplace button not found - skipping');
-      test.skip();
-      return;
-    }
-
-    await marketplaceBtn.click();
-    await page.waitForTimeout(500);
+    // Open the marketplace from the roster's "Add more agents" button
+    // (ui/team.ui.ts); the settings menu shows it only once the full team is
+    // unlocked
+    await openMarketplace(page);
 
     // Try clicking on Peter (if visible)
     const peterCard = page.locator('[data-persona="peter-john"]');

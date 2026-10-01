@@ -9,6 +9,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
+import { pinMenuItems, seedRelationship } from './support/app';
 
 
 // Test user ID - should have some conversation data
@@ -91,6 +92,12 @@ test.describe('Memory Browser API', { tag: '@needs-server' }, () => {
 
 test.describe('Memory Browser UI', () => {
   test.beforeEach(async ({ page }) => {
+    // The Memory Browser unlocks at Building Trust and the menu lists it as a
+    // pinned favorite (see FEATURE_LOCK_MAP / renderPinnedItems in
+    // ui/settings-menu.ui.ts)
+    await seedRelationship(page, { stage: 'building-trust', totalConversations: 15 });
+    await pinMenuItems(page, ['conversation-memory']);
+
     // Navigate to the app
     await page.goto(APP_URL);
 

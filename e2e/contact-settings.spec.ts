@@ -9,6 +9,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
+import { pinMenuItems } from './support/app';
 
 const TEST_USER_ID = process.env.TEST_USER_ID || 'e2e-test-user';
 
@@ -93,6 +94,10 @@ test.describe('Contact Settings API', { tag: '@needs-server' }, () => {
 
 test.describe('Contact Settings UI', () => {
   test.beforeEach(async ({ page }) => {
+    // The menu lists Contact Info only as a pinned favorite (it is not in a
+    // menu section; see renderPinnedItems in ui/settings-menu.ui.ts)
+    await pinMenuItems(page, ['contact-settings']);
+
     // Navigate to the app
     await page.goto(APP_URL);
     await page.waitForLoadState('networkidle');
@@ -141,6 +146,15 @@ test.describe('Contact Settings UI', () => {
 
     await contactItem.click();
     await page.waitForSelector('.contact-settings-overlay.open');
+
+    // Saving posts to the UI server (mocked here, as the server answers)
+    await page.route(
+      (url) => ['/api/user/contact', '/api/user/preferences'].includes(url.pathname),
+      (route) =>
+        route.request().method() === 'POST'
+          ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) })
+          : route.fallback()
+    );
 
     // Fill in contact info
     const phoneInput = page.locator('#phone-input');

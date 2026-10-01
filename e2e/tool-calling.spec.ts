@@ -84,14 +84,9 @@ test.describe('Tool Calling - App UI Smoke Tests', () => {
   test('settings menu opens and shows team members', async ({ page }) => {
     await page.goto(APP_URL, { timeout: 30000 });
 
+    // The trigger renders once the app has booted
     const settingsTrigger = page.locator('.settings-trigger');
-    const isVisible = await settingsTrigger.isVisible().catch(() => false);
-
-    if (!isVisible) {
-      console.log('Settings trigger not visible - skipping');
-      test.skip();
-      return;
-    }
+    await expect(settingsTrigger).toBeVisible({ timeout: 10000 });
 
     await settingsTrigger.click();
 
@@ -108,14 +103,9 @@ test.describe('Tool Calling - App UI Smoke Tests', () => {
   test('music dashboard accessible from menu', async ({ page }) => {
     await page.goto(APP_URL, { timeout: 30000 });
 
+    // The trigger renders once the app has booted
     const settingsTrigger = page.locator('.settings-trigger');
-    const isVisible = await settingsTrigger.isVisible().catch(() => false);
-
-    if (!isVisible) {
-      console.log('Settings trigger not visible - skipping');
-      test.skip();
-      return;
-    }
+    await expect(settingsTrigger).toBeVisible({ timeout: 10000 });
 
     await settingsTrigger.click();
     await page.waitForSelector('.settings-menu--visible', { timeout: 5000 }).catch(() => null);
