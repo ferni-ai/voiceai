@@ -5,6 +5,11 @@ import { initializeLogger } from '@livekit/agents';
 // Load test environment variables
 dotenv.config({ path: '.env.test' });
 
+// Tests never run on GCP. Without this, google-auth probes the metadata
+// server for credentials and waits out its retries on CI runners, which
+// stretches some suites to minutes.
+process.env.METADATA_SERVER_DETECTION ??= 'none';
+
 // ============================================================================
 // GLOBAL FIRESTORE MOCKS
 // ============================================================================

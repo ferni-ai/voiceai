@@ -13,6 +13,7 @@
  * @module intelligence/user-knowledge/aggregator
  */
 
+import { getFirestoreDb as getSharedFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   UserKnowledge,
@@ -65,16 +66,8 @@ export function clearKnowledgeCache(userId: string): void {
 // ============================================================================
 
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
-  try {
-    const admin = (await import('firebase-admin')).default;
-    if (admin.apps.length === 0) {
-      admin.initializeApp();
-    }
-    return admin.firestore();
-  } catch (error) {
-    log.debug({ error: String(error) }, 'Firestore not available');
-    return null;
-  }
+  // The shared client: one Firestore per process, and one place tests mock
+  return getSharedFirestoreDb();
 }
 
 // ============================================================================
