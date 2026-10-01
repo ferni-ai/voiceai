@@ -148,11 +148,20 @@ describe.skip('Persona System Prompts - Tool Calling Instructions', () => {
 describe('Non-Handoff Tool Descriptions', () => {
   describe('Entertainment Tools', () => {
     it('should have action-oriented descriptions', async () => {
-      const entertainmentPath = path.join(
-        process.cwd(),
-        'src/tools/domains/entertainment/index.ts'
-      );
-      const content = fs.readFileSync(entertainmentPath, 'utf-8');
+      // The domain's tool definitions: index.ts and the modules split out of it
+      const content = [
+        'index.ts',
+        'legacy-tool-wrapper.ts',
+        'media-tool-definitions.ts',
+        'unified-music-tools.ts',
+      ]
+        .map((file) =>
+          fs.readFileSync(
+            path.join(process.cwd(), 'src/tools/domains/entertainment', file),
+            'utf-8'
+          )
+        )
+        .join('\n');
 
       // Music tools should be action-oriented
       expect(content).toContain('Play music');
