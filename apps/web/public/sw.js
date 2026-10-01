@@ -13,7 +13,7 @@
  * - HTML: Network-first
  */
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = `ferni-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `ferni-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `ferni-api-${CACHE_VERSION}`;
@@ -26,7 +26,6 @@ const PRECACHE_ASSETS = [
   '/design-system/tokens.css',
   '/design-system/components.css',
   '/design-system/app-components.css',
-  '/voice-engine.js',
   '/icons/favicon-32x32.png',
   '/icons/android-chrome-192x192.png',
   '/manifest.json',

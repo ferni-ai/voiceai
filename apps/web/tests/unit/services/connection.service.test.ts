@@ -60,7 +60,12 @@ const createMockRoom = () => ({
   }),
 });
 
-// Mock window.LiveKit
+// The service gets livekit-client through getLiveKit(); hand it the mock
+vi.mock('../../../src/services/connection-livekit.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../src/services/connection-livekit.js')>()),
+  getLiveKit: () => mockLiveKit,
+}));
+
 const mockLiveKit = {
   Room: vi.fn(() => createMockRoom()),
   RoomEvent: {
@@ -84,9 +89,7 @@ describe('ConnectionService', () => {
     // Reset modules to get fresh singleton
     vi.resetModules();
 
-    // Set up window.LiveKit
     (globalThis as any).window = {
-      LiveKit: mockLiveKit,
       setInterval: vi.fn(globalThis.setInterval),
       clearInterval: vi.fn(globalThis.clearInterval),
     };
