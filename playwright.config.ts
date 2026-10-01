@@ -1,5 +1,5 @@
 import { defineConfig, devices, type Project } from '@playwright/test';
-import { APP_URL, LANDING_URL } from './e2e/support/env';
+import { APP_URL, LANDING_URL, REMOTE_ALLOWED } from './e2e/support/env';
 
 /**
  * Playwright E2E configuration for the root `e2e/` suite.
@@ -28,14 +28,40 @@ const SUITES = (process.env.E2E_SUITES ?? 'offline')
 
 const NEEDS_TAGS = /@needs-server|@needs-agent|@needs-landing/;
 
+/**
+ * Network-level backstop for the request guard in e2e/support/fixtures.ts.
+ * page.route never sees some connections the browser opens on its own
+ * (speculative preconnects, DNS prefetch, background services), so point the
+ * browser at a proxy on a closed local port: anything not addressed to
+ * loopback fails on this machine instead of leaving it. Lifted with
+ * E2E_ALLOW_REMOTE=1.
+ *
+ * Chromium gets the raw flag: it bypasses proxies for loopback by itself,
+ * while Playwright's `proxy` option would force loopback through the proxy.
+ */
+const DEAD_PROXY = 'http://127.0.0.1:9';
+const localOnlyNetwork = REMOTE_ALLOWED
+  ? {}
+  : { proxy: { server: DEAD_PROXY, bypass: 'localhost,127.0.0.1,[::1]' } };
+
 const chromium = {
   ...devices['Desktop Chrome'],
   launchOptions: {
     executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
-    // A synthetic microphone/camera, so recording flows work headless.
-    args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+    args: [
+      // A synthetic microphone/camera, so recording flows work headless.
+      '--use-fake-ui-for-media-stream',
+      '--use-fake-device-for-media-stream',
+      ...(REMOTE_ALLOWED ? [] : [`--proxy-server=${DEAD_PROXY}`]),
+    ],
   },
 };
+
+const otherBrowser = (device: string) => ({
+  ...devices[device],
+  launchOptions: { ...localOnlyNetwork },
+  mockBackend: true,
+});
 
 const suiteProjects: Record<string, Project[]> = {
   offline: [
@@ -43,10 +69,10 @@ const suiteProjects: Record<string, Project[]> = {
     // Other engines are opt-in (their browsers are not always installed).
     ...(process.env.E2E_ALL_BROWSERS === '1'
       ? [
-          { name: 'offline-firefox', grepInvert: NEEDS_TAGS, use: { ...devices['Desktop Firefox'], mockBackend: true } },
-          { name: 'offline-webkit', grepInvert: NEEDS_TAGS, use: { ...devices['Desktop Safari'], mockBackend: true } },
-          { name: 'offline-mobile-chrome', grepInvert: NEEDS_TAGS, use: { ...devices['Pixel 5'], mockBackend: true } },
-          { name: 'offline-mobile-safari', grepInvert: NEEDS_TAGS, use: { ...devices['iPhone 12'], mockBackend: true } },
+          { name: 'offline-firefox', grepInvert: NEEDS_TAGS, use: otherBrowser('Desktop Firefox') },
+          { name: 'offline-webkit', grepInvert: NEEDS_TAGS, use: otherBrowser('Desktop Safari') },
+          { name: 'offline-mobile-chrome', grepInvert: NEEDS_TAGS, use: otherBrowser('Pixel 5') },
+          { name: 'offline-mobile-safari', grepInvert: NEEDS_TAGS, use: otherBrowser('iPhone 12') },
         ]
       : []),
   ],

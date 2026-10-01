@@ -314,6 +314,9 @@ test.describe('Voice Journal', () => {
 
   test.describe('Real-time Sync', () => {
     test('journal entries sync across devices', async ({ browser, baseURL, prepareContext }) => {
+      // Loads the app three times (this page plus two "devices")
+      test.slow();
+
       // Create two browser contexts to simulate two devices (with the same
       // network guard, mocks and signed-in user as the default context)
       const context1 = await prepareContext(await browser.newContext({ baseURL }));

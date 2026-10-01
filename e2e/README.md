@@ -68,6 +68,11 @@ Guards, all failing fast unless `E2E_ALLOW_REMOTE=1`:
    Fonts CSS, Google Identity Services, Spotify SDK) are answered with local
    stand-ins so they never leave the machine.
 4. Service workers are blocked (their requests would bypass routing).
+5. Network-level backstop: the browser is launched with a proxy on a closed
+   local port (`--proxy-server=http://127.0.0.1:9`; loopback bypasses it), so
+   connections `page.route` can't see, such as speculative preconnects, DNS
+   prefetch and Chromium's background services, fail with
+   `ERR_PROXY_CONNECTION_FAILED` on this machine instead of going out.
 
 `E2E_NETWORK_LOG=/tmp/e2e-net.log` appends one line per intercepted non-local
 request (`stubbed <url>` or `blocked <url>`) to audit a run.
@@ -194,6 +199,27 @@ Not run by Playwright:
 | --- | --- | --- | ---: |
 | `predictive-outreach.spec.ts` | Vitest (`pnpm test:e2e:server:vitest`) | b | 12 |
 | `intelligent-outreach.e2e.ts` | Vitest (`pnpm test:e2e:server:vitest`) | b | 15 |
+
+## Known gaps
+
+- **Pre-existing skips** (2, both `test.skip(...)` in the source):
+  `data-export.spec.ts` "Data Export modal shows all categories" and
+  `guided-practices.spec.ts` "shows info message when not connected to agent".
+- **Tests that pass without exercising the UI** (they look for an entry point
+  that no longer exists and do nothing when it is missing):
+  `outreach.spec.ts` "Upcoming Check-ins UI" (3; the outreach schedule has no
+  menu entry), `prediction-tracker.spec.ts` "predictions panel can be
+  accessed", `team-huddle.spec.ts` "can request team huddle from menu",
+  `journey.spec.ts` "can open journey modal from settings menu".
+- **Panels the menu lists only as pinned favorites** (the tests pin them with
+  `pinMenuItems`): Voice Accent, Support Ferni, What I've Learned, Progress
+  Analytics, Wellbeing, Memory Browser, Contact Info, Voice ID, Household,
+  Personalize. Several of these have no other entry point in the UI.
+- **Guided practices panel** (`ui/commands.ui.ts`): the menu's "Guided
+  Practices" item now opens the Sanctuary; the panel is still wired up by
+  `app.ts` but nothing opens it, so its tests open it through its module.
+- The server, agent and landing suites need real services and were not run
+  while preparing the offline suite.
 
 ## Writing tests
 
