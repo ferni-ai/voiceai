@@ -498,6 +498,9 @@ VM-side config (not in the repo, re-create it if the VM is rebuilt):
 - **Memory guard:** 8 GB `/swapfile` (in `/etc/fstab`) and `earlyoom` (`/etc/default/earlyoom`: prefers killing
   node/codeql/java/cargo/…, avoids the runner listeners, sshd, systemd, docker). Two heavy jobs at once (CodeQL + an
   image build) once exhausted the 15 GB and hung the VM until it was hard-reset.
+- **Packages hosted images have and this VM needed:** `unzip zip jq` (setup-chrome needs unzip),
+  `build-essential pkg-config bzip2` (native npm modules, Rust linking), Playwright's Chromium system libraries
+  (`npx playwright@1.57.0 install-deps chromium`). The `runner` users have no sudo, so install these as an admin.
 
 ```yaml
 jobs:
