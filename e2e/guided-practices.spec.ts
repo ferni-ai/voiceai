@@ -12,6 +12,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
+import { APP_LOADED, clickMenuItem } from './support/app';
 
 const TEST_USER_ID = 'e2e-practices-test-user';
 
@@ -19,33 +20,38 @@ const TEST_USER_ID = 'e2e-practices-test-user';
 // HELPER FUNCTIONS
 // ============================================================================
 
+/** Practices as GET /api/commands/:personaId returns them (mocked offline). */
+const MOCK_COMMANDS = {
+  personaId: 'ferni',
+  count: 3,
+  commands: [
+    { id: 'daily-check-in', name: 'Daily Check-in', description: 'A gentle look at how today is going', category: 'check-in', icon: '☀️' },
+    { id: 'gratitude', name: 'Gratitude', description: 'Notice three good things', category: 'reflection', icon: '🙏' },
+    { id: 'weekly-review', name: 'Weekly Review', description: 'Look back on the week together', category: 'review', icon: '📅' },
+  ],
+};
+
 /**
- * Opens the commands panel from the settings menu.
- * Handles potential flakiness with proper waits and checks.
+ * Opens the guided practices panel (ui/commands.ui.ts).
+ *
+ * The settings menu's "Guided Practices" item now opens the Sanctuary (see the
+ * first test). The practices panel is still created and wired up by app.ts but
+ * has no menu entry, so it is opened through its module API, which the Vite
+ * dev server shares with the running app.
  */
 async function openCommandsPanel(page: import('@playwright/test').Page, waitForContent = true) {
+  await page.route(
+    (url) => url.pathname.startsWith('/api/commands/'),
+    (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_COMMANDS) })
+  );
   await page.goto(APP_URL);
+  await page.waitForSelector(APP_LOADED, { timeout: 15000 });
 
-  // Wait for app to fully load with longer timeout
-  await page.waitForSelector('.settings-trigger', { timeout: 15000 });
-
-  await page.click('.settings-trigger');
-  await page.waitForSelector('.settings-menu--visible');
-
-  // Find and click Guided Practices (may be in collapsed Personalize section)
-  const practicesButton = page.locator('[data-action="commands"]');
-  if (!(await practicesButton.isVisible())) {
-    // Expand Personalize section if collapsed
-    const personalizeHeader = page.locator(
-      '.settings-menu__section-header:has-text("Make It Yours"), .settings-menu__section-header:has-text("Personalize")'
-    );
-    if (await personalizeHeader.first().isVisible()) {
-      await personalizeHeader.first().click();
-      await page.waitForTimeout(300);
-    }
-  }
-
-  await practicesButton.click();
+  await page.evaluate(async () => {
+    const modulePath = '/src/ui/commands.ui.ts';
+    const commands = (await import(/* @vite-ignore */ modulePath)) as { showCommandsPanel: () => void };
+    commands.showCommandsPanel();
+  });
 
   // Wait for commands panel to be visible
   await page.waitForSelector('.ferni-commands--visible', { timeout: 5000 });
@@ -153,7 +159,23 @@ test.describe('Guided Practices API', { tag: '@needs-server' }, () => {
 // ============================================================================
 
 test.describe('Guided Practices UI', () => {
-  test('opens guided practices panel from menu', async ({ page }) => {
+  test('opens guided practices from menu', async ({ page }) => {
+    await page.goto(APP_URL);
+    await clickMenuItem(page, 'commands');
+
+    // The menu item opens the Sanctuary (ui/sanctuary.ui.ts), whose main
+    // section lists the guided practices
+    const sanctuary = page.locator('.sanctuary-overlay[role="dialog"]');
+    await expect(sanctuary).toBeVisible();
+    await expect(sanctuary).toHaveAttribute('aria-label', 'The Sanctuary - Guided Practices');
+
+    const practices = sanctuary.locator('.sanctuary-practices');
+    await expect(practices.locator('.sanctuary-eyebrow')).toHaveText('Guided Practices');
+    await expect(practices.locator('.sanctuary-section-title')).toContainText('Choose what calls to you');
+    await expect(practices.locator('.sanctuary-practice-item').first()).toBeVisible();
+  });
+
+  test('opens guided practices panel', async ({ page }) => {
     await openCommandsPanel(page);
 
     // Verify panel is visible with correct structure

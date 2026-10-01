@@ -3,7 +3,8 @@ import { expect, test } from './support/fixtures';
 /**
  * Admin Portal E2E Tests
  *
- * Tests the admin portal at /admin.html:
+ * Tests the admin portal at /admin (public/admin.html is a separate static
+ * hub of dashboard links):
  * - Dashboard section with real data
  * - EvalOps section
  * - Trust section
@@ -13,7 +14,8 @@ import { expect, test } from './support/fixtures';
  *
  * These tests verify that:
  * 1. All sections load without errors
- * 2. API calls return real data (not mock)
+ * 2. API calls return real data (not mock) - tagged @needs-server, since they
+ *    assert on responses from the UI server
  * 3. Navigation works correctly
  * 4. Quick actions trigger appropriate responses
  */
@@ -73,7 +75,7 @@ test.describe('Admin Portal', () => {
     await expect(page.locator('.dashboard-stats')).toBeVisible();
   });
 
-  test('dashboard shows real system health', async ({ page }) => {
+  test('dashboard shows real system health', { tag: '@needs-server' }, async ({ page }) => {
     // Intercept the health API call
     const healthResponse = await page.waitForResponse(
       (response) =>
@@ -102,7 +104,7 @@ test.describe('Admin Portal', () => {
     await expect(page.locator('.evalops-stats')).toBeVisible();
   });
 
-  test('EvalOps section fetches real metrics', async ({ page }) => {
+  test('EvalOps section fetches real metrics', { tag: '@needs-server' }, async ({ page }) => {
     await page.click('[data-section="evalops"]');
 
     // Intercept metrics API
@@ -131,7 +133,7 @@ test.describe('Admin Portal', () => {
     await expect(page.locator('.trust-stats')).toBeVisible();
   });
 
-  test('Trust section fetches real metrics', async ({ page }) => {
+  test('Trust section fetches real metrics', { tag: '@needs-server' }, async ({ page }) => {
     await page.click('[data-section="trust"]');
 
     // Intercept metrics API
@@ -149,7 +151,7 @@ test.describe('Admin Portal', () => {
     expect(typeof metricsData.avgTrustScore).toBe('number');
   });
 
-  test('Trust section fetches real stage distribution', async ({ page }) => {
+  test('Trust section fetches real stage distribution', { tag: '@needs-server' }, async ({ page }) => {
     await page.click('[data-section="trust"]');
 
     // Intercept stages API
@@ -170,7 +172,7 @@ test.describe('Admin Portal', () => {
     }
   });
 
-  test('Trust section fetches real trust systems status', async ({ page }) => {
+  test('Trust section fetches real trust systems status', { tag: '@needs-server' }, async ({ page }) => {
     await page.click('[data-section="trust"]');
 
     // Intercept systems API
@@ -199,7 +201,7 @@ test.describe('Admin Portal', () => {
     await expect(page.locator('#adminSectionTitle')).toHaveText('Agents');
   });
 
-  test('Agents section fetches real agent data', async ({ page }) => {
+  test('Agents section fetches real agent data', { tag: '@needs-server' }, async ({ page }) => {
     await page.click('[data-section="agents"]');
 
     // Intercept agents API
@@ -225,7 +227,7 @@ test.describe('Admin Portal', () => {
     await expect(page.locator('#adminSectionTitle')).toHaveText('Feature Flags');
   });
 
-  test('Feature Flags section fetches real flags', async ({ page }) => {
+  test('Feature Flags section fetches real flags', { tag: '@needs-server' }, async ({ page }) => {
     await page.click('[data-section="flags"]');
 
     // Intercept flags API
@@ -247,7 +249,7 @@ test.describe('Admin Portal', () => {
     await expect(page.locator('#adminSectionTitle')).toHaveText('Diagnostics');
   });
 
-  test('Diagnostics section shows service health with latency', async ({ page }) => {
+  test('Diagnostics section shows service health with latency', { tag: '@needs-server' }, async ({ page }) => {
     await page.click('[data-section="diagnostics"]');
 
     // Intercept health API
@@ -272,8 +274,10 @@ test.describe('Admin Portal', () => {
   });
 
   test('keyboard navigation works', async ({ page }) => {
-    // Cmd/Ctrl + 1 should switch to first section (dashboard)
-    await page.keyboard.press('Meta+2'); // Agents (second item)
+    // Cmd/Ctrl + N switches to the Nth sidebar section (see ADMIN_SECTIONS in
+    // apps/web/src/admin/AdminPortal.ts): Dashboard, Business Metrics,
+    // Semantic Routing, Agents, ...
+    await page.keyboard.press('Meta+4'); // Agents (fourth item)
 
     await page.waitForTimeout(500);
 
@@ -314,7 +318,7 @@ test.describe('Admin Portal', () => {
 
 test.describe('Admin Portal - Activity Log', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/admin.html');
+    await page.goto('/admin');
     await page.waitForSelector('#adminPortal', { timeout: 10000 });
   });
 
@@ -326,7 +330,7 @@ test.describe('Admin Portal - Activity Log', () => {
     await expect(page.locator('.activity-list')).toBeVisible();
   });
 
-  test('activity API returns real data structure', async ({ page }) => {
+  test('activity API returns real data structure', { tag: '@needs-server' }, async ({ page }) => {
     // Intercept activity API
     const activityResponse = await page.waitForResponse(
       (response) =>
@@ -349,7 +353,7 @@ test.describe('Admin Portal - Error Handling', () => {
       route.fulfill({ status: 500, body: JSON.stringify({ error: 'Server error' }) })
     );
 
-    await page.goto('/admin.html');
+    await page.goto('/admin');
 
     // Portal should still load
     await expect(page.locator('#adminPortal')).toBeVisible();
@@ -370,7 +374,7 @@ test.describe('Admin Portal - Error Handling', () => {
       await route.continue();
     });
 
-    await page.goto('/admin.html');
+    await page.goto('/admin');
 
     // Should show loading initially (may be brief)
     // Just verify no errors

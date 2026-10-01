@@ -184,7 +184,7 @@ import {
   disposeSpeechEventDispatcher,
 } from './services/speech-event-dispatcher.js';
 // I18n - Internationalization and localization
-import { initI18n } from './i18n/index.js';
+import { initI18n, t } from './i18n/index.js';
 // Mood Context - Time-based persona mood for "Better than Human"
 import { disposeMoodContext } from './services/mood-context.service.js';
 // Demo data for testing without backend
@@ -1273,6 +1273,16 @@ class VoiceAIApp {
     // 🔐 Google One-Tap Sign-In - Gentle prompt for anonymous users
     // Shows after 8 seconds, respects dismissals with progressive cooldown
     initGoogleOneTap();
+
+    // The One-Tap service only dispatches events; confirm the outcome warmly.
+    this.addTrackedListener(window, 'ferni:one-tap-success', () => {
+      toast.success(t('auth.rememberSuccess', "Got it! I'll remember you now."));
+    });
+    this.addTrackedListener(window, 'ferni:one-tap-error', (event) => {
+      const detail = (event as CustomEvent<{ error?: string }>).detail;
+      log.warn('One-Tap sign-in failed:', detail?.error);
+      toast.error(detail?.error ?? t('auth.somethingWentWrong', 'Something went wrong'));
+    });
 
     // 🧠 Better Than Human: Voice ↔ App Sync
     // Track user activity in the app so voice agent knows context

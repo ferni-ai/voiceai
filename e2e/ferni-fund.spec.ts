@@ -9,6 +9,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
+import { pinMenuItems } from './support/app';
 
 const TEST_USER_ID = 'e2e-fund-test-user';
 
@@ -90,6 +91,12 @@ test.describe('Ferni Fund API', { tag: '@needs-server' }, () => {
 });
 
 test.describe('Support Ferni UI', () => {
+  // The menu lists Support Ferni only as a pinned favorite (it is not in a
+  // menu section; see renderPinnedItems in ui/settings-menu.ui.ts).
+  test.beforeEach(async ({ page }) => {
+    await pinMenuItems(page, ['support-ferni']);
+  });
+
   test('opens ferni fund modal from menu', async ({ page }) => {
     await page.goto(APP_URL);
 
@@ -102,7 +109,7 @@ test.describe('Support Ferni UI', () => {
     await supportButton.click();
 
     // Verify ferni fund modal opened
-    await expect(page.locator('.ferni-fund-overlay, .support-modal, .garden-modal')).toBeVisible({
+    await expect(page.locator('.support-ferni-overlay.support-ferni-overlay--open')).toBeVisible({
       timeout: 5000,
     });
   });
@@ -117,12 +124,12 @@ test.describe('Support Ferni UI', () => {
     const supportButton = page.locator('[data-action="support-ferni"]');
     await supportButton.click();
 
-    await page.waitForSelector('.ferni-fund-overlay, .support-modal, .garden-modal', {
+    await page.waitForSelector('.support-ferni-overlay.support-ferni-overlay--open', {
       timeout: 5000,
     });
 
     // Should show contribution amount options
-    const modal = page.locator('.ferni-fund-overlay, .support-modal, .garden-modal');
+    const modal = page.locator('.support-ferni-overlay.support-ferni-overlay--open');
     await expect(modal).toBeVisible();
   });
 
@@ -136,12 +143,12 @@ test.describe('Support Ferni UI', () => {
     const supportButton = page.locator('[data-action="support-ferni"]');
     await supportButton.click();
 
-    await page.waitForSelector('.ferni-fund-overlay, .support-modal, .garden-modal', {
+    await page.waitForSelector('.support-ferni-overlay.support-ferni-overlay--open', {
       timeout: 5000,
     });
 
     // Modal should show some impact info
-    const modal = page.locator('.ferni-fund-overlay, .support-modal, .garden-modal');
+    const modal = page.locator('.support-ferni-overlay.support-ferni-overlay--open');
     await expect(modal).toBeVisible();
   });
 
@@ -155,17 +162,17 @@ test.describe('Support Ferni UI', () => {
     const supportButton = page.locator('[data-action="support-ferni"]');
     await supportButton.click();
 
-    await page.waitForSelector('.ferni-fund-overlay, .support-modal, .garden-modal', {
+    await page.waitForSelector('.support-ferni-overlay.support-ferni-overlay--open', {
       timeout: 5000,
     });
 
     // Click backdrop to close
-    const backdrop = page.locator('.ferni-fund-backdrop, .modal-backdrop');
+    const backdrop = page.locator('.support-ferni-backdrop');
     if ((await backdrop.count()) > 0) {
       await backdrop.first().click({ position: { x: 10, y: 10 }, force: true });
     }
 
-    // Allow time for close animation
-    await page.waitForTimeout(500);
+    // Modal should close
+    await expect(page.locator('.support-ferni-overlay--open')).toHaveCount(0);
   });
 });

@@ -12,8 +12,9 @@
  * - DELETE /api/voice/profile - Delete profile
  */
 
-import { expect, test } from './support/fixtures';
+import { expect, test, type Page } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
+import { openSettingsMenu, pinMenuItems } from './support/app';
 
 const TEST_USER_ID = `e2e-voice-test-${Date.now()}`;
 
@@ -212,8 +213,20 @@ test.describe('Voice Identity API - Verification', { tag: '@needs-server' }, () 
   });
 });
 
+// The enrollment modal is ui/voice-enrollment.ui.ts. Voice ID is a roadmap
+// feature, so the menu sections hide it; the menu lists it as the pinned
+// favorite "voice-enrollment" (see renderPinnedItems in ui/settings-menu.ui.ts).
+const ENROLLMENT_MODAL = '.voice-enrollment-modal.voice-enrollment-modal--visible';
+
+async function openEnrollmentFromMenu(page: Page): Promise<void> {
+  await openSettingsMenu(page);
+  await page.locator('.settings-menu [data-action="voice-enrollment"]').click();
+  await expect(page.locator(ENROLLMENT_MODAL)).toBeVisible({ timeout: 5000 });
+}
+
 test.describe('Voice Enrollment UI', () => {
   test.beforeEach(async ({ page }) => {
+    await pinMenuItems(page, ['voice-enrollment']);
     await page.goto(APP_URL);
 
     await page.evaluate((userId) => {
@@ -225,75 +238,28 @@ test.describe('Voice Enrollment UI', () => {
   });
 
   test('can open voice enrollment from settings', async ({ page }) => {
-    // Open settings menu
-    const settingsButton = page.locator('[aria-label="Settings"]').or(page.locator('.menu-toggle'));
-    if (await settingsButton.isVisible()) {
-      await settingsButton.click();
-      await page.waitForTimeout(500);
+    await openEnrollmentFromMenu(page);
 
-      // Look for voice identity option
-      const voiceOption = page
-        .locator('text=Voice')
-        .or(page.locator('text=Voice ID'))
-        .or(page.locator('[data-action="voice-enrollment"]'));
-
-      if (await voiceOption.isVisible()) {
-        await voiceOption.click();
-        await page.waitForTimeout(500);
-
-        // Verify enrollment modal opened
-        const modal = page
-          .locator('.voice-enrollment')
-          .or(page.locator('.enrollment-modal'))
-          .or(page.locator('[data-panel="voice-enrollment"]'));
-
-        if (await modal.isVisible()) {
-          expect(await modal.isVisible()).toBe(true);
-        }
-      }
-    }
+    // Verify enrollment modal opened
+    const modal = page.locator(ENROLLMENT_MODAL);
+    await expect(modal).toHaveAttribute('role', 'dialog');
+    await expect(modal.locator('.voice-enrollment-title')).toBeVisible();
   });
 
   test('enrollment UI shows instructions', async ({ page }) => {
-    const opened = await page.evaluate(() => {
-      const event = new CustomEvent('ferni:open-voice-enrollment');
-      window.dispatchEvent(event);
-      return true;
-    });
+    await openEnrollmentFromMenu(page);
 
-    if (opened) {
-      await page.waitForTimeout(500);
-
-      // Look for instruction text
-      const instructions = page
-        .locator('text=voice')
-        .or(page.locator('text=speak'))
-        .or(page.locator('.enrollment-instructions'));
-
-      // Should show some instructions
-    }
+    // Should show some instructions (the status/instruction area of the modal)
+    const content = page.locator(`${ENROLLMENT_MODAL} .voice-enrollment-content`);
+    await expect(content).toBeVisible();
+    await expect(content).toContainText(/voice/i);
   });
 
   test('can close enrollment modal', async ({ page }) => {
-    const opened = await page.evaluate(() => {
-      const event = new CustomEvent('ferni:open-voice-enrollment');
-      window.dispatchEvent(event);
-      return true;
-    });
+    await openEnrollmentFromMenu(page);
 
-    if (opened) {
-      await page.waitForTimeout(500);
-
-      const closeButton = page
-        .locator('.enrollment-close')
-        .or(page.locator('[aria-label="Close"]'))
-        .or(page.locator('.close-btn'));
-
-      if (await closeButton.isVisible()) {
-        await closeButton.click();
-        await page.waitForTimeout(300);
-      }
-    }
+    await page.locator(`${ENROLLMENT_MODAL} .voice-enrollment-close`).click();
+    await expect(page.locator(ENROLLMENT_MODAL)).toHaveCount(0);
   });
 });
 

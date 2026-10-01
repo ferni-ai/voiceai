@@ -9,6 +9,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
+import { pinMenuItems } from './support/app';
 
 const TEST_USER_ID = 'e2e-accent-test-user';
 
@@ -86,6 +87,12 @@ test.describe('Accent Settings API', { tag: '@needs-server' }, () => {
 });
 
 test.describe('Accent Settings UI', () => {
+  // The menu lists Voice Accent only as a pinned favorite (it has no place in
+  // the menu's sections; see renderPinnedItems in ui/settings-menu.ui.ts).
+  test.beforeEach(async ({ page }) => {
+    await pinMenuItems(page, ['accent-settings']);
+  });
+
   test('opens accent settings from menu', async ({ page }) => {
     await page.goto(APP_URL);
 

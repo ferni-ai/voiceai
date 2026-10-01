@@ -11,8 +11,8 @@
  *   answered locally so they never leave the machine either.
  * - Optionally (the `offline` project), a mocked backend: everything the Vite
  *   dev server would proxy to the UI server (/api, /token, /subscription, ...)
- *   is answered with page.route. Tests can override any route by calling
- *   page.route again; the most recently registered handler wins.
+ *   is answered with context.route. Tests override any of it with page.route,
+ *   which takes precedence over context routes.
  * - A dev-only stand-in user in localStorage (`ferni_dev_auth_user`, read only
  *   when `import.meta.env.DEV`, see apps/web/src/services/dev-auth-user.ts) so
  *   the app gets past the sign-in gate without Firebase.
@@ -20,7 +20,7 @@
  * Pattern ported from apps/web/tests/e2e/fixtures.ts.
  */
 
-import { readFileSync } from 'fs';
+import { appendFileSync, readFileSync } from 'fs';
 import { createRequire } from 'module';
 import {
   test as base,
@@ -30,7 +30,7 @@ import {
   type Page,
   type Route,
 } from '@playwright/test';
-import { REMOTE_ALLOWED, assertAllowedTarget, isLocalUrl } from './env';
+import { LANDING_URL, REMOTE_ALLOWED, assertAllowedTarget, isLocalUrl } from './env';
 
 export { expect };
 export type { Page };
@@ -67,8 +67,11 @@ export const MOCK_AGENTS = [
 ];
 
 /** Backend paths the Vite dev server proxies to the UI server (see apps/web/vite.config.ts). */
-const BACKEND_ROUTE =
-  /^https?:\/\/[^/]+\/(api|token|token-url|demo-token|subscription|spotify|wearables|auth|calendar|usage|health)(\/|\?|$)/;
+const BACKEND_PATH =
+  /^\/(api|token|token-url|demo-token|subscription|spotify|wearables|auth|calendar|usage|health)(\/|$)/;
+
+/** Local backend calls only: a remote host is left to the network guard. */
+const isBackendRoute = (url: URL): boolean => isLocalUrl(url) && BACKEND_PATH.test(url.pathname);
 
 // ---------------------------------------------------------------------------
 // Local stand-ins for third-party assets the app loads from its HTML
@@ -116,6 +119,21 @@ function localStubFor(url: URL): LocalStub | null {
 // Network guard
 // ---------------------------------------------------------------------------
 
+/**
+ * With E2E_NETWORK_LOG=<file>, append one line per non-local browser request
+ * the guard intercepted ("stubbed" = answered locally, "blocked" = aborted and
+ * failed the test). Useful to audit a run.
+ */
+function logNonLocal(outcome: 'stubbed' | 'blocked', url: string): void {
+  const file = process.env.E2E_NETWORK_LOG;
+  if (!file) return;
+  try {
+    appendFileSync(file, `${outcome} ${url}\n`);
+  } catch {
+    // Logging is best effort.
+  }
+}
+
 /** Non-local traffic seen during one test. */
 class NetworkGuard {
   readonly violations: string[] = [];
@@ -135,8 +153,10 @@ class NetworkGuard {
         const url = new URL(route.request().url());
         const stub = localStubFor(url);
         if (stub) {
+          logNonLocal('stubbed', url.href);
           return route.fulfill({ status: 200, contentType: stub.contentType, body: stub.body });
         }
+        logNonLocal('blocked', url.href);
         this.record(route.request().method(), url.href);
         return route.abort('blockedbyclient');
       }
@@ -145,6 +165,7 @@ class NetworkGuard {
     await context.routeWebSocket(
       (url) => !isLocalUrl(url),
       (ws) => {
+        logNonLocal('blocked', ws.url());
         this.record('WS', ws.url());
         return ws.close();
       }
@@ -203,9 +224,13 @@ function fulfillJson(route: Route, body: unknown, status = 200): Promise<void> {
   return route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 }
 
-/** Answer backend calls locally so the app runs without the UI server. */
-export async function mockBackend(page: Page): Promise<void> {
-  await page.route(BACKEND_ROUTE, (route) => {
+/**
+ * Answer backend calls locally so the app runs without the UI server.
+ * Installed on the browser context, so it also covers popups and workers;
+ * page.route handlers registered by tests take precedence over it.
+ */
+export async function mockBackend(target: Page | BrowserContext): Promise<void> {
+  await target.route(isBackendRoute, (route) => {
     const url = new URL(route.request().url());
     if (url.pathname === '/api/agents') {
       return fulfillJson(route, {
@@ -228,15 +253,37 @@ export async function mockBackend(page: Page): Promise<void> {
 // ---------------------------------------------------------------------------
 
 interface E2EOptions {
-  /** Answer UI-server routes with page.route (the offline project). */
+  /** Answer UI-server routes with context.route (the offline project). */
   mockBackend: boolean;
   /** Seed the dev-only stand-in user so the app skips the sign-in gate. */
   seedDevAuthUser: boolean;
 }
 
-export const test = base.extend<E2EOptions & { networkGuard: NetworkGuard }>({
+interface E2EFixtures {
+  /** Skips @needs-landing tests when no landing site URL is configured. */
+  landingTarget: void;
+  networkGuard: NetworkGuard;
+  /**
+   * For tests that create their own contexts with browser.newContext():
+   * applies the same guard, mocks and dev user as the default context.
+   */
+  prepareContext: (context: BrowserContext) => Promise<BrowserContext>;
+}
+
+export const test = base.extend<E2EOptions & E2EFixtures>({
   mockBackend: [false, { option: true }],
   seedDevAuthUser: [true, { option: true }],
+
+  landingTarget: [
+    async ({}, use, testInfo) => {
+      testInfo.skip(
+        testInfo.tags.includes('@needs-landing') && !LANDING_URL,
+        'Set E2E_LANDING_URL to run the marketing site tests'
+      );
+      await use();
+    },
+    { auto: true },
+  ],
 
   networkGuard: async ({}, use) => {
     const guard = new NetworkGuard();
@@ -244,23 +291,26 @@ export const test = base.extend<E2EOptions & { networkGuard: NetworkGuard }>({
     guard.assertClean();
   },
 
-  context: async ({ context, networkGuard }, use) => {
-    await networkGuard.install(context);
-    await use(context);
+  prepareContext: async ({ networkGuard, mockBackend: shouldMock, seedDevAuthUser }, use) => {
+    await use(async (context) => {
+      await networkGuard.install(context);
+      if (shouldMock) await mockBackend(context);
+      if (seedDevAuthUser) {
+        await context.addInitScript((user) => {
+          try {
+            localStorage.setItem('ferni_dev_auth_user', JSON.stringify(user));
+          } catch {
+            // Storage can be unavailable (e.g. opaque origins); the gate will show.
+          }
+        }, DEV_AUTH_USER);
+      }
+      return context;
+    });
   },
 
-  page: async ({ page, mockBackend: shouldMock, seedDevAuthUser }, use) => {
-    if (seedDevAuthUser) {
-      await page.addInitScript((user) => {
-        try {
-          localStorage.setItem('ferni_dev_auth_user', JSON.stringify(user));
-        } catch {
-          // Storage can be unavailable (e.g. opaque origins); the gate will show.
-        }
-      }, DEV_AUTH_USER);
-    }
-    if (shouldMock) await mockBackend(page);
-    await use(page);
+  context: async ({ context, prepareContext }, use) => {
+    await prepareContext(context);
+    await use(context);
   },
 
   request: async ({ request, baseURL }, use) => {

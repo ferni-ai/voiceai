@@ -9,6 +9,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
+import { pinMenuItems, seedRelationship } from './support/app';
 
 const TEST_USER_ID = 'e2e-cognitive-test-user';
 
@@ -68,6 +69,14 @@ test.describe('Cognitive Insights API', { tag: '@needs-server' }, () => {
 });
 
 test.describe('Cognitive Insights UI', () => {
+  // "What I've Learned" unlocks at the Established stage and the menu lists it
+  // as a pinned favorite (it is not in a menu section; see FEATURE_LOCK_MAP and
+  // renderPinnedItems in ui/settings-menu.ui.ts).
+  test.beforeEach(async ({ page }) => {
+    await seedRelationship(page, { stage: 'established', totalConversations: 30 });
+    await pinMenuItems(page, ['cognitive']);
+  });
+
   test('opens cognitive insights modal from menu', async ({ page }) => {
     await page.goto(APP_URL);
 
@@ -91,7 +100,7 @@ test.describe('Cognitive Insights UI', () => {
     await cognitiveButton.click();
 
     // Verify cognitive insights panel opened
-    await expect(page.locator('.cognitive-insights-overlay, .cognitive-panel')).toBeVisible({
+    await expect(page.locator('.cognitive-insights.cognitive-insights--visible')).toBeVisible({
       timeout: 5000,
     });
   });
@@ -113,10 +122,10 @@ test.describe('Cognitive Insights UI', () => {
     await cognitiveButton.click();
 
     // Wait for panel to appear
-    await page.waitForSelector('.cognitive-insights-overlay, .cognitive-panel', { timeout: 5000 });
+    await page.waitForSelector('.cognitive-insights.cognitive-insights--visible', { timeout: 5000 });
 
     // Should show some insight content
-    const panelContent = page.locator('.cognitive-insights-overlay, .cognitive-panel');
+    const panelContent = page.locator('.cognitive-insights.cognitive-insights--visible');
     await expect(panelContent).toBeVisible();
   });
 });

@@ -216,8 +216,9 @@ describe('Multi-Channel Delivery', () => {
       `/api/outreach/pending-messages?userId=${TEST_USER_ID}`
     );
 
-    if (messagesResponse.ok && messagesResponse.data?.messages?.length > 0) {
-      const messageId = messagesResponse.data.messages[0].id;
+    const firstMessage = messagesResponse.ok ? messagesResponse.data?.messages?.[0] : undefined;
+    if (firstMessage) {
+      const messageId = firstMessage.id;
 
       // Mark as read
       const readResponse = await apiCall(

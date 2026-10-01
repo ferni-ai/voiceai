@@ -6,17 +6,15 @@
  */
 
 import { expect, test } from './support/fixtures';
+import { APP_LOADED } from './support/app';
 
 test.describe('Human Listening Pipeline', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the app
     await page.goto('/');
 
-    // Wait for app to load
-    await page.waitForSelector('[data-testid="app-loaded"]', { timeout: 10000 }).catch(() => {
-      // Fallback: wait for any main content
-      return page.waitForSelector('main', { timeout: 10000 });
-    });
+    // Wait for app to load (app.ts marks <body> once booted)
+    await page.waitForSelector(APP_LOADED, { timeout: 10000 });
   });
 
   test('detects self-soothing language and adjusts response', async ({ page }) => {

@@ -241,34 +241,17 @@ test.describe('Trust Routes API', { tag: '@needs-server' }, () => {
 // ============================================================================
 
 test.describe('Journey UI', () => {
+  // The journey indicator on Ferni's avatar animates continuously, so it never
+  // passes Playwright's "stable" check; with reduced motion it holds still.
+  test.use({ contextOptions: { reducedMotion: 'reduce' } });
 
   /**
-   * Helper to open the Journey modal from the settings menu.
-   * Handles expanding the "Grow" section if it's collapsed.
+   * Helper to open the Journey modal. The settings menu no longer has a
+   * "Your Journey" item; the journey opens from the indicator on Ferni's
+   * avatar ("View your journey with Ferni", ui/unified-indicator.ui.ts).
    */
   async function openJourneyModal(page: Page): Promise<void> {
-    // Click settings trigger
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu', { state: 'visible', timeout: 5000 });
-
-    // The "Your Journey" item is inside the "Grow" collapsible section
-    const journeyBtn = page.locator('[data-action="your-journey"]');
-
-    // Check if button is visible
-    const isVisible = await journeyBtn.isVisible().catch(() => false);
-
-    if (!isVisible) {
-      // Expand the "Grow" section
-      const growSection = page.locator('[data-section="grow"]');
-      if (await growSection.isVisible()) {
-        await growSection.click();
-        await page.waitForSelector('[data-action="your-journey"]', {
-          state: 'visible',
-          timeout: 3000,
-        });
-      }
-    }
-
+    const journeyBtn = page.getByRole('button', { name: 'View your journey with Ferni' });
     await journeyBtn.click();
 
     // Wait for modal to appear (journey.ui.ts uses .journey-modal)
@@ -308,7 +291,7 @@ test.describe('Journey UI', () => {
     await page.waitForTimeout(1000);
   });
 
-  test('modal opens from settings menu', async ({ page }) => {
+  test('modal opens from the journey indicator', async ({ page }) => {
     await openJourneyModal(page);
 
     // Verify modal is visible
@@ -370,15 +353,15 @@ test.describe('Journey UI', () => {
     // Verify progress overview is displayed
     await expect(page.locator('.journey-progress-overview')).toBeVisible();
 
-    // Verify progress ring is displayed
-    await expect(page.locator('.journey-progress-ring')).toBeVisible();
+    // Verify the journey map (which replaced the progress ring) is displayed
+    await expect(page.locator('.journey-map')).toBeVisible();
 
     // Verify stage name is displayed
     await expect(page.locator('.journey-stage-name')).toBeVisible();
 
-    // Verify stats row is displayed
+    // Verify stats row is displayed: conversations, days together, streak, voice ID
     await expect(page.locator('.journey-stats-row')).toBeVisible();
-    await expect(page.locator('.journey-stat')).toHaveCount(3);
+    await expect(page.locator('.journey-stats-row > .journey-stat')).toHaveCount(4);
   });
 
   test('displays trust insights section', async ({ page }) => {

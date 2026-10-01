@@ -11,6 +11,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
+import { openSettingsMenu, pinMenuItems, seedRelationship } from './support/app';
 
 const TEST_USER_ID = 'e2e-analytics-test-user';
 
@@ -162,6 +163,8 @@ test.describe('Progress Analytics API', { tag: '@needs-server' }, () => {
 
 test.describe('Analytics Dashboard UI', () => {
   test.beforeEach(async ({ page }) => {
+    await seedRelationship(page, { stage: 'getting-started', totalConversations: 10 });
+    await pinMenuItems(page, ['analytics']);
     await page.goto(APP_URL);
 
     await page.evaluate((userId) => {
@@ -172,34 +175,14 @@ test.describe('Analytics Dashboard UI', () => {
   });
 
   test('can open analytics dashboard from menu', async ({ page }) => {
-    // Open settings menu
-    const settingsButton = page.locator('[aria-label="Settings"]').or(page.locator('.menu-toggle'));
-    if (await settingsButton.isVisible()) {
-      await settingsButton.click();
-      await page.waitForTimeout(500);
+    // Progress analytics unlocks at Getting Started; the menu lists it as a
+    // pinned favorite (see FEATURE_LOCK_MAP / renderPinnedItems in
+    // ui/settings-menu.ui.ts)
+    await openSettingsMenu(page);
+    await page.locator('.settings-menu [data-action="analytics"]').click();
 
-      // Look for analytics option
-      const analyticsOption = page
-        .locator('text=Analytics')
-        .or(page.locator('text=Progress'))
-        .or(page.locator('[data-action="analytics"]'));
-
-      if (await analyticsOption.isVisible()) {
-        await analyticsOption.click();
-        await page.waitForTimeout(500);
-
-        // Verify modal/panel opened
-        const dashboard = page
-          .locator('.analytics-dashboard')
-          .or(page.locator('.analytics-panel'))
-          .or(page.locator('[data-panel="analytics"]'));
-
-        if (await dashboard.isVisible()) {
-          // Success - dashboard opened
-          expect(await dashboard.isVisible()).toBe(true);
-        }
-      }
-    }
+    // Verify the dashboard panel (ui/analytics-dashboard.ui.ts) opened
+    await expect(page.locator('.analytics.analytics--visible')).toBeVisible({ timeout: 5000 });
   });
 
   test('dashboard loads data from API', async ({ page }) => {
@@ -293,21 +276,15 @@ test.describe('Analytics Dashboard UI', () => {
     });
 
     if (opened) {
-      await page.waitForTimeout(500);
+      // The dashboard panel (ui/analytics-dashboard.ui.ts) opens on ferni:open-analytics
+      const dashboard = page.locator('.analytics.analytics--visible');
+      await expect(dashboard).toBeVisible();
 
-      const closeButton = page
-        .locator('.analytics-close')
-        .or(page.locator('[aria-label="Close"]'))
-        .or(page.locator('.close-btn'));
+      const closeButton = dashboard.locator('.analytics__close');
+      await closeButton.click();
 
-      if (await closeButton.isVisible()) {
-        await closeButton.click();
-        await page.waitForTimeout(300);
-
-        const dashboard = page.locator('.analytics-dashboard');
-        const isHidden = !(await dashboard.isVisible());
-        // Dashboard should be closed or hidden
-      }
+      // Dashboard should be closed
+      await expect(page.locator('.analytics--visible')).toHaveCount(0);
     }
   });
 });

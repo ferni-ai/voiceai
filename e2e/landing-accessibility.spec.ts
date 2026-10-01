@@ -7,16 +7,15 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from './support/fixtures';
-import { LANDING_URL } from './support/env';
 
-// Targets the marketing site, which this repo's dev servers don't serve.
-// Opt in with E2E_LANDING_URL (plus E2E_ALLOW_REMOTE=1 for a deployed site).
-test.describe('Landing Page Accessibility', { tag: '@remote' }, () => {
-  test.skip(!LANDING_URL, 'Set E2E_LANDING_URL to run the landing page checks');
+// Targets the marketing site (apps/website/ferni-website), which the root
+// config doesn't serve: landing suite, skipped unless E2E_LANDING_URL is set
+// (plus E2E_ALLOW_REMOTE=1 for a deployed site such as https://ferni.ai).
+test.describe('Landing Page Accessibility', { tag: '@needs-landing' }, () => {
 
   test.beforeEach(async ({ page }) => {
     // Navigate to landing page
-    await page.goto(LANDING_URL as string);
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
   });
 

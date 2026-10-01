@@ -8,6 +8,7 @@
  */
 
 import { expect, test } from './support/fixtures';
+import { seedRelationship } from './support/app';
 
 test.describe('Relationship Arc System', () => {
   test.describe('First Meeting (Stranger Stage)', () => {
@@ -165,6 +166,10 @@ test.describe('Relationship Arc System', () => {
 
   test.describe('Dev Panel Integration', () => {
     test('should show relationship stage in dev panel', async ({ page }) => {
+      // A returning user, so ?dev's auto-unlock doesn't open the stage
+      // celebration dialog over the page (see seedRelationship)
+      await seedRelationship(page);
+
       // Enable dev mode
       await page.goto('/?dev');
       await page.waitForLoadState('networkidle');
@@ -174,16 +179,15 @@ test.describe('Relationship Arc System', () => {
       await page.waitForTimeout(500);
 
       // Check for relationship info
-      const devPanel = page.locator('[class*="dev-panel"], [class*="devPanel"]');
-      
-      if (await devPanel.isVisible()) {
-        // Dev panel should show current relationship stage
-        const panelContent = await devPanel.textContent();
-        
-        // If relationship stage is displayed, verify it shows a valid stage
-        if (panelContent?.includes('stage') || panelContent?.includes('Stage')) {
-          expect(panelContent).toMatch(/stranger|acquaintance|friend|trusted/i);
-        }
+      const devPanel = page.locator('.dev-panel.dev-panel--visible');
+      await expect(devPanel).toBeVisible();
+
+      // Dev panel should show current relationship stage
+      const panelContent = await devPanel.textContent();
+
+      // If relationship stage is displayed, verify it shows a valid stage
+      if (panelContent?.includes('stage') || panelContent?.includes('Stage')) {
+        expect(panelContent).toMatch(/stranger|acquaintance|friend|trusted/i);
       }
     });
   });

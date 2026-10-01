@@ -11,6 +11,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
+import { seedRelationship } from './support/app';
 
 const TEST_USER_ID = 'e2e-ritual-test-user';
 
@@ -156,6 +157,12 @@ test.describe('Rituals API', { tag: '@needs-server' }, () => {
 });
 
 test.describe('Ritual Builder UI', () => {
+  // Custom practices unlock at the Getting Started stage (FEATURE_LOCK_MAP in
+  // ui/settings-menu.ui.ts); before that the menu item is locked.
+  test.beforeEach(async ({ page }) => {
+    await seedRelationship(page, { stage: 'getting-started', totalConversations: 10 });
+  });
+
   test('opens ritual builder from menu', async ({ page }) => {
     await page.goto(APP_URL);
 
@@ -174,7 +181,7 @@ test.describe('Ritual Builder UI', () => {
     await ritualButton.click();
 
     // Verify ritual builder opened
-    await expect(page.locator('.ritual-builder-overlay, .ritual-builder')).toBeVisible({
+    await expect(page.locator('.ritual-builder.ritual-builder--visible')).toBeVisible({
       timeout: 5000,
     });
   });
@@ -195,10 +202,10 @@ test.describe('Ritual Builder UI', () => {
     }
     await ritualButton.click();
 
-    await page.waitForSelector('.ritual-builder-overlay, .ritual-builder', { timeout: 5000 });
+    await page.waitForSelector('.ritual-builder.ritual-builder--visible', { timeout: 5000 });
 
     // Should show ritual builder content
-    const builder = page.locator('.ritual-builder-overlay, .ritual-builder');
+    const builder = page.locator('.ritual-builder.ritual-builder--visible');
     await expect(builder).toBeVisible();
   });
 });

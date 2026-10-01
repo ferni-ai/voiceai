@@ -13,8 +13,15 @@
 
 import { expect, test } from './support/fixtures';
 import { APP_URL } from './support/env';
+import { seedRelationship } from './support/app';
 
 const DEV_KEY = process.env.DEV_PANEL_KEY || 'ferni2024';
+
+// A returning developer: ?dev's auto-unlock then doesn't pop the stage
+// celebration dialog over the panel (see seedRelationship).
+test.beforeEach(async ({ page }) => {
+  await seedRelationship(page);
+});
 
 test.describe('Dev Panel - Initialization', () => {
   test('shows DEV badge with ?dev param in dev environment', async ({ page }) => {
@@ -312,7 +319,7 @@ test.describe('Dev Panel - Toast Notifications', () => {
     await successBtn.click();
 
     // Toast should appear
-    const toast = page.locator('.toast, [class*="toast"], .message-toast');
+    const toast = page.locator('.whisper');
     await expect(toast).toBeVisible({ timeout: 3000 });
   });
 
@@ -320,7 +327,7 @@ test.describe('Dev Panel - Toast Notifications', () => {
     const errorBtn = page.locator('[data-toast="error"]');
     await errorBtn.click();
 
-    const toast = page.locator('.toast, [class*="toast"], .message-toast');
+    const toast = page.locator('.whisper');
     await expect(toast).toBeVisible({ timeout: 3000 });
   });
 
@@ -328,7 +335,7 @@ test.describe('Dev Panel - Toast Notifications', () => {
     const infoBtn = page.locator('[data-toast="info"]');
     await infoBtn.click();
 
-    const toast = page.locator('.toast, [class*="toast"], .message-toast');
+    const toast = page.locator('.whisper');
     await expect(toast).toBeVisible({ timeout: 3000 });
   });
 
@@ -336,7 +343,7 @@ test.describe('Dev Panel - Toast Notifications', () => {
     const warningBtn = page.locator('[data-toast="warning"]');
     await warningBtn.click();
 
-    const toast = page.locator('.toast, [class*="toast"], .message-toast');
+    const toast = page.locator('.whisper');
     await expect(toast).toBeVisible({ timeout: 3000 });
   });
 });
@@ -355,7 +362,7 @@ test.describe('Dev Panel - FTUE Controls', () => {
     if (await resetBtn.isVisible()) {
       await resetBtn.click();
 
-      const toast = page.locator('.toast, [class*="toast"]');
+      const toast = page.locator('.whisper');
       await expect(toast).toBeVisible({ timeout: 3000 });
     }
   });
@@ -365,7 +372,7 @@ test.describe('Dev Panel - FTUE Controls', () => {
     if (await simBtn.isVisible()) {
       await simBtn.click();
 
-      const toast = page.locator('.toast, [class*="toast"]');
+      const toast = page.locator('.whisper');
       await expect(toast).toBeVisible({ timeout: 3000 });
     }
   });

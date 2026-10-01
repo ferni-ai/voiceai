@@ -305,7 +305,8 @@ test.describe('Team Huddles UI', () => {
     }
   });
 
-  test('huddles endpoint is accessible', async ({ page }) => {
+  // These two call the UI server API from the page and assert on its data
+  test('huddles endpoint is accessible', { tag: '@needs-server' }, async ({ page }) => {
     const result = await page.evaluate(async () => {
       try {
         const response = await fetch('/api/huddles?userId=test');
@@ -323,7 +324,7 @@ test.describe('Team Huddles UI', () => {
     expect(result.hasPersonas).toBe(true);
   });
 
-  test('can start huddle via API from browser', async ({ page }) => {
+  test('can start huddle via API from browser', { tag: '@needs-server' }, async ({ page }) => {
     const result = await page.evaluate(async () => {
       try {
         const response = await fetch('/api/huddles/start', {

@@ -714,7 +714,8 @@ test.describe('Design System Compliance', () => {
       const backdrop = document.querySelector('.journey-backdrop');
       if (backdrop) {
         const style = getComputedStyle(backdrop);
-        const backdropFilter = style.backdropFilter || style.webkitBackdropFilter;
+        const backdropFilter =
+          style.backdropFilter || style.getPropertyValue('-webkit-backdrop-filter');
         return backdropFilter?.includes('blur');
       }
       return false;

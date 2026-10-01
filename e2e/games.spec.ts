@@ -178,9 +178,10 @@ test.describe('Game Picker UI', () => {
     await page.goto(APP_URL);
     await openGamePicker(page);
 
-    // Verify all category tabs exist
+    // Verify all category tabs exist: Music, Fun, Reflect, Your Library
     const tabs = page.locator('.game-picker__tab');
-    await expect(tabs).toHaveCount(3);
+    await expect(tabs).toHaveCount(4);
+    await expect(page.locator('.game-picker__tab[data-category="reflection"]')).toBeVisible();
 
     // Music tab should be active by default
     await expect(page.locator('.game-picker__tab--active')).toContainText('Music');
@@ -277,8 +278,8 @@ test.describe('Game Picker UI', () => {
     await page.goto(APP_URL);
     await openGamePicker(page);
 
-    // Click backdrop
-    await page.locator('.game-picker__backdrop').click();
+    // Click the backdrop outside the picker card (its center is covered by the card)
+    await page.locator('.game-picker__backdrop').click({ position: { x: 5, y: 5 } });
 
     // Wait for animation
     await page.waitForTimeout(400);

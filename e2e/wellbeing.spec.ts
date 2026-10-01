@@ -9,8 +9,9 @@
  * - Dashboard UI visualization
  */
 
-import { expect, test } from './support/fixtures';
+import { expect, test, type Page } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
+import { openSettingsMenu, pinMenuItems, seedRelationship } from './support/app';
 
 const TEST_USER_ID = 'e2e-wellbeing-test-user';
 
@@ -237,8 +238,21 @@ test.describe('Wellbeing Dashboard API', { tag: '@needs-server' }, () => {
   });
 });
 
+// The dashboard is ui/wellbeing-dashboard.ui.ts. It unlocks at the Building
+// Trust stage, and the menu lists it as a pinned favorite (not in a menu
+// section; see FEATURE_LOCK_MAP and renderPinnedItems in ui/settings-menu.ui.ts).
+const WELLBEING_MODAL = '.wellbeing-modal-overlay.visible';
+
+async function openWellbeingFromMenu(page: Page): Promise<void> {
+  await openSettingsMenu(page);
+  await page.locator('.settings-menu [data-action="wellbeing"]').click();
+  await expect(page.locator(WELLBEING_MODAL)).toBeVisible({ timeout: 5000 });
+}
+
 test.describe('Wellbeing Dashboard UI', () => {
   test.beforeEach(async ({ page }) => {
+    await seedRelationship(page, { stage: 'building-trust', totalConversations: 15 });
+    await pinMenuItems(page, ['wellbeing']);
     await page.goto(APP_URL);
 
     await page.evaluate((userId) => {
@@ -250,33 +264,10 @@ test.describe('Wellbeing Dashboard UI', () => {
   });
 
   test('can open wellbeing dashboard from menu', async ({ page }) => {
-    // Open settings menu
-    const settingsButton = page.locator('[aria-label="Settings"]').or(page.locator('.menu-toggle'));
-    if (await settingsButton.isVisible()) {
-      await settingsButton.click();
-      await page.waitForTimeout(500);
+    await openWellbeingFromMenu(page);
 
-      // Look for wellbeing option
-      const wellbeingOption = page
-        .locator('text=Wellbeing')
-        .or(page.locator('text=Dashboard'))
-        .or(page.locator('[data-action="wellbeing"]'));
-
-      if (await wellbeingOption.isVisible()) {
-        await wellbeingOption.click();
-        await page.waitForTimeout(500);
-
-        // Verify modal opened
-        const modal = page
-          .locator('.wellbeing-dashboard')
-          .or(page.locator('.wellbeing-modal'))
-          .or(page.locator('[data-panel="wellbeing"]'));
-
-        if (await modal.isVisible()) {
-          expect(await modal.isVisible()).toBe(true);
-        }
-      }
-    }
+    // Verify modal opened
+    await expect(page.locator(`${WELLBEING_MODAL} .wellbeing-modal__close`)).toBeVisible();
   });
 
   test('dashboard loads data from API', async ({ page }) => {
@@ -360,44 +351,19 @@ test.describe('Wellbeing Dashboard UI', () => {
       });
     });
 
-    // Try to open wellbeing dashboard
-    const opened = await page.evaluate(() => {
-      const event = new CustomEvent('ferni:open-wellbeing');
-      window.dispatchEvent(event);
-      return true;
-    });
+    await openWellbeingFromMenu(page);
 
-    if (opened) {
-      await page.waitForTimeout(500);
-
-      // Look for dimension cards
-      const moodCard = page.locator('text=Mood').or(page.locator('[data-dimension="mood"]'));
-      const energyCard = page.locator('text=Energy').or(page.locator('[data-dimension="energy"]'));
-
-      // Dashboard should show these dimensions
-    }
+    // Dashboard should show the dimension cards
+    const names = page.locator(`${WELLBEING_MODAL} .wellbeing-dimension-card__name`);
+    await expect(names.filter({ hasText: 'Mood' })).toBeVisible();
+    await expect(names.filter({ hasText: 'Energy' })).toBeVisible();
   });
 
   test('can close dashboard', async ({ page }) => {
-    const opened = await page.evaluate(() => {
-      const event = new CustomEvent('ferni:open-wellbeing');
-      window.dispatchEvent(event);
-      return true;
-    });
+    await openWellbeingFromMenu(page);
 
-    if (opened) {
-      await page.waitForTimeout(500);
-
-      const closeButton = page
-        .locator('.wellbeing-close')
-        .or(page.locator('[aria-label="Close"]'))
-        .or(page.locator('.close-btn'));
-
-      if (await closeButton.isVisible()) {
-        await closeButton.click();
-        await page.waitForTimeout(300);
-      }
-    }
+    await page.locator(`${WELLBEING_MODAL} .wellbeing-modal__close`).click();
+    await expect(page.locator(WELLBEING_MODAL)).toHaveCount(0);
   });
 });
 

@@ -1,5 +1,5 @@
 import { defineConfig, devices, type Project } from '@playwright/test';
-import { APP_URL } from './e2e/support/env';
+import { APP_URL, LANDING_URL } from './e2e/support/env';
 
 /**
  * Playwright E2E configuration for the root `e2e/` suite.
@@ -11,7 +11,7 @@ import { APP_URL } from './e2e/support/env';
  * | offline   | (untagged)       | Vite only; backend mocked in the page   | pnpm test:e2e:offline   |
  * | server    | @needs-server    | UI server API on :3002 (`pnpm ui-server`) | pnpm test:e2e:server  |
  * | agent     | @needs-agent     | Voice agent HTTP port / LiveKit         | pnpm test:e2e:agent     |
- * | remote    | @remote          | A deployed site; opt-in only            | pnpm test:e2e:remote    |
+ * | landing   | @needs-landing   | Marketing site at E2E_LANDING_URL       | pnpm test:e2e:landing   |
  *
  * Only the offline suite runs by default. Choose others with E2E_SUITES, e.g.
  * `E2E_SUITES=offline,server npx playwright test`. Every suite runs behind the
@@ -26,11 +26,15 @@ const SUITES = (process.env.E2E_SUITES ?? 'offline')
   .map((s) => s.trim())
   .filter(Boolean);
 
-const NEEDS_TAGS = /@needs-server|@needs-agent|@remote/;
+const NEEDS_TAGS = /@needs-server|@needs-agent|@needs-landing/;
 
 const chromium = {
   ...devices['Desktop Chrome'],
-  launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined },
+  launchOptions: {
+    executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
+    // A synthetic microphone/camera, so recording flows work headless.
+    args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+  },
 };
 
 const suiteProjects: Record<string, Project[]> = {
@@ -46,27 +50,38 @@ const suiteProjects: Record<string, Project[]> = {
         ]
       : []),
   ],
-  server: [{ name: 'server', grep: /@needs-server/, grepInvert: /@needs-agent|@remote/, use: { ...chromium, mockBackend: false } }],
-  agent: [{ name: 'agent', grep: /@needs-agent/, use: { ...chromium, mockBackend: false } }],
-  remote: [{ name: 'remote', grep: /@remote/, use: { ...chromium, mockBackend: false } }],
+  server: [{ name: 'server', grep: /@needs-server/, grepInvert: /@needs-agent|@needs-landing/, use: { ...chromium, mockBackend: false } }],
+  agent: [{ name: 'agent', grep: /@needs-agent/, grepInvert: /@needs-landing/, use: { ...chromium, mockBackend: false } }],
+  // Tests skip themselves when E2E_LANDING_URL is unset (see support/fixtures.ts).
+  landing: [
+    {
+      name: 'landing',
+      grep: /@needs-landing/,
+      grepInvert: /@needs-server|@needs-agent/,
+      use: { ...chromium, mockBackend: false, seedDevAuthUser: false, baseURL: LANDING_URL },
+    },
+  ],
 };
 
 const unknown = SUITES.filter((s) => !(s in suiteProjects));
 if (unknown.length > 0) {
-  throw new Error(`Unknown E2E_SUITES entry: ${unknown.join(', ')} (use offline, server, agent, remote)`);
+  throw new Error(`Unknown E2E_SUITES entry: ${unknown.join(', ')} (use offline, server, agent, landing)`);
 }
 
 const projects = SUITES.flatMap((s) => suiteProjects[s]);
 
 // Start Vite only when the app target is the default local dev server.
 const DEFAULT_APP_URL = 'http://localhost:5173';
-const needsVite = APP_URL === DEFAULT_APP_URL && SUITES.some((s) => s !== 'remote');
+const needsVite = APP_URL === DEFAULT_APP_URL && SUITES.some((s) => s !== 'landing');
 
 export default defineConfig({
   testDir: './e2e',
   // Vitest suites live next to the Playwright specs; they are not Playwright tests.
   testIgnore: ['**/predictive-outreach.spec.ts', '**/*.e2e.ts', '**/support/**'],
   globalSetup: './e2e/global-setup.ts',
+  // The Vite dev server serves the app unbundled (hundreds of modules per
+  // page load), so tests that load the page two or three times need headroom.
+  timeout: 60_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -83,7 +98,8 @@ export default defineConfig({
     serviceWorkers: 'block',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    // Recording every test's video costs a lot of CPU; opt in with E2E_VIDEO=1.
+    video: process.env.E2E_VIDEO === '1' ? 'retain-on-failure' : 'off',
   },
 
   projects,

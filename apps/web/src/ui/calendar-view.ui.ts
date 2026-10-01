@@ -290,6 +290,8 @@ class CalendarViewUI {
   private isLoadingAnalytics = false;
   private practiceViewData: PracticeViewAPIResponse | null = null;
   private isLoadingPracticeView = false;
+  /** One automatic load per opening: a failed load must not re-trigger itself on re-render. */
+  private practiceViewLoadAttempted = false;
 
   /**
    * Initialize the calendar view
@@ -321,6 +323,7 @@ class CalendarViewUI {
     this.renderLoading();
     this.panel.classList.add('calendar-view--visible');
     this.isVisible = true;
+    this.practiceViewLoadAttempted = false;
 
     // Check connection and load data
     await this.loadCalendarData();
@@ -720,7 +723,7 @@ class CalendarViewUI {
     }
 
     // Trigger data load if we don't have it yet
-    if (!this.practiceViewData && !this.isLoadingPracticeView) {
+    if (!this.practiceViewData && !this.isLoadingPracticeView && !this.practiceViewLoadAttempted) {
       // Start loading in background
       void this.loadPracticeViewData();
     }
@@ -1519,8 +1522,9 @@ class CalendarViewUI {
    */
   private async loadPracticeViewData(): Promise<void> {
     if (this.isLoadingPracticeView) return;
-    
+
     this.isLoadingPracticeView = true;
+    this.practiceViewLoadAttempted = true;
     this.renderContent();
 
     try {

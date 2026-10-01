@@ -193,7 +193,8 @@ test.describe('Prediction Tracker UI', () => {
     expect(hasPredictions).toBe(true);
   });
 
-  test('can resolve a prediction with actual outcome', async ({ page }) => {
+  // Asserts on the UI server's /api/predictions response (not mocked here)
+  test('can resolve a prediction with actual outcome', { tag: '@needs-server' }, async ({ page }) => {
     // This test verifies the resolution flow exists
     const hasResolutionCapability = await page.evaluate(async () => {
       // Check if the app has prediction resolution capability

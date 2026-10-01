@@ -463,8 +463,10 @@ class CommandsPanelUI {
       });
     });
 
-    // Focus first item when panel opens
-    (buttons[0] as HTMLElement)?.focus();
+    // Focus first item when panel opens. Wait a frame: the panel fades in from
+    // visibility: hidden, and a hidden element can't take focus (a fast or
+    // cached load renders the list before the fade has started).
+    requestAnimationFrame(() => (buttons[0] as HTMLElement)?.focus());
   }
 
   private async selectCommand(btn: HTMLElement): Promise<void> {

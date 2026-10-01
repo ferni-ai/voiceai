@@ -140,7 +140,8 @@ test.describe('Google One-Tap Integration', () => {
     await page.waitForTimeout(2000);
 
     // Listen for toast to appear
-    const toastPromise = page.waitForSelector('.toast', { timeout: 5000 });
+    // Toasts render as whispers (ui/whisper.ui.ts)
+    const toastPromise = page.waitForSelector('.whisper', { timeout: 5000 });
 
     // Dispatch success event
     await page.evaluate(() => {
@@ -162,7 +163,8 @@ test.describe('Google One-Tap Integration', () => {
     await page.waitForTimeout(2000);
 
     // Listen for toast to appear
-    const toastPromise = page.waitForSelector('.toast', { timeout: 5000 });
+    // Toasts render as whispers (ui/whisper.ui.ts)
+    const toastPromise = page.waitForSelector('.whisper', { timeout: 5000 });
 
     // Dispatch error event
     await page.evaluate(() => {

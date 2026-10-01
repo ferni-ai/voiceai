@@ -14,6 +14,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL, AGENT_URL } from './support/env';
+import { clickMenuItem } from './support/app';
 
 const TEST_USER_ID = 'e2e-calendar-test-user';
 
@@ -217,33 +218,11 @@ test.describe('Calendar Settings UI', () => {
   });
 
   test('can open calendar settings from menu', async ({ page }) => {
-    // Open settings menu
-    const settingsButton = page.locator('[aria-label="Settings"]').or(page.locator('.menu-toggle'));
-    if (await settingsButton.isVisible()) {
-      await settingsButton.click();
-      await page.waitForTimeout(500);
+    // The menu's "What's Ahead" item opens the calendar view (ui/calendar-view.ui.ts)
+    await clickMenuItem(page, 'calendar-settings');
 
-      // Look for calendar/integrations option
-      const calendarOption = page
-        .locator('text=Calendar')
-        .or(page.locator('text=Integrations'))
-        .or(page.locator('[data-action="calendar"]'));
-
-      if (await calendarOption.isVisible()) {
-        await calendarOption.click();
-        await page.waitForTimeout(500);
-
-        // Verify settings panel opened
-        const panel = page
-          .locator('.calendar-settings')
-          .or(page.locator('.integrations-panel'))
-          .or(page.locator('[data-panel="calendar"]'));
-
-        if (await panel.isVisible()) {
-          expect(await panel.isVisible()).toBe(true);
-        }
-      }
-    }
+    // Verify the calendar opened
+    await expect(page.locator('.calendar-view.calendar-view--visible')).toBeVisible({ timeout: 5000 });
   });
 
   test('displays connection status', async ({ page }) => {
@@ -319,17 +298,12 @@ test.describe('Calendar Settings UI', () => {
     });
 
     if (opened) {
-      await page.waitForTimeout(500);
+      // ferni:open-calendar opens the calendar view (ui/calendar-view.ui.ts)
+      const calendar = page.locator('.calendar-view.calendar-view--visible');
+      await expect(calendar).toBeVisible();
 
-      const closeButton = page
-        .locator('.calendar-close')
-        .or(page.locator('[aria-label="Close"]'))
-        .or(page.locator('.close-btn'));
-
-      if (await closeButton.isVisible()) {
-        await closeButton.click();
-        await page.waitForTimeout(300);
-      }
+      await calendar.locator('.calendar-view__close').click();
+      await expect(page.locator('.calendar-view--visible')).toHaveCount(0);
     }
   });
 });

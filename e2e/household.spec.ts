@@ -12,6 +12,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
+import { openSettingsMenu, pinMenuItems } from './support/app';
 
 const TEST_USER_ID = 'e2e-household-test-user';
 const TEST_DEVICE_ID = `e2e-test-device-${Date.now()}`;
@@ -294,6 +295,7 @@ test.describe('Household API (User Routes)', { tag: '@needs-server' }, () => {
 
 test.describe('Household Manager UI', () => {
   test.beforeEach(async ({ page }) => {
+    await pinMenuItems(page, ['household']);
     await page.goto(APP_URL);
 
     await page.evaluate(
@@ -309,33 +311,14 @@ test.describe('Household Manager UI', () => {
   });
 
   test('can open household manager from settings', async ({ page }) => {
-    // Open settings menu
-    const settingsButton = page.locator('[aria-label="Settings"]').or(page.locator('.menu-toggle'));
-    if (await settingsButton.isVisible()) {
-      await settingsButton.click();
-      await page.waitForTimeout(500);
+    // Household is a roadmap feature, hidden from the menu sections; the menu
+    // lists it as the pinned favorite "household" (renderPinnedItems in
+    // ui/settings-menu.ui.ts)
+    await openSettingsMenu(page);
+    await page.locator('.settings-menu [data-action="household"]').click();
 
-      // Look for household option
-      const householdOption = page
-        .locator('text=Household')
-        .or(page.locator('text=Family'))
-        .or(page.locator('[data-action="household"]'));
-
-      if (await householdOption.isVisible()) {
-        await householdOption.click();
-        await page.waitForTimeout(500);
-
-        // Verify modal opened
-        const modal = page
-          .locator('.household-manager')
-          .or(page.locator('.household-modal'))
-          .or(page.locator('[data-panel="household"]'));
-
-        if (await modal.isVisible()) {
-          expect(await modal.isVisible()).toBe(true);
-        }
-      }
-    }
+    // Verify the household manager (ui/household-manager.ui.ts) opened
+    await expect(page.locator('.household-modal-overlay.visible')).toBeVisible({ timeout: 5000 });
   });
 
   test('displays household settings', async ({ page }) => {
@@ -392,17 +375,12 @@ test.describe('Household Manager UI', () => {
     });
 
     if (opened) {
-      await page.waitForTimeout(500);
+      // ferni:open-household opens the household manager (ui/household-manager.ui.ts)
+      const modal = page.locator('.household-modal-overlay.visible');
+      await expect(modal).toBeVisible();
 
-      const closeButton = page
-        .locator('.household-close')
-        .or(page.locator('[aria-label="Close"]'))
-        .or(page.locator('.close-btn'));
-
-      if (await closeButton.isVisible()) {
-        await closeButton.click();
-        await page.waitForTimeout(300);
-      }
+      await modal.locator('.household-modal__close').click();
+      await expect(page.locator('.household-modal-overlay.visible')).toHaveCount(0);
     }
   });
 });

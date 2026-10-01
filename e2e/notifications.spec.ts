@@ -67,9 +67,7 @@ test.describe('Notification Settings UI', () => {
 
     // Verify notification settings opened
     await expect(
-      page.locator(
-        '.notification-settings-overlay, .notification-settings, [data-panel="notifications"]'
-      )
+      page.locator('.notif-settings.notif-settings--visible')
     ).toBeVisible({ timeout: 5000 });
   });
 
@@ -92,13 +90,14 @@ test.describe('Notification Settings UI', () => {
     }
 
     await notificationsButton.click();
-    await page.waitForSelector('.notification-settings-overlay, .notification-settings', {
+    await page.waitForSelector('.notif-settings.notif-settings--visible', {
       timeout: 5000,
     });
 
     // Should show toggle switches or checkboxes
-    const panel = page.locator('.notification-settings-overlay, .notification-settings');
+    const panel = page.locator('.notif-settings.notif-settings--visible');
     await expect(panel).toBeVisible();
+    await expect(panel.locator('.notif-settings__toggle').first()).toBeVisible();
   });
 
   test('closes notification settings on close button click', async ({ page }) => {
@@ -120,19 +119,15 @@ test.describe('Notification Settings UI', () => {
     }
 
     await notificationsButton.click();
-    await page.waitForSelector('.notification-settings-overlay, .notification-settings', {
+    await page.waitForSelector('.notif-settings.notif-settings--visible', {
       timeout: 5000,
     });
 
     // Click close button
     const closeButton = page.locator(
-      '.notification-settings-close, .notification-settings [aria-label="Close"]'
+      '.notif-settings--visible .notif-settings__close'
     );
-    if (await closeButton.isVisible()) {
-      await closeButton.click();
-      await expect(
-        page.locator('.notification-settings-overlay.open, .notification-settings--visible')
-      ).not.toBeVisible({ timeout: 2000 });
-    }
+    await closeButton.click();
+    await expect(page.locator('.notif-settings--visible')).not.toBeVisible({ timeout: 2000 });
   });
 });

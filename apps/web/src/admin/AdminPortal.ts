@@ -48,6 +48,8 @@ export interface AdminSection {
   description: string;
   badge?: string;
   component: () => Promise<string>;
+  /** Wire up event handlers once the section's HTML is in the DOM. */
+  afterRender?: (content: HTMLElement) => Promise<void>;
 }
 
 interface AdminPortalState {
@@ -122,11 +124,15 @@ const ADMIN_SECTIONS: AdminSection[] = [
     icon: ICON_TARGET,
     description: 'Better Than Human benchmark metrics',
     badge: 'NEW',
+    // Wrapped in .admin-section-content: setupEvents re-renders into it.
     component: async () => {
       const section = await import('./sections/BTHValidationSection.js');
-      const html = await section.render();
-      setTimeout(() => section.setupEvents(document.querySelector('.admin-section-content') as HTMLElement), 100);
-      return html;
+      return `<div class="admin-section-content">${await section.render()}</div>`;
+    },
+    afterRender: async (content) => {
+      const section = await import('./sections/BTHValidationSection.js');
+      const root = content.querySelector<HTMLElement>('.admin-section-content');
+      if (root) section.setupEvents(root);
     },
   },
   {
@@ -137,9 +143,12 @@ const ADMIN_SECTIONS: AdminSection[] = [
     badge: 'NEW',
     component: async () => {
       const section = await import('./sections/BlindEvaluationPanel.js');
-      const html = await section.render();
-      setTimeout(() => section.setupEvents(document.querySelector('.admin-section-content') as HTMLElement), 100);
-      return html;
+      return `<div class="admin-section-content">${await section.render()}</div>`;
+    },
+    afterRender: async (content) => {
+      const section = await import('./sections/BlindEvaluationPanel.js');
+      const root = content.querySelector<HTMLElement>('.admin-section-content');
+      if (root) section.setupEvents(root);
     },
   },
   {
@@ -484,6 +493,7 @@ async function loadSection(sectionId: string): Promise<void> {
     content.style.opacity = '1';
 
     // Setup section-specific handlers
+    await section.afterRender?.(content);
     if (sectionId === 'design-system') {
       setupDesignSystemHandlers();
     }

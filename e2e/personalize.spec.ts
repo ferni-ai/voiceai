@@ -11,6 +11,7 @@
 
 import { expect, test } from './support/fixtures';
 import { API_URL, APP_URL } from './support/env';
+import { pinMenuItems } from './support/app';
 
 const TEST_USER_ID = 'e2e-personalize-test-user';
 
@@ -120,6 +121,13 @@ test.describe('Personalize / Cosmetics API', { tag: '@needs-server' }, () => {
 });
 
 test.describe('Personalize UI', () => {
+  // Personalize is a roadmap feature, which the menu sections hide (it is shown
+  // in "What's Growing"); the menu still lists it as a pinned favorite. See
+  // renderMenuItem and renderPinnedItems in ui/settings-menu.ui.ts.
+  test.beforeEach(async ({ page }) => {
+    await pinMenuItems(page, ['personalize']);
+  });
+
   test('opens personalize modal from menu', async ({ page }) => {
     await page.goto(APP_URL);
 
@@ -190,8 +198,8 @@ test.describe('Personalize UI', () => {
 
     await page.waitForSelector('.personalize-overlay.open');
 
-    // Click backdrop to close
-    await page.click('.personalize-backdrop');
+    // Click the backdrop outside the card (its center is covered by the card)
+    await page.click('.personalize-backdrop', { position: { x: 5, y: 5 } });
 
     // Modal should close
     await expect(page.locator('.personalize-overlay.open')).not.toBeVisible({ timeout: 2000 });
