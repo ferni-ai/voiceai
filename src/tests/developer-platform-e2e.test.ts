@@ -68,8 +68,17 @@ describe('Developer Platform E2E', () => {
 
   describe('API Route Registration', () => {
     it('should have v2 developers routes registered in server', () => {
-      const serverPath = path.join(process.cwd(), 'src/servers/api/index.ts');
-      const serverContent = fs.readFileSync(serverPath, 'utf-8');
+      // Routes are registered from the server entry and its dispatch modules
+      const serverDir = path.join(process.cwd(), 'src/servers/api');
+      const dispatchDir = path.join(serverDir, 'dispatch');
+      const serverFiles = [
+        path.join(serverDir, 'index.ts'),
+        ...fs
+          .readdirSync(dispatchDir)
+          .filter((file) => file.endsWith('.ts'))
+          .map((file) => path.join(dispatchDir, file)),
+      ];
+      const serverContent = serverFiles.map((file) => fs.readFileSync(file, 'utf-8')).join('\n');
 
       // Check v2 routes are imported and registered
       expect(serverContent).toContain('handleV2Routes');

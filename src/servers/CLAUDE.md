@@ -37,7 +37,13 @@ servers/
 │       └── (spotify, wearables, google-calendar)
 │
 ├── api/                        # 🌐 UI Server API (port 3002)
-│   ├── index.ts                # API entry & route matching
+│   ├── index.ts                # Thin entry: create server, wire lifecycle, exports
+│   ├── server-lifecycle.ts     # WebSockets, background services, graceful shutdown
+│   ├── dispatch/               # Route matching (ordered pathname guards)
+│   │   ├── request-handler.ts  # Request pipeline + route groups in order + static fallback
+│   │   ├── route-context.ts    # RouteContext, RouteGroup, error-boundary helper
+│   │   └── *-routes.ts         # Route groups (integration, feature, platform, core-*, billing)
+│   ├── __tests__/route-table.test.ts  # Snapshot of the full dispatch table (order matters!)
 │   ├── static.ts               # Static file serving
 │   ├── routes/                 # API routes
 │   │   └── (smart-home, twin-profile, etc.)
@@ -121,11 +127,14 @@ GET /api/observability
 ### Route Handler Pattern
 
 ```typescript
-// src/servers/api/index.ts - Routes are matched with if-statements
+// src/servers/api/dispatch/*-routes.ts - Routes are matched with if-statements
+// inside route groups; a group returns true when the request is finished.
 if (pathname.startsWith('/api/my-feature')) {
   const handled = await handleMyFeatureRoutes(req, res, pathname, parsedUrl);
-  if (handled) return;
+  if (handled) return true;
 }
+// After adding a route: add a vi.mock + probe path in
+// src/servers/api/__tests__/route-table.test.ts and re-run it with -u.
 
 // Route handlers follow this signature:
 export async function handleMyFeatureRoutes(
@@ -214,7 +223,7 @@ curl http://localhost:3002/token?room=test&identity=user1
 | Use PKCE for OAuth | Store secrets in frontend |
 | Rate limit demos | Allow unlimited demo usage |
 | Return proper error codes | Return generic 500s |
-| Register handlers in index.ts | Create orphaned route files |
+| Register handlers in a `api/dispatch/` route group | Create orphaned route files |
 
 ---
 
