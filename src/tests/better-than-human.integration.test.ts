@@ -90,7 +90,7 @@ describe('Live Superhuman Injections', () => {
     const { buildLiveSuperhumanInjections } =
       await import('../agents/processors/live-superhuman-injections.js');
 
-    const result = await buildLiveSuperhumanInjections({
+    const turn: Parameters<typeof buildLiveSuperhumanInjections>[0] = {
       userId: 'test-user',
       sessionId: 'test-session',
       userText: "I'm going to start going to the gym, it's important to me to get healthy",
@@ -108,7 +108,11 @@ describe('Live Superhuman Injections', () => {
         topics: ['health'],
       },
       turnCount: 5,
-    });
+    };
+
+    // The first call loads its modules; a live turn runs with them loaded
+    await buildLiveSuperhumanInjections(turn);
+    const result = await buildLiveSuperhumanInjections(turn);
 
     // Should have detected commitment and values
     expect(result.signals.commitmentDetected).toBe(true);

@@ -1274,6 +1274,12 @@ describe('authentic-thinking', () => {
 // AUDIO PROSODY TESTS
 // ============================================================================
 
+// Prosody analysis needs the native audio addon (@ferni/audio-*), which is
+// built only where the Rust toolchain runs; without it these cannot run.
+const hasNativeAudio = (
+  await import('../speech/audio-prosody/feature-extraction.js')
+).isNativeFeatureExtractionAvailable();
+
 describe('audio-prosody', () => {
   let audioProsody: typeof import('../speech/audio-prosody.js');
 
@@ -1313,7 +1319,7 @@ describe('audio-prosody', () => {
       expect(result).toBeNull();
     });
 
-    it('should analyze with sufficient samples', () => {
+    it.skipIf(!hasNativeAudio)('should analyze with sufficient samples', () => {
       const samples = new Float32Array(50000);
       // Generate simple sine wave
       for (let i = 0; i < samples.length; i++) {
@@ -1353,7 +1359,7 @@ describe('audio-prosody', () => {
       expect(result).toBeNull();
     });
 
-    it('should track metrics', () => {
+    it.skipIf(!hasNativeAudio)('should track metrics', () => {
       const samples = new Float32Array(50000).fill(0.1);
       analyzer.processSamples(samples, 44100);
       analyzer.analyze();
@@ -1399,7 +1405,7 @@ describe('audio-prosody', () => {
       audioProsody.clearProsodyMetrics('metrics-test');
     });
 
-    it('should track analysis counts', () => {
+    it.skipIf(!hasNativeAudio)('should track analysis counts', () => {
       const analyzer = audioProsody.getSessionAudioProsodyAnalyzer('metrics-test');
 
       const samples = new Float32Array(50000).fill(0.1);
@@ -1415,7 +1421,7 @@ describe('audio-prosody', () => {
       expect(metrics.detectionRate).toBe(0);
     });
 
-    it('should clear metrics', () => {
+    it.skipIf(!hasNativeAudio)('should clear metrics', () => {
       const analyzer = audioProsody.getSessionAudioProsodyAnalyzer('clear-test');
       const samples = new Float32Array(50000).fill(0.1);
       analyzer.processSamples(samples, 44100);

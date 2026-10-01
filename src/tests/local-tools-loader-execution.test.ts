@@ -5,6 +5,7 @@
  * - script: executes a bundled JS module safely
  * - mcp: delegates to MCP loader integration
  */
+import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../utils/safe-logger.js', () => ({
@@ -43,8 +44,9 @@ describe('Local tools execution', () => {
   });
 
   it('executes a script tool from inside the bundle', async () => {
-    const toolFilePath =
-      '/Users/sethford/Documents/voiceai/src/personas/bundles/__tests__/fixtures/test-bundle/tools/tool.json';
+    const toolFilePath = fileURLToPath(
+      new URL('../personas/bundles/__tests__/fixtures/test-bundle/tools/tool.json', import.meta.url)
+    );
 
     const result = await executeLocalTool({
       tool: {
@@ -78,8 +80,9 @@ describe('Local tools execution', () => {
   });
 
   it('delegates MCP tool execution through mcp-loader', async () => {
-    const toolFilePath =
-      '/Users/sethford/Documents/voiceai/src/personas/bundles/__tests__/fixtures/test-bundle/tools/tool.json';
+    const toolFilePath = fileURLToPath(
+      new URL('../personas/bundles/__tests__/fixtures/test-bundle/tools/tool.json', import.meta.url)
+    );
 
     const result = await executeLocalTool({
       tool: {

@@ -101,6 +101,9 @@ export function getMusicGameImplementation(
  * - Timing-based feedback ("That was fast!")
  * - Musical DNA insights between rounds
  */
+/** Played when iTunes returns no songs, so every round still has one */
+const FALLBACK_SONG: GameTrack = { name: 'Bohemian Rhapsody', artist: 'Queen', previewUrl: '' };
+
 class NameThatTuneGame implements IGameImplementation {
   private personaId: string;
   private djStyle: ReturnType<typeof getDJStyle>;
@@ -143,11 +146,7 @@ class NameThatTuneGame implements IGameImplementation {
     }
 
     // Pick first song
-    const firstSong = this.songBank[0] || {
-      name: 'Bohemian Rhapsody',
-      artist: 'Queen',
-      previewUrl: '',
-    };
+    const firstSong = this.songBank[0] ?? FALLBACK_SONG;
     this.currentSongIndex = 0;
     this.correctInARow = 0;
     this.wrongInARow = 0;
@@ -255,7 +254,7 @@ class NameThatTuneGame implements IGameImplementation {
 
     // Pick next song from our loaded bank
     this.currentSongIndex++;
-    const nextSong = this.songBank[this.currentSongIndex] || this.songBank[0];
+    const nextSong = this.songBank[this.currentSongIndex] ?? this.songBank[0] ?? FALLBACK_SONG;
 
     // 🎵 ACTUALLY PLAY the next song!
     if (nextSong.previewUrl && isMusicAvailable()) {

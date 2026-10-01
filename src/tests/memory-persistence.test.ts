@@ -49,6 +49,12 @@ const MOCK_EMBEDDING = MOCK_EMBEDDING_768;
 // MEMORY SYSTEM TESTS
 // ============================================================================
 
+// Vector search runs on the native Rust accelerator (@ferni/perf-*), built only
+// where the Rust toolchain runs; without it the search tests cannot run.
+const hasRustAccelerator = (
+  await import('../memory/vectors/rust-accelerator/index.js')
+).isRustAvailable();
+
 describe('Memory Persistence', () => {
   describe('User Profile Persistence', () => {
     it('should save and retrieve user profiles', async () => {
@@ -159,7 +165,7 @@ describe('Memory Persistence', () => {
   describe('Vector Store Persistence', () => {
     const hasFirestoreCredentials = !!process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
-    it('should store and search documents in FirestoreVectorStore', async () => {
+    it.skipIf(!hasRustAccelerator)('should store and search documents in FirestoreVectorStore', async () => {
       // This test uses FirestoreVectorStore which gracefully falls back
       // to in-memory when credentials aren't available
       const { getFirestoreVectorStore, resetFirestoreVectorStore } =
@@ -278,7 +284,7 @@ describe('Memory Persistence', () => {
   });
 
   describe('Semantic Search', () => {
-    it('should find relevant conversations via semantic search', async () => {
+    it.skipIf(!hasRustAccelerator)('should find relevant conversations via semantic search', async () => {
       const { initializeMemorySystem, shutdownMemorySystem, semanticSearch } =
         await import('../memory/index.js');
       const { createUserProfile } = await import('../types/user-profile.js');
