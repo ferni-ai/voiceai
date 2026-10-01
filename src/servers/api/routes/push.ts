@@ -158,7 +158,7 @@ export async function handlePushRoutes(
   // POST /api/push/send - Send a push notification (ADMIN ONLY)
   if (pathname === '/api/push/send' && req.method === 'POST') {
     // SECURITY: Require admin auth
-    const auth = requireAdmin(req, res);
+    const auth = await requireAdmin(req, res);
     if (!auth) return true; // 401/403 already sent
 
     // Rate limit
