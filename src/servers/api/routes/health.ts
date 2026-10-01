@@ -458,7 +458,9 @@ export async function handleHealthRoutes(
       // Parse request body for options
       let body = '';
       req.on('data', (chunk) => (body += chunk));
-      await new Promise((resolve) => req.on('end', resolve));
+      await new Promise((resolve) => {
+        req.on('end', resolve);
+      });
 
       let options: { dryRun?: boolean; collections?: string[] } = {};
       if (body) {

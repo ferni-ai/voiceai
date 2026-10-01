@@ -180,65 +180,69 @@ export async function handlePushRoutes(
         resolve(true);
       });
 
-      req.on('end', async () => {
-        try {
-          const {
-            userId,
-            title,
-            body: notificationBody,
-            type,
-          } = JSON.parse(body) as {
-            userId?: string;
-            title?: string;
-            body?: string;
-            type?: string;
-          };
-
-          // Try to use backend service if available
+      req.on('end', () => {
+        void (async () => {
           try {
-            const pushModule = await import('../../../services/push-notifications.js');
-            const service = pushModule.getPushNotificationsService();
-            // Valid notification types from the service
-            const validTypes = [
-              'ritual_reminder',
-              'streak_milestone',
-              'prediction_result',
-              'team_huddle',
-              'ferni_checkin',
-              'engagement',
-              'general',
-            ] as const;
-            type NotificationType = (typeof validTypes)[number];
-            const notificationType: NotificationType = validTypes.includes(type as NotificationType)
-              ? (type as NotificationType)
-              : 'general';
-            const success = await service.sendNotification(userId || 'anonymous', {
-              title: title || 'Test Notification',
-              body: notificationBody || 'This is a test notification',
-              type: notificationType,
-            });
+            const {
+              userId,
+              title,
+              body: notificationBody,
+              type,
+            } = JSON.parse(body) as {
+              userId?: string;
+              title?: string;
+              body?: string;
+              type?: string;
+            };
 
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(
-              JSON.stringify({
-                success,
-                message: success ? 'Notification sent' : 'No subscriptions found',
-              })
-            );
-          } catch {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(
-              JSON.stringify({
-                success: false,
-                message: 'Push notification service not available',
-              })
-            );
+            // Try to use backend service if available
+            try {
+              const pushModule = await import('../../../services/push-notifications.js');
+              const service = pushModule.getPushNotificationsService();
+              // Valid notification types from the service
+              const validTypes = [
+                'ritual_reminder',
+                'streak_milestone',
+                'prediction_result',
+                'team_huddle',
+                'ferni_checkin',
+                'engagement',
+                'general',
+              ] as const;
+              type NotificationType = (typeof validTypes)[number];
+              const notificationType: NotificationType = validTypes.includes(
+                type as NotificationType
+              )
+                ? (type as NotificationType)
+                : 'general';
+              const success = await service.sendNotification(userId || 'anonymous', {
+                title: title || 'Test Notification',
+                body: notificationBody || 'This is a test notification',
+                type: notificationType,
+              });
+
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(
+                JSON.stringify({
+                  success,
+                  message: success ? 'Notification sent' : 'No subscriptions found',
+                })
+              );
+            } catch {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(
+                JSON.stringify({
+                  success: false,
+                  message: 'Push notification service not available',
+                })
+              );
+            }
+          } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Failed to send notification' }));
           }
-        } catch (err) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Failed to send notification' }));
-        }
-        resolve(true);
+          resolve(true);
+        })();
       });
     });
   }

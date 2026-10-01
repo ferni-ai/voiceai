@@ -47,84 +47,86 @@ export async function handlePlaidRoutes(
         resolve(true);
       });
 
-      req.on('end', async () => {
-        try {
-          const { public_token, user_id, institution, accounts } = JSON.parse(body) as {
-            public_token: string;
-            user_id: string;
-            institution?: { name?: string; institution_id?: string };
-            accounts?: unknown[];
-          };
+      req.on('end', () => {
+        void (async () => {
+          try {
+            const { public_token, user_id, institution, accounts } = JSON.parse(body) as {
+              public_token: string;
+              user_id: string;
+              institution?: { name?: string; institution_id?: string };
+              accounts?: unknown[];
+            };
 
-          if (!public_token || !user_id) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Missing public_token or user_id' }));
-            resolve(true);
-            return;
-          }
+            if (!public_token || !user_id) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Missing public_token or user_id' }));
+              resolve(true);
+              return;
+            }
 
-          if (user_id !== auth.userId && !auth.isAdmin) {
-            log.warn(
-              { authUserId: auth.userId, requestedUserId: user_id },
-              'SECURITY: Blocked Plaid exchange for mismatched user_id'
+            if (user_id !== auth.userId && !auth.isAdmin) {
+              log.warn(
+                { authUserId: auth.userId, requestedUserId: user_id },
+                'SECURITY: Blocked Plaid exchange for mismatched user_id'
+              );
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'user_id does not match authenticated user' }));
+              resolve(true);
+              return;
+            }
+
+            if (!plaidService.isConfigured()) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Plaid not configured' }));
+              resolve(true);
+              return;
+            }
+
+            // Exchange public token for access token
+            const result = await plaidService.exchangePublicToken(public_token);
+
+            if (!result) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Token exchange failed' }));
+              resolve(true);
+              return;
+            }
+
+            // Store under authenticated user (never trust body user_id alone)
+            const boundUserId = auth.userId;
+            await plaidService.storeToken(
+              boundUserId,
+              result.accessToken,
+              result.itemId,
+              institution
             );
-            res.writeHead(403, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'user_id does not match authenticated user' }));
-            resolve(true);
-            return;
+
+            log.info(
+              {
+                userId: boundUserId,
+                institution: institution?.name || 'Unknown',
+                accounts: accounts?.length || 0,
+              },
+              'Plaid account linked'
+            );
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(
+              JSON.stringify({
+                success: true,
+                institution: institution?.name,
+                accounts_linked: accounts?.length || 0,
+              })
+            );
+          } catch (err) {
+            log.error({ error: (err as Error).message }, 'Plaid exchange error');
+            if (!res.headersSent) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Internal server error' }));
+            }
           }
-
-          if (!plaidService.isConfigured()) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Plaid not configured' }));
-            resolve(true);
-            return;
-          }
-
-          // Exchange public token for access token
-          const result = await plaidService.exchangePublicToken(public_token);
-
-          if (!result) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Token exchange failed' }));
-            resolve(true);
-            return;
-          }
-
-          // Store under authenticated user (never trust body user_id alone)
-          const boundUserId = auth.userId;
-          await plaidService.storeToken(
-            boundUserId,
-            result.accessToken,
-            result.itemId,
-            institution
-          );
-
-          log.info(
-            {
-              userId: boundUserId,
-              institution: institution?.name || 'Unknown',
-              accounts: accounts?.length || 0,
-            },
-            'Plaid account linked'
-          );
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(
-            JSON.stringify({
-              success: true,
-              institution: institution?.name,
-              accounts_linked: accounts?.length || 0,
-            })
-          );
-        } catch (err) {
-          log.error({ error: (err as Error).message }, 'Plaid exchange error');
-          if (!res.headersSent) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Internal server error' }));
-          }
-        }
-        resolve(true);
+          resolve(true);
+        })();
       });
     });
   }

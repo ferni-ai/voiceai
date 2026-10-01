@@ -544,7 +544,7 @@ async function handleSonosAuthUrl(req: IncomingMessage, res: ServerResponse): Pr
 
     // Generate secure random state for CSRF protection
     const randomBytes = new Uint8Array(32);
-    crypto.getRandomValues(randomBytes);
+    globalThis.crypto.getRandomValues(randomBytes);
     const state = Array.from(randomBytes, (b) => b.toString(16).padStart(2, '0')).join('');
 
     // Store state server-side with userId

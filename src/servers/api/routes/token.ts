@@ -364,7 +364,10 @@ export async function handleTokenRoutes(
       });
 
       // Create room and dispatch agent (createRoomWithAgent handles both — no double-dispatch)
-      log.info({ room: roomName, persona: personaId, city: demoGeoData.city }, '🚀 Dispatching agent');
+      log.info(
+        { room: roomName, persona: personaId, city: demoGeoData.city },
+        '🚀 Dispatching agent'
+      );
       const dispatched = await createRoomWithAgent(
         roomName,
         demoRoomMetadata,
@@ -425,46 +428,48 @@ export async function handleTokenRoutes(
         resolve(true);
       });
 
-      req.on('end', async () => {
-        try {
-          const { claim_token, firebase_uid } = JSON.parse(body) as {
-            claim_token: string;
-            firebase_uid: string;
-          };
+      req.on('end', () => {
+        void (async () => {
+          try {
+            const { claim_token, firebase_uid } = JSON.parse(body) as {
+              claim_token: string;
+              firebase_uid: string;
+            };
 
-          if (!claim_token || !firebase_uid) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Missing claim_token or firebase_uid' }));
-            resolve(true);
-            return;
+            if (!claim_token || !firebase_uid) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Missing claim_token or firebase_uid' }));
+              resolve(true);
+              return;
+            }
+
+            // Async - loads from Firestore if needed
+            const result = await demoSessions.claimDemoSession(claim_token, firebase_uid);
+
+            if (!result.success) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: result.error }));
+              resolve(true);
+              return;
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(
+              JSON.stringify({
+                success: true,
+                already_claimed: result.alreadyClaimed,
+                conversation: result.session?.conversation,
+              })
+            );
+          } catch (err) {
+            log.error({ error: String(err) }, 'Demo claim error');
+            if (!res.headersSent) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Internal server error' }));
+            }
           }
-
-          // Async - loads from Firestore if needed
-          const result = await demoSessions.claimDemoSession(claim_token, firebase_uid);
-
-          if (!result.success) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: result.error }));
-            resolve(true);
-            return;
-          }
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(
-            JSON.stringify({
-              success: true,
-              already_claimed: result.alreadyClaimed,
-              conversation: result.session?.conversation,
-            })
-          );
-        } catch (err) {
-          log.error({ error: String(err) }, 'Demo claim error');
-          if (!res.headersSent) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Internal server error' }));
-          }
-        }
-        resolve(true);
+          resolve(true);
+        })();
       });
     });
   }
@@ -488,39 +493,41 @@ export async function handleTokenRoutes(
         resolve(true);
       });
 
-      req.on('end', async () => {
-        try {
-          const data = JSON.parse(body) as { room_name: string; conversation: unknown };
-          const { room_name, conversation } = data;
+      req.on('end', () => {
+        void (async () => {
+          try {
+            const data = JSON.parse(body) as { room_name: string; conversation: unknown };
+            const { room_name, conversation } = data;
 
-          if (!room_name || !conversation) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Missing room_name or conversation data' }));
-            resolve(true);
-            return;
+            if (!room_name || !conversation) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Missing room_name or conversation data' }));
+              resolve(true);
+              return;
+            }
+
+            // Async - persists to Firestore
+            const success = await demoSessions.updateDemoSessionConversation(
+              room_name,
+              conversation as Parameters<typeof demoSessions.updateDemoSessionConversation>[1]
+            );
+
+            if (!success) {
+              res.writeHead(404, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Demo session not found' }));
+              resolve(true);
+              return;
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+          } catch (err) {
+            log.error({ error: String(err) }, 'Demo session update error');
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Failed to update demo session' }));
           }
-
-          // Async - persists to Firestore
-          const success = await demoSessions.updateDemoSessionConversation(
-            room_name,
-            conversation as Parameters<typeof demoSessions.updateDemoSessionConversation>[1]
-          );
-
-          if (!success) {
-            res.writeHead(404, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Demo session not found' }));
-            resolve(true);
-            return;
-          }
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true }));
-        } catch (err) {
-          log.error({ error: String(err) }, 'Demo session update error');
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Failed to update demo session' }));
-        }
-        resolve(true);
+          resolve(true);
+        })();
       });
     });
   }
@@ -554,11 +561,7 @@ export async function handleTokenRoutes(
       // Anonymous Firebase users are an intentional product path (zero-friction onboarding);
       // they still present a verified ID token. Query-param firebase_uid alone is never trusted.
       const authHeader = req.headers['authorization'];
-      if (
-        !authHeader ||
-        typeof authHeader !== 'string' ||
-        !authHeader.startsWith('Bearer ')
-      ) {
+      if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
         log.warn('SECURITY: /token rejected — missing Firebase auth');
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(
