@@ -21,7 +21,6 @@
 :root {
   /* Page-specific overrides - extend tokens, don't duplicate */
   --color-bg-warm: var(--color-bg-secondary);
-  --color-bg-dark: var(--color-bg-dark);
   --color-bg-darker: var(--color-bg-dark);
   --color-text-light: var(--color-bg-secondary);
   

@@ -463,9 +463,9 @@
   :root:not([data-theme="light"]) .invite-only-page {
     --color-bg-primary: var(--color-bg-dark);
     --color-bg-elevated: var(--color-bg-dark-elevated);
-    --color-text-primary: var(--color-bg-primary);
-    --color-text-secondary: var(--color-text-secondary);
-    --color-text-muted: var(--color-text-muted);
+    --color-text-primary: var(--color-dark-text);
+    --color-text-secondary: var(--color-dark-text-secondary);
+    --color-text-muted: var(--color-dark-text-muted);
     --color-border-medium: rgba(255, 255, 255, 0.1);
     --color-border-strong: rgba(255, 255, 255, 0.15);
   }

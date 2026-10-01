@@ -6,6 +6,9 @@
  * design system now generates theme-aware text inks (--persona-ink,
  * --color-accent-text, --color-semantic-*-text, --persona-text for fills).
  * This keeps the main screens at zero contrast violations in Zen and Midnight.
+ *
+ * The clock is pinned: the app restyles itself by time of day (data-circadian),
+ * so Midnight runs at 01:30, its most adjusted state, and Zen mid-afternoon.
  */
 
 import AxeBuilder from '@axe-core/playwright';
@@ -53,10 +56,15 @@ async function seedUser(page: Page, theme: 'zen' | 'midnight'): Promise<void> {
   }, theme);
 }
 
+const CLOCK = { zen: '2026-01-15T14:00:00', midnight: '2026-01-15T01:30:00' } as const;
+
 for (const theme of ['zen', 'midnight'] as const) {
   test.describe(`text contrast (${theme})`, () => {
+    test.use({ timezoneId: 'UTC' });
+
     for (const screen of SCREENS) {
       test(screen.name, async ({ page }) => {
+        await page.clock.setFixedTime(new Date(`${CLOCK[theme]}Z`));
         await seedUser(page, theme);
         await page.goto('/');
         await page.locator('#teamRoster .team-member[data-persona-id]').first().waitFor();

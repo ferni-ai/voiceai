@@ -1949,7 +1949,11 @@ function injectSoulStyles(): void {
     .avatar-container {
       --relationship-warmth: 0.3;
       --warmth-hue: 120;
-      --breath-duration: 5000ms;
+      /* Time of day and relationship depth each scale the base breath.
+         (A property can't scale itself: --x: calc(var(--x) * n) is a cycle.) */
+      --breath-circadian: 1;
+      --breath-depth: 1;
+      --breath-duration: calc(5000ms * var(--breath-circadian) * var(--breath-depth));
       --glow-intensity: 0.3;
     }
     
@@ -1971,7 +1975,7 @@ function injectSoulStyles(): void {
     /* Late night: warmer, calmer glow */
     [data-circadian="lateNight"] .avatar-container,
     [data-circadian="deepNight"] .avatar-container {
-      --breath-duration: calc(var(--breath-duration, 5000ms) * 1.3);
+      --breath-circadian: 1.3;
       filter: sepia(0.05);
     }
     
@@ -1982,7 +1986,7 @@ function injectSoulStyles(): void {
     
     /* Morning: fresher, more energetic */
     [data-circadian="morning"] .avatar-container {
-      --breath-duration: calc(var(--breath-duration, 5000ms) * 0.9);
+      --breath-circadian: 0.9;
     }
     
     [data-circadian="morning"] .soul-glow-bleed {
@@ -2002,7 +2006,7 @@ function injectSoulStyles(): void {
     
     [data-relationship-stage="established"] .avatar-container,
     [data-relationship-stage="deep-partnership"] .avatar-container {
-      --breath-duration: calc(var(--breath-duration, 5000ms) * 1.15);
+      --breath-depth: 1.15;
     }
     
     [data-relationship-stage="deep-partnership"] .soul-glow-bleed {
