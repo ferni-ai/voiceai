@@ -190,8 +190,9 @@ export const JOURNAL_KEYS = {
 // ============================================================================
 
 export const EXPERIMENT_KEYS = {
-  /** Experiment user ID */
-  USER_ID: 'ferni_experiment_user_id',
+  /** Experiment user ID. Not USER_ID: STORAGE_KEYS spreads every group, and a
+   *  shared name would replace the real user ID (tests/unit/config). */
+  EXPERIMENT_USER_ID: 'ferni_experiment_user_id',
   /** Experiment assignments */
   ASSIGNMENTS: 'ferni_experiment_assignments',
 } as const;
@@ -238,7 +239,7 @@ export const USER_DATA_KEYS = [
   JOURNAL_KEYS.CAPTURE_SETTINGS,
 
   // Experiments
-  EXPERIMENT_KEYS.USER_ID,
+  EXPERIMENT_KEYS.EXPERIMENT_USER_ID,
   EXPERIMENT_KEYS.ASSIGNMENTS,
 ] as const;
 
