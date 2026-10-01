@@ -84,16 +84,29 @@ jobs:
           # Run Lighthouse
           lhci autorun --config=lighthouserc.json 2>&1 | tee lighthouse-output.txt
 
-          # Extract scores
-          PERF=$(grep -oP 'performance: \K[0-9]+' lighthouse-output.txt | head -1 || echo "0")
-          A11Y=$(grep -oP 'accessibility: \K[0-9]+' lighthouse-output.txt | head -1 || echo "0")
-          BP=$(grep -oP 'best-practices: \K[0-9]+' lighthouse-output.txt | head -1 || echo "0")
-          SEO=$(grep -oP 'seo: \K[0-9]+' lighthouse-output.txt | head -1 || echo "0")
-
-          echo "performance=$PERF" >> $GITHUB_OUTPUT
-          echo "accessibility=$A11Y" >> $GITHUB_OUTPUT
-          echo "best_practices=$BP" >> $GITHUB_OUTPUT
-          echo "seo=$SEO" >> $GITHUB_OUTPUT
+          # Extract scores from the run reports: lhci does not print scores to the
+          # console, so grepping its output always came back empty (N/A). For each
+          # URL take the median of its runs, then report the worst URL per category,
+          # since the budget applies to every audited page.
+          node -e '
+            const fs = require("fs");
+            const dir = ".lighthouseci";
+            const lhrs = fs.readdirSync(dir).filter((f) => /^lhr-.*\.json$/.test(f))
+              .map((f) => JSON.parse(fs.readFileSync(`${dir}/${f}`, "utf8")));
+            const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+            const keys = { performance: "performance", accessibility: "accessibility", "best-practices": "best_practices", seo: "seo" };
+            const byUrl = {};
+            for (const l of lhrs) (byUrl[l.requestedUrl] ??= []).push(l);
+            for (const [cat, out] of Object.entries(keys)) {
+              const perUrl = Object.values(byUrl)
+                .map((runs) => runs.map((r) => r.categories[cat]?.score).filter((v) => typeof v === "number"))
+                .filter((xs) => xs.length > 0)
+                .map(median);
+              const line = perUrl.length ? `${out}=${Math.round(Math.min(...perUrl) * 100)}` : `${out}=`;
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, line + "\n");
+              console.log(line);
+            }
+          '
         continue-on-error: true
 
       - name: Generate Summary
