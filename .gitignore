@@ -208,3 +208,7 @@ apps/web/public/design-system/components.css
 apps/web/public/design-system/app-components.css
 apps/web/public/design-system/manifest.json
 apps/website/*/_site/
+
+# Lighthouse CI output
+.lighthouseci/
+lighthouse-report/

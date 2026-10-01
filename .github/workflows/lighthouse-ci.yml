@@ -1,12 +1,17 @@
 name: Lighthouse CI
 
-# Automated accessibility and performance audits for landing page
-# Runs on PRs and scheduled weekly
+# Accessibility and performance audits for the ferni.ai landing site.
+#
+# Pull requests: build the site from the PR's commit and audit the built pages,
+#   so the result reflects the change under review. Accessibility below budget
+#   fails the check; the other categories warn.
+# Weekly / manual: audit production.
 
 on:
   pull_request:
     paths:
       - 'apps/website/ferni-website/**'
+      - 'design-system/**'
       - '.github/workflows/lighthouse-ci.yml'
   schedule:
     # Run weekly on Sundays at 6am UTC
@@ -14,11 +19,14 @@ on:
   workflow_dispatch: # Allow manual triggers
 
 env:
-  # Performance budgets
+  # Performance budgets (0-100)
   PERFORMANCE_BUDGET: 80
   ACCESSIBILITY_BUDGET: 90
   BEST_PRACTICES_BUDGET: 85
   SEO_BUDGET: 90
+  # Pages audited (paths on the site)
+  AUDIT_PATHS: '/ /give/ /about/'
+  PRODUCTION_URL: 'https://ferni.ai'
 
 permissions:
   contents: read
@@ -36,145 +44,122 @@ jobs:
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
 
+      - name: Build the site from this commit
+        if: github.event_name == 'pull_request'
+        working-directory: apps/website/ferni-website
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build:prod
+
       - name: Install Lighthouse CI
         run: pnpm add -g @lhci/cli@0.13.x
 
-      - name: Run Lighthouse CI
-        id: lighthouse
+      - name: Run Lighthouse
+        env:
+          LOCAL: ${{ github.event_name == 'pull_request' }}
         run: |
-          # Create lighthouserc config
-          cat > lighthouserc.json << 'EOF'
-          {
-            "ci": {
-              "collect": {
-                "url": ["https://ferni.ai", "https://ferni.ai/pricing", "https://ferni.ai/about"],
-                "numberOfRuns": 3,
-                "settings": {
-                  "preset": "desktop",
-                  "throttling": {
-                    "cpuSlowdownMultiplier": 1
-                  }
+          node -e '
+            const local = process.env.LOCAL === "true";
+            const paths = process.env.AUDIT_PATHS.split(" ");
+            const collect = {
+              numberOfRuns: 3,
+              settings: { preset: "desktop" },
+              url: paths.map((p) =>
+                local ? `http://localhost${p}${p.endsWith("/") ? "index.html" : ""}` : process.env.PRODUCTION_URL + p
+              ),
+            };
+            if (local) collect.staticDistDir = "./apps/website/ferni-website/_site";
+            const config = { ci: { collect, upload: { target: "filesystem", outputDir: "./lighthouse-report" } } };
+            require("fs").writeFileSync("lighthouserc.json", JSON.stringify(config, null, 2));
+          '
+          lhci collect --config=lighthouserc.json
+          lhci upload --config=lighthouserc.json
+
+      - name: Check scores
+        id: scores
+        run: |
+          node -e '
+            const fs = require("fs");
+            const manifest = JSON.parse(fs.readFileSync("lighthouse-report/manifest.json", "utf8"));
+            const runs = manifest.filter((r) => r.isRepresentativeRun);
+            const budgets = {
+              performance: +process.env.PERFORMANCE_BUDGET,
+              accessibility: +process.env.ACCESSIBILITY_BUDGET,
+              "best-practices": +process.env.BEST_PRACTICES_BUDGET,
+              seo: +process.env.SEO_BUDGET,
+            };
+            const pct = (v) => Math.round(v * 100);
+            const lines = ["## 🔦 Lighthouse Audit Results", "", "| Page | Performance | Accessibility | Best Practices | SEO |", "|---|---|---|---|---|"];
+            const failures = [];
+            const a11yIssues = [];
+            for (const run of runs) {
+              const page = new URL(run.url).pathname.replace(/index\.html$/, "");
+              const cells = Object.keys(budgets).map((cat) => {
+                const score = pct(run.summary[cat]);
+                const ok = score >= budgets[cat];
+                if (!ok && cat === "accessibility") failures.push(`${page} accessibility ${score} < ${budgets[cat]}`);
+                return `${score} ${ok ? "✅" : cat === "accessibility" ? "❌" : "⚠️"}`;
+              });
+              lines.push(`| ${page} | ${cells.join(" | ")} |`);
+              const lhr = JSON.parse(fs.readFileSync(run.jsonPath, "utf8"));
+              for (const ref of lhr.categories.accessibility.auditRefs) {
+                const audit = lhr.audits[ref.id];
+                if (audit.score !== null && audit.score < 1 && !["notApplicable", "manual", "informative"].includes(audit.scoreDisplayMode)) {
+                  a11yIssues.push(`- \`${page}\` ${audit.id}: ${audit.title} (${audit.details?.items?.length ?? 0})`);
                 }
-              },
-              "assert": {
-                "assertions": {
-                  "categories:performance": ["warn", {"minScore": 0.8}],
-                  "categories:accessibility": ["error", {"minScore": 0.9}],
-                  "categories:best-practices": ["warn", {"minScore": 0.85}],
-                  "categories:seo": ["warn", {"minScore": 0.9}]
-                }
-              },
-              "upload": {
-                "target": "temporary-public-storage"
               }
             }
-          }
-          EOF
-
-          # Run Lighthouse
-          lhci autorun --config=lighthouserc.json 2>&1 | tee lighthouse-output.txt
-
-          # Extract scores
-          PERF=$(grep -oP 'performance: \K[0-9]+' lighthouse-output.txt | head -1 || echo "0")
-          A11Y=$(grep -oP 'accessibility: \K[0-9]+' lighthouse-output.txt | head -1 || echo "0")
-          BP=$(grep -oP 'best-practices: \K[0-9]+' lighthouse-output.txt | head -1 || echo "0")
-          SEO=$(grep -oP 'seo: \K[0-9]+' lighthouse-output.txt | head -1 || echo "0")
-
-          echo "performance=$PERF" >> $GITHUB_OUTPUT
-          echo "accessibility=$A11Y" >> $GITHUB_OUTPUT
-          echo "best_practices=$BP" >> $GITHUB_OUTPUT
-          echo "seo=$SEO" >> $GITHUB_OUTPUT
-        continue-on-error: true
-
-      - name: Generate Summary
-        run: |
-          echo "## 🔦 Lighthouse Audit Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Category | Score | Budget | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|-------|--------|--------|" >> $GITHUB_STEP_SUMMARY
-
-          PERF="${{ steps.lighthouse.outputs.performance }}"
-          A11Y="${{ steps.lighthouse.outputs.accessibility }}"
-          BP="${{ steps.lighthouse.outputs.best_practices }}"
-          SEO="${{ steps.lighthouse.outputs.seo }}"
-
-          # Performance
-          if [ "${PERF:-0}" -ge "$PERFORMANCE_BUDGET" ]; then
-            echo "| Performance | ${PERF:-N/A} | $PERFORMANCE_BUDGET | ✅ |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| Performance | ${PERF:-N/A} | $PERFORMANCE_BUDGET | ⚠️ |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Accessibility
-          if [ "${A11Y:-0}" -ge "$ACCESSIBILITY_BUDGET" ]; then
-            echo "| Accessibility | ${A11Y:-N/A} | $ACCESSIBILITY_BUDGET | ✅ |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| Accessibility | ${A11Y:-N/A} | $ACCESSIBILITY_BUDGET | ❌ |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Best Practices
-          if [ "${BP:-0}" -ge "$BEST_PRACTICES_BUDGET" ]; then
-            echo "| Best Practices | ${BP:-N/A} | $BEST_PRACTICES_BUDGET | ✅ |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| Best Practices | ${BP:-N/A} | $BEST_PRACTICES_BUDGET | ⚠️ |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # SEO
-          if [ "${SEO:-0}" -ge "$SEO_BUDGET" ]; then
-            echo "| SEO | ${SEO:-N/A} | $SEO_BUDGET | ✅ |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| SEO | ${SEO:-N/A} | $SEO_BUDGET | ⚠️ |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📊 [View full Lighthouse report](https://googlechrome.github.io/lighthouse/viewer/)" >> $GITHUB_STEP_SUMMARY
+            const source = process.env.GITHUB_EVENT_NAME === "pull_request" ? "this PR'"'"'s build" : process.env.PRODUCTION_URL;
+            lines.push("", `Budgets: performance ${budgets.performance}, accessibility ${budgets.accessibility} (blocking), best practices ${budgets["best-practices"]}, SEO ${budgets.seo}. Audited: ${source}.`);
+            if (a11yIssues.length) lines.push("", "**Accessibility audits not passing:**", ...a11yIssues);
+            const body = lines.join("\n");
+            fs.writeFileSync("lighthouse-summary.md", body + "\n");
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, body + "\n");
+            if (failures.length) {
+              console.error(failures.join("\n"));
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, "failed=true\n");
+            }
+          '
 
       - name: Comment on PR
-        if: github.event_name == 'pull_request'
-        # Advisory: a comment that can't be posted (token scope, 64 KB limit) must not fail the job
+        if: always() && github.event_name == 'pull_request' && hashFiles('lighthouse-summary.md') != ''
+        # Advisory: a comment that can't be posted (fork PRs get a read-only token) must not fail the job
         continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
-            const perf = '${{ steps.lighthouse.outputs.performance }}' || 'N/A';
-            const a11y = '${{ steps.lighthouse.outputs.accessibility }}' || 'N/A';
-            const bp = '${{ steps.lighthouse.outputs.best_practices }}' || 'N/A';
-            const seo = '${{ steps.lighthouse.outputs.seo }}' || 'N/A';
+            const fs = require('fs');
+            const marker = '<!-- lighthouse-ci -->';
+            const body = `${marker}\n${fs.readFileSync('lighthouse-summary.md', 'utf8')}`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const previous = comments.find((c) => c.body?.includes(marker));
+            if (previous) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: previous.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
 
-            const perfOk = parseInt(perf) >= ${{ env.PERFORMANCE_BUDGET }};
-            const a11yOk = parseInt(a11y) >= ${{ env.ACCESSIBILITY_BUDGET }};
-            const bpOk = parseInt(bp) >= ${{ env.BEST_PRACTICES_BUDGET }};
-            const seoOk = parseInt(seo) >= ${{ env.SEO_BUDGET }};
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: lighthouse-report/
+          retention-days: 14
 
-            const body = `## 🔦 Lighthouse Audit Results
-
-            | Category | Score | Budget | Status |
-            |----------|-------|--------|--------|
-            | Performance | ${perf} | ${{ env.PERFORMANCE_BUDGET }} | ${perfOk ? '✅' : '⚠️'} |
-            | Accessibility | ${a11y} | ${{ env.ACCESSIBILITY_BUDGET }} | ${a11yOk ? '✅' : '❌'} |
-            | Best Practices | ${bp} | ${{ env.BEST_PRACTICES_BUDGET }} | ${bpOk ? '✅' : '⚠️'} |
-            | SEO | ${seo} | ${{ env.SEO_BUDGET }} | ${seoOk ? '✅' : '⚠️'} |
-
-            ${a11yOk ? '✅ Accessibility budget passed!' : '❌ Accessibility below budget - please review before merging.'}
-            `;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
-
-      - name: Fail on accessibility issues
-        # Score may be empty if Lighthouse parsing fails; treat as warning not failure
-        if: steps.lighthouse.outputs.accessibility != '' && steps.lighthouse.outputs.accessibility < env.ACCESSIBILITY_BUDGET
-        continue-on-error: true
+      - name: Fail on accessibility below budget
+        if: steps.scores.outputs.failed == 'true'
         run: |
-          echo "❌ Accessibility score (${{ steps.lighthouse.outputs.accessibility }}) is below budget (${{ env.ACCESSIBILITY_BUDGET }})"
+          echo "❌ Accessibility is below budget (${{ env.ACCESSIBILITY_BUDGET }}). See the summary for the failing audits."
           exit 1
 
   axe-audit:
     name: Axe Accessibility Audit
+    # Production monitoring. On PRs, Lighthouse's accessibility category (which
+    # runs axe-core's rules) audits the PR's own build.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -190,30 +175,31 @@ jobs:
       - name: Run axe accessibility scan
         id: axe
         run: |
-          axe https://ferni.ai --save axe-results.json --tags wcag2a,wcag2aa,wcag21aa || true
+          URLS=$(for p in $AUDIT_PATHS; do printf '%s%s,' "$PRODUCTION_URL" "$p"; done)
+          axe "${URLS%,}" --save axe-results.json --tags wcag2a,wcag2aa,wcag21aa
 
-          # Count violations
-          VIOLATIONS=$(jq '.violations | length' axe-results.json 2>/dev/null || echo "0")
-          CRITICAL=$(jq '[.violations[] | select(.impact == "critical")] | length' axe-results.json 2>/dev/null || echo "0")
-          SERIOUS=$(jq '[.violations[] | select(.impact == "serious")] | length' axe-results.json 2>/dev/null || echo "0")
+          # axe --save writes one result per page
+          VIOLATIONS=$(jq '[.[].violations[]] | length' axe-results.json)
+          CRITICAL=$(jq '[.[].violations[] | select(.impact == "critical")] | length' axe-results.json)
+          SERIOUS=$(jq '[.[].violations[] | select(.impact == "serious")] | length' axe-results.json)
 
           echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
           echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
           echo "serious=$SERIOUS" >> $GITHUB_OUTPUT
 
-          echo "## 🔍 Axe Accessibility Scan" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Impact | Count |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Critical | $CRITICAL |" >> $GITHUB_STEP_SUMMARY
-          echo "| Serious | $SERIOUS |" >> $GITHUB_STEP_SUMMARY
-          echo "| Total | $VIOLATIONS |" >> $GITHUB_STEP_SUMMARY
-        continue-on-error: true
+          {
+            echo "## 🔍 Axe Accessibility Scan ($PRODUCTION_URL)"
+            echo ""
+            echo "| Impact | Count |"
+            echo "|--------|-------|"
+            echo "| Critical | $CRITICAL |"
+            echo "| Serious | $SERIOUS |"
+            echo "| Total | $VIOLATIONS |"
+          } >> $GITHUB_STEP_SUMMARY
 
       - name: Fail on critical issues
-        if: steps.axe.outputs.critical > 0
-        continue-on-error: true
+        if: steps.axe.outputs.critical != '0'
         run: |
           echo "❌ Found ${{ steps.axe.outputs.critical }} critical accessibility violations"
-          jq '.violations[] | select(.impact == "critical") | {id, description, nodes: [.nodes[].html]}' axe-results.json
+          jq '.[] | .url as $u | .violations[] | select(.impact == "critical") | {url: $u, id, description, nodes: [.nodes[].html]}' axe-results.json
           exit 1

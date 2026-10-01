@@ -437,15 +437,9 @@
     @apply shadow-md;
   }
 
-  /* Cookie banner */
-  .cookie-banner {
-    @apply fixed bottom-4 left-4 right-4 z-50;
-    @apply bg-paper-cream rounded-xl p-4;
-    @apply shadow-xl border;
-    border-color: rgba(44, 37, 32, 0.1);
-    @apply flex flex-wrap items-center justify-between gap-4;
-    @apply max-w-xl mx-auto;
-  }
+  /* Cookie banner: styled by story-brand.css (the only layout that loads
+     tailwind.css). A light variant here made its white copy and the Decline
+     button invisible. */
 
   /* Mobile CTA bar */
   .mobile-cta {
