@@ -69,9 +69,9 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
 
 # Copy the CLI source the build script runs from. Copy the whole tree, not
 # build-fast.ts and its imports one by one: each time it gained an import
-# (esbuild-target.ts, then utils/project-root.ts) the esbuild step failed, the
-# tsc fallback could not type the stubbed native packages, and every UI deploy
-# failed.
+# (esbuild-target.ts, then utils/project-root.ts, fixed per file in #147) the
+# esbuild step failed, the tsc fallback could not type the stubbed native
+# packages, and every UI deploy failed.
 COPY apps/cli/src/ ./apps/cli/src/
 COPY src/ ./src/
 
