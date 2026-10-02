@@ -12,24 +12,14 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CartesiaEmotion } from '../cartesia-expressiveness.js';
-import type {
-  AnticipatedResponse,
-  ConversationProsodyRecommendation,
-  DisfluencyInjection,
-  MicroReaction,
-  PartialTranscript,
-} from './types.js';
+import type { PartialTranscript } from './types.js';
 import {
   anticipateResponse,
   shouldAnticipate,
   updateAnticipation,
 } from './anticipatory-prosody.js';
-import {
-  getSessionProsodyRecommendation,
-  updateConversationState,
-} from './conversation-prosody.js';
+import { getSessionProsodyRecommendation } from './conversation-prosody.js';
 import { getSessionMicroReaction } from './micro-reactions.js';
-import { smartInjectDisfluency } from './rich-disfluencies.js';
 
 const log = createLogger({ module: 'SesamePipelineIntegration' });
 
@@ -59,20 +49,6 @@ export interface PreparedResponse {
   reason: string;
   /** Timestamp of preparation */
   preparedAt: number;
-}
-
-/**
- * Enhanced text result with all Sesame features applied
- */
-export interface SesameEnhancedResult {
-  /** Original text */
-  original: string;
-  /** Enhanced text with SSML */
-  enhanced: string;
-  /** Features applied */
-  features: string[];
-  /** Processing time in ms */
-  processingMs: number;
 }
 
 // =============================================================================
@@ -187,142 +163,6 @@ export function processPartialTranscript(
 export function getPreparedResponse(sessionId: string): PreparedResponse | null {
   const session = sessions.get(sessionId);
   return session?.lastPreparedResponse ?? null;
-}
-
-// =============================================================================
-// RESPONSE ENHANCEMENT (CALL THIS BEFORE TTS)
-// =============================================================================
-
-/**
- * Enhance response text with all Sesame-inspired features
- *
- * Call this BEFORE sending to TTS. It uses pre-computed anticipatory
- * data when available for faster processing.
- *
- * @param sessionId - Session ID
- * @param text - Response text from LLM
- * @param detectedEmotion - Detected emotion (from content or voice)
- * @param turnNumber - Current turn number
- * @returns Enhanced text with SSML
- */
-export function enhanceResponseWithSesame(
-  sessionId: string,
-  text: string,
-  detectedEmotion: CartesiaEmotion,
-  turnNumber: number
-): SesameEnhancedResult {
-  const startTime = Date.now();
-  const session = getSession(sessionId);
-  session.turnCount = turnNumber;
-
-  const features: string[] = [];
-  let enhanced = text;
-
-  // Update conversation state for future turns
-  updateConversationState(sessionId, detectedEmotion);
-
-  // Get prepared response (from anticipatory processing)
-  const prepared = session.lastPreparedResponse;
-  const isStale = prepared && Date.now() - prepared.preparedAt > 5000;
-
-  // 1. Prepend micro-reaction if available and fresh
-  if (prepared?.microReactionSsml && !isStale) {
-    enhanced = prepared.microReactionSsml + enhanced;
-    features.push('micro_reaction');
-  }
-
-  // 2. Apply speed/volume adjustments from anticipation or conversation prosody
-  const prosody = getSessionProsodyRecommendation(sessionId);
-
-  if (prepared && !isStale && prepared.confidence > 0.5) {
-    // Use anticipated prosody (higher confidence = used anticipatory data)
-    if (prepared.speedMultiplier !== 1.0) {
-      enhanced = `<speed ratio="${prepared.speedMultiplier.toFixed(2)}"/>${enhanced}`;
-      features.push('anticipated_speed');
-    }
-    if (prepared.volumeMultiplier !== 1.0) {
-      enhanced = `<volume ratio="${prepared.volumeMultiplier.toFixed(2)}"/>${enhanced}`;
-      features.push('anticipated_volume');
-    }
-  } else {
-    // Fall back to conversation prosody
-    if (prosody.baseSpeed !== 1.0) {
-      enhanced = `<speed ratio="${prosody.baseSpeed.toFixed(2)}"/>${enhanced}`;
-      features.push('conversation_speed');
-    }
-    if (prosody.baseVolume !== 1.0) {
-      enhanced = `<volume ratio="${prosody.baseVolume.toFixed(2)}"/>${enhanced}`;
-      features.push('conversation_volume');
-    }
-  }
-
-  // 3. Add contextual pause if needed
-  if (prosody.pauseMultiplier > 1.2 && !enhanced.includes('<break')) {
-    const pauseMs = Math.round(100 * prosody.pauseMultiplier);
-    enhanced = `<break time="${pauseMs}ms"/>${enhanced}`;
-    features.push('contextual_pause');
-  }
-
-  // 4. Inject disfluency (natural speech patterns) - probabilistic
-  const disfluency = smartInjectDisfluency(sessionId, enhanced, detectedEmotion, turnNumber);
-  if (disfluency) {
-    enhanced = disfluency.enhanced;
-    features.push(`disfluency_${disfluency.type}`);
-  }
-
-  // 5. Apply emotion tag if not already present
-  if (!enhanced.includes('<emotion')) {
-    enhanced = `<emotion value="${detectedEmotion}"/>${enhanced}`;
-    features.push('emotion_tag');
-  }
-
-  const processingMs = Date.now() - startTime;
-
-  log.debug(
-    {
-      sessionId,
-      turnNumber,
-      features,
-      processingMs,
-      usedAnticipation: prepared && !isStale && prepared.confidence > 0.5,
-    },
-    'Enhanced response with Sesame features'
-  );
-
-  return {
-    original: text,
-    enhanced,
-    features,
-    processingMs,
-  };
-}
-
-/**
- * Quick enhancement for simple cases (lower latency)
- *
- * Use this when you don't need full disfluency injection
- */
-export function quickEnhance(sessionId: string, text: string, emotion: CartesiaEmotion): string {
-  const prepared = getPreparedResponse(sessionId);
-
-  let enhanced = text;
-
-  // Apply micro-reaction if fresh
-  if (prepared && Date.now() - prepared.preparedAt < 3000) {
-    if (prepared.microReactionSsml) {
-      enhanced = prepared.microReactionSsml + enhanced;
-    }
-    if (prepared.speedMultiplier !== 1.0) {
-      enhanced = `<speed ratio="${prepared.speedMultiplier.toFixed(2)}"/>${enhanced}`;
-    }
-  }
-
-  // Add emotion
-  if (!enhanced.includes('<emotion')) {
-    enhanced = `<emotion value="${emotion}"/>${enhanced}`;
-  }
-
-  return enhanced;
 }
 
 // =============================================================================

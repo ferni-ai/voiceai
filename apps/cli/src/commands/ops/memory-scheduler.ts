@@ -24,7 +24,7 @@ import * as yaml from 'yaml';
 const execAsync = promisify(exec);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, '..', '..', '..', '..', '..', '..');
+const PROJECT_ROOT = join(__dirname, '..', '..', '..', '..', '..');
 
 // ============================================================================
 // CONFIGURATION
