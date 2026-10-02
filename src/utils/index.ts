@@ -169,6 +169,7 @@ export {
 
 export {
   createSessionRegistry,
+  createUserKeyedRegistry,
   registerGlobalRegistry,
   resetSessionGlobally,
   resetAllSessionsGlobally,

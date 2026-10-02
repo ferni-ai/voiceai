@@ -232,6 +232,25 @@ export function createSessionRegistry<T>(
 const globalRegistries: Array<SessionRegistry<unknown>> = [];
 
 /**
+ * Create and globally register a registry keyed by user id, capped at
+ * USER_KEYED_REGISTRY_MAX_INSTANCES. Evicted or reset instances have reset()
+ * called on them.
+ */
+export function createUserKeyedRegistry<T extends { reset: () => void }>(
+  name: string,
+  factory: (userId: string) => T
+): SessionRegistry<T> {
+  const registry = createSessionRegistry(factory, {
+    name,
+    cleanup: (instance) => instance.reset(),
+    verbose: false,
+    maxInstances: USER_KEYED_REGISTRY_MAX_INSTANCES,
+  });
+  registerGlobalRegistry(registry);
+  return registry;
+}
+
+/**
  * Register a session registry for global tracking.
  * This allows coordinated cleanup of all registries.
  */
@@ -359,6 +378,7 @@ export function isValidSessionId(sessionId: string | undefined | null): sessionI
 
 export default {
   createSessionRegistry,
+  createUserKeyedRegistry,
   registerGlobalRegistry,
   resetSessionGlobally,
   resetAllSessionsGlobally,
