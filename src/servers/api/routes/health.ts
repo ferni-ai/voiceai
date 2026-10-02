@@ -362,8 +362,10 @@ export async function handleHealthRoutes(
     return true;
   }
 
-  // Semantic Data Store routes (health, cleanup, metrics, dashboard, diagnostics,
-  // TTL statistics, queue): see semantic-store-health.ts
+  // Semantic Data Store routes (see semantic-store-health.ts):
+  // /api/semantic-store/health, /api/semantic-store/cleanup, /api/semantic-store/metrics,
+  // /api/semantic-store/dashboard, /api/semantic-store/diagnostics,
+  // /api/semantic-store/ttl-statistics, /api/semantic-store/queue
   if (
     pathname.startsWith('/api/semantic-store/') &&
     (await handleSemanticStoreRoutes(req, res, pathname))
