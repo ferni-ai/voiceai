@@ -3107,6 +3107,54 @@
       "finance": "Money",
       "location": "Places",
       "events": "Events"
+    },
+    "goals": {
+      "tab": "Goals & habits",
+      "loading": "Gathering your goals and habits...",
+      "loadError": "I couldn't reach your goals just now.",
+      "emptyTitle": "No goals or habits yet",
+      "emptyBody": "Tell me what you're working toward, a habit you're building or a someday dream, and it'll show up here.",
+      "habits": "Habits",
+      "goalsHeading": "Goals",
+      "dreams": "Dreams",
+      "partOf": "Part of {title}",
+      "streak": "{count} in a row",
+      "dueToday": "Due today",
+      "markDone": "Done today",
+      "markDoneAria": "Mark {title} done for today",
+      "progress": "{percent}% there",
+      "target": "By {date}",
+      "notSure": "Still getting a sense of this",
+      "editAria": "Edit {title}",
+      "deleteAria": "Remove {title}",
+      "titleLabel": "Title",
+      "whyLabel": "Why it matters",
+      "statusLabel": "Status",
+      "parentLabel": "Part of",
+      "noParent": "Nothing",
+      "saved": "Saved!",
+      "done": "Nice! Marked done.",
+      "doneStreak": "Nice! That's {count} in a row.",
+      "checkInError": "Couldn't mark that. Try again?",
+      "removeTitle": "Remove this?",
+      "removeBody": "I'll stop keeping \"{title}\" and won't pick it up again from past conversations.",
+      "remove": "Remove",
+      "removed": "Removed.",
+      "removeError": "Couldn't remove that. Try again?",
+      "status": {
+        "active": "Active",
+        "paused": "Paused",
+        "achieved": "Achieved",
+        "letGo": "Let go",
+        "dormant": "Resting"
+      },
+      "frequency": {
+        "daily": "Every day",
+        "weekdays": "Weekdays",
+        "weekends": "Weekends",
+        "weekly": "Weekly",
+        "custom": "Some days"
+      }
     }
   }
 }

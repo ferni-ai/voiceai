@@ -15,6 +15,98 @@ export interface Fact {
   updatedAt: string;
 }
 
+export interface Aspiration {
+  id: string;
+  level: 'dream' | 'goal' | 'habit';
+  title: string;
+  why?: string;
+  status: 'active' | 'paused' | 'achieved' | 'let-go' | 'dormant';
+  parentId: string | null;
+  targetDate?: string;
+  progress?: number;
+  milestones: Array<{ id: string; title: string; done: boolean }>;
+  source: 'explicit' | 'inferred';
+  confirmed: boolean;
+  userEdited: boolean;
+  createdAt: string;
+  updatedAt: string;
+  habit?: {
+    frequency: string;
+    timesPerDay: number;
+    streak: number;
+    longestStreak: number;
+    dueToday: boolean;
+    recentCheckIns: Array<{ date: string; status: 'done' | 'missed'; note?: string }>;
+  };
+}
+
+const ASPIRATION_DEFAULTS = {
+  milestones: [],
+  source: 'explicit' as const,
+  confirmed: true,
+  userEdited: false,
+  createdAt: '2026-09-01T10:00:00.000Z',
+  updatedAt: '2026-09-20T10:00:00.000Z',
+};
+
+export function freshAspirations(): Aspiration[] {
+  return [
+    {
+      ...ASPIRATION_DEFAULTS,
+      id: 'a-sea',
+      level: 'dream',
+      title: 'Live by the sea',
+      why: 'The quiet',
+      status: 'active',
+      parentId: null,
+    },
+    {
+      ...ASPIRATION_DEFAULTS,
+      id: 'a-cello',
+      level: 'dream',
+      title: 'Learn the cello',
+      status: 'dormant',
+      parentId: null,
+      source: 'inferred',
+      confirmed: false,
+    },
+    {
+      ...ASPIRATION_DEFAULTS,
+      id: 'a-race',
+      level: 'goal',
+      title: 'Run a half marathon',
+      status: 'active',
+      parentId: null,
+      progress: 40,
+      targetDate: '2026-10-04',
+    },
+    {
+      ...ASPIRATION_DEFAULTS,
+      id: 'a-calm',
+      level: 'goal',
+      title: 'Feel calmer',
+      status: 'active',
+      parentId: 'a-sea',
+    },
+    {
+      ...ASPIRATION_DEFAULTS,
+      id: 'a-meditate',
+      level: 'habit',
+      title: 'Meditate',
+      status: 'active',
+      parentId: 'a-calm',
+      habit: {
+        frequency: 'daily',
+        timesPerDay: 1,
+        streak: 2,
+        longestStreak: 5,
+        dueToday: true,
+        recentCheckIns: [],
+      },
+    },
+  ];
+}
+
 export interface MockState {
   facts: Fact[];
   people: Array<{
@@ -31,6 +123,7 @@ export interface MockState {
     summary?: string;
     turnCount: number;
   }>;
+  aspirations: Aspiration[];
   failMemories?: boolean;
   requests: Array<{ method: string; path: string; body: unknown }>;
 }
@@ -81,6 +174,7 @@ export function freshState(): MockState {
         turnCount: 6,
       },
     ],
+    aspirations: freshAspirations(),
     requests: [],
   };
 }
@@ -113,6 +207,7 @@ export async function mockMemoryApi(page: Page, state: MockState): Promise<void>
     }
     if (path === '/' && method === 'DELETE') {
       state.facts = [];
+      state.aspirations = [];
       state.people = [];
       state.conversations = [];
       return json(route, { deleted: true });
@@ -142,6 +237,7 @@ export async function mockMemoryApi(page: Page, state: MockState): Promise<void>
       state.people = state.people.filter((p) => p.id !== decodeURIComponent(person[1]!));
       return json(route, { deleted: true });
     }
+    if (path.startsWith('/aspirations')) return handleAspirations(route, state, path, method, body);
     if (path === '/conversations' && method === 'GET') {
       return json(route, { conversations: state.conversations });
     }
@@ -183,4 +279,57 @@ export async function mockMemoryApi(page: Page, state: MockState): Promise<void>
     }
     return json(route, { error: 'Not found' }, 404);
   });
+}
+
+function handleAspirations(
+  route: Route,
+  state: MockState,
+  path: string,
+  method: string,
+  body: unknown
+): Promise<void> {
+  if (path === '/aspirations' && method === 'GET') {
+    return json(route, { aspirations: state.aspirations, timeZone: 'UTC' });
+  }
+  const match = path.match(/^\/aspirations\/([^/]+)(\/check-ins)?$/);
+  const id = match ? decodeURIComponent(match[1]!) : '';
+  const item = state.aspirations.find((a) => a.id === id);
+  if (!match || !item) return json(route, { error: 'Not found' }, 404);
+  if (match[2] && method === 'POST') {
+    const done = (body as { status?: string }).status === 'done';
+    const habit = item.habit!;
+    const updated: Aspiration = {
+      ...item,
+      habit: {
+        ...habit,
+        dueToday: !done,
+        streak: done ? habit.streak + 1 : 0,
+        recentCheckIns: [
+          ...habit.recentCheckIns,
+          { date: '2026-09-21', status: done ? 'done' : 'missed' },
+        ],
+      },
+    };
+    state.aspirations = state.aspirations.map((a) => (a.id === id ? updated : a));
+    return json(route, { aspiration: updated });
+  }
+  if (method === 'PATCH') {
+    const edit = body as Partial<Aspiration> & { why?: string | null };
+    const updated: Aspiration = {
+      ...item,
+      ...edit,
+      why: edit.why ?? undefined,
+      userEdited: true,
+    } as Aspiration;
+    if (edit.why === undefined) updated.why = item.why;
+    state.aspirations = state.aspirations.map((a) => (a.id === id ? updated : a));
+    return json(route, { aspiration: updated });
+  }
+  if (method === 'DELETE') {
+    state.aspirations = state.aspirations
+      .filter((a) => a.id !== id)
+      .map((a) => (a.parentId === id ? { ...a, parentId: null } : a));
+    return json(route, { deleted: true });
+  }
+  return json(route, { error: 'Method not allowed' }, 405);
 }

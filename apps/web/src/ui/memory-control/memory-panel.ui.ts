@@ -5,6 +5,8 @@
  * them, backed by the memory control API (`/api/memory/me/**`):
  * - Memories: learned facts by category plus people, with search, inline
  *   correction and forgetting
+ * - Goals & habits: dreams, goals and habits (linked), editable, habits
+ *   can be marked done
  * - Conversations: past conversations with full transcripts, deletable
  * - Your data: JSON/CSV export and "delete everything"
  *
@@ -24,15 +26,17 @@ import { keepFocusInside } from './confirm-dialog.js';
 import { ConversationsTab } from './conversations-tab.js';
 import { DataTab } from './data-tab.js';
 import { esc } from './format.js';
+import { GoalsTab } from './goals-tab.js';
 import { MemoriesTab } from './memories-tab.js';
 import { injectMemoryPanelStyles } from './memory-panel.styles.js';
 
 const log = createLogger('MemoryPanel');
 
-export type MemoryPanelTab = 'memories' | 'conversations' | 'data';
+export type MemoryPanelTab = 'memories' | 'goals' | 'conversations' | 'data';
 
 const TABS: ReadonlyArray<{ id: MemoryPanelTab; label: () => string }> = [
   { id: 'memories', label: () => t('memoryControl.memoriesTab', 'Memories') },
+  { id: 'goals', label: () => t('memoryControl.goals.tab', 'Goals & habits') },
   { id: 'conversations', label: () => t('memoryControl.conversationsTab', 'Conversations') },
   { id: 'data', label: () => t('memoryControl.dataTab', 'Your data') },
 ];
@@ -47,6 +51,7 @@ class MemoryPanel extends Modal {
   private active: MemoryPanelTab = 'memories';
   private returnFocus: HTMLElement | null = null;
   private memories: MemoriesTab | null = null;
+  private goals: GoalsTab | null = null;
   private conversations: ConversationsTab | null = null;
   private data: DataTab | null = null;
 
@@ -112,6 +117,7 @@ class MemoryPanel extends Modal {
     const panel = (id: MemoryPanelTab): HTMLElement =>
       this.querySelector<HTMLElement>(`#memory-tabpanel-${id}`)!;
     this.memories = new MemoriesTab(panel('memories'));
+    this.goals = new GoalsTab(panel('goals'));
     this.conversations = new ConversationsTab(panel('conversations'));
     this.data = new DataTab(panel('data'));
 
@@ -119,6 +125,7 @@ class MemoryPanel extends Modal {
     this.conversations.onDeleted = () => this.markMemoriesStale();
     this.data.onWiped = () => {
       this.loaded.delete('memories');
+      this.loaded.delete('goals');
       this.loaded.delete('conversations');
     };
 
@@ -151,6 +158,7 @@ class MemoryPanel extends Modal {
 
   private markMemoriesStale(): void {
     this.loaded.delete('memories');
+    this.loaded.delete('goals');
   }
 
   private renderSignInPrompt(): void {
@@ -212,6 +220,8 @@ class MemoryPanel extends Modal {
     this.loaded.add(tab);
     if (tab === 'memories') {
       if (fresh) void this.memories?.load();
+    } else if (tab === 'goals') {
+      if (fresh) void this.goals?.load();
     } else if (tab === 'conversations') {
       void this.conversations?.load(fresh);
     } else {
