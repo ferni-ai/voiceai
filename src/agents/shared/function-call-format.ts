@@ -237,6 +237,12 @@ export const REGISTERED_TOOLS = [
   'setSpokenLanguage',
   'listSupportedLanguages',
   'getCurrentLanguage',
+
+  // ============================================================================
+  // USER PREFERENCE PROFILE (preferences-executor → services/user-preferences)
+  // ============================================================================
+  'setPreference',
+  'getPreferences',
 ] as const;
 
 export type RegisteredToolName = (typeof REGISTERED_TOOLS)[number];

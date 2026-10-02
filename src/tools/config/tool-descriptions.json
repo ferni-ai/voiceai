@@ -3845,12 +3845,12 @@
       "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
     },
     "setPreference": {
-      "description": "Remember user preferences (units, nickname, etc). Use when user says: \"Call me [name]\", \"I prefer Celsius\", \"Use 24-hour time\", \"Remember that I like\".",
-      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+      "description": "Remember or forget how the user likes things: name/pronouns, answer length, tone, directness, humor, follow-up questions, topics not to bring up, quiet hours, coaching style, interests & hobbies, music & shows, food needs (allergies!), tastes and cooking, likes/dislikes, units. Use when user says: \"Call me [name]\", \"I prefer shorter answers\", \"Be more direct\", \"Don't bring up my dad\", \"Don't text me after 9pm\", \"I've gotten into pottery\", \"I listen to jazz when I work\", \"I'm on season 2 of Severance\", \"I'm allergic to peanuts\", \"I'm vegetarian\", \"The lasagna came out too salty\", \"Use Celsius\". Use action \"forget\" for \"forget that I like jazz\".",
+      "file": "src/tools/domains/simple-utilities/preference-tools.ts"
     },
     "getPreferences": {
-      "description": "Show saved user preferences. Use when user asks: \"What are my preferences?\", \"What do you know about me?\", \"What have I set?\".",
-      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+      "description": "Say what Ferni goes by for this user (name, style, boundaries, likes). Use when user asks: \"What do you know about my preferences?\", \"How do I like to be talked to?\", \"What have I set?\".",
+      "file": "src/tools/domains/simple-utilities/preference-tools.ts"
     },
     "tellJoke": {
       "description": "Tell a joke. Use when user says: \"Tell me a joke\", \"Make me laugh\", \"Say something funny\", \"I need a laugh\".",
