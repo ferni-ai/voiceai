@@ -161,7 +161,8 @@ async function execute(
   // RECALL FROM MEMORY (Semantic Search)
   // ========================================
   if (fnLower === 'recallfrommemory') {
-    const topic = args.topic as string;
+    // The prompt documents `query`; the native schema uses `topic`.
+    const topic = (args.topic ?? args.query) as string;
 
     if (!topic) {
       return 'What would you like me to recall?';
@@ -208,6 +209,12 @@ async function execute(
             ? new Date(r.metadata.timestamp as string | number)
             : undefined,
         }));
+
+        // The user's remembered facts and people (dynamic_facts / dynamic_entities), ranked first.
+        const { searchUserFacts } = await import('../../../memory/recall/user-memory-search.js');
+        for (const hit of await searchUserFacts(ctx.userId, topic, { maxItems: 5 })) {
+          memories.push({ content: hit.text, score: 1 + hit.score / 10, timestamp: hit.updatedAt });
+        }
 
         // Also get facts from Firestore
         const { getFirestore } = await import('firebase-admin/firestore');

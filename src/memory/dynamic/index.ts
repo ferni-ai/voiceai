@@ -18,6 +18,7 @@
 // L2: Fast capture (real-time extraction)
 export {
   fastCapture,
+  resetCaptureDedupe,
   detectEntityMentions,
   detectEmotionSignals,
   detectTopicHints,
@@ -41,7 +42,19 @@ export {
   type ExtractedFact,
   type ExtractedRelationship,
   type ExtractionResult,
+  type ExtractionContext,
 } from './deep-extraction-worker.js';
+
+// Fact identity (deterministic ids shared by every dynamic_facts writer)
+export {
+  factIdFor,
+  normalizeFactKey,
+  entityIdFor,
+  relationshipIdFor,
+  factIdForExtracted,
+  type FactKey,
+} from './fact-identity.js';
+export { TOMBSTONES_COLLECTION } from './fact-store.js';
 
 // L1: STM buffer (in-memory session context)
 export {

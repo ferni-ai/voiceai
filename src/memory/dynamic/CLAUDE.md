@@ -67,6 +67,14 @@ User Speech
 |------|---------|
 | `fast-capture.ts` | L2: Real-time regex extraction (< 50ms) |
 | `deep-extraction-worker.ts` | L3: Async LLM-powered extraction (Gemini 1.5 Flash) |
+| `extraction-queue.ts` | Durable job queue (`bogle_users/{uid}/extraction_jobs`): leases, backoff retries, dead letters, startup drain |
+| `extraction-llm.ts` / `extraction-prompts.ts` | LLM extraction steps and prompts |
+| `extraction-context.ts` | Preceding assistant turn as context for the extractor |
+| `extraction-persistence.ts` | Writes one extraction (upserts + history + vector index) |
+| `fact-identity.ts` | Deterministic ids: `factIdFor`, `normalizeFactKey`, `entityIdFor` (shared by every fact writer) |
+| `fact-store.ts` | Transactional upserts: merge, provenance (`sourceConversationIds`), `userEdited` and tombstone rules |
+| `fact-migration.ts` | Planner for `scripts/migrate-dedupe-dynamic-facts.ts` (collapse legacy duplicates) |
+| `capture-dedupe.ts` | Per-turn idempotency for `fastCapture()` |
 | `stm-buffer.ts` | L1: In-memory short-term session context (20-turn FIFO) |
 | `stm-promotion.ts` | L1→L2: Session-end promotion to Firestore |
 | `firestore-spanner-sync.ts` | L2→L3: Background sync to Spanner Graph |
@@ -192,7 +200,9 @@ Three-tier storage with automatic promotion:
 | Collection | Content |
 |------------|---------|
 | `dynamic_entities` | LLM-extracted entities (from deep extraction) |
-| `dynamic_facts` | LLM-extracted facts |
+| `dynamic_facts` | LLM-extracted facts (deterministic ids; `text`, `category`, `confidence`, `sourceConversationIds`, `firstSeenAt`, `updatedAt`, `userEdited`) |
+| `memory_tombstones` | Ids of facts/entities the user deleted; extraction skips them |
+| `extraction_jobs` | Durable deep-extraction queue (deleted on success; `status: 'dead'` after retries) |
 | `dynamic_relationships` | LLM-extracted relationships |
 | `extraction_history` | Metadata about extractions |
 | `promoted_entities` | Frequently mentioned entities (from STM) |

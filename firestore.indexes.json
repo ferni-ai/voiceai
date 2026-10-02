@@ -145,6 +145,22 @@
       ]
     },
     {
+      "collectionGroup": "extraction_jobs",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "availableAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "extraction_jobs",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "leaseExpiresAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "dynamic_relationships",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
