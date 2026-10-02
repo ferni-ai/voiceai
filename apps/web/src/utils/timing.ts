@@ -16,9 +16,6 @@
  *   // RAF Throttle: Sync with animation frames
  *   const rafMove = throttleRAF(handleMouseMove);
  */
-import { createLogger } from '../utils/logger.js';
-
-const log = createLogger('Timing');
 
 
 
@@ -36,7 +33,7 @@ const log = createLogger('Timing');
  *
  * @example
  * const handleScroll = throttle((e) => {
- *   log.info('scrolled', e.target.scrollTop);
+ *   console.log('scrolled', e.target.scrollTop);
  * }, 100);
  */
 export function throttle<T extends (...args: unknown[]) => void>(

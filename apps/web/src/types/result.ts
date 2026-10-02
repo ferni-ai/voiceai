@@ -24,14 +24,11 @@
  * // Use the result
  * const result = await fetchUser('123');
  * if (isOk(result)) {
- *   log.info(result.value.name);
+ *   console.log(result.value.name);
  * } else {
  *   showError(result.error.message);
  * }
  */
-import { createLogger } from '../utils/logger.js';
-
-const log = createLogger('Result');
 
 
 

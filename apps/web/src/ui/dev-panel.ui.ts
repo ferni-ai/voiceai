@@ -5968,15 +5968,13 @@ function viewStorage(): void {
   // NOTE: Using console.group/log intentionally here for developer debugging
   // This is a dev-only feature that displays structured data in browser console
   // eslint-disable-next-line no-console
-  log.debug('${ICONS.package} Ferni Storage');
+  console.group('${ICONS.package} Ferni Storage');
   ferniKeys.forEach((key) => {
     // eslint-disable-next-line no-console
-    log.info(`${key}:`, storageData[key]);
+    console.log(`${key}:`, storageData[key]);
   });
   // eslint-disable-next-line no-console
-  // end group
-
-  log.info({ count: ferniKeys.length }, 'Storage data logged to browser console');
+  console.groupEnd();
   avatarFeedback.info(`${ferniKeys.length} items logged to console`);
 }
 
@@ -6054,9 +6052,9 @@ function exportStorage(): void {
 
   // NOTE: Using console.log intentionally for developer debugging/export
   // eslint-disable-next-line no-console
-  log.info('${ICONS.upload} EXPORT DATA (copy this):');
+  console.log('${ICONS.upload} EXPORT DATA (copy this):');
   // eslint-disable-next-line no-console
-  log.info(jsonData);
+  console.log(jsonData);
 
   // Also copy to clipboard if possible
   navigator.clipboard

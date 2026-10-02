@@ -44,9 +44,6 @@
  */
 
 import { z } from 'zod';
-import { createLogger } from '../utils/logger.js';
-
-const log = createLogger('Schemas');
 
 
 
@@ -291,9 +288,9 @@ export function parseWithErrors<T>(
  * @example
  * const result = safeValidate(UserSchema, apiResponse);
  * if (result.ok) {
- *   log.info(result.value.name);
+ *   console.log(result.value.name);
  * } else {
- *   log.error(result.error);
+ *   console.error(result.error);
  * }
  */
 export function safeValidate<T>(

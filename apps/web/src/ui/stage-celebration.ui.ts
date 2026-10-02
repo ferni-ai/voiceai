@@ -26,13 +26,10 @@ import {
   getTranslatedStageName,
 } from '../services/relationship-stage.service.js';
 import type { StageChangeEvent, RelationshipMemory } from '../services/relationship-stage.service.js';
-import { createLogger } from '../utils/logger.js';
 import {
   DURATION,
   EASING,
 } from '../config/animation-constants.js';
-
-const log = createLogger('StageCelebration');
 
 // ============================================================================
 // LUCIDE ICONS (SVG) - Per Brand Guidelines Section 7
@@ -1245,7 +1242,7 @@ export function showCelebration(event: StageChangeEvent): void {
     audio.volume = 0.3;
     audio.play().catch((e) => {
       // Autoplay blocked or audio unavailable - non-critical
-      if (import.meta.env?.DEV) log.debug('Audio play blocked:', e);
+      if (import.meta.env?.DEV) console.debug('Audio play blocked:', e);
     });
   } catch {
     // Sound initialization failed - non-critical

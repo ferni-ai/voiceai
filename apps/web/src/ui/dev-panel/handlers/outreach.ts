@@ -50,7 +50,7 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
           setStatus('No contact info configured', true);
           log.info('No contact info for user. Set via /api/outreach/contact');
           // eslint-disable-next-line no-console
-          log.info('To set contact info, POST to /api/outreach/contact with:', {
+          console.log('To set contact info, POST to /api/outreach/contact with:', {
             userId,
             phone: '+1234567890',
             email: 'user@example.com',
@@ -200,7 +200,7 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
         const pendingData = (await pendingRes.json()) as { count?: number };
         log.info({ pending: pendingData }, 'Pending outreach');
         // eslint-disable-next-line no-console
-        log.info('[Pending Outreach]', pendingData);
+        console.log('[Pending Outreach]', pendingData);
         setStatus(`${pendingData.count || 0} pending (see console)`);
         break;
       }
@@ -210,7 +210,7 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
         const historyData = (await historyRes.json()) as { count?: number };
         log.info({ history: historyData }, 'Outreach history');
         // eslint-disable-next-line no-console
-        log.info('[Outreach History]', historyData);
+        console.log('[Outreach History]', historyData);
         setStatus(`${historyData.count || 0} in history (see console)`);
         break;
       }
@@ -220,7 +220,7 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
         const contextData = await contextRes.json();
         log.info({ context: contextData }, 'User context');
         // eslint-disable-next-line no-console
-        log.info('[User Context]', contextData);
+        console.log('[User Context]', contextData);
         setStatus('Context loaded (see console)');
         break;
       }
@@ -230,7 +230,7 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
         const timingData = await timingRes.json();
         log.info({ timing: timingData }, 'Timing patterns');
         // eslint-disable-next-line no-console
-        log.info('[Timing Patterns]', timingData);
+        console.log('[Timing Patterns]', timingData);
         setStatus('Timing loaded (see console)');
         break;
       }

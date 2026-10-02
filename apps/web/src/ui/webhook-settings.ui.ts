@@ -15,11 +15,6 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
-import { createLogger } from '../utils/logger.js';
-
-const log = createLogger('WebhookSettings.ui');
-
-
 
 // ============================================================================
 // TYPES
@@ -220,7 +215,7 @@ class WebhookSettingsUI {
         this.siriTokens = tokensRes.data.tokens;
       }
     } catch (error) {
-      if (import.meta.env?.DEV) log.debug('Failed to fetch webhook data:', error);
+      if (import.meta.env?.DEV) console.debug('Failed to fetch webhook data:', error);
     }
 
     this.isLoading = false;
