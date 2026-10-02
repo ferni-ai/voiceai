@@ -30,6 +30,7 @@ import { handlePracticeViewRoutes } from '../../../api/routes/practice-view.js';
 import { handleFinOpsRoutes } from '../../../api/finops-routes.js';
 import { handleConversationCostRoutes } from '../../../api/conversation-cost-routes.js';
 import { handleMemoryRoutes } from '../../../api/memory-routes.js';
+import { handleUserPreferenceRoutes } from '../../../api/user-preferences-routes.js';
 import { handleActionRoutes } from '../../../api/action-routes.js';
 import { handleSemanticIntelligenceRoutes } from '../routes/semantic-intelligence.js';
 import type { RouteContext } from './route-context.js';
@@ -151,6 +152,12 @@ export async function dispatchOperationsRoutes(ctx: RouteContext): Promise<boole
   // Semantic Intelligence routes (Better Than Human V3)
   if (pathname.startsWith('/api/semantic-intelligence')) {
     const handled = await handleSemanticIntelligenceRoutes(req, res, pathname);
+    if (handled) return true;
+  }
+
+  // User preference profile (memory control: /api/memory/me/preferences)
+  if (pathname.startsWith('/api/memory/me/preferences')) {
+    const handled = await handleUserPreferenceRoutes(req, res, pathname);
     if (handled) return true;
   }
 
