@@ -20,6 +20,8 @@ on:
 
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  # Staging uses the dev LiveKit project (ferni-dev), never production
+  LIVEKIT_DEV_URL: wss://dev-8sm1ba0z.livekit.cloud
   GCP_REGION: us-central1
   NODE_VERSION: '20'
   LIVEKIT_AGENTS_VERSION: '1.0.31'
@@ -233,7 +235,8 @@ jobs:
             --concurrency 20 \
             --min-instances 0 \
             --max-instances 2 \
-            --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }}"
+            --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }},LIVEKIT_URL=${{ env.LIVEKIT_DEV_URL }},AGENT_NAME=voice-agent-dev" \
+            --set-secrets "LIVEKIT_API_KEY=livekit-dev-api-key:latest,LIVEKIT_API_SECRET=livekit-dev-api-secret:latest"
           
           URL=$(gcloud run services describe $SERVICE_NAME \
             --region=${{ env.GCP_REGION }} \
@@ -241,9 +244,13 @@ jobs:
           
           echo "url=$URL" >> $GITHUB_OUTPUT
           echo "Staging deployed to: $URL"
+          echo "🚀 Staging deployed to: $URL" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment on PR
         if: needs.context.outputs.is_pr == 'true'
+        # The URL is in the job summary; a token without write access
+        # must not fail the deploy
+        continue-on-error: true
         uses: actions/github-script@v7
         env:
           BRANCH: ${{ needs.context.outputs.branch }}
