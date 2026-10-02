@@ -77,6 +77,23 @@ jobs:
       minBackoffDuration: 30s
       maxBackoffDuration: 60s
 
+  # Personal Insights Refresh - runs daily at 5:20am PT
+  # People profiles, life threads, predictions and openers for recently active users
+  - name: personal-insights-refresh
+    description: Recompute personal insights (people, threads, predictions)
+    schedule: "20 5 * * *"
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/personal-insights-refresh
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 1
+      minBackoffDuration: 60s
+      maxBackoffDuration: 300s
+
   # Superhuman Memory Maintenance - runs nightly at 3am PT
   # LLM link detection, pattern formation, protection cleanup
   - name: memory-nightly-maintenance
