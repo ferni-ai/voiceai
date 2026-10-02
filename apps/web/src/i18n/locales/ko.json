@@ -621,7 +621,10 @@
     "yourTeam": "[NEEDS_TRANSLATION] Your Team",
     "yourTrackedDreams": "[NEEDS_TRANSLATION] Your tracked dreams",
     "zap": "[NEEDS_TRANSLATION] Zap",
-    "zen": "[NEEDS_TRANSLATION] Zen"
+    "zen": "[NEEDS_TRANSLATION] Zen",
+    "quietHoursEnd": "[NEEDS_TRANSLATION] Quiet hours end time",
+    "quietHoursStart": "[NEEDS_TRANSLATION] Quiet hours start time",
+    "verifyPhone": "[NEEDS_TRANSLATION] Verify phone number"
   },
   "addPerson": {
     "addMoreDetails": "Add more details",
@@ -700,7 +703,8 @@
     "connect": "[NEEDS_TRANSLATION] Connect",
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
-    "you": "[NEEDS_TRANSLATION] You"
+    "you": "[NEEDS_TRANSLATION] You",
+    "maybeLater": "[NEEDS_TRANSLATION] Later"
   },
   "confirmModal": {
     "cancel": "Cancel",
@@ -745,6 +749,34 @@
     "verify": {
       "sending": "코드 전송 중...",
       "withCode": "코드로 인증"
+    },
+    "eyebrow": "[NEEDS_TRANSLATION] Stay Connected",
+    "title": "[NEEDS_TRANSLATION] How can I reach you?",
+    "subtitle": "[NEEDS_TRANSLATION] Share your contact info so I can check in, celebrate wins, and be there when you need me.",
+    "phoneLabel": "[NEEDS_TRANSLATION] Text or call me",
+    "emailLabel": "[NEEDS_TRANSLATION] Send me updates",
+    "nameLabel": "[NEEDS_TRANSLATION] What should I call you?",
+    "privacyNote": "[NEEDS_TRANSLATION] I'll only use this for check-ins. Never spam, never shared.",
+    "quietHours": "[NEEDS_TRANSLATION] Quiet Hours",
+    "dontCall": "[NEEDS_TRANSLATION] Don't call",
+    "until": "[NEEDS_TRANSLATION] until",
+    "quietNote": "[NEEDS_TRANSLATION] I'll stay quiet during these hours. If something feels urgent, I might still reach out.",
+    "detectedTimezone": "[NEEDS_TRANSLATION] Your timezone",
+    "verified": "[NEEDS_TRANSLATION] Verified",
+    "sendCode": "[NEEDS_TRANSLATION] Send me a code",
+    "sendingCode": "[NEEDS_TRANSLATION] Sending code...",
+    "codeSent": "[NEEDS_TRANSLATION] I sent a 6-digit code to",
+    "success": "[NEEDS_TRANSLATION] Saved! I'll use this to stay in touch.",
+    "successWithQuiet": "[NEEDS_TRANSLATION] Saved! I'll stay quiet during those hours.",
+    "phoneVerified": "[NEEDS_TRANSLATION] Got it! I'll know your number now.",
+    "errorNoPhone": "[NEEDS_TRANSLATION] Add a phone number first",
+    "errorSendCode": "[NEEDS_TRANSLATION] Couldn't send the code. Try again?",
+    "errorInvalidCode": "[NEEDS_TRANSLATION] That code didn't work. Try again?",
+    "errorVerifyFailed": "[NEEDS_TRANSLATION] Couldn't verify. Want another code?",
+    "errorSave": "[NEEDS_TRANSLATION] Couldn't save that. Try again?",
+    "time": {
+      "am": "[NEEDS_TRANSLATION] AM",
+      "pm": "[NEEDS_TRANSLATION] PM"
     }
   },
   "creativeYou": {
@@ -1141,7 +1173,16 @@
       "togetherSessions": "친구들과 함께",
       "accountBilling": "당신의 기여",
       "manageBilling": "결제 설정",
-      "yourPlan": "당신의 플랜"
+      "yourPlan": "당신의 플랜",
+      "whatsAhead": "[NEEDS_TRANSLATION] What's Ahead",
+      "directorConsole": "[NEEDS_TRANSLATION] Director Console",
+      "memoryLane": "[NEEDS_TRANSLATION] Memory Lane",
+      "patternInsights": "[NEEDS_TRANSLATION] Your Patterns",
+      "conversationInsights": "[NEEDS_TRANSLATION] How We Connect",
+      "growthJournal": "[NEEDS_TRANSLATION] Growth Journal",
+      "knowledgeQuiz": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
+      "soundEffects": "[NEEDS_TRANSLATION] Sound Effects",
+      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule"
     },
     "quickAdd": {
       "person": "새로운 사람",
@@ -2307,19 +2348,69 @@
   },
   "breathing": {
     "tapToBegin": "[NEEDS_TRANSLATION] Tap to begin",
-    "pattern": "[NEEDS_TRANSLATION] Pattern"
+    "pattern": "[NEEDS_TRANSLATION] Pattern",
+    "phases": {
+      "inhale": "[NEEDS_TRANSLATION] Breathe in slowly through your nose",
+      "hold": "[NEEDS_TRANSLATION] Hold gently — you're doing great",
+      "exhale": "[NEEDS_TRANSLATION] Release slowly through your mouth",
+      "rest": "[NEEDS_TRANSLATION] Rest naturally before the next breath",
+      "pause": "휴식..."
+    },
+    "aria": {
+      "secondsRemaining": "[NEEDS_TRANSLATION] Seconds remaining",
+      "startExercise": "[NEEDS_TRANSLATION] Start breathing exercise",
+      "changePattern": "[NEEDS_TRANSLATION] Change breathing pattern"
+    },
+    "info": {
+      "in": "[NEEDS_TRANSLATION] In:",
+      "hold": "[NEEDS_TRANSLATION] Hold:",
+      "out": "[NEEDS_TRANSLATION] Out:"
+    },
+    "secondsRemaining": "남은 시간",
+    "startExercise": "호흡 운동 시작",
+    "changePattern": "호흡 패턴 변경"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
     "saveSelection": "[NEEDS_TRANSLATION] Save Selection",
-    "connecting": "[NEEDS_TRANSLATION] Connecting..."
+    "connecting": "[NEEDS_TRANSLATION] Connecting...",
+    "providers": {
+      "appleInstructions": "appleid.apple.com에 방문하여 앱 특정 비밀번호를 생성하세요.",
+      "connectError": "연결할 수 없습니다. 다시 시도하시겠어요?",
+      "disconnected": "연결 해제됨",
+      "disconnectError": "연결을 해제할 수 없습니다. 다시 시도하시겠어요?",
+      "syncing": "동기화 중...",
+      "synced": "동기화됨!",
+      "syncError": "동기화할 수 없습니다. 다시 시도하시겠어요?",
+      "title": "캘린더 연결"
+    }
   },
   "auth": {
     "preparing": "[NEEDS_TRANSLATION] Preparing authentication...",
     "clickToSignIn": "[NEEDS_TRANSLATION] Click below to sign in with Google",
     "authenticating": "[NEEDS_TRANSLATION] Authenticating with Google...",
     "authenticationSuccessful": "[NEEDS_TRANSLATION] Authentication successful!",
-    "authenticationFailed": "[NEEDS_TRANSLATION] Authentication failed"
+    "authenticationFailed": "[NEEDS_TRANSLATION] Authentication failed",
+    "rememberMe": "[NEEDS_TRANSLATION] Remember me",
+    "rememberMeSubmit": "[NEEDS_TRANSLATION] Remember me",
+    "eyebrow": "[NEEDS_TRANSLATION] OUR RELATIONSHIP",
+    "modalTitle": "[NEEDS_TRANSLATION] Let me remember you",
+    "tagline": "[NEEDS_TRANSLATION] I'll never forget our conversations, your preferences, or the things that matter to you.",
+    "continueWithGoogle": "[NEEDS_TRANSLATION] Continue with Google",
+    "continueWithApple": "[NEEDS_TRANSLATION] Continue with Apple",
+    "orUseEmail": "[NEEDS_TRANSLATION] or use email",
+    "emailLabel": "[NEEDS_TRANSLATION] Email",
+    "passwordLabel": "[NEEDS_TRANSLATION] Password",
+    "privacyNote": "[NEEDS_TRANSLATION] Your data stays private. Always.",
+    "loading": "[NEEDS_TRANSLATION] Just a moment...",
+    "welcomeBack": "[NEEDS_TRANSLATION] Welcome back! I remember everything.",
+    "somethingWentWrong": "[NEEDS_TRANSLATION] Something went wrong",
+    "accountFallback": "[NEEDS_TRANSLATION] Account",
+    "rememberAs": "[NEEDS_TRANSLATION] I'll remember you as",
+    "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
+    "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
+    "rememberSuccess": "알겠습니다! 이제 당신을 기억하겠습니다.",
+    "account": "계정"
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2356,6 +2447,552 @@
     "categories": "[NEEDS_TRANSLATION] Categories",
     "reconnectWith": "[NEEDS_TRANSLATION] Reconnect With",
     "stillLearning": "[NEEDS_TRANSLATION] I'm still learning your patterns. Keep talking.",
-    "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment."
+    "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
+    "energyRings": {
+      "title": "[NEEDS_TRANSLATION] Energy Levels",
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+    },
+    "energy": {
+      "emotional": "[NEEDS_TRANSLATION] Emotional",
+      "mental": "[NEEDS_TRANSLATION] Mental",
+      "physical": "[NEEDS_TRANSLATION] Physical",
+      "thriving": "번성",
+      "energized": "활기 찼음",
+      "balanced": "균형 잡힌",
+      "resting": "휴식",
+      "recovering": "회복 중"
+    },
+    "status": {
+      "thriving": "[NEEDS_TRANSLATION] Thriving",
+      "balanced": "[NEEDS_TRANSLATION] Balanced",
+      "stretched": "[NEEDS_TRANSLATION] Stretched",
+      "depleted": "[NEEDS_TRANSLATION] Depleted",
+      "critical": "[NEEDS_TRANSLATION] Critical"
+    },
+    "moodCalendar": {
+      "title": "[NEEDS_TRANSLATION] Mood Calendar",
+      "subtitle": "[NEEDS_TRANSLATION] Your emotional journey this month",
+      "titleShort": "[NEEDS_TRANSLATION] Mood",
+      "subtitleShort": "[NEEDS_TRANSLATION] This week",
+      "today": "[NEEDS_TRANSLATION] Today",
+      "patternDetected": "[NEEDS_TRANSLATION] Pattern Detected",
+      "calmDays": "[NEEDS_TRANSLATION] calm days",
+      "calmDaysLabel": "[NEEDS_TRANSLATION] Calm Days",
+      "dominant": "[NEEDS_TRANSLATION] Dominant",
+      "trend": "[NEEDS_TRANSLATION] Trend",
+      "compare": "기간 비교",
+      "compareSubtitle": "기분의 나란히 비교",
+      "comparisonInsight": "비교 인사이트"
+    },
+    "lifeTimeline": {
+      "title": "[NEEDS_TRANSLATION] Your Life Chapters",
+      "subtitle": "[NEEDS_TRANSLATION] The story of your journey",
+      "titleShort": "[NEEDS_TRANSLATION] Chapter",
+      "subtitleShort": "[NEEDS_TRANSLATION] Life narrative",
+      "currentChapter": "[NEEDS_TRANSLATION] Current Chapter",
+      "yourJourney": "[NEEDS_TRANSLATION] Your Journey",
+      "theTheme": "[NEEDS_TRANSLATION] The Theme",
+      "throughChapter": "[NEEDS_TRANSLATION] through this chapter"
+    },
+    "capacityGuardian": {
+      "title": "[NEEDS_TRANSLATION] Capacity Guardian",
+      "subtitle": "[NEEDS_TRANSLATION] Your comprehensive energy dashboard",
+      "titleShort": "[NEEDS_TRANSLATION] Capacity",
+      "subtitleShort": "[NEEDS_TRANSLATION] Energy status",
+      "currentStatus": "[NEEDS_TRANSLATION] Current Status",
+      "energyBreakdown": "[NEEDS_TRANSLATION] Energy Breakdown",
+      "trend": "[NEEDS_TRANSLATION] Trend"
+    },
+    "trend": {
+      "recovering": "[NEEDS_TRANSLATION] Recovering",
+      "stable": "[NEEDS_TRANSLATION] Steady",
+      "declining": "[NEEDS_TRANSLATION] Needs attention"
+    },
+    "openLoops": {
+      "title": "[NEEDS_TRANSLATION] Open Loops",
+      "subtitle": "[NEEDS_TRANSLATION] Threads waiting to be closed",
+      "titleShort": "[NEEDS_TRANSLATION] Loops",
+      "subtitleShort": "[NEEDS_TRANSLATION] Open threads",
+      "open": "[NEEDS_TRANSLATION] open",
+      "closedRecently": "[NEEDS_TRANSLATION] closed recently",
+      "summary": "[NEEDS_TRANSLATION] Summary",
+      "closedThisWeek": "[NEEDS_TRANSLATION] closed this week",
+      "highPriority": "[NEEDS_TRANSLATION] High Priority",
+      "otherLoops": "[NEEDS_TRANSLATION] Other Loops",
+      "oldestOpen": "[NEEDS_TRANSLATION] Oldest Open",
+      "totalOpen": "[NEEDS_TRANSLATION] Total Open",
+      "openFor": "[NEEDS_TRANSLATION] Open for"
+    },
+    "sparkline": {
+      "noData": "사용 가능한 데이터 없음",
+      "description": "데이터 스파크라인"
+    },
+    "energyWave": {
+      "title": "에너지 파동",
+      "watchSubtitle": "현재 레벨",
+      "subtitle": "당신의 일일 리듬",
+      "currentEnergy": "현재 에너지",
+      "insights": "오늘의 패턴",
+      "weeklySubtitle": "당신의 주간 리듬 패턴",
+      "weeklyHeatmap": "주간 패턴",
+      "currentStatus": "현재",
+      "energyType": "당신의 패턴",
+      "optimalTimes": "최적 시간",
+      "recommendation": "권장 사항"
+    },
+    "energyType": {
+      "morning": "아침형",
+      "nightOwl": "야행성",
+      "consistent": "일관되고 안정적"
+    },
+    "actionsTaken": {
+      "titleShort": "보살핌",
+      "subtitleShort": "당신을 위해 한 것",
+      "actions": "한 것",
+      "title": "당신을 위해 한 것",
+      "subtitle": "전화, 메시지, 지킨 약속",
+      "empty": "아직 작업 없음",
+      "recent": "최근"
+    }
+  },
+  "sleepSettings": {
+    "title": "[NEEDS_TRANSLATION] Sleep Schedule",
+    "eyebrow": "[NEEDS_TRANSLATION] Ambient Experience",
+    "description": "[NEEDS_TRANSLATION] Help me adjust to your natural rhythm",
+    "wakeTime": "[NEEDS_TRANSLATION] Wake Time",
+    "sleepTime": "[NEEDS_TRANSLATION] Sleep Time",
+    "nightOwl": {
+      "title": "[NEEDS_TRANSLATION] Night Owl",
+      "description": "[NEEDS_TRANSLATION] I'm more active late at night"
+    },
+    "earlyBird": {
+      "title": "[NEEDS_TRANSLATION] Early Bird",
+      "description": "[NEEDS_TRANSLATION] I'm most productive in early morning"
+    },
+    "autoDetect": "[NEEDS_TRANSLATION] Auto-detect",
+    "detecting": "[NEEDS_TRANSLATION] Detecting...",
+    "patternDetected": "[NEEDS_TRANSLATION] Pattern detected!",
+    "notEnoughData": "[NEEDS_TRANSLATION] Not enough data yet",
+    "save": "[NEEDS_TRANSLATION] Save",
+    "saved": "[NEEDS_TRANSLATION] Saved!",
+    "saveError": "[NEEDS_TRANSLATION] Couldn't save. Try again?",
+    "currentPeriod": "[NEEDS_TRANSLATION] Currently: {period}",
+    "periods": {
+      "earlyMorning": "[NEEDS_TRANSLATION] Dawn",
+      "morning": "[NEEDS_TRANSLATION] Morning",
+      "midday": "[NEEDS_TRANSLATION] Midday",
+      "afternoon": "[NEEDS_TRANSLATION] Afternoon",
+      "evening": "[NEEDS_TRANSLATION] Evening",
+      "night": "[NEEDS_TRANSLATION] Night",
+      "lateNight": "[NEEDS_TRANSLATION] Late Night",
+      "deepNight": "[NEEDS_TRANSLATION] Deep Night"
+    },
+    "periodDescriptions": {
+      "earlyMorning": "[NEEDS_TRANSLATION] Gentle awakening",
+      "morning": "[NEEDS_TRANSLATION] Fresh and energetic",
+      "midday": "[NEEDS_TRANSLATION] Clear and focused",
+      "afternoon": "[NEEDS_TRANSLATION] Productive calm",
+      "evening": "[NEEDS_TRANSLATION] Winding down",
+      "night": "[NEEDS_TRANSLATION] Intimate and calm",
+      "lateNight": "[NEEDS_TRANSLATION] Fully present at 2am",
+      "deepNight": "[NEEDS_TRANSLATION] Quiet companion"
+    }
+  },
+  "nowPlaying": {
+    "nowPlaying": "[NEEDS_TRANSLATION] Now playing",
+    "pauseMusic": "[NEEDS_TRANSLATION] Pause music",
+    "resumePlayback": "[NEEDS_TRANSLATION] Resume playback",
+    "trackInfo": "[NEEDS_TRANSLATION] Track info",
+    "addToFavorites": "[NEEDS_TRANSLATION] Add to favorites",
+    "removeFromFavorites": "[NEEDS_TRANSLATION] Remove from favorites",
+    "skipTrack": "[NEEDS_TRANSLATION] Skip track",
+    "skipToNextTrack": "[NEEDS_TRANSLATION] Skip to next track",
+    "volume": "[NEEDS_TRANSLATION] Volume",
+    "adjustVolume": "[NEEDS_TRANSLATION] Adjust volume",
+    "volumeSlider": "[NEEDS_TRANSLATION] Volume slider",
+    "recentlyPlayed": "[NEEDS_TRANSLATION] Recently played",
+    "viewRecentlyPlayed": "[NEEDS_TRANSLATION] View recently played",
+    "albumArt": "[NEEDS_TRANSLATION] Album art"
+  },
+  "musicHistory": {
+    "title": "[NEEDS_TRANSLATION] Music history",
+    "recentlyPlayed": "[NEEDS_TRANSLATION] Recently Played",
+    "closeHistory": "[NEEDS_TRANSLATION] Close history",
+    "openInSpotify": "[NEEDS_TRANSLATION] Open in Spotify",
+    "openFullTrack": "[NEEDS_TRANSLATION] Open full track in Spotify",
+    "albumArtwork": "[NEEDS_TRANSLATION] Album artwork"
+  },
+  "journey": {
+    "yourJourney": "[NEEDS_TRANSLATION] Your Journey with Ferni",
+    "relationshipJourney": "[NEEDS_TRANSLATION] Your relationship journey",
+    "currentStage": "[NEEDS_TRANSLATION] current stage",
+    "mysteryMilestone": "[NEEDS_TRANSLATION] Mystery milestone - keep exploring to discover"
+  },
+  "agentWizard": {
+    "namePlaceholder": "[NEEDS_TRANSLATION] What should we call them?",
+    "displayNamePlaceholder": "[NEEDS_TRANSLATION] e.g., 'Grandma Rose' or 'Dr. Marcus'",
+    "descriptionPlaceholder": "[NEEDS_TRANSLATION] Who are they? What makes them special?",
+    "previewVoice": "[NEEDS_TRANSLATION] Preview {name}'s voice"
+  },
+  "digitalTwin": {
+    "chapterTitlePlaceholder": "[NEEDS_TRANSLATION] Chapter title (e.g., 'College Years')",
+    "chapterYearsPlaceholder": "[NEEDS_TRANSLATION] Years (e.g., '2015-2019')",
+    "chapterDescPlaceholder": "[NEEDS_TRANSLATION] What defined this chapter?",
+    "namePlaceholder": "[NEEDS_TRANSLATION] Name",
+    "relationshipPlaceholder": "[NEEDS_TRANSLATION] Relationship",
+    "formativeExperiencesPlaceholder": "[NEEDS_TRANSLATION] e.g., 'Moving to a new country at 12', 'Starting my own business', 'Becoming a parent'...",
+    "phrasePlaceholder": "[NEEDS_TRANSLATION] The phrase",
+    "phraseContextPlaceholder": "[NEEDS_TRANSLATION] When do you say this?",
+    "greetingPlaceholder": "[NEEDS_TRANSLATION] e.g., 'Hey!', 'What's up?', 'Good to see you!'",
+    "farewellPlaceholder": "[NEEDS_TRANSLATION] e.g., 'Later!', 'Take care', 'Catch you soon'",
+    "exprHappyPlaceholder": "[NEEDS_TRANSLATION] e.g., 'Awesome!', 'That's amazing!'",
+    "exprSadPlaceholder": "[NEEDS_TRANSLATION] e.g., 'That's rough', 'I feel that'",
+    "exprExcitedPlaceholder": "[NEEDS_TRANSLATION] e.g., 'No way!', 'Let's go!'",
+    "exprFrustratedPlaceholder": "[NEEDS_TRANSLATION] e.g., 'Ugh', 'Come on...'",
+    "customValuePlaceholder": "[NEEDS_TRANSLATION] Add a custom value...",
+    "lifePhilosophyPlaceholder": "[NEEDS_TRANSLATION] e.g., 'Life's too short to not pursue what makes you happy', 'Always be learning and growing'...",
+    "whatMattersPlaceholder": "[NEEDS_TRANSLATION] e.g., 'Family time', 'Personal growth', 'Making a difference'...",
+    "passionsPlaceholder": "[NEEDS_TRANSLATION] e.g., 'Photography', 'Cooking for friends', 'Technology', 'Music'...",
+    "hobbiesPlaceholder": "[NEEDS_TRANSLATION] e.g., 'Hiking', 'Reading', 'Gaming', 'Gardening'...",
+    "favoriteTopicsPlaceholder": "[NEEDS_TRANSLATION] e.g., 'Philosophy', 'Current events', 'Sports', 'Movies'...",
+    "avoidTopicsPlaceholder": "[NEEDS_TRANSLATION] e.g., 'Politics', 'Work stress'..."
+  },
+  "forms": {
+    "familyMemberName": "[NEEDS_TRANSLATION] e.g., Mom",
+    "familyPhone": "[NEEDS_TRANSLATION] +1 555 123 4567",
+    "familyPreferredName": "[NEEDS_TRANSLATION] e.g., Barbara (optional)",
+    "familyNotes": "[NEEDS_TRANSLATION] Any helpful context (optional)",
+    "optionalField": "[NEEDS_TRANSLATION] (optional)",
+    "removeFromFamily": "[NEEDS_TRANSLATION] Remove from family",
+    "voiceEnrolled": "[NEEDS_TRANSLATION] Voice enrolled",
+    "dateLabelPlaceholder": "[NEEDS_TRANSLATION] e.g., First date, Graduation",
+    "conversationSummary": "[NEEDS_TRANSLATION] What did you talk about? How did it go?",
+    "durationPlaceholder": "[NEEDS_TRANSLATION] e.g., 30",
+    "topicsPlaceholder": "[NEEDS_TRANSLATION] e.g., work, family, travel plans",
+    "messagePlaceholder": "[NEEDS_TRANSLATION] What would you like to say?",
+    "subjectLinePlaceholder": "[NEEDS_TRANSLATION] Subject line",
+    "appleIdPlaceholder": "[NEEDS_TRANSLATION] yourname@icloud.com",
+    "appPasswordPlaceholder": "[NEEDS_TRANSLATION] xxxx-xxxx-xxxx-xxxx",
+    "chooseCalendars": "[NEEDS_TRANSLATION] Choose calendars"
+  },
+  "calendarSettings": {
+    "title": "[NEEDS_TRANSLATION] Calendar Settings"
+  },
+  "familyIdentities": {
+    "closeModal": "[NEEDS_TRANSLATION] Close"
+  },
+  "panels": {
+    "goBack": "[NEEDS_TRANSLATION] Go back",
+    "close": "[NEEDS_TRANSLATION] Close"
+  },
+  "voiceId": {
+    "enrolledTitle": "[NEEDS_TRANSLATION] Voice ID enrolled - Ferni recognizes your voice",
+    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice"
+  },
+  "languageSwitcher": {
+    "label": "[NEEDS_TRANSLATION] Language",
+    "current": "[NEEDS_TRANSLATION] Current language: {language}",
+    "changeLanguage": "[NEEDS_TRANSLATION] Change language",
+    "selectLanguage": "[NEEDS_TRANSLATION] Select a language"
+  },
+  "giftSeeds": {
+    "title": "[NEEDS_TRANSLATION] Share Some Love",
+    "subtitle": "[NEEDS_TRANSLATION] Send seeds to someone who could use a little encouragement",
+    "sendToLabel": "[NEEDS_TRANSLATION] Send to",
+    "sendToPlaceholder": "[NEEDS_TRANSLATION] Choose a friend",
+    "amountLabel": "[NEEDS_TRANSLATION] Amount",
+    "multiplier": "[NEEDS_TRANSLATION] {sent}/{received} sent/received",
+    "noteLabel": "[NEEDS_TRANSLATION] Add a note",
+    "notePlaceholder": "[NEEDS_TRANSLATION] A little encouragement goes a long way...",
+    "sendButton": "[NEEDS_TRANSLATION] Send Gift",
+    "balance": "[NEEDS_TRANSLATION] Your balance: {amount} seeds",
+    "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
+    "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
+    "sentSuccess": "{sent}개의 씨앗을 보냈습니다! 그들은 {received}개를 받을 거예요",
+    "sendError": "선물을 보낼 수 없습니다. 다시 시도하시겠어요?"
+  },
+  "teamIntro": {
+    "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
+    "title": "[NEEDS_TRANSLATION] Meet Your Team",
+    "subtitle": "[NEEDS_TRANSLATION] Each member of your team brings unique expertise. As you grow, they'll join your journey.",
+    "progressCount": "[NEEDS_TRANSLATION] {count} on your team",
+    "addedButton": "[NEEDS_TRANSLATION] Added!",
+    "alwaysHere": "[NEEDS_TRANSLATION] Always here for you",
+    "inRoster": "[NEEDS_TRANSLATION] In your roster",
+    "addToRoster": "[NEEDS_TRANSLATION] Add to Roster",
+    "members": {
+      "ferni": {
+        "displayName": "[NEEDS_TRANSLATION] Ferni",
+        "role": "[NEEDS_TRANSLATION] Your Personal AI Companion",
+        "description": "[NEEDS_TRANSLATION] I'm here for whatever you need — from daily check-ins to deep conversations.",
+        "unlockHint": "[NEEDS_TRANSLATION] Always by your side",
+        "unlockedMessage": "[NEEDS_TRANSLATION] We've been through a lot together.",
+        "name": "Ferni"
+      },
+      "maya": {
+        "displayName": "[NEEDS_TRANSLATION] Maya",
+        "role": "[NEEDS_TRANSLATION] Habit & Wellness Coach",
+        "description": "[NEEDS_TRANSLATION] I help you build habits that stick and find balance in your daily life.",
+        "unlockHint": "[NEEDS_TRANSLATION] Complete your first weekly check-in",
+        "unlockedMessage": "[NEEDS_TRANSLATION] Ready to build something amazing together.",
+        "name": "Maya Santos"
+      },
+      "peter": {
+        "displayName": "[NEEDS_TRANSLATION] Peter",
+        "role": "[NEEDS_TRANSLATION] Research & Knowledge Guide",
+        "description": "[NEEDS_TRANSLATION] I dive deep into topics that matter to you, bringing clarity to complex questions.",
+        "unlockHint": "[NEEDS_TRANSLATION] Ask Ferni a deep question",
+        "unlockedMessage": "[NEEDS_TRANSLATION] I've been researching some things you'll love.",
+        "name": "Peter John"
+      },
+      "jordan": {
+        "displayName": "[NEEDS_TRANSLATION] Jordan",
+        "role": "[NEEDS_TRANSLATION] Life Planning & Milestones",
+        "description": "[NEEDS_TRANSLATION] I help you celebrate wins, plan ahead, and keep your goals on track.",
+        "unlockHint": "[NEEDS_TRANSLATION] Set your first goal with Ferni",
+        "unlockedMessage": "[NEEDS_TRANSLATION] Let's map out your next chapter.",
+        "name": "Jordan Taylor"
+      },
+      "alex": {
+        "displayName": "[NEEDS_TRANSLATION] Alex",
+        "role": "[NEEDS_TRANSLATION] Communication & Relationships",
+        "description": "[NEEDS_TRANSLATION] I help you navigate conversations, strengthen relationships, and express yourself better.",
+        "unlockHint": "[NEEDS_TRANSLATION] Share a relationship story with Ferni",
+        "unlockedMessage": "[NEEDS_TRANSLATION] I noticed some patterns worth exploring.",
+        "name": "Alex Chen"
+      },
+      "nayan": {
+        "displayName": "[NEEDS_TRANSLATION] Nayan",
+        "role": "[NEEDS_TRANSLATION] Wisdom & Reflection",
+        "description": "[NEEDS_TRANSLATION] I offer perspective from life experience, helping you see the bigger picture.",
+        "unlockHint": "[NEEDS_TRANSLATION] Have 10 conversations with your team",
+        "unlockedMessage": "[NEEDS_TRANSLATION] There's wisdom in your journey. Let me share what I see.",
+        "name": "Nayan"
+      }
+    },
+    "progress": {
+      "start": "[NEEDS_TRANSLATION] Your journey begins...",
+      "growing": "[NEEDS_TRANSLATION] Your team is growing!",
+      "strong": "[NEEDS_TRANSLATION] A strong team by your side",
+      "almost": "[NEEDS_TRANSLATION] Almost everyone is here",
+      "complete": "[NEEDS_TRANSLATION] Your full team awaits",
+      "beginning": "이제 시작했어요",
+      "building": "특별한 무언가 만들기",
+      "deep": "깊은 파트너십"
+    },
+    "footer": {
+      "free": "[NEEDS_TRANSLATION] Start with Ferni, unlock the team as you grow",
+      "basic": "[NEEDS_TRANSLATION] Your team is growing with you",
+      "premium": "[NEEDS_TRANSLATION] Your full team is here for you",
+      "default": "[NEEDS_TRANSLATION] Everyone grows at their own pace",
+      "early": "Ferni와 계속 대화하세요. 우리 관계가 깊어질수록 당신의 팀이 성장합니다.",
+      "onTheWay": "잘 가고 있어요! 우리 여정이 계속되면서 더 많은 팀원이 잠금 해제됩니다.",
+      "growing": "당신의 팀이 성장하고 있습니다. 모두를 잠금 해제하기 위해 몇 가지 마일스톤만 남았습니다.",
+      "complete": "전체 팀을 잠금 해제했습니다! 모두가 당신을 지원하기 위해 여기 있습니다."
+    }
+  },
+  "referral": {
+    "share": {
+      "title": "[NEEDS_TRANSLATION] Ferni — Your AI Life Companion",
+      "message": "[NEEDS_TRANSLATION] I've been using Ferni and it's genuinely changed how I approach my day. Join me! {url}",
+      "shortMessage": "[NEEDS_TRANSLATION] Join me on Ferni! {url}",
+      "emailSubject": "[NEEDS_TRANSLATION] You should try Ferni",
+      "emailBody": "[NEEDS_TRANSLATION] Hey! I've been using Ferni — it's an AI companion that actually feels human. Thought you'd love it. {url}"
+    },
+    "modal": {
+      "title": "[NEEDS_TRANSLATION] Share the Growth",
+      "subtitle": "[NEEDS_TRANSLATION] When friends join, everyone grows",
+      "bonusAmount": "[NEEDS_TRANSLATION] {seeds} bonus seeds",
+      "bonusWhen": "[NEEDS_TRANSLATION] when they join!",
+      "quote": "[NEEDS_TRANSLATION] The best things in life are better shared",
+      "linkLabel": "[NEEDS_TRANSLATION] Your link:"
+    },
+    "buttons": {
+      "share": "[NEEDS_TRANSLATION] Share",
+      "copyLink": "[NEEDS_TRANSLATION] Copy Link",
+      "email": "[NEEDS_TRANSLATION] Email",
+      "text": "[NEEDS_TRANSLATION] Text"
+    },
+    "gardenStats": {
+      "title": "[NEEDS_TRANSLATION] Your referral garden",
+      "friendsGrowing": "[NEEDS_TRANSLATION] {count} friends growing",
+      "seedsEarned": "[NEEDS_TRANSLATION] {seeds} seeds earned",
+      "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
+    },
+    "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
+    "copyError": "복사할 수 없습니다. 다시 시도하시겠어요?"
+  },
+  "conversationMemory": {
+    "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
+    "atTime": "[NEEDS_TRANSLATION] at",
+    "conversationFallback": "[NEEDS_TRANSLATION] Conversation",
+    "demo": {
+      "summary1": "[NEEDS_TRANSLATION] We talked about your morning routine and waking up earlier",
+      "summary2": "[NEEDS_TRANSLATION] You mentioned wanting to build a consistent exercise habit",
+      "summary3": "[NEEDS_TRANSLATION] We explored your goals for the new year",
+      "summary4": "[NEEDS_TRANSLATION] You shared about a difficult conversation with a friend",
+      "summary5": "[NEEDS_TRANSLATION] Talked about feeling overwhelmed and finding balance",
+      "detail1": "[NEEDS_TRANSLATION] You want to wake up at 6:30am",
+      "detail2": "[NEEDS_TRANSLATION] Exercise is important to you but hard to maintain",
+      "detail3": "[NEEDS_TRANSLATION] You're working toward a promotion at work",
+      "detail4": "[NEEDS_TRANSLATION] Your friend Sarah is someone you value deeply",
+      "detail5": "[NEEDS_TRANSLATION] Weekends are your recharge time",
+      "followUp1": "[NEEDS_TRANSLATION] How is the early wake-up going?",
+      "followUp2": "[NEEDS_TRANSLATION] Did you try the exercise habit?"
+    }
+  },
+  "rituals": {
+    "title": "[NEEDS_TRANSLATION] Create Custom Practice",
+    "templateIntro": "[NEEDS_TRANSLATION] Choose a starting point or build from scratch",
+    "customizeTitle": "[NEEDS_TRANSLATION] Make it yours",
+    "calendarTitle": "[NEEDS_TRANSLATION] Add to Calendar",
+    "previewTitle": "[NEEDS_TRANSLATION] Looking good",
+    "keystone": "[NEEDS_TRANSLATION] Keystone",
+    "keystoneTooltip": "[NEEDS_TRANSLATION] Keystone habit - tends to cascade into other positive changes",
+    "startTiny": "[NEEDS_TRANSLATION] Start tiny:",
+    "mayaIntro": "[NEEDS_TRANSLATION] The best practice is one you'll actually do. Start smaller than you think—",
+    "mayaIntroEmphasis": "[NEEDS_TRANSLATION] tiny habits compound into transformation",
+    "bthFooter": "[NEEDS_TRANSLATION] I'll learn your patterns and find the perfect time for your practice.",
+    "fields": {
+      "name": "[NEEDS_TRANSLATION] Give it a name",
+      "description": "[NEEDS_TRANSLATION] What will you do?",
+      "duration": "[NEEDS_TRANSLATION] How long?",
+      "frequency": "[NEEDS_TRANSLATION] How often?",
+      "time": "[NEEDS_TRANSLATION] Best time",
+      "scheduleInCalendar": "[NEEDS_TRANSLATION] Add to your calendar",
+      "specificTime": "[NEEDS_TRANSLATION] Specific time",
+      "reminders": "[NEEDS_TRANSLATION] Remind me"
+    },
+    "placeholders": {
+      "name": "[NEEDS_TRANSLATION] My Morning Practice",
+      "description": "[NEEDS_TRANSLATION] A brief description of what you'll do..."
+    },
+    "buttons": {
+      "preview": "[NEEDS_TRANSLATION] Preview",
+      "edit": "[NEEDS_TRANSLATION] Adjust",
+      "save": "[NEEDS_TRANSLATION] Create Practice",
+      "close": "[NEEDS_TRANSLATION] Close",
+      "back": "[NEEDS_TRANSLATION] Go back",
+      "suggestTimes": "[NEEDS_TRANSLATION] Find best time",
+      "skipCalendar": "[NEEDS_TRANSLATION] Skip calendar"
+    },
+    "calendar": {
+      "enabled": "[NEEDS_TRANSLATION] I'll add this to your calendar with reminders",
+      "disabled": "[NEEDS_TRANSLATION] No calendar events",
+      "loadingSuggestions": "[NEEDS_TRANSLATION] Finding the best times...",
+      "noSuggestions": "[NEEDS_TRANSLATION] No suggestions found",
+      "suggestion": "[NEEDS_TRANSLATION] Your calendar shows this time is usually free",
+      "suggestedTime": "[NEEDS_TRANSLATION] Suggested time"
+    },
+    "validation": {
+      "nameRequired": "[NEEDS_TRANSLATION] Every practice needs a name"
+    },
+    "confirmation": {
+      "created": "[NEEDS_TRANSLATION] Your practice is ready. You've got this.",
+      "withCalendar": "[NEEDS_TRANSLATION] Your practice is scheduled. I'll remind you!"
+    },
+    "frequency": {
+      "daily": "[NEEDS_TRANSLATION] Every day",
+      "weekday": "[NEEDS_TRANSLATION] Weekdays",
+      "weekend": "[NEEDS_TRANSLATION] Weekends",
+      "weekly": "[NEEDS_TRANSLATION] Weekly"
+    },
+    "reminders": {
+      "5min": "[NEEDS_TRANSLATION] 5 min before",
+      "15min": "[NEEDS_TRANSLATION] 15 min before",
+      "30min": "[NEEDS_TRANSLATION] 30 min before",
+      "1hour": "[NEEDS_TRANSLATION] 1 hour before"
+    },
+    "time": {
+      "am": "[NEEDS_TRANSLATION] AM",
+      "pm": "[NEEDS_TRANSLATION] PM"
+    },
+    "preview": {
+      "onCalendar": "[NEEDS_TRANSLATION] On your calendar",
+      "reminderBefore": "[NEEDS_TRANSLATION] Reminder {minutes} min before",
+      "habitLoop": "[NEEDS_TRANSLATION] Your habit loop",
+      "cue": "[NEEDS_TRANSLATION] Cue",
+      "routine": "[NEEDS_TRANSLATION] Routine",
+      "reward": "[NEEDS_TRANSLATION] Reward",
+      "whatToExpect": "[NEEDS_TRANSLATION] What to expect",
+      "noDescription": "[NEEDS_TRANSLATION] No description yet"
+    },
+    "aria": {
+      "chooseTemplate": "[NEEDS_TRANSLATION] Choose {name}"
+    },
+    "templates": {
+      "morningCheckin": {
+        "name": "[NEEDS_TRANSLATION] Morning Check-in",
+        "humanName": "[NEEDS_TRANSLATION] Morning moment",
+        "description": "[NEEDS_TRANSLATION] Start the day with intention",
+        "scienceNote": "[NEEDS_TRANSLATION] Morning intentions improve focus by 31% (Harvard Business Review)",
+        "cue": "[NEEDS_TRANSLATION] After your feet hit the floor",
+        "routine": "[NEEDS_TRANSLATION] Pause, breathe, set one intention",
+        "reward": "[NEEDS_TRANSLATION] Feeling of clarity and control",
+        "stacksWith1": "[NEEDS_TRANSLATION] Gratitude pause",
+        "stacksWith2": "[NEEDS_TRANSLATION] Movement",
+        "tinyVersion": "[NEEDS_TRANSLATION] Just pause and take one conscious breath",
+        "outcomePreview": "[NEEDS_TRANSLATION] In 30 days: More focused mornings, clearer priorities",
+        "mayaGuidance": "[NEEDS_TRANSLATION] This is a keystone habit—it tends to make other good choices easier."
+      },
+      "gratitudeMoment": {
+        "name": "[NEEDS_TRANSLATION] Gratitude Moment",
+        "humanName": "[NEEDS_TRANSLATION] Gratitude pause",
+        "description": "[NEEDS_TRANSLATION] Name three things you appreciate",
+        "scienceNote": "[NEEDS_TRANSLATION] Gratitude practices increase happiness by 25% (UC Berkeley)",
+        "cue": "[NEEDS_TRANSLATION] When you put your phone on the charger at night",
+        "routine": "[NEEDS_TRANSLATION] Name three things—big or small—that were good today",
+        "reward": "[NEEDS_TRANSLATION] Warm feeling of appreciation",
+        "stacksWith1": "[NEEDS_TRANSLATION] Evening wind-down",
+        "stacksWith2": "[NEEDS_TRANSLATION] Journaling",
+        "tinyVersion": "[NEEDS_TRANSLATION] Notice just one good thing from today",
+        "outcomePreview": "[NEEDS_TRANSLATION] In 30 days: Better sleep, more positive outlook",
+        "mayaGuidance": "[NEEDS_TRANSLATION] Evening gratitude helps your brain process the day. Even on hard days, there's always one thing."
+      },
+      "weeklyReview": {
+        "name": "[NEEDS_TRANSLATION] Weekly Review",
+        "humanName": "[NEEDS_TRANSLATION] Weekly reflection",
+        "description": "[NEEDS_TRANSLATION] Reflect on wins and learnings",
+        "scienceNote": "[NEEDS_TRANSLATION] Weekly reflection improves goal achievement by 42% (Dominican University)",
+        "cue": "[NEEDS_TRANSLATION] Sunday morning with coffee/tea",
+        "routine": "[NEEDS_TRANSLATION] Review wins, note learnings, set intentions for the week",
+        "reward": "[NEEDS_TRANSLATION] Sense of progress and direction",
+        "stacksWith1": "[NEEDS_TRANSLATION] Calendar review",
+        "stacksWith2": "[NEEDS_TRANSLATION] Planning session",
+        "tinyVersion": "[NEEDS_TRANSLATION] Write down just one win from the week",
+        "outcomePreview": "[NEEDS_TRANSLATION] In 3 months: Clear sense of progress, better decisions",
+        "mayaGuidance": "[NEEDS_TRANSLATION] This is where the magic happens—seeing patterns over time that daily life hides."
+      },
+      "custom": {
+        "name": "[NEEDS_TRANSLATION] Custom",
+        "humanName": "[NEEDS_TRANSLATION] Start fresh",
+        "scienceNote": "[NEEDS_TRANSLATION] Custom practices built around your life are 3x more likely to stick",
+        "cue": "[NEEDS_TRANSLATION] You choose the trigger",
+        "routine": "[NEEDS_TRANSLATION] You design the practice",
+        "reward": "[NEEDS_TRANSLATION] You define what success feels like",
+        "tinyVersion": "[NEEDS_TRANSLATION] Start with the smallest possible version",
+        "outcomePreview": "[NEEDS_TRANSLATION] A practice that's uniquely yours",
+        "mayaGuidance": "[NEEDS_TRANSLATION] Let's build something that fits your life perfectly. I'll help you make it stick."
+      }
+    }
+  },
+  "marketplace": {
+    "empty": {
+      "search": "결과를 찾을 수 없습니다",
+      "installed": "아직 설치된 에이전트 없음",
+      "browse": "마켓플레이스 둘러보기"
+    },
+    "creations": {
+      "noDescription": "설명 없음"
+    }
+  },
+  "agent": {
+    "type": {
+      "twin": "디지털 쌍둥이",
+      "mentor": "멘토",
+      "fictional": "가상",
+      "professional": "전문가",
+      "legacy": "레거시"
+    }
   }
 }

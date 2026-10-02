@@ -22,7 +22,6 @@ env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
   NODE_VERSION: '20'
-  LIVEKIT_AGENTS_VERSION: '1.0.31'
 
 jobs:
   # ============================================================================
@@ -30,7 +29,7 @@ jobs:
   # ============================================================================
   context:
     name: Determine Context
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     outputs:
       branch: ${{ steps.branch.outputs.name }}
       short_sha: ${{ steps.branch.outputs.short_sha }}
@@ -43,12 +42,17 @@ jobs:
 
       - name: Determine branch
         id: branch
+        # Branch names are chosen by the PR author: read them from env, never
+        # splice them into the script.
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          REQUESTED_BRANCH: ${{ inputs.branch || github.ref_name }}
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BRANCH="${{ github.head_ref }}"
+            BRANCH="$HEAD_REF"
             IS_PR="true"
           else
-            BRANCH="${{ inputs.branch || github.ref_name }}"
+            BRANCH="$REQUESTED_BRANCH"
             IS_PR="false"
           fi
           
@@ -71,7 +75,7 @@ jobs:
   # ============================================================================
   build:
     name: Build & Test
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: context
     
     steps:
@@ -88,15 +92,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-
-      - name: Fix local dependencies for CI
-        run: |
-          # Replace local file: dependencies with npm registry versions
-          # The local agents-js fork is not available in CI
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -134,7 +129,13 @@ jobs:
   # ============================================================================
   deploy-staging:
     name: Deploy Staging
+    # GitHub-hosted on purpose: this job holds GCP_SA_KEY, and the self-hosted CI
+    # runner runs PR code with docker (root) access. See ci.yml.
     runs-on: ubuntu-latest
+    # The repo's default token is read-only; this job's PR comment step needs write.
+    permissions:
+      contents: read
+      pull-requests: write
     needs: [context, build]
     environment:
       name: ${{ needs.context.outputs.env_name }}
@@ -170,15 +171,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Fix local dependencies for CI
-        run: |
-          # Replace local file: dependencies with npm registry versions
-          # The local agents-js fork is not available in CI
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
       - name: Build design-system (required for Docker)
         run: |
           pnpm install --no-frozen-lockfile
@@ -186,6 +178,9 @@ jobs:
 
       - name: Free runner disk space
         # The ui image build ran out of disk (ERR_PNPM_ENOSPC) on ubuntu-latest.
+        # Hosted only: the self-hosted runner has no sudo, and pruning there would
+        # drop the image cache deploy-gce relies on.
+        if: runner.environment == 'github-hosted'
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           docker system prune -af || true
@@ -219,7 +214,11 @@ jobs:
             --concurrency 20 \
             --min-instances 0 \
             --max-instances 2 \
-            --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }}"
+            --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }},LIVEKIT_URL=wss://dev-8sm1ba0z.livekit.cloud" \
+            --set-secrets "LIVEKIT_API_KEY=livekit-dev-api-key:latest,LIVEKIT_API_SECRET=livekit-dev-api-secret:latest"
+          # Previews talk to the DEV LiveKit project, never production. Without
+          # LiveKit settings the server exits at startup ("Missing required
+          # environment variables"), so every preview deploy failed.
           
           URL=$(gcloud run services describe $SERVICE_NAME \
             --region=${{ env.GCP_REGION }} \
@@ -231,6 +230,8 @@ jobs:
       - name: Comment on PR
         if: needs.context.outputs.is_pr == 'true'
         uses: actions/github-script@v7
+        env:
+          BRANCH: ${{ needs.context.outputs.branch }}
         with:
           script: |
             const url = '${{ steps.deploy.outputs.url }}';
@@ -243,7 +244,7 @@ jobs:
             | Staging | [${url}](${url}) |
             
             **Commit:** \`${sha}\`
-            **Branch:** \`${{ needs.context.outputs.branch }}\`
+            **Branch:** \`${process.env.BRANCH}\`
             
             ---
             <sub>This deployment will be cleaned up when the PR is closed.</sub>`;
@@ -280,7 +281,7 @@ jobs:
   # ============================================================================
   smoke-tests:
     name: Smoke Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: [context, deploy-staging]
     
     steps:
@@ -319,6 +320,8 @@ jobs:
   # ============================================================================
   cleanup:
     name: Cleanup Old Staging
+    # GitHub-hosted on purpose: this job holds GCP_SA_KEY, and the self-hosted CI
+    # runner runs PR code with docker (root) access. See ci.yml.
     runs-on: ubuntu-latest
     if: ${{ inputs.cleanup || (github.event_name == 'pull_request' && github.event.action == 'closed') }}
     

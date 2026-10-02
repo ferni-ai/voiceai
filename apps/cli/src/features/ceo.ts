@@ -22,6 +22,7 @@
  *   ferni <command> [options]  (if installed globally)
  */
 
+import { findProjectRoot } from '../utils/project-root.js';
 import { config as dotenvConfig } from 'dotenv';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -29,7 +30,7 @@ import { fileURLToPath } from 'url';
 // Detect if running as SEA binary (shim URL) vs normal execution
 const isSEA = import.meta.url.includes('ferni-sea-binary');
 const __dirname = isSEA ? process.cwd() : dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = isSEA ? process.cwd() : dirname(dirname(__dirname));
+const PROJECT_ROOT = isSEA ? process.cwd() : findProjectRoot();
 
 // Load environment
 dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
