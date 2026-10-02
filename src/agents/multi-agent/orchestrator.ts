@@ -24,6 +24,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
+import { composeOpeningGreeting } from './opening-greeting.js';
 
 // Predictive handoff - pre-briefings for specialist personas
 import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
@@ -236,72 +237,12 @@ export class AgentOrchestrator {
       // OPTIMIZATION: Removed 100ms delay - session is ready by the time this is called
       // The delay was causing noticeable lag before Ferni speaks
 
-      // Import the warm greeting generator (already has per-persona, time-aware, randomized greetings)
-      const { generateWarmGreeting } = await import('../shared/warm-greeting.js');
-
-      // Greet the way a friend would after this long and this many talks
-      // (neutral "friend" when the profile has not loaded yet)
-      const { greetingFamiliarity } = await import('../shared/greeting-familiarity.js');
-      const userData = agent.userData as
-        | {
-            userName?: string;
-            timezone?: string;
-            openingFacts?: () => Promise<Record<string, string>>;
-            daysThatMatter?: string | null;
-            daysThatMatterReady?: Promise<void>;
-            services?: { userProfile?: Parameters<typeof greetingFamiliarity>[0] };
-          }
-        | undefined;
-      const { localClock } = await import('../../utils/local-clock.js');
-      const clock = localClock(userData?.timezone);
-      const familiarity = greetingFamiliarity(userData?.services?.userProfile);
-      const ctx = {
-        hour: clock.hour,
-        isReturningUser: familiarity.isReturningUser,
-        relationshipStage: familiarity.relationshipStage,
-      };
-
-      // The scripted greeting is the understudy; the director has the
-      // character say hello in their own words for this caller and hour.
-      const scripted = generateWarmGreeting(agent.personaId, ctx);
-      const { directedText } = await import('../../speech/direction/index.js');
-      const partOfDay = clock.partOfDay;
-      const userName = userData?.userName;
-      // Something they told you was coming up: a friend opens with it.
-      // A birthday or a hard anniversary today shapes the hello too.
-      const [memoryFacts = {}] = await Promise.all([
-        userData?.openingFacts?.().catch((): Record<string, string> => ({})),
-        Promise.race([
-          userData?.daysThatMatterReady?.catch(() => undefined),
-          new Promise<void>((resolve) => {
-            setTimeout(resolve, 300);
-          }),
-        ]),
-      ]);
-      // The note's middle lines: what the day is and how to be about it
-      const dayThatMatters = userData?.daysThatMatter?.split('\n').slice(1, -1).join(' ');
-      const directed = await directedText(this.sessionId, {
-        moment: 'greeting',
-        direction:
-          'They just connected for a voice call. Greet them like a friend picking up the phone: warm, short, and end with one easy opening. Do not list what you can do or introduce yourself at length.' +
-          (memoryFacts['open thread from last time']
-            ? ' If it fits, the opening can be the open thread from last time: work out from when it was said whether it has happened, and ask how it went or how it is going.'
-            : '') +
-          (memoryFacts['how your last call felt']
-            ? ' Let how the last call felt shape your hello: if it was heavy, open gently and check in on them first.'
-            : ''),
-        facts: {
-          'time of day': partOfDay,
-          ...(userName ? { 'their name': userName } : {}),
-          ...memoryFacts,
-          ...(dayThatMatters ? { 'a day that matters to them': dayThatMatters } : {}),
-          ...familiarity.facts,
-        },
-        fallback: scripted,
-        urgency: 'now',
-        maxChars: 140,
-      });
-      const greeting = directed.text;
+      // Warm, time-aware, directed greeting for this caller (opening-greeting.ts)
+      const greeting = await composeOpeningGreeting(
+        this.sessionId,
+        agent.personaId,
+        agent.userData
+      );
 
       // ================================================================
       // GREETING AWARENESS: Store greeting so LLM knows what it said

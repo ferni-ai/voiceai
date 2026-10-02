@@ -14,8 +14,7 @@
 import { llm, type stt, voice } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
-import { processAudioStream, utteranceEndsOf } from '../voice-agent/audio-processor.js';
-import { loadVoiceBaseline } from '../../services/trust-systems/voice-prosody-learning.js';
+import { startVoiceAnalysis } from './voice-analysis-tap.js';
 import { z } from 'zod';
 
 import type { ToolContext } from '../../tools/registry/types.js';
@@ -32,17 +31,9 @@ import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
-import {
-  composeTurnReminder,
-  lastExchange,
-  recentAgentReplies,
-  turnStyleReminderEnabled,
-  withTurnStyleReminder,
-} from './turn-style.js';
-import { NAME_WINDOW } from '../../conversation/name-use.js';
-import { replyCues } from './reply-cues.js';
+import { withTurnStyleReminder } from './turn-style.js';
+import { composeReplyReminder } from './reply-reminder.js';
 import type { TurnNotesSource } from '../multi-agent/background-turn-intelligence.js';
-import { getTTSProvider } from '../../speech/tts-gateway/providers/index.js';
 import { filterCaptionStream } from './caption-filter.js';
 import { OpenerGate } from './opener-gate.js';
 
@@ -665,39 +656,9 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   ): Promise<NodeReadableStream<stt.SpeechEvent | string> | null> {
     const [audioForStt, audioForProcessor] = audio.tee();
 
-    const userData = this.session.userData as import('../shared/types.js').UserData | undefined;
-    const sessionId =
-      (userData?.services as { sessionId?: string } | undefined)?.sessionId ?? '';
-    const userId = userData?.userId as string | undefined;
-
-    const sendDataMessage = async (
-      type: string,
-      payload: Record<string, unknown>
-    ): Promise<void> => {
-      try {
-        const { getFrontendPublisher } = await import('../realtime/index.js');
-        const pub = getFrontendPublisher();
-        if (pub?.isConnected()) await pub.sendData(type, payload);
-      } catch {
-        // Non-critical — frontend publisher may not be initialized yet
-      }
-    };
-
-    // Background audio processing — populates userData.voiceEmotion and userData.voiceBiomarkers
-    // The caller's own usual voice, to hear how they sound today against it
-    if (userId) {
-      void loadVoiceBaseline(userId).catch((e) =>
-        log.debug({ error: String(e) }, 'Voice baseline load (non-critical)')
-      );
-    }
-
-    void processAudioStream(audioForProcessor, {
-      sessionId,
-      userId,
-      userData,
-      sendDataMessage,
-      utteranceEnds: utteranceEndsOf(this.session),
-    }).catch((e) => log.debug({ error: String(e) }, 'Audio processor (non-critical)'));
+    // Background audio processing — populates userData.voiceEmotion and
+    // userData.voiceBiomarkers (voice-analysis-tap.ts)
+    startVoiceAnalysis(audioForProcessor, this.session);
 
     return voice.Agent.default.sttNode(this, audioForStt, modelSettings);
   }
@@ -739,19 +700,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
     const userData = this.session.userData as Record<string, unknown> | undefined;
-    const exchange = lastExchange(chatCtx);
-    const sessionId = (userData?.services as { sessionId?: string } | undefined)?.sessionId;
-    const reminder = composeTurnReminder(
-      turnStyleReminderEnabled(),
-      replyCues({
-        userData,
-        sessionId,
-        exchange,
-        recentReplies: recentAgentReplies(chatCtx, NAME_WINDOW),
-        voice: getTTSProvider().voice,
-      }),
-      this.turnNotes?.notesForReply()
-    );
+    const reminder = composeReplyReminder(chatCtx, userData, this.turnNotes);
     const ctx = reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
     const stream = await super.llmNode(ctx, toolCtx, modelSettings);
     if (!stream || process.env.OPENER_GATE === 'off') return stream;
