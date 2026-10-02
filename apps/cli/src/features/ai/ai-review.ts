@@ -1,14 +1,14 @@
 #!/usr/bin/env npx tsx
 /**
  * AI-Powered Code Review
- * 
+ *
  * Uses Gemini to review code changes before committing.
- * 
+ *
  * @module @ferni/cli/ai-review
  */
 
 import { findProjectRoot } from '../../utils/project-root.js';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -47,11 +47,13 @@ async function callGemini(prompt: string, systemPrompt: string): Promise<string>
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_API_KEY not set');
 
+  const model = process.env.AI_REVIEW_MODEL || 'gemini-2.0-flash';
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // Header rather than ?key= so the key never lands in a logged URL.
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${prompt}` }] }],
         generationConfig: { maxOutputTokens: 4096, temperature: 0.2 },
@@ -60,7 +62,9 @@ async function callGemini(prompt: string, systemPrompt: string): Promise<string>
   );
 
   if (!response.ok) throw new Error(`Gemini API error: ${await response.text()}`);
-  const data = await response.json();
+  const data = (await response.json()) as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+  };
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
@@ -151,22 +155,84 @@ Output format:
 // REVIEW FUNCTIONS
 // =============================================================================
 
-async function getDiff(staged = true): Promise<string> {
-  const cmd = staged ? 'git diff --cached' : 'git diff';
-  const diff = execSync(cmd, { encoding: 'utf8', cwd: PROJECT_ROOT });
-  
-  if (!diff.trim()) {
-    return '';
+/**
+ * What to review. `base` diffs HEAD against a ref (CI sets REVIEW_BASE_REF to the
+ * PR's base branch: a fresh checkout has no staged or unstaged changes, so
+ * without it every PR review saw an empty diff). Locally: staged, else unstaged.
+ */
+export type DiffScope = { kind: 'base'; ref: string } | { kind: 'staged' } | { kind: 'unstaged' };
+
+export type ReviewStatus = 'reviewed' | 'no-changes' | 'failed';
+
+let criticalTotal = 0;
+
+export function diffArgs(scope: DiffScope, namesOnly = false): string[] {
+  const names = namesOnly ? ['--name-only'] : [];
+  if (scope.kind === 'base') {
+    if (!scope.ref || scope.ref.startsWith('-')) throw new Error(`Invalid base ref: ${scope.ref}`);
+    return ['diff', ...names, `${scope.ref}...HEAD`];
   }
-  
-  // Truncate if too long
-  const maxLength = 15000;
-  return diff.length > maxLength 
-    ? diff.substring(0, maxLength) + '\n\n... (truncated, review first 15k chars)'
+  return ['diff', ...names, ...(scope.kind === 'staged' ? ['--cached'] : [])];
+}
+
+const MAX_DIFF_LENGTH = 15000;
+
+export function getDiff(scope: DiffScope, cwd: string = PROJECT_ROOT): string {
+  const diff = execFileSync('git', diffArgs(scope), {
+    encoding: 'utf8',
+    cwd,
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  if (!diff.trim()) return '';
+  return diff.length > MAX_DIFF_LENGTH
+    ? diff.substring(0, MAX_DIFF_LENGTH) + '\n\n... (truncated, review first 15k chars)'
     : diff;
 }
 
-async function reviewCode(type: 'general' | 'security' | 'perf' = 'general'): Promise<void> {
+/** The first scope with changes, or null when there is nothing to review. */
+function findChanges(cwd: string = PROJECT_ROOT): { scope: DiffScope; diff: string } | null {
+  const baseRef = process.env.REVIEW_BASE_REF;
+  const scopes: DiffScope[] = baseRef
+    ? [{ kind: 'base', ref: baseRef }]
+    : [{ kind: 'staged' }, { kind: 'unstaged' }];
+  for (const scope of scopes) {
+    const diff = getDiff(scope, cwd);
+    if (diff) return { scope, diff };
+  }
+  return null;
+}
+
+const EMPTY_ITEM = /^(none|n\/a|no (critical )?(issues?|vulnerabilities|problems)( found)?)\.?$/i;
+
+/**
+ * Count list items under headings marked 🔴 or 🟡. The prompts ask for those
+ * headings even when a section is empty, so counting the emoji itself would flag
+ * every review; items reading "None" don't count.
+ */
+export function countIssues(review: string, marker: '🔴' | '🟡'): number {
+  let inSection = false;
+  let count = 0;
+  for (const raw of review.split('\n')) {
+    const line = raw.trim();
+    if (line.startsWith('#')) {
+      inSection = line.includes(marker);
+      continue;
+    }
+    const item = line.match(/^(?:[-*•]|\d+[.)])\s+(.*)$/);
+    if (inSection && item && !EMPTY_ITEM.test(item[1].replace(/[*_`]/g, '').trim())) count++;
+  }
+  return count;
+}
+
+/** Worst status across several reviews: any failure fails, all empty is no-changes. */
+export function combineStatuses(statuses: ReviewStatus[]): ReviewStatus {
+  if (statuses.length === 0 || statuses.includes('failed')) return 'failed';
+  return statuses.every((s) => s === 'no-changes') ? 'no-changes' : 'reviewed';
+}
+
+async function reviewCode(
+  type: 'general' | 'security' | 'perf' = 'general'
+): Promise<ReviewStatus> {
   const titles = {
     general: '🤖 AI Code Review',
     security: '🔒 Security Review',
@@ -181,22 +247,22 @@ async function reviewCode(type: 'general' | 'security' | 'perf' = 'general'): Pr
 
   console.log(`\n${colors.bold}${colors.cyan}${titles[type]}${colors.reset}\n`);
 
-  const diff = await getDiff(true);
-  
-  if (!diff) {
-    // Try unstaged
-    const unstagedDiff = await getDiff(false);
-    if (!unstagedDiff) {
-      log.warn('No changes to review. Make some changes first.');
-      return;
-    }
-    log.info('No staged changes. Reviewing unstaged changes...');
+  let changes: ReturnType<typeof findChanges>;
+  try {
+    changes = findChanges();
+  } catch (error) {
+    log.error(`Couldn't read the diff: ${error}`);
+    return 'failed';
   }
+  if (!changes) {
+    log.warn('No changes to review. Make some changes first.');
+    return 'no-changes';
+  }
+  if (changes.scope.kind === 'unstaged')
+    log.info('No staged changes. Reviewing unstaged changes...');
 
-  const finalDiff = diff || await getDiff(false);
-  
-  // Get file list
-  const files = execSync(diff ? 'git diff --cached --name-only' : 'git diff --name-only', {
+  const finalDiff = changes.diff;
+  const files = execFileSync('git', diffArgs(changes.scope, true), {
     encoding: 'utf8',
     cwd: PROJECT_ROOT,
   });
@@ -204,19 +270,17 @@ async function reviewCode(type: 'general' | 'security' | 'perf' = 'general'): Pr
   log.info(`Reviewing ${files.trim().split('\n').length} file(s)...`);
 
   try {
-    const review = await callGemini(
-      `Review this code diff:\n\n${finalDiff}`,
-      prompts[type]
-    );
+    const review = await callGemini(`Review this code diff:\n\n${finalDiff}`, prompts[type]);
 
     console.log(`\n${colors.dim}${'─'.repeat(60)}${colors.reset}`);
     console.log(formatReview(review));
     console.log(`${colors.dim}${'─'.repeat(60)}${colors.reset}\n`);
 
     // Count issues
-    const criticalCount = (review.match(/🔴/g) || []).length;
-    const warningCount = (review.match(/🟡/g) || []).length;
-    
+    const criticalCount = countIssues(review, '🔴');
+    const warningCount = countIssues(review, '🟡');
+    criticalTotal += criticalCount;
+
     if (criticalCount > 0) {
       log.error(`Found ${criticalCount} critical issue(s) - please fix before committing`);
     } else if (warningCount > 0) {
@@ -224,8 +288,10 @@ async function reviewCode(type: 'general' | 'security' | 'perf' = 'general'): Pr
     } else {
       log.success('Code looks good!');
     }
+    return review.trim() ? 'reviewed' : 'failed';
   } catch (error) {
     log.error(`Review failed: ${error}`);
+    return 'failed';
   }
 }
 
@@ -245,42 +311,48 @@ function formatReview(review: string): string {
 
 export async function handleAIReview(args: string[]): Promise<void> {
   const subcommand = args[0] || 'all';
+  const statuses: ReviewStatus[] = [];
+  criticalTotal = 0;
 
   if (!process.env.GOOGLE_API_KEY) {
     log.error('GOOGLE_API_KEY not set');
-    return;
+    statuses.push('failed');
+  } else {
+    switch (subcommand) {
+      case 'all':
+      case 'general':
+        statuses.push(await reviewCode('general'));
+        break;
+
+      case 'security':
+      case 'sec':
+        statuses.push(await reviewCode('security'));
+        break;
+
+      case 'perf':
+      case 'performance':
+        statuses.push(await reviewCode('perf'));
+        break;
+
+      case 'full':
+        statuses.push(await reviewCode('general'));
+        console.log('\n');
+        statuses.push(await reviewCode('security'));
+        console.log('\n');
+        statuses.push(await reviewCode('perf'));
+        break;
+
+      default:
+        console.log(`${colors.bold}AI Code Review:${colors.reset}\n`);
+        console.log(`  ${colors.cyan}all${colors.reset}       General code review`);
+        console.log(`  ${colors.cyan}security${colors.reset}  Security-focused review`);
+        console.log(`  ${colors.cyan}perf${colors.reset}      Performance-focused review`);
+        console.log(`  ${colors.cyan}full${colors.reset}      Run all three reviews`);
+        return;
+    }
   }
 
-  switch (subcommand) {
-    case 'all':
-    case 'general':
-      await reviewCode('general');
-      break;
-    
-    case 'security':
-    case 'sec':
-      await reviewCode('security');
-      break;
-    
-    case 'perf':
-    case 'performance':
-      await reviewCode('perf');
-      break;
-    
-    case 'full':
-      await reviewCode('general');
-      console.log('\n');
-      await reviewCode('security');
-      console.log('\n');
-      await reviewCode('perf');
-      break;
-    
-    default:
-      console.log(`${colors.bold}AI Code Review:${colors.reset}\n`);
-      console.log(`  ${colors.cyan}all${colors.reset}       General code review`);
-      console.log(`  ${colors.cyan}security${colors.reset}  Security-focused review`);
-      console.log(`  ${colors.cyan}perf${colors.reset}      Performance-focused review`);
-      console.log(`  ${colors.cyan}full${colors.reset}      Run all three reviews`);
-  }
+  // Machine-readable for the PR workflow, which must not report a review that never ran as clean.
+  console.log(`AI_REVIEW_STATUS=${combineStatuses(statuses)}`);
+  console.log(`AI_REVIEW_CRITICAL=${criticalTotal}`);
 }
-
