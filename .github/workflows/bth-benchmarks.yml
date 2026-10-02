@@ -36,6 +36,10 @@ jobs:
     name: BTH Capability Benchmark
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # The repo's default token is read-only; the PR comment step needs to write.
+    permissions:
+      contents: read
+      pull-requests: write
 
     outputs:
       has_regressions: ${{ steps.benchmark.outputs.has_regressions }}
@@ -171,7 +175,7 @@ jobs:
               ? `❌ **BTH Benchmark Regressions Detected**\n\nOne or more BTH capabilities have regressed. Please review the [benchmark results](${runUrl}).`
               : '✅ **BTH Benchmarks Passed**\n\nAll BTH capabilities are stable. No regressions detected.';
 
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
