@@ -230,10 +230,17 @@ jobs:
   # INTEGRATION TESTS (Slower - ~2-5 minutes)
   # ============================================================================
   test-integration:
-    name: Integration Tests
+    name: Integration Tests (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: setup
+    # Since the repo went private (2026-09-27) its runners are smaller: the
+    # suite ran at ~1 worker and passed 30 minutes, where it took ~11 before.
+    # Three shards in parallel cost about the same minutes and finish sooner.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -259,8 +266,8 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Run integration tests
-        # hanging-process names the open handles if a worker never exits.
-        run: pnpm test:integration -- --reporter=verbose --reporter=hanging-process
+        # No `--`: pnpm would pass it through and vitest ignores every flag after it.
+        run: pnpm test:integration --shard=${{ matrix.shard }}/3 --reporter=verbose
         env:
           NODE_ENV: test
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
@@ -289,7 +296,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
-          flags: integration
+          flags: integration-${{ matrix.shard }}
           fail_ci_if_error: false
 
   # ============================================================================
