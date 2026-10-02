@@ -1,23 +1,17 @@
 /**
  * Unified Conversation Integration
  *
- * Single entry point for all conversation humanization in the voice agent.
- * This replaces the multiple scattered calls to various orchestrators.
+ * Session lifecycle for conversation humanization in the voice agent. Creating a
+ * session starts the humanization and advanced-humanization session state that
+ * the pre-LLM turn reads; ending it cleans that state up.
  *
  * Usage:
  * ```typescript
  * // At session start
- * const session = createConversationSession(sessionId, userId, personaId);
+ * const session = createConversationSession({ sessionId, userId, personaId });
  *
- * // For each turn
- * const result = await session.processTurn({
- *   userMessage,
- *   rawResponse,
- *   emotion,
- *   topic,
- * });
- *
- * // Use result.text and result.ssml for TTS
+ * // At session end
+ * endConversationSession(sessionId);
  * ```
  *
  * @module @ferni/conversation/unified-integration
@@ -25,23 +19,12 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 
-// Unified orchestrator (the single source of truth)
-import {
-  getConversationOrchestrator,
-  resetConversationOrchestrator,
-  type ConversationOrchestrator,
-  type OrchestratorInput,
-  type OrchestratorOutput,
-} from './orchestrator/index.js';
-
 // Session lifecycle management
 import {
   onSessionStart as startHumanizationSession,
   onSessionEnd as endHumanizationSession,
-  processUserMessage,
   recordComfortEvent,
   getSessionState,
-  type HumanizationSessionState,
 } from './humanization/voice-agent-integration.js';
 
 // Advanced humanization (10 deep capabilities)
@@ -49,7 +32,6 @@ import {
   initAdvancedHumanization,
   cleanupAdvancedHumanization,
   getAdvancedHumanizationState,
-  type SessionStartResult,
 } from './advanced-humanization-integration.js';
 
 // Signal emitter for frontend EQ
@@ -69,37 +51,6 @@ export interface ConversationSessionConfig {
   relationshipStage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
 }
 
-export interface TurnInput {
-  userMessage: string;
-  rawResponse: string;
-  userEmotion?: string;
-  topic?: string;
-  wasPersonalSharing?: boolean;
-  isSeriousContext?: boolean;
-  sessionData?: Record<string, unknown>;
-}
-
-export interface TurnResult {
-  // Final humanized output
-  text: string;
-  ssml: string;
-
-  // What was applied
-  appliedFeatures: string[];
-
-  // Guidance for delivery
-  pacing: 'faster' | 'normal' | 'slower';
-  emotionalTone?: string;
-
-  // Optional additions
-  memoryCallback?: { text: string; ssml: string };
-  followUpQuestion?: { text: string; ssml: string };
-
-  // Meta
-  confidence: number;
-  timing: { total: number; analysis: number; intelligence: number; humanization: number };
-}
-
 export interface ConversationSession {
   // Session info
   sessionId: string;
@@ -110,9 +61,6 @@ export interface ConversationSession {
   getState: () => SessionState;
   getTurnCount: () => number;
   getComfortLevel: () => number;
-
-  // Main processing
-  processTurn: (input: TurnInput) => Promise<TurnResult>;
 
   // Event recording
   recordVulnerability: () => void;
@@ -147,7 +95,6 @@ class ConversationSessionImpl implements ConversationSession {
   readonly userId: string;
   readonly personaId: string;
 
-  private orchestrator: ConversationOrchestrator;
   private startTime: number;
   private turnCount = 0;
   private comfortLevel = 0.25;
@@ -162,10 +109,6 @@ class ConversationSessionImpl implements ConversationSession {
     this.sessionCount = config.sessionCount ?? 0;
     this.relationshipStage = config.relationshipStage ?? 'acquaintance';
     this.startTime = Date.now();
-
-    // Initialize the unified orchestrator
-    this.orchestrator = getConversationOrchestrator(this.sessionId);
-    this.orchestrator.setPersona(this.personaId);
 
     // Initialize humanization session
     startHumanizationSession(this.sessionId, this.userId, this.personaId, {
@@ -216,48 +159,6 @@ class ConversationSessionImpl implements ConversationSession {
     return getSessionState(this.sessionId)?.comfortLevel ?? this.comfortLevel;
   }
 
-  async processTurn(input: TurnInput): Promise<TurnResult> {
-    this.turnCount++;
-
-    // Update topics
-    if (input.topic) {
-      this.recentTopics.unshift(input.topic);
-      if (this.recentTopics.length > 5) {
-        this.recentTopics.pop();
-      }
-    }
-
-    // Process user message through humanization subsystems
-    processUserMessage(this.sessionId, input.userMessage, {
-      voiceEmotion: input.userEmotion ? { primary: input.userEmotion, confidence: 0.8 } : undefined,
-      topic: input.topic,
-    });
-
-    // Build orchestrator input
-    const orchestratorInput: OrchestratorInput = {
-      personaId: this.personaId,
-      sessionId: this.sessionId,
-      userId: this.userId,
-      turnNumber: this.turnCount,
-      sessionMinutes: Math.floor((Date.now() - this.startTime) / 60000),
-      sessionCount: this.sessionCount,
-      userMessage: input.userMessage,
-      userEmotion: input.userEmotion,
-      topic: input.topic,
-      rawResponse: input.rawResponse,
-      wasPersonalSharing: input.wasPersonalSharing,
-      isSeriousContext: input.isSeriousContext,
-      relationshipStage: this.relationshipStage,
-      sessionData: input.sessionData,
-    };
-
-    // Run unified orchestration
-    const output = await this.orchestrator.orchestrate(orchestratorInput);
-
-    // Map to result
-    return this.mapToResult(output);
-  }
-
   recordVulnerability(): void {
     recordComfortEvent(this.sessionId, 'user_shared_vulnerability');
     void humanizationSignalEmitter.vulnerability(0.8);
@@ -275,36 +176,9 @@ class ConversationSessionImpl implements ConversationSession {
     // Cleanup
     endHumanizationSession(this.sessionId);
     cleanupAdvancedHumanization(this.sessionId);
-    resetConversationOrchestrator(this.sessionId);
     activeSessions.delete(this.sessionId);
 
     log.info({ sessionId: this.sessionId, turns: this.turnCount }, '🎭 Session ended');
-  }
-
-  private mapToResult(output: OrchestratorOutput): TurnResult {
-    // Extract confidence from metadata
-    const confidence = output.metadata?.confidence?.overall ?? 0.5;
-
-    return {
-      text: output.text,
-      ssml: output.ssml,
-      // appliedFeatures is string[] in OrchestratorOutput
-      appliedFeatures: output.appliedFeatures ?? [],
-      // pacing is at top level
-      pacing: output.pacing ?? 'normal',
-      // emotionalGuidance is at top level
-      emotionalTone: output.emotionalGuidance?.suggestedTone,
-      // Additions are at top level
-      memoryCallback: output.memoryCallback,
-      followUpQuestion: output.followUpQuestion,
-      confidence,
-      timing: output.metadata?.timing ?? {
-        total: 0,
-        analysis: 0,
-        intelligence: 0,
-        humanization: 0,
-      },
-    };
   }
 
   private mapRelationshipDepth(stage: string): 'new' | 'developing' | 'established' | 'deep' {
@@ -360,39 +234,4 @@ export function endConversationSession(sessionId: string): void {
  */
 export function getActiveSessions(): string[] {
   return Array.from(activeSessions.keys());
-}
-
-// ============================================================================
-// CONVENIENCE: Quick humanization without session management
-// ============================================================================
-
-/**
- * Quick one-shot humanization (for testing or simple use cases)
- * Prefer createConversationSession for production use
- */
-export async function quickHumanize(
-  rawResponse: string,
-  context: {
-    personaId: string;
-    userMessage: string;
-    userEmotion?: string;
-    topic?: string;
-    turnNumber?: number;
-  }
-): Promise<{ text: string; ssml: string }> {
-  const orchestrator = getConversationOrchestrator('quick-session');
-  orchestrator.setPersona(context.personaId);
-
-  const output = await orchestrator.orchestrate({
-    personaId: context.personaId,
-    sessionId: 'quick-session',
-    turnNumber: context.turnNumber ?? 1,
-    sessionMinutes: 0,
-    userMessage: context.userMessage,
-    userEmotion: context.userEmotion,
-    topic: context.topic,
-    rawResponse,
-  });
-
-  return { text: output.text, ssml: output.ssml };
 }
