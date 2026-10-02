@@ -714,19 +714,15 @@ export function getAdvancedHumanization(
  * Reset advanced humanization for session
  */
 export function resetAdvancedHumanization(sessionId: string, userId: string): void {
-  const key = `${sessionId}:${userId}`;
-  const orchestrator = orchestrators.get(key);
-  if (orchestrator) {
-    orchestrator.resetSession();
-  }
+  orchestrators.get(`${sessionId}:${userId}`)?.resetSession();
 }
 
 /**
- * Clear advanced humanization instance
+ * Reset the session's orchestrator and forget it (when the call ends).
  */
 export function clearAdvancedHumanization(sessionId: string, userId: string): void {
-  const key = `${sessionId}:${userId}`;
-  orchestrators.delete(key);
+  resetAdvancedHumanization(sessionId, userId);
+  orchestrators.delete(`${sessionId}:${userId}`);
 }
 
 export default AdvancedHumanizationOrchestrator;
