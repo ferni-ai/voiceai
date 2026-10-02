@@ -18,6 +18,9 @@ on:
 permissions:
   contents: read
   security-events: write
+  # CodeQL reads its own workflow run when uploading results; without this the
+  # upload failed with "Resource not accessible by integration".
+  actions: read
 
 jobs:
   # Dependency vulnerability scan
