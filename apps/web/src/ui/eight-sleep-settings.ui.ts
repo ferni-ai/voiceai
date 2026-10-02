@@ -16,58 +16,9 @@ import { apiGet, apiDelete, apiPut } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import type { EightSleepStatus, EightSleepSettingsCallbacks } from './eight-sleep-settings.types.js';
 
 const log = createLogger('EightSleep');
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface SleepSummary {
-  date: string;
-  score: number;
-  sleepDuration: number;
-  sleepEfficiency: number;
-  timeToSleep: number;
-  timesAwake: number;
-  stages: {
-    awake: number;
-    light: number;
-    deep: number;
-    rem: number;
-  };
-  averageHrv: number;
-  averageHeartRate: number;
-  lowestHeartRate: number;
-}
-
-interface TemperatureState {
-  currentLevel: number;
-  targetLevel: number;
-  active: boolean;
-  scheduleEnabled: boolean;
-}
-
-interface Biometrics {
-  averageHrv: number;
-  averageRestingHeartRate: number;
-  averageRespiratoryRate: number;
-  hrvTrend: 'improving' | 'declining' | 'stable';
-}
-
-interface EightSleepStatus {
-  connected: boolean;
-  lastNightSleep?: SleepSummary | null;
-  temperature?: TemperatureState | null;
-  biometrics?: Biometrics | null;
-  error?: string;
-}
-
-interface EightSleepSettingsCallbacks {
-  onClose?: () => void;
-  onConnected?: () => void;
-  onDisconnected?: () => void;
-}
 
 // ============================================================================
 // SAFE DOM HELPERS
