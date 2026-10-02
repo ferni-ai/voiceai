@@ -16,13 +16,14 @@
  *   dist/agents/voice-agent-child.bundle.js
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import * as esbuild from 'esbuild';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
+const PROJECT_ROOT = findProjectRoot();
 
 // ============================================================================
 // CONFIGURATION

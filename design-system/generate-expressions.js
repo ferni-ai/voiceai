@@ -15,6 +15,7 @@
  */
 
 import fs from 'fs';
+import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -836,19 +837,19 @@ function build() {
   // Generate TypeScript
   ensureDirectoryExists(CONFIG.outputs.typescript);
   const tsOutput = generateTypeScript(data);
-  fs.writeFileSync(CONFIG.outputs.typescript, tsOutput);
+  writeIfChanged(CONFIG.outputs.typescript, tsOutput);
   console.log(`  ✅ TypeScript: ${CONFIG.outputs.typescript}`);
 
   // Generate CSS
   ensureDirectoryExists(CONFIG.outputs.css);
   const cssOutput = generateCSS(data);
-  fs.writeFileSync(CONFIG.outputs.css, cssOutput);
+  writeIfChanged(CONFIG.outputs.css, cssOutput);
   console.log(`  ✅ CSS:        ${CONFIG.outputs.css}`);
 
   // Generate iOS JSON
   ensureDirectoryExists(CONFIG.outputs.ios);
   const iosOutput = generateIOSJSON(data);
-  fs.writeFileSync(CONFIG.outputs.ios, iosOutput);
+  writeIfChanged(CONFIG.outputs.ios, iosOutput);
   console.log(`  ✅ iOS JSON:   ${CONFIG.outputs.ios}`);
 
   console.log('\n✅ Expression generation complete!\n');

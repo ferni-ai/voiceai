@@ -14,6 +14,7 @@
  *   npm run env:generate
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { join, dirname, extname, relative } from 'path';
 import { fileURLToPath } from 'url';
@@ -23,7 +24,7 @@ import { fileURLToPath } from 'url';
 // ============================================================================
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
+const PROJECT_ROOT = findProjectRoot();
 
 // Directories to scan
 const SCAN_DIRS = ['src', 'scripts', 'apps/web/src'];

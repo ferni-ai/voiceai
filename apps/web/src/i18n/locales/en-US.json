@@ -2390,7 +2390,8 @@
       "inhale": "Breathe in slowly through your nose",
       "hold": "Hold gently — you're doing great",
       "exhale": "Release slowly through your mouth",
-      "rest": "Rest naturally before the next breath"
+      "rest": "Rest naturally before the next breath",
+      "pause": "Rest..."
     },
     "aria": {
       "secondsRemaining": "Seconds remaining",
@@ -2401,12 +2402,25 @@
       "in": "In:",
       "hold": "Hold:",
       "out": "Out:"
-    }
+    },
+    "secondsRemaining": "Seconds remaining",
+    "startExercise": "Start breathing exercise",
+    "changePattern": "Change breathing pattern"
   },
   "calendar": {
     "saving": "Saving...",
     "saveSelection": "Save Selection",
-    "connecting": "Connecting..."
+    "connecting": "Connecting...",
+    "providers": {
+      "appleInstructions": "Go to appleid.apple.com and generate an app-specific password.",
+      "connectError": "Couldn't connect. Try again?",
+      "disconnected": "Disconnected",
+      "disconnectError": "Couldn't disconnect. Try again?",
+      "syncing": "Syncing...",
+      "synced": "Synced!",
+      "syncError": "Couldn't sync. Try again?",
+      "title": "Calendar Connections"
+    }
   },
   "auth": {
     "preparing": "Preparing authentication...",
@@ -2431,7 +2445,9 @@
     "accountFallback": "Account",
     "rememberAs": "I'll remember you as",
     "forgetDevice": "Forget this device",
-    "forgetDeviceSuccess": "Device forgotten. Your data is safe."
+    "forgetDeviceSuccess": "Device forgotten. Your data is safe.",
+    "rememberSuccess": "Got it! I'll remember you now.",
+    "account": "Account"
   },
   "visualizations": {
     "lifeSeasons": "Your Life Seasons",
@@ -2474,7 +2490,12 @@
     "energy": {
       "emotional": "Emotional",
       "mental": "Mental",
-      "physical": "Physical"
+      "physical": "Physical",
+      "thriving": "Thriving",
+      "energized": "Energized",
+      "balanced": "Balanced",
+      "resting": "Resting",
+      "recovering": "Recovering"
     },
     "status": {
       "thriving": "Thriving",
@@ -2493,7 +2514,10 @@
       "calmDays": "calm days",
       "calmDaysLabel": "Calm Days",
       "dominant": "Dominant",
-      "trend": "Trend"
+      "trend": "Trend",
+      "compare": "Compare Periods",
+      "compareSubtitle": "Side-by-side mood comparison",
+      "comparisonInsight": "Comparison insight"
     },
     "lifeTimeline": {
       "title": "Your Life Chapters",
@@ -2533,6 +2557,37 @@
       "oldestOpen": "Oldest Open",
       "totalOpen": "Total Open",
       "openFor": "Open for"
+    },
+    "sparkline": {
+      "noData": "No data available",
+      "description": "Data sparkline"
+    },
+    "energyWave": {
+      "title": "Energy Wave",
+      "watchSubtitle": "Current level",
+      "subtitle": "Your daily rhythm",
+      "currentEnergy": "Current Energy",
+      "insights": "Today's Pattern",
+      "weeklySubtitle": "Your weekly rhythm patterns",
+      "weeklyHeatmap": "Weekly Pattern",
+      "currentStatus": "Current",
+      "energyType": "Your Pattern",
+      "optimalTimes": "Best Times",
+      "recommendation": "Recommendation"
+    },
+    "energyType": {
+      "morning": "Morning Person",
+      "nightOwl": "Night Owl",
+      "consistent": "Steady & Consistent"
+    },
+    "actionsTaken": {
+      "titleShort": "Care",
+      "subtitleShort": "What I did for you",
+      "actions": "things done",
+      "title": "What I've Done for You",
+      "subtitle": "Calls, messages, and commitments kept",
+      "empty": "No actions yet",
+      "recent": "Recent"
     }
   },
   "nowPlaying": {
@@ -2644,7 +2699,9 @@
     "sendButton": "Send Gift",
     "balance": "Your balance: {amount} seeds",
     "successToast": "Sent {amount} seeds!",
-    "errorToast": "Couldn't send seeds. Try again?"
+    "errorToast": "Couldn't send seeds. Try again?",
+    "sentSuccess": "Sent {sent} seeds! They'll get {received}",
+    "sendError": "Couldn't send gift. Try again?"
   },
   "teamIntro": {
     "eyebrow": "YOUR JOURNEY",
@@ -2661,42 +2718,48 @@
         "role": "Your Personal AI Companion",
         "description": "I'm here for whatever you need — from daily check-ins to deep conversations.",
         "unlockHint": "Always by your side",
-        "unlockedMessage": "We've been through a lot together."
+        "unlockedMessage": "We've been through a lot together.",
+        "name": "Ferni"
       },
       "maya": {
         "displayName": "Maya",
         "role": "Habit & Wellness Coach",
         "description": "I help you build habits that stick and find balance in your daily life.",
         "unlockHint": "Complete your first weekly check-in",
-        "unlockedMessage": "Ready to build something amazing together."
+        "unlockedMessage": "Ready to build something amazing together.",
+        "name": "Maya Santos"
       },
       "peter": {
         "displayName": "Peter",
         "role": "Research & Knowledge Guide",
         "description": "I dive deep into topics that matter to you, bringing clarity to complex questions.",
         "unlockHint": "Ask Ferni a deep question",
-        "unlockedMessage": "I've been researching some things you'll love."
+        "unlockedMessage": "I've been researching some things you'll love.",
+        "name": "Peter John"
       },
       "jordan": {
         "displayName": "Jordan",
         "role": "Life Planning & Milestones",
         "description": "I help you celebrate wins, plan ahead, and keep your goals on track.",
         "unlockHint": "Set your first goal with Ferni",
-        "unlockedMessage": "Let's map out your next chapter."
+        "unlockedMessage": "Let's map out your next chapter.",
+        "name": "Jordan Taylor"
       },
       "alex": {
         "displayName": "Alex",
         "role": "Communication & Relationships",
         "description": "I help you navigate conversations, strengthen relationships, and express yourself better.",
         "unlockHint": "Share a relationship story with Ferni",
-        "unlockedMessage": "I noticed some patterns worth exploring."
+        "unlockedMessage": "I noticed some patterns worth exploring.",
+        "name": "Alex Chen"
       },
       "nayan": {
         "displayName": "Nayan",
         "role": "Wisdom & Reflection",
         "description": "I offer perspective from life experience, helping you see the bigger picture.",
         "unlockHint": "Have 10 conversations with your team",
-        "unlockedMessage": "There's wisdom in your journey. Let me share what I see."
+        "unlockedMessage": "There's wisdom in your journey. Let me share what I see.",
+        "name": "Nayan"
       }
     },
     "progress": {
@@ -2704,13 +2767,20 @@
       "growing": "Your team is growing!",
       "strong": "A strong team by your side",
       "almost": "Almost everyone is here",
-      "complete": "Your full team awaits"
+      "complete": "Your full team awaits",
+      "beginning": "We're just getting started",
+      "building": "Building something special",
+      "deep": "Deep partnership"
     },
     "footer": {
       "free": "Start with Ferni, unlock the team as you grow",
       "basic": "Your team is growing with you",
       "premium": "Your full team is here for you",
-      "default": "Everyone grows at their own pace"
+      "default": "Everyone grows at their own pace",
+      "early": "Keep talking to Ferni. Your team grows as your relationship deepens.",
+      "onTheWay": "You're on your way! More team members unlock as we continue our journey.",
+      "growing": "Your team is growing. Just a few more milestones to unlock everyone.",
+      "complete": "You've unlocked the full team! Everyone's here to support you."
     }
   },
   "referral": {
@@ -2741,7 +2811,8 @@
       "seedsEarned": "{seeds} seeds earned",
       "emptyState": "Plant your first seed"
     },
-    "errorClipboard": "Couldn't copy. Try again?"
+    "errorClipboard": "Couldn't copy. Try again?",
+    "copyError": "Couldn't copy. Try again?"
   },
   "conversationMemory": {
     "demoBanner": "Demo mode - showing example data",
@@ -2895,6 +2966,25 @@
         "outcomePreview": "A practice that's uniquely yours",
         "mayaGuidance": "Let's build something that fits your life perfectly. I'll help you make it stick."
       }
+    }
+  },
+  "marketplace": {
+    "empty": {
+      "search": "No results found",
+      "installed": "No agents installed yet",
+      "browse": "Browse our marketplace"
+    },
+    "creations": {
+      "noDescription": "No description"
+    }
+  },
+  "agent": {
+    "type": {
+      "twin": "Digital Twin",
+      "mentor": "Mentor",
+      "fictional": "Fictional",
+      "professional": "Professional",
+      "legacy": "Legacy"
     }
   }
 }

@@ -14,12 +14,13 @@
  * Run this after npm install/pnpm install.
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = join(__dirname, '..', '..', '..', '..', '..');
+const ROOT_DIR = findProjectRoot();
 
 const WORKER_JS_PATH = join(ROOT_DIR, 'node_modules/@livekit/agents/dist/worker.js');
 
