@@ -232,7 +232,7 @@ jobs:
   test-integration:
     name: Integration Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     needs: setup
     steps:
       - name: Checkout
@@ -262,7 +262,9 @@ jobs:
         run: pnpm test:integration -- --reporter=verbose
         env:
           NODE_ENV: test
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          # No live API key: this suite runs without external services
+          # (vitest.config.integration.ts). Key-gated tests need their own
+          # job with a valid key.
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}

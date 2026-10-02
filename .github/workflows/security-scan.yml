@@ -18,6 +18,8 @@ on:
 permissions:
   contents: read
   security-events: write
+  # CodeQL reads its workflow run when uploading results
+  actions: read
 
 jobs:
   # Dependency vulnerability scan

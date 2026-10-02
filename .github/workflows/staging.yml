@@ -219,7 +219,8 @@ jobs:
             --concurrency 20 \
             --min-instances 0 \
             --max-instances 2 \
-            --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }}"
+            --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }}" \
+            --set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest"
           
           URL=$(gcloud run services describe $SERVICE_NAME \
             --region=${{ env.GCP_REGION }} \

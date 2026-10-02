@@ -195,6 +195,9 @@ jobs:
           fi
 
       - name: Comment Bundle Size
+        # The result is in the step output; a token without write access
+        # must not fail the check
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
