@@ -706,6 +706,9 @@ vi.mock('../../../api/important-dates-routes.js', () => ({
   isImportantDatesRoute: h.auto('api/important-dates-routes#isImportantDatesRoute'),
   handleImportantDatesRoutes: h.auto('api/important-dates-routes#handleImportantDatesRoutes'),
 }));
+vi.mock('../../../api/memory-control-routes.js', () => ({
+  handleMemoryControlRoutes: h.auto('api/memory-control-routes#handleMemoryControlRoutes'),
+}));
 vi.mock('../../../api/memory-routes.js', () => ({
   handleMemoryRoutes: h.auto('api/memory-routes#handleMemoryRoutes'),
 }));
@@ -882,6 +885,8 @@ const ROUTE_PREFIXES = [
   '/api/memory/me/dates',
   '/api/memory/me/dates/',
   '/api/memory/me/reminder-settings',
+  '/api/memory/me',
+  '/api/memory/me/',
   '/api/memory',
   '/api/actions',
   '/api/relationship/progress',

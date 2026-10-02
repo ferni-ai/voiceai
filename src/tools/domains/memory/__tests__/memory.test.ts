@@ -108,6 +108,12 @@ vi.mock('../../../../services/unified-memory-service.js', () => ({
   resetUnifiedMemoryService: vi.fn(),
 }));
 
+// Real forgetting goes through the shared memory-control flow (tested there)
+const forgetMock = vi.hoisted(() => ({
+  handleVoiceForget: vi.fn(async () => 'I found Sarah. Want me to forget it?'),
+}));
+vi.mock('../../../../services/memory-control/voice-forget.js', () => forgetMock);
+
 // ============================================================================
 // IMPORTS
 // ============================================================================
@@ -213,6 +219,44 @@ describe('Memory Domain Tools', () => {
       expect(tool).toBeDefined();
       expect(tool.description).toBeDefined();
       expect(typeof tool.execute).toBe('function');
+    });
+
+    it('forgetMemory really forgets via memory-control (confirm, scope, undo)', async () => {
+      const toolDef = toolDefinitions.find((t) => t.id === 'forgetMemory');
+      const tool = toolDef!.create(mockContext) as unknown as {
+        execute: (
+          args: Record<string, unknown>,
+          opts: { ctx: { userData: unknown } }
+        ) => Promise<string>;
+      };
+      const userData = {
+        userId: 'test-user-123',
+        keyMoments: ['Sarah had surgery', 'Got a promotion'],
+      };
+
+      const ask = await tool.execute({ query: 'Sarah' }, { ctx: { userData } });
+      expect(ask).toContain('Want me to forget');
+      expect(forgetMock.handleVoiceForget).toHaveBeenLastCalledWith('test-user-123', {
+        query: 'Sarah',
+        scope: undefined,
+        confirm: false,
+        undo: false,
+        currentConversationId: undefined,
+      });
+      expect(userData.keyMoments).toHaveLength(2);
+
+      await tool.execute({ whatToForget: 'Sarah', confirmDeletion: true }, { ctx: { userData } });
+      expect(forgetMock.handleVoiceForget).toHaveBeenLastCalledWith(
+        'test-user-123',
+        expect.objectContaining({ query: 'Sarah', confirm: true })
+      );
+      expect(userData.keyMoments).toEqual(['Got a promotion']);
+
+      await tool.execute({ undo: true }, { ctx: { userData } });
+      expect(forgetMock.handleVoiceForget).toHaveBeenLastCalledWith(
+        'test-user-123',
+        expect.objectContaining({ undo: true })
+      );
     });
 
     it('should create recallFromMemory tool instance', () => {

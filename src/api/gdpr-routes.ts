@@ -22,6 +22,8 @@ import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 
+import { sendAccountDeletionResult } from './account-deletion-response.js';
+
 const log = createLogger({ module: 'GDPR-API' });
 
 // ============================================================================
@@ -570,8 +572,10 @@ async function handleDataSummary(
         },
       },
       retentionPolicy: {
-        conversationSummaries: '1 year (or until deletion)',
-        keyMoments: 'Indefinite (emotionally significant)',
+        conversationSummaries: 'Until you delete them',
+        conversationTranscripts: 'Until you delete them',
+        extractedFacts: 'Until you delete or edit them',
+        keyMoments: 'Until you delete them',
         voiceSketch: 'Until deletion request',
         analyticsData: '90 days',
         wellbeingData: 'Until deletion request',
@@ -627,12 +631,9 @@ async function handleAccountDeletion(
   });
 
   try {
-    const { getDefaultStore } = await import('../memory/index.js');
-    const store = getDefaultStore();
-    await store.initialize();
-
-    // Delete profile and all associated data
-    const deleted = await store.deleteProfile(userId);
+    // Recursive: the profile doc AND every subcollection, vectors, graph, storage.
+    const { deleteUserAccountData } = await import('../services/memory-control/index.js');
+    const report = await deleteUserAccountData(userId);
 
     // Delete wellbeing data
     let wellbeingDeleted = false;
@@ -668,25 +669,7 @@ async function handleAccountDeletion(
       }
     }
 
-    if (deleted || firebaseDeleted || wellbeingDeleted) {
-      sendJSON(res, {
-        success: true,
-        message: 'Your account and all associated data have been deleted.',
-        deletedAt: new Date().toISOString(),
-        note: 'This action is irreversible. Thank you for using Ferni.',
-        details: {
-          profileDeleted: deleted,
-          firebaseDeleted,
-          wellbeingDeleted,
-        },
-      });
-    } else {
-      sendJSON(res, {
-        success: false,
-        message: 'No profile found to delete. You may not have an account.',
-      });
-    }
-
+    sendAccountDeletionResult(res, report, { firebaseDeleted, wellbeingDeleted });
     return true;
   } catch (error) {
     log.error({ error, userId }, 'Account deletion failed');

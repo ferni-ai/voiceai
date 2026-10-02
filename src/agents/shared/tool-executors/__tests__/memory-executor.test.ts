@@ -47,6 +47,14 @@ vi.mock('firebase-admin/firestore', () => ({
   })),
 }));
 
+// Mock the shared voice-forget flow (it has its own tests)
+const forgetMock = vi.hoisted(() => ({
+  handleVoiceForget: vi.fn(async (_userId: string | undefined, request: { query?: string }) =>
+    request.query ? `I found "${request.query}". Want me to forget it?` : 'What should I forget?'
+  ),
+}));
+vi.mock('../../../../services/memory-control/voice-forget.js', () => forgetMock);
+
 // Mock embeddings
 vi.mock('../../../../memory/embeddings.js', () => ({
   embed: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]),
@@ -251,18 +259,50 @@ describe('MemoryExecutor', () => {
   });
 
   describe('forgetMemory', () => {
-    it('should forget memories about a topic', async () => {
+    it('asks before forgetting a topic (via the shared voice-forget flow)', async () => {
       const ctx = createContext();
       const result = await memoryExecutor.execute('forgetMemory', { topic: 'old job' }, ctx);
 
-      expect(result).toBeDefined();
+      expect(result).toContain('Want me to forget');
+      expect(forgetMock.handleVoiceForget).toHaveBeenCalledWith(ctx.userId, {
+        query: 'old job',
+        scope: undefined,
+        confirm: false,
+        undo: false,
+      });
     });
 
-    it('should use whatToForget arg as fallback', async () => {
+    it('maps legacy and new argument names', async () => {
       const ctx = createContext();
-      const result = await memoryExecutor.execute('forgetMemory', { whatToForget: 'my ex' }, ctx);
+      await memoryExecutor.execute(
+        'forgetMemory',
+        { whatToForget: 'my ex', confirmDeletion: true },
+        ctx
+      );
+      expect(forgetMock.handleVoiceForget).toHaveBeenLastCalledWith(ctx.userId, {
+        query: 'my ex',
+        scope: undefined,
+        confirm: true,
+        undo: false,
+      });
 
-      expect(result).toBeDefined();
+      await memoryExecutor.execute(
+        'forgetMemory',
+        { scope: 'last_conversation', confirm: true },
+        ctx
+      );
+      expect(forgetMock.handleVoiceForget).toHaveBeenLastCalledWith(ctx.userId, {
+        query: undefined,
+        scope: 'last_conversation',
+        confirm: true,
+        undo: false,
+      });
+
+      await memoryExecutor.execute('forgetMemory', { undo: true }, ctx);
+      expect(forgetMock.handleVoiceForget).toHaveBeenLastCalledWith(
+        ctx.userId,
+        expect.objectContaining({ undo: true })
+      );
     });
 
     it('should prompt if nothing specified', async () => {

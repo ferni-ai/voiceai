@@ -31,6 +31,7 @@ import { handleFinOpsRoutes } from '../../../api/finops-routes.js';
 import { handleConversationCostRoutes } from '../../../api/conversation-cost-routes.js';
 import { handleMemoryRoutes } from '../../../api/memory-routes.js';
 import { handleUserPreferenceRoutes } from '../../../api/user-preferences-routes.js';
+import { handleMemoryControlRoutes } from '../../../api/memory-control-routes.js';
 import {
   handleImportantDatesRoutes,
   isImportantDatesRoute,
@@ -168,6 +169,12 @@ export async function dispatchOperationsRoutes(ctx: RouteContext): Promise<boole
   // Important dates & reminder settings (user memory page)
   if (isImportantDatesRoute(pathname)) {
     const handled = await handleImportantDatesRoutes(req, res, pathname);
+    if (handled) return true;
+  }
+
+  // User memory control (view / edit / delete / export your own memories)
+  if (pathname === '/api/memory/me' || pathname.startsWith('/api/memory/me/')) {
+    const handled = await handleMemoryControlRoutes(req, res, pathname, parsedUrl);
     if (handled) return true;
   }
 

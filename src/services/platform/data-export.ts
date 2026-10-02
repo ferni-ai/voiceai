@@ -57,6 +57,10 @@ export type ExportFormat = 'json' | 'csv';
  * All exportable data categories with their descriptions.
  */
 export const EXPORT_CATEGORIES = {
+  Memories: {
+    description: 'Facts, people, full conversation transcripts and summaries Ferni remembers',
+    icon: 'brain',
+  },
   Conversations: {
     description: 'All conversation transcripts and metadata',
     icon: 'message-circle',
@@ -114,6 +118,20 @@ class DataExportService {
    */
   async getExportableCategories(userId: string): Promise<ExportCategory[]> {
     const categories: ExportCategory[] = [];
+
+    // 0. Memories (facts, people, transcripts) — own try so it always lists
+    try {
+      const { listMemories } = await import('../memory-control/index.js');
+      const memories = await listMemories(userId);
+      categories.push({
+        category: 'Memories',
+        description: EXPORT_CATEGORIES.Memories.description,
+        itemCount: memories.ok ? memories.value.facts.length + memories.value.people.length : 0,
+        exportable: true,
+      });
+    } catch (error) {
+      log.warn({ error: String(error), userId }, 'Failed to count memories for export');
+    }
 
     try {
       // 1. Conversations
@@ -271,6 +289,8 @@ class DataExportService {
    */
   private async exportCategory(userId: string, category: string): Promise<unknown> {
     switch (category) {
+      case 'Memories':
+        return this.exportMemories(userId);
       case 'Conversations':
         return this.exportConversations(userId);
       case 'Insights':
@@ -302,6 +322,15 @@ class DataExportService {
   // ============================================================================
   // INDIVIDUAL CATEGORY EXPORTERS
   // ============================================================================
+
+  /** Facts, people, conversations with full turns (both roles) and summaries. */
+  private async exportMemories(userId: string) {
+    const { collectMemoryExport } = await import('../memory-control/index.js');
+    const result = await collectMemoryExport(userId);
+    if (!result.ok) throw new Error(result.error.message);
+    const { facts, people, conversations, summaries, domains } = result.value;
+    return { facts, people, conversations, summaries, ...domains };
+  }
 
   private async exportConversations(userId: string) {
     const historyService = getConversationHistoryService();
@@ -769,9 +798,12 @@ class DataExportService {
 
   /**
    * Delete all user data (GDPR right to erasure).
-   * Comprehensive deletion across all data stores.
+   * Comprehensive deletion across all data stores. `complete` is true only
+   * when every required store confirmed its deletion.
    */
-  async deleteAllData(userId: string): Promise<void> {
+  async deleteAllData(
+    userId: string
+  ): Promise<{ complete: boolean; results: Record<string, boolean> }> {
     const deletionResults: Record<string, boolean> = {};
 
     try {
@@ -785,13 +817,11 @@ class DataExportService {
         deletionResults['engagement'] = false;
       }
 
-      // 2. Delete profile data
+      // 2. Delete profile data — recursively (subcollections, vectors, graph, storage)
       try {
-        const { getDefaultStore } = await import('../../memory/index.js');
-        const store = getDefaultStore();
-        await store.initialize();
-        await store.deleteProfile(userId);
-        deletionResults['profile'] = true;
+        const { deleteUserAccountData } = await import('../memory-control/index.js');
+        const report = await deleteUserAccountData(userId);
+        deletionResults['profile'] = report.complete;
       } catch (e) {
         log.warn({ error: String(e), userId }, 'Failed to delete profile');
         deletionResults['profile'] = false;
@@ -879,6 +909,12 @@ class DataExportService {
       }
 
       log.info({ userId, deletionResults }, '🗑️ User data deletion completed');
+      // conversations/cognitive report false when that store has no delete method.
+      const required = ['engagement', 'profile', 'wellbeing', 'trust', 'contacts', 'productivity'];
+      return {
+        complete: required.every((key) => deletionResults[key] === true),
+        results: deletionResults,
+      };
     } catch (error) {
       log.error({ error, userId, deletionResults }, 'Failed to delete all user data');
       throw error;

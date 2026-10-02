@@ -383,6 +383,54 @@ export class FirestoreVectorStore implements VectorStoreContract {
   }
 
   /**
+   * Remove several documents by ID for one user, dropping that user's cached
+   * search results so deleted text can't resurface from the search cache.
+   * Returns how many IDs were removed.
+   */
+  async removeDocumentsForUser(userId: string, ids: readonly string[]): Promise<number> {
+    let removed = 0;
+    for (const id of ids) {
+      if (await this.removeDocument(id)) removed++;
+    }
+    this.searchCache.invalidateForUser(userId);
+    return removed;
+  }
+
+  /**
+   * Remove every document whose `metadata.userId` is this user (privacy
+   * erasure). Pages through Firestore until nothing is left, including docs
+   * without a valid embedding that `list()` would skip. Returns the count.
+   */
+  async removeAllForUser(userId: string): Promise<number> {
+    await this.ensureInitialized();
+
+    let removed = 0;
+    for (const doc of this.fallbackCache.list({ userId })) {
+      if (this.fallbackCache.delete(doc.id)) removed++;
+    }
+    this.searchCache.invalidateForUser(userId);
+
+    if (this.useFallback || !this.db) return removed;
+
+    const PAGE_SIZE = 300;
+    for (;;) {
+      const snapshot = await this.db
+        .collection(this.COLLECTION_NAME)
+        .where('metadata.userId', '==', userId)
+        .limit(PAGE_SIZE)
+        .get();
+      if (snapshot.empty) break;
+      for (const doc of snapshot.docs) {
+        const ref = doc.ref ?? this.db.collection(this.COLLECTION_NAME).doc(doc.id);
+        await ref.delete();
+        removed++;
+      }
+      if (snapshot.size < PAGE_SIZE) break;
+    }
+    return removed;
+  }
+
+  /**
    * Get a document by ID.
    */
   async getDocument(id: string): Promise<VectorDocument | undefined> {
