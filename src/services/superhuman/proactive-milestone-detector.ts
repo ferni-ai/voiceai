@@ -315,7 +315,7 @@ export async function recordLifeStageSignal(
  */
 export async function detectUpcomingMilestones(
   userId: string,
-  lookaheadDays: number = 60
+  lookaheadDays = 60
 ): Promise<DetectedMilestone[]> {
   const profile = (await loadMilestoneProfile(userId)) ?? createDefaultProfile(userId);
   const { loadMilestoneDates } = await import('../important-dates/milestone-bridge.js');
@@ -402,7 +402,7 @@ export async function acknowledgeMilestone(
  */
 export async function getLifeStageInsights(
   userId: string,
-  minConfidence: number = 0.5
+  minConfidence = 0.5
 ): Promise<LifeStageSignal[]> {
   const profile = await loadMilestoneProfile(userId);
   if (!profile) return [];

@@ -33,13 +33,16 @@ async function call(
   }) as unknown as IncomingMessage;
   const out: Res = { status: 0, body: {} };
   let text = '';
+  const state = { headersSent: false };
   const res = {
-    headersSent: false,
+    get headersSent() {
+      return state.headersSent;
+    },
     setHeader: () => undefined,
     writeHead(status: number) {
       out.status = status;
-      this.headersSent = true;
-      return this;
+      state.headersSent = true;
+      return res;
     },
     end(chunk?: string) {
       text = chunk ?? '';
