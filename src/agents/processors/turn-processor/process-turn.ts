@@ -21,10 +21,6 @@ import type {
   TurnProcessorResult,
 } from '../types.js';
 import type { ContextInjectionsResult } from './types.js';
-import type { TurnRouterResult } from '../../../tools/semantic-router/integration/index.js';
-import type { ConversationSignals } from '../../../intelligence/unified-user-model.js';
-import type { TurnOutcome } from '../../../intelligence/context-outcome-tracker.js';
-import type { SelectionDecision } from '../../../intelligence/context-routing/index.js';
 
 import { diag } from '../../../services/diagnostic-logger.js';
 import {
@@ -46,6 +42,7 @@ import {
   isRoutingEnabled,
   startIntelligentRouting,
   startSemanticRouting,
+  type TurnRouterResult,
 } from '../../../tools/semantic-router/integration/index.js';
 
 import {
@@ -73,12 +70,17 @@ import {
 import {
   loadUserModel,
   updateFromConversation,
+  type ConversationSignals,
 } from '../../../intelligence/unified-user-model.js';
 
-import { getContextOutcomeTracker } from '../../../intelligence/context-outcome-tracker.js';
+import {
+  getContextOutcomeTracker,
+  type TurnOutcome,
+} from '../../../intelligence/context-outcome-tracker.js';
 
 import {
   selectInjections as smartSelectInjections,
+  type SelectionDecision,
 } from '../../../intelligence/context-routing/index.js';
 
 import { getTimingState } from '../../../intelligence/context-builders/awareness/system-state-awareness.js';
