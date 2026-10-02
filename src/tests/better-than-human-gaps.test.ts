@@ -16,14 +16,17 @@ import { detectCommitment } from '../services/superhuman/commitment-keeper.js';
 import { detectCommitments } from '../services/trust-systems/commitment-tracking.js';
 import { detectCrisis } from '../services/superhuman/emotional-first-aid.js';
 import { detectUnsaidSignals } from '../services/trust-systems/reading-between-lines.js';
-import { embed, cosineSimilarity, getEmbeddingProvider } from '../memory/embeddings.js';
+import { embed, cosineSimilarity } from '../memory/embeddings.js';
+import { HAS_EMBEDDING_API_KEY, useApiKeyEmbeddings } from './helpers/embedding-provider.js';
 
 // ============================================================================
 // TEST CONFIGURATION
 // ============================================================================
 
 const USE_LLM = !!process.env.GOOGLE_API_KEY;
-const USE_REAL_EMBEDDINGS = !!process.env.GOOGLE_API_KEY || !!process.env.OPENAI_API_KEY;
+// Gated tests get the API key's provider, never Vertex AI (see the helper).
+const USE_REAL_EMBEDDINGS = HAS_EMBEDDING_API_KEY;
+useApiKeyEmbeddings();
 const LLM_TIMEOUT = 30000;
 
 import { TEST_LLM_MODEL } from './test-llm-config.js';

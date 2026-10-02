@@ -13,6 +13,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { useLocalEmbeddings } from './helpers/embedding-provider.js';
 
 // These tests exercise the generic phone-identification path. identifyByPhone()
 // deliberately checks sponsored identities (family members) FIRST, and with real
@@ -278,22 +279,8 @@ describe('Memory Persistence', () => {
   });
 
   describe('Semantic Search', () => {
-    // Pin local embeddings so this test never reaches a real provider: Vertex AI
-    // is picked whenever GOOGLE_CLOUD_PROJECT is set and returns 403 without
-    // credentials. 768 matches the dimensions the memory system's vector store uses.
-    let previousProvider: import('../memory/embeddings.js').EmbeddingProvider;
-
-    beforeAll(async () => {
-      const { getEmbeddingProvider, setEmbeddingProvider, LocalEmbeddings } =
-        await import('../memory/embeddings.js');
-      previousProvider = getEmbeddingProvider();
-      setEmbeddingProvider(new LocalEmbeddings(768));
-    });
-
-    afterAll(async () => {
-      const { setEmbeddingProvider } = await import('../memory/embeddings.js');
-      setEmbeddingProvider(previousProvider);
-    });
+    // Shape-only: must not reach a real provider (Vertex 403s without credentials).
+    useLocalEmbeddings();
 
     it('should find relevant conversations via semantic search', async () => {
       const { initializeMemorySystem, shutdownMemorySystem, semanticSearch } =

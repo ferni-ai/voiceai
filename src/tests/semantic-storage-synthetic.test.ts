@@ -15,20 +15,18 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Import systems under test
-import {
-  embed,
-  cosineSimilarity,
-  getEmbeddingProvider,
-  setEmbeddingProvider,
-  LocalEmbeddings,
-  type EmbeddingProvider,
-} from '../memory/embeddings.js';
+import { embed, cosineSimilarity } from '../memory/embeddings.js';
 import {
   findSimilarCached,
   storeInSemanticCache,
   clearUserSemanticCache,
   getSemanticCacheStats,
 } from '../memory/semantic-memory-cache.js';
+import {
+  HAS_EMBEDDING_API_KEY,
+  useApiKeyEmbeddings,
+  useLocalEmbeddings,
+} from './helpers/embedding-provider.js';
 
 // ============================================================================
 // TEST CONFIGURATION
@@ -38,30 +36,9 @@ const USE_LLM = !!process.env.GOOGLE_API_KEY;
 const LLM_TIMEOUT = 30000;
 const SIMILARITY_THRESHOLD = 0.85; // What we consider "semantically similar"
 
-// Check if we have real embeddings (not local random vectors)
-const USE_REAL_EMBEDDINGS = !!process.env.GOOGLE_API_KEY || !!process.env.OPENAI_API_KEY;
-
-function isUsingLocalEmbeddings(): boolean {
-  const provider = getEmbeddingProvider();
-  return provider.model === 'local-random';
-}
-
-/**
- * Pin local embeddings for the enclosing describe, then restore the previous
- * provider. Shape-only tests must not depend on the environment's provider:
- * Vertex AI is picked whenever GOOGLE_CLOUD_PROJECT is set, and returns 403
- * without credentials. 768 matches the memory system's vector store.
- */
-function useLocalEmbeddings(): void {
-  let previous: EmbeddingProvider;
-  beforeAll(() => {
-    previous = getEmbeddingProvider();
-    setEmbeddingProvider(new LocalEmbeddings(768));
-  });
-  afterAll(() => {
-    setEmbeddingProvider(previous);
-  });
-}
+// Gated tests get the API key's provider, never Vertex AI (see the helper).
+const USE_REAL_EMBEDDINGS = HAS_EMBEDDING_API_KEY;
+useApiKeyEmbeddings();
 
 import { TEST_LLM_MODEL } from './test-llm-config.js';
 
