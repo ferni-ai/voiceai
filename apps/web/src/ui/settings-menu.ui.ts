@@ -305,7 +305,6 @@ const FEATURE_LOCK_MAP: Record<string, string> = {
 
   // Building Trust stage (7+ convos, 3+ days)
   team: 'team-huddle',
-  'conversation-memory': 'memory-browser',
   wellbeing: 'wellbeing-dashboard',
   predictions: 'prediction-accuracy',
   'group-coaching': 'group-coaching',
@@ -848,6 +847,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
             ${connectionService.getRoomState().useQwen3Omni ? this.renderMenuItem('director-console', ICONS.layers, t('menu.items.directorConsole', 'Director Console')) : ''}
             ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
+            ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
                 )

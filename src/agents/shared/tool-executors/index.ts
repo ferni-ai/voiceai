@@ -42,6 +42,7 @@ import healthExecutor from './health-executor.js';
 import travelExecutor from './travel-executor.js';
 // OpenClaw multi-channel messaging (January 2026)
 import { openclawExecutor } from './openclaw-executor.js';
+import { importantDatesExecutor } from './important-dates-executor.js';
 
 const log = createLogger({ module: 'ToolExecutors' });
 
@@ -78,6 +79,8 @@ const DOMAIN_EXECUTORS: DomainExecutor[] = [
   travelExecutor,
   // OpenClaw multi-channel messaging (January 2026)
   openclawExecutor,
+  // Important dates & reminders (family domain tools)
+  importantDatesExecutor,
 ];
 
 /**

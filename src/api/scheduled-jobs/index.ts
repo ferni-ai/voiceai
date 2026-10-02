@@ -46,6 +46,7 @@ export const JOB_PATHS: ReadonlySet<string> = new Set([
   '/api/jobs/memory-health-check',
   '/api/jobs/personal-insights-refresh',
   '/api/jobs/deliver-reminders',
+  '/api/jobs/deliver-date-reminders',
   '/api/jobs/deliver-scheduled-actions',
   '/api/jobs/execute-scheduled-outreach',
   '/api/jobs/calendar-triggers',
@@ -113,7 +114,7 @@ import {
   handleDailyAdminReport,
 } from './maintenance-jobs.js';
 
-import { handleDeliverReminders } from './reminder-jobs.js';
+import { handleDeliverDateReminders, handleDeliverReminders } from './reminder-jobs.js';
 import {
   handleCalendarTriggers,
   handleDeliverScheduledActions,
@@ -298,6 +299,10 @@ export async function handleScheduledJobsRoutes(
 
     case '/api/jobs/deliver-reminders':
       await handleDeliverReminders(req, res);
+      return true;
+
+    case '/api/jobs/deliver-date-reminders':
+      await handleDeliverDateReminders(req, res);
       return true;
 
     case '/api/jobs/deliver-scheduled-actions':

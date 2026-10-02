@@ -2,6 +2,7 @@
  * Platform routes from src/api/, each wrapped in its own error boundary.
  *
  * Diagnostics, versioned APIs (v1, v2 developer platform), auth migration,
+ * identity linking,
  * account, session accent and auth monitoring.
  */
 
@@ -9,6 +10,7 @@ import { handleDiagnosticsRoutes } from '../../../api/handoff-diagnostics.js';
 import { handleV1Routes } from '../../../api/v1/index.js';
 import { handleV2Routes } from '../../../api/v2/index.js';
 import handleMigrationRoutes from '../../../api/migration-routes.js';
+import handleIdentityLinkRoutes from '../../../api/identity-link-routes.js';
 import handleAccountRoutes from '../../../api/account-routes.js';
 import handleAuthMonitoringRoutes from '../../../api/auth-monitoring-routes.js';
 import handleSessionAccentRoutes from '../../../api/session-accent-routes.js';
@@ -41,6 +43,12 @@ const PREFIXED_PLATFORM_ROUTES: readonly PrefixedRoute[] = [
     prefix: '/api/auth/migrat',
     errorMessage: 'Migration route error',
     handle: async ({ req, res, pathname }) => handleMigrationRoutes(req, res, pathname),
+  },
+  // Identity link routes (carry anonymous memory into a signed-in account)
+  {
+    prefix: '/api/identity/',
+    errorMessage: 'Identity link route error',
+    handle: async ({ req, res, pathname }) => handleIdentityLinkRoutes(req, res, pathname),
   },
   // Account routes
   {

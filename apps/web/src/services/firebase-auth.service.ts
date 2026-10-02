@@ -28,6 +28,7 @@ import {
 import { getFirebaseAuth, isFirebaseConfigured } from '../config/firebase.js';
 import { createLogger } from '../utils/logger.js';
 import { readDevAuthUser } from './dev-auth-user.js';
+import { capturePriorIdentity, linkPriorIdentity } from './identity-link.service.js';
 
 const log = createLogger('FirebaseAuth');
 
@@ -117,6 +118,20 @@ function notifyAuthStateChange(user: User | null): void {
       log.error('Auth state callback error:', error);
     }
   }
+}
+
+/**
+ * Run a sign-in and then carry this browser's earlier (anonymous / device)
+ * memory into the signed-in account. The link call never blocks sign-in.
+ */
+async function withIdentityCarryOver(
+  signIn: () => Promise<UserCredential>
+): Promise<UserCredential> {
+  const prior = await capturePriorIdentity(currentUser);
+  const result = await signIn();
+  // Guarded: test doubles of signInWithPopup can resolve without a credential.
+  if (result?.user) void linkPriorIdentity(prior, result.user);
+  return result;
 }
 
 // ============================================================================
@@ -280,7 +295,7 @@ export async function signInWithGoogle(): Promise<UserCredential> {
   provider.addScope('email');
   provider.addScope('profile');
 
-  const result = await signInWithPopup(auth, provider);
+  const result = await withIdentityCarryOver(() => signInWithPopup(auth, provider));
   log.info('Google sign-in successful', {
     uid: result.user.uid.substring(0, 8) + '...',
     email: result.user.email,
@@ -306,7 +321,7 @@ export async function signInWithApple(): Promise<UserCredential> {
   provider.addScope('email');
   provider.addScope('name');
 
-  const result = await signInWithPopup(auth, provider);
+  const result = await withIdentityCarryOver(() => signInWithPopup(auth, provider));
   log.info('Apple sign-in successful', {
     uid: result.user.uid.substring(0, 8) + '...',
     email: result.user.email,
@@ -337,7 +352,7 @@ export async function signInWithGoogleCredential(idToken: string): Promise<UserC
   const credential = GoogleAuthProvider.credential(idToken);
 
   try {
-    const result = await signInWithCredential(auth, credential);
+    const result = await withIdentityCarryOver(() => signInWithCredential(auth, credential));
     log.info('Google One-Tap sign-in successful', {
       uid: result.user.uid.substring(0, 8) + '...',
       email: result.user.email,
@@ -400,7 +415,7 @@ export async function linkWithGoogle(): Promise<UserCredential> {
   provider.addScope('email');
   provider.addScope('profile');
 
-  const result = await signInWithPopup(auth, provider);
+  const result = await withIdentityCarryOver(() => signInWithPopup(auth, provider));
   log.info('Google account linked successfully');
   return result;
 }
@@ -422,7 +437,7 @@ export async function linkWithApple(): Promise<UserCredential> {
   provider.addScope('email');
   provider.addScope('name');
 
-  const result = await signInWithPopup(auth, provider);
+  const result = await withIdentityCarryOver(() => signInWithPopup(auth, provider));
   log.info('Apple account linked successfully');
   return result;
 }

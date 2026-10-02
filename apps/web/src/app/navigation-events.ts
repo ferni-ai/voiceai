@@ -34,6 +34,7 @@ import { ferniFundUI } from '../ui/ferni-fund.ui.js';
 import {
   showAnalyticsDashboard,
   showCognitiveInsights,
+  openMemoryPanel,
   showConversationHistory,
   showTeamHuddle,
   showYourStoryDashboard,
@@ -70,6 +71,9 @@ export function wireNavigationEvents(host: AppHost): void {
   });
   addTrackedListener(window, 'ferni:open-history', () => {
     void showConversationHistory();
+  });
+  addTrackedListener(window, 'ferni:open-memories', () => {
+    void openMemoryPanel('memories');
   });
   addTrackedListener(window, 'ferni:open-patterns', () => {
     void openPatternInsights();

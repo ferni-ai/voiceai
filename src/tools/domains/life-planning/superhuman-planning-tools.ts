@@ -311,7 +311,8 @@ export function createSuperhumanPlanningTools() {
           year: 'numeric',
         });
 
-        return `📅 Tracking "${label}" (${formatted}). I'll proactively remind you of significant anniversaries!`;
+        // Stored in the canonical important-dates store, so it also gets reminders.
+        return `Got it. I'll remember ${label} (${formatted}) and remind you when it comes around.`;
       },
     }),
 

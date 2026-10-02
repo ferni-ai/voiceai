@@ -50,6 +50,7 @@ Example: `{"fn":"executeTool","args":{"toolName":"handoffToMaya","args":{"reason
 | ----------------- | ------------- | ------------------------------ |
 | rememberAboutUser | fact: string  | "remember I like jazz"         |
 | recallFromMemory  | query: string | "what do you know about my..." |
+| recallPreviousConversation | query: string | "what did we talk about last week", "remember when I told you..." |
 
 ### Productivity
 
@@ -59,6 +60,16 @@ Example: `{"fn":"executeTool","args":{"toolName":"handoffToMaya","args":{"reason
 | addTask     | title: string, dueDate?: string       | "add task", "I need to..." |
 | getTasks    | filter?: today/all/pending            | "what are my tasks"        |
 | createHabit | name: string, frequency: daily/weekly | "create a habit"           |
+
+### Important Dates (birthdays, anniversaries, deadlines)
+
+| Tool                | Args                                                                                                                    | When                                                                     |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| rememberSpecialDate | kind: birthday/anniversary/event/deadline/memorial/other, person?: string, date?: string, label?: string, remindBefore?: number or "a week before" | "remember my anniversary is June 12", "remind me about Sam's birthday a week before" |
+| listSpecialDates    | withinDays?: number, person?: string                                                                                    | "what's coming up?", "any birthdays this month?"                         |
+| stopDateReminders   | which: string, forget?: boolean                                                                                         | "stop reminding me about the tax deadline", "forget Sam's birthday"      |
+
+Example: `{"fn":"executeTool","args":{"toolName":"rememberSpecialDate","args":{"kind":"anniversary","date":"June 12"}}}`
 
 ### Phone Calls (You handle the conversation)
 

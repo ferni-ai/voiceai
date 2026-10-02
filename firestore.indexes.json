@@ -145,6 +145,22 @@
       ]
     },
     {
+      "collectionGroup": "extraction_jobs",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "availableAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "extraction_jobs",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "leaseExpiresAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "dynamic_relationships",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -628,6 +644,14 @@
     }
   ],
   "fieldOverrides": [
+    {
+      "collectionGroup": "important_dates",
+      "fieldPath": "nextReminderAt",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
     {
       "collectionGroup": "scheduled_actions",
       "fieldPath": "status",

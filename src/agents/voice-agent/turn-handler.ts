@@ -2687,6 +2687,7 @@ IMPORTANT:
             transcript: userText,
             voiceEmotion: result.analysis.analysis.emotion?.primary ?? voiceEmotionForCapture?.primary,
             personaId: persona.id, // For multi-persona data attribution
+            conversationId: services.realtimeConversationId, // fact provenance
           });
 
           // Map voice emotion to STM-compatible shape (for emotional trajectory)
