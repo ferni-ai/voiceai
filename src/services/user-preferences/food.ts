@@ -26,12 +26,18 @@ const log = createLogger({ module: 'UserPreferenceFood' });
 // ── health consent integration point ─────────────────────────────────────────
 
 type HealthConsentCheck = (userId: string) => Promise<boolean>;
-let healthConsentCheck: HealthConsentCheck = async () => true;
+
+/** Default: the user's Health switch (services/memory-consent). Off until they agree. */
+const consentServiceCheck: HealthConsentCheck = async (userId) => {
+  const { isCategoryEnabled } = await import('../memory-consent/store.js');
+  return isCategoryEnabled(userId, 'health');
+};
+let healthConsentCheck: HealthConsentCheck = consentServiceCheck;
 
 /**
- * Integration point for the memory-category consent switch (health category).
- * Wire at startup: setHealthConsentCheck((uid) => isCategoryEnabled(uid, 'health')).
- * Until wired, health data is allowed (current behaviour).
+ * The health-category consent check used for medically advised restrictions.
+ * Wired to the memory-consent service by default; tests may replace it.
+ * Allergies and intolerances never consult it (safety exception).
  */
 export function setHealthConsentCheck(check: HealthConsentCheck): void {
   healthConsentCheck = check;

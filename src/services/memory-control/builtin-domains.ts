@@ -162,9 +162,44 @@ export function registerUserPreferencesDomain(): void {
   });
 }
 
+/** Health items, mood timeline and the sensitive-memory consent record — services/health-memory. */
+export function registerHealthMemoryDomain(): void {
+  registerMemoryDomain({
+    name: 'health',
+    exportFn: async (userId) => {
+      const { exportHealthMemory } = await import('../health-memory/index.js');
+      return exportHealthMemory(userId);
+    },
+    deleteForConversation: async (userId, conversationId) => {
+      const { deleteHealthFor, deleteMoodFor } = await import('../health-memory/index.js');
+      return (
+        (await deleteHealthFor(userId, conversationId)) +
+        (await deleteMoodFor(userId, conversationId))
+      );
+    },
+    deleteAll: async (userId) => {
+      const { deleteAllHealth, deleteAllMood } = await import('../health-memory/index.js');
+      return (await deleteAllHealth(userId)) + (await deleteAllMood(userId));
+    },
+    deleteForFacts: async (userId, factIds) => {
+      const { deleteHealthDerivedFromFacts } = await import('../health-memory/index.js');
+      return deleteHealthDerivedFromFacts(userId, factIds);
+    },
+    find: async (userId, query) => {
+      const { findHealthMemory } = await import('../health-memory/index.js');
+      return findHealthMemory(userId, query);
+    },
+    forget: async (userId, id) => {
+      const { deleteHealthItem } = await import('../health-memory/index.js');
+      return deleteHealthItem(userId, id, 'voice_forget');
+    },
+  });
+}
+
 export function registerBuiltInMemoryDomains(): void {
   registerImportantDatesDomain();
   registerAspirationsDomain();
   registerPersonalInsightsDomain();
   registerUserPreferencesDomain();
+  registerHealthMemoryDomain();
 }

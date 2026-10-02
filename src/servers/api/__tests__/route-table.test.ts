@@ -53,6 +53,10 @@ const h = vi.hoisted(() => {
     isSubscriptionRoute: (p) => p.startsWith('/api/subscription') || p.startsWith('/subscription'),
     isMonetizationRoute: (p) => p.startsWith('/api/monetization'),
     isAppleRoute: (p) => p.startsWith('/api/apple/iap'),
+    isSensitiveMemoryRoute: (p) =>
+      ['/api/memory/me/consent', '/api/memory/me/health', '/api/memory/me/mood'].some(
+        (x) => p === x || p.startsWith(`${x}/`)
+      ),
     isImportantDatesRoute: (p) =>
       p === '/api/memory/me/dates' ||
       p.startsWith('/api/memory/me/dates/') ||
@@ -712,6 +716,10 @@ vi.mock('../../../api/aspirations-routes.js', () => ({
   isAspirationsRoute: h.auto('api/aspirations-routes#isAspirationsRoute'),
   handleAspirationsRoutes: h.auto('api/aspirations-routes#handleAspirationsRoutes'),
 }));
+vi.mock('../../../api/sensitive-memory-routes.js', () => ({
+  isSensitiveMemoryRoute: h.auto('api/sensitive-memory-routes#isSensitiveMemoryRoute'),
+  handleSensitiveMemoryRoutes: h.auto('api/sensitive-memory-routes#handleSensitiveMemoryRoutes'),
+}));
 vi.mock('../../../api/memory-control-routes.js', () => ({
   handleMemoryControlRoutes: h.auto('api/memory-control-routes#handleMemoryControlRoutes'),
 }));
@@ -893,6 +901,10 @@ const ROUTE_PREFIXES = [
   '/api/memory/me/reminder-settings',
   '/api/memory/me/aspirations',
   '/api/memory/me/aspirations/',
+  '/api/memory/me/consent',
+  '/api/memory/me/health',
+  '/api/memory/me/health/',
+  '/api/memory/me/mood',
   '/api/memory/me',
   '/api/memory/me/',
   '/api/memory',

@@ -15,6 +15,7 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
 import { freshState, mockMemoryApi } from './memory-api-mock';
+import { freshSensitiveState, mockSensitiveApi } from './sensitive-api-mock';
 
 const SCREENS: Array<{ name: string; open?: (page: Page) => Promise<void> }> = [
   { name: 'home' },
@@ -37,6 +38,7 @@ const SCREENS: Array<{ name: string; open?: (page: Page) => Promise<void> }> = [
       ['memories: goals editor', 'Goals & habits'],
       ['memories: conversations', 'Conversations'],
       ['memories: transcript', 'Conversations'],
+      ['memories: sensitive', 'Sensitive'],
       ['memories: your data', 'Your data'],
       ['memories: confirm', 'Your data'],
     ] as const
@@ -44,6 +46,12 @@ const SCREENS: Array<{ name: string; open?: (page: Page) => Promise<void> }> = [
     name,
     open: async (page: Page) => {
       await mockMemoryApi(page, freshState());
+      if (name === 'memories: sensitive') {
+        const sensitive = freshSensitiveState();
+        sensitive.answeredAt = '2026-01-01T00:00:00.000Z';
+        sensitive.enabled.health = true;
+        await mockSensitiveApi(page, sensitive);
+      }
       await page.evaluate(() => window.dispatchEvent(new CustomEvent('ferni:open-memories')));
       const dialog = page.getByRole('dialog', { name: 'What I remember' });
       await dialog.getByRole('tab', { name: tab }).click();

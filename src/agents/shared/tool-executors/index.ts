@@ -45,6 +45,7 @@ import travelExecutor from './travel-executor.js';
 import { openclawExecutor } from './openclaw-executor.js';
 import { importantDatesExecutor } from './important-dates-executor.js';
 import { aspirationsExecutor } from './aspirations-executor.js';
+import { memoryConsentExecutor } from './memory-consent-executor.js';
 
 const log = createLogger({ module: 'ToolExecutors' });
 
@@ -87,6 +88,8 @@ const DOMAIN_EXECUTORS: DomainExecutor[] = [
   importantDatesExecutor,
   // Dreams (aspirations store; goals/habits route via productivity/habits)
   aspirationsExecutor,
+  // Sensitive memory consent (health / money / beliefs)
+  memoryConsentExecutor,
 ];
 
 /**

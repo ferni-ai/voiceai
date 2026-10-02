@@ -22,6 +22,8 @@ All under `bogle_users/{uid}` in Firestore, plus two derived stores.
 | Extracted facts                         | `dynamic_facts/{factId}` (provenance `sourceConversationIds`, legacy `sessionId`)                                                                                                |
 | Things the user asked Ferni to remember | `extracted_facts/{id}` (`fact`), shown with the ID prefix `explicit_`                                                                                                            |
 | People / entities / relationships       | `dynamic_entities` (type `person`), `dynamic_relationships`                                                                                                                      |
+| Sensitive-memory consent                | `memoryConsent` field on `bogle_users/{uid}` (see "Sensitive memory consent")                                                                                                    |
+| Health memory / mood timeline           | `health_memory/{healthId}`, `mood_timeline/{conversationId}` (only with Health consent)                                                                                          |
 | Deletion tombstones                     | `memory_tombstones/{factId}` `{ createdAt, reason: 'user_deleted' \| 'voice_forget' }`                                                                                           |
 | Embeddings                              | Top-level `vectors` collection (`FirestoreVectorStore`), keyed `conversation_<summaryId>`, `conversation_fact_<factDocId>`, `fact_<uid>_<ts>`; every entry has `metadata.userId` |
 | Graph (L3, off by default)              | Spanner `facts` / `entities` / `relationships` / ... rows with `user_id`; IDs `fact_<uid>_<docId>`, `entity_<uid>_<docId>`                                                       |
@@ -215,6 +217,10 @@ Also built in:
 - **aspirations** (`services/aspirations`): dreams, goals and habits — export,
   conversation cascade (provenance and check-ins), delete-all, and voice forget
   ("forget my goal to run a marathon").
+- **health** (`services/health-memory`): health items + mood timeline + the
+  consent record in the export; conversation delete removes both (by doc ID or
+  session ID); fact deletes remove items inferred from them; delete-all; voice
+  forget ("forget that I have asthma").
 
 `GET /api/memory/me` people keep their `dynamic_entities` IDs (what delete
 uses) and gain `kind` (`person`/`pet`), `memorial`, and profile notes from
@@ -626,6 +632,161 @@ Errors: 400 invalid body/details, 401 no identity, 404 not found / not yours, 40
   conversation provenance and are unaffected.
 - `deletePreferencesDerivedFromFact(userId, factId)` — same rule for fact provenance.
 - `deleteAllPreferences(userId)` — wipes the profile (account-level delete-all).
+
+## Sensitive memory consent
+
+Health, money and beliefs are only remembered after the user says yes. GDPR
+treats health and religious or philosophical beliefs as special categories
+(Art. 9) that need explicit consent; money is treated the same way because it
+is just as personal.
+
+### Model
+
+One record on the user document, `bogle_users/{uid}.memoryConsent`:
+
+```ts
+{
+  version: 1,                    // CONSENT_VERSION; bump if the wording needs a fresh answer
+  answeredAt: string | null,     // the upfront question was answered (yes, no, or a switch)
+  categories: {
+    health:   { enabled, updatedAt, source: 'page' | 'voice' | 'onboarding' | null },
+    finances: { ... },
+    beliefs:  { ... },
+  },
+  updatedAt: string | null,
+}
+```
+
+- **Default off.** No record, an unanswered record, or a malformed one reads as
+  all off.
+- **Fails closed.** If consent can't be read, `isCategoryEnabled` returns false.
+- **One upfront question**, in plain language: "Some things are more personal:
+  your health, your money, and what you believe. I only remember those if you
+  say yes, and you can switch each one off anytime." Yes turns all three on; no
+  records the answer with all three off. Then each category has its own switch.
+- **Off means off at once.** Switching off is written immediately and capture
+  checks consent on every write (5 s read cache; the process that made the
+  change updates its cache and drops in-memory buffers at once).
+- **Deleting is offered, never forced.** Switching off reports how much is
+  stored for that category ("I still have 5 things from before. Want me to
+  delete those too?"); deletion runs only when the user confirms.
+- **Safety exception: allergies and food intolerances.** They are kept and
+  honoured whatever the Health switch says, so Ferni never suggests something
+  unsafe. The memory page shows this note and lists what is kept. Medically
+  advised food restrictions (`medical:*` preferences) are health data and follow
+  the switch.
+- **Explicit requests still work.** Asking Ferni to log a symptom with Health
+  off answers "not saved: health memory is off" instead of pretending.
+
+### Service API (`src/services/memory-consent/`)
+
+```ts
+isCategoryEnabled(userId, 'health' | 'finances' | 'beliefs')   // gate every write; never throws
+getConsent(userId, { fresh? })                                  // Result<MemoryConsent, ConsentError>
+setCategoryConsent(userId, category, enabled, source)           // Result<MemoryConsent, ConsentError>
+answerUpfrontConsent(userId, agree, source)                     // the one upfront question
+updateConsent(userId, { categories, source, answered? })        // several switches at once
+onConsentChange((userId, category, enabled) => void)            // drop buffers when switched off
+registerCategoryStore({ category, name, count, deleteAll })     // what "delete them too" removes
+summarizeCategoryData(userId, category) / deleteCategoryData(userId, category)
+sensitiveCategoriesOf(text) / categoryForFactType(factType)     // classify free text before storing
+handleConsentVoice(userId, { category, enabled?, deleteExisting? })
+```
+
+Built-in category stores (`builtin-category-stores.ts`): for every category,
+extracted facts labelled with it or matching the classifier (deleted through
+memory control, so tombstones and cascades apply); for health, also health
+memory, the mood timeline and medical food restrictions. Money and beliefs add
+their own stores to that file.
+
+### Where it is enforced
+
+| Path                                                      | Gate                                                                                                                             |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Deep extraction (`memory/dynamic/sensitive-fact-gate.ts`) | Drops facts typed `health` / `finance` / `belief` or whose text matches a switched-off category, and sensitive concept entities. |
+| Health memory, mood timeline                              | Every write checks Health.                                                                                                       |
+| Preference profile (`user-preferences/food.ts`)           | `isHealthCategoryEnabled` asks the consent service; allergies exempt.                                                            |
+| Session-start prompt                                      | Health block only with Health on; otherwise, while unanswered, one line letting the persona ask once.                            |
+
+### Voice
+
+`setMemoryConsent { category: health | finances | beliefs | all, enabled?, deleteExisting? }`
+("stop remembering my health stuff", "yes, you can remember that", "delete
+those too"). Wired for native function calling (memory domain) and the Gemini
+JSON path (prompt table, sanitizer pattern, `memory-consent-executor`,
+`REGISTERED_TOOLS`).
+
+### HTTP API
+
+| Method | Path                                    | Body                                                                      | Response                                                               |
+| ------ | --------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| GET    | `/api/memory/me/consent`                | –                                                                         | `{ consent, stored: { health, finances, beliefs }, safetyExceptions }` |
+| PUT    | `/api/memory/me/consent`                | `{ agreeAll? }` and/or `{ categories: { health?, finances?, beliefs? } }` | same as GET                                                            |
+| DELETE | `/api/memory/me/consent/:category/data` | –                                                                         | `{ deleted, byStore }`                                                 |
+
+## Health & mood
+
+Only with Health consent. `services/health-memory/`.
+
+### Health items
+
+`bogle_users/{uid}/health_memory/{healthId}`; `healthId = health_` + hash of
+kind + subject (+ day for moments), so hearing the same thing again updates it.
+
+| Field                                                                       | Meaning                                                                                                                                                    |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `kind`                                                                      | `condition`, `medication`, `injury`, `appointment` (ongoing: one per subject); `symptom`, `sleep`, `exercise`, `energy` (moments: one per subject per day) |
+| `subject`, `text`                                                           | "asthma" / "Has asthma"; "metformin" / "Takes metformin 500mg"                                                                                             |
+| `status`, `when`, `day`                                                     | `current` / `past` / `upcoming`; appointment time as said; the day a moment is about                                                                       |
+| `confidence`, `source`                                                      | `explicit` (the user's words), `inferred` (health-labelled facts), `tool` (logSymptom / logExercise), `user`                                               |
+| `sourceConversationIds`, `sourceFactIds`                                    | Provenance                                                                                                                                                 |
+| `mentions`, `firstMentionedAt`, `lastMentionedAt`, `userEdited`, `editedAt` |                                                                                                                                                            |
+
+Learning: `onConversationSummarized` (in `conversation-summarized-hooks.ts`)
+reads the user's turns with a high-precision first-person detector
+(`detect.ts`: "I was diagnosed with…", "I take X 500mg", "I slept four hours";
+not "my mom has diabetes" or "I don't have asthma") and that conversation's
+`dynamic_facts` labelled `health` about the user. Extraction can now label facts
+`health` / `finance` / `belief` (`fact-store.ts` maps them to those categories).
+The user's edits win; deletes tombstone (`memory_tombstones/{healthId}`,
+`kind: 'health'`). Apple Health / Oura / Eight Sleep data stays in the device
+integrations the user connected separately; it is not copied here.
+
+### Mood timeline
+
+Emotion detection already drives live attunement (`emotion-event-dispatcher`).
+Each reading is also handed to `recordMoodSample`, which buffers it in memory.
+Mood counts as health data: the buffer is written to
+`bogle_users/{uid}/mood_timeline/{conversationId}` (at most once a minute and
+when the conversation is summarized) only while Health is on, and is dropped as
+soon as Health goes off. Live attunement never depends on consent.
+
+A timeline holds up to 60 samples (`at`, `mood`, `valence` −1…1, `intensity`),
+`dominantMood`, `averageValence`, `arc` (`lifting` / `steady` / `heavier` /
+`mixed`) and the conversation's IDs. `buildMoodInsight` compares the last week
+with the three before and returns a gentle line ("They've seemed lighter this
+week") or nothing when there isn't enough to say. No clinical words, no
+diagnoses. Deleting a timeline tombstones it (`mood_{conversationId}`).
+
+### Prompt block
+
+`loadHealthMoodBlock(userId)` (agent-setup, parallel with the preference block,
+400 ms bound, 600-char budget): upcoming appointments, up to 4 ongoing things,
+up to 3 notes from the last week, and the mood line, ending with "Never
+diagnose or give medical advice."
+
+### HTTP API
+
+| Method | Path                        | Body                        | Response                                                                   |
+| ------ | --------------------------- | --------------------------- | -------------------------------------------------------------------------- |
+| GET    | `/api/memory/me/health`     | –                           | `{ enabled, items, safety: { allergies, intolerances, note }, updatedAt }` |
+| PATCH  | `/api/memory/me/health/:id` | `{ text?, status?, when? }` | `{ item }` (`userEdited: true`)                                            |
+| DELETE | `/api/memory/me/health/:id` | –                           | `{ deleted: true }` (tombstoned)                                           |
+| GET    | `/api/memory/me/mood`       | –                           | `{ enabled, timeline, insight }`                                           |
+| DELETE | `/api/memory/me/mood/:id`   | –                           | `{ deleted: true }` (by timeline ID or any conversation ID it carries)     |
+
+The memory page has a **Sensitive** tab: the consent question and switches,
+the allergy note, health notes (correct / forget) and the mood timeline.
 
 ## Known limits
 

@@ -17,6 +17,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getBetterThanHumanTelemetry } from '../../services/analytics/better-than-human-telemetry.js';
 import { logBTHSignal } from '../../services/analytics/bth-signal-logger.js';
+import { recordMoodSample } from '../../services/health-memory/mood-timeline.js';
 import {
   getConcernLevelFromDistress,
   CONCERN_MIN_DISTRESS,
@@ -212,6 +213,17 @@ export async function dispatchEmotionEvents(
 ): Promise<void> {
   const { emotionalState, userId, personaId } = options;
   const { distressLevel, trajectory, mismatch, primary, intensity } = emotionalState;
+
+  // Mood timeline: buffered in memory, stored only with the user's Health
+  // consent (checked on write). Live attunement below never depends on it.
+  if (userId && options.sessionId) {
+    recordMoodSample(userId, options.sessionId, {
+      mood: primary,
+      intensity,
+      distress: distressLevel,
+      personaId,
+    });
+  }
 
   // Wrap with BTH Firestore logging
   const sendDataMessage = withBTHLogging(rawSendDataMessage, {

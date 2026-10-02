@@ -186,6 +186,11 @@
       "patterns": ["recordDream", "checkDreams"]
     },
 
+    "memoryConsent": {
+      "description": "Sensitive memory consent (health, money, beliefs)",
+      "patterns": ["setMemoryConsent"]
+    },
+
     "importantDates": {
       "description": "Important dates and date reminders",
       "patterns": ["rememberSpecialDate", "listSpecialDates", "stopDateReminders", "trackImportantDate"]

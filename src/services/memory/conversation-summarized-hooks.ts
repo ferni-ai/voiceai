@@ -1,7 +1,7 @@
 /**
  * Runs everything that learns from a finished, summarized conversation:
- * personal insights (people, threads, predictions), preferences, and
- * aspirations (dreams, goals, habits).
+ * personal insights (people, threads, predictions), preferences,
+ * aspirations (dreams, goals, habits), and health & mood (with consent).
  *
  * Called from session end and from the catch-up job (dropped calls), so a
  * conversation is mined the same way however it ended. Never throws; each
@@ -48,6 +48,14 @@ export async function runConversationSummarizedHooks(
       'aspirations',
       async () => {
         const { onConversationSummarized } = await import('../aspirations/capture.js');
+        return onConversationSummarized(userId, conversationId, summary, simple);
+      },
+    ],
+    [
+      // Health & mood: only with the user's Health consent (checked inside).
+      'health-memory',
+      async () => {
+        const { onConversationSummarized } = await import('../health-memory/index.js');
         return onConversationSummarized(userId, conversationId, summary, simple);
       },
     ],

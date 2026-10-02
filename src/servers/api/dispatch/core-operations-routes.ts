@@ -33,6 +33,10 @@ import { handleMemoryRoutes } from '../../../api/memory-routes.js';
 import { handleUserPreferenceRoutes } from '../../../api/user-preferences-routes.js';
 import { handleMemoryControlRoutes } from '../../../api/memory-control-routes.js';
 import {
+  handleSensitiveMemoryRoutes,
+  isSensitiveMemoryRoute,
+} from '../../../api/sensitive-memory-routes.js';
+import {
   handleImportantDatesRoutes,
   isImportantDatesRoute,
 } from '../../../api/important-dates-routes.js';
@@ -176,6 +180,12 @@ export async function dispatchOperationsRoutes(ctx: RouteContext): Promise<boole
   // Goals, habits & dreams (user memory page) — before the generic /api/memory/me handler
   if (isAspirationsRoute(pathname)) {
     const handled = await handleAspirationsRoutes(req, res, pathname);
+    if (handled) return true;
+  }
+
+  // Sensitive memory: consent switches, health memory, mood timeline
+  if (isSensitiveMemoryRoute(pathname)) {
+    const handled = await handleSensitiveMemoryRoutes(req, res, pathname);
     if (handled) return true;
   }
 

@@ -1615,6 +1615,10 @@
       "file": "src/tools/domains/memory/tools.ts",
       "_original": "CALL immediately to delete memories. Execute without announcing. Use when user says"
     },
+    "setMemoryConsent": {
+      "description": "Switch remembering sensitive things on or off: health (including mood), finances (money) or beliefs (faith), or all. Call when the user says things like \"stop remembering my health stuff\", \"you can remember money things\", or answers yes/no to \"want me to remember things like that?\". When turning off, read the reply; if it offers to delete what is stored and the user says yes, call again with deleteExisting: true. Read the returned text as is.",
+      "file": "src/tools/domains/memory/consent-tool.ts"
+    },
     "forgetThisAboutMe": {
       "description": "Delete/forget a specific memory. Use when user wants to remove something you remember about them. Examples:.",
       "file": "src/tools/persona-memory-tools.ts",
