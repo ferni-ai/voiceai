@@ -22,6 +22,7 @@ import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { syncTravelToCalendar } from '../../../services/calendar/calendar-bridge.js';
+import { listLifeItems, recordLifeItem } from '../../../services/work-and-places/index.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -729,6 +730,26 @@ export function createTravelTools() {
 
         savedTrips.set(trip.id, trip);
 
+        // Remember the trip (survives restarts, reminded through important dates)
+        if (userId !== 'default') {
+          const sessionId = (ctx?.userData as { sessionId?: string } | undefined)?.sessionId;
+          void recordLifeItem(userId, {
+            area: 'places',
+            kind: 'trip',
+            subject: destination,
+            place: sanitizePlainText(destination, 80),
+            status: 'planned',
+            startDate: start.toISOString().slice(0, 10),
+            endDate: end.toISOString().slice(0, 10),
+            notes: notes ? sanitizePlainText(notes, 300) : undefined,
+            source: 'stated',
+            confidence: 0.95,
+            ...(sessionId ? { conversationId: sessionId } : {}),
+          }).catch((error: unknown) =>
+            getLogger().warn({ error: String(error) }, 'Could not remember trip')
+          );
+        }
+
         // Sync trip dates to calendar
         try {
           await syncTravelToCalendar(userId, trip.id, destination, start, end, {
@@ -781,9 +802,30 @@ export function createTravelTools() {
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'default';
 
-        const userTrips = Array.from(savedTrips.values())
-          .filter((t) => t.userId === userId)
-          .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+        const userTrips = Array.from(savedTrips.values()).filter((t) => t.userId === userId);
+        // Trips remembered from earlier sessions and conversations
+        if (userId !== 'default') {
+          const remembered = await listLifeItems(userId, 'places').catch(() => []);
+          for (const item of remembered) {
+            if (item.kind !== 'trip' || !item.startDate || item.startDate.length !== 10) continue;
+            const place = item.place ?? item.title;
+            if (userTrips.some((t) => t.destination.toLowerCase() === place.toLowerCase()))
+              continue;
+            userTrips.push({
+              id: item.id,
+              userId,
+              name: item.title,
+              destination: place,
+              startDate: new Date(`${item.startDate}T12:00:00Z`),
+              endDate: new Date(
+                `${item.endDate?.length === 10 ? item.endDate : item.startDate}T12:00:00Z`
+              ),
+              notes: item.notes,
+              createdAt: new Date(item.createdAt),
+            });
+          }
+        }
+        userTrips.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 
         if (userTrips.length === 0) {
           return `No trips planned yet. Say "plan a trip to [destination]" to get started!`;

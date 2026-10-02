@@ -1522,6 +1522,12 @@ async function processFinalTranscript(
       const { recordUserTurnPreferences } = await import('../../services/user-preferences/inference.js');
       await recordUserTurnPreferences(userId, event.transcript, sessionId);
     }, 'user-preference-profile');
+    // 💼 Work & places: "I just started at Beta", "flying to Lisbon next Friday"
+    fireAndForget(async () => {
+      const { recordUserTurnWorkAndPlaces } =
+        await import('../../services/work-and-places/capture.js');
+      await recordUserTurnWorkAndPlaces(userId, event.transcript, sessionId);
+    }, 'work-and-places');
   }
 
   // Extract memorable moments

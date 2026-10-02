@@ -1,6 +1,6 @@
 /**
- * Every summarized conversation feeds personal insights and preferences,
- * and one failing never stops the other.
+ * Every summarized conversation feeds personal insights, preferences and
+ * work & places, and one failing never stops the others.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,16 +8,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const h = vi.hoisted(() => ({
   insights: vi.fn(),
   prefs: vi.fn(),
+  workPlaces: vi.fn(),
 }));
 
 vi.mock('../../personal-insights/index.js', () => ({ onConversationSummarized: h.insights }));
 vi.mock('../../user-preferences/index.js', () => ({ onConversationSummarized: h.prefs }));
+vi.mock('../../work-and-places/index.js', () => ({ onConversationSummarized: h.workPlaces }));
 
 import { runConversationSummarizedHooks } from '../conversation-summarized-hooks.js';
 
 beforeEach(() => {
   h.insights.mockReset().mockResolvedValue(null);
   h.prefs.mockReset().mockResolvedValue({ applied: 0, skipped: 0 });
+  h.workPlaces.mockReset().mockResolvedValue({ applied: 0, skipped: 0 });
 });
 
 describe('runConversationSummarizedHooks', () => {
@@ -32,12 +35,14 @@ describe('runConversationSummarizedHooks', () => {
     ];
     expect(h.insights).toHaveBeenCalledWith('u1', 'c1', 'Moving to Denver', turns);
     expect(h.prefs).toHaveBeenCalledWith('u1', 'c1', 'Moving to Denver', turns);
+    expect(h.workPlaces).toHaveBeenCalledWith('u1', 'c1', 'Moving to Denver', turns);
   });
 
   it('keeps going when one hook fails, and never throws', async () => {
     h.insights.mockRejectedValue(new Error('boom'));
     await expect(runConversationSummarizedHooks('u1', 'c1', 's', [])).resolves.toBeUndefined();
     expect(h.prefs).toHaveBeenCalled();
+    expect(h.workPlaces).toHaveBeenCalled();
   });
 
   it('skips anonymous users and missing conversation ids', async () => {
@@ -45,5 +50,6 @@ describe('runConversationSummarizedHooks', () => {
     await runConversationSummarizedHooks('u1', '', 's', []);
     expect(h.insights).not.toHaveBeenCalled();
     expect(h.prefs).not.toHaveBeenCalled();
+    expect(h.workPlaces).not.toHaveBeenCalled();
   });
 });
