@@ -6,6 +6,7 @@
  * @module session-manager/validation
  */
 
+import { isEphemeralUserId } from '../../utils/ephemeral-identity.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { MAX_USER_ID_LENGTH, MIN_USER_ID_LENGTH, USER_ID_PATTERN } from './constants.js';
 
@@ -27,6 +28,10 @@ export function validateUserId(id: string | undefined): string | undefined {
     getLogger().warn({ userId: id.slice(0, 20) }, 'Invalid userId format');
     return undefined;
   }
+
+  // Per-session and placeholder ids (ephemeral:, anon:, session-…, 'unknown')
+  // must never key durable memory: no later call could find it again.
+  if (isEphemeralUserId(id)) return undefined;
 
   return id;
 }

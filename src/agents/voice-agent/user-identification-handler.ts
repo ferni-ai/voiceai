@@ -100,8 +100,10 @@ export async function identifyUser(
         await import('../../services/identity/user-identification.js');
       const identification = await identifyFromMetadata(metadata);
 
-      userId = identification.userId;
-      identificationSource = identification.source.type;
+      // An ephemeral identity (nobody we can recognise next time) runs the
+      // session without a userId, so nothing durable is keyed by the session.
+      userId = identification.isEphemeral ? undefined : identification.userId;
+      identificationSource = identification.isEphemeral ? 'ephemeral' : identification.source.type;
 
       // CRITICAL: Only use REAL names, never placeholders!
       // Priority: 1. Profile name (persistent), 2. Metadata name (if real)
