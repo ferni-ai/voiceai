@@ -21,7 +21,7 @@ import { voice, type JobContext, type llm } from '@livekit/agents';
 import { routeSayThroughModel } from '../shared/native-speech.js';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig } from '../../personas/types.js';
-import { getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
+import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { modelConfig } from '../../services/model-config.js';
@@ -70,8 +70,7 @@ import {
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
 // These were previously dynamic imports causing 500ms+ delays
 // ============================================================================
-import * as voiceManagerModule from '../../speech/voice-manager.js';
-import { resolveVoiceId } from '../../tools/handoff/voice-id-resolver.js';
+import { createPersonaTTS, createQwen3TTS } from './persona-tts.js';
 import { FerniAgent } from '../personas/ferni-agent.js';
 import {
   createRealtimeTurnContextPusher,
@@ -132,11 +131,7 @@ import {
   type VoiceHumanizationIntegration,
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
-import { loadPreferenceBlock } from '../../services/user-preferences/context-block.js';
-import { loadHealthMoodBlock } from '../../services/health-memory/context-block.js';
-import { loadWorkAndPlacesBlock } from '../../services/work-and-places/context-block.js';
-import { loadLifeStoryBlock } from '../../services/life-story/context-block.js';
-import { loadFinanceBlock } from '../../services/finance-memory/context-block.js';
+import { appendUserContextBlocks, startUserContextBlockLoads } from './user-context-blocks.js';
 
 const log = getLogger();
 
@@ -305,16 +300,9 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
   let systemPrompt: string;
   let modelBaseInstructions: string;
-  // User preference profile: fetched alongside the prompts (bounded, never throws)
-  const preferenceBlockPromise = userId ? loadPreferenceBlock(userId) : Promise.resolve('');
-  // Health & mood (only with Health consent; otherwise at most a one-line consent hint)
-  const healthBlockPromise = userId ? loadHealthMoodBlock(userId) : Promise.resolve('');
-  // Work & places (current job, upcoming trips, follow-ups): bounded, never throws
-  const workPlacesBlockPromise = loadWorkAndPlacesBlock(userId);
-  // Life story & values (faith only with consent): bounded, never throws
-  const lifeStoryBlockPromise = loadLifeStoryBlock(userId);
-  // Money (only with Money consent; respects "don't bring up" boundaries): bounded, never throws
-  const financeBlockPromise = userId ? loadFinanceBlock(userId) : Promise.resolve('');
+  // User context blocks (preferences, health, work, life story, money): started
+  // alongside the prompts; bounded, never throw (see user-context-blocks.ts)
+  const pendingContextBlocks = startUserContextBlockLoads(userId);
   try {
     mark('load_prompts_start');
     // Personal insights (people, likely topics, openers): read in parallel, never blocks
@@ -349,54 +337,13 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     // Append date/time to model base instructions (session-specific, not cached)
     modelBaseInstructions = baseInstructions + dateTimeContext;
 
-    // HOW THEY LIKE TO BE TALKED TO - name, style, boundaries (persona-agnostic,
-    // char-budgeted; see services/user-preferences/context-block.ts)
-    const preferenceBlock = await preferenceBlockPromise;
-    if (preferenceBlock) {
-      modelBaseInstructions += preferenceBlock;
-      log.info(
-        { personaId: persona.id, chars: preferenceBlock.length },
-        '🎛️ User preference profile injected'
-      );
-    }
-    const healthBlock = await healthBlockPromise;
-    if (healthBlock) {
-      modelBaseInstructions += healthBlock;
-      log.info(
-        { personaId: persona.id, chars: healthBlock.length },
-        'Health & mood memory injected'
-      );
-    }
-
-    // THEIR WORK & PLACES - job (with history), projects, trips, home; char-budgeted
-    // (see services/work-and-places/context-block.ts)
-    const workPlacesBlock = await workPlacesBlockPromise;
-    if (workPlacesBlock) {
-      modelBaseInstructions += workPlacesBlock;
-      log.info(
-        { personaId: persona.id, chars: workPlacesBlock.length },
-        '💼 Work & places context injected'
-      );
-    }
-
-    // THEIR STORY & VALUES - roots, stories told, turning points, values, faith (consent);
-    // char-budgeted (see services/life-story/context-block.ts)
-    const lifeStoryBlock = await lifeStoryBlockPromise;
-    if (lifeStoryBlock) {
-      modelBaseInstructions += lifeStoryBlock;
-      log.info(
-        { personaId: persona.id, chars: lifeStoryBlock.length },
-        '📖 Life story & values context injected'
-      );
-    }
-
-    // THEIR MONEY - debts, savings, bills, worries and wins; rounded amounts, kind
-    // follow-ups (see services/finance-memory/context-block.ts)
-    const financeBlock = await financeBlockPromise;
-    if (financeBlock) {
-      modelBaseInstructions += financeBlock;
-      log.info({ personaId: persona.id, chars: financeBlock.length }, 'Money memory injected');
-    }
+    // HOW THEY LIKE TO BE TALKED TO, then health & mood, work & places, story &
+    // values and money (char-budgeted; see user-context-blocks.ts)
+    modelBaseInstructions = await appendUserContextBlocks(
+      modelBaseInstructions,
+      pendingContextBlocks,
+      persona.id
+    );
 
     // =========================================================================
     // USER AWARENESS - Enhance model instructions with user context
@@ -2525,129 +2472,6 @@ async function buildHandoffContext(config: AgentSetupConfig): Promise<string | n
   }
 
   return parts.join('\n');
-}
-
-/**
- * Create Qwen3-TTS adapter when USE_QWEN3_OMNI is set.
- * Used by AgentSession for TTS when provider is Qwen3-Omni.
- */
-async function createQwen3TTS(personaId: string) {
-  const { Qwen3TTSAdapter } =
-    await import('../../integrations/qwen3-omni/adapters/livekit-tts-adapter.js');
-  const serverUrl = process.env.QWEN3_TTS_URL || 'http://localhost:8001';
-  return new Qwen3TTSAdapter({
-    serverUrl,
-    personaId,
-    language: 'English',
-  });
-}
-
-/**
- * Create TTS engine with persona's voice.
- * Uses the same PersonaAwareTTS pattern as voice-agent-entry.ts
- *
- * VOICE ID FIX: Use resolveVoiceId for single source of truth
- */
-async function createPersonaTTS(personaId: string) {
-  // voiceManagerModule and resolveVoiceId now hoisted to module level
-  // VOICE ID FIX: Use resolver as single source of truth
-  const voiceIdResult = resolveVoiceId({ personaId }, { logLevel: 'info' });
-  let voiceId: string;
-
-  if (voiceIdResult.success) {
-    voiceId = voiceIdResult.voiceId;
-    log.info(
-      { personaId, voiceId, source: voiceIdResult.source },
-      '🎭 Voice ID resolved via single source of truth'
-    );
-  } else {
-    // Fallback when voice ID resolution fails
-    log.warn({ personaId }, '⚠️ Voice ID resolution failed - using fallback getVoiceId');
-    voiceId = getVoiceId(personaId); // Emergency fallback
-  }
-
-  const voiceName = getPersonaDisplayName(personaId);
-
-  // Log the voice ID we're using - this is critical for debugging
-  log.info({ personaId, voiceId, voiceName }, '🎭 Creating TTS with Cartesia voice');
-
-  // Use PersonaAwareTTS (supports voice switching)
-  const baseTTS = voiceManagerModule.createPersonaAwareTTS(voiceName, {
-    voiceId,
-    accent: 'american',
-    isLocalizedVoice: false,
-  });
-
-  log.info({ personaId, ttsVoiceId: baseTTS.getVoiceId?.() || 'N/A' }, '🎭 TTS created');
-
-  // 🔊 E2E TRACING: Wrap TTS to log all synthesis calls
-  // This shows exactly when and what text is sent to TTS
-  const debugTTS =
-    process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
-
-  if (debugTTS) {
-    // Create a proxy that logs all method calls
-    const ttsProxy = new Proxy(baseTTS, {
-      get(target, prop) {
-        const value = (target as unknown as Record<string | symbol, unknown>)[prop];
-
-        // Wrap synthesize method
-        if (prop === 'synthesize' && typeof value === 'function') {
-          return async function (...args: unknown[]) {
-            const text = String(args[0] || '');
-            const timestamp = new Date().toISOString();
-            process.stderr.write(`\n${'='.repeat(60)}\n`);
-            process.stderr.write(`🔊 [TTS SYNTHESIZE] ${timestamp}\n`);
-            process.stderr.write(
-              `  📝 Text: "${text.slice(0, 200)}${text.length > 200 ? '...' : ''}"\n`
-            );
-            process.stderr.write(`  🎙️ Voice: ${voiceId}\n`);
-            process.stderr.write(`  📏 Length: ${text.length} chars\n`);
-            process.stderr.write(`${'='.repeat(60)}\n`);
-
-            const startTime = Date.now();
-            try {
-              const result = await (value as (...a: unknown[]) => unknown).apply(target, args);
-              process.stderr.write(`  ✅ TTS synthesize completed: ${Date.now() - startTime}ms\n`);
-              return result;
-            } catch (err) {
-              process.stderr.write(`  ❌ TTS synthesize FAILED: ${String(err)}\n`);
-              throw err;
-            }
-          };
-        }
-
-        // Wrap stream method
-        if (prop === 'stream' && typeof value === 'function') {
-          return function (...args: unknown[]) {
-            const timestamp = new Date().toISOString();
-            process.stderr.write(`\n🔊 [TTS STREAM START] ${timestamp}\n`);
-            process.stderr.write(`  🎙️ Voice: ${voiceId}\n`);
-
-            try {
-              const result = (value as (...a: unknown[]) => unknown).apply(target, args);
-              process.stderr.write(`  ✅ TTS stream created\n`);
-              return result;
-            } catch (err) {
-              process.stderr.write(`  ❌ TTS stream FAILED: ${String(err)}\n`);
-              throw err;
-            }
-          };
-        }
-
-        // Return other properties as-is
-        if (typeof value === 'function') {
-          return value.bind(target);
-        }
-        return value;
-      },
-    });
-
-    log.info({ personaId }, '🔊 TTS wrapped with E2E tracing');
-    return ttsProxy;
-  }
-
-  return baseTTS;
 }
 
 /**
