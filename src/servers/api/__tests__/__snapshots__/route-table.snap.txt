@@ -1150,6 +1150,30 @@ pred api/apple-iap-routes#isAppleRoute("/api/auth/migrat") -> false
 static ./static#handleStaticRoutes(req, res, "/api/auth/migrat")
 => (no response written)
 
+### GET /api/identity/probe?q=1&r=two
+mw ddos-protection#addRequestId(req, res)
+mw security-headers#setSecurityHeaders(res)
+mw cors#setCorsHeaders(req, res)
+mw identity-guard#enforceVerifiedIdentity(req)
+mw ddos-protection#handleHealthEndpoint(req, res, "/api/identity/probe", "bogle-ui")
+mw ddos-protection#handleSecurityMonitoring(req, res, "/api/identity/probe")
+mw auth-middleware#rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })
+route routes/index#handleHealthRoutes(req, res, "/api/identity/probe")
+route routes/index#handleTokenRoutes(req, res, "/api/identity/probe", URL(/api/identity/probe?q=1&r=two))
+route routes/health-sync#handleHealthSyncRoutes(req, res, "/api/identity/probe")
+route api/practice-routes#handlePracticeRoutes(req, res, "/api/identity/probe")
+route api/group-call-webhooks#handleGroupCallWebhooks(req, res, "/api/identity/probe")
+route api/engagement-routes#handleEngagementRoutes(req, res, "/api/identity/probe", URL(/api/identity/probe?q=1&r=two))
+route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/identity/probe", URL(/api/identity/probe?q=1&r=two))
+route api/identity-link-routes#default(req, res, "/api/identity/probe")
+pred api/important-dates-routes#isImportantDatesRoute("/api/identity/probe") -> false
+pred api/feedback-routes#isFeedbackRoute("/api/identity/probe") -> false
+pred api/subscription-routes#isSubscriptionRoute("/api/identity/probe") -> false
+pred api/monetization-routes#isMonetizationRoute("/api/identity/probe") -> false
+pred api/apple-iap-routes#isAppleRoute("/api/identity/probe") -> false
+static ./static#handleStaticRoutes(req, res, "/api/identity/probe")
+=> (no response written)
+
 ### GET /api/account?q=1&r=two
 mw ddos-protection#addRequestId(req, res)
 mw security-headers#setSecurityHeaders(res)
@@ -5229,6 +5253,26 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/auth/migra
 route api/migration-routes#default(req, res, "/api/auth/migrat")
 route api/auth-monitoring-routes#default(req, res, "/api/auth/migrat")
 log.error[APIServer] { error: "Error: probe failure in api/auth-monitoring-routes#default" } "Auth monitoring route error"
+=> writeHead 500 {"Content-Type":"application/json"}
+=> end {"error":"Internal server error"}
+
+### GET /api/identity/probe?q=1&r=two  [throw=api/identity-link-routes#default]
+mw ddos-protection#addRequestId(req, res)
+mw security-headers#setSecurityHeaders(res)
+mw cors#setCorsHeaders(req, res)
+mw identity-guard#enforceVerifiedIdentity(req)
+mw ddos-protection#handleHealthEndpoint(req, res, "/api/identity/probe", "bogle-ui")
+mw ddos-protection#handleSecurityMonitoring(req, res, "/api/identity/probe")
+mw auth-middleware#rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })
+route routes/index#handleHealthRoutes(req, res, "/api/identity/probe")
+route routes/index#handleTokenRoutes(req, res, "/api/identity/probe", URL(/api/identity/probe?q=1&r=two))
+route routes/health-sync#handleHealthSyncRoutes(req, res, "/api/identity/probe")
+route api/practice-routes#handlePracticeRoutes(req, res, "/api/identity/probe")
+route api/group-call-webhooks#handleGroupCallWebhooks(req, res, "/api/identity/probe")
+route api/engagement-routes#handleEngagementRoutes(req, res, "/api/identity/probe", URL(/api/identity/probe?q=1&r=two))
+route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/identity/probe", URL(/api/identity/probe?q=1&r=two))
+route api/identity-link-routes#default(req, res, "/api/identity/probe")
+log.error[APIServer] { error: "Error: probe failure in api/identity-link-routes#default" } "Identity link route error"
 => writeHead 500 {"Content-Type":"application/json"}
 => end {"error":"Internal server error"}
 

@@ -8,7 +8,7 @@
 import type { CollectionReference, DocumentData, Firestore } from '@google-cloud/firestore';
 import { err, ok } from '../../memory/result.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { deleteQuery, getDb, MEMORY_COLLECTIONS, userCollection, userRef } from './db.js';
+import { deleteQuery, getDb, MEMORY_COLLECTIONS, USERS, userCollection, userRef } from './db.js';
 import { removeAllVectors, removeGraphRecords } from './derived-stores.js';
 import { deleteAllDomains } from './domains.js';
 import { unavailable } from './facts.js';
@@ -70,6 +70,18 @@ async function resetProfileMemory(db: Firestore, userId: string): Promise<boolea
   return true;
 }
 
+/** Linked anonymous identities (identity merge) whose redirect points at this account. */
+export async function mergedIdentities(db: Firestore, userId: string): Promise<string[]> {
+  const links = await userRef(db, userId).collection('linked_identities').get();
+  const out: string[] = [];
+  for (const link of links.docs) {
+    if (link.id === userId) continue;
+    const snap = await db.collection(USERS).doc(link.id).get();
+    if (snap.data()?.mergedInto === userId) out.push(link.id);
+  }
+  return out;
+}
+
 export async function deleteAllMemories(
   userId: string
 ): Promise<MemoryControlResult<MemoryDeletionReport>> {
@@ -78,14 +90,21 @@ export async function deleteAllMemories(
   if (!db) return err(unavailable);
 
   const collections: Record<string, number> = {};
-  for (const name of MEMORY_COLLECTIONS) {
-    const col = userCollection(db, userId, name);
-    collections[name] = await deleteQuery(col, undefined, NESTED[name] ?? []);
-    await sweepCollection(db, col);
+  // Anonymous identities merged into this account may still hold memory (an
+  // unfinished merge); they are wiped too. Only ones that redirect here.
+  const owners = [userId, ...(await mergedIdentities(db, userId))];
+  for (const owner of owners) {
+    for (const name of MEMORY_COLLECTIONS) {
+      const col = userCollection(db, owner, name);
+      collections[name] =
+        (collections[name] ?? 0) + (await deleteQuery(col, undefined, NESTED[name] ?? []));
+      await sweepCollection(db, col);
+    }
   }
   await resetProfileMemory(db, userId);
 
-  const embeddings = await removeAllVectors(userId);
+  let embeddings = 0;
+  for (const owner of owners) embeddings += await removeAllVectors(owner);
   const graphRecords = await removeGraphRecords(userId, { all: true });
   const domains = await deleteAllDomains(userId);
   log.info({ collections, embeddings, graphRecords, domains }, 'All memories deleted by user');

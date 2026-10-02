@@ -28,6 +28,7 @@ export const MEMORY_COLLECTIONS = [
   'dynamic_relationships',
   'promoted_entities',
   'extraction_history',
+  'extraction_jobs',
   'extracted_facts',
   'memories',
   'memory_tombstones',

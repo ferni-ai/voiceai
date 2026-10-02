@@ -12,6 +12,12 @@ import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js'
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { handleVoiceForget } from '../../../services/memory-control/voice-forget.js';
+import {
+  formatConversationHits,
+  formatFactHits,
+  searchUserConversations,
+  searchUserFacts,
+} from '../../../memory/recall/user-memory-search.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -149,25 +155,18 @@ export const recallFromMemoryDef: ToolDefinition = {
 
         const userData = toolCtx.userData as UserData;
         const { services } = userData;
+        const userId = [userData.userId, ctx.userId].find((id) => id && id !== 'default');
 
-        if (services?.userProfile) {
-          const profile = services.userProfile;
-
-          // Check various memory stores
-          if (profile.lastConversationSummary) {
-            return `From our last conversation, I remember: ${profile.lastConversationSummary}`;
+        // This user's own remembered facts and people, ranked for the topic.
+        if (userId) {
+          const hits = await searchUserFacts(userId, topic, { maxItems: 6 });
+          if (hits.length > 0) {
+            return `What you remember about the user (use naturally; never read it out as a list):\n${formatFactHits(hits)}`;
           }
+        }
 
-          // Check if they have goals stored
-          if (profile.goals && profile.goals.length > 0) {
-            const goalSummary = profile.goals.map((g) => g.name).join(', ');
-            return `I remember you mentioned these goals: ${goalSummary}`;
-          }
-
-          // Check preferred topics
-          if (profile.preferredTopics && profile.preferredTopics.length > 0) {
-            return `I recall you've been interested in: ${profile.preferredTopics.slice(0, 3).join(', ')}`;
-          }
+        if (services?.userProfile?.lastConversationSummary) {
+          return `From our last conversation, I remember: ${services.userProfile.lastConversationSummary}`;
         }
 
         // Check session memory
@@ -206,17 +205,17 @@ export const recallPreviousConversationDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId, query }, 'Semantic recall');
 
         const userData = toolCtx.userData as UserData;
-        const { services } = userData;
+        const userId = [userData.userId, ctx.userId].find((id) => id && id !== 'default');
 
-        if (services?.searchKnowledge) {
+        // Search THIS user's past conversations (not persona knowledge).
+        if (userId) {
           try {
-            // Use semantic search on conversation history
-            const result = await services.searchKnowledge(query);
-            if (result) {
-              return `I found something relevant in my memory: ${result}`;
+            const hits = await searchUserConversations(userId, query, { maxResults: 4 });
+            if (hits.length > 0) {
+              return `From your past conversations with the user (dated; refer to them naturally):\n${formatConversationHits(hits)}`;
             }
           } catch (error) {
-            getLogger().warn({ error, query }, 'Semantic recall error');
+            getLogger().warn({ error: String(error), query }, 'Conversation recall error');
           }
         }
 

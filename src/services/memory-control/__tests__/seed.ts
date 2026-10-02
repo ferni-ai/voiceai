@@ -154,6 +154,25 @@ export function seedUser(db: FakeFirestore, vectors: FakeVectorStore, uid: strin
     metadata: { source: 'user_memory', userId: uid },
   });
 
+  // Migrated legacy fact: provenance only in legacySessionIds
+  db.seed(`${u}/dynamic_facts/f-migrated`, {
+    text: 'Plays the cello',
+    category: 'preference',
+    confidence: 0.7,
+    sourceConversationIds: [],
+    legacySessionIds: ['sess-1'],
+    userEdited: false,
+    updatedAt: new Date('2026-08-01T10:00:00Z'),
+  });
+  // Queued extraction job for c1 (holds a transcript) and one for another session
+  db.seed(`${u}/extraction_jobs/q1`, {
+    status: 'pending',
+    job: { sessionId: 'sess-1', conversationId: 'c1', transcript: 'job interview' },
+  });
+  db.seed(`${u}/extraction_jobs/q2`, {
+    status: 'pending',
+    job: { sessionId: 'sess-9', conversationId: 'c9', transcript: 'other' },
+  });
   db.seed(`${u}/extraction_history/j1`, {
     sessionId: 'sess-1',
     transcript: 'I have a job interview',

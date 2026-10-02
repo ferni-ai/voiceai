@@ -15,6 +15,7 @@ import { err, ok } from '../../memory/result.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   asString,
+  asStringArray,
   deleteQuery,
   getDb,
   removeDoc,
@@ -164,13 +165,13 @@ async function matchingDocs(
   collection: string,
   ids: readonly string[],
   fields: readonly string[],
-  arrayField?: string
+  arrayFields: readonly string[] = []
 ): Promise<Map<string, { ref: DocumentReference; data: DocumentData }>> {
   const found = new Map<string, { ref: DocumentReference; data: DocumentData }>();
   const col = userCollection(db, userId, collection);
   for (const id of ids) {
     const queries = fields.map((f) => col.where(f, '==', id));
-    if (arrayField) queries.push(col.where(arrayField, 'array-contains', id));
+    for (const f of arrayFields) queries.push(col.where(f, 'array-contains', id));
     for (const q of queries) {
       const snap = await q.get();
       for (const d of snap.docs) found.set(d.id, { ref: d.ref, data: d.data() });
@@ -201,7 +202,7 @@ async function cascadeProvenance(
       collection,
       ids,
       ['sessionId'],
-      'sourceConversationIds'
+      ['sourceConversationIds', 'legacySessionIds']
     );
     for (const { ref, data } of docs.values()) {
       const remaining = factSources(data).filter((s) => !idSet.has(s));
@@ -211,7 +212,17 @@ async function cascadeProvenance(
         else await removeDoc(ref, journal, data);
         continue;
       }
-      const updated: DocumentData = { ...data, sourceConversationIds: remaining };
+      const updated: DocumentData = {
+        ...data,
+        sourceConversationIds: asStringArray(data.sourceConversationIds).filter(
+          (s) => !idSet.has(s)
+        ),
+      };
+      if (Array.isArray(data.legacySessionIds)) {
+        updated.legacySessionIds = asStringArray(data.legacySessionIds).filter(
+          (s) => !idSet.has(s)
+        );
+      }
       if (typeof data.sessionId === 'string' && idSet.has(data.sessionId)) delete updated.sessionId;
       await writeDoc(ref, updated, journal, data);
     }
@@ -323,6 +334,12 @@ export async function deleteConversation(
 
   const history = await matchingDocs(db, userId, 'extraction_history', ids, ['sessionId']);
   for (const h of history.values()) await removeDoc(h.ref, journal, h.data);
+  // Queued extraction jobs carry the transcript and would re-learn deleted facts.
+  const jobs = await matchingDocs(db, userId, 'extraction_jobs', ids, [
+    'job.sessionId',
+    'job.conversationId',
+  ]);
+  for (const j of jobs.values()) await removeDoc(j.ref, journal, j.data);
 
   const provenance = await cascadeProvenance(db, userId, ids, reason, journal);
   embeddings += provenance.embeddings;

@@ -3170,7 +3170,7 @@
       "file": "src/tasks/finance-tasks.ts"
     },
     "recallFromMemory": {
-      "description": "CALL THIS FUNCTION to retrieve what you remember about the user. Execute silently when you need context. Use the result naturally in conversation.",
+      "description": "CALL THIS FUNCTION to retrieve what you remember about the user: facts they shared and people in their life. Execute silently when you need context. Use the result naturally in conversation.",
       "file": "src/tools/memory-tools.ts"
     },
     "recallNote": {
@@ -3178,7 +3178,7 @@
       "file": "src/tools/domains/simple-utilities/notes-tools.ts"
     },
     "recallPreviousConversation": {
-      "description": "Search your memory for relevant past conversations with this user based on a topic or theme.",
+      "description": "Search this user's past conversations with you (summaries and what was said) for a topic. Returns dated snippets with conversation ids.",
       "file": "src/tools/memory-tools.ts"
     },
     "reclaimLostHobby": {

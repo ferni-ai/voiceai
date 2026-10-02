@@ -112,6 +112,21 @@ async function deleteRoot(db: Firestore, ref: DocumentReference): Promise<void> 
   await ref.delete();
 }
 
+/** IDs in `bogle_users/{uid}/linked_identities` (written by identity merge). */
+async function linkedIdentities(
+  db: Firestore,
+  userId: string,
+  report: AccountDeletionReport
+): Promise<string[]> {
+  try {
+    const snap = await db.collection(USERS).doc(userId).collection('linked_identities').get();
+    return snap.docs.map((d) => d.id).filter((id) => id !== userId && id !== '');
+  } catch (error) {
+    report.errors.push(`linked identities: ${String(error)}`);
+    return [];
+  }
+}
+
 /** Recursively delete everything this app stores for one user. Never throws for partial failures. */
 export async function deleteUserAccountData(userId: string): Promise<AccountDeletionReport> {
   assertSafeUserId(userId);
@@ -135,7 +150,34 @@ export async function deleteUserAccountData(userId: string): Promise<AccountDele
   // Domains first: some keep data outside bogle_users/{uid} or need their own cleanup.
   report.domains = await deleteAllDomains(userId, report.errors);
 
+  // Anonymous identities merged into this account (identity merge) keep a
+  // redirect doc, and may hold data if a merge never finished. Read the links
+  // before the account root (which holds them) is deleted.
+  const linked = await linkedIdentities(db, userId, report);
+
   let remaining = false;
+  for (const anonId of linked) {
+    const ref = db.collection(USERS).doc(anonId);
+    const key = `linked:${anonId}`;
+    try {
+      const snap = await ref.get();
+      const mergedInto = snap.data()?.mergedInto;
+      // Only ever delete an identity that points at this account.
+      if (snap.exists && mergedInto !== userId) {
+        report.firestore[key] = 'absent';
+        continue;
+      }
+      await deleteRoot(db, ref);
+      if (await hasData(ref)) throw new Error('documents remain after delete');
+      report.firestore[key] = 'deleted';
+      report.embeddings += await removeAllVectors(anonId, report.errors);
+    } catch (error) {
+      remaining = true;
+      report.firestore[key] = 'failed';
+      report.errors.push(`firestore ${key}: ${String(error)}`);
+    }
+  }
+
   for (const root of USER_ROOTS) {
     const ref = db.collection(root).doc(userId);
     try {
@@ -154,7 +196,7 @@ export async function deleteUserAccountData(userId: string): Promise<AccountDele
     }
   }
 
-  report.embeddings = await removeAllVectors(userId, report.errors);
+  report.embeddings += await removeAllVectors(userId, report.errors);
   report.graphRecords = await removeGraphRecords(userId, { all: true }, report.errors);
   await deleteStorage(userId, report);
   if (report.embeddings > 0 || Object.values(report.storage).some((n) => n !== 0)) {

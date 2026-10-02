@@ -94,6 +94,22 @@ describe('deleteUserAccountData', () => {
     expect(db.paths(`${base(OTHER)}/conversations/`).length).toBeGreaterThan(0);
   });
 
+  it('also deletes anonymous identities merged into the account, never unrelated ones', async () => {
+    db.seed(`${base()}/linked_identities/device:abc`, { sourceId: 'device:abc' });
+    db.seed(`${base()}/linked_identities/device:stale`, { sourceId: 'device:stale' });
+    db.seed('bogle_users/device:abc', { mergedInto: UID });
+    db.seed('bogle_users/device:abc/conversations/half/turns/t1', { content: 'left over' });
+    db.seed('bogle_users/device:stale', { mergedInto: 'someone-else' });
+    db.seed('bogle_users/device:stale/conversations/c/turns/t1', { content: 'not ours' });
+
+    const report = await deleteUserAccountData(UID);
+    expect(report.firestore['linked:device:abc']).toBe('deleted');
+    expect(db.paths('bogle_users/device:abc')).toEqual([]);
+    expect(report.firestore['linked:device:stale']).toBe('absent');
+    expect(db.get('bogle_users/device:stale/conversations/c/turns/t1')).toBeDefined();
+    expect(report.complete).toBe(true);
+  });
+
   it('reports incomplete (never "all deleted") when a part fails', async () => {
     vectors.failWipe = true;
     h.failBucket = 'ferni-voice-messages';

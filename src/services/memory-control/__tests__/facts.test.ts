@@ -3,7 +3,11 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { factIdFor } from '../../../memory/dynamic/fact-identity.js';
+import {
+  entityIdFor,
+  factIdFor,
+  factIdForExtracted,
+} from '../../../memory/dynamic/fact-identity.js';
 import { FakeFirestore } from './fake-firestore.js';
 import { FakeVectorStore } from './fake-vector-store.js';
 import { base, OTHER, seedUser, UID } from './seed.js';
@@ -45,7 +49,14 @@ describe('listMemories', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const ids = result.value.facts.map((f) => f.id).sort();
-    expect(ids).toEqual(['explicit_x1', 'f-both', 'f-edited', 'f-legacy', 'f-only-c1']);
+    expect(ids).toEqual([
+      'explicit_x1',
+      'f-both',
+      'f-edited',
+      'f-legacy',
+      'f-migrated',
+      'f-only-c1',
+    ]);
 
     const legacy = result.value.facts.find((f) => f.id === 'f-legacy');
     expect(legacy).toMatchObject({
@@ -181,6 +192,19 @@ describe('deletePerson', () => {
     expect(db.get(`${base()}/dynamic_relationships/r1`)).toBeUndefined();
     expect(db.get(`${base()}/dynamic_facts/f-legacy`)).toBeUndefined();
     expect(db.get(`${base()}/memory_tombstones/f-legacy`)).toBeDefined();
+    // extraction checks entityIdFor(name, type) before re-adding a person
+    expect(db.get(`${base()}/memory_tombstones/${entityIdFor('Sarah', 'person')}`)).toBeDefined();
+  });
+
+  it('tombstones the id extraction computes for a legacy fact', async () => {
+    await deleteFact(UID, 'f-legacy');
+    const id = factIdForExtracted({
+      entityName: 'Sarah',
+      key: 'job',
+      value: 'nurse',
+      factType: 'attribute',
+    });
+    expect(db.get(`${base()}/memory_tombstones/${id}`)).toBeDefined();
   });
 
   it('is not_found for non-person entities and unknown ids', async () => {
@@ -224,7 +248,7 @@ describe('exportMemories', () => {
     expect(result.value.contentType).toContain('application/json');
     expect(result.value.filename).toMatch(/^ferni-memories-\d{4}-\d{2}-\d{2}\.json$/);
     const data = JSON.parse(result.value.body);
-    expect(data.facts).toHaveLength(5);
+    expect(data.facts).toHaveLength(6);
     expect(data.people).toHaveLength(1);
     const c1 = data.conversations.find(
       (c: { conversation: { id: string } }) => c.conversation.id === 'c1'
@@ -255,7 +279,7 @@ describe('deleteAllMemories', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.collections.conversations).toBe(2);
-    expect(result.value.collections.dynamic_facts).toBe(4);
+    expect(result.value.collections.dynamic_facts).toBe(5);
     expect(db.paths(`${base()}/`)).toEqual([]);
     const profile = db.get(base());
     expect(profile).toMatchObject({
@@ -270,6 +294,16 @@ describe('deleteAllMemories', () => {
     // other user untouched
     expect(db.paths(`${base(OTHER)}/`).length).toBeGreaterThan(10);
     expect([...vectors.docs.values()].filter((d) => d.metadata.userId === OTHER)).toHaveLength(2);
+  });
+
+  it('also wipes memory left under merged anonymous identities', async () => {
+    db.seed(`${base()}/linked_identities/device:abc`, { sourceId: 'device:abc' });
+    db.seed('bogle_users/device:abc', { mergedInto: UID });
+    db.seed('bogle_users/device:abc/dynamic_facts/f9', { text: 'left over' });
+    await deleteAllMemories(UID);
+    expect(db.get('bogle_users/device:abc/dynamic_facts/f9')).toBeUndefined();
+    // the link itself is account data and stays
+    expect(db.get(`${base()}/linked_identities/device:abc`)).toBeDefined();
   });
 
   it('refuses unsafe user ids', async () => {

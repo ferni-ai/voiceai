@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { safeEmitEvent } from './async-events-config.js';
+import { CaptureDedupe, captureKey } from './capture-dedupe.js';
 import { recordFastCapture } from './metrics.js';
 
 const log = createLogger({ module: 'FastCapture' });
@@ -28,6 +29,10 @@ export interface FastCaptureInput {
   timestamp?: Date;
   voiceEmotion?: string;
   personaId?: string;
+  /** Firestore conversation id (bogle_users/{uid}/conversations/{id}); fact provenance. */
+  conversationId?: string;
+  /** What the assistant said just before this turn, when the caller has it. */
+  previousAssistantTurn?: string;
 }
 
 export interface FastCaptureResult {
@@ -47,6 +52,11 @@ export interface FastCaptureResult {
   asyncJobId: string | null;
   /** Processing time in ms */
   captureTimeMs: number;
+  /**
+   * True when this utterance was already captured by another path this turn:
+   * the first capture's result is returned and nothing new is queued.
+   */
+  duplicate?: boolean;
 }
 
 export interface EntityMention {
@@ -275,7 +285,49 @@ const LINKING_PATTERNS: Array<{
  * Fast capture - extracts signals in < 50ms using regex patterns.
  * Queues deep LLM extraction for background processing.
  */
+interface RecentCapture {
+  turnNumber: number;
+  result: Promise<FastCaptureResult>;
+}
+const captureDedupe = new CaptureDedupe<RecentCapture>();
+
+/** Forget recent captures (tests). */
+export function resetCaptureDedupe(): void {
+  captureDedupe.clear();
+}
+
+/**
+ * Same turn: the paths agree on the turn number, or one of them does not
+ * track turns (the transcript handler passes 0). Two different positive turn
+ * numbers mean the user really said the same thing twice.
+ */
+function sameTurn(a: number, b: number): boolean {
+  return a === b || a <= 0 || b <= 0;
+}
+
 export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureResult> {
+  // Idempotent per turn: a second capture of the same utterance in the same
+  // session (e.g. transcript handler + TURN_INTELLIGENCE turn handler) reuses
+  // the first result and queues no second extraction job.
+  const key = captureKey(`${input.userId}:${input.sessionId}`, input.transcript ?? '');
+  const recent = captureDedupe.get(key);
+  if (recent && sameTurn(recent.turnNumber, input.turnNumber)) {
+    const first = await recent.result;
+    log.debug({ sessionId: input.sessionId }, 'fastCapture: utterance already captured this turn');
+    return { ...first, duplicate: true };
+  }
+  const result = runFastCapture(input);
+  const entry: RecentCapture = { turnNumber: input.turnNumber, result };
+  captureDedupe.delete(key);
+  captureDedupe.claim(key, entry);
+  // A failed capture must not block a retry of the same utterance.
+  result.catch(() => {
+    if (captureDedupe.get(key) === entry) captureDedupe.delete(key);
+  });
+  return result;
+}
+
+async function runFastCapture(input: FastCaptureInput): Promise<FastCaptureResult> {
   const startTime = Date.now();
   const { transcript, userId, sessionId, turnNumber, voiceEmotion, personaId } = input;
 
@@ -322,6 +374,10 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
       transcript,
       timestamp: input.timestamp || new Date(),
       personaId,
+      ...(input.conversationId ? { conversationId: input.conversationId } : {}),
+      ...(input.previousAssistantTurn
+        ? { context: { previousAssistantTurn: input.previousAssistantTurn } }
+        : {}),
       // Pass fast capture results to help guide deep extraction
       fastCaptureHints: {
         mentionedEntities,
@@ -641,6 +697,8 @@ function deduplicateMentions(mentions: EntityMention[]): EntityMention[] {
 interface DeepExtractionJob {
   userId: string;
   sessionId: string;
+  conversationId?: string;
+  context?: { previousAssistantTurn?: string };
   turnNumber: number;
   transcript: string;
   timestamp: Date;

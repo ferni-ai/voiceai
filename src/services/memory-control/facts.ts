@@ -5,7 +5,7 @@
  */
 
 import type { DocumentData, DocumentReference, Firestore } from '@google-cloud/firestore';
-import { factIdFor } from '../../memory/dynamic/fact-identity.js';
+import { entityIdFor, factIdFor, factIdForExtracted } from '../../memory/dynamic/fact-identity.js';
 import { err, ok } from '../../memory/result.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
@@ -73,7 +73,12 @@ export function factText(data: DocumentData): string {
 
 /** Conversation IDs a fact was learned from (legacy docs carry a single `sessionId`). */
 export function factSources(data: DocumentData): string[] {
-  const ids = asStringArray(data.sourceConversationIds);
+  const ids = [
+    ...new Set([
+      ...asStringArray(data.sourceConversationIds),
+      ...asStringArray(data.legacySessionIds),
+    ]),
+  ];
   if (ids.length > 0) return ids;
   const legacy = asString(data.sessionId) ?? asString(data.conversationId);
   return legacy ? [legacy] : [];
@@ -126,6 +131,14 @@ export function tombstoneIdsFor(docId: string, data: DocumentData): string[] {
   const subject = asString(data.subject) ?? asString(data.entityName);
   const predicate = asString(data.predicate) ?? asString(data.key);
   if (subject && predicate) ids.add(factIdFor({ subject, predicate }));
+  // The id extraction computes for this fact (what fact-store checks before upserting).
+  const value = asString(data.value);
+  const entityName = asString(data.entityName);
+  const key = asString(data.key);
+  if (entityName && key && value) {
+    const factType = asString(data.factType);
+    ids.add(factIdForExtracted({ entityName, key, value, ...(factType ? { factType } : {}) }));
+  }
   return [...ids];
 }
 
@@ -319,6 +332,8 @@ export async function deletePerson(
       .map((d) => ({ ref: d.ref, data: d.data() })),
   ];
   for (const d of entityDocs) await removeDoc(d.ref, journal, d.data);
+  // Extraction skips entities whose deterministic id is tombstoned.
+  if (name) await writeTombstones(db, userId, [entityIdFor(name, 'person')], reason, journal);
 
   if (name) {
     const rels = userCollection(db, userId, 'dynamic_relationships');

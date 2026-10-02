@@ -77,9 +77,10 @@ conversations: [{ conversation, turns, summaries }], summaries }`. Embedding
 
 ### Delete a fact
 
-1. Write tombstones for the doc ID and the deterministic key ID
-   (`factIdFor({ subject, predicate })` from `memory/dynamic/fact-identity.ts`),
-   so extraction can't learn the fact again from old conversations.
+1. Write tombstones for the doc ID and the deterministic IDs from
+   `memory/dynamic/fact-identity.ts`: `factIdFor({ subject, predicate })`, and
+   `factIdForExtracted(...)` for key/value facts (the ID `fact-store` checks).
+   Extraction then can't learn the fact again from old conversations.
 2. Delete the doc.
 3. Remove its embedding (`conversation_fact_<id>`).
 4. Remove its graph rows (only when Spanner is enabled).
@@ -99,7 +100,9 @@ rows are removed. Extraction must not change `text` / `category` /
 
 Removes every `dynamic_entities` person doc with that name, the
 `dynamic_relationships` that name them (`source`/`target`), and the facts about
-them (`entityName`). Those facts are tombstoned as above. Graph rows go too.
+them (`entityName`). Those facts are tombstoned as above, and the person is
+tombstoned at `entityIdFor(name, 'person')`, which extraction checks before
+re-adding an entity. Graph rows go too.
 
 ### Delete a conversation
 
@@ -112,9 +115,11 @@ The conversation is identified by its doc ID plus any `sessionId` /
    carry those IDs.
 3. Delete its summaries (`summaries` and `conversation_summaries`, matched by
    doc ID, `sessionId` or `conversationId`) and their embeddings.
-4. Delete `extraction_history` entries for it (they hold transcript snippets).
+4. Delete `extraction_history` entries for it (they hold transcript snippets),
+   and queued `extraction_jobs` whose `job.sessionId` / `job.conversationId`
+   is this conversation, so a pending job can't re-learn deleted facts.
 5. Provenance on `dynamic_facts`, `dynamic_entities` and `dynamic_relationships`
-   (`sourceConversationIds` array, legacy `sessionId`):
+   (`sourceConversationIds`, migrated facts' `legacySessionIds`, legacy `sessionId`):
    - Remove the conversation's IDs from the record.
    - If no source is left and the user never edited the fact: delete it,
      tombstone it and remove its embedding. Entities and relationships with no
@@ -135,13 +140,20 @@ tombstones. After each counted pass, Firestore `recursiveDelete` clears any
 orphaned subcollections. The profile keeps its basics (name, preferences,
 subscription, settings), but the memory lists in it (`conversationSummaries`,
 `keyMoments`, `familyMembers`, ...) are emptied and `memoryResetAt` is set. All
-of the user's vectors and graph rows are removed.
+of the user's vectors and graph rows are removed. The same memory
+subcollections are also wiped under any anonymous identity linked by identity
+merge (`linked_identities`) that still redirects (`mergedInto`) to this account,
+for example after an unfinished merge. The links themselves are kept.
 
 ### Account erasure (`deleteUserAccountData`)
 
 Firestore does not cascade deletes. The old code deleted only the profile doc
 and still said "all associated data have been deleted". Now:
 
+0. Registered memory domains run their `deleteAll`. Then every anonymous
+   identity in `linked_identities` whose `bogle_users/{anonId}` still redirects
+   here (`mergedInto == uid`) is deleted recursively, with its vectors. Stale
+   links that point elsewhere are never touched.
 1. `recursiveDelete` on `bogle_users/{uid}` and `users/{uid}` (every nested
    subcollection, including orphaned ones). Then a check that nothing remains.
 2. Every vector with `metadata.userId == uid`, paged until none are left.

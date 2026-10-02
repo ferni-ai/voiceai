@@ -213,6 +213,8 @@ export async function indexConversationSummary(
     topics: string[];
     timestamp: Date;
     embedding?: number[];
+    /** The Firestore conversation the summary describes (lets recall cite it). */
+    conversationId?: string;
   },
   vectorStore?: AnyVectorStore
 ): Promise<void> {
@@ -228,6 +230,7 @@ export async function indexConversationSummary(
       userId,
       topics: summary.topics,
       timestamp: summary.timestamp,
+      ...(summary.conversationId ? { conversationId: summary.conversationId } : {}),
     },
   };
 
@@ -290,7 +293,7 @@ export async function semanticSearch(
     source: r.document.metadata.source,
     category: r.document.metadata.category as string | undefined,
     score: r.score,
-    metadata: r.document.metadata,
+    metadata: { ...r.document.metadata, documentId: r.document.id },
   }));
 }
 

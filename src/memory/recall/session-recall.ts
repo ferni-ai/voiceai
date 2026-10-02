@@ -9,17 +9,34 @@
  * them about their dog).
  *
  * A user's memory is small (tens to low hundreds of facts), so it is loaded
- * once when the call starts and each turn is matched in memory: no network
- * on the turn path, and the reply is never interrupted to add a memory.
+ * once when the call starts (most recently updated first, user-edited facts
+ * always included) and each turn is matched in memory: no network on the
+ * turn path, and the reply is never interrupted to add a memory. Ranking
+ * (recall-ranking.ts) blends keyword overlap with semantic similarity when
+ * embeddings are available.
  *
  * @module memory/recall/session-recall
  */
 
-export interface RecallFact {
+import { toMillis } from '../dynamic/firestore-shapes.js';
+import {
+  SELF_ENTITY,
+  contentWords,
+  displayText,
+  mentions,
+  rankFacts,
+  type RankableFact,
+} from './recall-ranking.js';
+
+export { contentWords, mentions };
+
+export interface RecallFact extends RankableFact {
   entity: string;
   key: string;
   value: string;
   confidence: number;
+  /** Firestore doc id, when known. */
+  id?: string;
 }
 
 export interface RecallSnapshot {
@@ -30,77 +47,68 @@ export interface RecallSnapshot {
 
 export const EMPTY_SNAPSHOT: RecallSnapshot = { facts: [], followUps: [] };
 
-/** The entity the extractor uses for the caller themself. */
-const SELF_ENTITY = /^(speaker|user|me)$/i;
-
-const STOPWORDS = new Set(
-  'the and but for with that this was are you your have has had not just about what when where how who why can could would should will from they them their there then than into onto been being its it\'s i\'m im my our out get got going really very some like know think well yeah okay also'.split(
-    ' '
-  )
-);
-
-/** Content words: lowercase, 3+ letters, not stopwords, plural "s" dropped ("shoes" = "shoe"). */
-export function contentWords(text: string): Set<string> {
-  const words = text.toLowerCase().match(/[a-z][a-z']{2,}/g) ?? [];
-  return new Set(
-    words
-      .map((w) => w.replace(/'s$/, ''))
-      .filter((w) => !STOPWORDS.has(w))
-      .map((w) => (w.length > 3 && /[^s]s$/.test(w) ? w.slice(0, -1) : w))
-  );
+/** Identity of a fact for dedupe and "already surfaced" tracking. */
+export function factId(f: RecallFact): string {
+  if (f.id) return f.id;
+  if (!f.key && f.text) return `text:${f.text.toLowerCase()}`;
+  return `${f.entity}|${f.key}|${f.value}`.toLowerCase();
 }
 
-/** True when `phrase` appears in `text` as whole words (so "Austin" never matches "exhausting"). */
-export function mentions(text: string, phrase: string): boolean {
-  const p = phrase.trim().toLowerCase();
-  if (p.length < 2) return false;
-  const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
-  return new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`, 'i').test(text);
-}
-
-/** Same fact extracted in several sessions counts once, at its highest confidence. */
+/**
+ * Same fact extracted in several sessions counts once, at its highest
+ * confidence. Legacy duplicates (random ids, before deterministic ids) are
+ * collapsed by entity/key/value.
+ */
 export function dedupeFacts(facts: RecallFact[]): RecallFact[] {
   const best = new Map<string, RecallFact>();
   for (const f of facts) {
-    if (!f.entity || !f.value) continue;
-    const id = `${f.entity}|${f.key}|${f.value}`.toLowerCase();
+    if (!f.text && (!f.entity || !f.value)) continue;
+    const id = f.key ? `${f.entity}|${f.key}|${f.value}`.toLowerCase() : factId(f);
     const seen = best.get(id);
-    if (!seen || f.confidence > seen.confidence) best.set(id, f);
+    if (
+      !seen ||
+      (f.userEdited && !seen.userEdited) ||
+      (!seen.userEdited && f.confidence > seen.confidence)
+    ) {
+      best.set(id, f);
+    }
   }
   return [...best.values()];
 }
 
-export function factId(f: RecallFact): string {
-  return `${f.entity}|${f.key}|${f.value}`.toLowerCase();
+export interface RecallTurnOptions {
+  /** Max characters of fact text for this call. */
+  maxChars?: number;
+  /** Let the best fact through even if it alone exceeds maxChars (default true). */
+  firstAlwaysFits?: boolean;
+  queryEmbedding?: number[] | null;
+  factEmbedding?: (fact: RecallFact) => number[] | undefined;
+  minSimilarity?: number;
 }
 
 /**
  * The facts worth bringing to this turn, best first.
  *
- * A fact is relevant when the user names its entity, or shares content words
- * with it. Facts already surfaced this session are skipped so Ferni does not
- * keep repeating the same recollection.
+ * A fact is relevant when the user names its entity, shares content words
+ * with it, or (with embeddings) is close in meaning. Facts already surfaced
+ * this session are skipped so Ferni does not keep repeating itself.
  */
 export function recallForTurn(
   snapshot: RecallSnapshot,
   userText: string,
   surfaced: ReadonlySet<string> = new Set(),
-  max = 4
+  max = 4,
+  opts: RecallTurnOptions = {}
 ): RecallFact[] {
-  const words = contentWords(userText);
-  const scored: Array<{ fact: RecallFact; score: number }> = [];
-  for (const fact of snapshot.facts) {
-    if (surfaced.has(factId(fact))) continue;
-    const named = !SELF_ENTITY.test(fact.entity) && mentions(userText, fact.entity);
-    let overlap = 0;
-    for (const w of contentWords(`${fact.entity} ${fact.key} ${fact.value}`)) {
-      if (words.has(w)) overlap++;
-    }
-    if (!named && overlap === 0) continue;
-    scored.push({ fact, score: (named ? 2 : 0) + overlap * 0.5 + fact.confidence * 0.5 });
-  }
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, max).map((s) => s.fact);
+  const candidates = snapshot.facts.filter((f) => !surfaced.has(factId(f)));
+  return rankFacts(candidates, userText, {
+    maxItems: max,
+    maxChars: opts.maxChars ?? Number.POSITIVE_INFINITY,
+    firstAlwaysFits: opts.firstAlwaysFits,
+    queryEmbedding: opts.queryEmbedding,
+    factEmbedding: opts.factEmbedding as ((f: RankableFact) => number[] | undefined) | undefined,
+    minSimilarity: opts.minSimilarity,
+  }).map((r) => r.fact);
 }
 
 /** A context note for the LLM, or null when there is nothing to recall. */
@@ -112,10 +120,7 @@ export function formatRecall(
   if (facts.length === 0 && followUps.length === 0) return null;
   const who = userName || 'them';
   const lines: string[] = [`[WHAT YOU REMEMBER ABOUT ${who.toUpperCase()}]`];
-  for (const f of facts) {
-    const subject = SELF_ENTITY.test(f.entity) ? who : f.entity;
-    lines.push(`- ${subject}: ${f.key.replace(/_/g, ' ')} = ${f.value}`);
-  }
+  for (const f of facts) lines.push(`- ${displayText(f, who)}`);
   if (followUps.length > 0) {
     lines.push('Open threads from last time:');
     for (const item of followUps) lines.push(`- ${item}`);
@@ -132,26 +137,49 @@ export interface RecallStore {
   summaries(userId: string): Promise<Array<Record<string, unknown>>>;
 }
 
-const MAX_FACTS = 300;
+/** Facts kept in the snapshot (most recent first); MEMORY_RECALL_SNAPSHOT_FACTS overrides. */
+export const MAX_FACTS = 400;
 const MAX_FOLLOW_UPS = 3;
+
+/** Map a stored dynamic_facts document onto a RecallFact (legacy and contract fields). */
+export function toRecallFact(d: Record<string, unknown>): RecallFact | null {
+  const entity = String(d.entityName ?? '');
+  const key = String(d.key ?? '');
+  const value = d.value === undefined || d.value === null ? '' : String(d.value);
+  const text = typeof d.text === 'string' && d.text.trim() ? d.text.trim() : undefined;
+  if (!text && (!entity || !value)) return null;
+  const fact: RecallFact = {
+    entity: entity || 'user',
+    key,
+    value,
+    confidence: typeof d.confidence === 'number' ? d.confidence : 0.5,
+  };
+  if (typeof d.id === 'string') fact.id = d.id;
+  // An edited fact's text is what the user said; the extractor's fields are stale.
+  if (text) fact.text = text;
+  if (d.userEdited === true) fact.userEdited = true;
+  const updated = toMillis(d.updatedAt ?? d.extractedAt);
+  if (updated) fact.updatedAtMs = updated;
+  return fact;
+}
 
 /** Load a user's recall snapshot. Never throws; an unreachable store yields an empty snapshot. */
 export async function loadRecallSnapshot(
   store: RecallStore,
-  userId: string
+  userId: string,
+  maxFacts = MAX_FACTS
 ): Promise<RecallSnapshot> {
   const [rawFacts, rawSummaries] = await Promise.all([
     store.facts(userId).catch(() => []),
     store.summaries(userId).catch(() => []),
   ]);
-  const facts = dedupeFacts(
-    rawFacts.slice(0, MAX_FACTS).map((d) => ({
-      entity: String(d.entityName ?? ''),
-      key: String(d.key ?? ''),
-      value: String(d.value ?? ''),
-      confidence: typeof d.confidence === 'number' ? d.confidence : 0.5,
-    }))
-  );
+  const mapped = rawFacts.map(toRecallFact).filter((f): f is RecallFact => f !== null);
+  // Most recently updated first; edited facts always survive the cap.
+  mapped.sort((a, b) => (b.updatedAtMs ?? 0) - (a.updatedAtMs ?? 0) || b.confidence - a.confidence);
+  const edited = mapped.filter((f) => f.userEdited);
+  const rest = mapped.filter((f) => !f.userEdited).slice(0, Math.max(0, maxFacts - edited.length));
+  const facts = dedupeFacts([...edited, ...rest]);
+
   const followUps: string[] = [];
   for (const s of rawSummaries) {
     for (const item of Array.isArray(s.followUpItems) ? s.followUpItems : []) {
@@ -163,3 +191,5 @@ export async function loadRecallSnapshot(
   }
   return { facts, followUps };
 }
+
+export { SELF_ENTITY };

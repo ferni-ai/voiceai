@@ -102,7 +102,7 @@ describe('deleteConversation cascade', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     // f-only-c1 and f-legacy (sessionId sess-1) lose their only source → deleted
-    expect(result.value.deleted).toEqual({ turns: 3, facts: 2, embeddings: 2, domains: {} });
+    expect(result.value.deleted).toEqual({ turns: 3, facts: 3, embeddings: 2, domains: {} });
 
     const u = base();
     expect(db.get(`${u}/conversations/c1`)).toBeUndefined();
@@ -129,6 +129,12 @@ describe('deleteConversation cascade', () => {
       sourceConversationIds: [],
     });
     expect(db.get(`${u}/memory_tombstones/f-edited`)).toBeUndefined();
+    // migrated facts whose only provenance is legacySessionIds are deleted too
+    expect(db.get(`${u}/dynamic_facts/f-migrated`)).toBeUndefined();
+    expect(db.get(`${u}/memory_tombstones/f-migrated`)).toBeDefined();
+    // queued extraction jobs for this conversation are dropped; others stay
+    expect(db.get(`${u}/extraction_jobs/q1`)).toBeUndefined();
+    expect(db.get(`${u}/extraction_jobs/q2`)).toBeDefined();
     // explicit "remember that" facts survive
     expect(db.get(`${u}/extracted_facts/x1`)).toBeDefined();
     // entities carrying this conversation's provenance go; others stay

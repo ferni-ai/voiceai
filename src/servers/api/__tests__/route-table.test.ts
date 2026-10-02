@@ -597,6 +597,9 @@ vi.mock('../../../api/v2/index.js', () => ({
 vi.mock('../../../api/migration-routes.js', () => ({
   default: h.auto('api/migration-routes#default'),
 }));
+vi.mock('../../../api/identity-link-routes.js', () => ({
+  default: h.auto('api/identity-link-routes#default'),
+}));
 vi.mock('../../../api/account-routes.js', () => ({
   default: h.auto('api/account-routes#default'),
 }));
@@ -850,6 +853,7 @@ const ROUTE_PREFIXES = [
   '/api/v1/',
   '/api/v2/',
   '/api/auth/migrat',
+  '/api/identity/',
   '/api/account',
   '/api/session/accent',
   '/api/auth/',
