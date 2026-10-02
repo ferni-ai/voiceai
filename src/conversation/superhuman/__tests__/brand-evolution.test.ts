@@ -64,6 +64,11 @@ import {
   calculateMonthStats,
 } from '../../../services/rituals/growth-letter.js';
 
+// A Wednesday at 14:07 local: no time-of-day secret (2:22, 3:33, 4:44, 11:11)
+// or date secret (solstices, equinoxes, Friday the 13th) can fire. With
+// `new Date()` these tests failed whenever CI ran at one of those minutes.
+const ORDINARY_TIME = new Date(2026, 0, 14, 14, 7);
+
 describe('Brand Evolution Features', () => {
   beforeEach(() => {
     resetSessionSecrets();
@@ -81,7 +86,7 @@ describe('Brand Evolution Features', () => {
       const context: SecretContext = {
         userId: 'test-user',
         conversationCount: 7,
-        localTime: new Date(),
+        localTime: ORDINARY_TIME,
       };
 
       const result = checkBrandSecrets(context);
@@ -98,7 +103,7 @@ describe('Brand Evolution Features', () => {
         userId: 'test-user',
         conversationCount: 5,
         userMessage: 'Open the pod bay doors, HAL',
-        localTime: new Date(),
+        localTime: ORDINARY_TIME,
       };
 
       const result = checkBrandSecrets(context);
@@ -126,7 +131,7 @@ describe('Brand Evolution Features', () => {
       const context: SecretContext = {
         userId: 'test-user',
         conversationCount: 7,
-        localTime: new Date(),
+        localTime: ORDINARY_TIME,
       };
 
       // First check triggers it
@@ -411,7 +416,7 @@ describe('Brand Evolution Features', () => {
       processBrandEvolution({
         userId: 'test-user',
         conversationCount: 5,
-        localTime: new Date(),
+        localTime: ORDINARY_TIME,
       });
 
       // Reset should not throw
