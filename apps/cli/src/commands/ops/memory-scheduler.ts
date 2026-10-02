@@ -132,6 +132,18 @@ function getMemoryJobs(): SchedulerJob[] {
       maxBackoff: '120s',
       timeout: '120s',
     },
+    {
+      name: 'deliver-date-reminders',
+      description: 'Important-date reminders (birthdays, anniversaries, deadlines)',
+      schedule: '*/15 * * * *', // Every 15 minutes
+      timezone: 'America/Los_Angeles',
+      uri: `${CONFIG.uiServerUrl}/api/jobs/deliver-date-reminders`,
+      httpMethod: 'POST',
+      retryCount: 1,
+      minBackoff: '30s',
+      maxBackoff: '60s',
+      timeout: '300s',
+    },
     // Knowledge Graph Jobs
     {
       name: 'knowledge-graph-insights',
