@@ -259,7 +259,8 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Run integration tests
-        run: pnpm test:integration -- --reporter=verbose
+        # hanging-process names the open handles if a worker never exits.
+        run: pnpm test:integration -- --reporter=verbose --reporter=hanging-process
         env:
           NODE_ENV: test
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
