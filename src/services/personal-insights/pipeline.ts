@@ -138,10 +138,8 @@ export async function refreshPersonalInsights(
       dates.filter((d) => !d.personId || !quietIds.has(d.personId))
     );
     const fromStore = await upcomingFromStore(userId, INSIGHTS_LIMITS.upcomingWindowDays);
-    const upcomingDates = upcomingFromDetected(
-      fromStore ?? dates,
-      nowMs,
-      INSIGHTS_LIMITS.upcomingWindowDays
+    const upcomingDates = (
+      fromStore ?? upcomingFromDetected(dates, nowMs, INSIGHTS_LIMITS.upcomingWindowDays)
     ).filter((u) => !u.personId || !quietIds.has(u.personId));
     const proactivePeople = people.filter((p) => !quietIds.has(p.id) || p.memorial);
     const quietTerms = people

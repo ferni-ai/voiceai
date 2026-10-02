@@ -7,7 +7,8 @@
  * @module services/personal-insights/date-detection
  */
 
-import { DAY_MS, isSelf, stableId } from './text-utils.js';
+import { importantDateKey } from '../important-dates/identity.js';
+import { DAY_MS, isSelf } from './text-utils.js';
 import type { DetectedDate, ImportantDateKind, SourceFact } from './types.js';
 
 const MONTHS = [
@@ -216,12 +217,20 @@ export function detectDatesInFact(
   const date = recurring
     ? `--${pad(parsed.month)}-${pad(parsed.day)}`
     : `${parsed.year ?? inferYear(parsed, fact.at)}-${pad(parsed.month)}-${pad(parsed.day)}`;
-  const ownerKey = owner.personId ?? (self ? 'self' : fact.subject.toLowerCase());
-  const key = recurring ? `${ownerKey}|${kw.kind}` : `${ownerKey}|${word}|${date}`;
+  // Shared key convention with the important-dates store ("birthday:linda"),
+  // so voice, web and detection converge on one document. One-off events
+  // carry their date so two different appointments never collide.
+  const person = self ? 'self' : (owner.name ?? fact.subject);
+  const key =
+    word === 'gotcha day'
+      ? importantDateKey({ kind: 'event', person, title: 'gotcha day' })
+      : recurring
+        ? importantDateKey({ kind: kw.kind, person })
+        : importantDateKey({ kind: kw.kind, person, title: `${word} ${date}` });
 
   return [
     {
-      key: stableId('date', key),
+      key,
       title,
       date,
       recurring,

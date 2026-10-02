@@ -78,9 +78,13 @@ describe('pipeline precompute', () => {
 
   it('sends detected dates to the important-dates store and reads upcoming dates from it', async () => {
     const upsertImportantDate = vi.fn().mockResolvedValue(undefined);
-    const getUpcomingDates = vi
-      .fn()
-      .mockResolvedValue([{ title: 'Anniversary', date: '--10-04', kind: 'anniversary' }]);
+    const getUpcomingDates = vi.fn().mockResolvedValue([
+      {
+        record: { title: 'Anniversary', date: '--10-04', kind: 'anniversary' },
+        occursOn: '2026-10-04',
+        daysUntil: 2,
+      },
+    ]);
     registerImportantDatesPort({ upsertImportantDate, getUpcomingDates });
     const store = new MemoryStore(familySources());
     await refreshPersonalInsights(UID, { store, llm: null, now: () => NOW });
@@ -88,6 +92,7 @@ describe('pipeline precompute', () => {
       UID,
       expect.objectContaining({
         kind: 'birthday',
+        key: 'birthday:linda',
         date: '--10-05',
         source: 'detected',
         sourceConversationIds: ['c1'],

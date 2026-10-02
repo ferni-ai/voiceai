@@ -1,38 +1,33 @@
 /**
  * Ports to modules other agents own, with safe defaults when they are absent:
  *
- * - Important dates (`src/services/important-dates/`): detected dates are sent
- *   through `upsertImportantDate`, upcoming dates come from `getUpcomingDates`.
- *   Without it, dates stay inside people profiles and upcoming dates are
- *   computed locally.
+ * - Important dates (`src/services/important-dates/`, imported directly):
+ *   detected dates are sent through `upsertImportantDate`, upcoming dates come
+ *   from `getUpcomingDates`. If the store is unavailable (no Firestore), dates
+ *   stay inside people profiles and upcoming dates are computed locally.
  * - Proactive boundaries (`src/services/user-preferences/`):
  *   `isTopicAllowedProactively(userId, topic)` is a HARD filter on predicted
  *   topics, openers, insights and per-turn person notes. Without it,
  *   everything is allowed.
  *
- * Resolution order: an explicitly registered port (tests, or wiring code),
- * else the module loaded by path at runtime, else the default.
+ * Resolution order: an explicitly registered port (tests), else the real
+ * module (important dates) / the module loaded by path at runtime
+ * (user-preferences, not landed yet), else the default.
  *
  * @module services/personal-insights/integrations
  */
 
+import {
+  getUpcomingDates as storeUpcomingDates,
+  upsertImportantDate as storeUpsertImportantDate,
+  type ImportantDateInput,
+} from '../important-dates/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import type { DetectedDate, ImportantDateKind } from './types.js';
+import type { DetectedDate, ImportantDateKind, UpcomingDate } from './types.js';
+
+export type { ImportantDateInput };
 
 const log = createLogger({ module: 'personal-insights-integrations' });
-
-/** Exactly the important-dates contract signature. */
-export interface ImportantDateInput {
-  key: string;
-  title: string;
-  date: string;
-  recurring: boolean;
-  personId?: string;
-  kind: ImportantDateKind;
-  source: 'detected' | 'user';
-  sourceConversationIds: string[];
-  confidence: number;
-}
 
 export interface ImportantDatesPort {
   upsertImportantDate(userId: string, input: ImportantDateInput): Promise<unknown>;
@@ -79,17 +74,23 @@ async function loadModule(path: string): Promise<unknown> {
 }
 
 // Paths are variables so this builds whether or not the modules exist yet.
-const IMPORTANT_DATES_MODULE = '../important-dates/index.js';
+/** The real important-dates store behind the port (Result failures become throws). */
+const importantDatesStore: ImportantDatesPort = {
+  async upsertImportantDate(userId, input) {
+    const result = await storeUpsertImportantDate(userId, input);
+    if (!result.success) throw result.error;
+    return result.data;
+  },
+  async getUpcomingDates(userId, withinDays) {
+    const result = await storeUpcomingDates(userId, withinDays);
+    if (!result.success) throw result.error;
+    return result.data;
+  },
+};
 const USER_PREFERENCES_MODULE = '../user-preferences/index.js';
 
 export async function getImportantDatesPort(): Promise<ImportantDatesPort | null> {
-  if (datesPort !== undefined) return datesPort;
-  const mod = await loadModule(IMPORTANT_DATES_MODULE);
-  datesPort = hasFunctions(mod, ['upsertImportantDate', 'getUpcomingDates'])
-    ? (mod as ImportantDatesPort)
-    : null;
-  if (!datesPort) log.debug('Important-dates module not available: dates stay in people profiles');
-  return datesPort;
+  return datesPort === undefined ? importantDatesStore : datesPort;
 }
 
 export async function getBoundariesPort(): Promise<BoundariesPort | null> {
@@ -131,35 +132,39 @@ export async function syncDetectedDates(
   return synced;
 }
 
-/** Upcoming dates from the store, normalized; null when the store is unavailable. */
+/**
+ * Upcoming dates from the store (its own time-zone-aware day counts), or null
+ * when the store is unavailable so the caller falls back to local detection.
+ */
 export async function upcomingFromStore(
   userId: string,
   withinDays: number
-): Promise<Array<{
-  title: string;
-  date: string;
-  personId?: string;
-  kind: ImportantDateKind;
-}> | null> {
+): Promise<UpcomingDate[] | null> {
   const port = await getImportantDatesPort();
   if (!port) return null;
   try {
     const rows = await port.getUpcomingDates(userId, withinDays);
-    const out: Array<{ title: string; date: string; personId?: string; kind: ImportantDateKind }> =
-      [];
+    const out: UpcomingDate[] = [];
     for (const r of rows) {
       if (!r || typeof r !== 'object') continue;
       const row = r as Record<string, unknown>;
-      if (typeof row.title !== 'string' || typeof row.date !== 'string') continue;
-      const kind = typeof row.kind === 'string' ? (row.kind as ImportantDateKind) : 'other';
+      // Store shape: { record: { title, date, kind, personId }, daysUntil }
+      const rec = (row.record && typeof row.record === 'object' ? row.record : row) as Record<
+        string,
+        unknown
+      >;
+      if (typeof rec.title !== 'string' || typeof rec.date !== 'string') continue;
+      const daysAway = typeof row.daysUntil === 'number' ? row.daysUntil : null;
+      if (daysAway === null || daysAway < 0 || daysAway > withinDays) continue;
       out.push({
-        title: row.title,
-        date: row.date,
-        personId: typeof row.personId === 'string' ? row.personId : undefined,
-        kind,
+        title: rec.title,
+        date: rec.date,
+        daysAway,
+        personId: typeof rec.personId === 'string' ? rec.personId : undefined,
+        kind: typeof rec.kind === 'string' ? (rec.kind as ImportantDateKind) : 'other',
       });
     }
-    return out;
+    return out.sort((a, b) => a.daysAway - b.daysAway);
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Upcoming dates unavailable');
     return null;
