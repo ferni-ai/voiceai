@@ -17,7 +17,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { isActive, normalizeItem } from './rules.js';
 import { listPreferences } from './store.js';
-import type { ProactiveBoundaries, UserPreference } from './types.js';
+import type { DoNotContactWindow, ProactiveBoundaries, UserPreference } from './types.js';
 
 const log = createLogger({ module: 'UserPreferenceBoundaries' });
 
@@ -61,7 +61,10 @@ export function boundariesFrom(prefs: readonly UserPreference[]): ProactiveBound
     avoidTopics: active
       .filter((p) => p.key.startsWith('avoidTopic:'))
       .map((p) => normalizeItem(p.value)),
-    doNotContact: active.filter((p) => p.key === 'doNotContact').map((p) => p.value),
+    doNotContact: active
+      .filter((p) => p.key === 'doNotContact')
+      .map((p) => toWindow(p.value))
+      .filter((w): w is DoNotContactWindow => w !== null),
     sensitivities: active
       .filter((p) => p.key.startsWith('sensitivity:'))
       .map((p) => normalizeItem(p.value)),
@@ -126,6 +129,16 @@ function localMinutes(at: Date, timeZone?: string): number {
   }
 }
 
+function hhmm(minutes: number): string {
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+/** "9pm-8am" → { start: '21:00', end: '08:00', raw }; null if unparseable. */
+export function toWindow(raw: string): DoNotContactWindow | null {
+  const w = parseWindow(raw);
+  return w ? { start: hhmm(w.start), end: hhmm(w.end), raw } : null;
+}
+
 /** Pure: is `at` inside any do-not-contact window? */
 export function isInQuietWindow(windows: readonly string[], at: Date, timeZone?: string): boolean {
   const now = localMinutes(at, timeZone);
@@ -150,7 +163,11 @@ export async function isContactAllowedAt(
     const prefs = await listPreferences(userId);
     const zone =
       timeZone ?? prefs.find((p) => p.domain === 'practical' && p.key === 'timezone')?.value;
-    return !isInQuietWindow(boundariesFrom(prefs).doNotContact, at, zone);
+    return !isInQuietWindow(
+      boundariesFrom(prefs).doNotContact.map((w) => w.raw),
+      at,
+      zone
+    );
   } catch (error) {
     log.warn({ userId, error: String(error) }, 'Do-not-contact check failed');
     return true;

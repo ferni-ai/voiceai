@@ -143,12 +143,15 @@ export interface FactLike {
   readonly text?: string;
   readonly category?: string;
   readonly factType?: string;
+  /** B's subject; only facts about the user themself become their preferences. */
+  readonly entityName?: string;
   readonly key?: string;
   readonly value?: string;
   readonly confidence?: number;
   readonly sourceConversationIds?: readonly string[];
 }
 
+const SELF_SUBJECT = /^(the\s+)?(user|speaker|me|myself|i|caller|self)$/i;
 const MUSIC_HINT =
   /\b(music|song|band|artist|album|jazz|rock|pop|hip hop|classical|country|indie|metal)\b/i;
 const FOOD_HINT =
@@ -163,7 +166,9 @@ export function preferencesFromFacts(
 ): PreferenceInput[] {
   const out: PreferenceInput[] = [];
   for (const f of facts) {
-    const category = (f.category ?? f.factType ?? '').toLowerCase();
+    if (f.entityName && !SELF_SUBJECT.test(f.entityName.trim())) continue;
+    const isAllergyKey = /allerg/i.test(f.key ?? '');
+    const category = isAllergyKey ? 'allergy' : (f.category ?? f.factType ?? '').toLowerCase();
     if (!PREFERENCE_FACT_CATEGORIES.has(category)) continue;
     const raw = (f.value ?? f.text ?? '').trim();
     if (!raw || raw.length > 120) continue;

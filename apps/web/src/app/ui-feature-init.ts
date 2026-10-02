@@ -39,7 +39,6 @@ import { initVoiceEnrollmentUI } from '../ui/voice-enrollment.ui.js';
 import { initVoiceIdBadge } from '../ui/voice-id-badge.ui.js';
 import { initSpeakerChangeIndicator } from '../ui/speaker-change-indicator.ui.js';
 import { initHouseholdManager } from '../ui/household-manager.ui.js';
-import { initConversationMemory } from '../ui/conversation-memory.ui.js';
 import { initWellbeingDashboard } from '../ui/wellbeing-dashboard.ui.js';
 import { initLifeContextDashboard } from '../ui/life-context-dashboard.ui.js';
 import { initServiceHealthUI } from '../ui/service-health.ui.js';
@@ -348,7 +347,6 @@ export function initFeatureUI(): void {
   safeInit('HouseholdManager', () => initHouseholdManager());
 
   // 💭 Conversation Memory - Browse past conversations and memories
-  safeInit('ConversationMemory', () => initConversationMemory());
 
   // 🌈 Wellbeing Dashboard - "State of Me" visualization
   safeInit('WellbeingDashboard', () => initWellbeingDashboard());

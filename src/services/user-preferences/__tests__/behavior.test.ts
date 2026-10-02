@@ -111,6 +111,22 @@ describe('boundaries (hard constraints for proactive behaviour)', () => {
   });
 });
 
+describe('important-dates adapter compatibility', () => {
+  it('G reads do-not-contact windows as { start, end } HH:MM', async () => {
+    const { doNotContactWindows } = await import('../../important-dates/boundaries-adapter.js');
+    await store.upsertPreference(U, {
+      domain: 'boundaries',
+      key: 'doNotContact',
+      value: '9pm-8am',
+      source: 'explicit',
+      confidence: 1,
+    });
+    const b = await getProactiveBoundaries(U);
+    expect(b.doNotContact).toEqual([{ start: '21:00', end: '08:00', raw: '9pm-8am' }]);
+    expect(doNotContactWindows(b)).toEqual([{ start: 21 * 60, end: 8 * 60 }]);
+  });
+});
+
 describe('session-start block', () => {
   async function seed(): Promise<void> {
     await store.upsertPreference(U, {
@@ -211,14 +227,12 @@ describe('session-start block', () => {
 
   it('returns empty (not throwing) for anonymous users and on timeout', async () => {
     expect(await loadPreferenceBlock('anonymous')).toBe('');
-    const spy = vi
-      .spyOn(store, 'listPreferences')
-      .mockImplementationOnce(
-        () =>
-          new Promise(() => {
-            /* never resolves */
-          })
-      );
+    const spy = vi.spyOn(store, 'listPreferences').mockImplementationOnce(
+      () =>
+        new Promise(() => {
+          /* never resolves */
+        })
+    );
     expect(await loadPreferenceBlock(U, { timeoutMs: 20 })).toBe('');
     spy.mockRestore();
   });
@@ -305,11 +319,27 @@ describe('capture', () => {
       { id: 'b', factType: 'preference', key: 'food', value: 'spicy ramen', confidence: 0.8 },
       { id: 'c', text: 'Works at a bank', category: 'work' },
       { id: 'd', text: 'pottery', category: 'hobby' },
+      {
+        id: 'e',
+        entityName: 'Biscuit',
+        category: 'preference',
+        key: 'likes',
+        value: 'tennis balls',
+      },
+      {
+        id: 'f',
+        entityName: 'user',
+        category: 'personal',
+        key: 'allergy',
+        value: 'penicillin',
+        text: 'User: allergy is penicillin',
+      },
     ]);
     expect(out.map((p) => `${p.domain}.${p.key}.${p.sentiment ?? ''}`)).toEqual([
       'media.genre:country music.dislike',
       'food.dish:spicy ramen.like',
       'interests.interest:pottery.',
+      'food.allergy:penicillin.',
     ]);
   });
 

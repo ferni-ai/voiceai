@@ -1450,6 +1450,7 @@ async function processFinalTranscript(
         turnNumber: 0, // Transcript handler doesn't track turn numbers
         transcript: event.transcript,
         personaId: userData.personaId,
+        conversationId: services?.realtimeConversationId, // fact provenance
       });
 
       // 🧠 CRITICAL: Record to STM buffer for session context

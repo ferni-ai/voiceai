@@ -297,6 +297,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'proactive-session-context', // E2E: Proactive check-in call trigger and opener guidance
     'family-messages-context', // Pending messages from family phone callers
     'family-awareness-context', // Mutual awareness between family members and sponsors
+    'special-dates-awareness', // Important dates coming up / reminders due (in-conversation channel)
     'session-gap-awareness', // E2E: Days since last session with reconnection guidance
     'tool-failure-awareness', // E2E: Recent tool failures for honest acknowledgment
     'routine-awareness', // E2E: "What I Do For You" automated routines awareness

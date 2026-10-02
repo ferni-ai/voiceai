@@ -135,7 +135,6 @@ import '../ui/voice-id-badge.ui.js';
 import '../ui/speaker-change-indicator.ui.js';
 import '../ui/family-identities.ui.js';
 import '../ui/household-manager.ui.js';
-import '../ui/conversation-memory.ui.js';
 import '../ui/wellbeing-dashboard.ui.js';
 import '../ui/life-context-dashboard.ui.js';
 import '../ui/service-health.ui.js';

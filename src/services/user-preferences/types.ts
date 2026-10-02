@@ -222,11 +222,23 @@ export interface UpsertResult {
   readonly reason?: string;
 }
 
+/** A quiet window in the user's local time; `start > end` wraps past midnight. */
+export interface DoNotContactWindow {
+  /** 'HH:MM' (24h) */
+  readonly start: string;
+  /** 'HH:MM' (24h) */
+  readonly end: string;
+  /** 0 = Sunday … 6 = Saturday; absent = every day. */
+  readonly days?: readonly number[];
+  /** As the user said it, e.g. "9pm-8am". */
+  readonly raw: string;
+}
+
 export interface ProactiveBoundaries {
   /** Topics Ferni must not raise on its own (normalised, lowercase). */
   readonly avoidTopics: readonly string[];
   /** Raw do-not-contact windows, e.g. "21:00-08:00" in the user's local time. */
-  readonly doNotContact: readonly string[];
+  readonly doNotContact: readonly DoNotContactWindow[];
   /** Things to handle gently (not banned, but never joked about / pushed). */
   readonly sensitivities: readonly string[];
 }

@@ -16,6 +16,7 @@
 import { getDefaultStore, type MemoryStore } from '../../memory/index.js';
 import { createUserId, type UserId } from '../../types/branded.js';
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
+import { isDurableUserId } from '../../utils/ephemeral-identity.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   authenticateNaturally,
@@ -140,6 +141,8 @@ export interface IdentificationResult {
   sponsoredIdentityId?: string;
   /** For sponsored identities: whether voice is enrolled */
   voiceEnrolled?: boolean;
+  /** No stable identity: the session must not write durable memory. */
+  isEphemeral?: boolean;
 }
 
 /**
@@ -335,14 +338,16 @@ export async function identifyByWebAuth(
 export async function identifyFromMetadata(
   metadata: Record<string, unknown>
 ): Promise<IdentificationResult> {
-  // Priority 1: Explicit user ID
+  // Priority 1: Explicit user ID (server-side dispatch). Placeholders such as
+  // 'unknown' / 'anonymous' are shared by many callers and never used.
   const explicitUserId = metadata.user_id || metadata.userId;
-  if (explicitUserId && typeof explicitUserId === 'string') {
-    const store = getStore();
-    const profile = await store.getProfile(explicitUserId);
+  if (explicitUserId && typeof explicitUserId === 'string' && isDurableUserId(explicitUserId)) {
+    const { resolveVerifiedIdentity } = await import('./identity-resolution.js');
+    const resolved = (await resolveVerifiedIdentity(explicitUserId)).userId;
+    const profile = await getStore().getProfile(resolved);
 
     return {
-      userId: createUserId(explicitUserId),
+      userId: createUserId(resolved),
       isNew: !profile,
       isReturning: profile ? profile.totalConversations > 0 : false,
       profile,
@@ -351,82 +356,25 @@ export async function identifyFromMetadata(
     };
   }
 
-  // Priority 2: Firebase UID (primary identifier for web users)
-  // This is the cryptographically secure Firebase User ID
+  // Priority 2: Firebase UID (primary identifier for web and app users).
+  // Verified by the token server. An anonymous uid that was later merged into
+  // a signed-in account resolves to that account.
   const firebaseUid = metadata.firebase_uid || metadata.firebaseUid;
   if (firebaseUid && typeof firebaseUid === 'string') {
-    const store = getStore();
-    let profile = await store.getProfile(firebaseUid);
+    const { resolveVerifiedIdentity, claimDeviceForAccount } =
+      await import('./identity-resolution.js');
+    const accountUid = (await resolveVerifiedIdentity(firebaseUid)).userId;
 
-    // AUTO-MIGRATION: If Firebase UID has no profile but device ID exists,
-    // migrate the device profile to Firebase UID for seamless continuity
+    // The device's earlier anonymous memory follows the account, whether or not
+    // the account already has a profile (first account to claim it wins).
     const deviceId = metadata.device_id || metadata.deviceId;
-    if (!profile && deviceId && typeof deviceId === 'string') {
-      const deviceUserId = `device:${deviceId}`;
-      const deviceProfile = await store.getProfile(deviceUserId);
-
-      if (deviceProfile && deviceProfile.totalConversations > 0) {
-        // Found a legacy device profile - migrate it!
-        getLogger().info(
-          {
-            firebaseUid: `${firebaseUid.slice(0, 8)}...`,
-            deviceId: `${deviceId.slice(0, 12)}...`,
-            conversations: deviceProfile.totalConversations,
-            name: deviceProfile.name || '(none)',
-          },
-          '🔄 AUTO-MIGRATION: Migrating device profile to Firebase UID'
-        );
-
-        try {
-          const { migrateUserData } = await import('../user-migration.js');
-          const result = await migrateUserData({
-            deviceId: deviceUserId,
-            firebaseUid,
-            displayName: deviceProfile.name,
-            email: deviceProfile.contactInfo?.email,
-          });
-
-          if (result.success) {
-            // Re-fetch the newly migrated profile
-            profile = await store.getProfile(firebaseUid);
-            getLogger().info(
-              {
-                firebaseUid: `${firebaseUid.slice(0, 8)}...`,
-                conversations: result.conversationsMigrated,
-                memories: result.memoriesMigrated,
-                action: result.profileAction,
-              },
-              '✅ AUTO-MIGRATION: Successfully migrated device profile'
-            );
-
-            // Also run comprehensive subcollection linking (catches any collections the old migration missed)
-            try {
-              const { autoLinkOnAuth } = await import('./identity-linking.js');
-              await autoLinkOnAuth(deviceId, firebaseUid);
-            } catch (linkError) {
-              // Non-fatal - old migration already handled the critical data
-              getLogger().debug(
-                { error: String(linkError) },
-                'Comprehensive identity linking failed (non-fatal)'
-              );
-            }
-          } else {
-            getLogger().warn(
-              { firebaseUid: `${firebaseUid.slice(0, 8)}...`, error: result.error },
-              '⚠️ AUTO-MIGRATION: Migration failed, continuing with new profile'
-            );
-          }
-        } catch (migrationError) {
-          getLogger().error(
-            { error: String(migrationError), firebaseUid: `${firebaseUid.slice(0, 8)}...` },
-            '❌ AUTO-MIGRATION: Error during migration (continuing with new profile)'
-          );
-        }
-      }
+    if (deviceId && typeof deviceId === 'string') {
+      await claimDeviceForAccount(deviceId, accountUid);
     }
 
+    const profile = await getStore().getProfile(accountUid);
     return {
-      userId: createUserId(firebaseUid),
+      userId: createUserId(accountUid),
       isNew: !profile,
       isReturning: profile ? profile.totalConversations > 0 : false,
       profile,
@@ -465,16 +413,22 @@ export async function identifyFromMetadata(
     };
   }
 
-  // Priority 6: Anonymous session (truly unknown users)
-  const sessionId = (metadata.session_id as string) || `anon:${Date.now()}`;
+  // Priority 6: No stable identity at all. Never key memory by the session:
+  // the session gets an explicit ephemeral id and durable writers skip it.
+  const { ephemeralIdentity } = await import('./identity-resolution.js');
+  const ephemeralId = ephemeralIdentity(
+    typeof metadata.session_id === 'string' ? metadata.session_id : undefined,
+    typeof metadata.source === 'string' ? metadata.source : undefined
+  );
 
   return {
-    userId: createUserId(sessionId),
+    userId: createUserId(ephemeralId),
     isNew: true,
     isReturning: false,
     profile: null,
-    source: { type: 'anonymous', identifier: sessionId as string },
+    source: { type: 'anonymous', identifier: ephemeralId },
     linkedIdentifiers: [],
+    isEphemeral: true,
   };
 }
 
